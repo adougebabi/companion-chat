@@ -59,14 +59,22 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0034_tool_execution_source" || PreviousHead != InitializationSourceHead {
+	if Head != "0035_working_persona" || PreviousHead != ToolExecutionSourceHead {
 		t.Fatalf("Head = %q", Head)
 	}
 }
 
+func TestWorkingPersonaMigrationKeepsSourceAndRulesVersions(t *testing.T) {
+	for _, fragment := range []string{"fluctlight_working_personas", "source_revision", "source_hash", "overlay_revision", "rules_version", "budget_runes", "compiled_json", "PRIMARY KEY(fluctlight_id,profile_id)"} {
+		if !strings.Contains(workingPersonaSchemaSQL, fragment) {
+			t.Fatalf("Working Persona migration missing %q", fragment)
+		}
+	}
+}
+
 func TestInitializationSourceMigrationIsAppendOnlyAndOwnerScoped(t *testing.T) {
-	if InitializationSourceHead != "0033_initialization_source" || PreviousHead != InitializationSourceHead {
-		t.Fatalf("initialization source migration chain previous=%q head=%q", PreviousHead, InitializationSourceHead)
+	if InitializationSourceHead != "0033_initialization_source" || ToolExecutionSourceHead != "0034_tool_execution_source" {
+		t.Fatalf("initialization source migration chain tool=%q initialization=%q", ToolExecutionSourceHead, InitializationSourceHead)
 	}
 	for _, fragment := range []string{
 		"fluctlight_initialization_sources", "fluctlight_initialization_source_links",
@@ -569,7 +577,7 @@ func TestMigrationBridgeAcceptsOnlyReleasedHead(t *testing.T) {
 	if Head == ReleasedHead {
 		t.Fatal("bridge head must differ from current Go head")
 	}
-	if PreviousHead != InitializationSourceHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
+	if PreviousHead != ToolExecutionSourceHead || ToolExecutionSourceHead == InitializationSourceHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
 		t.Fatalf("Initialization/Prompt/Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q prompt=%q evolution=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, PromptContextMemoryHead, EvolutionAuthorityHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
 	}
 	if CapabilityRuntimePreviousHead != "0025_llm_queue" || CapabilityRuntimeHead != "0026_capability_runtime" {

@@ -391,7 +391,19 @@ func TestPostgresInitializationAnalysisAuthoritySerializesLatestSourceAndReplay(
 			t.Fatal(err)
 		}
 	}
-	app := &core.App{DB: repository}
+	compilerServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		portrait := map[string]any{"profile_id": "default", "facts": []any{map[string]any{"category": "identity", "text": "S11", "source_refs": []any{"identity.name"}}}, "omissions": []any{}}
+		content, _ := json.Marshal(portrait)
+		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": string(content)}}}})
+	}))
+	t.Cleanup(compilerServer.Close)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES('s11-compiler','openai_compatible',$1,'s11-compiler-secret','ready',now())`, compilerServer.URL); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('initialization','s11-compiler','s11-compiler-model','structured_output',8192,30,'{}')`); err != nil {
+		t.Fatal(err)
+	}
+	app := &core.App{DB: repository, Provider: &core.ProviderClient{DB: repository, HTTP: compilerServer.Client()}}
 	if _, err := app.CreateFluctlight(ctx, ownerActorID, "fluctlight-s11-stale", "S11", "llm_defined", olderSourceID, s11InitializationFoundation("S11"), nil, nil); !errors.Is(err, core.ErrActivationAnalysisStale) {
 		t.Fatalf("older analysis activation error = %v, want activation_analysis_stale", err)
 	}

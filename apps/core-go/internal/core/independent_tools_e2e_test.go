@@ -27,6 +27,7 @@ var independentToolProductInventory = []string{
 	"memory.recall",
 	"memory_event",
 	"moment.publish",
+	"persona.detail",
 	"persona.switch",
 	"persona.takeover",
 	"presence_event",
@@ -76,7 +77,7 @@ func TestIndependentToolE2EFixedProductInventory(t *testing.T) {
 	}
 	for _, name := range []string{"scene_event", "presence_event", "schedule.replan", "affect_event", "relationship.lookup", "capability.request", "visual_identity.initialize", "visual_identity.generate_candidate", "visual_identity.commit_review", "visual_identity.finalize"} {
 		if _, ok := registry.Definition(name); !ok {
-			t.Errorf("remaining independent Tool %q is absent from the fixed 18-Tool product registry", name)
+			t.Errorf("remaining independent Tool %q is absent from the fixed product registry", name)
 		}
 	}
 }

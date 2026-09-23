@@ -259,7 +259,8 @@ func (service *personaActionBusinessService) applyPersonaActionTx(ctx context.Co
 		targetID := stringValue(plan.Arguments["target_profile_id"])
 		if targetID != "" {
 			var rawPersona []byte
-			if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, plan.FluctlightID).Scan(&rawPersona); err != nil {
+			var sourceRevision int
+			if err := tx.QueryRow(ctx, `SELECT core_persona,current_revision FROM public.fluctlights WHERE id=$1`, plan.FluctlightID).Scan(&rawPersona, &sourceRevision); err != nil {
 				return failedCapabilityResult(invocation, "persona_context_read_failed", true), err
 			}
 			for _, raw := range arrayValue(mapValue(decodeObject(rawPersona)["personality_system"])["profiles"]) {
@@ -275,9 +276,17 @@ func (service *personaActionBusinessService) applyPersonaActionTx(ctx context.Co
 					if composeErr != nil {
 						return failedCapabilityResult(invocation, "persona_overlay_invalid", true), composeErr
 					}
-					working := cloneMap(profile)
-					working["personality"], working["behavioral_policy"] = effective.Personality, effective.BehaviorPolicy
+					compiled, loadErr := loadCompiledWorkingPersonaVersion(ctx, tx, plan.FluctlightID, targetID, sourceRevision, persona, map[string]any{
+						"portrait_overlay_revision": portraitOverlayRevision(state), "personality": effective.Personality, "behavioral_policy": effective.BehaviorPolicy,
+					})
+					if loadErr != nil {
+						return failedCapabilityResult(invocation, "working_persona_unavailable", true), loadErr
+					}
+					working := renderCompiledWorkingPersona(compiled)
+					working["id"] = targetID
 					output["working_persona"] = working
+					output["working_persona_source_revision"] = sourceRevision
+					output["working_persona_overlay_revision"] = portraitOverlayRevision(state)
 					break
 				}
 			}

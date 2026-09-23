@@ -34,6 +34,10 @@ type ToolExecutionRequest struct {
 	EvidenceID           string
 	Surface              CapabilitySurface
 	Arguments            json.RawMessage
+	// ExpectedCorePersonaRevision binds read-only persona detail calls to the
+	// source version that produced the Agent's prompt. Direct callers may omit it.
+	ExpectedCorePersonaRevision *int
+	ExpectedOverlayRevision     *int
 }
 
 // DirectToolTarget carries the application-authorized resource binding which
@@ -92,6 +96,12 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	resource, authorizationErr := a.DB.GetFluctlight(ctx, strings.TrimSpace(request.FluctlightID), strings.TrimSpace(request.AuthorizationActorID))
 	if authorizationErr != nil {
 		return ToolExecutionReceipt{}, fmt.Errorf("authorize tool resource: %w", authorizationErr)
+	}
+	if request.CapabilityName == personaDetailCapabilityName && request.ExpectedCorePersonaRevision != nil {
+		ctx = context.WithValue(ctx, personaDetailRevisionContextKey{}, *request.ExpectedCorePersonaRevision)
+	}
+	if request.CapabilityName == personaDetailCapabilityName && request.ExpectedOverlayRevision != nil {
+		ctx = context.WithValue(ctx, personaDetailOverlayContextKey{}, *request.ExpectedOverlayRevision)
 	}
 	if request.WorkingProfileID != "" {
 		profiles := personalityProfileIDs(resource.CorePersona)

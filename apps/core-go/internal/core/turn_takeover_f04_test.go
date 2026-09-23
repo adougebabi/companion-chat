@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestDeclaredPersonaTakeoverReturnsAuthoritativeWorkingPersonaWithoutPersistentWrite(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
@@ -19,7 +22,7 @@ func TestDeclaredPersonaTakeoverReturnsAuthoritativeWorkingPersonaWithoutPersist
 		t.Fatalf("receipt=%#v err=%v", receipt, err)
 	}
 	working := mapValue(mapValue(receipt.Result.Output)["working_persona"])
-	if stringValue(working["id"]) != "twilight" || stringValue(mapValue(working["personality"])["signature_phrase"]) != takeoverChainTwilightMarker {
+	if stringValue(working["id"]) != "twilight" || !strings.Contains(jsonString(mapValue(working["working_persona"])), takeoverChainTwilightMarker) || len(mapValue(working["personality"])) != 0 {
 		t.Fatalf("working persona=%#v", working)
 	}
 	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "spark" {

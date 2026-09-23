@@ -108,15 +108,21 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	if composerErr != nil {
 		return PromptAssemblyResult{}, projection, composerErr
 	}
+	compiled, err := a.loadCompiledWorkingPersona(ctx, projection)
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
+	workingPersona := renderCompiledWorkingPersona(compiled)
 	result, err := composer.ComposeAssembly(PromptAssemblyInput{
-		Role: role, OperationRules: operationRules, CorePersona: systemPersonaForProjection(projection, schemaName),
+		Role: role, OperationRules: operationRules, CorePersona: systemPersonaForProjectionWithWorking(projection, schemaName, workingPersona),
 		WorkingMemory: workingMemory, CurrentInput: currentInput, Tools: RenderCapabilityTools(definitions),
 		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,
 	})
 	if err == nil {
 		result.Diagnostics = map[string]any{
 			"fluctlight_id": projection.FluctlightID, "conversation_id": projection.ConversationID,
-			"prompt_budget": result.Trace, "working_memory": workingMemory.Trace,
+			"working_persona": map[string]any{"profile_id": compiled.ProfileID, "source_revision": compiled.SourceRevision, "source_hash_prefix": compiled.SourceHash[:12], "overlay_revision": compiled.OverlayRevision, "rules_version": compiled.RulesVersion, "budget_runes": compiled.BudgetRunes, "cache_hit": false},
+			"prompt_budget":   result.Trace, "working_memory": workingMemory.Trace,
 			"active_memory": activeResult.Trace, "long_term_memory": projection.MemoryRetrievalTrace,
 			"conversation_summary": summaryTrace,
 		}

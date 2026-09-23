@@ -133,7 +133,8 @@ func (a *App) rescopeEffectivePersona(ctx context.Context, scoped *ContextProjec
 	}
 	scoped.EffectivePersona = map[string]any{
 		"profile_id": owner, "profile_ref": effective.ProfileRef, "authority_revision": effective.AuthorityRevision,
-		"personality": effective.Personality, "behavioral_policy": effective.BehaviorPolicy,
+		"portrait_overlay_revision": portraitOverlayRevision(state),
+		"personality":               effective.Personality, "behavioral_policy": effective.BehaviorPolicy,
 	}
 	scoped.EvolutionOverlays = overlays
 	return nil

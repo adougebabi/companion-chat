@@ -300,6 +300,24 @@ func (a *App) processReflectionV2(
 		overlayDecisions[candidatePlan.CandidateID] = decision
 		workingOverlayState = nextState
 	}
+	var compiledOverlayPersona *CompiledWorkingPersona
+	if workingOverlayState.Revision != overlayState.Revision {
+		effective, composeErr := ComposeEffectivePersona(workingOverlayState)
+		if composeErr != nil {
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+			return nil, composeErr
+		}
+		item, compileErr := a.CompileWorkingPersona(ctx, PersonaCompilationInput{
+			CorePersona: corePersonaData(projection.CorePersona), ProfileID: workingOverlayState.ProfileID,
+			EffectivePersona: map[string]any{"personality": effective.Personality, "behavioral_policy": effective.BehaviorPolicy},
+			SourceRevision:   projection.CorePersonaRevision, OverlayRevision: portraitOverlayRevision(workingOverlayState),
+		})
+		if compileErr != nil {
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+			return nil, compileErr
+		}
+		compiledOverlayPersona = &item
+	}
 	hydrateReflectionChangedRefs(&plan, proposal, evolution, overlayDecisions)
 	activeMemoryCommands, err := compileReflectionActiveMemoryCommands(reflectionV2AcceptedActiveMemoryCandidates(proposal, plan), reflectionActiveMemoryCompileRequest{
 		FluctlightID: fluctlightID, OwnerActorID: ownerActorID,
@@ -354,6 +372,15 @@ func (a *App) processReflectionV2(
 		if latestStateRevision != stateRevision {
 			return ErrConflict
 		}
+		if compiledOverlayPersona != nil {
+			var currentPersonaRevision int
+			if err := tx.QueryRow(ctx, `SELECT current_revision FROM public.fluctlights WHERE id=$1 FOR SHARE`, fluctlightID).Scan(&currentPersonaRevision); err != nil {
+				return err
+			}
+			if currentPersonaRevision != compiledOverlayPersona.SourceRevision {
+				return ErrConflict
+			}
+		}
 		activeMemoryResults, err = a.applyReflectionActiveMemoryCommandsTx(ctx, tx, activeMemoryCommands)
 		if err != nil {
 			return err
@@ -402,6 +429,17 @@ func (a *App) processReflectionV2(
 				return persistErr
 			}
 			liveOverlayState = nextState
+		}
+		if compiledOverlayPersona != nil {
+			if portraitOverlayRevision(liveOverlayState) != compiledOverlayPersona.OverlayRevision {
+				return ErrConflict
+			}
+			if err := verifyCompiledBudgetTx(ctx, tx, []CompiledWorkingPersona{*compiledOverlayPersona}); err != nil {
+				return err
+			}
+			if err := insertCompiledWorkingPersonasTx(ctx, tx, fluctlightID, []CompiledWorkingPersona{*compiledOverlayPersona}); err != nil {
+				return err
+			}
 		}
 		nextCoordinator, applyResult, err = ApplyReflectionPlan(coordinator, plan, nil)
 		if err != nil {

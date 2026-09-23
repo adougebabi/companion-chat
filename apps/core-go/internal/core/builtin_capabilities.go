@@ -69,6 +69,7 @@ type scheduleReplanCapability struct {
 type memoryEventCapability struct{ service memoryCapabilityService }
 type activeMemoryEventCapability struct{ service activeMemoryCapabilityService }
 type memoryRecallCapability struct{ service MemoryRecallService }
+type personaDetailCapability struct{ service personaDetailService }
 type affectEventCapability struct{ service affectCapabilityService }
 type relationshipLookupCapability struct{ service *relationshipLookupService }
 type capabilityRequestCapability struct{ service *capabilityRequestService }
@@ -123,6 +124,7 @@ func builtinCapabilities(app *App) []Capability {
 		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
 		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},
 		memoryRecallCapability{service: newMemoryRecallService(app)},
+		personaDetailCapability{service: newPersonaDetailService(app)},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
 		capabilityRequestCapability{service: &capabilityRequestService{app: app}},
 		personaActionCapability{name: personaTakeoverCapabilityName, service: personaActions},
@@ -142,6 +144,7 @@ var (
 	_ Capability                   = memoryEventCapability{}
 	_ Capability                   = activeMemoryEventCapability{}
 	_ Capability                   = memoryRecallCapability{}
+	_ Capability                   = personaDetailCapability{}
 	_ Capability                   = affectEventCapability{}
 	_ Capability                   = relationshipLookupCapability{}
 	_ Capability                   = capabilityRequestCapability{}

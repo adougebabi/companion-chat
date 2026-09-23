@@ -340,10 +340,15 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(proposal)}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}
-	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: providerHTTP}}
+	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: &http.Client{Transport: withControlledPersonaCompilation(providerHTTP.Transport)}}}
+	seedLegacyTestWorkingPersonas(t, app)
 	first, err := app.ProcessReflection(ctx, fluctlightID, "reflection-correlation-1")
 	if err != nil || stringValue(first["status"]) != "applied" || intValue(mapValue(mapValue(first["memory"])["counts"])["applied"]) != 1 {
 		t.Fatalf("first Reflection=%#v err=%v", first, err)
+	}
+	var portraitRuns int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.diagnostic_model_runs WHERE scenario='persona_compilation'`).Scan(&portraitRuns); err != nil || portraitRuns != 0 {
+		t.Fatalf("Memory-only Reflection recompiled persona %d times: %v", portraitRuns, err)
 	}
 	var memoryID, conversationID string
 	var revision int
@@ -537,7 +542,8 @@ func TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically(t *tes
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(proposal)}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}
-	app.Provider = &ProviderClient{DB: repository, HTTP: providerHTTP}
+	app.Provider = &ProviderClient{DB: repository, HTTP: &http.Client{Transport: withControlledPersonaCompilation(providerHTTP.Transport)}}
+	seedLegacyTestWorkingPersonas(t, app)
 	result, err := app.ProcessReflection(ctx, fluctlightID, "reflection-all-correlation")
 	if err != nil || intValue(mapValue(mapValue(result["memory"])["counts"])["applied"]) != 6 {
 		t.Fatalf("all-operation Reflection=%#v err=%v", result, err)
@@ -624,7 +630,8 @@ FOR EACH ROW EXECUTE FUNCTION public.fail_reflection_watermark_test();`); err !=
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(responseProposal)}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}
-	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: providerHTTP}}
+	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: &http.Client{Transport: withControlledPersonaCompilation(providerHTTP.Transport)}}}
+	seedLegacyTestWorkingPersonas(t, app)
 	if _, err := app.ProcessReflection(ctx, fluctlightID, "reflection-malformed-correlation"); err == nil || !strings.Contains(err.Error(), "adk_final_output_invalid") {
 		t.Fatalf("malformed Reflection err=%v", err)
 	}

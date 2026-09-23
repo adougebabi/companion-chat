@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // TestFormalAgentE2E is the real-Provider acceptance matrix for every complete
@@ -16,10 +18,12 @@ func TestFormalAgentE2E(t *testing.T) {
 	requireFormalAgentE2E(t)
 
 	t.Run(string(FormalAgentConversationCognition), testFormalAgentE2EConversationCognition)
+	t.Run("conversation_persona_detail", testFormalAgentE2EPersonaDetail)
 	t.Run(string(FormalAgentWakeUp), testFormalAgentE2EWakeUp)
 	t.Run(string(FormalAgentTakeoverJudge), testFormalAgentE2ETakeoverJudge)
 	t.Run(string(FormalAgentTakeoverReply), testFormalAgentE2ETakeoverReply)
 	t.Run(string(FormalAgentInitialization), testFormalAgentE2EInitialization)
+	t.Run(string(FormalAgentPersonaCompilation), testFormalAgentE2EPersonaCompilation)
 	t.Run(string(FormalAgentMediaPrompt), testFormalAgentE2EMediaPrompt)
 	t.Run(string(FormalAgentMediaQuality), testFormalAgentE2EMediaQuality)
 	t.Run(string(FormalAgentVisualIdentityVision), testFormalAgentE2EVisualIdentityVision)
@@ -134,6 +138,74 @@ func testFormalAgentE2EConversationCognition(t *testing.T) {
 	}
 }
 
+func testFormalAgentE2EPersonaDetail(t *testing.T) {
+	fixture := newFormalAgentE2EFixture(t)
+	resource, err := fixture.repository.GetFluctlight(fixture.ctx, fixture.fluctlightID, fixture.ownerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	corePersona := cloneMap(resource.CorePersona)
+	secret := "北岚城" + stableDigest(fixture.runPrefix)[:10]
+	for _, raw := range arrayValue(mapValue(corePersona["personality_system"])["profiles"]) {
+		profile := mapValue(raw)
+		if stringValue(profile["id"]) == "day" {
+			profile["background"] = map[string]any{"city_before_shanghai": secret}
+		}
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlights SET core_persona=$2 WHERE id=$1`, fixture.fluctlightID, jsonBytes(corePersona)); err != nil {
+		t.Fatal(err)
+	}
+	input, err := fixture.app.personaCompilationInputForProfile(fixture.ctx, fixture.fluctlightID, corePersona, resource.CurrentRevision, "day", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := personaCompilationSource(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	portrait := CompiledWorkingPersona{
+		ProfileID: "day", SourceRevision: resource.CurrentRevision, SourceHash: stableDigest(jsonString(source)), OverlayRevision: input.OverlayRevision, RulesVersion: personaCompilationRulesVersion, BudgetRunes: input.TargetBudgetRunes,
+		Facts:     []PersonaPortraitFact{{Category: "identity", Text: "我是澄光，在上海生活", SourceRefs: []string{"identity"}}, {Category: "language_expression", Text: "温暖而直接", SourceRefs: []string{"profile"}}},
+		Omissions: []PersonaPortraitOmission{{SourceRef: "profile.background", Reason: "specific history remains in full detail"}},
+	}
+	if err := withTransaction(fixture.ctx, fixture.repository.Pool(), func(tx pgx.Tx) error {
+		return insertCompiledWorkingPersonasTx(fixture.ctx, tx, fixture.fluctlightID, []CompiledWorkingPersona{portrait})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := fixture.app.RunConversationCognitionAgent(fixture.ctx, ConversationCognitionAgentInput{
+		AuthorizationActorID: fixture.ownerID, FluctlightID: fixture.fluctlightID, ConversationID: fixture.conversationID,
+		RunID: fixture.runPrefix + "-persona-detail", CurrentInput: "澄光，你搬到上海之前住在哪座城市？请根据你自己的设定回答；如果资料里没有就说明不知道。",
+	})
+	if err != nil {
+		t.Fatalf("real Provider persona detail loop failed: %v", err)
+	}
+	if result.Trace == nil {
+		t.Fatal("real Provider returned no Tool trace")
+	}
+	invocations, results := result.Trace.Snapshot()
+	readSucceeded := false
+	for index, call := range invocations {
+		if call.CapabilityName == personaDetailCapabilityName && index < len(results) && results[index].Status == "completed" && strings.Contains(jsonString(results[index].Output), secret) {
+			readSucceeded = true
+		}
+	}
+	requests := fixture.spy.snapshot()
+	if len(requests) < 2 || formalAgentRequestContains(requests[0], secret) || !readSucceeded {
+		t.Fatalf("real persona query evidence missing: requests=%d read_succeeded=%v initial_leak=%v", len(requests), readSucceeded, len(requests) > 0 && formalAgentRequestContains(requests[0], secret))
+	}
+	continued := false
+	for _, request := range requests[1:] {
+		if formalAgentRequestContains(request, secret) {
+			continued = true
+			break
+		}
+	}
+	if !continued || !strings.Contains(jsonString(result.Completion.Structured), secret) {
+		t.Fatalf("real Provider did not consume queried detail: continued=%v final_has_detail=%v", continued, strings.Contains(jsonString(result.Completion.Structured), secret))
+	}
+}
+
 func testFormalAgentE2EWakeUp(t *testing.T) {
 	fixture := newFormalAgentE2EFixture(t)
 	projection := fixture.projection(t, "", MemoryForWakeUp)
@@ -214,6 +286,26 @@ func testFormalAgentE2EInitialization(t *testing.T) {
 	requireFormalAgentStructured(t, FormalAgentInitialization, result)
 	if len(mapValue(result["core_persona"])) == 0 {
 		t.Fatal("initialization final DTO omitted core_persona")
+	}
+}
+
+func testFormalAgentE2EPersonaCompilation(t *testing.T) {
+	fixture := newFormalAgentE2EFixture(t)
+	source := map[string]any{
+		"identity":           map[string]any{"name": "澄光", "background": "她曾长期独自学习，因此重视自主权"},
+		"life_profile":       map[string]any{"preferences": map[string]any{"drink": "喜欢咖啡，但不喜欢甜咖啡"}},
+		"personality_system": map[string]any{"profiles": []any{map[string]any{"id": "day", "personality": map[string]any{"expression": "温暖、直接"}, "behavioral_policy": map[string]any{"boundary": "遇到未知事实时明确说明"}}}},
+	}
+	compiled, err := fixture.app.CompileWorkingPersona(fixture.ctx, PersonaCompilationInput{CorePersona: source, ProfileID: "day", SourceRevision: 0})
+	if err != nil {
+		t.Fatalf("real persona compilation Agent failed: %v", err)
+	}
+	if len(compiled.Facts) == 0 || compiled.SourceHash == "" || compiled.RulesVersion != personaCompilationRulesVersion {
+		t.Fatalf("real compiler returned invalid portrait: %#v", compiled)
+	}
+	preferences := jsonString(mapValue(renderCompiledWorkingPersona(compiled)[workingPersonaBodyKey])["stable_preferences"])
+	if !strings.Contains(preferences, "咖啡") {
+		t.Fatalf("real compiler lost stable coffee preference: %#v", compiled.Facts)
 	}
 }
 

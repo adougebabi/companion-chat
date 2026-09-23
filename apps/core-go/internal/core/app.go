@@ -1552,6 +1552,31 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	}
 	normalizeVisualIdentityFoundation(corePersona)
 	recordInitializationDefaultFieldSources(provenance, id, personality, policy, declaredPersonality, declaredPolicy, goals, intentions)
+	var compiledWorkingPersonas []CompiledWorkingPersona
+	var alreadyCreated bool
+	if a != nil && a.DB != nil {
+		var existingOwner string
+		lookupErr := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, id).Scan(&existingOwner)
+		if lookupErr != nil && !errors.Is(lookupErr, pgx.ErrNoRows) {
+			return Fluctlight{}, lookupErr
+		}
+		if lookupErr == nil && existingOwner != actorID {
+			return Fluctlight{}, ErrConflict
+		}
+		alreadyCreated = lookupErr == nil
+	}
+	if !alreadyCreated {
+		if mode == "llm_defined" {
+			if err := a.validateInitializationSourceBeforeCompilation(ctx, actorID, initializationSourceID); err != nil {
+				return Fluctlight{}, err
+			}
+		}
+		var compileErr error
+		compiledWorkingPersonas, compileErr = a.compileFoundationWorkingPersonas(ctx, id, corePersona, 0, mode, false)
+		if compileErr != nil {
+			return Fluctlight{}, compileErr
+		}
+	}
 	developingSelfClaims := []any{}
 	if foundation != nil {
 		developingSelfClaims = arrayValue(mapValue(foundation["developing_self"])["claims"])
@@ -1599,6 +1624,12 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlights (id,created_by_actor_id,initialization_mode,status,current_revision,core_persona,identity,personality,behavioral_policy,life_profile,provenance,created_at,updated_at) VALUES ($1,$2,$3,'active',0,$4,$5,$6,$7,$8,$9,$10,$10)`, id, actorID, mode, jsonBytes(corePersona), jsonBytes(identity), jsonBytes(personality), jsonBytes(policy), jsonBytes(lifeProfile), jsonBytes(provenance), now); err != nil {
 			return err
 		}
+		if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
+			return err
+		}
+		if err := insertCompiledWorkingPersonasTx(ctx, tx, id, compiledWorkingPersonas); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions (id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key,created_at,accepted_at) VALUES ($1,$2,0,0,'initialization','accepted',$3,$4,'active',$5,$6,'{}',$7,$8,$9,$10,$11,$12,'[]',NULL,$13,$5,$5)`, foundationRevisionID, id, actorID, mode, now, jsonBytes(1.0), jsonBytes(corePersona), jsonBytes(identity), jsonBytes(personality), jsonBytes(policy), jsonBytes(lifeProfile), jsonBytes(provenance), "fluctlight-create:"+id); err != nil {
 			return err
 		}
@@ -1643,6 +1674,36 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	}
 	result, err = a.DB.GetFluctlight(ctx, id, actorID)
 	return result, err
+}
+
+// This read-side check avoids paying for a portrait compile when analysis
+// ownership, freshness, or one-time use is already invalid. The short publish
+// transaction repeats all checks under locks to close the race.
+func (a *App) validateInitializationSourceBeforeCompilation(ctx context.Context, ownerActorID, sourceID string) error {
+	var sourceOwnerActorID, latestSourceID string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT owner_actor_id FROM public.fluctlight_initialization_sources WHERE id=$1`, sourceID).Scan(&sourceOwnerActorID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrActivationAnalysisInvalid
+		}
+		return err
+	}
+	if sourceOwnerActorID != ownerActorID {
+		return ErrActivationAnalysisInvalid
+	}
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT id FROM public.fluctlight_initialization_sources WHERE owner_actor_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1`, ownerActorID).Scan(&latestSourceID); err != nil {
+		return err
+	}
+	if latestSourceID != sourceID {
+		return ErrActivationAnalysisStale
+	}
+	var used bool
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_initialization_source_links WHERE source_id=$1)`, sourceID).Scan(&used); err != nil {
+		return err
+	}
+	if used {
+		return ErrActivationAnalysisConflict
+	}
+	return nil
 }
 
 func validInitializationSourceID(sourceID string) bool {

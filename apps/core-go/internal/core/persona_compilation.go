@@ -1,0 +1,345 @@
+package core
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+)
+
+const personaCompilationRulesVersion = "working-persona.compile.v1"
+const defaultWorkingPersonaMaxRunes = 3600
+
+type PersonaCompilationInput struct {
+	CorePersona       map[string]any
+	ProfileID         string
+	EffectivePersona  map[string]any
+	SourceRevision    int
+	OverlayRevision   int
+	TargetBudgetRunes int
+}
+
+type PersonaPortraitFact struct {
+	Category   string   `json:"category"`
+	Text       string   `json:"text"`
+	SourceRefs []string `json:"source_refs"`
+}
+
+type PersonaPortraitOmission struct {
+	SourceRef string `json:"source_ref"`
+	Reason    string `json:"reason"`
+}
+
+type CompiledWorkingPersona struct {
+	ProfileID       string                    `json:"profile_id"`
+	Facts           []PersonaPortraitFact     `json:"facts"`
+	Omissions       []PersonaPortraitOmission `json:"omissions"`
+	SourceRevision  int                       `json:"source_revision"`
+	SourceHash      string                    `json:"source_hash"`
+	OverlayRevision int                       `json:"overlay_revision"`
+	RulesVersion    string                    `json:"rules_version"`
+	BudgetRunes     int                       `json:"budget_runes"`
+}
+
+func personaCompilationResponseSchema() map[string]any {
+	fact := objectSchema(map[string]any{
+		"category":    enumStringSchema("identity", "core_mechanisms", "language_expression", "behavior_boundaries", "stable_preferences"),
+		"text":        map[string]any{"type": "string", "minLength": 1, "maxLength": 1000},
+		"source_refs": arraySchema(map[string]any{"type": "string", "minLength": 1, "maxLength": 256}),
+	}, []string{"category", "text", "source_refs"}, false)
+	omission := objectSchema(map[string]any{
+		"source_ref": map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
+		"reason":     map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+	}, []string{"source_ref", "reason"}, false)
+	return objectSchema(map[string]any{
+		"profile_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+		"facts":      map[string]any{"type": "array", "minItems": 1, "maxItems": 80, "items": fact},
+		"omissions":  map[string]any{"type": "array", "maxItems": 80, "items": omission},
+	}, []string{"profile_id", "facts", "omissions"}, false)
+}
+
+const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Return only the specified JSON.`
+
+func personaCompilationSource(input PersonaCompilationInput) (map[string]any, error) {
+	profileID := strings.TrimSpace(input.ProfileID)
+	if profileID == "" {
+		return nil, errors.New("persona_compilation_profile_required")
+	}
+	core := input.CorePersona
+	if len(core) == 0 {
+		return nil, errors.New("persona_compilation_source_required")
+	}
+	profile := map[string]any{}
+	profiles := arrayValue(mapValue(core["personality_system"])["profiles"])
+	if len(profiles) > 0 {
+		for _, raw := range profiles {
+			candidate := mapValue(raw)
+			if stringValue(candidate["id"]) == profileID {
+				profile = cloneMap(candidate)
+				break
+			}
+		}
+		if len(profile) == 0 {
+			return nil, fmt.Errorf("persona_compilation_profile_not_found: %s", profileID)
+		}
+	} else {
+		profile = map[string]any{"id": profileID}
+	}
+	profile = safePersonaFactMap(profile)
+	profile["id"] = profileID
+	for _, key := range []string{"personality", "behavioral_policy"} {
+		if len(mapValue(profile[key])) == 0 {
+			profile[key] = safePersonaFactMap(mapValue(core[key]))
+		}
+		if input.OverlayRevision > 0 && len(mapValue(input.EffectivePersona[key])) > 0 {
+			profile[key] = safePersonaFactMap(mapValue(input.EffectivePersona[key]))
+		}
+	}
+	source := map[string]any{"profile": profile}
+	if identity := mapValue(core["identity"]); len(identity) > 0 {
+		if stable := safePersonaFactMap(identity); len(stable) > 0 {
+			source["identity"] = stable
+		}
+	}
+	if life := mapValue(core["life_profile"]); len(life) > 0 {
+		if stable := safePersonaFactMap(life); len(stable) > 0 {
+			source["life_profile"] = stable
+		}
+	}
+	if extensions := mapValue(core["extensions"]); len(extensions) > 0 {
+		if stable := safePersonaFactMap(extensions); len(stable) > 0 {
+			source["extensions"] = stable
+		}
+	}
+	if shared := sharedPersonalitySystemSource(mapValue(core["personality_system"])); len(shared) > 0 {
+		source["shared_system"] = shared
+	}
+	return source, nil
+}
+
+func sharedPersonalitySystemSource(system map[string]any) map[string]any {
+	shared := map[string]any{}
+	for _, key := range []string{"core_relationship", "core_conflict", "influence", "conflict_resolution", "integration", "behavior_state_machine", "extensions"} {
+		value, exists := system[key]
+		if !exists || value == nil {
+			continue
+		}
+		if nested, ok := value.(map[string]any); ok {
+			value = safePersonaFactMap(nested)
+			if len(mapValue(value)) == 0 {
+				continue
+			}
+		}
+		shared[key] = value
+	}
+	return shared
+}
+
+var transientPersonaSourceKeys = map[string]struct{}{
+	"current_mood": {}, "current_emotion": {}, "current_outfit": {}, "current_clothing": {},
+	"current_scene": {}, "current_activity": {}, "current_schedule": {}, "current_plan": {},
+	"temporary_intent": {}, "today_schedule": {}, "initial_state": {}, "relationship_progress": {},
+	"timezone": {},
+}
+
+func stablePersonaSourceMap(value map[string]any) map[string]any {
+	result := make(map[string]any, len(value))
+	for key, child := range value {
+		if _, transient := transientPersonaSourceKeys[key]; transient {
+			continue
+		}
+		switch typed := child.(type) {
+		case map[string]any:
+			result[key] = stablePersonaSourceMap(typed)
+		case []any:
+			items := make([]any, len(typed))
+			for index, item := range typed {
+				if nested, ok := item.(map[string]any); ok {
+					items[index] = stablePersonaSourceMap(nested)
+				} else {
+					items[index] = item
+				}
+			}
+			result[key] = items
+		default:
+			result[key] = child
+		}
+	}
+	return result
+}
+
+func safePersonaFactMap(value map[string]any) map[string]any {
+	return filterCorePersonaValue(stablePersonaSourceMap(value))
+}
+
+func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilationInput) (CompiledWorkingPersona, error) {
+	if input.TargetBudgetRunes == 0 {
+		if a == nil || a.DB == nil {
+			return CompiledWorkingPersona{}, errors.New("persona_compilation_budget_unavailable")
+		}
+		budget, err := readWorkingPersonaBudget(ctx, a.DB.Pool())
+		if err != nil {
+			return CompiledWorkingPersona{}, err
+		}
+		input.TargetBudgetRunes = budget
+	}
+	source, err := personaCompilationSource(input)
+	if err != nil {
+		return CompiledWorkingPersona{}, err
+	}
+	messages := (&PromptComposer{}).ComposeTaskMessages("initialization", []map[string]any{
+		{"role": "system", "content": personaCompilationInstruction},
+		{"role": "user", "content": jsonString(map[string]any{"profile_id": input.ProfileID, "rules_version": personaCompilationRulesVersion, "target_max_runes": input.TargetBudgetRunes, "source": source})},
+	})
+	for attempt := 0; attempt < 2; attempt++ {
+		runCtx := WithProviderScenario(ctx, "persona_compilation")
+		if attempt > 0 {
+			runCtx = WithProviderCorrelation(runCtx, firstString(providerCorrelation(ctx), "persona-compilation")+":repair")
+		}
+		run, runErr := a.runFormalStructuredTask(runCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(), false, nil)
+		if runErr != nil {
+			return CompiledWorkingPersona{}, runErr
+		}
+		compiled, validationErr := decodeCompiledWorkingPersona(run.Completion.Structured, source, input)
+		if validationErr == nil {
+			return compiled, nil
+		}
+		if attempt == 1 {
+			return CompiledWorkingPersona{}, validationErr
+		}
+		messages = append(messages, map[string]any{"role": "user", "content": "The prior portrait failed validation (" + validationErr.Error() + "). Rebuild the complete JSON from the original source, retaining each cited fact and exception. Do not add unsupported facts."})
+	}
+	return CompiledWorkingPersona{}, errors.New("persona_compilation_retry_exhausted")
+}
+
+func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCompilationInput) (CompiledWorkingPersona, error) {
+	if stringValue(output["profile_id"]) != input.ProfileID {
+		return CompiledWorkingPersona{}, errors.New("persona_compilation_profile_mismatch")
+	}
+	var result CompiledWorkingPersona
+	result.ProfileID = input.ProfileID
+	result.SourceRevision = input.SourceRevision
+	result.SourceHash = stableDigest(jsonString(source))
+	result.OverlayRevision = input.OverlayRevision
+	result.RulesVersion = personaCompilationRulesVersion
+	result.BudgetRunes = input.TargetBudgetRunes
+	if result.BudgetRunes == 0 {
+		result.BudgetRunes = defaultWorkingPersonaMaxRunes
+	}
+	seen := make(map[string]struct{})
+	for _, raw := range arrayValue(output["facts"]) {
+		item := mapValue(raw)
+		category := stringValue(item["category"])
+		if !personaPortraitCategory(category) {
+			return CompiledWorkingPersona{}, errors.New("persona_compilation_category_invalid")
+		}
+		statement := strings.TrimSpace(stringValue(item["text"]))
+		if statement == "" || len([]rune(statement)) > 1000 {
+			return CompiledWorkingPersona{}, errors.New("persona_compilation_fact_invalid")
+		}
+		refs := make([]string, 0)
+		for _, value := range arrayValue(item["source_refs"]) {
+			ref := strings.TrimSpace(stringValue(value))
+			if !personaCompilationSourcePathExists(source, ref) {
+				return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_ref_invalid: %s", ref)
+			}
+			refs = append(refs, ref)
+			seen[ref] = struct{}{}
+		}
+		if len(refs) == 0 {
+			return CompiledWorkingPersona{}, errors.New("persona_compilation_fact_without_source")
+		}
+		result.Facts = append(result.Facts, PersonaPortraitFact{Category: category, Text: statement, SourceRefs: refs})
+	}
+	if len(result.Facts) == 0 {
+		return CompiledWorkingPersona{}, errors.New("persona_compilation_empty")
+	}
+	for _, raw := range arrayValue(output["omissions"]) {
+		item := mapValue(raw)
+		ref := strings.TrimSpace(stringValue(item["source_ref"]))
+		reason := strings.TrimSpace(stringValue(item["reason"]))
+		if !personaCompilationSourcePathExists(source, ref) || reason == "" {
+			return CompiledWorkingPersona{}, errors.New("persona_compilation_omission_invalid")
+		}
+		result.Omissions = append(result.Omissions, PersonaPortraitOmission{SourceRef: ref, Reason: reason})
+		seen[ref] = struct{}{}
+	}
+	// Every separately declared preference or habit must either be carried by
+	// a fact or explicitly diagnosed as a deliberate omission. A parent ref is
+	// insufficient because it could hide the loss of one short exception.
+	for _, group := range []struct {
+		path  string
+		value map[string]any
+	}{
+		{"life_profile.preferences", mapValue(mapValue(source["life_profile"])["preferences"])},
+		{"life_profile.habits", mapValue(mapValue(source["life_profile"])["habits"])},
+		{"profile.preferences", mapValue(mapValue(source["profile"])["preferences"])},
+		{"profile.habits", mapValue(mapValue(source["profile"])["habits"])},
+	} {
+		for key := range group.value {
+			ref := group.path + "." + key
+			covered := false
+			for cited := range seen {
+				if cited == ref || strings.HasPrefix(cited, ref+".") {
+					covered = true
+					break
+				}
+			}
+			if !covered {
+				return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_preference_unaccounted: %s", ref)
+			}
+		}
+	}
+	if len([]rune(jsonString(renderCompiledWorkingPersona(result)))) > result.BudgetRunes {
+		return CompiledWorkingPersona{}, errors.New("persona_compilation_over_budget")
+	}
+	return result, nil
+}
+
+func personaPortraitCategory(category string) bool {
+	switch category {
+	case "identity", "core_mechanisms", "language_expression", "behavior_boundaries", "stable_preferences":
+		return true
+	}
+	return false
+}
+
+func personaCompilationSourcePathExists(source map[string]any, path string) bool {
+	if path == "" {
+		return false
+	}
+	var value any = source
+	for _, part := range strings.Split(path, ".") {
+		current := mapValue(value)
+		if current == nil {
+			return false
+		}
+		var ok bool
+		value, ok = current[part]
+		if !ok || value == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func renderCompiledWorkingPersona(compiled CompiledWorkingPersona) map[string]any {
+	body := map[string]any{"profile_id": compiled.ProfileID}
+	for _, category := range []string{"identity", "core_mechanisms", "language_expression", "behavior_boundaries", "stable_preferences"} {
+		lines := make([]string, 0)
+		for _, fact := range compiled.Facts {
+			if fact.Category == category {
+				lines = append(lines, fact.Text)
+			}
+		}
+		if len(lines) > 0 {
+			body[category] = lines
+		}
+	}
+	result := map[string]any{workingPersonaProfileIDKey: compiled.ProfileID, workingPersonaBodyKey: body}
+	if identity, ok := body["identity"]; ok {
+		result[workingPersonaSharedIdentityKey] = map[string]any{"identity": identity}
+		delete(body, "identity")
+	}
+	return result
+}

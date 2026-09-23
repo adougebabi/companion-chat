@@ -21,7 +21,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 	expectedAll := []string{
 		"active_memory_event", "affect_event", "capability.request", "conversation.reply",
 		"media.image.generate", "memory.recall", "memory_event", "moment.publish",
-		"persona.switch", "persona.takeover", "presence_event", "relationship.lookup",
+		"persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup",
 		"scene_event", "schedule.replan", "visual_identity.commit_review", "visual_identity.finalize",
 		"visual_identity.generate_candidate", "visual_identity.initialize",
 	}
@@ -30,8 +30,8 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 	}
 
 	expectedBySurface := map[CapabilitySurface][]string{
-		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory.recall", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
-		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
+		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory.recall", "memory_event", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
+		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
 		CapabilitySurfaceAutonomy:        {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
 		CapabilitySurfaceNativeCognition: {"active_memory_event", "capability.request", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
 		CapabilitySurfaceReflection:      {},
@@ -89,8 +89,8 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 
 func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 	definitions := FormalAgentDefinitions()
-	if len(definitions) != 17 {
-		t.Fatalf("formal Agent count=%d, want 17: %#v", len(definitions), definitions)
+	if len(definitions) != 18 {
+		t.Fatalf("formal Agent count=%d, want 18: %#v", len(definitions), definitions)
 	}
 	seen := make(map[FormalAgentID]struct{}, len(definitions))
 	for _, definition := range definitions {

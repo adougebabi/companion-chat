@@ -171,7 +171,8 @@ func TestReflectionV2AppliesMemoryGoalIntentionAndAffectThenReprojects(t *testin
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(proposal)}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}
-	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: providerHTTP}}
+	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: &http.Client{Transport: withControlledPersonaCompilation(providerHTTP.Transport)}}}
+	seedLegacyTestWorkingPersonas(t, app)
 	result, err := app.ProcessReflection(ctx, fluctlightID, "reflection-v2-correlation")
 	if err != nil || stringValue(result["status"]) != "applied" {
 		t.Fatalf("Reflection V2 result=%#v err=%v", result, err)

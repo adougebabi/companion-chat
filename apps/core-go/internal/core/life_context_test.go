@@ -30,6 +30,7 @@ func seedLifeContextFluctlight(t *testing.T, ctx context.Context, repository *Po
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_affect_profiles(fluctlight_id) VALUES($1)`, fluctlightID); err != nil {
 		t.Fatal(err)
 	}
+	seedLegacyTestWorkingPersonas(t, &App{DB: repository})
 }
 
 func TestLifeContextSnapshotResolvesPriorityPresenceAndTimeBoundaries(t *testing.T) {

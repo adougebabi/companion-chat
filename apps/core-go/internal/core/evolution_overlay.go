@@ -267,6 +267,18 @@ func ComposeEffectivePersona(state PersonaEvolutionState) (EffectivePersonaSnaps
 	return EffectivePersonaSnapshot{ProfileRef: state.ProfileRef, AuthorityRevision: state.Revision, Personality: personality, BehaviorPolicy: behavior}, nil
 }
 
+// The coordinator revision also advances for non-persona Reflection work.
+// A portrait changes only when an effective personality/policy overlay changes.
+func portraitOverlayRevision(state PersonaEvolutionState) int {
+	revision := 0
+	for _, overlay := range state.Overlays {
+		if overlay.Status == OverlayActive && overlay.ProfileID == state.ProfileID && overlay.FluctlightID == state.FluctlightID && overlay.Revision > revision {
+			revision = overlay.Revision
+		}
+	}
+	return revision
+}
+
 type FrozenEffectivePersona struct {
 	Digest   string                   `json:"digest"`
 	Snapshot EffectivePersonaSnapshot `json:"snapshot"`
@@ -411,7 +423,8 @@ func (a *App) readEffectivePersonaProjection(ctx context.Context, fluctlight Flu
 	}
 	return map[string]any{
 		"profile_ref": effective.ProfileRef, "authority_revision": effective.AuthorityRevision,
-		"personality": effective.Personality, "behavioral_policy": effective.BehaviorPolicy,
+		"portrait_overlay_revision": portraitOverlayRevision(state),
+		"personality":               effective.Personality, "behavioral_policy": effective.BehaviorPolicy,
 	}, overlays, nil
 }
 

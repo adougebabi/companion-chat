@@ -212,6 +212,15 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID := "wakeup-reply-owner", "wakeup-reply-fluctlight"
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	resource, err := repository.GetFluctlight(ctx, fluctlightID, ownerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	corePersona := cloneMap(resource.CorePersona)
+	corePersona["life_profile"] = map[string]any{"preferences": map[string]any{"drink": "喜欢咖啡，但不喜欢甜咖啡"}}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET core_persona=$2,life_profile=$3 WHERE id=$1`, fluctlightID, jsonBytes(corePersona), jsonBytes(corePersona["life_profile"])); err != nil {
+		t.Fatal(err)
+	}
 	baseApp := &App{DB: repository}
 	initialLife := currentLifeForTest(t, ctx, baseApp, fluctlightID, time.Now().UTC())
 	if _, err := baseApp.AcceptSchedule(ctx, ownerID, fluctlightID, fullDaySchedulePayloadForTest(time.Now().UTC(), "wakeup-reply-schedule", stringValue(initialLife["context_revision"]))); err != nil {
@@ -220,8 +229,11 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	seedCognitiveProviderRole(t, ctx, repository, "wakeup-reply-endpoint")
 	text := "我刚刚想起你了，等你忙完再聊。"
 	providerCalls := 0
-	router := newFakeProviderRouter().on("wake_up_response", func(_ map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().on("wake_up_response", func(payload map[string]any) fakeProviderResult {
 		providerCalls++
+		if providerCalls == 1 && !strings.Contains(jsonString(payload), "喜欢咖啡") {
+			t.Fatal("formal WakeUp request lost the saved stable preference")
+		}
 		if providerCalls > 1 {
 			// The first ADK generation chooses the deferred output capability;
 			// the second generation receives its ToolResult and terminates with

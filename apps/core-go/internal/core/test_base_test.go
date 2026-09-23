@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -286,7 +287,18 @@ func (router *fakeProviderRouter) unattributedRequests() int {
 
 func providerWireSchemaName(payload map[string]any) string {
 	responseFormat := mapValue(payload["response_format"])
-	return stringValue(mapValue(responseFormat["json_schema"])["name"])
+	if name := stringValue(mapValue(responseFormat["json_schema"])["name"]); name != "" {
+		return name
+	}
+	if stringValue(responseFormat["type"]) == "json_object" {
+		for _, raw := range arrayValue(payload["messages"]) {
+			message := mapValue(raw)
+			if stringValue(message["role"]) == "user" && strings.Contains(stringValue(message["content"]), "rules_version: "+personaCompilationRulesVersion) {
+				return "persona_compilation_response"
+			}
+		}
+	}
+	return ""
 }
 
 // ---------------------------------------------------------------------------
@@ -377,6 +389,7 @@ func newTestApp(t *testing.T, repository *PostgresRepository, transport http.Rou
 		t.Fatal(err)
 	}
 	app.Runtime = runtime
+	seedLegacyTestWorkingPersonas(t, app)
 	return app
 }
 

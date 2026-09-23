@@ -66,6 +66,7 @@ func TestPostgresDirectPersonaToolsCommitRejectReplayConflictAndAudit(t *testing
 		personaActionCapability{name: personaSwitchCapabilityName, service: service},
 	)
 	app.ContextResolver = NewAppContextResolver(app)
+	seedLegacyTestWorkingPersonas(t, app)
 
 	switchRequest := ToolExecutionRequest{
 		CapabilityName: personaSwitchCapabilityName, OperationID: "switch-" + suffix,

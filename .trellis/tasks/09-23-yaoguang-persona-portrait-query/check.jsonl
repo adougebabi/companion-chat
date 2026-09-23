@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend review index"}
+{"file": ".trellis/spec/backend/persona-layer-contract.md", "reason": "Persona invariants"}
+{"file": ".trellis/spec/backend/structured-turn-contract.md", "reason": "Native loop verification"}

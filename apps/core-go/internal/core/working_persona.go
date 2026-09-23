@@ -329,29 +329,27 @@ func isMultiPersonalitySystem(system map[string]any) bool {
 // systemPersonaForProjection assembles the bundle handed to filterCorePersona:
 // the Working Persona, the identifier-only roster and the shared extensions,
 // plus the authorized persistent-switch section for the interactive Main turn.
-func systemPersonaForProjection(projection ContextProjection, schemaName string) map[string]any {
+// Production cognition supplies a previously compiled Working Persona here.
+// The deterministic projection remains for governance/control views, but is
+// never a silent runtime fallback when a compiled row is missing.
+func systemPersonaForProjectionWithWorking(projection ContextProjection, schemaName string, working map[string]any) map[string]any {
 	corePersona := corePersonaData(projection.CorePersona)
-	working, _ := projectWorkingPersona(projection, "")
 	bundle := make(map[string]any, len(working)+3)
 	for key, value := range working {
 		bundle[key] = value
-	}
-	if extensions := mapValue(corePersona["extensions"]); len(extensions) > 0 {
-		bundle["extensions"] = extensions
 	}
 	system := mapValue(corePersona["personality_system"])
 	if len(system) == 0 {
 		system = mapValue(projection.PersonalitySystem)
 	}
 	if len(system) > 0 && isMultiPersonalitySystem(system) {
-		clonedSystem := cloneMap(system)
+		clonedSystem := map[string]any{"mode": system["mode"], "active_profile_id": system["active_profile_id"], "profiles": system["profiles"]}
 		if strings.TrimSpace(schemaName) == workingPersonaMainTurnSchema || strings.TrimSpace(schemaName) == persistentSwitchAssessmentSchemaName {
 			scope := resolveTurnPersonaScope(projection)
 			normalization := normalizePersonaSwitchRules(corePersona, projection.PersonalityRuntime, scope.ActiveProfileID)
 			grant := resolvePersistentSwitchGrant(scope, persistentSwitchGrantScenarioMain, normalization.Rules)
 			if section := persistentSwitchPromptSection(scope, grant, normalization.Rules); len(section) > 0 {
 				bundle[workingPersonaSwitchKey] = section
-				delete(clonedSystem, "switching")
 			}
 		}
 		bundle["personality_system"] = clonedSystem

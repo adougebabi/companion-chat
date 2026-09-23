@@ -314,6 +314,36 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 	if strings.TrimSpace(reason) == "" || len([]rune(reason)) > 1024 {
 		return nil, errors.New("foundation_reason_invalid")
 	}
+	var compiledWorkingPersonas []CompiledWorkingPersona
+	if action == "accept" {
+		var revision int
+		var status, mode string
+		var rawCore, rawIdentity, rawPersonality, rawPolicy, rawLife []byte
+		err := a.DB.Pool().QueryRow(ctx, `SELECT r.revision,r.status,f.initialization_mode,r.core_persona,r.identity,r.personality,r.behavioral_policy,r.life_profile FROM public.fluctlight_foundation_revisions r JOIN public.fluctlights f ON f.id=r.fluctlight_id WHERE r.id=$1 AND r.fluctlight_id=$2 AND r.actor_id=$3 AND f.created_by_actor_id=$3`, revisionID, fluctlightID, actorID).Scan(&revision, &status, &mode, &rawCore, &rawIdentity, &rawPersonality, &rawPolicy, &rawLife)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		if status == "proposed" {
+			core := decodeObject(rawCore)
+			if len(core) == 0 {
+				current, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
+				if err != nil {
+					return nil, err
+				}
+				core = map[string]any{"schema_version": 1, "identity": decodeObject(rawIdentity), "personality": decodeObject(rawPersonality), "behavioral_policy": decodeObject(rawPolicy), "life_profile": decodeObject(rawLife)}
+				if system := mapValue(current.CorePersona["personality_system"]); len(system) > 0 {
+					core["personality_system"] = system
+				}
+			}
+			compiledWorkingPersonas, err = a.compileFoundationWorkingPersonas(ctx, fluctlightID, core, revision, mode, true)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
@@ -351,6 +381,9 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 			return ErrConflict
 		}
 		if action == "accept" {
+			if len(compiledWorkingPersonas) == 0 {
+				return errors.New("working_persona_compilation_required")
+			}
 			if current != baseRevision {
 				return ErrConflict
 			}
@@ -372,6 +405,15 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 				corePersona = jsonBytes(fallback)
 			}
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, revision, corePersona, identity, personality, policy, life, provenance); err != nil {
+				return err
+			}
+			if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas); err != nil {
+				return err
+			}
+			if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
+				return err
+			}
+			if err := insertCompiledWorkingPersonasTx(ctx, tx, fluctlightID, compiledWorkingPersonas); err != nil {
 				return err
 			}
 			if err := a.applyLifeContextTimezoneChangeTx(ctx, tx, fluctlightID, actorID, revisionID, revision, decodeObject(currentIdentity), decodeObject(identity)); err != nil {
@@ -404,6 +446,41 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 	}
 	var result map[string]any
 	idempotencyKey := "foundation-rollback:" + fluctlightID + ":" + fmt.Sprint(target) + ":" + fmt.Sprint(expected)
+	var compiledWorkingPersonas []CompiledWorkingPersona
+	var existingRollback string
+	replayErr := a.DB.Pool().QueryRow(ctx, `SELECT id FROM public.fluctlight_foundation_revisions WHERE idempotency_key=$1`, idempotencyKey).Scan(&existingRollback)
+	if replayErr != nil && !errors.Is(replayErr, pgx.ErrNoRows) {
+		return nil, replayErr
+	}
+	if errors.Is(replayErr, pgx.ErrNoRows) {
+		current, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
+		if err != nil {
+			return nil, err
+		}
+		if current.CurrentRevision != expected {
+			return nil, ErrConflict
+		}
+		var mode, status string
+		var rawCore []byte
+		err = a.DB.Pool().QueryRow(ctx, `SELECT initialization_mode,status,core_persona FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2`, fluctlightID, target).Scan(&mode, &status, &rawCore)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		if status != "accepted" {
+			return nil, errors.New("foundation_target_not_accepted")
+		}
+		core := decodeObject(rawCore)
+		if len(core) == 0 {
+			return nil, errors.New("foundation_rollback_core_persona_missing")
+		}
+		compiledWorkingPersonas, err = a.compileFoundationWorkingPersonas(ctx, fluctlightID, core, expected+1, mode, true)
+		if err != nil {
+			return nil, err
+		}
+	}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
@@ -462,6 +539,15 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 			corePersona = jsonBytes(fallback)
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, newRevision, corePersona, identity, personality, policy, life, provenance); err != nil {
+			return err
+		}
+		if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas); err != nil {
+			return err
+		}
+		if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
+			return err
+		}
+		if err := insertCompiledWorkingPersonasTx(ctx, tx, fluctlightID, compiledWorkingPersonas); err != nil {
 			return err
 		}
 		if err := a.applyLifeContextTimezoneChangeTx(ctx, tx, fluctlightID, actorID, newID, newRevision, decodeObject(currentIdentity), decodeObject(identity)); err != nil {

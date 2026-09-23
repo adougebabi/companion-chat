@@ -12,8 +12,9 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0034_tool_execution_source"
-const PreviousHead = "0033_initialization_source"
+const Head = "0035_working_persona"
+const PreviousHead = "0034_tool_execution_source"
+const ToolExecutionSourceHead = "0034_tool_execution_source"
 const InitializationSourceHead = "0033_initialization_source"
 const PromptContextMemoryHead = "0032_prompt_context_memory"
 const EvolutionAuthorityHead = "0031_evolution_authority"
@@ -83,7 +84,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead {
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -137,6 +138,9 @@ func (r *Runner) Apply(ctx context.Context) error {
 	// be a cognition inbox fact. Preserve existing evidence and owning scope.
 	if _, err := tx.Exec(ctx, toolExecutionSourceSchemaSQL); err != nil {
 		return fmt.Errorf("apply independent tool evidence contract: %w", err)
+	}
+	if _, err := tx.Exec(ctx, workingPersonaSchemaSQL); err != nil {
+		return fmt.Errorf("apply Working Persona schema: %w", err)
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {

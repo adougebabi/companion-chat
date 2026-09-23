@@ -22,6 +22,24 @@ func workingProfileForToolExecution(projection ContextProjection, trace *ADKCapa
 	return profile
 }
 
+func personaDetailExpectedRevisions(projection ContextProjection, trace *ADKCapabilityTrace, profileID string) (int, int) {
+	sourceRevision := projection.CorePersonaRevision
+	overlayRevision := intValue(mapValue(projection.EffectivePersona)["portrait_overlay_revision"])
+	if trace == nil {
+		return sourceRevision, overlayRevision
+	}
+	_, results := trace.Snapshot()
+	for _, result := range results {
+		if result.Status != "completed" || stringValue(mapValue(mapValue(result.Output)["working_persona"])["id"]) != profileID {
+			continue
+		}
+		output := mapValue(result.Output)
+		sourceRevision = intValue(output["working_persona_source_revision"])
+		overlayRevision = intValue(output["working_persona_overlay_revision"])
+	}
+	return sourceRevision, overlayRevision
+}
+
 type toolProfileContextResolver struct {
 	base    ContextResolver
 	profile string

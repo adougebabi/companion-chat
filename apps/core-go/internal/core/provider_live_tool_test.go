@@ -453,7 +453,7 @@ func TestLiveProviderPersonalityDecision(t *testing.T) {
 	assembly, err := AssemblePromptContext(PromptAssemblyInput{
 		Role:           "cognitive_assessment",
 		OperationRules: []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction},
-		CorePersona:    filterCorePersona(systemPersonaForProjection(projection, workingPersonaMainTurnSchema)),
+		CorePersona:    filterCorePersona(systemPersonaForLegacyProjectionForTest(projection, workingPersonaMainTurnSchema)),
 		WorkingMemory:  working,
 		CurrentInput:   current,
 		ResponseFormat: providerResponseFormatForSchema("cognitive_assessment", "conversation_turn_response", schema),

@@ -293,7 +293,7 @@ func TestProviderSystemPersonaHasNoTakeoverRules(t *testing.T) {
 	}}
 	projection.CorePersona["personality_system"] = system
 
-	filtered := filterCorePersona(systemPersonaForProjection(projection, workingPersonaMainTurnSchema))
+	filtered := filterCorePersona(systemPersonaForLegacyProjectionForTest(projection, workingPersonaMainTurnSchema))
 	serialized := jsonString(filtered)
 	for _, leaked := range []string{"takeover_rules", "public_challenge", "强制接管"} {
 		if strings.Contains(serialized, leaked) {
@@ -307,7 +307,7 @@ func TestProviderSystemPersonaHasNoTakeoverRules(t *testing.T) {
 
 func TestProviderSystemPromptHasSinglePersonaSource(t *testing.T) {
 	projection := multiProfileWorkingPersonaProjection()
-	rendered := renderProviderSystem(nil, filterCorePersona(systemPersonaForProjection(projection, workingPersonaMainTurnSchema)), nil, "cognitive_assessment")
+	rendered := renderProviderSystem(nil, filterCorePersona(systemPersonaForLegacyProjectionForTest(projection, workingPersonaMainTurnSchema)), nil, "cognitive_assessment")
 
 	if strings.Count(rendered, "# 人格设定") != 1 {
 		t.Fatalf("expected exactly one persona section: %s", rendered)
@@ -539,7 +539,7 @@ func TestSystemPersonaPrunesSinglePersonalityAndDeduplicatesSwitchingRules(t *te
 		PersonalityRuntime: map[string]any{"active_profile_id": "default"},
 	}
 
-	singleBundle := systemPersonaForProjection(singleProjection, workingPersonaMainTurnSchema)
+	singleBundle := systemPersonaForLegacyProjectionForTest(singleProjection, workingPersonaMainTurnSchema)
 	if _, exists := singleBundle["personality_system"]; exists {
 		t.Fatalf("single personality leaked personality_system: %#v", singleBundle["personality_system"])
 	}
@@ -581,7 +581,7 @@ func TestSystemPersonaPrunesSinglePersonalityAndDeduplicatesSwitchingRules(t *te
 		PersonalityRuntime: map[string]any{"active_profile_id": "warm", "revision": 1},
 	}
 
-	multiBundle := systemPersonaForProjection(multiProjection, workingPersonaMainTurnSchema)
+	multiBundle := systemPersonaForLegacyProjectionForTest(multiProjection, workingPersonaMainTurnSchema)
 	multiSystem := mapValue(multiBundle["personality_system"])
 	if len(multiSystem) == 0 {
 		t.Fatalf("multi-personality bundle missing personality_system: %#v", multiBundle)

@@ -24,6 +24,7 @@ var formalToolAdapterInventory = []string{
 	"memory.recall",
 	"memory_event",
 	"moment.publish",
+	"persona.detail",
 	"persona.switch",
 	"persona.takeover",
 	"schedule.replan",
@@ -167,6 +168,9 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			if invocations[0].CallID != callID || invocations[0].CapabilityName != testCase.name || invocations[0].Metadata.OperationID != request.OperationID {
 				t.Fatalf("formal invocation identity mismatch: %#v request=%#v", invocations[0], request)
 			}
+			if invocations[0].Metadata.AuthorizationActorID != fixture.ownerID || invocations[0].Metadata.SubjectActorID != fixture.ownerID {
+				t.Fatalf("formal invocation lost authorized reader identity: %#v", invocations[0].Metadata)
+			}
 			if string(invocations[0].Arguments) != string(request.Arguments) {
 				t.Fatalf("adapter changed arguments: got=%s want=%s", invocations[0].Arguments, request.Arguments)
 			}
@@ -191,7 +195,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			if adapterReceipt.Result.Status != direct.Result.Status || !formalAdapterSameBusinessOutput(direct.Result.Output, adapterReceipt.Result.Output) {
 				t.Fatalf("serialized adapter result drifted: direct=%#v adapter=%#v", direct.Result, adapterReceipt.Result)
 			}
-			if testCase.name != "memory.recall" && testCase.name != "relationship.lookup" && !adapterReceipt.Replayed {
+			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && !adapterReceipt.Replayed {
 				t.Fatalf("stable mutation operation was executed twice instead of replayed: %#v", adapterReceipt)
 			}
 			testCase.verify(t, fixture, adapterReceipt)
@@ -292,6 +296,22 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
 				id := stringValue(mapValue(receipt.Result.Output)["target_ref"])
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.moments WHERE id=$1 AND owner_fluctlight_id=$2 AND text='正式 adapter 动态'`, 1, id, f.fluctlightID)
+			},
+		},
+		{
+			name: "persona.detail", surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(personaDetailCapabilityName, "adapter-persona-detail", map[string]any{"operation": "read", "section_id": "identity"})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				output := mapValue(receipt.Result.Output)
+				if stringValue(output["section_id"]) != "identity" || stringValue(output["content"]) == "" {
+					t.Fatalf("persona detail did not read canonical identity: %#v", output)
+				}
+				var sourceRevision int
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT current_revision FROM public.fluctlights WHERE id=$1`, f.fluctlightID).Scan(&sourceRevision); err != nil || intValue(output["source_revision"]) != sourceRevision {
+					t.Fatalf("persona detail source version=%v expected=%d err=%v", output["source_revision"], sourceRevision, err)
+				}
 			},
 		},
 		{
@@ -435,6 +455,7 @@ func newFormalToolAdapterFixture(t *testing.T) *formalToolAdapterFixture {
 	if _, err := base.repository.Pool().Exec(base.ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision) VALUES($1,'spark',0) ON CONFLICT(fluctlight_id) DO UPDATE SET active_profile_id='spark',revision=0`, base.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
+	seedLegacyTestWorkingPersonas(t, base.app)
 	if _, err := base.repository.Pool().Exec(base.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, jsonString(map[string]any{"baseUrl": "http://controlled-comfy.invalid", "workflow": map[string]any{"prompt": "{{prompt}}"}})); err != nil {
 		t.Fatal(err)
 	}

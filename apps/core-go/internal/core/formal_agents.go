@@ -20,6 +20,7 @@ const (
 	FormalAgentTakeoverJudge         FormalAgentID = "takeover_judge"
 	FormalAgentTakeoverReply         FormalAgentID = "takeover_reply"
 	FormalAgentInitialization        FormalAgentID = "initialization"
+	FormalAgentPersonaCompilation    FormalAgentID = "persona_compilation"
 	FormalAgentMediaPrompt           FormalAgentID = "media_prompt"
 	FormalAgentMediaQuality          FormalAgentID = "media_quality"
 	FormalAgentVisualIdentityVision  FormalAgentID = "visual_identity_vision"
@@ -62,6 +63,7 @@ var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
 	FormalAgentTakeoverJudge:         {ID: FormalAgentTakeoverJudge, Name: "fluctlight-takeover-judge", Description: "Judge the bounded takeover rule without tools and return the verdict contract.", Role: takeoverJudgeRole, Scenario: "takeover_judge", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceConversation},
 	FormalAgentTakeoverReply:         {ID: FormalAgentTakeoverReply, Name: "fluctlight-takeover-reply", Description: "Produce the selected takeover persona response and use authorized conversation capabilities before returning the final turn contract.", Role: "cognitive_assessment", Scenario: "takeover_reply", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceConversation},
 	FormalAgentInitialization:        {ID: FormalAgentInitialization, Name: "fluctlight-initialization", Description: "Create the complete initial identity and persona projection from the Owner description.", Role: "initialization", Scenario: "initialization", OutputKind: FormalAgentOutputStructured},
+	FormalAgentPersonaCompilation:    {ID: FormalAgentPersonaCompilation, Name: "fluctlight-persona-compilation", Description: "Compile one validated complete persona profile into a concise, source-linked Working Persona without tools.", Role: "initialization", Scenario: "persona_compilation", OutputKind: FormalAgentOutputStructured},
 	FormalAgentMediaPrompt:           {ID: FormalAgentMediaPrompt, Name: "fluctlight-media-prompt", Description: "Convert a frozen media intent into the final renderer prompt.", Role: "media_prompt", Scenario: "media_prompt", OutputKind: FormalAgentOutputText},
 	FormalAgentMediaQuality:          {ID: FormalAgentMediaQuality, Name: "fluctlight-media-quality", Description: "Inspect the generated media bytes and return the bounded quality decision.", Role: "media_prompt", Scenario: "media_quality_acceptance", OutputKind: FormalAgentOutputStructured},
 	FormalAgentVisualIdentityVision:  {ID: FormalAgentVisualIdentityVision, Name: "fluctlight-visual-identity-vision", Description: "Inspect the real candidate image and return bounded identity observations.", Role: "visual_identity_vision", Scenario: "visual_identity_vision", OutputKind: FormalAgentOutputStructured},
@@ -102,6 +104,8 @@ func formalAgentForSchema(schemaName string) (FormalAgentID, bool) {
 		return FormalAgentTakeoverReply, true
 	case "initialization_response":
 		return FormalAgentInitialization, true
+	case "persona_compilation_response":
+		return FormalAgentPersonaCompilation, true
 	case "media_prompt_text":
 		return FormalAgentMediaPrompt, true
 	case "media_quality_acceptance_response":

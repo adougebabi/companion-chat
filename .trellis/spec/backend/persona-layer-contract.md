@@ -351,3 +351,62 @@ Real Provider evidence remains a separate serial acceptance requirement.
 Wrong: choose the persistent runtime profile for every interaction write.
 Correct: use the committed reply result's `ActingProfileID`, then perform the
 existing owner/shared Relationship write without inventing a new row.
+
+## Scenario: compiled Working Persona and read-only persona detail
+
+### 1. Scope / Trigger
+
+- Creation, accepted Foundation revision/rollback, accepted stable Persona overlay, or a changed compilation rule/budget prepares a portrait for every declared speaking profile.
+- Ordinary conversation, affect, schedule, clothing, Memory, Developing Self and unrelated Reflection revisions never compile.
+- API and Worker call `VerifyWorkingPersonasReady` before serving. Migrate, preview/apply backfill, then start both processes; there is no full-persona runtime fallback.
+
+### 2. Signatures
+
+```text
+App.CompileWorkingPersona(ctx, PersonaCompilationInput) -> CompiledWorkingPersona
+App.BackfillWorkingPersonas(ctx, ownerID, fluctlightIDs, all, apply) -> []WorkingPersonaBackfillItem
+App.VerifyWorkingPersonasReady(ctx) -> error
+App.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName:"persona.detail", Arguments:{operation:"list"|"read",section_id?,cursor?}})
+public.fluctlight_working_personas(fluctlight_id,profile_id,source_revision,source_hash,overlay_revision,rules_version,budget_runes,status,compiled_json)
+public.runtime_settings(key='working_persona_budget',value_json='{"max_runes":3600}')
+```
+
+Migration head is `0035_working_persona`. The CLI is `go run ./cmd/persona-backfill --owner <actor-id> --fluctlights <id,...>` or `--all`; it previews unless `--apply` is supplied. `--all --apply` is an explicit paid operation and must not be run against production implicitly.
+
+### 3. Contracts
+
+- The complete `fluctlights.core_persona` and accepted overlays remain authoritative. `source_hash` identifies the filtered compilation input, not the raw initialization text; the raw text and analysis projection retain their existing Owner-governed source link. Owner edits to the analyzed JSON remain allowed and are recorded by the existing activation digest.
+- The formal `persona_compilation` Agent uses the `initialization` model assignment and its compatible `json_object` transport. The formal result is validated against `persona_compilation_response`, then checked for source refs, preference/habit coverage, nonempty facts and the configured rune budget. One semantic repair call is allowed; invalid results do not publish.
+- The compiler sees shared identity/life facts, selected profile fields, accepted stable overlays and filtered shared-system mechanisms. It excludes sibling profile bodies, switching/takeover machine rules, transient state and source/provenance bookkeeping. Facts and omissions are persisted; only deterministic category text is rendered into the ordinary System persona.
+- Creation compiles outside the transaction, then publishes source and portraits in one short transaction. Foundation accept/rollback and stable-overlay Reflection do the same with revision/overlay/budget checks. A non-persona Foundation change may carry an unchanged portrait forward with an updated source revision when the filtered compilation hash matches.
+- `portrait_overlay_revision` is the maximum effective persona overlay revision. The existing `fluctlight_evolution_states.revision` also advances for non-persona Reflection domains, so using it as a portrait version would cause false invalidation and repeated paid compilation.
+- Main and WakeUp load exactly one saved portrait matching source revision/hash, effective overlay revision, rule version and budget. `persona.takeover` returns the target's saved portrait in its Tool result; subsequent native Tool reads bind to the actual speaking profile. Dynamic state continues through ContextProjection and Prompt Composer.
+- `persona.detail` is a read-only registered Capability. `list` returns section IDs/descriptions; `read` returns `profile_id`, source and overlay revisions, a 2048-rune segment, `cursor`, `next_cursor` and `has_more`. Core binds the owner/resource/speaking profile; model arguments cannot choose an identity. Missing or changed source, invalid section/cursor and unauthorized scope are explicit errors. Query data remains Tool-result data and never becomes System instruction.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+| --- | --- |
+| Missing/stale portrait or changed rule/budget | `working_persona_missing` / `working_persona_version_mismatch`; no full source dump |
+| Compilation source ref invalid, short preference unaccounted, empty or over budget | Reject candidate; at most one semantic repair; no publication |
+| Foundation/overlay/budget changes during remote compilation | CAS conflict; preserve prior consistent source/portrait |
+| Backfill dry run or current row | `would_compile` or `skipped`; no model call or dynamic-state write |
+| Query from foreign Owner/profile or invalid section/cursor | Authorization/not-found/invalid-arguments error; no data returned |
+| Provider unavailable or Tool continuation fails | Preserve accurate failure and actual Tool trace; never report live acceptance from a controlled adapter |
+
+### 5. Good / Base / Bad Cases
+
+- Good: the text says “喜欢咖啡但不喜欢甜咖啡”; the compact portrait retains the exception without topic matching. A specific past event stays in full detail, and `persona.detail` retrieves it when needed.
+- Base: blank-slate initial identity receives a deterministic source-linked minimal portrait; later accepted stable edits use the formal compiler.
+- Bad: recompile on a Memory-only Reflection revision, pair new Core Persona with an old portrait, emit another profile's secret, or copy `extensions.source_text` to a Tool result.
+
+### 6. Tests Required
+
+- Controlled PostgreSQL tests cover text→JSON→saved portrait→formal request, all-profile compilation, source/update failure atomicity, idempotent backfill and budget invalidation, Main/takeover profile scope, direct list/read/pagination/authorization, native Tool-result continuation and trace after continuation failure.
+- Run the separate real Provider `TestFormalAgentE2E/persona_compilation` and `conversation_persona_detail` cases with credentials. Missing credentials are **BLOCKED**, even though ordinary `go test` reports SKIP.
+- Compare complete physical requests, including tools, response schema and later Tool-result rounds; label `EstimatePromptTokens` as a rune heuristic, not actual tokenizer usage.
+
+### 7. Wrong vs Correct
+
+Wrong: call `projectWorkingPersona` every turn and quietly fall back to full `core_persona` when the compiled row is absent.
+Correct: compile from the versioned complete source at authorized lifecycle boundaries, save once, validate the saved row at egress, and fail clearly when preparation is incomplete.

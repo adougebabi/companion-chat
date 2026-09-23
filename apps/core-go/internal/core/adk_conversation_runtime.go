@@ -123,18 +123,26 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if authorizationActorID == "" {
 		authorizationActorID = strings.TrimSpace(i.request.Projection.OwnerActorID)
 	}
+	subjectActorID := firstString(i.request.SubjectActorID, firstString(i.request.Projection.ReferenceIndex.SpeakerActorID, authorizationActorID))
 	operationRoot := firstString(i.request.OperationID, firstString(i.request.ActionID, i.request.SourceFactID))
 	if operationRoot == "" {
 		return "", errors.New("adk_tool_operation_root_required")
 	}
 	operationID := "agent_tool_" + stableDigest(fmt.Sprintf("%s\x1f%d\x1f%d\x1f%s", operationRoot, modelIdentity.ModelCallSequence, modelIdentity.ToolIndex, capabilityName))
 	workingProfileID := workingProfileForToolExecution(i.request.Projection, i.trace)
+	var expectedPersonaRevision *int
+	var expectedOverlayRevision *int
+	if capabilityName == personaDetailCapabilityName {
+		revision, overlayRevision := personaDetailExpectedRevisions(i.request.Projection, i.trace, workingProfileID)
+		expectedPersonaRevision = &revision
+		expectedOverlayRevision = &overlayRevision
+	}
 	invocations, _ := i.trace.Snapshot()
 	invocation := normalizeCapabilityInvocationMetadata(CapabilityInvocation{
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
 		SourceFactID: i.request.SourceFactID, ActionID: i.request.ActionID,
 		ProviderRequestID: modelIdentity.ProviderRequestID, Sequence: len(invocations),
-		Metadata: InvocationMetadata{WorkingProfileID: workingProfileID, CorrelationID: firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID)), OperationID: operationID, FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, Surface: i.request.Surface, Source: "model_tool"},
+		Metadata: InvocationMetadata{WorkingProfileID: workingProfileID, AuthorizationActorID: authorizationActorID, SubjectActorID: subjectActorID, CorrelationID: firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID)), OperationID: operationID, FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, Surface: i.request.Surface, Source: "model_tool"},
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
 	invocation.ActionID = i.request.ActionID
 	// Context snapshots are required for contextful capabilities. A
@@ -157,10 +165,12 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		CapabilityName:      capabilityName, OperationID: operationID,
 		NativeToolCallID: callID, ProviderRequestID: modelIdentity.ProviderRequestID,
 		AuthorizationActorID: authorizationActorID, FluctlightID: i.request.FluctlightID,
-		SubjectActorID: firstString(i.request.SubjectActorID, i.request.Projection.ReferenceIndex.SpeakerActorID),
+		SubjectActorID: subjectActorID,
 		ConversationID: i.request.ConversationID, EvidenceID: i.request.SourceFactID,
 		Surface: i.request.Surface, Arguments: arguments,
-		TargetKind: i.request.TargetKind, TargetRef: i.request.TargetRef,
+		ExpectedCorePersonaRevision: expectedPersonaRevision,
+		ExpectedOverlayRevision:     expectedOverlayRevision,
+		TargetKind:                  i.request.TargetKind, TargetRef: i.request.TargetRef,
 	})
 	result := receipt.Result
 	if result.CallID == "" {

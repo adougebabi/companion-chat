@@ -91,7 +91,8 @@ func TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome(t *testing
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(proposal)}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}
-	app.Provider = &ProviderClient{DB: repository, HTTP: providerHTTP}
+	app.Provider = &ProviderClient{DB: repository, HTTP: &http.Client{Transport: withControlledPersonaCompilation(providerHTTP.Transport)}}
+	seedLegacyTestWorkingPersonas(t, app)
 	result, err := app.ProcessReflection(ctx, fluctlightID, "goal-progress-reflection")
 	if err != nil || stringValue(result["status"]) != "applied" {
 		t.Fatalf("Reflection result=%#v err=%v", result, err)
