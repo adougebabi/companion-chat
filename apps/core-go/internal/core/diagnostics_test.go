@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -12,6 +13,29 @@ import (
 
 	"github.com/jackc/pgx/v5"
 )
+
+func TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{name: "final", err: nil, want: "final_message"},
+		{name: "cancelled", err: context.Canceled, want: "request_cancelled"},
+		{name: "timeout", err: context.DeadlineExceeded, want: "request_timeout"},
+		{name: "provider transport", err: fmt.Errorf("%w: unavailable", errProviderRequestFailed), want: "provider_request_failed"},
+		{name: "invalid tool call", err: errors.New("tool_call_invalid"), want: "tool_call_invalid"},
+		{name: "tool execution", err: errors.New("adk_run: tool execution tool_execution_failed: unavailable"), want: "tool_execution_failed"},
+		{name: "agent failure", err: errors.New("tool execution failed"), want: "adk_run_failed"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := adkTerminationReason(testCase.err); got != testCase.want {
+				t.Fatalf("adkTerminationReason(%v) = %q, want %q", testCase.err, got, testCase.want)
+			}
+		})
+	}
+}
 
 func TestPromptDiagnosticsAlwaysReturnsMutableMap(t *testing.T) {
 	for name, ctx := range map[string]context.Context{
@@ -367,7 +391,7 @@ func TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure(t *testing.T) {
 		t.Fatal("queued model run was not persisted")
 	}
 	support.UpdateModelRunResponse(ctx, modelRunID, map[string]any{"text": "LLM response", "structured": map[string]any{"action_type": "reply"}})
-	support.UpdateModelRunState(ctx, modelRunID, providerRunFailed, errors.New("adk_final_output_invalid"))
+	support.UpdateModelRunState(ctx, modelRunID, providerRunFailed, errors.New("physical_provider_transport_failed"))
 	var status, errorCode string
 	var response []byte
 	if err := repository.Pool().QueryRow(context.Background(), `SELECT status,COALESCE(error_code,''),COALESCE(response,'null'::jsonb) FROM public.diagnostic_model_runs WHERE id=$1`, modelRunID).Scan(&status, &errorCode, &response); err != nil {

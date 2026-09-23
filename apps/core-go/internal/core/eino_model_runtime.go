@@ -78,7 +78,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
 	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
-	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, input)
+	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, input)
 	// The parent turn attempt is intentionally not reused as the physical
 	// model-call attempt. Diagnostics and cancellation state must distinguish
 	// Generate #1 from Generate #2 while both share one turn correlation.
@@ -91,13 +91,14 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
 		return m.inner.Generate(runCtx, input, opts...)
 	})
+	err = wrapPhysicalProviderRequestError(err)
 	if callDiagnosticID != "" && result != nil {
 		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(result))
 	}
 	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Trace != nil && result != nil {
 		adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, result.ToolCalls)
 	}
-	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, result, err)
+	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, result, err)
 	if callDiagnosticID != "" {
 		m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
 	}
@@ -115,7 +116,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
 	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
-	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, input)
+	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, input)
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
 		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, m.correlationID, m.scenario, m.priority, einoDiagnosticMessages(input))
@@ -270,7 +271,7 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 			if diagnosticID != "" {
 				p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
 			}
-			writer.Send(nil, redisErr)
+			writer.Send(nil, wrapPhysicalProviderRequestError(redisErr))
 			writer.Close()
 			return
 		}
@@ -320,7 +321,7 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
 		})
 		if err != nil && !errors.Is(err, context.Canceled) {
-			writer.Send(nil, err)
+			writer.Send(nil, wrapPhysicalProviderRequestError(err))
 		}
 		writer.Close()
 	}()
@@ -463,7 +464,14 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	return result, nil
 }
 
-func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall, adkContext adkConversationContext) (einoModelResponse, error) {
+func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall, adkContext adkConversationContext) (response einoModelResponse, runErr error) {
+	var loopResult ADKLoopResult
+	defer func() {
+		// Record every ADK termination, including setup/binding failures that happen
+		// before RunADKLoop can issue a physical model request. Event persistence
+		// detaches from caller cancellation in RecordDiagnosticEvent.
+		recordADKTerminationDiagnostic(ctx, p, call, loopResult, runErr)
+	}()
 	if strings.TrimSpace(call.Agent.Name) == "" {
 		id, ok := formalAgentForSchema(call.SchemaName)
 		if !ok {
@@ -528,24 +536,23 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	}
 	// ADK itself owns the model/tool/result loop; each underlying model call
 	// still receives the same bounded request identity and no retry policy.
-	result, err := RunADKLoop(ctx, ADKLoopConfig{
+	loopResult, runErr = RunADKLoop(ctx, ADKLoopConfig{
 		Name: call.Agent.Name, Description: call.Agent.Description,
 		Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations,
 		EnableStreaming: call.EnableStreaming,
 	}, input)
-	recordADKTerminationDiagnostic(ctx, p, call, result, err)
-	if err != nil {
-		return einoModelResponse{}, err
+	if runErr != nil {
+		return einoModelResponse{}, runErr
 	}
-	if result.FinalMessage == nil {
+	if loopResult.FinalMessage == nil {
 		return einoModelResponse{}, errors.New("adk_final_message_missing")
 	}
-	final := result.FinalMessage
+	final := loopResult.FinalMessage
 	// Final output and executed calls are separate contracts. Intermediate
 	// calls remain in the execution trace and must never be copied onto the
 	// final assistant message, where they could bypass the final output schema.
 	return einoModelResponse{
-		Message: final, ExecutedToolCalls: append([]schema.ToolCall(nil), result.ToolCalls...),
+		Message: final, ExecutedToolCalls: append([]schema.ToolCall(nil), loopResult.ToolCalls...),
 		Usage: einoUsage(final), FinishReason: "stop",
 	}, nil
 }
@@ -558,7 +565,7 @@ func recordADKTerminationDiagnostic(ctx context.Context, provider *ProviderClien
 	reason := "final_message"
 	if runErr != nil {
 		status = "failed"
-		reason = providerRunErrorCode(runErr)
+		reason = adkTerminationReason(runErr)
 	}
 	diagnostics := providerPromptDiagnostics(ctx)
 	runID := stringValue(diagnostics["run_id"])
@@ -568,6 +575,63 @@ func recordADKTerminationDiagnostic(ctx context.Context, provider *ProviderClien
 	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", statusSeverity(status), stringValue(diagnostics["fluctlight_id"]), "", call.CorrelationID, map[string]any{
 		"run_id": runID, "stage": "termination", "status": status, "reason": reason,
 		"iterations": result.Iterations, "tool_call_count": len(result.ToolCalls), "tool_result_count": len(result.ToolResults),
+	})
+}
+
+func adkTerminationReason(err error) string {
+	if err == nil {
+		return "final_message"
+	}
+	if errors.Is(err, errProviderRequestFailed) {
+		return providerRunErrorCode(err)
+	}
+	if providerToolCallInvalidError(err) {
+		return "tool_call_invalid"
+	}
+	if errors.Is(err, context.Canceled) {
+		return "request_cancelled"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "request_timeout"
+	}
+	if code := embeddedToolExecutionErrorCode(err); code != "" {
+		return code
+	}
+	errText := strings.TrimSpace(err.Error())
+	if colon := strings.Index(errText, ":"); colon > 0 {
+		if code := safeStreamTurnErrorCode(strings.TrimSpace(errText[:colon])); code != "" {
+			return code
+		}
+	}
+	if code := safeStreamTurnErrorCode(errText); code != "" {
+		return code
+	}
+	return "adk_run_failed"
+}
+
+func wrapPhysicalProviderRequestError(err error) error {
+	if err == nil || errors.Is(err, errProviderRequestFailed) || errors.Is(err, errProviderPaused) || errors.Is(err, errProviderInactive) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	return fmt.Errorf("%w: %w", errProviderRequestFailed, err)
+}
+
+// recordADKBoundaryFailureDiagnostic records failures after the native ADK
+// loop has returned (for example final contract validation). Those failures
+// belong to the Agent boundary and must not create a synthetic Provider model
+// run that masks the physical response-bearing call.
+func recordADKBoundaryFailureDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID, code string) {
+	if provider == nil || provider.DB == nil || provider.DB.Pool() == nil {
+		return
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
+	runID := stringValue(diagnostics["run_id"])
+	if runID == "" {
+		runID = correlationID
+	}
+	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", "error", stringValue(diagnostics["fluctlight_id"]), "", correlationID, map[string]any{
+		"run_id": runID, "stage": "provider_boundary", "status": "failed", "reason": strings.TrimSpace(code),
+		"role": strings.TrimSpace(role), "model_call_id": stringValue(diagnostics["model_call_id"]),
 	})
 }
 

@@ -80,6 +80,21 @@ func TestTranslateCoreNDJSONNormalizesBusinessErrorPayload(t *testing.T) {
 			want:    "life_context_stale",
 		},
 		{
+			name:    "provider request failure remains classified",
+			payload: map[string]any{"code": "provider_request_failed", "status": "failed", "message": "provider body must not cross the boundary"},
+			want:    "provider_request_failed",
+		},
+		{
+			name:    "final contract failure remains classified",
+			payload: map[string]any{"code": "adk_final_output_invalid", "status": "failed"},
+			want:    "adk_final_output_invalid",
+		},
+		{
+			name:    "business final contract failure remains classified",
+			payload: map[string]any{"code": "agent_final_contract_invalid", "status": "failed"},
+			want:    "agent_final_contract_invalid",
+		},
+		{
 			name:    "unknown code",
 			payload: map[string]any{"code": "provider_response_password_secret"},
 			want:    "conversation_turn_failed",

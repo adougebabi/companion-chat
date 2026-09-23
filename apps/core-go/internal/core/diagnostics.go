@@ -38,8 +38,9 @@ type providerExecutionGuardContextKey struct{}
 type providerPromptDiagnosticsContextKey struct{}
 
 var (
-	errProviderPaused   = errors.New("provider_suppressed_fluctlight_paused")
-	errProviderInactive = errors.New("provider_suppressed_fluctlight_inactive")
+	errProviderPaused        = errors.New("provider_suppressed_fluctlight_paused")
+	errProviderInactive      = errors.New("provider_suppressed_fluctlight_inactive")
+	errProviderRequestFailed = errors.New("provider request failed")
 )
 
 // WithProviderScenario lets a domain operation retain its human-readable
@@ -620,7 +621,13 @@ func providerSchemaVersion(scenario string) string {
 }
 
 func (s providerRuntimeSupport) RecordDiagnosticEvent(ctx context.Context, eventType, severity, fluctlightID, causationID, correlationID string, payload any) {
-	if _, err := s.persistDiagnosticEvent(ctx, eventType, severity, fluctlightID, causationID, correlationID, payload); err != nil {
+	// Diagnostic events are durable evidence of work that may have been
+	// cancelled. Detach their bounded write from the caller context just like
+	// model-run state/response updates, otherwise a cancellation can erase the
+	// termination event that explains the failed request.
+	diagnosticCtx, cancel := boundedDiagnosticWriteContext(ctx)
+	defer cancel()
+	if _, err := s.persistDiagnosticEvent(diagnosticCtx, eventType, severity, fluctlightID, causationID, correlationID, payload); err != nil {
 		recordDiagnosticPersistenceFailure("event", "create", correlationID, err, "event_type", eventType)
 	}
 }

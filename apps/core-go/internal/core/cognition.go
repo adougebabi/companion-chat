@@ -244,18 +244,18 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, fluctli
 		if existingText != text || stringValue(existingData["conversation_id"]) != conversationID || stringValue(existingData["actor_id"]) != actorID {
 			return "", nil, ErrConflict
 		}
-		if claimOwner != "" && existingStatus != "processed" && existingStatus != "failed" {
-			if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 10*time.Minute {
-				var assistantExists bool
-				var frozenStatus, frozenActionType string
-				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2),COALESCE((SELECT status FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),''),COALESCE((SELECT action_type FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),'')`, stringValue(existingData["conversation_id"]), "assistant:"+stringValue(existingData["turn_id"]), existing).Scan(&assistantExists, &frozenStatus, &frozenActionType); err != nil {
+		if claimOwner != "" && existingStatus != "processed" {
+			var assistantExists bool
+			var frozenStatus, frozenActionType string
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2),COALESCE((SELECT status FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),''),COALESCE((SELECT action_type FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),'')`, stringValue(existingData["conversation_id"]), "assistant:"+stringValue(existingData["turn_id"]), existing).Scan(&assistantExists, &frozenStatus, &frozenActionType); err != nil {
+				return "", nil, err
+			}
+			if (assistantExists && (frozenStatus == "" || frozenStatus == "completed")) || (!assistantExists && frozenActionType == "no_op" && frozenStatus == "completed") {
+				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',claimed_by=NULL,claimed_at=NULL,processed_at=COALESCE(processed_at,now()),error_code=NULL WHERE id=$1`, existing); err != nil {
 					return "", nil, err
 				}
-				if (assistantExists && (frozenStatus == "" || frozenStatus == "completed")) || (!assistantExists && frozenActionType == "no_op" && frozenStatus == "completed") {
-					if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',claimed_by=NULL,claimed_at=NULL,processed_at=COALESCE(processed_at,now()),error_code=NULL WHERE id=$1 AND status='claimed'`, existing); err != nil {
-						return "", nil, err
-					}
-				} else if assistantExists && frozenStatus == "frozen" {
+			} else if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 10*time.Minute {
+				if assistantExists && frozenStatus == "frozen" {
 					// The assistant transaction committed before cognition completion.
 					// Transfer the lease so the normal recovery path can settle the same
 					// frozen invocations/results and complete the inbox idempotently.
@@ -265,7 +265,7 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, fluctli
 				} else {
 					return "", nil, ErrConflict
 				}
-			} else if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now() WHERE id=$1`, existing, claimOwner); err != nil {
+			} else if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now(),attempt_count=attempt_count+1,error_code=NULL WHERE id=$1`, existing, claimOwner); err != nil {
 				return "", nil, err
 			}
 		}

@@ -610,6 +610,9 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 			return writeFrame("completed", map[string]any{"message_ids": []string{}})
 		}
 		if !started || ctx.Err() != nil {
+			if ctx.Err() == nil {
+				slog.Default().Error("Go Core conversation turn failed before visible output", "error_type", fmt.Sprintf("%T", err), "turn_id", turnID)
+			}
 			return err
 		}
 		// A callback may have emitted a previously committed frame, but a later
@@ -632,12 +635,29 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 // or a required capability settlement failure. Unknown/internal errors retain
 // the generic outer code.
 func streamTurnFailureCode(err error) string {
-	const fallback = "conversation_settlement_failed"
+	return streamTurnFailureCodeWithFallback(err, "conversation_settlement_failed")
+}
+
+func streamTurnFailureCodeWithFallback(err error, fallback string) string {
 	if err == nil {
 		return fallback
 	}
 	if code := ProviderErrorCode(err); code == "tool_call_invalid" {
 		return code
+	}
+	if errors.Is(err, context.Canceled) {
+		return "request_cancelled"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "request_timeout"
+	}
+	if errors.Is(err, errProviderRequestFailed) {
+		if code := safeStreamTurnErrorCode(providerRunErrorCode(err)); code != "" {
+			return code
+		}
+	}
+	if errors.Is(err, errAgentFinalContractInvalid) {
+		return "agent_final_contract_invalid"
 	}
 	var capabilityErr *CapabilityError
 	if errors.As(err, &capabilityErr) && capabilityErr != nil {
@@ -645,30 +665,75 @@ func streamTurnFailureCode(err error) string {
 			return code
 		}
 	}
-	if code := safeStreamTurnErrorCode(err.Error()); code != "" {
+	errStr := strings.TrimSpace(err.Error())
+	if colon := strings.Index(errStr, ":"); colon > 0 {
+		prefix := strings.TrimSpace(errStr[:colon])
+		if code := safeStreamTurnErrorCode(prefix); code != "" {
+			return code
+		}
+	}
+	if code := safeStreamTurnErrorCode(errStr); code != "" {
 		return code
 	}
+	if strings.HasPrefix(errStr, "provider request failed:") {
+		return "provider_request_failed"
+	}
+	// Tool adapters include the bounded result code after the human-readable
+	// execution prefix. Recover only that closed code set; never forward the
+	// dependency error or model-controlled text.
+	if code := embeddedToolExecutionErrorCode(err); code != "" {
+		return code
+	}
+	if strings.HasPrefix(errStr, "adk_run:") {
+		return "adk_run_failed"
+	}
 	return fallback
+}
+
+// ConversationTurnFailureCode returns only a stable, public-safe code for a
+// conversation turn failure. It is used by the in-process browser boundary
+// when a turn fails before Core can emit its first NDJSON frame.
+func ConversationTurnFailureCode(err error) string {
+	return streamTurnFailureCodeWithFallback(err, "")
 }
 
 func safeStreamTurnErrorCode(value string) string {
 	code := strings.TrimSpace(value)
 	switch code {
-	case "capability_prepare_failed", "capability_settlement_failed", "cognition_visible_text_missing",
-		"conversation_not_found", "conversation_settlement_failed", "conversation_turn_conflict",
-		"conversation_turn_failed", "conversation_turn_invalid", "conversation_unauthorized",
-		"decision_effect_invalid", "frozen_context_projection_missing", "life_context_stale",
-		"media_arguments_invalid", "media_capability_unavailable", "media_context_stale",
-		"media_intent_failed", "media_intent_invalid", "media_prepare_required",
-		"personality_decision_plan_invalid", "required_capability_failed",
-		"structured_turn_settlement_failed", "takeover_failed", "takeover_frozen_turn_missing",
-		"takeover_reply_budget_exhausted", "takeover_resume_decision_invalid",
+	case "adk_final_message_missing", "adk_final_output_invalid", "adk_final_output_missing", "adk_final_text_missing",
+		"adk_run_failed", "agent_run_failed", "agent_turn_failed", "agent_final_contract_invalid", "agent_output_publication_failed", "agent_cognition_settlement_failed", "capability_prepare_failed", "capability_settlement_failed",
+		"fluctlight_inactive", "fluctlight_paused",
+		"cognition_visible_text_missing", "conversation_not_found", "conversation_settlement_failed",
+		"conversation_turn_conflict", "conversation_turn_failed", "conversation_turn_invalid",
+		"conversation_unauthorized", "decision_effect_invalid", "frozen_context_projection_missing",
+		"life_context_stale", "media_arguments_invalid", "media_capability_unavailable",
+		"media_context_stale", "media_intent_failed", "media_intent_invalid", "media_prepare_required",
+		"personality_decision_plan_invalid", "request_cancelled", "request_timeout",
+		"required_capability_failed", "structured_turn_settlement_failed", "takeover_failed",
+		"takeover_frozen_turn_missing", "takeover_reply_budget_exhausted", "takeover_resume_decision_invalid",
 		"takeover_resume_rule_missing", "takeover_target_profile_missing", "tool_call_failed",
-		"tool_call_invalid", "turn_stage_invalid", "turn_stage_not_executable", "visible_text_source_conflict":
+		"tool_call_invalid", "tool_execution_failed", "turn_stage_invalid", "turn_stage_not_executable", "visible_text_source_conflict":
 		return code
 	default:
 		return ""
 	}
+}
+
+func embeddedToolExecutionErrorCode(err error) string {
+	if err == nil {
+		return ""
+	}
+	errText := strings.TrimSpace(err.Error())
+	marker := "tool execution "
+	markerIndex := strings.Index(errText, marker)
+	if markerIndex < 0 {
+		return ""
+	}
+	toolFailure := errText[markerIndex+len(marker):]
+	if colon := strings.Index(toolFailure, ":"); colon > 0 {
+		return safeStreamTurnErrorCode(strings.TrimSpace(toolFailure[:colon]))
+	}
+	return safeStreamTurnErrorCode(toolFailure)
 }
 
 func jsonString(value any) string { data, _ := json.Marshal(value); return string(data) }

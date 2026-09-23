@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +19,9 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slog.SetDefault(logger)
+
 	settings, err := config.FromEnv(os.LookupEnv)
 	if err != nil {
 		log.Fatal(err)
@@ -74,7 +78,7 @@ func main() {
 	if redisClient != nil {
 		defer redisClient.Close()
 	}
-	apiServer := httpapi.NewApp(application, settings.ServiceKey, nil)
+	apiServer := httpapi.NewApp(application, settings.ServiceKey, logger)
 	apiServer.SetBrowserBoundary(settings.TrustedOrigin, settings.SecureCookies)
 	server := &http.Server{
 		Addr:              settings.ListenAddress,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -17,6 +18,8 @@ type agentCommittedOutcome struct {
 	Invocations []CapabilityInvocation
 	Results     []CapabilityResult
 }
+
+var errAgentFinalContractInvalid = errors.New("agent_final_contract_invalid")
 
 func committedAgentOutcome(trace *ADKCapabilityTrace) (agentCommittedOutcome, error) {
 	if trace == nil {
@@ -265,9 +268,16 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, errCognitionTurnSuperseded
 	}
 
+	var attemptCount int
+	_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(attempt_count,0) FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&attemptCount)
+	runID := "turn:" + turnID
+	if attemptCount > 0 {
+		runID = fmt.Sprintf("turn:%s:attempt:%d", turnID, attemptCount)
+	}
+
 	run, err := a.RunConversationCognitionAgent(WithProviderCorrelation(ctx, "turn:"+turnID), ConversationCognitionAgentInput{
 		AuthorizationActorID: authorizationActorID, SpeakerActorID: actorID, FluctlightID: fluctlightID,
-		ConversationID: conversationID, SourceFactID: inboxID, RunID: "turn:" + turnID, CurrentInput: text, EnableStreaming: claimStream,
+		ConversationID: conversationID, SourceFactID: inboxID, RunID: runID, CurrentInput: text, EnableStreaming: claimStream,
 	})
 	projection := run.Projection
 	outcome, outcomeErr := committedAgentOutcome(run.Trace)
@@ -288,7 +298,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 	if _, err := freezeDecisionInfluences(decision, projection, false); err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid")
-		return TurnResult{}, err
+		return TurnResult{}, fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
 	}
 	if len(mapValue(decision["appraisal"])) == 0 {
 		decision["cognitive_state_transition"] = "not_proposed"
@@ -296,7 +306,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	responsePlan, err := normalizeResponsePlan(decision, inboxID, projection)
 	if err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid")
-		return TurnResult{}, err
+		return TurnResult{}, fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
 	}
 
 	var assistant map[string]any
@@ -325,7 +335,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 	if err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_output_publication_failed")
-		return TurnResult{}, err
+		return TurnResult{}, fmt.Errorf("agent_output_publication_failed: %w", err)
 	}
 	mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
 	if err := a.settleAgentConversationTurn(ctx, inboxID, turnID, fluctlightID, actorID, projection, decision, responsePlan, assistant, mediaIntentID, outcome); err != nil {
@@ -333,7 +343,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// cognition projection failure must not erase or republish them.
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_cognition_settlement_failed")
 		_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
-		return TurnResult{}, err
+		return TurnResult{}, fmt.Errorf("agent_cognition_settlement_failed: %w", err)
 	}
 	if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
 		a.recordDiagnosticEvent(ctx, "cognition.followup.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "followup_schedule_failed"})
@@ -369,7 +379,12 @@ func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any,
 		return nil, nil, err
 	}
 	if status == "failed" {
-		return nil, nil, errors.New(firstString(errorCode, "agent_turn_failed"))
+		var assistantExists bool
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2)`, conversationID, "assistant:"+turnID).Scan(&assistantExists); err == nil && assistantExists {
+			status = "processed"
+		} else {
+			return nil, nil, errors.New(firstString(errorCode, "agent_turn_failed"))
+		}
 	}
 	if status != "processed" {
 		return nil, nil, nil
@@ -408,13 +423,26 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 	// committed by a Tool. A retry must see failure rather than replay the run.
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, code, jsonBytes(map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results}))
-	if err != nil {
+	var fluctlightID, correlationID string
+	if err := a.DB.Pool().QueryRow(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed') RETURNING fluctlight_id,COALESCE(correlation_id,'')`, inboxID, code, jsonBytes(map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results})).Scan(&fluctlightID, &correlationID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrConflict
+		}
 		return err
 	}
-	if command.RowsAffected() == 0 {
-		return ErrConflict
+	stage := "agent_run"
+	switch strings.TrimSpace(code) {
+	case "agent_final_contract_invalid", "native_cognition_final_contract_invalid":
+		stage = "final_contract"
+	case "agent_output_publication_failed":
+		stage = "output_publication"
+	case "agent_cognition_settlement_failed", "native_cognition_settlement_failed":
+		stage = "settlement"
 	}
+	a.recordDiagnosticEvent(ctx, "agent.run.termination", "error", fluctlightID, inboxID, correlationID, map[string]any{
+		"run_id": firstString(correlationID, inboxID), "stage": stage, "status": "failed", "reason": strings.TrimSpace(code),
+		"committed_tool_count": len(outcome.Results),
+	})
 	return nil
 }
 

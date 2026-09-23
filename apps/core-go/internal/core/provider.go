@@ -349,8 +349,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			ProviderRequestID: providerRequestID, Agent: agentDefinition,
 		})
 		if err != nil {
+			if adkEnabled {
+				return ProviderCompletion{}, err
+			}
 			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
-			return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
+			return ProviderCompletion{}, wrapPhysicalProviderRequestError(err)
 		}
 		usage = response.Usage
 		message := einoMessageRaw(response.Message)
@@ -358,13 +361,20 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		// Persist the actual Provider response before any ADK normalization,
 		// final-schema validation, or Tool settlement. A model can return a
 		// response successfully while a later Core stage fails; diagnostics
-		// must still display what the Provider returned.
-		p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, map[string]any{"message": message, "finish_reason": finishReason, "usage": response.Usage}), providerRunRunning, "")
+		// must still display what the Provider returned. For ADK this summary is
+		// already a completed physical Provider response; later Agent failures
+		// are recorded as adk.run.termination events instead of a second failed
+		// model-run row that would hide this response in the Diagnostics Center.
+		modelRunStatus := providerRunRunning
+		if adkEnabled {
+			modelRunStatus = providerRunCompleted
+		}
+		p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, map[string]any{"message": message, "finish_reason": finishReason, "usage": response.Usage}), modelRunStatus, "")
 		if adkEnabled && jsonMode {
 			if responseErr := validateADKStructuredResponse(response.Message, role); responseErr != nil {
 				diagnostic := providerResponseDiagnostic(message, providerStructuredCandidates(message), 0)
 				addStructuredParseFailureDiagnostic(diagnostic, providerStructuredCandidates(message), finishReason)
-				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
+				p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
 				return ProviderCompletion{}, responseErr
 			}
 		}
@@ -389,7 +399,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		if err != nil {
 			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
 			if len(calls) == 0 {
-				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
+				p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
 				return ProviderCompletion{}, err
 			}
 			// Keep valid sibling calls; the malformed entry is retained only as a
@@ -398,7 +408,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}
 		if len(calls) > 0 && len(definitions) == 0 {
 			err := errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
-			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
+			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "tool_call_unhandled")
 			return ProviderCompletion{}, err
 		}
 		logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
@@ -423,18 +433,18 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			if adkEnabled {
 				errorCode = "adk_structured_response_invalid"
 			}
-			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, errorCode, diagnostic)
+			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, errorCode, diagnostic)
 			return ProviderCompletion{}, structuredParseErr
 		}
 		if adkEnabled && jsonMode && len(structuredCandidates) > 0 && !parsedStructuredOK {
 			diagnostic := providerResponseDiagnostic(message, structuredCandidates, len(calls))
 			addStructuredParseFailureDiagnostic(diagnostic, structuredCandidates, finishReason)
-			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
+			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
 			return ProviderCompletion{}, errors.New("adk_structured_response_invalid")
 		}
 		if !adkEnabled && parsedStructuredOK && len(toolCallArrayValue(parsedStructured["tool_calls"])) > 0 {
 			err := errors.New("provider_tool_call_unhandled: structured Content tool_calls are not an execution channel")
-			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
+			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "tool_call_unhandled")
 			return ProviderCompletion{}, err
 		}
 		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
@@ -445,17 +455,17 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			if jsonMode {
 				if !parsedStructuredOK {
 					err := errors.New("adk_final_output_missing")
-					p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_final_output_missing")
+					p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_output_missing")
 					return ProviderCompletion{}, err
 				}
 				if err := capabilitycontract.ValidateCapabilitySchemaValue(parsedStructured, structuredSchema); err != nil {
-					p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_final_output_invalid")
+					p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_output_invalid")
 					return ProviderCompletion{}, fmt.Errorf("adk_final_output_invalid: %w", err)
 				}
 				completion.Structured = parsedStructured
 			} else if content == "" {
 				err := errors.New("adk_final_text_missing")
-				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_final_text_missing")
+				p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_text_missing")
 				return ProviderCompletion{}, err
 			}
 			p.recordProviderSuccessBoundary(ctx, assignment, role, correlationID, messages, map[string]any{
@@ -497,7 +507,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 				p.recordProviderSuccessBoundary(ctx, assignment, role, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
 				return completion, nil
 			}
-			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "response_content_empty")
+			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "response_content_empty")
 			return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 		}
 		if jsonMode || len(definitions) > 0 {
@@ -894,6 +904,14 @@ func (p *ProviderClient) recordProviderSuccessBoundary(ctx context.Context, assi
 
 func (p *ProviderClient) recordProviderFailureBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
 	p.recordProviderFailure(ctx, assignment, role, correlationID, messages, code, diagnostic...)
+}
+
+func (p *ProviderClient) recordBoundaryFailure(ctx context.Context, adkEnabled bool, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
+	if adkEnabled {
+		recordADKBoundaryFailureDiagnostic(ctx, p, role, correlationID, code)
+		return
+	}
+	p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, code, diagnostic...)
 }
 
 func providerDiagnosticMessages(role string, messages []map[string]any) []map[string]any {

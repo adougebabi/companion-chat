@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +23,13 @@ func TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure(
 		{name: "missing visible reply", err: errors.New("cognition_visible_text_missing"), want: "cognition_visible_text_missing"},
 		{name: "invalid provider tool", err: toolInvalid, want: "tool_call_invalid"},
 		{name: "media capability", err: newCapabilityError("media_intent_failed", true, errors.New("renderer unavailable")), want: "media_intent_failed"},
+		{name: "provider transport", err: fmt.Errorf("%w: %w", errProviderRequestFailed, errors.New("upstream unavailable")), want: "provider_request_failed"},
+		{name: "legacy provider transport wrapper", err: errors.New("provider request failed: upstream unavailable"), want: "provider_request_failed"},
+		{name: "provider suppression", err: fmt.Errorf("%w: %w", errProviderRequestFailed, errProviderPaused), want: "fluctlight_paused"},
+		{name: "agent failure", err: errors.New("agent_run_failed: adk loop failed"), want: "agent_run_failed"},
+		{name: "business final contract failure", err: fmt.Errorf("%w: invalid influence", errAgentFinalContractInvalid), want: "agent_final_contract_invalid"},
+		{name: "final contract failure", err: errors.New("adk_final_output_invalid: schema mismatch"), want: "adk_final_output_invalid"},
+		{name: "tool execution failure", err: errors.New("tool execution tool_execution_failed: dependency unavailable"), want: "tool_execution_failed"},
 		{name: "unknown internal", err: errors.New("database connection detail"), want: "conversation_settlement_failed"},
 	}
 	for _, testCase := range cases {
@@ -119,6 +127,189 @@ func TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame(t *testing.T) {
 	assertMixedMediaReplyDurability(t, ctx, repository, fluctlightID, conversationID, "mixed-turn-stream", "mixed-turn-stream-1", assistant)
 }
 
+func TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContractFailure(t *testing.T) {
+	invalidFinal := fakeProviderResult{Structured: map[string]any{
+		"action_type": "reply", "response_intent": "reply already committed", "visible_text": "", "influences": []any{
+			map[string]any{"ref": "memory:ctx_00000000000000000000000000000000", "role": "grounds", "confidence": 0.9, "note": "unknown reference"},
+		},
+	}}
+	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurnWithTransport(t, "final-contract", newConversationToolLoopTransportWithFinal(fakeProviderResult{ToolCalls: []map[string]any{
+		{"id": "call_reply_contract", "type": "function", "function": map[string]any{"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": "已提交的回复"})}},
+	}}, invalidFinal))
+	response := httptest.NewRecorder()
+	turnID := "final-contract-turn-1"
+	if err := app.StreamTurn(ctx, response, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "触发后置合同失败", "idempotency_key": "final-contract-turn", "turn_id": turnID, "attachment_refs": []any{},
+	}); err != nil {
+		t.Fatalf("StreamTurn returned transport error: %v", err)
+	}
+	var frames []map[string]any
+	scanner := bufio.NewScanner(response.Body)
+	for scanner.Scan() {
+		var frame map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &frame); err != nil {
+			t.Fatal(err)
+		}
+		frames = append(frames, frame)
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if len(frames) < 2 || stringValue(frames[len(frames)-1]["type"]) != "error" || stringValue(mapValue(frames[len(frames)-1]["payload"])["code"]) != "agent_final_contract_invalid" {
+		t.Fatalf("terminal frames = %#v", frames)
+	}
+	var assistantCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text='已提交的回复'`, conversationID).Scan(&assistantCount); err != nil || assistantCount != 1 {
+		t.Fatalf("committed reply count=%d err=%v", assistantCount, err)
+	}
+	var inboxStatus, inboxCode string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key='final-contract-turn'`, fluctlightID).Scan(&inboxStatus, &inboxCode); err != nil || inboxStatus != "failed" || inboxCode != "agent_final_contract_invalid" {
+		t.Fatalf("inbox status=%q code=%q err=%v", inboxStatus, inboxCode, err)
+	}
+	correlationID := "turn:" + turnID
+	runs, err := app.ModelRunsFiltered(ctx, ownerID, 100, correlationID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	visibleResponses := 0
+	for _, run := range runs {
+		if responseJSON, ok := run["response"].(json.RawMessage); ok && len(responseJSON) > 0 && string(responseJSON) != "null" {
+			visibleResponses++
+		}
+		if stringValue(run["error_code"]) == "provider_request_failed" {
+			t.Fatalf("business contract failure fabricated Provider failure: %#v", run)
+		}
+	}
+	if visibleResponses < 2 {
+		t.Fatalf("parent correlation responses=%d runs=%#v", visibleResponses, runs)
+	}
+	events, err := app.DiagnosticsFiltered(ctx, ownerID, 100, correlationID, fluctlightID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundTermination := false
+	for _, event := range events {
+		payload := mapValue(event["payload"])
+		if stringValue(event["event_type"]) == "agent.run.termination" && stringValue(payload["stage"]) == "final_contract" && stringValue(payload["reason"]) == "agent_final_contract_invalid" {
+			foundTermination = true
+		}
+	}
+	if !foundTermination {
+		t.Fatalf("final contract diagnostic missing: %#v", events)
+	}
+}
+
+func TestFailedConversationTurnCanBeRetriedAndStreamed(t *testing.T) {
+	callCount := 0
+	transport := projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		callCount++
+		if callCount == 1 {
+			return nil, errors.New("simulated network connection failure")
+		}
+		body, err := io.ReadAll(request.Body)
+		if err != nil {
+			return nil, err
+		}
+		payload := decodeObject(body)
+		content := jsonString(map[string]any{
+			"action_type":     "reply",
+			"response_intent": "回复用户",
+			"visible_text":    "重试成功回复",
+			"influences":      []any{},
+		})
+		if boolValue(payload["stream"]) {
+			chunk := map[string]any{"choices": []any{map[string]any{"delta": map[string]any{"role": "assistant", "content": content}, "finish_reason": "stop"}}}
+			return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader("data: " + string(jsonBytes(chunk)) + "\n\ndata: [DONE]\n\n")), Request: request}, nil
+		}
+		envelope := map[string]any{
+			"choices": []any{
+				map[string]any{
+					"finish_reason": "stop",
+					"message": map[string]any{
+						"role":    "assistant",
+						"content": content,
+					},
+				},
+			},
+		}
+		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(envelope))), nil
+	})
+	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurnWithTransport(t, "retry", transport)
+
+	firstResp := httptest.NewRecorder()
+	turnPayload := map[string]any{
+		"fluctlight_id": fluctlightID, "text": "你好", "idempotency_key": "retry-turn-key", "turn_id": "retry-turn-1", "attachment_refs": []any{},
+	}
+
+	// First attempt fails due to simulated provider network error.
+	_ = app.StreamTurn(ctx, firstResp, ownerID, conversationID, turnPayload)
+	var firstFrames []map[string]any
+	scanner := bufio.NewScanner(firstResp.Body)
+	for scanner.Scan() {
+		var frame map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &frame); err == nil {
+			firstFrames = append(firstFrames, frame)
+		}
+	}
+	if len(firstFrames) == 0 {
+		t.Fatalf("expected frames in first attempt, got 0")
+	}
+	lastFirstFrame := firstFrames[len(firstFrames)-1]
+	if stringValue(lastFirstFrame["type"]) != "error" {
+		t.Fatalf("first attempt should end in error, got %#v", lastFirstFrame)
+	}
+
+	// Verify inbox is marked failed.
+	var status string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2`, fluctlightID, "retry-turn-key").Scan(&status); err != nil || status != "failed" {
+		t.Fatalf("cognition_inbox status=%q err=%v, want failed", status, err)
+	}
+
+	// Second attempt (retry) with the same idempotency key and turn ID.
+	secondResp := httptest.NewRecorder()
+	err := app.StreamTurn(ctx, secondResp, ownerID, conversationID, turnPayload)
+	if err != nil {
+		t.Fatalf("second attempt StreamTurn failed: %v", err)
+	}
+	var secondFrames []map[string]any
+	scanner = bufio.NewScanner(secondResp.Body)
+	for scanner.Scan() {
+		var frame map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &frame); err == nil {
+			secondFrames = append(secondFrames, frame)
+		}
+	}
+	if len(secondFrames) == 0 {
+		t.Fatalf("expected frames in second attempt, got 0")
+	}
+	lastSecondFrame := secondFrames[len(secondFrames)-1]
+	if stringValue(lastSecondFrame["type"]) != "completed" {
+		t.Fatalf("second attempt should end in completed, got %#v", lastSecondFrame)
+	}
+
+	// Verify assistant message is now committed.
+	var assistantCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text=$2`, conversationID, "重试成功回复").Scan(&assistantCount); err != nil || assistantCount != 1 {
+		t.Fatalf("committed assistant message count=%d err=%v", assistantCount, err)
+	}
+}
+
+func setupMixedMediaReplyTurnWithTransport(t *testing.T, suffix string, transport http.RoundTripper) (context.Context, *PostgresRepository, *App, string, string, string) {
+	t.Helper()
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "mixed-owner-"+suffix, "mixed-fluctlight-"+suffix, "mixed-conversation-"+suffix
+	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	seedCognitiveProviderRole(t, ctx, repository, "mixed-endpoint-"+suffix)
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET identity=$2 WHERE id=$1`, fluctlightID, jsonBytes(map[string]any{
+		"timezone":   "Asia/Shanghai",
+		"appearance": map[string]any{"hair": "black hair", "outfit": "coat"},
+	})); err != nil {
+		t.Fatal(err)
+	}
+	app := newTestApp(t, repository, transport)
+	return ctx, repository, app, ownerID, fluctlightID, conversationID
+}
+
 func setupMixedMediaReplyTurn(t *testing.T, suffix string, providerResult fakeProviderResult) (context.Context, *PostgresRepository, *App, string, string, string) {
 	t.Helper()
 	ctx, repository := isolatedCoreTestRepository(t)
@@ -159,6 +350,10 @@ func validToolOnlyConversationFinal() map[string]any {
 }
 
 func newConversationToolLoopTransport(first fakeProviderResult) http.RoundTripper {
+	return newConversationToolLoopTransportWithFinal(first, fakeProviderResult{Structured: validToolOnlyConversationFinal()})
+}
+
+func newConversationToolLoopTransportWithFinal(first, final fakeProviderResult) http.RoundTripper {
 	return projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		body, err := io.ReadAll(request.Body)
 		if err != nil {
@@ -167,7 +362,7 @@ func newConversationToolLoopTransport(first fakeProviderResult) http.RoundTrippe
 		payload := decodeObject(body)
 		result := first
 		if len(first.ToolCalls) > 0 && conversationPayloadHasToolResult(payload) {
-			result = fakeProviderResult{Structured: validToolOnlyConversationFinal()}
+			result = final
 		}
 		content := result.Text
 		if result.Structured != nil {

@@ -67,7 +67,20 @@ func (b *browserBackend) StreamTurn(ctx context.Context, session, conversationID
 		return err
 	}
 	writer.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
-	return b.server.app.StreamTurn(ctx, writer, actorID, conversationID, payload)
+	if err := b.server.app.StreamTurn(ctx, writer, actorID, conversationID, payload); err != nil {
+		return browserConversationTurnError(err)
+	}
+	return nil
+}
+
+func browserConversationTurnError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if code := core.ConversationTurnFailureCode(err); code != "" {
+		return &browser.CoreError{Status: http.StatusBadGateway, Code: code, Message: "conversation turn failed"}
+	}
+	return err
 }
 
 func (b *browserBackend) Media(ctx context.Context, session, assetID, rangeHeader string, writer http.ResponseWriter) error {

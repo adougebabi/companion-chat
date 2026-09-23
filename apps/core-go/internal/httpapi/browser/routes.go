@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -871,6 +873,7 @@ func (s *Server) conversationTurnError(response http.ResponseWriter, err error) 
 	if errors.As(err, &coreErr) && coreErr != nil {
 		code = browserTurnErrorCode(map[string]any{"code": coreErr.Code})
 	}
+	slog.Default().Error("Browser conversation turn failed", "error_type", fmt.Sprintf("%T", err), "code", code)
 	// Keep the route's historical 502 status and fixed message. CoreError.Code
 	// is accepted only through the same turn allowlist used for NDJSON errors;
 	// its message/details may contain provider or persistence data.
