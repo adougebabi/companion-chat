@@ -32,6 +32,21 @@ status: pending | uploading | ready | unavailable | tombstoned | deleted
 created_at / ready_at / tombstoned_at / deleted_at
 ```
 
+Media quality state is durable on `media_intents`: `quality_retry_count` tracks
+the one media-specific correction, `quality_retry_guidance` retains the
+reviewer guidance, `quality_retry_feedback` stores the bounded structured
+review result as JSONB, and `quality_verdict` records `pass`, `retry`,
+`reject`, `skipped`, or `retry_accepted` (`retry_accepted` fits the existing
+`varchar(16)` column).
+
+```go
+func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[string]any, error)
+```
+
+On completion the result contains `intent_id`, `status`, `quality_verdict`
+(the delivery disposition), and `quality_check_verdict` (the actual latest C
+review verdict).
+
 `InternalMediaGrant` contains asset/version identity, authorized range policy, short expiry, content metadata, and an internal presigned/object request that is not returned directly to the browser in the default NAS mode.
 
 ### Moment Image Contract
@@ -87,7 +102,7 @@ created_at / ready_at / tombstoned_at / deleted_at
   assets. They do not bind to the direct conversation or create assistant chat
   messages; Diagnostics and the Visual Identity timeline are their projection
   surfaces.
-- A downloaded image candidate must pass the C-stage visual consistency gate before Core writes a `ready` asset or creates a media reference. C reuses the configured `media_prompt` model with the frozen media concept, authoritative context, final provider prompt, and a bounded private image input. An explicit `pass` permits normal upload/publish; an infrastructure-only C failure (model unavailable/timeout/unsupported vision/invalid response or unsafe candidate read) records `skipped` and fail-open publishes the Provider-successful candidate. An explicit content `retry` may re-run B and the Provider once with the same frozen concept/target; an explicit `reject` or exhausted retry fails only the media target and never attaches the candidate.
+- A downloaded image candidate is inspected by the C-stage visual consistency review before Core writes a `ready` asset or creates a media reference. C reuses the configured `media_prompt` model with the frozen media concept, authoritative context, final provider prompt, and a bounded private image input. An infrastructure-only C failure (model unavailable/timeout/unsupported vision/invalid response or unsafe candidate read) records `skipped` and fail-open publishes the Provider-successful candidate. On the first explicit non-pass (`retry` or `reject`), Core persists the bounded verdict, violations, observed facts, and guidance in `media_intents.quality_retry_feedback`, then runs the formal Media Prompt Agent with that feedback and the previous provider prompt before submitting one second Provider job for the same intent and frozen concept. A passing second candidate follows normal upload/publish. A second `retry` or `reject` is recorded truthfully, changes the delivery state to `retry_accepted`, and still uploads/publishes that second candidate. It must not fail the media target solely for that second quality verdict or start a third quality-driven generation. This one correction is a media lifecycle rule and does not limit general Tool invocations.
 - Long media activities record an initial and periodic Temporal heartbeat while
   prompt generation, Provider submission, object download, or polling is in
   flight. Once `provider_job_id` is persisted, retries skip prompt generation
@@ -123,20 +138,24 @@ created_at / ready_at / tombstoned_at / deleted_at
 | Duplicate delete succeeds/object already absent | Treat as idempotent success after validating the intended object version. |
 | Range is invalid or outside byte size | Return bounded range error without reading another object/version. |
 | Object storage unavailable | Preserve authoritative media state and retry according to workflow; never delete references speculatively. |
+| First quality review returns `retry` or `reject` | Persist structured feedback and guidance, optimize the provider prompt with the formal Media Prompt Agent, and generate once more using the same intent/target. |
+| Second quality review still returns `retry` or `reject` | Preserve the actual review verdict, mark delivery `retry_accepted`, publish the second candidate, and do not generate a third image. |
 | Backup lacks matching database/object manifest verification | Backup is incomplete and cannot be marked restorable. |
 
 ### 5. Good / Base / Bad Cases
 
 - Good: a private video request is authorized by Go Core, the Go browser boundary proxies a valid byte range, and the browser can seek without seeing bucket credentials.
+- Good: the first image review identifies a concrete mismatch, the Media Prompt Agent receives its structured feedback, and a second image is published with `quality_verdict=retry_accepted` if it still does not pass.
 - Good: a deleted Message removes its final media reference, commits a tombstone, and retries physical deletion after an object outage.
 - Base: an uploaded object exists before its result transaction; retry finds and verifies the same stable key, then marks one asset ready.
-- Bad: save absolute Provider paths, expose a public bucket, trust ETag as SHA-256, delete an object before removing references, or let the browser boundary query authorization tables.
+- Bad: fail immediately on the first quality `reject`, hide the second candidate when it still returns `retry`, or submit a third quality-driven image; also save absolute Provider paths, expose a public bucket, trust ETag as SHA-256, delete an object before removing references, or let the browser boundary query authorization tables.
 
 ### 6. Tests Required
 
 - Media-intent/reference transaction tests for rollback, stable IDs, ownership, and outbox atomicity.
 - Upload/recovery tests for checksum/size mismatch, duplicate upload, success-before-crash, orphan collection, and idempotent result commit.
 - Provider retry tests assert that a persisted external job ID is polled without a second submission, ready-asset replay does not upload again, and cancellation targets the external job ID.
+- Media quality retry tests assert that first-pass violations/observations/guidance reach the next Media Prompt Agent input, second-pass non-pass still publishes the same second candidate with `retry_accepted`, the actual verdict remains observable, and no third generation occurs. The PostgreSQL case also asserts durable JSONB feedback and candidate SHA identity.
 - Authorization tests across Actor, Conversation, Message, Moment, and tombstoned/deleted states.
 - browser boundary proxy tests for internal grant expiry, Range, ETag, MIME, cache headers, stream abort, unavailable object, and no leaked bucket credentials.
 - Deletion tests for last-reference policy, tombstone/read denial, object failure/retry, object-already-absent, and version-specific deletion.
@@ -164,4 +183,23 @@ app.get("/media/:assetId", async (req, res) => {
   });
   return proxyInternalMediaGrant(grant, res);
 });
+```
+
+#### Wrong
+
+```go
+if verdict == "reject" || retryCount > 0 {
+	return failMediaIntent() // hides the second candidate
+}
+```
+
+#### Correct
+
+```go
+if retryCount == 0 && verdict != "pass" {
+	return preparePromptCorrectionAndRetryOnce(review)
+}
+if retryCount == 1 && verdict != "pass" {
+	return publishSameSecondCandidateWithVerdict("retry_accepted", review.Verdict)
+}
 ```

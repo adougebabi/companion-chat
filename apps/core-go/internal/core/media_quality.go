@@ -149,9 +149,19 @@ func mediaQualityMessages(intent mediaIntent, contentType string, content []byte
 		map[string]any{"type": "image_url", "image_url": map[string]any{"url": dataURL}},
 	}
 	return []map[string]any{
-		{"role": "system", "content": mediaQualityAcceptanceInstruction},
+		{"role": "system", "content": mediaQualityAcceptanceSystemInstruction()},
 		{"role": "user", "content": contentParts},
 	}, nil
+}
+
+func mediaQualityAcceptanceSystemInstruction() string {
+	instruction := strings.Replace(
+		mediaQualityAcceptanceInstruction,
+		"Use reject for an unsafe, unusable, or clearly impossible result that should not be delivered.",
+		"Use reject to accurately report an unsafe, unusable, or clearly impossible candidate.",
+		1,
+	)
+	return instruction + "\n\nReport only the candidate's observed quality verdict; never change a failing verdict to pass because of delivery handling. The application retries any first non-pass once with this feedback and delivers the second candidate even when its verdict is retry or reject."
 }
 
 func (a *App) evaluateMediaQuality(ctx context.Context, intent mediaIntent, contentType string, content []byte) (mediaQualityAcceptance, error) {

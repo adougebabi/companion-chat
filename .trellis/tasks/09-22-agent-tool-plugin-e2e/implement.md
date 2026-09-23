@@ -43,7 +43,7 @@
 
 在现有 Go 测试体系与 infra/acceptance runner 内实现测试选择和结果汇总，不创建平行测试平台。计划提供以下入口（现已实现；live 套件按用户安排在最终代码上串行执行）：
 
-- [ ] 媒体质量回归：首轮 retry/reject 均将结构化检查反馈带入 Media Prompt Agent 并生成第二张；二轮 pass/retry/reject 都核验第二张资产完成发布、实际 verdict 留痕且无第三次生图。
+- [ ] 媒体质量回归：首轮 retry/reject 均将结构化检查反馈带入 Media Prompt Agent 并生成第二张；二轮 pass/retry/reject 都核验第二张资产完成发布、实际 verdict 留痕且无第三次生图。受控决策/工作流测试已通过；PostgreSQL 反馈持久化测试因隔离库环境未配置而跳过。
 
 ```sh
 # 扩展现有 runner 支持 suite/对象选择；每个命令都执行必需用例计数检查

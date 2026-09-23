@@ -117,6 +117,10 @@ func TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL(t *test
 	if len(messages) != 2 || messages[0]["role"] != "system" || messages[1]["role"] != "user" {
 		t.Fatalf("messages = %#v", messages)
 	}
+	systemInstruction := stringValue(messages[0]["content"])
+	if strings.Contains(systemInstruction, "should not be delivered") || !strings.Contains(systemInstruction, "delivers the second candidate") || !strings.Contains(systemInstruction, "never change a failing verdict to pass") {
+		t.Fatalf("quality instruction conflicts with delivery policy: %s", systemInstruction)
+	}
 	parts, ok := messages[1]["content"].([]any)
 	if !ok || len(parts) != 2 {
 		t.Fatalf("multimodal parts = %#v", messages[1]["content"])
@@ -199,6 +203,27 @@ func TestMediaQualityDispositionRetriesEveryFirstNonPassAndAcceptsSecond(t *test
 		if got := mediaQualityDisposition(testCase.count, testCase.verdict); got != testCase.want {
 			t.Errorf("mediaQualityDisposition(%d, %q) = %q, want %q", testCase.count, testCase.verdict, got, testCase.want)
 		}
+	}
+}
+
+func TestMediaQualityRetryFeedbackIncludesAllBoundedReviewerFields(t *testing.T) {
+	feedback := mediaQualityRetryFeedback(mediaQualityAcceptance{
+		SchemaVersion: mediaQualitySchemaVersion,
+		Verdict:       mediaQualityVerdictReject,
+		Violations:    []mediaQualityViolation{{Code: "capture_mismatch", Severity: "hard", Detail: "phone visible"}},
+		ObservedFacts: map[string]bool{"subject_matches": true, "capture_matches": false},
+		RetryGuidance: "Keep the phone out of frame.",
+	})
+	if intValue(feedback["schema_version"]) != mediaQualitySchemaVersion || stringValue(feedback["verdict"]) != mediaQualityVerdictReject || stringValue(feedback["retry_guidance"]) != "Keep the phone out of frame." {
+		t.Fatalf("quality feedback fields = %#v", feedback)
+	}
+	violations, ok := feedback["violations"].([]any)
+	if !ok || len(violations) != 1 || stringValue(mapValue(violations[0])["detail"]) != "phone visible" {
+		t.Fatalf("quality feedback violations = %#v", feedback["violations"])
+	}
+	observedFacts := mapValue(feedback["observed_facts"])
+	if boolValue(observedFacts["subject_matches"]) != true || boolValue(observedFacts["capture_matches"]) != false {
+		t.Fatalf("quality feedback observed facts = %#v", observedFacts)
 	}
 }
 

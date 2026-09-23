@@ -197,8 +197,10 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 	digest := sha256.Sum256(content)
 	candidateSHA := hex.EncodeToString(digest[:])
 	quality := mediaQualityAcceptance{}
+	qualityCheckVerdict := ""
 	if (intent.QualityVerdict == mediaQualityVerdictPass || intent.QualityVerdict == mediaQualityVerdictSkip) && intent.QualityCandidateSHA == candidateSHA {
 		quality.Verdict = intent.QualityVerdict
+		qualityCheckVerdict = quality.Verdict
 	} else {
 		quality, err = a.evaluateMediaQuality(ctx, intent, contentType, content)
 		if err != nil {
@@ -206,6 +208,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 				return nil, err
 			}
 			quality = mediaQualityAcceptance{SchemaVersion: mediaQualitySchemaVersion, Verdict: mediaQualityVerdictSkip}
+			qualityCheckVerdict = quality.Verdict
 			reason := mediaQualityInfrastructureReason(err)
 			a.recordDiagnosticEvent(ctx, "media.quality.acceptance", "warn", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, mediaQualityDiagnostic(quality, reason, candidateSHA, intent.QualityRetryCount))
 			if err := a.persistMediaQualityVerdict(ctx, intent.ID, providerJobID, mediaQualityVerdictSkip, candidateSHA); err != nil {
@@ -214,6 +217,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			intent.QualityVerdict = mediaQualityVerdictSkip
 			intent.QualityCandidateSHA = candidateSHA
 		} else {
+			qualityCheckVerdict = quality.Verdict
 			a.recordDiagnosticEvent(ctx, "media.quality.acceptance", "info", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, mediaQualityDiagnostic(quality, "", candidateSHA, intent.QualityRetryCount))
 			switch mediaQualityDisposition(intent.QualityRetryCount, quality.Verdict) {
 			case mediaQualityVerdictPass:
@@ -272,7 +276,10 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 	if err := a.markMediaIntentCompleted(ctx, intent.ID, assetID); err != nil {
 		return nil, err
 	}
-	return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": quality.Verdict}, nil
+	return map[string]any{
+		"intent_id": intent.ID, "status": "completed", "quality_verdict": quality.Verdict,
+		"quality_check_verdict": qualityCheckVerdict,
+	}, nil
 }
 
 // mediaRendererConstraints resolves the renderer-owned values from both

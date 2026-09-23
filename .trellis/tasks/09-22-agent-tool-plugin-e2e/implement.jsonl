@@ -4,6 +4,7 @@
 {"file": ".trellis/spec/backend/fluctlight-cognitive-runtime.md", "reason": "Semantic ownership preserved; old continuation/freeze constraints superseded"}
 {"file": ".trellis/spec/backend/visual-identity-contract.md", "reason": "Visual persistence and media continuity; stage/source gate superseded"}
 {"file": ".trellis/spec/backend/fluctlight-persistence-contract.md", "reason": "Short local transaction and outbox invariants"}
+{"file": ".trellis/spec/backend/fluctlight-media-contract.md", "reason": "Durable media intent, quality feedback, retry, and asset publication contract"}
 {"file": ".trellis/tasks/09-22-agent-tool-plugin-e2e/research/inventory.md", "reason": "Fixed product capability baseline and source anchors"}
 {"file": ".trellis/tasks/09-22-agent-tool-plugin-e2e/research/eino-version.md", "reason": "Locked framework API verified against source"}
 {"file": ".trellis/tasks/09-22-agent-tool-plugin-e2e/research/tests-preflight.md", "reason": "Existing real/mocked test boundaries and environment gaps"}

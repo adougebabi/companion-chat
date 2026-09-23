@@ -86,6 +86,13 @@
 
 完整 agents/all 强制运行脚本中的固定 controlled cross-case 清单、真实生产 StreamTurn gate 和全部 17 Agent 行；完整 tools/all 强制固定 18 Tool adapter 与独立用例。指定 Tool 命令也必须包含指定 adapter，结果标签明确为该 Tool，不冒充整个双套件。
 
+## 媒体质量单次纠偏补充
+
+- 首次 `retry` 或 `reject` 都进入一次质量纠偏：结构化 verdict、violations、observed facts 与 guidance 写入 `quality_retry_feedback`，作为正式 Media Prompt Agent 的输入；图片概念和 media intent 保持不变。
+- 第二候选再次 `retry`/`reject` 时以 `retry_accepted` 完成上传与发布，同时诊断仍保留真实检查 verdict；不会为质量结果启动第三次生图。
+- 受控测试：`TestMediaQualityDispositionRetriesEveryFirstNonPassAndAcceptsSecond`、`TestMediaQualityRetryFeedbackIncludesAllBoundedReviewerFields`、`TestMediaPromptInputCarriesOnlyFrozenRetryFeedback`、`TestMediaWorkflowReturnsCompletionAfterSecondQualityFailure`、`TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL` 通过；迁移包测试、`go vet ./...`、`go build ./...` 与 `git diff --check` 通过。
+- `TestMediaQualityRetryPersistsStructuredFeedbackAndAcceptsSecondCandidate` 已实现，但本机因未设置 `GO_CORE_TEST_DATABASE_URL` 跳过；其 PostgreSQL JSONB 与第二候选身份核验仍待启用隔离测试库后执行。没有发起真实 LLM 或 Docker/browser E2E。
+
 ## 实测与边界
 
 串行命令、私有配置和清理说明见 `research/user-live-verification.md`。视觉非生成式依赖预检 `visual-dependencies-preflight-host` 已通过（ComfyUI system_stats + 随机空 bucket），没有调用 LLM/生图。视觉 live 验证生产 handler 链，不单独证明 Temporal transport/history/worker recovery。
