@@ -389,3 +389,58 @@ func TestCompactContextPreservesNaturalIdLikeText(t *testing.T) {
 		t.Fatalf("natural ID-like text was unexpectedly rewritten: %#v", compact)
 	}
 }
+
+func TestRenderProviderSystemOmitsMultiPersonalityRuleForSingleAndFiltersRedundantRules(t *testing.T) {
+	singlePersona := map[string]any{
+		"shared_identity": map[string]any{"identity": map[string]any{"name": "摇光"}},
+		"working_persona": map[string]any{"personality": map[string]any{"traits": "温和"}},
+	}
+	rendered := renderProviderSystem([]string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, singlePersona, nil, "cognitive_assessment")
+
+	// 1. Single personality should NOT contain rule 6 (多重人格)
+	if strings.Contains(rendered, "6. 多重人格") || strings.Contains(rendered, "personality_system 中的 profiles") {
+		t.Fatalf("single personality prompt should not contain multi-personality rule: %s", rendered)
+	}
+	// 2. providerContextAuthorityRule should be filtered out because it is redundant with runtime protocol
+	if strings.Contains(rendered, "life_context authority 为 confirmed Event") {
+		t.Fatalf("operation_rules duplicated providerContextAuthorityRule: %s", rendered)
+	}
+	// 3. capabilityConversationPolicyInstruction should remain
+	if !strings.Contains(rendered, "正式 Agent") {
+		t.Fatalf("capabilityConversationPolicyInstruction was unexpectedly dropped: %s", rendered)
+	}
+}
+
+func TestFilterCorePersonaStripsDialogueExamplesWhileKeepingLore(t *testing.T) {
+	persona := map[string]any{
+		"identity": map[string]any{
+			"name":        "苏晚",
+			"background":  "从小在成都长大，热爱绘画与传统工艺。",
+			"description": "性格温和，善于观察细节。",
+		},
+		"extensions": map[string]any{
+			"world_info":                    "世界设定：一个充满古籍修复师与画家的安宁小镇。",
+			"special_ritual":                "睡前整理画稿。",
+			"top_level.mes_example":         "<START>\n{{user}}: 你好\n{{char}}: 嗨，今天过得好吗？\n<START>\n{{user}}: 请帮我看看这幅画\n{{char}}: 好的，线条非常细腻。",
+			"top_level.alternate_greetings": []any{"你好呀！", "欢迎来到我的画室。"},
+			"top_level.first_mes":           "窗外的雨停了，要喝杯茶吗？",
+		},
+	}
+
+	filtered := filterCorePersona(persona)
+	serialized := jsonString(filtered)
+
+	// Dialogue examples should be stripped
+	for _, stripped := range []string{"mes_example", "alternate_greetings", "first_mes", "你好呀！", "欢迎来到我的画室", "窗外的雨停了"} {
+		if strings.Contains(serialized, stripped) {
+			t.Fatalf("dialogue example %q leaked into filtered persona: %s", stripped, serialized)
+		}
+	}
+
+	// Lore, background, and settings must be kept
+	for _, kept := range []string{"从小在成都长大", "性格温和，善于观察细节", "一个充满古籍修复师与画家的安宁小镇", "睡前整理画稿"} {
+		if !strings.Contains(serialized, kept) {
+			t.Fatalf("lore/setting %q was dropped from persona: %s", kept, serialized)
+		}
+	}
+}

@@ -21,6 +21,27 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 7. 引用边界：evidence_refs 和 influences.ref 只能逐字使用当前 [RUNTIME CONTEXT] 中提供的完整 context reference（形如 kind:ctx_ 加 32 位十六进制）；人格规则 ID（例如 switch:safety）不是 context reference。没有匹配的上下文引用时返回空数组，不要发明 ref、ctx_ 值或数据库 ID。
 `
 
+const providerSingleRuntimeProtocol = `1. 语言：自然语言用中文，协议/字面量保持原文。
+2. 约束优先级：core_persona（硬约束）> developing_self（带证据线索）> current_state（当前事实）。
+3. 上下文绑定：决策与工具参数必须锚定 context 起始快照以及之后真实 Tool 已提交的结果（scene, activity, location, mood, appearance）；后续查询和已提交结果代表更新后的事实。除 actor_user 明确要求外，禁止擅自变更场景；actor_user 显式变更时标明 context_override.explicit=true。
+4. Actor 语义：Human 与 Fluctlight 都是 Actor；消息发送者以 Actor 与关系上下文为准，不要把 transport role=user 当作 actor_user 身份。
+5. 认知与生成准则：
+   - 认知字段仅写简短摘要，禁止输出推理长文。
+   - claims 仅保留有证据的事实或假设，禁止幻觉捏造。
+   - 依赖外部能力时直接触发标准 Tool Call；如果文字声称状态已改变、正在改变或将立即改变，且存在对应能力，必须真实调用该能力。
+   - 不得绕过标准 Tool Call，直接声称外部能力已经完成；必需能力失败时不得伪造成功。
+   - 不得把模型生成的内容伪装成已经发生的事实。
+   - 不得把 developing_self 或 current_state 升级为 Core Persona。
+6. 引用边界：evidence_refs 只能逐字使用当前 [RUNTIME CONTEXT] 中提供的完整 context reference（形如 kind:ctx_ 加 32 位十六进制）。没有匹配的上下文引用时返回空数组，不要发明 ref、ctx_ 值或数据库 ID。
+`
+
+func renderProviderRuntimeProtocol(persona map[string]any) string {
+	if len(persona) > 0 && isMultiPersonalitySystem(mapValue(persona["personality_system"])) {
+		return providerRuntimeProtocol
+	}
+	return providerSingleRuntimeProtocol
+}
+
 const providerInitializationRuntimeProtocol = `1. 语言：自然语言字段使用中文，协议字段和枚举值保持原文。
 2. 任务性质：你正在进行人格初始化信息解析，不是在扮演 actor_self，也不是在进行一次聊天 cognition。
 3. 解析边界：只从 Owner 提供的描述中识别、分类和结构化人格信息；不要模拟对话、当前情绪、当前动作、当前回复或未来行动。
@@ -160,13 +181,21 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 	if role == "initialization" {
 		builder.WriteString(providerInitializationRuntimeProtocol)
 	} else {
-		builder.WriteString(providerRuntimeProtocol)
+		builder.WriteString(renderProviderRuntimeProtocol(persona))
 	}
-	if len(operationRules) > 0 {
+	filteredRules := make([]string, 0, len(operationRules))
+	for _, rule := range operationRules {
+		trimmed := strings.TrimSpace(rule)
+		if trimmed == "" || trimmed == providerLanguageRule || trimmed == providerContextAuthorityRule {
+			continue
+		}
+		filteredRules = append(filteredRules, trimmed)
+	}
+	if len(filteredRules) > 0 {
 		builder.WriteString("\n\noperation_rules:\n")
-		for _, rule := range operationRules {
+		for _, rule := range filteredRules {
 			builder.WriteString("  - ")
-			builder.WriteString(strings.ReplaceAll(strings.TrimSpace(rule), "\n", " "))
+			builder.WriteString(strings.ReplaceAll(rule, "\n", " "))
 			builder.WriteByte('\n')
 		}
 	}
@@ -437,9 +466,23 @@ func filterSemanticProfileValue(value map[string]any) map[string]any {
 	return result
 }
 
+func isDialogueExampleKey(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""), ".", ""))
+	trimmed := strings.TrimPrefix(strings.TrimPrefix(normalized, "toplevel"), "corepersona")
+	switch trimmed {
+	case "mesexample", "exampledialogue", "dialogueexamples", "examples", "alternategreetings", "firstmes":
+		return true
+	default:
+		return false
+	}
+}
+
 func filterCorePersonaValue(value map[string]any) map[string]any {
 	result := make(map[string]any, len(value))
 	for key, child := range value {
+		if isDialogueExampleKey(key) {
+			continue
+		}
 		normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
 		if normalized == "id" || strings.HasSuffix(normalized, "id") || normalized == "schemaversion" || normalized == "revision" || normalized == "createdat" || normalized == "updatedat" || normalized == "status" || normalized == "provenance" || normalized == "source" || normalized == "sourcetext" || normalized == "sourcedigest" || normalized == "projectiondigest" || normalized == "providerendpoint" || normalized == "providerrequest" || normalized == "correlation" || normalized == "instant" {
 			continue
