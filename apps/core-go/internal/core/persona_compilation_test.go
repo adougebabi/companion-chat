@@ -292,3 +292,79 @@ func TestDecodeCompiledWorkingPersonaFactsTolerance(t *testing.T) {
 		}
 	})
 }
+
+func TestResolvePersonaSourceRefTolerance(t *testing.T) {
+	source := map[string]any{
+		"identity": map[string]any{"name": "沈鹿"},
+		"personality": map[string]any{
+			"core_drive": "寻找自我",
+		},
+		"life_profile": map[string]any{
+			"preferences": map[string]any{"drink": "喜欢咖啡"},
+		},
+		"profile": map[string]any{
+			"id": "default",
+			"personality": map[string]any{
+				"core_drive": "寻找自我",
+			},
+		},
+	}
+
+	t.Run("resolves prefixed paths", func(t *testing.T) {
+		for _, tc := range []struct {
+			raw      string
+			expected string
+		}{
+			{"personality.core_drive", "personality.core_drive"},
+			{"extensions.core_persona.personality.core_drive", "personality.core_drive"},
+			{"core_persona.personality.core_drive", "personality.core_drive"},
+			{"source.personality.core_drive", "personality.core_drive"},
+			{"core_persona.identity.name", "identity.name"},
+			{"source.life_profile.preferences.drink", "life_profile.preferences.drink"},
+			{"extensions.nonexistent.fake", ""},
+		} {
+			resolved := resolvePersonaSourceRef(source, tc.raw)
+			if resolved != tc.expected {
+				t.Errorf("resolvePersonaSourceRef(%q) = %q, want %q", tc.raw, resolved, tc.expected)
+			}
+		}
+	})
+
+	t.Run("decodeCompiledWorkingPersona accepts extensions.core_persona.personality.core_drive", func(t *testing.T) {
+		input := PersonaCompilationInput{ProfileID: "default"}
+		output := map[string]any{
+			"profile_id": "default",
+			"facts": []any{
+				map[string]any{
+					"category":    "identity",
+					"text":        "沈鹿",
+					"source_refs": []any{"identity.name"},
+				},
+				map[string]any{
+					"category":    "core_mechanisms",
+					"text":        "寻找自我驱动",
+					"source_refs": []any{"extensions.core_persona.personality.core_drive"},
+				},
+			},
+			"omissions": []any{
+				map[string]any{
+					"source_ref": "extensions.core_persona.life_profile.preferences.drink",
+					"reason":     "detailed source only",
+				},
+			},
+		}
+		compiled, err := decodeCompiledWorkingPersona(output, source, input)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(compiled.Facts) != 2 {
+			t.Fatalf("expected 2 facts, got: %d", len(compiled.Facts))
+		}
+		if compiled.Facts[1].SourceRefs[0] != "personality.core_drive" {
+			t.Fatalf("expected resolved source_ref personality.core_drive, got: %q", compiled.Facts[1].SourceRefs[0])
+		}
+		if len(compiled.Omissions) != 1 || compiled.Omissions[0].SourceRef != "life_profile.preferences.drink" {
+			t.Fatalf("expected resolved omission ref life_profile.preferences.drink, got: %#v", compiled.Omissions)
+		}
+	})
+}

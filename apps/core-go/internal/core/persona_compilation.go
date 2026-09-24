@@ -66,7 +66,7 @@ func personaCompilationResponseSchema(profileID string) map[string]any {
 	}, []string{"profile_id", "facts", "omissions"}, false)
 }
 
-const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current body or hair state, current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. A preferred hairstyle is a preference; a currently worn hairstyle is a body state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Array items use their zero-based index as a path component. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Set profile_id in the output JSON to the exact profile_id string provided in the input, without translation, abbreviation, or substitution. The "facts" array must contain at least 1 essential fact from the source and must never be empty. Return only the specified JSON.`
+const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current body or hair state, current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. A preferred hairstyle is a preference; a currently worn hairstyle is a body state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Array items use their zero-based index as a path component. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Set profile_id in the output JSON to the exact profile_id string provided in the input, without translation, abbreviation, or substitution. The "facts" array must contain at least 1 essential fact from the source and must never be empty. Paths in source_refs and omissions must start directly with top-level keys in the source object (such as "identity.name", "personality.core_drive", "life_profile.preferences.drink"); never prepend "source.", "core_persona.", or "extensions.core_persona.". Return only the specified JSON.`
 
 func personaCompilationSource(input PersonaCompilationInput) (map[string]any, error) {
 	profileID := strings.TrimSpace(input.ProfileID)
@@ -267,7 +267,7 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt == 1 {
 			return CompiledWorkingPersona{}, validationErr
 		}
-		messages = append(messages, map[string]any{"role": "user", "content": fmt.Sprintf("The prior portrait failed validation (%v). Rebuild the complete JSON from the original source, retaining each cited fact and exception. Do not add unsupported facts. Ensure profile_id is exactly %q, and ensure the \"facts\" array contains at least one non-empty item with valid source_refs.", validationErr, input.ProfileID)})
+		messages = append(messages, map[string]any{"role": "user", "content": fmt.Sprintf("The prior portrait failed validation (%v). Rebuild the complete JSON from the original source, retaining each cited fact and exception. Do not add unsupported facts. Ensure profile_id is exactly %q, and ensure the \"facts\" array contains at least one non-empty item with valid source_refs. Paths must start directly with top-level keys in the source object (e.g. \"personality.core_drive\", \"identity.name\"); do not prepend \"extensions.core_persona.\" or \"source.\".", validationErr, input.ProfileID)})
 	}
 	return CompiledWorkingPersona{}, errors.New("persona_compilation_retry_exhausted")
 }
@@ -339,9 +339,10 @@ func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCo
 		}
 		refs := make([]string, 0)
 		for _, value := range arrayValue(item["source_refs"]) {
-			ref := strings.TrimSpace(stringValue(value))
-			if !personaCompilationSourcePathExists(source, ref) {
-				return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_ref_invalid: %s", ref)
+			rawRef := strings.TrimSpace(stringValue(value))
+			ref := resolvePersonaSourceRef(source, rawRef)
+			if ref == "" {
+				return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_ref_invalid: %s", rawRef)
 			}
 			refs = append(refs, ref)
 			seen[ref] = struct{}{}
@@ -375,9 +376,10 @@ func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCo
 	}
 	for _, raw := range rawOmissions {
 		item := mapValue(raw)
-		ref := strings.TrimSpace(stringValue(item["source_ref"]))
+		rawRef := strings.TrimSpace(stringValue(item["source_ref"]))
 		reason := strings.TrimSpace(stringValue(item["reason"]))
-		if !personaCompilationSourcePathExists(source, ref) || reason == "" {
+		ref := resolvePersonaSourceRef(source, rawRef)
+		if ref == "" || reason == "" {
 			return CompiledWorkingPersona{}, errors.New("persona_compilation_omission_invalid")
 		}
 		result.Omissions = append(result.Omissions, PersonaPortraitOmission{SourceRef: ref, Reason: reason})
@@ -437,6 +439,59 @@ func personaPortraitCategory(category string) bool {
 		return true
 	}
 	return false
+}
+
+func resolvePersonaSourceRef(source map[string]any, ref string) string {
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		return ""
+	}
+	if personaCompilationSourcePathExists(source, ref) {
+		return ref
+	}
+	// Try trimming known common hallucinated prefixes
+	prefixes := []string{
+		"extensions.core_persona.",
+		"core_persona.extensions.",
+		"core_persona.",
+		"source.extensions.core_persona.",
+		"source.core_persona.",
+		"source.",
+		"root.",
+		"data.",
+		"source_object.",
+	}
+	for _, p := range prefixes {
+		if strings.HasPrefix(ref, p) {
+			candidate := strings.TrimPrefix(ref, p)
+			if personaCompilationSourcePathExists(source, candidate) {
+				return candidate
+			}
+			if personaCompilationSourcePathExists(source, "profile."+candidate) {
+				return "profile." + candidate
+			}
+		}
+	}
+	// Try "profile." prefix if missing
+	if !strings.HasPrefix(ref, "profile.") && personaCompilationSourcePathExists(source, "profile."+ref) {
+		return "profile." + ref
+	}
+	// Try trimming "profile." prefix if present
+	if strings.HasPrefix(ref, "profile.") && personaCompilationSourcePathExists(source, strings.TrimPrefix(ref, "profile.")) {
+		return strings.TrimPrefix(ref, "profile.")
+	}
+	// Suffix path matching: if ref is a.b.c.d, check if any subpath exists in source
+	parts := strings.Split(ref, ".")
+	for i := 1; i < len(parts); i++ {
+		candidate := strings.Join(parts[i:], ".")
+		if personaCompilationSourcePathExists(source, candidate) {
+			return candidate
+		}
+		if personaCompilationSourcePathExists(source, "profile."+candidate) {
+			return "profile." + candidate
+		}
+	}
+	return ""
 }
 
 func personaCompilationSourcePathExists(source map[string]any, path string) bool {
