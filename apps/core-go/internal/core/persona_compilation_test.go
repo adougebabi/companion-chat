@@ -233,3 +233,62 @@ func TestDecodeCompiledWorkingPersonaProfileTolerance(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeCompiledWorkingPersonaFactsTolerance(t *testing.T) {
+	input := PersonaCompilationInput{ProfileID: "shenlu_main"}
+	source := map[string]any{
+		"identity": map[string]any{"name": "沈鹿"},
+		"profile":  map[string]any{"id": "shenlu_main"},
+	}
+
+	t.Run("envelope wrapped in persona_compilation_response", func(t *testing.T) {
+		output := map[string]any{
+			"persona_compilation_response": map[string]any{
+				"profile_id": "shenlu_main",
+				"facts": []any{
+					map[string]any{"category": "identity", "text": "沈鹿", "source_refs": []any{"identity.name"}},
+				},
+				"omissions": []any{},
+			},
+		}
+		compiled, err := decodeCompiledWorkingPersona(output, source, input)
+		if err != nil {
+			t.Fatalf("unexpected error for wrapped response: %v", err)
+		}
+		if len(compiled.Facts) != 1 || compiled.Facts[0].Text != "沈鹿" {
+			t.Fatalf("unexpected compiled facts: %#v", compiled.Facts)
+		}
+	})
+
+	t.Run("empty facts array falls back to identity name", func(t *testing.T) {
+		output := map[string]any{
+			"profile_id": "shenlu_main",
+			"facts":      []any{},
+			"omissions":  []any{},
+		}
+		compiled, err := decodeCompiledWorkingPersona(output, source, input)
+		if err != nil {
+			t.Fatalf("unexpected error for empty facts: %v", err)
+		}
+		if len(compiled.Facts) != 1 || compiled.Facts[0].Text != "沈鹿" {
+			t.Fatalf("expected fallback identity fact, got: %#v", compiled.Facts)
+		}
+	})
+
+	t.Run("alternative key portrait instead of facts", func(t *testing.T) {
+		output := map[string]any{
+			"profile_id": "shenlu_main",
+			"portrait": []any{
+				map[string]any{"category": "identity", "text": "沈鹿", "source_refs": []any{"identity.name"}},
+			},
+			"omissions": []any{},
+		}
+		compiled, err := decodeCompiledWorkingPersona(output, source, input)
+		if err != nil {
+			t.Fatalf("unexpected error for alternative key portrait: %v", err)
+		}
+		if len(compiled.Facts) != 1 || compiled.Facts[0].Text != "沈鹿" {
+			t.Fatalf("expected facts from portrait key, got: %#v", compiled.Facts)
+		}
+	})
+}
