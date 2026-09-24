@@ -58,7 +58,7 @@ func personaCompilationResponseSchema() map[string]any {
 	}, []string{"profile_id", "facts", "omissions"}, false)
 }
 
-const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Return only the specified JSON.`
+const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Return only the specified JSON.`
 
 func personaCompilationSource(input PersonaCompilationInput) (map[string]any, error) {
 	profileID := strings.TrimSpace(input.ProfileID)
@@ -88,14 +88,34 @@ func personaCompilationSource(input PersonaCompilationInput) (map[string]any, er
 	profile = safePersonaFactMap(profile)
 	profile["id"] = profileID
 	for _, key := range []string{"personality", "behavioral_policy"} {
-		if len(mapValue(profile[key])) == 0 {
-			profile[key] = safePersonaFactMap(mapValue(core[key]))
+		coreVal := safePersonaFactMap(mapValue(core[key]))
+		profVal := safePersonaFactMap(mapValue(profile[key]))
+		merged := cloneMap(coreVal)
+		if merged == nil {
+			merged = map[string]any{}
+		}
+		for k, v := range profVal {
+			merged[k] = v
 		}
 		if input.OverlayRevision > 0 && len(mapValue(input.EffectivePersona[key])) > 0 {
-			profile[key] = safePersonaFactMap(mapValue(input.EffectivePersona[key]))
+			effectiveVal := safePersonaFactMap(mapValue(input.EffectivePersona[key]))
+			for k, v := range effectiveVal {
+				merged[k] = v
+			}
 		}
+		profile[key] = merged
 	}
 	source := map[string]any{"profile": profile}
+	if behavior := mapValue(core["behavioral_policy"]); len(behavior) > 0 {
+		if stable := safePersonaFactMap(behavior); len(stable) > 0 {
+			source["behavioral_policy"] = stable
+		}
+	}
+	if personality := mapValue(core["personality"]); len(personality) > 0 {
+		if stable := safePersonaFactMap(personality); len(stable) > 0 {
+			source["personality"] = stable
+		}
+	}
 	if identity := mapValue(core["identity"]); len(identity) > 0 {
 		if stable := safePersonaFactMap(identity); len(stable) > 0 {
 			source["identity"] = stable

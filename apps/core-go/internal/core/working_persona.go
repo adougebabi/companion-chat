@@ -101,14 +101,19 @@ func projectWorkingPersona(projection ContextProjection, subjectProfileID string
 		}
 	}
 
-	// The profile-local baseline wins over the shared top-level one.
+	// The profile-local baseline merges with and overrides the shared top-level one.
 	personality := mapValue(projection.Personality)
 	if candidate := mapValue(profile["personality"]); len(candidate) > 0 {
 		personality = candidate
 	}
-	behavior := mapValue(projection.BehavioralPolicy)
+	behavior := cloneMap(mapValue(projection.BehavioralPolicy))
 	if candidate := mapValue(profile["behavioral_policy"]); len(candidate) > 0 {
-		behavior = candidate
+		if behavior == nil {
+			behavior = map[string]any{}
+		}
+		for k, v := range candidate {
+			behavior[k] = v
+		}
 	}
 
 	trace := workingPersonaTrace{

@@ -447,7 +447,12 @@ func personaEvolutionBaseline(fluctlightID string, fallbackPersonality, fallback
 			personality = deepCloneEvolutionMap(candidate)
 		}
 		if candidate := mapValue(profile["behavioral_policy"]); len(candidate) > 0 {
-			behavior = deepCloneEvolutionMap(candidate)
+			if behavior == nil {
+				behavior = map[string]any{}
+			}
+			for k, v := range candidate {
+				behavior[k] = v
+			}
 		}
 		break
 	}

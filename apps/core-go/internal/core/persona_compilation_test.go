@@ -61,3 +61,65 @@ func TestCompiledPersonaRejectsOverBudgetWithoutCuttingFacts(t *testing.T) {
 		t.Fatalf("over-budget portrait was silently truncated or accepted: %v", err)
 	}
 }
+
+func TestPersonaCompilationPreservesBehavioralPolicyAndProactiveBombardment(t *testing.T) {
+	core := map[string]any{
+		"identity": map[string]any{"name": "摇光"},
+		"behavioral_policy": map[string]any{
+			"high_frequency_daily_bombardment": "消息密度很高，一天可能发十几条到几十条，非常主动找用户",
+			"initiative":                       0.95,
+		},
+		"personality": map[string]any{"openness": 0.8},
+		"personality_system": map[string]any{
+			"active_profile_id": "default",
+			"profiles": []any{
+				map[string]any{
+					"id":   "default",
+					"name": "摇光",
+					"behavioral_policy": map[string]any{
+						"response_style": "温和自然",
+					},
+				},
+			},
+		},
+	}
+
+	input := PersonaCompilationInput{CorePersona: core, ProfileID: "default", TargetBudgetRunes: 2000}
+	source, err := personaCompilationSource(input)
+	if err != nil {
+		t.Fatalf("personaCompilationSource failed: %v", err)
+	}
+
+	encoded := jsonString(source)
+	if !strings.Contains(encoded, "high_frequency_daily_bombardment") {
+		t.Fatalf("source lost high_frequency_daily_bombardment: %s", encoded)
+	}
+	if !strings.Contains(encoded, "温和自然") {
+		t.Fatalf("source lost profile response_style: %s", encoded)
+	}
+
+	baseline, err := synthesizeBaselineWorkingPersona(input)
+	if err != nil {
+		t.Fatalf("synthesizeBaselineWorkingPersona failed: %v", err)
+	}
+	foundBombardment := false
+	for _, fact := range baseline.Facts {
+		if strings.Contains(fact.Text, "high_frequency_daily_bombardment") || strings.Contains(fact.Text, "非常主动找用户") {
+			foundBombardment = true
+			break
+		}
+	}
+	if !foundBombardment {
+		t.Fatalf("synthesizeBaselineWorkingPersona did not produce fact for high_frequency_daily_bombardment: %#v", baseline.Facts)
+	}
+
+	derived := deriveWorkingPersonaBody(core)
+	derivedPolicy := mapValue(derived["behavioral_policy"])
+	if got := stringValue(derivedPolicy["high_frequency_daily_bombardment"]); got == "" {
+		t.Fatalf("deriveWorkingPersonaBody lost high_frequency_daily_bombardment: %#v", derived)
+	}
+	if got := stringValue(derivedPolicy["response_style"]); got != "温和自然" {
+		t.Fatalf("deriveWorkingPersonaBody lost response_style override: %#v", derivedPolicy)
+	}
+}
+

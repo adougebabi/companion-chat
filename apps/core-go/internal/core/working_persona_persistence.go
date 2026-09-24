@@ -152,32 +152,40 @@ func synthesizeBaselineWorkingPersona(input PersonaCompilationInput) (CompiledWo
 	}
 
 	// 2. Personality / mechanisms facts
-	for _, ref := range []string{"profile.personality", "personality"} {
-		if val := mapValue(source[ref]); len(val) > 0 {
-			for k, v := range val {
-				kPath := ref + "." + k
-				if personaCompilationSourcePathExists(source, kPath) {
-					text := fmt.Sprintf("%s: %v", k, v)
-					if len([]rune(text)) <= 1000 {
-						facts = append(facts, PersonaPortraitFact{Category: "core_mechanisms", Text: text, SourceRefs: []string{kPath}})
-						seen[kPath] = struct{}{}
-					}
+	for _, item := range []struct {
+		prefix string
+		value  map[string]any
+	}{
+		{"profile.personality", mapValue(mapValue(source["profile"])["personality"])},
+		{"personality", mapValue(source["personality"])},
+	} {
+		for k, v := range item.value {
+			kPath := item.prefix + "." + k
+			if _, already := seen[kPath]; !already && personaCompilationSourcePathExists(source, kPath) {
+				text := fmt.Sprintf("%s: %v", k, v)
+				if len([]rune(text)) <= 1000 {
+					facts = append(facts, PersonaPortraitFact{Category: "core_mechanisms", Text: text, SourceRefs: []string{kPath}})
+					seen[kPath] = struct{}{}
 				}
 			}
 		}
 	}
 
 	// 3. Behavioral policy / boundaries facts
-	for _, ref := range []string{"profile.behavioral_policy", "behavioral_policy"} {
-		if val := mapValue(source[ref]); len(val) > 0 {
-			for k, v := range val {
-				kPath := ref + "." + k
-				if personaCompilationSourcePathExists(source, kPath) {
-					text := fmt.Sprintf("%s: %v", k, v)
-					if len([]rune(text)) <= 1000 {
-						facts = append(facts, PersonaPortraitFact{Category: "behavior_boundaries", Text: text, SourceRefs: []string{kPath}})
-						seen[kPath] = struct{}{}
-					}
+	for _, item := range []struct {
+		prefix string
+		value  map[string]any
+	}{
+		{"profile.behavioral_policy", mapValue(mapValue(source["profile"])["behavioral_policy"])},
+		{"behavioral_policy", mapValue(source["behavioral_policy"])},
+	} {
+		for k, v := range item.value {
+			kPath := item.prefix + "." + k
+			if _, already := seen[kPath]; !already && personaCompilationSourcePathExists(source, kPath) {
+				text := fmt.Sprintf("%s: %v", k, v)
+				if len([]rune(text)) <= 1000 {
+					facts = append(facts, PersonaPortraitFact{Category: "behavior_boundaries", Text: text, SourceRefs: []string{kPath}})
+					seen[kPath] = struct{}{}
 				}
 			}
 		}

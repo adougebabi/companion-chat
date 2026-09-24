@@ -346,6 +346,18 @@ func deriveWorkingPersonaBody(value map[string]any) map[string]any {
 				if _, excluded := workingPersonaExcludedKeys[strings.ToLower(strings.TrimSpace(key))]; excluded {
 					continue
 				}
+				if key == "behavioral_policy" {
+					if existingMap, ok := body[key].(map[string]any); ok {
+						if profileMap, ok := profile[key].(map[string]any); ok {
+							merged := cloneMap(existingMap)
+							for pk, pv := range profileMap {
+								merged[pk] = pv
+							}
+							body[key] = merged
+							continue
+						}
+					}
+				}
 				body[key] = profile[key]
 			}
 			break
