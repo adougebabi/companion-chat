@@ -43,7 +43,7 @@ type CompiledWorkingPersona struct {
 	BudgetRunes     int                       `json:"budget_runes"`
 }
 
-func personaCompilationResponseSchema() map[string]any {
+func personaCompilationResponseSchema(profileID string) map[string]any {
 	fact := objectSchema(map[string]any{
 		"category":    enumStringSchema("identity", "core_mechanisms", "language_expression", "behavior_boundaries", "stable_preferences"),
 		"text":        map[string]any{"type": "string", "minLength": 1, "maxLength": 1000},
@@ -53,14 +53,20 @@ func personaCompilationResponseSchema() map[string]any {
 		"source_ref": map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
 		"reason":     map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
 	}, []string{"source_ref", "reason"}, false)
+	var profileIDSchema map[string]any
+	if trimmed := strings.TrimSpace(profileID); trimmed != "" {
+		profileIDSchema = enumStringSchema(trimmed)
+	} else {
+		profileIDSchema = map[string]any{"type": "string", "minLength": 1, "maxLength": 128}
+	}
 	return objectSchema(map[string]any{
-		"profile_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+		"profile_id": profileIDSchema,
 		"facts":      map[string]any{"type": "array", "minItems": 1, "maxItems": 80, "items": fact},
 		"omissions":  map[string]any{"type": "array", "maxItems": 80, "items": omission},
 	}, []string{"profile_id", "facts", "omissions"}, false)
 }
 
-const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current body or hair state, current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. A preferred hairstyle is a preference; a currently worn hairstyle is a body state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Array items use their zero-based index as a path component. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Return only the specified JSON.`
+const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current body or hair state, current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. A preferred hairstyle is a preference; a currently worn hairstyle is a body state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Array items use their zero-based index as a path component. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Set profile_id in the output JSON to the exact profile_id string provided in the input, without translation, abbreviation, or substitution. Return only the specified JSON.`
 
 func personaCompilationSource(input PersonaCompilationInput) (map[string]any, error) {
 	profileID := strings.TrimSpace(input.ProfileID)
@@ -250,7 +256,7 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt > 0 {
 			runCtx = WithProviderCorrelation(runCtx, firstString(providerCorrelation(ctx), "persona-compilation")+":repair")
 		}
-		run, runErr := a.runFormalStructuredTask(runCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(), false, nil)
+		run, runErr := a.runFormalStructuredTask(runCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(input.ProfileID), false, nil)
 		if runErr != nil {
 			return CompiledWorkingPersona{}, runErr
 		}
@@ -261,14 +267,33 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt == 1 {
 			return CompiledWorkingPersona{}, validationErr
 		}
-		messages = append(messages, map[string]any{"role": "user", "content": "The prior portrait failed validation (" + validationErr.Error() + "). Rebuild the complete JSON from the original source, retaining each cited fact and exception. Do not add unsupported facts."})
+		messages = append(messages, map[string]any{"role": "user", "content": fmt.Sprintf("The prior portrait failed validation (%v). Rebuild the complete JSON from the original source, retaining each cited fact and exception. Do not add unsupported facts. Ensure profile_id is exactly %q.", validationErr, input.ProfileID)})
 	}
 	return CompiledWorkingPersona{}, errors.New("persona_compilation_retry_exhausted")
 }
 
 func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCompilationInput) (CompiledWorkingPersona, error) {
-	if stringValue(output["profile_id"]) != input.ProfileID {
-		return CompiledWorkingPersona{}, errors.New("persona_compilation_profile_mismatch")
+	outputProfileID := strings.TrimSpace(stringValue(output["profile_id"]))
+	if outputProfileID != input.ProfileID {
+		acceptable := false
+		if outputProfileID == "" || strings.EqualFold(outputProfileID, input.ProfileID) {
+			acceptable = true
+		} else if trimmed := strings.TrimSuffix(input.ProfileID, "_main"); trimmed != "" && strings.EqualFold(outputProfileID, trimmed) {
+			acceptable = true
+		} else {
+			identity := mapValue(source["identity"])
+			name := strings.TrimSpace(stringValue(identity["name"]))
+			nickname := strings.TrimSpace(stringValue(identity["nickname"]))
+			profileName := strings.TrimSpace(stringValue(mapValue(source["profile"])["name"]))
+			if (name != "" && (outputProfileID == name || strings.EqualFold(outputProfileID, name))) ||
+				(nickname != "" && (outputProfileID == nickname || strings.EqualFold(outputProfileID, nickname))) ||
+				(profileName != "" && (outputProfileID == profileName || strings.EqualFold(outputProfileID, profileName))) {
+				acceptable = true
+			}
+		}
+		if !acceptable {
+			return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_profile_mismatch: expected %q, got %q", input.ProfileID, outputProfileID)
+		}
 	}
 	var result CompiledWorkingPersona
 	result.ProfileID = input.ProfileID

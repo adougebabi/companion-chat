@@ -185,3 +185,51 @@ func TestPersonaCompilationDropsNestedLegacyMutableExtensions(t *testing.T) {
 		t.Fatalf("nested extension classification failed: %s", encoded)
 	}
 }
+
+func TestDecodeCompiledWorkingPersonaProfileTolerance(t *testing.T) {
+	input := PersonaCompilationInput{ProfileID: "shenlu_main"}
+	source := map[string]any{
+		"identity": map[string]any{"name": "沈鹿", "nickname": "小鹿"},
+		"profile":  map[string]any{"id": "shenlu_main", "name": "沈鹿主性格"},
+	}
+	baseOutput := func(profileID string) map[string]any {
+		return map[string]any{
+			"profile_id": profileID,
+			"facts": []any{
+				map[string]any{"category": "identity", "text": "沈鹿", "source_refs": []any{"identity.name"}},
+			},
+			"omissions": []any{},
+		}
+	}
+
+	for _, tc := range []struct {
+		name      string
+		profileID string
+		wantErr   bool
+	}{
+		{name: "exact match", profileID: "shenlu_main", wantErr: false},
+		{name: "case insensitive", profileID: "Shenlu_Main", wantErr: false},
+		{name: "trimmed _main suffix", profileID: "shenlu", wantErr: false},
+		{name: "matches identity name", profileID: "沈鹿", wantErr: false},
+		{name: "matches identity nickname", profileID: "小鹿", wantErr: false},
+		{name: "matches profile name", profileID: "沈鹿主性格", wantErr: false},
+		{name: "omitted profile_id", profileID: "", wantErr: false},
+		{name: "unrelated foreign profile", profileID: "alice", wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			compiled, err := decodeCompiledWorkingPersona(baseOutput(tc.profileID), source, input)
+			if tc.wantErr {
+				if err == nil || !strings.Contains(err.Error(), "persona_compilation_profile_mismatch") {
+					t.Fatalf("expected persona_compilation_profile_mismatch, got: %v", err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if compiled.ProfileID != "shenlu_main" {
+					t.Fatalf("expected compiled.ProfileID to be normalized to shenlu_main, got: %q", compiled.ProfileID)
+				}
+			}
+		})
+	}
+}
