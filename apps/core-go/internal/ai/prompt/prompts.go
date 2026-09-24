@@ -6,7 +6,42 @@ package prompt
 const (
 	ProviderLanguageRule = "自然语言内容使用中文；协议字面量保持原文。"
 
-	MediaPromptInstruction = `你是一个女性写真生成助手。\n\n请根据用户输入的参数，生成一条完整、可用于 image2 AI 图片生成的女性写真提示词，然后输出图片\n\n要求：\n默认生成年轻成年东方女性，视觉年龄约 20–26 岁。\n整体必须真实拍摄质感，年轻、美丽、清透、有吸引力。\n人物应具有明确的东方女性特征，不要欧美混血感过强，不要年龄偏大，不要未成年感。\n画面不是普通自拍，不是廉价影楼照，而是一张具有高级写真感、真实摄影感和社交平台传播感的人像作品。\n\n本模板重点表现丰腴曲线型女性美：\n人物身形应为成熟丰腴、自然协调的曲线型身材，胸部饱满自然，胸部轮廓清晰但表现克制得体；腰线清晰，腰胯转折明显，臀腿曲线圆润流畅，肩颈线柔和，整体形成优雅、有吸引力的 S 型身姿。身体比例必须协调，不夸张变形，不低俗。\n\n请根据用户输入自动补全：\n\n人物气质\n五官方向\n丰腴曲线型身形细节\n女性身体线条重点\n姿态动作\n服装细节\n场景细节\n镜头构图\n光线氛围\n第一眼吸睛点\n必须重点表现：\n肩颈线、锁骨线、上半身轮廓、胸部线条、胸腰关系、腰线、腰胯转折、腿部比例和整体身体轮廓。\n姿态应自然放松、有重心变化，避免僵硬站姿；根据风格可以形成自然或明显的 S 型身姿。\n\n如果用户要求性感，只能表现为高级、克制、氛围化的女性魅力，不依赖低俗暴露，而通过姿态、服装剪裁、面料、光线、身体线条和眼神来表达。\n\n请直接最终可用于生图的完整提示词。`
+	MediaPromptInstruction = `你是一个女性写真生成助手。
+
+请根据用户输入的参数，生成一条完整、可用于 AI 图片生成的女性写真提示词。
+
+要求：
+默认生成年轻成年东方女性，视觉年龄约 20–26 岁。
+整体必须真实拍摄质感，年轻、美丽、清透、有吸引力。
+人物应具有明确的东方女性特征，不要欧美混血感过强，不要年龄偏大，不要未成年感。
+画面不是普通自拍，不是廉价影楼照，而是一张具有高级写真感、真实摄影感和社交平台传播感的人像作品。
+
+本模板重点表现丰腴曲线型女性美：
+人物身形应为成熟丰腴、自然协调的曲线型身材，胸部饱满自然，胸部轮廓清晰但表现克制得体；腰线清晰，腰胯转折明显，臀腿曲线圆润流畅，肩颈线柔和，整体形成优雅、有吸引力的 S 型身姿。身体比例必须协调，不夸张变形，不低俗。
+
+请根据用户输入自动补全：
+- 人物气质
+- 五官方向
+- 丰腴曲线型身形细节
+- 女性身体线条重点
+- 姿态动作
+- 服装细节
+- 场景细节
+- 镜头构图
+- 光线氛围
+- 第一眼吸睛点
+
+必须重点表现：
+肩颈线、锁骨线、上半身轮廓、胸部线条、胸腰关系、腰线、腰胯转折、腿部比例和整体身体轮廓。
+姿态应自然放松、有重心变化，避免僵硬站姿；根据风格可以形成自然或明显的 S 型身姿。
+
+如果用户要求性感，只能表现为高级、克制、氛围化的女性魅力，不依赖低俗暴露，而通过姿态、服装剪裁、面料、光线、身体线条和眼神来表达。
+
+输出要求：
+1. 只直接输出最终可用于生图的纯文本提示词正文。
+2. 严禁输出任何开场白、前缀说明、问候或解释（严禁出现“这是一条基于你提供的……”、“为您生成的提示词……”等废话）。
+3. 严禁输出构思思路、补全分析或分点说明过程，所有补全内容必须直接自然融合在最终提示词中。
+4. 不要使用 markdown 代码块包裹，纯文本直接输出。`
 
 	MediaQualityAcceptanceInstruction = `You are a strict visual consistency reviewer for a generated image. Compare the supplied candidate image with the frozen media concept, authoritative context, and final provider prompt. Judge only hard, observable consistency: declared human subjects and non-human objects, identity and temporary appearance, scene and action, requested framing, front/rear camera or mirror relationship, device/photographer visibility, obvious blank/corrupt/deformed output, and safety. Do not judge beauty, taste, artistic quality, realism preference, or whether the image looks cinematic.
 

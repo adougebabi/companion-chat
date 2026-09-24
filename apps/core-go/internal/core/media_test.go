@@ -237,3 +237,46 @@ func TestMediaComfyPromptSubmissionDiagnosticIncludesFinalRequestPayload(t *test
 		t.Fatalf("final ComfyUI request payload = %#v", payload["request_payload"])
 	}
 }
+
+func TestCleanGeneratedMediaPrompt(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "already clean",
+			input:    "一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+			expected: "一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+		},
+		{
+			name:     "markdown fences",
+			input:    "```markdown\n一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。\n```",
+			expected: "一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+		},
+		{
+			name:     "boilerplate preamble with intent and context_binding",
+			input:    "这是一条基于你提供的 `intent` 和 `context_binding` 优化后的完整图像生成提示词：\n\n一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+			expected: "一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+		},
+		{
+			name:     "boilerplate preamble with 好的以下是",
+			input:    "好的，以下是为您生成的写真提示词：\n一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+			expected: "一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+		},
+		{
+			name:     "prompt label prefix",
+			input:    "提示词：一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+			expected: "一位年轻东方女性，微卷长发，在阳光明媚的窗边拍摄写真。",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := cleanGeneratedMediaPrompt(tt.input)
+			if got != tt.expected {
+				t.Fatalf("cleanGeneratedMediaPrompt() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}

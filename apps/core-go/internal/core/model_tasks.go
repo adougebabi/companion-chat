@@ -78,7 +78,38 @@ func (a *App) RunMediaPromptTask(ctx context.Context, input MediaPromptTaskInput
 	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{
 		Prompt: PromptAssemblyResult{Messages: messages}, SchemaName: "media_prompt_text",
 	})
-	return run.Completion.Text, err
+	if err != nil {
+		return "", err
+	}
+	return cleanGeneratedMediaPrompt(run.Completion.Text), nil
+}
+
+func cleanGeneratedMediaPrompt(text string) string {
+	text = strings.TrimSpace(text)
+	if strings.HasPrefix(text, "```") {
+		lines := strings.Split(text, "\n")
+		if len(lines) >= 2 && strings.HasPrefix(strings.TrimSpace(lines[len(lines)-1]), "```") {
+			text = strings.TrimSpace(strings.Join(lines[1:len(lines)-1], "\n"))
+		}
+	}
+	for _, marker := range []string{"提示词：", "提示词:\n", "Prompt:", "prompt:"} {
+		if idx := strings.Index(text, marker); idx != -1 {
+			after := strings.TrimSpace(text[idx+len(marker):])
+			if after != "" {
+				text = after
+				break
+			}
+		}
+	}
+	lines := strings.Split(text, "\n")
+	if len(lines) > 1 {
+		first := strings.TrimSpace(lines[0])
+		if (strings.HasPrefix(first, "这是一条") || strings.HasPrefix(first, "以下是") || strings.HasPrefix(first, "好的")) &&
+			(strings.Contains(first, "提示词") || strings.Contains(first, "写真") || strings.HasSuffix(first, "：") || strings.HasSuffix(first, ":")) {
+			text = strings.TrimSpace(strings.Join(lines[1:], "\n"))
+		}
+	}
+	return text
 }
 
 type MediaQualityTaskInput struct {
