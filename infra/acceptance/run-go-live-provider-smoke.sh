@@ -18,7 +18,7 @@ Options:
       Select the ordinary Provider smoke or the strict Tool/Agent acceptance runners.
       With no arguments, the command remains the ordinary Provider smoke.
   --tool <name>
-      Run one of the fixed 18 product Tool rows. Requires --suite tools.
+      Run one of the fixed 29 product Tool rows. Requires --suite tools.
   --agent <id>
       Run one mapped FormalAgent E2E row. Requires --suite agents.
   --run-dir <new-path>
@@ -65,11 +65,22 @@ schedule.replan
 memory_event
 active_memory_event
 affect_event
+appearance.style
 memory.recall
 relationship.lookup
 capability.request
+persona.detail
 persona.takeover
 persona.switch
+wardrobe.inspect
+wardrobe.outfit.save
+wardrobe.wear
+habit.inspect
+habit.decide
+intention.inspect
+intention.decide
+life.activity.start
+life.activity.advance
 EOF
 }
 
@@ -86,7 +97,7 @@ fixed_product_tool_ids() {
   ' apps/core-go/internal/core/independent_tools_e2e_test.go
 }
 
-# These are the 17 concrete TestFormalAgentE2E subtests currently owned by the
+# These are the concrete TestFormalAgentE2E subtests currently owned by the
 # formal Agent E2E slice. A newly registered Agent must be added here only when
 # its own real-Provider subtest exists. Full agents/all runs fail closed while a
 # registered Agent is unmapped.
@@ -97,6 +108,7 @@ wake_up
 takeover_judge
 takeover_reply
 initialization
+persona_compilation
 media_prompt
 media_quality
 visual_identity_vision
@@ -109,6 +121,7 @@ daily_review
 persistent_switch
 reflection
 schedule_replan
+virtual_activity_result
 EOF
 }
 
@@ -167,6 +180,12 @@ tool_test_regex() {
     memory_event|memory.recall) printf '%s\n' '^TestDirectToolExecutionMemoryEventAndRecallOwnsCommitAndOperationReplay$' ;;
     active_memory_event) printf '%s\n' '^TestPostgresDirectActiveMemoryToolCommitsRejectsReplaysAndPersistsAudit$' ;;
     affect_event) printf '%s\n' '^TestIndependentToolE2EAffectEvent$' ;;
+    appearance.style) printf '%s\n' '^TestTemporaryHairStyleChangesSharedBodyWithoutChangingLengthOrWardrobe$' ;;
+    wardrobe.inspect|wardrobe.wear|wardrobe.outfit.save) printf '%s\n' '^TestWardrobe' ;;
+    habit.inspect|habit.decide) printf '%s\n' '^TestHabitDecisionUpdatesPortraitWithoutChangingWearingOrInventory$' ;;
+    intention.inspect|intention.decide) printf '%s\n' '^TestIntentionIndependentToolPersistsAcrossDaysAndDoesNotConflatePlanWithResult$' ;;
+    life.activity.start|life.activity.advance) printf '%s\n' '^(TestVirtualShoppingActivityRequiresElapsedResultAndReusesPurchasedItem|TestFailedVirtualShoppingDoesNotCreateItemOrCompleteIntention|TestVirtualHaircutUpdatesSharedBodyAndLeavesHistoricalFoundation)$' ;;
+    persona.detail) printf '%s\n' '^TestPersonaDetailIndependentToolReadsCanonicalSource$' ;;
     relationship.lookup) printf '%s\n' '^TestIndependentToolE2ERelationshipLookup$' ;;
     capability.request) printf '%s\n' '^TestIndependentToolE2ECapabilityRequest$' ;;
     persona.takeover|persona.switch) printf '%s\n' '^(TestPersonaToolsAreAvailableToAgentsAndCommitThroughDomainService|TestPostgresDirectPersonaToolsCommitRejectReplayConflictAndAudit)$' ;;
@@ -191,6 +210,12 @@ tool_expected_tests() {
     memory_event|memory.recall) printf '%s\n' TestDirectToolExecutionMemoryEventAndRecallOwnsCommitAndOperationReplay ;;
     active_memory_event) printf '%s\n' TestPostgresDirectActiveMemoryToolCommitsRejectsReplaysAndPersistsAudit ;;
     affect_event) printf '%s\n' TestIndependentToolE2EAffectEvent ;;
+    appearance.style) printf '%s\n' TestTemporaryHairStyleChangesSharedBodyWithoutChangingLengthOrWardrobe ;;
+    wardrobe.inspect|wardrobe.wear|wardrobe.outfit.save) printf '%s\n' TestWardrobeIndependentToolKeepsItemsAndWearingDistinct TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner TestWardrobePreparedWearRejectsConcurrentRevision TestWardrobeSavedOutfitReferencesExistingItemWithoutChangingWearing ;;
+    habit.inspect|habit.decide) printf '%s\n' TestHabitDecisionUpdatesPortraitWithoutChangingWearingOrInventory ;;
+    intention.inspect|intention.decide) printf '%s\n' TestIntentionIndependentToolPersistsAcrossDaysAndDoesNotConflatePlanWithResult ;;
+    life.activity.start|life.activity.advance) printf '%s\n' TestVirtualShoppingActivityRequiresElapsedResultAndReusesPurchasedItem TestFailedVirtualShoppingDoesNotCreateItemOrCompleteIntention TestVirtualHaircutUpdatesSharedBodyAndLeavesHistoricalFoundation ;;
+    persona.detail) printf '%s\n' TestPersonaDetailIndependentToolReadsCanonicalSource ;;
     relationship.lookup) printf '%s\n' TestIndependentToolE2ERelationshipLookup ;;
     capability.request) printf '%s\n' TestIndependentToolE2ECapabilityRequest ;;
     persona.takeover|persona.switch)

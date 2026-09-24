@@ -66,7 +66,7 @@ func TestPersonaDetailIndependentToolReadsCanonicalSource(t *testing.T) {
 	fixture := newIndependentToolE2EFixture(t, "persona_detail")
 	source := map[string]any{
 		"identity":     map[string]any{"name": "摇光"},
-		"extensions":   map[string]any{"special_ritual": "睡前整理画稿", "source_text": "PRIVATE_CARD", "nested": []any{map[string]any{"projection_digest": "PRIVATE_DIGEST", "meaning": "稳定资料"}}},
+		"extensions":   map[string]any{"special_ritual": "睡前整理画稿", "appearance": map[string]any{"hair_length": "旧长发"}, "source_text": "PRIVATE_CARD", "nested": []any{map[string]any{"projection_digest": "PRIVATE_DIGEST", "meaning": "稳定资料", "hair_color": "旧红发"}}},
 		"life_profile": map[string]any{"preferences": map[string]any{"drink": strings.Repeat("喜欢咖啡，但不喜欢甜咖啡。", 200)}},
 		"personality_system": map[string]any{"profiles": []any{
 			map[string]any{"id": "warm", "voice": "温暖"},
@@ -77,6 +77,9 @@ func TestPersonaDetailIndependentToolReadsCanonicalSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_personality_runtime SET active_profile_id='warm' WHERE fluctlight_id=$1`, fixture.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.fluctlight_profile_habits(fluctlight_id,profile_id,revision,habits_json,source_kind) VALUES($1,'warm',0,'[]','initialization'),($1,'cool',0,'[]','initialization')`, fixture.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
 	request := fixture.request(personaDetailCapabilityName, "list", map[string]any{"operation": "list"})
@@ -97,7 +100,7 @@ func TestPersonaDetailIndependentToolReadsCanonicalSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if encoded := jsonString(extensions.Result.Output); strings.Contains(encoded, "PRIVATE_CARD") || strings.Contains(encoded, "PRIVATE_DIGEST") || !strings.Contains(encoded, "睡前整理画稿") {
+	if encoded := jsonString(extensions.Result.Output); strings.Contains(encoded, "PRIVATE_CARD") || strings.Contains(encoded, "PRIVATE_DIGEST") || strings.Contains(encoded, "旧长发") || strings.Contains(encoded, "旧红发") || !strings.Contains(encoded, "睡前整理画稿") {
 		t.Fatalf("Tool leaked private source bookkeeping: %s", encoded)
 	}
 	request = fixture.request(personaDetailCapabilityName, "read", map[string]any{"operation": "read", "section_id": "life_profile"})

@@ -33,6 +33,7 @@ const (
 	FormalAgentPersistentSwitch      FormalAgentID = "persistent_switch"
 	FormalAgentReflection            FormalAgentID = "reflection"
 	FormalAgentScheduleReplan        FormalAgentID = "schedule_replan"
+	FormalAgentVirtualActivityResult FormalAgentID = "virtual_activity_result"
 )
 
 type FormalAgentOutputKind string
@@ -76,6 +77,7 @@ var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
 	FormalAgentPersistentSwitch:      {ID: FormalAgentPersistentSwitch, Name: "fluctlight-persistent-switch", Description: "Assess the declared persistent persona switch rules without tools.", Role: "cognitive_assessment", Scenario: "persistent_switch", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceConversation},
 	FormalAgentReflection:            {ID: FormalAgentReflection, Name: "fluctlight-reflection", Description: "Review a bounded evidence window and return the final reflection proposal without tools.", Role: "reflection", Scenario: "reflection", OutputKind: FormalAgentOutputStructured},
 	FormalAgentScheduleReplan:        {ID: FormalAgentScheduleReplan, Name: "fluctlight-schedule-replan", Description: "Create a complete replacement schedule from the frozen replan intent and current life facts.", Role: "cognitive_assessment", Scenario: "schedule_replan_planner", OutputKind: FormalAgentOutputStructured},
+	FormalAgentVirtualActivityResult: {ID: FormalAgentVirtualActivityResult, Name: "fluctlight-virtual-activity-result", Description: "Resolve one elapsed virtual shopping or haircut activity into a bounded result without writing state.", Role: "cognitive_assessment", Scenario: "virtual_activity_result", OutputKind: FormalAgentOutputStructured},
 }
 
 func FormalAgentDefinitions() []FormalAgentDefinition {
@@ -130,6 +132,8 @@ func formalAgentForSchema(schemaName string) (FormalAgentID, bool) {
 		return FormalAgentReflection, true
 	case "schedule_replan_plan":
 		return FormalAgentScheduleReplan, true
+	case "virtual_activity_result":
+		return FormalAgentVirtualActivityResult, true
 	default:
 		return "", false
 	}

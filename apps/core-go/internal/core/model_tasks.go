@@ -175,19 +175,65 @@ type ScheduleGenerationTaskInput struct {
 	Timezone              string
 	Identity              map[string]any
 	LifeProfile           map[string]any
+	CurrentState          map[string]any
+	CurrentLife           map[string]any
+	Goals                 []map[string]any
+	Intentions            []map[string]any
+	RecentOutcomes        []map[string]any
 	CompactOutputReminder bool
 }
 
-const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. items must contain 8-16 objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, location, item_type, status, priority, flexibility, interruption_cost. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and one concrete scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent periods with the same activity and scene instead of producing many small segments. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
+type VirtualActivityResultTaskInput struct {
+	Kind              string
+	Request           map[string]any
+	StartedAt         string
+	NotBefore         string
+	CurrentAppearance map[string]any
+	CurrentLife       map[string]any
+	RecentOutcomes    []map[string]any
+}
+
+const virtualActivityResultInstruction = "Resolve one already started and elapsed virtual-life activity. The activity is fictional and grants no real purchase, payment, delivery, medical care, or external action. Return completed, failed, or deferred with a concrete short reason grounded in the supplied request and current facts. Do not always choose success. For completed virtual_shopping return one acquired_item whose category and slot match the request; no acquired item on failure or defer. For completed haircut return the resulting hair_length and optional hair_color/hair_style; no body change on failure or defer. Do not infer that a scheduled activity was completed before its not_before time. Return only the specified JSON."
+
+func virtualActivityResultSchema() map[string]any {
+	item := objectSchema(map[string]any{
+		"category":    map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+		"slot":        map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+		"description": map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+	}, []string{"category", "slot", "description"}, false)
+	return objectSchema(map[string]any{
+		"status":        enumStringSchema("completed", "failed", "deferred"),
+		"reason":        map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
+		"acquired_item": item,
+		"hair_length":   map[string]any{"type": "string", "maxLength": 128},
+		"hair_color":    map[string]any{"type": "string", "maxLength": 128},
+		"hair_style":    map[string]any{"type": "string", "maxLength": 128},
+	}, []string{"status", "reason"}, false)
+}
+
+func (a *App) RunVirtualActivityResultTask(ctx context.Context, input VirtualActivityResultTaskInput) (map[string]any, error) {
+	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
+		{"role": "system", "content": virtualActivityResultInstruction},
+		{"role": "user", "content": jsonString(map[string]any{
+			"kind": input.Kind, "request": input.Request, "started_at": input.StartedAt, "not_before": input.NotBefore,
+			"current_appearance": input.CurrentAppearance, "current_life": input.CurrentLife, "recent_outcomes": input.RecentOutcomes,
+		})},
+	})
+	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "virtual_activity_result"), FormalAgentVirtualActivityResult, messages,
+		nil, "virtual_activity_result", virtualActivityResultSchema(), false, nil)
+	return run.Completion.Structured, err
+}
+
+const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. Use only as many intervals as the supplied facts require, no more than 16; cover the local day contiguously from 00:00 through the next 00:00, with explicit free/unplanned/rest intervals where nothing is committed. Identity or occupation alone does not establish a daily class, library visit, uniform, or fixed routine. Preserve supplied recurring commitments as constraints, distinguish an intention from a scheduled action and a completed result, and consider current state, existing activities and recent outcomes. Do not claim an activity happened just because its planned time passed. Every item needs start_at, end_at, activity, scene, location, item_type, status, priority, flexibility, interruption_cost. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent equivalent periods. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1. Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
 
 func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGenerationTaskInput) (map[string]any, error) {
 	instruction := scheduleGenerationTaskInstruction
 	if input.CompactOutputReminder {
-		instruction += " 上一个日程 JSON 不完整。请重新输出完整且紧凑的 8-16 个时段，必须覆盖从 00:00 到次日 00:00，不能截断，也不要附加解释。"
+		instruction += " 上一个日程 JSON 不完整。请重新输出完整且紧凑的时段，必须覆盖从 00:00 到次日 00:00；未安排时间用明确空闲时段表示，不能截断，也不要附加解释。"
 	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": instruction},
-		{"role": "user", "content": jsonString(map[string]any{"local_date": input.LocalDate, "timezone": input.Timezone, "identity": input.Identity, "life_profile": input.LifeProfile})},
+		{"role": "user", "content": jsonString(map[string]any{"local_date": input.LocalDate, "timezone": input.Timezone, "identity": input.Identity, "life_profile": input.LifeProfile, "current_state": input.CurrentState, "current_life": input.CurrentLife, "goals": input.Goals, "intentions": input.Intentions, "recent_outcomes": input.RecentOutcomes})},
 	})
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleResponseSchema(), false, nil)
 	return run.Completion.Structured, err

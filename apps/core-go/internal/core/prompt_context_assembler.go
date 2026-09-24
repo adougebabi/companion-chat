@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -16,7 +17,7 @@ const (
 	defaultPromptSafetyMarginTokens = 4096
 	promptBudgetPolicyVersionV1     = "prompt-budget.v1"
 	defaultSystemTokensCap          = 16384
-	defaultToolsSchemaTokensCap     = 24576
+	defaultToolsSchemaTokensCap     = 28672
 	defaultCurrentInputTokensCap    = 16384
 	defaultPromptImageTokens        = 1536
 	defaultPromptLowDetailImage     = 85
@@ -219,7 +220,12 @@ type PromptAssemblyTrace struct {
 	OutputReserveTokens  int                      `json:"output_reserve_tokens"`
 	SafetyMarginTokens   int                      `json:"safety_margin_tokens"`
 	EstimatedInputTokens int                      `json:"estimated_input_tokens"`
+	WireBytes            int                      `json:"wire_bytes"`
+	WireChars            int                      `json:"wire_chars"`
+	TokenEstimateMethod  string                   `json:"token_estimate_method"`
 	SectionTokens        map[string]int           `json:"section_tokens"`
+	SectionBytes         map[string]int           `json:"section_bytes"`
+	SectionChars         map[string]int           `json:"section_chars"`
 	Selected             []PromptAssemblyDecision `json:"selected"`
 	Dropped              []PromptAssemblyDecision `json:"dropped"`
 }
@@ -236,6 +242,7 @@ type promptOptionalCandidate struct {
 	fragment PromptFragment
 	order    int
 	unitKey  string
+	position int
 }
 
 func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, error) {
@@ -252,37 +259,111 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	if err != nil {
 		return PromptAssemblyResult{}, err
 	}
+	systemTokens := estimateProviderMessageTokens(system)
+	currentTokens := estimateProviderMessageTokens(current)
+	toolsTokens := EstimatePromptTokens(input.Tools)
+	schemaTokens := EstimatePromptTokens(input.ResponseFormat)
+	if systemTokens > input.Policy.SystemTokensCap || currentTokens > input.Policy.CurrentInputTokensCap || toolsTokens+schemaTokens > input.Policy.ToolsSchemaTokensCap {
+		return PromptAssemblyResult{}, fmt.Errorf("%w: required section cap exceeded system=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, systemTokens, currentTokens, toolsTokens, schemaTokens)
+	}
 	selected := make([]promptOptionalCandidate, 0, len(candidates))
+	optional := make([]promptOptionalCandidate, 0, len(candidates))
 	trace := PromptAssemblyTrace{
 		PolicyVersion: input.Policy.Version, ContextWindowTokens: input.Policy.ContextWindowTokens,
 		MaxInputTokens: input.Policy.MaxInputTokens, OutputReserveTokens: input.Policy.OutputReserveTokens,
 		SafetyMarginTokens: input.Policy.SafetyMarginTokens, SectionTokens: map[string]int{},
 		Selected: []PromptAssemblyDecision{}, Dropped: []PromptAssemblyDecision{},
 	}
-	for index := 0; index < len(candidates); {
+	for index, candidate := range candidates {
+		candidate.position = index
+		if candidate.fragment.Kind == PromptFragmentRecentMessage {
+			candidate.fragment.EstimatedTokens = estimateProviderMessageTokens(mapValue(candidate.fragment.Content))
+		}
+		if candidate.fragment.Kind == PromptFragmentRuntimeFact {
+			selected = append(selected, candidate)
+		} else {
+			optional = append(optional, candidate)
+		}
+	}
+	orderedSelected := orderedPromptCandidates(selected)
+	requiredTotal := estimatePromptWireInput(assemblePromptMessages(system, current, orderedSelected), input.Tools, input.ResponseFormat)
+	if requiredTotal > input.Policy.MaxInputTokens {
+		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens)
+	}
+	type optionalUnit struct {
+		items []promptOptionalCandidate
+		kind  PromptFragmentKind
+		last  int
+	}
+	units := make([]optionalUnit, 0, len(optional))
+	for index := 0; index < len(optional); {
 		end := index + 1
-		for end < len(candidates) && candidates[end].unitKey == candidates[index].unitKey {
+		for end < len(optional) && optional[end].unitKey == optional[index].unitKey {
 			end++
 		}
-		unit := append([]promptOptionalCandidate(nil), candidates[index:end]...)
-		for position := range unit {
-			cost := unit[position].fragment.EstimatedTokens
-			if unit[position].fragment.Kind == PromptFragmentRecentMessage {
-				cost = estimateProviderMessageTokens(mapValue(unit[position].fragment.Content))
-			}
-			unit[position].fragment.EstimatedTokens = cost
-		}
-		selected = append(selected, unit...)
-		for _, candidate := range unit {
-			trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
-		}
+		units = append(units, optionalUnit{items: append([]promptOptionalCandidate(nil), optional[index:end]...), kind: optional[index].fragment.Kind, last: optional[end-1].position})
 		index = end
+	}
+	rank := func(kind PromptFragmentKind) int {
+		switch kind {
+		case PromptFragmentSummary:
+			return 0
+		case PromptFragmentRecentMessage:
+			return 1
+		case PromptFragmentActiveMemory:
+			return 2
+		default:
+			return 3
+		}
+	}
+	sort.SliceStable(units, func(i, j int) bool {
+		if rank(units[i].kind) != rank(units[j].kind) {
+			return rank(units[i].kind) < rank(units[j].kind)
+		}
+		if units[i].kind == PromptFragmentRecentMessage || units[i].kind == PromptFragmentSummary {
+			return units[i].last > units[j].last
+		}
+		return units[i].last < units[j].last
+	})
+	recentGap := false
+	for _, unit := range units {
+		reason := "budget_excluded"
+		if unit.kind == PromptFragmentRecentMessage && recentGap {
+			reason = "recent_contiguity_excluded"
+		} else {
+			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
+			if estimatePromptWireInput(assemblePromptMessages(system, current, trial), input.Tools, input.ResponseFormat) <= input.Policy.MaxInputTokens {
+				selected = append(selected, unit.items...)
+				continue
+			}
+			if unit.kind == PromptFragmentRecentMessage {
+				recentGap = true
+			}
+		}
+		for _, candidate := range unit.items {
+			trace.Dropped = append(trace.Dropped, promptAssemblyDecision(candidate.fragment, reason))
+		}
+	}
+	selected = orderedPromptCandidates(selected)
+	for _, candidate := range selected {
+		trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
 	}
 	messages := assemblePromptMessages(system, current, selected)
 	total := estimatePromptWireInput(messages, input.Tools, input.ResponseFormat)
 	trace.EstimatedInputTokens = total
 	trace.SectionTokens = promptAssemblySectionTokens(system, current, selected, input.Tools, input.ResponseFormat)
+	trace.SectionBytes, trace.SectionChars = promptAssemblySectionSizes(system, current, selected, input.Tools, input.ResponseFormat)
+	if wire, err := json.Marshal(map[string]any{"messages": messages, "tools": input.Tools, "response_format": input.ResponseFormat}); err == nil {
+		trace.WireBytes, trace.WireChars = len(wire), len([]rune(string(wire)))
+	}
+	trace.TokenEstimateMethod = "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance"
 	return PromptAssemblyResult{Messages: messages, Tools: cloneMapSlice(input.Tools), ResponseFormat: cloneMap(input.ResponseFormat), Trace: trace}, nil
+}
+
+func orderedPromptCandidates(candidates []promptOptionalCandidate) []promptOptionalCandidate {
+	ordered := append([]promptOptionalCandidate(nil), candidates...)
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].position < ordered[j].position })
+	return ordered
 }
 
 func promptOptionalCandidates(memory WorkingMemory, currentInput string) ([]promptOptionalCandidate, error) {
@@ -370,16 +451,61 @@ func promptAssemblySectionTokens(system, current map[string]any, selected []prom
 		"tools": EstimatePromptTokens(tools), "response_schema": EstimatePromptTokens(responseFormat),
 		"runtime_facts": 0, "active_memory": 0, "recent": 0, "retrieved_memory": 0, "conversation_summary": 0,
 	}
-	for _, candidate := range selected {
-		section := string(candidate.fragment.Kind)
-		if candidate.fragment.Kind == PromptFragmentRuntimeFact {
-			section = "runtime_facts"
-		} else if candidate.fragment.Kind == PromptFragmentRecentMessage {
-			section = "recent"
+	if content := stringValue(system["content"]); content != "" {
+		if index := strings.Index(content, "\n# 人格设定\n"); index >= 0 {
+			result["protocol"] = EstimatePromptTokens(content[:index])
+			result["working_persona"] = EstimatePromptTokens(content[index:])
 		}
+	}
+	for _, candidate := range selected {
+		section := promptFragmentSection(candidate.fragment.Kind)
 		result[section] += candidate.fragment.EstimatedTokens
 	}
 	return result
+}
+
+func promptFragmentSection(kind PromptFragmentKind) string {
+	switch kind {
+	case PromptFragmentRuntimeFact:
+		return "runtime_facts"
+	case PromptFragmentActiveMemory:
+		return "active_memory"
+	case PromptFragmentRecentMessage:
+		return "recent"
+	case PromptFragmentRetrievedMemory:
+		return "retrieved_memory"
+	case PromptFragmentSummary:
+		return "conversation_summary"
+	default:
+		return string(kind)
+	}
+}
+
+func promptAssemblySectionSizes(system, current map[string]any, selected []promptOptionalCandidate, tools []map[string]any, responseFormat map[string]any) (map[string]int, map[string]int) {
+	bytesBySection := map[string]int{}
+	charsBySection := map[string]int{}
+	add := func(section string, value any) {
+		encoded, err := json.Marshal(value)
+		if err != nil {
+			return
+		}
+		bytesBySection[section] += len(encoded)
+		charsBySection[section] += len([]rune(string(encoded)))
+	}
+	add("system", system)
+	add("current_input", current)
+	add("tools", tools)
+	add("response_schema", responseFormat)
+	if content := stringValue(system["content"]); content != "" {
+		if index := strings.Index(content, "\n# 人格设定\n"); index >= 0 {
+			add("protocol", content[:index])
+			add("working_persona", content[index:])
+		}
+	}
+	for _, candidate := range selected {
+		add(promptFragmentSection(candidate.fragment.Kind), candidate.fragment.Content)
+	}
+	return bytesBySection, charsBySection
 }
 
 func promptAssemblyDecision(fragment PromptFragment, reason string) PromptAssemblyDecision {

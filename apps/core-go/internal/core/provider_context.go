@@ -373,7 +373,7 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 
 func surfaceAllowsEntityRef(surface ProviderContextSurface, kind ContextReferenceKind) bool {
 	if surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceTakeoverReply {
-		return kind == ContextReferenceMemory || kind == ContextReferenceActiveMemory
+		return kind == ContextReferenceMemory || kind == ContextReferenceActiveMemory || kind == ContextReferenceLifeContext
 	}
 	return true
 }
@@ -555,10 +555,63 @@ func compactCurrentStateForSurface(projection ContextProjection, surface Provide
 	if life := compactLifeContextForSurface(mapValue(data["life_context"]), projection.ReferenceIndex, surface); len(life) > 0 {
 		resultData["life_context"] = life
 	}
+	if appearance := compactEffectiveAppearanceForSurface(mapValue(data["appearance"])); len(appearance) > 0 {
+		resultData["appearance"] = appearance
+	}
+	if activities := compactActiveActivitiesForSurface(data["active_activities"]); len(activities) > 0 {
+		resultData["active_activities"] = activities
+	}
 	if len(resultData) == 0 {
 		return nil
 	}
 	return map[string]any{"data": resultData}
+}
+
+func compactActiveActivitiesForSurface(value any) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, raw := range arrayValue(value) {
+		activity := mapValue(raw)
+		item := map[string]any{}
+		for _, key := range []string{"id", "profile_id", "kind", "status", "intention_id", "started_at", "not_before", "ready_for_resolution"} {
+			if field, exists := activity[key]; exists {
+				item[key] = field
+			}
+		}
+		request := map[string]any{}
+		for _, key := range []string{"category", "slot", "description", "desired_hair_length", "desired_hair_color"} {
+			if field, exists := mapValue(activity["request"])[key]; exists && field != nil {
+				request[key] = field
+			}
+		}
+		if len(request) > 0 {
+			item["request"] = request
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactEffectiveAppearanceForSurface(value map[string]any) map[string]any {
+	if len(value) == 0 {
+		return nil
+	}
+	result := map[string]any{}
+	for _, key := range []string{"body_revision", "wardrobe_revision", "wearing_state", "captured_at"} {
+		if item, exists := value[key]; exists {
+			result[key] = item
+		}
+	}
+	if fields := mapValue(value["body_fields"]); len(fields) > 0 {
+		result["body_fields"] = fields
+	}
+	if worn, ok := value["worn_items"].([]map[string]any); ok {
+		result["worn_items"] = worn
+	} else if worn := arrayValue(value["worn_items"]); worn != nil {
+		result["worn_items"] = worn
+	}
+	return result
 }
 
 func compactInnerStateForSurface(inner map[string]any) map[string]any {
@@ -866,6 +919,12 @@ func compactSummaryForSurface(value map[string]any, _ ProviderContextSurface) ma
 	result := map[string]any{}
 	if summary := strings.TrimSpace(stringValue(value["summary"])); summary != "" {
 		result["summary"] = summary
+		result["time_semantics"] = "historical_conversation"
+		for _, key := range []string{"from_sequence", "to_sequence", "completed_at"} {
+			if field, exists := value[key]; exists {
+				result[key] = field
+			}
+		}
 	}
 	// Summary refs are projection identifiers, not ContextReference tokens and
 	// cannot be used by any capability. Keep the semantic text only.
@@ -1824,6 +1883,7 @@ func compactMediaConceptForProvider(raw string) string {
 		return raw
 	}
 	result := cloneMap(value)
+	hasCurrentAppearance := len(mapValue(mapValue(result["context_binding"])["appearance"])) > 0
 	if binding := mapValue(result["context_binding"]); len(binding) > 0 {
 		compactBinding := make(map[string]any, 4)
 		life := mapValue(binding["current_life"])
@@ -1848,7 +1908,13 @@ func compactMediaConceptForProvider(raw string) string {
 		}
 		result["context_binding"] = compactBinding
 	}
-	if visualIdentity := compactVisualIdentityForMediaProvider(mapValue(result["visual_identity"])); len(visualIdentity) > 0 {
+	visualIdentity := compactVisualIdentityForMediaProvider(mapValue(result["visual_identity"]))
+	if hasCurrentAppearance {
+		// A canonical asset is an identity reference, not the current hair or
+		// clothing authority. The frozen appearance binding owns those facts.
+		visualIdentity = compactVisualIdentity(mapValue(result["visual_identity"]))
+	}
+	if len(visualIdentity) > 0 {
 		result["visual_identity"] = visualIdentity
 	}
 	if constraints := compactRendererConstraints(mapValue(result["renderer_constraints"])); len(constraints) > 0 {

@@ -23,6 +23,9 @@ func (a *App) VerifyWorkingPersonasReady(ctx context.Context) error {
 	if a == nil || a.DB == nil {
 		return errors.New("working_persona_store_unavailable")
 	}
+	if err := a.VerifyEffectiveLifeReady(ctx); err != nil {
+		return err
+	}
 	rows, err := a.DB.Pool().Query(ctx, `SELECT DISTINCT created_by_actor_id FROM public.fluctlights ORDER BY created_by_actor_id`)
 	if err != nil {
 		return err

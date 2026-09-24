@@ -16,7 +16,7 @@ import (
 
 const (
 	conversationSummarySchemaVersion    = "conversation-summary.v1"
-	conversationSummaryPromptVersion    = "conversation-summary.prompt.v1"
+	conversationSummaryPromptVersion    = "conversation-summary.prompt.v2"
 	conversationSummaryPolicyVersion    = "conversation-summary.policy.v1"
 	conversationSummaryRetainedMessages = 24
 	conversationSummaryMaxMessages      = 40
@@ -27,7 +27,7 @@ const (
 	conversationSummaryMaxResults       = 20
 )
 
-const conversationSummaryInstruction = "只总结所提供的原始对话消息，保留已明确表达的事实、约定、未解决事项与语气变化；不得加入旧摘要、隐藏推理、工具内部参数、数据库标识或未被原文支持的新事实。"
+const conversationSummaryInstruction = "只总结所提供的原始对话消息，保留已明确表达的决定、用户纠正、未完成约定、真实行动结果、必要指代及其时间。区分想买、已安排购买、购买失败、已获得和已穿上；历史发长或衣着必须写成过去事实，不能写成无时间含义的当前设定。计划、模型回复的过去式和亲密表达不能冒充已执行结果或人格变化。不得加入旧摘要、隐藏推理、工具内部参数、数据库标识或未被原文支持的新事实；摘要不写入物品、日程或当前身体状态。"
 
 type ConversationSummarySourceMessage struct {
 	ID             string    `json:"id"`

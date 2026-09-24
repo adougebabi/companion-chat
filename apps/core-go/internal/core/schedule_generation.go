@@ -20,7 +20,44 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 	// consumes an evidence window after the plan is accepted; using it here
 	// returns a reflection proposal shape instead of the required {items,...}
 	// schedule and leaves the lifecycle intent pending forever.
-	taskInput := ScheduleGenerationTaskInput{LocalDate: localDate, Timezone: timezone, Identity: identity, LifeProfile: lifeProfile}
+	var activeProfileID string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfileID); err != nil {
+		return nil, err
+	}
+	habits, _, err := readProfileHabits(ctx, a.DB.Pool(), fluctlightID, activeProfileID)
+	if err != nil {
+		return nil, err
+	}
+	stableLife := map[string]any{}
+	for _, key := range []string{"social_background", "preferences", "recurring_commitments", "character_constraints"} {
+		if value, exists := lifeProfile[key]; exists {
+			stableLife[key] = value
+		}
+	}
+	stableLife["life_habits"] = habits
+	goals, intentions, err := a.agencyProfile(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	inner, err := a.readInnerState(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	appearance, _, _, err := a.readEffectiveLifeSnapshot(ctx, fluctlightID, time.Now().UTC())
+	if err != nil {
+		return nil, err
+	}
+	_, currentLife, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	if err != nil {
+		return nil, err
+	}
+	outcomes, err := a.readRecentActionOutcomes(ctx, fluctlightID, 6)
+	if err != nil {
+		return nil, err
+	}
+	taskInput := ScheduleGenerationTaskInput{LocalDate: localDate, Timezone: timezone, Identity: stableCompilationIdentity(identity), LifeProfile: stableLife,
+		CurrentState: map[string]any{"inner_state": inner, "appearance": appearance}, CurrentLife: currentLife,
+		Goals: filterActiveProfileRows(goals, activeProfileID), Intentions: filterActiveProfileRows(intentions, activeProfileID), RecentOutcomes: outcomes}
 	result, err := a.RunScheduleGenerationTask(ctx, taskInput)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)

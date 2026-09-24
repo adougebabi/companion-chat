@@ -1004,6 +1004,17 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 	if e1 != nil || e2 != nil || !end.After(start) {
 		return nil, errors.New("life_event_time_invalid")
 	}
+	bodyEffect, err := validateBodyEventEffect(stringValue(payload["kind"]), payload["body_effect"])
+	if err != nil {
+		return nil, err
+	}
+	wardrobeEffect, err := validateWardrobeEventEffect(stringValue(payload["kind"]), payload["wardrobe_effect"])
+	if err != nil {
+		return nil, err
+	}
+	if (len(bodyEffect) > 0 || len(wardrobeEffect) > 0) && start.After(time.Now().UTC()) {
+		return nil, errors.New("state_event_future_requires_activity_result")
+	}
 	refs := arrayValue(payload["evidence_refs"])
 	if len(refs) == 0 {
 		return nil, errors.New("life_event_evidence_required")
@@ -1021,10 +1032,10 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 		"fluctlight_id": fluctlightID, "kind": stringValue(payload["kind"]), "start_at": start.UTC().Format(time.RFC3339Nano),
 		"end_at": end.UTC().Format(time.RFC3339Nano), "scene": stringValue(payload["scene"]), "activity": stringValue(payload["activity"]),
 		"location": stringValue(payload["location"]), "evidence_refs": refs, "idempotency_key": idempotency,
-		"expected_life_context_revision": expectedLifeRevision,
+		"expected_life_context_revision": expectedLifeRevision, "body_effect": bodyEffect, "wardrobe_effect": wardrobeEffect,
 	}))
 	var result map[string]any
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
 		}
@@ -1059,7 +1070,7 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 		if err != nil {
 			return err
 		}
-		inboxID, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), "owner:"+actorID, "life.event.created", "life-event:"+stableDigest(fluctlightID+"\x1f"+idempotency), map[string]any{"event_id": id, "kind": stringValue(payload["kind"]), "expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"]})
+		inboxID, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), "owner:"+actorID, "life.event.created", "life-event:"+stableDigest(fluctlightID+"\x1f"+idempotency), map[string]any{"event_id": id, "kind": stringValue(payload["kind"]), "body_effect": bodyEffect, "wardrobe_effect": wardrobeEffect, "expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"]})
 		if err != nil {
 			return err
 		}
@@ -1068,8 +1079,36 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 			"idempotency_key": idempotency, "inbox_id": inboxID, "expected_context_revision": expectedLifeRevision,
 			"resulting_context_revision": resultingLife["context_revision"], "replayed": false,
 		}
+		if len(bodyEffect) > 0 {
+			result["body_effect"] = bodyEffect
+		}
+		if len(wardrobeEffect) > 0 {
+			result["wardrobe_effect"] = wardrobeEffect
+		}
 		if _, err := tx.Exec(ctx, `UPDATE public.life_events SET result=$2 WHERE id=$1 AND revision=1`, id, jsonBytes(result)); err != nil {
 			return err
+		}
+		if len(bodyEffect) > 0 {
+			bodyRevision, err := applyBodyEffectFromConfirmedEventTx(ctx, tx, fluctlightID, id, stringValue(payload["kind"]), bodyEffect)
+			if err != nil {
+				return err
+			}
+			result["body_revision"] = bodyRevision
+			if _, err := tx.Exec(ctx, `UPDATE public.life_events SET result=$2 WHERE id=$1 AND revision=1`, id, jsonBytes(result)); err != nil {
+				return err
+			}
+		}
+		if len(wardrobeEffect) > 0 {
+			wardrobeResult, err := applyWardrobeEffectFromConfirmedEventTx(ctx, tx, fluctlightID, id, stringValue(payload["kind"]), wardrobeEffect)
+			if err != nil {
+				return err
+			}
+			for key, value := range wardrobeResult {
+				result[key] = value
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.life_events SET result=$2 WHERE id=$1 AND revision=1`, id, jsonBytes(result)); err != nil {
+				return err
+			}
 		}
 		return appendOutboxTx(ctx, tx, "life.event.created", "fluctlight", fluctlightID, fluctlightID, actorID, "life:"+id, "life-event:"+fluctlightID+":"+stableDigest(idempotency), map[string]any{"event_id": id, "revision": 1, "aggregate_sequence": 1})
 	})
@@ -1112,6 +1151,13 @@ func (a *App) CancelLifeEvent(ctx context.Context, actorID, fluctlightID, eventI
 		applyAt := time.Now().UTC()
 		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
+		}
+		var eventKind string
+		if err := tx.QueryRow(ctx, `SELECT kind FROM public.life_events WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, eventID, fluctlightID).Scan(&eventKind); err != nil {
+			return err
+		}
+		if eventKind == "body_injury" || eventKind == "body_recovery" || eventKind == "wardrobe_gain" || eventKind == "wardrobe_loss" || eventKind == "wardrobe_unavailable" {
+			return errors.New("state_event_requires_followup_or_correction_event")
 		}
 		var resultingEventRevision int
 		if err := tx.QueryRow(ctx, `UPDATE public.life_events SET status='cancelled',revision=revision+1,updated_at=$4 WHERE id=$1 AND fluctlight_id=$2 AND status <> 'cancelled' AND revision=$3 RETURNING revision`, eventID, fluctlightID, expectedEventRevision, applyAt).Scan(&resultingEventRevision); err != nil {

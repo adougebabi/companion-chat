@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"sort"
 	"strings"
 
@@ -109,6 +108,11 @@ func (a *App) personaCompilationInputForProfile(ctx context.Context, fluctlightI
 	if !loadOverlays {
 		return input, nil
 	}
+	habits, _, err := readProfileHabits(ctx, a.DB.Pool(), fluctlightID, profileID)
+	if err != nil {
+		return PersonaCompilationInput{}, err
+	}
+	input.EffectiveLifeHabits = &habits
 	baseline := personaEvolutionBaseline(fluctlightID, mapValue(corePersona["personality"]), mapValue(corePersona["behavioral_policy"]), mapValue(corePersona["personality_system"]), map[string]any{"active_profile_id": profileID})
 	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline)
 	if err != nil {
@@ -191,13 +195,13 @@ func synthesizeBaselineWorkingPersona(input PersonaCompilationInput) (CompiledWo
 		}
 	}
 
-	// 4. Stable preferences & habits - every key in life_profile.preferences / habits / profile.preferences / habits MUST be covered
+	// 4. Stable preferences and habits must remain visible in the baseline.
 	for _, group := range []struct {
 		path  string
 		value map[string]any
 	}{
 		{"life_profile.preferences", mapValue(mapValue(source["life_profile"])["preferences"])},
-		{"life_profile.habits", mapValue(mapValue(source["life_profile"])["habits"])},
+		{"life_profile.style_preferences", mapValue(mapValue(source["life_profile"])["style_preferences"])},
 		{"profile.preferences", mapValue(mapValue(source["profile"])["preferences"])},
 		{"profile.habits", mapValue(mapValue(source["profile"])["habits"])},
 	} {
@@ -212,6 +216,17 @@ func synthesizeBaselineWorkingPersona(input PersonaCompilationInput) (CompiledWo
 				seen[ref] = struct{}{}
 			}
 		}
+	}
+	for index, habit := range arrayValue(mapValue(source["life_profile"])["life_habits"]) {
+		if habit == nil {
+			continue
+		}
+		ref := fmt.Sprintf("life_profile.life_habits.%d", index)
+		text := fmt.Sprintf("life_habit: %v", habit)
+		if len([]rune(text)) > 1000 {
+			text = string([]rune(text)[:1000])
+		}
+		facts = append(facts, PersonaPortraitFact{Category: "stable_preferences", Text: text, SourceRefs: []string{ref}})
 	}
 
 	if len(facts) == 0 {
@@ -233,25 +248,7 @@ func (a *App) compileOneWorkingPersona(ctx context.Context, input PersonaCompila
 	if mode == "blank_slate" && input.SourceRevision == 0 && input.OverlayRevision == 0 {
 		return synthesizeBaselineWorkingPersona(input)
 	}
-	compiled, err := a.CompileWorkingPersona(ctx, input)
-	if err == nil {
-		return compiled, nil
-	}
-	if input.SourceRevision == 0 && input.OverlayRevision == 0 {
-		slog.Default().Warn("CompileWorkingPersona LLM failed during activation, falling back to baseline working persona",
-			"profile_id", input.ProfileID,
-			"error", err,
-		)
-		fallback, fallbackErr := synthesizeBaselineWorkingPersona(input)
-		if fallbackErr == nil {
-			return fallback, nil
-		}
-		slog.Default().Error("synthesizeBaselineWorkingPersona fallback also failed",
-			"profile_id", input.ProfileID,
-			"fallback_error", fallbackErr,
-		)
-	}
-	return CompiledWorkingPersona{}, err
+	return a.CompileWorkingPersona(ctx, input)
 }
 
 func insertCompiledWorkingPersonasTx(ctx context.Context, tx pgx.Tx, fluctlightID string, compiled []CompiledWorkingPersona) error {
@@ -298,7 +295,11 @@ func (a *App) loadCompiledWorkingPersona(ctx context.Context, projection Context
 
 func loadCompiledWorkingPersonaVersion(ctx context.Context, query DBTX, fluctlightID, profileID string, expectedRevision int, corePersona, effectivePersona map[string]any) (CompiledWorkingPersona, error) {
 	expectedOverlay := intValue(mapValue(effectivePersona)["portrait_overlay_revision"])
-	source, err := personaCompilationSource(PersonaCompilationInput{CorePersona: corePersona, ProfileID: profileID, EffectivePersona: effectivePersona, OverlayRevision: expectedOverlay})
+	habits, _, err := readProfileHabits(ctx, query, fluctlightID, profileID)
+	if err != nil {
+		return CompiledWorkingPersona{}, err
+	}
+	source, err := personaCompilationSource(PersonaCompilationInput{CorePersona: corePersona, ProfileID: profileID, EffectivePersona: effectivePersona, OverlayRevision: expectedOverlay, EffectiveLifeHabits: &habits})
 	if err != nil {
 		return CompiledWorkingPersona{}, err
 	}

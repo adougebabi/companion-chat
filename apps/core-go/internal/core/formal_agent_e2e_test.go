@@ -36,6 +36,25 @@ func TestFormalAgentE2E(t *testing.T) {
 	t.Run(string(FormalAgentPersistentSwitch), testFormalAgentE2EPersistentSwitch)
 	t.Run(string(FormalAgentReflection), testFormalAgentE2EReflection)
 	t.Run(string(FormalAgentScheduleReplan), testFormalAgentE2EScheduleReplan)
+	t.Run(string(FormalAgentVirtualActivityResult), testFormalAgentE2EVirtualActivityResult)
+}
+
+func testFormalAgentE2EVirtualActivityResult(t *testing.T) {
+	fixture := newFormalAgentE2EFixture(t)
+	request := map[string]any{"kind": "virtual_shopping", "category": "boots", "slot": "shoes", "description": "合适的短靴"}
+	result, err := fixture.app.RunVirtualActivityResultTask(fixture.ctx, VirtualActivityResultTaskInput{
+		Kind: "virtual_shopping", Request: request,
+		StartedAt: time.Now().UTC().Add(-time.Hour).Format(time.RFC3339Nano),
+		NotBefore: time.Now().UTC().Add(-30*time.Minute).Format(time.RFC3339Nano),
+		CurrentAppearance: map[string]any{"body_fields": map[string]any{"hair_length": map[string]any{"status": "known", "value": "short"}}},
+		CurrentLife: map[string]any{"activity": "虚拟购物", "scene": "商店"},
+	})
+	if err != nil {
+		t.Fatalf("real virtual activity result Agent failed: %v", err)
+	}
+	if err := validateVirtualActivityResult("virtual_shopping", request, result); err != nil {
+		t.Fatalf("real virtual activity result is invalid: result=%#v err=%v", result, err)
+	}
 }
 
 func testFormalAgentE2EConversationCognition(t *testing.T) {

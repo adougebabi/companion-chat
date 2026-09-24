@@ -21,8 +21,15 @@ import (
 var independentToolProductInventory = []string{
 	"active_memory_event",
 	"affect_event",
+	"appearance.style",
 	"capability.request",
 	"conversation.reply",
+	"habit.decide",
+	"habit.inspect",
+	"intention.decide",
+	"intention.inspect",
+	"life.activity.advance",
+	"life.activity.start",
 	"media.image.generate",
 	"memory.recall",
 	"memory_event",
@@ -38,6 +45,9 @@ var independentToolProductInventory = []string{
 	"visual_identity.finalize",
 	"visual_identity.generate_candidate",
 	"visual_identity.initialize",
+	"wardrobe.inspect",
+	"wardrobe.outfit.save",
+	"wardrobe.wear",
 }
 
 type independentToolE2EFixture struct {

@@ -786,6 +786,43 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 // ProcessNativeCognitionFact consumes the final contract and the Tool trace
 // produced by the registered native-cognition Agent. No ToolCall is prepared
 // or executed again after the Agent returns.
+// bindIntentionDueFact replaces the pre-transition reference with the exact
+// due revision visible in this Agent projection. The durable fact remains the
+// audit source; neither a Provider-supplied ref nor a guessed token is trusted.
+func (a *App) bindIntentionDueFact(ctx context.Context, fluctlightID string, payload []byte, projection ContextProjection) ([]byte, map[string]any, error) {
+	fact := decodeObject(payload)
+	candidate := mapValue(fact["candidate"])
+	intentionID := strings.TrimSpace(stringValue(fact["source_fact_id"]))
+	attemptID := strings.TrimSpace(stringValue(candidate["attempt_id"]))
+	revision := intValue(candidate["intention_revision"])
+	if intentionID == "" || attemptID == "" || revision <= 0 || !validAgencyReference(stringValue(candidate["intention_ref"]), ContextReferenceIntention) || !validAgencyReference(stringValue(candidate["goal_ref"]), ContextReferenceGoal) {
+		return nil, nil, errors.New("intention_due_fact_identity_invalid")
+	}
+	var goalID, currentAttempt, status string
+	var currentRevision int
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(goal_id,''),COALESCE(current_attempt_id,''),status,revision FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2`, intentionID, fluctlightID).Scan(&goalID, &currentAttempt, &status, &currentRevision); err != nil {
+		return nil, nil, err
+	}
+	if goalID == "" || currentAttempt != attemptID || status != string(IntentionDue) || currentRevision != revision {
+		return nil, nil, errors.New("intention_due_fact_stale")
+	}
+	goalRef, intentionRef := "", ""
+	for ref, entry := range projection.ReferenceIndex.ByRef {
+		switch {
+		case entry.Kind == ContextReferenceGoal && entry.EntityID == goalID:
+			goalRef = ref
+		case entry.Kind == ContextReferenceIntention && entry.EntityID == intentionID && entry.Revision == revision:
+			intentionRef = ref
+		}
+	}
+	if goalRef == "" || intentionRef == "" || goalRef != stringValue(candidate["goal_ref"]) || stringValue(decodeObject(projection.ReferenceIndex.ByRef[intentionRef].Snapshot)["goal_ref"]) != goalRef {
+		return nil, nil, errors.New("intention_due_fact_reference_stale")
+	}
+	candidate["goal_ref"], candidate["intention_ref"] = goalRef, intentionRef
+	fact["candidate"] = candidate
+	return jsonBytes(fact), fact, nil
+}
+
 func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) error {
 	var fluctlightID, eventType, status, errorCode string
 	var payload []byte
@@ -818,6 +855,29 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if err != nil {
 		return err
 	}
+	// A due fact is enqueued before the Intention's due revision is projected.
+	// Bind its persisted entity/attempt to the current, scoped reference index
+	// before showing the fact to the model or checking its influences.
+	if eventType == intentionDueFactType {
+		payload, factPayload, err = a.bindIntentionDueFact(ctx, fluctlightID, payload, projection)
+		if err != nil {
+			return err
+		}
+		// The model may commit an activity Tool and fail before final settlement.
+		// Freeze the scoped, Core-owned due references before any Tool can run.
+		candidate := mapValue(factPayload["candidate"])
+		goalRef, intentionRef := stringValue(candidate["goal_ref"]), stringValue(candidate["intention_ref"])
+		frozen := map[string]any{"intention_id": factPayload["source_fact_id"], "attempt_id": candidate["attempt_id"],
+			"intention_revision": candidate["intention_revision"], "goal_ref": goalRef, "intention_ref": intentionRef,
+			"context_references": map[string]ContextReference{goalRef: projection.ReferenceIndex.ByRef[goalRef], intentionRef: projection.ReferenceIndex.ByRef[intentionRef]}}
+		command, freezeErr := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET payload=jsonb_set(payload,'{due_context}',$2::jsonb,true) WHERE id=$1 AND fluctlight_id=$3 AND status IN ('pending','claimed') AND payload->>'source_fact_id'=$4`, inboxID, jsonBytes(frozen), fluctlightID, stringValue(factPayload["source_fact_id"]))
+		if freezeErr != nil {
+			return freezeErr
+		}
+		if command.RowsAffected() != 1 {
+			return ErrConflict
+		}
+	}
 	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "native_cognition"), "native-cognition:"+inboxID)
 	taskResult, runErr := a.RunNativeCognitionTask(providerCtx, NativeCognitionTaskInput{EventType: eventType, Fact: payload, Projection: projection})
 	outcome, outcomeErr := committedAgentOutcome(taskResult.Trace)
@@ -837,19 +897,33 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if _, err := freezeDecisionInfluences(stages, projection, false); err != nil {
 		return err
 	}
+	causality, err := frozenDecisionCausality(stages)
+	if err != nil {
+		return err
+	}
 	if !semanticStages {
 		stages["cognitive_state_transition"] = "not_proposed"
 	}
 	if eventType == intentionDueFactType {
-		goalRef := strings.TrimSpace(stringValue(factPayload["goal_ref"]))
-		intentionRef := strings.TrimSpace(stringValue(factPayload["intention_ref"]))
+		dueFact := mapValue(factPayload["candidate"])
+		goalRef := strings.TrimSpace(stringValue(dueFact["goal_ref"]))
+		intentionRef := strings.TrimSpace(stringValue(dueFact["intention_ref"]))
 		if goalRef == "" || intentionRef == "" || !containsString(decisionServiceRefValues(stages["goal_refs"]), goalRef) || !containsString(decisionServiceRefValues(stages["intention_refs"]), intentionRef) {
 			return errors.New("intention_due_service_influences_required")
 		}
 	}
-	settlement := map[string]any{"status": "completed", "capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
-	if eventType == intentionDueFactType && len(outcome.Invocations) == 0 {
-		settlement["status"], settlement["reason_code"] = "suppressed", "intention_deferred"
+	settlement := map[string]any{"status": "completed", "capability_invocations": outcome.Invocations, "capability_results": outcome.Results,
+		"goal_refs": stages["goal_refs"], "intention_refs": stages["intention_refs"], "context_references": causality["context_references"]}
+	if eventType == intentionDueFactType {
+		if len(outcome.Invocations) == 0 {
+			settlement["status"], settlement["reason_code"] = "suppressed", "intention_deferred"
+		} else {
+			// A ToolCall may have queried facts, arranged an activity, or even
+			// published a reply. None of those alone prove the desired outcome.
+			// The activity/result owner settles the Intention after its own
+			// completion boundary; do not mark the primary ActionOutcome done.
+			settlement["status"], settlement["reason_code"] = "pending", "intention_awaits_verified_result"
+		}
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		foundation, currentRevision, lifeContext, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
@@ -877,10 +951,32 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		if err != nil {
 			return err
 		}
+		allOutcomes := outcomes
+		if eventType == intentionDueFactType {
+			// The start Tool already committed its pending outcomes alongside its
+			// activity. Keep that frozen causality, even if the activity resolved
+			// while the model was producing the final contract.
+			remaining := make([]ActionOutcome, 0, len(outcomes))
+			for _, candidate := range outcomes {
+				var existingID, existingRef string
+				lookupErr := tx.QueryRow(ctx, `SELECT id,COALESCE(external_ref,'') FROM public.cognition_action_outcomes WHERE action_id=$1 AND call_id=$2`, actionID, candidate.CallID).Scan(&existingID, &existingRef)
+				if lookupErr != nil && !errors.Is(lookupErr, pgx.ErrNoRows) {
+					return lookupErr
+				}
+				if lookupErr == nil {
+					if existingID != candidate.ID || (candidate.ExternalRef != "" && candidate.ExternalRef != existingRef) {
+						return errors.New("native_due_outcome_conflict")
+					}
+					continue
+				}
+				remaining = append(remaining, candidate)
+			}
+			outcomes = remaining
+		}
 		if err := persistActionOutcomesTx(ctx, tx, outcomes); err != nil {
 			return err
 		}
-		_, err = appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": actionID, "source_fact_id": inboxID, "result": settlement, "outcomes": outcomes}, "action-result:"+actionID)
+		_, err = appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": actionID, "source_fact_id": inboxID, "result": settlement, "outcomes": allOutcomes}, "action-result:"+actionID)
 		return err
 	})
 	if err != nil {

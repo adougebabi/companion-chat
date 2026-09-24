@@ -104,11 +104,7 @@ func (resolver *AppContextResolver) Resolve(ctx context.Context, request Context
 				value = fluctlight.CorePersona
 			}
 		case SlotAppearance:
-			fluctlight, loadErr := loadFluctlight()
-			err = loadErr
-			if err == nil {
-				value = mapValue(fluctlight.Identity["appearance"])
-			}
+			value, _, _, err = resolver.app.readEffectiveLifeSnapshot(ctx, request.FluctlightID, contextAt)
 		case SlotSchedule:
 			value, err = loadSchedule()
 		case SlotCurrentLife:
@@ -162,11 +158,8 @@ func (resolver *AppContextResolver) load(ctx context.Context, request ContextReq
 	case SlotVisualIdentity:
 		return app.readVisualIdentityDetail(ctx, request.FluctlightID)
 	case SlotAppearance:
-		fluctlight, err := app.DB.GetFluctlight(ctx, request.FluctlightID, ownerID)
-		if err != nil {
-			return nil, err
-		}
-		return mapValue(fluctlight.Identity["appearance"]), nil
+		appearance, _, _, err := app.readEffectiveLifeSnapshot(ctx, request.FluctlightID, time.Now().UTC())
+		return appearance, err
 	case SlotRelationshipScope:
 		relationships, err := app.readRelationships(ctx, request.FluctlightID, ownerID)
 		if err != nil {

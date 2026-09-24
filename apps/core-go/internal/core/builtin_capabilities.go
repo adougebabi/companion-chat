@@ -119,12 +119,28 @@ func builtinCapabilities(app *App) []Capability {
 	}
 	publication := NewToolPublicationService(app)
 	personaActions := newPersonaActionService(app)
+	wardrobe := newWardrobeService(app)
+	habits := &habitService{app: app}
+	intentions := &intentionService{}
+	if app != nil {
+		intentions.repository = app.DB
+	}
+	activities := &lifeActivityService{app: app}
+	var appearanceRepository *PostgresRepository
+	if app != nil {
+		appearanceRepository = app.DB
+	}
 	capabilities := []Capability{
 		conversationReplyCapability{publication: publication}, momentPublishCapability{publication: publication}, imageGenerateCapability{service: image, publication: publication},
 		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
 		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},
 		memoryRecallCapability{service: newMemoryRecallService(app)},
 		personaDetailCapability{service: newPersonaDetailService(app)},
+		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe}, wardrobeOutfitSaveCapability{service: wardrobe},
+		habitInspectCapability{service: habits}, habitDecideCapability{service: habits},
+		intentionInspectCapability{service: intentions}, intentionDecideCapability{service: intentions},
+		lifeActivityStartCapability{service: activities}, lifeActivityAdvanceCapability{service: activities},
+		appearanceStyleCapability{repository: appearanceRepository},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
 		capabilityRequestCapability{service: &capabilityRequestService{app: app}},
 		personaActionCapability{name: personaTakeoverCapabilityName, service: personaActions},
@@ -145,6 +161,28 @@ var (
 	_ Capability                   = activeMemoryEventCapability{}
 	_ Capability                   = memoryRecallCapability{}
 	_ Capability                   = personaDetailCapability{}
+	_ Capability                   = wardrobeInspectCapability{}
+	_ Capability                   = wardrobeWearCapability{}
+	_ Capability                   = wardrobeOutfitSaveCapability{}
+	_ Capability                   = habitInspectCapability{}
+	_ Capability                   = habitDecideCapability{}
+	_ Capability                   = intentionInspectCapability{}
+	_ Capability                   = intentionDecideCapability{}
+	_ Capability                   = lifeActivityStartCapability{}
+	_ Capability                   = lifeActivityAdvanceCapability{}
+	_ Capability                   = appearanceStyleCapability{}
+	_ TransactionalCapability      = wardrobeWearCapability{}
+	_ TransactionalCapability      = wardrobeOutfitSaveCapability{}
+	_ TransactionalCapability      = habitDecideCapability{}
+	_ TransactionalCapability      = intentionDecideCapability{}
+	_ TransactionalCapability      = lifeActivityStartCapability{}
+	_ TransactionalCapability      = lifeActivityAdvanceCapability{}
+	_ TransactionalCapability      = appearanceStyleCapability{}
+	_ CapabilityPreparer           = wardrobeWearCapability{}
+	_ CapabilityPreparer           = wardrobeOutfitSaveCapability{}
+	_ CapabilityPreparer           = habitDecideCapability{}
+	_ CapabilityPreparer           = lifeActivityAdvanceCapability{}
+	_ CapabilityPreparer           = appearanceStyleCapability{}
 	_ Capability                   = affectEventCapability{}
 	_ Capability                   = relationshipLookupCapability{}
 	_ Capability                   = capabilityRequestCapability{}

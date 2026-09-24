@@ -25,11 +25,58 @@ func TestPersonaCompilationSourceExcludesDynamicStateAndOtherProfiles(t *testing
 			t.Fatalf("dynamic or foreign source leaked %q: %s", forbidden, encoded)
 		}
 	}
-	if !strings.Contains(encoded, "姐姐") || !strings.Contains(encoded, "喜欢咖啡，但不喜欢甜咖啡") || !strings.Contains(encoded, "温暖") {
+	if strings.Contains(encoded, "姐姐") || !strings.Contains(encoded, "喜欢咖啡，但不喜欢甜咖啡") || !strings.Contains(encoded, "温暖") {
 		t.Fatalf("stable source was lost: %s", encoded)
 	}
 	if !strings.Contains(encoded, "长期分歧") || !strings.Contains(encoded, "共享已确认事实") || strings.Contains(encoded, "机器规则") {
 		t.Fatalf("shared semantics or machine-rule boundary wrong: %s", encoded)
+	}
+}
+
+func TestPersonaCompilationSourceSeparatesCurrentAppearanceFromPreferencesAndHabits(t *testing.T) {
+	core := map[string]any{
+		"identity": map[string]any{"name": "摇光", "background_story": "过去曾留长发", "appearance": "当前长发"},
+		"life_profile": map[string]any{
+			"appearance": map[string]any{
+				"description":       "现在留长发，穿白衬衫",
+				"physical_features": map[string]any{"hair_length": "long"},
+				"style_preferences": map[string]any{"hair": "喜欢长发造型"},
+			},
+			"life_habits": []any{"通常喝咖啡", "通常早睡"},
+			"preferences": map[string]any{"coffee": "喜欢咖啡"},
+		},
+	}
+	input := PersonaCompilationInput{CorePersona: core, ProfileID: "default", TargetBudgetRunes: 2000}
+	source, err := personaCompilationSource(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded := jsonString(source)
+	for _, forbidden := range []string{"现在留长发", "穿白衬衫", "hair_length", "过去曾留长发", "当前长发"} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("current appearance leaked into portrait source: %s", encoded)
+		}
+	}
+	for _, stable := range []string{"喜欢长发造型", "通常喝咖啡", "通常早睡"} {
+		if !strings.Contains(encoded, stable) {
+			t.Fatalf("stable preference/habit lost: %s", encoded)
+		}
+	}
+	if !personaCompilationSourcePathExists(source, "life_profile.life_habits.1") || personaCompilationSourcePathExists(source, "life_profile.life_habits.2") {
+		t.Fatalf("array source refs do not match the retained habits: %s", encoded)
+	}
+	output := map[string]any{"profile_id": "default", "facts": []any{
+		map[string]any{"category": "identity", "text": "摇光", "source_refs": []any{"identity.name"}},
+		map[string]any{"category": "stable_preferences", "text": "喜欢咖啡", "source_refs": []any{"life_profile.preferences.coffee"}},
+		map[string]any{"category": "stable_preferences", "text": "喜欢长发造型", "source_refs": []any{"life_profile.style_preferences.hair"}},
+		map[string]any{"category": "stable_preferences", "text": "通常喝咖啡", "source_refs": []any{"life_profile.life_habits.0"}},
+	}, "omissions": []any{}}
+	if _, err := decodeCompiledWorkingPersona(output, source, input); err == nil || !strings.Contains(err.Error(), "life_profile.life_habits.1") {
+		t.Fatalf("an uncovered canonical habit was accepted: %v", err)
+	}
+	output["omissions"] = []any{map[string]any{"source_ref": "life_profile.life_habits.1", "reason": "full detail only"}}
+	if _, err := decodeCompiledWorkingPersona(output, source, input); err != nil {
+		t.Fatalf("indexed habit omission was rejected: %v", err)
 	}
 }
 
@@ -120,5 +167,21 @@ func TestPersonaCompilationPreservesBehavioralPolicyAndProactiveBombardment(t *t
 	}
 	if got := stringValue(derivedPolicy["response_style"]); got != "温和自然" {
 		t.Fatalf("deriveWorkingPersonaBody lost response_style override: %#v", derivedPolicy)
+	}
+}
+
+func TestPersonaCompilationDropsNestedLegacyMutableExtensions(t *testing.T) {
+	core := map[string]any{"identity": map[string]any{"name": "摇光"}, "extensions": map[string]any{
+		"appearance":    map[string]any{"hair_length": "long", "hair_color": "red"},
+		"nested":        []any{map[string]any{"hair_length": "short", "ritual": "每天画画"}},
+		"stable_ritual": "睡前画画",
+	}}
+	source, err := personaCompilationSource(PersonaCompilationInput{CorePersona: core, ProfileID: "default"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded := jsonString(source)
+	if strings.Contains(encoded, "hair_length") || strings.Contains(encoded, "hair_color") || strings.Contains(encoded, "long") || !strings.Contains(encoded, "睡前画画") || !strings.Contains(encoded, "每天画画") {
+		t.Fatalf("nested extension classification failed: %s", encoded)
 	}
 }

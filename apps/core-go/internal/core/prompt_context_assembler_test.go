@@ -1,9 +1,14 @@
 package core
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/cloudwego/eino/schema"
 )
 
 func TestPromptEstimatorUsesConservativeUTF8Formula(t *testing.T) {
@@ -16,6 +21,31 @@ func TestPromptEstimatorUsesConservativeUTF8Formula(t *testing.T) {
 		if got := EstimatePromptTokens(value); got < minimum {
 			t.Fatalf("EstimatePromptTokens(%q)=%d want >=%d", value, got, minimum)
 		}
+	}
+}
+
+func TestPhysicalEinoContinuationBudgetCountsToolResultAndMultimodalImage(t *testing.T) {
+	model := &queuedToolCallingChatModel{assignment: providerAssignment{
+		TokenBudget: 1000, ContextWindowTokens: 12000, MaxInputTokens: 5000, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1,
+	}}
+	input := []*schema.Message{
+		{Role: schema.System, Content: "系统约束"},
+		{Role: schema.Assistant, ToolCalls: []schema.ToolCall{{ID: "call-1", Type: "function", Function: schema.FunctionCall{Name: "wardrobe.inspect", Arguments: `{}`}}}},
+		{Role: schema.Tool, ToolCallID: "call-1", Content: strings.Repeat("真实衣柜查询结果", 1500)},
+	}
+	if err := model.enforcePhysicalInputBudget(context.Background(), input); !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+		t.Fatalf("oversize real Tool result was sent to Provider: %v", err)
+	}
+	parts, err := providerMessagesToEino([]map[string]any{{"role": "user", "content": []any{
+		map[string]any{"type": "text", "text": "看这张图"},
+		map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:image/png;base64," + strings.Repeat("a", 200000)}},
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageMessage := einoBudgetMessage(parts[0])
+	if EstimatePromptTokens(imageMessage) < defaultPromptImageTokens {
+		t.Fatalf("physical Eino budget omitted multimodal image: %#v", imageMessage)
 	}
 }
 
@@ -50,7 +80,7 @@ func TestPromptAssemblerBuildsBLayoutAndCurrentInputExactlyOnce(t *testing.T) {
 	if strings.Count(jsonString(result.Messages), current) != 1 || stringValue(result.Messages[len(result.Messages)-1]["content"]) != current {
 		t.Fatalf("current input duplication: %#v", result.Messages)
 	}
-	if result.Trace.EstimatedInputTokens <= 0 || len(result.Tools) != 1 || len(result.ResponseFormat) == 0 {
+	if result.Trace.EstimatedInputTokens <= 0 || result.Trace.WireBytes <= result.Trace.WireChars || result.Trace.TokenEstimateMethod == "" || result.Trace.SectionBytes["working_persona"] == 0 || result.Trace.SectionTokens["tools"] == 0 || len(result.Tools) != 1 || len(result.ResponseFormat) == 0 {
 		t.Fatalf("assembly budget/result = %#v", result)
 	}
 }
@@ -59,8 +89,8 @@ func TestPromptAssemblerFailsWhenRequiredWireSectionsExceedCaps(t *testing.T) {
 	policy := DefaultPromptBudgetPolicy(4096)
 	policy.CurrentInputTokensCap = 8
 	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", CurrentInput: strings.Repeat("x", 100), Policy: policy})
-	if err != nil || len(result.Messages) == 0 {
-		t.Fatalf("required content was blocked by an estimate: result=%#v err=%v", result, err)
+	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || len(result.Messages) != 0 {
+		t.Fatalf("oversize required content was sent or silently cut: result=%#v err=%v", result, err)
 	}
 }
 
@@ -79,8 +109,13 @@ func TestPromptAssemblerTotalCapNeverSplitsRecentTurn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Messages) < 4 || len(result.Trace.Dropped) != 0 || !strings.Contains(jsonString(result.Messages), strings.Repeat("u", 100)) || !strings.Contains(jsonString(result.Messages), strings.Repeat("a", 100)) {
-		t.Fatalf("recent turn was unexpectedly filtered: messages=%#v trace=%#v", result.Messages, result.Trace)
+	if len(result.Messages) != 2 || len(result.Trace.Dropped) != 2 || strings.Contains(jsonString(result.Messages), strings.Repeat("u", 100)) || strings.Contains(jsonString(result.Messages), strings.Repeat("a", 100)) {
+		t.Fatalf("oversize recent turn was split or silently retained: messages=%#v trace=%#v", result.Messages, result.Trace)
+	}
+	for _, dropped := range result.Trace.Dropped {
+		if dropped.Reason != "budget_excluded" {
+			t.Fatalf("recent turn exclusion lacks a budget reason: %#v", result.Trace.Dropped)
+		}
 	}
 }
 
@@ -184,5 +219,23 @@ func TestPromptEstimatorHandlesMultimodalImages(t *testing.T) {
 	wireEstimate := estimatePromptWireInput(messages, nil, nil)
 	if wireEstimate > defaultMaxInputTokens {
 		t.Fatalf("wireEstimate = %d exceeded max input tokens %d", wireEstimate, defaultMaxInputTokens)
+	}
+}
+
+func TestOrdinaryStructuredAndStreamRejectOversizeInputBeforeHTTP(t *testing.T) {
+	router := newFakeProviderRouter()
+	provider := &ProviderClient{HTTP: &http.Client{Transport: router}}
+	assignment := providerAssignment{TokenBudget: 1000, ContextWindowTokens: 12000, MaxInputTokens: 5000, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1}
+	messages := []map[string]any{{"role": "system", "content": "约束"}, {"role": "user", "content": strings.Repeat("真实对话", 6000)}}
+	_, err := provider.generateWithEino(context.Background(), EinoModelCall{
+		Assignment: assignment, Role: "generic", Messages: messages, JSONMode: true,
+		SchemaName: "bounded_result", ResponseSchema: objectSchema(map[string]any{"result": map[string]any{"type": "string"}}, []string{"result"}, false),
+	})
+	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || router.totalRequests() != 0 {
+		t.Fatalf("structured over-budget request reached HTTP: err=%v requests=%d", err, router.totalRequests())
+	}
+	_, err = provider.streamWithEino(context.Background(), assignment, messages, "oversize-stream", func(string) error { return nil })
+	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || router.totalRequests() != 0 {
+		t.Fatalf("stream over-budget request reached HTTP: err=%v requests=%d", err, router.totalRequests())
 	}
 }

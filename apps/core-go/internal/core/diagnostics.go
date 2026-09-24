@@ -286,6 +286,13 @@ func redactDiagnostic(value any) any {
 		}
 		return result
 	case string:
+		// A structured Content sidecar with tool_calls is an invalid execution
+		// channel. Keep its shape for diagnostics without persisting arguments
+		// embedded inside an otherwise opaque JSON string.
+		var structured map[string]any
+		if json.Unmarshal([]byte(typed), &structured) == nil && len(arrayValue(structured["tool_calls"])) > 0 {
+			return "[REDACTED_STRUCTURED_TOOL_CALLS]"
+		}
 		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(typed)), "data:image/") {
 			return "[REDACTED_IMAGE_DATA]"
 		}

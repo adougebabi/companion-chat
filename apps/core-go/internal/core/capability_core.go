@@ -325,7 +325,7 @@ func ContextSnapshotFromProjection(projection ContextProjection) map[string]any 
 		"current_life":    boundedSnapshotValue(projection.LifeContext),
 		"schedule":        boundedSnapshotValue(projection.Schedule),
 		"visual_identity": boundedSnapshotValue(projection.VisualIdentity),
-		"appearance":      boundedSnapshotValue(mapValue(projection.Identity["appearance"])),
+		"appearance":      boundedSnapshotValue(projection.EffectiveAppearance),
 		"relationship_scope": boundedSnapshotValue(map[string]any{
 			"authorized_actor_ids": relationshipAuthorizedActorIDsFromProjection(projection), "relationships": projection.Relationships,
 			"actor_aliases": relationshipActorAliasesFromProjection(projection),

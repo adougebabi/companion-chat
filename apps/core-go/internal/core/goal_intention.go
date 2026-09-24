@@ -315,6 +315,8 @@ const (
 	IntentionUpdate   IntentionLifecycleOperation = "update"
 	IntentionQualify  IntentionLifecycleOperation = "qualify"
 	IntentionMarkDue  IntentionLifecycleOperation = "mark_due"
+	IntentionStart    IntentionLifecycleOperation = "start"
+	IntentionRetry    IntentionLifecycleOperation = "retry"
 	IntentionPause    IntentionLifecycleOperation = "pause"
 	IntentionResume   IntentionLifecycleOperation = "resume"
 	IntentionComplete IntentionLifecycleOperation = "complete"
@@ -453,6 +455,16 @@ func ApplyIntentionCommand(current IntentionAuthority, command IntentionCommand)
 			return IntentionAuthority{}, IntentionGovernanceRecord{}, errors.New("intention_transition_invalid")
 		}
 		next.Status = IntentionDue
+	case IntentionStart:
+		if from != IntentionQualified && from != IntentionDue {
+			return IntentionAuthority{}, IntentionGovernanceRecord{}, errors.New("intention_transition_invalid")
+		}
+		next.Status = IntentionInProgress
+	case IntentionRetry:
+		if from != IntentionInProgress && from != IntentionDue {
+			return IntentionAuthority{}, IntentionGovernanceRecord{}, errors.New("intention_transition_invalid")
+		}
+		next.Status = IntentionQualified
 	case IntentionPause:
 		if from != IntentionQualified && from != IntentionDue && from != IntentionInProgress {
 			return IntentionAuthority{}, IntentionGovernanceRecord{}, errors.New("intention_transition_invalid")

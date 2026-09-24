@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const personaDetailCapabilityName = "persona.detail"
@@ -13,13 +16,19 @@ const personaDetailCapabilityName = "persona.detail"
 type personaDetailRevisionContextKey struct{}
 type personaDetailOverlayContextKey struct{}
 
-type personaDetailService struct{ repository *PostgresRepository }
+type personaDetailService struct {
+	repository *PostgresRepository
+	appearance func(context.Context, string) (map[string]any, error)
+}
 
 func newPersonaDetailService(app *App) personaDetailService {
 	if app == nil {
 		return personaDetailService{}
 	}
-	return personaDetailService{repository: app.DB}
+	return personaDetailService{repository: app.DB, appearance: func(ctx context.Context, fluctlightID string) (map[string]any, error) {
+		current, _, _, err := app.readEffectiveLifeSnapshot(ctx, fluctlightID, time.Now().UTC())
+		return current, err
+	}}
 }
 
 func (s personaDetailService) read(ctx context.Context, fluctlightID, owner, profileID string) (map[string]any, int, int, string, error) {
@@ -60,7 +69,73 @@ func (s personaDetailService) read(ctx context.Context, fluctlightID, owner, pro
 		sections["personality"] = effective.Personality
 		sections["behavioral_policy"] = effective.BehaviorPolicy
 	}
+	habits, _, err := readProfileHabits(ctx, s.repository.Pool(), resource.ID, profileID)
+	if err != nil {
+		return nil, 0, 0, "", err
+	}
+	life := cloneMap(mapValue(sections["life_profile"]))
+	if life == nil {
+		life = map[string]any{}
+	}
+	if style := mapValue(mapValue(life["appearance"])["style_preferences"]); len(style) > 0 {
+		life["style_preferences"] = style
+	}
+	delete(life, "appearance")
+	life["life_habits"] = habits
+	sections["life_profile"] = life
+	identity := cloneMap(mapValue(sections["identity"]))
+	for _, key := range []string{"appearance", "background_story", "biography", "notes"} {
+		delete(identity, key)
+	}
+	sections["identity"] = identity
+	if profileIdentity := mapValue(sections["profile.identity"]); len(profileIdentity) > 0 {
+		stableProfileIdentity := cloneMap(profileIdentity)
+		for _, key := range []string{"appearance", "hair_length", "hair_color", "current_outfit", "clothing"} {
+			delete(stableProfileIdentity, key)
+		}
+		sections["profile.identity"] = stableProfileIdentity
+	}
+	delete(sections, "profile.emotional_state")
+	// Current detail uses the same mutable-field filter as the portrait
+	// source; unclassified Foundation wording remains available via history.
+	for key, value := range sections {
+		if key == "current_appearance" {
+			continue
+		}
+		if nested := mapValue(value); len(nested) > 0 {
+			sections[key] = stablePersonaSourceMap(nested)
+		}
+	}
+	if s.appearance != nil {
+		current, err := s.appearance(ctx, resource.ID)
+		if err != nil {
+			return nil, 0, 0, "", err
+		}
+		sections["current_appearance"] = current
+	}
 	return sections, resource.CurrentRevision, portraitOverlayRevision(state), profileID, nil
+}
+
+func (s personaDetailService) readHistorical(ctx context.Context, fluctlightID, owner, profileID string, revision int) (map[string]any, string, error) {
+	resource, err := s.repository.GetFluctlight(ctx, fluctlightID, owner)
+	if err != nil {
+		return nil, "", err
+	}
+	if profileID == "" {
+		if err := s.repository.Pool().QueryRow(ctx, `SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, resource.ID).Scan(&profileID); err != nil {
+			return nil, "", err
+		}
+	}
+	var raw []byte
+	err = s.repository.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2 AND status='accepted'`, resource.ID, revision).Scan(&raw)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, "", ErrNotFound
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	sections, err := personaDetailSectionsForTime(decodeObject(raw), profileID, true)
+	return sections, profileID, err
 }
 
 // persona.detail reads the canonical structured source. Its section IDs are
@@ -68,15 +143,16 @@ func (s personaDetailService) read(ctx context.Context, fluctlightID, owner, pro
 func personaDetailCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: personaDetailCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "List or read your current speaking profile's complete persona settings when the short Working Persona lacks a needed detail. This reads persona settings, not memories or current state.",
+		Description:   "List or read current effective persona details, habits and appearance for the speaking profile. Use history only when past Foundation wording is explicitly needed; historical source is not current state.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false, "required": []any{"operation"},
 			"properties": map[string]any{
-				"operation":  map[string]any{"type": "string", "enum": []any{"list", "read"}},
+				"operation":  map[string]any{"type": "string", "enum": []any{"list", "read", "history"}},
 				"section_id": map[string]any{"type": "string", "maxLength": 128},
 				"cursor":     map[string]any{"type": "integer", "minimum": 0},
+				"revision":   map[string]any{"type": "integer", "minimum": 0},
 			},
 		},
 		OutputSchema:    personaDetailOutputSchema(),
@@ -89,6 +165,7 @@ func personaDetailOutputSchema() map[string]any {
 		"profile_id":       map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 		"source_revision":  map[string]any{"type": "integer", "minimum": 0},
 		"overlay_revision": map[string]any{"type": "integer", "minimum": 0},
+		"time_semantics":   map[string]any{"type": "string", "enum": []any{"current", "historical_foundation"}},
 	}
 	listProperties := cloneMap(common)
 	listProperties["sections"] = map[string]any{"type": "array", "maxItems": 40, "items": objectSchema(map[string]any{
@@ -121,7 +198,19 @@ func (c personaDetailCapability) Execute(ctx context.Context, invocation Capabil
 		return failedCapabilityResult(invocation, "invalid_arguments", false), err
 	}
 	owner := strings.TrimSpace(invocation.Metadata.AuthorizationActorID)
-	sections, revision, overlayRevision, profileID, err := c.service.read(ctx, invocation.Metadata.FluctlightID, owner, invocation.Metadata.WorkingProfileID)
+	operation := stringValue(args["operation"])
+	var sections map[string]any
+	var revision, overlayRevision int
+	var profileID string
+	var timeSemantics string
+	if operation == "history" {
+		revision = intValue(args["revision"])
+		sections, profileID, err = c.service.readHistorical(ctx, invocation.Metadata.FluctlightID, owner, invocation.Metadata.WorkingProfileID, revision)
+		timeSemantics = "historical_foundation"
+	} else {
+		sections, revision, overlayRevision, profileID, err = c.service.read(ctx, invocation.Metadata.FluctlightID, owner, invocation.Metadata.WorkingProfileID)
+		timeSemantics = "current"
+	}
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
 			return failedCapabilityResultDetail(invocation, "persona_detail_source_changed", true, "persona source changed during this Agent run"), err
@@ -131,15 +220,15 @@ func (c personaDetailCapability) Execute(ctx context.Context, invocation Capabil
 		}
 		return failedCapabilityResultDetail(invocation, "persona_detail_source_failed", true, "persona source unavailable"), err
 	}
-	output := map[string]any{"profile_id": profileID, "source_revision": revision, "overlay_revision": overlayRevision}
-	switch stringValue(args["operation"]) {
+	output := map[string]any{"profile_id": profileID, "source_revision": revision, "overlay_revision": overlayRevision, "time_semantics": timeSemantics}
+	switch operation {
 	case "list":
 		catalog := make([]map[string]any, 0, len(sections))
 		for _, id := range workingPersonaSortedKeys(sections) {
 			catalog = append(catalog, map[string]any{"section_id": id, "description": personaDetailSectionDescription(id)})
 		}
 		output["sections"] = catalog
-	case "read":
+	case "read", "history":
 		id := strings.TrimSpace(stringValue(args["section_id"]))
 		value, ok := sections[id]
 		if !ok {
@@ -171,6 +260,16 @@ func (c personaDetailCapability) Execute(ctx context.Context, invocation Capabil
 }
 
 func personaDetailSections(corePersona map[string]any, profileID string) (map[string]any, error) {
+	return personaDetailSectionsForTime(corePersona, profileID, false)
+}
+
+func personaDetailSectionsForTime(corePersona map[string]any, profileID string, historical bool) (map[string]any, error) {
+	factFilter := safePersonaFactMap
+	if historical {
+		// History preserves original accepted Foundation facts, including former
+		// body/clothing claims. Only bookkeeping and private source fields leave.
+		factFilter = filterCorePersonaValue
+	}
 	profiles := arrayValue(mapValue(corePersona["personality_system"])["profiles"])
 	profile := map[string]any{}
 	for _, raw := range profiles {
@@ -183,7 +282,7 @@ func personaDetailSections(corePersona map[string]any, profileID string) (map[st
 	if len(profiles) > 0 && len(profile) == 0 {
 		return nil, fmt.Errorf("%w: speaking profile %q is not declared", ErrNotFound, profileID)
 	}
-	profile = safePersonaFactMap(profile)
+	profile = factFilter(profile)
 	profile["id"] = profileID
 	sections := map[string]any{}
 	if shared := sharedPersonalitySystemSource(mapValue(corePersona["personality_system"])); len(shared) > 0 {
@@ -191,7 +290,7 @@ func personaDetailSections(corePersona map[string]any, profileID string) (map[st
 	}
 	for _, key := range []string{"identity", "life_profile", "extensions"} {
 		if value := mapValue(corePersona[key]); len(value) > 0 {
-			sections[key] = safePersonaFactMap(value)
+			sections[key] = factFilter(value)
 		}
 	}
 	for _, key := range []string{"personality", "behavioral_policy"} {
@@ -200,7 +299,7 @@ func personaDetailSections(corePersona map[string]any, profileID string) (map[st
 			value = mapValue(corePersona[key])
 		}
 		if len(value) > 0 {
-			sections[key] = safePersonaFactMap(value)
+			sections[key] = factFilter(value)
 		}
 	}
 	for key, value := range profile {
@@ -209,7 +308,7 @@ func personaDetailSections(corePersona map[string]any, profileID string) (map[st
 		}
 		if value != nil {
 			if nested, ok := value.(map[string]any); ok {
-				value = safePersonaFactMap(nested)
+				value = factFilter(nested)
 			}
 			sections["profile."+key] = value
 		}
@@ -223,6 +322,8 @@ func personaDetailSectionDescription(id string) string {
 		return "shared identity and background"
 	case "life_profile":
 		return "stable life details, preferences and habits"
+	case "current_appearance":
+		return "current shared body state and actual wearing"
 	case "extensions":
 		return "additional declared persona details"
 	case "shared_system":

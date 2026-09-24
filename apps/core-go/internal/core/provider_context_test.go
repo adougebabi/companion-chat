@@ -772,7 +772,7 @@ func TestConversationProviderSurfaceKeepsSemanticFactsAndDropsInternalMetadata(t
 			t.Fatalf("conversation surface lost semantic field %q: %s", required, facts)
 		}
 	}
-	if len(input.Summaries) != 1 || jsonString(input.Summaries[0].Content) != `{"summary":"历史摘要"}` {
+	if len(input.Summaries) != 1 || jsonString(input.Summaries[0].Content) != `{"summary":"历史摘要","time_semantics":"historical_conversation","to_sequence":20}` {
 		t.Fatalf("summary metadata was not compacted: %#v", input.Summaries)
 	}
 	if len(input.RecentMessages) != 1 || strings.Contains(jsonString(input.RecentMessages), "actor_b") || !strings.Contains(jsonString(input.RecentMessages), "sender=actor_self") {

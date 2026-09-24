@@ -3,8 +3,10 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestImageCapabilityPrepareConsumesResolvedContext(t *testing.T) {
@@ -68,6 +70,58 @@ func TestImageIntentAndCanonicalContextReachMediaPromptInput(t *testing.T) {
 		if _, found := binding[legacy]; found {
 			t.Fatalf("legacy media context key %q remains: %s", legacy, promptInput)
 		}
+	}
+}
+
+func TestSceneMediaPromptUsesCurrentAppearanceWithoutHistoricalVisualSnapshot(t *testing.T) {
+	concept := map[string]any{
+		"intent": "拍一张现在的照片",
+		"visual_identity": map[string]any{"status": "active", "identity_snapshot": map[string]any{
+			"identity":     map[string]any{"name": "摇光", "appearance": "旧长发"},
+			"life_profile": map[string]any{"appearance": map[string]any{"description": "过去穿白衬衫"}},
+		}},
+		"context_binding": map[string]any{
+			"visual_identity": map[string]any{"status": "active", "reference_asset_id": "historical-reference"},
+			"appearance": map[string]any{"body_revision": 2, "wardrobe_revision": 3,
+				"body_fields": map[string]any{"hair_length": map[string]any{"status": "known", "value": "短发"}},
+				"worn_items":  []any{map[string]any{"id": "item-dark", "description": "深色上衣", "slot": "top"}},
+			},
+		},
+	}
+	prompt := compactMediaConceptForProvider(jsonString(concept))
+	if os.Getenv("YAOGUANG_CAPTURE_WIRE") == "1" {
+		t.Logf("WIRE_MEDIA_CONCEPT=%s", prompt)
+	}
+	if !strings.Contains(prompt, "短发") || !strings.Contains(prompt, "深色上衣") || strings.Contains(prompt, "旧长发") || strings.Contains(prompt, "过去穿白衬衫") || strings.Contains(prompt, "historical-reference") {
+		t.Fatalf("scene media prompt mixed historical/current appearance: %s", prompt)
+	}
+	instruction := mediaPromptSystemInstruction(mediaIntent{Prompt: jsonString(concept)})
+	if !strings.Contains(instruction, "当前发长") || !strings.Contains(instruction, "历史设定") {
+		t.Fatalf("media prompt did not explain current binding authority: %s", instruction)
+	}
+}
+
+func TestCompletedMediaIntentMarksCapturedAppearanceStaleWhenBodyChanges(t *testing.T) {
+	fixture := seedWardrobeToolFixture(t)
+	appearance, _, _, err := fixture.app.readEffectiveLifeSnapshot(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	intentID := "media-capture-stale-" + fixture.suffix
+	concept := map[string]any{"intent": "现在的样子", "context_binding": map[string]any{"appearance": appearance}}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,status) VALUES($1,$2,'image','image/png',$3,$4,$5,'pending')`, intentID, fixture.fluctlightID, jsonString(concept), "provider-"+intentID, "workflow-"+intentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(appearanceStyleCapabilityName, "media-change-hair-style", map[string]any{"operation": "set", "style": "扎起头发", "reason": "拍摄任务尚未完成时换发型"})); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.app.markMediaIntentCompleted(fixture.ctx, intentID, "asset-historical-photo"); err != nil {
+		t.Fatal(err)
+	}
+	var stale bool
+	var capturedBody, capturedWardrobe int
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT context_stale_at_completion,capture_body_revision,capture_wardrobe_revision FROM public.media_intents WHERE id=$1`, intentID).Scan(&stale, &capturedBody, &capturedWardrobe); err != nil || !stale || capturedBody != 0 || capturedWardrobe != 0 {
+		t.Fatalf("old image was marked current: stale=%v body=%d wardrobe=%d err=%v", stale, capturedBody, capturedWardrobe, err)
 	}
 }
 

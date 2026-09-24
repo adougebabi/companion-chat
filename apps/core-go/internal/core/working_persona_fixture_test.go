@@ -85,6 +85,13 @@ func seedLegacyTestWorkingPersonas(t *testing.T, app *App) {
 	for _, row := range sources {
 		core := decodeObject(row.raw)
 		for _, profileID := range declaredPersonaProfileIDs(core) {
+			habits := arrayValue(mapValue(core["life_profile"])["life_habits"])
+			if habits == nil {
+				habits = []any{}
+			}
+			if _, err := app.DB.Pool().Exec(ctx, `INSERT INTO public.fluctlight_profile_habits(fluctlight_id,profile_id,revision,habits_json,source_kind,source_ref) VALUES($1,$2,0,$3,'initialization',$4) ON CONFLICT(fluctlight_id,profile_id) DO NOTHING`, row.id, profileID, jsonBytes(habits), "fixture:"+row.id); err != nil {
+				t.Fatal(err)
+			}
 			input, err := app.personaCompilationInputForProfile(ctx, row.id, core, row.revision, profileID, true)
 			if err != nil {
 				continue

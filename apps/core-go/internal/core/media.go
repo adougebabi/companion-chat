@@ -323,20 +323,50 @@ func mediaComfyPromptSubmissionDiagnostic(intent mediaIntent, concept map[string
 
 func (a *App) markMediaIntentCompleted(ctx context.Context, intentID, assetID string) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		command, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID)
-		if err != nil {
+		var owner, prompt, status string
+		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,prompt,status FROM public.media_intents WHERE id=$1 FOR UPDATE`, intentID).Scan(&owner, &prompt, &status); err != nil {
 			return err
 		}
-		if command.RowsAffected() != 1 {
-			var status string
-			if err := tx.QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, intentID).Scan(&status); err != nil {
+		if status != "pending" && status != "running" && status != "completed" {
+			return fmt.Errorf("media intent cannot complete from status %s", status)
+		}
+		observed := map[string]any{"media_intent_id": intentID, "asset_id": assetID, "delivery_status": "asset_ready"}
+		if status != "completed" {
+			var captureBody, captureWardrobe *int
+			appearance := mapValue(mapValue(decodeObject([]byte(prompt))["context_binding"])["appearance"])
+			if raw, exists := appearance["body_revision"]; exists {
+				value := intValue(raw)
+				captureBody = &value
+			}
+			if raw, exists := appearance["wardrobe_revision"]; exists {
+				value := intValue(raw)
+				captureWardrobe = &value
+			}
+			var stale *bool
+			if captureBody != nil || captureWardrobe != nil {
+				var currentBody, currentWardrobe int
+				// Hold both authority rows until the completion commit. A concurrent
+				// haircut or wear cannot commit between this comparison and the
+				// media intent's stale marker.
+				if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1 FOR SHARE`, owner).Scan(&currentBody); err != nil {
+					return err
+				}
+				if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR SHARE`, owner).Scan(&currentWardrobe); err != nil {
+					return err
+				}
+				changed := (captureBody != nil && *captureBody != currentBody) || (captureWardrobe != nil && *captureWardrobe != currentWardrobe)
+				stale = &changed
+				observed["context_stale_at_completion"] = changed
+			}
+			command, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1,context_stale_at_completion=$2,capture_body_revision=$3,capture_wardrobe_revision=$4 WHERE id=$1 AND status IN ('pending','running')`, intentID, stale, captureBody, captureWardrobe)
+			if err != nil || command.RowsAffected() != 1 {
+				if err == nil {
+					err = ErrConflict
+				}
 				return err
 			}
-			if status != "completed" {
-				return fmt.Errorf("media intent cannot complete from status %s", status)
-			}
 		}
-		_, err = a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeCompleted, map[string]any{"media_intent_id": intentID, "asset_id": assetID, "delivery_status": "asset_ready"}, "")
+		_, err := a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeCompleted, observed, "")
 		return err
 	})
 }

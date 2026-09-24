@@ -19,21 +19,21 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectedAll := []string{
-		"active_memory_event", "affect_event", "capability.request", "conversation.reply",
-		"media.image.generate", "memory.recall", "memory_event", "moment.publish",
+		"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect",
+		"life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "moment.publish",
 		"persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup",
 		"scene_event", "schedule.replan", "visual_identity.commit_review", "visual_identity.finalize",
-		"visual_identity.generate_candidate", "visual_identity.initialize",
+		"visual_identity.generate_candidate", "visual_identity.initialize", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.wear",
 	}
 	if got := capabilityDefinitionNames(registry.Definitions()); !phase8EqualStrings(got, expectedAll) {
 		t.Fatalf("registered capabilities drifted: got=%v want=%v", got, expectedAll)
 	}
 
 	expectedBySurface := map[CapabilitySurface][]string{
-		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory.recall", "memory_event", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
-		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
+		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.wear"},
+		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "moment.publish", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.wear"},
 		CapabilitySurfaceAutonomy:        {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
-		CapabilitySurfaceNativeCognition: {"active_memory_event", "capability.request", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
+		CapabilitySurfaceNativeCognition: {"active_memory_event", "appearance.style", "capability.request", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize", "wardrobe.inspect", "wardrobe.wear"},
 		CapabilitySurfaceReflection:      {},
 		CapabilitySurfaceVisualIdentity:  {"visual_identity.commit_review", "visual_identity.finalize", "visual_identity.generate_candidate"},
 	}
@@ -89,8 +89,8 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 
 func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 	definitions := FormalAgentDefinitions()
-	if len(definitions) != 18 {
-		t.Fatalf("formal Agent count=%d, want 18: %#v", len(definitions), definitions)
+	if len(definitions) != 19 {
+		t.Fatalf("formal Agent count=%d, want 19: %#v", len(definitions), definitions)
 	}
 	seen := make(map[FormalAgentID]struct{}, len(definitions))
 	for _, definition := range definitions {
@@ -196,12 +196,12 @@ func TestPhase8FixedTaskInventoryMatchesProductionFunctions(t *testing.T) {
 		"RunVisualIdentityVisionTask", "RunVisualIdentityPatchTask", "RunConversationSummaryTask",
 		"RunVisualIdentityAgent", "visual_identity_agent_response",
 		"RunScheduleGenerationTask", "RunNativeCognitionTask", "RunDailyReviewTask",
-		"RunPersistentSwitchTask", "RunReflectionProposalTask", "RunScheduleReplanTask",
+		"RunPersistentSwitchTask", "RunReflectionProposalTask", "RunScheduleReplanTask", "RunVirtualActivityResultTask",
 		"RunEmbeddingTask", "RunFrozenEmbeddingTask",
 		"initialization", "media_prompt", "media_quality_acceptance_response",
 		"visual_identity_vision_response", "visual_identity_patch_response", "conversation_summary_v1",
 		"schedule_response", "native_cognition_response", "daily_review_response",
-		"persistent_switch_assessment", "reflection_proposal_v2", "schedule_replan_plan",
+		"persistent_switch_assessment", "reflection_proposal_v2", "schedule_replan_plan", "virtual_activity_result",
 	}
 	for _, marker := range expected {
 		if !strings.Contains(text, marker) {

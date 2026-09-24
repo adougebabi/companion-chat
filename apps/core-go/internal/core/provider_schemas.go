@@ -464,6 +464,12 @@ func initializationResponseSchema() map[string]any {
 	appearance := objectSchema(map[string]any{
 		"description": nullableStringSchema(), "physical_features": openObjectSchema(),
 		"daily_outfit_preferences": arraySchema(jsonValueSchema()), "style_preferences": openObjectSchema(),
+		"hair_style": nullableStringSchema(), "injuries": arraySchema(jsonValueSchema()),
+		"wardrobe_items": arraySchema(objectSchema(map[string]any{
+			"category": stringSchema(), "slot": stringSchema(), "description": stringSchema(),
+			"ownership": enumStringSchema("owned", "borrowed", "unknown"),
+			"available": map[string]any{"type": "boolean"}, "currently_worn": map[string]any{"type": "boolean"},
+		}, []string{"category", "slot", "description", "ownership", "available", "currently_worn"}, false)),
 		"chest_cup": enumStringSchema("A", "B", "C", "D"),
 	}, nil, true)
 	lifeProfile := objectSchema(map[string]any{

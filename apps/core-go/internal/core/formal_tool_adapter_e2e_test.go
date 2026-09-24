@@ -11,6 +11,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // formalToolAdapterInventory is a product baseline, not a projection of the
@@ -18,8 +20,15 @@ import (
 var formalToolAdapterInventory = []string{
 	"active_memory_event",
 	"affect_event",
+	"appearance.style",
 	"capability.request",
 	"conversation.reply",
+	"habit.decide",
+	"habit.inspect",
+	"intention.decide",
+	"intention.inspect",
+	"life.activity.start",
+	"life.activity.advance",
 	"media.image.generate",
 	"memory.recall",
 	"memory_event",
@@ -35,6 +44,9 @@ var formalToolAdapterInventory = []string{
 	"visual_identity.generate_candidate",
 	"visual_identity.commit_review",
 	"visual_identity.finalize",
+	"wardrobe.inspect",
+	"wardrobe.outfit.save",
+	"wardrobe.wear",
 }
 
 type formalToolAdapterCase struct {
@@ -195,7 +207,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			if adapterReceipt.Result.Status != direct.Result.Status || !formalAdapterSameBusinessOutput(direct.Result.Output, adapterReceipt.Result.Output) {
 				t.Fatalf("serialized adapter result drifted: direct=%#v adapter=%#v", direct.Result, adapterReceipt.Result)
 			}
-			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && !adapterReceipt.Replayed {
+			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName && !adapterReceipt.Replayed {
 				t.Fatalf("stable mutation operation was executed twice instead of replayed: %#v", adapterReceipt)
 			}
 			testCase.verify(t, fixture, adapterReceipt)
@@ -228,6 +240,18 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			},
 		},
 		{
+			name: appearanceStyleCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(appearanceStyleCapabilityName, "adapter-appearance-style", map[string]any{"operation": "set", "style": "扎起头发", "reason": "决定暂时换发型"})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, _ ToolExecutionReceipt) {
+				var state []byte
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT state_json FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&state); err != nil || !strings.Contains(string(state), "扎起头发") {
+					t.Fatalf("temporary hair style not durable: %s err=%v", state, err)
+				}
+			},
+		},
+		{
 			name: "capability.request", surface: CapabilitySurfaceNativeCognition, wantStatus: "completed",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
 				return f.request("capability.request", "adapter-capability-request", map[string]any{
@@ -250,6 +274,81 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
 				id := stringValue(mapValue(receipt.Result.Output)["target_ref"])
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.conversation_messages WHERE id=$1 AND conversation_id=$2 AND text='正式 adapter 独立回复'`, 1, id, f.conversationID)
+			},
+		},
+		{
+			name: habitDecideCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(habitDecideCapabilityName, "adapter-habit-decide", map[string]any{
+					"operation": "append", "text": "近期常穿深色上衣", "reason": "明确调整自己的日常穿搭习惯",
+				})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, _ ToolExecutionReceipt) {
+				var habits []byte
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT habits_json FROM public.fluctlight_profile_habits WHERE fluctlight_id=$1 AND profile_id='spark'`, f.fluctlightID).Scan(&habits); err != nil || !strings.Contains(string(habits), "深色上衣") {
+					t.Fatalf("habit decision not durable: %s err=%v", habits, err)
+				}
+			},
+		},
+		{
+			name: habitInspectCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(habitInspectCapabilityName, "adapter-habit-inspect", map[string]any{})
+			},
+			verify: func(t *testing.T, _ *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				if !strings.Contains(jsonString(receipt.Result.Output), "深色上衣") {
+					t.Fatalf("habit inspect missed committed decision: %#v", receipt.Result.Output)
+				}
+			},
+		},
+		{
+			name: intentionDecideCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(intentionDecideCapabilityName, "adapter-intention-decide", map[string]any{
+					"operation": "create", "goal": "想拥有短靴", "action": "安排虚拟购买短靴", "expected_outcome": "短靴实际入柜", "reason": "明确形成购买意愿",
+				})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				id := stringValue(mapValue(receipt.Result.Output)["intention_id"])
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 AND status='candidate'`, 1, id, f.fluctlightID)
+			},
+		},
+		{
+			name: intentionInspectCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(intentionInspectCapabilityName, "adapter-intention-inspect", map[string]any{"operation": "list"})
+			},
+			verify: func(t *testing.T, _ *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				if !strings.Contains(jsonString(receipt.Result.Output), "短靴") {
+					t.Fatalf("intention inspect missed committed desire: %#v", receipt.Result.Output)
+				}
+			},
+		},
+		{
+			name: lifeActivityStartCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "accepted",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(lifeActivityStartCapabilityName, "adapter-activity-start", map[string]any{
+					"kind": "virtual_shopping", "duration_minutes": 60, "category": "boots", "slot": "shoes", "description": "虚拟短靴", "reason": "安排虚拟购物",
+				})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				id := stringValue(mapValue(receipt.Result.Output)["activity_id"])
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_life_activity_runs WHERE id=$1 AND status='in_progress'`, 1, id)
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND source_kind='purchase_result'`, 0, f.fluctlightID)
+			},
+		},
+		{
+			name: lifeActivityAdvanceCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "accepted",
+			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				var id string
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.fluctlight_life_activity_runs WHERE fluctlight_id=$1 AND kind='virtual_shopping' ORDER BY created_at DESC LIMIT 1`, f.fluctlightID).Scan(&id); err != nil {
+					t.Fatal(err)
+				}
+				return f.request(lifeActivityAdvanceCapabilityName, "adapter-activity-advance", map[string]any{"activity_id": id})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				id := stringValue(mapValue(receipt.Result.Output)["activity_id"])
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_life_activity_runs WHERE id=$1 AND status='in_progress'`, 1, id)
 			},
 		},
 		{
@@ -431,6 +530,46 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_visual_identity_sessions WHERE id=$1 AND status='completed'`, 1, f.visualSessionID)
 			},
 		},
+		{
+			name: wardrobeInspectCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(wardrobeInspectCapabilityName, "adapter-wardrobe-inspect", map[string]any{"operation": "list", "category": "shirt"})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				if !strings.Contains(jsonString(receipt.Result.Output), "正式 adapter 白衬衫") {
+					t.Fatalf("wardrobe Tool did not read the real item: %#v", receipt.Result.Output)
+				}
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND category='shirt'`, 1, f.fluctlightID)
+			},
+		},
+		{
+			name: wardrobeOutfitSaveCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				var id string
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND category='shirt'`, f.fluctlightID).Scan(&id); err != nil {
+					t.Fatal(err)
+				}
+				return f.request(wardrobeOutfitSaveCapabilityName, "adapter-wardrobe-outfit", map[string]any{"name": "平时白衬衫", "item_ids": []string{id}})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				id := stringValue(mapValue(receipt.Result.Output)["outfit_id"])
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_wardrobe_outfit_items WHERE fluctlight_id=$1 AND outfit_id=$2`, 1, f.fluctlightID, id)
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1`, 0, f.fluctlightID)
+			},
+		},
+		{
+			name: wardrobeWearCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				var id string
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND category='shirt'`, f.fluctlightID).Scan(&id); err != nil {
+					t.Fatal(err)
+				}
+				return f.request(wardrobeWearCapabilityName, "adapter-wardrobe-wear", map[string]any{"mode": "partial", "item_ids": []string{id}})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, _ ToolExecutionReceipt) {
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND slot='top'`, 1, f.fluctlightID)
+			},
+		},
 	}
 }
 
@@ -450,6 +589,16 @@ func newFormalToolAdapterFixture(t *testing.T) *formalToolAdapterFixture {
 		},
 	}
 	if _, err := base.repository.Pool().Exec(base.ctx, `UPDATE public.fluctlights SET core_persona=$2,identity=$3,life_profile=$4 WHERE id=$1`, base.fluctlightID, jsonBytes(persona), jsonBytes(mapValue(persona["identity"])), jsonBytes(mapValue(persona["life_profile"]))); err != nil {
+		t.Fatal(err)
+	}
+	wardrobeFoundation := cloneMap(persona)
+	mapValue(mapValue(wardrobeFoundation["life_profile"])["appearance"])["physical_features"] = map[string]any{"hair_length": "medium"}
+	mapValue(mapValue(wardrobeFoundation["life_profile"])["appearance"])["wardrobe_items"] = []any{
+		map[string]any{"category": "shirt", "slot": "top", "description": "正式 adapter 白衬衫", "ownership": "owned", "available": true, "currently_worn": false},
+	}
+	if err := withTransaction(base.ctx, base.repository.Pool(), func(tx pgx.Tx) error {
+		return initializeEffectiveLifeTx(base.ctx, tx, base.fluctlightID, wardrobeFoundation)
+	}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := base.repository.Pool().Exec(base.ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision) VALUES($1,'spark',0) ON CONFLICT(fluctlight_id) DO UPDATE SET active_profile_id='spark',revision=0`, base.fluctlightID); err != nil {

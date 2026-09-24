@@ -497,7 +497,11 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	}
 	card := "摇光温暖而直接，喜欢咖啡但不喜欢甜咖啡，忙完后会考虑自己喜欢的事。"
 	initialization := map[string]any{"schema_version": 2, "core_persona": map[string]any{
-		"identity": map[string]any{"name": "摇光"}, "life_profile": map[string]any{"preferences": map[string]any{"drink": "喜欢咖啡，但不喜欢甜咖啡"}},
+		"identity": map[string]any{"name": "摇光"}, "life_profile": map[string]any{
+			"preferences": map[string]any{"drink": "喜欢咖啡，但不喜欢甜咖啡"},
+			"appearance": map[string]any{"description": "起初留长发，穿白衬衫", "physical_features": map[string]any{"hair_length": "long"},
+				"wardrobe_items": []any{map[string]any{"category": "shirt", "slot": "top", "description": "白衬衫", "ownership": "unknown", "available": true, "currently_worn": true}}},
+		},
 		"personality": map[string]any{"openness": 0.7}, "behavioral_policy": map[string]any{"response_style": "温暖而直接"},
 	}, "developing_self": map[string]any{"claims": []any{}}, "initial_relationships": []any{}, "initial_goals": []any{}, "initial_intentions": []any{}, "extensions": map[string]any{}}
 	var finalWire string
@@ -510,6 +514,8 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	}).on(workingPersonaMainTurnSchema, func(payload map[string]any) fakeProviderResult {
 		finalWire = jsonString(payload)
 		return nativePersonaFinal()
+	}).on("virtual_activity_result", func(_ map[string]any) fakeProviderResult {
+		return fakeProviderResult{Structured: map[string]any{"status": "completed", "reason": "虚拟理发已完成", "hair_length": "short"}}
 	}).otherwise(func(_ map[string]any) fakeProviderResult { return fakeProviderResult{Structured: initialization} })
 	app := newTestApp(t, repository, router)
 	analysis, err := app.AnalyzeDescription(ctx, ownerID, card)
@@ -534,5 +540,40 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	}
 	if !strings.Contains(finalWire, "喜欢咖啡") || strings.Contains(finalWire, card) {
 		t.Fatal("formal request lost compiled preference or leaked original card")
+	}
+	initialWire := finalWire
+	start, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: lifeActivityStartCapabilityName, OperationID: "portrait-haircut-start",
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, Surface: CapabilitySurfaceConversation,
+		Arguments: jsonBytes(map[string]any{"kind": "haircut", "duration_minutes": 15, "desired_hair_length": "short", "reason": "明确决定剪发"})})
+	if err != nil || start.Result.Status != "accepted" {
+		t.Fatalf("haircut start=%#v err=%v", start, err)
+	}
+	activityID := stringValue(mapValue(start.Result.Output)["activity_id"])
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET started_at=now()-interval '20 minutes',not_before=now()-interval '1 minute' WHERE id=$1`, activityID); err != nil {
+		t.Fatal(err)
+	}
+	advanced, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: lifeActivityAdvanceCapabilityName, OperationID: "portrait-haircut-advance",
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, Surface: CapabilitySurfaceConversation,
+		Arguments: jsonBytes(map[string]any{"activity_id": activityID})})
+	if err != nil || advanced.Result.Status != "completed" {
+		t.Fatalf("haircut advance=%#v err=%v", advanced, err)
+	}
+	if _, err := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, RunID: "portrait-after-haircut", CurrentInput: "你现在的头发怎么样？"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(finalWire, "value: short") || strings.Contains(finalWire, "value: long") || strings.Contains(finalWire, "起初留长发") || !strings.Contains(finalWire, "白衬衫") || !strings.Contains(initialWire, "value: long") {
+		t.Fatalf("final Provider request did not replace current appearance: first=%s after=%s", initialWire, finalWire)
+	}
+	detail, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: personaDetailCapabilityName, OperationID: "portrait-current-appearance",
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, Surface: CapabilitySurfaceConversation,
+		Arguments: jsonBytes(map[string]any{"operation": "read", "section_id": "current_appearance"})})
+	if err != nil || !strings.Contains(stringValue(mapValue(detail.Result.Output)["content"]), "short") || stringValue(mapValue(detail.Result.Output)["time_semantics"]) != "current" {
+		t.Fatalf("current detail did not reflect haircut: receipt=%#v err=%v", detail, err)
+	}
+	history, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: personaDetailCapabilityName, OperationID: "portrait-historical-appearance",
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, Surface: CapabilitySurfaceConversation,
+		Arguments: jsonBytes(map[string]any{"operation": "history", "revision": 0, "section_id": "life_profile"})})
+	if err != nil || !strings.Contains(stringValue(mapValue(history.Result.Output)["content"]), "long") || stringValue(mapValue(history.Result.Output)["time_semantics"]) != "historical_foundation" {
+		t.Fatalf("historical detail was lost or mislabeled: receipt=%#v err=%v", history, err)
 	}
 }

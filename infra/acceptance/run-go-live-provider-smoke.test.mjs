@@ -30,7 +30,7 @@ test("help preserves the ordinary smoke and documents strict suites", () => {
   assert.match(result.stdout, /--suite smoke\|tools\|agents\|all/);
   assert.match(result.stdout, /ordinary Provider smoke/);
   assert.match(result.stdout, /-p 1 -parallel 1/);
-  assert.match(result.stdout, /fixed 18 product Tool rows/);
+  assert.match(result.stdout, /fixed 29 product Tool rows/);
   assert.match(result.stdout, /FLUCTLIGHT_VISUAL_LIVE_CONFIG_FILE/);
 });
 
@@ -69,8 +69,8 @@ test("full Agent suite requires visual dependencies before Provider access", () 
 
 test("the three Visual Identity Tools and complete Agent have fixed runner mappings", () => {
   const source = fs.readFileSync(runner, "utf8");
-  assert.equal(fixedHereDocRows(source, "tool_ids").length, 18);
-  assert.equal(fixedHereDocRows(source, "agent_ids").length, 17);
+  assert.equal(fixedHereDocRows(source, "tool_ids").length, 29);
+  assert.equal(fixedHereDocRows(source, "agent_ids").length, 19);
   assert.match(source, /visual_identity\.generate_candidate\) printf .*TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays/);
   assert.match(source, /visual_identity\.commit_review\) printf .*TestVisualIdentityCommitReviewToolPreservesRejectedAssetAndCreatesNextAttempt/);
   assert.match(source, /visual_identity\.finalize\) printf .*TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion/);

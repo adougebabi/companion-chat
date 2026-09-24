@@ -59,7 +59,7 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0035_working_persona" || PreviousHead != ToolExecutionSourceHead {
+	if Head != "0036_effective_life" || PreviousHead != WorkingPersonaHead || WorkingPersonaHead != "0035_working_persona" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -69,6 +69,55 @@ func TestWorkingPersonaMigrationKeepsSourceAndRulesVersions(t *testing.T) {
 		if !strings.Contains(workingPersonaSchemaSQL, fragment) {
 			t.Fatalf("Working Persona migration missing %q", fragment)
 		}
+	}
+}
+
+func TestEffectiveLifeMigrationDeclaresSharedStateAndEventProvenance(t *testing.T) {
+	for _, fragment := range []string{
+		"fluctlight_appearance_states", "fluctlight_appearance_revisions", "fluctlight_wardrobe_states",
+		"fluctlight_wardrobe_items", "fluctlight_wardrobe_outfits", "fluctlight_wardrobe_outfit_items",
+		"fluctlight_worn_items", "fluctlight_profile_habits", "fluctlight_profile_habit_revisions",
+		"fluctlight_life_activity_runs", "source_kind", "source_ref", "not_before", "context_stale_at_completion",
+		"'start','retry'",
+	} {
+		if !strings.Contains(effectiveLifeSchemaSQL, fragment) {
+			t.Fatalf("effective life migration missing %q", fragment)
+		}
+	}
+}
+
+func TestPostgresEffectiveLifeMigrationUpgrades0035WithoutChangingFoundation(t *testing.T) {
+	ctx, pool := isolatedMigrationPool(t)
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES('effective-upgrade-owner','human','active'),('effective-upgrade-fluctlight','fluctlight','active');
+INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES('effective-upgrade-fluctlight','effective-upgrade-owner','blank_slate','active','{"identity":{"name":"旧实例"}}','{"name":"旧实例"}','{}','{}','{}','{}');`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `DROP TABLE public.fluctlight_life_activity_runs,public.fluctlight_worn_items,public.fluctlight_wardrobe_outfit_items,public.fluctlight_wardrobe_outfits,public.fluctlight_wardrobe_items,public.fluctlight_wardrobe_states,public.fluctlight_profile_habit_revisions,public.fluctlight_profile_habits,public.fluctlight_appearance_revisions,public.fluctlight_appearance_states;
+UPDATE public.alembic_version SET version_num='0035_working_persona';`); err != nil {
+		t.Fatal(err)
+	}
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatalf("0035→0036: %v", err)
+	}
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatalf("0036 rerun: %v", err)
+	}
+	var head, name string
+	var tables int
+	if err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT core_persona->'identity'->>'name' FROM public.fluctlights WHERE id='effective-upgrade-fluctlight'`).Scan(&name); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM pg_class WHERE oid IN (to_regclass('public.fluctlight_appearance_states'),to_regclass('public.fluctlight_wardrobe_items'),to_regclass('public.fluctlight_life_activity_runs'))`).Scan(&tables); err != nil {
+		t.Fatal(err)
+	}
+	if head != Head || name != "旧实例" || tables != 3 {
+		t.Fatalf("upgrade lost Foundation or tables: head=%s name=%s tables=%d", head, name, tables)
 	}
 }
 
@@ -577,7 +626,7 @@ func TestMigrationBridgeAcceptsOnlyReleasedHead(t *testing.T) {
 	if Head == ReleasedHead {
 		t.Fatal("bridge head must differ from current Go head")
 	}
-	if PreviousHead != ToolExecutionSourceHead || ToolExecutionSourceHead == InitializationSourceHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
+	if PreviousHead != WorkingPersonaHead || WorkingPersonaHead == ToolExecutionSourceHead || ToolExecutionSourceHead == InitializationSourceHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
 		t.Fatalf("Initialization/Prompt/Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q prompt=%q evolution=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, PromptContextMemoryHead, EvolutionAuthorityHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
 	}
 	if CapabilityRuntimePreviousHead != "0025_llm_queue" || CapabilityRuntimeHead != "0026_capability_runtime" {

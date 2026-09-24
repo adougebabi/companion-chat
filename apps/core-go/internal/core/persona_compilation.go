@@ -4,19 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
-const personaCompilationRulesVersion = "working-persona.compile.v1"
+const personaCompilationRulesVersion = "working-persona.compile.v2"
 const defaultWorkingPersonaMaxRunes = 3600
 
 type PersonaCompilationInput struct {
-	CorePersona       map[string]any
-	ProfileID         string
-	EffectivePersona  map[string]any
-	SourceRevision    int
-	OverlayRevision   int
-	TargetBudgetRunes int
+	CorePersona         map[string]any
+	ProfileID           string
+	EffectivePersona    map[string]any
+	SourceRevision      int
+	OverlayRevision     int
+	TargetBudgetRunes   int
+	EffectiveLifeHabits *[]any
 }
 
 type PersonaPortraitFact struct {
@@ -58,7 +60,7 @@ func personaCompilationResponseSchema() map[string]any {
 	}, []string{"profile_id", "facts", "omissions"}, false)
 }
 
-const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Return only the specified JSON.`
+const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current body or hair state, current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. A preferred hairstyle is a preference; a currently worn hairstyle is a body state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Array items use their zero-based index as a path component. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Return only the specified JSON.`
 
 func personaCompilationSource(input PersonaCompilationInput) (map[string]any, error) {
 	profileID := strings.TrimSpace(input.ProfileID)
@@ -86,6 +88,11 @@ func personaCompilationSource(input PersonaCompilationInput) (map[string]any, er
 		profile = map[string]any{"id": profileID}
 	}
 	profile = safePersonaFactMap(profile)
+	if identity := mapValue(profile["identity"]); len(identity) > 0 {
+		profile["identity"] = stableCompilationIdentity(identity)
+	}
+	delete(profile, "emotional_state")
+	delete(profile, "visual_identity")
 	profile["id"] = profileID
 	for _, key := range []string{"personality", "behavioral_policy"} {
 		coreVal := safePersonaFactMap(mapValue(core[key]))
@@ -117,12 +124,24 @@ func personaCompilationSource(input PersonaCompilationInput) (map[string]any, er
 		}
 	}
 	if identity := mapValue(core["identity"]); len(identity) > 0 {
-		if stable := safePersonaFactMap(identity); len(stable) > 0 {
+		if stable := stableCompilationIdentity(identity); len(stable) > 0 {
 			source["identity"] = stable
 		}
 	}
-	if life := mapValue(core["life_profile"]); len(life) > 0 {
-		if stable := safePersonaFactMap(life); len(stable) > 0 {
+	if life := mapValue(core["life_profile"]); len(life) > 0 || input.EffectiveLifeHabits != nil {
+		stableLife := map[string]any{}
+		for _, key := range []string{"preferences", "life_habits", "character_constraints"} {
+			if value, exists := life[key]; exists {
+				stableLife[key] = value
+			}
+		}
+		if input.EffectiveLifeHabits != nil {
+			stableLife["life_habits"] = *input.EffectiveLifeHabits
+		}
+		if style := mapValue(mapValue(life["appearance"])["style_preferences"]); len(style) > 0 {
+			stableLife["style_preferences"] = style
+		}
+		if stable := safePersonaFactMap(stableLife); len(stable) > 0 {
 			source["life_profile"] = stable
 		}
 	}
@@ -135,6 +154,16 @@ func personaCompilationSource(input PersonaCompilationInput) (map[string]any, er
 		source["shared_system"] = shared
 	}
 	return source, nil
+}
+
+func stableCompilationIdentity(identity map[string]any) map[string]any {
+	stable := map[string]any{}
+	for _, key := range []string{"name", "nickname", "gender", "occupation", "birthplace", "birthday", "core_values", "worldview"} {
+		if value, exists := identity[key]; exists && value != nil {
+			stable[key] = value
+		}
+	}
+	return safePersonaFactMap(stable)
 }
 
 func sharedPersonalitySystemSource(system map[string]any) map[string]any {
@@ -160,6 +189,11 @@ var transientPersonaSourceKeys = map[string]struct{}{
 	"current_scene": {}, "current_activity": {}, "current_schedule": {}, "current_plan": {},
 	"temporary_intent": {}, "today_schedule": {}, "initial_state": {}, "relationship_progress": {},
 	"timezone": {},
+	// Legacy free-form extensions may contain current body or wardrobe facts.
+	// Keep stable rituals and declared preferences, but exclude mutable state
+	// even when nested under an extension instead of its canonical domain.
+	"appearance": {}, "physical_features": {}, "hair_length": {}, "hair_color": {}, "hair_style": {},
+	"injuries": {}, "outfit": {}, "clothing": {}, "wardrobe": {}, "wardrobe_items": {}, "worn_items": {},
 }
 
 func stablePersonaSourceMap(value map[string]any) map[string]any {
@@ -292,7 +326,7 @@ func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCo
 		value map[string]any
 	}{
 		{"life_profile.preferences", mapValue(mapValue(source["life_profile"])["preferences"])},
-		{"life_profile.habits", mapValue(mapValue(source["life_profile"])["habits"])},
+		{"life_profile.style_preferences", mapValue(mapValue(source["life_profile"])["style_preferences"])},
 		{"profile.preferences", mapValue(mapValue(source["profile"])["preferences"])},
 		{"profile.habits", mapValue(mapValue(source["profile"])["habits"])},
 	} {
@@ -308,6 +342,22 @@ func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCo
 			if !covered {
 				return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_preference_unaccounted: %s", ref)
 			}
+		}
+	}
+	for index, habit := range arrayValue(mapValue(source["life_profile"])["life_habits"]) {
+		if habit == nil {
+			continue
+		}
+		ref := fmt.Sprintf("life_profile.life_habits.%d", index)
+		covered := false
+		for cited := range seen {
+			if cited == ref || strings.HasPrefix(cited, ref+".") {
+				covered = true
+				break
+			}
+		}
+		if !covered {
+			return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_preference_unaccounted: %s", ref)
 		}
 	}
 	if len([]rune(jsonString(renderCompiledWorkingPersona(result)))) > result.BudgetRunes {
@@ -330,6 +380,17 @@ func personaCompilationSourcePathExists(source map[string]any, path string) bool
 	}
 	var value any = source
 	for _, part := range strings.Split(path, ".") {
+		if values, ok := value.([]any); ok {
+			index, err := strconv.Atoi(part)
+			if err != nil || index < 0 || index >= len(values) {
+				return false
+			}
+			value = values[index]
+			if value == nil {
+				return false
+			}
+			continue
+		}
 		current := mapValue(value)
 		if current == nil {
 			return false

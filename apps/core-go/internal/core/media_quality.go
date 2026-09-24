@@ -228,10 +228,14 @@ func mediaQualityRetryFeedback(result mediaQualityAcceptance) map[string]any {
 const mediaPromptRetryInstruction = `上一张图片未通过质量检查。结合 quality_feedback 中的 verdict、violations、observed_facts 和 retry_guidance，针对具体偏差优化 previous_provider_prompt。必须保留 frozen_media_concept 中的全部明确事实，只修正检查指出的问题；不得新增人物、场景、动作或其他冻结概念之外的事实。`
 
 func mediaPromptSystemInstruction(intent mediaIntent) string {
-	if intent.QualityRetryCount == 0 {
-		return mediaPromptInstruction
+	instruction := mediaPromptInstruction
+	if concept := decodeObject([]byte(intent.Prompt)); len(mapValue(mapValue(concept["context_binding"])["appearance"])) > 0 {
+		instruction += "\n\n当前发长、发色、临时发型和穿着以 frozen context_binding.appearance 为准；视觉身份参考图只用于保持人物身份，不得把参考图的旧发型或旧衣服恢复为当前状态。没有明确 context_override 时，不能用历史设定覆盖当前绑定。"
 	}
-	return mediaPromptInstruction + "\n\n" + mediaPromptRetryInstruction
+	if intent.QualityRetryCount == 0 {
+		return instruction
+	}
+	return instruction + "\n\n" + mediaPromptRetryInstruction
 }
 
 func mediaPromptInput(intent mediaIntent) string {

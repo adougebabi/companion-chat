@@ -299,6 +299,37 @@ func settleOutcomeIntentionAttemptsTx(ctx context.Context, tx pgx.Tx, outcome Ac
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
+		// A person can pause or cancel an Intention after an activity starts.
+		// The elapsed activity still has a real result, but its old decision
+		// must not complete a superseded Intention attempt.
+		var liveStatus, liveAttempt string
+		var liveRevision int
+		if err := tx.QueryRow(ctx, `SELECT status,revision,COALESCE(current_attempt_id,'') FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, outcome.FluctlightID).Scan(&liveStatus, &liveRevision, &liveAttempt); err != nil {
+			return err
+		}
+		if liveAttempt != attemptID || liveStatus == string(IntentionPaused) || liveStatus == string(IntentionCancelled) || liveStatus == string(IntentionExpired) {
+			continue
+		}
+		// The due snapshot predates a start ToolCall. A linked activity may
+		// advance the intention exactly once to in_progress while the outcome
+		// remains pending. Accept only that audited transition, and keep all
+		// other revision changes stale (pause, reassignment, or another action).
+		if outcome.CallID == actionPrimaryCallID && outcome.Status != ActionOutcomePending {
+			var advanced bool
+			err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_intention_revisions r JOIN public.fluctlight_intentions i ON i.id=r.intention_id AND i.fluctlight_id=r.fluctlight_id WHERE r.intention_id=$1 AND r.fluctlight_id=$2 AND r.idempotency_key='activity-start:' || (SELECT external_ref FROM public.cognition_action_outcomes WHERE action_id=$3 AND completion_boundary='virtual_activity_resolved' LIMIT 1) AND r.operation='start' AND r.base_revision=$4 AND i.revision=$4+1 AND i.current_attempt_id=$5 AND i.status='in_progress')`, entry.EntityID, outcome.FluctlightID, outcome.ActionID, entry.Revision, attemptID).Scan(&advanced)
+			if err != nil {
+				return err
+			}
+			if advanced {
+				entry.Revision++
+			}
+		}
+		// An intervening edit or pause/resume supersedes the frozen decision.
+		// Keep the independently completed activity, without treating its
+		// result as satisfaction of a changed intention.
+		if liveRevision != entry.Revision {
+			continue
+		}
 		current, err := loadIntentionAuthorityTx(ctx, tx, outcome.FluctlightID, intentionRef, goalRef, entry)
 		if err != nil {
 			return err

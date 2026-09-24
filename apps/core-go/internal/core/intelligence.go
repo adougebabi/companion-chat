@@ -71,9 +71,11 @@ type ContextProjection struct {
 	PreferenceSlots        []map[string]any           `json:"preference_slots"`
 	TriggerPreferences     []map[string]any           `json:"trigger_preferences"`
 	VisualIdentity         map[string]any             `json:"visual_identity"`
+	EffectiveAppearance    map[string]any             `json:"effective_appearance,omitempty"`
 	Goals                  []map[string]any           `json:"goals,omitempty"`
 	Intentions             []map[string]any           `json:"intentions,omitempty"`
 	RecentOutcomes         []map[string]any           `json:"recent_outcomes,omitempty"`
+	ActiveActivities       []map[string]any           `json:"active_activities,omitempty"`
 	ReferenceIndex         ContextReferenceIndex      `json:"context_reference_index"`
 }
 
@@ -223,6 +225,10 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	activeActivities, err := a.readActiveLifeActivities(ctx, fluctlightID, projectionAt)
+	if err != nil {
+		return ContextProjection{}, err
+	}
 	recentMessages := make([]map[string]any, 0)
 	if conversationID != "" {
 		// Fetch a bounded candidate window; WorkingMemory applies the actual token
@@ -253,6 +259,10 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	}
 	memories := memoryResult.Items
 	visualIdentity, err := a.readVisualIdentityDetail(ctx, fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	effectiveAppearance, bodyRevision, wardrobeRevision, err := a.readEffectiveLifeSnapshot(ctx, fluctlightID, projectionAt)
 	if err != nil {
 		return ContextProjection{}, err
 	}
@@ -289,15 +299,15 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		CorePersona:         map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona}, PersonalitySystem: personalitySystem, PersonalityRuntime: personalityRuntime,
 		EffectivePersona: effectivePersona, EvolutionOverlays: evolutionOverlays,
 		DevelopingSelf: developingSelf,
-		CurrentState:   map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": inner, "affect_profile": affectProfile, "life_context": lifeContext}},
+		CurrentState:   map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": inner, "affect_profile": affectProfile, "life_context": lifeContext, "appearance": effectiveAppearance, "active_activities": activeActivities}},
 		Schedule:       schedule,
 		Identity:       fluctlight.Identity, Personality: fluctlight.Personality,
 		BehavioralPolicy: fluctlight.BehavioralPolicy, InnerState: inner, AffectProfile: affectProfile,
 		LifeContext: lifeContext, Memories: memories, MemoryRetrievalTrace: memoryResult.Trace, ActiveMemories: activeResult.Items, ActiveMemoryTrace: activeResult.Trace, Relationships: relationships,
 		Hypotheses:   hypotheses,
 		Capabilities: capabilityDefinitionMaps(a.capabilityRegistry().Definitions()),
-		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity,
-		Goals: goals, Intentions: intentions, RecentOutcomes: recentOutcomes,
+		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity, EffectiveAppearance: effectiveAppearance,
+		Goals: goals, Intentions: intentions, RecentOutcomes: recentOutcomes, ActiveActivities: activeActivities,
 	}
 	if presence, ok := lifeContext["presence"].(map[string]any); ok {
 		projection.Presence = presence
@@ -310,6 +320,14 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 			return ContextProjection{}, ErrContextProjectionUnstable
 		}
 		return ContextProjection{}, err
+	}
+	if consistent, checkErr := a.effectiveLifeRevisionsMatch(ctx, fluctlightID, bodyRevision, wardrobeRevision); checkErr != nil {
+		return ContextProjection{}, checkErr
+	} else if !consistent {
+		if retry < 2 {
+			return a.BuildContextProjectionFor(context.WithValue(ctx, contextProjectionRetryKey{}, retry+1), request)
+		}
+		return ContextProjection{}, ErrContextProjectionUnstable
 	}
 	if err := buildContextReferenceIndex(&projection); err != nil {
 		return ContextProjection{}, err

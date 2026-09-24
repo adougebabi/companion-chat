@@ -55,21 +55,25 @@ type EinoModelCall struct {
 }
 
 type queuedToolCallingChatModel struct {
-	inner          model.ToolCallingChatModel
-	provider       *ProviderClient
-	role           string
-	scenario       string
-	priority       int
-	diagnosticID   string
-	assignment     providerAssignment
-	correlationID  string
-	sequence       *atomic.Uint64
-	definitions    []CapabilityDefinition
-	responseFormat map[string]any
+	inner           model.ToolCallingChatModel
+	provider        *ProviderClient
+	role            string
+	scenario        string
+	priority        int
+	diagnosticID    string
+	assignment      providerAssignment
+	correlationID   string
+	sequence        *atomic.Uint64
+	cumulativeInput *atomic.Int64
+	definitions     []CapabilityDefinition
+	responseFormat  map[string]any
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
 	input = normalizeEinoToolMessageNames(input)
+	if err := m.enforcePhysicalInputBudget(ctx, input); err != nil {
+		return nil, err
+	}
 	sequence := uint64(1)
 	if m.sequence != nil {
 		sequence = m.sequence.Add(1)
@@ -107,6 +111,9 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
 	input = normalizeEinoToolMessageNames(input)
+	if err := m.enforcePhysicalInputBudget(ctx, input); err != nil {
+		return nil, err
+	}
 	sequence := uint64(1)
 	if m.sequence != nil {
 		sequence = m.sequence.Add(1)
@@ -143,6 +150,85 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		}
 		return message, nil
 	}), nil
+}
+
+func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
+	policy := DefaultPromptBudgetPolicy(m.assignment.TokenBudget)
+	if m.assignment.ContextWindowTokens > 0 {
+		policy.ContextWindowTokens = m.assignment.ContextWindowTokens
+	}
+	if m.assignment.MaxInputTokens > 0 {
+		policy.MaxInputTokens = m.assignment.MaxInputTokens
+	}
+	if m.assignment.PromptBudgetPolicyVersion != "" {
+		policy.Version = m.assignment.PromptBudgetPolicyVersion
+	}
+	if err := policy.Validate(); err != nil {
+		return err
+	}
+	messages := make([]map[string]any, 0, len(input))
+	for _, message := range input {
+		if message != nil {
+			messages = append(messages, einoBudgetMessage(message))
+		}
+	}
+	tools := RenderCapabilityTools(m.definitions)
+	estimated := estimatePromptWireInput(messages, tools, m.responseFormat)
+	encoded, err := json.Marshal(map[string]any{"messages": messages, "tools": tools, "response_format": m.responseFormat})
+	if err != nil {
+		return err
+	}
+	cumulative := int64(estimated)
+	if m.cumulativeInput != nil {
+		cumulative = m.cumulativeInput.Add(int64(estimated))
+	}
+	if m.provider != nil && m.provider.DB != nil {
+		status := "within_budget"
+		if estimated > policy.MaxInputTokens {
+			status = "required_budget_exceeded"
+		}
+		m.provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.input_budget", "info", "", "", m.correlationID, map[string]any{
+			"status": status, "estimated_input_tokens": estimated, "cumulative_estimated_input_tokens": cumulative,
+			"max_input_tokens": policy.MaxInputTokens, "wire_bytes": len(encoded), "wire_chars": len([]rune(string(encoded))),
+			"message_count": len(messages), "tool_count": len(tools), "schema_tokens": EstimatePromptTokens(m.responseFormat),
+		})
+	}
+	if estimated > policy.MaxInputTokens {
+		return fmt.Errorf("%w: physical request estimate=%d max=%d", ErrPromptRequiredBudgetExceeded, estimated, policy.MaxInputTokens)
+	}
+	return nil
+}
+
+func einoBudgetMessage(message *schema.Message) map[string]any {
+	value := einoMessageRaw(message)
+	if message == nil {
+		return value
+	}
+	if message.ToolCallID != "" {
+		value["tool_call_id"] = message.ToolCallID
+	}
+	if len(message.UserInputMultiContent) > 0 {
+		parts := make([]any, 0, len(message.UserInputMultiContent))
+		for _, part := range message.UserInputMultiContent {
+			switch part.Type {
+			case schema.ChatMessagePartTypeText:
+				parts = append(parts, map[string]any{"type": "text", "text": part.Text})
+			case schema.ChatMessagePartTypeImageURL:
+				image := map[string]any{}
+				if part.Image != nil {
+					if part.Image.URL != nil {
+						image["url"] = *part.Image.URL
+					}
+					if part.Image.Detail != "" {
+						image["detail"] = string(part.Image.Detail)
+					}
+				}
+				parts = append(parts, map[string]any{"type": "image_url", "image_url": image})
+			}
+		}
+		value["content"] = parts
+	}
+	return value
 }
 
 func withPhysicalModelCallDiagnostics(ctx context.Context, runID, modelCallID string) context.Context {
@@ -337,7 +423,7 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if sequence == nil {
 		sequence = &atomic.Uint64{}
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, definitions: m.definitions, responseFormat: m.responseFormat}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, definitions: m.definitions, responseFormat: m.responseFormat}, nil
 }
 
 type einoModelResponse struct {
@@ -412,6 +498,13 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	}
 	responseFormat, err := einoResponseFormatForRole(call.Role, call.JSONMode, call.SchemaName, call.ResponseSchema)
 	if err != nil {
+		return einoModelResponse{}, err
+	}
+	budgetFormat := map[string]any{}
+	if call.JSONMode {
+		budgetFormat = providerResponseFormatForSchema(call.Role, call.SchemaName, call.ResponseSchema)
+	}
+	if err := (&queuedToolCallingChatModel{assignment: call.Assignment, definitions: call.Definitions, responseFormat: budgetFormat}).enforcePhysicalInputBudget(ctx, input); err != nil {
 		return einoModelResponse{}, err
 	}
 	extra := map[string]any{}
@@ -515,6 +608,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		inner: chat, provider: p, role: call.Role, scenario: call.Scenario, priority: call.Priority,
 		diagnosticID: call.DiagnosticID, assignment: call.Assignment, correlationID: call.CorrelationID,
 		sequence: &atomic.Uint64{}, definitions: call.Definitions, responseFormat: budgetResponseFormat,
+		cumulativeInput: &atomic.Int64{},
 	}
 	tools, err := NewADKCapabilityTools(call.Definitions, adkContext.Invoker)
 	if err != nil {
@@ -668,6 +762,9 @@ func (p *ProviderClient) streamWithEino(ctx context.Context, assignment provider
 	input, err := providerMessagesToEino(messages)
 	if err != nil {
 		return "", fmt.Errorf("eino_message_encode: %w", err)
+	}
+	if err := (&queuedToolCallingChatModel{assignment: assignment}).enforcePhysicalInputBudget(ctx, input); err != nil {
+		return "", err
 	}
 	factory := NewEinoModelFactory(p.HTTP)
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
