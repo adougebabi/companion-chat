@@ -230,6 +230,76 @@ func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
 	}
 }
 
+func TestVisualIdentityPromptIncludesCharacterNameAndAppearance(t *testing.T) {
+	// Case 1: Chinese persona like Yaoguang with narrative appearance description
+	concept := map[string]any{
+		"purpose": "visual_identity",
+		"visual_identity": map[string]any{
+			"identity_snapshot": map[string]any{
+				"identity": map[string]any{
+					"name":   "摇光",
+					"gender": "女性",
+					"age":    22,
+				},
+				"life_profile": map[string]any{
+					"appearance": map[string]any{
+						"description":              "乌黑微卷的长发，眉目清秀，气质高冷清冽，身材高挑修长",
+						"daily_outfit_preferences": []any{"深色长款风衣", "白色衬衫"},
+						"chest_cup":                "B",
+					},
+				},
+			},
+		},
+	}
+	prompt := visualIdentityPromptFromConcept(concept)
+	for _, expected := range []string{"角色设定卡", "角色：摇光", "22岁", "女性", "乌黑微卷的长发", "深色长款风衣", "B"} {
+		if !strings.Contains(prompt, expected) {
+			t.Fatalf("expected prompt to contain %q, but got:\n%s", expected, prompt)
+		}
+	}
+
+	// Case 2: String appearance in life_profile
+	conceptStringApp := map[string]any{
+		"purpose": "visual_identity",
+		"visual_identity": map[string]any{
+			"identity_snapshot": map[string]any{
+				"identity": map[string]any{
+					"name":   "摇光",
+					"gender": "女性",
+				},
+				"life_profile": map[string]any{
+					"appearance": "古典清秀，及肩黑发，素色长裙",
+				},
+			},
+		},
+	}
+	prompt2 := visualIdentityPromptFromConcept(conceptStringApp)
+	if !strings.Contains(prompt2, "角色：摇光") || !strings.Contains(prompt2, "古典清秀，及肩黑发，素色长裙") {
+		t.Fatalf("expected prompt to contain name and appearance string, got:\n%s", prompt2)
+	}
+
+	// Case 3: Enriching empty identitySnapshot from core_persona
+	emptySnapshot := map[string]any{
+		"identity": map[string]any{},
+		"life_profile": map[string]any{
+			"appearance": map[string]any{"chest_cup": "B"},
+		},
+	}
+	corePersona := map[string]any{
+		"identity": map[string]any{"name": "摇光", "gender": "女性", "age": 22},
+		"life_profile": map[string]any{
+			"appearance": map[string]any{
+				"description": "及腰黑发，眼神清冷，常穿白衬衫",
+			},
+		},
+	}
+	enrichIdentitySnapshotWithPersona(emptySnapshot, corePersona)
+	desc := visualIdentityCharacterDescription(emptySnapshot)
+	if !strings.Contains(desc, "摇光") || !strings.Contains(desc, "及腰黑发，眼神清冷，常穿白衬衫") {
+		t.Fatalf("enriched description failed: %q", desc)
+	}
+}
+
 func TestVisualIdentitySchemasExposeDecisionAndVisionStages(t *testing.T) {
 	vision := visualIdentityVisionResponseSchema()
 	if len(arrayValue(vision["required"])) != 4 {

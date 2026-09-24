@@ -283,6 +283,10 @@ func (a *App) executeVisualIdentityGenerateCandidateTx(ctx context.Context, tx p
 		}
 		identitySnapshot = decodeObject(raw)
 	}
+	var corePersonaRaw []byte
+	if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, session.FluctlightID).Scan(&corePersonaRaw); err == nil && len(corePersonaRaw) > 0 {
+		enrichIdentitySnapshotWithPersona(identitySnapshot, decodeObject(corePersonaRaw))
+	}
 	seedPrompt := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": identitySnapshot}})
 	if strings.TrimSpace(seedPrompt) == "" {
 		return visualIdentityBusinessRejection(invocation, "seed_prompt_empty", sessionID, session.Attempt, "awaiting_review"), nil
@@ -431,7 +435,12 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 	if err := tx.QueryRow(ctx, `SELECT identity_snapshot FROM public.fluctlight_visual_identities WHERE id=$1`, session.ProfileID).Scan(&canonicalSnapshotRaw); err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_profile_load_failed", true, err.Error()), err
 	}
-	characterIntentID, err := a.promoteVisualIdentityCanonicalTx(ctx, tx, sessionID, session.AttemptID, session.ProfileID, session.FluctlightID, assetID, decodeObject(canonicalSnapshotRaw), session.RendererConstraints)
+	canonicalSnapshot := decodeObject(canonicalSnapshotRaw)
+	var corePersonaRaw []byte
+	if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, session.FluctlightID).Scan(&corePersonaRaw); err == nil && len(corePersonaRaw) > 0 {
+		enrichIdentitySnapshotWithPersona(canonicalSnapshot, decodeObject(corePersonaRaw))
+	}
+	characterIntentID, err := a.promoteVisualIdentityCanonicalTx(ctx, tx, sessionID, session.AttemptID, session.ProfileID, session.FluctlightID, assetID, canonicalSnapshot, session.RendererConstraints)
 	if err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_canonical_save_failed", true, err.Error()), err
 	}

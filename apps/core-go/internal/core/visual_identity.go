@@ -362,7 +362,18 @@ func normalizeVisualIdentityFoundation(corePersona map[string]any) {
 		return
 	}
 	lifeProfile := mapValue(corePersona["life_profile"])
-	appearance := mapValue(lifeProfile["appearance"])
+	rawAppearance := lifeProfile["appearance"]
+	var appearance map[string]any
+	if appStr := strings.TrimSpace(stringValue(rawAppearance)); appStr != "" {
+		appearance = map[string]any{"description": appStr}
+	} else {
+		appearance = cloneMap(mapValue(rawAppearance))
+	}
+	if stringValue(appearance["description"]) == "" {
+		if idAppStr := strings.TrimSpace(stringValue(mapValue(corePersona["identity"])["appearance"])); idAppStr != "" {
+			appearance["description"] = idAppStr
+		}
+	}
 	if raw := stringValue(appearance["chest_cup"]); raw != "" {
 		// Even the canonical key may contain a legacy decorated value in an
 		// older foundation revision. Normalize it in place when it is valid;
@@ -436,6 +447,12 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 		"schema_version": visualIdentitySchemaVersion,
 		"identity":       cloneMap(mapValue(corePersona["identity"])),
 		"life_profile":   cloneMap(lifeProfile),
+	}
+	if extensions := mapValue(corePersona["extensions"]); len(extensions) > 0 {
+		identitySnapshot["extensions"] = cloneMap(extensions)
+	}
+	if appearanceVal, ok := corePersona["appearance"]; ok && appearanceVal != nil {
+		identitySnapshot["appearance"] = appearanceVal
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,current_revision,identity_snapshot,renderer_constraints,adapter_version) VALUES($1,$2,$3,0,$4,$5,$6) ON CONFLICT(fluctlight_id) DO NOTHING`, profileID, fluctlightID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 		return "", err
@@ -512,7 +529,14 @@ func visualIdentityBoundedText(value string, limit int) string {
 // template. The Provider may still be called for ordinary media prompts, but
 // it must not rewrite this Visual Identity composition.
 func visualIdentityPromptFromConcept(concept map[string]any) string {
-	description := visualIdentityCharacterDescription(mapValue(concept["visual_identity"]))
+	target := mapValue(concept["visual_identity"])
+	if len(target) == 0 {
+		target = mapValue(mapValue(concept["context_binding"])["visual_identity"])
+	}
+	if len(target) == 0 {
+		target = concept
+	}
+	description := visualIdentityCharacterDescription(target)
 	if description == "" {
 		description = "保持同一张脸的角色"
 	}
@@ -533,17 +557,104 @@ func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
 	}
 	snapshot := mapValue(visualIdentity["identity_snapshot"])
 	if len(snapshot) == 0 {
+		snapshot = mapValue(visualIdentity["visual_identity"])
+	}
+	if len(snapshot) == 0 {
 		snapshot = visualIdentity
 	}
+	if nested := mapValue(snapshot["identity_snapshot"]); len(nested) > 0 {
+		snapshot = nested
+	}
+
 	identity := mapValue(snapshot["identity"])
+	if len(identity) == 0 {
+		identity = mapValue(visualIdentity["identity"])
+	}
 	lifeProfile := mapValue(snapshot["life_profile"])
-	appearance := mapValue(lifeProfile["appearance"])
+	if len(lifeProfile) == 0 {
+		lifeProfile = mapValue(visualIdentity["life_profile"])
+	}
+
 	if visible := stringValue(identity["visible_text"]); visible != "" {
 		return visible
 	}
-	parts := make([]string, 0, 8)
+
+	var appearance map[string]any
+	var appearanceText string
+
+	extractAppearance := func(val any) {
+		if val == nil {
+			return
+		}
+		if str := strings.TrimSpace(stringValue(val)); str != "" {
+			if appearanceText == "" {
+				appearanceText = str
+			}
+			return
+		}
+		if m := mapValue(val); len(m) > 0 {
+			if appearance == nil {
+				appearance = make(map[string]any)
+			}
+			for k, v := range m {
+				if _, exists := appearance[k]; !exists && v != nil {
+					appearance[k] = v
+				}
+			}
+			if desc := strings.TrimSpace(stringValue(m["description"])); desc != "" && appearanceText == "" {
+				appearanceText = desc
+			}
+			if text := strings.TrimSpace(stringValue(m["text"])); text != "" && appearanceText == "" {
+				appearanceText = text
+			}
+			if summary := strings.TrimSpace(stringValue(m["summary"])); summary != "" && appearanceText == "" {
+				appearanceText = summary
+			}
+		}
+	}
+
+	extractAppearance(lifeProfile["appearance"])
+	extractAppearance(identity["appearance"])
+	extractAppearance(snapshot["appearance"])
+	extractAppearance(visualIdentity["appearance"])
+
+	extensions := mapValue(snapshot["extensions"])
+	if len(extensions) == 0 {
+		extensions = mapValue(visualIdentity["extensions"])
+	}
+	for _, extKey := range []string{
+		"core_persona.life_profile.appearance.description",
+		"core_persona.life_profile.appearance",
+		"core_persona.identity.appearance.description",
+		"core_persona.identity.appearance",
+		"appearance",
+	} {
+		if raw, ok := extensions[extKey]; ok {
+			extractAppearance(raw)
+		}
+	}
+
+	if appearance == nil {
+		appearance = make(map[string]any)
+	}
+
+	physical := mapValue(appearance["physical_features"])
+
+	parts := make([]string, 0, 10)
+
+	// 1. Character Name
+	name := firstVisualIdentityString(identity["name"], snapshot["name"])
+	if name != "" {
+		parts = append(parts, "角色："+name)
+	}
+
+	// 2. Age, Gender, Nationality
 	if age := firstVisualIdentityString(identity["age"], appearance["age"]); age != "" {
-		parts = append(parts, age)
+		if strings.Contains(age, "岁") || strings.Contains(age, "year") {
+			parts = append(parts, age)
+		} else {
+			parts = append(parts, age+"岁")
+		}
 	}
 	if gender := stringValue(identity["gender"]); gender != "" {
 		parts = append(parts, gender)
@@ -551,19 +662,154 @@ func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
 	if nationality := firstVisualIdentityString(identity["nationality"], identity["ethnicity"]); nationality != "" {
 		parts = append(parts, nationality)
 	}
-	if face := firstVisualIdentityString(appearance["face_shape"], identity["face_shape"]); face != "" {
-		parts = append(parts, face+" face")
+
+	// 3. Narrative Appearance Description
+	if appearanceText != "" {
+		parts = append(parts, appearanceText)
 	}
-	if body := firstVisualIdentityString(appearance["body_type"], identity["body_type"], identity["build"]); body != "" {
-		parts = append(parts, body+" build")
+
+	// 4. Hair
+	hair := firstVisualIdentityString(appearance["hair"], physical["hair"], physical["hair_style"], appearance["hair_style"], identity["hair"])
+	if hair == "" {
+		color := strings.TrimSpace(stringValue(physical["hair_color"]))
+		length := strings.TrimSpace(stringValue(physical["hair_length"]))
+		if color != "" || length != "" {
+			hair = strings.TrimSpace(color + " " + length)
+		}
 	}
-	if hair := firstVisualIdentityString(appearance["hair"], identity["hair"]); hair != "" && hair != "未知" {
-		parts = append(parts, hair+" hair")
+	if hair != "" && hair != "未知" && (appearanceText == "" || !strings.Contains(appearanceText, hair)) {
+		if strings.Contains(hair, "hair") || strings.Contains(hair, "发") {
+			parts = append(parts, hair)
+		} else {
+			parts = append(parts, hair+" hair")
+		}
 	}
+
+	// 5. Face / Facial features
+	face := firstVisualIdentityString(appearance["face_shape"], physical["face_shape"], identity["face_shape"])
+	if face != "" && (appearanceText == "" || !strings.Contains(appearanceText, face)) {
+		if strings.Contains(face, "face") || strings.Contains(face, "脸") {
+			parts = append(parts, face)
+		} else {
+			parts = append(parts, face+" face")
+		}
+	}
+
+	// 6. Eyes / Skin
+	eyes := firstVisualIdentityString(appearance["eyes"], appearance["eye_color"], physical["eyes"], physical["eye_color"])
+	if eyes != "" && (appearanceText == "" || !strings.Contains(appearanceText, eyes)) {
+		parts = append(parts, eyes)
+	}
+
+	// 7. Body / Build
+	body := firstVisualIdentityString(appearance["body_type"], physical["body_type"], identity["body_type"], identity["build"])
+	if body != "" && (appearanceText == "" || !strings.Contains(appearanceText, body)) {
+		if strings.Contains(body, "build") || strings.Contains(body, "身") || strings.Contains(body, "型") {
+			parts = append(parts, body)
+		} else {
+			parts = append(parts, body+" build")
+		}
+	}
+
+	// 8. Chest Cup
 	if cup := firstVisualIdentityString(appearance["chest_cup"], identity["chest_cup"]); cup != "" {
-		parts = append(parts, cup+" cup chest")
+		if appearanceText == "" || (!strings.Contains(appearanceText, cup) && !strings.Contains(appearanceText, "罩杯")) {
+			if strings.Contains(cup, "cup") || strings.Contains(cup, "罩杯") {
+				parts = append(parts, cup)
+			} else {
+				parts = append(parts, cup+" cup chest")
+			}
+		}
 	}
+
+	// 9. Outfit / Clothing preferences
+	outfit := firstVisualIdentityString(appearance["outfit"], appearance["clothing"])
+	if outfit == "" {
+		if rawOutfits, ok := appearance["daily_outfit_preferences"].([]any); ok && len(rawOutfits) > 0 {
+			items := make([]string, 0, len(rawOutfits))
+			for _, item := range rawOutfits {
+				if s := strings.TrimSpace(stringValue(item)); s != "" {
+					items = append(items, s)
+				}
+			}
+			if len(items) > 0 {
+				outfit = strings.Join(items, "、")
+			}
+		}
+	}
+	if outfit != "" && (appearanceText == "" || !strings.Contains(appearanceText, outfit)) {
+		if strings.HasPrefix(outfit, "着装") || strings.HasPrefix(outfit, "服装") || strings.HasPrefix(outfit, "穿") {
+			parts = append(parts, outfit)
+		} else {
+			parts = append(parts, "着装："+outfit)
+		}
+	}
+
 	return strings.Join(parts, ", ")
+}
+
+func enrichIdentitySnapshotWithPersona(snapshot, corePersona map[string]any) {
+	if snapshot == nil || len(corePersona) == 0 {
+		return
+	}
+	identity := mapValue(snapshot["identity"])
+	if identity == nil {
+		identity = make(map[string]any)
+	}
+	coreIdentity := mapValue(corePersona["identity"])
+	for k, v := range coreIdentity {
+		if current, exists := identity[k]; !exists || current == nil || stringValue(current) == "" {
+			identity[k] = v
+		}
+	}
+	snapshot["identity"] = identity
+
+	lifeProfile := mapValue(snapshot["life_profile"])
+	if lifeProfile == nil {
+		lifeProfile = make(map[string]any)
+	}
+	coreLifeProfile := mapValue(corePersona["life_profile"])
+	for k, v := range coreLifeProfile {
+		if k == "appearance" {
+			continue
+		}
+		if _, exists := lifeProfile[k]; !exists || lifeProfile[k] == nil {
+			lifeProfile[k] = v
+		}
+	}
+
+	app := mapValue(lifeProfile["appearance"])
+	if app == nil {
+		app = make(map[string]any)
+	}
+	coreAppRaw := coreLifeProfile["appearance"]
+	if coreAppStr := strings.TrimSpace(stringValue(coreAppRaw)); coreAppStr != "" {
+		if stringValue(app["description"]) == "" {
+			app["description"] = coreAppStr
+		}
+	} else if coreAppMap := mapValue(coreAppRaw); len(coreAppMap) > 0 {
+		for k, v := range coreAppMap {
+			if current, exists := app[k]; !exists || current == nil || stringValue(current) == "" {
+				app[k] = v
+			}
+		}
+	}
+
+	if idAppRaw := coreIdentity["appearance"]; idAppRaw != nil {
+		if idStr := strings.TrimSpace(stringValue(idAppRaw)); idStr != "" {
+			if stringValue(app["description"]) == "" {
+				app["description"] = idStr
+			}
+		} else if idMap := mapValue(idAppRaw); len(idMap) > 0 {
+			for k, v := range idMap {
+				if current, exists := app[k]; !exists || current == nil || stringValue(current) == "" {
+					app[k] = v
+				}
+			}
+		}
+	}
+	lifeProfile["appearance"] = app
+	snapshot["life_profile"] = lifeProfile
 }
 
 func firstVisualIdentityString(values ...any) string {
