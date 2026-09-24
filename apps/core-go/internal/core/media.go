@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/big"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -303,6 +305,11 @@ func mediaRendererConstraints(concept map[string]any) map[string]any {
 			result[key] = value
 		}
 	}
+	if seedVal, exists := concept["seed"]; exists && seedVal != nil {
+		if _, has := result["seed"]; !has {
+			result["seed"] = seedVal
+		}
+	}
 	return result
 }
 
@@ -494,9 +501,17 @@ func replaceMediaPlaceholders(value map[string]any, prompt string, constraints m
 }
 
 func replaceMediaPlaceholdersWithReference(value map[string]any, prompt string, constraints map[string]any, referenceImageFilename string) (map[string]any, error) {
+	seed := resolveMediaSeed(constraints)
+	return replaceMediaPlaceholdersWithReferenceAndSeed(value, prompt, constraints, referenceImageFilename, seed)
+}
+
+func replaceMediaPlaceholdersWithReferenceAndSeed(value map[string]any, prompt string, constraints map[string]any, referenceImageFilename string, seed int64) (map[string]any, error) {
+	if strings.Contains(prompt, "{{seed}}") {
+		prompt = strings.ReplaceAll(prompt, "{{seed}}", strconv.FormatInt(seed, 10))
+	}
 	result := make(map[string]any, len(value))
 	for key, child := range value {
-		replaced, err := replaceMediaPlaceholderValue(child, prompt, constraints, referenceImageFilename)
+		replaced, err := replaceMediaPlaceholderValueWithSeed(child, prompt, constraints, referenceImageFilename, seed)
 		if err != nil {
 			return nil, err
 		}
@@ -506,10 +521,17 @@ func replaceMediaPlaceholdersWithReference(value map[string]any, prompt string, 
 }
 
 func replaceMediaPlaceholderValue(value any, prompt string, constraints map[string]any, referenceImageFilename string) (any, error) {
+	return replaceMediaPlaceholderValueWithSeed(value, prompt, constraints, referenceImageFilename, resolveMediaSeed(constraints))
+}
+
+func replaceMediaPlaceholderValueWithSeed(value any, prompt string, constraints map[string]any, referenceImageFilename string, seed int64) (any, error) {
 	switch typed := value.(type) {
 	case string:
 		if typed == "{{prompt}}" {
 			return prompt, nil
+		}
+		if typed == "{{seed}}" || typed == "{{renderer_constraints.seed}}" {
+			return seed, nil
 		}
 		if typed == "{{visual_identity_reference_image}}" {
 			if referenceImageFilename == "" {
@@ -524,20 +546,37 @@ func replaceMediaPlaceholderValue(value any, prompt string, constraints map[stri
 			}
 			return weight, nil
 		}
-		if strings.Contains(typed, "{{chest_lora_weight}}") {
-			weight, ok := rendererConstraintWeight(constraints)
-			if !ok {
-				return nil, errors.New("chest_lora_weight_missing")
+		res := typed
+		hasPrompt := strings.Contains(res, "{{prompt}}")
+		hasSeed := strings.Contains(res, "{{seed}}") || strings.Contains(res, "{{renderer_constraints.seed}}")
+		hasWeight := strings.Contains(res, "{{chest_lora_weight}}") || strings.Contains(res, "{{renderer_constraints.chest_lora_weight}}")
+		if hasPrompt || hasSeed || hasWeight {
+			if hasPrompt {
+				res = strings.ReplaceAll(res, "{{prompt}}", prompt)
 			}
-			return strings.ReplaceAll(typed, "{{chest_lora_weight}}", strconv.FormatFloat(weight, 'f', -1, 64)), nil
+			if hasSeed {
+				formattedSeed := strconv.FormatInt(seed, 10)
+				res = strings.ReplaceAll(res, "{{seed}}", formattedSeed)
+				res = strings.ReplaceAll(res, "{{renderer_constraints.seed}}", formattedSeed)
+			}
+			if hasWeight {
+				weight, ok := rendererConstraintWeight(constraints)
+				if !ok {
+					return nil, errors.New("chest_lora_weight_missing")
+				}
+				formattedWeight := strconv.FormatFloat(weight, 'f', -1, 64)
+				res = strings.ReplaceAll(res, "{{chest_lora_weight}}", formattedWeight)
+				res = strings.ReplaceAll(res, "{{renderer_constraints.chest_lora_weight}}", formattedWeight)
+			}
+			return res, nil
 		}
 		return typed, nil
 	case map[string]any:
-		return replaceMediaPlaceholdersWithReference(typed, prompt, constraints, referenceImageFilename)
+		return replaceMediaPlaceholdersWithReferenceAndSeed(typed, prompt, constraints, referenceImageFilename, seed)
 	case []any:
 		items := make([]any, len(typed))
 		for index, item := range typed {
-			replaced, err := replaceMediaPlaceholderValue(item, prompt, constraints, referenceImageFilename)
+			replaced, err := replaceMediaPlaceholderValueWithSeed(item, prompt, constraints, referenceImageFilename, seed)
 			if err != nil {
 				return nil, err
 			}
@@ -547,6 +586,50 @@ func replaceMediaPlaceholderValue(value any, prompt string, constraints map[stri
 	default:
 		return value, nil
 	}
+}
+
+func resolveMediaSeed(constraints map[string]any) int64 {
+	if constraints != nil {
+		if s, ok := int64Value(constraints["seed"]); ok && s > 0 {
+			return s
+		}
+	}
+	return randomMediaSeed()
+}
+
+func randomMediaSeed() int64 {
+	max := big.NewInt(9007199254740991)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return time.Now().UnixNano()&0x1FFFFFFFFFFFFF + 1
+	}
+	return n.Int64() + 1
+}
+
+func int64Value(value any) (int64, bool) {
+	switch v := value.(type) {
+	case int64:
+		return v, true
+	case int:
+		return int64(v), true
+	case float64:
+		if math.IsNaN(v) || math.IsInf(v, 0) || v <= 0 || v > 9007199254740991 {
+			return 0, false
+		}
+		return int64(v), true
+	case json.Number:
+		if i, err := v.Int64(); err == nil && i > 0 {
+			return i, true
+		}
+		if f, err := v.Float64(); err == nil && !math.IsNaN(f) && !math.IsInf(f, 0) && f > 0 && f <= 9007199254740991 {
+			return int64(f), true
+		}
+	case string:
+		if i, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64); err == nil && i > 0 {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 func mediaWorkflowNeedsVisualIdentityReference(value any) bool {

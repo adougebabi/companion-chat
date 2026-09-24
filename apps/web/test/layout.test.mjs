@@ -54,6 +54,7 @@ test("media workflow settings accept unquoted placeholder templates", () => {
   assert.match(settingsSource, /chest_lora_weight/);
   assert.match(settingsSource, /source\.replace\(/);
   assert.match(settingsSource, /\{\{chest_lora_weight\}\}/);
+  assert.match(settingsSource, /\{\{seed\}\}/);
 });
 
 test("web typography does not depend on a runtime Google Fonts stylesheet", () => {

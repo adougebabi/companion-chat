@@ -73,6 +73,58 @@ func TestReplaceMediaPlaceholdersKeepsPromptAndNumericLoRAType(t *testing.T) {
 	}
 }
 
+func TestReplaceMediaPlaceholdersReplacesSeedPlaceholder(t *testing.T) {
+	// 1. Explicit seed passed via constraints
+	workflow := map[string]any{
+		"prompt": "{{prompt}}",
+		"sampler": map[string]any{
+			"seed": "{{seed}}",
+			"info": "seed={{seed}}",
+		},
+	}
+	explicitSeed := int64(123456789)
+	replaced, err := replaceMediaPlaceholders(workflow, "a portrait of {{seed}}", map[string]any{"seed": explicitSeed})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replaced["prompt"] != "a portrait of 123456789" {
+		t.Fatalf("prompt seed replacement failed: %v", replaced["prompt"])
+	}
+	sampler := mapValue(replaced["sampler"])
+	if sampler["seed"] != explicitSeed {
+		t.Fatalf("standalone seed was %v (type %T), expected %v (int64)", sampler["seed"], sampler["seed"], explicitSeed)
+	}
+	if sampler["info"] != "seed=123456789" {
+		t.Fatalf("embedded seed was %v, expected seed=123456789", sampler["info"])
+	}
+
+	// 2. Random seed generated when not specified
+	workflowRandom := map[string]any{
+		"sampler1": map[string]any{"seed": "{{seed}}"},
+		"sampler2": map[string]any{"seed": "{{seed}}"},
+	}
+	run1, err := replaceMediaPlaceholders(workflowRandom, "cat", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run2, err := replaceMediaPlaceholders(workflowRandom, "cat", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed1_1 := mapValue(run1["sampler1"])["seed"].(int64)
+	seed1_2 := mapValue(run1["sampler2"])["seed"].(int64)
+	seed2_1 := mapValue(run2["sampler1"])["seed"].(int64)
+	if seed1_1 <= 0 || seed1_1 > 9007199254740991 {
+		t.Fatalf("seed1_1 out of safe range: %d", seed1_1)
+	}
+	if seed1_1 != seed1_2 {
+		t.Fatalf("expected samplers in the same workflow to share seed, got %d and %d", seed1_1, seed1_2)
+	}
+	if seed1_1 == seed2_1 {
+		t.Fatalf("expected different random seeds across runs, got both %d", seed1_1)
+	}
+}
+
 func TestMediaRendererConstraintsUsesCognitionContextBinding(t *testing.T) {
 	constraints := mediaRendererConstraints(map[string]any{
 		"context_binding": map[string]any{
