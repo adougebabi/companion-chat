@@ -44,10 +44,10 @@ func testFormalAgentE2EVirtualActivityResult(t *testing.T) {
 	request := map[string]any{"kind": "virtual_shopping", "category": "boots", "slot": "shoes", "description": "合适的短靴"}
 	result, err := fixture.app.RunVirtualActivityResultTask(fixture.ctx, VirtualActivityResultTaskInput{
 		Kind: "virtual_shopping", Request: request,
-		StartedAt: time.Now().UTC().Add(-time.Hour).Format(time.RFC3339Nano),
-		NotBefore: time.Now().UTC().Add(-30*time.Minute).Format(time.RFC3339Nano),
+		StartedAt:         time.Now().UTC().Add(-time.Hour).Format(time.RFC3339Nano),
+		NotBefore:         time.Now().UTC().Add(-30 * time.Minute).Format(time.RFC3339Nano),
 		CurrentAppearance: map[string]any{"body_fields": map[string]any{"hair_length": map[string]any{"status": "known", "value": "short"}}},
-		CurrentLife: map[string]any{"activity": "虚拟购物", "scene": "商店"},
+		CurrentLife:       map[string]any{"activity": "虚拟购物", "scene": "商店"},
 	})
 	if err != nil {
 		t.Fatalf("real virtual activity result Agent failed: %v", err)
