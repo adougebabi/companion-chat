@@ -1309,3 +1309,26 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 40: 摇光当前有效自我与动态生活闭环
+<!-- trellis-session: v=2 fp=9e790dc78377a03d -->
+
+**Date**: 2026-09-24
+**Task**: 摇光当前有效自我与动态生活闭环
+**Branch**: `codex/yaoguang-effective-self-dynamic-life`
+
+### Summary
+
+完成共享身体、衣柜、习惯、意愿与虚拟活动的权威状态及正式 Agent/Tool 接线；补 0036 迁移和幂等回填、画像与当前/历史查询、Prompt 预算、媒体版本冻结。Go race、vet/build、pnpm 门禁与验收脚本通过；真实 Provider 和 ComfyUI 验收因配置缺失记录 BLOCKED。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0b36500` | feat(core-go): close effective self and dynamic life loop |
+| `7239c8f` | docs(trellis): record effective life contracts and acceptance evidence |
+
+### Status
+
+[OK] **Completed**
