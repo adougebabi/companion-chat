@@ -122,4 +122,3 @@ func TestPersonaCompilationPreservesBehavioralPolicyAndProactiveBombardment(t *t
 		t.Fatalf("deriveWorkingPersonaBody lost response_style override: %#v", derivedPolicy)
 	}
 }
-
