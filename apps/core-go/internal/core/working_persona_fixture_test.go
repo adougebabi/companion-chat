@@ -42,7 +42,7 @@ func withControlledPersonaCompilation(inner http.RoundTripper) http.RoundTripper
 		if profileID == "" {
 			return embeddingHTTPResponse(request, http.StatusBadRequest, `{"error":"fixture_profile_missing"}`), nil
 		}
-		result := map[string]any{"profile_id": profileID, "facts": []any{map[string]any{"category": "core_mechanisms", "text": "保留此人格的稳定机制", "source_refs": []any{"profile"}}}, "omissions": []any{}}
+		result := map[string]any{"portrait_text": "保留" + profileID + "人格的稳定机制"}
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(result)}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})

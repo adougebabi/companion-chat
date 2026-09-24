@@ -233,9 +233,22 @@ func synthesizeBaselineWorkingPersona(input PersonaCompilationInput) (CompiledWo
 		facts = append(facts, PersonaPortraitFact{Category: "identity", Text: input.ProfileID, SourceRefs: []string{"profile.id"}})
 	}
 
+	// Blank-slate compilation is local, but it uses the same single-text
+	// storage shape as model-compiled portraits.
+	categoryOrder := map[string]int{"identity": 0, "core_mechanisms": 1, "behavior_boundaries": 2, "stable_preferences": 3}
+	sort.SliceStable(facts, func(i, j int) bool {
+		if facts[i].Category != facts[j].Category {
+			return categoryOrder[facts[i].Category] < categoryOrder[facts[j].Category]
+		}
+		return facts[i].Text < facts[j].Text
+	})
+	lines := make([]string, 0, len(facts))
+	for _, fact := range facts {
+		lines = append(lines, fact.Text)
+	}
 	return CompiledWorkingPersona{
 		ProfileID:       input.ProfileID,
-		Facts:           facts,
+		PortraitText:    strings.Join(lines, "\n"),
 		SourceRevision:  input.SourceRevision,
 		SourceHash:      stableDigest(jsonString(source)),
 		OverlayRevision: input.OverlayRevision,
@@ -253,7 +266,7 @@ func (a *App) compileOneWorkingPersona(ctx context.Context, input PersonaCompila
 
 func insertCompiledWorkingPersonasTx(ctx context.Context, tx pgx.Tx, fluctlightID string, compiled []CompiledWorkingPersona) error {
 	for _, item := range compiled {
-		if item.ProfileID == "" || item.SourceHash == "" || item.RulesVersion != personaCompilationRulesVersion || item.BudgetRunes < 512 || len(item.Facts) == 0 {
+		if item.ProfileID == "" || item.SourceHash == "" || item.RulesVersion != personaCompilationRulesVersion || item.BudgetRunes < 512 || (strings.TrimSpace(item.PortraitText) == "" && len(item.Facts) == 0) {
 			return errors.New("working_persona_compiled_invalid")
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_working_personas(fluctlight_id,profile_id,source_revision,source_hash,overlay_revision,rules_version,budget_runes,status,compiled_json)
@@ -325,7 +338,7 @@ func loadCompiledWorkingPersonaVersion(ctx context.Context, query DBTX, fluctlig
 	if err := json.Unmarshal(encoded, &compiled); err != nil {
 		return CompiledWorkingPersona{}, fmt.Errorf("working_persona_decode_failed: %w", err)
 	}
-	if compiled.ProfileID != profileID || compiled.SourceHash != sourceHash || compiled.SourceRevision != sourceRevision || compiled.OverlayRevision != overlayRevision || compiled.RulesVersion != rulesVersion || compiled.BudgetRunes != savedBudget || len(compiled.Facts) == 0 {
+	if compiled.ProfileID != profileID || compiled.SourceHash != sourceHash || compiled.SourceRevision != sourceRevision || compiled.OverlayRevision != overlayRevision || compiled.RulesVersion != rulesVersion || compiled.BudgetRunes != savedBudget || (strings.TrimSpace(compiled.PortraitText) == "" && len(compiled.Facts) == 0) {
 		return CompiledWorkingPersona{}, errors.New("working_persona_payload_invalid")
 	}
 	return compiled, nil

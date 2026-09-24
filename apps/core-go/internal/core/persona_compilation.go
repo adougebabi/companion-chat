@@ -34,8 +34,9 @@ type PersonaPortraitOmission struct {
 
 type CompiledWorkingPersona struct {
 	ProfileID       string                    `json:"profile_id"`
-	Facts           []PersonaPortraitFact     `json:"facts"`
-	Omissions       []PersonaPortraitOmission `json:"omissions"`
+	PortraitText    string                    `json:"portrait_text,omitempty"`
+	Facts           []PersonaPortraitFact     `json:"facts,omitempty"`
+	Omissions       []PersonaPortraitOmission `json:"omissions,omitempty"`
 	SourceRevision  int                       `json:"source_revision"`
 	SourceHash      string                    `json:"source_hash"`
 	OverlayRevision int                       `json:"overlay_revision"`
@@ -43,30 +44,13 @@ type CompiledWorkingPersona struct {
 	BudgetRunes     int                       `json:"budget_runes"`
 }
 
-func personaCompilationResponseSchema(profileID string) map[string]any {
-	fact := objectSchema(map[string]any{
-		"category":    enumStringSchema("identity", "core_mechanisms", "language_expression", "behavior_boundaries", "stable_preferences"),
-		"text":        map[string]any{"type": "string", "minLength": 1, "maxLength": 1000},
-		"source_refs": arraySchema(map[string]any{"type": "string", "minLength": 1, "maxLength": 256}),
-	}, []string{"category", "text", "source_refs"}, false)
-	omission := objectSchema(map[string]any{
-		"source_ref": map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
-		"reason":     map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-	}, []string{"source_ref", "reason"}, false)
-	var profileIDSchema map[string]any
-	if trimmed := strings.TrimSpace(profileID); trimmed != "" {
-		profileIDSchema = enumStringSchema(trimmed)
-	} else {
-		profileIDSchema = map[string]any{"type": "string", "minLength": 1, "maxLength": 128}
-	}
+func personaCompilationResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"profile_id": profileIDSchema,
-		"facts":      map[string]any{"type": "array", "minItems": 1, "maxItems": 80, "items": fact},
-		"omissions":  map[string]any{"type": "array", "maxItems": 80, "items": omission},
-	}, []string{"profile_id", "facts", "omissions"}, false)
+		"portrait_text": map[string]any{"type": "string", "minLength": 1, "maxLength": 12000},
+	}, []string{"portrait_text"}, false)
 }
 
-const personaCompilationInstruction = `Compile one complete, validated persona profile into a short self portrait. Preserve identity, core interaction patterns and communication frequency (including proactive outreach, message density/bombardment tendencies, and initiation habits), behavior mechanisms, stable values, voice, boundaries, conditions, exceptions, and each explicit short stable preference. Remove repeated wording and story detail, while keeping causal behavior meaning. A preference is available self knowledge, not a current desire or completed action. Never invent traits, preferences, history, values, or universal mannerisms. Do not include current body or hair state, current mood, clothing, scene, schedule, temporary intention, or evolving relationship state. A preferred hairstyle is a preference; a currently worn hairstyle is a body state. Preserve shared identity and this profile's differences; never mix other profiles. Each fact must cite real dot-separated paths relative to the supplied source object. Array items use their zero-based index as a path component. Cite every separately declared preference/habit child path, or list that exact path and the reason in omissions; citing only a parent preferences/habits path is insufficient. If another distinct source fact must stay only in full detail due to budget, list its path and reason in omissions. Set profile_id in the output JSON to the exact profile_id string provided in the input, without translation, abbreviation, or substitution. The "facts" array must contain at least 1 essential fact from the source and must never be empty. Paths in source_refs and omissions must start directly with top-level keys in the source object (such as "identity.name", "personality.core_drive", "life_profile.preferences.drink"); never prepend "source.", "core_persona.", or "extensions.core_persona.". Return only the specified JSON.`
+const personaCompilationInstruction = `Write one concise Working Persona text for the profile selected by Core in the input. Preserve shared identity, this profile's interaction patterns and communication frequency, stable values, voice, boundaries, conditions, exceptions, and short stable preferences and habits. Keep causal behavior meaning while removing repeated wording and story detail. A preference is available self knowledge, not a current desire or completed action. Do not invent traits, preferences, history, values, or universal mannerisms. Do not include current body or hair state, mood, clothing, scene, schedule, temporary intention, or evolving relationship state. Never mix another profile into this text. Return a JSON object with exactly one field, portrait_text, containing the complete plain-text portrait. Do not return facts, source paths, omissions, or a profile identifier.`
 
 func personaCompilationSource(input PersonaCompilationInput) (map[string]any, error) {
 	profileID := strings.TrimSpace(input.ProfileID)
@@ -256,7 +240,7 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt > 0 {
 			runCtx = WithProviderCorrelation(runCtx, firstString(providerCorrelation(ctx), "persona-compilation")+":repair")
 		}
-		run, runErr := a.runFormalStructuredTask(runCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(input.ProfileID), false, nil)
+		run, runErr := a.runFormalStructuredTask(runCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(), false, nil)
 		if runErr != nil {
 			return CompiledWorkingPersona{}, runErr
 		}
@@ -267,165 +251,63 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt == 1 {
 			return CompiledWorkingPersona{}, validationErr
 		}
-		messages = append(messages, map[string]any{"role": "user", "content": fmt.Sprintf("The prior portrait failed validation (%v). Rebuild the complete JSON from the original source, retaining each cited fact and exception. Do not add unsupported facts. Ensure profile_id is exactly %q, and ensure the \"facts\" array contains at least one non-empty item with valid source_refs. Paths must start directly with top-level keys in the source object (e.g. \"personality.core_drive\", \"identity.name\"); do not prepend \"extensions.core_persona.\" or \"source.\".", validationErr, input.ProfileID)})
+		messages = append(messages, map[string]any{"role": "user", "content": fmt.Sprintf("The portrait text was unusable (%v). Return only a JSON object with one non-empty portrait_text string for the same supplied source and profile. Keep it within the stated rune budget; do not include fact arrays or source paths.", validationErr)})
 	}
 	return CompiledWorkingPersona{}, errors.New("persona_compilation_retry_exhausted")
 }
 
 func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCompilationInput) (CompiledWorkingPersona, error) {
-	if nested := mapValue(output["persona_compilation_response"]); len(nested) > 0 {
-		output = nested
-	} else if nested := mapValue(output["response"]); len(nested) > 0 {
-		output = nested
-	} else if nested := mapValue(output["data"]); len(nested) > 0 {
-		output = nested
-	} else if nested := mapValue(output["result"]); len(nested) > 0 {
-		output = nested
-	}
-	outputProfileID := strings.TrimSpace(stringValue(output["profile_id"]))
-	if outputProfileID != input.ProfileID {
-		acceptable := false
-		if outputProfileID == "" || strings.EqualFold(outputProfileID, input.ProfileID) {
-			acceptable = true
-		} else if trimmed := strings.TrimSuffix(input.ProfileID, "_main"); trimmed != "" && strings.EqualFold(outputProfileID, trimmed) {
-			acceptable = true
-		} else {
-			identity := mapValue(source["identity"])
-			name := strings.TrimSpace(stringValue(identity["name"]))
-			nickname := strings.TrimSpace(stringValue(identity["nickname"]))
-			profileName := strings.TrimSpace(stringValue(mapValue(source["profile"])["name"]))
-			if (name != "" && (outputProfileID == name || strings.EqualFold(outputProfileID, name))) ||
-				(nickname != "" && (outputProfileID == nickname || strings.EqualFold(outputProfileID, nickname))) ||
-				(profileName != "" && (outputProfileID == profileName || strings.EqualFold(outputProfileID, profileName))) {
-				acceptable = true
-			}
-		}
-		if !acceptable {
-			return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_profile_mismatch: expected %q, got %q", input.ProfileID, outputProfileID)
+	for _, key := range []string{"persona_compilation_response", "response", "data", "result"} {
+		if nested := mapValue(output[key]); len(nested) > 0 {
+			output = nested
+			break
 		}
 	}
-	var result CompiledWorkingPersona
-	result.ProfileID = input.ProfileID
-	result.SourceRevision = input.SourceRevision
-	result.SourceHash = stableDigest(jsonString(source))
-	result.OverlayRevision = input.OverlayRevision
-	result.RulesVersion = personaCompilationRulesVersion
-	result.BudgetRunes = input.TargetBudgetRunes
+	result := CompiledWorkingPersona{
+		ProfileID: input.ProfileID, SourceRevision: input.SourceRevision,
+		SourceHash: stableDigest(jsonString(source)), OverlayRevision: input.OverlayRevision,
+		RulesVersion: personaCompilationRulesVersion, BudgetRunes: input.TargetBudgetRunes,
+	}
 	if result.BudgetRunes == 0 {
 		result.BudgetRunes = defaultWorkingPersonaMaxRunes
 	}
-	rawFacts := arrayValue(output["facts"])
-	if len(rawFacts) == 0 {
-		for _, altKey := range []string{"Facts", "portrait", "portrait_facts", "items", "statements"} {
-			if alts := arrayValue(output[altKey]); len(alts) > 0 {
-				rawFacts = alts
-				break
-			}
-		}
-	}
-	seen := make(map[string]struct{})
-	for _, raw := range rawFacts {
-		item := mapValue(raw)
-		category := stringValue(item["category"])
-		if !personaPortraitCategory(category) {
-			category = "core_mechanisms"
-		}
-		statement := strings.TrimSpace(stringValue(item["text"]))
-		if statement == "" {
-			statement = strings.TrimSpace(stringValue(item["statement"]))
-		}
-		if statement == "" || len([]rune(statement)) > 1000 {
-			return CompiledWorkingPersona{}, errors.New("persona_compilation_fact_invalid")
-		}
-		refs := make([]string, 0)
-		for _, value := range arrayValue(item["source_refs"]) {
-			rawRef := strings.TrimSpace(stringValue(value))
-			ref := resolvePersonaSourceRef(source, rawRef)
-			if ref == "" {
-				return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_ref_invalid: %s", rawRef)
-			}
-			refs = append(refs, ref)
-			seen[ref] = struct{}{}
-		}
-		if len(refs) == 0 {
-			return CompiledWorkingPersona{}, errors.New("persona_compilation_fact_without_source")
-		}
-		result.Facts = append(result.Facts, PersonaPortraitFact{Category: category, Text: statement, SourceRefs: refs})
-	}
-	if len(result.Facts) == 0 {
-		name := strings.TrimSpace(stringValue(mapValue(source["identity"])["name"]))
-		if name != "" && personaCompilationSourcePathExists(source, "identity.name") {
-			result.Facts = append(result.Facts, PersonaPortraitFact{Category: "identity", Text: name, SourceRefs: []string{"identity.name"}})
-			seen["identity.name"] = struct{}{}
-		} else if input.ProfileID != "" && personaCompilationSourcePathExists(source, "profile.id") {
-			result.Facts = append(result.Facts, PersonaPortraitFact{Category: "identity", Text: input.ProfileID, SourceRefs: []string{"profile.id"}})
-			seen["profile.id"] = struct{}{}
-		}
-	}
-	if len(result.Facts) == 0 {
-		return CompiledWorkingPersona{}, errors.New("persona_compilation_empty")
-	}
-	rawOmissions := arrayValue(output["omissions"])
-	if len(rawOmissions) == 0 {
-		for _, altKey := range []string{"Omissions", "omission_list"} {
-			if alts := arrayValue(output[altKey]); len(alts) > 0 {
-				rawOmissions = alts
-				break
-			}
-		}
-	}
-	for _, raw := range rawOmissions {
-		item := mapValue(raw)
-		rawRef := strings.TrimSpace(stringValue(item["source_ref"]))
-		reason := strings.TrimSpace(stringValue(item["reason"]))
-		ref := resolvePersonaSourceRef(source, rawRef)
-		if ref == "" || reason == "" {
-			return CompiledWorkingPersona{}, errors.New("persona_compilation_omission_invalid")
-		}
-		result.Omissions = append(result.Omissions, PersonaPortraitOmission{SourceRef: ref, Reason: reason})
-		seen[ref] = struct{}{}
-	}
-	// Every separately declared preference or habit must either be carried by
-	// a fact or explicitly diagnosed as a deliberate omission. A parent ref is
-	// insufficient because it could hide the loss of one short exception.
-	for _, group := range []struct {
-		path  string
-		value map[string]any
-	}{
-		{"life_profile.preferences", mapValue(mapValue(source["life_profile"])["preferences"])},
-		{"life_profile.style_preferences", mapValue(mapValue(source["life_profile"])["style_preferences"])},
-		{"profile.preferences", mapValue(mapValue(source["profile"])["preferences"])},
-		{"profile.habits", mapValue(mapValue(source["profile"])["habits"])},
-	} {
-		for key := range group.value {
-			ref := group.path + "." + key
-			covered := false
-			for cited := range seen {
-				if cited == ref || strings.HasPrefix(cited, ref+".") {
-					covered = true
+	result.PortraitText = strings.TrimSpace(firstString(output["portrait_text"], stringValue(output["text"])))
+	if result.PortraitText == "" {
+		// Older controlled providers may still return categorized facts. Read
+		// their text without treating model-authored source paths as authority.
+		rawFacts := arrayValue(output["facts"])
+		if len(rawFacts) == 0 {
+			for _, key := range []string{"Facts", "portrait", "portrait_facts", "items", "statements"} {
+				if values := arrayValue(output[key]); len(values) > 0 {
+					rawFacts = values
 					break
 				}
 			}
-			if !covered {
-				return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_preference_unaccounted: %s", ref)
-			}
 		}
+		lines := make([]string, 0, len(rawFacts))
+		for _, raw := range rawFacts {
+			item := mapValue(raw)
+			statement := strings.TrimSpace(firstString(item["text"], stringValue(item["statement"])))
+			if statement == "" {
+				continue
+			}
+			category := stringValue(item["category"])
+			if !personaPortraitCategory(category) {
+				category = "core_mechanisms"
+			}
+			fact := PersonaPortraitFact{Category: category, Text: statement}
+			for _, rawRef := range arrayValue(item["source_refs"]) {
+				if ref := resolvePersonaSourceRef(source, stringValue(rawRef)); ref != "" {
+					fact.SourceRefs = append(fact.SourceRefs, ref)
+				}
+			}
+			result.Facts = append(result.Facts, fact)
+			lines = append(lines, statement)
+		}
+		result.PortraitText = strings.Join(lines, "\n")
 	}
-	for index, habit := range arrayValue(mapValue(source["life_profile"])["life_habits"]) {
-		if habit == nil {
-			continue
-		}
-		ref := fmt.Sprintf("life_profile.life_habits.%d", index)
-		covered := false
-		for cited := range seen {
-			if cited == ref || strings.HasPrefix(cited, ref+".") {
-				covered = true
-				break
-			}
-		}
-		if !covered {
-			return CompiledWorkingPersona{}, fmt.Errorf("persona_compilation_preference_unaccounted: %s", ref)
-		}
+	if result.PortraitText == "" {
+		return CompiledWorkingPersona{}, errors.New("persona_compilation_empty")
 	}
 	if len([]rune(jsonString(renderCompiledWorkingPersona(result)))) > result.BudgetRunes {
 		return CompiledWorkingPersona{}, errors.New("persona_compilation_over_budget")
@@ -525,6 +407,10 @@ func personaCompilationSourcePathExists(source map[string]any, path string) bool
 }
 
 func renderCompiledWorkingPersona(compiled CompiledWorkingPersona) map[string]any {
+	if text := strings.TrimSpace(compiled.PortraitText); text != "" {
+		return map[string]any{workingPersonaProfileIDKey: compiled.ProfileID,
+			workingPersonaBodyKey: map[string]any{"profile_id": compiled.ProfileID, "portrait_text": text}}
+	}
 	body := map[string]any{"profile_id": compiled.ProfileID}
 	for _, category := range []string{"identity", "core_mechanisms", "language_expression", "behavior_boundaries", "stable_preferences"} {
 		lines := make([]string, 0)

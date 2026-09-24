@@ -376,8 +376,8 @@ Migration head is `0036_effective_life` (after `0035_working_persona`). The CLI 
 ### 3. Contracts
 
 - The complete `fluctlights.core_persona` and accepted overlays remain authoritative. `source_hash` identifies the filtered compilation input, not the raw initialization text; the raw text and analysis projection retain their existing Owner-governed source link. Owner edits to the analyzed JSON remain allowed and are recorded by the existing activation digest.
-- The formal `persona_compilation` Agent uses the `initialization` model assignment and its compatible `json_object` transport. The formal result is validated against `persona_compilation_response`, then checked for source refs, preference/habit coverage, nonempty facts and the configured rune budget. One semantic repair call is allowed; invalid results do not publish.
-- The compiler sees shared identity/life facts, selected profile fields, accepted stable overlays and filtered shared-system mechanisms. It excludes sibling profile bodies, switching/takeover machine rules, transient state and source/provenance bookkeeping. Facts and omissions are persisted; only deterministic category text is rendered into the ordinary System persona.
+- The formal `persona_compilation` Agent uses the `initialization` model assignment and its compatible `json_object` transport. Its response schema has one field, `portrait_text`, containing the complete plain-text Working Persona. Core binds the selected `profile_id` and source/revision metadata; the model does not echo identifiers, source paths, categorized facts or omissions. Check that the text is nonempty and fits the configured rune budget; allow one semantic repair call. Do not reject usable text because the model invented a source path or omitted an itemized preference reference.
+- The compiler sees shared identity/life facts, selected profile fields, accepted stable overlays and filtered shared-system mechanisms. It excludes sibling profile bodies, switching/takeover machine rules, transient state and source/provenance bookkeeping. Store the text as `compiled_json.portrait_text` alongside Core-owned version metadata; render it as one `working_persona.portrait_text` field in the ordinary System persona. Blank-slate local compilation also produces a single text field. Existing `facts` rows remain readable for migration compatibility, without requiring them from new model responses.
 - Creation compiles outside the transaction, then publishes source and portraits in one short transaction. Foundation accept/rollback and stable-overlay Reflection do the same with revision/overlay/budget checks. A non-persona Foundation change may carry an unchanged portrait forward with an updated source revision when the filtered compilation hash matches.
 - `portrait_overlay_revision` is the maximum effective persona overlay revision. The existing `fluctlight_evolution_states.revision` also advances for non-persona Reflection domains, so using it as a portrait version would cause false invalidation and repeated paid compilation.
 - Main and WakeUp load exactly one saved portrait matching source revision/hash, effective overlay revision, rule version and budget. `persona.takeover` returns the target's saved portrait in its Tool result; subsequent native Tool reads bind to the actual speaking profile. Dynamic state continues through ContextProjection and Prompt Composer.
@@ -388,7 +388,7 @@ Migration head is `0036_effective_life` (after `0035_working_persona`). The CLI 
 | Condition | Required result |
 | --- | --- |
 | Missing/stale portrait or changed rule/budget | `working_persona_missing` / `working_persona_version_mismatch`; no full source dump |
-| Compilation source ref invalid, short preference unaccounted, empty or over budget | Reject candidate; at most one semantic repair; no publication |
+| Empty or over-budget portrait text | Reject candidate; at most one semantic repair; no publication |
 | Foundation/overlay/budget changes during remote compilation | CAS conflict; preserve prior consistent source/portrait |
 | Backfill dry run or current row | `would_compile` or `skipped`; no model call or dynamic-state write |
 | Query from foreign Owner/profile or invalid section/cursor | Authorization/not-found/invalid-arguments error; no data returned |
@@ -397,12 +397,12 @@ Migration head is `0036_effective_life` (after `0035_working_persona`). The CLI 
 ### 5. Good / Base / Bad Cases
 
 - Good: the text says “喜欢咖啡但不喜欢甜咖啡”; the compact portrait retains the exception without topic matching. A specific past event stays in full detail, and `persona.detail` retrieves it when needed.
-- Base: blank-slate initial identity receives a deterministic source-linked minimal portrait; later accepted stable edits use the formal compiler.
+- Base: blank-slate initial identity receives a deterministic plain-text portrait; later accepted stable edits use the formal compiler.
 - Bad: recompile on a Memory-only Reflection revision, pair new Core Persona with an old portrait, emit another profile's secret, or copy `extensions.source_text` to a Tool result.
 
 ### 6. Tests Required
 
-- Controlled PostgreSQL tests cover text→JSON→saved portrait→formal request, all-profile compilation, source/update failure atomicity, idempotent backfill and budget invalidation, Main/takeover profile scope, direct list/read/pagination/authorization, native Tool-result continuation and trace after continuation failure.
+- Controlled PostgreSQL tests cover text→Foundation JSON→saved `portrait_text`→formal request, existing `facts` row readability, all-profile compilation, source/update failure atomicity, idempotent backfill and budget invalidation, Main/takeover profile scope, direct list/read/pagination/authorization, native Tool-result continuation and trace after continuation failure.
 - Run the separate real Provider `TestFormalAgentE2E/persona_compilation` and `conversation_persona_detail` cases with credentials. Missing credentials are **BLOCKED**, even though ordinary `go test` reports SKIP.
 - Compare complete physical requests, including tools, response schema and later Tool-result rounds; label `EstimatePromptTokens` as a rune heuristic, not actual tokenizer usage.
 

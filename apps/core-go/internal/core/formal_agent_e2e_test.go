@@ -319,12 +319,12 @@ func testFormalAgentE2EPersonaCompilation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("real persona compilation Agent failed: %v", err)
 	}
-	if len(compiled.Facts) == 0 || compiled.SourceHash == "" || compiled.RulesVersion != personaCompilationRulesVersion {
+	if compiled.PortraitText == "" || compiled.SourceHash == "" || compiled.RulesVersion != personaCompilationRulesVersion {
 		t.Fatalf("real compiler returned invalid portrait: %#v", compiled)
 	}
-	preferences := jsonString(mapValue(renderCompiledWorkingPersona(compiled)[workingPersonaBodyKey])["stable_preferences"])
+	preferences := stringValue(mapValue(renderCompiledWorkingPersona(compiled)[workingPersonaBodyKey])["portrait_text"])
 	if !strings.Contains(preferences, "咖啡") {
-		t.Fatalf("real compiler lost stable coffee preference: %#v", compiled.Facts)
+		t.Fatalf("real compiler lost stable coffee preference: %#v", compiled)
 	}
 }
 

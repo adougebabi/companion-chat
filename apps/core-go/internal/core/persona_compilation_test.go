@@ -65,38 +65,19 @@ func TestPersonaCompilationSourceSeparatesCurrentAppearanceFromPreferencesAndHab
 	if !personaCompilationSourcePathExists(source, "life_profile.life_habits.1") || personaCompilationSourcePathExists(source, "life_profile.life_habits.2") {
 		t.Fatalf("array source refs do not match the retained habits: %s", encoded)
 	}
-	output := map[string]any{"profile_id": "default", "facts": []any{
-		map[string]any{"category": "identity", "text": "摇光", "source_refs": []any{"identity.name"}},
-		map[string]any{"category": "stable_preferences", "text": "喜欢咖啡", "source_refs": []any{"life_profile.preferences.coffee"}},
-		map[string]any{"category": "stable_preferences", "text": "喜欢长发造型", "source_refs": []any{"life_profile.style_preferences.hair"}},
-		map[string]any{"category": "stable_preferences", "text": "通常喝咖啡", "source_refs": []any{"life_profile.life_habits.0"}},
-	}, "omissions": []any{}}
-	if _, err := decodeCompiledWorkingPersona(output, source, input); err == nil || !strings.Contains(err.Error(), "life_profile.life_habits.1") {
-		t.Fatalf("an uncovered canonical habit was accepted: %v", err)
-	}
-	output["omissions"] = []any{map[string]any{"source_ref": "life_profile.life_habits.1", "reason": "full detail only"}}
-	if _, err := decodeCompiledWorkingPersona(output, source, input); err != nil {
-		t.Fatalf("indexed habit omission was rejected: %v", err)
+	compiled, err := decodeCompiledWorkingPersona(map[string]any{"portrait_text": "摇光喜欢咖啡和长发造型，通常早睡。"}, source, input)
+	if err != nil || compiled.PortraitText == "" || len(compiled.Facts) != 0 {
+		t.Fatalf("plain-text portrait was rejected or expanded into facts: %#v err=%v", compiled, err)
 	}
 }
 
-func TestCompiledPersonaRequiresSourceLinkedPreferences(t *testing.T) {
+func TestCompiledPersonaTextDoesNotRequireModelSourceRefs(t *testing.T) {
 	input := PersonaCompilationInput{ProfileID: "warm"}
 	source := map[string]any{"identity": map[string]any{"name": "摇光"}, "profile": map[string]any{"id": "warm"}, "life_profile": map[string]any{"preferences": map[string]any{"drink": "喜欢咖啡", "dessert": "讨厌太甜"}}}
-	base := map[string]any{"profile_id": "warm", "facts": []any{
-		map[string]any{"category": "identity", "text": "摇光", "source_refs": []any{"identity.name"}},
-		map[string]any{"category": "stable_preferences", "text": "喜欢咖啡", "source_refs": []any{"life_profile.preferences.drink"}},
-	}, "omissions": []any{}}
-	if _, err := decodeCompiledWorkingPersona(base, source, input); err == nil || !strings.Contains(err.Error(), "preference_unaccounted") {
-		t.Fatalf("missing preference was accepted: %v", err)
-	}
-	base["omissions"] = []any{map[string]any{"source_ref": "life_profile.preferences.dessert", "reason": "detailed source only"}}
-	if _, err := decodeCompiledWorkingPersona(base, source, input); err != nil {
-		t.Fatalf("diagnosed omission was rejected: %v", err)
-	}
-	base["facts"] = []any{map[string]any{"category": "stable_preferences", "text": "喜欢咖啡", "source_refs": []any{"life_profile.preferences.nonexistent"}}}
-	if _, err := decodeCompiledWorkingPersona(base, source, input); err == nil || !strings.Contains(err.Error(), "ref_invalid") {
-		t.Fatalf("fabricated source ref accepted: %v", err)
+	output := map[string]any{"portrait_text": "摇光喜欢咖啡，也不喜欢太甜。", "source_refs": []any{"extensions.core_persona.personality.surface"}}
+	compiled, err := decodeCompiledWorkingPersona(output, source, input)
+	if err != nil || compiled.PortraitText != output["portrait_text"] || len(compiled.Facts) != 0 {
+		t.Fatalf("model-authored path still blocked plain text: %#v err=%v", compiled, err)
 	}
 }
 
@@ -149,15 +130,11 @@ func TestPersonaCompilationPreservesBehavioralPolicyAndProactiveBombardment(t *t
 	if err != nil {
 		t.Fatalf("synthesizeBaselineWorkingPersona failed: %v", err)
 	}
-	foundBombardment := false
-	for _, fact := range baseline.Facts {
-		if strings.Contains(fact.Text, "high_frequency_daily_bombardment") || strings.Contains(fact.Text, "非常主动找用户") {
-			foundBombardment = true
-			break
-		}
+	if !strings.Contains(baseline.PortraitText, "high_frequency_daily_bombardment") && !strings.Contains(baseline.PortraitText, "非常主动找用户") {
+		t.Fatalf("baseline text lost high_frequency_daily_bombardment: %q", baseline.PortraitText)
 	}
-	if !foundBombardment {
-		t.Fatalf("synthesizeBaselineWorkingPersona did not produce fact for high_frequency_daily_bombardment: %#v", baseline.Facts)
+	if len(baseline.Facts) != 0 {
+		t.Fatalf("baseline persisted categorized facts: %#v", baseline.Facts)
 	}
 
 	derived := deriveWorkingPersonaBody(core)
@@ -214,7 +191,7 @@ func TestDecodeCompiledWorkingPersonaProfileTolerance(t *testing.T) {
 		{name: "matches identity nickname", profileID: "小鹿", wantErr: false},
 		{name: "matches profile name", profileID: "沈鹿主性格", wantErr: false},
 		{name: "omitted profile_id", profileID: "", wantErr: false},
-		{name: "unrelated foreign profile", profileID: "alice", wantErr: true},
+		{name: "model echo is not authority", profileID: "alice", wantErr: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			compiled, err := decodeCompiledWorkingPersona(baseOutput(tc.profileID), source, input)
@@ -260,18 +237,14 @@ func TestDecodeCompiledWorkingPersonaFactsTolerance(t *testing.T) {
 		}
 	})
 
-	t.Run("empty facts array falls back to identity name", func(t *testing.T) {
+	t.Run("empty response fails instead of fabricating a portrait", func(t *testing.T) {
 		output := map[string]any{
 			"profile_id": "shenlu_main",
 			"facts":      []any{},
 			"omissions":  []any{},
 		}
-		compiled, err := decodeCompiledWorkingPersona(output, source, input)
-		if err != nil {
-			t.Fatalf("unexpected error for empty facts: %v", err)
-		}
-		if len(compiled.Facts) != 1 || compiled.Facts[0].Text != "沈鹿" {
-			t.Fatalf("expected fallback identity fact, got: %#v", compiled.Facts)
+		if _, err := decodeCompiledWorkingPersona(output, source, input); err == nil || !strings.Contains(err.Error(), "persona_compilation_empty") {
+			t.Fatalf("empty response fabricated a portrait: %v", err)
 		}
 	})
 
@@ -363,8 +336,8 @@ func TestResolvePersonaSourceRefTolerance(t *testing.T) {
 		if compiled.Facts[1].SourceRefs[0] != "personality.core_drive" {
 			t.Fatalf("expected resolved source_ref personality.core_drive, got: %q", compiled.Facts[1].SourceRefs[0])
 		}
-		if len(compiled.Omissions) != 1 || compiled.Omissions[0].SourceRef != "life_profile.preferences.drink" {
-			t.Fatalf("expected resolved omission ref life_profile.preferences.drink, got: %#v", compiled.Omissions)
+		if len(compiled.Omissions) != 0 || !strings.Contains(compiled.PortraitText, "寻找自我驱动") {
+			t.Fatalf("legacy text was lost or model omissions became authority: %#v", compiled)
 		}
 	})
 }

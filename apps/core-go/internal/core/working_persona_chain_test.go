@@ -40,17 +40,12 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 	var firstRequest, continuedRequest string
 	router := newFakeProviderRouter().on("persona_compilation_response", func(_ map[string]any) fakeProviderResult {
 		compileIndex++
-		profileID, marker := "spark", takeoverChainSparkMarker
+		marker := takeoverChainSparkMarker
 		if compileIndex == 2 {
-			profileID, marker = "twilight", takeoverChainTwilightMarker
+			marker = takeoverChainTwilightMarker
 		}
 		return fakeProviderResult{Structured: map[string]any{
-			"profile_id": profileID,
-			"facts": []any{
-				map[string]any{"category": "identity", "text": "我是摇光", "source_refs": []any{"identity.name"}},
-				map[string]any{"category": "core_mechanisms", "text": marker, "source_refs": []any{"profile"}},
-				map[string]any{"category": "stable_preferences", "text": "喜欢咖啡，但不喜欢甜咖啡", "source_refs": []any{"life_profile.preferences.drink"}},
-			}, "omissions": []any{map[string]any{"source_ref": "profile", "reason": "详细经历留在完整设定"}},
+			"portrait_text": "我是摇光。" + marker + "。喜欢咖啡，但不喜欢甜咖啡。",
 		}}
 	}).on("conversation_turn_response", func(payload map[string]any) fakeProviderResult {
 		if firstRequest == "" {
@@ -104,6 +99,9 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 	}
 	if diagnostic := mapValue(result.Diagnostics["working_persona"]); stringValue(diagnostic["profile_id"]) != "spark" || stringValue(diagnostic["source_hash_prefix"]) == "" || diagnostic["cache_hit"] != false {
 		t.Fatalf("portrait version/cache diagnostic missing: %#v", diagnostic)
+	}
+	if !strings.Contains(firstRequest, "portrait_text") || strings.Contains(firstRequest, "source_refs") || strings.Contains(firstRequest, "stable_preferences") {
+		t.Fatalf("formal request did not carry a single text portrait: %s", firstRequest)
 	}
 	if !strings.Contains(firstRequest, "喜欢咖啡") || strings.Contains(firstRequest, secret) || strings.Contains(firstRequest, takeoverChainTwilightMarker) {
 		t.Fatal("first model request lost stable preference or leaked full/foreign persona")
@@ -441,16 +439,15 @@ func TestPersonaCompilerUsesOneBoundedSemanticRepair(t *testing.T) {
 	calls := 0
 	router := newFakeProviderRouter().on("persona_compilation_response", func(_ map[string]any) fakeProviderResult {
 		calls++
-		facts := []any{map[string]any{"category": "identity", "text": "摇光", "source_refs": []any{"identity.name"}}}
-		if calls == 2 {
-			facts = append(facts, map[string]any{"category": "stable_preferences", "text": "喜欢咖啡，不喜欢甜咖啡", "source_refs": []any{"life_profile.preferences.drink"}})
+		if calls == 1 {
+			return fakeProviderResult{Structured: map[string]any{"portrait_text": " "}}
 		}
-		return fakeProviderResult{Structured: map[string]any{"profile_id": "spark", "facts": facts, "omissions": []any{}}}
+		return fakeProviderResult{Structured: map[string]any{"portrait_text": "摇光喜欢咖啡，不喜欢甜咖啡。"}}
 	})
 	app := newTestApp(t, repository, router)
 	source := map[string]any{"identity": map[string]any{"name": "摇光"}, "life_profile": map[string]any{"preferences": map[string]any{"drink": "喜欢咖啡，不喜欢甜咖啡"}}, "personality_system": map[string]any{"profiles": []any{map[string]any{"id": "spark"}}}}
 	compiled, err := app.CompileWorkingPersona(ctx, PersonaCompilationInput{CorePersona: source, ProfileID: "spark"})
-	if err != nil || calls != 2 || len(compiled.Facts) != 2 {
+	if err != nil || calls != 2 || compiled.PortraitText != "摇光喜欢咖啡，不喜欢甜咖啡。" {
 		t.Fatalf("bounded repair result=%#v calls=%d err=%v", compiled, calls, err)
 	}
 }
@@ -506,11 +503,7 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	}, "developing_self": map[string]any{"claims": []any{}}, "initial_relationships": []any{}, "initial_goals": []any{}, "initial_intentions": []any{}, "extensions": map[string]any{}}
 	var finalWire string
 	router := newFakeProviderRouter().on("persona_compilation_response", func(_ map[string]any) fakeProviderResult {
-		return fakeProviderResult{Structured: map[string]any{"profile_id": "default", "facts": []any{
-			map[string]any{"category": "identity", "text": "摇光", "source_refs": []any{"identity.name"}},
-			map[string]any{"category": "language_expression", "text": "温暖而直接", "source_refs": []any{"profile.behavioral_policy.response_style"}},
-			map[string]any{"category": "stable_preferences", "text": "喜欢咖啡，但不喜欢甜咖啡", "source_refs": []any{"life_profile.preferences.drink"}},
-		}, "omissions": []any{}}}
+		return fakeProviderResult{Structured: map[string]any{"portrait_text": "摇光温暖而直接，喜欢咖啡，但不喜欢甜咖啡。"}}
 	}).on(workingPersonaMainTurnSchema, func(payload map[string]any) fakeProviderResult {
 		finalWire = jsonString(payload)
 		return nativePersonaFinal()
@@ -530,6 +523,13 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	delete(analysis, "correlation_id")
 	if _, err := app.CreateFluctlight(ctx, ownerID, fluctlightID, "摇光", "llm_defined", analysisID, analysis, nil, nil); err != nil {
 		t.Fatal(err)
+	}
+	var compiledRaw []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT compiled_json FROM public.fluctlight_working_personas WHERE fluctlight_id=$1 AND profile_id='default'`, fluctlightID).Scan(&compiledRaw); err != nil {
+		t.Fatal(err)
+	}
+	if compiled := decodeObject(compiledRaw); stringValue(compiled["portrait_text"]) != "摇光温暖而直接，喜欢咖啡，但不喜欢甜咖啡。" || len(arrayValue(compiled["facts"])) != 0 {
+		t.Fatalf("initialization did not store one text portrait: %#v", compiled)
 	}
 	var sourceID string
 	if err := repository.Pool().QueryRow(ctx, `SELECT source_id FROM public.fluctlight_initialization_source_links WHERE fluctlight_id=$1`, fluctlightID).Scan(&sourceID); err != nil || sourceID != analysisID {
