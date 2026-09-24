@@ -89,6 +89,21 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 			if _, err := tx.Exec(ctx, `INSERT INTO public.runtime_settings (key,value_json,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at`, key, jsonString(value), time.Now().UTC()); err != nil {
 				return err
 			}
+			if key == "product.autonomy" {
+				autonomyMap := mapValue(value)
+				if rawBudget := autonomyMap["budget_remaining"]; rawBudget != nil {
+					budgetText := numberString(rawBudget, 100)
+					mode := firstString(stringValue(autonomyMap["mode"]), "active")
+					allowedRaw := jsonBytes(arrayValue(autonomyMap["allowed_actions"]))
+					if len(arrayValue(autonomyMap["allowed_actions"])) == 0 {
+						allowedRaw = jsonBytes([]string{"proactive_message", "moment", "capability"})
+					}
+					quietRaw := jsonBytes(mapValue(autonomyMap["quiet_hours"]))
+					if _, err := tx.Exec(ctx, `UPDATE public.autonomy_policies SET budget_remaining=$1, mode=$2, allowed_actions=$3, quiet_hours=$4, updated_at=now()`, budgetText, mode, allowedRaw, quietRaw); err != nil {
+						return err
+					}
+				}
+			}
 		}
 		for purpose, value := range secrets {
 			plain, ok := value.(string)
