@@ -71,6 +71,9 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if command.Text == "" || len([]rune(command.Text)) > 32000 {
 		return publishedResource{}, fmt.Errorf("%w: reply text is invalid", ErrInvalidArguments)
 	}
+	if lower := strings.ToLower(command.Text); lower == "no_op" || lower == "noop" || lower == "none" {
+		return publishedResource{}, fmt.Errorf("%w: control token %q cannot be published as conversation reply", ErrInvalidArguments, command.Text)
+	}
 	if err := requireConversationPublicationOwnershipTx(ctx, tx, command.AuthorizationActorID, command.FluctlightID, command.ConversationID); err != nil {
 		return publishedResource{}, err
 	}
