@@ -263,7 +263,7 @@ async with unit_of_work.begin(command_id=command_id) as tx:
 
 ```text
 Historical step = 0031_evolution_authority -> 0032_prompt_context_memory
-Current head = 0034_tool_execution_source
+Current head = 0036_effective_life
 
 conversation_messages += turn_id, source_fact_id, correlation_id,
                          generated search_document

@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "后端质量门禁"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "验证与失败处理"}
+{"file": ".trellis/spec/backend/persona-layer-contract.md", "reason": "画像与当前状态一致性"}
+{"file": ".trellis/spec/backend/structured-turn-contract.md", "reason": "Tool 身份权限与结算"}
+{"file": ".trellis/spec/backend/fluctlight-life-world-contract.md", "reason": "计划、事件与生活状态"}
+{"file": ".trellis/tasks/09-24-yaoguang-effective-self-dynamic-life/research/baseline.md", "reason": "逐项验证规划期断点"}

@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "后端分层与质量入口"}
+{"file": ".trellis/spec/backend/persona-layer-contract.md", "reason": "当前人格、画像与作用域契约"}
+{"file": ".trellis/spec/backend/fluctlight-life-world-contract.md", "reason": "日程和生活上下文权威"}
+{"file": ".trellis/spec/backend/fluctlight-autonomy-contract.md", "reason": "意愿与自治权限"}
+{"file": ".trellis/spec/backend/structured-turn-contract.md", "reason": "原生 Tool 与结算边界"}
+{"file": ".trellis/spec/backend/fluctlight-provider-contract.md", "reason": "最终请求与预算"}
+{"file": ".trellis/spec/backend/visual-identity-contract.md", "reason": "身份参考与图片生成"}
+{"file": ".trellis/tasks/09-24-yaoguang-effective-self-dynamic-life/research/baseline.md", "reason": "正式链路和断点证据"}

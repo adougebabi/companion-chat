@@ -445,7 +445,9 @@ persistActionOutcomesTx(... primary outcome ...) -> IntentionAttempt settlement
   it never executes an action directly.
 - A decision serving the due Intention must cite both Goal and Intention opaque
   refs. The primary completed/failed/cancelled/suppressed ActionOutcome
-  mechanically settles exactly one attempt. Only a completed, Goal-bound
+  mechanically settles exactly one attempt. An accepted virtual activity stays
+  pending until its later confirmed result settles the external-ref Outcome;
+  start alone cannot complete the Intention. Only a completed, Goal-bound
   Outcome may support a Reflection V2 Goal progress proposal.
 
 ### 4. Validation & Error Matrix

@@ -366,12 +366,12 @@ existing owner/shared Relationship write without inventing a new row.
 App.CompileWorkingPersona(ctx, PersonaCompilationInput) -> CompiledWorkingPersona
 App.BackfillWorkingPersonas(ctx, ownerID, fluctlightIDs, all, apply) -> []WorkingPersonaBackfillItem
 App.VerifyWorkingPersonasReady(ctx) -> error
-App.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName:"persona.detail", Arguments:{operation:"list"|"read",section_id?,cursor?}})
+App.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName:"persona.detail", Arguments:{operation:"list"|"read"|"history",section_id?,cursor?,revision?}})
 public.fluctlight_working_personas(fluctlight_id,profile_id,source_revision,source_hash,overlay_revision,rules_version,budget_runes,status,compiled_json)
 public.runtime_settings(key='working_persona_budget',value_json='{"max_runes":3600}')
 ```
 
-Migration head is `0035_working_persona`. The CLI is `go run ./cmd/persona-backfill --owner <actor-id> --fluctlights <id,...>` or `--all`; it previews unless `--apply` is supplied. `--all --apply` is an explicit paid operation and must not be run against production implicitly.
+Migration head is `0036_effective_life` (after `0035_working_persona`). The CLI is `go run ./cmd/persona-backfill --owner <actor-id> --fluctlights <id,...>` or `--all`; it previews unless `--apply` is supplied. `--all --apply` is an explicit paid operation and must not be run against production implicitly.
 
 ### 3. Contracts
 
@@ -381,7 +381,7 @@ Migration head is `0035_working_persona`. The CLI is `go run ./cmd/persona-backf
 - Creation compiles outside the transaction, then publishes source and portraits in one short transaction. Foundation accept/rollback and stable-overlay Reflection do the same with revision/overlay/budget checks. A non-persona Foundation change may carry an unchanged portrait forward with an updated source revision when the filtered compilation hash matches.
 - `portrait_overlay_revision` is the maximum effective persona overlay revision. The existing `fluctlight_evolution_states.revision` also advances for non-persona Reflection domains, so using it as a portrait version would cause false invalidation and repeated paid compilation.
 - Main and WakeUp load exactly one saved portrait matching source revision/hash, effective overlay revision, rule version and budget. `persona.takeover` returns the target's saved portrait in its Tool result; subsequent native Tool reads bind to the actual speaking profile. Dynamic state continues through ContextProjection and Prompt Composer.
-- `persona.detail` is a read-only registered Capability. `list` returns section IDs/descriptions; `read` returns `profile_id`, source and overlay revisions, a 2048-rune segment, `cursor`, `next_cursor` and `has_more`. Core binds the owner/resource/speaking profile; model arguments cannot choose an identity. Missing or changed source, invalid section/cursor and unauthorized scope are explicit errors. Query data remains Tool-result data and never becomes System instruction.
+- `persona.detail` is a read-only registered Capability. Its default detail uses current effective body and profile habits; `history` explicitly marks Foundation wording as historical. `list` returns section IDs/descriptions; `read` returns `profile_id`, source and overlay revisions, a 2048-rune segment, `cursor`, `next_cursor` and `has_more`. Core binds the owner/resource/speaking profile; model arguments cannot choose an identity. Missing or changed source, invalid section/cursor and unauthorized scope are explicit errors. Query data remains Tool-result data and never becomes System instruction.
 
 ### 4. Validation & Error Matrix
 
