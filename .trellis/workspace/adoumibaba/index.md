@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 40
-- **Last Active**: 2026-09-24
+- **Total Sessions**: 41
+- **Last Active**: 2026-09-25
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1334 | Active |
+| `journal-1.md` | ~1356 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 41 | 2026-09-25 | 摇光状态、上下文与记忆一致性增强 | `2e857e7` | `master` |
 | 40 | 2026-09-24 | 摇光当前有效自我与动态生活闭环 | `0b36500`, `7239c8f` | `codex/yaoguang-effective-self-dynamic-life` |
 | 39 | 2026-09-21 | 摇光第八阶段 Eino Native 收敛与契约门禁 | `7c497cf` | `master` |
 | 38 | 2026-09-19 | 摇光项目第五阶段：前四阶段联合验收与最终审查证据 | `996895b` | `codex/yaoguang-adk-phase2` |

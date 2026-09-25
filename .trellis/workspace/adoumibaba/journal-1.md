@@ -1332,3 +1332,25 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Status
 
 [OK] **Completed**
+
+
+## Session 41: 摇光状态、上下文与记忆一致性增强
+<!-- trellis-session: v=2 fp=1fea509ec389018d -->
+
+**Date**: 2026-09-25
+**Task**: 摇光状态、上下文与记忆一致性增强
+**Branch**: `master`
+
+### Summary
+
+完成 Current State 事务代际、正式送模投影、记忆来源与 Episode→Long-term→Resident 接入；0037 迁移和全量数据库、race、vet/build、pnpm 门禁通过，五类真实场景各有成功样本。报告记录理发补充样本限制。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2e857e7` | feat(core-go): align state, context projection and memory |
+
+### Status
+
+[OK] **Completed**
