@@ -23,6 +23,8 @@ const (
 // of manufacturing a cognition inbox row or an action snapshot.
 type ActiveMemoryCapabilitySource struct {
 	Kind         string    `json:"kind"`
+	SourceKind   string    `json:"source_kind,omitempty"`
+	Fingerprint  string    `json:"fingerprint,omitempty"`
 	EvidenceID   string    `json:"evidence_id"`
 	OccurredAt   time.Time `json:"occurred_at"`
 	ActorID      string    `json:"actor_id"`
@@ -113,6 +115,7 @@ func (a *App) prepareActiveMemoryCapability(ctx context.Context, invocation Capa
 		ActorRefs:      append([]string(nil), source.ActorRefs...),
 		ConversationID: invocation.Metadata.ConversationID, SourceFactID: invocation.SourceFactID,
 		EvidenceRefs: []string{source.EvidenceID}, OccurredAt: source.OccurredAt,
+		SourceKind: source.SourceKind, SourceFingerprint: source.Fingerprint,
 		SemanticReason: "direct_active_memory_" + string(operation),
 		IdempotencyKey: idempotencyKey,
 	}
@@ -184,6 +187,7 @@ func (a *App) resolveActiveMemoryCapabilitySource(ctx context.Context, invocatio
 		}
 		return ActiveMemoryCapabilitySource{
 			Kind: "command_replay", EvidenceID: prior.SourceFactID, OccurredAt: prior.OccurredAt,
+			SourceKind: prior.SourceKind, Fingerprint: prior.SourceFingerprint,
 			ActorID: prior.ActorID, ActorRefs: append([]string(nil), prior.ActorRefs...), OperationID: operationID,
 			Conversation: prior.ConversationID,
 		}, nil
@@ -192,12 +196,15 @@ func (a *App) resolveActiveMemoryCapabilitySource(ctx context.Context, invocatio
 	}
 	source := ActiveMemoryCapabilitySource{
 		Kind: "business_operation", EvidenceID: evidenceID, OccurredAt: a.now().UTC(),
+		SourceKind: "authenticated_command", Fingerprint: stableDigest(idempotencyKey + "\x1f" + evidenceID),
 		ActorID: ownerActorID, ActorRefs: []string{ownerActorID}, OperationID: operationID,
 		Conversation: invocation.Metadata.ConversationID,
 	}
 	var cognitionOccurredAt time.Time
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT occurred_at FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, evidenceID, invocation.Metadata.FluctlightID).Scan(&cognitionOccurredAt); err == nil {
+	var cognitionFingerprint string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT occurred_at,public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, evidenceID, invocation.Metadata.FluctlightID).Scan(&cognitionOccurredAt, &cognitionFingerprint); err == nil {
 		source.Kind = "cognition_fact"
+		source.SourceKind, source.Fingerprint = "fact", cognitionFingerprint
 		source.OccurredAt = cognitionOccurredAt.UTC()
 		source.ActorID = invocation.Metadata.FluctlightID
 		if hasIndex {
@@ -223,10 +230,19 @@ func (a *App) resolveActiveMemoryCapabilityTarget(ctx context.Context, ref strin
 	}
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT id,owner_fluctlight_id,COALESCE(conversation_id,''),kind,content,status,confidence,importance,
-		       actor_refs,source_fact_id,evidence_refs,COALESCE(original_time_expression,''),valid_from,valid_until,
+		       actor_refs,active_memories.source_fact_id,evidence_refs,COALESCE(original_time_expression,''),valid_from,valid_until,
 		       time_precision,timezone,last_relevant_at,revision,canonical_key,request_digest,
-		       COALESCE(superseded_by_active_memory_id,''),COALESCE(supersedes_active_memory_id,''),created_at,updated_at,closed_at
+		       COALESCE(superseded_by_active_memory_id,''),COALESCE(supersedes_active_memory_id,''),created_at,updated_at,closed_at,
+		       CASE WHEN source_support.source_kind IS NULL OR source_support.source_kind='' THEN 'legacy_unknown' ELSE 'verified' END
 		FROM public.active_memories
+		LEFT JOIN LATERAL (
+		 SELECT c.command->>'source_kind' AS source_kind
+		 FROM public.active_memory_commands c
+		 WHERE c.owner_fluctlight_id=active_memories.owner_fluctlight_id
+		  AND c.result->>'active_memory_id'=active_memories.id
+		  AND (c.result->>'revision')::integer=active_memories.revision
+		 ORDER BY c.created_at DESC,c.id DESC LIMIT 1
+		) source_support ON true
 		WHERE owner_fluctlight_id=$1 AND status='active' AND (conversation_id IS NULL OR conversation_id=$2)
 		ORDER BY last_relevant_at DESC,id LIMIT $3`, invocation.Metadata.FluctlightID, nullableString(strings.TrimSpace(invocation.Metadata.ConversationID)), activeMemoryCandidateLimit)
 	if err != nil {
@@ -410,12 +426,24 @@ func (a *App) retrieveActiveMemories(ctx context.Context, query ActiveMemoryQuer
 	}
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT id,owner_fluctlight_id,COALESCE(conversation_id,''),kind,content,status,confidence,importance,
-		       actor_refs,source_fact_id,evidence_refs,COALESCE(original_time_expression,''),valid_from,valid_until,
+		       actor_refs,active_memories.source_fact_id,evidence_refs,COALESCE(original_time_expression,''),valid_from,valid_until,
 		       time_precision,timezone,last_relevant_at,revision,canonical_key,request_digest,
-		       COALESCE(superseded_by_active_memory_id,''),COALESCE(supersedes_active_memory_id,''),created_at,updated_at,closed_at
+		       COALESCE(superseded_by_active_memory_id,''),COALESCE(supersedes_active_memory_id,''),created_at,updated_at,closed_at,
+		       CASE WHEN source_support.source_kind IS NULL OR source_support.source_kind='' THEN 'legacy_unknown' ELSE 'verified' END
 		FROM public.active_memories
+		LEFT JOIN LATERAL (
+		 SELECT c.id AS command_id,c.source_fact_id,c.command->>'source_kind' AS source_kind,
+		  c.command->>'source_fingerprint' AS source_fingerprint
+		 FROM public.active_memory_commands c
+		 WHERE c.owner_fluctlight_id=active_memories.owner_fluctlight_id
+		  AND c.result->>'active_memory_id'=active_memories.id
+		  AND (c.result->>'revision')::integer=active_memories.revision
+		 ORDER BY c.created_at DESC,c.id DESC LIMIT 1
+		) source_support ON true
 		WHERE owner_fluctlight_id=$1
 		  AND status='active'
+		  AND (source_support.source_kind IS NULL OR source_support.source_kind=''
+		   OR public.active_memory_source_is_live(source_support.source_kind,source_support.source_fact_id,source_support.source_fingerprint,source_support.command_id))
 		  AND (conversation_id IS NULL OR conversation_id=$2)
 		  AND (valid_from IS NULL OR valid_from <= $3)
 		  AND (valid_until IS NULL OR valid_until > $3)
@@ -526,7 +554,7 @@ func activeMemoryRowMap(row activeMemoryAuthorityRow) map[string]any {
 		"actor_refs": row.ActorRefs, "source_fact_id": row.SourceFactID, "evidence_refs": row.EvidenceRefs,
 		"original_time_expression": row.OriginalTimeExpression, "valid_from": row.ValidFrom, "valid_until": row.ValidUntil,
 		"time_precision": row.TimePrecision, "timezone": row.Timezone, "last_relevant_at": row.LastRelevantAt,
-		"revision": row.Revision, "created_at": row.CreatedAt, "updated_at": row.UpdatedAt,
+		"revision": row.Revision, "created_at": row.CreatedAt, "updated_at": row.UpdatedAt, "source_validity": row.SourceValidity,
 	}
 }
 
@@ -534,7 +562,7 @@ func compactActiveMemories(memories []map[string]any) []map[string]any {
 	result := make([]map[string]any, 0, len(memories))
 	for _, memory := range memories {
 		compact := make(map[string]any, 10)
-		for _, key := range []string{"ref", "kind", "content", "status", "confidence", "importance", "original_time_expression", "valid_from", "valid_until", "time_precision", "timezone"} {
+		for _, key := range []string{"ref", "kind", "content", "status", "confidence", "importance", "source_validity", "original_time_expression", "valid_from", "valid_until", "time_precision", "timezone"} {
 			if value, ok := memory[key]; ok && value != nil && value != "" {
 				compact[key] = value
 			}

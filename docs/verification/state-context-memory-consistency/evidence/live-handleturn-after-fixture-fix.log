@@ -1,0 +1,10 @@
+2026/09/24 20:09:23 INFO capability lifecycle capability=persona.detail call_id=call_1790251763759_0 type=query surface=conversation required_context=[] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 20:09:27 INFO capability lifecycle capability=persona.detail call_id=call_1790251767373_0 type=query surface=conversation required_context=[] duration_ms=3 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 20:09:31 INFO capability lifecycle capability=persona.detail call_id=call_1790251771161_0 type=query surface=conversation required_context=[] duration_ms=4 status=completed retryable=false intent_present=false intent_runes=0
+--- FAIL: TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment (76.68s)
+    provider_live_e2e_test.go:121: live HandleTurn failed: adk_run: [NodeRunError] prompt_required_budget_exceeded: physical request estimate=49473 max=49152
+        ------------------------
+        node path: [node_1, ChatModel]; provider_tool_shapes=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"persona.switch"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"persona.switch"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"persona.detail"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"persona.detail"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"persona.detail"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"persona.switch"}}
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	77.281s
+FAIL

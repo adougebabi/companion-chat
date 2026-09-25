@@ -18,15 +18,19 @@ func (a *App) ProcessMemoryEmbeddingIntentAt(ctx context.Context, intentID, memo
 	if requestedRevision < 0 {
 		return nil, errors.New("memory_embedding_revision_invalid")
 	}
-	var content, status string
+	var content, status, provenanceStatus string
 	var revision int
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT content,revision,status FROM public.memories WHERE id=$1`, memoryID).Scan(&content, &revision, &status); err != nil {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT content,revision,status,provenance_status FROM public.memories WHERE id=$1`, memoryID).Scan(&content, &revision, &status, &provenanceStatus); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return map[string]any{"memory_id": memoryID, "status": "not_found", "requested_revision": requestedRevision}, nil
 		}
 		return nil, err
 	}
-	if status != "active" || revision != requestedRevision {
+	supported, err := memorySourcesStillValid(ctx, a.DB.Pool(), memoryID, revision, provenanceStatus)
+	if err != nil {
+		return nil, err
+	}
+	if status != "active" || revision != requestedRevision || !supported {
 		return map[string]any{"memory_id": memoryID, "status": "stale", "revision": revision, "requested_revision": requestedRevision}, nil
 	}
 	assignment, err := a.resolveMemoryEmbeddingAssignment(ctx, intentID, providerEndpointID, modelID)
@@ -198,12 +202,16 @@ func (a *App) settleMemoryEmbeddingFailure(ctx context.Context, memoryID string,
 func (a *App) settleMemoryEmbeddingReady(ctx context.Context, memoryID string, revision int, embeddingID string, assignment providerAssignment, vector []float64, vectorLiteral string) (bool, error) {
 	settled := false
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var liveOwner, liveStatus string
+		var liveOwner, liveStatus, provenanceStatus string
 		var liveRevision int
-		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,revision,status FROM public.memories WHERE id=$1 FOR UPDATE`, memoryID).Scan(&liveOwner, &liveRevision, &liveStatus); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,revision,status,provenance_status FROM public.memories WHERE id=$1 FOR UPDATE`, memoryID).Scan(&liveOwner, &liveRevision, &liveStatus, &provenanceStatus); err != nil {
 			return err
 		}
-		if liveStatus != "active" || liveRevision != revision {
+		supported, err := memorySourcesStillValid(ctx, tx, memoryID, liveRevision, provenanceStatus)
+		if err != nil {
+			return err
+		}
+		if liveStatus != "active" || liveRevision != revision || !supported {
 			_, err := tx.Exec(ctx, `UPDATE public.memory_embeddings SET status='stale',error_code=COALESCE(error_code,'memory_revision_changed') WHERE id=$1 AND status IN ('pending','failed')`, embeddingID)
 			return err
 		}

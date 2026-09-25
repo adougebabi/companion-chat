@@ -23,6 +23,7 @@ type ToolAuthorityRevisions struct {
 	Before       *ToolAuthorityRevisions `json:"before,omitempty"`
 	Foundation   int                     `json:"foundation_revision"`
 	CurrentState int                     `json:"current_state_revision"`
+	CurrentFacts string                  `json:"current_facts_revision,omitempty"`
 	LifeContext  string                  `json:"life_context_revision"`
 }
 
@@ -95,7 +96,11 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if err != nil {
 			return err
 		}
-		before := &ToolAuthorityRevisions{Foundation: beforeFoundation, CurrentState: beforeState, LifeContext: beforeLife}
+		beforeFacts, err := readCurrentFactsRevisionWith(ctx, tx, request.FluctlightID)
+		if err != nil {
+			return err
+		}
+		before := &ToolAuthorityRevisions{Foundation: beforeFoundation, CurrentState: beforeState, CurrentFacts: beforeFacts, LifeContext: beforeLife}
 		if allowed {
 			result, err = execute(tx)
 		} else {
@@ -112,7 +117,11 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if err != nil {
 			return err
 		}
-		authority = ToolAuthorityRevisions{Before: before, Foundation: foundation, CurrentState: currentState, LifeContext: lifeContext}
+		currentFacts, err := readCurrentFactsRevisionWith(ctx, tx, request.FluctlightID)
+		if err != nil {
+			return err
+		}
+		authority = ToolAuthorityRevisions{Before: before, Foundation: foundation, CurrentState: currentState, CurrentFacts: currentFacts, LifeContext: lifeContext}
 		invocation := CapabilityInvocation{CallID: result.CallID, CapabilityName: request.CapabilityName, Arguments: request.Arguments, SourceFactID: request.EvidenceID, ProviderRequestID: result.ProviderRequestID, SchemaVersion: CapabilityInvocationSchemaVersion, Metadata: InvocationMetadata{OperationID: request.OperationID, AuthorizationActorID: request.AuthorizationActorID, SubjectActorID: request.SubjectActorID, WorkingProfileID: request.WorkingProfileID, FluctlightID: request.FluctlightID, ConversationID: request.ConversationID}}
 		if request.NativeToolCallID != "" {
 			invocation.Metadata.Source = "model_tool"

@@ -565,7 +565,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	if err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at,public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -581,7 +581,8 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		var typ string
 		var payload []byte
 		var occurredAt time.Time
-		if err := rows.Scan(&id, &sequence, &typ, &payload, &occurredAt); err != nil {
+		var fingerprint string
+		if err := rows.Scan(&id, &sequence, &typ, &payload, &occurredAt, &fingerprint); err != nil {
 			rows.Close()
 			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 			return nil, err
@@ -590,7 +591,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		allowedEvidence[evidenceRef] = struct{}{}
 		memoryAllowedEvidence[evidenceRef] = struct{}{}
 		decodedPayload := decodeJSONValue(payload)
-		memoryEvidenceScopes[evidenceRef] = reflectionMemoryEvidenceScope{FactID: id, ConversationID: stringValue(mapValue(decodedPayload)["conversation_id"]), Known: true}
+		memoryEvidenceScopes[evidenceRef] = reflectionMemoryEvidenceScope{FactID: id, ConversationID: stringValue(mapValue(decodedPayload)["conversation_id"]), Fingerprint: fingerprint, SourceKind: "fact", SourceID: id, Known: true}
 		evidence = append(evidence, map[string]any{"id": id, "sequence": sequence, "event_type": typ, "payload": decodedPayload, "occurred_at": occurredAt})
 		if sequence > toSequence {
 			toSequence = sequence
@@ -697,7 +698,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		case ContextReferenceMemory:
 			memoryAllowedEvidence[ref] = struct{}{}
 			snapshot := decodeObject(entry.Snapshot)
-			memoryEvidenceScopes[ref] = reflectionMemoryEvidenceScope{ConversationID: stringValue(snapshot["conversation_id"]), Known: true}
+			memoryEvidenceScopes[ref] = reflectionMemoryEvidenceScope{ConversationID: stringValue(snapshot["conversation_id"]), SourceKind: "memory", SourceID: entry.EntityID, SourceRevision: entry.Revision, Fingerprint: stringValue(snapshot["request_digest"]), Known: true}
 		case ContextReferenceOutcome:
 			memoryAllowedEvidence[ref] = struct{}{}
 			scope, scopeErr := a.reflectionOutcomeEvidenceScope(ctx, fluctlightID, entry)

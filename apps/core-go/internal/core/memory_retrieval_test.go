@@ -172,7 +172,7 @@ func TestMemoryRetrievalAppliesOnlyAuthorizedCurrentVectorTuple(t *testing.T) {
 	app := &App{DB: repository}
 	semantic := &MemorySemanticInput{Type: "semantic", Content: "authorized vector memory", Confidence: 0.8, Importance: 0.7, EmotionalSignificance: 0.2}
 	command := memoryLifecycleTestCommand(MemoryCreate, "vector-retrieval", semantic, nil, nil)
-	command.OwnerFluctlightID, command.OwnerActorID, command.ActorID = fluctlightID, ownerID, fluctlightID
+	command.OwnerFluctlightID, command.OwnerActorID, command.ActorID = fluctlightID, ownerID, ownerID
 	command.RequestDigest = memoryCommandDigest(command)
 	created := applyMemoryLifecycleTestCommand(t, ctx, app, command)
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.memory_embeddings(id,memory_id,memory_revision,provider_endpoint_id,model_id,dimensions,embedding,embedding_vector,status,embedded_at) VALUES('memory-vector-ready',$1,0,$2,'memory-vector-model',2,'[1,0]','[1,0]'::vector,'ready',now())`, created.MemoryID, endpointID); err != nil {

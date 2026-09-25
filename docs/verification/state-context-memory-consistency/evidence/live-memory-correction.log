@@ -1,0 +1,9 @@
+=== RUN   TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory
+    provider_live_e2e_test.go:373: correction reply=""; source Memory="用户的猫叫布丁"/"verified"; tools=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"memory_event"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation.reply"}}
+    provider_live_e2e_test.go:375: Memory correction turn: adk_run: [NodeRunError] failed to invoke tool[name:memory_event id:call_1790258846093_0]: tool execution capability_prepare_failed: capability execution failed: memory_correction_ref_not_found
+        ------------------------
+        node path: [node_1, ToolNode]
+--- FAIL: TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory (43.85s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	44.447s
+FAIL

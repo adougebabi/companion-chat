@@ -366,6 +366,7 @@ func TestIndependentToolE2ECapabilityRequest(t *testing.T) {
 
 func TestIndependentToolE2EVisualIdentityInitialize(t *testing.T) {
 	fixture := newIndependentToolE2EFixture(t, "visual-identity")
+	seedUnknownEffectiveLifeForTest(t, fixture.ctx, fixture.repository, fixture.fluctlightID)
 	persona := map[string]any{
 		"identity":           map[string]any{"name": "岚音", "age": 24, "gender": "female", "nationality": "Chinese"},
 		"life_profile":       map[string]any{"appearance": map[string]any{"hair": "black shoulder-length", "body_type": "slender", "chest_cup": "B"}},

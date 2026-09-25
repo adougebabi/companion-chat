@@ -27,6 +27,16 @@ type visualIdentityToolFixture struct {
 	sessionID    string
 }
 
+func seedUnknownEffectiveLifeForTest(t *testing.T, ctx context.Context, repository *PostgresRepository, fluctlightID string) {
+	t.Helper()
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_appearance_states(fluctlight_id,revision,state_json,source_kind) VALUES($1,0,'{}','initialization')`, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_states(fluctlight_id,revision) VALUES($1,0)`, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func newVisualIdentityToolFixture(t *testing.T) visualIdentityToolFixture {
 	t.Helper()
 	ctx, repository := isolatedCoreTestRepository(t)
@@ -34,6 +44,7 @@ func newVisualIdentityToolFixture(t *testing.T) visualIdentityToolFixture {
 	ownerID := "visual_tool_owner_" + suffix
 	fluctlightID := "visual_tool_fluctlight_" + suffix
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	seedUnknownEffectiveLifeForTest(t, ctx, repository, fluctlightID)
 	persona := map[string]any{
 		"identity":     map[string]any{"name": "澄光", "gender": "male", "age": 24, "appearance": map[string]any{"hair": "black short hair", "face_shape": "oval"}},
 		"life_profile": map[string]any{"appearance": map[string]any{"body_type": "slim"}},
@@ -264,6 +275,7 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 	suffix := stableDigest(t.Name() + fmt.Sprintf("-%d", time.Now().UnixNano()))[:20]
 	ownerID, fluctlightID := "visual_agent_owner_"+suffix, "visual_agent_fluctlight_"+suffix
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	seedUnknownEffectiveLifeForTest(t, ctx, repository, fluctlightID)
 	persona := map[string]any{"identity": map[string]any{"name": "澄光", "gender": "male"}, "life_profile": map[string]any{"appearance": map[string]any{"hair": "black hair"}}}
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET core_persona=$2 WHERE id=$1`, fluctlightID, jsonBytes(persona)); err != nil {
 		t.Fatal(err)
@@ -416,6 +428,7 @@ func TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical(t *testing.T
 
 	ownerID, fluctlightID := "visual_review_owner_"+suffix, "visual_review_fluctlight_"+suffix
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	seedUnknownEffectiveLifeForTest(t, ctx, repository, fluctlightID)
 	persona := map[string]any{"identity": map[string]any{"name": "澄光", "gender": "male"}, "life_profile": map[string]any{"appearance": map[string]any{"hair": "black hair"}}}
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET core_persona=$2 WHERE id=$1`, fluctlightID, jsonBytes(persona)); err != nil {
 		t.Fatal(err)

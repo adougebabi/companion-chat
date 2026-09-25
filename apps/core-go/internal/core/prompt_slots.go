@@ -117,6 +117,8 @@ func (c *PromptComposer) Compose(ctx context.Context, input PromptCompositionInp
 				working.RuntimeFacts = append(working.RuntimeFacts, fragment)
 			case PromptFragmentActiveMemory:
 				working.Active = append(working.Active, fragment)
+			case PromptFragmentResidentMemory:
+				working.Resident = append(working.Resident, fragment)
 			case PromptFragmentRecentMessage:
 				working.Recent = append(working.Recent, fragment)
 			case PromptFragmentRetrievedMemory:

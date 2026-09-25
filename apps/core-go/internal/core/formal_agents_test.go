@@ -96,7 +96,15 @@ func TestFormalConversationAgentRecallsRandomDatabaseSecretThroughRealToolBridge
 			AuthorizationActorID: ownerID, FluctlightID: fluctlightID, SourceFactID: "formal-agent-evidence-" + suffix,
 			ActionID: "formal-agent-action-" + suffix, OperationID: "formal-agent-run-" + suffix,
 			CorrelationID: "formal-agent-secret-run-" + suffix, Surface: CapabilitySurfaceConversation,
-			Projection: ContextProjection{OwnerActorID: ownerID, FluctlightID: fluctlightID, SourceFactID: "formal-agent-evidence-" + suffix},
+			Projection: ContextProjection{
+				OwnerActorID: ownerID, FluctlightID: fluctlightID, SourceFactID: "formal-agent-evidence-" + suffix,
+				CurrentSpeaker:       map[string]any{"actor_id": ownerID},
+				MemoryRetrievalTrace: MemoryRetrievalTrace{ConversationMode: string(MemoryConversationGlobalOnly)},
+				ReferenceIndex: ContextReferenceIndex{
+					SchemaVersion: contextReferenceIndexVersion, FluctlightID: fluctlightID, OwnerActorID: ownerID,
+					SpeakerActorID: ownerID, ByRef: map[string]ContextReference{},
+				},
+			},
 		},
 	})
 	if err != nil {

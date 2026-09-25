@@ -98,6 +98,13 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			if request.TargetKind == "" && request.TargetRef == "" && request.ConversationID != "" {
 				request.TargetKind, request.TargetRef = "conversation", request.ConversationID
 			}
+			projection, err := fixture.app.BuildContextProjection(fixture.ctx, fixture.ownerID, fixture.fluctlightID, request.ConversationID, request.EvidenceID, "Execute the authorized operation.")
+			if err != nil {
+				t.Fatalf("formal adapter projection: %v", err)
+			}
+			if request.WorkingProfileID == "" {
+				request.WorkingProfileID = stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])
+			}
 			if request.CapabilityName != testCase.name {
 				t.Fatalf("case %q built request for %q", testCase.name, request.CapabilityName)
 			}
@@ -156,6 +163,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 					},
 					Definitions: []CapabilityDefinition{definition}, SchemaName: "conversation_turn_response",
 					Capability: &ADKCapabilityRequest{
+						Projection:           projection,
 						AuthorizationActorID: fixture.ownerID, FluctlightID: fixture.fluctlightID,
 						ConversationID: request.ConversationID, SourceFactID: request.EvidenceID,
 						ActionID:    "formal-adapter-action-" + strings.ReplaceAll(testCase.name, ".", "-"),

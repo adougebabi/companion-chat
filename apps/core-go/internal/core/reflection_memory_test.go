@@ -55,8 +55,8 @@ func TestCompileReflectionActiveMemoryCommandsKeepsSeparateDomainAndFrozenIndex(
 		Timezone: "UTC", OccurredAt: occurredAt, ReferenceIndex: index,
 		AllowedEvidence: map[string]struct{}{"sequence:7": {}, "sequence:8": {}},
 		EvidenceScopes: map[string]reflectionMemoryEvidenceScope{
-			"sequence:7": {FactID: "fact-7", ConversationID: "conversation-7", Known: true},
-			"sequence:8": {FactID: "fact-8", ConversationID: "conversation-7", Known: true},
+			"sequence:7": {FactID: "fact-7", ConversationID: "conversation-7", Fingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Known: true},
+			"sequence:8": {FactID: "fact-8", ConversationID: "conversation-7", Fingerprint: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Known: true},
 		},
 	}
 	commands, err := compileReflectionActiveMemoryCommands(candidates, request)
@@ -170,7 +170,7 @@ func TestCompileReflectionMemoryCommandsBindsOpaqueRefsAndRejectsOverlap(t *test
 		FluctlightID: "fl-reflection", OwnerActorID: "owner-reflection", ActiveProfileID: "default",
 		ProposalID: "reflection-proposal", SourceWindow: "sequence:7-7", OccurredAt: time.Date(2026, 9, 11, 0, 0, 0, 0, time.UTC),
 		ReferenceIndex: index, AllowedEvidence: allowed,
-		EvidenceScopes: map[string]reflectionMemoryEvidenceScope{"sequence:7": {FactID: "fact-7", ConversationID: "conversation-7", Known: true}},
+		EvidenceScopes: map[string]reflectionMemoryEvidenceScope{"sequence:7": {FactID: "fact-7", ConversationID: "conversation-7", Fingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Known: true}},
 	}
 	commands, err := compileReflectionMemoryCommands(proposal, request)
 	if err != nil {

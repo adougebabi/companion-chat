@@ -31,6 +31,7 @@ type PromptFragmentKind string
 const (
 	PromptFragmentRuntimeFact     PromptFragmentKind = "runtime_fact"
 	PromptFragmentActiveMemory    PromptFragmentKind = "active_memory"
+	PromptFragmentResidentMemory  PromptFragmentKind = "resident_memory"
 	PromptFragmentRecentMessage   PromptFragmentKind = "recent_message"
 	PromptFragmentRetrievedMemory PromptFragmentKind = "retrieved_memory"
 	PromptFragmentSummary         PromptFragmentKind = "conversation_summary"

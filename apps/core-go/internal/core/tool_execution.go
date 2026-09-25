@@ -34,6 +34,10 @@ type ToolExecutionRequest struct {
 	EvidenceID           string
 	Surface              CapabilitySurface
 	Arguments            json.RawMessage
+	// FrozenContextSnapshot is supplied only by the Core-owned native Agent
+	// adapter. It preserves the exact opaque refs shown on that model request;
+	// standalone Tool callers continue to resolve their own authorized scope.
+	FrozenContextSnapshot map[string]any
 	// ExpectedCorePersonaRevision binds read-only persona detail calls to the
 	// source version that produced the Agent's prompt. Direct callers may omit it.
 	ExpectedCorePersonaRevision *int
@@ -110,6 +114,16 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 			return ToolExecutionReceipt{}, newCapabilityError("working_profile_not_found", false, ErrNotFound)
 		}
 	}
+	if len(request.FrozenContextSnapshot) > 0 {
+		if strings.TrimSpace(request.NativeToolCallID) == "" || strings.TrimSpace(request.ProviderRequestID) == "" {
+			return ToolExecutionReceipt{}, fmt.Errorf("%w: frozen Tool context requires a native call", ErrInvalidArguments)
+		}
+		if err := validateCandidateSnapshotIdentity(request.FrozenContextSnapshot, candidateValidationContext{
+			FluctlightID: request.FluctlightID, ConversationID: request.ConversationID, SourceFactID: request.EvidenceID,
+		}); err != nil {
+			return ToolExecutionReceipt{}, fmt.Errorf("%w: %v", ErrInvalidArguments, err)
+		}
+	}
 	// Assemble immutable execution dependencies for this call. Do not mutate
 	// App.Runtime while concurrent direct callers are resolving their scope.
 	resolver := a.ContextResolver
@@ -167,6 +181,12 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 			OperationID: request.OperationID, Surface: surface,
 			FluctlightID: request.FluctlightID, ConversationID: request.ConversationID,
 		},
+	}
+	if len(request.FrozenContextSnapshot) > 0 {
+		invocation.ContextSnapshot = mapValue(boundedSnapshotValue(request.FrozenContextSnapshot))
+		if len(invocation.ContextSnapshot) == 0 {
+			return ToolExecutionReceipt{}, fmt.Errorf("%w: frozen Tool context exceeds the snapshot limit", ErrInvalidArguments)
+		}
 	}
 	implementation, ok := runtime.Registry.LookupCapability(definition.Name)
 	if !ok {

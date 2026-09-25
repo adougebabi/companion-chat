@@ -308,12 +308,16 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		switch kind {
 		case PromptFragmentSummary:
 			return 0
-		case PromptFragmentRecentMessage:
+		case PromptFragmentRetrievedMemory:
 			return 1
-		case PromptFragmentActiveMemory:
+		case PromptFragmentResidentMemory:
 			return 2
-		default:
+		case PromptFragmentRecentMessage:
 			return 3
+		case PromptFragmentActiveMemory:
+			return 4
+		default:
+			return 5
 		}
 	}
 	sort.SliceStable(units, func(i, j int) bool {
@@ -371,7 +375,7 @@ func promptOptionalCandidates(memory WorkingMemory, currentInput string) ([]prom
 		order int
 		items []PromptFragment
 	}{
-		{0, memory.Active}, {1, memory.RuntimeFacts}, {2, memory.Recent}, {3, memory.Retrieved}, {4, memory.Summaries},
+		{0, memory.RuntimeFacts}, {1, memory.Active}, {2, memory.Resident}, {3, memory.Recent}, {4, memory.Retrieved}, {5, memory.Summaries},
 	}
 	result := make([]promptOptionalCandidate, 0)
 	for _, group := range groups {
@@ -426,6 +430,8 @@ func assemblePromptMessages(system, current map[string]any, selected []promptOpt
 			}
 		case PromptFragmentActiveMemory:
 			runtimeContext["active_memory"] = append(arrayValue(runtimeContext["active_memory"]), boundedSnapshotValue(fragment.Content))
+		case PromptFragmentResidentMemory:
+			runtimeContext["resident_memory"] = append(arrayValue(runtimeContext["resident_memory"]), boundedSnapshotValue(fragment.Content))
 		case PromptFragmentRetrievedMemory:
 			runtimeContext["retrieved_memory"] = append(arrayValue(runtimeContext["retrieved_memory"]), boundedSnapshotValue(fragment.Content))
 		case PromptFragmentSummary:
@@ -470,6 +476,8 @@ func promptFragmentSection(kind PromptFragmentKind) string {
 		return "runtime_facts"
 	case PromptFragmentActiveMemory:
 		return "active_memory"
+	case PromptFragmentResidentMemory:
+		return "resident_memory"
 	case PromptFragmentRecentMessage:
 		return "recent"
 	case PromptFragmentRetrievedMemory:

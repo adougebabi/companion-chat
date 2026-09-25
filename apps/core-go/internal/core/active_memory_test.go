@@ -199,6 +199,67 @@ func applyActiveMemoryLifecycleTestCommand(t *testing.T, ctx context.Context, ap
 	return result
 }
 
+func TestPostgresActiveMemoryFactCorrectionInvalidatesRecallResidentAndLateReflection(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	const ownerID, fluctlightID, factID = "active-memory-owner", "active-memory-fluctlight", "active-memory-fact"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active')`, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'blank_slate','active','{}','{}','{}','{}','{}','{}')`, fluctlightID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,1,'conversation.turn','{"text":"我承诺下周回访"}',$1,$1,$1,$3,'processed')`, factID, fluctlightID, now); err != nil {
+		t.Fatal(err)
+	}
+	var fingerprint string
+	if err := repository.Pool().QueryRow(ctx, `SELECT public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE id=$1`, factID).Scan(&fingerprint); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository}
+	semantic := &ActiveMemorySemanticInput{Kind: "commitment", Content: "下周回访", Confidence: 0.9, Importance: 0.9, TimePrecision: "unknown", Timezone: "UTC"}
+	create := activeMemoryLifecycleTestCommand(ActiveMemoryCreate, "sourced-commitment", now, semantic, nil)
+	create.ConversationID = ""
+	create.SourceKind, create.SourceFingerprint = "fact", fingerprint
+	create.RequestDigest = activeMemoryCommandDigest(create)
+	created := applyActiveMemoryLifecycleTestCommand(t, ctx, app, create)
+	readActive := func() ActiveMemoryRetrievalResult {
+		t.Helper()
+		result, err := app.retrieveActiveMemories(ctx, ActiveMemoryQuery{AuthorizationActorID: ownerID, OwnerFluctlightID: fluctlightID, Cue: "回访", At: now, Limit: 10})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return result
+	}
+	if got := readActive(); len(got.Items) != 1 || stringValue(got.Items[0]["id"]) != created.ActiveMemoryID {
+		t.Fatalf("sourced Active Memory absent from recall: %#v", got.Items)
+	}
+	before, err := app.readResidentMemorySnapshot(ctx, ownerID, ownerID, fluctlightID, now)
+	if err != nil || len(before.Active) != 1 {
+		t.Fatalf("sourced commitment absent from Resident: %#v err=%v", before, err)
+	}
+	late := activeMemoryLifecycleTestCommand(ActiveMemoryCreate, "late-reflection", now, &ActiveMemorySemanticInput{Kind: "commitment", Content: "旧结论：下周继续回访", Confidence: 0.9, Importance: 0.8, TimePrecision: "unknown", Timezone: "UTC"}, nil)
+	late.ConversationID = ""
+	late.SourceKind, late.SourceFingerprint = "fact", fingerprint
+	late.RequestDigest = activeMemoryCommandDigest(late)
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET payload='{"text":"纠正：我没有承诺回访"}' WHERE id=$1`, factID); err != nil {
+		t.Fatal(err)
+	}
+	if got := readActive(); len(got.Items) != 0 {
+		t.Fatalf("corrected fact still returned Active Memory: %#v", got.Items)
+	}
+	after, err := app.readResidentMemorySnapshot(ctx, ownerID, ownerID, fluctlightID, now)
+	if err != nil || after.Trace.Generation <= before.Trace.Generation || len(after.Active) != 0 {
+		t.Fatalf("corrected fact remained Resident: before=%#v after=%#v err=%v", before, after, err)
+	}
+	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
+		_, err := app.applyActiveMemoryCommandTx(ctx, tx, late)
+		return err
+	}); err == nil || err.Error() != "active_memory_source_version_stale" {
+		t.Fatalf("late reflection command republished old source: %v", err)
+	}
+}
+
 // PostgreSQL integration gate: intentionally deferred to S12 by implement.md.
 func TestPostgresActiveMemoryLifecycleReplayCASExpiryAndSupersede(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)

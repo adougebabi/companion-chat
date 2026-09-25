@@ -62,6 +62,8 @@ type PreparedActiveMemoryMutation struct {
 	ActorRefs         []string                   `json:"actor_refs"`
 	ConversationID    string                     `json:"conversation_id,omitempty"`
 	SourceFactID      string                     `json:"source_fact_id"`
+	SourceKind        string                     `json:"source_kind,omitempty"`
+	SourceFingerprint string                     `json:"source_fingerprint,omitempty"`
 	EvidenceRefs      []string                   `json:"evidence_refs"`
 	OccurredAt        time.Time                  `json:"occurred_at"`
 	Target            *ActiveMemoryTarget        `json:"target,omitempty"`
@@ -111,6 +113,7 @@ type activeMemoryAuthorityRow struct {
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 	ClosedAt               *time.Time
+	SourceValidity         string
 }
 
 func activeMemoryCanonicalKey(ownerFluctlightID, conversationID string, semantic ActiveMemorySemanticInput) string {
@@ -189,6 +192,12 @@ func validatePreparedActiveMemoryMutation(command PreparedActiveMemoryMutation) 
 	if len(command.EvidenceRefs) == 0 || len(command.EvidenceRefs) > 64 || strings.TrimSpace(command.SemanticReason) == "" || len([]rune(strings.TrimSpace(command.SemanticReason))) > 1000 || strings.TrimSpace(command.IdempotencyKey) == "" || len([]rune(command.IdempotencyKey)) > 256 {
 		return errors.New("active_memory_command_provenance_invalid")
 	}
+	if command.SourceKind != "" && command.SourceKind != "fact" && command.SourceKind != "authenticated_command" {
+		return errors.New("active_memory_source_kind_invalid")
+	}
+	if command.SourceKind != "" && len(command.SourceFingerprint) != 32 {
+		return errors.New("active_memory_source_fingerprint_invalid")
+	}
 	if err := validateBoundedRefs(command.EvidenceRefs); err != nil {
 		return errors.New("active_memory_command_provenance_invalid")
 	}
@@ -236,6 +245,15 @@ func (a *App) applyActiveMemoryCommandTx(ctx context.Context, tx pgx.Tx, command
 		return ActiveMemoryApplyResult{}, err
 	} else if found {
 		return replay, nil
+	}
+	if command.SourceKind == "fact" {
+		var currentFingerprint string
+		if err := tx.QueryRow(ctx, `SELECT public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, command.SourceFactID, command.OwnerFluctlightID).Scan(&currentFingerprint); err != nil || currentFingerprint != command.SourceFingerprint {
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return ActiveMemoryApplyResult{}, err
+			}
+			return ActiveMemoryApplyResult{}, errors.New("active_memory_source_version_stale")
+		}
 	}
 	if command.Operation == ActiveMemoryCreate {
 		return a.applyActiveMemoryCreateTx(ctx, tx, command)
@@ -482,7 +500,7 @@ func activeMemorySnapshot(row activeMemoryAuthorityRow) map[string]any {
 }
 
 func readActiveMemoryAuthorityRowTx(ctx context.Context, tx pgx.Tx, activeMemoryID string) (activeMemoryAuthorityRow, error) {
-	return scanActiveMemoryAuthorityRow(tx.QueryRow(ctx, `SELECT id,owner_fluctlight_id,COALESCE(conversation_id,''),kind,content,status,confidence,importance,actor_refs,source_fact_id,evidence_refs,COALESCE(original_time_expression,''),valid_from,valid_until,time_precision,timezone,last_relevant_at,revision,canonical_key,request_digest,COALESCE(superseded_by_active_memory_id,''),COALESCE(supersedes_active_memory_id,''),created_at,updated_at,closed_at FROM public.active_memories WHERE id=$1 FOR UPDATE`, activeMemoryID))
+	return scanActiveMemoryAuthorityRow(tx.QueryRow(ctx, `SELECT id,owner_fluctlight_id,COALESCE(conversation_id,''),kind,content,status,confidence,importance,actor_refs,source_fact_id,evidence_refs,COALESCE(original_time_expression,''),valid_from,valid_until,time_precision,timezone,last_relevant_at,revision,canonical_key,request_digest,COALESCE(superseded_by_active_memory_id,''),COALESCE(supersedes_active_memory_id,''),created_at,updated_at,closed_at,'legacy_unknown' FROM public.active_memories WHERE id=$1 FOR UPDATE`, activeMemoryID))
 }
 
 type activeMemoryRowScanner interface {
@@ -492,7 +510,7 @@ type activeMemoryRowScanner interface {
 func scanActiveMemoryAuthorityRow(scanner activeMemoryRowScanner) (activeMemoryAuthorityRow, error) {
 	var row activeMemoryAuthorityRow
 	var actorRefs, evidenceRefs []byte
-	if err := scanner.Scan(&row.ID, &row.OwnerFluctlightID, &row.ConversationID, &row.Kind, &row.Content, &row.Status, &row.Confidence, &row.Importance, &actorRefs, &row.SourceFactID, &evidenceRefs, &row.OriginalTimeExpression, &row.ValidFrom, &row.ValidUntil, &row.TimePrecision, &row.Timezone, &row.LastRelevantAt, &row.Revision, &row.CanonicalKey, &row.RequestDigest, &row.SupersededByID, &row.SupersedesID, &row.CreatedAt, &row.UpdatedAt, &row.ClosedAt); err != nil {
+	if err := scanner.Scan(&row.ID, &row.OwnerFluctlightID, &row.ConversationID, &row.Kind, &row.Content, &row.Status, &row.Confidence, &row.Importance, &actorRefs, &row.SourceFactID, &evidenceRefs, &row.OriginalTimeExpression, &row.ValidFrom, &row.ValidUntil, &row.TimePrecision, &row.Timezone, &row.LastRelevantAt, &row.Revision, &row.CanonicalKey, &row.RequestDigest, &row.SupersededByID, &row.SupersedesID, &row.CreatedAt, &row.UpdatedAt, &row.ClosedAt, &row.SourceValidity); err != nil {
 		return activeMemoryAuthorityRow{}, err
 	}
 	if err := json.Unmarshal(actorRefs, &row.ActorRefs); err != nil {

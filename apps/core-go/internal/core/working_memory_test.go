@@ -72,3 +72,31 @@ func TestWorkingMemoryPressureIsBoundedWithoutDeletingSources(t *testing.T) {
 		t.Fatalf("pressure selection is not bounded: recent=%d retrieved=%d active=%d dropped=%d", len(result.Recent), len(result.Retrieved), len(result.Active), len(result.Trace.Dropped))
 	}
 }
+
+func TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates(t *testing.T) {
+	input := WorkingMemoryInput{
+		ResidentCandidates: []PromptFragment{
+			{Kind: PromptFragmentResidentMemory, Priority: 100, Content: map[string]any{"content": "重要关系"}, EstimatedTokens: 8, SourceRefs: []string{"memory:relationship"}},
+			{Kind: PromptFragmentResidentMemory, Priority: 90, Content: map[string]any{"content": "次要关系"}, EstimatedTokens: 8, SourceRefs: []string{"memory:secondary"}},
+		},
+		RetrievedMemories: []PromptFragment{
+			{Kind: PromptFragmentRetrievedMemory, Priority: 100, Content: map[string]any{"content": "重要关系重复"}, EstimatedTokens: 8, SourceRefs: []string{"memory:relationship"}},
+			{Kind: PromptFragmentRetrievedMemory, Priority: 80, Content: map[string]any{"content": "可进一步检索"}, EstimatedTokens: 8, SourceRefs: []string{"memory:deep"}},
+		},
+	}
+	policy := DefaultWorkingMemoryPolicy()
+	policy.ResidentTokens = 8
+	result, err := ResolveWorkingMemory(input, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Resident) != 1 || len(result.Retrieved) != 1 || len(input.ResidentCandidates) != 2 || len(input.RetrievedMemories) != 2 {
+		t.Fatalf("resident projection duplicated or deleted underlying candidates: result=%#v input=%#v", result, input)
+	}
+	if stringValue(mapValue(result.Retrieved[0].Content)["content"]) != "可进一步检索" {
+		t.Fatalf("deep candidate became unavailable: %#v", result.Retrieved)
+	}
+	if len(result.Trace.Dropped) != 2 || result.Trace.Dropped[0].Reason != "section_cap" || result.Trace.Dropped[1].Reason != "deduplicated" {
+		t.Fatalf("resident selection trace=%#v", result.Trace.Dropped)
+	}
+}

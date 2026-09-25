@@ -112,6 +112,39 @@ func TestContextReferenceInfluenceRoundTrip(t *testing.T) {
 	}
 }
 
+func TestCurrentWearingHasProviderVisibleOpaqueEvidenceRef(t *testing.T) {
+	appearance := map[string]any{
+		"body_revision": 0, "wardrobe_revision": 1, "wearing_state": "known", "captured_at": "2026-09-24T12:00:00Z",
+		"worn_items": []any{map[string]any{"description": "红色外套", "slot": "outerwear"}},
+	}
+	projection := ContextProjection{
+		FluctlightID: "fl-wearing", OwnerActorID: "owner-wearing", CurrentSpeaker: map[string]any{"actor_id": "owner-wearing"},
+		EffectiveAppearance: appearance,
+		CurrentState:        map[string]any{"data": map[string]any{"appearance": cloneMap(appearance)}},
+	}
+	if err := buildContextReferenceIndex(&projection); err != nil {
+		t.Fatal(err)
+	}
+	ref := stringValue(projection.EffectiveAppearance["ref"])
+	if !strings.HasPrefix(ref, "appearance:ctx_") || projection.ReferenceIndex.ByRef[ref].Kind != ContextReferenceAppearance || stringValue(mapValue(mapValue(projection.CurrentState["data"])["appearance"])["ref"]) != ref {
+		t.Fatalf("current wearing is not bound to one visible ref: %#v", projection.CurrentState)
+	}
+	if got := stringValue(compactEffectiveAppearanceForSurface(mapValue(mapValue(projection.CurrentState["data"])["appearance"]))["ref"]); got != ref {
+		t.Fatalf("Provider current appearance lost the frozen ref: %q want %q", got, ref)
+	}
+	secondAppearance := cloneMap(appearance)
+	secondAppearance["captured_at"] = "2026-09-24T12:05:00Z"
+	second := ContextProjection{FluctlightID: "fl-wearing", OwnerActorID: "owner-wearing", CurrentSpeaker: map[string]any{"actor_id": "owner-wearing"}, EffectiveAppearance: secondAppearance}
+	if err := buildContextReferenceIndex(&second); err != nil || stringValue(second.EffectiveAppearance["ref"]) != ref {
+		t.Fatalf("unchanged wearing changed opaque ref on reread: first=%q second=%q err=%v", ref, stringValue(second.EffectiveAppearance["ref"]), err)
+	}
+	claims := normalizeCognitionClaims([]any{map[string]any{"kind": ClaimObservedFact, "content": "现在穿红色外套", "confidence": 1.0, "evidence_refs": []any{ref}}}, "turn-fact", projection.ReferenceIndex)
+	approved, _, _, err := evaluateClaims(claims, "turn-fact", projection)
+	if err != nil || len(approved) != 1 || stringValue(arrayValue(mapValue(approved[0])["evidence_refs"])[0]) != "turn-fact" {
+		t.Fatalf("current appearance claim did not settle with bounded evidence: %#v err=%v", approved, err)
+	}
+}
+
 func TestSameObservationDifferentFrozenSceneProducesDistinctInfluenceChain(t *testing.T) {
 	build := func(scene, eventID, contextRevision string, revision int) ContextProjection {
 		projection := ContextProjection{

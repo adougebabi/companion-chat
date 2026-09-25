@@ -12,7 +12,13 @@ import (
 )
 
 func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string) (map[string]any, error) {
+	retry, _ := ctx.Value(detailProjectionRetryKey{}).(int)
+	readAt := time.Now().UTC()
 	fluctlight, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
+	if err != nil {
+		return nil, err
+	}
+	currentFactsRevision, err := a.readCurrentFactsRevision(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,11 +97,20 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
-	detail["schedule"], detail["context"], err = a.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	detail["schedule"], detail["context"], err = a.readLifeContextSnapshotAt(ctx, fluctlightID, readAt)
 	if err != nil {
 		return nil, err
 	}
-	detail["current_state"] = map[string]any{"inner_state": inner, "context": detail["context"]}
+	appearance, _, _, err := a.readEffectiveLifeSnapshot(ctx, fluctlightID, readAt)
+	if err != nil {
+		return nil, err
+	}
+	activities, err := a.readActiveLifeActivities(ctx, fluctlightID, readAt)
+	if err != nil {
+		return nil, err
+	}
+	detail["current_facts_revision"] = currentFactsRevision
+	detail["current_state"] = map[string]any{"inner_state": inner, "context": detail["context"], "appearance": appearance, "active_activities": activities}
 	detail["hypotheses"], err = a.readActiveHypotheses(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -120,8 +135,26 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	latestFactsRevision, err := a.readCurrentFactsRevision(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	if latestFactsRevision != currentFactsRevision {
+		if retry < 2 {
+			return a.FluctlightDetail(context.WithValue(ctx, detailProjectionRetryKey{}, retry+1), actorID, fluctlightID)
+		}
+		return nil, ErrContextProjectionUnstable
+	}
+	if err := a.validateCognitionAuthorityRevisions(ctx, fluctlightID, fluctlight.CurrentRevision, intValue(inner["revision"]), stringValue(mapValue(detail["context"])["context_revision"]), readAt); err != nil {
+		if retry < 2 && (errors.Is(err, ErrFoundationRevisionStale) || errors.Is(err, ErrCurrentStateRevisionStale) || errors.Is(err, ErrLifeContextStale)) {
+			return a.FluctlightDetail(context.WithValue(ctx, detailProjectionRetryKey{}, retry+1), actorID, fluctlightID)
+		}
+		return nil, err
+	}
 	return detail, nil
 }
+
+type detailProjectionRetryKey struct{}
 
 func (a *App) readInitializationSource(ctx context.Context, actorID, fluctlightID string) (map[string]any, error) {
 	var id, correlationID, sourceText, sourceDigest, promptVersion, schemaVersion, classification, projectionDigest string

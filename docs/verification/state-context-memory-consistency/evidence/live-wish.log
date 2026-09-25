@@ -1,0 +1,8 @@
+=== RUN   TestLiveHandleTurnDoesNotTreatUnexecutedWishAsPurchase
+2026/09/24 22:00:32 INFO capability lifecycle capability=memory.recall call_id=call_1790258432234_0 type=query surface=conversation required_context=[memory_scope] duration_ms=7 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 22:00:32 INFO capability lifecycle capability=wardrobe.inspect call_id=call_1790258432234_1 type=query surface=conversation required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+    provider_live_e2e_test.go:320: wish conversation failed: agent_final_contract_invalid: claim_0_evidence_invalid; tool_shapes=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"memory.recall"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"wardrobe.inspect"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation.reply"}}
+--- FAIL: TestLiveHandleTurnDoesNotTreatUnexecutedWishAsPurchase (199.53s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	200.152s
+FAIL

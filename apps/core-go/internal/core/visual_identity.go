@@ -436,23 +436,59 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	}
 	normalizeVisualIdentityFoundation(corePersona)
 	profileID := visualIdentityProfileID(fluctlightID)
-	lifeProfile := mapValue(corePersona["life_profile"])
-	constraints, constraintErr := rendererConstraintsForCorePersona(corePersona)
+	if err := lockEffectiveLifeSnapshotTx(ctx, tx, fluctlightID); err != nil {
+		return "", err
+	}
+	current, bodyRevision, wardrobeRevision, err := readEffectiveLifeSnapshotWith(ctx, tx, fluctlightID, time.Now().UTC())
+	if err != nil {
+		return "", err
+	}
+	if bodyRevision < 0 || wardrobeRevision < 0 {
+		return "", errors.New("effective_life_uninitialized")
+	}
+	currentAppearance := map[string]any{}
+	physicalFeatures := map[string]any{}
+	for key, raw := range mapValue(current["body_fields"]) {
+		field := mapValue(raw)
+		if stringValue(field["status"]) != "known" {
+			continue
+		}
+		switch key {
+		case "hair_length", "hair_color":
+			physicalFeatures[key] = field["value"]
+		default:
+			currentAppearance[key] = field["value"]
+		}
+	}
+	if len(physicalFeatures) > 0 {
+		currentAppearance["physical_features"] = physicalFeatures
+	}
+	if stringValue(current["wearing_state"]) == "known" {
+		currentAppearance["currently_worn"] = current["worn_items"]
+	}
+	lifeProfile := map[string]any{"appearance": currentAppearance}
+	identity := map[string]any{}
+	for _, key := range []string{"name", "display_name", "age", "gender", "nationality", "ethnicity"} {
+		if value, present := mapValue(corePersona["identity"])[key]; present && value != nil {
+			identity[key] = value
+		}
+	}
+	rendererPersona := cloneMap(corePersona)
+	rendererPersona["identity"] = identity
+	rendererPersona["life_profile"] = lifeProfile
+	constraints, constraintErr := rendererConstraintsForCorePersona(rendererPersona)
 	profileStatus := visualIdentityStatusMissing
 	if constraintErr != nil {
 		profileStatus = visualIdentityStatusRendererPending
 		constraints = map[string]any{"schema_version": visualIdentitySchemaVersion, "adapter_version": visualIdentityAdapterVersion, "error": constraintErr.Error()}
 	}
 	identitySnapshot := map[string]any{
-		"schema_version": visualIdentitySchemaVersion,
-		"identity":       cloneMap(mapValue(corePersona["identity"])),
-		"life_profile":   cloneMap(lifeProfile),
-	}
-	if extensions := mapValue(corePersona["extensions"]); len(extensions) > 0 {
-		identitySnapshot["extensions"] = cloneMap(extensions)
-	}
-	if appearanceVal, ok := corePersona["appearance"]; ok && appearanceVal != nil {
-		identitySnapshot["appearance"] = appearanceVal
+		"schema_version":    visualIdentitySchemaVersion,
+		"identity":          identity,
+		"life_profile":      cloneMap(lifeProfile),
+		"source":            "effective_life",
+		"body_revision":     bodyRevision,
+		"wardrobe_revision": wardrobeRevision,
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,current_revision,identity_snapshot,renderer_constraints,adapter_version) VALUES($1,$2,$3,0,$4,$5,$6) ON CONFLICT(fluctlight_id) DO NOTHING`, profileID, fluctlightID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 		return "", err
@@ -473,7 +509,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 		}
 	}
 	var existingSession string
-	err := tx.QueryRow(ctx, `SELECT id FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&existingSession)
+	err = tx.QueryRow(ctx, `SELECT id FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&existingSession)
 	if err == nil {
 		return existingSession, nil
 	}

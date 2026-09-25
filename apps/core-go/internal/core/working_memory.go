@@ -13,6 +13,7 @@ type PromptFragmentKind = aiprompt.PromptFragmentKind
 const (
 	PromptFragmentRuntimeFact     = aiprompt.PromptFragmentRuntimeFact
 	PromptFragmentActiveMemory    = aiprompt.PromptFragmentActiveMemory
+	PromptFragmentResidentMemory  = aiprompt.PromptFragmentResidentMemory
 	PromptFragmentRecentMessage   = aiprompt.PromptFragmentRecentMessage
 	PromptFragmentRetrievedMemory = aiprompt.PromptFragmentRetrievedMemory
 	PromptFragmentSummary         = aiprompt.PromptFragmentSummary
@@ -21,16 +22,18 @@ const (
 type PromptFragment = aiprompt.PromptFragment
 
 type WorkingMemoryInput struct {
-	RuntimeFacts      []PromptFragment
-	ActiveCandidates  []PromptFragment
-	RecentMessages    []PromptFragment
-	RetrievedMemories []PromptFragment
-	Summaries         []PromptFragment
+	RuntimeFacts       []PromptFragment
+	ActiveCandidates   []PromptFragment
+	ResidentCandidates []PromptFragment
+	RecentMessages     []PromptFragment
+	RetrievedMemories  []PromptFragment
+	Summaries          []PromptFragment
 }
 
 type WorkingMemoryPolicy struct {
 	RuntimeFactTokens int
 	ActiveTokens      int
+	ResidentTokens    int
 	RecentTokens      int
 	RetrievedTokens   int
 	SummaryTokens     int
@@ -52,6 +55,7 @@ type WorkingMemoryTrace struct {
 type WorkingMemory struct {
 	RuntimeFacts []PromptFragment   `json:"runtime_facts"`
 	Active       []PromptFragment   `json:"active"`
+	Resident     []PromptFragment   `json:"resident"`
 	Recent       []PromptFragment   `json:"recent"`
 	Retrieved    []PromptFragment   `json:"retrieved"`
 	Summaries    []PromptFragment   `json:"summaries"`
@@ -59,21 +63,25 @@ type WorkingMemory struct {
 }
 
 func DefaultWorkingMemoryPolicy() WorkingMemoryPolicy {
-	return WorkingMemoryPolicy{RuntimeFactTokens: 6144, ActiveTokens: 2048, RecentTokens: 1500, RetrievedTokens: 3072, SummaryTokens: 2048}
+	return WorkingMemoryPolicy{RuntimeFactTokens: 6144, ActiveTokens: 2048, ResidentTokens: 1024, RecentTokens: 1500, RetrievedTokens: 3072, SummaryTokens: 2048}
 }
 
 func ResolveWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy) (WorkingMemory, error) {
-	if policy.RuntimeFactTokens <= 0 || policy.ActiveTokens <= 0 || policy.RecentTokens <= 0 || policy.RetrievedTokens <= 0 || policy.SummaryTokens <= 0 {
+	if policy.RuntimeFactTokens <= 0 || policy.ActiveTokens <= 0 || policy.ResidentTokens <= 0 || policy.RecentTokens <= 0 || policy.RetrievedTokens <= 0 || policy.SummaryTokens <= 0 {
 		return WorkingMemory{}, errors.New("working_memory_policy_invalid")
 	}
 	result := WorkingMemory{Trace: WorkingMemoryTrace{Selected: []WorkingMemoryDecision{}, Dropped: []WorkingMemoryDecision{}}}
 	seen := make(map[string]struct{})
 	var err error
+	result.RuntimeFacts, err = selectRankedPromptFragments(input.RuntimeFacts, policy.RuntimeFactTokens, seen, &result.Trace)
+	if err != nil {
+		return WorkingMemory{}, err
+	}
 	result.Active, err = selectRankedPromptFragments(input.ActiveCandidates, policy.ActiveTokens, seen, &result.Trace)
 	if err != nil {
 		return WorkingMemory{}, err
 	}
-	result.RuntimeFacts, err = selectRankedPromptFragments(input.RuntimeFacts, policy.RuntimeFactTokens, seen, &result.Trace)
+	result.Resident, err = selectRankedPromptFragments(input.ResidentCandidates, policy.ResidentTokens, seen, &result.Trace)
 	if err != nil {
 		return WorkingMemory{}, err
 	}

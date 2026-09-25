@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -37,6 +38,13 @@ type MemorySemanticInput struct {
 	EmotionalSignificance float64 `json:"emotional_significance"`
 }
 
+type FrozenMemoryEvidenceSource struct {
+	Kind        string `json:"kind"`
+	ID          string `json:"id"`
+	Revision    int    `json:"revision"`
+	Fingerprint string `json:"fingerprint"`
+}
+
 type MemoryTarget struct {
 	Ref              string `json:"ref,omitempty"`
 	MemoryID         string `json:"memory_id"`
@@ -51,32 +59,36 @@ type MemoryRollbackCompensation struct {
 }
 
 type PreparedMemoryMutation struct {
-	SchemaVersion           string                       `json:"schema_version"`
-	Operation               MemoryOperation              `json:"operation"`
-	OwnerFluctlightID       string                       `json:"owner_fluctlight_id"`
-	OwnerActorID            string                       `json:"owner_actor_id"`
-	ActorID                 string                       `json:"actor_id"`
-	ActiveProfileID         string                       `json:"active_profile_id,omitempty"`
-	ConversationID          string                       `json:"conversation_id,omitempty"`
-	ActorRefs               []string                     `json:"actor_refs"`
-	EventRefs               []string                     `json:"event_refs"`
-	EvidenceRefs            []string                     `json:"evidence_refs"`
-	PersonalityPerspectives []any                        `json:"personality_perspectives,omitempty"`
-	Target                  *MemoryTarget                `json:"target,omitempty"`
-	MergeTargets            []MemoryTarget               `json:"merge_targets,omitempty"`
-	Semantic                *MemorySemanticInput         `json:"semantic,omitempty"`
-	RollbackRevision        *int                         `json:"rollback_revision,omitempty"`
-	RollbackSnapshot        map[string]any               `json:"rollback_snapshot,omitempty"`
-	RollbackCompensations   []MemoryRollbackCompensation `json:"rollback_compensations,omitempty"`
-	Visibility              string                       `json:"visibility"`
-	OccurredAt              time.Time                    `json:"occurred_at"`
-	SourceFactID            string                       `json:"source_fact_id"`
-	SourceWindow            string                       `json:"source_window,omitempty"`
-	ProposalID              string                       `json:"proposal_id,omitempty"`
-	CandidateIndex          int                          `json:"candidate_index"`
-	SemanticReason          string                       `json:"semantic_reason"`
-	IdempotencyKey          string                       `json:"idempotency_key"`
-	RequestDigest           string                       `json:"request_digest"`
+	SchemaVersion                string                                `json:"schema_version"`
+	Operation                    MemoryOperation                       `json:"operation"`
+	OwnerFluctlightID            string                                `json:"owner_fluctlight_id"`
+	OwnerActorID                 string                                `json:"owner_actor_id"`
+	ActorID                      string                                `json:"actor_id"`
+	ActiveProfileID              string                                `json:"active_profile_id,omitempty"`
+	ConversationID               string                                `json:"conversation_id,omitempty"`
+	ActorRefs                    []string                              `json:"actor_refs"`
+	EventRefs                    []string                              `json:"event_refs"`
+	EvidenceRefs                 []string                              `json:"evidence_refs"`
+	ExpectedEvidenceFingerprints map[string]string                     `json:"expected_evidence_fingerprints,omitempty"`
+	FrozenEvidenceSources        map[string]FrozenMemoryEvidenceSource `json:"frozen_evidence_sources,omitempty"`
+	PersonalityPerspectives      []any                                 `json:"personality_perspectives,omitempty"`
+	Target                       *MemoryTarget                         `json:"target,omitempty"`
+	MergeTargets                 []MemoryTarget                        `json:"merge_targets,omitempty"`
+	Semantic                     *MemorySemanticInput                  `json:"semantic,omitempty"`
+	RollbackRevision             *int                                  `json:"rollback_revision,omitempty"`
+	RollbackSnapshot             map[string]any                        `json:"rollback_snapshot,omitempty"`
+	RollbackCompensations        []MemoryRollbackCompensation          `json:"rollback_compensations,omitempty"`
+	Visibility                   string                                `json:"visibility"`
+	OccurredAt                   time.Time                             `json:"occurred_at"`
+	SourceFactID                 string                                `json:"source_fact_id"`
+	AuthenticatedDirect          bool                                  `json:"authenticated_direct,omitempty"`
+	ReplaceEvidence              bool                                  `json:"replace_evidence,omitempty"`
+	SourceWindow                 string                                `json:"source_window,omitempty"`
+	ProposalID                   string                                `json:"proposal_id,omitempty"`
+	CandidateIndex               int                                   `json:"candidate_index"`
+	SemanticReason               string                                `json:"semantic_reason"`
+	IdempotencyKey               string                                `json:"idempotency_key"`
+	RequestDigest                string                                `json:"request_digest"`
 }
 
 type MemoryApplyResult struct {
@@ -180,9 +192,22 @@ func validatePreparedMemoryMutation(command PreparedMemoryMutation) error {
 	if command.OccurredAt.IsZero() || len(command.EvidenceRefs) == 0 || len(command.EvidenceRefs) > 64 || strings.TrimSpace(command.SemanticReason) == "" || len([]rune(command.SemanticReason)) > 1000 {
 		return errors.New("memory_command_evidence_invalid")
 	}
+	if command.ReplaceEvidence && command.Operation != MemoryRevise {
+		return errors.New("memory_command_evidence_mode_invalid")
+	}
 	for _, ref := range command.EvidenceRefs {
 		if strings.TrimSpace(ref) == "" || len([]rune(ref)) > 256 {
 			return errors.New("memory_command_evidence_invalid")
+		}
+	}
+	for ref, fingerprint := range command.ExpectedEvidenceFingerprints {
+		if !slices.Contains(command.EvidenceRefs, ref) || len(fingerprint) != 32 {
+			return errors.New("memory_command_source_fingerprint_invalid")
+		}
+	}
+	for ref, source := range command.FrozenEvidenceSources {
+		if !slices.Contains(command.EvidenceRefs, ref) || (source.Kind != "memory" && source.Kind != "outcome") || strings.TrimSpace(source.ID) == "" || source.Revision < 0 || len(source.Fingerprint) != 32 {
+			return errors.New("memory_command_frozen_source_invalid")
 		}
 	}
 	needsSemantic := command.Operation == MemoryCreate || command.Operation == MemoryRevise || command.Operation == MemoryMerge || command.Operation == MemorySupersede || command.Operation == MemoryRollback
@@ -655,7 +680,11 @@ func (a *App) applyMemoryReviseTx(ctx context.Context, tx pgx.Tx, command Prepar
 	semantic := *command.Semantic
 	row.Type, row.Content = semantic.Type, strings.TrimSpace(semantic.Content)
 	row.Confidence, row.Importance, row.EmotionalSignificance = semantic.Confidence, semantic.Importance, semantic.EmotionalSignificance
-	row.EvidenceRefs = mergeStringAny(row.EvidenceRefs, command.EvidenceRefs)
+	if command.ReplaceEvidence {
+		row.EvidenceRefs = stringSliceAny(sortedUniqueStrings(command.EvidenceRefs))
+	} else {
+		row.EvidenceRefs = mergeStringAny(row.EvidenceRefs, command.EvidenceRefs)
+	}
 	row.Revision++
 	row.CanonicalKey = memoryCanonicalKey(semantic, row.ConversationID, row.Visibility, decisionServiceRefValues(row.ActorRefs), decisionServiceRefValues(row.EventRefs))
 	row.RequestDigest = memorySnapshotDigest(row)
@@ -968,6 +997,20 @@ func writeMemoryRevisionTx(ctx context.Context, tx pgx.Tx, command PreparedMemor
 	}
 	if inserted.RowsAffected() != 1 {
 		return errors.New("memory_revision_identity_conflict")
+	}
+	if err := writeMemorySourceLinksTx(ctx, tx, command, row); err != nil {
+		return err
+	}
+	return invalidateEpisodeSummariesForMemoryTx(ctx, tx, command, row)
+}
+
+func setMemoryProvenanceStatusTx(ctx context.Context, tx pgx.Tx, memoryID string, revision int, status, epistemicKind string) error {
+	updated, err := tx.Exec(ctx, `UPDATE public.memories SET provenance_status=$3,epistemic_kind=$4 WHERE id=$1 AND revision=$2`, memoryID, revision, status, epistemicKind)
+	if err != nil {
+		return err
+	}
+	if updated.RowsAffected() != 1 {
+		return errors.New("memory_provenance_revision_conflict")
 	}
 	return nil
 }

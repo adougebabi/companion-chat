@@ -96,7 +96,11 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		summaryTrace = summaryResult.Trace
 	}
 	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
-	workingMemory, err := ResolveWorkingMemory(workingInput, DefaultWorkingMemoryPolicy())
+	workingPolicy := DefaultWorkingMemoryPolicy()
+	if assignment.MaxInputTokens > 0 {
+		workingPolicy.ResidentTokens = min(workingPolicy.ResidentTokens, max(128, assignment.MaxInputTokens/12))
+	}
+	workingMemory, err := ResolveWorkingMemory(workingInput, workingPolicy)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
@@ -124,6 +128,7 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			"working_persona": map[string]any{"profile_id": compiled.ProfileID, "source_revision": compiled.SourceRevision, "source_hash_prefix": compiled.SourceHash[:12], "overlay_revision": compiled.OverlayRevision, "rules_version": compiled.RulesVersion, "budget_runes": compiled.BudgetRunes, "cache_hit": false},
 			"prompt_budget":   result.Trace, "working_memory": workingMemory.Trace,
 			"active_memory": activeResult.Trace, "long_term_memory": projection.MemoryRetrievalTrace,
+			"resident_memory": projection.ResidentMemoryTrace, "resident_budget_tokens": workingPolicy.ResidentTokens,
 			"conversation_summary": summaryTrace,
 		}
 	}
@@ -166,6 +171,12 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		cleaned := mapValue(cleanPromptValue(item))
 		if len(cleaned) > 0 {
 			input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: cleaned, SourceRefs: promptItemSourceRefs(cleaned, "memory")})
+		}
+	}
+	for _, item := range compactMemoriesForProfileForSurface(projection.ResidentMemories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]), surface, projection.ReferenceIndex) {
+		cleaned := mapValue(cleanPromptValue(item))
+		if len(cleaned) > 0 {
+			input.ResidentCandidates = append(input.ResidentCandidates, PromptFragment{Kind: PromptFragmentResidentMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: cleaned, SourceRefs: promptItemSourceRefs(cleaned, "resident")})
 		}
 	}
 	if providerContextSurfaceAllowsSummaries(surface) {
@@ -598,7 +609,7 @@ func compactEffectiveAppearanceForSurface(value map[string]any) map[string]any {
 		return nil
 	}
 	result := map[string]any{}
-	for _, key := range []string{"body_revision", "wardrobe_revision", "wearing_state", "captured_at"} {
+	for _, key := range []string{"ref", "body_revision", "wardrobe_revision", "wearing_state", "captured_at"} {
 		if item, exists := value[key]; exists {
 			result[key] = item
 		}
@@ -1325,8 +1336,8 @@ func compactMemories(memories []map[string]any) []map[string]any {
 func compactMemoriesForProfile(memories []map[string]any, activeProfileID string) []map[string]any {
 	result := make([]map[string]any, 0, len(memories))
 	for _, memory := range memories {
-		compact := make(map[string]any, 7)
-		for _, key := range []string{"ref", "type", "content", "confidence", "importance", "emotional_significance", "created_at"} {
+		compact := make(map[string]any, 9)
+		for _, key := range []string{"ref", "type", "content", "confidence", "importance", "emotional_significance", "occurred_at", "created_at", "provenance_status", "epistemic_kind"} {
 			if value, ok := memory[key]; ok && value != nil && value != "" {
 				compact[key] = value
 			}
@@ -1352,7 +1363,7 @@ func compactActiveMemoriesForSurface(memories []map[string]any, surface Provider
 	result := make([]map[string]any, 0, len(memories))
 	for _, memory := range compactActiveMemories(memories) {
 		item := map[string]any{}
-		for _, key := range []string{"kind", "content", "confidence", "importance", "original_time_expression", "valid_from", "valid_until", "time_precision", "timezone"} {
+		for _, key := range []string{"kind", "content", "confidence", "importance", "source_validity", "original_time_expression", "valid_from", "valid_until", "time_precision", "timezone"} {
 			if value, ok := memory[key]; ok && value != nil && value != "" {
 				item[key] = value
 			}
@@ -1375,7 +1386,7 @@ func compactMemoriesForProfileForSurface(memories []map[string]any, activeProfil
 	result := make([]map[string]any, 0, len(base))
 	for _, memory := range base {
 		item := map[string]any{}
-		for _, key := range []string{"type", "content", "confidence", "importance", "emotional_significance", "created_at", "current_profile_perspective"} {
+		for _, key := range []string{"type", "content", "confidence", "importance", "emotional_significance", "occurred_at", "created_at", "provenance_status", "epistemic_kind", "current_profile_perspective"} {
 			if value, ok := memory[key]; ok && value != nil && value != "" {
 				item[key] = value
 			}

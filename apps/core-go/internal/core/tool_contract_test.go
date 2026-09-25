@@ -840,10 +840,13 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 	}
 	memorySchema := mapValue(memoryCapabilityDefinition().InputSchema)
 	memoryProperties := mapValue(memorySchema["properties"])
-	for _, runtimeOwned := range []string{"operation", "target_ref", "merge_refs", "memory_id", "expected_revision", "personality_perspectives", "profile_id", "evidence_refs", "provenance", "idempotency_key", "visibility", "actor_refs", "event_refs", "conversation_id", "source_fact_id"} {
+	for _, runtimeOwned := range []string{"merge_refs", "memory_id", "expected_revision", "personality_perspectives", "profile_id", "evidence_refs", "provenance", "idempotency_key", "visibility", "actor_refs", "event_refs", "conversation_id", "source_fact_id"} {
 		if _, found := memoryProperties[runtimeOwned]; found {
 			t.Fatalf("memory provider schema exposes runtime-owned field %q: %#v", runtimeOwned, memoryProperties)
 		}
+	}
+	if !containsStringValue(arrayValue(mapValue(memoryProperties["operation"])["enum"]), "revise") || stringValue(mapValue(memoryProperties["target_ref"])["type"]) != "string" {
+		t.Fatalf("memory correction must accept only an opaque target ref: %#v", memoryProperties)
 	}
 	typeSchema := mapValue(memoryProperties["type"])
 	if containsStringValue(arrayValue(typeSchema["enum"]), "working") {

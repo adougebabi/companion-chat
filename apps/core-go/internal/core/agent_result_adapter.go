@@ -458,12 +458,17 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 		if inboxStatus != "pending" && inboxStatus != "claimed" {
 			return ErrConflict
 		}
-		expectedFoundation, expectedState, expectedLife, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
+		expectedFoundation, expectedState, expectedLife, expectedFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
 		if err != nil {
 			return err
 		}
 		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundation, expectedState, expectedLife, time.Now().UTC()); err != nil {
 			return err
+		}
+		if expectedFacts != "" {
+			if err := a.requireCurrentFactsRevisionTx(ctx, tx, fluctlightID, expectedFacts); err != nil {
+				return err
+			}
 		}
 		actionType := "reply"
 		if strings.TrimSpace(stringValue(assistant["id"])) == "" {
@@ -527,8 +532,11 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 	})
 }
 
-func (a *App) agentSettlementAuthorityRevisionsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, projection ContextProjection, outcome agentCommittedOutcome) (int, int, string, error) {
-	foundation, currentState, lifeContext := projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision
+func (a *App) agentSettlementAuthorityRevisionsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, projection ContextProjection, outcome agentCommittedOutcome) (int, int, string, string, error) {
+	foundation, currentState, lifeContext, currentFacts := projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, projection.CurrentFactsRevision
+	if start := projection.AuthorityAtRunStart; start != nil {
+		foundation, currentState, lifeContext, currentFacts = start.Foundation, start.CurrentState, start.LifeContext, start.CurrentFacts
+	}
 	resultByCall := make(map[string]CapabilityResult, len(outcome.Results))
 	for _, result := range outcome.Results {
 		resultByCall[strings.TrimSpace(result.CallID)] = result
@@ -540,32 +548,38 @@ func (a *App) agentSettlementAuthorityRevisionsTx(ctx context.Context, tx pgx.Tx
 		}
 		definition, registered := a.capabilityRegistry().Definition(invocation.CapabilityName)
 		if !registered {
-			return 0, 0, "", ErrCapabilityNotFound
+			return 0, 0, "", "", ErrCapabilityNotFound
 		}
 		if definition.Type == CapabilityTypeQuery && definition.SideEffectClass == "read_only" {
 			continue
 		}
 		operationID := strings.TrimSpace(invocation.Metadata.OperationID)
 		if operationID == "" {
-			return 0, 0, "", errors.New("agent_tool_operation_identity_missing")
+			return 0, 0, "", "", errors.New("agent_tool_operation_identity_missing")
 		}
 		var encoded []byte
 		if err := tx.QueryRow(ctx, `SELECT invocation->'authority_revisions' FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND operation_id=$3`, fluctlightID, invocation.CapabilityName, operationID).Scan(&encoded); err != nil {
-			return 0, 0, "", err
+			return 0, 0, "", "", err
 		}
 		var authority ToolAuthorityRevisions
 		if err := json.Unmarshal(encoded, &authority); err != nil || strings.TrimSpace(authority.LifeContext) == "" {
-			return 0, 0, "", errors.New("agent_tool_authority_receipt_invalid")
+			return 0, 0, "", "", errors.New("agent_tool_authority_receipt_invalid")
 		}
 		if authority.Before == nil {
-			return 0, 0, "", errors.New("agent_tool_authority_receipt_invalid")
+			return 0, 0, "", "", errors.New("agent_tool_authority_receipt_invalid")
 		}
 		if err := compareCognitionAuthorityRevisions(foundation, currentState, lifeContext, authority.Before.Foundation, authority.Before.CurrentState, authority.Before.LifeContext); err != nil {
-			return 0, 0, "", err
+			return 0, 0, "", "", err
+		}
+		if currentFacts != "" && currentFacts != authority.Before.CurrentFacts {
+			return 0, 0, "", "", ErrCurrentFactsStale
 		}
 		foundation, currentState, lifeContext = authority.Foundation, authority.CurrentState, authority.LifeContext
+		if currentFacts != "" {
+			currentFacts = authority.CurrentFacts
+		}
 	}
-	return foundation, currentState, lifeContext, nil
+	return foundation, currentState, lifeContext, currentFacts, nil
 }
 
 // ProcessWakeUp runs the registered Wake-up Agent and records the already
@@ -635,21 +649,30 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+	projectionRequest := ContextProjectionRequest{
 		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: wakeID,
 		MemoryOperation: MemoryForWakeUp, MemoryConversationMode: MemoryConversationExact,
-	})
+	}
+	projection, err := a.BuildContextProjectionFor(ctx, projectionRequest)
 	if err != nil {
 		return nil, err
 	}
-	if active, identityErr := a.hasActiveVisualIdentity(ctx, fluctlightID); identityErr != nil {
-		return nil, identityErr
-	} else if !active {
-		if projection.VisualIdentity == nil {
-			projection.VisualIdentity = map[string]any{}
+	decorateProjection := func(decorateCtx context.Context, target *ContextProjection) error {
+		active, identityErr := a.hasActiveVisualIdentity(decorateCtx, fluctlightID)
+		if identityErr != nil {
+			return identityErr
 		}
-		projection.VisualIdentity["missing"] = true
+		if !active {
+			if target.VisualIdentity == nil {
+				target.VisualIdentity = map[string]any{}
+			}
+			target.VisualIdentity["missing"] = true
+		}
+		return nil
+	}
+	if err := decorateProjection(ctx, &projection); err != nil {
+		return nil, err
 	}
 	policy, err := a.EvaluateAutonomyPolicy(ctx, fluctlightID, "capability", a.now().UTC())
 	if err != nil {
@@ -658,12 +681,15 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	_ = policy // Effect authorization is rechecked atomically by each Tool; internal cognition can continue.
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
 	schema := wakeUpResponseSchema()
-	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}, jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "schedule_status": wakeUpScheduleStatus(projection.Schedule)}), definitions, "wake_up_response", schema)
+	operationRules := []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}
+	currentInput := jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
+	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema)
 	if err != nil {
 		return nil, err
 	}
 	projection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderCancellationKey(WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID), WakeUpProviderCancellationMarker(fluctlightID, cycle)), assembly.Diagnostics)
+	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceWakeUp, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema, decorateProjection)
 	run, runErr := a.RunFormalAgent(providerCtx, FormalAgentWakeUp, FormalAgentRunInput{
 		Prompt: PromptAssemblyResult{Messages: assembly.Messages, ResponseFormat: schema}, Definitions: definitions,
 		SchemaName: "wake_up_response", EnableThinking: structuredThinkingEnabledForSchema("wake_up_response"),
@@ -674,6 +700,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			CorrelationID: correlationID, Surface: CapabilitySurfaceWakeUp, Projection: projection,
 		},
 	})
+	if run.Projection != nil {
+		projection = *run.Projection
+	}
 	outcome, outcomeErr := committedAgentOutcome(run.Trace)
 	if outcomeErr != nil {
 		return nil, outcomeErr
@@ -727,12 +756,17 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 	var nextDue time.Time
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if status != "failed" && status != "cancelled" {
-			foundation, currentState, lifeContext, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
+			foundation, currentState, lifeContext, currentFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
 			if err != nil {
 				return err
 			}
 			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentState, lifeContext, time.Now().UTC()); err != nil {
 				return err
+			}
+			if currentFacts != "" {
+				if err := a.requireCurrentFactsRevisionTx(ctx, tx, fluctlightID, currentFacts); err != nil {
+					return err
+				}
 			}
 		}
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
@@ -846,12 +880,13 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
 		return err
 	}
-	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+	projectionRequest := ContextProjectionRequest{
 		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
 		SourceFactID: inboxID, MemoryOperation: MemoryForNativeCognition,
 		MemoryConversationMode: MemoryConversationGlobalOnly,
 		MemoryCues:             []MemoryQueryCue{{Kind: "native_event_type", Text: eventType}, {Kind: "native_fact", Text: jsonString(compactProviderFact(payload))}},
-	})
+	}
+	projection, err := a.BuildContextProjectionFor(ctx, projectionRequest)
 	if err != nil {
 		return err
 	}
@@ -879,7 +914,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		}
 	}
 	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "native_cognition"), "native-cognition:"+inboxID)
-	taskResult, runErr := a.RunNativeCognitionTask(providerCtx, NativeCognitionTaskInput{EventType: eventType, Fact: payload, Projection: projection})
+	taskResult, runErr := a.RunNativeCognitionTask(providerCtx, NativeCognitionTaskInput{EventType: eventType, Fact: payload, Projection: projection, ProjectionRequest: projectionRequest})
 	outcome, outcomeErr := committedAgentOutcome(taskResult.Trace)
 	if outcomeErr != nil {
 		return outcomeErr
@@ -926,12 +961,17 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		}
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		foundation, currentRevision, lifeContext, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
+		foundation, currentRevision, lifeContext, currentFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
 		if err != nil {
 			return err
 		}
 		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentRevision, lifeContext, time.Now().UTC()); err != nil {
 			return err
+		}
+		if currentFacts != "" {
+			if err := a.requireCurrentFactsRevisionTx(ctx, tx, fluctlightID, currentFacts); err != nil {
+				return err
+			}
 		}
 		actionID := "agent_native_" + stableDigest(inboxID)
 		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, stages, "no_op", actionID, currentRevision); err != nil {
@@ -1028,11 +1068,12 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		return nil, err
 	}
 	sourceFactID := "daily-review:" + fluctlightID + ":" + localDate
-	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+	projectionRequest := ContextProjectionRequest{
 		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: sourceFactID,
 		MemoryOperation: MemoryForDailyReview, MemoryConversationMode: MemoryConversationExact,
-	})
+	}
+	projection, err := a.BuildContextProjectionFor(ctx, projectionRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1048,7 +1089,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if err != nil {
 		return nil, err
 	}
-	taskResult, runErr := a.RunDailyReviewTask(ctx, DailyReviewTaskInput{LocalDate: localDate, Projection: projection})
+	taskResult, runErr := a.RunDailyReviewTask(ctx, DailyReviewTaskInput{LocalDate: localDate, Projection: projection, ProjectionRequest: projectionRequest})
 	outcome, outcomeErr := committedAgentOutcome(taskResult.Trace)
 	if outcomeErr != nil {
 		return nil, outcomeErr
@@ -1084,12 +1125,17 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if status != "failed" {
-			foundation, currentState, lifeContext, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, taskResult.Projection, outcome)
+			foundation, currentState, lifeContext, currentFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, taskResult.Projection, outcome)
 			if err != nil {
 				return err
 			}
 			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentState, lifeContext, time.Now().UTC()); err != nil {
 				return err
+			}
+			if currentFacts != "" {
+				if err := a.requireCurrentFactsRevisionTx(ctx, tx, fluctlightID, currentFacts); err != nil {
+					return err
+				}
 			}
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at,error_code) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),now(),$10)`, actionID, fluctlightID, actionType, jsonBytes(payload), jsonBytes(policy.Snapshot), jsonBytes(map[string]any{"foundation_revision": taskResult.Projection.ContextRevision, "current_state_revision": taskResult.Projection.CurrentStateRevision, "life_context_revision": taskResult.Projection.LifeContextRevision}), status, workflowID, "formal_agent_daily_"+stableDigest(actionID), nullableString(map[bool]string{true: "agent_run_failed"}[runErr != nil])); err != nil {

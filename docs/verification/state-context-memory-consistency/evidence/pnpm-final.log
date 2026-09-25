@@ -1,0 +1,102 @@
+$ pnpm -r typecheck
+Scope: 3 of 4 workspace projects
+packages/browser-client typecheck$ tsc --noEmit
+packages/core-client typecheck$ tsc --noEmit
+packages/core-client typecheck: Done
+packages/browser-client typecheck: Done
+apps/web typecheck$ vue-tsc --noEmit
+apps/web typecheck: Done
+$ pnpm -r test
+Scope: 3 of 4 workspace projects
+packages/browser-client test$ tsx --test test/*.test.ts
+packages/browser-client test: ✔ BrowserClient resolves an empty base URL against the browser origin (7.75675ms)
+packages/browser-client test: ✔ BrowserClient maps an unauthenticated session response without treating it as a platform failure (0.418125ms)
+packages/browser-client test: ✔ BrowserClient requires an explicit base URL outside the browser (0.182458ms)
+packages/browser-client test: ✔ BrowserClient preserves safe API failure codes (0.2625ms)
+packages/browser-client test: ✔ BrowserClient preserves structured diagnostics details (0.161542ms)
+packages/browser-client test: ✔ BrowserClient preserves a non-2xx conversation turn error code (0.179583ms)
+packages/browser-client test: ✔ BrowserClient transports initialization analysis authority and typed detail source (3.679166ms)
+packages/browser-client test: ✔ BrowserClient requests the bounded media prompt diagnostics module (0.197959ms)
+packages/browser-client test: ✔ BrowserClient exposes media prompt retry (0.190292ms)
+packages/browser-client test: ✔ BrowserClient exposes immediate Fluctlight wake-up (0.168125ms)
+packages/browser-client test: ✔ BrowserClient serializes every lifecycle diagnostics filter for query and export (0.277083ms)
+packages/browser-client test: ✔ BrowserClient serializes the schema-derived Life Context command contracts (0.36475ms)
+packages/browser-client test: ℹ tests 12
+packages/browser-client test: ℹ suites 0
+packages/browser-client test: ℹ pass 12
+packages/browser-client test: ℹ fail 0
+packages/browser-client test: ℹ cancelled 0
+packages/browser-client test: ℹ skipped 0
+packages/browser-client test: ℹ todo 0
+packages/browser-client test: ℹ duration_ms 100.82125
+packages/browser-client test: Done
+apps/web test$ node --test test/*.test.mjs
+apps/web test: ✔ control center keeps keyboard, live-region, and form boundaries explicit (0.493625ms)
+apps/web test: ✔ governance exposes the owner capability request pool (0.329334ms)
+apps/web test: ✔ browser client keeps capability request endpoints at the API boundary (0.063333ms)
+apps/web test: ✔ a new submit remains visible while an older durable retry is being processed (144.061083ms)
+apps/web test: ✔ a stale post-stream history read cannot erase committed streamed messages (57.53825ms)
+apps/web test: ✔ a successful older retry cannot overwrite or lose the separately identified queued user turn (55.558792ms)
+apps/web test: ✔ a terminal cognition error keeps the authoritative user message visible and retry-bound (53.1165ms)
+apps/web test: ✔ a non-2xx turn response keeps the API error code instead of collapsing to turn_failed (51.4025ms)
+apps/web test: ✔ a retry from a discarded conversation is pruned when the server returns a new conversation (43.055833ms)
+apps/web test: ✔ a completed retry from another conversation no longer blocks the selected conversation (55.4585ms)
+apps/web test: ✔ detail display has safe object formatting and Chinese field labels (0.46725ms)
+apps/web test: ✔ provider role defaults preserve enough output budget for initialization (0.060667ms)
+apps/web test: ✔ detail owns read-only life-world sections and uses timezone-aware timeline formatting (0.101542ms)
+apps/web test: ✔ detail exposes a Chinese progressive state drawer (0.098291ms)
+apps/web test: ✔ governance exposes an owner-triggered Wake-up action (0.529ms)
+apps/web test: ✔ detail exposes the owner-only initialization source as a collapsed safe panel (0.205583ms)
+apps/web test: ✔ settings accordion remounts when the selected section changes (0.0795ms)
+apps/web test: ✔ PC shell and role tabs do not scroll the outer frame (0.124083ms)
+apps/web test: ✔ schedule timeline highlights the item active at the current instant (0.061542ms)
+apps/web test: ✔ model run diagnostics show the server creation time (2.546125ms)
+apps/web test: ✔ Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots (0.355625ms)
+apps/web test: ✔ diagnostics sources use independent filter epochs (0.09175ms)
+apps/web test: ✔ Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens (0.190333ms)
+apps/web test: ✔ filtered export reuses every active lifecycle filter (0.082584ms)
+apps/web test: ✔ default group reconciliation keeps only ungrouped actor IDs for assignment (0.348333ms)
+apps/web test: ✔ actor group payloads normalize the migrated members key before filtering (0.072834ms)
+apps/web test: ✔ Telegram-style workspace keeps four primary tabs (0.540208ms)
+apps/web test: ✔ settings configuration is progressively disclosed by closed drawers (0.508375ms)
+apps/web test: ✔ media workflow settings accept unquoted placeholder templates (0.06725ms)
+apps/web test: ✔ web typography does not depend on a runtime Google Fonts stylesheet (0.138167ms)
+apps/web test: ✔ web controls are backed by the local shadcn-vue component layer (0.0885ms)
+apps/web test: ✔ diagnostics keeps existing modules and adds a filtered lifecycle disclosure (0.160709ms)
+apps/web test: ✔ desktop secondary navigation is page-addressable and chat groups stay flat (0.178875ms)
+apps/web test: ✔ chat owns a fixed-height work surface with an internal message scroller (0.1065ms)
+apps/web test: ✔ mobile surfaces keep diagnostics, navigation, and empty states shrink-safe (0.386167ms)
+apps/web test: ✔ runtime API configuration is emitted at container startup (0.308833ms)
+apps/web test: ✔ runtime API configuration rejects non-HTTP URLs (0.167ms)
+apps/web test: ✔ web chat keeps the generated browser client at its boundary (1.607417ms)
+apps/web test: ✔ web keeps a failed turn retryable instead of allowing later messages to overtake it (0.458459ms)
+apps/web test: ✔ chat clears accepted drafts and keeps every streamed token reactive (0.421667ms)
+apps/web test: ✔ control center exposes the required product views (0.181167ms)
+apps/web test: ✔ owner password change explains its policy without trapping the submit button (0.258875ms)
+apps/web test: ✔ web uses the secure random-ID compatibility helper instead of randomUUID directly (0.717125ms)
+apps/web test: ✔ creation dialog presents activation failures where the user can act on them (0.32725ms)
+apps/web test: ✔ persona details expose layered JSON without rendering object coercion (0.779041ms)
+apps/web test: ✔ diagnostics entry loads records and creation keeps a direct correlation link (0.112792ms)
+apps/web test: ✔ creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit (0.6185ms)
+apps/web test: ℹ tests 47
+apps/web test: ℹ suites 0
+apps/web test: ℹ pass 47
+apps/web test: ℹ fail 0
+apps/web test: ℹ cancelled 0
+apps/web test: ℹ skipped 0
+apps/web test: ℹ todo 0
+apps/web test: ℹ duration_ms 621.343083
+apps/web test: Done
+$ pnpm -r build
+Scope: 3 of 4 workspace projects
+apps/web build$ vite build
+apps/web build: vite v7.1.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 2522 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                   0.44 kB │ gzip:   0.28 kB
+apps/web build: dist/assets/index-C5OHpoe4.css  126.52 kB │ gzip:  22.19 kB
+apps/web build: dist/assets/index-1PPmlCEU.js   447.04 kB │ gzip: 135.09 kB
+apps/web build: ✓ built in 1.60s
+apps/web build: Done

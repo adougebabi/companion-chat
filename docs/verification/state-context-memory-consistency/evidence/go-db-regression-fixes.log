@@ -1,0 +1,6 @@
+--- FAIL: TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration (0.72s)
+    visual_identity_tools_test.go:315: effective_life_uninitialized
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	10.426s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	2.630s
+FAIL

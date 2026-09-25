@@ -429,6 +429,9 @@ func testFormalAgentE2ENativeCognition(t *testing.T) {
 		EventType:  "life.scene.changed",
 		Fact:       jsonBytes(map[string]any{"kind": "owner_event", "scene": "quiet reading room", "activity": "reviewing notes", "location": "home"}),
 		Projection: projection,
+		ProjectionRequest: ContextProjectionRequest{AuthorizationActorID: projection.OwnerActorID, SpeakerActorID: projection.OwnerActorID,
+			FluctlightID: projection.FluctlightID, SourceFactID: projection.SourceFactID,
+			MemoryOperation: MemoryForNativeCognition, MemoryConversationMode: MemoryConversationGlobalOnly},
 	})
 	if err != nil {
 		t.Fatalf("real native cognition Agent failed: %v", err)
@@ -439,7 +442,10 @@ func testFormalAgentE2ENativeCognition(t *testing.T) {
 func testFormalAgentE2EDailyReview(t *testing.T) {
 	fixture := newFormalAgentE2EFixture(t)
 	projection := fixture.projection(t, "", MemoryForDailyReview)
-	result, err := fixture.app.RunDailyReviewTask(fixture.ctx, DailyReviewTaskInput{LocalDate: "2026-09-22", Projection: projection})
+	result, err := fixture.app.RunDailyReviewTask(fixture.ctx, DailyReviewTaskInput{LocalDate: "2026-09-22", Projection: projection,
+		ProjectionRequest: ContextProjectionRequest{AuthorizationActorID: projection.OwnerActorID, SpeakerActorID: projection.OwnerActorID,
+			FluctlightID: projection.FluctlightID, ConversationID: projection.ConversationID, SourceFactID: projection.SourceFactID,
+			MemoryOperation: MemoryForDailyReview, MemoryConversationMode: MemoryConversationGlobalOnly}})
 	if err != nil {
 		t.Fatalf("real daily review Agent failed: %v", err)
 	}

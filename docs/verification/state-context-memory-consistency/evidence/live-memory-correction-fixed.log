@@ -1,0 +1,7 @@
+=== RUN   TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory
+    provider_live_e2e_test.go:381: correction reply=""; source Memory="用户的猫叫奶酪（此前误记为布丁，已由用户于 2026-09-24 更正）"/"partial"; tools=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "arguments_excerpt":"{\"operation\":\"revise\",\"target_ref\":\"memory:ctx_d62aa3eb798c8725e2355d324c2b924c\",\"content\":\"用户的猫叫奶酪（此前误记为布丁，已由用户于 2026-09-24 更正）\",\"confidence\":1,\"importance\":0.6,\"emotional_significance\":0.2,\"type\":\"semantic\"}", "id_present":true, "name":"memory_event"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"affect_event"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation.reply"}}
+    provider_live_e2e_test.go:383: Memory correction turn: agent_final_contract_invalid: claim_0_evidence_invalid
+--- FAIL: TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory (178.90s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	179.251s
+FAIL

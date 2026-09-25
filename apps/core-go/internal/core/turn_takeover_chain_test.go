@@ -176,6 +176,11 @@ func TestNativePersonaTakeoverFeedsScopedToolsReplyAndFinal(t *testing.T) {
 				"decision": takeoverDecisionTakeoverB, "rule_id": "public-doubt", "source_profile_id": "spark", "target_profile_id": "twilight", "reason": "controlled native handover",
 			})}}
 		case 2:
+			messages := arrayValue(payload["messages"])
+			system := stringValue(mapValue(messages[0])["content"])
+			if !strings.Contains(system, takeoverChainTwilightMarker) || strings.Contains(system, takeoverChainSparkMarker) {
+				t.Fatalf("run-local takeover did not replace trusted Working Persona: %s", system)
+			}
 			tools := nativePersonaToolMessages(payload)
 			if !strings.Contains(tools, personaTakeoverCapabilityName) || !strings.Contains(tools, "working_persona") || !strings.Contains(tools, "twilight") {
 				t.Fatalf("takeover receipt was not fed to the next model decision: %s", tools)

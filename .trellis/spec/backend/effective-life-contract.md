@@ -57,3 +57,11 @@ Current tables are `fluctlight_appearance_states`/`_revisions`, `fluctlight_ward
 Wrong: copy `life_profile.appearance` and `daily_outfit_preferences` into every System prompt, then infer ownership or overwrite current hair at schedule generation.
 
 Correct: keep Foundation as sourced history, initialize only evidenced current state, update that state through confirmed Tool/event results, and project the current snapshot into Runtime and media inputs.
+
+## Current-state consistency fence (0037)
+
+`fluctlight_context_generations` is the Fluctlight-scoped read and settlement fence. Domain authorities remain in their existing tables. Relevant writes, including semantic correction or deletion of a cognition source, advance the generation in the owning transaction. Prompt projection compares generations before and after reading; a mutating Tool receipt records its before and after generation. Final settlement follows only committed receipts and locks the generation row before checking the expected value. Do not replace this with a timestamp or a scan of historical rows. Initial Foundation appearance and clothing are consumed once at initialization; an absent current value never means reapply the initial value. Visual Identity initialization reads the current body and worn items in one transaction.
+
+The fence covers `cognition_claims` and newly inserted user `conversation_messages` because both feed a formal projection. An assistant message may be published before its own turn settlement, so its initial insert does not advance the fence; the sourced cognition result at settlement does. A semantic message update or deletion advances the fence and invalidates summaries that cite the old message. Do not refresh Resident on every new user message when no existing Memory source can depend on it.
+
+The Provider-visible current appearance, including worn items, carries one `appearance:ctx_...` reference built from its current snapshot. Its token excludes `captured_at`, because a reread is not a body or wardrobe change; the visible timestamp may remain in the data. It is a data reference for evidence and decision influences, never a second appearance authority. Keep it in the compact current-state surface; a model should cite this exact token rather than invent `current_state:ctx_...` or use raw wardrobe IDs as evidence.

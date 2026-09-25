@@ -597,18 +597,18 @@ func (a *App) readRecentActionOutcomes(ctx context.Context, fluctlightID string,
 	if limit > 24 {
 		limit = 24
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,action_id,call_id,capability_name,status,success_boundary,expected,observed,COALESCE(error_code,''),goal_refs,intention_refs,evidence_refs,revision,occurred_at FROM public.cognition_action_outcomes WHERE fluctlight_id=$1 ORDER BY occurred_at DESC,id DESC LIMIT $2`, fluctlightID, limit)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,action_id,call_id,capability_name,status,success_boundary,expected,observed,COALESCE(error_code,''),goal_refs,intention_refs,evidence_refs,revision,occurred_at,request_digest FROM public.cognition_action_outcomes WHERE fluctlight_id=$1 ORDER BY occurred_at DESC,id DESC LIMIT $2`, fluctlightID, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	result := make([]map[string]any, 0)
 	for rows.Next() {
-		var id, actionID, callID, capabilityName, status, boundary, errorCode string
+		var id, actionID, callID, capabilityName, status, boundary, errorCode, requestDigest string
 		var expected, observed, goalRefs, intentionRefs, evidenceRefs []byte
 		var revision int
 		var occurredAt time.Time
-		if err := rows.Scan(&id, &actionID, &callID, &capabilityName, &status, &boundary, &expected, &observed, &errorCode, &goalRefs, &intentionRefs, &evidenceRefs, &revision, &occurredAt); err != nil {
+		if err := rows.Scan(&id, &actionID, &callID, &capabilityName, &status, &boundary, &expected, &observed, &errorCode, &goalRefs, &intentionRefs, &evidenceRefs, &revision, &occurredAt, &requestDigest); err != nil {
 			return nil, err
 		}
 		item := map[string]any{
@@ -616,7 +616,7 @@ func (a *App) readRecentActionOutcomes(ctx context.Context, fluctlightID string,
 			"status": status, "success_boundary": boundary, "expected": decodeObject(expected),
 			"observed": decodeObject(observed), "goal_refs": decodeArray(goalRefs), "intention_refs": decodeArray(intentionRefs),
 			"evidence_refs": decodeArray(evidenceRefs),
-			"revision":      revision, "occurred_at": occurredAt.Format(time.RFC3339Nano),
+			"revision":      revision, "occurred_at": occurredAt.Format(time.RFC3339Nano), "request_digest": requestDigest,
 		}
 		if errorCode != "" {
 			item["error_code"] = errorCode

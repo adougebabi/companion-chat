@@ -23,10 +23,15 @@ type ADKCapabilityTrace = aiagent.ADKCapabilityTrace
 type adkConversationContext struct {
 	Invoker ADKCapabilityInvoker
 	Trace   *ADKCapabilityTrace
+	Refresh *runtimeContextRefresh
 }
 
 func WithADKCapabilityInvoker(ctx context.Context, invoker ADKCapabilityInvoker, trace *ADKCapabilityTrace) context.Context {
-	return context.WithValue(ctx, adkConversationContextKey{}, adkConversationContext{Invoker: invoker, Trace: trace})
+	return withADKCapabilityContext(ctx, invoker, trace, nil)
+}
+
+func withADKCapabilityContext(ctx context.Context, invoker ADKCapabilityInvoker, trace *ADKCapabilityTrace, refresh *runtimeContextRefresh) context.Context {
+	return context.WithValue(ctx, adkConversationContextKey{}, adkConversationContext{Invoker: invoker, Trace: trace, Refresh: refresh})
 }
 
 func adkCapabilityContext(ctx context.Context) (adkConversationContext, bool) {
@@ -80,6 +85,12 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if i == nil || i.app == nil || i.trace == nil {
 		return "", errors.New("adk_capability_invoker_unavailable")
 	}
+	projection := i.request.Projection
+	if adkContext, ok := adkCapabilityContext(ctx); ok {
+		if fresh := adkContext.Refresh.latestProjection(); fresh != nil {
+			projection = *fresh
+		}
+	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.requested", callID, capabilityName, "requested", "", argumentsJSON)
 	definition, ok := i.app.capabilityRegistry().Definition(capabilityName)
 	if !ok {
@@ -121,19 +132,19 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}
 	authorizationActorID := strings.TrimSpace(i.request.AuthorizationActorID)
 	if authorizationActorID == "" {
-		authorizationActorID = strings.TrimSpace(i.request.Projection.OwnerActorID)
+		authorizationActorID = strings.TrimSpace(projection.OwnerActorID)
 	}
-	subjectActorID := firstString(i.request.SubjectActorID, firstString(i.request.Projection.ReferenceIndex.SpeakerActorID, authorizationActorID))
+	subjectActorID := firstString(i.request.SubjectActorID, firstString(projection.ReferenceIndex.SpeakerActorID, authorizationActorID))
 	operationRoot := firstString(i.request.OperationID, firstString(i.request.ActionID, i.request.SourceFactID))
 	if operationRoot == "" {
 		return "", errors.New("adk_tool_operation_root_required")
 	}
 	operationID := "agent_tool_" + stableDigest(fmt.Sprintf("%s\x1f%d\x1f%d\x1f%s", operationRoot, modelIdentity.ModelCallSequence, modelIdentity.ToolIndex, capabilityName))
-	workingProfileID := workingProfileForToolExecution(i.request.Projection, i.trace)
+	workingProfileID := workingProfileForToolExecution(projection, i.trace)
 	var expectedPersonaRevision *int
 	var expectedOverlayRevision *int
 	if capabilityName == personaDetailCapabilityName {
-		revision, overlayRevision := personaDetailExpectedRevisions(i.request.Projection, i.trace, workingProfileID)
+		revision, overlayRevision := personaDetailExpectedRevisions(projection, i.trace, workingProfileID)
 		expectedPersonaRevision = &revision
 		expectedOverlayRevision = &overlayRevision
 	}
@@ -152,7 +163,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	// does not need any context slot. The later freeze/bind boundary still
 	// attaches the full Core-owned snapshot to every persisted invocation.
 	if len(definition.RequiredContext) > 0 {
-		invocation.ContextSnapshot = capabilitySnapshotForProjection(i.request.Projection, definition.RequiredContext, i.request.ActionID)
+		invocation.ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, i.request.ActionID)
 	}
 	i.trace.AppendInvocation(invocation)
 	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
@@ -168,6 +179,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		SubjectActorID: subjectActorID,
 		ConversationID: i.request.ConversationID, EvidenceID: i.request.SourceFactID,
 		Surface: i.request.Surface, Arguments: arguments,
+		FrozenContextSnapshot:       invocation.ContextSnapshot,
 		ExpectedCorePersonaRevision: expectedPersonaRevision,
 		ExpectedOverlayRevision:     expectedOverlayRevision,
 		TargetKind:                  i.request.TargetKind, TargetRef: i.request.TargetRef,
@@ -185,6 +197,11 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		receipt = ToolExecutionReceipt{OperationID: operationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: result}
 	}
 	i.trace.AppendResult(result)
+	if execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted") {
+		if adkContext, ok := adkCapabilityContext(ctx); ok {
+			adkContext.Refresh.markDirty()
+		}
+	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 	serialized := jsonString(receipt)
 	if execErr != nil && result.Retryable {
@@ -265,6 +282,7 @@ type ADKStructuredTaskInput struct {
 type ADKStructuredTaskResult struct {
 	Completion ProviderCompletion
 	Trace      *ADKCapabilityTrace
+	Projection *ContextProjection `json:"projection,omitempty"`
 }
 
 // RunADKStructuredTask uses the shared surface-aware ADK bridge. It does not
@@ -313,12 +331,20 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 		request = *input.Capability
 	}
 	invoker := newAppADKCapabilityInvoker(a, request, trace)
-	ctx = WithADKCapabilityInvoker(ctx, invoker, trace)
+	var refresh *runtimeContextRefresh
+	if plan := runtimeContextRefreshPlan(ctx); plan != nil {
+		refresh = &runtimeContextRefresh{refresh: plan, base: request.Projection}
+	}
+	ctx = withADKCapabilityContext(ctx, invoker, trace, refresh)
 	if strings.TrimSpace(input.Scenario) != "" {
 		ctx = WithProviderScenario(ctx, input.Scenario)
 	}
 	if !validAssembledProviderMessages(input.Prompt.Messages) {
 		return ADKStructuredTaskResult{Trace: trace}, errors.New("adk_structured_task_prompt_invalid")
+	}
+	ctx, err := projectFormalPromptBoundary(ctx, input)
+	if err != nil {
+		return ADKStructuredTaskResult{Trace: trace}, err
 	}
 	record, prior, admissionErr := a.admitFormalRun(ctx, definition, input)
 	if admissionErr != nil || prior != nil {
@@ -328,7 +354,7 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 		return ADKStructuredTaskResult{Trace: trace}, admissionErr
 	}
 	completion, err := a.Provider.AgentAssembledCompletion(ctx, input.Role, input.Prompt.Messages, input.Definitions, input.SchemaName, input.Prompt.ResponseFormat, !input.TextOutput, input.EnableThinking)
-	result := ADKStructuredTaskResult{Completion: completion, Trace: trace}
+	result := ADKStructuredTaskResult{Completion: completion, Trace: trace, Projection: refresh.latestProjection()}
 	if persistErr := a.finishFormalRun(ctx, record, result, err); persistErr != nil {
 		return result, errors.Join(err, persistErr)
 	}

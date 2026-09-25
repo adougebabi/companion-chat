@@ -28,6 +28,7 @@ type ContextReferenceKind string
 const (
 	ContextReferenceMemory           ContextReferenceKind = "memory"
 	ContextReferenceActiveMemory     ContextReferenceKind = "active_memory"
+	ContextReferenceAppearance       ContextReferenceKind = "appearance"
 	ContextReferenceRelationship     ContextReferenceKind = "relationship"
 	ContextReferenceGoal             ContextReferenceKind = "goal"
 	ContextReferenceIntention        ContextReferenceKind = "intention"
@@ -48,7 +49,7 @@ const (
 
 var (
 	validContextReferenceKinds = map[ContextReferenceKind]struct{}{
-		ContextReferenceMemory: {}, ContextReferenceActiveMemory: {}, ContextReferenceRelationship: {}, ContextReferenceGoal: {},
+		ContextReferenceMemory: {}, ContextReferenceActiveMemory: {}, ContextReferenceAppearance: {}, ContextReferenceRelationship: {}, ContextReferenceGoal: {},
 		ContextReferenceIntention: {}, ContextReferenceScene: {}, ContextReferenceLifeContext: {}, ContextReferenceSchedule: {},
 		ContextReferenceScheduleItem: {}, ContextReferencePresence: {}, ContextReferenceState: {},
 		ContextReferenceAffectProfile: {}, ContextReferenceDevelopingSelf: {}, ContextReferenceDrive: {},
@@ -244,7 +245,7 @@ func buildContextReferenceIndex(projection *ContextProjection) error {
 	index := newContextReferenceIndex(*projection)
 	activeProfileID := index.ActiveProfileID
 
-	for _, memory := range projection.Memories {
+	for _, memory := range append(append([]map[string]any(nil), projection.ResidentMemories...), projection.Memories...) {
 		if _, err := addReferenceToRow(&index, ContextReferenceMemory, memory, stringValue(memory["id"]), intValue(memory["revision"])); err != nil {
 			return err
 		}
@@ -343,6 +344,28 @@ func buildContextReferenceIndex(projection *ContextProjection) error {
 			if profile := mapValue(data["affect_profile"]); len(profile) > 0 {
 				profile["ref"] = ref
 			}
+		}
+	}
+	if len(projection.EffectiveAppearance) > 0 {
+		revision := intValue(projection.EffectiveAppearance["body_revision"])
+		if wardrobeRevision := intValue(projection.EffectiveAppearance["wardrobe_revision"]); wardrobeRevision > revision {
+			revision = wardrobeRevision
+		}
+		if revision < 0 {
+			revision = 0
+		}
+		// captured_at records when this view was read, not a change in body or
+		// clothing. Keep the opaque reference stable across identical rereads.
+		snapshot := cloneMap(projection.EffectiveAppearance)
+		delete(snapshot, "captured_at")
+		delete(snapshot, "ref")
+		ref, err := index.add(ContextReferenceAppearance, projection.FluctlightID, revision, snapshot)
+		if err != nil {
+			return err
+		}
+		projection.EffectiveAppearance["ref"] = ref
+		if appearance := mapValue(mapValue(projection.CurrentState["data"])["appearance"]); len(appearance) > 0 {
+			appearance["ref"] = ref
 		}
 	}
 

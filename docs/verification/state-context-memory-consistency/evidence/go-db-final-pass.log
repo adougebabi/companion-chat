@@ -1,0 +1,23 @@
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/api	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/cutover	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/effective-life-backfill	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/migrate	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/persona-backfill	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/setup-token	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/worker	[no test files]
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent	0.330s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model	0.412s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/prompt	0.273s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/task	0.258s
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability	[no test files]
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/config	0.286s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/conversation	0.289s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	235.977s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	1.737s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	0.316s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	34.845s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/personality	0.341s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	0.468s
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform/crypto	[no test files]
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	0.490s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/test/integration	0.524s

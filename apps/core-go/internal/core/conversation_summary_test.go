@@ -327,4 +327,48 @@ func TestPostgresConversationSummaryRebuildSupersedesAndOverlapCASFailsClosed(t 
 	if _, err := app.settleConversationSummary(ctx, overlap, conversationSummaryProviderResponse{SchemaVersion: conversationSummarySchemaVersion, Summary: "重叠摘要"}, assignment, "provider:overlap", "request-digest-overlap"); err == nil || !strings.Contains(err.Error(), "projection_stale") {
 		t.Fatalf("overlap CAS error=%v", err)
 	}
+	beforeSourceChange, err := app.retrieveConversationSummaries(ctx, ConversationSummaryQuery{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID, Limit: 2, MaxRunes: conversationSummaryDefaultBudget})
+	if err != nil || len(beforeSourceChange.Items) != 1 {
+		t.Fatalf("valid episode summary missing: %#v err=%v", beforeSourceChange, err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.conversation_messages SET text='纠正后的原始内容' WHERE id=$1`, strings.TrimPrefix(work.SourceMessageRefs[0], "message:")); err != nil {
+		t.Fatal(err)
+	}
+	afterSourceChange, err := app.retrieveConversationSummaries(ctx, ConversationSummaryQuery{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID, Limit: 2, MaxRunes: conversationSummaryDefaultBudget})
+	if err != nil || len(afterSourceChange.Items) != 0 {
+		t.Fatalf("stale episode summary remained visible: %#v err=%v", afterSourceChange, err)
+	}
+	var invalidatedStatus string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.conversation_summaries WHERE id=$1`, second["summary_id"]).Scan(&invalidatedStatus); err != nil || invalidatedStatus != "invalidated" {
+		t.Fatalf("changed raw source did not invalidate published Episode: status=%q err=%v", invalidatedStatus, err)
+	}
+	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
+		return app.enqueueConversationSummaryIntentTx(ctx, tx, fluctlightID, conversationID, "summary-message-64")
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var rebuildIntent string
+	var rebuildPayload []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT intent_id,payload FROM public.platform_workflow_intents WHERE intent_type='conversation.summary' AND intent_id<>$1 ORDER BY created_at DESC LIMIT 1`, work.IntentID).Scan(&rebuildIntent, &rebuildPayload); err != nil {
+		t.Fatal(err)
+	}
+	rebuildData := decodeObject(rebuildPayload)
+	rebuild := conversationSummaryWork{
+		IntentID: rebuildIntent, FluctlightID: fluctlightID, ConversationID: conversationID,
+		SourceMessageID: stringValue(rebuildData["source_message_id"]), SourceSequence: intValue(rebuildData["source_sequence"]),
+		FromSequence: intValue(rebuildData["from_sequence"]), ToSequence: intValue(rebuildData["to_sequence"]),
+		SourceDigest: stringValue(rebuildData["source_digest"]), SourceMessageRefs: conversationSummarySourceRefValues(rebuildData["source_message_refs"]),
+	}
+	rebuild.Messages, err = readConversationSummaryMessages(ctx, repository.Pool(), conversationID, rebuild.FromSequence, rebuild.ToSequence, conversationSummaryMaxMessages)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rebuilt, err := app.settleConversationSummary(ctx, rebuild, conversationSummaryProviderResponse{SchemaVersion: conversationSummarySchemaVersion, Summary: "来源纠正后的摘要"}, assignment, "provider:summary-rebuild-corrected", "request-digest-corrected")
+	if err != nil || intValue(rebuilt["revision"]) != 3 {
+		t.Fatalf("corrected Episode rebuild=%#v err=%v", rebuilt, err)
+	}
+	visible, err := app.retrieveConversationSummaries(ctx, ConversationSummaryQuery{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID, Limit: 2, MaxRunes: conversationSummaryDefaultBudget})
+	if err != nil || len(visible.Items) != 1 || stringValue(visible.Items[0]["summary"]) != "来源纠正后的摘要" {
+		t.Fatalf("corrected Episode was not published: %#v err=%v", visible, err)
+	}
 }

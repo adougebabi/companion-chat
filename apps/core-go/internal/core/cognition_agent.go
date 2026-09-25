@@ -64,7 +64,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		memoryOperation = MemoryForConversation
 		memoryMode = MemoryConversationExact
 	}
-	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+	projectionRequest := ContextProjectionRequest{
 		AuthorizationActorID:   actorID,
 		SpeakerActorID:         firstString(input.SpeakerActorID, actorID),
 		SourceFactID:           input.SourceFactID,
@@ -73,7 +73,8 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		CurrentUserText:        currentInput,
 		MemoryOperation:        memoryOperation,
 		MemoryConversationMode: memoryMode,
-	})
+	}
+	projection, err := a.BuildContextProjectionFor(ctx, projectionRequest)
 	if err != nil {
 		return ConversationCognitionAgentResult{}, err
 	}
@@ -83,12 +84,13 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		definitions = filterPersonaActionCapabilities(definitions)
 	}
 	schema := cognitiveTurnResponseSchema()
+	operationRules := []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}
 	assembly, projection, err := a.assembleProjectionPromptForSurface(
 		ctx,
 		ProviderContextSurfaceConversationMain,
 		projection,
 		"cognitive_assessment",
-		[]string{providerContextAuthorityRule, capabilityConversationPolicyInstruction},
+		operationRules,
 		currentInput,
 		definitions,
 		"conversation_turn_response",
@@ -100,6 +102,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
 	providerCtx = WithProviderCorrelation(providerCtx, firstString(providerCorrelation(ctx), "conversation-cognition-agent:"+runID))
+	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceConversationMain, "cognitive_assessment", operationRules, currentInput, definitions, "conversation_turn_response", schema, nil)
 	runInput := FormalAgentRunInput{
 		Prompt:          PromptAssemblyResult{Messages: assembly.Messages, ResponseFormat: schema},
 		Definitions:     definitions,
@@ -119,6 +122,9 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		},
 	}
 	run, err := a.RunFormalAgent(providerCtx, FormalAgentConversationCognition, runInput)
+	if run.Projection != nil {
+		projection = *run.Projection
+	}
 	if err != nil {
 		return ConversationCognitionAgentResult{Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 	}

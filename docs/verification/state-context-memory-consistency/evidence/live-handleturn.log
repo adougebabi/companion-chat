@@ -1,0 +1,7 @@
+--- FAIL: TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment (1.65s)
+    provider_live_e2e_test.go:121: live HandleTurn failed: adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": EOF
+        ------------------------
+        node path: [node_1, ChatModel]; provider_tool_shapes=[]map[string]interface {}{}
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.029s
+FAIL

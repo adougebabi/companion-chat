@@ -59,7 +59,7 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0036_effective_life" || PreviousHead != WorkingPersonaHead || WorkingPersonaHead != "0035_working_persona" {
+	if Head != "0037_memory_provenance" || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -626,7 +626,7 @@ func TestMigrationBridgeAcceptsOnlyReleasedHead(t *testing.T) {
 	if Head == ReleasedHead {
 		t.Fatal("bridge head must differ from current Go head")
 	}
-	if PreviousHead != WorkingPersonaHead || WorkingPersonaHead == ToolExecutionSourceHead || ToolExecutionSourceHead == InitializationSourceHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
+	if PreviousHead != EffectiveLifeHead || EffectiveLifeHead == WorkingPersonaHead || WorkingPersonaHead == ToolExecutionSourceHead || ToolExecutionSourceHead == InitializationSourceHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
 		t.Fatalf("Initialization/Prompt/Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q prompt=%q evolution=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, PromptContextMemoryHead, EvolutionAuthorityHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
 	}
 	if CapabilityRuntimePreviousHead != "0025_llm_queue" || CapabilityRuntimeHead != "0026_capability_runtime" {

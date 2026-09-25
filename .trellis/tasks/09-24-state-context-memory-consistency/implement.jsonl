@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend conventions and predevelopment checklist"}
+{"file": ".trellis/spec/backend/effective-life-contract.md", "reason": "Current body, wardrobe, activity authority"}
+{"file": ".trellis/spec/backend/persona-layer-contract.md", "reason": "Working Persona and protected identity"}
+{"file": ".trellis/spec/backend/fluctlight-memory-contract.md", "reason": "Memory authority and retrieval"}
+{"file": ".trellis/spec/backend/fluctlight-persistence-contract.md", "reason": "Transactions, migrations, idempotency"}

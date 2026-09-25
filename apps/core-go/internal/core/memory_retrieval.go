@@ -101,6 +101,7 @@ type ContextProjectionRequest struct {
 	AuthorizationActorID   string
 	SpeakerActorID         string
 	FluctlightID           string
+	WorkingProfileID       string
 	ConversationID         string
 	SourceFactID           string
 	CurrentUserText        string
@@ -339,15 +340,29 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	}
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,
-		       confidence,importance,emotional_significance,visibility,status,revision,created_at,
+		       confidence,importance,emotional_significance,visibility,status,revision,
+		       CASE WHEN provenance_status='legacy_unknown' THEN 'legacy_unknown'
+		            WHEN source_support.live_count=source_support.total_count THEN 'verified'
+		            ELSE 'partial' END,epistemic_kind,request_digest,source_support.live_refs,occurred_at,created_at,
 		       CASE WHEN query_terms.query IS NULL THEN 0 ELSE COALESCE(ts_rank_cd(search_document,query_terms.query),0) END
 		FROM public.memories
 		CROSS JOIN LATERAL (
 		  SELECT CASE WHEN cardinality(tsvector_to_array(to_tsvector('simple',$2::text)))=0 THEN NULL::tsquery
 		              ELSE to_tsquery('simple',array_to_string(tsvector_to_array(to_tsvector('simple',$2::text)),' | ')) END AS query
 		) query_terms
+		CROSS JOIN LATERAL (
+		  SELECT count(*) FILTER (WHERE link.live) AS live_count,
+		         count(*) AS total_count,
+		         COALESCE(jsonb_agg(link.source_ref ORDER BY link.source_ref) FILTER (WHERE link.live),'[]'::jsonb) AS live_refs
+		  FROM (
+		    SELECT source_ref,status='valid' AND public.memory_source_is_live(source_kind,source_id,source_revision,source_fingerprint) AS live
+		    FROM public.memory_source_links WHERE memory_id=memories.id AND memory_revision=memories.revision
+		  ) link
+		) source_support
 		WHERE owner_fluctlight_id=$1
 		  AND status='active'
+		  AND provenance_status NOT IN ('pending','invalid')
+		  AND (provenance_status='legacy_unknown' OR source_support.live_count>0)
 		  AND type=ANY($3::text[])
 		  AND (
 		    (visibility IN ('private','owner') AND $4)
@@ -375,14 +390,15 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	}
 	scored := make([]scoredMemory, 0)
 	for rows.Next() {
-		var id, typ, content, visibility, status string
-		var actorRefs, eventRefs, evidenceRefs, perspectives []byte
+		var id, typ, content, visibility, status, provenanceStatus, epistemicKind, requestDigest string
+		var actorRefs, eventRefs, evidenceRefs, perspectives, liveSourceRefs []byte
 		var conversationRef *string
 		var confidence, importance, emotional float64
 		var revision int
 		var created time.Time
+		var occurred *time.Time
 		var searchRank float64
-		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationRef, &eventRefs, &evidenceRefs, &perspectives, &confidence, &importance, &emotional, &visibility, &status, &revision, &created, &searchRank); err != nil {
+		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationRef, &eventRefs, &evidenceRefs, &perspectives, &confidence, &importance, &emotional, &visibility, &status, &revision, &provenanceStatus, &epistemicKind, &requestDigest, &liveSourceRefs, &occurred, &created, &searchRank); err != nil {
 			return MemoryRetrievalResult{}, err
 		}
 		components := map[string]float64{"importance": importance, "emotional_significance": emotional * 0.5, "confidence": confidence * 0.25, "fts_rank": searchRank}
@@ -390,6 +406,13 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		ageHours := math.Max(0, time.Since(created).Hours())
 		components["recency"] = 0.25 / (1 + ageHours/(7*24))
 		score += components["recency"]
+		if provenanceStatus == "legacy_unknown" {
+			components["source_unknown_penalty"] = -1
+			score--
+		} else if provenanceStatus == "partial" {
+			components["partial_source_penalty"] = -0.25
+			score -= 0.25
+		}
 		lowerContent := strings.ToLower(content)
 		for _, token := range queryTokens {
 			if strings.Contains(lowerContent, token) {
@@ -401,9 +424,20 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 			"id": id, "type": typ, "content": content, "confidence": confidence,
 			"importance": importance, "emotional_significance": emotional,
 			"visibility": visibility, "status": status, "revision": revision,
-			"conversation_id": conversationRef, "event_refs": decodeArray(eventRefs),
+			"provenance_status": provenanceStatus,
+			"epistemic_kind":    epistemicKind,
+			"request_digest":    requestDigest,
+			"conversation_id":   conversationRef, "event_refs": decodeArray(eventRefs),
 			"evidence_refs": decodeArray(evidenceRefs), "source": "memory:" + id,
 			"created_at": created.Format(time.RFC3339Nano), "actor_refs": decodeArray(actorRefs),
+		}
+		if provenanceStatus == "legacy_unknown" {
+			value["effective_source_refs"] = decodeArray(evidenceRefs)
+		} else {
+			value["effective_source_refs"] = decodeArray(liveSourceRefs)
+		}
+		if occurred != nil {
+			value["occurred_at"] = occurred.UTC().Format(time.RFC3339Nano)
 		}
 		if values := decodeArray(perspectives); len(values) > 0 {
 			value["personality_perspectives"] = values

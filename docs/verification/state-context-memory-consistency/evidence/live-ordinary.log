@@ -1,0 +1,6 @@
+=== RUN   TestLiveHandleTurnOrdinaryChatNoFixedExtraCall
+    provider_live_e2e_test.go:210: ordinary no-tool turn used 2 physical requests; tools=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"affect_event"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation.reply"}}
+--- FAIL: TestLiveHandleTurnOrdinaryChatNoFixedExtraCall (136.10s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	136.503s
+FAIL

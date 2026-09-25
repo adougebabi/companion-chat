@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"strings"
@@ -19,6 +20,10 @@ var reflectionMemoryCandidateFields = map[string]struct{}{
 type reflectionMemoryEvidenceScope struct {
 	FactID         string
 	ConversationID string
+	Fingerprint    string
+	SourceKind     string
+	SourceID       string
+	SourceRevision int
 	Known          bool
 }
 
@@ -95,6 +100,15 @@ func compileReflectionActiveMemoryCommands(candidates []reflectionAcceptedActive
 		}
 		if command.SourceFactID == "" {
 			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_source_fact_invalid", index)
+		}
+		for _, ref := range evidenceRefs {
+			if scope := request.EvidenceScopes[ref]; scope.FactID == command.SourceFactID {
+				command.SourceKind, command.SourceFingerprint = "fact", scope.Fingerprint
+				break
+			}
+		}
+		if len(command.SourceFingerprint) != 32 {
+			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_source_fingerprint_missing", index)
 		}
 		if operation == ActiveMemoryCreate {
 			conversationID, err := reflectionMemoryConversationID(evidenceRefs, request.EvidenceScopes)
@@ -320,10 +334,27 @@ func compileReflectionMemoryCommands(proposal map[string]any, request reflection
 		}
 		operation := MemoryOperation(stringValue(item["operation"]))
 		evidenceRefs := sortedUniqueStrings(decisionServiceRefValues(item["evidence_refs"]))
+		expectedFingerprints := make(map[string]string)
+		frozenSources := make(map[string]FrozenMemoryEvidenceSource)
+		for _, ref := range evidenceRefs {
+			scope := request.EvidenceScopes[ref]
+			if scope.FactID != "" {
+				if len(scope.Fingerprint) != 32 {
+					return nil, errors.New("reflection_memory_source_fingerprint_missing")
+				}
+				expectedFingerprints[ref] = scope.Fingerprint
+			}
+			if scope.SourceKind == "memory" || scope.SourceKind == "outcome" {
+				if scope.SourceID == "" || scope.SourceRevision < 0 || len(scope.Fingerprint) != 32 {
+					return nil, errors.New("reflection_memory_frozen_source_invalid")
+				}
+				frozenSources[ref] = FrozenMemoryEvidenceSource{Kind: scope.SourceKind, ID: scope.SourceID, Revision: scope.SourceRevision, Fingerprint: scope.Fingerprint}
+			}
+		}
 		command := PreparedMemoryMutation{
 			SchemaVersion: memoryLifecycleSchemaVersion, Operation: operation,
 			OwnerFluctlightID: request.FluctlightID, OwnerActorID: request.OwnerActorID, ActorID: request.FluctlightID,
-			ActiveProfileID: request.ActiveProfileID, EvidenceRefs: evidenceRefs,
+			ActiveProfileID: request.ActiveProfileID, EvidenceRefs: evidenceRefs, ExpectedEvidenceFingerprints: expectedFingerprints, FrozenEvidenceSources: frozenSources,
 			Visibility: "private", OccurredAt: request.OccurredAt.UTC(),
 			SourceFactID: reflectionMemorySourceFactID(evidenceRefs, request.EvidenceScopes, request.ProposalID),
 			SourceWindow: request.SourceWindow, ProposalID: request.ProposalID, CandidateIndex: index,
@@ -502,7 +533,12 @@ func (a *App) reflectionOutcomeEvidenceScope(ctx context.Context, fluctlightID s
 		}
 		conversationID = candidate
 	}
-	return reflectionMemoryEvidenceScope{ConversationID: conversationID, Known: true}, nil
+	requestDigest := stringValue(snapshot["request_digest"])
+	if requestDigest == "" || entry.Revision < 0 {
+		return reflectionMemoryEvidenceScope{}, errors.New("reflection_outcome_source_version_missing")
+	}
+	fingerprint := fmt.Sprintf("%x", md5.Sum([]byte(requestDigest+":"+fmt.Sprint(entry.Revision))))
+	return reflectionMemoryEvidenceScope{ConversationID: conversationID, SourceKind: "outcome", SourceID: entry.EntityID, SourceRevision: entry.Revision, Fingerprint: fingerprint, Known: true}, nil
 }
 
 func sameReflectionMemoryScope(left, right map[string]any) bool {

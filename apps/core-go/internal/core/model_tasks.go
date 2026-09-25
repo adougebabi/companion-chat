@@ -275,37 +275,57 @@ func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGener
 // validate and persist the final semantic contract; Tool effects in the trace
 // are already committed by the formal Agent loop.
 type NativeCognitionTaskInput struct {
-	EventType  string
-	Fact       []byte
-	Projection ContextProjection
+	EventType         string
+	Fact              []byte
+	Projection        ContextProjection
+	ProjectionRequest ContextProjectionRequest
 }
 
 func (a *App) RunNativeCognitionTask(ctx context.Context, input NativeCognitionTaskInput) (ProjectionTaskResult, error) {
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceNativeCognition)
 	schema := nativeCognitionResponseSchema()
-	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceNativeCognition, input.Projection, "cognitive_assessment", []string{providerContextAuthorityRule, nativeCognitionInstruction}, jsonString(map[string]any{"event_type": input.EventType, "fact": compactProviderFact(input.Fact)}), definitions, "native_cognition_response", schema)
+	if input.ProjectionRequest.FluctlightID != input.Projection.FluctlightID || input.ProjectionRequest.AuthorizationActorID != input.Projection.OwnerActorID {
+		return ProjectionTaskResult{}, errors.New("native_cognition_projection_request_invalid")
+	}
+	operationRules := []string{providerContextAuthorityRule, nativeCognitionInstruction}
+	currentInput := jsonString(map[string]any{"event_type": input.EventType, "fact": compactProviderFact(input.Fact)})
+	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceNativeCognition, input.Projection, "cognitive_assessment", operationRules, currentInput, definitions, "native_cognition_response", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "native_cognition"), assembly.Diagnostics)
+	providerCtx = a.bindProjectionRefresh(providerCtx, input.ProjectionRequest, ProviderContextSurfaceNativeCognition, "cognitive_assessment", operationRules, currentInput, definitions, "native_cognition_response", schema, nil)
 	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentNativeCognition, assembly.Messages, definitions, "native_cognition_response", schema, true, formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition))
+	if run.Projection != nil {
+		projection = *run.Projection
+	}
 	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 
 type DailyReviewTaskInput struct {
-	LocalDate  string
-	Projection ContextProjection
+	LocalDate         string
+	Projection        ContextProjection
+	ProjectionRequest ContextProjectionRequest
 }
 
 func (a *App) RunDailyReviewTask(ctx context.Context, input DailyReviewTaskInput) (ProjectionTaskResult, error) {
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceAutonomy)
 	schema := dailyReviewResponseSchema()
-	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceDailyReview, input.Projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction}, jsonString(map[string]any{"local_date": input.LocalDate}), definitions, "daily_review_response", schema)
+	if input.ProjectionRequest.FluctlightID != input.Projection.FluctlightID || input.ProjectionRequest.AuthorizationActorID != input.Projection.OwnerActorID {
+		return ProjectionTaskResult{}, errors.New("daily_review_projection_request_invalid")
+	}
+	operationRules := []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction}
+	currentInput := jsonString(map[string]any{"local_date": input.LocalDate})
+	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceDailyReview, input.Projection, "cognitive_assessment", operationRules, currentInput, definitions, "daily_review_response", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "daily_review"), assembly.Diagnostics)
+	providerCtx = a.bindProjectionRefresh(providerCtx, input.ProjectionRequest, ProviderContextSurfaceDailyReview, "cognitive_assessment", operationRules, currentInput, definitions, "daily_review_response", schema, nil)
 	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentDailyReview, assembly.Messages, definitions, "daily_review_response", schema, true, formalTaskCapabilityRequest(FormalAgentDailyReview, projection, CapabilitySurfaceAutonomy))
+	if run.Projection != nil {
+		projection = *run.Projection
+	}
 	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 

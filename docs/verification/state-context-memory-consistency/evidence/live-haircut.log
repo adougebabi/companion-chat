@@ -1,0 +1,9 @@
+=== RUN   TestLiveHandleTurnReadsCompletedHaircutAfterReload
+    provider_live_e2e_test.go:271: haircut result={"activity_id":"activity_af0ba34fdd2ff804f0d15bb5759d2401","body_revision":1,"event_id":"life_event_97fbfc16ed201da7080251f476db1123","reason":"理发过程顺利，已完成长度修剪。","status":"completed"}
+    provider_live_e2e_test.go:278: later natural turn: adk_run: [NodeRunError] provider request failed: error, status code: 400, status: 400 Bad Request, message: Prompt (7421 tokens) requires ~2239MB GPU memory but only ~2155MB available. Reduce prompt size or use a smaller model.
+        ------------------------
+        node path: [node_1, ChatModel]; tool_shapes=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation.reply"}}
+--- FAIL: TestLiveHandleTurnReadsCompletedHaircutAfterReload (51.98s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	52.589s
+FAIL

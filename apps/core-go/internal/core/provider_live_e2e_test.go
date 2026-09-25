@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type liveResponseCapture struct {
@@ -59,10 +62,24 @@ func (capture *liveResponseCapture) RoundTrip(request *http.Request) (*http.Resp
 					if id == "" {
 						id = stringValue(call["call_id"])
 					}
-					shapes = append(shapes, map[string]any{"name": name, "id_present": strings.TrimSpace(id) != "", "argument_keys": argumentKeys})
+					shape := map[string]any{"name": name, "id_present": strings.TrimSpace(id) != "", "argument_keys": argumentKeys}
+					if name == "memory_event" || name == "memory.recall" {
+						excerpt := stringValue(args)
+						if len([]rune(excerpt)) > 600 {
+							excerpt = string([]rune(excerpt)[:600]) + " [truncated]"
+						}
+						shape["arguments_excerpt"] = excerpt
+					}
+					shapes = append(shapes, shape)
 				}
 				capture.mu.Lock()
 				capture.shapes = append(capture.shapes, shapes...)
+				if content := strings.TrimSpace(stringValue(message["content"])); content != "" {
+					if len([]rune(content)) > 1200 {
+						content = string([]rune(content)[:1200]) + " [truncated]"
+					}
+					capture.shapes = append(capture.shapes, map[string]any{"name": "model_final_content", "content_excerpt": content})
+				}
 				capture.mu.Unlock()
 			}
 		}
@@ -78,6 +95,41 @@ func (capture *liveResponseCapture) snapshot() []map[string]any {
 		result[index] = cloneMap(shape)
 	}
 	return result
+}
+
+func writeLiveHandleTurnEvidence(t *testing.T, capture *wireCaptureTransport, responses *liveResponseCapture) {
+	t.Helper()
+	path := strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_EVIDENCE_PATH"))
+	if path == "" {
+		return
+	}
+	capture.mu.Lock()
+	payloads := append([]map[string]any(nil), capture.decoded...)
+	capture.mu.Unlock()
+	requests := make([]map[string]any, 0)
+	for _, payload := range payloads {
+		messages := make([]map[string]any, 0)
+		for _, raw := range arrayValue(payload["messages"]) {
+			message := mapValue(raw)
+			content := stringValue(message["content"])
+			if len([]rune(content)) > 6000 {
+				content = string([]rune(content)[:6000]) + " [truncated]"
+			}
+			messages = append(messages, map[string]any{
+				"role": message["role"], "content": content,
+				"tool_call_id": message["tool_call_id"], "tool_calls": message["tool_calls"],
+			})
+		}
+		requests = append(requests, map[string]any{"schema": providerWireSchemaName(payload), "model": payload["model"], "messages": messages, "tool_schema_count": len(arrayValue(payload["tools"]))})
+	}
+	evidence := map[string]any{"request_count": capture.count(), "requests": requests, "tool_response_shapes": responses.snapshot()}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Errorf("create live evidence directory: %v", err)
+		return
+	}
+	if err := os.WriteFile(path, jsonBytes(evidence), 0o600); err != nil {
+		t.Errorf("write live evidence: %v", err)
+	}
 }
 
 // TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment is the production
@@ -98,7 +150,7 @@ func TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment(t *
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "live-turn-owner", "live-turn-fluctlight", "live-turn-conversation"
 	takeoverChainSeedWithTakeoverRules(t, ctx, repository, ownerID, fluctlightID, conversationID, nil)
-	endpointID := "takeover-chain-endpoint-" + fluctlightID
+	endpointID := "native-persona-endpoint-" + fluctlightID
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
@@ -108,6 +160,7 @@ func TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment(t *
 
 	responseCapture := &liveResponseCapture{inner: http.DefaultTransport}
 	capture := captureProviderWirePayload(responseCapture)
+	defer writeLiveHandleTurnEvidence(t, capture, responseCapture)
 	app := newTestApp(t, repository, capture)
 	turnCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
 	defer cancel()
@@ -139,6 +192,285 @@ func TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment(t *
 	}
 	if messageCount != 1 {
 		t.Fatalf("live HandleTurn assistant message count = %d, want 1", messageCount)
+	}
+}
+
+// This opt-in smoke measures physical Provider calls and detects a fixed
+// planning or memory pass for an ordinary persisted HandleTurn.
+func TestLiveHandleTurnOrdinaryChatHasNoFixedPlanningOrMemoryPass(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" || strings.TrimSpace(os.Getenv("GO_CORE_TEST_DATABASE_URL")) == "" {
+		t.Skip("live Provider and disposable PostgreSQL are required")
+	}
+	baseURL, model := liveProviderConfig(t)
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "live-ordinary-owner", "live-ordinary-fluctlight", "live-ordinary-conversation"
+	takeoverChainSeedWithTakeoverRules(t, ctx, repository, ownerID, fluctlightID, conversationID, nil)
+	endpointID := "native-persona-endpoint-" + fluctlightID
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	responseCapture := &liveResponseCapture{inner: http.DefaultTransport}
+	capture := captureProviderWirePayload(responseCapture)
+	defer writeLiveHandleTurnEvidence(t, capture, responseCapture)
+	app := newTestApp(t, repository, capture)
+	turnCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
+	defer cancel()
+	result, err := app.HandleTurn(turnCtx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "你好，今天过得怎么样？", "live-ordinary-1", "live-ordinary-1"))
+	if err != nil {
+		t.Fatalf("ordinary HandleTurn failed: %v; provider_tool_shapes=%#v", err, responseCapture.snapshot())
+	}
+	if strings.TrimSpace(stringValue(result.Assistant["text"])) == "" {
+		t.Fatalf("ordinary HandleTurn returned no assistant text: %#v", result.Assistant)
+	}
+	if got := capture.count(); got < 1 {
+		t.Fatal("ordinary HandleTurn made no physical Provider request")
+	}
+	t.Logf("ordinary physical requests=%d; tools=%#v", capture.count(), responseCapture.snapshot())
+	for _, shape := range responseCapture.snapshot() {
+		switch stringValue(shape["name"]) {
+		case "memory_event", "memory.recall", "reflection":
+			t.Fatalf("ordinary turn unexpectedly ran a memory/planning pass: %#v", responseCapture.snapshot())
+		}
+	}
+	if got := takeoverChainCount(t, turnCtx, repository, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID); got != 1 {
+		t.Fatalf("ordinary HandleTurn persisted %d assistant messages", got)
+	}
+}
+
+// An existing virtual haircut Tool and the real virtual-activity model settle
+// the mutable fact. A new App then reads it for a later natural-language turn.
+func TestLiveHandleTurnReadsCompletedHaircutAfterReload(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" || strings.TrimSpace(os.Getenv("GO_CORE_TEST_DATABASE_URL")) == "" {
+		t.Skip("live Provider and disposable PostgreSQL are required")
+	}
+	baseURL, model := liveProviderConfig(t)
+	fixture := newIndependentToolE2EFixture(t, "live-haircut")
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision) VALUES($1,'default',0)`, fixture.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if err := withTransaction(fixture.ctx, fixture.repository.Pool(), func(tx pgx.Tx) error {
+		return initializeEffectiveLifeTx(fixture.ctx, tx, fixture.fluctlightID, map[string]any{"life_profile": map[string]any{
+			"appearance": map[string]any{"physical_features": map[string]any{"hair_length": "long"}},
+		}})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	endpointID := "live-haircut-endpoint-" + fixture.suffix
+	seedCognitiveProviderRole(t, fixture.ctx, fixture.repository, endpointID)
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	responses := &liveResponseCapture{inner: http.DefaultTransport}
+	capture := captureProviderWirePayload(responses)
+	defer writeLiveHandleTurnEvidence(t, capture, responses)
+	app := newTestApp(t, fixture.repository, capture)
+	turnCtx, cancel := context.WithTimeout(context.Background(), 2*liveProviderRequestTimeout()+3*time.Minute)
+	defer cancel()
+	initial, _, _, err := app.readEffectiveLifeSnapshot(turnCtx, fixture.fluctlightID, time.Now().UTC())
+	if err != nil || stringValue(mapValue(mapValue(initial["body_fields"])["hair_length"])["value"]) != "long" {
+		t.Fatalf("initial current hair is not long: %#v err=%v", initial, err)
+	}
+	started, err := app.ExecuteTool(turnCtx, fixture.request(lifeActivityStartCapabilityName, "live-haircut-start", map[string]any{
+		"kind": "haircut", "duration_minutes": 15, "desired_hair_length": "short", "reason": "已决定在虚拟生活中剪短头发",
+	}))
+	if err != nil || started.Result.Status != "accepted" {
+		t.Fatalf("haircut start receipt=%#v err=%v", started, err)
+	}
+	activityID := stringValue(mapValue(started.Result.Output)["activity_id"])
+	forceVirtualActivityDue(t, fixture, activityID)
+	advanced, err := app.ExecuteTool(turnCtx, fixture.request(lifeActivityAdvanceCapabilityName, "live-haircut-advance", map[string]any{"activity_id": activityID}))
+	t.Logf("haircut result=%s", jsonString(advanced.Result.Output))
+	if err != nil || advanced.Result.Status != "completed" {
+		t.Fatalf("real virtual haircut did not complete: receipt=%#v err=%v", advanced, err)
+	}
+	reloaded := newTestApp(t, fixture.repository, capture)
+	appearance, _, _, err := reloaded.readEffectiveLifeSnapshot(turnCtx, fixture.fluctlightID, time.Now().UTC())
+	if err != nil || stringValue(mapValue(mapValue(appearance["body_fields"])["hair_length"])["value"]) != "short" {
+		t.Fatalf("haircut was not durable after App reload: %#v err=%v", appearance, err)
+	}
+	t.Logf("reloaded current hair=%q", stringValue(mapValue(mapValue(appearance["body_fields"])["hair_length"])["value"]))
+	after, err := reloaded.HandleTurn(turnCtx, fixture.ownerID, fixture.conversationID, takeoverChainTurnPayload(fixture.fluctlightID, "那现在你的头发是什么样？", "live-hair-after", "live-hair-after"))
+	if err != nil {
+		t.Fatalf("later natural turn: %v; tool_shapes=%#v", err, responses.snapshot())
+	}
+	answer := stringValue(after.Assistant["text"])
+	t.Logf("later assistant=%q", answer)
+	if !strings.Contains(answer, "短") && !strings.Contains(strings.ToLower(answer), "short") {
+		t.Fatalf("later reply did not use corrected current hair: %q", answer)
+	}
+}
+
+func TestLiveHandleTurnReadsChangedWearingAfterReload(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" || strings.TrimSpace(os.Getenv("GO_CORE_TEST_DATABASE_URL")) == "" {
+		t.Skip("live Provider and disposable PostgreSQL are required")
+	}
+	baseURL, model := liveProviderConfig(t)
+	fixture := newIndependentToolE2EFixture(t, "live-wearing")
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision) VALUES($1,'default',0)`, fixture.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	foundation := map[string]any{"life_profile": map[string]any{"appearance": map[string]any{"wardrobe_items": []any{
+		map[string]any{"category": "shirt", "slot": "top", "description": "白衬衫", "ownership": "owned", "available": true, "currently_worn": true},
+		map[string]any{"category": "coat", "slot": "outerwear", "description": "红色外套", "ownership": "owned", "available": true, "currently_worn": false},
+	}}}}
+	if err := withTransaction(fixture.ctx, fixture.repository.Pool(), func(tx pgx.Tx) error {
+		return initializeEffectiveLifeTx(fixture.ctx, tx, fixture.fluctlightID, foundation)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	endpointID := "live-wearing-endpoint-" + fixture.suffix
+	seedCognitiveProviderRole(t, fixture.ctx, fixture.repository, endpointID)
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	responses := &liveResponseCapture{inner: http.DefaultTransport}
+	capture := captureProviderWirePayload(responses)
+	defer writeLiveHandleTurnEvidence(t, capture, responses)
+	app := newTestApp(t, fixture.repository, capture)
+	turnCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
+	defer cancel()
+	listed, err := app.ExecuteTool(turnCtx, fixture.request(wardrobeInspectCapabilityName, "live-list-coat", map[string]any{"operation": "list", "category": "coat"}))
+	if err != nil || listed.Result.Status != "completed" {
+		t.Fatalf("read owned coat: receipt=%#v err=%v", listed, err)
+	}
+	items := arrayValue(mapValue(listed.Result.Output)["items"])
+	if len(items) != 1 {
+		t.Fatalf("owned coat missing: %#v", listed.Result.Output)
+	}
+	coatID := stringValue(mapValue(items[0])["id"])
+	worn, err := app.ExecuteTool(turnCtx, fixture.request(wardrobeWearCapabilityName, "live-wear-coat", map[string]any{"mode": "partial", "item_ids": []string{coatID}}))
+	if err != nil || worn.Result.Status != "completed" {
+		t.Fatalf("real wardrobe wear receipt=%#v err=%v", worn, err)
+	}
+	t.Logf("wear receipt=%s", jsonString(worn.Result.Output))
+	reloaded := newTestApp(t, fixture.repository, capture)
+	current, _, _, err := reloaded.readEffectiveLifeSnapshot(turnCtx, fixture.fluctlightID, time.Now().UTC())
+	if err != nil || !strings.Contains(jsonString(current["worn_items"]), "红色外套") {
+		t.Fatalf("wearing was not durable after App reload: %#v err=%v", current, err)
+	}
+	result, err := reloaded.HandleTurn(turnCtx, fixture.ownerID, fixture.conversationID, takeoverChainTurnPayload(fixture.fluctlightID, "你现在穿着什么？", "live-wearing-after", "live-wearing-after"))
+	if err != nil {
+		t.Fatalf("post-wear natural turn: %v; tools=%#v", err, responses.snapshot())
+	}
+	answer := stringValue(result.Assistant["text"])
+	t.Logf("post-wear assistant=%q; requests=%d; tools=%#v", answer, capture.count(), responses.snapshot())
+	if !strings.Contains(answer, "红色外套") {
+		t.Fatalf("later reply omitted current worn coat: %q", answer)
+	}
+}
+
+func TestLiveHandleTurnDoesNotTreatUnexecutedWishAsPurchase(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" || strings.TrimSpace(os.Getenv("GO_CORE_TEST_DATABASE_URL")) == "" {
+		t.Skip("live Provider and disposable PostgreSQL are required")
+	}
+	baseURL, model := liveProviderConfig(t)
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "live-wish-owner", "live-wish-fluctlight", "live-wish-conversation"
+	takeoverChainSeedWithTakeoverRules(t, ctx, repository, ownerID, fluctlightID, conversationID, nil)
+	seedUnknownEffectiveLifeForTest(t, ctx, repository, fluctlightID)
+	endpointID := "native-persona-endpoint-" + fluctlightID
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	responses := &liveResponseCapture{inner: http.DefaultTransport}
+	capture := captureProviderWirePayload(responses)
+	defer writeLiveHandleTurnEvidence(t, capture, responses)
+	app := newTestApp(t, repository, capture)
+	turnCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
+	defer cancel()
+	result, err := app.HandleTurn(turnCtx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID,
+		"我听你说过想拥有一双红色靴子。现在只是想想，还没有去买。你觉得可以怎么搭配？", "live-wish-1", "live-wish-1"))
+	if err != nil {
+		t.Fatalf("wish conversation failed: %v; tool_shapes=%#v", err, responses.snapshot())
+	}
+	answer := stringValue(result.Assistant["text"])
+	t.Logf("wish assistant=%q; requests=%d; tools=%#v", answer, capture.count(), responses.snapshot())
+	var purchased int
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND source_kind='purchase_result'`, fluctlightID).Scan(&purchased); err != nil {
+		t.Fatal(err)
+	}
+	if purchased != 0 || strings.Contains(answer, "已经买了") || strings.Contains(answer, "已经拥有") || strings.Contains(answer, "买好了") {
+		t.Fatalf("unexecuted wish was presented as purchase: purchased=%d answer=%q", purchased, answer)
+	}
+}
+
+func TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" || strings.TrimSpace(os.Getenv("GO_CORE_TEST_DATABASE_URL")) == "" {
+		t.Skip("live Provider and disposable PostgreSQL are required")
+	}
+	baseURL, model := liveProviderConfig(t)
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "live-memory-owner", "live-memory-fluctlight", "live-memory-conversation"
+	takeoverChainSeedWithTakeoverRules(t, ctx, repository, ownerID, fluctlightID, conversationID, nil)
+	seedUnknownEffectiveLifeForTest(t, ctx, repository, fluctlightID)
+	endpointID := "native-persona-endpoint-" + fluctlightID
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	responses := &liveResponseCapture{inner: http.DefaultTransport}
+	capture := captureProviderWirePayload(responses)
+	defer writeLiveHandleTurnEvidence(t, capture, responses)
+	app := newTestApp(t, repository, capture)
+	turnCtx, cancel := context.WithTimeout(context.Background(), 3*liveProviderRequestTimeout()+3*time.Minute)
+	defer cancel()
+	seed, err := app.ExecuteTool(turnCtx, ToolExecutionRequest{
+		CapabilityName: "memory_event", OperationID: "live-memory-seed", AuthorizationActorID: ownerID,
+		FluctlightID: fluctlightID, EvidenceID: "owner-confirmed-cat-name", Surface: CapabilitySurfaceNativeCognition,
+		Arguments: jsonBytes(map[string]any{"content": "用户的猫叫布丁", "type": "semantic", "confidence": 1.0, "importance": 0.6}),
+	})
+	if err != nil || seed.Result.Status != "completed" {
+		t.Fatalf("seed sourced long-term Memory: receipt=%#v err=%v", seed, err)
+	}
+	memoryID := stringValue(mapValue(seed.Result.Output)["memory_id"])
+	resident, err := app.readResidentMemorySnapshot(turnCtx, ownerID, ownerID, fluctlightID, time.Now().UTC())
+	if err != nil || len(resident.Memories) != 0 {
+		t.Fatalf("semantic cat Memory unexpectedly Resident: %#v err=%v", resident, err)
+	}
+	correction, correctionErr := app.HandleTurn(turnCtx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "我更正一下：我的猫不叫布丁，叫奶酪。以后请按奶酪记。", "live-memory-correct", "live-memory-correct"))
+	var content, provenance string
+	if readErr := repository.Pool().QueryRow(turnCtx, `SELECT content,provenance_status FROM public.memories WHERE id=$1`, memoryID).Scan(&content, &provenance); readErr != nil {
+		t.Fatal(readErr)
+	}
+	t.Logf("correction reply=%q; source Memory=%q/%q; turn_error=%v; tools=%#v", stringValue(correction.Assistant["text"]), content, provenance, correctionErr, responses.snapshot())
+	if content == "用户的猫叫布丁" || provenance != "verified" {
+		t.Fatalf("Memory correction did not publish a fully sourced revision: %q/%q", content, provenance)
+	}
+	// A fresh conversation exercises reloading the corrected global Memory even
+	// when the model's prior final DTO failed after its Tool had committed.
+	const followupConversationID = "live-memory-followup-conversation"
+	if _, err := repository.Pool().Exec(turnCtx, `INSERT INTO public.conversations(id,created_by_actor_id,title) VALUES($1,$2,'memory correction followup')`, followupConversationID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(turnCtx, `INSERT INTO public.conversation_heads(conversation_id,next_sequence) VALUES($1,1)`, followupConversationID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(turnCtx, `INSERT INTO public.conversation_participants(conversation_id,actor_id,role,status) VALUES($1,$2,'owner','active'),($1,$3,'member','active')`, followupConversationID, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	reloaded := newTestApp(t, repository, capture)
+	after, err := reloaded.HandleTurn(turnCtx, ownerID, followupConversationID, takeoverChainTurnPayload(fluctlightID, "现在我的猫叫什么名字？", "live-memory-after", "live-memory-after"))
+	if err != nil {
+		t.Fatalf("post-correction turn: %v; tools=%#v", err, responses.snapshot())
+	}
+	answer := stringValue(after.Assistant["text"])
+	t.Logf("post-correction reply=%q; total_requests=%d; tools=%#v", answer, capture.count(), responses.snapshot())
+	if correctionErr != nil || !strings.Contains(answer, "奶酪") || strings.Contains(answer, "猫叫布丁") {
+		t.Fatalf("non-Resident correction not fully demonstrated: correction_error=%v final=%q memory=%q/%q", correctionErr, answer, content, provenance)
 	}
 }
 

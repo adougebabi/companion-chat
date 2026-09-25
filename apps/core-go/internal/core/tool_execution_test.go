@@ -103,14 +103,119 @@ func TestDirectToolExecutionMemoryEventAndRecallOwnsCommitAndOperationReplay(t *
 	}
 	items := arrayValue(mapValue(recall.Result.Output)["items"])
 	found := false
+	var targetRef string
 	for _, raw := range items {
 		if strings.Contains(stringValue(mapValue(raw)["content"]), secret) {
 			found = true
+			targetRef = stringValue(mapValue(raw)["ref"])
 			break
 		}
 	}
 	if !found {
 		t.Fatalf("recall did not observe committed secret: %#v", recall.Result.Output)
+	}
+	corrected := "corrected-direct-tool-secret-" + suffix
+	correction, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+		CapabilityName: "memory_event", OperationID: "correct-secret-" + suffix,
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
+		EvidenceID: "owner-correction-" + suffix, Surface: CapabilitySurfaceNativeCognition,
+		Arguments: jsonBytes(map[string]any{"operation": "revise", "target_ref": targetRef,
+			"content": corrected, "type": "semantic", "confidence": 1.0, "importance": 1.0}),
+	})
+	if err != nil || correction.Result.Status != "completed" || intValue(mapValue(correction.Result.Output)["revision"]) != 1 {
+		t.Fatalf("direct correction receipt=%#v err=%v", correction, err)
+	}
+	var correctedContent string
+	if err := repository.Pool().QueryRow(ctx, `SELECT content FROM public.memories WHERE id=$1`, memoryID).Scan(&correctedContent); err != nil || correctedContent != corrected {
+		t.Fatalf("corrected Memory was not durable: content=%q err=%v", correctedContent, err)
+	}
+	oldRecall, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+		CapabilityName: "memory.recall", OperationID: "recall-old-after-correction-" + suffix,
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
+		Arguments: jsonBytes(map[string]any{"intent": secret}), Surface: CapabilitySurfaceConversation,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, raw := range arrayValue(mapValue(oldRecall.Result.Output)["items"]) {
+		if stringValue(mapValue(raw)["content"]) == secret {
+			t.Fatalf("old corrected Memory revived in recall: %#v", oldRecall.Result.Output)
+		}
+	}
+	newRecall, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+		CapabilityName: "memory.recall", OperationID: "recall-new-after-correction-" + suffix,
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
+		Arguments: jsonBytes(map[string]any{"intent": corrected}), Surface: CapabilitySurfaceConversation,
+	})
+	if err != nil || !strings.Contains(jsonString(mapValue(newRecall.Result.Output)["items"]), corrected) {
+		t.Fatalf("corrected Memory unavailable: %#v err=%v", newRecall.Result.Output, err)
+	}
+}
+
+func TestNativeMemoryCorrectionUsesFrozenPromptReference(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, factID := "frozen-ref-owner", "frozen-ref-fluctlight", "frozen-ref-correction-fact"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active')`, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'blank_slate','active','{}','{}','{}','{}','{}','{}')`, fluctlightID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,1,'conversation.turn','{"text":"更正：猫叫奶酪"}',$1,$1,$1,now(),'processed')`, factID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	app := newTestApp(t, repository, nil)
+	created, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+		CapabilityName: "memory_event", OperationID: "frozen-ref-seed", AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
+		EvidenceID: "owner-confirmed-cat", Surface: CapabilitySurfaceNativeCognition,
+		Arguments: jsonBytes(map[string]any{"content": "用户的猫叫布丁", "type": "semantic", "confidence": 1.0, "importance": 0.6}),
+	})
+	if err != nil || created.Result.Status != "completed" {
+		t.Fatalf("seed Memory: receipt=%#v err=%v", created, err)
+	}
+	memoryID := stringValue(mapValue(created.Result.Output)["memory_id"])
+	index := ContextReferenceIndex{SchemaVersion: contextReferenceIndexVersion, FluctlightID: fluctlightID, OwnerActorID: ownerID, SpeakerActorID: ownerID, ByRef: map[string]ContextReference{}}
+	visible := map[string]any{"id": memoryID, "revision": 0, "content": "用户的猫叫布丁"}
+	ref, err := addReferenceToRow(&index, ContextReferenceMemory, visible, memoryID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := map[string]any{
+		"identity":                map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID},
+		"core_persona":            map[string]any{"identity": map[string]any{"name": "摇光"}},
+		"memory_scope":            map[string]any{"owner_actor_id": ownerID, "viewer_actor_ids": []any{ownerID}, "active_profile_id": "default"},
+		"context_reference_index": index,
+	}
+	request := ToolExecutionRequest{
+		CapabilityName: "memory_event", OperationID: "frozen-ref-correct", NativeToolCallID: "provider-call-1", ProviderRequestID: "provider-request-1",
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, EvidenceID: factID, Surface: CapabilitySurfaceConversation,
+		FrozenContextSnapshot: snapshot,
+		Arguments:             jsonBytes(map[string]any{"operation": "revise", "target_ref": ref, "content": "用户的猫叫奶酪", "type": "semantic", "confidence": 1.0, "importance": 0.6}),
+	}
+	wrongScope := request
+	wrongScope.FrozenContextSnapshot = cloneMap(snapshot)
+	wrongScope.FrozenContextSnapshot["identity"] = map[string]any{"fluctlight_id": "foreign", "source_fact_id": factID}
+	if _, err := app.ExecuteTool(ctx, wrongScope); !errors.Is(err, ErrInvalidArguments) {
+		t.Fatalf("foreign frozen Tool snapshot accepted: %v", err)
+	}
+	corrected, err := app.ExecuteTool(ctx, request)
+	if err != nil || corrected.Result.Status != "completed" || intValue(mapValue(corrected.Result.Output)["revision"]) != 1 {
+		t.Fatalf("frozen prompt ref correction receipt=%#v err=%v", corrected, err)
+	}
+	var content, provenance, evidenceRef string
+	if err := repository.Pool().QueryRow(ctx, `SELECT content,provenance_status,evidence_refs->>0 FROM public.memories WHERE id=$1`, memoryID).Scan(&content, &provenance, &evidenceRef); err != nil || content != "用户的猫叫奶酪" || provenance != "verified" || evidenceRef != factID {
+		t.Fatalf("frozen ref correction not durable and sourced: content=%q provenance=%q evidence=%q err=%v", content, provenance, evidenceRef, err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `DELETE FROM public.cognition_inbox WHERE id=$1`, factID); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := buildMemoryQueryPlan(MemoryForConversation, []string{ownerID}, MemoryConversationGlobalOnly, "", nil, "default", []MemoryQueryCue{{Kind: "test", Text: "奶酪"}}, 6, 2400)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := app.retrieveMemoryWithPlan(ctx, ownerID, fluctlightID, plan)
+	if err != nil || len(result.Items) != 0 {
+		t.Fatalf("deleted correction source still supports current Memory: %#v err=%v", result.Items, err)
 	}
 }
 

@@ -20,25 +20,31 @@ func memoryRecallCapabilityDefinition() CapabilityDefinition {
 		"required": []any{"ref", "source_kind", "content"},
 		"properties": map[string]any{
 			"ref":         map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes},
-			"source_kind": map[string]any{"type": "string", "enum": []any{"active_memory", "long_term_memory", "conversation_record", "summary_projection"}},
+			"source_kind": map[string]any{"type": "string", "enum": []any{"active_memory", "long_term_memory", "conversation_record", "episode_memory"}},
 			"kind":        map[string]any{"type": "string"}, "content": map[string]any{"type": "string", "minLength": 1, "maxLength": 12000},
 			"confidence":  map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
 			"importance":  map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
-			"occurred_at": map[string]any{"type": "string"}, "time_expression": map[string]any{"type": "string"},
+			"occurred_at": map[string]any{"type": "string"}, "recorded_at": map[string]any{"type": "string"}, "time_expression": map[string]any{"type": "string"},
+			"scope":          map[string]any{"type": "string", "enum": []any{"global", "conversation"}},
+			"revision":       map[string]any{"type": "integer", "minimum": 0},
+			"validity":       map[string]any{"type": "string"},
+			"epistemic_kind": map[string]any{"type": "string"},
+			"source_refs":    map[string]any{"type": "array", "maxItems": 8, "items": map[string]any{"type": "string"}},
 		},
 	}
 	return CapabilityDefinition{
 		Name: "memory.recall", Version: "v1", Type: CapabilityTypeQuery,
-		Description: "Search deeper authorized Active, long-term, conversation, and summary memory only when the answer depends on information not already present in context.",
+		Description: "Search deeper authorized Active, long-term, conversation, and summary memory when the answer depends on information not already present in context, or when a memory correction needs an exact target_ref. Use the returned ref for memory_event revise; never invent one.",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceConversation}, FailurePolicy: FailurePolicyOptionalInternal,
 		RequiredContext: []ContextSlot{SlotMemoryScope},
 		InputSchema:     map[string]any{"type": "object", "additionalProperties": false, "required": []any{"intent"}, "properties": map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 1000}}},
 		OutputSchema: map[string]any{
-			"type": "object", "additionalProperties": false, "required": []any{"items", "count", "truncated"},
+			"type": "object", "additionalProperties": false, "required": []any{"items", "count", "truncated", "state"},
 			"properties": map[string]any{
 				"items":     map[string]any{"type": "array", "maxItems": memoryRecallResultLimit, "items": item},
 				"count":     map[string]any{"type": "integer", "minimum": 0, "maximum": memoryRecallResultLimit},
 				"truncated": map[string]any{"type": "boolean"},
+				"state":     map[string]any{"type": "string", "enum": []any{"found", "no_match"}},
 			},
 		},
 		SideEffectClass: "read_only", SuccessBoundary: "query_result_available", ConcurrencyClass: "parallel", SupportsRetry: true,
@@ -125,7 +131,7 @@ func (service *memoryRecallService) Recall(ctx context.Context, request MemoryRe
 		}
 	}
 	for index, item := range summaries.Items {
-		candidates = append(candidates, candidate{item: recallSummaryItem(item), score: 1 - float64(index)/100})
+		candidates = append(candidates, candidate{item: recallSummaryItem(item, request), score: 1 - float64(index)/100})
 	}
 	sort.SliceStable(candidates, func(i, j int) bool {
 		if candidates[i].score != candidates[j].score {
@@ -159,7 +165,7 @@ func recallOpaqueRef(kind, identity string, request MemoryRecallRequest) string 
 }
 
 func recallActiveItem(item map[string]any, request MemoryRecallRequest) map[string]any {
-	result := map[string]any{"ref": recallOpaqueRef("active_memory", stringValue(item["id"])+":"+fmt.Sprint(item["revision"]), request), "source_kind": "active_memory", "kind": item["kind"], "content": item["content"], "confidence": item["confidence"], "importance": item["importance"]}
+	result := map[string]any{"ref": recallOpaqueRef("active_memory", stringValue(item["id"])+":"+fmt.Sprint(item["revision"]), request), "source_kind": "active_memory", "kind": item["kind"], "content": item["content"], "confidence": item["confidence"], "importance": item["importance"], "validity": item["source_validity"]}
 	if value := stringValue(item["original_time_expression"]); value != "" {
 		result["time_expression"] = value
 	}
@@ -167,7 +173,34 @@ func recallActiveItem(item map[string]any, request MemoryRecallRequest) map[stri
 }
 
 func recallLongTermItem(item map[string]any, request MemoryRecallRequest) map[string]any {
-	return compactRecallItem(map[string]any{"ref": recallOpaqueRef("memory", stringValue(item["id"])+":"+fmt.Sprint(item["revision"]), request), "source_kind": "long_term_memory", "kind": item["type"], "content": item["content"], "confidence": item["confidence"], "importance": item["importance"], "occurred_at": item["created_at"]})
+	sourceKind := "long_term_memory"
+	if stringValue(item["type"]) == "episodic" {
+		sourceKind = "episode_memory"
+	}
+	scope := "global"
+	if conversation, ok := item["conversation_id"].(*string); ok && conversation != nil && *conversation != "" {
+		scope = "conversation"
+	}
+	sources := make([]any, 0, 8)
+	refs := arrayValue(item["effective_source_refs"])
+	if refs == nil {
+		refs = arrayValue(item["evidence_refs"])
+	}
+	for _, raw := range refs {
+		if len(sources) >= 8 {
+			break
+		}
+		if ref := strings.TrimSpace(stringValue(raw)); ref != "" {
+			sources = append(sources, recallOpaqueRef("memory_source", ref, request))
+		}
+	}
+	return compactRecallItem(map[string]any{
+		"ref":         recallOpaqueRef("memory", stringValue(item["id"])+":"+fmt.Sprint(item["revision"]), request),
+		"source_kind": sourceKind, "kind": item["type"], "content": item["content"],
+		"confidence": item["confidence"], "importance": item["importance"],
+		"occurred_at": item["occurred_at"], "recorded_at": item["created_at"],
+		"scope": scope, "revision": item["revision"], "validity": item["provenance_status"], "epistemic_kind": item["epistemic_kind"], "source_refs": sources,
+	})
 }
 
 func recallRawItem(event RawHistoryEvent, request MemoryRecallRequest) map[string]any {
@@ -175,16 +208,29 @@ func recallRawItem(event RawHistoryEvent, request MemoryRecallRequest) map[strin
 	if content == "" {
 		return nil
 	}
-	return compactRecallItem(map[string]any{"ref": recallOpaqueRef("conversation_record", event.SourceRef, request), "source_kind": "conversation_record", "kind": string(event.Kind), "content": content, "occurred_at": event.OccurredAt.UTC().Format(time.RFC3339Nano)})
+	return compactRecallItem(map[string]any{"ref": recallOpaqueRef("conversation_record", event.SourceRef, request), "source_kind": "conversation_record", "kind": string(event.Kind), "content": content, "occurred_at": event.OccurredAt.UTC().Format(time.RFC3339Nano), "validity": "historical"})
 }
 
-func recallSummaryItem(item map[string]any) map[string]any {
-	return compactRecallItem(map[string]any{"ref": item["ref"], "source_kind": "summary_projection", "kind": "conversation_summary", "content": item["summary"], "occurred_at": item["completed_at"]})
+func recallSummaryItem(item map[string]any, request MemoryRecallRequest) map[string]any {
+	sources := make([]any, 0, 8)
+	for _, raw := range arrayValue(item["source_message_refs"]) {
+		if len(sources) >= 8 {
+			break
+		}
+		if ref := strings.TrimSpace(stringValue(raw)); ref != "" {
+			sources = append(sources, recallOpaqueRef("episode_source", ref, request))
+		}
+	}
+	return compactRecallItem(map[string]any{
+		"ref": item["ref"], "source_kind": "episode_memory", "kind": "conversation_episode",
+		"content": item["summary"], "recorded_at": item["completed_at"], "scope": "conversation",
+		"revision": item["revision"], "validity": "historical_sourced", "source_refs": sources,
+	})
 }
 
 func compactRecallItem(item map[string]any) map[string]any {
 	result := make(map[string]any, len(item))
-	for _, key := range []string{"ref", "source_kind", "kind", "content", "confidence", "importance", "occurred_at", "time_expression"} {
+	for _, key := range []string{"ref", "source_kind", "kind", "content", "confidence", "importance", "occurred_at", "recorded_at", "time_expression", "scope", "revision", "validity", "epistemic_kind", "source_refs"} {
 		if value, ok := item[key]; ok && value != nil && value != "" {
 			result[key] = value
 		}

@@ -12,8 +12,9 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0036_effective_life"
-const PreviousHead = "0035_working_persona"
+const Head = "0037_memory_provenance"
+const PreviousHead = "0036_effective_life"
+const EffectiveLifeHead = "0036_effective_life"
 const WorkingPersonaHead = "0035_working_persona"
 const ToolExecutionSourceHead = "0034_tool_execution_source"
 const InitializationSourceHead = "0033_initialization_source"
@@ -85,7 +86,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead {
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -145,6 +146,15 @@ func (r *Runner) Apply(ctx context.Context) error {
 	}
 	if _, err := tx.Exec(ctx, effectiveLifeSchemaSQL); err != nil {
 		return fmt.Errorf("apply effective life schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, memoryProvenanceSchemaSQL); err != nil {
+		return fmt.Errorf("apply Memory provenance schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, residentMemorySchemaSQL); err != nil {
+		return fmt.Errorf("apply Resident Memory schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, contextAuthorityGenerationSQL); err != nil {
+		return fmt.Errorf("apply Context authority generation schema: %w", err)
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {

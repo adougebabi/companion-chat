@@ -19,8 +19,8 @@ var validMemoryVisibility = map[string]struct{}{"private": {}, "owner": {}, "par
 
 func memoryCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
-		Name: "memory_event", Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Record an explicit evidence-backed Fluctlight memory candidate.",
+		Name: "memory_event", Version: "v2", Type: CapabilityTypeAction,
+		Description:     "Record or correct one evidence-backed Fluctlight memory. For revise, use an exact opaque memory ref already present in context or returned by memory.recall. If no such ref is available, call memory.recall first; never invent target_ref.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCorePersona, SlotMemoryScope},
@@ -28,6 +28,8 @@ func memoryCapabilityDefinition() CapabilityDefinition {
 			"type": "object", "additionalProperties": false,
 			"required": []any{"content", "type", "confidence", "importance"},
 			"properties": map[string]any{
+				"operation":              map[string]any{"type": "string", "enum": []any{"create", "revise"}},
+				"target_ref":             map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes},
 				"content":                map[string]any{"type": "string", "minLength": 1, "maxLength": 32000},
 				"type":                   map[string]any{"type": "string", "enum": []any{"episodic", "semantic", "relationship", "autobiographical"}},
 				"confidence":             map[string]any{"type": "number", "minimum": 0, "maximum": 1},
@@ -39,7 +41,7 @@ func memoryCapabilityDefinition() CapabilityDefinition {
 			"type": "object", "additionalProperties": false,
 			"required": []any{"operation", "memory_id", "status", "revision", "disposition", "replayed"},
 			"properties": map[string]any{
-				"operation":   map[string]any{"type": "string", "enum": []any{"create"}},
+				"operation":   map[string]any{"type": "string", "enum": []any{"create", "revise"}},
 				"memory_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"status":      map[string]any{"type": "string", "enum": []any{"active"}},
 				"revision":    map[string]any{"type": "integer", "minimum": 0},
@@ -56,7 +58,7 @@ func (a *App) applyMemoryCapability(ctx context.Context, invocation CapabilityIn
 	return failedCapabilityResult(invocation, "caller_transaction_required", false), newCapabilityError("caller_transaction_required", false, ErrConflict)
 }
 
-func (a *App) prepareMemoryCapability(_ context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
+func (a *App) prepareMemoryCapability(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
 	if err := requireCapabilityContext(resolved, SlotCorePersona, SlotMemoryScope); err != nil {
 		return invocation, err
 	}
@@ -90,14 +92,37 @@ func (a *App) prepareMemoryCapability(_ context.Context, invocation CapabilityIn
 	if len(evidence) != 1 || evidence[0] != invocation.SourceFactID {
 		return invocation, errors.New("memory_runtime_evidence_invalid")
 	}
+	operation := MemoryOperation(firstString(args["operation"], string(MemoryCreate)))
+	if operation != MemoryCreate && operation != MemoryRevise {
+		return invocation, errors.New("memory_operation_invalid")
+	}
+	targetRef := strings.TrimSpace(stringValue(args["target_ref"]))
+	if (operation == MemoryCreate && targetRef != "") || (operation == MemoryRevise && targetRef == "") {
+		return invocation, errors.New("memory_correction_target_invalid")
+	}
 	command := PreparedMemoryMutation{
-		SchemaVersion: memoryLifecycleSchemaVersion, Operation: MemoryCreate,
+		SchemaVersion: memoryLifecycleSchemaVersion, Operation: operation,
 		OwnerFluctlightID: invocation.Metadata.FluctlightID, OwnerActorID: ownerActorID, ActorID: invocation.Metadata.FluctlightID,
 		ActiveProfileID: activeProfileID, ConversationID: invocation.Metadata.ConversationID,
 		ActorRefs: []string{}, EventRefs: []string{}, EvidenceRefs: evidence, Semantic: &semantic,
 		Visibility: "private", OccurredAt: time.Now().UTC(), SourceFactID: invocation.SourceFactID,
-		CandidateIndex: -1, SemanticReason: "explicit_memory_event",
-		IdempotencyKey: "memory:create:" + invocation.Metadata.FluctlightID + ":" + capabilityOperationID(invocation),
+		AuthenticatedDirect: invocation.Metadata.Source == "direct",
+		CandidateIndex:      -1, SemanticReason: "explicit_memory_event",
+		IdempotencyKey: "memory:" + string(operation) + ":" + invocation.Metadata.FluctlightID + ":" + capabilityOperationID(invocation),
+	}
+	if operation == MemoryRevise {
+		command.ReplaceEvidence = true
+		row, err := a.resolveMemoryCorrectionTarget(ctx, invocation, resolved, targetRef)
+		if err != nil {
+			return invocation, err
+		}
+		command.Target = &MemoryTarget{Ref: targetRef, MemoryID: row.ID, ExpectedRevision: row.Revision}
+		command.ConversationID = row.ConversationID
+		command.Visibility = row.Visibility
+		command.ActorRefs = decisionServiceRefValues(row.ActorRefs)
+		command.EventRefs = decisionServiceRefValues(row.EventRefs)
+		command.PersonalityPerspectives = []any{}
+		command.SemanticReason = "explicit_memory_correction"
 	}
 	command.RequestDigest = memoryCommandDigest(command)
 	if err := validatePreparedMemoryMutation(command); err != nil {
@@ -123,7 +148,7 @@ func (a *App) applyMemoryCapabilityTx(ctx context.Context, tx pgx.Tx, invocation
 	}
 	ownerActorID := strings.TrimSpace(stringValue(resolved.Memory.Data["owner_actor_id"]))
 	activeProfileID := strings.TrimSpace(stringValue(resolved.Memory.Data["active_profile_id"]))
-	if command.Operation != MemoryCreate || command.OwnerFluctlightID != invocation.Metadata.FluctlightID || command.OwnerActorID != ownerActorID || command.ActiveProfileID != activeProfileID || command.ConversationID != invocation.Metadata.ConversationID || command.SourceFactID != invocation.SourceFactID {
+	if (command.Operation != MemoryCreate && command.Operation != MemoryRevise) || command.OwnerFluctlightID != invocation.Metadata.FluctlightID || command.OwnerActorID != ownerActorID || command.ActiveProfileID != activeProfileID || (command.ConversationID != "" && command.ConversationID != invocation.Metadata.ConversationID) || command.SourceFactID != invocation.SourceFactID {
 		return failedCapabilityResultDetail(invocation, "memory_plan_stale", false, "memory plan no longer matches the frozen invocation"), newCapabilityError("memory_plan_stale", false, ErrConflict)
 	}
 	result, err := a.applyMemoryCommandTx(ctx, tx, command)

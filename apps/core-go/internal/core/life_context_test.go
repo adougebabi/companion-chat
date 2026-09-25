@@ -342,6 +342,7 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 	}
 	var providerCalls atomic.Int32
 	var decisionLifeRevision string
+	var firstDecisionLifeRevision string
 	app := &App{DB: repository}
 	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		call := providerCalls.Add(1)
@@ -352,6 +353,7 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 			t.Fatalf("Provider request omitted frozen Life Context ref: %s", body)
 		}
 		if call == 1 {
+			firstDecisionLifeRevision = decisionLifeRevision
 			if _, err := app.CreateLifeEvent(ctx, ownerID, fluctlightID, map[string]any{
 				"kind": "interruption", "start_at": time.Now().UTC().Add(-time.Minute).Format(time.RFC3339),
 				"end_at": time.Now().UTC().Add(time.Hour).Format(time.RFC3339), "scene": "客厅", "activity": "临时交谈",
@@ -419,7 +421,7 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 			sceneInvocation = invocation
 		}
 	}
-	if stringValue(mapValue(sceneInvocation.ContextSnapshot["current_life"])["context_revision"]) != decisionLifeRevision {
+	if firstDecisionLifeRevision == decisionLifeRevision || stringValue(mapValue(sceneInvocation.ContextSnapshot["current_life"])["context_revision"]) != firstDecisionLifeRevision {
 		t.Fatalf("conversation capability did not preserve decision context snapshot=%#v", sceneInvocation.ContextSnapshot)
 	}
 	var staleCapabilitySceneCount int

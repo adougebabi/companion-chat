@@ -26,8 +26,14 @@ func TestAnnotateLifeContextClockFallsBackToNowForMalformedInstant(t *testing.T)
 }
 
 func TestNormalizeResponsePlanFiltersUnsupportedAndRepeatedClaims(t *testing.T) {
+	index := ContextReferenceIndex{SchemaVersion: contextReferenceIndexVersion, FluctlightID: "fl-plan", OwnerActorID: "owner-plan", ByRef: map[string]ContextReference{}}
+	priorRef, err := index.add(ContextReferenceOutcome, "fact-old", 0, map[string]any{"summary": "既有假设来源"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	context := ContextProjection{
 		ContextRevision: 4,
+		ReferenceIndex:  index,
 		Hypotheses: []map[string]any{{
 			"repetition_key": "我 最近 喜欢 火车",
 			"evidence_refs":  []any{"fact-old"},
@@ -39,8 +45,8 @@ func TestNormalizeResponsePlanFiltersUnsupportedAndRepeatedClaims(t *testing.T) 
 		"action_type": "reply",
 		"claims": []any{
 			map[string]any{"kind": ClaimUnsupportedSelf, "content": "我小时候住在海边", "confidence": 0.9, "evidence_refs": []any{}},
-			map[string]any{"kind": ClaimSupportedHypothesis, "content": "我最近喜欢火车", "confidence": 0.8, "evidence_refs": []any{"fact-old"}, "repetition_key": "我 最近 喜欢 火车"},
-			map[string]any{"kind": ClaimUncertainHypothesis, "content": "我可能需要休息", "confidence": 0.4, "evidence_refs": []any{"fact-new"}},
+			map[string]any{"kind": ClaimSupportedHypothesis, "content": "我最近喜欢火车", "confidence": 0.8, "evidence_refs": []any{priorRef}, "repetition_key": "我 最近 喜欢 火车"},
+			map[string]any{"kind": ClaimUncertainHypothesis, "content": "我可能需要休息", "confidence": 0.4, "evidence_refs": []any{"current_message"}},
 		},
 	}
 	plan, err := normalizeResponsePlan(decision, "fact-new", context)
@@ -154,6 +160,35 @@ func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 	}
 	if _, _, _, err := evaluateClaims([]any{map[string]any{"kind": ClaimObservedFact, "content": "x", "confidence": 2, "evidence_refs": []any{"fact"}}}, "fact", context); err == nil {
 		t.Fatal("expected invalid confidence error")
+	}
+}
+
+func TestEvaluateClaimsResolvesOnlyVisibleOpaqueEvidence(t *testing.T) {
+	index := ContextReferenceIndex{SchemaVersion: contextReferenceIndexVersion, FluctlightID: "fl-claim", OwnerActorID: "owner-claim", SpeakerActorID: "owner-claim", ByRef: map[string]ContextReference{}}
+	lifeRef, err := index.add(ContextReferenceLifeContext, "fl-claim", 2, map[string]any{"current_time": "22:31 CST"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	memoryRef, err := index.add(ContextReferenceMemory, "memory-claim", 1, map[string]any{"content": "猫叫奶酪"})
+	if err != nil || index.Validate() != nil {
+		t.Fatalf("valid context references: %v", err)
+	}
+	context := ContextProjection{ReferenceIndex: index}
+	claims := normalizeCognitionClaims([]any{
+		map[string]any{"kind": ClaimObservedFact, "content": "现在是深夜", "confidence": 0.9, "evidence_refs": []any{lifeRef}},
+		map[string]any{"kind": ClaimObservedFact, "content": "猫叫奶酪", "confidence": 0.9, "evidence_refs": []any{memoryRef}},
+	}, "turn-fact", index)
+	approved, _, _, err := evaluateClaims(claims, "turn-fact", context)
+	if err != nil || len(approved) != 2 || stringValue(arrayValue(mapValue(approved[0])["evidence_refs"])[0]) != "turn-fact" || stringValue(arrayValue(mapValue(approved[1])["evidence_refs"])[0]) != "memory-claim" {
+		t.Fatalf("visible refs were not reduced to scoped internal anchors: %#v err=%v", approved, err)
+	}
+	unknown := normalizeCognitionClaims([]any{map[string]any{"kind": ClaimObservedFact, "content": "伪造", "confidence": 0.9, "evidence_refs": []any{"life_context:ctx_0123456789abcdef0123456789abcdef"}}}, "turn-fact", index)
+	if _, _, _, err := evaluateClaims(unknown, "turn-fact", context); err == nil || err.Error() != "claim_0_evidence_invalid" {
+		t.Fatalf("unknown opaque ref was accepted: %v", err)
+	}
+	rawID := normalizeCognitionClaims([]any{map[string]any{"kind": ClaimObservedFact, "content": "伪造原始 ID", "confidence": 0.9, "evidence_refs": []any{"memory-claim"}, "_host_resolved_refs": []any{"memory-claim"}}}, "turn-fact", index)
+	if _, _, _, err := evaluateClaims(rawID, "turn-fact", context); err == nil || err.Error() != "claim_0_evidence_invalid" {
+		t.Fatalf("raw entity ID or forged host marker was accepted: %v", err)
 	}
 }
 

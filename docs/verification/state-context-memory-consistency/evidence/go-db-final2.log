@@ -1,0 +1,46 @@
+2026/09/24 21:20:05 INFO capability lifecycle capability=appearance_change call_id=call-1 type=action surface="" required_context=[current_state] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 21:20:05 WARN capability lifecycle capability=appearance_change call_id=call-1 type=action surface="" required_context=[appearance] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=context_resolve_failed
+2026/09/24 21:20:05 INFO capability lifecycle capability=dummy.inspect call_id=dummy-1 type=query surface="" required_context=[current_state] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 21:20:16 ERROR Go Core conversation turn lifecycle settlement failed after visible output error_type=*fmt.wrapErrors error_code=agent_final_contract_invalid turn_id=final-contract-turn-1
+2026/09/24 21:20:17 ERROR Go Core conversation turn lifecycle settlement failed after visible output error_type=*fmt.wrapError error_code=conversation_settlement_failed turn_id=retry-turn-1
+2026/09/24 21:20:19 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=prompt.test
+--- FAIL: TestIndependentToolE2EVisualIdentityInitialize (0.98s)
+    --- FAIL: TestIndependentToolE2EVisualIdentityInitialize/direct_success_without_native_call (0.01s)
+        independent_tools_e2e_test.go:521: direct visual_identity.initialize receipt=core.ToolExecutionReceipt{OperationID:"visual-initialize-visual_identity_1790256046906485000", NativeToolCallID:"", ExecutionCallID:"direct_call_6b503835956c5bf83a4412b69959b8cc", Result:capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_6b503835956c5bf83a4412b69959b8cc", CapabilityName:"visual_identity.initialize", Status:"failed", Output:interface {}(nil), ErrorCode:"visual_identity_initialization_failed", Retryable:true, ProviderRequestID:"", CorrelationID:"capability:direct_call_6b503835956c5bf83a4412b69959b8cc", Duration:0, RequiredContext:[]capability.ContextSlot{"core_persona", "visual_identity"}}, AuthorityRevisions:core.ToolAuthorityRevisions{Before:(*core.ToolAuthorityRevisions)(nil), Foundation:0, CurrentState:0, CurrentFacts:"", LifeContext:""}, Replayed:false} err=capability execution failed: effective_life_uninitialized
+    --- FAIL: TestIndependentToolE2EVisualIdentityInitialize/durable_product (0.00s)
+        independent_tools_e2e_test.go:528: no rows in result set
+    --- FAIL: TestIndependentToolE2EVisualIdentityInitialize/operation_replay_with_new_native_correlation (0.00s)
+        independent_tools_e2e_test.go:543: operation replay visual_identity.initialize receipt=core.ToolExecutionReceipt{OperationID:"visual-initialize-visual_identity_1790256046906485000", NativeToolCallID:"native-replay-visual_identity_1790256046906485000-visual_identity-initialize", ExecutionCallID:"native-replay-visual_identity_1790256046906485000-visual_identity-initialize", Result:capability.CapabilityResult{ActingProfileID:"", CallID:"native-replay-visual_identity_1790256046906485000-visual_identity-initialize", CapabilityName:"visual_identity.initialize", Status:"failed", Output:interface {}(nil), ErrorCode:"visual_identity_initialization_failed", Retryable:true, ProviderRequestID:"provider-replay-visual_identity_1790256046906485000-visual_identity-initialize", CorrelationID:"capability:native-replay-visual_identity_1790256046906485000-visual_identity-initialize", Duration:0, RequiredContext:[]capability.ContextSlot{"core_persona", "visual_identity"}}, AuthorityRevisions:core.ToolAuthorityRevisions{Before:(*core.ToolAuthorityRevisions)(nil), Foundation:0, CurrentState:0, CurrentFacts:"", LifeContext:""}, Replayed:false} err=capability execution failed: effective_life_uninitialized
+    --- FAIL: TestIndependentToolE2EVisualIdentityInitialize/same_operation_payload_conflict (0.00s)
+        independent_tools_e2e_test.go:559: operation conflict visual_identity.initialize receipt=core.ToolExecutionReceipt{OperationID:"visual-initialize-visual_identity_1790256046906485000", NativeToolCallID:"native-conflict-visual_identity_1790256046906485000-visual_identity-initialize", ExecutionCallID:"native-conflict-visual_identity_1790256046906485000-visual_identity-initialize", Result:capability.CapabilityResult{ActingProfileID:"", CallID:"native-conflict-visual_identity_1790256046906485000-visual_identity-initialize", CapabilityName:"visual_identity.initialize", Status:"failed", Output:interface {}(nil), ErrorCode:"visual_identity_initialization_failed", Retryable:true, ProviderRequestID:"provider-conflict-visual_identity_1790256046906485000-visual_identity-initialize", CorrelationID:"capability:native-conflict-visual_identity_1790256046906485000-visual_identity-initialize", Duration:0, RequiredContext:[]capability.ContextSlot{"core_persona", "visual_identity"}}, AuthorityRevisions:core.ToolAuthorityRevisions{Before:(*core.ToolAuthorityRevisions)(nil), Foundation:0, CurrentState:0, CurrentFacts:"", LifeContext:""}, Replayed:false} err=capability execution failed: effective_life_uninitialized
+--- FAIL: TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority (0.81s)
+    memory_lifecycle_test.go:397: second Reflection=map[string]interface {}(nil) err=memory_source_cycle calls=2 ref="memory:ctx_454650587e622c410436c93a72e2572a"
+--- FAIL: TestActionOutcomePersistsPerCallAndAsyncCompletionExactlyOnce (1.27s)
+    project_health_transaction_integration_test.go:169: ERROR: insert or update on table "fluctlight_context_generations" violates foreign key constraint "fluctlight_context_generations_fluctlight_id_fkey" (SQLSTATE 23503)
+--- FAIL: TestStructuredTurnSettlementRollsBackStateAssistantAndOutcomeTogether (1.18s)
+    project_health_transaction_integration_test.go:308: ERROR: insert or update on table "fluctlight_context_generations" violates foreign key constraint "fluctlight_context_generations_fluctlight_id_fkey" (SQLSTATE 23503)
+--- FAIL: TestReflectionSlotUpdateRejectsFrozenRevisionDrift (1.18s)
+    reflection_aux_domains_v2_test.go:15: ERROR: insert or update on table "fluctlight_context_generations" violates foreign key constraint "fluctlight_context_generations_fluctlight_id_fkey" (SQLSTATE 23503)
+--- FAIL: TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays (0.69s)
+    visual_identity_tools_test.go:92: effective_life_uninitialized
+--- FAIL: TestProcessVisualIdentityReportsDurableProviderConfigurationWait (0.76s)
+    visual_identity_tools_test.go:137: effective_life_uninitialized
+--- FAIL: TestVisualIdentityCommitReviewToolPreservesRejectedAssetAndCreatesNextAttempt (0.71s)
+    visual_identity_tools_test.go:152: effective_life_uninitialized
+--- FAIL: TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion (0.73s)
+    visual_identity_tools_test.go:205: effective_life_uninitialized
+--- FAIL: TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration (0.66s)
+    visual_identity_tools_test.go:304: effective_life_uninitialized
+--- FAIL: TestVisualIdentityAgentPreservesAcceptedGenerationWhenFinalModelFails (0.69s)
+    visual_identity_tools_test.go:335: effective_life_uninitialized
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	172.593s
+--- FAIL: TestEvolutionAuthorityMigrationEnforcesClosedRows (1.25s)
+    evolution_authority_postgres_test.go:104: valid Goal rejected: ERROR: insert or update on table "fluctlight_context_generations" violates foreign key constraint "fluctlight_context_generations_fluctlight_id_fkey" (SQLSTATE 23503)
+--- FAIL: TestLifeContextRevisionDeferredConstraintsValidateCommittedReplayState (0.88s)
+    life_context_revision_postgres_test.go:232: ERROR: insert or update on table "fluctlight_context_generations" violates foreign key constraint "fluctlight_context_generations_fluctlight_id_fkey" (SQLSTATE 23503)
+--- FAIL: TestPostgresPromptContextMemoryMigrationUpgradesEvolutionHeadAndIsIdempotent (0.75s)
+    prompt_context_memory_postgres_test.go:88: post-migration source linkage rejected: ERROR: insert or update on table "fluctlight_context_generations" violates foreign key constraint "fluctlight_context_generations_fluctlight_id_fkey" (SQLSTATE 23503)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	29.376s
+FAIL

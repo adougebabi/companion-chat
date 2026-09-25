@@ -738,7 +738,11 @@ func (c memoryRecallCapability) Execute(ctx context.Context, invocation Capabili
 	if err != nil {
 		return failedCapabilityResultDetail(invocation, "memory_recall_failed", true, err.Error()), err
 	}
-	output := map[string]any{"items": items, "count": len(items), "truncated": truncated}
+	state := "found"
+	if len(items) == 0 {
+		state = "no_match"
+	}
+	output := map[string]any{"items": items, "count": len(items), "truncated": truncated, "state": state}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "memory-recall:" + stableDigest(invocation.CallID)}, nil
 }
 

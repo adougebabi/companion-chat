@@ -1,0 +1,20 @@
+=== RUN   TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCommit
+--- PASS: TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCommit (1.48s)
+=== RUN   TestFailedConversationTurnCanBeRetriedAndStreamed
+2026/09/24 23:24:24 ERROR Go Core conversation turn lifecycle settlement failed after visible output error_type=*fmt.wrapError error_code=conversation_settlement_failed turn_id=retry-turn-1
+--- PASS: TestFailedConversationTurnCanBeRetriedAndStreamed (1.28s)
+=== RUN   TestCurrentFactsRevisionTracksNewClaimsAndConversationMessages
+=== RUN   TestCurrentFactsRevisionTracksNewClaimsAndConversationMessages/claim
+=== RUN   TestCurrentFactsRevisionTracksNewClaimsAndConversationMessages/message
+--- PASS: TestCurrentFactsRevisionTracksNewClaimsAndConversationMessages (1.20s)
+    --- PASS: TestCurrentFactsRevisionTracksNewClaimsAndConversationMessages/claim (0.00s)
+    --- PASS: TestCurrentFactsRevisionTracksNewClaimsAndConversationMessages/message (0.00s)
+=== RUN   TestTurnPathCostMeasurement
+    turn_path_cost_report_test.go:193: natural_final              physical=1 tokens(in)=32897 tokens(out~)=160 bytes=28227 #1=32897tok/28227B
+    turn_path_cost_report_test.go:193: reply_tool_then_final      physical=2 tokens(in)=67377 tokens(out~)=680 bytes=57741 #1=32897tok/28227B #2=34480tok/29514B
+    turn_path_cost_report_test.go:193: takeover_reply_then_final  physical=3 tokens(in)=105462 tokens(out~)=1044 bytes=90146 #1=32897tok/28227B #2=35457tok/30283B #3=37108tok/31636B
+--- PASS: TestTurnPathCostMeasurement (4.02s)
+=== RUN   TestNaturalFinalReplyNeedsNoSyntheticConversationReplyTool
+--- PASS: TestNaturalFinalReplyNeedsNoSyntheticConversationReplyTool (0.98s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	9.598s

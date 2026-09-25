@@ -73,12 +73,15 @@ func TestMemoryRecallServiceCombinesDeepAuthoritiesWithOpaqueBoundedOutput(t *te
 		t.Fatalf("deep recall plan=%#v items=%#v", capturedPlan, items)
 	}
 	encoded := jsonString(items)
-	for _, forbidden := range []string{"memory_internal", "active_internal", "message:internal", "visibility", "revision", "evidence_refs", "fact_internal", "plan_id", "score"} {
+	for _, forbidden := range []string{"memory_internal", "active_internal", "message:internal", "visibility", "evidence_refs", "fact_internal", "plan_id", "score"} {
 		if strings.Contains(encoded, forbidden) {
 			t.Fatalf("recall output leaked %q: %s", forbidden, encoded)
 		}
 	}
-	for _, sourceKind := range []string{"active_memory", "long_term_memory", "conversation_record", "summary_projection"} {
+	if !strings.Contains(encoded, `"revision":7`) || !strings.Contains(encoded, `"source_refs"`) {
+		t.Fatalf("recall output omitted versioned provenance: %s", encoded)
+	}
+	for _, sourceKind := range []string{"active_memory", "long_term_memory", "conversation_record", "episode_memory"} {
 		if !strings.Contains(encoded, sourceKind) {
 			t.Fatalf("recall output missing %q: %s", sourceKind, encoded)
 		}

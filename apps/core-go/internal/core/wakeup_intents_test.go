@@ -202,7 +202,7 @@ func TestWakeUpCreatesDirectConversationBeforeBuildingReplyContext(t *testing.T)
 	}
 	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func (a *App) ProcessNativeCognitionFact")
 	ensureAt := strings.Index(body, "EnsureDirectConversation(ctx, ownerID, fluctlightID)")
-	projectionAt := strings.Index(body, "BuildContextProjectionFor(ctx, ContextProjectionRequest{")
+	projectionAt := strings.Index(body, "BuildContextProjectionFor(ctx, projectionRequest)")
 	if ensureAt < 0 || projectionAt < 0 || ensureAt > projectionAt {
 		t.Fatal("WakeUp must ensure the direct conversation before building the reply context")
 	}

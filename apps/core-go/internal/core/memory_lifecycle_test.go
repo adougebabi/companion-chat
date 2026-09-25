@@ -104,7 +104,7 @@ func TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple(t *testing.T
 	})}}}
 	semantic := &MemorySemanticInput{Type: "semantic", Content: "retry one tuple", Confidence: 0.9, Importance: 0.8, EmotionalSignificance: 0.2}
 	create := memoryLifecycleTestCommand(MemoryCreate, "embedding-retry", semantic, nil, nil)
-	create.OwnerFluctlightID, create.OwnerActorID, create.ActorID = fluctlightID, ownerID, fluctlightID
+	create.OwnerFluctlightID, create.OwnerActorID, create.ActorID = fluctlightID, ownerID, ownerID
 	create.RequestDigest = memoryCommandDigest(create)
 	created := applyMemoryLifecycleTestCommand(t, ctx, app, create)
 	intentID := "memory_embedding_intent:" + created.MemoryID + ":0"
@@ -333,7 +333,9 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 			citedMemoryRef = matches[0]
 			candidate = reflectionMemorySemanticCandidate("revise")
 			candidate["target_ref"] = citedMemoryRef
-			candidate["evidence_refs"] = []any{"sequence:2", citedMemoryRef}
+			// The cited Memory is the revision target and a decision influence,
+			// not an independent source for its own new revision.
+			candidate["evidence_refs"] = []any{"sequence:2"}
 			candidate["content"] = "用户明确偏好靠窗、安静且光线柔和的位置"
 		}
 		proposal := reflectionProposalV2Fixture([]any{candidate})
@@ -493,7 +495,7 @@ func TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically(t *tes
 	for index, content := range []string{"确认目标", "修订目标", "合并主目标", "合并次目标", "替代目标", "弃用目标"} {
 		semantic := &MemorySemanticInput{Type: "semantic", Content: content, Confidence: 0.8, Importance: 0.7, EmotionalSignificance: 0.2}
 		command := memoryLifecycleTestCommand(MemoryCreate, fmt.Sprintf("all-seed-%d", index), semantic, nil, nil)
-		command.OwnerFluctlightID, command.OwnerActorID, command.ActorID = fluctlightID, ownerID, fluctlightID
+		command.OwnerFluctlightID, command.OwnerActorID, command.ActorID = fluctlightID, ownerID, ownerID
 		command.RequestDigest = memoryCommandDigest(command)
 		created = append(created, applyMemoryLifecycleTestCommand(t, ctx, app, command))
 	}
@@ -516,18 +518,18 @@ func TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically(t *tes
 		candidate := reflectionMemorySemanticCandidate(operation)
 		candidate["target_ref"] = targetRef
 		candidate["content"] = content
-		candidate["evidence_refs"] = []any{"sequence:1", targetRef}
+		candidate["evidence_refs"] = []any{"sequence:1"}
 		return candidate
 	}
 	createCandidate := reflectionMemorySemanticCandidate("create")
 	createCandidate["evidence_refs"] = []any{"sequence:1"}
 	createCandidate["content"] = "窗口中新形成的独立事实"
 	memoryCandidates := []any{
-		map[string]any{"operation": "confirm", "target_ref": refs[created[0].MemoryID], "evidence_refs": []any{"sequence:1", refs[created[0].MemoryID]}, "semantic_reason": "再次确认"},
+		map[string]any{"operation": "confirm", "target_ref": refs[created[0].MemoryID], "evidence_refs": []any{"sequence:1"}, "semantic_reason": "再次确认"},
 		semanticCandidate("revise", refs[created[1].MemoryID], "修订后的事实"),
 		semanticCandidate("merge", refs[created[2].MemoryID], "合并后的事实"),
 		semanticCandidate("supersede", refs[created[4].MemoryID], "替代后的事实"),
-		map[string]any{"operation": "deprecate", "target_ref": refs[created[5].MemoryID], "evidence_refs": []any{"sequence:1", refs[created[5].MemoryID]}, "semantic_reason": "事实已过期"},
+		map[string]any{"operation": "deprecate", "target_ref": refs[created[5].MemoryID], "evidence_refs": []any{"sequence:1"}, "semantic_reason": "事实已过期"},
 		createCandidate,
 	}
 	mapValue(memoryCandidates[2])["merge_refs"] = []any{refs[created[3].MemoryID]}

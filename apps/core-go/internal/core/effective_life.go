@@ -147,32 +147,40 @@ func (a *App) readEffectiveLifeSnapshot(ctx context.Context, fluctlightID string
 		return nil, 0, 0, err
 	}
 	defer tx.Rollback(ctx)
+	appearance, bodyRevision, wardrobeRevision, err := readEffectiveLifeSnapshotWith(ctx, tx, fluctlightID, at)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, 0, 0, err
+	}
+	return appearance, bodyRevision, wardrobeRevision, nil
+}
+
+func readEffectiveLifeSnapshotWith(ctx context.Context, query DBTX, fluctlightID string, at time.Time) (map[string]any, int, int, error) {
 	bodyRevision := -1
 	wardrobeRevision := -1
 	fields := map[string]any{}
 	var encoded []byte
-	err = tx.QueryRow(ctx, `SELECT revision,state_json FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&bodyRevision, &encoded)
+	err := query.QueryRow(ctx, `SELECT revision,state_json FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&bodyRevision, &encoded)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, 0, 0, err
 	}
 	if err == nil {
 		fields = decodeObject(encoded)
 	}
-	for _, key := range []string{"hair_length", "hair_color", "hair_style", "injuries"} {
+	for _, key := range []string{"hair_length", "hair_color", "hair_style", "chest_cup", "injuries"} {
 		if _, exists := fields[key]; !exists {
 			fields[key] = map[string]any{"status": "unknown"}
 		}
 	}
 	wearingState := "unknown"
-	err = tx.QueryRow(ctx, `SELECT revision,wearing_state FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&wardrobeRevision, &wearingState)
+	err = query.QueryRow(ctx, `SELECT revision,wearing_state FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&wardrobeRevision, &wearingState)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, 0, 0, err
 	}
-	worn, err := readCurrentWornItems(ctx, tx, fluctlightID)
+	worn, err := readCurrentWornItems(ctx, query, fluctlightID)
 	if err != nil {
-		return nil, 0, 0, err
-	}
-	if err := tx.Commit(ctx); err != nil {
 		return nil, 0, 0, err
 	}
 	appearance := map[string]any{
@@ -181,6 +189,22 @@ func (a *App) readEffectiveLifeSnapshot(ctx context.Context, fluctlightID string
 		"worn_items": worn, "captured_at": at.UTC().Format(time.RFC3339Nano),
 	}
 	return appearance, bodyRevision, wardrobeRevision, nil
+}
+
+func lockEffectiveLifeSnapshotTx(ctx context.Context, tx pgx.Tx, fluctlightID string) error {
+	// Visual initialization may run in a READ COMMITTED writer transaction.
+	// Writers lock each aggregate row before changing body or wearing, so
+	// these shared locks make the subsequent multi-query read one version.
+	var revision int
+	for _, table := range []string{"fluctlight_appearance_states", "fluctlight_wardrobe_states"} {
+		if err := tx.QueryRow(ctx, `SELECT revision FROM public.`+table+` WHERE fluctlight_id=$1 FOR SHARE`, fluctlightID).Scan(&revision); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errors.New("effective_life_uninitialized")
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 func (a *App) effectiveLifeRevisionsMatch(ctx context.Context, fluctlightID string, bodyRevision, wardrobeRevision int) (bool, error) {

@@ -1,0 +1,6 @@
+=== RUN   TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory
+    provider_live_e2e_test.go:370: first Memory query turn: agent_final_contract_invalid: claim_0_evidence_invalid; tools=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation.reply"}}
+--- FAIL: TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory (100.91s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	101.512s
+FAIL

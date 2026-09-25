@@ -1,0 +1,7 @@
+=== RUN   TestLiveHandleTurnReadsCompletedHaircutAfterReload
+    provider_live_e2e_test.go:288: haircut result={"detail":"capability execution failed: virtual_activity_uncompleted_result_has_effect"}
+    provider_live_e2e_test.go:290: real virtual haircut did not complete: receipt=core.ToolExecutionReceipt{OperationID:"live-haircut-advance-live_haircut_1790260198965702000", NativeToolCallID:"", ExecutionCallID:"direct_call_035f559231099251170722836134b3f9", Result:capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_035f559231099251170722836134b3f9", CapabilityName:"life.activity.advance", Status:"failed", Output:map[string]interface {}{"detail":"capability execution failed: virtual_activity_uncompleted_result_has_effect"}, ErrorCode:"capability_prepare_failed", Retryable:true, ProviderRequestID:"", CorrelationID:"capability:direct_call_035f559231099251170722836134b3f9", Duration:0, RequiredContext:[]capability.ContextSlot(nil)}, AuthorityRevisions:core.ToolAuthorityRevisions{Before:(*core.ToolAuthorityRevisions)(nil), Foundation:0, CurrentState:0, CurrentFacts:"", LifeContext:""}, Replayed:false} err=capability execution failed: virtual_activity_uncompleted_result_has_effect
+--- FAIL: TestLiveHandleTurnReadsCompletedHaircutAfterReload (7.22s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	7.580s
+FAIL

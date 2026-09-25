@@ -70,7 +70,11 @@ type queuedToolCallingChatModel struct {
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
-	input = normalizeEinoToolMessageNames(input)
+	var err error
+	input, err = m.preparePhysicalInput(ctx, input)
+	if err != nil {
+		return nil, err
+	}
 	if err := m.enforcePhysicalInputBudget(ctx, input); err != nil {
 		return nil, err
 	}
@@ -110,7 +114,11 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
-	input = normalizeEinoToolMessageNames(input)
+	var err error
+	input, err = m.preparePhysicalInput(ctx, input)
+	if err != nil {
+		return nil, err
+	}
 	if err := m.enforcePhysicalInputBudget(ctx, input); err != nil {
 		return nil, err
 	}
@@ -150,6 +158,13 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		}
 		return message, nil
 	}), nil
+}
+
+func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
+	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh != nil {
+		return adkContext.Refresh.prepare(ctx, input)
+	}
+	return normalizeEinoToolMessageNames(input), nil
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
@@ -280,11 +295,64 @@ func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClien
 		runID = correlationID
 	}
 	modelCallID := stringValue(diagnostics["model_call_id"])
+	sourceMap := physicalModelSourceMap(input)
+	versions := mapValue(mapValue(diagnostics["context_projection"])["versions"])
+	sectionTokens := mapValue(mapValue(diagnostics["prompt_budget"])["section_tokens"])
+	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh != nil {
+		if fresh := adkContext.Refresh.latestProjection(); fresh != nil {
+			versions = map[string]any{
+				"foundation": fresh.ContextRevision, "current_state": fresh.CurrentStateRevision,
+				"current_facts": fresh.CurrentFactsRevision, "life_context": fresh.LifeContextRevision,
+				"active_profile": stringValue(mapValue(fresh.PersonalityRuntime)["active_profile_id"]),
+			}
+		}
+		if trace := adkContext.Refresh.latestBudgetTrace(); trace != nil {
+			sectionTokens = map[string]any{}
+			for section, tokens := range trace.SectionTokens {
+				sectionTokens[section] = tokens
+			}
+		}
+	}
 	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.input", "info", fluctlightID, "", correlationID, map[string]any{
 		"run_id": runID, "model_call_id": modelCallID, "stage": "model_input", "role": role, "sequence": sequence,
 		"message_count": messageCount, "tool_result_ids": boundedDiagnosticStrings(toolResults, 32),
 		"tool_result_pair_count": matched, "tool_result_pair_status": map[bool]string{true: "present", false: "absent"}[matched > 0],
+		"source_map": sourceMap, "context_versions": versions, "section_tokens": sectionTokens,
 	})
+}
+
+func physicalModelSourceMap(input []*schema.Message) []map[string]any {
+	lastUser := -1
+	for index, message := range input {
+		if message != nil && message.Role == schema.User && !isRuntimeContextMessage(message) {
+			lastUser = index
+		}
+	}
+	mapping := make([]map[string]any, 0, min(len(input), 64))
+	for index, message := range input {
+		if message == nil || len(mapping) >= 64 {
+			continue
+		}
+		source := "historical_message"
+		switch {
+		case message.Role == schema.System:
+			source = "trusted_task_configuration"
+		case isRuntimeContextMessage(message):
+			source = "scoped_runtime_projection"
+		case message.Role == schema.Tool:
+			source = "tool_result"
+		case message.Role == schema.Assistant && len(message.ToolCalls) > 0:
+			source = "agent_tool_call"
+		case index == lastUser:
+			source = "current_task_input"
+		}
+		item := map[string]any{"index": index, "role": string(message.Role), "source": source, "estimated_tokens": estimateProviderMessageTokens(einoMessageRaw(message))}
+		if message.Role == schema.Tool && strings.TrimSpace(message.ToolCallID) != "" {
+			item["tool_call_id"] = message.ToolCallID
+		}
+		mapping = append(mapping, item)
+	}
+	return mapping
 }
 
 func recordEinoModelOutputDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID string, sequence uint64, message *schema.Message, runErr error) {

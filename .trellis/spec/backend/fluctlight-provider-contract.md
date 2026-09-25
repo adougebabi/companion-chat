@@ -835,3 +835,13 @@ id := "call_derived_" + stableDigest(providerRequestID+name+arguments)
 ```go
 id := toolCall.ID // copied from Eino schema.Message.ToolCalls
 ```
+
+### Formal request projection boundary (0037)
+
+Every formal task reaches a read-only source-map and physical-budget check immediately before Provider egress. Main, WakeUp, Native, and Daily reproject authorized current System/Runtime context after a successful mutating Tool; the outbound message copy changes, while original Eino messages, multimodal parts, ToolCall IDs, and matching ToolResults remain intact. The final settlement follows the first context generation through committed Tool receipts. Diagnostics identify source versions, budget parts, omitted categories, and the final physical request mapping. The current budget estimator is a rune heuristic and must be labeled as an estimate, not exact tokenizer usage.
+
+The native Tool adapter also passes the Core-owned snapshot from the same projection to `ExecuteTool` for contextful calls. A Tool that resolves an opaque reference must see the exact map exposed on its preceding physical model request. `ExecuteTool` validates snapshot identity and accepts this path only for a native ToolCall with a Provider request ID; independent direct Tools continue without a caller-supplied snapshot.
+
+Provider claim `evidence_refs` use only the opaque references exposed in Runtime Context. Before persistence, Core resolves an exact entry through its frozen `ContextReferenceIndex`; current life/state references become the turn's source fact anchor, and durable entity references become authorized internal IDs. Each normalized claim must carry Core's private proof that every submitted ref came from an exact visible token. An unknown token, raw entity ID, or model-supplied imitation of that proof remains invalid. Do not validate a model-visible `kind:ctx_...` token against an allowlist of raw database IDs.
+
+Current body and wearing also carry an `appearance:ctx_...` reference in the compact Runtime view. This token is generated from the same effective snapshot without its read timestamp and is valid for claims and influences about current appearance; the underlying body and wardrobe tables remain authoritative. Wardrobe item IDs are business Tool arguments, not context references, and must never be joined to a `wardrobe:ctx_` prefix.

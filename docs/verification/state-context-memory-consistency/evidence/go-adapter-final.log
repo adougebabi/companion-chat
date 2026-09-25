@@ -1,0 +1,196 @@
+=== RUN   TestFormalToolEinoAdapterE2E
+=== RUN   TestFormalToolEinoAdapterE2E/active_memory_event
+=== RUN   TestFormalToolEinoAdapterE2E/active_memory_event/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/active_memory_event/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/affect_event
+=== RUN   TestFormalToolEinoAdapterE2E/affect_event/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/affect_event/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/appearance.style
+=== RUN   TestFormalToolEinoAdapterE2E/appearance.style/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/appearance.style/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/capability.request
+=== RUN   TestFormalToolEinoAdapterE2E/capability.request/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/capability.request/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/conversation.reply
+=== RUN   TestFormalToolEinoAdapterE2E/conversation.reply/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/conversation.reply/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/habit.decide
+=== RUN   TestFormalToolEinoAdapterE2E/habit.decide/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/habit.decide/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/habit.inspect
+=== RUN   TestFormalToolEinoAdapterE2E/habit.inspect/dependency_failure
+2026/09/24 22:28:38 WARN capability lifecycle capability=habit.inspect call_id=direct_call_37ce90d6646fa8b36a714dab52360fca type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=habit_unavailable
+=== RUN   TestFormalToolEinoAdapterE2E/habit.inspect/foreign_owner_rejected
+2026/09/24 22:28:38 INFO capability lifecycle capability=habit.inspect call_id=direct_call_ee52b8e43a4b2e30b6428b95418a0e65 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 22:28:38 INFO capability lifecycle capability=habit.inspect call_id=controlled-native-habit-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestFormalToolEinoAdapterE2E/intention.decide
+=== RUN   TestFormalToolEinoAdapterE2E/intention.decide/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/intention.decide/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/intention.inspect
+=== RUN   TestFormalToolEinoAdapterE2E/intention.inspect/dependency_failure
+2026/09/24 22:28:38 WARN capability lifecycle capability=intention.inspect call_id=direct_call_fe76dadb6b88625a0aa619dbe0396df2 type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=intention_unavailable
+=== RUN   TestFormalToolEinoAdapterE2E/intention.inspect/foreign_owner_rejected
+2026/09/24 22:28:38 INFO capability lifecycle capability=intention.inspect call_id=direct_call_dda586226e0bc66736540ce970d0dfbf type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 22:28:38 INFO capability lifecycle capability=intention.inspect call_id=controlled-native-intention-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestFormalToolEinoAdapterE2E/life.activity.start
+=== RUN   TestFormalToolEinoAdapterE2E/life.activity.start/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/life.activity.start/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/life.activity.advance
+=== RUN   TestFormalToolEinoAdapterE2E/life.activity.advance/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/life.activity.advance/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/media.image.generate
+=== RUN   TestFormalToolEinoAdapterE2E/media.image.generate/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/media.image.generate/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/memory.recall
+=== RUN   TestFormalToolEinoAdapterE2E/memory.recall/dependency_failure
+2026/09/24 22:28:38 WARN capability lifecycle capability=memory.recall call_id=direct_call_30ed78affeda6b427296061177e94011 type=query surface=conversation required_context=[memory_scope] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=memory_recall_unavailable
+=== RUN   TestFormalToolEinoAdapterE2E/memory.recall/foreign_owner_rejected
+2026/09/24 22:28:38 INFO capability lifecycle capability=memory.recall call_id=direct_call_a9f828ed8287b7eefc393e83abfdc098 type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 22:28:38 INFO capability lifecycle capability=memory.recall call_id=controlled-native-memory-recall type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestFormalToolEinoAdapterE2E/memory_event
+=== RUN   TestFormalToolEinoAdapterE2E/memory_event/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/memory_event/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/moment.publish
+=== RUN   TestFormalToolEinoAdapterE2E/moment.publish/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/moment.publish/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/persona.detail
+=== RUN   TestFormalToolEinoAdapterE2E/persona.detail/dependency_failure
+2026/09/24 22:28:38 WARN capability lifecycle capability=persona.detail call_id=direct_call_34f2e9e98c5c68ab29dad188e0024979 type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=persona_detail_unavailable
+=== RUN   TestFormalToolEinoAdapterE2E/persona.detail/foreign_owner_rejected
+2026/09/24 22:28:38 INFO capability lifecycle capability=persona.detail call_id=direct_call_f8a4918fadf8e3af26393a7836f15b9a type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 22:28:38 INFO capability lifecycle capability=persona.detail call_id=controlled-native-persona-detail type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestFormalToolEinoAdapterE2E/persona.switch
+=== RUN   TestFormalToolEinoAdapterE2E/persona.switch/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/persona.switch/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/persona.takeover
+=== RUN   TestFormalToolEinoAdapterE2E/persona.takeover/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/persona.takeover/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/schedule.replan
+=== RUN   TestFormalToolEinoAdapterE2E/schedule.replan/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/schedule.replan/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/presence_event
+=== RUN   TestFormalToolEinoAdapterE2E/presence_event/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/presence_event/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/relationship.lookup
+=== RUN   TestFormalToolEinoAdapterE2E/relationship.lookup/dependency_failure
+2026/09/24 22:28:38 WARN capability lifecycle capability=relationship.lookup call_id=direct_call_90c08a4873087a2752dda169e2bb2cdc type=query surface=native_cognition required_context=[relationship_scope] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=relationship_capability_unavailable
+=== RUN   TestFormalToolEinoAdapterE2E/relationship.lookup/foreign_owner_rejected
+2026/09/24 22:28:38 INFO capability lifecycle capability=relationship.lookup call_id=direct_call_cd3869753c313cd11bcb4e7a6781c0f0 type=query surface=native_cognition required_context=[relationship_scope] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 22:28:38 INFO capability lifecycle capability=relationship.lookup call_id=controlled-native-relationship-lookup type=query surface=conversation required_context=[relationship_scope] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestFormalToolEinoAdapterE2E/scene_event
+=== RUN   TestFormalToolEinoAdapterE2E/scene_event/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/scene_event/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.initialize
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.initialize/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.initialize/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.generate_candidate
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.generate_candidate/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.generate_candidate/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.commit_review
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.commit_review/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.commit_review/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.finalize
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.finalize/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/visual_identity.finalize/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.inspect
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.inspect/dependency_failure
+2026/09/24 22:28:39 WARN capability lifecycle capability=wardrobe.inspect call_id=direct_call_5630d07fc297b0fb984fc987e4ba6bff type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=wardrobe_unavailable
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.inspect/foreign_owner_rejected
+2026/09/24 22:28:39 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_518ff5be5ead6441a79805712cd700fb type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/09/24 22:28:39 INFO capability lifecycle capability=wardrobe.inspect call_id=controlled-native-wardrobe-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.outfit.save
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.outfit.save/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.outfit.save/foreign_owner_rejected
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.wear
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.wear/dependency_failure
+=== RUN   TestFormalToolEinoAdapterE2E/wardrobe.wear/foreign_owner_rejected
+--- PASS: TestFormalToolEinoAdapterE2E (2.33s)
+    --- PASS: TestFormalToolEinoAdapterE2E/active_memory_event (0.06s)
+        --- PASS: TestFormalToolEinoAdapterE2E/active_memory_event/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/active_memory_event/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/affect_event (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/affect_event/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/affect_event/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/appearance.style (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/appearance.style/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/appearance.style/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/capability.request (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/capability.request/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/capability.request/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/conversation.reply (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/conversation.reply/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/conversation.reply/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/habit.decide (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/habit.decide/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/habit.decide/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/habit.inspect (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/habit.inspect/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/habit.inspect/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/intention.decide (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/intention.decide/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/intention.decide/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/intention.inspect (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/intention.inspect/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/intention.inspect/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/life.activity.start (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/life.activity.start/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/life.activity.start/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/life.activity.advance (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/life.activity.advance/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/life.activity.advance/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/media.image.generate (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/media.image.generate/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/media.image.generate/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/memory.recall (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/memory.recall/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/memory.recall/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/memory_event (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/memory_event/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/memory_event/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/moment.publish (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/moment.publish/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/moment.publish/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/persona.detail (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/persona.detail/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/persona.detail/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/persona.switch (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/persona.switch/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/persona.switch/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/persona.takeover (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/persona.takeover/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/persona.takeover/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/schedule.replan (0.05s)
+        --- PASS: TestFormalToolEinoAdapterE2E/schedule.replan/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/schedule.replan/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/presence_event (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/presence_event/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/presence_event/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/relationship.lookup (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/relationship.lookup/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/relationship.lookup/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/scene_event (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/scene_event/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/scene_event/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.initialize (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.initialize/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.initialize/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.generate_candidate (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.generate_candidate/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.generate_candidate/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.commit_review (0.04s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.commit_review/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.commit_review/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.finalize (0.09s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.finalize/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/visual_identity.finalize/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.inspect (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.inspect/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.inspect/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.outfit.save (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.outfit.save/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.outfit.save/foreign_owner_rejected (0.00s)
+    --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.wear (0.03s)
+        --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.wear/dependency_failure (0.00s)
+        --- PASS: TestFormalToolEinoAdapterE2E/wardrobe.wear/foreign_owner_rejected (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.680s
