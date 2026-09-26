@@ -2120,6 +2120,8 @@ func (a *App) PruneDiagnostics(ctx context.Context, olderThan time.Duration, max
 
 var ErrWorkflowRuntime = errors.New("workflow_runtime_unavailable")
 
+const workflowListTimeout = 5 * time.Second
+
 func (a *App) WorkflowList(ctx context.Context, actorID, query string) ([]map[string]any, error) {
 	if err := a.requireOwner(ctx, actorID); err != nil {
 		slog.Warn("workflow list owner authorization failed", "actor_id", actorID)
@@ -2129,10 +2131,12 @@ func (a *App) WorkflowList(ctx context.Context, actorID, query string) ([]map[st
 	if a.Workflows == nil {
 		return nil, ErrWorkflowRuntime
 	}
-	executions, err := a.Workflows.List(ctx, query, 200)
+	listCtx, cancel := context.WithTimeout(ctx, workflowListTimeout)
+	defer cancel()
+	executions, err := a.Workflows.List(listCtx, query, 200)
 	if err != nil {
 		_ = a.auditWorkflow(ctx, actorID, "list", "", true, map[string]any{"query": query, "error": "runtime_unavailable"})
-		return nil, fmt.Errorf("%w: %v", ErrWorkflowRuntime, err)
+		return nil, fmt.Errorf("%w: %w", ErrWorkflowRuntime, err)
 	}
 	if err := a.auditWorkflow(ctx, actorID, "list", "", true, map[string]any{"query": query, "count": len(executions)}); err != nil {
 		return nil, err

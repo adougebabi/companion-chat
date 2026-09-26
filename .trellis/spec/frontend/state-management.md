@@ -301,3 +301,58 @@ if (editing || chatDraft) return;
 if (conversationChanged) renderChat({followLatest: false});
 else renderSidebar();
 ```
+
+## Scenario: Bounded Workflow Diagnostics Reads
+
+### 1. Scope / Trigger
+
+- Trigger: the Owner opens Diagnostics, which polls lifecycle/events/model runs/media prompts while the page is visible, or explicitly opens Workflow Control.
+
+### 2. Signatures
+
+- `useControlCenterStore.loadDiagnostics()` reads the four database-backed diagnostic sources.
+- `useControlCenterStore.loadWorkflows()` calls `BrowserClient.listWorkflows()` only on Workflow Control entry or manual refresh.
+- `GET /api/diagnostics/workflows?query=` maps to `App.WorkflowList(ctx, ownerActorID, query)` and then `WorkflowRuntime.List(ctx, query, 200)`.
+
+### 3. Contracts
+
+- The visible-page 2-second timer must not call the Temporal workflow list. Workflow list loading has its own in-flight guard, results, and warning state.
+- A second entry/refresh while a list call is running does not start another call. Clearing PostgreSQL diagnostics does not cancel, reset the guard for, or erase the separate Temporal workflow list.
+- Core authorizes the Owner and gives the Temporal list call a 5-second deadline; query text and the 200-item limit remain unchanged. Other diagnostics continue when that call fails.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Diagnostics is visible but Workflow Control is not selected | Poll only lifecycle, events, model runs, and media prompts. |
+| Workflow Control opens or the Owner clicks refresh | Make one list request; show loading state. |
+| Refresh is clicked while a list call is in flight | Keep the existing request; do not overlap calls. |
+| Temporal is unavailable or exceeds the list deadline | Return `workflow_runtime_unavailable`; show a Workflow Control warning without replacing other diagnostics. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a slow Temporal list times out within five seconds, while model runs and events continue refreshing.
+- Base: opening Workflow Control once lists workflows; the Owner can refresh on demand.
+- Bad: every 2-second diagnostics tick calls an unfiltered 200-item Temporal list, including while the Owner reads a different diagnostic section.
+
+### 6. Tests Required
+
+- Frontend regression checks that `loadDiagnostics()` has no workflow list call, Workflow Control entry/manual refresh invoke `loadWorkflows()`, and the store blocks overlapping list calls.
+- Core integration test asserts Owner-scoped list keeps `query` and limit 200, supplies a deadline of at most five seconds, and returns a typed runtime error when the runtime blocks.
+- Typecheck, browser tests, Vite build, and relevant Go tests/vet/build must pass.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+setInterval(() => loadDiagnostics(), 2000);
+// loadDiagnostics also awaits client.listWorkflows().
+```
+
+#### Correct
+
+```ts
+setInterval(() => loadDiagnostics(), 2000); // database-backed sources only
+if (section === "workflows") void loadWorkflows(); // entry or manual refresh
+```

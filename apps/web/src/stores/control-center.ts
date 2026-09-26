@@ -27,6 +27,7 @@ export const useControlCenterStore = defineStore("control-center", {
     lifecycleDiagnostics: [] as BrowserLifecycleDiagnosticEvent[],
     workflowIntentSnapshots: [] as BrowserWorkflowIntentSnapshot[],
     workflows: [] as Array<Record<string, unknown>>,
+    workflowListLoading: false,
     workflowId: "",
     workflowStatus: null as Record<string, unknown> | null,
     workflowHistory: null as Record<string, unknown> | null,
@@ -38,7 +39,7 @@ export const useControlCenterStore = defineStore("control-center", {
     diagnosticsRunFilter: "",
     diagnosticsSurfaceFilter: "",
     diagnosticsStatusFilter: "",
-    diagnosticsSourceEpochs: { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "", workflows: "" } as Record<string, string>,
+    diagnosticsSourceEpochs: { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "" } as Record<string, string>,
     diagnosticsWarning: "",
     diagnosticsNotice: "",
     diagnosticsLoaded: false,
@@ -171,7 +172,6 @@ export const useControlCenterStore = defineStore("control-center", {
       const initialLoad = !this.diagnosticsLoaded;
       if (initialLoad) this.loading = true;
       this.error = "";
-      this.diagnosticsWarning = "";
       this.diagnosticsNotice = "";
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
@@ -191,7 +191,6 @@ export const useControlCenterStore = defineStore("control-center", {
           events: JSON.stringify({ correlationId, fluctlightId }),
           modelRuns: JSON.stringify({ correlationId }),
           mediaPrompts: "unfiltered",
-          workflows: "unfiltered",
         };
         if (this.diagnosticsSourceEpochs.lifecycle !== epochs.lifecycle) {
           this.lifecycleDiagnostics = [];
@@ -210,16 +209,11 @@ export const useControlCenterStore = defineStore("control-center", {
           this.diagnosticMediaPrompts = [];
           this.diagnosticsSourceEpochs.mediaPrompts = epochs.mediaPrompts;
         }
-        if (this.diagnosticsSourceEpochs.workflows !== epochs.workflows) {
-          this.workflows = [];
-          this.diagnosticsSourceEpochs.workflows = epochs.workflows;
-        }
-        const [lifecycle, events, modelRuns, mediaPrompts, workflows] = await Promise.allSettled([
+        const [lifecycle, events, modelRuns, mediaPrompts] = await Promise.allSettled([
           client.lifecycleDiagnostics(lifecycleFilters),
           client.diagnostics({ limit: 20, correlationId, fluctlightId }),
           client.diagnosticModelRuns({ limit: 20, correlationId }),
           client.diagnosticMediaPrompts({ limit: 20 }),
-          client.listWorkflows(),
         ]);
         if (requestId !== this.diagnosticsRequestId) return;
         if (lifecycle.status === "fulfilled" && this.diagnosticsSourceEpochs.lifecycle === epochs.lifecycle) {
@@ -229,17 +223,26 @@ export const useControlCenterStore = defineStore("control-center", {
         if (events.status === "fulfilled" && this.diagnosticsSourceEpochs.events === epochs.events) this.diagnostics = events.value;
         if (modelRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.modelRuns === epochs.modelRuns) this.diagnosticModelRuns = modelRuns.value;
         if (mediaPrompts.status === "fulfilled" && this.diagnosticsSourceEpochs.mediaPrompts === epochs.mediaPrompts) this.diagnosticMediaPrompts = mediaPrompts.value;
-        if (workflows.status === "fulfilled" && this.diagnosticsSourceEpochs.workflows === epochs.workflows) this.workflows = workflows.value;
         const readFailure = [lifecycle, events, modelRuns, mediaPrompts].find((result) => result.status === "rejected");
         if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);
-        if (workflows.status === "rejected") {
-          this.diagnosticsWarning = "工作流运行时暂不可用；模型运行和系统事件仍可查看。";
-        }
         this.diagnosticsLoaded = true;
         this.diagnosticsLastLoadedAt = new Date().toISOString();
         if (!this.error) this.diagnosticsNotice = correlationId ? `已刷新 ${correlationId} 的诊断记录。` : "诊断记录已刷新。";
       } finally {
         if (requestId === this.diagnosticsRequestId && initialLoad) this.loading = false;
+      }
+    },
+    async loadWorkflows() {
+      if (this.workflowListLoading) return;
+      this.workflowListLoading = true;
+      this.diagnosticsWarning = "";
+      try {
+        this.workflows = await client.listWorkflows();
+      } catch {
+        this.workflows = [];
+        this.diagnosticsWarning = "工作流运行时暂不可用；模型运行和系统事件仍可查看。";
+      } finally {
+        this.workflowListLoading = false;
       }
     },
     async exportDiagnostics() {
@@ -777,9 +780,7 @@ export const useControlCenterStore = defineStore("control-center", {
         this.diagnosticMediaPrompts = [];
         this.lifecycleDiagnostics = [];
         this.workflowIntentSnapshots = [];
-        this.workflows = [];
-        this.diagnosticsSourceEpochs = { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "", workflows: "" };
-        this.diagnosticsWarning = "";
+        this.diagnosticsSourceEpochs = { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "" };
         this.diagnosticsNotice = "诊断记录已清空。";
       } catch {
         this.error = "无法清空诊断信息。";

@@ -52,6 +52,7 @@ workflow runtime directly.
   cannot starve cognition lifecycle progress.
 - Durable timers express pending events, delayed replies and lifecycle schedules without Redis delayed queues.
 - Runtime must support list/get, durable pause/resume semantics, cancel, retry/restart/reset or fork-from-checkpoint, and authorized/audited repair through application commands.
+- Owner diagnostics call `WorkflowRuntime.List` only on demand through `App.WorkflowList`; the call retains the query and 200-item bound but has a five-second deadline. A runtime timeout returns the existing `workflow_runtime_unavailable` error rather than holding the general diagnostics refresh open.
 - Reconciliation must preserve a bounded terminal failure reason from the
   workflow history or Activity boundary. If history inspection is temporarily
   unavailable, leave the durable intent eligible for another reconciliation
