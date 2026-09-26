@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/state-management.md","reason":"检查后台轮询仅调用当前需要的数据源"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"检查列表查询超时、授权和运行时错误契约"}

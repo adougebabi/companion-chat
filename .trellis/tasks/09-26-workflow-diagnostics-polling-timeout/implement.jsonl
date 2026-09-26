@@ -1,0 +1,3 @@
+{"file":".trellis/spec/frontend/state-management.md","reason":"诊断中心后台刷新和独立服务端数据源的状态约定"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"前端请求频率、失败状态与验证要求"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"Temporal 工作流管理与诊断运行时边界"}
