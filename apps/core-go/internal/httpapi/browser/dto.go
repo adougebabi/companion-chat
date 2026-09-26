@@ -57,7 +57,7 @@ func browserMessage(message map[string]any) map[string]any {
 	if _, ok := attachments.([]any); !ok {
 		attachments = []any{}
 	}
-	return map[string]any{
+	result := map[string]any{
 		"id":             message["id"],
 		"conversationId": message["conversation_id"],
 		"sequence":       message["sequence"],
@@ -67,6 +67,15 @@ func browserMessage(message map[string]any) map[string]any {
 		"attachmentRefs": attachments,
 		"createdAt":      message["created_at"],
 	}
+	for coreName, browserName := range map[string]string{"turn_id": "turnId", "idempotency_key": "idempotencyKey", "turn_status": "turnStatus", "turn_error_code": "turnErrorCode"} {
+		if value := stringValue(message[coreName]); value != "" {
+			result[browserName] = value
+		}
+	}
+	if status := stringValue(message["turn_status"]); status == "failed" || status == "cancelled" {
+		result["turnRetryable"] = message["turn_retryable"]
+	}
+	return result
 }
 
 func browserDiagnostic(event map[string]any) map[string]any {

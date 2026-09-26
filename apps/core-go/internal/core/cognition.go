@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sort"
 	"strconv"
@@ -70,7 +71,22 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 		claimSettled = true
 		return map[string]any{"inbox_id": inboxID, "status": "processed", "event_type": data["event_type"]}, nil
 	}
-	result, err := a.HandleTurn(ctx, stringValue(data["actor_id"]), stringValue(data["conversation_id"]), data)
+	speakerActorID := stringValue(data["actor_id"])
+	authorizationActorID := stringValue(data["authorization_actor_id"])
+	if authorizationActorID == "" {
+		// Older accepted facts did not persist the separate authorization
+		// identity. Recover it from the Fluctlight owner, never from the
+		// worker's service identity or the browser connection.
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, stringValue(data["fluctlight_id"])).Scan(&authorizationActorID); err != nil {
+			return nil, err
+		}
+	}
+	var result TurnResult
+	if speakerActorID != authorizationActorID {
+		result, err = a.HandleActorTurn(ctx, authorizationActorID, speakerActorID, stringValue(data["conversation_id"]), data)
+	} else {
+		result, err = a.HandleTurn(ctx, speakerActorID, stringValue(data["conversation_id"]), data)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +233,7 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 	var supersededIDs []string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var enqueueErr error
-		inboxID, supersededIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, claimOwner)
+		inboxID, supersededIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, "", fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, claimOwner)
 		return enqueueErr
 	})
 	if err == nil {
@@ -232,17 +248,44 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 // enqueueTurnFactTx is the transaction-injected authority for a conversation
 // observation. Interactive callers compose the source message and this fact in
 // one short transaction; background/public wrappers still own a transaction.
-func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, []string, error) {
+func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authorizationActorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, []string, error) {
 	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
 	supersededIDs := make([]string, 0)
-	var existing, existingText, existingStatus, existingClaimedBy string
+	var existing, existingText, existingStatus, existingError, existingClaimedBy string
 	var existingPayload []byte
 	var existingClaimedAt *time.Time
-	if err := tx.QueryRow(ctx, `SELECT id,payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotency).Scan(&existing, &existingPayload, &existingStatus, &existingClaimedBy, &existingClaimedAt); err == nil {
+	if err := tx.QueryRow(ctx, `SELECT id,payload,status,COALESCE(error_code,''),COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotency).Scan(&existing, &existingPayload, &existingStatus, &existingError, &existingClaimedBy, &existingClaimedAt); err == nil {
 		existingData := decodeObject(existingPayload)
 		existingText = stringValue(existingData["text"])
 		if existingText != text || stringValue(existingData["conversation_id"]) != conversationID || stringValue(existingData["actor_id"]) != actorID {
 			return "", nil, ErrConflict
+		}
+		if claimOwner == "" && existingStatus == "failed" && existingError != "superseded_by_newer_turn" {
+			var assistantExists bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND turn_id=$2 AND kind='assistant')`, conversationID, turnID).Scan(&assistantExists); err != nil {
+				return "", nil, err
+			}
+			if !assistantExists {
+				var workflowStatus string
+				if err := tx.QueryRow(ctx, `SELECT status FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, "cognition_intent:"+existing).Scan(&workflowStatus); err != nil {
+					return "", nil, err
+				}
+				if workflowStatus == "started" || workflowStatus == "running" || workflowStatus == "cancel_requested" {
+					return "", nil, ErrConflict
+				}
+				if a.Redis != nil {
+					if err := a.Redis.Del(ctx, providerCognitionCancelPrefix+existing).Err(); err != nil {
+						return "", nil, err
+					}
+				}
+				retryCount := intValue(existingData["retry_count"]) + 1
+				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',error_code=NULL,processed_at=NULL,claimed_by=NULL,claimed_at=NULL,payload=jsonb_set(payload,'{retry_count}',to_jsonb($2::int),true) WHERE id=$1`, existing, retryCount); err != nil {
+					return "", nil, err
+				}
+				if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',workflow_id=$2,attempt_count=0,next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, "cognition_intent:"+existing, fmt.Sprintf("cognition:%s:retry:%d", existing, retryCount)); err != nil {
+					return "", nil, err
+				}
+			}
 		}
 		if claimOwner != "" && existingStatus != "processed" {
 			var assistantExists bool
@@ -308,7 +351,7 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, fluctli
 	if attachmentRefs == nil {
 		attachmentRefs = []any{}
 	}
-	payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
+	payload := map[string]any{"actor_id": actorID, "authorization_actor_id": authorizationActorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
 	status := "pending"
 	claimedBy := nullableString("")
 	var claimedAt any

@@ -153,13 +153,16 @@ func resolveConversationPublicationSourceTx(ctx context.Context, tx pgx.Tx, fluc
 	if turnID == "" {
 		return "", "", fmt.Errorf("%w: conversation turn correlation is invalid", ErrInvalidArguments)
 	}
-	var sourceFactID string
-	err := tx.QueryRow(ctx, `SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND event_type='conversation.turn' AND payload->>'conversation_id'=$2 AND payload->>'turn_id'=$3`, fluctlightID, conversationID, turnID).Scan(&sourceFactID)
+	var sourceFactID, status string
+	err := tx.QueryRow(ctx, `SELECT id,status FROM public.cognition_inbox WHERE fluctlight_id=$1 AND event_type='conversation.turn' AND payload->>'conversation_id'=$2 AND payload->>'turn_id'=$3 FOR UPDATE`, fluctlightID, conversationID, turnID).Scan(&sourceFactID, &status)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", "", fmt.Errorf("%w: conversation reply source fact does not exist", ErrConflict)
 	}
 	if err != nil {
 		return "", "", err
+	}
+	if status != "pending" && status != "claimed" {
+		return "", "", ErrConflict
 	}
 	return turnID, sourceFactID, nil
 }

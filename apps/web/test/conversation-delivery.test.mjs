@@ -41,7 +41,7 @@ test("a new submit remains visible while an older durable retry is being process
 	    assert.equal(store.sending, true);
 	    assert.ok(store.messages.some((message) => message.kind === "user" && message.text === "刚刚点击发送的新消息"), "the submitted message disappeared while the retry cognition was running");
 		assert.ok(values.has("fluctlight.queued-turn.v1"), "the accepted queued turn was not persisted for reload recovery");
-    store.cancel();
+    store.invalidateRequest();
     await sending;
   } finally {
     await server.close();
@@ -173,10 +173,14 @@ test("a terminal cognition error keeps the authoritative user message visible an
 	};
 	const conversation = { id: "conversation-terminal-error", createdByActorId: "owner", revision: 0, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:00Z" };
 	const user = { id: "message-terminal-user", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "在吗？", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z" };
+	let submitted;
 	globalThis.fetch = async (input, init = {}) => {
 		const url = String(input);
+		if (url.includes("/messages")) return Response.json({ conversation, participants: [], messages: [{ ...user, turnId: submitted.turnId, idempotencyKey: submitted.idempotencyKey, turnStatus: "failed", turnErrorCode: "conversation_settlement_failed" }], nextBeforeSequence: null });
+		if (url.includes("/read")) return new Response(null, { status: 204 });
 		if (!url.includes("/turn")) throw new Error(`unexpected request ${url}`);
 		const body = JSON.parse(String(init.body));
+		submitted = body;
 		const frames = [
 			{ type: "message", turnId: body.turnId, sequence: 0, payload: { message: user } },
 			// Core's current shape carries the stable code; the API boundary still accepts
@@ -236,7 +240,7 @@ test("a non-2xx turn response keeps the API error code instead of collapsing to 
 		await store.send("在吗？");
 		assert.match(store.error, /conversation_turn_conflict/);
 		assert.doesNotMatch(store.error, /turn_failed/);
-		assert.ok(values.has("fluctlight.retry-turn.v2"), "non-2xx turn error did not preserve retry identity");
+		assert.equal(values.has("fluctlight.retry-turn.v2"), false, "a rejected turn must not become a model retry");
 	} finally {
 		await server.close();
 		globalThis.window = originalWindow;
@@ -293,8 +297,8 @@ test("a completed retry from another conversation no longer blocks the selected 
 		conversation: { id: "conversation-foreign", createdByActorId: "owner", revision: 2, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:02Z" },
 		participants: [],
 		messages: [
-			{ id: "foreign-user", conversationId: "conversation-foreign", sequence: 1, authorActorId: "owner", kind: "user", text: "旧请求", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z" },
-			{ id: "foreign-assistant", conversationId: "conversation-foreign", sequence: 2, authorActorId: "foreign", kind: "assistant", text: "已完成", attachmentRefs: [], createdAt: "2026-09-11T00:00:02Z" },
+			{ id: "foreign-user", conversationId: "conversation-foreign", sequence: 1, authorActorId: "owner", kind: "user", text: "旧请求", turnId: "old", idempotencyKey: "old", turnStatus: "completed", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z" },
+			{ id: "foreign-assistant", conversationId: "conversation-foreign", sequence: 2, authorActorId: "foreign", kind: "assistant", text: "已完成", turnId: "old", attachmentRefs: [], createdAt: "2026-09-11T00:00:02Z" },
 		],
 		nextBeforeSequence: null,
 	};
@@ -341,7 +345,7 @@ test("a completed retry from another conversation no longer blocks the selected 
 	}
 });
 
-test("reconcilePersistedRetry matches transient local- IDs by text and clears completed turns without duplicates", async () => {
+test("reconcilePersistedRetry matches durable turn identity and clears completed turns without duplicates", async () => {
 	const originalWindow = globalThis.window;
 	const originalFetch = globalThis.fetch;
 	const originalLocalStorage = globalThis.localStorage;
@@ -353,8 +357,8 @@ test("reconcilePersistedRetry matches transient local- IDs by text and clears co
 		removeItem: (key) => values.delete(key),
 	};
 	const conversation = { id: "conversation-reconcile", createdByActorId: "owner", revision: 2, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:02Z" };
-	const persistedUser = { id: "message-real-user-123", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "你好摇光", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z" };
-	const persistedAssistant = { id: "message-real-assistant-456", conversationId: conversation.id, sequence: 2, authorActorId: "fluctlight-reconcile", kind: "assistant", text: "你好呀！", attachmentRefs: [], createdAt: "2026-09-11T00:00:02Z" };
+	const persistedUser = { id: "message-real-user-123", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "你好摇光", turnId: "turn_test", idempotencyKey: "turn-test", turnStatus: "completed", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z" };
+	const persistedAssistant = { id: "message-real-assistant-456", conversationId: conversation.id, sequence: 2, authorActorId: "fluctlight-reconcile", kind: "assistant", text: "你好呀！", turnId: "turn_test", attachmentRefs: [], createdAt: "2026-09-11T00:00:02Z" };
 	const page = {
 		conversation,
 		participants: [],
@@ -403,3 +407,125 @@ test("reconcilePersistedRetry matches transient local- IDs by text and clears co
 	}
 });
 
+test("refresh restores a pending server turn and later shows its committed reply", async () => {
+	const originalWindow = globalThis.window;
+	const originalFetch = globalThis.fetch;
+	const originalLocalStorage = globalThis.localStorage;
+	const values = new Map();
+	globalThis.window = { location: { origin: "http://fluctlight.test" } };
+	globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: (key) => values.delete(key) };
+	const conversation = { id: "conversation-background", createdByActorId: "owner", revision: 0, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:00Z" };
+	const user = { id: "background-user", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "后台处理", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z", turnId: "background-turn", idempotencyKey: "background-key", turnStatus: "pending" };
+	const assistant = { id: "background-assistant", conversationId: conversation.id, sequence: 2, authorActorId: "fluctlight-background", kind: "assistant", text: "处理完成", attachmentRefs: [], createdAt: "2026-09-11T00:00:02Z", turnId: "background-turn" };
+	let completed = false;
+	globalThis.fetch = async (input) => {
+		const url = String(input);
+		if (url.includes("/conversation") || url.includes("/messages")) return Response.json({ conversation, participants: [], messages: completed ? [{ ...user, turnStatus: "completed" }, assistant] : [user], nextBeforeSequence: null });
+		if (url.includes("/read")) return new Response(null, { status: 204 });
+		throw new Error(`unexpected request ${url}`);
+	};
+	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
+	try {
+		setActivePinia(createPinia());
+		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
+		const store = useConversationStore();
+		store.fluctlights = [{ id: "fluctlight-background", identity: { name: "摇光" }, status: "active" }];
+		store.retryTurn = { conversationId: conversation.id, fluctlightId: "fluctlight-background", text: user.text, turnId: user.turnId, idempotencyKey: user.idempotencyKey, attachmentRefs: [], messageId: user.id };
+		await store.selectFluctlight("fluctlight-background");
+		assert.equal(store.hasPendingTurn, true);
+		assert.equal(store.canRetry, false);
+		assert.equal(store.error, "");
+		completed = true;
+		await store.refreshActiveTurn();
+		assert.equal(store.hasPendingTurn, false);
+		assert.ok(store.messages.some((message) => message.id === assistant.id));
+		assert.equal(store.messages.find((message) => message.id === user.id)?.turnStatus, "completed");
+	} finally {
+		await server.close();
+		globalThis.window = originalWindow;
+		globalThis.fetch = originalFetch;
+		globalThis.localStorage = originalLocalStorage;
+	}
+});
+
+test("explicit cancel calls the server and restores a retryable cancelled state", async () => {
+	const originalWindow = globalThis.window;
+	const originalFetch = globalThis.fetch;
+	const originalLocalStorage = globalThis.localStorage;
+	const values = new Map();
+	globalThis.window = { location: { origin: "http://fluctlight.test" } };
+	globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: (key) => values.delete(key) };
+	const conversation = { id: "conversation-explicit-cancel", createdByActorId: "owner", revision: 0, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:00Z" };
+	const user = { id: "cancel-user", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "停止", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z", turnId: "cancel-turn", idempotencyKey: "cancel-key", turnStatus: "pending" };
+	let cancelCount = 0;
+	let settled = false;
+	globalThis.fetch = async (input) => {
+		const url = String(input);
+		if (url.endsWith("/turn/cancel-turn/cancel")) { cancelCount += 1; return Response.json({}); }
+		if (url.includes("/messages")) return Response.json({ conversation, participants: [], messages: [{ ...user, turnStatus: "cancelled", turnErrorCode: "user_cancelled", turnRetryable: settled }], nextBeforeSequence: null });
+		throw new Error(`unexpected request ${url}`);
+	};
+	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
+	try {
+		setActivePinia(createPinia());
+		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
+		const store = useConversationStore();
+		store.conversation = conversation;
+		store.fluctlightId = "fluctlight-cancel";
+		store.messages = [user];
+		await store.cancel();
+		assert.equal(cancelCount, 1);
+		assert.equal(store.messages[0].turnStatus, "cancelled");
+		assert.equal(store.canRetry, false);
+		assert.equal(store.hasSettlingTurn, true);
+		settled = true;
+		await store.refreshActiveTurn();
+		assert.equal(store.canRetry, true);
+		assert.match(store.error, /已取消/);
+	} finally {
+		await server.close();
+		globalThis.window = originalWindow;
+		globalThis.fetch = originalFetch;
+		globalThis.localStorage = originalLocalStorage;
+	}
+});
+
+test("transport loss after server acceptance keeps background cognition pending", async () => {
+	const originalWindow = globalThis.window;
+	const originalFetch = globalThis.fetch;
+	const originalLocalStorage = globalThis.localStorage;
+	const values = new Map();
+	globalThis.window = { location: { origin: "http://fluctlight.test" } };
+	globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: (key) => values.delete(key) };
+	const conversation = { id: "conversation-transport-loss", createdByActorId: "owner", revision: 0, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:00Z" };
+	let submitted;
+	globalThis.fetch = async (input, init = {}) => {
+		const url = String(input);
+		if (url.includes("/turn")) {
+			submitted = JSON.parse(String(init.body));
+			const body = new ReadableStream({ start(controller) { setTimeout(() => controller.error(new Error("transport disconnected")), 0); } });
+			return new Response(body, { status: 200, headers: { "content-type": "application/x-ndjson" } });
+		}
+		if (url.includes("/messages")) return Response.json({ conversation, participants: [], messages: [{ id: "transport-user", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: submitted.text, attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z", turnId: submitted.turnId, idempotencyKey: submitted.idempotencyKey, turnStatus: "pending" }], nextBeforeSequence: null });
+		if (url.includes("/read")) return new Response(null, { status: 204 });
+		throw new Error(`unexpected request ${url}`);
+	};
+	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
+	try {
+		setActivePinia(createPinia());
+		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
+		const store = useConversationStore();
+		store.conversation = conversation;
+		store.fluctlightId = "fluctlight-transport-loss";
+		await store.send("仍在处理");
+		assert.equal(store.hasPendingTurn, true);
+		assert.equal(store.canRetry, false);
+		assert.equal(store.error, "");
+		assert.equal(store.messages.filter((message) => message.kind === "user").length, 1);
+	} finally {
+		await server.close();
+		globalThis.window = originalWindow;
+		globalThis.fetch = originalFetch;
+		globalThis.localStorage = originalLocalStorage;
+	}
+});

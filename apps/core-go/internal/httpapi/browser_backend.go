@@ -68,7 +68,7 @@ func (b *browserBackend) StreamTurn(ctx context.Context, session, conversationID
 		return err
 	}
 	writer.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
-	if err := b.server.app.StreamTurn(ctx, writer, actorID, conversationID, payload); err != nil {
+	if err := b.server.app.StreamDurableTurn(ctx, writer, actorID, conversationID, payload); err != nil {
 		return browserConversationTurnError(err)
 	}
 	return nil
@@ -324,6 +324,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		err = b.server.app.SetMomentStatus(ctx, actorID, pathPart(parts, 2), "visible")
 	case path == "/internal/conversations" && method == http.MethodPost:
 		return b.server.app.CreateConversation(ctx, actorID, arrayValue(values["participant_actor_ids"]), stringValue(values["title"]))
+	case strings.HasPrefix(path, "/internal/conversations/") && strings.HasSuffix(path, "/cancel") && method == http.MethodPost:
+		parts := splitInternalPath(path)
+		err = b.server.app.CancelTurn(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4))
 	case strings.HasSuffix(path, "/read") && strings.Contains(path, "/internal/conversations/"):
 		parts := splitInternalPath(path)
 		err = b.server.app.MarkRead(ctx, actorID, pathPart(parts, 2), values)

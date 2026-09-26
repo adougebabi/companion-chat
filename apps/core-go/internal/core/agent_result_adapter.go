@@ -195,7 +195,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 		var enqueueErr error
-		inboxID, supersededInboxIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"], claimOwner)
+		inboxID, supersededInboxIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, authorizationActorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"], claimOwner)
 		if enqueueErr != nil {
 			return enqueueErr
 		}
@@ -241,6 +241,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if preemptErr := a.CancelLifecycleForCognition(ctx, fluctlightID, "cognition:"+inboxID); preemptErr != nil {
 		a.recordDiagnosticEvent(ctx, "cognition.lifecycle_preemption.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "lifecycle_preemption_failed"})
 	}
+	if callbacks.acceptOnly {
+		user["turn_id"] = turnID
+		user["idempotency_key"] = idempotency
+		user["turn_status"] = "pending"
+		return TurnResult{UserMessage: user, TurnID: turnID, InboxID: inboxID, CorrelationID: "turn:" + turnID}, nil
+	}
 	ctx = WithProviderCancellationKey(ctx, inboxID)
 	if claimStream {
 		defer func() {
@@ -277,11 +283,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 
 	run, err := a.RunConversationCognitionAgent(WithProviderCorrelation(ctx, "turn:"+turnID), ConversationCognitionAgentInput{
 		AuthorizationActorID: authorizationActorID, SpeakerActorID: actorID, FluctlightID: fluctlightID,
-		ConversationID: conversationID, SourceFactID: inboxID, RunID: runID, CurrentInput: text, EnableStreaming: claimStream,
+		ConversationID: conversationID, SourceFactID: inboxID, RunID: runID, CorrelationID: "turn:" + turnID, CurrentInput: text, EnableStreaming: claimStream,
 	})
 	projection := run.Projection
 	outcome, outcomeErr := committedAgentOutcome(run.Trace)
 	if outcomeErr != nil {
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, agentCommittedOutcome{}, "agent_run_failed")
 		return TurnResult{}, outcomeErr
 	}
 	replyResults := committedConversationReplyResults(outcome.Results)
@@ -485,6 +492,9 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		"run_id": firstString(correlationID, inboxID), "stage": stage, "status": "failed", "reason": strings.TrimSpace(code),
 		"committed_tool_count": len(outcome.Results),
 	})
+	if err := a.scheduleCognitionFollowups(ctx, fluctlightID); err != nil {
+		a.recordDiagnosticEvent(ctx, "cognition.followup.degraded", "warning", fluctlightID, inboxID, correlationID, map[string]any{"error_code": "followup_schedule_failed"})
+	}
 	return nil
 }
 

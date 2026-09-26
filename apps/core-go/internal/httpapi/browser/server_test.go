@@ -75,6 +75,39 @@ func newBrowserTestHandler(backend Backend) http.Handler {
 	return New(Options{Backend: backend, TrustedOrigin: "https://fluctlight.test", SecureCookies: true}).Handler()
 }
 
+func TestExplicitTurnCancelRequiresSessionAndCSRF(t *testing.T) {
+	backend := &fakeBackend{}
+	handler := newBrowserTestHandler(backend)
+	path := "https://api.test/api/conversations/conversation-1/turn/turn-1/cancel"
+	newRequest := func() *http.Request {
+		request := httptest.NewRequest(http.MethodPost, path, nil)
+		request.Header.Set("Origin", "https://fluctlight.test")
+		request.Header.Set("X-CSRF-Token", "csrf")
+		request.AddCookie(&http.Cookie{Name: csrfCookieName, Value: "csrf"})
+		return request
+	}
+	unauthenticated := httptest.NewRecorder()
+	handler.ServeHTTP(unauthenticated, newRequest())
+	if unauthenticated.Code != http.StatusUnauthorized || len(backend.calls) != 0 {
+		t.Fatalf("unauthenticated cancellation status=%d calls=%v", unauthenticated.Code, backend.calls)
+	}
+	withoutCSRF := newRequest()
+	withoutCSRF.Header.Del("X-CSRF-Token")
+	withoutCSRF.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "opaque"})
+	forbidden := httptest.NewRecorder()
+	handler.ServeHTTP(forbidden, withoutCSRF)
+	if forbidden.Code != http.StatusForbidden || len(backend.calls) != 0 {
+		t.Fatalf("unprotected cancellation status=%d calls=%v", forbidden.Code, backend.calls)
+	}
+	protected := newRequest()
+	protected.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "opaque"})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, protected)
+	if response.Code != http.StatusNoContent || len(backend.calls) != 1 || backend.calls[0] != "POST /internal/conversations/conversation-1/turn/turn-1/cancel" {
+		t.Fatalf("protected cancellation status=%d calls=%v", response.Code, backend.calls)
+	}
+}
+
 func TestBrowserHandlerKeepsAuthAndCSRFAtPublicBoundary(t *testing.T) {
 	backend := &fakeBackend{}
 	handler := newBrowserTestHandler(backend)

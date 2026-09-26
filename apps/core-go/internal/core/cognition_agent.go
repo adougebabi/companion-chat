@@ -19,6 +19,7 @@ type ConversationCognitionAgentInput struct {
 	FluctlightID         string
 	ConversationID       string
 	RunID                string
+	CorrelationID        string
 	CurrentInput         string
 	EnableStreaming      bool
 }
@@ -116,7 +117,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 			ConversationID:       conversationID,
 			SourceFactID:         input.SourceFactID,
 			OperationID:          runID,
-			CorrelationID:        "conversation-cognition-agent:" + runID,
+			CorrelationID:        "conversation-cognition-agent:" + firstString(input.CorrelationID, runID),
 			Surface:              CapabilitySurfaceConversation,
 			Projection:           projection,
 		},

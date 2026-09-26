@@ -259,6 +259,31 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
+	if conversationID, turnID, ok := match2(path, "/api/conversations/:conversationId/turn/:turnId/cancel"); ok {
+		if methodName != http.MethodPost {
+			methodNotAllowed(response, http.MethodPost)
+			return
+		}
+		session, valid := s.requireForMethod(response, request, http.MethodPost)
+		if !valid {
+			return
+		}
+		_, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/conversations/"+escape(conversationID)+"/turn/"+escape(turnID)+"/cancel", session, map[string]any{})
+		if err != nil {
+			if s.publicUnauthorized(response, err) {
+				return
+			}
+			var coreErr *CoreError
+			if errors.As(err, &coreErr) && coreErr.Status == http.StatusNotFound {
+				writeError(response, http.StatusNotFound, "conversation_turn_not_found", "Conversation turn is unavailable")
+				return
+			}
+			writeError(response, http.StatusBadGateway, "conversation_cancel_failed", "Conversation cancellation could not be completed")
+			return
+		}
+		response.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	// Authenticated read-only routes.
 	if path == "/api/settings" && methodName == http.MethodGet {

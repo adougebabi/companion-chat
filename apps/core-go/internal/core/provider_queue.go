@@ -139,14 +139,18 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	if redisEnabled {
 		defer releaseRedis()
 	}
+	// Queue.Submit may return on cancellation before its worker exits. Keep the
+	// worker's result in a buffered channel so a late return cannot race with
+	// this caller's result read.
+	resultReady := make(chan T, 1)
 	err := queue.submit(runCtx, priority, func(taskCtx context.Context) error {
 		if guard := providerExecutionGuard(taskCtx); guard != nil {
 			if guardErr := guard(taskCtx); guardErr != nil {
 				return guardErr
 			}
 		}
-		var runErr error
-		result, runErr = fn(taskCtx)
+		value, runErr := fn(taskCtx)
+		resultReady <- value
 		return runErr
 	}, func(status string, runErr error) {
 		if p.DB == nil || diagnosticID == "" {
@@ -154,6 +158,10 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 		}
 		p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
 	})
+	select {
+	case result = <-resultReady:
+	default:
+	}
 	return result, err
 }
 

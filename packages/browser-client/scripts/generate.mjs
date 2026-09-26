@@ -57,7 +57,7 @@ export type BrowserDiagnosticModelRun = { id: string; role: string; bindingRole?
 export type BrowserDiagnosticMediaPrompt = { id: string; mediaIntentId: string; fluctlightId: string; kind: string; mimeType: string; prompt: unknown; providerPrompt: string; submittedPrompt?: string; requestPayload?: unknown; providerRequestId: string; providerJobId?: string; workflowId: string; status: string; qualityVerdict?: string; correlationId: string; createdAt: string; submittedEventId?: string; submittedAt?: string; errorMessage?: string; failureStage?: string; workflowStatus?: string; attemptCount?: number; modelRun?: BrowserDiagnosticModelRun };
 export type BrowserConversation = { id: string; createdByActorId: string; title?: string | null; revision: number; createdAt: string; updatedAt: string };
 export type BrowserParticipant = { conversationId: string; actorId: string; role: string; status: string; joinedAt: string; leftAt?: string | null };
-export type BrowserMessage = { id: string; conversationId: string; sequence: number; authorActorId: string; kind: string; text: string; attachmentRefs: string[]; createdAt: string };
+export type BrowserMessage = { id: string; conversationId: string; sequence: number; authorActorId: string; kind: string; text: string; attachmentRefs: string[]; createdAt: string; turnId?: string; idempotencyKey?: string; turnStatus?: "pending" | "running" | "completed" | "failed" | "cancelled"; turnErrorCode?: string; turnRetryable?: boolean };
 export type BrowserVisualIdentityTimelineEvent = { session_id: string; attempt_id?: string; stage: string; status: string; summary: string; asset_ids: string[]; metadata: Record<string, unknown>; correlation_id: string; occurred_at: string };
 export type BrowserVisualIdentity = { schema_version: string; id: string; fluctlight_id: string; status: string; current_revision: number; identity_snapshot: Record<string, unknown>; renderer_constraints: Record<string, unknown>; canonical_asset_id?: string; character_sheet_asset_id?: string; adapter_version: string; active_session_id?: string; timeline: BrowserVisualIdentityTimelineEvent[] };
 export type BrowserConversationPage = { conversation: BrowserConversation; participants: BrowserParticipant[]; messages: BrowserMessage[]; nextBeforeSequence?: number | null };
@@ -179,6 +179,9 @@ export class BrowserClient {
   }
   async markRead(conversationId: string, body: { readSequence: number; deliveredSequence?: number }): Promise<void> {
     await this.json(\`/api/conversations/\${encodeURIComponent(conversationId)}/read\`, { method: "POST", body });
+  }
+  async cancelTurn(conversationId: string, turnId: string): Promise<void> {
+    await this.json(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn/\${encodeURIComponent(turnId)}/cancel\`, { method: "POST", body: {} });
   }
   async turn(conversationId: string, body: { text: string; fluctlightId: string; senderActorId?: string; attachmentRefs?: string[]; idempotencyKey: string; turnId?: string }, signal?: AbortSignal): Promise<Response> {
     const response = await this.fetcher(this.url(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn\`), {

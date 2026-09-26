@@ -45,6 +45,7 @@ idempotency, and side effects.
 | Queue concurrency is non-integer or outside 1–8 | Reject settings; keep previous values. |
 | Same-priority requests | FIFO by enqueue sequence. |
 | Queue/HTTP context is cancelled | Mark cancelled, release the slot, and never block later requests. |
+| `Queue.Submit` returns on cancellation before the worker closure exits | Caller returns a zero result/cancellation error; the closure publishes its eventual value only through a buffered result channel, never a shared return variable. |
 | Process restarts with stale queued/running row | Mark failed with `provider_process_restarted`; owning workflow may retry. |
 
 ## 5. Contracts: ordering and lifecycle
@@ -63,6 +64,10 @@ idempotency, and side effects.
 - Cancelling while queued removes the task; cancelling while running reaches
   the HTTP request context and releases the slot. A crashed process's stale
   queued/running rows are marked failed with `provider_process_restarted`.
+- `Queue.Submit` may return as soon as its context is cancelled while a worker
+  closure is still unwinding. `runProviderQueued` must transfer the closure's
+  result through a buffered channel before returning to the caller; sharing a
+  mutable return variable creates a data race during explicit turn cancellation.
 - Redis claim moves a short-lived job from pending to processing atomically,
   renews its lease while the local provider closure runs, and removes it only
   when the same owner releases it. Redis errors fall back to the local queue.
@@ -95,7 +100,8 @@ use the corresponding default. Changes apply to subsequent requests without a
 process restart.
 
 - Unit tests cover priority/FIFO, both queue limits, cancellation, timeout and
-  slot release.
+  slot release. Run the running-Provider explicit-turn cancellation regression
+  with `go test -race` to detect late result writes.
 - Provider/diagnostic tests cover scenario persistence, lifecycle updates,
   generic-role compatibility, and redaction.
 - Redis coordinator tests cover score ordering, atomic claim/release, lease

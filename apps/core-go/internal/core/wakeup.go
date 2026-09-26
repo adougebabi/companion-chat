@@ -173,6 +173,28 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			return err
 		}
 		ensured += requeued.RowsAffected()
+		// A conversation can preempt WakeUp and then fail after a committed
+		// reply. When no executable cognition intent remains, restore the
+		// durable clock instead of leaving the one-shot intent superseded.
+		repaired, err := tx.Exec(ctx, `
+			UPDATE public.platform_workflow_intents AS i
+			SET status='completed',next_attempt_at=now()+(($1 + 600) * interval '1 second'),
+				started_at=NULL,completed_at=now(),last_error=NULL
+			FROM public.fluctlights AS f
+			WHERE i.intent_type='wake_up.current'
+			  AND i.payload->>'fluctlight_id'=f.id
+			  AND f.status IN ('active','paused')
+			  AND i.status='superseded'
+			  AND NOT EXISTS (
+				SELECT 1 FROM public.cognition_inbox AS c
+				JOIN public.platform_workflow_intents AS w ON w.intent_id='cognition_intent:'||c.id
+				WHERE c.fluctlight_id=f.id AND c.status IN ('pending','claimed')
+				  AND w.status IN ('pending','retry','started','running','cancel_requested')
+			  )`, settings.IntervalSeconds)
+		if err != nil {
+			return err
+		}
+		ensured += repaired.RowsAffected()
 		initialized, err := tx.Exec(ctx, `
 			UPDATE public.platform_workflow_intents AS i
 			SET next_attempt_at=now()+($1 * interval '1 second')

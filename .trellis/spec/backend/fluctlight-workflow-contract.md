@@ -201,14 +201,15 @@ registerMediaWorkflows(mediaWorker)
 
 ### 1. Scope / Trigger
 
-- Trigger: a synchronous NDJSON conversation or the Worker-owned
-  `cognition.processing` activity claims a `cognition_inbox` row and any later
-  provider, validation, realization, or persistence step fails.
+- Trigger: the Worker-owned `cognition.processing` activity claims a
+  `cognition_inbox` row and a later Provider, validation, realization, or
+  persistence step fails. The internal synchronous `HandleTurn` path keeps its
+  legacy claim behavior; the public private-chat observer never claims.
 
 ### 2. Signatures
 
 - `enqueueTurnFactClaimed(...) -> (inboxID, claimOwner, error)` keeps the
-  stream claim owner available to the caller.
+  internal synchronous stream claim owner available to that caller.
 - `releaseCognitionClaim(ctx, inboxID, claimOwner) -> error` conditionally
   releases only the matching active claim.
 - `ProcessCognitionInbox(ctx, inboxID)` releases its claim before returning an
@@ -246,8 +247,8 @@ registerMediaWorkflows(mediaWorker)
 
 - Good: a provider failure releases the inbox, the next activity attempt
   claims it, and a browser retry reuses the same fact without duplication.
-- Base: a disconnected stream leaves a durable pending fact that the Worker
-  can recover after the claim cleanup or lease expiry.
+- Base: a disconnected public private-chat observer leaves an unclaimed
+  accepted fact for the Worker; no lease cleanup is needed.
 - Bad: reset only `cognition_inbox.status` while leaving a started workflow or
   frozen action unexplained, or let a failed activity retain its own claim
   until the ten-minute lease expires.
@@ -471,8 +472,12 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   the periodic Worker sweep call the same conditional PostgreSQL release.
   Redis SET/subscription loss, listener restart, and process crashes cannot
   strand a completed due cycle.
-- User messages never update WakeUp due time or its Redis hint. They rearm only
-  the separate Reflection quiet-period intent.
+- Private-chat acceptance preempts a pending/running WakeUp. Cognition terminal
+  settlement moves its durable due time to the configured interval plus ten
+  minutes and re-arms the Redis hint; Reflection separately uses a ten-minute
+  quiet period. A degraded turn that already committed its visible reply still
+  runs the same follow-up scheduling. `EnsureWakeUpIntents` repairs a stranded
+  `superseded` clock once no executable cognition intent remains.
 - Due release uses expected status/due/cycle CAS. Duplicate Redis expiry,
   multiple Workers, startup repair, and periodic sweep converge on one cycle
   and one stable correlation identity.
@@ -535,7 +540,8 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
 | Existing live Fluctlight has no wake-up intent | Worker startup inserts the stable `wake_up.current` intent idempotently |
 | Schedule is pending, failed, or absent | Run cognition with explicit schedule status and no invented activity/place |
 | Redis SET/expiry/subscription is lost | PostgreSQL due sweep releases the same cycle and records bounded diagnostics |
-| Frequent user conversation | WakeUp due remains fixed; only Reflection due moves |
+| Frequent user conversation | Each settled turn moves WakeUp due to its configured interval plus ten minutes; Reflection uses a ten-minute quiet period. |
+| Cognition preempts WakeUp but then fails after reply publication | Re-arm follow-ups; supervisor repairs a residual `superseded` intent when no active cognition remains. |
 | Wake-up activity/provider failure | Reconcile requeues the live Fluctlight's intent after a bounded delay; preserve the failure in diagnostics |
 | Assessment selects no capability | Persist `completed_noop` with a stable reason and schedule the next PostgreSQL due cycle |
 | Assessment omits `influences` | Treat the field as empty; retain only deferred output calls and no-op rather than execute an ungrounded state change or fail the recurring cycle |
@@ -554,8 +560,8 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   and resume follows its explicit overdue/future policy.
 - Bad: use a Go `time.Ticker`, Redis delayed stream, or a new Temporal Schedule
   client that can outlive the domain intent ledger.
-- Bad: postpone WakeUp after every user message, require Schedule acceptance,
-  or turn Provider narrative into chat without a communication capability.
+- Bad: leave WakeUp `superseded` after terminal cognition, require Schedule
+  acceptance, or turn Provider narrative into chat without a communication capability.
 
 ### 6. Tests Required
 
@@ -567,8 +573,9 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   terminal wake-up intent without duplicating the stable workflow ID.
 - Assert lost Redis SET/expiry/listener and Worker restart are repaired by the
   PostgreSQL due sweep with one CAS release per cycle.
-- Assert frequent user turns preserve WakeUp due/cycle while resetting only the
-  Reflection quiet period.
+- Assert each settled user turn moves WakeUp due by configured interval plus
+  ten minutes, Reflection remains a ten-minute quiet period, and a stranded
+  `superseded` clock is repaired after cognition terminates.
 - Assert a retry with a future `next_attempt_at` is not requeued on every
   reconciliation poll; assert the same for future pending Reflection, and that
   a due retry starts a new Temporal run with the stable wake-up ID.

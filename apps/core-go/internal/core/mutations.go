@@ -23,12 +23,14 @@ type TurnResult struct {
 	Assistant     map[string]any
 	MediaIntentID string
 	TurnID        string
+	InboxID       string
 	CorrelationID string
 }
 
 type turnCallbacks struct {
 	onActionResult func(map[string]any) error
 	onChunk        func(string) error
+	acceptOnly     bool
 }
 
 var errCognitionTurnSuperseded = errors.New("cognition_turn_superseded")

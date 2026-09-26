@@ -98,6 +98,7 @@ var hiddenPayloadKeys = map[string]struct{}{
 // to the generic turn failure so provider/database/model text cannot cross the
 // browser boundary.
 var browserTurnErrorCodes = map[string]struct{}{
+	"user_cancelled":                        {},
 	"active_memory_capability_unavailable":  {},
 	"active_memory_plan_invalid":            {},
 	"active_memory_plan_stale":              {},
@@ -597,6 +598,9 @@ func browserStreamMessage(message map[string]any) map[string]any {
 		"kind":            "kind",
 		"text":            "text",
 		"created_at":      "createdAt",
+		"turn_id":         "turnId",
+		"idempotency_key": "idempotencyKey",
+		"turn_status":     "turnStatus",
 	} {
 		if value, ok := message[source]; ok {
 			result[target] = value

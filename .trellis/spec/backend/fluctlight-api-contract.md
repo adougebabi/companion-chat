@@ -42,9 +42,9 @@ GET /health/ready
 - OpenAPI changes and generated TypeScript client changes commit together; CI rejects ungenerated drift.
 - NDJSON sequence is monotonic per turn and has exactly one terminal `completed` or `error`. Heartbeats do not change domain/action state.
 - Internal stream exposes only visible text/content progress, action results, bounded errors, and terminal metadata. It never exposes perception, appraisal, hidden reasoning, raw Provider chunks, credentials, database rows, or Temporal internals.
-- Public browser boundary response abort/disconnect propagates to the Core request context and
-  realization cancellation. Committed assessment/state/frozen decision is not
-  rolled back by transport disconnect.
+- The public private-chat turn accepts the user message and `cognition.processing`
+  intent before observing output. Browser abort/disconnect cancels only the
+  observer request; the Worker owns realization and its Provider context.
 - A retried conversation request reuses the original `turn_id` and `idempotency_key`. The Core responder must bind processing to that fact ID and replay or reopen it in place; it must never consume another pending fact for the request.
 - `/health/live` has no dependency probes. `/health/ready` checks required configuration, PostgreSQL, and the `serve-api` role; optional Provider outage is reported separately and does not fail readiness.
 - API process does not poll Temporal task queues or execute background Provider Activities.
@@ -57,7 +57,7 @@ GET /health/ready
 | Generated/reference client differs from OpenAPI artifact | CI failure; regenerate and review the artifact and clients. |
 | Stream sequence repeats/skips unexpectedly | Terminate bounded error, record correlation diagnostics, never silently reorder. |
 | More than one terminal event | Contract failure; the browser boundary forwards only the first terminal and records violation. |
-| Browser/browser boundary disconnects during realization | Propagate cancellation; suppress later writes; settle frozen action per workflow policy. |
+| Browser/browser boundary disconnects after acceptance | Stop observer writes; leave the committed inbox and Worker/Provider execution untouched. |
 | Provider unavailable | Return application-defined failure/status; do not map Core readiness to false unless required startup configuration is invalid. |
 | PostgreSQL unavailable at readiness probe | `/health/ready` fails; liveness remains independent. |
 | Domain module imports FastAPI/Pydantic Web DTO | Architecture-test failure. |
@@ -65,8 +65,7 @@ GET /health/ready
 ### 5. Good / Base / Bad Cases
 
 - Good: OpenAPI keeps the browser contract stable, one turn streams ordered
-  NDJSON, the browser boundary translates it, and disconnect cancels realization without
-  reverting the frozen decision.
+  NDJSON, and a disconnected observer leaves the accepted Worker turn running.
 - Base: a command returns one typed JSON result with correlation and no stream.
 - Bad: hand-write matching Go/TypeScript DTOs, return raw ORM rows, stream hidden assessment data, or inject a database session into a route handler.
 
@@ -75,7 +74,95 @@ GET /health/ready
 - OpenAPI snapshot/semantic-diff and generated-client no-drift tests.
 - Route tests for Pydantic validation, mapping to application commands, stable errors, correlation/causation, and no raw row leakage.
 - NDJSON parser/producer tests for chunking, partial frames, UTF-8, monotonic sequence, heartbeat, one terminal, error, and abort.
-- End-to-end browser boundary→Core streaming cancellation test with suppression of writes after disconnect.
+- End-to-end browser boundary→Core test that suppresses writes after disconnect
+  and verifies the Worker still commits one reply from the accepted inbox.
+
+## Scenario: Durable Private Chat Turn And Explicit Cancellation
+
+### 1. Scope / Trigger
+
+- Trigger: `POST /api/conversations/{conversationId}/turn` accepts a private
+  message, the browser disconnects, or the Owner clicks the explicit cancel
+  button. The legacy internal synchronous `HandleTurn` caller is separate.
+
+### 2. Signatures
+
+```text
+App.AcceptTurn(ctx, actorID, conversationID, payload) -> TurnResult{UserMessage, TurnID, InboxID}
+App.StreamDurableTurn(ctx, writer, actorID, conversationID, payload) -> NDJSON observer
+POST /api/conversations/{conversationId}/turn/{turnId}/cancel -> 204
+History user message: turnId, idempotencyKey, turnStatus,
+  turnErrorCode? and turnRetryable? (failed/cancelled only)
+turnStatus: pending | running | completed | failed | cancelled
+```
+
+### 3. Contracts
+
+- Acceptance writes `conversation_messages`, `cognition_inbox`, and
+  `cognition.processing` intent in one short transaction; only Worker claims
+  and runs the model for the public private-chat path. The observer emits only
+  committed user/assistant frames and terminal state. Its context must not
+  reach the Worker.
+- The inbox payload preserves both `actor_id` (speaker) and
+  `authorization_actor_id` (Owner). Worker replay calls `HandleActorTurn` when
+  they differ; legacy rows without the latter recover the Owner from the
+  Fluctlight record. A Worker must not authorize a Fluctlight sender as Owner.
+- The authenticated cancel command marks the inbox `failed/user_cancelled`,
+  stops Provider and active Temporal work, and fences late reply publication.
+  A claimed inbox keeps the workflow intent in `cancel_requested` until the
+  execution terminates; history sets `turnRetryable=false` during that window.
+- A retry reuses the original turn/idempotency and user message. It reopens the
+  failed inbox after the prior workflow is terminal, clears its cancellation
+  marker, and gives the intent a new workflow ID. The Agent's attempt RunID may
+  change, while its conversation publication correlation remains `turn:<turnId>`.
+- A committed assistant reply takes precedence over a later projection failure
+  in the history/stream visible result. Only a real failed or cancelled turn
+  without a committed reply offers retry.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Browser disconnects after acceptance | Observer stops; inbox remains pending/claimed and Worker continues. |
+| Cancel is requested by a non-participant or for an unknown turn | 404/unauthorized boundary; no mutation. |
+| Cancel arrives after processed/failed terminal state | Idempotent no-op; do not mark a completed reply cancelled. |
+| Retry arrives while cancellation is still settling | Conflict until the old workflow is terminal; history exposes `turnRetryable=false`. |
+| Provider fails before reply | Bounded error code, failed history state, original identity eligible for retry. |
+| Provider result is late after explicit cancellation | Inbox/publication guard rejects the write. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: close the browser after acceptance, let Worker commit one reply, then
+  reload the conversation and read `completed` from history.
+- Base: cancel a pending turn before Worker dispatch; no Provider call occurs,
+  and the same user message can be retried.
+- Bad: pass the browser request context into `RunConversationCognitionAgent`
+  or infer cancellation from an `AbortError` in Pinia.
+
+### 6. Tests Required
+
+- Isolated PostgreSQL tests assert disconnect leaves inbox pending, Worker
+  commits one reply, cancel stops a running Provider, retry preserves one user
+  message, Actor sender authorization survives Worker dispatch, and stale
+  reply publication is fenced.
+- Browser route/OpenAPI matrix, generated-client drift and frontend reload
+  tests assert the cancel path and status fields agree across layers.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+result, err := app.HandleTurn(request.Context(), actor, conversation, body)
+// request disconnect cancels the model and marks the accepted fact failed
+```
+
+#### Correct
+
+```go
+accepted, err := app.AcceptTurn(acceptContext, actor, conversation, body)
+// The response context only observes accepted.InboxID; Worker processes it.
+```
 - Liveness/readiness tests for PostgreSQL/config/optional Provider states and API-vs-Worker role separation.
 - Architecture tests preventing FastAPI/Starlette/Uvicorn/Web DTO imports in domain modules and Temporal task-queue polling in API runtime.
 - Real PostgreSQL HTTP integration tests plus in-process application-interface tests.

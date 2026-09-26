@@ -134,6 +134,7 @@ const turnErrorCodes = new Set([
   "turn_stage_invalid",
   "turn_stage_not_executable",
   "visible_text_source_conflict",
+	"user_cancelled",
 ]);
 
 type StreamPayload = {
@@ -270,14 +271,18 @@ function isTransientMessage(message: BrowserMessage): boolean {
 	return message.id.startsWith("local-") || message.id.startsWith("stream-");
 }
 
-function mergeConversationMessages(authoritative: BrowserMessage[], current: BrowserMessage[]): BrowserMessage[] {
+function mergeConversationMessages(authoritative: BrowserMessage[], current: BrowserMessage[], preserveStreamText = false): BrowserMessage[] {
 	const merged = [...current];
 	for (const message of authoritative) {
-		const duplicate = merged.some((candidate) =>
+		const duplicateIndex = merged.findIndex((candidate) =>
 			candidate.id === message.id ||
 			(!isTransientMessage(candidate) && candidate.conversationId === message.conversationId && candidate.sequence === message.sequence && candidate.kind === message.kind),
 		);
-		if (!duplicate) merged.push(message);
+		if (duplicateIndex >= 0) {
+			const previous = merged[duplicateIndex];
+			merged.splice(duplicateIndex, 1, preserveStreamText && message.kind === "assistant" && previous.id === message.id ? { ...message, text: previous.text } : message);
+		}
+		else merged.push(message);
 	}
 	return merged.sort((left, right) => {
 		const leftTransient = isTransientMessage(left);
@@ -301,6 +306,7 @@ export const useConversationStore = defineStore("conversations", {
     authError: "" as string,
     loading: false,
     sending: false,
+	activeTurnId: null as string | null,
     error: "" as string,
     attachmentRef: "",
     abortController: null as AbortController | null,
@@ -318,7 +324,11 @@ export const useConversationStore = defineStore("conversations", {
       const name = this.selectedFluctlight?.identity.name;
       return typeof name === "string" && name.trim() ? name : this.selectedFluctlight?.id ?? null;
     },
-	canRetry: (state) => Boolean(state.retryTurn) && state.retryTurn?.conversationId === state.conversation?.id && state.retryTurn?.fluctlightId === state.fluctlightId && !state.sending && !state.retrying,
+	canRetry: (state) => Boolean(state.retryTurn) && state.retryTurn?.conversationId === state.conversation?.id && state.retryTurn?.fluctlightId === state.fluctlightId && !state.sending && !state.retrying && !state.messages.some((message) => message.kind === "user" && message.id === state.retryTurn?.messageId && message.turnRetryable === false),
+	retryIsModelFailure: (state) => Boolean(state.retryTurn && state.messages.some((message) => message.kind === "user" && message.id === state.retryTurn?.messageId && (message.turnStatus === "failed" || message.turnStatus === "cancelled"))),
+	hasPendingTurn: (state) => state.messages.some((message) => message.kind === "user" && (message.turnStatus === "pending" || message.turnStatus === "running")),
+	hasSettlingTurn: (state) => state.messages.some((message) => message.kind === "user" && (message.turnStatus === "failed" || message.turnStatus === "cancelled") && message.turnRetryable === false),
+	canCancel(): boolean { return this.hasPendingTurn; },
 	queuedMessageId: (state) => state.queuedTurn?.conversationId === state.conversation?.id && state.queuedTurn?.fluctlightId === state.fluctlightId ? state.queuedTurn.messageId : null,
   },
   actions: {
@@ -432,10 +442,6 @@ export const useConversationStore = defineStore("conversations", {
       }
     },
 	    async selectFluctlight(fluctlightId: string, options: { loading?: boolean } = {}) {
-		if (this.sending || this.retrying) {
-			this.error = "当前消息仍在处理中；请先等待完成或取消后再切换会话。";
-			return;
-		}
       if (!this.fluctlights.some((item) => item.id === fluctlightId)) {
         this.error = "所选 Fluctlight 实例不可用。";
         return;
@@ -459,6 +465,7 @@ export const useConversationStore = defineStore("conversations", {
         this.senderActorId = null;
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
 		this.fluctlightId = fluctlightId;
+			this.syncServerTurnState();
 			this.ensureRetryMessageVisible();
 			this.ensureQueuedMessageVisible();
 	        persistSelection(fluctlightId);
@@ -483,9 +490,55 @@ export const useConversationStore = defineStore("conversations", {
       this.nextBeforeSequence = null;
 	      persistSelection(null);
     },
+	syncServerTurnState() {
+		const conversationId = this.conversation?.id;
+		const fluctlightId = this.fluctlightId;
+		if (!conversationId || !fluctlightId) return;
+		const latest = [...this.messages].reverse().find((message) => message.kind === "user" && !isTransientMessage(message));
+		if (!latest?.turnStatus) return;
+		if ((latest.turnStatus === "failed" || latest.turnStatus === "cancelled") && latest.turnId && latest.idempotencyKey) {
+			const retry: RetryTurn = {
+				conversationId,
+				fluctlightId,
+				text: latest.text,
+				turnId: latest.turnId,
+				idempotencyKey: latest.idempotencyKey,
+				attachmentRefs: latest.attachmentRefs,
+				messageId: latest.id,
+				senderActorId: latest.authorActorId === this.conversation?.createdByActorId ? undefined : latest.authorActorId,
+			};
+			this.retryTurn = retry;
+			persistRetry(retry);
+			this.error = latest.turnRetryable === false
+				? "正在结束本次生成，完成后可以重试。"
+				: latest.turnStatus === "cancelled" ? "回复已取消，可以重试。" : `回复未完成：${latest.turnErrorCode ?? "模型处理失败"}`;
+			return;
+		}
+		if (this.retryTurn?.conversationId === conversationId && this.retryTurn?.fluctlightId === fluctlightId) {
+			this.retryTurn = null;
+			persistRetry(null);
+		}
+		this.error = "";
+	},
+	async refreshActiveTurn() {
+		const conversationId = this.conversation?.id;
+		if (!conversationId || (!this.hasPendingTurn && !this.hasSettlingTurn) || this.sending) return;
+		try {
+			const page = await client.messages(conversationId);
+			if (this.conversation?.id !== conversationId) return;
+			this.messages = mergeConversationMessages(page.messages, this.messages);
+			this.syncServerTurnState();
+		} catch {
+			// A read failure cannot change an accepted turn's server state.
+		}
+	},
 	async send(text: string, retry = false, queuedRequest: QueuedTurn | null = null) {
 		const normalized = text.trim();
 		if (!normalized || this.sending) return;
+		if (!retry && this.hasPendingTurn) {
+			this.error = "上一条消息仍在后台处理；完成或取消后再发送。";
+			return;
+		}
 		const initialConversationId = this.conversation?.id;
 		const initialFluctlightId = this.fluctlightId;
 		const retryBelongsToCurrent = this.retryTurn?.conversationId === initialConversationId && this.retryTurn?.fluctlightId === initialFluctlightId;
@@ -523,7 +576,7 @@ export const useConversationStore = defineStore("conversations", {
 	      this.sending = true;
 	      this.abortController = new AbortController();
 	      const requestEpoch = this.requestEpoch;
-	      const request: RetryTurn = pendingRetry && retry
+		const request: RetryTurn = pendingRetry && retry
 	        ? pendingRetry
 			: queuedRequest
 				? { ...queuedRequest }
@@ -536,6 +589,8 @@ export const useConversationStore = defineStore("conversations", {
             attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
 	            senderActorId: this.senderActorId ?? undefined,
 	          };
+		this.activeTurnId = request.turnId;
+		persistRetry(request);
 		let optimisticMessageId = request.messageId ?? null;
 	      if (!retry) {
 			const localAlreadyVisible = optimisticMessageId && this.messages.some((message) => message.id === optimisticMessageId);
@@ -657,7 +712,8 @@ export const useConversationStore = defineStore("conversations", {
 	        const page = await client.messages(request.conversationId);
 			if (this.requestEpoch !== requestEpoch || this.conversation?.id !== request.conversationId || this.fluctlightId !== request.fluctlightId) return;
 	        this.conversation = page.conversation;
-		this.messages = mergeConversationMessages(page.messages, this.messages);
+		this.messages = mergeConversationMessages(page.messages, this.messages, true);
+		this.syncServerTurnState();
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
         await this.reportReadPosition();
         this.attachmentRef = "";
@@ -668,36 +724,34 @@ export const useConversationStore = defineStore("conversations", {
       } catch (error) {
         if (this.requestEpoch !== requestEpoch) return;
         if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
-        const userMessageIndex = optimisticMessageId ? this.messages.findIndex((m) => m.id === optimisticMessageId) : -1;
-        const hasAssistantAfterUser = userMessageIndex >= 0
-          ? this.messages.slice(userMessageIndex + 1).some((m) => m.kind === "assistant" && m.conversationId === request.conversationId)
-          : false;
-        if (hasAssistantAfterUser) {
-          this.retryTurn = null;
-          persistRetry(null);
-          this.error = "";
-          return;
-        }
-        const cancelled =
-          this.abortController?.signal.aborted ||
-          (error instanceof DOMException && error.name === "AbortError");
-        if (cancelled) {
-          this.error = "回复已取消，可以重试。";
-        } else {
-          const message = error instanceof BrowserApiError
-            ? turnErrorCode({ code: error.code })
-            : error instanceof Error
-              ? error.message
-              : "turn_failed";
-          this.error = `回复未完成：${message}`;
-        }
-			request.messageId = request.messageId ?? optimisticMessageId ?? undefined;
-	        this.retryTurn = request;
-	        persistRetry(request);
+		try {
+			const page = await client.messages(request.conversationId);
+			if (this.requestEpoch !== requestEpoch || this.conversation?.id !== request.conversationId) return;
+			this.messages = mergeConversationMessages(page.messages, this.messages);
+			const confirmed = page.messages.find((message) => message.kind === "user" && message.turnId === request.turnId);
+			if (confirmed) {
+				this.messages = this.messages.filter((message) => message.id !== optimisticMessageId || message.id === confirmed.id);
+				this.syncServerTurnState();
+				return;
+			}
+		} catch {
+			// Keep the submitted identity until a later authoritative read.
+		}
+		if (error instanceof BrowserApiError && ([400, 401, 403, 404].includes(error.status) || error.code === "conversation_turn_conflict")) {
+			this.retryTurn = null;
+			persistRetry(null);
+			this.error = `消息未被接受：${turnErrorCode({ code: error.code })}`;
+			return;
+		}
+		request.messageId = request.messageId ?? optimisticMessageId ?? undefined;
+		this.retryTurn = request;
+		persistRetry(request);
+		this.error = "发送状态未确认；重新发送会沿用同一消息身份。";
       } finally {
         if (this.requestEpoch === requestEpoch) {
           this.abortController = null;
           this.sending = false;
+		  this.activeTurnId = null;
         }
       }
     },
@@ -706,6 +760,7 @@ export const useConversationStore = defineStore("conversations", {
       this.abortController?.abort();
       this.abortController = null;
       this.sending = false;
+	  this.activeTurnId = null;
       this.retrying = false;
     },
     pruneOrphanedLocalTurns() {
@@ -732,11 +787,8 @@ export const useConversationStore = defineStore("conversations", {
         let historyPage = page;
         const allMessages = [...page.messages];
         let userMessage: BrowserMessage | undefined;
-        const isTransientId = !retry.messageId || isTransientMessage({ id: retry.messageId } as BrowserMessage);
         while (true) {
-          userMessage = !isTransientId
-            ? historyPage.messages.find((message) => message.id === retry.messageId && message.kind === "user")
-            : [...historyPage.messages].reverse().find((message) => message.kind === "user" && message.text === retry.text);
+	          userMessage = historyPage.messages.find((message) => message.kind === "user" && (message.turnId === retry.turnId || message.id === retry.messageId));
           if (userMessage || !historyPage.nextBeforeSequence) break;
           historyPage = await client.messages(retry.conversationId, historyPage.nextBeforeSequence, 200);
           allMessages.push(...historyPage.messages);
@@ -746,7 +798,7 @@ export const useConversationStore = defineStore("conversations", {
           retry.messageId = userMessage.id;
           persistRetry(retry);
         }
-        const completed = allMessages.some((message) => message.kind === "assistant" && message.sequence > userMessage.sequence);
+	        const completed = userMessage.turnStatus === "completed" || allMessages.some((message) => message.kind === "assistant" && message.turnId === retry.turnId);
         if (completed) {
           this.retryTurn = null;
           persistRetry(null);
@@ -761,12 +813,24 @@ export const useConversationStore = defineStore("conversations", {
         // dropping a turn whose authoritative state could not be checked.
       }
     },
-    cancel() {
-      this.abortController?.abort();
-    },
+	    async cancel() {
+		const conversationId = this.conversation?.id;
+		const pending = [...this.messages].reverse().find((message) => message.kind === "user" && (message.turnStatus === "pending" || message.turnStatus === "running") && message.turnId);
+		if (!conversationId || !pending?.turnId) return;
+		try {
+			await client.cancelTurn(conversationId, pending.turnId);
+			this.abortController?.abort();
+			const page = await client.messages(conversationId);
+			if (this.conversation?.id !== conversationId) return;
+			this.messages = mergeConversationMessages(page.messages, this.messages);
+			this.syncServerTurnState();
+		} catch {
+			this.error = "取消请求未完成，请查看消息状态后重试。";
+		}
+	    },
 	    async retry() {
 	      const pending = this.retryTurn;
-	      if (!pending || pending.conversationId !== this.conversation?.id || pending.fluctlightId !== this.fluctlightId || this.sending || this.retrying) return;
+	      if (!pending || pending.conversationId !== this.conversation?.id || pending.fluctlightId !== this.fluctlightId || !this.canRetry) return;
 	      this.retrying = true;
 	      try {
 	        await this.send(pending.text, true);
@@ -796,10 +860,7 @@ export const useConversationStore = defineStore("conversations", {
 		  const pending = this.retryTurn;
 		  const conversationId = this.conversation?.id;
 		  if (!pending || !conversationId || pending.conversationId !== conversationId || pending.fluctlightId !== this.fluctlightId) return;
-		  const isTransientId = !pending.messageId || isTransientMessage({ id: pending.messageId } as BrowserMessage);
-		  const matched = !isTransientId
-		    ? this.messages.find((message) => message.id === pending.messageId)
-		    : [...this.messages].reverse().find((message) => message.kind === "user" && message.conversationId === conversationId && message.text === pending.text);
+		  const matched = this.messages.find((message) => message.kind === "user" && message.conversationId === conversationId && (message.turnId === pending.turnId || message.id === pending.messageId));
 
 		  if (matched) {
 		    if (pending.messageId !== matched.id) {
@@ -823,10 +884,7 @@ export const useConversationStore = defineStore("conversations", {
 		const queued = this.queuedTurn;
 		const conversationId = this.conversation?.id;
 		if (!queued || !conversationId || queued.conversationId !== conversationId || queued.fluctlightId !== this.fluctlightId) return;
-		const isTransientId = isTransientMessage({ id: queued.messageId } as BrowserMessage);
-		const exists = isTransientId
-			? this.messages.some((message) => message.id === queued.messageId || (message.kind === "user" && message.text === queued.text))
-			: this.messages.some((message) => message.id === queued.messageId);
+		const exists = this.messages.some((message) => message.id === queued.messageId || (message.kind === "user" && message.turnId === queued.turnId));
 		if (!exists) {
 			this.messages.push(createLocalMessage(conversationId, queued.text, 0, queued.senderActorId ?? "human", queued.messageId, queued.createdAt));
 		}

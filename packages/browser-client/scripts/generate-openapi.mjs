@@ -235,6 +235,7 @@ const schema = {
     "/api/conversations/{conversationId}/messages": { get: { operationId: "conversationMessages" } },
     "/api/conversations/{conversationId}/read": { post: { operationId: "markConversationRead" } },
     "/api/conversations/{conversationId}/turn": { post: { operationId: "conversationTurn" } },
+    "/api/conversations/{conversationId}/turn/{turnId}/cancel": { post: { operationId: "cancelConversationTurn" } },
     "/api/diagnostics": { get: { operationId: "readDiagnostics" }, delete: { operationId: "clearDiagnostics" } },
     "/api/diagnostics/lifecycle": { get: { operationId: "readLifecycleDiagnostics" } },
     "/api/diagnostics/model-runs": { get: { operationId: "readDiagnosticModelRuns" } },

@@ -64,6 +64,11 @@ type Message struct {
 	Text           string    `json:"text"`
 	AttachmentRefs []string  `json:"attachment_refs"`
 	CreatedAt      time.Time `json:"created_at"`
+	TurnID         string    `json:"turn_id,omitempty"`
+	IdempotencyKey string    `json:"idempotency_key,omitempty"`
+	TurnStatus     string    `json:"turn_status,omitempty"`
+	TurnErrorCode  string    `json:"turn_error_code,omitempty"`
+	TurnRetryable  bool      `json:"turn_retryable"`
 }
 
 type ConversationPage struct {

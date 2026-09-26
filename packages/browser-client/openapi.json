@@ -999,6 +999,11 @@
         "operationId": "conversationTurn"
       }
     },
+    "/api/conversations/{conversationId}/turn/{turnId}/cancel": {
+      "post": {
+        "operationId": "cancelConversationTurn"
+      }
+    },
     "/api/diagnostics": {
       "get": {
         "operationId": "readDiagnostics"

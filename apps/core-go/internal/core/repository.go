@@ -189,13 +189,21 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 		participants = append(participants, item)
 	}
 	participantRows.Close()
-	query := `SELECT id, conversation_id, sequence, author_actor_id, kind, text, attachment_refs, created_at FROM public.conversation_messages WHERE conversation_id = $1`
+	query := `SELECT m.id, m.conversation_id, m.sequence, m.author_actor_id, m.kind, m.text, m.attachment_refs, m.created_at,
+		COALESCE(m.turn_id,''), COALESCE(m.idempotency_key,''), COALESCE(i.status,''), COALESCE(i.error_code,''),COALESCE(w.status,''),
+		CASE WHEN m.kind='user' AND m.turn_id IS NOT NULL THEN EXISTS(
+			SELECT 1 FROM public.conversation_messages a
+			WHERE a.conversation_id=m.conversation_id AND a.kind='assistant' AND a.turn_id=m.turn_id
+		) ELSE false END
+		FROM public.conversation_messages m LEFT JOIN public.cognition_inbox i ON i.id=m.source_fact_id
+		LEFT JOIN public.platform_workflow_intents w ON w.intent_id='cognition_intent:'||i.id
+		WHERE m.conversation_id = $1`
 	args := []any{conversationID}
 	if before != nil {
-		query += " AND sequence < $2"
+		query += " AND m.sequence < $2"
 		args = append(args, *before)
 	}
-	query += fmt.Sprintf(" ORDER BY sequence DESC LIMIT %d", limit+1)
+	query += fmt.Sprintf(" ORDER BY m.sequence DESC LIMIT %d", limit+1)
 	messageRows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return ConversationPage{}, fmt.Errorf("read Core messages: %w", err)
@@ -205,8 +213,33 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	for messageRows.Next() {
 		var item Message
 		var attachmentJSON []byte
-		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt); err != nil {
+		var inboxStatus, inboxError, workflowStatus string
+		var assistantExists bool
+		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &assistantExists); err != nil {
 			return ConversationPage{}, fmt.Errorf("scan Core message: %w", err)
+		}
+		if item.Kind == "user" && item.TurnID != "" {
+			switch {
+			case assistantExists || inboxStatus == "processed" || (inboxStatus == "failed" && inboxError == "superseded_by_newer_turn"):
+				item.TurnStatus = "completed"
+			case inboxStatus == "claimed":
+				item.TurnStatus = "running"
+			case inboxStatus == "pending":
+				item.TurnStatus = "pending"
+			case inboxStatus == "failed" && inboxError == "user_cancelled":
+				item.TurnStatus = "cancelled"
+				item.TurnErrorCode = "user_cancelled"
+				item.TurnRetryable = workflowStatus != "started" && workflowStatus != "running" && workflowStatus != "cancel_requested"
+			case inboxStatus == "failed":
+				item.TurnStatus = "failed"
+				item.TurnErrorCode = safeStreamTurnErrorCode(inboxError)
+				if item.TurnErrorCode == "" {
+					item.TurnErrorCode = "conversation_turn_failed"
+				}
+				item.TurnRetryable = workflowStatus != "started" && workflowStatus != "running" && workflowStatus != "cancel_requested"
+			}
+		} else {
+			item.IdempotencyKey = ""
 		}
 		if err := json.Unmarshal(attachmentJSON, &item.AttachmentRefs); err != nil {
 			return ConversationPage{}, fmt.Errorf("decode Core attachments: %w", err)

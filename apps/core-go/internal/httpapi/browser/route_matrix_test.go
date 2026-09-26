@@ -87,6 +87,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "conversation history", method: http.MethodGet, path: "/api/conversations/conversation-1/messages"},
 		{name: "conversation read", method: http.MethodPost, path: "/api/conversations/conversation-1/read", body: `{"readSequence":1}`},
 		{name: "conversation turn", method: http.MethodPost, path: "/api/conversations/conversation-1/turn", body: `{"text":"hello","fluctlightId":"fl-1","idempotencyKey":"turn-1"}`},
+		{name: "conversation turn cancel", method: http.MethodPost, path: "/api/conversations/conversation-1/turn/turn-1/cancel"},
 		{name: "diagnostics", method: http.MethodGet, path: "/api/diagnostics"},
 		{name: "lifecycle diagnostics", method: http.MethodGet, path: "/api/diagnostics/lifecycle"},
 		{name: "diagnostics clear", method: http.MethodDelete, path: "/api/diagnostics"},

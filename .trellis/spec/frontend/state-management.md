@@ -20,6 +20,79 @@ while sending, composing, or while the document is hidden.
 
 Do not treat optimistic messages as persisted until the server stream emits `done` or a later refresh returns them. A streamed chat may end in several separately persisted assistant records: read ordered `payload.messages` first, then fall back to `[payload.message]` for a pre-migration server. Replace the one transient typing entry with that whole collection in order; do not leave the transient entry between or after persisted messages. History pages merge by message ID at the head; new messages merge at the tail. An initial or background page is authoritative for any matching message ID, while local-only optimistic messages are retained and ordered by timestamp. This prevents a queued media placeholder from overwriting the server's later ready projection. Generation jobs are queued through the server chat contract and restored from conversation state after a refresh.
 
+## Scenario: Durable Private Chat State After Refresh
+
+### 1. Scope / Trigger
+
+- Trigger: a private turn is accepted, its observer disconnects, the page
+  reloads, or the user explicitly cancels generation.
+
+### 2. Signatures
+
+```text
+BrowserMessage.turnId?: string
+BrowserMessage.idempotencyKey?: string
+BrowserMessage.turnStatus?: pending | running | completed | failed | cancelled
+BrowserMessage.turnErrorCode?: string
+BrowserMessage.turnRetryable?: boolean
+BrowserClient.cancelTurn(conversationId, turnId): Promise<void>
+```
+
+### 3. Contracts
+
+- Persist a newly submitted identity before opening the observer. On reload,
+  reconcile it against history by `turnId` or message ID. Text equality is
+  never an identity check.
+- `pending`/`running` are server processing states; a transport error must not
+  turn either into a model failure or expose a model retry button. Poll the
+  selected conversation while a visible turn remains pending or a cancellation
+  is settling. Preserve the composer while polling.
+- Only `failed`/`cancelled` with `turnRetryable=true` show model retry. The
+  retry reuses the original turn/idempotency and user message. If server
+  acceptance cannot be confirmed, show a distinct resend action using the
+  same identity.
+- The cancel button calls `cancelTurn`. Navigation, refresh, and local stream
+  abort only close observation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Observer loses its connection after acceptance | Read history; show processing without a model retry. |
+| Refresh returns pending/running | Show pending status and resume bounded history reads. |
+| Refresh returns failed/cancelled with `turnRetryable=false` | Show settlement progress; wait before enabling retry. |
+| Refresh returns failed/cancelled with `turnRetryable=true` | Offer retry using the same durable identity. |
+| Equal text appears in another message | Do not match it to the pending turn. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: refresh during cognition, keep the message pending, and display the
+  committed reply after the next history read.
+- Base: explicit cancel settles, then the original user bubble offers retry.
+- Bad: label a browser `AbortError` as a cancelled model run.
+
+### 6. Tests Required
+
+- Store tests cover pending refresh, transport loss after acceptance, explicit
+  cancel, retry readiness, and turn identity matching with duplicate text.
+- Browser client/route tests cover the generated cancel operation and status
+  projection.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+catch (error) { retryTurn = request; errorMessage = "回复已取消"; }
+```
+
+#### Correct
+
+```ts
+const page = await client.messages(conversationId);
+syncServerTurnState(page.messages); // server status decides retry eligibility
+```
+
 ## Derived UI
 
 Compute counts and labels from `state` during `renderMemory()`/`renderPersonaList()` instead of maintaining duplicate counters. When switching personas, update `activePersonaId`, `localStorage`, `messages`, and the input hint together, as `switchPersona()` does.

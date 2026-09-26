@@ -53,15 +53,19 @@ BrowserTurnEventV1
   history response cannot erase stream-confirmed/queued messages or overwrite a
   later selected conversation; refresh/crash recovery keeps queued text bound
   to its original conversation until durable submission.
-- Browser retry/queued state is provisional client state. During clean-start,
+- Browser retry/queued state is provisional client state; the accepted user's
+  `turnStatus`, `turnErrorCode`, and `turnRetryable` in server history are
+  authoritative after refresh. During clean-start,
   server reset, persona deletion or conversation recreation, an identity that
   no longer belongs to an available Fluctlight/current direct conversation is
   pruned before send. Before a retry from another available conversation can
   block a new send, the browser reconciles that conversation's authoritative
-  history; a retry whose user message already has a later assistant message is
+  history by `turnId`/`idempotencyKey`, never by equal text. A retry whose user message already has its assistant message is
   cleared, while an unresolved retry remains recoverable and is never mistaken
   for the current turn.
-- Browser disconnect/abort cancels the in-process stream read and Core request context. browser boundary suppresses later browser writes while Core settles committed work independently.
+- Browser disconnect/abort cancels the in-process observer read and suppresses
+  later browser writes. Accepted cognition continues in the Worker. Only the
+  authenticated turn cancel command requests Provider/Temporal cancellation.
 - browser boundary media route obtains Core authorization and streams only the granted object/version/range with bounded headers.
 - Go package boundaries organize transport/config lifecycle; the browser boundary is not a
   location for Fluctlight business behavior.
@@ -82,7 +86,8 @@ BrowserTurnEventV1
 | Core stream has invalid JSON/schema/sequence | Emit one bounded browser error, abort upstream, record correlation diagnostic. |
 | Core emits hidden/internal fields | Reject/redact contract violation; never forward them. |
 | Core error details contain sensitive or oversized values | Drop those fields and cap nested collections/strings before returning the browser error. |
-| Browser aborts | Abort Core fetch/read, stop browser writes, preserve Core settlement semantics. |
+| Browser aborts | Stop observing and writing frames; preserve the accepted Worker execution. |
+| Explicit turn cancel | Require session and CSRF, invoke Core cancel for the owned conversation/turn, then read authoritative status. |
 | Core returns typed domain error | Map by error code/status table; do not parse message text. |
 | Media grant expired/range mismatched | Stop proxy and return bounded media error; do not mint another grant implicitly. |
 | Core returns a successful media status without a body | Return bounded `media_unavailable`; do not panic or emit a false successful response. |
@@ -105,7 +110,9 @@ BrowserTurnEventV1
 - `net/http/httptest` tests for schema-equivalent validation, stable errors,
   status codes, headers, session context, and server lifecycle.
 - Incremental NDJSON tests for split/multiple frames, UTF-8 boundaries, invalid schema, redaction, sequence, heartbeat, terminal uniqueness, backpressure, and abort.
-- End-to-end browser→API→Core App cancellation tests with no writes after disconnect.
+- End-to-end browser→API→Core App disconnect tests with no writes after
+  disconnect and one later Worker result; explicit cancel tests verify the
+  separate authenticated command.
 - Media proxy tests for authorization grant, expiry, Range, ETag, MIME, stream failure, and no storage detail leakage.
 - Browser OpenAPI method/path artifact versus Go route inventory parity, plus
   a real HTTP browser→API→Core App auth/conversation/NDJSON smoke and downstream

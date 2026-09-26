@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import Button from "@/components/ui/button/Button.vue";
@@ -43,7 +43,7 @@ function focusComposer() {
 
 async function send() {
   const text = draft.value.trim();
-  if (!text || store.sending) return;
+  if (!text || store.sending || store.hasPendingTurn) return;
   // The submitted text is already represented by the optimistic message and
   // retryTurn; keeping it in the editor makes a queued request look unsent.
   draft.value = "";
@@ -76,6 +76,9 @@ function mediaUrl(assetId: string) {
 
 function deliveryStatus(message: BrowserMessage): "pending" | "failed" | "sent" | "none" {
   if (message.kind !== "user") return "none";
+	if (message.turnStatus === "pending" || message.turnStatus === "running") return "pending";
+	if (message.turnStatus === "failed" || message.turnStatus === "cancelled") return "failed";
+	if (message.turnStatus === "completed") return "sent";
 	if (store.queuedMessageId === message.id) return "pending";
 	if (
 	  store.canRetry &&
@@ -86,7 +89,24 @@ function deliveryStatus(message: BrowserMessage): "pending" | "failed" | "sent" 
   return store.sending && latestUserMessage?.id === message.id ? "pending" : "sent";
 }
 
-onMounted(() => scrollToLatest());
+function deliveryLabel(message: BrowserMessage): string {
+	const status = deliveryStatus(message);
+	if (status === "pending") return "已接收，处理中";
+	if (status === "failed") {
+		if (message.turnRetryable === false) return "本次生成正在结束";
+		return message.turnStatus === "cancelled" ? "回复已取消，可重试" : "回复失败，可重试";
+	}
+	return "已回复";
+}
+
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+	scrollToLatest();
+	refreshTimer = setInterval(() => {
+		if (document.visibilityState === "visible" && (store.hasPendingTurn || store.hasSettlingTurn)) void store.refreshActiveTurn();
+	}, 2000);
+});
+onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); });
 watch(() => store.fluctlightId, () => scrollToLatest());
 watch(() => store.messages.length, (messageCount, previousCount) => {
   if (messageCount && previousCount === 0 && !store.loading) scrollToLatest();
@@ -137,7 +157,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
           </div>
           <div class="message-meta">
             <time>{{ new Date(message.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) }}</time>
-            <span v-if='deliveryStatus(message) !== "none"' class="delivery-status" :class="deliveryStatus(message)" :aria-label='deliveryStatus(message) === "pending" ? "已接收，处理中" : deliveryStatus(message) === "failed" ? "发送失败，可重试" : "已回复"'>
+            <span v-if='deliveryStatus(message) !== "none"' class="delivery-status" :class="deliveryStatus(message)" :aria-label="deliveryLabel(message)">
               <span v-if='deliveryStatus(message) === "failed"'>!</span><template v-else>✓<span v-if='deliveryStatus(message) === "sent"'>✓</span></template>
             </span>
           </div>
@@ -145,9 +165,9 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
       </article>
     </section>
 
-    <div v-if="store.error" class="error-banner" role="alert">
+    <div v-if="store.error || store.canRetry" class="error-banner" role="alert">
       <span>{{ store.error }}</span>
-      <Button v-if="store.canRetry" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : "重试" }}</Button>
+      <Button v-if="store.canRetry" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : store.retryIsModelFailure ? "重试回复" : "重新发送" }}</Button>
       <Button v-if="store.canRetry" class="secondary-button" variant="ghost" type="button" @click="store.dismissRetry">忽略这条</Button>
     </div>
 
@@ -165,8 +185,8 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
           @keydown="onKeydown"
         />
         <div class="composer-actions">
-          <Button v-if="store.sending" class="secondary-button" variant="outline" type="button" @click="store.cancel">取消</Button>
-          <Button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
+          <Button v-if="store.canCancel" class="secondary-button" variant="outline" type="button" @click="store.cancel">取消</Button>
+          <Button class="primary-button send-button" type="submit" :disabled="store.sending || store.hasPendingTurn || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
         </div>
       </div>
       <div class="composer-footer">
