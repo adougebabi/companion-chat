@@ -1104,7 +1104,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		if describeErr != nil {
 			// A just-started execution may not be visible immediately. Leave the
 			// intent untouched and let the next pass retry the lookup.
-			if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount) {
+			if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
 				if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_describe_retry_exhausted"); exhaustErr != nil {
 					return count, exhaustErr
 				}
@@ -1118,7 +1118,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			continue
 		}
 		if execution == nil || execution.WorkflowExecutionInfo == nil {
-			if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount) {
+			if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
 				if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_describe_empty"); exhaustErr != nil {
 					return count, exhaustErr
 				}
@@ -1172,7 +1172,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 		}
-		if intentType != "reflection.run" && intentStatus == "failed" && workflowIntentRetryExhausted(intentType, attemptCount) {
+		if intentType != "reflection.run" && intentType != "wake_up.current" && intentStatus == "failed" && workflowIntentRetryExhausted(intentType, attemptCount) {
 			if err := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, runID, attemptCount, terminalFailure); err != nil {
 				return count, err
 			}
@@ -1203,15 +1203,21 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 			if wakeUpIntentShouldRetry(fluctlightStatus, intentStatus) {
-				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 minutes',started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($2,''),last_error,'wake_up_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','started','failed')`, intentID, terminalFailure)
+				retryInterval := "5 minutes"
+				newAttemptCount := attemptCount
+				if attemptCount >= 5 {
+					retryInterval = "30 minutes"
+					newAttemptCount = 0
+				}
+				command, err := d.App.DB.Pool().Exec(ctx, fmt.Sprintf(`UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '%s',attempt_count=$2,started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),last_error,'wake_up_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','started','failed')`, retryInterval), intentID, newAttemptCount, terminalFailure)
 				if err != nil {
 					return count, err
 				}
 				if command.RowsAffected() != 1 {
 					continue
 				}
-				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionRetryScheduled, "workflow_reconcile", "retry", "wake_up_workflow_terminal", attemptCount, errors.New(firstString(terminalFailure, "wake_up_workflow_terminal")))
-				slog.Default().Warn("Go Worker wake-up workflow requeued after terminal execution", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "fluctlight_status", fluctlightStatus, "next_attempt", "5m")
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionRetryScheduled, "workflow_reconcile", "retry", "wake_up_workflow_terminal", newAttemptCount, errors.New(firstString(terminalFailure, "wake_up_workflow_terminal")))
+				slog.Default().Warn("Go Worker wake-up workflow requeued after terminal execution", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "fluctlight_status", fluctlightStatus, "next_attempt", retryInterval)
 				if d.Started != nil {
 					delete(d.Started, intentID)
 				}
@@ -1721,7 +1727,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			continue
 		}
 		input = hydrateLifecycleInput(intentID, intentType, payload, input)
-		if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount) {
+		if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
 			if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_retry_exhausted"); exhaustErr != nil {
 				return count, exhaustErr
 			}
@@ -1816,7 +1822,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		execution, err := d.Client.ExecuteWorkflow(ctx, workflowStartOptions(goWorkflowID, taskQueue, intentType), workflowFn, input)
 		if err != nil && !temporal.IsWorkflowExecutionAlreadyStartedError(err) {
 			slog.Default().Warn("Go Worker workflow start failed", "intent_id", intentID, "error", err)
-			if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount+1) {
+			if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount+1) {
 				if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, goWorkflowID, intentType, "", attemptCount+1, err.Error()); exhaustErr != nil {
 					return count, exhaustErr
 				}
@@ -1850,7 +1856,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				if describeErr != nil {
 					reason = "workflow_id_reuse_describe_failed"
 				}
-				if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount+1) {
+				if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount+1) {
 					if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, goWorkflowID, intentType, runID, attemptCount+1, reason); exhaustErr != nil {
 						return count, exhaustErr
 					}

@@ -518,6 +518,34 @@ func TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight(t *testing.T) {
 		t.Fatalf("repaired wake-up intent status = %q, want retry", status)
 	}
 
+	// Test dead_letter recovery with attempt_count reset
+	if _, err := pool.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='dead_letter',attempt_count=5,last_error='exhausted',completed_at=now() WHERE intent_id=$1`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.EnsureWakeUpIntents(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var attemptCount int
+	if err := pool.QueryRow(ctx, `SELECT status,attempt_count FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&status, &attemptCount); err != nil {
+		t.Fatal(err)
+	}
+	if status != "retry" || attemptCount != 0 {
+		t.Fatalf("dead_letter wake-up intent repaired status = %q, attempt_count = %d; want retry, 0", status, attemptCount)
+	}
+
+	// Test stale started recovery (service restart during execution)
+	if _, err := pool.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=now()-interval '10 minutes',attempt_count=3 WHERE intent_id=$1`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.ReconcileWakeUpIntents(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT status,attempt_count FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&status, &attemptCount); err != nil {
+		t.Fatal(err)
+	}
+	if status != "retry" || attemptCount != 0 {
+		t.Fatalf("stale started wake-up intent repaired status = %q, attempt_count = %d; want retry, 0", status, attemptCount)
+	}
 }
 
 func TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease(t *testing.T) {

@@ -340,3 +340,66 @@ test("a completed retry from another conversation no longer blocks the selected 
 		globalThis.localStorage = originalLocalStorage;
 	}
 });
+
+test("reconcilePersistedRetry matches transient local- IDs by text and clears completed turns without duplicates", async () => {
+	const originalWindow = globalThis.window;
+	const originalFetch = globalThis.fetch;
+	const originalLocalStorage = globalThis.localStorage;
+	const values = new Map();
+	globalThis.window = { location: { origin: "http://fluctlight.test" } };
+	globalThis.localStorage = {
+		getItem: (key) => values.get(key) ?? null,
+		setItem: (key, value) => values.set(key, String(value)),
+		removeItem: (key) => values.delete(key),
+	};
+	const conversation = { id: "conversation-reconcile", createdByActorId: "owner", revision: 2, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:02Z" };
+	const persistedUser = { id: "message-real-user-123", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "你好摇光", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z" };
+	const persistedAssistant = { id: "message-real-assistant-456", conversationId: conversation.id, sequence: 2, authorActorId: "fluctlight-reconcile", kind: "assistant", text: "你好呀！", attachmentRefs: [], createdAt: "2026-09-11T00:00:02Z" };
+	const page = {
+		conversation,
+		participants: [],
+		messages: [persistedUser, persistedAssistant],
+		nextBeforeSequence: null,
+	};
+	globalThis.fetch = async (input) => {
+		const url = String(input);
+		if (url.endsWith("/api/fluctlights/fluctlight-reconcile/conversation")) return Response.json(page);
+		if (url.includes("/messages")) return Response.json(page);
+		if (url.includes("/read")) return new Response(null, { status: 204 });
+		throw new Error(`unexpected request ${url}`);
+	};
+	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
+	try {
+		setActivePinia(createPinia());
+		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
+		const store = useConversationStore();
+		store.fluctlights = [{ id: "fluctlight-reconcile", identity: { name: "摇光" }, status: "active" }];
+		// Simulate a retry saved with local- transient ID when user refreshed during request
+		const transientRetry = {
+			conversationId: conversation.id,
+			fluctlightId: "fluctlight-reconcile",
+			text: "你好摇光",
+			idempotencyKey: "turn-test",
+			turnId: "turn_test",
+			attachmentRefs: [],
+			messageId: "local-transient-999",
+		};
+		store.retryTurn = transientRetry;
+		values.set("fluctlight.retry-turn.v2", JSON.stringify(transientRetry));
+
+		await store.reconcilePersistedRetry();
+		assert.equal(store.retryTurn, null, "retryTurn should be cleared because assistant already replied in DB");
+		assert.equal(values.has("fluctlight.retry-turn.v2"), false, "localStorage retry should be cleared");
+
+		await store.selectFluctlight("fluctlight-reconcile");
+		// Ensure messages contains only the 2 persisted messages from DB, no duplicate local message
+		assert.equal(store.messages.length, 2);
+		assert.equal(store.messages.some((m) => m.id.startsWith("local-")), false, "no duplicate transient local message should be pushed");
+	} finally {
+		await server.close();
+		globalThis.window = originalWindow;
+		globalThis.fetch = originalFetch;
+		globalThis.localStorage = originalLocalStorage;
+	}
+});
+

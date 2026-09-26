@@ -81,10 +81,10 @@ func main() {
 	hostname, _ := os.Hostname()
 	consumerID := fmt.Sprintf("go-worker-%s-%d", hostname, os.Getpid())
 	application.SetRedisClient(redisClient, consumerID)
-	if scheduled, err := application.ScheduleWakeUpTriggers(ctx); err != nil {
+	if reconciled, err := application.ReconcileWakeUpIntents(ctx); err != nil {
 		log.Printf("schedule Redis wake-up hints: %v", err)
-	} else if scheduled > 0 {
-		slog.Default().Info("Go Worker scheduled Redis wake-up hints", "count", scheduled)
+	} else if reconciled > 0 {
+		slog.Default().Info("Go Worker startup reconciled WakeUp intents", "count", reconciled)
 	}
 	publisher := platform.NewOutboxPublisher(application.DB.Pool(), redisClient, consumerID)
 	consumers := make([]*platform.EventConsumer, 0, len(platform.DurableConsumerGroups))
@@ -129,6 +129,8 @@ func main() {
 	defer retentionTicker.Stop()
 	wakeUpRepairTicker := time.NewTicker(time.Minute)
 	defer wakeUpRepairTicker.Stop()
+	wakeUpSupervisionTicker := time.NewTicker(30 * time.Minute)
+	defer wakeUpSupervisionTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -156,6 +158,12 @@ func main() {
 				logger.Warn("Go Worker WakeUp clock audit retry", "error", err)
 			} else if audited > 0 {
 				logger.Warn("Go Worker found unhealthy WakeUp clocks", "count", audited)
+			}
+		case <-wakeUpSupervisionTicker.C:
+			if reconciled, err := application.ReconcileWakeUpIntents(ctx); err != nil {
+				logger.Warn("Go Worker periodic 30m WakeUp supervision retry", "error", err)
+			} else if reconciled > 0 {
+				logger.Info("Go Worker periodic 30m WakeUp supervision reconciled intents", "count", reconciled)
 			}
 		case <-wakeUpRepairTicker.C:
 			if repaired, err := application.RepairWakeUpClocks(ctx); err != nil {

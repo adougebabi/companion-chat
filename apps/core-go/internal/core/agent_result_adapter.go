@@ -284,8 +284,31 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if outcomeErr != nil {
 		return TurnResult{}, outcomeErr
 	}
+	replyResults := committedConversationReplyResults(outcome.Results)
+	assistantMessages := make([]map[string]any, 0)
+	var assistant map[string]any
+	if len(replyResults) > 0 {
+		for _, replyResult := range replyResults {
+			message, loadErr := a.loadCommittedAssistantMessage(ctx, conversationID, fluctlightID, replyResult)
+			if loadErr != nil {
+				break
+			}
+			assistantMessages = append(assistantMessages, message)
+		}
+		if len(assistantMessages) > 0 {
+			assistant = assistantMessages[len(assistantMessages)-1]
+		}
+	}
+
 	if err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_run_failed")
+		if len(assistantMessages) > 0 {
+			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_run_failed_after_reply", "error": err.Error()})
+			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
+			claimSettled = true
+			mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
+			return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntentID, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+		}
 		return TurnResult{}, err
 	}
 	if a.cognitionFactSuperseded(ctx, inboxID) {
@@ -298,6 +321,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 	if _, err := freezeDecisionInfluences(decision, projection, false); err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid")
+		if len(assistantMessages) > 0 {
+			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_final_contract_invalid_after_reply", "error": err.Error()})
+			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
+			claimSettled = true
+			mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
+			return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntentID, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+		}
 		return TurnResult{}, fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
 	}
 	if len(mapValue(decision["appraisal"])) == 0 {
@@ -306,32 +336,27 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	responsePlan, err := normalizeResponsePlan(decision, inboxID, projection)
 	if err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid")
+		if len(assistantMessages) > 0 {
+			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "normalize_response_plan_invalid_after_reply", "error": err.Error()})
+			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
+			claimSettled = true
+			mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
+			return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntentID, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+		}
 		return TurnResult{}, fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
 	}
 
-	var assistant map[string]any
-	assistantMessages := make([]map[string]any, 0)
-	if replyResults := committedConversationReplyResults(outcome.Results); len(replyResults) > 0 {
-		for _, replyResult := range replyResults {
-			message, loadErr := a.loadCommittedAssistantMessage(ctx, conversationID, fluctlightID, replyResult)
-			if loadErr != nil {
-				err = loadErr
-				break
+	if len(assistantMessages) == 0 {
+		if visible := finalAgentVisibleText(run.Completion); visible != "" {
+			assistant, err = a.publishNaturalAgentReply(ctx, authorizationActorID, fluctlightID, conversationID, "agent-final:"+turnID, "turn:"+turnID, visible)
+			if err == nil {
+				assistantMessages = append(assistantMessages, assistant)
 			}
-			assistantMessages = append(assistantMessages, message)
+		} else if len(outcome.Results) > 0 {
+			assistant = map[string]any{}
+		} else {
+			err = errors.New("cognition_visible_text_missing")
 		}
-		if len(assistantMessages) > 0 {
-			assistant = assistantMessages[len(assistantMessages)-1]
-		}
-	} else if visible := finalAgentVisibleText(run.Completion); visible != "" {
-		assistant, err = a.publishNaturalAgentReply(ctx, authorizationActorID, fluctlightID, conversationID, "agent-final:"+turnID, "turn:"+turnID, visible)
-		if err == nil {
-			assistantMessages = append(assistantMessages, assistant)
-		}
-	} else if len(outcome.Results) > 0 {
-		assistant = map[string]any{}
-	} else {
-		err = errors.New("cognition_visible_text_missing")
 	}
 	if err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_output_publication_failed")
@@ -342,7 +367,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// The reply and every Tool result above are already committed facts. A
 		// cognition projection failure must not erase or republish them.
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_cognition_settlement_failed")
+		a.recordDiagnosticEvent(ctx, "cognition.settlement.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_cognition_settlement_failed", "error": err.Error()})
 		_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
+		if len(assistantMessages) > 0 {
+			claimSettled = true
+			return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntentID, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+		}
 		return TurnResult{}, fmt.Errorf("agent_cognition_settlement_failed: %w", err)
 	}
 	if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
@@ -380,7 +410,7 @@ func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any,
 	}
 	if status == "failed" {
 		var assistantExists bool
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2)`, conversationID, "assistant:"+turnID).Scan(&assistantExists); err == nil && assistantExists {
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND (idempotency_key=$2 OR (turn_id=$3 AND kind='assistant')))`, conversationID, "assistant:"+turnID, turnID).Scan(&assistantExists); err == nil && assistantExists {
 			status = "processed"
 		} else {
 			return nil, nil, errors.New(firstString(errorCode, "agent_turn_failed"))
@@ -399,6 +429,18 @@ func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any,
 	if len(messageIDs) == 0 {
 		if id := strings.TrimSpace(stringValue(result["message_id"])); id != "" {
 			messageIDs = append(messageIDs, id)
+		}
+	}
+	if len(messageIDs) == 0 {
+		rows, err := a.DB.Pool().Query(ctx, `SELECT id FROM public.conversation_messages WHERE conversation_id=$1 AND (turn_id=$2 OR idempotency_key=$3) AND kind='assistant' ORDER BY sequence ASC`, conversationID, turnID, "assistant:"+turnID)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var mid string
+				if scanErr := rows.Scan(&mid); scanErr == nil && mid != "" {
+					messageIDs = append(messageIDs, mid)
+				}
+			}
 		}
 	}
 	if len(messageIDs) == 0 {

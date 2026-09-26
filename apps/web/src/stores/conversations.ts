@@ -668,6 +668,16 @@ export const useConversationStore = defineStore("conversations", {
       } catch (error) {
         if (this.requestEpoch !== requestEpoch) return;
         if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
+        const userMessageIndex = optimisticMessageId ? this.messages.findIndex((m) => m.id === optimisticMessageId) : -1;
+        const hasAssistantAfterUser = userMessageIndex >= 0
+          ? this.messages.slice(userMessageIndex + 1).some((m) => m.kind === "assistant" && m.conversationId === request.conversationId)
+          : false;
+        if (hasAssistantAfterUser) {
+          this.retryTurn = null;
+          persistRetry(null);
+          this.error = "";
+          return;
+        }
         const cancelled =
           this.abortController?.signal.aborted ||
           (error instanceof DOMException && error.name === "AbortError");
@@ -722,8 +732,9 @@ export const useConversationStore = defineStore("conversations", {
         let historyPage = page;
         const allMessages = [...page.messages];
         let userMessage: BrowserMessage | undefined;
+        const isTransientId = !retry.messageId || isTransientMessage({ id: retry.messageId } as BrowserMessage);
         while (true) {
-          userMessage = retry.messageId
+          userMessage = !isTransientId
             ? historyPage.messages.find((message) => message.id === retry.messageId && message.kind === "user")
             : [...historyPage.messages].reverse().find((message) => message.kind === "user" && message.text === retry.text);
           if (userMessage || !historyPage.nextBeforeSequence) break;
@@ -731,6 +742,10 @@ export const useConversationStore = defineStore("conversations", {
           allMessages.push(...historyPage.messages);
         }
         if (!userMessage) return;
+        if (retry.messageId !== userMessage.id) {
+          retry.messageId = userMessage.id;
+          persistRetry(retry);
+        }
         const completed = allMessages.some((message) => message.kind === "assistant" && message.sequence > userMessage.sequence);
         if (completed) {
           this.retryTurn = null;
@@ -781,25 +796,38 @@ export const useConversationStore = defineStore("conversations", {
 		  const pending = this.retryTurn;
 		  const conversationId = this.conversation?.id;
 		  if (!pending || !conversationId || pending.conversationId !== conversationId || pending.fluctlightId !== this.fluctlightId) return;
-		if (pending.messageId && this.messages.some((message) => message.id === pending.messageId)) return;
-		if (!pending.messageId) {
-			const legacyMatch = [...this.messages].reverse().find((message) => message.kind === "user" && message.conversationId === conversationId && message.text === pending.text);
-			if (legacyMatch) {
-				pending.messageId = legacyMatch.id;
-				persistRetry(pending);
-				return;
-			}
-		}
-		const local = createLocalMessage(conversationId, pending.text, 0, pending.senderActorId ?? "human", pending.messageId);
-		pending.messageId = local.id;
-		persistRetry(pending);
-		this.messages.push(local);
+		  const isTransientId = !pending.messageId || isTransientMessage({ id: pending.messageId } as BrowserMessage);
+		  const matched = !isTransientId
+		    ? this.messages.find((message) => message.id === pending.messageId)
+		    : [...this.messages].reverse().find((message) => message.kind === "user" && message.conversationId === conversationId && message.text === pending.text);
+
+		  if (matched) {
+		    if (pending.messageId !== matched.id) {
+		      pending.messageId = matched.id;
+		      persistRetry(pending);
+		    }
+		    const completed = this.messages.some((message) => message.kind === "assistant" && message.sequence > matched.sequence);
+		    if (completed) {
+		      this.retryTurn = null;
+		      persistRetry(null);
+		      return;
+		    }
+		    return;
+		  }
+		  const local = createLocalMessage(conversationId, pending.text, 0, pending.senderActorId ?? "human", pending.messageId);
+		  pending.messageId = local.id;
+		  persistRetry(pending);
+		  this.messages.push(local);
 		},
 	ensureQueuedMessageVisible() {
 		const queued = this.queuedTurn;
 		const conversationId = this.conversation?.id;
 		if (!queued || !conversationId || queued.conversationId !== conversationId || queued.fluctlightId !== this.fluctlightId) return;
-		if (!this.messages.some((message) => message.id === queued.messageId)) {
+		const isTransientId = isTransientMessage({ id: queued.messageId } as BrowserMessage);
+		const exists = isTransientId
+			? this.messages.some((message) => message.id === queued.messageId || (message.kind === "user" && message.text === queued.text))
+			: this.messages.some((message) => message.id === queued.messageId);
+		if (!exists) {
 			this.messages.push(createLocalMessage(conversationId, queued.text, 0, queued.senderActorId ?? "human", queued.messageId, queued.createdAt));
 		}
 	},

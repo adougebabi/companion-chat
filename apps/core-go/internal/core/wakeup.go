@@ -160,12 +160,15 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 		ensured += inserted.RowsAffected()
 		requeued, err := tx.Exec(ctx, `
 			UPDATE public.platform_workflow_intents AS i
-			SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL
+			SET status='retry',next_attempt_at=now(),attempt_count=0,started_at=NULL,completed_at=NULL,last_error=NULL
 			FROM public.fluctlights AS f
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id' = f.id
 			  AND f.status IN ('active', 'paused')
-			  AND i.status = 'failed'`)
+			  AND (
+			    i.status IN ('failed', 'dead_letter')
+			    OR (i.status = 'started' AND (i.started_at IS NULL OR i.started_at < now() - interval '5 minutes'))
+			  )`)
 		if err != nil {
 			return err
 		}
@@ -185,6 +188,28 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 		return nil
 	})
 	return ensured, err
+}
+
+// ReconcileWakeUpIntents performs periodic (e.g. 30-minute) and startup supervision
+// over all Fluctlight wake-up clocks. It repairs missing intents, resurrects
+// dead_letter, failed, or stale started intents, releases due intents, and
+// resynchronizes Redis trigger hints.
+func (a *App) ReconcileWakeUpIntents(ctx context.Context) (int64, error) {
+	ensured, err := a.EnsureWakeUpIntents(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if scheduled, err := a.ScheduleWakeUpTriggers(ctx); err != nil {
+		slog.Default().Warn("ReconcileWakeUpIntents schedule Redis triggers failed", "error", err)
+	} else if scheduled > 0 {
+		slog.Default().Info("ReconcileWakeUpIntents scheduled Redis wake-up hints", "count", scheduled)
+	}
+	if released, err := a.ReleaseDueWakeUpIntents(ctx, 50); err != nil {
+		slog.Default().Warn("ReconcileWakeUpIntents release due intents failed", "error", err)
+	} else if released > 0 {
+		slog.Default().Info("ReconcileWakeUpIntents released due wake-up intents", "count", released)
+	}
+	return ensured, nil
 }
 
 // RepairWakeUpClocks repairs only missing or uninitialized durable clocks.

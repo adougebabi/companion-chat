@@ -254,6 +254,20 @@ func TestWorkflowIDReusePolicyAllowsWakeUpRecovery(t *testing.T) {
 	}
 }
 
+func TestWakeUpIntentNeverDeadLetteredAndBacksOff(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(source)
+	if !strings.Contains(body, `intentType != "wake_up.current"`) {
+		t.Fatal("wake_up.current must be exempted from dead-letter exhaustion")
+	}
+	if !strings.Contains(body, `30 minutes`) {
+		t.Fatal("wake_up.current must back off to 30 minutes on repeated exhaustion")
+	}
+}
+
 func TestWorkflowIntentRetryBudgetsBoundRecoverableFailureLoops(t *testing.T) {
 	cases := map[string]int{
 		"wake_up.current":      wakeUpMaximumAttempts,
