@@ -1354,3 +1354,25 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Status
 
 [OK] **Completed**
+
+
+## Session 42: 私聊断线后台处理与 WakeUp 恢复
+<!-- trellis-session: v=2 fp=cfe07f3abed482a1 -->
+
+**Date**: 2026-09-27
+**Task**: 私聊断线后台处理与 WakeUp 恢复
+**Branch**: `codex/private-chat-durable-turns`
+
+### Summary
+
+私聊接受与 Worker 执行分离；浏览器断开仅停止观察，显式取消可重试；历史服务端状态、前端刷新恢复与 WakeUp 异常修复。Go/TS 全量门禁、独立 PostgreSQL 回归与并发取消 race 测试通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `310893d` | fix(chat): keep private turns running after disconnect |
+
+### Status
+
+[OK] **Completed**

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 41
-- **Last Active**: 2026-09-25
+- **Total Sessions**: 42
+- **Last Active**: 2026-09-27
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1356 | Active |
+| `journal-1.md` | ~1378 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 42 | 2026-09-27 | 私聊断线后台处理与 WakeUp 恢复 | `310893d` | `codex/private-chat-durable-turns` |
 | 41 | 2026-09-25 | 摇光状态、上下文与记忆一致性增强 | `2e857e7` | `master` |
 | 40 | 2026-09-24 | 摇光当前有效自我与动态生活闭环 | `0b36500`, `7239c8f` | `codex/yaoguang-effective-self-dynamic-life` |
 | 39 | 2026-09-21 | 摇光第八阶段 Eino Native 收敛与契约门禁 | `7c497cf` | `master` |
