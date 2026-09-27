@@ -1398,3 +1398,25 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Status
 
 [OK] **Completed**
+
+
+## Session 44: 摇光提示词与生命周期收敛
+<!-- trellis-session: v=2 fp=4f3707bd2e9fef8b -->
+
+**Date**: 2026-09-28
+**Task**: 摇光提示词与生命周期收敛
+**Branch**: `codex/yaoguang-prompt-context-convergence`
+
+### Summary
+
+完成 Agent 失败诊断、地点归属与上下文去重、媒体拍摄视角及提示词、10/30 分钟连续唤醒、阶段摘要与当地日日记忆；隔离数据库 Go 全套及 Web 生成/类型/测试/构建通过，归档父任务与五个子任务。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `744b18a` | feat(runtime): converge Yaoguang context and lifecycle |
+
+### Status
+
+[OK] **Completed**
