@@ -35,6 +35,16 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 			return loadErr
 		}
 		now := time.Now().UTC()
+		if current.Status == IntentionInProgress {
+			var activityID string
+			var notBefore time.Time
+			if err := tx.QueryRow(ctx, `SELECT id,not_before FROM public.fluctlight_life_activity_runs WHERE intention_id=$1 AND fluctlight_id=$2 AND status IN ('in_progress','deferred') ORDER BY started_at DESC LIMIT 1`, intentionID, fluctlightID).Scan(&activityID, &notBefore); err == nil {
+				result = map[string]any{"intention_id": intentionID, "status": "activity_started", "activity_id": activityID, "not_before": notBefore.UTC().Format(time.RFC3339Nano)}
+				return nil
+			} else if !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+		}
 		if !now.Before(current.Expiration) && !intentionStatusTerminal(current.Status) {
 			next, record, applyErr := ApplyIntentionCommand(current, IntentionCommand{
 				Operation: IntentionExpire, ExpectedRevision: current.Revision,
@@ -56,6 +66,9 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 	})
 	if err != nil || stringValue(result["status"]) != "pending" {
 		return result, err
+	}
+	if scheduled, handled, err := a.processScheduledIntentionTrigger(ctx, intentionID, fluctlightID, ownerActorID); handled || err != nil {
+		return scheduled, err
 	}
 	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
 		AuthorizationActorID: ownerActorID, SpeakerActorID: ownerActorID, FluctlightID: fluctlightID,
@@ -136,10 +149,10 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 }
 
 func loadIntentionAuthorityByIDTx(ctx context.Context, tx pgx.Tx, intentionID string) (IntentionAuthority, error) {
-	var fluctlightID, status string
+	var fluctlightID, status, goalID string
 	var revision int
 	var expiration time.Time
-	if err := tx.QueryRow(ctx, `SELECT fluctlight_id,status,revision,expiration FROM public.fluctlight_intentions WHERE id=$1 FOR UPDATE`, intentionID).Scan(&fluctlightID, &status, &revision, &expiration); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT fluctlight_id,COALESCE(goal_id,''),status,revision,expiration FROM public.fluctlight_intentions WHERE id=$1 FOR UPDATE`, intentionID).Scan(&fluctlightID, &goalID, &status, &revision, &expiration); err != nil {
 		return IntentionAuthority{}, err
 	}
 	var raw []byte
@@ -150,7 +163,7 @@ func loadIntentionAuthorityByIDTx(ctx context.Context, tx pgx.Tx, intentionID st
 	if err := json.Unmarshal(raw, &current); err != nil {
 		return IntentionAuthority{}, errors.New("intention_revision_snapshot_invalid")
 	}
-	current.EntityID, current.FluctlightID, current.Status, current.Revision, current.Expiration = intentionID, fluctlightID, IntentionLifecycleStatus(status), revision, expiration.UTC()
+	current.EntityID, current.GoalEntityID, current.FluctlightID, current.Status, current.Revision, current.Expiration = intentionID, goalID, fluctlightID, IntentionLifecycleStatus(status), revision, expiration.UTC()
 	if err := current.Validate(); err != nil {
 		return IntentionAuthority{}, err
 	}

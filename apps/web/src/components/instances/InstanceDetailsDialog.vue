@@ -498,7 +498,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
             <ol v-else class="timeline-list detail-timeline">
                 <li v-for="item in scheduleItems" :key="String(item.id)" :class="{ active: isCurrentScheduleItem(item) }" :aria-current="isCurrentScheduleItem(item) ? 'time' : undefined">
                   <time :datetime="String(item.start_at ?? '')">{{ formatZonedRange(item.start_at, item.end_at, scheduleTimezone) }}</time>
-                <div><strong>{{ formatDisplayValue(item.activity) }}<span v-if="isCurrentScheduleItem(item)" class="timeline-now-badge">进行中</span></strong><span>{{ formatDisplayValue(item.scene) }}<template v-if="item.status"> · {{ enumLabel(item.status) }}</template></span></div>
+                <div><strong>{{ formatDisplayValue(item.activity) }}<span v-if="isCurrentScheduleItem(item)" class="timeline-now-badge">当前时段</span></strong><span>{{ formatDisplayValue(item.scene) }}<template v-if="item.status"> · {{ enumLabel(item.status) }}</template><template v-if="item.action_status"> · 意图 {{ enumLabel(item.action_status) }}</template></span></div>
               </li>
             </ol>
           </section>

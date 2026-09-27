@@ -1325,6 +1325,9 @@ func (a *App) CancelScheduleExpected(ctx context.Context, actorID, fluctlightID,
 			}
 			return err
 		}
+		if err := cancelScheduleLinkedIntentionsTx(ctx, tx, fluctlightID, scheduleID, applyAt); err != nil {
+			return err
+		}
 		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
 		if err != nil {
 			return err

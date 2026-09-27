@@ -173,7 +173,7 @@ func startDueShoppingThroughNative(t *testing.T, failFinal ...bool) (independent
 			}}}
 	})
 	fixture.app.Provider.HTTP = &http.Client{Transport: router}
-	runErr := fixture.app.ProcessNativeCognitionFact(fixture.ctx, stringValue(due["inbox_id"]))
+	_, runErr := fixture.app.ProcessCognitionInbox(fixture.ctx, stringValue(due["inbox_id"]))
 	if len(failFinal) > 0 && failFinal[0] {
 		if runErr == nil || modelCalls < 2 {
 			t.Fatalf("expected failure after committed start: err=%v calls=%d", runErr, modelCalls)

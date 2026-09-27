@@ -40,12 +40,13 @@ func scheduleReplanCapabilityDefinition() CapabilityDefinition {
 }
 
 type SchedulePlanInput struct {
-	Intent       string
-	Schedule     map[string]any
-	CurrentLife  map[string]any
-	Agency       map[string]any
-	SourceFactID string
-	Timezone     string
+	Intent        string
+	PlannedAction map[string]any
+	Schedule      map[string]any
+	CurrentLife   map[string]any
+	Agency        map[string]any
+	SourceFactID  string
+	Timezone      string
 }
 
 type SchedulePlanner interface {
@@ -69,14 +70,16 @@ func (planner providerSchedulePlanner) Plan(ctx context.Context, input ScheduleP
 	if planner.provider == nil {
 		return nil, errors.New("schedule_replan_planner_failed: provider unavailable")
 	}
+	instruction := scheduleReplanPlannerInstruction(input)
 	messages := []map[string]any{
-		{"role": "system", "content": "Return only a complete schedule replacement. Preserve completed history and use the supplied timezone and revision."},
+		{"role": "system", "content": instruction},
 		{"role": "user", "content": jsonString(map[string]any{
-			"intent":       input.Intent,
-			"schedule":     compactScheduleForProvider(input.Schedule),
-			"current_life": compactLifeContext(input.CurrentLife),
-			"agency":       compactSchedulePlannerAgency(input.Agency),
-			"timezone":     input.Timezone,
+			"intent":         input.Intent,
+			"planned_action": input.PlannedAction,
+			"schedule":       compactScheduleForProvider(input.Schedule),
+			"current_life":   compactLifeContext(input.CurrentLife),
+			"agency":         compactSchedulePlannerAgency(input.Agency),
+			"timezone":       input.Timezone,
 		})},
 	}
 	return planner.provider.StructuredWithSchema(WithProviderScenario(ctx, "schedule_replan_planner"), "cognitive_assessment", messages, "schedule_replan_plan", schedulePlannerOutputSchema(), false)
@@ -106,11 +109,24 @@ func schedulePlannerOutputSchema() map[string]any {
 	item := objectSchema(map[string]any{
 		"start_at": stringSchema(), "end_at": stringSchema(), "activity": stringSchema(), "scene": stringSchema(), "location": stringSchema(),
 		"item_type": stringSchema(), "status": stringSchema(), "priority": unitNumberSchema(), "flexibility": unitNumberSchema(), "interruption_cost": unitNumberSchema(),
+		"intention_id":        stringSchema(),
+		"planned_action_slot": map[string]any{"type": "boolean"},
 	}, []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"}, false)
 	return objectSchema(map[string]any{
 		"local_date": stringSchema(), "timezone": stringSchema(), "expected_revision": integerSchema(),
 		"completed_before": stringSchema(), "items": arraySchema(item), "reschedule_policy": openObjectSchema(),
 	}, []string{"local_date", "timezone", "expected_revision", "completed_before", "items", "reschedule_policy"}, false)
+}
+
+func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
+	instruction := "Return only a complete schedule replacement. Preserve completed history and use the supplied timezone and revision. If an existing future item has intention_id, preserve that exact intention_id on one corresponding item in the replacement; do not invent or drop executable intention links."
+	if intValue(input.Schedule["revision"]) == 0 {
+		instruction = "Return a complete current-local-day Schedule covering midnight to next midnight, with explicit free time. No accepted schedule exists yet."
+	}
+	if len(input.PlannedAction) > 0 {
+		instruction += " Place the planned_action into exactly one future item of the current local day. Mark that item planned_action_slot=true; all other items must omit it. The chosen item must last at least planned_action.duration_minutes. This is an appointment plan, not an activity already started or completed. Keep completed intervals unchanged."
+	}
+	return instruction
 }
 
 func (a *App) applyScheduleReplanCapability(ctx context.Context, invocation CapabilityInvocation) (CapabilityResult, error) {
@@ -292,24 +308,31 @@ func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, flu
 		LIMIT 1`, fluctlightID, currentDate).Scan(&id, &localDate, &timezone, &revision, &policy); err != nil {
 		return nil, err
 	}
-	rows, err := query.Query(ctx, `SELECT id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost FROM public.life_schedule_items WHERE schedule_id=$1 ORDER BY start_at`, id)
+	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	items := make([]map[string]any, 0)
 	for rows.Next() {
-		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost string
+		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost, intentionID, actionStatus string
 		var itemLocation *string
+		var actionPlan []byte
 		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost); err != nil {
+		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus); err != nil {
 			return nil, err
 		}
-		items = append(items, map[string]any{
+		entry := map[string]any{
 			"id": itemID, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": priority, "flexibility": flexibility, "interruption_cost": interruptionCost,
-		})
+		}
+		if intentionID != "" {
+			entry["intention_id"] = intentionID
+			entry["action_plan"] = decodeObject(actionPlan)
+			entry["action_status"] = actionStatus
+		}
+		items = append(items, entry)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

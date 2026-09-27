@@ -1376,3 +1376,25 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Status
 
 [OK] **Completed**
+
+
+## Session 43: 目标意图驱动日程与染发行动闭环
+<!-- trellis-session: v=2 fp=2aa6684584da8bc8 -->
+
+**Date**: 2026-09-27
+**Task**: 目标意图驱动日程与染发行动闭环
+**Branch**: `codex/goal-schedule-hairdye`
+
+### Summary
+
+完成 intention.schedule 原子规划、定时活动启动与染发结果结算；修复重排取消、延期与 Provider 重试的权威状态边界，并让私聊在规划后刷新日程再回复。隔离 PostgreSQL、Temporal、Go 和前端门禁通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `36355bd` | feat(life): close scheduled intention and hair dye loop |
+
+### Status
+
+[OK] **Completed**

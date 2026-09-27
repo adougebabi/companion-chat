@@ -97,12 +97,10 @@ syncServerTurnState(page.messages); // server status decides retry eligibility
 
 Compute counts and labels from `state` during `renderMemory()`/`renderPersonaList()` instead of maintaining duplicate counters. When switching personas, update `activePersonaId`, `localStorage`, `messages`, and the input hint together, as `switchPersona()` does.
 
-The detail dialog's wardrobe drawer fetches recorded items through the
-generated `BrowserClient.wardrobe(fluctlightId, cursor)` read. Its page cursor,
-loading/error state and accumulated items are local to the dialog; switching
-Fluctlights or closing the dialog invalidates an in-flight page. Display
-`inventory_complete=false` as a partial recorded inventory and keep current
-wearing separate from ownership of the stored items.
+The Schedule timeline labels the item spanning the current clock time as
+`当前时段`, and shows the linked Intention status separately. Time overlap alone
+must not turn a planned or cancelled item into `正在进行`; the current activity
+comes from the server's effective Life state and confirmed events.
 
 ## Common Mistakes
 

@@ -655,6 +655,17 @@ workflow: IntentionTriggerWorkflow -> ProcessIntentionTriggerActivity
   fact transactionally.
 - Worker registry, management runtime and committed-intent dispatcher all map
   `intention.trigger` to the lifecycle queue. No other workflow runtime owns it.
+- For a linked scheduled action, the due Activity validates the current
+  accepted item and starts `life.activity.start` once with an item-scoped
+  operation ID. The workflow then waits until the run's `not_before` and
+  advances it with a revision-scoped operation ID; deferral continues as new.
+  An inactive or stale Intention cannot settle the run's body effect. Keep the
+  scheduled follow-up behind a Temporal history version marker so older
+  IntentionTrigger histories replay their original path.
+- Active Intention trigger intents retain a five-minute retry interval after
+  failed Temporal runs. They do not dead-letter solely because a Provider
+  outage lasts beyond a fixed attempt count; domain cancellation, expiry or
+  confirmed completion closes the work.
 
 ### 4. Validation & Error Matrix
 
@@ -664,6 +675,7 @@ workflow: IntentionTriggerWorkflow -> ProcessIntentionTriggerActivity
 | Timer not yet due | Temporal history waits; Activity is not called early. |
 | No new event/semantic fact | Return `pending`, wait one minute, Continue-As-New. |
 | Duplicate dispatch/start | Stable workflow ID and due-fact identity suppress duplicates. |
+| Linked item was cancelled, superseded, or its Intention was revoked | Do not start or complete its activity; close an unconfirmed run without an appearance effect. |
 | Domain status no longer qualified/due | Complete without action and preserve authority history. |
 
 ### 5. Good / Base / Bad Cases
@@ -680,6 +692,9 @@ workflow: IntentionTriggerWorkflow -> ProcessIntentionTriggerActivity
   Continue-As-New behavior.
 - PostgreSQL tests assert qualified-intent workflow intent creation, due-fact
   replay, expiration and outcome settlement.
+- Scheduled activity tests assert the due timer and result timer ordering,
+  deferred Continue-As-New, stale-version cancellation and active-intent
+  recovery after repeated Provider failure.
 
 ### 7. Wrong vs Correct
 

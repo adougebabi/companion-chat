@@ -9,15 +9,15 @@
       {
         "request_index": 1,
         "schema": "conversation_turn_response",
-        "estimated_input_tokens": 32895,
-        "chars": 26316,
-        "bytes": 28226
+        "estimated_input_tokens": 34424,
+        "chars": 27539,
+        "bytes": 29849
       }
     ],
-    "total_estimated_input_tokens": 32895,
+    "total_estimated_input_tokens": 34424,
     "scripted_output_estimated_tokens": 160,
-    "total_chars": 26316,
-    "total_bytes": 28226,
+    "total_chars": 27539,
+    "total_bytes": 29849,
     "notes": [
       "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
       "output side: scripted native ToolCalls/final DTOs, not real model output",
@@ -37,22 +37,22 @@
       {
         "request_index": 1,
         "schema": "conversation_turn_response",
-        "estimated_input_tokens": 32897,
-        "chars": 26317,
-        "bytes": 28227
+        "estimated_input_tokens": 34424,
+        "chars": 27539,
+        "bytes": 29849
       },
       {
         "request_index": 2,
         "schema": "conversation_turn_response",
-        "estimated_input_tokens": 34480,
-        "chars": 27584,
-        "bytes": 29514
+        "estimated_input_tokens": 36008,
+        "chars": 28806,
+        "bytes": 31136
       }
     ],
-    "total_estimated_input_tokens": 67377,
+    "total_estimated_input_tokens": 70432,
     "scripted_output_estimated_tokens": 680,
-    "total_chars": 53901,
-    "total_bytes": 57741,
+    "total_chars": 56345,
+    "total_bytes": 60985,
     "notes": [
       "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
       "output side: scripted native ToolCalls/final DTOs, not real model output",
@@ -73,29 +73,29 @@
       {
         "request_index": 1,
         "schema": "conversation_turn_response",
-        "estimated_input_tokens": 32897,
-        "chars": 26317,
-        "bytes": 28227
+        "estimated_input_tokens": 34424,
+        "chars": 27539,
+        "bytes": 29849
       },
       {
         "request_index": 2,
         "schema": "conversation_turn_response",
-        "estimated_input_tokens": 35457,
-        "chars": 28365,
-        "bytes": 30283
+        "estimated_input_tokens": 36984,
+        "chars": 29587,
+        "bytes": 31905
       },
       {
         "request_index": 3,
         "schema": "conversation_turn_response",
-        "estimated_input_tokens": 37105,
-        "chars": 29684,
-        "bytes": 31634
+        "estimated_input_tokens": 38635,
+        "chars": 30908,
+        "bytes": 33258
       }
     ],
-    "total_estimated_input_tokens": 105459,
+    "total_estimated_input_tokens": 110043,
     "scripted_output_estimated_tokens": 1044,
-    "total_chars": 84366,
-    "total_bytes": 90144,
+    "total_chars": 88034,
+    "total_bytes": 95012,
     "notes": [
       "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
       "output side: scripted native ToolCalls/final DTOs, not real model output",

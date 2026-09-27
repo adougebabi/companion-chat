@@ -1720,6 +1720,12 @@ func validateSchedule(value map[string]any) bool {
 				return false
 			}
 		}
+		if _, hasIntention := item["intentionId"]; hasIntention {
+			return false
+		}
+		if _, hasPlan := item["actionPlan"]; hasPlan {
+			return false
+		}
 	}
 	return true
 }

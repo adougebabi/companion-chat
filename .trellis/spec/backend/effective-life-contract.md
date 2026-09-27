@@ -29,6 +29,17 @@ Current tables are `fluctlight_appearance_states`/`_revisions`, `fluctlight_ward
   wearing from the effective Life snapshot separately. An empty page with
   `inventory_complete=false` is “no recorded item”, not proof of absence.
 - `intention.decide` may create, qualify, update, pause, resume or cancel. Completion requires a verified result. A persisted `intention.due` fact contains the pre-transition reference under `candidate`; native cognition binds its entity ID, due revision and attempt ID to the current scoped projection before presenting the fact to the model. Before native cognition calls the model, Core freezes the validated due Goal/Intention references and snapshots in the durable inbox fact. A due-linked `life.activity.start` commits the activity, Tool receipt, and pending ActionOutcomes in one transaction; failure of the final model response cannot orphan the attempt. Later final settlement retains the already frozen outcomes. A paused, cancelled, edited, or pause/resumed Intention cannot be completed by a stale activity result, while the elapsed activity and its actual item/body effect remain recorded. `life.activity.start` returns `accepted` with `activity_id` and `not_before`; `life.activity.advance` checks elapsed time, obtains a separate structured virtual result, and atomically records the event, item/body effect, Outcome and linked Intention transition. Deferral remains pending. A due decision carries Goal/Intention refs into its pending ActionOutcome; the completed/failed activity result settles the frozen attempt. External real payments are outside this virtual capability.
+- A scheduled `hair_dye` starts only from a due accepted item linked to an
+  active Intention. Planning and start leave the current `hair_color` intact.
+  The completed result must confirm exactly the requested color and may change
+  only `hair_color`; failure or deferral leaves it unchanged. For a scheduled
+  activity with no confirmed result, `life.activity.advance` locks and checks
+  the linked Intention before recording an Event or effect. Pause, cancellation
+  or expiry closes that pending run as `cancelled` without a body effect. This
+  differs from an independent activity whose already confirmed effect remains
+  part of actual history after a later Intention revision.
+- `appearance.style` records a bounded temporary arrangement. It cannot store
+  arbitrary color-change prose or substitute for a confirmed dye result.
 - Main and WakeUp keep current body, actual worn items and relevant activities in Runtime, with history/time labels for summary and `persona.detail`. Current `persona.detail` filters mutable legacy extension keys recursively; `operation=history` reads the accepted Foundation revision with its former appearance intact and labels the response `historical_foundation`. The media request freezes appearance and wardrobe revisions. Completion locks both current authority revision rows through its stale comparison and commit, so a concurrent body or wardrobe update cannot interleave before the marker is stored. The canonical identity image is a reference, not current hair or clothing authority.
 - Every physical Provider request, including Tool continuation, enforces the total input budget across messages, native Tool schemas and response format. Required content exceeding budget fails; optional sections are removed as units. Trace separates bytes, characters and estimated Tokens. Model and media credentials are required to claim live behavior, while scripted transports prove wiring only.
 
@@ -44,7 +55,8 @@ Current tables are `fluctlight_appearance_states`/`_revisions`, `fluctlight_ward
 | Historical persona detail requested for an accepted Foundation revision | Return the sanitized original appearance with `time_semantics=historical_foundation`; only current detail excludes mutable extension keys. |
 | Activity before `not_before` or virtual result `deferred` | Return accepted/pending without item, body effect or successful Intention attempt. |
 | Completed/failed activity with an `intention.due` pending Outcome | Settle the corresponding external-ref Outcome and frozen attempt in the result transaction; failed purchase leaves no item and requalifies the Intention. Agent final failure after committed start does not erase the pending Outcome. |
-| Activity result after an Intention update or pause/resume | Record the actual event/item/body effect and resolve its Outcome, but skip the superseded attempt and leave the revised Intention open. |
+| Independent activity result after an Intention update or pause/resume | Record the actual event/item/body effect and resolve its Outcome, but skip the superseded attempt and leave the revised Intention open. |
+| Scheduled dye is paused/cancelled before result settlement | Close the pending run as `cancelled`; write no dye Event or current-color change. |
 | Failed portrait compilation or required prompt content over budget | Preserve the last consistent authority; report an explicit error, no silent source fallback/truncation. |
 
 ## 5. Good / Base / Bad Cases

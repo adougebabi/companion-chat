@@ -69,6 +69,21 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
   duration, `workflow.sleep()`, and `continue_as_new(payload)`. Each cycle
   reloads the timezone through the activity before scheduling the next boundary.
 - Replan preserves completed history and replaces only current/future segments through a new version.
+- An executable future item stores both `intention_id` and a validated, closed
+  `action_plan`; ordinary item text remains descriptive. Migration `0038`
+  adds nullable link fields, so older accepted items keep their meaning.
+  Replanning preserves each open future link and its action plan or fails the
+  acceptance transaction. The planning Tool supplies the current
+  `completed_before` boundary to the planner and commits the Goal, qualified
+  Intention, linked item and timed trigger together.
+- Cancelling an accepted schedule cancels its still-open linked intentions and
+  their trigger intents in the same transaction. A Goal with no other open
+  intentions is cancelled; a shared Goal stays open for its remaining work.
+- A replacement Schedule is rejected while an executable activity from its
+  current accepted version remains `in_progress` or `deferred` with a still
+  `in_progress` Intention. Cancellation
+  covers open links even when the item's time window has ended, because a
+  deferred result may still be pending after that window.
 - User commitments are explicit high-authority facts with provenance; affect/drives/goals/interaction may cause the LLM to propose replan but code thresholds cannot invent semantic schedule changes.
 - Context authority: confirmed active Event > accepted active Schedule item > explicit `unplanned/schedule_pending`.
 - Conversation Presence may overlay user presence/current task but cannot fabricate scene, activity, location, or Event.
@@ -83,6 +98,9 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
 | Proposal has gaps/overlaps/out-of-day times/invalid timezone | Reject proposal; retain prior accepted version or pending state. |
 | Proposal references unauthorized Actor/Event/Goal | Reject before acceptance. |
 | Replan attempts to rewrite completed history | Reject; future-only replacement required. |
+| Replan drops or changes an open executable item | Reject the new version; keep the existing plan and timed Intention. |
+| Replan races with a started or deferred linked activity | Lock the accepted version and reject replacement until the run settles or is cancelled. |
+| Accepted schedule is cancelled | Cancel future/ongoing linked intentions and their trigger intents atomically; do not execute the old item. |
 | Accepted version/revision changed during planning | CAS fails; re-read and replan explicitly. |
 | Reflection Provider unavailable/invalid | Retry workflow; no code-generated default routine. |
 | New day has no accepted Schedule | Return `schedule_pending/unplanned`; deterministic commitments only. |
@@ -120,6 +138,9 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
 - Workflow sandbox/timer tests assert local-midnight timing (including DST),
   stable payload preservation through `continue_as_new`, and no wall-clock call
   inside the workflow body.
+- Scheduled-action tests assert migration `0037→0038` and repeat apply,
+  nullable legacy links, complete-day first plan, versioned replan preservation,
+  active-run replacement rejection and cancellation after the slot ends.
 
 ### 7. Wrong vs Correct
 

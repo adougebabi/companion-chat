@@ -166,6 +166,16 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		invocation.ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, i.request.ActionID)
 	}
 	i.trace.AppendInvocation(invocation)
+	if capabilityName == conversationReplyCapabilityName {
+		if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh.replyNeedsFreshSchedule(modelIdentity.ModelCallSequence, callID) {
+			result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "rejected",
+				ErrorCode: "schedule_context_refresh_required", Output: map[string]any{"detail": "Wait for the Schedule Tool result and refreshed context, then compose the reply in the next model turn."},
+				ProviderRequestID: modelIdentity.ProviderRequestID, CorrelationID: "capability:" + callID}
+			i.trace.AppendResult(result)
+			i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+			return jsonString(ToolExecutionReceipt{OperationID: operationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: result}), nil
+		}
+	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
 	agentDefinition, _ := formalAgentDefinitionFromContext(ctx)
 	receipt, execErr := i.app.ExecuteTool(ctx, ToolExecutionRequest{
