@@ -131,6 +131,51 @@ func TestIntentionTriggerWorkflowUsesDurableTemporalTimerBeforeActivity(t *testi
 	}
 }
 
+func TestScheduledActivityResolutionWaitsForEarliestCompletion(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	notBefore := env.Now().Add(3 * time.Minute).UTC()
+	calledAt := time.Time{}
+	env.OnActivity(ResolveScheduledLifeActivityActivity, mock.Anything, mock.Anything).Return(func(_ context.Context, input Input) (map[string]any, error) {
+		calledAt = env.Now()
+		return map[string]any{"activity_id": input.ActivityID, "status": "completed"}, nil
+	})
+	env.ExecuteWorkflow(IntentionTriggerWorkflow, Input{IntentionID: "intention-scheduled", ActivityID: "activity-scheduled", DueAt: notBefore.Format(time.RFC3339Nano)})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	if calledAt.Before(notBefore) {
+		t.Fatalf("scheduled activity resolved before not_before: called=%s due=%s", calledAt, notBefore)
+	}
+}
+
+func TestScheduledActivityDeferralContinuesWithNewDueTime(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	firstDue := env.Now().Add(time.Minute).UTC()
+	secondDue := firstDue.Add(30 * time.Minute)
+	env.OnActivity(ResolveScheduledLifeActivityActivity, mock.Anything, mock.Anything).Return(map[string]any{
+		"activity_id": "activity-deferred", "status": "deferred", "not_before": secondDue.Format(time.RFC3339Nano),
+	}, nil)
+	env.ExecuteWorkflow(IntentionTriggerWorkflow, Input{IntentionID: "intention-deferred", ActivityID: "activity-deferred", DueAt: firstDue.Format(time.RFC3339Nano)})
+	if err := env.GetWorkflowError(); err == nil || !strings.Contains(err.Error(), "continue as new") {
+		t.Fatalf("deferred activity did not retain a durable future boundary: %v", err)
+	}
+}
+
+func TestScheduledIntentionStartContinuesIntoActivityTimer(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	notBefore := env.Now().Add(20 * time.Minute).UTC().Format(time.RFC3339Nano)
+	env.OnActivity(ProcessIntentionTriggerActivity, mock.Anything, mock.Anything).Return(map[string]any{
+		"status": "activity_started", "intention_id": "intention-timed", "activity_id": "activity-timed", "not_before": notBefore,
+	}, nil)
+	env.ExecuteWorkflow(IntentionTriggerWorkflow, Input{IntentionID: "intention-timed"})
+	if err := env.GetWorkflowError(); err == nil || !strings.Contains(err.Error(), "continue as new") {
+		t.Fatalf("scheduled start did not create its resolution timer: %v", err)
+	}
+}
+
 func TestMediaWorkflowContinuesOneQualityRetry(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()
@@ -280,6 +325,9 @@ func TestWorkflowIntentRetryBudgetsBoundRecoverableFailureLoops(t *testing.T) {
 		if maximum < 1 || !workflowIntentRetryExhausted(intentType, maximum) || workflowIntentRetryExhausted(intentType, maximum-1) {
 			t.Fatalf("retry budget for %s is not bounded at %d", intentType, maximum)
 		}
+	}
+	if workflowIntentRetryExhausted("intention.trigger", 1000) {
+		t.Fatal("an active Intention trigger must keep its durable retry path through a prolonged Provider outage")
 	}
 }
 

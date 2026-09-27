@@ -97,6 +97,11 @@ syncServerTurnState(page.messages); // server status decides retry eligibility
 
 Compute counts and labels from `state` during `renderMemory()`/`renderPersonaList()` instead of maintaining duplicate counters. When switching personas, update `activePersonaId`, `localStorage`, `messages`, and the input hint together, as `switchPersona()` does.
 
+The Schedule timeline labels the item spanning the current clock time as
+`当前时段`, and shows the linked Intention status separately. Time overlap alone
+must not turn a planned or cancelled item into `正在进行`; the current activity
+comes from the server's effective Life state and confirmed events.
+
 ## Common Mistakes
 
 - Reading `state.personas[0]` when the saved active persona was deleted; `boot()` must fall back first.

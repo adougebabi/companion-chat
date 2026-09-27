@@ -888,7 +888,7 @@ func compactScheduleValueForSurface(value any, index ContextReferenceIndex, surf
 	switch typed := value.(type) {
 	case map[string]any:
 		result := map[string]any{}
-		for _, key := range []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "priority", "flexibility", "interruption_cost", "current_item", "upcoming_items", "items"} {
+		for _, key := range []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "current_item", "upcoming_items", "items"} {
 			if raw, ok := typed[key]; ok && raw != nil && raw != "" {
 				result[key] = compactScheduleValueForSurface(raw, index, surface)
 			}
@@ -1576,7 +1576,7 @@ func compactScheduleForProvider(value map[string]any) map[string]any {
 			continue
 		}
 		compact := map[string]any{}
-		for _, key := range []string{"ref", "start_at", "end_at", "activity", "scene", "location", "item_type", "status", "priority", "flexibility", "interruption_cost"} {
+		for _, key := range []string{"ref", "start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id"} {
 			if child, ok := item[key]; ok && child != nil && child != "" {
 				compact[key] = child
 			}

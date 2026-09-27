@@ -37,6 +37,47 @@ type runtimeContextRefresh struct {
 	latest  *modelContextRefreshContent
 	refresh func(context.Context) (modelContextRefreshContent, error)
 	base    ContextProjection
+	batches map[uint64]map[string]string
+}
+
+// A Schedule mutation and a visible reply from one physical model response
+// were both composed against the old context. The reply must wait for the
+// next model request, whose runtime context is rebuilt after the mutation.
+func (r *runtimeContextRefresh) noteModelToolCalls(sequence uint64, calls []schema.ToolCall) {
+	if r == nil || sequence == 0 {
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.batches == nil {
+		r.batches = make(map[uint64]map[string]string)
+	}
+	if r.batches[sequence] == nil {
+		r.batches[sequence] = make(map[string]string)
+	}
+	for _, call := range calls {
+		if id, name := strings.TrimSpace(call.ID), strings.TrimSpace(call.Function.Name); id != "" && name != "" {
+			r.batches[sequence][id] = name
+		}
+	}
+}
+
+func (r *runtimeContextRefresh) replyNeedsFreshSchedule(sequence uint64, callID string) bool {
+	if r == nil {
+		return false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	batch := r.batches[sequence]
+	if batch[callID] != conversationReplyCapabilityName {
+		return false
+	}
+	for _, name := range batch {
+		if name == scheduleActivityCapabilityName || name == "schedule.replan" {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *runtimeContextRefresh) latestProjection() *ContextProjection {

@@ -19,7 +19,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectedAll := []string{
-		"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect",
+		"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule",
 		"life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "moment.publish",
 		"persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup",
 		"scene_event", "schedule.replan", "visual_identity.commit_review", "visual_identity.finalize",
@@ -30,10 +30,10 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 	}
 
 	expectedBySurface := map[CapabilitySurface][]string{
-		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.wear"},
-		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "moment.publish", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.wear"},
+		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.wear"},
+		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "appearance.style", "capability.request", "conversation.reply", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "moment.publish", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.wear"},
 		CapabilitySurfaceAutonomy:        {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
-		CapabilitySurfaceNativeCognition: {"active_memory_event", "appearance.style", "capability.request", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize", "wardrobe.inspect", "wardrobe.wear"},
+		CapabilitySurfaceNativeCognition: {"active_memory_event", "appearance.style", "capability.request", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize", "wardrobe.inspect", "wardrobe.wear"},
 		CapabilitySurfaceReflection:      {},
 		CapabilitySurfaceVisualIdentity:  {"visual_identity.commit_review", "visual_identity.finalize", "visual_identity.generate_candidate"},
 	}

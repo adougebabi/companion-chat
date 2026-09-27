@@ -432,6 +432,8 @@ persistIntentionAuthorityTx(... qualified ...) -> intention.trigger intent
 IntentionTriggerWorkflow(Input{intention_id,due_at})
 ProcessIntentionTrigger(ctx,intention_id) -> pending|due|expired
 persistActionOutcomesTx(... primary outcome ...) -> IntentionAttempt settlement
+intention.schedule({goal,action,expected_outcome,action_plan,preferred_start_at?,reason})
+  -> {goal_id,intention_id,schedule_id,schedule_item_id,start_at,status:"scheduled"}
 ```
 
 ### 3. Contracts
@@ -449,6 +451,17 @@ persistActionOutcomesTx(... primary outcome ...) -> IntentionAttempt settlement
   pending until its later confirmed result settles the external-ref Outcome;
   start alone cannot complete the Intention. Only a completed, Goal-bound
   Outcome may support a Reflection V2 Goal progress proposal.
+- `intention.schedule` is the controlled path from a future virtual action to
+  an accepted Schedule item. It commits or reuses the Goal and Intention in
+  the same transaction as the versioned item and time trigger. A typed action
+  link, not Schedule prose, grants execution. At due time Core rechecks the
+  accepted version, action plan, time and Intention status before starting.
+  `agency.intention_due` without such a link still enters Native Cognition.
+- The scheduled activity's confirmed completed Outcome can settle its linked
+  Intention and a sole-criterion Goal. Failure pauses the scheduled Intention
+  for reassessment. Cancellation of the accepted Schedule cancels open linked
+  intentions and a Goal with no other open intentions. A stale link or a
+  previously cancelled run cannot be replayed into a new activity.
 
 ### 4. Validation & Error Matrix
 
@@ -460,6 +473,8 @@ persistActionOutcomesTx(... primary outcome ...) -> IntentionAttempt settlement
 | Due decision omits Goal/Intention influence refs | Fail before freeze; do not execute a Capability. |
 | Failed/cancelled/suppressed Outcome | Requalify or cancel according to mechanical policy; never advance Goal progress. |
 | Same primary Outcome is replayed | Reuse the stored attempt settlement; no second revision. |
+| Planner fails or its selected slot is invalid | Commit no Goal, Intention, accepted Schedule or trigger; report a Tool failure. |
+| Scheduled link is stale or the accepted version was cancelled | Do not start or complete an activity from that link. |
 
 ### 5. Good / Base / Bad Cases
 
@@ -477,6 +492,9 @@ persistActionOutcomesTx(... primary outcome ...) -> IntentionAttempt settlement
 - `TestIntentionTriggerProductionFlowCreatesDueFactAndSettlesFromOutcome`.
 - Goal progress tests must cover completed versus failed/suppressed Outcomes,
   criterion indexes, Goal binding, CAS and replay.
+- Scheduled activity PostgreSQL tests assert one atomic Goal/Intention/item
+  commit, duplicate-plan reuse, due start once, cancellation/replan rejection,
+  and confirmed result settlement of the sole-criterion Goal.
 
 ### 7. Wrong vs Correct
 

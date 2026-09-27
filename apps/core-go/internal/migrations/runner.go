@@ -12,8 +12,10 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0037_memory_provenance"
+const Head = "0038_scheduled_actions"
 const PreviousHead = "0036_effective_life"
+const MemoryProvenanceHead = "0037_memory_provenance"
+const ScheduledActionPreviousHead = MemoryProvenanceHead
 const EffectiveLifeHead = "0036_effective_life"
 const WorkingPersonaHead = "0035_working_persona"
 const ToolExecutionSourceHead = "0034_tool_execution_source"
@@ -86,7 +88,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead {
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -156,6 +158,9 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, contextAuthorityGenerationSQL); err != nil {
 		return fmt.Errorf("apply Context authority generation schema: %w", err)
 	}
+	if _, err := tx.Exec(ctx, scheduledLifeActionSchemaSQL); err != nil {
+		return fmt.Errorf("apply scheduled life action schema: %w", err)
+	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {
 			return err
@@ -166,6 +171,23 @@ func (r *Runner) Apply(ctx context.Context) error {
 	}
 	return tx.Commit(ctx)
 }
+
+const scheduledLifeActionSchemaSQL = `
+ALTER TABLE public.life_schedule_items ADD COLUMN IF NOT EXISTS intention_id varchar(128);
+ALTER TABLE public.life_schedule_items ADD COLUMN IF NOT EXISTS action_plan jsonb;
+CREATE INDEX IF NOT EXISTS ix_life_schedule_items_intention ON public.life_schedule_items(intention_id,start_at) WHERE intention_id IS NOT NULL;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.fluctlight_life_activity_runs'::regclass AND conname='fluctlight_life_activity_runs_kind_check' AND pg_get_constraintdef(oid) NOT LIKE '%hair_dye%') THEN
+    ALTER TABLE public.fluctlight_life_activity_runs DROP CONSTRAINT fluctlight_life_activity_runs_kind_check;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.fluctlight_life_activity_runs'::regclass AND conname='fluctlight_life_activity_runs_kind_check') THEN
+    ALTER TABLE public.fluctlight_life_activity_runs ADD CONSTRAINT fluctlight_life_activity_runs_kind_check CHECK (kind IN ('virtual_shopping','haircut','hair_dye'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='ck_schedule_item_action_link') THEN
+    ALTER TABLE public.life_schedule_items ADD CONSTRAINT ck_schedule_item_action_link CHECK (((intention_id IS NULL) = (action_plan IS NULL)) AND (action_plan IS NULL OR (jsonb_typeof(action_plan)='object' AND action_plan->>'capability'='life.activity.start')));
+  END IF;
+END $$;
+`
 
 // schemaSQL contains the authoritative tables needed by the Go Core.  It is
 // additive by design: existing PostgreSQL data is never dropped or rewritten.

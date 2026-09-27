@@ -10,6 +10,29 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// A scheduled activity has no confirmed outcome until advance commits one.
+// If its Intention was revoked in the meantime, close that pending run before
+// any Life Event or appearance effect can be written.
+func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte) (CapabilityResult, error) {
+	now := time.Now().UTC()
+	currentResult := decodeObject(resultRaw)
+	currentResult["result"] = map[string]any{"status": "cancelled", "reason": "scheduled_intention_inactive"}
+	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET status='cancelled',resolved_at=$3,result_json=$4,revision=revision+1 WHERE id=$1 AND fluctlight_id=$2 AND revision=$5`, activityID, fluctlightID, now, jsonBytes(currentResult), revision)
+	if err != nil || command.RowsAffected() != 1 {
+		if err == nil {
+			err = ErrConflict
+		}
+		return failedCapabilityResult(invocation, "activity_cancel_failed", true), err
+	}
+	if err := appendOutboxTx(ctx, tx, "life.activity.resolved", "life_activity", activityID, fluctlightID, invocation.SourceFactID,
+		"activity:"+activityID, "activity-resolved:"+activityID, map[string]any{"activity_id": activityID, "status": "cancelled", "revision": revision + 1}); err != nil {
+		return failedCapabilityResult(invocation, "activity_outbox_failed", true), err
+	}
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
+		Output:            map[string]any{"activity_id": activityID, "status": "cancelled", "intention_id": intentionID, "reason": "scheduled_intention_inactive"},
+		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
+}
+
 func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invocation CapabilityInvocation, activityID, fluctlightID, profileID, intentionID, kind string, revision int, result map[string]any) (CapabilityResult, error) {
 	status := stringValue(result["status"])
 	now := time.Now().UTC()
@@ -54,6 +77,8 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	activityLabel := "虚拟购物"
 	if kind == "haircut" {
 		activityLabel = "剪发"
+	} else if kind == "hair_dye" {
+		activityLabel = "染发"
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,activity,status,revision,evidence_refs,idempotency_key,request_digest,result) VALUES($1,$2,$3,$4,$5,$6,'confirmed',1,$7,$8,$9,$10)`, eventID, fluctlightID, kind, startedAt, now, activityLabel, jsonBytes([]any{"activity:" + activityID}), "activity-result:"+activityID, requestDigest, jsonBytes(eventResult)); err != nil {
 		return failedCapabilityResult(invocation, "activity_event_insert_failed", true), err
@@ -71,6 +96,12 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 			bodyRevision, err := applyHaircutResultTx(ctx, tx, fluctlightID, eventID, result)
 			if err != nil {
 				return failedCapabilityResult(invocation, "haircut_body_update_failed", true), err
+			}
+			output["body_revision"] = bodyRevision
+		case "hair_dye":
+			bodyRevision, err := applyHairDyeResultTx(ctx, tx, fluctlightID, eventID, result)
+			if err != nil {
+				return failedCapabilityResult(invocation, "hair_dye_body_update_failed", true), err
 			}
 			output["body_revision"] = bodyRevision
 		default:
@@ -92,6 +123,15 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	outcomes, err := buildActionOutcomes(activityID, fluctlightID, eventID, kind, nil, settlement, nil)
 	if err != nil {
 		return failedCapabilityResult(invocation, "activity_outcome_invalid", true), err
+	}
+	var scheduledGoalID string
+	if status == "completed" && intentionID != "" && stringValue(request["schedule_item_id"]) != "" {
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(goal_id,'') FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2`, intentionID, fluctlightID).Scan(&scheduledGoalID); err != nil {
+			return failedCapabilityResult(invocation, "activity_goal_read_failed", true), err
+		}
+		if scheduledGoalID != "" {
+			outcomes[0].GoalRefs = []string{"goal:ctx_" + stableDigest(scheduledGoalID)}
+		}
 	}
 	if err := persistActionOutcomesTx(ctx, tx, outcomes); err != nil {
 		return failedCapabilityResult(invocation, "activity_outcome_persist_failed", true), err
@@ -127,12 +167,19 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 			operation := IntentionRetry
 			if status == "completed" {
 				operation = IntentionComplete
+			} else if stringValue(request["schedule_item_id"]) != "" {
+				operation = IntentionPause
 			}
 			if _, err := transitionLinkedIntentionTx(ctx, tx, fluctlightID, profileID, intentionID, operation,
 				"outcome:"+outcomes[0].ID, "virtual activity "+status, "activity-intention:"+activityID+":"+status, now); err != nil {
 				return failedCapabilityResult(invocation, "activity_intention_settlement_failed", true), err
 			}
 			output["intention_id"] = intentionID
+		}
+	}
+	if scheduledGoalID != "" {
+		if err := completeScheduledGoalTx(ctx, tx, fluctlightID, scheduledGoalID, activityID, outcomes[0], now); err != nil {
+			return failedCapabilityResult(invocation, "activity_goal_settlement_failed", true), err
 		}
 	}
 	if err := appendOutboxTx(ctx, tx, "life.activity.resolved", "life_activity", activityID, fluctlightID, eventID,
@@ -146,6 +193,36 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: toolStatus, ErrorCode: errorCode,
 		Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
+}
+
+func completeScheduledGoalTx(ctx context.Context, tx pgx.Tx, fluctlightID, goalID, activityID string, outcome ActionOutcome, at time.Time) error {
+	var revision, openIntentions int
+	if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, goalID, fluctlightID).Scan(&revision); err != nil {
+		return err
+	}
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.fluctlight_intentions WHERE goal_id=$1 AND fluctlight_id=$2 AND status NOT IN ('completed','cancelled','expired')`, goalID, fluctlightID).Scan(&openIntentions); err != nil {
+		return err
+	}
+	if openIntentions != 0 {
+		return nil
+	}
+	goalRef := "goal:ctx_" + stableDigest(goalID)
+	goal, err := loadGoalAuthorityTx(ctx, tx, fluctlightID, goalRef, ContextReference{EntityID: goalID, Revision: revision})
+	if err != nil {
+		return err
+	}
+	if goalStatusTerminal(goal.Status) || len(goal.SuccessCriteria) != 1 {
+		return nil
+	}
+	next, record, err := ApplyGoalProgress(goal, GoalProgressProposal{
+		GoalRef: goal.Ref, OutcomeRefs: []string{outcome.ID}, CriterionIndexes: []int{0},
+		Strength: 1, Confidence: 1, Complete: true, EvidenceRefs: []string{"activity:" + activityID}, OccurredAt: at,
+	}, map[string]ActionOutcome{outcome.ID: outcome})
+	if err != nil {
+		return err
+	}
+	_, err = persistGoalAuthorityTx(ctx, tx, &goal, next, record, "activity-goal:"+activityID)
+	return err
 }
 
 func verifyCompletedActivityEventTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID, kind string) error {
@@ -206,4 +283,25 @@ func applyHaircutResultTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID 
 		return 0, err
 	}
 	return newRevision, nil
+}
+
+func applyHairDyeResultTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID string, result map[string]any) (int, error) {
+	if err := verifyCompletedActivityEventTx(ctx, tx, fluctlightID, eventID, "hair_dye"); err != nil {
+		return 0, err
+	}
+	var revision int
+	var raw []byte
+	if err := tx.QueryRow(ctx, `SELECT revision,state_json FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&revision, &raw); err != nil {
+		return 0, err
+	}
+	fields := decodeObject(raw)
+	fields["hair_color"] = map[string]any{"status": "known", "value": strings.TrimSpace(stringValue(result["hair_color"]))}
+	next := revision + 1
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_appearance_states SET revision=$2,state_json=$3,source_kind='activity_result',source_ref=$4,updated_at=now() WHERE fluctlight_id=$1`, fluctlightID, next, jsonBytes(fields), eventID); err != nil {
+		return 0, err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_appearance_revisions(fluctlight_id,revision,state_json,source_kind,source_ref) VALUES($1,$2,$3,'activity_result',$4)`, fluctlightID, next, jsonBytes(fields), eventID); err != nil {
+		return 0, err
+	}
+	return next, nil
 }

@@ -301,11 +301,14 @@ func transitionLinkedIntentionTx(ctx context.Context, tx pgx.Tx, fluctlightID, p
 	var goalID, storedProfile string
 	var revision int
 	err := tx.QueryRow(ctx, `SELECT goal_id,COALESCE(profile_id,''),revision FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, intentionID, fluctlightID).Scan(&goalID, &storedProfile, &revision)
-	if errors.Is(err, pgx.ErrNoRows) || storedProfile != profileID {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return IntentionAuthority{}, ErrNotFound
 	}
 	if err != nil {
 		return IntentionAuthority{}, err
+	}
+	if storedProfile != profileID {
+		return IntentionAuthority{}, errors.New("intention_profile_mismatch")
 	}
 	current, err := loadIntentionAuthorityTx(ctx, tx, fluctlightID, "intention:ctx_"+stableDigest(intentionID), "goal:ctx_"+stableDigest(goalID), ContextReference{EntityID: intentionID, Revision: revision})
 	if err != nil {

@@ -123,24 +123,31 @@ func readScheduleAtWith(ctx context.Context, query lifeContextQuerier, fluctligh
 	if err != nil {
 		return nil, err
 	}
-	rows, err := query.Query(ctx, `SELECT id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost FROM public.life_schedule_items WHERE schedule_id=$1 ORDER BY start_at`, id)
+	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	items := make([]map[string]any, 0)
 	for rows.Next() {
-		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost string
+		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost, intentionID, actionStatus string
 		var itemLocation *string
+		var actionPlan []byte
 		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost); err != nil {
+		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus); err != nil {
 			return nil, err
 		}
-		items = append(items, map[string]any{
+		entry := map[string]any{
 			"id": itemID, "start_at": start.UTC().Format(time.RFC3339Nano), "end_at": end.UTC().Format(time.RFC3339Nano),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": scheduleContextNumber(priority), "flexibility": scheduleContextNumber(flexibility), "interruption_cost": scheduleContextNumber(interruptionCost),
-		})
+		}
+		if intentionID != "" {
+			entry["intention_id"] = intentionID
+			entry["action_plan"] = decodeObject(actionPlan)
+			entry["action_status"] = actionStatus
+		}
+		items = append(items, entry)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

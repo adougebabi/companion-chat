@@ -44,7 +44,7 @@ const (
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','autonomy.action','capability.action','reflection.run','visual_identity.initialize')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','visual_identity.initialize')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
@@ -55,6 +55,10 @@ func workflowIntentMaximumAttempts(intentType string) int {
 		return cognitionMaximumAttempts
 	case "autonomy.action", "capability.action":
 		return actionMaximumAttempts
+	case "intention.trigger":
+		// An active scheduled activity may outlast a Provider outage. Its
+		// domain state, rather than an attempt count, decides when retry ends.
+		return 0
 	case "wake_up.current":
 		return wakeUpMaximumAttempts
 	default:
@@ -74,6 +78,7 @@ type ApplicationService interface {
 	ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int) (map[string]any, error)
 	ProcessCognitionInbox(ctx context.Context, inboxID string) (map[string]any, error)
 	ProcessIntentionTrigger(ctx context.Context, intentionID string) (map[string]any, error)
+	ResolveScheduledLifeActivity(ctx context.Context, activityID string) (map[string]any, error)
 	ProcessMediaIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessAutonomyAction(ctx context.Context, actionID string) (map[string]any, error)
 	ProcessCapabilityAction(ctx context.Context, actionID string) (map[string]any, error)
@@ -185,6 +190,7 @@ type Input struct {
 	ModelID            string   `json:"model_id"`
 	InboxID            string   `json:"inbox_id"`
 	IntentionID        string   `json:"intention_id"`
+	ActivityID         string   `json:"activity_id"`
 	DueAt              string   `json:"due_at"`
 	ConversationID     string   `json:"conversation_id"`
 	SourceMessageID    string   `json:"source_message_id"`
@@ -313,6 +319,31 @@ func IntentionTriggerWorkflow(ctx workflow.Context, input Input) (map[string]any
 	if input.IntentionID == "" {
 		return nil, fmt.Errorf("intention id is required")
 	}
+	if input.ActivityID != "" {
+		if input.DueAt != "" {
+			dueAt, parseErr := time.Parse(time.RFC3339Nano, input.DueAt)
+			if parseErr != nil {
+				return nil, fmt.Errorf("activity due_at invalid: %w", parseErr)
+			}
+			if delay := dueAt.Sub(workflow.Now(ctx)); delay > 0 {
+				if err := workflow.Sleep(ctx, delay); err != nil {
+					return nil, err
+				}
+			}
+		}
+		var resolved map[string]any
+		if err := workflow.ExecuteActivity(ctx, ResolveScheduledLifeActivityActivity, input).Get(ctx, &resolved); err != nil {
+			return nil, err
+		}
+		if status := stringValue(resolved["status"]); status == "deferred" || status == "pending" || status == "in_progress" {
+			input.DueAt = stringValue(resolved["not_before"])
+			if input.DueAt == "" {
+				return nil, fmt.Errorf("scheduled activity retry boundary missing")
+			}
+			return nil, workflow.NewContinueAsNewError(ctx, IntentionTriggerWorkflow, input)
+		}
+		return resolved, nil
+	}
 	if input.DueAt != "" {
 		dueAt, parseErr := time.Parse(time.RFC3339Nano, input.DueAt)
 		if parseErr != nil {
@@ -327,6 +358,15 @@ func IntentionTriggerWorkflow(ctx workflow.Context, input Input) (map[string]any
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessIntentionTriggerActivity, input).Get(ctx, &result); err != nil {
 		return nil, err
+	}
+	version := workflow.GetVersion(ctx, "scheduled-intention-activity-followup", workflow.DefaultVersion, 1)
+	if version != workflow.DefaultVersion && stringValue(result["status"]) == "activity_started" {
+		input.ActivityID = stringValue(result["activity_id"])
+		input.DueAt = stringValue(result["not_before"])
+		if input.ActivityID == "" || input.DueAt == "" {
+			return nil, fmt.Errorf("scheduled activity start returned no identity or boundary")
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, IntentionTriggerWorkflow, input)
 	}
 	if stringValue(result["status"]) == "pending" {
 		if err := workflow.Sleep(ctx, time.Minute); err != nil {
@@ -666,6 +706,14 @@ func ProcessIntentionTriggerActivity(ctx context.Context, input Input) (map[stri
 	return application.ProcessIntentionTrigger(ctx, input.IntentionID)
 }
 
+func ResolveScheduledLifeActivityActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ResolveScheduledLifeActivity(ctx, input.ActivityID)
+}
+
 func PlatformControlActivity(ctx context.Context, input Input) (map[string]any, error) {
 	return map[string]any{"status": "ready", "intent_id": input.IntentID}, nil
 }
@@ -984,6 +1032,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(EnsureCurrentDayScheduleActivity)
 			w.RegisterActivity(ProcessReflectionActivity)
 			w.RegisterActivity(ProcessIntentionTriggerActivity)
+			w.RegisterActivity(ResolveScheduledLifeActivityActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
 			w.RegisterActivity(ProcessConversationSummaryActivity)
 			w.RegisterActivity(PlatformControlActivity)
@@ -1245,6 +1294,25 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 					delete(d.Started, intentID)
 				}
 				count++
+				continue
+			}
+		}
+		if intentType == "intention.trigger" && intentStatus == "failed" {
+			var intentionStatus string
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_intentions WHERE id=$1`, input.IntentionID).Scan(&intentionStatus); err != nil {
+				return count, err
+			}
+			if intentionStatus == "qualified" || intentionStatus == "due" || intentionStatus == "in_progress" {
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 minutes',started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($2,''),last_error,'intention_trigger_failed') WHERE intent_id=$1 AND status IN ('started','failed','retry')`, intentID, terminalFailure)
+				if err != nil {
+					return count, err
+				}
+				if command.RowsAffected() == 1 {
+					if d.Started != nil {
+						delete(d.Started, intentID)
+					}
+					count++
+				}
 				continue
 			}
 		}
@@ -1628,7 +1696,7 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 	if intentType == "reflection.run" {
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
-	if intentType == "cognition.processing" || intentType == "autonomy.action" || intentType == "capability.action" {
+	if intentType == "cognition.processing" || intentType == "intention.trigger" || intentType == "autonomy.action" || intentType == "capability.action" {
 		// These intents are explicitly requeued after a terminal failed
 		// execution while their durable inbox/action remains executable. Reusing
 		// the stable ID must therefore admit a new run after failure; otherwise

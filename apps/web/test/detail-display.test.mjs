@@ -101,7 +101,7 @@ test("PC shell and role tabs do not scroll the outer frame", () => {
 test("schedule timeline highlights the item active at the current instant", () => {
   assert.match(detailSource, /function isCurrentScheduleItem\(item: JsonRecord\)/);
   assert.match(detailSource, /:class="\{ active: isCurrentScheduleItem\(item\) \}"/);
-  assert.match(detailSource, /class="timeline-now-badge">进行中/);
+  assert.match(detailSource, /class="timeline-now-badge">当前时段/);
 });
 
 test("model run diagnostics show the server creation time", async () => {

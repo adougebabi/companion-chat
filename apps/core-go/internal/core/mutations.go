@@ -179,7 +179,7 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 		}
 		var currentID string
 		var current int
-		err = tx.QueryRow(ctx, `SELECT id,revision FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted' ORDER BY revision DESC LIMIT 1`, fluctlightID, localDate).Scan(&currentID, &current)
+		err = tx.QueryRow(ctx, `SELECT id,revision FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted' ORDER BY revision DESC LIMIT 1 FOR UPDATE`, fluctlightID, localDate).Scan(&currentID, &current)
 		found := err == nil
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
@@ -189,6 +189,44 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 		}
 		if expectedRevision != current {
 			return ErrConflict
+		}
+		linkedEntries := make(map[string]struct{})
+		for _, entry := range entries {
+			if intentionID := strings.TrimSpace(stringValue(entry.item["intention_id"])); intentionID != "" {
+				if _, duplicate := linkedEntries[intentionID]; duplicate {
+					return errors.New("schedule_intention_duplicate")
+				}
+				linkedEntries[intentionID] = struct{}{}
+			}
+		}
+		if found {
+			var activeScheduledRun bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_schedule_items item JOIN public.fluctlight_life_activity_runs run ON run.fluctlight_id=$2 AND run.result_json #>> '{request,schedule_item_id}'=item.id JOIN public.fluctlight_intentions intention ON intention.id=run.intention_id AND intention.fluctlight_id=run.fluctlight_id WHERE item.schedule_id=$1 AND run.status IN ('in_progress','deferred') AND intention.status='in_progress')`, currentID, fluctlightID).Scan(&activeScheduledRun); err != nil {
+				return err
+			}
+			if activeScheduledRun {
+				return errors.New("schedule_active_activity_replan_blocked")
+			}
+			oldLinks, err := tx.Query(ctx, `SELECT item.intention_id FROM public.life_schedule_items item JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 AND item.start_at>=$2 AND i.status IN ('candidate','qualified')`, currentID, applyAt)
+			if err != nil {
+				return err
+			}
+			for oldLinks.Next() {
+				var intentionID string
+				if err := oldLinks.Scan(&intentionID); err != nil {
+					oldLinks.Close()
+					return err
+				}
+				if _, preserved := linkedEntries[intentionID]; !preserved {
+					oldLinks.Close()
+					return errors.New("schedule_active_intention_missing")
+				}
+			}
+			if err := oldLinks.Err(); err != nil {
+				oldLinks.Close()
+				return err
+			}
+			oldLinks.Close()
 		}
 		var latestRevision int
 		if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(revision),0) FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2`, fluctlightID, localDate).Scan(&latestRevision); err != nil {
@@ -214,8 +252,41 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 			if previousEnd != nil && !start.Equal(*previousEnd) {
 				return errors.New("schedule items must be contiguous")
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, randomID("schedule_item_"), scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5)); err != nil {
+			intentionID := strings.TrimSpace(stringValue(item["intention_id"]))
+			actionPlan := mapValue(item["action_plan"])
+			if (intentionID == "") != (len(actionPlan) == 0) {
+				return errors.New("schedule_action_link_invalid")
+			}
+			if intentionID != "" {
+				if err := validateScheduledLifeActionPlan(actionPlan); err != nil {
+					return err
+				}
+				if found {
+					var previousPlan []byte
+					lookupErr := tx.QueryRow(ctx, `SELECT action_plan FROM public.life_schedule_items WHERE schedule_id=$1 AND intention_id=$2 LIMIT 1`, currentID, intentionID).Scan(&previousPlan)
+					if lookupErr == nil && !jsonEqual(previousPlan, actionPlan) {
+						return errors.New("schedule_action_plan_changed")
+					}
+					if lookupErr != nil && !errors.Is(lookupErr, pgx.ErrNoRows) {
+						return lookupErr
+					}
+				}
+				var active bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 AND status IN ('candidate','qualified','due','in_progress','completed'))`, intentionID, fluctlightID).Scan(&active); err != nil {
+					return err
+				}
+				if !active {
+					return errors.New("schedule_intention_not_active")
+				}
+			}
+			itemID := randomID("schedule_item_")
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost,intention_id,action_plan) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, itemID, scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5), nullableString(intentionID), nullableJSON(actionPlan)); err != nil {
 				return err
+			}
+			if intentionID != "" && start.After(applyAt) {
+				if err := syncScheduledIntentionTx(ctx, tx, intentionID, itemID, start); err != nil {
+					return err
+				}
 			}
 			previousEnd = &end
 		}

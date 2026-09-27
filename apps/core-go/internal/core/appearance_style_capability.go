@@ -11,6 +11,17 @@ import (
 
 const appearanceStyleCapabilityName = "appearance.style"
 
+var temporaryHairStyles = []string{"扎起头发", "放下头发", "高马尾", "低马尾", "双马尾", "丸子头", "麻花辫", "侧边麻花辫", "盘发", "半扎发", "整理刘海"}
+
+func validTemporaryHairStyle(value string) bool {
+	for _, style := range temporaryHairStyles {
+		if value == style {
+			return true
+		}
+	}
+	return false
+}
+
 type appearanceStyleCapability struct{ repository *PostgresRepository }
 
 func appearanceStyleDefinition() CapabilityDefinition {
@@ -21,7 +32,7 @@ func appearanceStyleDefinition() CapabilityDefinition {
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
 			"operation": enumStringSchema("set", "clear"),
-			"style":     map[string]any{"type": "string", "maxLength": 128},
+			"style":     enumStringSchema(temporaryHairStyles...),
 			"reason":    map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
 		}, []string{"operation", "reason"}, false),
 		OutputSchema: objectSchema(map[string]any{
@@ -53,7 +64,7 @@ func (c appearanceStyleCapability) Prepare(ctx context.Context, invocation Capab
 		return invocation, err
 	}
 	if stringValue(args["operation"]) == "set" {
-		if style := strings.TrimSpace(stringValue(args["style"])); style == "" {
+		if style := strings.TrimSpace(stringValue(args["style"])); !validTemporaryHairStyle(style) {
 			return invocation, ErrInvalidArguments
 		}
 		if stringValue(mapValue(decodeObject(raw)["hair_length"])["status"]) != "known" {
@@ -86,6 +97,9 @@ func (c appearanceStyleCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv
 	if stringValue(args["operation"]) == "set" {
 		status = "known"
 		style = strings.TrimSpace(stringValue(args["style"]))
+		if !validTemporaryHairStyle(style) {
+			return failedCapabilityResult(invocation, "temporary_hair_style_invalid", false), ErrInvalidArguments
+		}
 		if stringValue(mapValue(fields["hair_length"])["status"]) != "known" {
 			return failedCapabilityResult(invocation, "current_hair_length_unknown", false), ErrConflict
 		}

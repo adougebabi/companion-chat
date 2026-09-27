@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/cloudwego/eino/schema"
@@ -73,5 +74,38 @@ func TestRuntimeContextRefreshFailsBeforePhysicalRequest(t *testing.T) {
 	}
 	if input[1].Content != "[RUNTIME CONTEXT]\nold\n[/RUNTIME CONTEXT]" {
 		t.Fatal("failed refresh changed original context")
+	}
+}
+
+func TestPrivateReplyWaitsForFreshScheduleAfterSameBatchPlanning(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	trace := &ADKCapabilityTrace{}
+	refresh := &runtimeContextRefresh{}
+	calls := []schema.ToolCall{
+		{ID: "reply-first", Function: schema.FunctionCall{Name: conversationReplyCapabilityName}},
+		{ID: "plan-second", Function: schema.FunctionCall{Name: scheduleActivityCapabilityName}},
+	}
+	trace.RecordModelToolCalls("provider-request-1", 1, calls)
+	refresh.noteModelToolCalls(1, calls)
+	invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{
+		FluctlightID: "fluctlight-1", ConversationID: "conversation-1", SourceFactID: "fact-1", ActionID: "turn-1",
+		Surface: CapabilitySurfaceConversation,
+	}, trace)
+	ctx := withADKCapabilityContext(context.Background(), invoker, trace, refresh)
+	result, err := invoker.(ADKCapabilityInvokerWithID).ExecuteWithID(ctx, "reply-first", conversationReplyCapabilityName, `{"text":"正在染发"}`)
+	if err != nil || !strings.Contains(result, "schedule_context_refresh_required") {
+		t.Fatalf("same-batch premature reply was not rejected: result=%s err=%v", result, err)
+	}
+	_, results := trace.Snapshot()
+	if len(results) != 1 || results[0].Status != "rejected" {
+		t.Fatalf("premature reply did not leave a rejected Tool result: %#v", results)
+	}
+	if refresh.replyNeedsFreshSchedule(2, "next-reply") {
+		t.Fatal("a reply in the next model turn was blocked")
 	}
 }

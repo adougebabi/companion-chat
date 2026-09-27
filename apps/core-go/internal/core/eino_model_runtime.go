@@ -103,8 +103,11 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	if callDiagnosticID != "" && result != nil {
 		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(result))
 	}
-	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Trace != nil && result != nil {
-		adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, result.ToolCalls)
+	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
+		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
+		if adkContext.Trace != nil {
+			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, result.ToolCalls)
+		}
 	}
 	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, result, err)
 	if callDiagnosticID != "" {
@@ -151,6 +154,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	// the trace map is an idempotent overwrite for the same physical request.
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
 		if message != nil {
+			adkContext.Refresh.noteModelToolCalls(sequence, message.ToolCalls)
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, message.ToolCalls)
 			if callDiagnosticID != "" && (message.Content != "" || len(message.ToolCalls) > 0 || message.ReasoningContent != "") {
 				m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(message))

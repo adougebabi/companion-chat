@@ -55,6 +55,15 @@ Data-access baseline: pgx/v5, PostgreSQL transactions, and the embedded Go migra
 - Outbox publication is at-least-once. Consumers use event ID plus a durable inbox/idempotency record before applying effects.
 - No distributed transaction is introduced between PostgreSQL and Redis/object/Provider systems.
 - Long cognitive work uses short phases: claim/capture revisions, external assessment, CAS apply/freeze, external realization, action-result commit.
+- Migration `0038_scheduled_actions` adds nullable `intention_id` and typed
+  `action_plan` to Schedule items and admits `hair_dye` activity runs. Existing
+  descriptive items stay readable and non-executable. An accepted scheduled
+  action, its Goal/Intention trigger, and later schedule cancellation each
+  use one short transaction; schedule planning and activity-result Provider
+  calls finish before their respective mutation transactions.
+- The public browser Schedule write accepts descriptive items only. It cannot
+  submit `intention_id` or `action_plan`; the controlled planning Tool creates
+  executable links inside Core's transaction.
 
 ### 4. Validation & Error Matrix
 

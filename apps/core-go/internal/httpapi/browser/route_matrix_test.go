@@ -14,6 +14,24 @@ type browserRouteCase struct {
 	body   string
 }
 
+func TestBrowserScheduleWriteCannotCreateExecutableActionLink(t *testing.T) {
+	request := map[string]any{
+		"localDate": "2026-09-27", "timezone": "Asia/Shanghai",
+		"expectedRevision": float64(0), "expectedLifeContextRevision": "life_ctx_0123456789abcdef0123456789abcdef", "idempotencyKey": "plain-schedule",
+		"evidenceRefs": []any{"owner:plain-schedule"},
+		"items":        []any{map[string]any{"startAt": "2026-09-27T10:00:00+08:00", "endAt": "2026-09-27T11:00:00+08:00", "activity": "阅读", "scene": "书房"}},
+	}
+	if !validateSchedule(request) {
+		t.Fatal("ordinary descriptive schedule item was rejected")
+	}
+	item := request["items"].([]any)[0].(map[string]any)
+	item["intentionId"] = "intention-1"
+	item["actionPlan"] = map[string]any{"capability": "life.activity.start", "kind": "hair_dye"}
+	if validateSchedule(request) {
+		t.Fatal("browser schedule write accepted an executable action link")
+	}
+}
+
 func browserRouteCases() []browserRouteCase {
 	return []browserRouteCase{
 		{name: "options", method: http.MethodOptions, path: "/api/platform/ping"},

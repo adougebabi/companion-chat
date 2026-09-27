@@ -28,6 +28,7 @@ var independentToolProductInventory = []string{
 	"habit.inspect",
 	"intention.decide",
 	"intention.inspect",
+	"intention.schedule",
 	"life.activity.advance",
 	"life.activity.start",
 	"media.image.generate",

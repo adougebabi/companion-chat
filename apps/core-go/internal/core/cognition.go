@@ -57,7 +57,7 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 		}
 	}()
 	data := decodeObject(payload)
-	if strings.HasPrefix(stringValue(data["event_type"]), "life.") {
+	if eventType := stringValue(data["event_type"]); strings.HasPrefix(eventType, "life.") || eventType == intentionDueFactType {
 		if depth := intValue(data["native_cognition_depth"]); nativeCognitionCycleGuarded(depth) {
 			if err := a.settleNativeCognitionCycleGuard(ctx, inboxID, depth); err != nil {
 				return nil, err

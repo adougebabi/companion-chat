@@ -224,7 +224,7 @@ type VirtualActivityResultTaskInput struct {
 	RecentOutcomes    []map[string]any
 }
 
-const virtualActivityResultInstruction = "Resolve one already started and elapsed virtual-life activity. The activity is fictional and grants no real purchase, payment, delivery, medical care, or external action. Return completed, failed, or deferred with a concrete short reason grounded in the supplied request and current facts. Do not always choose success. For completed virtual_shopping return one acquired_item whose category and slot match the request; no acquired item on failure or defer. For completed haircut return the resulting hair_length and optional hair_color/hair_style; no body change on failure or defer. Do not infer that a scheduled activity was completed before its not_before time. Return only the specified JSON."
+const virtualActivityResultInstruction = "Resolve one already started and elapsed virtual-life activity. The activity is fictional and grants no real purchase, payment, delivery, medical care, or external action. Return completed, failed, or deferred with a concrete short reason grounded in the supplied request and current facts. Do not always choose success. For completed virtual_shopping return one acquired_item whose category and slot match the request; no acquired item on failure or defer. For completed haircut return the resulting hair_length and optional hair_color/hair_style. For completed hair_dye return hair_color exactly equal to request.desired_hair_color and no hair_length; a different result must be failed or deferred. No body change on failure or defer. Do not infer that a scheduled activity was completed before its not_before time. Return only the specified JSON."
 
 func virtualActivityResultSchema() map[string]any {
 	item := objectSchema(map[string]any{
@@ -403,9 +403,9 @@ func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionPro
 // planner. It owns the planner instruction, factual slots and output schema.
 func (a *App) RunScheduleReplanTask(ctx context.Context, input SchedulePlanInput) (map[string]any, error) {
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
-		{"role": "system", "content": "Return only a complete schedule replacement. Preserve completed history and use the supplied timezone and revision."},
+		{"role": "system", "content": scheduleReplanPlannerInstruction(input)},
 		{"role": "user", "content": jsonString(map[string]any{
-			"intent": input.Intent, "schedule": compactScheduleForProvider(input.Schedule), "current_life": compactLifeContext(input.CurrentLife), "agency": compactSchedulePlannerAgency(input.Agency), "timezone": input.Timezone,
+			"intent": input.Intent, "planned_action": input.PlannedAction, "schedule": compactScheduleForProvider(input.Schedule), "current_life": compactLifeContext(input.CurrentLife), "agency": compactSchedulePlannerAgency(input.Agency), "timezone": input.Timezone,
 		})},
 	})
 	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchema(), false, nil)

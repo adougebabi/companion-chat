@@ -139,6 +139,7 @@ func builtinCapabilities(app *App) []Capability {
 		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe}, wardrobeOutfitSaveCapability{service: wardrobe},
 		habitInspectCapability{service: habits}, habitDecideCapability{service: habits},
 		intentionInspectCapability{service: intentions}, intentionDecideCapability{service: intentions},
+		scheduleActivityCapability{service: app, planner: schedule.planner, intents: intentions},
 		lifeActivityStartCapability{service: activities}, lifeActivityAdvanceCapability{service: activities},
 		appearanceStyleCapability{repository: appearanceRepository},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
@@ -564,6 +565,9 @@ func (c scheduleReplanCapability) Prepare(ctx context.Context, invocation Capabi
 	planned, err := planner.Plan(ctx, SchedulePlanInput{Intent: stringValue(args["intent"]), Schedule: resolved.Schedule.Data, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data, SourceFactID: invocation.SourceFactID, Timezone: timezone})
 	if err != nil {
 		return invocation, newCapabilityError("schedule_replan_planner_failed", true, err)
+	}
+	if err := preserveScheduledActionPlans(planned, resolved.Schedule.Data); err != nil {
+		return invocation, newCapabilityError("schedule_replan_planner_failed", false, err)
 	}
 	planned["local_date"] = firstString(planned["local_date"], stringValue(resolved.Schedule.Data["local_date"]))
 	planned["timezone"] = firstString(planned["timezone"], stringValue(resolved.Schedule.Data["timezone"]))

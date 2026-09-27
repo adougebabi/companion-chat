@@ -37,6 +37,11 @@ really occurred. Direct commands use an explicit local execution identity.
 - Only Eino native ToolCalls request execution. Body text, reasoning and final
   JSON fields never create a second Tool protocol. Tool results return through
   matching native IDs and are consumed by the next model decision.
+- A committed Schedule Tool refreshes the private Agent's outbound runtime
+  context before the next physical model request. If one model response asks
+  for `intention.schedule` or `schedule.replan` and `conversation.reply`
+  together, the premature reply is rejected as a Tool result; the next model
+  decision reads the accepted Schedule before composing user-visible text.
 - Normal reads, writes, publications and business rejections may be followed by
   more decisions. Never terminate based on a QUERY/ACTION classification,
   number of prior queries, `deferred` result, or a write-tool list.
