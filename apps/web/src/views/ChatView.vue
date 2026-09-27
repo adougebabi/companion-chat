@@ -7,6 +7,7 @@ import Textarea from "@/components/ui/textarea/Textarea.vue";
 import { apiOrigin } from "../runtime-config";
 import { useConversationStore } from "../stores/conversations";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
+import { messageTimeLabel } from "../lib/message-time";
 
 const emit = defineEmits<{
   back: [];
@@ -156,7 +157,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
             <img v-for="assetId in message.attachmentRefs" :key="assetId" :src="mediaUrl(assetId)" :alt='`${store.selectedFluctlightName ?? "Fluctlight"} 生成的图片`' loading="lazy" />
           </div>
           <div class="message-meta">
-            <time>{{ new Date(message.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) }}</time>
+			<time :datetime="message.senderSentAt ?? message.createdAt">{{ messageTimeLabel(message) }}</time>
             <span v-if='deliveryStatus(message) !== "none"' class="delivery-status" :class="deliveryStatus(message)" :aria-label="deliveryLabel(message)">
               <span v-if='deliveryStatus(message) === "failed"'>!</span><template v-else>✓<span v-if='deliveryStatus(message) === "sent"'>✓</span></template>
             </span>

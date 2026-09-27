@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf16"
 )
 
@@ -251,6 +252,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if value, exists := body["turnId"]; exists {
 			mapped["turn_id"] = value
 		}
+		for source, target := range map[string]string{"senderTimezone": "sender_timezone", "senderUtcOffsetMinutes": "sender_utc_offset_minutes", "senderSentAt": "sender_sent_at"} {
+			if value, exists := body[source]; exists {
+				mapped[target] = value
+			}
+		}
 		if err := s.streamTurn(request.Context(), session, conversationID, mapped, response); err != nil {
 			if request.Context().Err() != nil {
 				return
@@ -476,6 +482,9 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		mapped := map[string]any{"request_id": body["requestId"], "initialization_mode": body["initializationMode"], "schema_version": body["schemaVersion"], "name": body["name"], "core_persona": body["corePersona"], "developing_self": body["developingSelf"], "extensions": body["extensions"]}
+		if timezone, exists := body["initializationTimezone"]; exists {
+			mapped["initialization_timezone"] = timezone
+		}
 		if analysisID, exists := body["analysisId"]; exists {
 			mapped["analysis_id"] = analysisID
 		}
@@ -1591,6 +1600,14 @@ func validateActivation(value map[string]any) bool {
 	if mode == "blank_slate" && !validateString(value["name"], 1, 256) {
 		return false
 	}
+	if timezone, exists := value["initializationTimezone"]; exists {
+		if !validateString(timezone, 1, 128) {
+			return false
+		}
+		if _, err := time.LoadLocation(timezone.(string)); err != nil {
+			return false
+		}
+	}
 	if core, exists := value["corePersona"]; exists && !isObject(core) {
 		return false
 	}
@@ -1775,6 +1792,34 @@ func validateConversationTurn(value map[string]any) bool {
 	}
 	if sender, exists := value["senderActorId"]; exists && !validateString(sender, 1, 128) {
 		return false
+	}
+	zoneValue, hasZone := value["senderTimezone"]
+	offsetValue, hasOffset := value["senderUtcOffsetMinutes"]
+	sentValue, hasSent := value["senderSentAt"]
+	if hasZone || hasOffset || hasSent {
+		if !hasZone || !hasOffset || !hasSent || !validateString(zoneValue, 1, 128) {
+			return false
+		}
+		location, err := time.LoadLocation(zoneValue.(string))
+		if err != nil {
+			return false
+		}
+		offset, ok := offsetValue.(float64)
+		if !ok || math.Trunc(offset) != offset || offset < -840 || offset > 840 {
+			return false
+		}
+		sent, ok := sentValue.(string)
+		if !ok {
+			return false
+		}
+		instant, err := time.Parse(time.RFC3339Nano, sent)
+		if err != nil {
+			return false
+		}
+		_, actual := instant.In(location).Zone()
+		if actual != int(offset)*60 {
+			return false
+		}
 	}
 	return true
 }

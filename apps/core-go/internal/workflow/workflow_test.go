@@ -62,6 +62,20 @@ func TestNextLocalMidnightDelayUsesConfiguredTimezone(t *testing.T) {
 	}
 }
 
+func TestCurrentDayScheduleWorkflowRejectsMissingOrInvalidTimezone(t *testing.T) {
+	for _, item := range []struct{ timezone, errorCode string }{{"", "schedule_timezone_missing"}, {"not/a/zone", "schedule_timezone_invalid"}} {
+		t.Run(item.errorCode, func(t *testing.T) {
+			var suite testsuite.WorkflowTestSuite
+			env := suite.NewTestWorkflowEnvironment()
+			env.OnActivity(EnsureCurrentDayScheduleActivity, mock.Anything, mock.Anything).Return(map[string]any{"status": "ready", "timezone": item.timezone}, nil)
+			env.ExecuteWorkflow(CurrentDayScheduleWorkflow, Input{FluctlightID: "fl-1", IntentID: "intent-1"})
+			if err := env.GetWorkflowError(); err == nil || !strings.Contains(err.Error(), item.errorCode) {
+				t.Fatalf("invalid timezone silently became a 24-hour timer: %v", err)
+			}
+		})
+	}
+}
+
 func TestWorkflowControlSignalsUpdateStatusQuery(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()

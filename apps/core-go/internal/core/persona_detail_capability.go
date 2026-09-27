@@ -143,14 +143,14 @@ func (s personaDetailService) readHistorical(ctx context.Context, fluctlightID, 
 func personaDetailCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: personaDetailCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "List or read current effective persona details, habits and appearance for the speaking profile. Use history only when past Foundation wording is explicitly needed; historical source is not current state.",
+		Description:   "List/read current persona details, habits and appearance. read/history need section_id; history is past Foundation, not current state.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false, "required": []any{"operation"},
 			"properties": map[string]any{
 				"operation":  map[string]any{"type": "string", "enum": []any{"list", "read", "history"}},
-				"section_id": map[string]any{"type": "string", "maxLength": 128},
+				"section_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"cursor":     map[string]any{"type": "integer", "minimum": 0},
 				"revision":   map[string]any{"type": "integer", "minimum": 0},
 			},

@@ -212,8 +212,8 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	}
 	prepared, resolved, err := runtime.Prepare(ctx, invocation)
 	if err != nil {
-		code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
-		return toolExecutionReceipt(request, callID, failedCapabilityResultDetail(invocation, code, retryable, err.Error())), err
+		code, retryable, detail := classifyToolPrepareError(err)
+		return toolExecutionReceipt(request, callID, failedCapabilityResultDetail(invocation, code, retryable, detail)), err
 	}
 	var result CapabilityResult
 	var authority ToolAuthorityRevisions
@@ -276,6 +276,43 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	receipt.AuthorityRevisions = authority
 	receipt.Replayed = replayed
 	return receipt, err
+}
+
+func classifyToolPrepareError(err error) (code string, retryable bool, detail string) {
+	code, retryable = capabilityErrorInfo(err, "capability_prepare_failed", true)
+	if !errors.Is(err, ErrInvalidArguments) && !errors.Is(err, capability.ErrInvalidArguments) {
+		return code, retryable, err.Error()
+	}
+	if code == "capability_prepare_failed" {
+		code = "invalid_arguments"
+	}
+	return code, false, safeToolArgumentFeedback(err)
+}
+
+func safeToolArgumentFeedback(err error) string {
+	if err == nil {
+		return "arguments do not match tool schema"
+	}
+	detail := strings.TrimSpace(err.Error())
+	for strings.HasPrefix(detail, "invalid capability arguments: ") {
+		detail = strings.TrimPrefix(detail, "invalid capability arguments: ")
+	}
+	if strings.Contains(detail, "additional property") {
+		return "unexpected argument field; use the published tool schema"
+	}
+	if !strings.HasPrefix(detail, `field "`) && !strings.HasPrefix(detail, `required field "`) &&
+		!strings.HasPrefix(detail, "value must ") && !strings.HasPrefix(detail, "arguments_") &&
+		!strings.HasPrefix(detail, "arguments must ") && !strings.HasPrefix(detail, "array ") &&
+		!strings.HasPrefix(detail, "string ") && !strings.HasPrefix(detail, "number ") &&
+		!strings.HasPrefix(detail, "integer ") {
+		return "arguments do not match tool schema"
+	}
+	const maxFeedbackRunes = 240
+	runes := []rune(detail)
+	if len(runes) > maxFeedbackRunes {
+		detail = string(runes[:maxFeedbackRunes])
+	}
+	return detail
 }
 
 func toolExecutionReceipt(request ToolExecutionRequest, callID string, result CapabilityResult) ToolExecutionReceipt {

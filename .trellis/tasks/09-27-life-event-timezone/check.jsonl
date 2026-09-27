@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend quality checklist"}
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend quality checklist"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"Check local-day and Event authority"}
+{"file":".trellis/spec/backend/effective-life-contract.md","reason":"Check optional outcome and current activity state"}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Check UI server-state consistency"}

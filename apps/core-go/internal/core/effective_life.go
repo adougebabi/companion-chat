@@ -237,7 +237,16 @@ func readProfileHabits(ctx context.Context, query DBTX, fluctlightID, profileID 
 }
 
 func (a *App) readActiveLifeActivities(ctx context.Context, fluctlightID string, at time.Time) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,kind,status,COALESCE(intention_id,''),started_at,not_before,result_json FROM public.fluctlight_life_activity_runs WHERE fluctlight_id=$1 AND status IN ('scheduled','in_progress','deferred') ORDER BY not_before,id LIMIT 12`, fluctlightID)
+	// Reconcile expired runs on present-time reads so even an offline Worker
+	// cannot leave an old activity represented as current.
+	if delta := at.Sub(time.Now().UTC()); delta > -time.Second && delta < time.Second {
+		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			return a.closeExpiredActivityRunsTx(ctx, tx, fluctlightID, at)
+		}); err != nil {
+			return nil, err
+		}
+	}
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.id,r.profile_id,r.kind,r.status,COALESCE(r.intention_id,''),r.started_at,r.not_before,r.result_json FROM public.fluctlight_life_activity_runs r WHERE r.fluctlight_id=$1 AND r.status IN ('scheduled','in_progress','deferred') AND r.active_until>$2 AND (r.authority_event_id IS NULL OR EXISTS(SELECT 1 FROM public.life_events e WHERE e.id=r.authority_event_id AND e.fluctlight_id=r.fluctlight_id AND e.status IN ('confirmed','inferred') AND e.start_at<=$2 AND e.end_at>$2 AND (e.expires_at IS NULL OR e.expires_at>$2))) ORDER BY r.not_before,r.id LIMIT 12`, fluctlightID, at)
 	if err != nil {
 		return nil, err
 	}

@@ -99,6 +99,87 @@ func visualIdentityAcceptedReview() map[string]any {
 	}
 }
 
+func TestVisualIdentityCommitReviewNormalizesBoundedObservations(t *testing.T) {
+	for _, item := range []struct {
+		name         string
+		observations any
+		want         []string
+	}{
+		{"object", map[string]any{"face": "正侧背视图保持同一张脸", "layout": "缺少配饰细节"}, []string{"face: 正侧背视图保持同一张脸", "layout: 缺少配饰细节"}},
+		{"text", "正侧背视图保持同一张脸", []string{"正侧背视图保持同一张脸"}},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			fixture := newVisualIdentityToolFixture(t)
+			generated := fixture.generateCandidate(t, "visual-review-generate-"+item.name)
+			fixture.makeCurrentCandidateReady(t, stringValue(mapValue(generated.Result.Output)["media_intent_id"]))
+			review := map[string]any{
+				"decision": "regenerate", "identity_match": 0.3, "confidence": 0.9,
+				"observations": item.observations, "missing_sections": []any{"配饰细节"},
+				"summary": "需要再次生成", "feedback": "补齐配饰细节",
+			}
+			receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(visualIdentityCommitReviewCapabilityName, "visual-review-normalize-"+item.name, review))
+			if err != nil || receipt.Result.Status != "completed" {
+				t.Fatalf("review receipt=%#v err=%v", receipt, err)
+			}
+			var stored []byte
+			if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT vision_result FROM public.fluctlight_visual_identity_attempts WHERE session_id=$1 AND attempt_number=1`, fixture.sessionID).Scan(&stored); err != nil {
+				t.Fatal(err)
+			}
+			observed := arrayValue(decodeObject(stored)["observations"])
+			if len(observed) != len(item.want) {
+				t.Fatalf("observations=%#v want=%#v", observed, item.want)
+			}
+			for index, want := range item.want {
+				if stringValue(observed[index]) != want {
+					t.Fatalf("observation %d=%q want=%q", index, stringValue(observed[index]), want)
+				}
+			}
+		})
+	}
+}
+
+func TestVisualIdentityToolProgressCountsOnlyCommittedReview(t *testing.T) {
+	trace := &ADKCapabilityTrace{}
+	for _, id := range []string{"bad-shape", "corrected"} {
+		trace.AppendInvocation(CapabilityInvocation{CallID: id, CapabilityName: visualIdentityCommitReviewCapabilityName})
+	}
+	trace.AppendResult(CapabilityResult{CallID: "bad-shape", CapabilityName: visualIdentityCommitReviewCapabilityName, Status: "failed", ErrorCode: "invalid_arguments"})
+	trace.AppendResult(CapabilityResult{CallID: "corrected", CapabilityName: visualIdentityCommitReviewCapabilityName, Status: "completed"})
+	if err := validateVisualIdentityAgentToolProgress(visualIdentityCommitReviewCapabilityName, trace); err != nil {
+		t.Fatalf("corrected review should satisfy one committed progress step: %v", err)
+	}
+	trace.AppendInvocation(CapabilityInvocation{CallID: "replayed-review", CapabilityName: visualIdentityCommitReviewCapabilityName})
+	trace.AppendResult(CapabilityResult{CallID: "replayed-review", CapabilityName: visualIdentityCommitReviewCapabilityName, Status: "completed", Output: map[string]any{"replayed": true}})
+	if err := validateVisualIdentityAgentToolProgress(visualIdentityCommitReviewCapabilityName, trace); err != nil {
+		t.Fatalf("replay should not count as another committed review: %v", err)
+	}
+	trace.AppendInvocation(CapabilityInvocation{CallID: "second-commit", CapabilityName: visualIdentityCommitReviewCapabilityName})
+	trace.AppendResult(CapabilityResult{CallID: "second-commit", CapabilityName: visualIdentityCommitReviewCapabilityName, Status: "completed"})
+	if err := validateVisualIdentityAgentToolProgress(visualIdentityCommitReviewCapabilityName, trace); err == nil {
+		t.Fatal("two committed reviews must not satisfy one checkpoint")
+	}
+}
+
+func TestNormalizeVisualIdentityObservationsRejectsUninterpretableOrUnboundedValues(t *testing.T) {
+	for _, item := range []struct {
+		name  string
+		value any
+	}{
+		{"empty object", map[string]any{}},
+		{"nested object", map[string]any{"face": map[string]any{"front": "same"}}},
+		{"non-text item", []any{"same face", 2}},
+		{"empty text", "  "},
+		{"overlong text", strings.Repeat("a", 501)},
+		{"empty grouped list", map[string]any{"face": []any{}}},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			if result, err := normalizeVisualIdentityObservations(item.value); err == nil || result != nil {
+				t.Fatalf("uninterpretable observations accepted: result=%#v err=%v", result, err)
+			}
+		})
+	}
+}
+
 func TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays(t *testing.T) {
 	fixture := newVisualIdentityToolFixture(t)
 	invalidTarget := fixture.request(visualIdentityGenerateCandidateCapabilityName, "visual-generate-invalid-target", map[string]any{"reason": "initial"})
@@ -435,8 +516,10 @@ func TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical(t *testing.T
 	}
 
 	review := visualIdentityAcceptedReview()
+	invalidReview := cloneMap(review)
+	invalidReview["observations"] = 42
 	var mu sync.Mutex
-	requests := make([]string, 0, 2)
+	requests := make([]string, 0, 3)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		defer request.Body.Close()
 		var payload map[string]any
@@ -453,7 +536,15 @@ func TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical(t *testing.T
 		if sequence == 1 {
 			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{
 				"finish_reason": "tool_calls", "message": map[string]any{"role": "assistant", "content": "", "tool_calls": []any{map[string]any{
-					"id": "visual-review-call", "type": "function", "function": map[string]any{"name": visualIdentityCommitReviewCapabilityName, "arguments": jsonString(review)},
+					"id": "visual-review-invalid", "type": "function", "function": map[string]any{"name": visualIdentityCommitReviewCapabilityName, "arguments": jsonString(invalidReview)},
+				}}},
+			}}})
+			return
+		}
+		if sequence == 2 {
+			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{
+				"finish_reason": "tool_calls", "message": map[string]any{"role": "assistant", "content": "", "tool_calls": []any{map[string]any{
+					"id": "visual-review-corrected", "type": "function", "function": map[string]any{"name": visualIdentityCommitReviewCapabilityName, "arguments": jsonString(review)},
 				}}},
 			}}})
 			return
@@ -504,11 +595,14 @@ func TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical(t *testing.T
 	encodedPNG := base64.StdEncoding.EncodeToString(pngBytes)
 	mu.Lock()
 	defer mu.Unlock()
-	if len(requests) != 2 || !strings.Contains(requests[0], "data:image/png;base64,"+encodedPNG) {
+	if len(requests) != 3 || !strings.Contains(requests[0], "data:image/png;base64,"+encodedPNG) {
 		t.Fatalf("first formal model request did not carry the actual object bytes; requests=%d", len(requests))
 	}
-	if !strings.Contains(requests[1], result.CharacterMediaIntentID) || !strings.Contains(requests[1], visualIdentityCommitReviewCapabilityName) {
-		t.Fatalf("second formal model request did not carry the committed review receipt")
+	if !strings.Contains(requests[1], "invalid_arguments") || !strings.Contains(requests[1], "observations") {
+		t.Fatalf("second formal model request did not receive correctable schema feedback")
+	}
+	if !strings.Contains(requests[2], result.CharacterMediaIntentID) || !strings.Contains(requests[2], visualIdentityCommitReviewCapabilityName) {
+		t.Fatalf("third formal model request did not carry the committed review receipt")
 	}
 	var canonicalID string
 	var revision int

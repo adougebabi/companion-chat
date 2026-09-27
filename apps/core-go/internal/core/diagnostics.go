@@ -122,6 +122,26 @@ func boundedPromptDiagnostics(trace map[string]any) map[string]any {
 		case map[string]any:
 			result := make(map[string]any, len(typed))
 			for key, child := range typed {
+				if strings.EqualFold(strings.ReplaceAll(key, "_", ""), "sourcerefs") {
+					refs := arrayValue(child)
+					boundedRefs := make([]any, 0, min(len(refs), 64))
+					for index, raw := range refs {
+						if index >= 64 {
+							break
+						}
+						ref := strings.TrimSpace(stringValue(raw))
+						if ref == "" {
+							continue
+						}
+						kind, _, _ := strings.Cut(ref, ":")
+						if kind == "" {
+							kind = "source"
+						}
+						boundedRefs = append(boundedRefs, kind+":diag_"+stableDigest(ref))
+					}
+					result[key] = boundedRefs
+					continue
+				}
 				result[key] = bound(child)
 			}
 			return result
@@ -241,7 +261,7 @@ func providerPriority(scenario string) int {
 var diagnosticSecretKeys = map[string]struct{}{
 	"token": {}, "password": {}, "secret": {}, "credential": {}, "authorization": {},
 	"apikey": {}, "api_key": {}, "cookie": {}, "session": {}, "servicekey": {},
-	"rawprompt": {}, "rawresponse": {}, "reasoning": {}, "hiddenreasoning": {},
+	"rawprompt": {}, "rawresponse": {}, "reasoning": {}, "reasoningcontent": {}, "hiddenreasoning": {}, "arguments": {},
 }
 
 func diagnosticCorrelation(messages []map[string]any, fallback string) string {

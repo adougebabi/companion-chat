@@ -190,6 +190,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	}
 	participantRows.Close()
 	query := `SELECT m.id, m.conversation_id, m.sequence, m.author_actor_id, m.kind, m.text, m.attachment_refs, m.created_at,
+		m.sender_timezone,m.sender_utc_offset_minutes,m.sender_sent_at,
 		COALESCE(m.turn_id,''), COALESCE(m.idempotency_key,''), COALESCE(i.status,''), COALESCE(i.error_code,''),COALESCE(w.status,''),
 		CASE WHEN m.kind='user' AND m.turn_id IS NOT NULL THEN EXISTS(
 			SELECT 1 FROM public.conversation_messages a
@@ -215,7 +216,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 		var attachmentJSON []byte
 		var inboxStatus, inboxError, workflowStatus string
 		var assistantExists bool
-		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &assistantExists); err != nil {
+		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.SenderTimezone, &item.SenderUTCOffsetMinutes, &item.SenderSentAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &assistantExists); err != nil {
 			return ConversationPage{}, fmt.Errorf("scan Core message: %w", err)
 		}
 		if item.Kind == "user" && item.TurnID != "" {

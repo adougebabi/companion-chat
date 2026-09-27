@@ -49,6 +49,12 @@ still use it. Embedding remains model infrastructure rather than an Agent.
 - Initial projection is a bounded snapshot, not a promise that later Tool writes
   never happen. Committed results and later queries update the facts used by
   subsequent decisions. Keep real query/result/model-request correlation.
+- Provider-facing opaque refs are filtered by both surface and frozen
+  `ContextReferenceKind`. In ordinary Conversation/Takeover context, retain
+  Memory/Active Memory update targets and one Life Context causal anchor;
+  nested Scene/Schedule/Schedule Item/Presence refs remain Core-side unless the
+  surface explicitly admits those kinds. A valid token of the wrong kind is
+  not a valid ref for another field.
 - No-tool completion is valid. Read, write, mixed and multiple Tool batches may
   continue normally. Model errors and cancellation are errors, never inferred
   completion. Only the actual final assistant result is decoded against the

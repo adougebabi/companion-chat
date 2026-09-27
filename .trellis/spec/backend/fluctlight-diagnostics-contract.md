@@ -185,6 +185,10 @@ return result
   ranking reasons/components, and optional continuation phase. Credentials,
   raw prompt/response keys, reasoning/perception/appraisal, image data, and
   Core-only raw IDs are redacted or omitted.
+- Summary source refs and Recent message refs may be needed internally for
+  prompt deduplication, but any `source_refs` copied into Owner diagnostics
+  must use a stable kind-preserving `*:diag_<digest>` token. Raw `message:<id>`
+  or other Core entity identifiers must not be persisted in prompt traces.
 - The ordinary ModelRuns API keeps its existing small projection and does not
   expose the new prompt metrics or Fluctlight scope. Clear/prune still includes
   `diagnostic_model_runs` as operational data.
@@ -286,6 +290,52 @@ WHERE role=$2::varchar(64)
 - Assert two ADK generations retain distinct request/attempt identities while
   sharing one logical correlation, and that failed/cancelled generations have
   terminal diagnostics without fabricated success.
+
+## Scenario: Owner ADK Physical Round Display
+
+### 1. Scope / Trigger
+
+- Trigger: one ADK logical run makes several physical model calls around Tool requests and results; the Owner opens Model Runs.
+
+### 2. Signatures
+
+```text
+ModelRunsFiltered row += logical_run_id, model_call_id, sequence?, round_count,
+  stage: tool_request | final_response | failed | cancelled | timeout | pending | unknown,
+  tool_summaries: [{call_id, capability, status, error_code?}] // max 32
+```
+
+### 3. Contracts
+
+- Each physical `diagnostic_model_runs` row keeps its own Prompt/Response. `metrics.run_id` groups rows and `metrics.model_call_id` joins bounded `adk.model.input/output` and `adk.tool.*` events. The Core reader derives sequence and stage; the browser only groups and sorts. A completed output with ToolCall IDs is an intermediate request; only a completed output with zero ToolCalls is a final model answer.
+- Missing events on old rows mean `unknown` stage/sequence; stable queued-at/id ordering is labelled as unknown rather than inventing a final answer. A page cut within a logical run reports its full round count.
+- Tool summaries expose only call identity, capability, status and safe error code. Model Prompt/Response, including the nested media-prompt model-run view, are redacted on write *and read* so historical `reasoning_content` and `tool_calls[].function.arguments` cannot leak. Diagnostics timestamps use the Owner's current viewing IANA zone and show its name; chat messages keep their own sender-time provenance.
+- Public chat NDJSON continues to emit only committed visible messages, never physical intermediate responses.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Output contains ToolCall IDs | Stage `tool_request`, not final reply. |
+| Physical row is failed/cancelled/timeout or lacks Response | Display its actual status and no copied Response. |
+| Old row has no model-call event | Stage/sequence `unknown`. |
+| Tool payload contains arguments/reasoning | Redact before storage and on Owner read; never include in summary. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a two-call run displays “第 1/2 次 · 请求 Tool” then its safe Tool result, followed by “第 2/2 次 · 最终模型回答.”
+- Base: an old row says “轮次未知（旧记录）”.
+- Bad: flattening both rows under identical “认知判断” titles or showing hidden reasoning in raw Response.
+
+### 6. Tests Required
+
+- PostgreSQL: two physical rows and Tool events preserve distinct responses, sequence/stage, bounded safe summary, and full group count; failure and old-row cases do not fabricate final output.
+- BFF: explicit snake_case↔camelCase mapping omits arguments/digests. Browser: group ordering, missing Response, time-zone labels and no public-chat trace insertion.
+
+### 7. Wrong vs Correct
+
+Wrong: treat every `status='completed'` model run as the final answer.
+Correct: derive `tool_request` from that call's output ToolCall IDs and `final_response` only from its completed no-Tool output event.
 
 ## Scenario: ADK Run/Tool/Input Correlation Export
 

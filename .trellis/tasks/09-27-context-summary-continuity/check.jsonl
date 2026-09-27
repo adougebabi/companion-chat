@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend quality checklist"}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"Check ref safety and history coverage"}
+{"file":".trellis/spec/backend/structured-turn-contract.md","reason":"Check prompt and conversation settlement"}
+{"file":".trellis/tasks/09-27-context-summary-continuity/research/coverage-and-ref-audit.md","reason":"Verify selected-summary provenance and raw budget behavior"}

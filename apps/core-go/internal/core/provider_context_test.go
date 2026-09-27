@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -705,6 +706,155 @@ func TestRecentPromptFragmentsUseRealRolesAndSkipCurrentInput(t *testing.T) {
 	}
 	if !strings.Contains(stringValue(mapValue(fragments[0].Content)["content"]), "sender=actor_user") || !strings.Contains(stringValue(mapValue(fragments[1].Content)["content"]), "sender=摇光") {
 		t.Fatalf("sender semantics missing: %#v", fragments)
+	}
+}
+
+func TestRecentHistoryBridgesSummaryCoverageBeforeTokenBudget(t *testing.T) {
+	messages := make([]map[string]any, 0, 65)
+	for sequence := 1; sequence <= 64; sequence++ {
+		role := "user"
+		if sequence%2 == 0 {
+			role = "assistant"
+		}
+		messages = append(messages, map[string]any{
+			"id": fmt.Sprintf("message-%d", sequence), "sequence": sequence,
+			"turn_id": fmt.Sprintf("turn-%d", (sequence+1)/2), "kind": role,
+			"text": fmt.Sprintf("短消息 %d", sequence), "created_at": "2026-09-27T08:00:00Z",
+		})
+	}
+	messages = append(messages, map[string]any{"id": "current", "sequence": 65, "kind": "user", "text": "当前输入"})
+	projection := ContextProjection{CurrentUserText: "当前输入", RecentMessages: messages}
+	if pending := recentPromptFragments(projection); len(pending) != 64 {
+		t.Fatalf("pending summary left only %d raw messages, want all 64", len(pending))
+	}
+	sourceRefs := make([]any, 0, 40)
+	for sequence := 1; sequence <= 40; sequence++ {
+		sourceRefs = append(sourceRefs, fmt.Sprintf("message:message-%d", sequence))
+	}
+	summaries := []map[string]any{{"summary": "前 40 条对话摘要", "from_sequence": 1, "to_sequence": 40, "source_message_refs": sourceRefs}}
+	input := workingMemoryInputFromProjectionForSurface(projection, ProviderContextSurfaceConversationMain, nil, summaries)
+	if len(input.RecentMessages) != 64 {
+		t.Fatalf("working memory should receive all bounded raw candidates before summary selection: %d", len(input.RecentMessages))
+	}
+	working, err := ResolveWorkingMemory(input, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(working.Recent) != 64 || len(working.Summaries) != 1 {
+		t.Fatalf("raw fallback must survive until final summary admission: recent=%d summaries=%d trace=%#v", len(working.Recent), len(working.Summaries), working.Trace)
+	}
+	assembled, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: working, CurrentInput: "当前输入", Policy: DefaultPromptBudgetPolicy(4096)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	selectedRecent := make([]string, 0)
+	for _, decision := range assembled.Trace.Selected {
+		if decision.Kind == PromptFragmentRecentMessage {
+			selectedRecent = append(selectedRecent, decision.SourceRefs[0])
+		}
+	}
+	if len(selectedRecent) != 24 || selectedRecent[0] != "message:message-41" || selectedRecent[23] != "message:message-64" {
+		t.Fatalf("final summary/raw boundary lost messages 41–64: %#v", selectedRecent)
+	}
+	withoutSummaryBudget := DefaultWorkingMemoryPolicy()
+	withoutSummaryBudget.SummaryTokens = 1
+	fallback, err := ResolveWorkingMemory(input, withoutSummaryBudget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fallback.Summaries) != 0 || len(fallback.Recent) != 64 {
+		t.Fatalf("budget-dropped summary must leave its raw sources eligible: recent=%d summaries=%d trace=%#v", len(fallback.Recent), len(fallback.Summaries), fallback.Trace)
+	}
+	if len(fallback.Trace.Dropped) != 1 || fallback.Trace.Dropped[0].Kind != PromptFragmentSummary || fallback.Trace.Dropped[0].Reason != "section_cap" {
+		t.Fatalf("summary section-budget drop lacks an exact trace reason: %#v", fallback.Trace.Dropped)
+	}
+	boundedPolicy := DefaultWorkingMemoryPolicy()
+	boundedPolicy.RecentTokens = 1500
+	bounded, err := ResolveWorkingMemory(input, boundedPolicy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bounded.Recent) <= 8 || len(bounded.Trace.Dropped) == 0 || bounded.Trace.Dropped[0].Reason != "section_cap" {
+		t.Fatalf("default budget must explain its raw-history cut: recent=%d trace=%#v", len(bounded.Recent), bounded.Trace)
+	}
+}
+
+func TestRecentPromptFragmentsDoNotDropOlderRepeatedUserText(t *testing.T) {
+	projection := ContextProjection{CurrentUserText: "再说一次", RecentMessages: []map[string]any{
+		{"id": "earlier-user", "sequence": 1, "kind": "user", "text": "再说一次"},
+		{"id": "earlier-assistant", "sequence": 2, "kind": "assistant", "text": "好的"},
+	}}
+	if fragments := recentPromptFragments(projection); len(fragments) != 2 {
+		t.Fatalf("historical repeated text was mistaken for current input: %#v", fragments)
+	}
+}
+
+func TestRecentPromptFragmentsSkipCurrentInputBeforeSameTurnReply(t *testing.T) {
+	projection := ContextProjection{CurrentUserText: "当前输入", RecentMessages: []map[string]any{
+		{"id": "previous-user", "sequence": 1, "turn_id": "turn-1", "kind": "user", "text": "上一轮"},
+		{"id": "previous-assistant", "sequence": 2, "turn_id": "turn-1", "kind": "assistant", "text": "上一轮回复"},
+		{"id": "current-user", "sequence": 3, "turn_id": "turn-2", "kind": "user", "text": "当前输入"},
+		{"id": "published-assistant", "sequence": 4, "turn_id": "turn-2", "kind": "assistant", "text": "已经由工具发布"},
+	}}
+	fragments := recentPromptFragments(projection)
+	if len(fragments) != 3 {
+		t.Fatalf("current input was duplicated after same-turn reply: %#v", fragments)
+	}
+	for _, fragment := range fragments {
+		if fragment.SourceRefs[0] == "message:current-user" {
+			t.Fatalf("current input remained in recent history: %#v", fragments)
+		}
+	}
+	if fragments[2].SourceRefs[0] != "message:published-assistant" {
+		t.Fatalf("same-turn published reply was lost: %#v", fragments)
+	}
+}
+
+func TestConversationLifeContextFiltersValidNestedRefsByKind(t *testing.T) {
+	refs := map[string]ContextReference{}
+	for _, item := range []struct {
+		ref  string
+		kind ContextReferenceKind
+	}{
+		{"life_context:ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ContextReferenceLifeContext},
+		{"scene:ctx_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", ContextReferenceScene},
+		{"schedule:ctx_cccccccccccccccccccccccccccccccc", ContextReferenceSchedule},
+		{"schedule_item:ctx_dddddddddddddddddddddddddddddddd", ContextReferenceScheduleItem},
+		{"presence:ctx_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", ContextReferencePresence},
+	} {
+		refs[item.ref] = ContextReference{Ref: item.ref, Kind: item.kind}
+	}
+	index := ContextReferenceIndex{ByRef: refs}
+	life := map[string]any{
+		"ref":               "life_context:ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		"event_ref":         "scene:ctx_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		"schedule_ref":      "schedule:ctx_cccccccccccccccccccccccccccccccc",
+		"schedule_item_ref": "schedule_item:ctx_dddddddddddddddddddddddddddddddd",
+		"presence_ref":      "presence:ctx_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+		"scene":             "书房", "presence": map[string]any{"ref": "presence:ctx_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "current_task": "阅读"},
+	}
+	main := compactLifeContextForSurface(life, index, ProviderContextSurfaceConversationMain)
+	if main["ref"] != life["ref"] || main["scene"] != "书房" || mapValue(main["presence"])["current_task"] != "阅读" {
+		t.Fatalf("conversation lost current life semantics: %#v", main)
+	}
+	for _, key := range []string{"event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
+		if _, exists := main[key]; exists {
+			t.Fatalf("conversation leaked nested %s: %#v", key, main)
+		}
+	}
+	if _, exists := mapValue(main["presence"])["ref"]; exists {
+		t.Fatalf("conversation leaked nested presence ref: %#v", main)
+	}
+	wake := compactLifeContextForSurface(life, index, ProviderContextSurfaceWakeUp)
+	for _, key := range []string{"ref", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
+		if wake[key] != life[key] {
+			t.Fatalf("wake-up lost %s: %#v", key, wake)
+		}
+	}
+	life["schedule_ref"] = life["ref"]
+	wake = compactLifeContextForSurface(life, index, ProviderContextSurfaceWakeUp)
+	if _, exists := wake["schedule_ref"]; exists {
+		t.Fatalf("wrong-kind schedule ref crossed Provider boundary: %#v", wake)
 	}
 }
 

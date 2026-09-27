@@ -495,7 +495,18 @@ func CurrentDayScheduleWorkflow(ctx workflow.Context, input Input) (map[string]a
 	// activity supplies the canonical timezone; workflow.Now is deterministic
 	// and the timer survives Worker restarts without wall-clock calls in the
 	// workflow body.
-	delay := nextLocalMidnightDelay(workflow.Now(ctx), stringValue(result["timezone"]))
+	timezone := stringValue(result["timezone"])
+	// Older histories can replay the former 24-hour fallback. New cycles fail
+	// visibly instead of silently drifting when an activity loses its timezone.
+	if workflow.GetVersion(ctx, "schedule-midnight-timezone-required", workflow.DefaultVersion, 1) != workflow.DefaultVersion {
+		if strings.TrimSpace(timezone) == "" {
+			return nil, errors.New("schedule_timezone_missing")
+		}
+		if _, err := time.LoadLocation(timezone); err != nil {
+			return nil, fmt.Errorf("schedule_timezone_invalid: %w", err)
+		}
+	}
+	delay := nextLocalMidnightDelay(workflow.Now(ctx), timezone)
 	if err := workflow.Sleep(ctx, delay); err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"strings"
 	"testing"
 )
 
@@ -71,8 +70,9 @@ func TestCommittedReplySurvivesInvalidFinalAndFailedRunDoesNotReplay(t *testing.
 		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "invalid", "influences": []any{}, "legacy_candidate": "不得回退"}}
 	})
 	app := newTestApp(t, repository, router)
-	if _, err := app.HandleTurn(ctx, ownerID, conversationID, payload); err == nil || !strings.Contains(err.Error(), "adk_final_output_invalid") {
-		t.Fatalf("invalid final error=%v", err)
+	first, err := app.HandleTurn(ctx, ownerID, conversationID, payload)
+	if err != nil || stringValue(first.Assistant["text"]) != "已经真实提交" {
+		t.Fatalf("committed reply was lost after invalid final: reply=%#v err=%v", first.Assistant, err)
 	}
 	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text='已经真实提交'`, conversationID); count != 1 {
 		t.Fatalf("committed reply count=%d", count)
@@ -81,8 +81,9 @@ func TestCommittedReplySurvivesInvalidFinalAndFailedRunDoesNotReplay(t *testing.
 		t.Fatal("failed run replay reached Provider")
 		return fakeProviderResult{Status: 500}
 	})
-	if _, err := newTestApp(t, repository, replayRouter).HandleTurn(ctx, ownerID, conversationID, payload); err == nil {
-		t.Fatal("failed run replay was reported as success")
+	replayed, err := newTestApp(t, repository, replayRouter).HandleTurn(ctx, ownerID, conversationID, payload)
+	if err != nil || stringValue(replayed.Assistant["id"]) != stringValue(first.Assistant["id"]) {
+		t.Fatalf("committed reply was not replayed consistently: reply=%#v err=%v", replayed.Assistant, err)
 	}
 	if replayRouter.totalRequests() != 0 {
 		t.Fatalf("failed run replay made %d Provider requests", replayRouter.totalRequests())

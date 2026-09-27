@@ -63,7 +63,7 @@ type WorkingMemory struct {
 }
 
 func DefaultWorkingMemoryPolicy() WorkingMemoryPolicy {
-	return WorkingMemoryPolicy{RuntimeFactTokens: 6144, ActiveTokens: 2048, ResidentTokens: 1024, RecentTokens: 1500, RetrievedTokens: 3072, SummaryTokens: 2048}
+	return WorkingMemoryPolicy{RuntimeFactTokens: 6144, ActiveTokens: 2048, ResidentTokens: 1024, RecentTokens: 8192, RetrievedTokens: 3072, SummaryTokens: 2048}
 }
 
 func ResolveWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy) (WorkingMemory, error) {
@@ -85,15 +85,25 @@ func ResolveWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy) 
 	if err != nil {
 		return WorkingMemory{}, err
 	}
-	result.Recent, err = selectRecentPromptFragments(input.RecentMessages, policy.RecentTokens, seen, &result.Trace)
+	recentSeen := make(map[string]struct{}, len(seen))
+	for ref := range seen {
+		recentSeen[ref] = struct{}{}
+	}
+	// A selected Episode covers its original message refs. Select summaries
+	// before raw turns, but preserve covered raw candidates until the final
+	// Prompt assembler knows whether the Summary fits the total wire budget.
+	result.Summaries, err = selectRankedPromptFragments(input.Summaries, policy.SummaryTokens, seen, &result.Trace)
 	if err != nil {
 		return WorkingMemory{}, err
+	}
+	result.Recent, err = selectRecentPromptFragments(input.RecentMessages, policy.RecentTokens, recentSeen, &result.Trace)
+	if err != nil {
+		return WorkingMemory{}, err
+	}
+	for ref := range recentSeen {
+		seen[ref] = struct{}{}
 	}
 	result.Retrieved, err = selectRankedPromptFragments(input.RetrievedMemories, policy.RetrievedTokens, seen, &result.Trace)
-	if err != nil {
-		return WorkingMemory{}, err
-	}
-	result.Summaries, err = selectRankedPromptFragments(input.Summaries, policy.SummaryTokens, seen, &result.Trace)
 	if err != nil {
 		return WorkingMemory{}, err
 	}
@@ -196,6 +206,7 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 	}
 	selectedGroups := make([]group, 0, len(groups))
 	used := 0
+	budgetGap := false
 	for index := len(groups) - 1; index >= 0; index-- {
 		value := groups[index]
 		reason := ""
@@ -205,8 +216,13 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 				break
 			}
 		}
-		if reason == "" && used+value.tokens > capTokens {
-			reason = "section_cap"
+		if reason == "" {
+			if budgetGap {
+				reason = "recent_contiguity_excluded"
+			} else if used+value.tokens > capTokens {
+				reason = "section_cap"
+				budgetGap = true
+			}
 		}
 		if reason != "" {
 			for _, fragment := range value.fragments {

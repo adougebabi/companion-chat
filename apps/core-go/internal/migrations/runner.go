@@ -12,7 +12,9 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0038_scheduled_actions"
+const Head = "0040_activity_authority"
+const ActivityAuthorityPreviousHead = "0039_message_time"
+const MessageTimePreviousHead = "0038_scheduled_actions"
 const PreviousHead = "0036_effective_life"
 const MemoryProvenanceHead = "0037_memory_provenance"
 const ScheduledActionPreviousHead = MemoryProvenanceHead
@@ -88,7 +90,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead {
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -161,6 +163,12 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, scheduledLifeActionSchemaSQL); err != nil {
 		return fmt.Errorf("apply scheduled life action schema: %w", err)
 	}
+	if _, err := tx.Exec(ctx, messageTimeSchemaSQL); err != nil {
+		return fmt.Errorf("apply message time schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, activityAuthoritySchemaSQL); err != nil {
+		return fmt.Errorf("apply activity authority schema: %w", err)
+	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {
 			return err
@@ -187,6 +195,27 @@ DO $$ BEGIN
     ALTER TABLE public.life_schedule_items ADD CONSTRAINT ck_schedule_item_action_link CHECK (((intention_id IS NULL) = (action_plan IS NULL)) AND (action_plan IS NULL OR (jsonb_typeof(action_plan)='object' AND action_plan->>'capability'='life.activity.start')));
   END IF;
 END $$;
+`
+
+const messageTimeSchemaSQL = `
+ALTER TABLE public.conversation_messages ADD COLUMN IF NOT EXISTS sender_timezone varchar(128);
+ALTER TABLE public.conversation_messages ADD COLUMN IF NOT EXISTS sender_utc_offset_minutes integer;
+ALTER TABLE public.conversation_messages ADD COLUMN IF NOT EXISTS sender_sent_at timestamptz;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.conversation_messages'::regclass AND conname='ck_conversation_message_sender_time') THEN
+    ALTER TABLE public.conversation_messages ADD CONSTRAINT ck_conversation_message_sender_time
+      CHECK ((sender_timezone IS NULL AND sender_utc_offset_minutes IS NULL AND sender_sent_at IS NULL)
+          OR (sender_timezone IS NOT NULL AND sender_utc_offset_minutes BETWEEN -840 AND 840 AND sender_sent_at IS NOT NULL));
+  END IF;
+END $$;
+`
+
+const activityAuthoritySchemaSQL = `
+ALTER TABLE public.fluctlight_life_activity_runs ADD COLUMN IF NOT EXISTS authority_event_id varchar(128);
+ALTER TABLE public.fluctlight_life_activity_runs ADD COLUMN IF NOT EXISTS active_until timestamptz;
+UPDATE public.fluctlight_life_activity_runs SET active_until=not_before
+  WHERE active_until IS NULL AND status IN ('scheduled','in_progress','deferred');
+CREATE INDEX IF NOT EXISTS ix_life_activity_authority ON public.fluctlight_life_activity_runs(authority_event_id,status,active_until);
 `
 
 // schemaSQL contains the authoritative tables needed by the Go Core.  It is

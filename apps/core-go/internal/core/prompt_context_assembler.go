@@ -17,7 +17,7 @@ const (
 	defaultPromptSafetyMarginTokens = 4096
 	promptBudgetPolicyVersionV1     = "prompt-budget.v1"
 	defaultSystemTokensCap          = 16384
-	defaultToolsSchemaTokensCap     = 28672
+	defaultToolsSchemaTokensCap     = 29696
 	defaultCurrentInputTokensCap    = 16384
 	defaultPromptImageTokens        = 1536
 	defaultPromptLowDetailImage     = 85
@@ -330,14 +330,40 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		return units[i].last < units[j].last
 	})
 	recentGap := false
+	summarizedSources := make(map[string]struct{})
 	for _, unit := range units {
 		reason := "budget_excluded"
-		if unit.kind == PromptFragmentRecentMessage && recentGap {
+		summarized := unit.kind == PromptFragmentRecentMessage && len(unit.items) > 0
+		if unit.kind == PromptFragmentRecentMessage {
+			for _, candidate := range unit.items {
+				coveredFragment := false
+				for _, ref := range candidate.fragment.SourceRefs {
+					if _, covered := summarizedSources[ref]; covered {
+						coveredFragment = true
+						break
+					}
+				}
+				if !coveredFragment {
+					summarized = false
+					break
+				}
+			}
+		}
+		if summarized {
+			reason = "summarized_source"
+		} else if unit.kind == PromptFragmentRecentMessage && recentGap {
 			reason = "recent_contiguity_excluded"
 		} else {
 			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
 			if estimatePromptWireInput(assemblePromptMessages(system, current, trial), input.Tools, input.ResponseFormat) <= input.Policy.MaxInputTokens {
 				selected = append(selected, unit.items...)
+				if unit.kind == PromptFragmentSummary {
+					for _, candidate := range unit.items {
+						for _, ref := range candidate.fragment.SourceRefs {
+							summarizedSources[ref] = struct{}{}
+						}
+					}
+				}
 				continue
 			}
 			if unit.kind == PromptFragmentRecentMessage {
@@ -371,6 +397,7 @@ func orderedPromptCandidates(candidates []promptOptionalCandidate) []promptOptio
 }
 
 func promptOptionalCandidates(memory WorkingMemory, currentInput string) ([]promptOptionalCandidate, error) {
+	skipRecentIndex := currentInputRecentFragmentIndex(memory.Recent, currentInput)
 	groups := []struct {
 		order int
 		items []PromptFragment
@@ -379,16 +406,13 @@ func promptOptionalCandidates(memory WorkingMemory, currentInput string) ([]prom
 	}
 	result := make([]promptOptionalCandidate, 0)
 	for _, group := range groups {
-		for _, fragment := range group.items {
+		for index, fragment := range group.items {
+			if group.order == 3 && index == skipRecentIndex {
+				continue
+			}
 			normalized, err := normalizePromptFragment(fragment)
 			if err != nil {
 				return nil, err
-			}
-			if normalized.Kind == PromptFragmentRecentMessage {
-				message := mapValue(normalized.Content)
-				if stringValue(message["role"]) == "user" && strings.TrimSpace(stringValue(message["content"])) == currentInput {
-					continue
-				}
 			}
 			unitKey := "fragment:" + strconv.Itoa(len(result))
 			if normalized.Kind == PromptFragmentRecentMessage {
@@ -410,6 +434,20 @@ func promptOptionalCandidates(memory WorkingMemory, currentInput string) ([]prom
 		return result[i].fragment.Priority > result[j].fragment.Priority
 	})
 	return result, nil
+}
+
+func currentInputRecentFragmentIndex(recent []PromptFragment, currentInput string) int {
+	last := len(recent) - 1
+	if last < 0 || strings.TrimSpace(currentInput) == "" {
+		return -1
+	}
+	lastMessage := mapValue(recent[last].Content)
+	if stringValue(lastMessage["role"]) == "user" && strings.TrimSpace(stringValue(lastMessage["content"])) == currentInput {
+		return last
+	}
+	// An earlier completed turn can have the same text. The projection builder
+	// owns the stronger same-turn check using the persisted turn_id.
+	return -1
 }
 
 func assemblePromptMessages(system, current map[string]any, selected []promptOptionalCandidate) []map[string]any {

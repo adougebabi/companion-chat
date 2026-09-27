@@ -65,6 +65,10 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	if err := validateVirtualActivityResult(kind, request, result); err != nil {
 		return failedCapabilityResult(invocation, "activity_result_invalid", false), err
 	}
+	businessCompleted := status == "completed" && (kind != "virtual_shopping" || len(mapValue(result["acquired_item"])) > 0)
+	if _, err := tx.Exec(ctx, `UPDATE public.life_events SET end_at=LEAST(end_at,$3),expires_at=$3,revision=revision+1,updated_at=$3 WHERE id=(SELECT authority_event_id FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2) AND fluctlight_id=$2 AND status IN ('confirmed','inferred')`, activityID, fluctlightID, now); err != nil {
+		return failedCapabilityResult(invocation, "activity_authority_end_failed", true), err
+	}
 	eventID := "life_event_" + stableDigest(activityID+"\x1fresult")
 	_, lifeBefore, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, now)
 	if err != nil {
@@ -87,11 +91,13 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	if status == "completed" {
 		switch kind {
 		case "virtual_shopping":
-			itemID, wardrobeRevision, err := grantVirtualPurchaseItemTx(ctx, tx, fluctlightID, eventID, mapValue(result["acquired_item"]))
-			if err != nil {
-				return failedCapabilityResult(invocation, "purchase_item_invalid", true), err
+			if acquired := mapValue(result["acquired_item"]); len(acquired) > 0 {
+				itemID, wardrobeRevision, err := grantVirtualPurchaseItemTx(ctx, tx, fluctlightID, eventID, acquired)
+				if err != nil {
+					return failedCapabilityResult(invocation, "purchase_item_invalid", true), err
+				}
+				output["item_id"], output["wardrobe_revision"] = itemID, wardrobeRevision
 			}
-			output["item_id"], output["wardrobe_revision"] = itemID, wardrobeRevision
 		case "haircut":
 			bodyRevision, err := applyHaircutResultTx(ctx, tx, fluctlightID, eventID, result)
 			if err != nil {
@@ -119,13 +125,18 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 		}
 		return failedCapabilityResult(invocation, "activity_settlement_conflict", true), err
 	}
-	settlement := map[string]any{"status": status, "resulting_state_ref": eventID, "reason_code": "virtual_activity_" + status}
+	settlementStatus := status
+	reasonCode := "virtual_activity_" + status
+	if status == "completed" && !businessCompleted {
+		settlementStatus, reasonCode = "failed", "virtual_activity_no_acquisition"
+	}
+	settlement := map[string]any{"status": settlementStatus, "resulting_state_ref": eventID, "reason_code": reasonCode}
 	outcomes, err := buildActionOutcomes(activityID, fluctlightID, eventID, kind, nil, settlement, nil)
 	if err != nil {
 		return failedCapabilityResult(invocation, "activity_outcome_invalid", true), err
 	}
 	var scheduledGoalID string
-	if status == "completed" && intentionID != "" && stringValue(request["schedule_item_id"]) != "" {
+	if businessCompleted && intentionID != "" && stringValue(request["schedule_item_id"]) != "" {
 		if err := tx.QueryRow(ctx, `SELECT COALESCE(goal_id,'') FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2`, intentionID, fluctlightID).Scan(&scheduledGoalID); err != nil {
 			return failedCapabilityResult(invocation, "activity_goal_read_failed", true), err
 		}
@@ -144,8 +155,8 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	if app != nil {
 		outcomeStatus := ActionOutcomeCompleted
 		errorCode := ""
-		if status == "failed" {
-			outcomeStatus, errorCode = ActionOutcomeFailed, "virtual_activity_failed"
+		if !businessCompleted {
+			outcomeStatus, errorCode = ActionOutcomeFailed, reasonCode
 		}
 		if _, err := app.settleActionOutcomeByExternalRefTx(ctx, tx, activityID, outcomeStatus,
 			map[string]any{"event_id": eventID, "resulting_state_ref": eventID}, errorCode); err != nil {
@@ -165,7 +176,7 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 			output["intention_id"] = intentionID
 		} else {
 			operation := IntentionRetry
-			if status == "completed" {
+			if businessCompleted {
 				operation = IntentionComplete
 			} else if stringValue(request["schedule_item_id"]) != "" {
 				operation = IntentionPause

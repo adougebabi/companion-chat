@@ -175,6 +175,16 @@ func TestPostgresConversationSummaryIntentIsStableChunkedAndRawPreserving(t *tes
 	if err != nil || len(selected.Items) != 1 || !strings.HasPrefix(stringValue(selected.Items[0]["ref"]), "summary:ctx_") || strings.Contains(jsonString(selected.Items), "summary-chunk-1") {
 		t.Fatalf("summary selection=%#v err=%v", selected, err)
 	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.conversation_summaries SET source_digest='stale-source-digest' WHERE id='summary-chunk-1'`); err != nil {
+		t.Fatal(err)
+	}
+	invalid, err := app.retrieveConversationSummaries(ctx, ConversationSummaryQuery{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID, Limit: 20, MaxRunes: 100})
+	if err != nil || len(invalid.Items) != 0 || len(invalid.Trace.Selections) != 1 || invalid.Trace.Selections[0].Reason != "source_invalid" {
+		t.Fatalf("invalid summary source trace=%#v err=%v", invalid, err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.conversation_summaries SET source_digest=$1 WHERE id='summary-chunk-1'`, stringValue(payload["source_digest"])); err != nil {
+		t.Fatal(err)
+	}
 	seedConversationSummaryMessages(t, ctx, repository, ownerID, fluctlightID, conversationID, 65, 104)
 	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
 		return app.enqueueConversationSummaryIntentTx(ctx, tx, fluctlightID, conversationID, "summary-message-104")

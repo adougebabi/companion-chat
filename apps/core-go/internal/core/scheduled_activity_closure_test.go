@@ -153,7 +153,7 @@ func TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody(t *te
 	}
 	activityID := stringValue(started["activity_id"])
 	_, currentLife, err = fixture.app.readLifeContextSnapshotAt(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
-	if err != nil || stringValue(currentLife["activity"]) != "去染发" {
+	if err != nil || stringValue(currentLife["source"]) != "event" || stringValue(currentLife["event_kind"]) != "life_activity" || stringValue(currentLife["schedule_item_id"]) != scheduledItemID || stringValue(currentLife["activity"]) != "去染发" || stringValue(currentLife["scene"]) != "理发店" {
 		t.Fatalf("started dye conflicts with current schedule context: life=%#v err=%v", currentLife, err)
 	}
 	if replay, err := fixture.app.ProcessIntentionTrigger(fixture.ctx, intentionID); err != nil || stringValue(replay["activity_id"]) != activityID {

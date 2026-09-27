@@ -44,13 +44,13 @@ func (a *App) WardrobeItems(ctx context.Context, actorID, fluctlightID, cursor s
 func wardrobeInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: wardrobeInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "Inspect recorded clothing items, saved outfits, or the actual current wearing state. A missing recorded item does not prove the whole wardrobe is complete.",
+		Description:   "Inspect recorded clothes, outfits or actual wearing. detail needs item_id; outfit_detail needs outfit_id. A missing item does not prove inventory complete.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
 			"operation": enumStringSchema("list", "detail", "wearing", "outfits", "outfit_detail"),
-			"item_id":   map[string]any{"type": "string", "maxLength": 128},
-			"outfit_id": map[string]any{"type": "string", "maxLength": 128},
+			"item_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+			"outfit_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"category":  map[string]any{"type": "string", "maxLength": 64},
 			"query":     map[string]any{"type": "string", "maxLength": 128},
 			"cursor":    map[string]any{"type": "string", "maxLength": 128},
@@ -75,6 +75,9 @@ func (c wardrobeInspectCapability) Execute(ctx context.Context, invocation Capab
 	}
 	output, err := c.service.inspectWardrobe(ctx, invocation.Metadata.FluctlightID, invocation.Metadata.WorkingProfileID, args)
 	if err != nil {
+		if errors.Is(err, ErrInvalidArguments) {
+			return failedCapabilityResultDetail(invocation, "invalid_arguments", false, "detail needs item_id; outfit_detail needs outfit_id"), err
+		}
 		if errors.Is(err, ErrNotFound) {
 			return failedCapabilityResultDetail(invocation, "wardrobe_item_not_found", false, "item is not in the recorded wardrobe"), err
 		}

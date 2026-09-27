@@ -8,6 +8,17 @@ import (
 	"time"
 )
 
+func TestLifeActivityAdvanceSchemaAllowsUniqueTargetInference(t *testing.T) {
+	advance := lifeActivityAdvanceDefinition()
+	if err := advance.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	withoutID := CapabilityInvocation{CallID: "advance-schema", CapabilityName: advance.Name, Arguments: jsonBytes(map[string]any{}), Metadata: InvocationMetadata{Source: "direct"}}
+	if err := withoutID.Validate(advance); err != nil {
+		t.Fatalf("unique active activity should allow an empty model argument object: %v", err)
+	}
+}
+
 func setupVirtualActivityTestProvider(t *testing.T, fixture independentToolE2EFixture, result map[string]any) *fakeProviderRouter {
 	t.Helper()
 	router := newFakeProviderRouter().on("virtual_activity_result", func(_ map[string]any) fakeProviderResult {
@@ -22,6 +33,106 @@ func forceVirtualActivityDue(t *testing.T, fixture independentToolE2EFixture, ac
 	t.Helper()
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_life_activity_runs SET started_at=now()-interval '20 minutes',not_before=now()-interval '1 minute' WHERE id=$1 AND fluctlight_id=$2`, activityID, fixture.fluctlightID); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestVirtualShoppingCanEndWithoutAcquiringAnItem(t *testing.T) {
+	fixture := seedWardrobeToolFixture(t)
+	intentionID := createQualifiedBootIntention(t, fixture, "window-shopping")
+	started, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "window-shopping", map[string]any{
+		"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴",
+		"scene": "商场", "activity": "逛服装店", "location": "商场二层", "reason": "看看衣服和鞋子",
+	}))
+	if err != nil || started.Result.Status != "accepted" {
+		t.Fatalf("start shopping: receipt=%#v err=%v", started, err)
+	}
+	activityID := stringValue(mapValue(started.Result.Output)["activity_id"])
+	eventID := stringValue(mapValue(started.Result.Output)["event_id"])
+	_, life, err := fixture.app.readLifeContextSnapshotAt(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
+	if err != nil || stringValue(life["event_id"]) != eventID || stringValue(life["scene"]) != "商场" || stringValue(life["activity"]) != "逛服装店" {
+		t.Fatalf("activity and scene did not start together: life=%#v err=%v", life, err)
+	}
+	forceVirtualActivityDue(t, fixture, activityID)
+	router := setupVirtualActivityTestProvider(t, fixture, map[string]any{"status": "completed", "reason": "逛完后决定暂时不买"})
+	resolved, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "window-shopping-end", map[string]any{"activity_id": activityID}))
+	if err != nil || resolved.Result.Status != "completed" || router.requestCount("virtual_activity_result") != 1 || stringValue(mapValue(resolved.Result.Output)["item_id"]) != "" {
+		t.Fatalf("shopping without acquisition should simply end: receipt=%#v err=%v", resolved, err)
+	}
+	var items int
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND source_kind='purchase_result'`, fixture.fluctlightID).Scan(&items); err != nil || items != 0 {
+		t.Fatalf("unconfirmed acquisition changed wardrobe: items=%d err=%v", items, err)
+	}
+	var intentionStatus string
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT status FROM public.fluctlight_intentions WHERE id=$1`, intentionID).Scan(&intentionStatus); err != nil || intentionStatus == string(IntentionCompleted) {
+		t.Fatalf("shopping without acquisition completed purchase intention: status=%s err=%v", intentionStatus, err)
+	}
+	_, life, err = fixture.app.readLifeContextSnapshotAt(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
+	if err != nil || stringValue(life["event_id"]) == eventID {
+		t.Fatalf("resolved activity still current: life=%#v err=%v", life, err)
+	}
+}
+
+func TestLifeActivityEventExpiryEndsRunWithoutAResultEffect(t *testing.T) {
+	fixture := seedWardrobeToolFixture(t)
+	started, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "expired-shopping", map[string]any{
+		"kind": "virtual_shopping", "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴",
+		"scene": "商场", "activity": "逛店", "reason": "临时出门",
+	}))
+	if err != nil || started.Result.Status != "accepted" {
+		t.Fatalf("start activity: receipt=%#v err=%v", started, err)
+	}
+	activityID := stringValue(mapValue(started.Result.Output)["activity_id"])
+	eventID := stringValue(mapValue(started.Result.Output)["event_id"])
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_events SET start_at=now()-interval '20 minutes',end_at=now()-interval '1 minute',expires_at=now()-interval '1 minute' WHERE id=$1`, eventID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_life_activity_runs SET started_at=now()-interval '20 minutes',not_before=now()-interval '1 minute',active_until=now()-interval '1 minute' WHERE id=$1`, activityID); err != nil {
+		t.Fatal(err)
+	}
+	activities, err := fixture.app.readActiveLifeActivities(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
+	if err != nil || len(activities) != 0 {
+		t.Fatalf("expired activity still projected as current: activities=%#v err=%v", activities, err)
+	}
+	var status string
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT status FROM public.fluctlight_life_activity_runs WHERE id=$1`, activityID).Scan(&status); err != nil || status != "cancelled" {
+		t.Fatalf("expired run lacked durable terminal state: status=%q err=%v", status, err)
+	}
+	router := setupVirtualActivityTestProvider(t, fixture, map[string]any{"status": "completed", "reason": "迟到结果", "acquired_item": map[string]any{"category": "boots", "slot": "shoes", "description": "黑色短靴"}})
+	_, _ = fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "late-shopping-result", map[string]any{"activity_id": activityID}))
+	if router.requestCount("virtual_activity_result") != 0 {
+		t.Fatal("late activity invoked result Provider")
+	}
+	var items int
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND source_kind='purchase_result'`, fixture.fluctlightID).Scan(&items); err != nil || items != 0 {
+		t.Fatalf("late result changed wardrobe: items=%d err=%v", items, err)
+	}
+}
+
+func TestExplicitLifeActivityExtensionMovesEventAndRunBoundaryTogether(t *testing.T) {
+	fixture := seedWardrobeToolFixture(t)
+	started, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "extend-activity", map[string]any{
+		"kind": "virtual_shopping", "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "决定逛店",
+	}))
+	if err != nil || started.Result.Status != "accepted" {
+		t.Fatalf("start activity: %#v %v", started, err)
+	}
+	activityID := stringValue(mapValue(started.Result.Output)["activity_id"])
+	var oldUntil time.Time
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT active_until FROM public.fluctlight_life_activity_runs WHERE id=$1`, activityID).Scan(&oldUntil); err != nil {
+		t.Fatal(err)
+	}
+	extended, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "extend-activity-30", map[string]any{
+		"activity_id": activityID, "extend_minutes": 30, "reason": "决定继续逛半小时",
+	}))
+	if err != nil || extended.Result.Status != "completed" || stringValue(mapValue(extended.Result.Output)["status"]) != "extended" {
+		t.Fatalf("explicit extension failed: %#v %v", extended, err)
+	}
+	var eventUntil, runUntil time.Time
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT e.end_at,r.active_until FROM public.fluctlight_life_activity_runs r JOIN public.life_events e ON e.id=r.authority_event_id WHERE r.id=$1`, activityID).Scan(&eventUntil, &runUntil); err != nil {
+		t.Fatal(err)
+	}
+	if !runUntil.After(oldUntil) || !runUntil.Equal(eventUntil) {
+		t.Fatalf("Event and run extension diverged: old=%s event=%s run=%s", oldUntil, eventUntil, runUntil)
 	}
 }
 
@@ -53,7 +164,21 @@ func TestVirtualShoppingActivityRequiresElapsedResultAndReusesPurchasedItem(t *t
 		t.Fatalf("shopping was not durably accepted: receipt=%#v err=%v", started, err)
 	}
 	activityID := stringValue(mapValue(started.Result.Output)["activity_id"])
-	beforeDue, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "advance-boots-too-early", map[string]any{"activity_id": activityID}))
+	missing, missingErr := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "advance-missing-activity", map[string]any{"activity_id": "missing-activity"}))
+	if missingErr == nil || missing.Result.ErrorCode != "activity_not_found" || missing.Result.Retryable {
+		t.Fatalf("unknown activity must be a correctable target error: receipt=%#v err=%v", missing, missingErr)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_life_activity_runs SET profile_id='other-profile' WHERE id=$1`, activityID); err != nil {
+		t.Fatal(err)
+	}
+	foreignProfile, foreignProfileErr := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "advance-other-profile-activity", map[string]any{"activity_id": activityID}))
+	if foreignProfileErr == nil || foreignProfile.Result.ErrorCode != "activity_not_found" || foreignProfile.Result.Retryable {
+		t.Fatalf("another profile's activity must not resolve: receipt=%#v err=%v", foreignProfile, foreignProfileErr)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_life_activity_runs SET profile_id='default' WHERE id=$1`, activityID); err != nil {
+		t.Fatal(err)
+	}
+	beforeDue, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "advance-boots-too-early", map[string]any{}))
 	if err != nil || beforeDue.Result.Status != "accepted" || stringValue(mapValue(beforeDue.Result.Output)["status"]) != "in_progress" {
 		t.Fatalf("activity completed before elapsed time: receipt=%#v err=%v", beforeDue, err)
 	}

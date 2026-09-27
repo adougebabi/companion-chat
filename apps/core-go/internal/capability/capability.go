@@ -586,6 +586,7 @@ type CapabilityDefinition struct {
 	RequiresPreflight      bool
 	FailurePolicy          CapabilityFailurePolicy
 	RequiredContext        []ContextSlot
+	ModelResultOmitFields  []string `json:"-"`
 	ProvenanceFields       []string `json:"-"`
 	NestedProvenanceObject string   `json:"-"`
 }
@@ -794,6 +795,22 @@ func (definition CapabilityDefinition) Validate() error {
 	}
 	if err := ValidateCapabilitySchemaDefinition(definition.OutputSchema, nil); err != nil {
 		return fmt.Errorf("capability_definition_output_schema_invalid: %w", err)
+	}
+	if len(definition.ModelResultOmitFields) > 0 {
+		properties := mapValue(definition.OutputSchema["properties"])
+		seen := map[string]struct{}{}
+		for _, field := range definition.ModelResultOmitFields {
+			if field == "" {
+				return errors.New("capability_definition_model_result_field_invalid")
+			}
+			if _, exists := properties[field]; !exists {
+				return fmt.Errorf("capability_definition_model_result_field_undeclared: %s", field)
+			}
+			if _, duplicate := seen[field]; duplicate {
+				return fmt.Errorf("capability_definition_model_result_field_duplicate: %s", field)
+			}
+			seen[field] = struct{}{}
+		}
 	}
 	if definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim && definition.FailurePolicy != FailurePolicyOptionalInternal {
 		return errors.New("capability_definition_failure_policy_invalid")

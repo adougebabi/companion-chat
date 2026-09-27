@@ -9,6 +9,7 @@ import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
 import { diagnosticsSections, type DiagnosticsSection } from "../app/navigation";
+import type { BrowserDiagnosticModelRun } from "@fluctlight/browser-client";
 import { useControlCenterStore } from "../stores/control-center";
 
 const props = defineProps<{ section?: DiagnosticsSection | null }>();
@@ -32,6 +33,33 @@ const queueSummary = computed(() => {
   }
   return [...counts.entries()].map(([role, count]) => `${bindingLabel(role)} ${count}`).join(" · ");
 });
+const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+const modelRunGroups = computed(() => {
+  const groups = new Map<string, { id: string; correlationId: string; runs: BrowserDiagnosticModelRun[]; total: number }>();
+  for (const run of controlCenter.diagnosticModelRuns) {
+    const id = run.logicalRunId || run.correlationId || run.id;
+    let group = groups.get(id);
+    if (!group) {
+      group = { id, correlationId: run.correlationId, runs: [], total: 0 };
+      groups.set(id, group);
+    }
+    group.runs.push(run);
+    group.total = Math.max(group.total, Number(run.roundCount ?? 0));
+  }
+  for (const group of groups.values()) group.runs.sort((a, b) => {
+    if (a.sequence != null && b.sequence != null) return a.sequence - b.sequence || a.id.localeCompare(b.id);
+    if (a.sequence != null) return -1;
+    if (b.sequence != null) return 1;
+    return (a.queuedAt || a.createdAt).localeCompare(b.queuedAt || b.createdAt) || a.id.localeCompare(b.id);
+  });
+  return [...groups.values()];
+});
+function modelRoundLabel(run: BrowserDiagnosticModelRun, total: number): string {
+  return run.sequence != null ? `第 ${run.sequence}/${Math.max(total, run.sequence)} 次` : "轮次未知（旧记录）";
+}
+function modelStageLabel(stage?: string): string {
+  return ({ tool_request: "请求 Tool · 中间响应", final_response: "最终模型回答", failed: "请求失败", cancelled: "已取消", timeout: "请求超时", pending: "等待模型响应", unknown: "阶段未知" } as Record<string, string>)[stage || "unknown"] || "阶段未知";
+}
 function pretty(value: unknown) { return JSON.stringify(value, null, 2); }
 function isMetadataOnlyPrompt(prompt: unknown): boolean {
   if (!prompt || typeof prompt !== "object") return false;
@@ -45,7 +73,7 @@ function isMetadataOnlyPrompt(prompt: unknown): boolean {
 function formatRunTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "时间未知";
-  return date.toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  return `${date.toLocaleString("zh-CN", { timeZone: viewerTimezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · ${viewerTimezone}`;
 }
 function workflowIdFor(value: Record<string, unknown>): string {
   if (typeof value.workflow_id === "string") return value.workflow_id;
@@ -143,7 +171,25 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'model-runs' && controlCenter.diagnosticModelRuns.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MODEL RUNS</p><h2>模型运行<small v-if="queueSummary" class="queue-summary"> · 队列 {{ queueSummary }}</small></h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticModelRuns.length }}</Badge></AccordionTrigger>
-          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ scenarioLabel(run.scenario || run.role) }}</strong><Badge class="status-pill" :class="statusClass(run.status)" variant="secondary">{{ statusLabel(run.status) }}</Badge><Badge v-if="isMetadataOnlyPrompt(run.prompt)" variant="outline" class="meta-only-pill">安全脱敏</Badge><small>绑定：{{ bindingLabel(run.bindingRole || run.role) }} · {{ run.modelId }}<template v-if="run.priority"> · 优先级 {{ run.priority }}</template><template v-if="run.queuePosition"> · 队列第 {{ run.queuePosition }}</template> · <time class="diagnostic-time" :datetime="run.createdAt">{{ formatRunTime(run.createdAt) }}</time><template v-if="run.queuedAt && run.queuedAt !== run.createdAt"> · 排队 {{ formatRunTime(run.queuedAt) }}</template><template v-if="run.startedAt"> · 开始 {{ formatRunTime(run.startedAt) }}</template><template v-if="run.completedAt"> · 结束 {{ formatRunTime(run.completedAt) }}</template> · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p><details><summary>查看 Prompt <small v-if="isMetadataOnlyPrompt(run.prompt)" class="prompt-meta-note">（脱敏元数据）</small></summary><p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">注：该运行（如实例初始化或预算超限预检）原始提示词已安全脱敏，此处展示的是消息数、Token 估算及校验哈希。</p><pre>{{ pretty(run.prompt) }}</pre></details><details v-if="run.response"><summary>查看 Response</summary><pre>{{ pretty(run.response) }}</pre></details></article></div></AccordionContent>
+          <AccordionContent><div class="diagnostic-drawer-body">
+            <section v-for="group in modelRunGroups" :key="group.id" class="model-run-group" :aria-label="`逻辑运行 ${group.id}`">
+              <h3>{{ scenarioLabel(group.runs[0]?.scenario || group.runs[0]?.role || "model") }} · {{ group.correlationId }}</h3>
+              <p v-if="group.total > group.runs.length" class="field-note">当前筛选只显示 {{ group.runs.length }}/{{ group.total }} 次模型请求。</p>
+              <article v-for="run in group.runs" :key="run.id" class="diagnostic-row">
+                <div class="diagnostic-meta">
+                  <strong>{{ modelRoundLabel(run, group.total) }} · {{ modelStageLabel(run.stage) }}</strong>
+                  <Badge class="status-pill" :class="statusClass(run.status)" variant="secondary">{{ statusLabel(run.status) }}</Badge>
+                  <Badge v-if="isMetadataOnlyPrompt(run.prompt)" variant="outline" class="meta-only-pill">安全脱敏</Badge>
+                  <small>绑定：{{ bindingLabel(run.bindingRole || run.role) }} · {{ run.modelId }}<template v-if="run.priority"> · 优先级 {{ run.priority }}</template><template v-if="run.queuePosition"> · 队列第 {{ run.queuePosition }}</template> · <time class="diagnostic-time" :datetime="run.createdAt">{{ formatRunTime(run.createdAt) }}</time><template v-if="run.queuedAt && run.queuedAt !== run.createdAt"> · 排队 {{ formatRunTime(run.queuedAt) }}</template><template v-if="run.startedAt"> · 开始 {{ formatRunTime(run.startedAt) }}</template><template v-if="run.completedAt"> · 结束 {{ formatRunTime(run.completedAt) }}</template></small>
+                </div>
+                <p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p>
+                <details><summary>查看本次 Prompt <small v-if="isMetadataOnlyPrompt(run.prompt)" class="prompt-meta-note">（脱敏元数据）</small></summary><p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此运行的原始提示词已脱敏，显示安全元数据。</p><pre>{{ pretty(run.prompt) }}</pre></details>
+                <details v-if="run.response != null"><summary>查看本次 Response</summary><pre>{{ pretty(run.response) }}</pre></details>
+                <p v-else class="field-note">本次请求尚无 Response。</p>
+                <ul v-if="run.toolSummaries?.length" class="detail-list" aria-label="Tool 往返摘要"><li v-for="tool in run.toolSummaries" :key="tool.callId"><strong>{{ tool.capability }}</strong> · {{ tool.status }}<template v-if="tool.errorCode"> · {{ tool.errorCode }}</template></li></ul>
+              </article>
+            </section>
+          </div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'media-prompts' && controlCenter.diagnosticMediaPrompts.length" value="media-prompts" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MEDIA PROMPTS</p><h2>媒体提示词</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticMediaPrompts.length }}</Badge></AccordionTrigger>
@@ -162,6 +208,9 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
 </template>
 
 <style scoped>
+.model-run-group { display: grid; gap: 10px; padding-block: 12px; border-bottom: 1px solid var(--surface-border); }
+.model-run-group h3 { margin: 0; overflow-wrap: anywhere; font-size: 0.95rem; }
+.model-run-group .detail-list { margin: 8px 0 0; }
 .diagnostics-overview {
   display: grid;
   max-width: 680px;

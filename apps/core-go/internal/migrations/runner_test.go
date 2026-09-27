@@ -59,7 +59,7 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
+	if Head != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
 		t.Fatalf("Head = %q", Head)
 	}
 }

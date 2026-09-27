@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend quality checklist"}
+{"file":".trellis/spec/backend/visual-identity-contract.md","reason":"Check visual workflow requirements"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"Check ADK Tool failure trace and redaction"}
+{"file":".trellis/tasks/09-27-visual-identity-review-contract/research/observations-repro.md","reason":"Check exact user error reproduction and corrected multi-round review"}

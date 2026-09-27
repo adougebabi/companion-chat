@@ -266,7 +266,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		}
 		recentMessages = make([]map[string]any, 0, len(history.Messages))
 		for _, message := range history.Messages {
-			recentMessages = append(recentMessages, map[string]any{"id": message.ID, "sequence": message.Sequence, "author_actor_id": message.AuthorActorID, "kind": message.Kind, "text": message.Text, "attachment_refs": message.AttachmentRefs, "created_at": message.CreatedAt.Format(time.RFC3339Nano), "source": "message:" + message.ID})
+			recentMessages = append(recentMessages, map[string]any{"id": message.ID, "sequence": message.Sequence, "turn_id": message.TurnID, "author_actor_id": message.AuthorActorID, "kind": message.Kind, "text": message.Text, "attachment_refs": message.AttachmentRefs, "created_at": message.CreatedAt.Format(time.RFC3339Nano), "source": "message:" + message.ID})
 		}
 	}
 	activeResult, err := a.retrieveActiveMemories(ctx, ActiveMemoryQuery{AuthorizationActorID: actorID, OwnerFluctlightID: fluctlightID, ConversationID: conversationID, Cue: userText, At: projectionAt, Limit: activeMemoryResultLimit})

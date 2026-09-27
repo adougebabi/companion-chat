@@ -1,0 +1,32 @@
+{
+  "id": "yaoguang-runtime-consistency",
+  "name": "yaoguang-runtime-consistency",
+  "title": "摇光运行时上下文与生活状态一致性修复",
+  "description": "修复视觉身份审查参数、上下文与总结、时区、生活事件、工具契约和多轮诊断展示问题",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-09-27",
+  "completedAt": null,
+  "branch": "codex/runtime-consistency",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-27-visual-identity-review-contract",
+    "09-27-context-summary-continuity",
+    "09-27-life-event-timezone",
+    "09-27-capability-contract",
+    "09-27-adk-diagnostics-display"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

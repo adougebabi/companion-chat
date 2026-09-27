@@ -153,6 +153,9 @@ func (a *App) applySceneCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, i
 			if updated.RowsAffected() != 1 {
 				return failedCapabilityResult(invocation, "scene_context_stale", false), newCapabilityError("scene_context_stale", false, ErrLifeContextStale)
 			}
+			if err := a.closeActivityRunsForEventTx(ctx, callerTx, fluctlightID, plan.ExpectedEventID, applyAt); err != nil {
+				return failedCapabilityResult(invocation, "scene_activity_close_failed", true), err
+			}
 		} else if plan.Operation == "end" {
 			return failedCapabilityResult(invocation, "scene_context_stale", false), newCapabilityError("scene_context_stale", false, ErrLifeContextStale)
 		}

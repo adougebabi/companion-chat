@@ -401,7 +401,7 @@ func (b *browserBackend) activate(ctx context.Context, actorID string, body map[
 	if mode == "blank_slate" {
 		initialization = nil
 	}
-	item, err := b.server.app.CreateFluctlight(ctx, actorID, core.StableFluctlightID(actorID, requestID), name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
+	item, err := b.server.app.CreateFluctlight(ctx, actorID, core.StableFluctlightID(actorID, requestID), name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]), stringValue(body["initialization_timezone"]))
 	if err != nil {
 		return nil, browserBackendError(err, "activation_persistence_failed")
 	}

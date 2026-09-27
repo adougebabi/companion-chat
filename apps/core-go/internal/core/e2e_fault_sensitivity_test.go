@@ -108,7 +108,7 @@ func testOnlyFalseSuccessMemoryResult(invocation CapabilityInvocation) Capabilit
 		CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "memory:test-only-false-success",
 		Output: map[string]any{
-			"operation": "create", "memory_id": "test_only_missing_memory", "status": "active",
+			"operation": "create", "memory_id": "test_only_missing_memory", "target_ref": "memory:ctx_0123456789abcdef0123456789abcdef", "status": "active",
 			"revision": 1, "disposition": "applied", "replayed": false,
 		},
 	}

@@ -119,6 +119,85 @@ func TestPromptAssemblerTotalCapNeverSplitsRecentTurn(t *testing.T) {
 	}
 }
 
+func TestPromptAssemblerRestoresRawWhenSummaryMissesTotalBudget(t *testing.T) {
+	input := WorkingMemoryInput{
+		Summaries: []PromptFragment{{Kind: PromptFragmentSummary, Priority: 40,
+			Content:    map[string]any{"summary": strings.Repeat("历史", 500), "time_semantics": "historical_conversation"},
+			SourceRefs: []string{"summary:one", "message:1", "message:2"}}},
+		RecentMessages: []PromptFragment{
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "old question"}, SourceRefs: []string{"message:1"}, GroupKey: "turn:1"},
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "assistant", "content": "old answer"}, SourceRefs: []string{"message:2"}, GroupKey: "turn:1"},
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "new question"}, SourceRefs: []string{"message:3"}, GroupKey: "turn:2"},
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "assistant", "content": "new answer"}, SourceRefs: []string{"message:4"}, GroupKey: "turn:2"},
+		},
+	}
+	memory, err := ResolveWorkingMemory(input, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(memory.Summaries) != 1 || len(memory.Recent) != 4 {
+		t.Fatalf("working memory lost raw fallback before total budget: %#v", memory)
+	}
+	base, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", CurrentInput: "current", Policy: DefaultPromptBudgetPolicy(1000)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := DefaultPromptBudgetPolicy(1000)
+	policy.MaxInputTokens = base.Trace.EstimatedInputTokens + 500
+	bounded, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: memory, CurrentInput: "current", Policy: policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"old question", "old answer", "new question", "new answer"} {
+		if !strings.Contains(jsonString(bounded.Messages), text) {
+			t.Fatalf("raw fallback %q disappeared after Summary budget exclusion: %#v", text, bounded.Messages)
+		}
+	}
+	if !strings.Contains(jsonString(bounded.Trace.Dropped), "budget_excluded") || strings.Contains(jsonString(bounded.Messages), strings.Repeat("历史", 50)) {
+		t.Fatalf("oversized Summary was not excluded with budget reason: %#v", bounded.Trace)
+	}
+	roomy, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: memory, CurrentInput: "current", Policy: DefaultPromptBudgetPolicy(1000)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(jsonString(roomy.Messages), strings.Repeat("历史", 50)) || strings.Contains(jsonString(roomy.Messages), "old question") || !strings.Contains(jsonString(roomy.Trace.Dropped), "summarized_source") {
+		t.Fatalf("admitted Summary did not replace covered raw: messages=%#v trace=%#v", roomy.Messages, roomy.Trace)
+	}
+}
+
+func TestPromptAssemblerKeepsOlderRepeatedCurrentText(t *testing.T) {
+	memory := WorkingMemory{Recent: []PromptFragment{
+		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "repeat"}, SourceRefs: []string{"message:old-user"}, GroupKey: "turn:old"},
+		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "assistant", "content": "earlier reply"}, SourceRefs: []string{"message:old-assistant"}, GroupKey: "turn:old"},
+	}}
+	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: memory, CurrentInput: "repeat", Policy: DefaultPromptBudgetPolicy(1000)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(jsonString(result.Messages), "repeat") != 2 {
+		t.Fatalf("older same-text user message was removed: %#v", result.Messages)
+	}
+}
+
+func TestPromptAssemblerKeepsWholeTurnWhenSummaryCoversOnlyPart(t *testing.T) {
+	memory := WorkingMemory{
+		Summaries: []PromptFragment{{Kind: PromptFragmentSummary, Content: map[string]any{"summary": "old user summarized"}, SourceRefs: []string{"summary:partial", "message:1"}}},
+		Recent: []PromptFragment{
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "old user"}, SourceRefs: []string{"message:1"}, GroupKey: "turn:1"},
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "assistant", "content": "still needed assistant"}, SourceRefs: []string{"message:2"}, GroupKey: "turn:1"},
+		},
+	}
+	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: memory, CurrentInput: "current", Policy: DefaultPromptBudgetPolicy(1000)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"old user summarized", "old user", "still needed assistant"} {
+		if !strings.Contains(jsonString(result.Messages), text) {
+			t.Fatalf("partially covered turn lost %q: %#v", text, result.Messages)
+		}
+	}
+}
+
 func TestPromptAssemblerPressureDoesNotScaleWithStores(t *testing.T) {
 	input := WorkingMemoryInput{}
 	for index := 0; index < 1000; index++ {

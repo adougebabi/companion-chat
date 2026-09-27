@@ -6,6 +6,286 @@
   },
   "components": {
     "schemas": {
+      "BrowserConversationTurnRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000
+          },
+          "fluctlightId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "senderActorId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "attachmentRefs": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "turnId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "senderTimezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "IANA timezone at first submission; present with senderUtcOffsetMinutes and senderSentAt."
+          },
+          "senderUtcOffsetMinutes": {
+            "type": "integer",
+            "minimum": -840,
+            "maximum": 840
+          },
+          "senderSentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "text",
+          "fluctlightId",
+          "idempotencyKey"
+        ]
+      },
+      "BrowserConversationMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "authorActorId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "attachmentRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "senderTimezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "senderUtcOffsetMinutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "senderSentAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "turnId": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "turnStatus": {
+            "type": "string"
+          },
+          "turnErrorCode": {
+            "type": "string"
+          },
+          "turnRetryable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "sequence",
+          "authorActorId",
+          "kind",
+          "text",
+          "attachmentRefs",
+          "createdAt"
+        ]
+      },
+      "BrowserConversationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrowserConversationMessage"
+            }
+          },
+          "nextBeforeSequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "conversation",
+          "participants",
+          "messages"
+        ]
+      },
+      "BrowserDiagnosticToolSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "callId": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "errorCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "callId",
+          "capability",
+          "status"
+        ]
+      },
+      "BrowserDiagnosticModelRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "scenario": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "logicalRunId": {
+            "type": "string"
+          },
+          "modelCallId": {
+            "type": "string"
+          },
+          "sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "roundCount": {
+            "type": "integer"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "toolSummaries": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/BrowserDiagnosticToolSummary"
+            }
+          },
+          "prompt": {},
+          "response": {},
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "status",
+          "correlationId",
+          "prompt",
+          "createdAt"
+        ]
+      },
+      "BrowserDiagnosticModelRuns": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/BrowserDiagnosticModelRun"
+        }
+      },
       "BrowserFluctlightCreateRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -116,6 +396,12 @@
               "blank_slate",
               "llm_defined"
             ]
+          },
+          "initializationTimezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Device IANA timezone at activation, used only when no explicit or inferred identity timezone exists."
           },
           "analysisId": {
             "type": "string",
@@ -1089,7 +1375,19 @@
     },
     "/api/conversations/{conversationId}/messages": {
       "get": {
-        "operationId": "conversationMessages"
+        "operationId": "conversationMessages",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserConversationPage"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/conversations/{conversationId}/read": {
@@ -1099,7 +1397,17 @@
     },
     "/api/conversations/{conversationId}/turn": {
       "post": {
-        "operationId": "conversationTurn"
+        "operationId": "conversationTurn",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserConversationTurnRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/conversations/{conversationId}/turn/{turnId}/cancel": {
@@ -1122,7 +1430,19 @@
     },
     "/api/diagnostics/model-runs": {
       "get": {
-        "operationId": "readDiagnosticModelRuns"
+        "operationId": "readDiagnosticModelRuns",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserDiagnosticModelRuns"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/diagnostics/media-prompts": {

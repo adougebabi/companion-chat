@@ -117,10 +117,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 				return "", errors.New("adk_tool_call_id_reused")
 			}
 			if previousResult, resultFound := i.trace.FindResult(callID); resultFound {
-				return jsonString(map[string]any{
-					"status": previousResult.Status, "capability": previousResult.CapabilityName,
-					"error_code": previousResult.ErrorCode, "output": previousResult.Output,
-				}), nil
+				return jsonString(modelFacingToolResult(ToolExecutionReceipt{Result: previousResult}, definition)), nil
 			}
 			return "", errors.New("adk_tool_result_missing")
 		}
@@ -173,7 +170,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 				ProviderRequestID: modelIdentity.ProviderRequestID, CorrelationID: "capability:" + callID}
 			i.trace.AppendResult(result)
 			i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
-			return jsonString(ToolExecutionReceipt{OperationID: operationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: result}), nil
+			return jsonString(modelFacingToolResult(ToolExecutionReceipt{Result: result}, definition)), nil
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
@@ -213,7 +210,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
-	serialized := jsonString(receipt)
+	serialized := jsonString(modelFacingToolResult(receipt, definition))
 	if execErr != nil && result.Retryable {
 		// Runtime/dependency failures terminate this run while the trace retains
 		// the invocation and receipt. A non-retryable business rejection is a
@@ -221,6 +218,31 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		return serialized, fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)
 	}
 	return serialized, nil
+}
+
+// The native ToolCall ID and the Core receipt remain in the execution trace.
+// The model only needs the business result to decide what to do next.
+func modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDefinition) map[string]any {
+	result := receipt.Result
+	visible := map[string]any{"status": result.Status}
+	if result.ErrorCode != "" {
+		visible["error_code"] = result.ErrorCode
+	}
+	if result.Retryable {
+		visible["retryable"] = true
+	}
+	if result.Output != nil {
+		if outputMap, ok := result.Output.(map[string]any); ok && len(definition.ModelResultOmitFields) > 0 {
+			output := cloneMap(outputMap)
+			for _, field := range definition.ModelResultOmitFields {
+				delete(output, field)
+			}
+			visible["output"] = output
+		} else {
+			visible["output"] = result.Output
+		}
+	}
+	return visible
 }
 
 func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, eventType, callID, capabilityName, status, errorCode, arguments string) {

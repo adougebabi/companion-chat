@@ -1589,8 +1589,15 @@ func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[st
 	return map[string]any{"pleasure": 0.0, "arousal": 0.0, "dominance": 0.0}, map[string]any{"label": "平静", "intensity": 0.0, "source": "server_default"}, map[string]any{"value": 0.0, "trend": 0.0}, map[string]any{"stress": 0.0, "stability": 1.0}, []any{}, []any{}
 }
 
-func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name string, mode string, initializationSourceID string, foundation map[string]any, goals, intentions []any) (Fluctlight, error) {
+func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name string, mode string, initializationSourceID string, foundation map[string]any, goals, intentions []any, initializationTimezone ...string) (Fluctlight, error) {
 	initializationActivationDigest := ""
+	deviceTimezone := ""
+	if len(initializationTimezone) > 0 && strings.TrimSpace(initializationTimezone[0]) != "" {
+		deviceTimezone = canonicalTimezone(initializationTimezone[0])
+		if _, err := time.LoadLocation(deviceTimezone); err != nil {
+			return Fluctlight{}, fmt.Errorf("initialization_timezone_invalid: %w", err)
+		}
+	}
 	if mode != "blank_slate" && mode != "llm_defined" {
 		return Fluctlight{}, errors.New("initialization_mode_invalid")
 	}
@@ -1601,7 +1608,7 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		return Fluctlight{}, errors.New("blank_slate_analysis_forbidden")
 	}
 	if mode == "blank_slate" {
-		initializationActivationDigest = stableDigest(jsonString(map[string]any{"initialization_mode": mode, "name": name}))
+		initializationActivationDigest = stableDigest(jsonString(map[string]any{"initialization_mode": mode, "name": name, "initialization_timezone": deviceTimezone}))
 	}
 	if mode == "llm_defined" {
 		if strings.TrimSpace(initializationSourceID) == "" {
@@ -1615,7 +1622,12 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if err != nil {
 			return Fluctlight{}, err
 		}
-		initializationActivationDigest = stableDigest(jsonString(map[string]any{"initialization_mode": mode, "name": name, "foundation": foundation}))
+		if strings.TrimSpace(stringValue(mapValue(mapValue(foundation["core_persona"])["identity"])["timezone"])) != "" {
+			// The device zone is only a fallback and cannot change the identity
+			// of an activation with an explicit/model-recognized timezone.
+			deviceTimezone = ""
+		}
+		initializationActivationDigest = stableDigest(jsonString(map[string]any{"initialization_mode": mode, "name": name, "foundation": foundation, "initialization_timezone": deviceTimezone}))
 	}
 	id := requestedID
 	if id == "" {
@@ -1677,6 +1689,20 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if value, ok := foundation["initial_intentions"].([]any); ok {
 			intentions = value
 		}
+	}
+	if strings.TrimSpace(stringValue(identity["timezone"])) == "" {
+		if deviceTimezone != "" {
+			identity["timezone"] = deviceTimezone
+			provenance["initialization_timezone_source"] = "device_at_activation"
+		} else {
+			identity["timezone"] = "Asia/Shanghai"
+			provenance["initialization_timezone_source"] = "default_asia_shanghai"
+		}
+	} else if mode == "blank_slate" && deviceTimezone != "" {
+		// Blank creation has no user/model timezone; its default may be replaced
+		// by the device zone captured at activation.
+		identity["timezone"] = deviceTimezone
+		provenance["initialization_timezone_source"] = "device_at_activation"
 	}
 	normalizeVisualIdentityFoundation(corePersona)
 	recordInitializationDefaultFieldSources(provenance, id, personality, policy, declaredPersonality, declaredPolicy, goals, intentions)

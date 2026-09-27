@@ -773,7 +773,7 @@ func (a *App) EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string)
 		return nil, errors.New("schedule_local_date_invalid")
 	}
 	if schedule != nil {
-		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "schedule_id": schedule["id"], "status": "ready"}, nil
+		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "timezone": timezone, "schedule_id": schedule["id"], "status": "ready"}, nil
 	}
 	generated, generateErr := a.generateInitialSchedule(ctx, ownerID, fluctlightID, localDate, timezone, stringValue(life["context_revision"]), decodeObject(identity), decodeObject(lifeProfile))
 	if generateErr != nil {

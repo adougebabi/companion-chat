@@ -8,11 +8,97 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 var errDirectToolDependency = errors.New("direct tool dependency unavailable")
 
 type failingDirectQueryCapability struct{}
+
+func TestInvalidCapabilityArgumentsReturnCorrectableToolReceipt(t *testing.T) {
+	fixture := newVisualIdentityToolFixture(t)
+	arguments := visualIdentityAcceptedReview()
+	arguments["observations"] = 42
+	receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(visualIdentityCommitReviewCapabilityName, "invalid-review-observations", arguments))
+	if !errors.Is(err, capability.ErrInvalidArguments) {
+		t.Fatalf("expected schema validation error, got %v", err)
+	}
+	if receipt.Result.Status != "failed" || receipt.Result.ErrorCode != "invalid_arguments" || receipt.Result.Retryable {
+		t.Fatalf("schema failure must be correctable, receipt=%#v", receipt)
+	}
+	if detail := stringValue(mapValue(receipt.Result.Output)["detail"]); !strings.Contains(detail, `field "observations": value does not match anyOf schema`) {
+		t.Fatalf("schema failure feedback lacks expected field and type: %q", detail)
+	}
+}
+
+func TestClassifyToolPrepareErrorKeepsArgumentFeedbackAndDependencyFailureDistinct(t *testing.T) {
+	argumentErr := fmt.Errorf("%w: field %q: value must be an array", capability.ErrInvalidArguments, "observations")
+	code, retryable, detail := classifyToolPrepareError(argumentErr)
+	if code != "invalid_arguments" || retryable || detail != `field "observations": value must be an array` {
+		t.Fatalf("argument classification = (%q, %v, %q)", code, retryable, detail)
+	}
+	code, retryable, detail = classifyToolPrepareError(fmt.Errorf("%w: additional property %q is not allowed", capability.ErrInvalidArguments, "secret-from-model"))
+	if code != "invalid_arguments" || retryable || strings.Contains(detail, "secret-from-model") {
+		t.Fatalf("untrusted argument field leaked: (%q, %v, %q)", code, retryable, detail)
+	}
+	code, retryable, _ = classifyToolPrepareError(errors.New("database unavailable"))
+	if code != "capability_prepare_failed" || !retryable {
+		t.Fatalf("dependency classification = (%q, %v)", code, retryable)
+	}
+	code, retryable, _ = classifyToolPrepareError(newCapabilityError("memory_target_invalid", false, ErrNotFound))
+	if code != "memory_target_invalid" || retryable {
+		t.Fatalf("target selection classification = (%q, %v)", code, retryable)
+	}
+}
+
+func TestModelFacingToolResultOmitsInternalReceiptIdentity(t *testing.T) {
+	receipt := ToolExecutionReceipt{
+		OperationID: "private-operation", NativeToolCallID: "private-native-call", ExecutionCallID: "private-execution-call",
+		Result: CapabilityResult{CapabilityName: "memory_event", Status: "completed", Output: map[string]any{"memory_id": "private-db-id", "revision": 4, "target_ref": "memory:ctx_0123456789abcdef0123456789abcdef"}},
+	}
+	visible := modelFacingToolResult(receipt, memoryCapabilityDefinition())
+	encoded := jsonString(visible)
+	for _, internal := range []string{"private-operation", "private-native-call", "private-execution-call", "private-db-id", "operation_id", "execution_call_id", "memory_id", "revision"} {
+		if strings.Contains(encoded, internal) {
+			t.Fatalf("model-facing tool result leaked %q: %s", internal, encoded)
+		}
+	}
+	if stringValue(visible["status"]) != "completed" || stringValue(mapValue(visible["output"])["target_ref"]) == "" {
+		t.Fatalf("model-facing result lost business status/ref: %#v", visible)
+	}
+}
+
+func TestRepeatedADKToolCallKeepsModelResultProjection(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	trace := &ADKCapabilityTrace{}
+	arguments := jsonBytes(map[string]any{
+		"content": "remembered", "type": "semantic", "confidence": 1.0, "importance": 1.0,
+	})
+	trace.AppendInvocation(CapabilityInvocation{CallID: "memory-call", CapabilityName: "memory_event", Arguments: arguments})
+	trace.AppendResult(CapabilityResult{CallID: "memory-call", CapabilityName: "memory_event", Status: "completed", Output: map[string]any{
+		"operation": "create", "memory_id": "private-db-id", "target_ref": "memory:ctx_0123456789abcdef0123456789abcdef",
+		"status": "active", "revision": 4, "disposition": "applied", "replayed": false,
+	}})
+	invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{}, trace)
+	result, err := invoker.(ADKCapabilityInvokerWithID).ExecuteWithID(context.Background(), "memory-call", "memory_event", string(arguments))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, internal := range []string{"private-db-id", "memory_id", "revision", "capability"} {
+		if strings.Contains(result, internal) {
+			t.Fatalf("repeated Tool result leaked %q: %s", internal, result)
+		}
+	}
+	if !strings.Contains(result, "memory:ctx_0123456789abcdef0123456789abcdef") {
+		t.Fatalf("repeated Tool result lost reusable target ref: %s", result)
+	}
+}
 
 func (failingDirectQueryCapability) Definition() CapabilityDefinition {
 	return CapabilityDefinition{
@@ -62,7 +148,8 @@ func TestDirectToolExecutionMemoryEventAndRecallOwnsCommitAndOperationReplay(t *
 		t.Fatalf("first memory write receipt=%#v err=%v", first, err)
 	}
 	memoryID := stringValue(mapValue(first.Result.Output)["memory_id"])
-	if memoryID == "" || first.NativeToolCallID != "" || !strings.HasPrefix(first.ExecutionCallID, "direct_call_") {
+	createTargetRef := stringValue(mapValue(first.Result.Output)["target_ref"])
+	if memoryID == "" || !strings.HasPrefix(createTargetRef, "memory:ctx_") || first.NativeToolCallID != "" || !strings.HasPrefix(first.ExecutionCallID, "direct_call_") {
 		t.Fatalf("direct execution identity/result invalid: %#v", first)
 	}
 	var storedContent, storedSourceFact string
@@ -114,12 +201,15 @@ func TestDirectToolExecutionMemoryEventAndRecallOwnsCommitAndOperationReplay(t *
 	if !found {
 		t.Fatalf("recall did not observe committed secret: %#v", recall.Result.Output)
 	}
+	if targetRef != createTargetRef {
+		t.Fatalf("create target ref %q differs from recall ref %q", createTargetRef, targetRef)
+	}
 	corrected := "corrected-direct-tool-secret-" + suffix
 	correction, err := app.ExecuteTool(ctx, ToolExecutionRequest{
 		CapabilityName: "memory_event", OperationID: "correct-secret-" + suffix,
 		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
 		EvidenceID: "owner-correction-" + suffix, Surface: CapabilitySurfaceNativeCognition,
-		Arguments: jsonBytes(map[string]any{"operation": "revise", "target_ref": targetRef,
+		Arguments: jsonBytes(map[string]any{"operation": "revise", "target_ref": createTargetRef,
 			"content": corrected, "type": "semantic", "confidence": 1.0, "importance": 1.0}),
 	})
 	if err != nil || correction.Result.Status != "completed" || intValue(mapValue(correction.Result.Output)["revision"]) != 1 {

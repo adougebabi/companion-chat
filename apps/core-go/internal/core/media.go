@@ -896,7 +896,15 @@ func (a *App) publishMediaAsset(ctx context.Context, intent mediaIntent, assetID
 			if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, *intent.ConversationID, seq+1); err != nil {
 				return err
 			}
-			_, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'media_reference','图片已生成。',$5,$6)`, randomID("message_"), *intent.ConversationID, seq, intent.Owner, jsonBytes([]string{assetID}), "media:"+intent.ID+":conversation-result")
+			zone, err := readLifeContextTimezoneWith(ctx, tx, intent.Owner)
+			if err != nil {
+				return err
+			}
+			snapshot, err := messageTimeForZone(zone, time.Now())
+			if err != nil {
+				return err
+			}
+			_, err = tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES ($1,$2,$3,$4,'media_reference','图片已生成。',$5,$6,$7,$8,$9)`, randomID("message_"), *intent.ConversationID, seq, intent.Owner, jsonBytes([]string{assetID}), "media:"+intent.ID+":conversation-result", snapshot.zone, snapshot.offset, snapshot.sentAt)
 			if err == nil {
 				_, err = tx.Exec(ctx, `INSERT INTO public.media_references (id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES ($1,$2,$3,'conversation',$4) ON CONFLICT DO NOTHING`, "media_ref_"+stableDigest(intent.ID+":conversation"), assetID, intent.Owner, *intent.ConversationID)
 			}

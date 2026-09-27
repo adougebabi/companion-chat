@@ -1166,6 +1166,9 @@ func (a *App) CancelLifeEvent(ctx context.Context, actorID, fluctlightID, eventI
 			}
 			return err
 		}
+		if err := a.closeActivityRunsForEventTx(ctx, tx, fluctlightID, eventID, applyAt); err != nil {
+			return err
+		}
 		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
 		if err != nil {
 			return err
@@ -1896,8 +1899,8 @@ func (a *App) MediaPromptsFiltered(ctx context.Context, actorID string, limit in
 		if runID != "" {
 			modelRun := map[string]any{
 				"id": runID, "role": runRole, "binding_role": runBinding, "scenario": runScenario,
-				"priority": runPriority, "model_id": runModel, "prompt": json.RawMessage(runPrompt),
-				"response": json.RawMessage(runResponse), "status": runStatus, "error_code": runError,
+				"priority": runPriority, "model_id": runModel, "prompt": redactDiagnostic(decodeJSONValue(runPrompt)),
+				"response": redactDiagnostic(decodeJSONValue(runResponse)), "status": runStatus, "error_code": runError,
 				"queued_at": runQueued, "correlation_id": "media:" + id,
 			}
 			if runStarted != "" {

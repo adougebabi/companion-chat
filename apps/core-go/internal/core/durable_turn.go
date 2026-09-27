@@ -91,7 +91,7 @@ func (a *App) readCognitionTurnStatus(ctx context.Context, inboxID string) (stri
 }
 
 func (a *App) committedTurnMessages(ctx context.Context, conversationID, inboxID string, afterSequence int) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,author_actor_id,kind,text,attachment_refs,created_at FROM public.conversation_messages WHERE conversation_id=$1 AND source_fact_id=$2 AND kind='assistant' AND sequence>$3 ORDER BY sequence`, conversationID, inboxID, afterSequence)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,author_actor_id,kind,text,attachment_refs,created_at,sender_timezone,sender_utc_offset_minutes,sender_sent_at FROM public.conversation_messages WHERE conversation_id=$1 AND source_fact_id=$2 AND kind='assistant' AND sequence>$3 ORDER BY sequence`, conversationID, inboxID, afterSequence)
 	if err != nil {
 		return nil, err
 	}
@@ -102,10 +102,13 @@ func (a *App) committedTurnMessages(ctx context.Context, conversationID, inboxID
 		var sequence int
 		var attachments []byte
 		var createdAt time.Time
-		if err := rows.Scan(&id, &sequence, &author, &kind, &text, &attachments, &createdAt); err != nil {
+		var snapshot messageTime
+		if err := rows.Scan(&id, &sequence, &author, &kind, &text, &attachments, &createdAt, &snapshot.zone, &snapshot.offset, &snapshot.sentAt); err != nil {
 			return nil, err
 		}
-		messages = append(messages, map[string]any{"id": id, "conversation_id": conversationID, "sequence": sequence, "author_actor_id": author, "kind": kind, "text": text, "attachment_refs": decodeArray(attachments), "created_at": createdAt.UTC().Format(time.RFC3339Nano)})
+		message := map[string]any{"id": id, "conversation_id": conversationID, "sequence": sequence, "author_actor_id": author, "kind": kind, "text": text, "attachment_refs": decodeArray(attachments), "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
+		snapshot.addTo(message)
+		messages = append(messages, message)
 	}
 	return messages, rows.Err()
 }

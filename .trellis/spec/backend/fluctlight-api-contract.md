@@ -368,3 +368,52 @@ Edit request fields include expectedRevision, role, metrics, trend, summary, emo
 
 Wrong: infer the social role owner from created_by_actor_id.
 Correct: compute is_current_user from the authenticated session Actor, and read the social role from the persisted Relationship.
+
+## Scenario: Immutable Message Sender Time (0039)
+
+### 1. Scope / Trigger
+
+- Trigger: a browser turn is first submitted, retried, streamed or paged; an assistant or media-reference message is published; the viewer or identity timezone later changes.
+
+### 2. Signatures
+
+```text
+POST /api/conversations/{conversationId}/turn
+  senderTimezone?: IANA string
+  senderUtcOffsetMinutes?: integer  // local minus UTC, [-840, 840]
+  senderSentAt?: RFC3339 instant
+BrowserMessage: senderTimezone?, senderUtcOffsetMinutes?, senderSentAt?
+conversation_messages: sender_timezone?, sender_utc_offset_minutes?, sender_sent_at?
+```
+
+### 3. Contracts
+
+- The three fields are all present or all absent. A new browser turn captures them once before queuing; retries and idempotent replays use the original values. Core verifies that the offset matches the IANA zone at `sender_sent_at` and rejects a replay with a changed snapshot.
+- Assistant and media-reference publication obtains the Fluctlight's effective identity timezone in the publishing transaction and freezes its own instant/offset. It never inherits the user's zone.
+- Old rows keep all three columns NULL. History and NDJSON expose that absence; the UI marks its current-device display as a legacy fallback. New rows display their frozen wall clock using the stored offset and label the IANA zone.
+- Browser OpenAPI, generated client, BFF validator/DTO, Core message model, persistence, history and both stream paths change together. The UTC `created_at` remains the sorting authority.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Partial snapshot, invalid zone/instant, or offset mismatch | Reject turn before persistence. |
+| Same idempotency key with different sender snapshot | `ErrConflict`; keep first message. |
+| Old client omits all fields | Accept and persist NULL provenance. |
+| Identity zone later changes | Existing assistant messages retain their original zone/offset. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a New York summer message remains 08:00 EDT after the viewer travels; a Shanghai reply retains +08 after the identity changes to UTC.
+- Base: an old row says “发送时区未知” and uses a labelled viewer-timezone fallback.
+- Bad: deriving the sender zone from `created_at`, the current browser zone, or the current Foundation revision.
+
+### 6. Tests Required
+
+- Core PostgreSQL: first accept, byte-equivalent retry, changed-snapshot conflict, assistant publication before/after identity timezone change, History and NDJSON fields.
+- Browser boundary: all-or-none validation, camelCase mapping, legacy NULL response. Web: queued/retry capture and DST-offset display without drift.
+
+### 7. Wrong vs Correct
+
+Wrong: `new Date(message.createdAt).toLocaleTimeString()` with an implicit viewing timezone.
+Correct: format `senderSentAt + senderUtcOffsetMinutes` as a frozen wall clock and show `senderTimezone`; mark the old-row fallback explicitly.

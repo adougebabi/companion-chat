@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend quality checklist"}
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend quality checklist"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"Check redaction and per-call correlation"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"Check public/browser separation"}

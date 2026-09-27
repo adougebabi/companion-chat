@@ -15,6 +15,8 @@ import {
 import { apiOrigin } from "../runtime-config";
 import { planDefaultGroupMembership } from "../lib/group-membership";
 import { normalizeActorGroups, type ActorGroupSnapshot } from "../lib/actor-groups";
+import { resolveTimezone } from "../lib/fluctlight-display";
+import { zonedLocalInputToISO } from "../lib/zoned-local-input";
 
 const client = new BrowserClient(apiOrigin);
 const relationshipKey = (relationship: Record<string, unknown>): string => `${String(relationship.target_actor_id ?? "")}::${String(relationship.profile_id ?? "shared")}`;
@@ -643,12 +645,14 @@ export const useControlCenterStore = defineStore("control-center", {
 	  if (!expectedLifeContextRevision) { this.error = "当前生活上下文缺少 revision，请刷新后重试。"; return; }
 	  const commandIdentity = `event:create:${fluctlightId}:${expectedLifeContextRevision}:${JSON.stringify(event)}:${JSON.stringify(evidenceRefs)}`;
 	  const idempotencyKey = this.lifeCommandKey(commandIdentity);
+	  const identity = this.fluctlightDetail?.identity as Record<string, unknown> | undefined;
+	  const timezone = resolveTimezone(typeof identity?.timezone === "string" ? identity.timezone : undefined);
 	  this.saving = true;
       try {
         await client.createLifeEvent(fluctlightId, {
           ...event,
-          startAt: new Date(event.startAt).toISOString(),
-          endAt: new Date(event.endAt).toISOString(),
+          startAt: zonedLocalInputToISO(event.startAt, timezone),
+          endAt: zonedLocalInputToISO(event.endAt, timezone),
           evidenceRefs,
 		  expectedLifeContextRevision,
 		  idempotencyKey,
@@ -657,7 +661,7 @@ export const useControlCenterStore = defineStore("control-center", {
         this.lifeEvent = { kind: "", startAt: "", endAt: "", scene: "", activity: "", location: "" };
         await this.loadFluctlightDetail(fluctlightId);
       }
-      catch { this.error = "无法创建 Event，请检查时间范围和证据引用。"; }
+      catch (error) { this.error = error instanceof Error && error.message.startsWith("local_time_") ? `所选时间在 ${timezone} 不存在或格式无效，请重新选择。` : "无法创建 Event，请检查时间范围和证据引用。"; }
       finally { this.saving = false; }
     },
     async setPresence(fluctlightId: string | null) {

@@ -39,10 +39,11 @@ func memoryCapabilityDefinition() CapabilityDefinition {
 		},
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
-			"required": []any{"operation", "memory_id", "status", "revision", "disposition", "replayed"},
+			"required": []any{"operation", "memory_id", "target_ref", "status", "revision", "disposition", "replayed"},
 			"properties": map[string]any{
 				"operation":   map[string]any{"type": "string", "enum": []any{"create", "revise"}},
 				"memory_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"target_ref":  map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes},
 				"status":      map[string]any{"type": "string", "enum": []any{"active"}},
 				"revision":    map[string]any{"type": "integer", "minimum": 0},
 				"disposition": map[string]any{"type": "string", "enum": []any{"applied", "no_change"}},
@@ -50,7 +51,8 @@ func memoryCapabilityDefinition() CapabilityDefinition {
 			},
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "memory_revision_committed", ConcurrencyClass: "exclusive", SupportsRetry: true,
-		ProvenanceFields: []string{"evidence_refs", "idempotency_key"},
+		ModelResultOmitFields: []string{"memory_id", "revision"},
+		ProvenanceFields:      []string{"evidence_refs", "idempotency_key"},
 	}
 }
 
@@ -97,8 +99,11 @@ func (a *App) prepareMemoryCapability(ctx context.Context, invocation Capability
 		return invocation, errors.New("memory_operation_invalid")
 	}
 	targetRef := strings.TrimSpace(stringValue(args["target_ref"]))
-	if (operation == MemoryCreate && targetRef != "") || (operation == MemoryRevise && targetRef == "") {
-		return invocation, errors.New("memory_correction_target_invalid")
+	if operation == MemoryCreate && targetRef != "" {
+		return invocation, newCapabilityError("memory_target_forbidden", false, ErrInvalidArguments)
+	}
+	if operation == MemoryRevise && targetRef == "" {
+		return invocation, newCapabilityError("memory_target_required", false, ErrInvalidArguments)
 	}
 	command := PreparedMemoryMutation{
 		SchemaVersion: memoryLifecycleSchemaVersion, Operation: operation,
@@ -114,6 +119,13 @@ func (a *App) prepareMemoryCapability(ctx context.Context, invocation Capability
 		command.ReplaceEvidence = true
 		row, err := a.resolveMemoryCorrectionTarget(ctx, invocation, resolved, targetRef)
 		if err != nil {
+			switch err.Error() {
+			case "memory_correction_ref_invalid", "memory_correction_ref_stale", "memory_correction_ref_ambiguous", "memory_correction_ref_not_found":
+				return invocation, newCapabilityError("memory_target_invalid", false, err)
+			}
+			if errors.Is(err, ErrNotFound) {
+				return invocation, newCapabilityError("memory_target_invalid", false, err)
+			}
 			return invocation, err
 		}
 		command.Target = &MemoryTarget{Ref: targetRef, MemoryID: row.ID, ExpectedRevision: row.Revision}
@@ -159,6 +171,9 @@ func (a *App) applyMemoryCapabilityTx(ctx context.Context, tx pgx.Tx, invocation
 	output := map[string]any{
 		"operation": string(result.Operation), "memory_id": result.MemoryID, "status": result.Status,
 		"revision": result.Revision, "disposition": result.Disposition, "replayed": result.Replayed,
+		"target_ref": recallOpaqueRef("memory", result.MemoryID+":"+fmt.Sprint(result.Revision), MemoryRecallRequest{
+			FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID,
+		}),
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "memory:" + result.MemoryID}, nil
 }

@@ -155,7 +155,7 @@ func TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContr
 	if err := scanner.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if len(frames) < 2 || stringValue(frames[len(frames)-1]["type"]) != "error" || stringValue(mapValue(frames[len(frames)-1]["payload"])["code"]) != "agent_final_contract_invalid" {
+	if len(frames) < 2 || stringValue(frames[len(frames)-1]["type"]) != "completed" || len(arrayValue(mapValue(frames[len(frames)-1]["payload"])["message_ids"])) != 1 {
 		t.Fatalf("terminal frames = %#v", frames)
 	}
 	var assistantCount int
@@ -173,7 +173,7 @@ func TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContr
 	}
 	visibleResponses := 0
 	for _, run := range runs {
-		if responseJSON, ok := run["response"].(json.RawMessage); ok && len(responseJSON) > 0 && string(responseJSON) != "null" {
+		if run["response"] != nil {
 			visibleResponses++
 		}
 		if stringValue(run["error_code"]) == "provider_request_failed" {

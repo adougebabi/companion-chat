@@ -88,17 +88,20 @@ func (a *App) loadCommittedAssistantMessage(ctx context.Context, conversationID,
 	var sequence int
 	var attachments []byte
 	var createdAt time.Time
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,created_at FROM public.conversation_messages WHERE id=$1`, messageID).Scan(&id, &ownerConversation, &sequence, &authorID, &kind, &text, &attachments, &createdAt); err != nil {
+	var snapshot messageTime
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,created_at,sender_timezone,sender_utc_offset_minutes,sender_sent_at FROM public.conversation_messages WHERE id=$1`, messageID).Scan(&id, &ownerConversation, &sequence, &authorID, &kind, &text, &attachments, &createdAt, &snapshot.zone, &snapshot.offset, &snapshot.sentAt); err != nil {
 		return nil, err
 	}
 	if ownerConversation != conversationID || authorID != fluctlightID || kind != "assistant" {
 		return nil, ErrUnauthorized
 	}
-	return map[string]any{
+	message := map[string]any{
 		"id": id, "conversation_id": ownerConversation, "sequence": sequence,
 		"author_actor_id": authorID, "kind": kind, "text": text,
 		"attachment_refs": decodeArray(attachments), "created_at": createdAt.UTC().Format(time.RFC3339Nano),
-	}, nil
+	}
+	snapshot.addTo(message)
+	return message, nil
 }
 
 func finalAgentVisibleText(completion ProviderCompletion) string {
@@ -118,7 +121,7 @@ func finalAgentVisibleText(completion ProviderCompletion) string {
 // finishes without conversation.reply. It uses the same publication service
 // as the formal Tool and therefore shares ownership, idempotency and sequence
 // rules without manufacturing a ToolCall.
-func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightID, conversationID, operationID, correlationID, text string) (map[string]any, error) {
+func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightID, conversationID, operationID, correlationID, expectedLifeRevision, text string) (map[string]any, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, errors.New("cognition_visible_text_missing")
@@ -128,7 +131,7 @@ func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightI
 		var err error
 		resource, err = NewToolPublicationService(a).PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
 			AuthorizationActorID: actorID, FluctlightID: fluctlightID, ConversationID: conversationID,
-			OperationID: operationID, CorrelationID: correlationID, Text: text,
+			OperationID: operationID, CorrelationID: correlationID, Text: text, ExpectedLifeContextRevision: expectedLifeRevision,
 		})
 		return err
 	})
@@ -154,6 +157,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if fluctlightID == "" || text == "" || idempotency == "" {
 		return TurnResult{}, errors.New("conversation_turn_invalid")
 	}
+	snapshot, err := parseMessageTime(payload)
+	if err != nil {
+		return TurnResult{}, err
+	}
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, authorizationActorID); err != nil {
 		return TurnResult{}, err
 	}
@@ -171,15 +178,16 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	var user map[string]any
 	var inboxID string
 	var supersededInboxIDs []string
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var existingID, existingText, existingAuthor, existingTurnID, existingSourceFactID, existingCorrelationID string
 		var existingSequence int
 		var existingAttachments []byte
 		var existingCreatedAt time.Time
-		err := tx.QueryRow(ctx, `SELECT id,sequence,text,author_actor_id,attachment_refs,created_at,COALESCE(turn_id,''),COALESCE(source_fact_id,''),COALESCE(correlation_id,'') FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText, &existingAuthor, &existingAttachments, &existingCreatedAt, &existingTurnID, &existingSourceFactID, &existingCorrelationID)
+		var existingTime messageTime
+		err := tx.QueryRow(ctx, `SELECT id,sequence,text,author_actor_id,attachment_refs,created_at,COALESCE(turn_id,''),COALESCE(source_fact_id,''),COALESCE(correlation_id,''),sender_timezone,sender_utc_offset_minutes,sender_sent_at FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText, &existingAuthor, &existingAttachments, &existingCreatedAt, &existingTurnID, &existingSourceFactID, &existingCorrelationID, &existingTime.zone, &existingTime.offset, &existingTime.sentAt)
 		messageExists := err == nil
 		if err == nil {
-			if existingAuthor != actorID || existingText != text || !jsonEqual(existingAttachments, payload["attachment_refs"]) || (existingTurnID != "" && existingTurnID != turnID) {
+			if existingAuthor != actorID || existingText != text || !jsonEqual(existingAttachments, payload["attachment_refs"]) || (existingTurnID != "" && existingTurnID != turnID) || !snapshot.equal(existingTime) {
 				return ErrConflict
 			}
 		} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -210,6 +218,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				}
 			}
 			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": existingAuthor, "kind": "user", "text": existingText, "attachment_refs": decodeArray(existingAttachments), "created_at": existingCreatedAt.UTC().Format(time.RFC3339Nano)}
+			existingTime.addTo(user)
 			return nil
 		}
 		var sequence int
@@ -228,10 +237,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			attachments = []any{}
 		}
 		var createdAt time.Time
-		if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id) VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8,$9,$10) RETURNING created_at`, messageID, conversationID, sequence, actorID, text, jsonBytes(attachments), idempotency, turnID, inboxID, correlationID).Scan(&createdAt); err != nil {
+		if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at`, messageID, conversationID, sequence, actorID, text, jsonBytes(attachments), idempotency, turnID, inboxID, correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt).Scan(&createdAt); err != nil {
 			return err
 		}
 		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": sequence, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments, "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
+		snapshot.addTo(user)
 		return nil
 	})
 	if err != nil {
@@ -355,7 +365,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 
 	if len(assistantMessages) == 0 {
 		if visible := finalAgentVisibleText(run.Completion); visible != "" {
-			assistant, err = a.publishNaturalAgentReply(ctx, authorizationActorID, fluctlightID, conversationID, "agent-final:"+turnID, "turn:"+turnID, visible)
+			assistant, err = a.publishNaturalAgentReply(ctx, authorizationActorID, fluctlightID, conversationID, "agent-final:"+turnID, "turn:"+turnID, projection.LifeContextRevision, visible)
 			if err == nil {
 				assistantMessages = append(assistantMessages, assistant)
 			}

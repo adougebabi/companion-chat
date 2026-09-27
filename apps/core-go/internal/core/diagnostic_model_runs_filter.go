@@ -22,7 +22,8 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 		limit = 500
 	}
 	query := `WITH runs AS (
-		SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,
+		SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,metrics,
+			COUNT(*) OVER (PARTITION BY COALESCE(NULLIF(metrics->>'run_id',''),correlation_id)) AS round_count,
 			COUNT(*) FILTER (WHERE status IN ('queued','running')) OVER (PARTITION BY binding_role) AS queue_pending_count,
 			CASE WHEN status IN ('queued','running') THEN ROW_NUMBER() OVER (
 				PARTITION BY binding_role
@@ -45,7 +46,7 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	args = append(args, limit)
 	query += fmt.Sprintf(`
 	)
-	SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,queue_pending_count,queue_position
+	SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,metrics,round_count,queue_pending_count,queue_position
 	FROM runs
 	ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END,
 		CASE WHEN status IN ('queued','running') THEN priority END DESC NULLS LAST,
@@ -65,12 +66,26 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 		var queuePendingCount, queuePosition *int64
 		var endpoint, code *string
 		var prompt, response []byte
+		var metrics []byte
+		var roundCount int64
 		var created, queued time.Time
 		var started, completed *time.Time
-		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed, &queuePendingCount, &queuePosition); err != nil {
+		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed, &metrics, &roundCount, &queuePendingCount, &queuePosition); err != nil {
 			return nil, err
 		}
-		row := map[string]any{"id": id, "role": role, "binding_role": bindingRole, "scenario": scenario, "priority": priority, "endpoint_id": endpoint, "model_id": model, "prompt": json.RawMessage(prompt), "response": json.RawMessage(response), "status": status, "error_code": code, "correlation_id": corr, "created_at": created.Format(time.RFC3339Nano), "queued_at": queued.Format(time.RFC3339Nano)}
+		metricValues := decodeObject(metrics)
+		logicalID := stringValue(metricValues["run_id"])
+		if logicalID == "" {
+			logicalID = corr
+		}
+		var safePrompt, safeResponse any
+		if len(prompt) > 0 {
+			_ = json.Unmarshal(prompt, &safePrompt)
+		}
+		if len(response) > 0 {
+			_ = json.Unmarshal(response, &safeResponse)
+		}
+		row := map[string]any{"id": id, "role": role, "binding_role": bindingRole, "scenario": scenario, "priority": priority, "endpoint_id": endpoint, "model_id": model, "prompt": redactDiagnostic(safePrompt), "response": redactDiagnostic(safeResponse), "status": status, "error_code": code, "correlation_id": corr, "created_at": created.Format(time.RFC3339Nano), "queued_at": queued.Format(time.RFC3339Nano), "logical_run_id": logicalID, "model_call_id": stringValue(metricValues["model_call_id"]), "round_count": roundCount, "stage": "unknown", "tool_summaries": []any{}}
 		if queuePendingCount != nil {
 			row["queue_pending_count"] = *queuePendingCount
 		}
@@ -85,5 +100,99 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 		}
 		out = append(out, row)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	if err := a.decorateModelRunRounds(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (a *App) decorateModelRunRounds(ctx context.Context, runs []map[string]any) error {
+	byCall := make(map[string]map[string]any, len(runs))
+	callIDs := make([]string, 0, len(runs))
+	for _, run := range runs {
+		callID := stringValue(run["model_call_id"])
+		if callID == "" {
+			continue
+		}
+		byCall[callID] = run
+		callIDs = append(callIDs, callID)
+	}
+	if len(callIDs) == 0 {
+		return nil
+	}
+	rows, err := a.DB.Pool().Query(ctx, `SELECT event_type,payload FROM public.diagnostic_events WHERE event_type IN ('adk.model.input','adk.model.output','adk.tool.requested','adk.tool.dispatched','adk.tool.rejected','adk.tool.result') AND payload->>'model_call_id'=ANY($1::text[]) ORDER BY created_at,id LIMIT 4096`, callIDs)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	toolsByCall := make(map[string]map[string]map[string]any, len(callIDs))
+	toolOrder := make(map[string][]string, len(callIDs))
+	for rows.Next() {
+		var eventType string
+		var raw []byte
+		if err := rows.Scan(&eventType, &raw); err != nil {
+			return err
+		}
+		payload := decodeObject(raw)
+		callID := stringValue(payload["model_call_id"])
+		run := byCall[callID]
+		if run == nil {
+			continue
+		}
+		if sequence := intValue(payload["sequence"]); sequence > 0 && (eventType == "adk.model.input" || eventType == "adk.model.output") {
+			run["sequence"] = sequence
+		}
+		switch eventType {
+		case "adk.model.output":
+			calls := arrayValue(payload["tool_call_ids"])
+			if status := stringValue(run["status"]); status == "failed" || status == "cancelled" || status == "timeout" {
+				run["stage"] = status
+			} else if len(calls) > 0 {
+				run["stage"] = "tool_request"
+			} else if stringValue(run["status"]) == "completed" && stringValue(payload["status"]) == "completed" {
+				run["stage"] = "final_response"
+			}
+		case "adk.tool.requested", "adk.tool.dispatched", "adk.tool.rejected", "adk.tool.result":
+			toolID := stringValue(payload["call_id"])
+			if toolID == "" {
+				continue
+			}
+			if toolsByCall[callID] == nil {
+				toolsByCall[callID] = make(map[string]map[string]any)
+			}
+			if toolsByCall[callID][toolID] == nil {
+				if len(toolOrder[callID]) >= 32 {
+					continue
+				}
+				toolOrder[callID] = append(toolOrder[callID], toolID)
+				toolsByCall[callID][toolID] = map[string]any{"call_id": toolID}
+			}
+			tool := toolsByCall[callID][toolID]
+			tool["capability"] = stringValue(payload["capability"])
+			tool["status"] = stringValue(payload["status"])
+			if code := stringValue(payload["error_code"]); code != "" {
+				tool["error_code"] = code
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for callID, run := range byCall {
+		if status := stringValue(run["status"]); status == "failed" || status == "cancelled" || status == "timeout" {
+			run["stage"] = status
+		} else if status == "queued" || status == "running" {
+			run["stage"] = "pending"
+		}
+		summaries := make([]map[string]any, 0, len(toolOrder[callID]))
+		for _, toolID := range toolOrder[callID] {
+			summaries = append(summaries, toolsByCall[callID][toolID])
+		}
+		run["tool_summaries"] = summaries
+	}
+	return nil
 }

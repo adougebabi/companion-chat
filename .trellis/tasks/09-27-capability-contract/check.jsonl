@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend quality checklist"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"Check governance and receipt integrity"}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"Check opaque ref and CAS safety"}
+{"file":".trellis/tasks/09-27-capability-contract/research/conversation-tool-audit.md","reason":"Review 26-tool audit and model-facing contract changes"}

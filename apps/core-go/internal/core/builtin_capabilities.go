@@ -218,9 +218,12 @@ func (c conversationReplyCapability) Execute(_ context.Context, invocation Capab
 	return executeToolRequired(invocation)
 }
 
-func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
-	if c.publication == nil {
+func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
+	if c.publication == nil || c.publication.app == nil {
 		return failedCapabilityResultDetail(invocation, "conversation_publication_unavailable", true, "conversation publication is unavailable"), errors.New("conversation publication unavailable")
+	}
+	if err := requireCapabilityContext(resolved, SlotCurrentLife); err != nil {
+		return failedCapabilityResult(invocation, "reply_context_unavailable", true), err
 	}
 	var args map[string]any
 	if err := json.Unmarshal(invocation.Arguments, &args); err != nil {
@@ -228,13 +231,14 @@ func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
 	resource, err := c.publication.PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
-		SuppressRecentDuplicate: target.AuthorizationPolicy == "autonomy",
-		AuthorizationActorID:    target.AuthorizationActorID,
-		FluctlightID:            target.FluctlightID,
-		ConversationID:          target.ConversationID,
-		OperationID:             capabilityOperationID(invocation),
-		CorrelationID:           invocation.Metadata.CorrelationID,
-		Text:                    text,
+		SuppressRecentDuplicate:     target.AuthorizationPolicy == "autonomy",
+		AuthorizationActorID:        target.AuthorizationActorID,
+		FluctlightID:                target.FluctlightID,
+		ConversationID:              target.ConversationID,
+		OperationID:                 capabilityOperationID(invocation),
+		CorrelationID:               invocation.Metadata.CorrelationID,
+		Text:                        text,
+		ExpectedLifeContextRevision: stringValue(resolved.Life.Data["context_revision"]),
 	})
 	if err != nil {
 		code, retryable := publicationCapabilityError(err, "reply_publication_failed")

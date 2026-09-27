@@ -104,6 +104,11 @@ field-level egress policy explicitly sets `AllowEmbedding`.
   semantic creation time, and only the active profile's bounded interpretation.
   Raw Memory ID, expected revision, backing evidence IDs, profile ID,
   provenance, visibility and embedding metadata remain Core-only.
+- Interactive `memory_event` and `active_memory_event` return a scoped, revision-bound
+  `target_ref` when their result remains active. A later update can reuse that
+  ref directly; a raw `memory_id`/revision in the internal Tool receipt is not
+  the Provider target contract. Correctness still depends on owner,
+  Conversation, active status and revision rechecks at mutation time.
 - Reflection evidence keeps original observations, authoritative appraisal,
   allowlisted ActionOutcome fields, and authoritative Memory refs. An
   `autonomy.result` projection physically removes visible assistant realization
@@ -279,11 +284,28 @@ default conversation catalog is not an execution restriction.
   and is cut on an assistant boundary. Settlement re-reads the contiguous Raw
   range and requires the same ordered refs and digest; old summaries are never
   summary input.
+- Conversation prompt assembly reads up to 200 recent Raw messages as candidates;
+  it does not pre-truncate to eight. A verified Summary fragment keeps its
+  original `source_message_refs` only as internal provenance, while Provider
+  content retains historical text/time semantics without those IDs. Working
+  Memory selects Summary and whole Recent turns with separate seen sets so
+  Summary-covered raw remains available as fallback. The final Prompt selector
+  first admits Summary within the total wire budget, then deduplicates only
+  fully covered raw turns against actually admitted Summary refs. Pending,
+  invalidated, section-budget-dropped or total-budget-dropped Summary leaves
+  raw messages eligible for the 8192-token Recent cap and final wire budget.
+  A partially covered turn stays whole, even if that duplicates a summarized
+  message; losing its uncovered half is worse. Budget/dedupe reasons are traced.
 - Working Memory receives already-authorized fragments and performs no SQL,
   embedding, extraction, or LLM call. Default section caps are runtime `6144`,
   Active `2048`, Recent `8192`, retrieved Long-term `3072`, Summary `2048`.
   It selects whole fragments and whole recent turns, restores chronological
   order, and deduplicates shared source refs without deleting source rows.
+- Once a recent complete turn fails the Recent section cap, older turns are
+  excluded with `recent_contiguity_excluded`; do not select a small older turn
+  after a larger newer one and silently create a time gap. The current user
+  input is removed from Raw candidates only when it is the actual last user
+  message, not an older message with identical text.
 - Automatic Retrieval uses bounded, operation-owned cues. Main conversation
   retrieval uses current input, recent topic, and Active Memory; wake-up,
   daily-review, native-cognition, and Reflection may add current state,
@@ -312,6 +334,8 @@ default conversation catalog is not an execution restriction.
 | Active target revision is stale or idempotency payload differs | Conflict; replay only an identical prior command. |
 | Active row is expired at read time but cleanup has not run | Exclude immediately; cleanup may later append `expire`. |
 | Summary source has a gap, changed ref/digest, wrong author boundary, or foreign owner | Reject settlement; keep Raw rows and retryable intent. |
+| Summary is selected by Working Memory but dropped by final wire budget | Covered raw turns remain fallback candidates; final trace records `budget_excluded` for Summary. |
+| A Summary covers only part of one raw turn | Keep the whole raw turn; never drop its uncovered message to avoid duplication. |
 | Required Working Memory fragment exceeds its section | `working_memory_required_budget_exceeded`; do not truncate it. |
 | Recall result exceeds item/token bounds | Drop whole lower-ranked items and return `truncated=true`. |
 | Recall source is unauthorized or has no provider-safe content | Exclude before combined ranking; expose no raw identifier. |
@@ -327,6 +351,8 @@ default conversation catalog is not an execution restriction.
   total-cap, deduplicated, expired, and unauthorized outcomes.
 - Base: no summary or recall match exists; current facts and recent complete
   turns still assemble without manufacturing Memory.
+- Base: a large valid Summary misses the final Prompt budget; smaller raw turns
+  still enter the final wire if they fit, rather than disappearing at an earlier dedupe stage.
 - Bad: copy every message into `memories`, call a summary the source of truth,
   keep an expired flight because cleanup has not run, or return raw retrieval
   rows from `memory.recall`.
@@ -343,6 +369,10 @@ default conversation catalog is not an execution restriction.
   Provider/restart replay with no recursive summary input.
 - Working Memory whole-fragment/whole-turn, source-dedupe, required overflow,
   fixed-cap stress, real-role order, and dropped-reason trace assertions.
+- Prompt composition tests assert the 24/8 window mismatch is gone, a selected
+  Summary removes only fully covered raw turns, a final-budget-dropped Summary
+  restores raw fallback, partial turn coverage stays whole, repeated old text
+  is not mistaken for current input, and every budget cut has a trace.
 - Automatic Retrieval tests for authorization-before-limit, old relevant rows,
   irrelevant bulk, lexical fallback honesty, cue cap, and ABA current lineage.
 - `memory.recall` definition/scope/deep-query/opaque-output/item-token-bound tests;

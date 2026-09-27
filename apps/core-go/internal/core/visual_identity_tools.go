@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -121,16 +122,20 @@ func visualIdentityGenerateCandidateCapabilityDefinition() CapabilityDefinition 
 func visualIdentityCommitReviewCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: visualIdentityCommitReviewCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description: "Persist the real-image review, then regenerate or promote the current candidate and queue its character sheet.",
+		Description: "Persist the real-image review. Prefer observations as 1–24 short strings; one text or a flat object of text observations is also accepted.",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceVisualIdentity}, FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required": []any{"decision", "identity_match", "confidence", "observations", "missing_sections", "summary", "feedback"},
 			"properties": map[string]any{
-				"decision":         map[string]any{"type": "string", "enum": []any{"accepted", "regenerate"}},
-				"identity_match":   map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
-				"confidence":       map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
-				"observations":     map[string]any{"type": "array", "minItems": 1, "maxItems": 24, "items": map[string]any{"type": "string", "minLength": 1, "maxLength": 500}},
+				"decision":       map[string]any{"type": "string", "enum": []any{"accepted", "regenerate"}},
+				"identity_match": map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
+				"confidence":     map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
+				"observations": map[string]any{"anyOf": []any{
+					map[string]any{"type": "array", "minItems": 1, "maxItems": 24, "items": map[string]any{"type": "string", "minLength": 1, "maxLength": 500}},
+					map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
+					map[string]any{"type": "object"},
+				}},
 				"missing_sections": map[string]any{"type": "array", "maxItems": 16, "items": map[string]any{"type": "string", "minLength": 1, "maxLength": 200}},
 				"summary":          map[string]any{"type": "string", "minLength": 1, "maxLength": 1000},
 				"feedback":         map[string]any{"type": "string", "maxLength": 2000},
@@ -333,6 +338,11 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 	if err := json.Unmarshal(invocation.Arguments, &review); err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
 	}
+	observations, err := normalizeVisualIdentityObservations(review["observations"])
+	if err != nil {
+		return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
+	}
+	review["observations"] = observations
 	decision := stringValue(review["decision"])
 	if decision == "accepted" && len(arrayValue(review["missing_sections"])) > 0 {
 		err := errors.New("accepted review cannot report missing required sections")
@@ -448,6 +458,85 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		"session_id": sessionID, "attempt": session.Attempt, "status": "character_sheet_pending", "decision": decision,
 		"candidate_asset_id": assetID, "canonical_asset_id": assetID, "character_sheet_media_intent_id": characterIntentID, "replayed": false,
 	}), nil
+}
+
+func normalizeVisualIdentityObservations(value any) ([]any, error) {
+	observations := make([]any, 0, 24)
+	appendText := func(label, value string) error {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return errors.New("visual_identity_observations_empty")
+		}
+		if label != "" {
+			value = label + ": " + value
+		}
+		if len([]rune(value)) > 500 || len(observations) >= 24 {
+			return errors.New("visual_identity_observations_unbounded")
+		}
+		observations = append(observations, value)
+		return nil
+	}
+	switch typed := value.(type) {
+	case string:
+		if err := appendText("", typed); err != nil {
+			return nil, err
+		}
+	case []any:
+		if len(typed) > 24 {
+			return nil, errors.New("visual_identity_observations_unbounded")
+		}
+		for _, raw := range typed {
+			text, ok := raw.(string)
+			if !ok {
+				return nil, errors.New("visual_identity_observations_text_required")
+			}
+			if err := appendText("", text); err != nil {
+				return nil, err
+			}
+		}
+	case map[string]any:
+		if len(typed) == 0 || len(typed) > 24 {
+			return nil, errors.New("visual_identity_observations_unbounded")
+		}
+		keys := make([]string, 0, len(typed))
+		for key := range typed {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			label := strings.TrimSpace(key)
+			if label == "" || len([]rune(label)) > 80 || strings.ContainsAny(label, "\r\n\t") {
+				return nil, errors.New("visual_identity_observations_label_invalid")
+			}
+			switch child := typed[key].(type) {
+			case string:
+				if err := appendText(label, child); err != nil {
+					return nil, err
+				}
+			case []any:
+				if len(child) == 0 {
+					return nil, errors.New("visual_identity_observations_empty")
+				}
+				for _, raw := range child {
+					text, ok := raw.(string)
+					if !ok {
+						return nil, errors.New("visual_identity_observations_text_required")
+					}
+					if err := appendText(label, text); err != nil {
+						return nil, err
+					}
+				}
+			default:
+				return nil, errors.New("visual_identity_observations_text_required")
+			}
+		}
+	default:
+		return nil, errors.New("visual_identity_observations_invalid_type")
+	}
+	if len(observations) == 0 {
+		return nil, errors.New("visual_identity_observations_empty")
+	}
+	return observations, nil
 }
 
 func (a *App) executeVisualIdentityFinalizeTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, target DirectToolTarget, sessionID string) (CapabilityResult, error) {

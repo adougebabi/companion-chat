@@ -16,6 +16,7 @@
 - `VisualIdentityWorkflow(ctx, Input{fluctlight_id, session_id, intent_id})` runs on `lifecycle` and continue-as-news while Core state is pending.
 - `ContextProjection.visual_identity` and Fluctlight detail `visual_identity` expose the current safe snapshot and bounded timeline.
 - `chestCupToLoRAWeight(cup) -> (weight, adapterVersion, error)` normalizes A/B/C/D and returns a finite `[-10,10]` weight.
+- `normalizeVisualIdentityObservations(value any) -> ([]any,error)` canonicalizes review observations before persistence; `validateVisualIdentityAgentToolProgress(expected, trace)` counts committed progress after correctable Tool mistakes.
 
 ### 3. Contracts
 
@@ -23,6 +24,7 @@
 - Session triggers are `initialization|wakeup`; initial and WakeUp triggers share the same Core helper. On WakeUp, the model must issue exactly one `visual_identity.initialize` tool call when no active canonical exists; the independent Tool accepts an explicit authorized business source and reuses an active session; source-name prefixes are not execution gates.
 - Attempt stages are `seed_requested`, `seed_ready`, `image_requested`, `image_ready`, `vision_requested`, `vision_ready`, `patch_requested`, `patch_ready`, `regenerate`, `accepted`, `character_sheet_requested`, `character_sheet_ready`, and `completed`.
 - The complete `visual_identity` Agent uses the shared native Eino loop. It calls `generate_candidate`, consumes the committed receipt, and returns a durable waiting state while media runs. On review, Core reads authorized ready asset bytes from object storage and sends an actual `image_url` content block. `commit_review` records observations and `accepted|regenerate`; `finalize` requires a completed character-sheet intent and ready asset. The caller does not run a separate vision/patch decision loop.
+- `commit_review.observations` prefers 1–24 bounded nonempty strings. A single string or a flat object whose sorted keys map to text or text arrays is also accepted, then normalized to the same array before writing `vision_result`/`patch_result`. Empty, nested, non-text, overlong or over-count values are rejected; Core never invents visual observations. A shape error is a non-retryable Tool result that the same Agent may correct within its request lifetime, not an Activity/Agent infrastructure failure. The checkpoint succeeds only after exactly one non-replayed `completed|accepted` review result; failed attempts and idempotent replay do not count as another commit.
 - Run identity is `visual_identity_agent:<session_id>:attempt-<n>:<action_required>`. Pending media does not trigger new model requests. Failed runs retain committed Tool receipts and do not replay the whole decision loop.
 - Automatic regeneration is bounded to three attempts. `accepted` promotes canonical and queues a separate character-sheet media intent; rejected attempts and assets remain immutable history.
 - Renderer constraints preserve `chest_cup`, resolved `chest_lora_weight`, and `adapter_version`. Mapping is explicit code (`A=-5`, `B=-3`, `C=-1`, `D=1` in adapter v1) and must be bumped when tuning changes.
@@ -53,6 +55,9 @@
 | Duplicate initialization/WakeUp | Reuse the active session and stable intent/workflow/media IDs; no duplicate external submission. |
 | `commit_review` decision `regenerate` with attempts remaining | Mark prior attempt `rejected_not_self`, append timeline, create the next attempt, preserve prior asset/vision/patch. |
 | `commit_review` decision `regenerate` at attempt 3 | Set session `awaiting_review`; stop automatic generation. |
+| Review observations are a valid flat object or one text value | Normalize to bounded string array, keep real-image/asset authorization and decision checks. |
+| Review observations are empty, nested, non-text or unbounded | Non-retryable `invalid_arguments` or `visual_identity_review_invalid` Tool result; no review write; Agent may correct arguments. |
+| Failed argument call precedes one valid `commit_review` call | One durable review commit and normal final checkpoint; no fixed model/Tool round cap. |
 | Accepted attempt | CAS increment canonical revision, preserve candidate asset, queue character-sheet media intent, then mark profile/session active/completed when ready. |
 | Worker restart/provider retry | Re-read Core state, reuse persisted provider job IDs, and continue from the latest stable stage. |
 | Visual Identity Activity exceeds 30 seconds in Provider/media work | Periodic heartbeat keeps the Activity lease alive; cancellation remains cooperative. |
@@ -65,17 +70,21 @@
 
 - Good: initialization creates a session, attempt 1 produces an image, vision returns observations, patch returns `regenerate`, attempt 2 is shown beside attempt 1, and an accepted attempt becomes canonical with a character sheet.
 - Good: a WakeUp with missing identity emits a concise model-realized notice and queues/reuses the same session through the Tool-owned short transaction.
+- Good: the model initially sends object-shaped observations, receives schema feedback or normalization, then commits one honest image review without regenerating the candidate image.
 - Base: no ComfyUI visual workflow is configured; the timeline remains at pending/configuration while the user can add JSON in Media settings.
 - Bad: parsing “自拍/两人/胸部” in a prompt, changing canonical state from a rejected attempt, generating a new Provider ID after retry, or returning MinIO/ComfyUI URLs to the browser.
 - Bad: log a persistence failure and still return Activity success, or allow
   Visual Identity retries to starve every cognition Provider slot.
+- Bad: abort the whole ADK run on a correctable `observations` type mistake, silently flatten nested/unbounded data, or treat two accepted review calls as one checkpoint.
 
 ### 6. Tests Required
 
 - Migration tests assert all five tables, indexes, compatibility column and idempotent startup.
 - Unit tests cover cup normalization/adapter boundaries, seed/review schemas, explicit workflow selection, visual identity context binding and timeline stage labels.
+- Observation tests cover array, one string, sorted flat object, empty/nested/non-text/oversized rejection, persisted canonical `vision_result`, and one committed progress result after a failed ToolCall.
 - Integration tests cover independent Tool transaction idempotency, missing-identity notice, media job reuse, multimodal vision input, accepted/regenerate loop, three-attempt stop, canonical/character-sheet CAS and restart recovery.
 - Controlled PostgreSQL/MinIO tests verify exact image bytes in the model request, Tool receipt feedback and no replay after invalid final output. Live `TestFormalAgentE2E/visual_identity` uses real Provider/ComfyUI/S3 through production handlers; it does not alone prove Temporal transport/history recovery.
+- Controlled real-image Agent regression sends one invalid ToolCall, verifies the next physical model input carries a bounded field/type failure, then sends corrected review arguments and asserts one canonical commit.
 - Workflow tests cover heartbeat-before-work, stable-ID failed recovery,
   explicit duplicate-start disposition, preserved failure/backoff and
   protection of wake-up/reflection dispatch from visual retry starvation.
@@ -98,4 +107,12 @@ createNewProviderJobOnRetry()
 weight, version, err := chestCupToLoRAWeight(appearance["chest_cup"])
 // Freeze cup + weight + adapter version on the attempt; retry the persisted
 // media intent and let the structured patch decide whether to regenerate.
+```
+
+For review arguments, the equivalent boundary is:
+
+```go
+observations, err := normalizeVisualIdentityObservations(review["observations"])
+if err != nil { return failedCapabilityResult(invocation, "visual_identity_review_invalid", false), err }
+review["observations"] = observations // one bounded persisted shape
 ```

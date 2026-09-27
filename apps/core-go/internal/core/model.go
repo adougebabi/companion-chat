@@ -56,19 +56,22 @@ type Participant struct {
 }
 
 type Message struct {
-	ID             string    `json:"id"`
-	ConversationID string    `json:"conversation_id"`
-	Sequence       int       `json:"sequence"`
-	AuthorActorID  string    `json:"author_actor_id"`
-	Kind           string    `json:"kind"`
-	Text           string    `json:"text"`
-	AttachmentRefs []string  `json:"attachment_refs"`
-	CreatedAt      time.Time `json:"created_at"`
-	TurnID         string    `json:"turn_id,omitempty"`
-	IdempotencyKey string    `json:"idempotency_key,omitempty"`
-	TurnStatus     string    `json:"turn_status,omitempty"`
-	TurnErrorCode  string    `json:"turn_error_code,omitempty"`
-	TurnRetryable  bool      `json:"turn_retryable"`
+	ID                     string     `json:"id"`
+	ConversationID         string     `json:"conversation_id"`
+	Sequence               int        `json:"sequence"`
+	AuthorActorID          string     `json:"author_actor_id"`
+	Kind                   string     `json:"kind"`
+	Text                   string     `json:"text"`
+	AttachmentRefs         []string   `json:"attachment_refs"`
+	CreatedAt              time.Time  `json:"created_at"`
+	SenderTimezone         *string    `json:"sender_timezone"`
+	SenderUTCOffsetMinutes *int       `json:"sender_utc_offset_minutes"`
+	SenderSentAt           *time.Time `json:"sender_sent_at"`
+	TurnID                 string     `json:"turn_id,omitempty"`
+	IdempotencyKey         string     `json:"idempotency_key,omitempty"`
+	TurnStatus             string     `json:"turn_status,omitempty"`
+	TurnErrorCode          string     `json:"turn_error_code,omitempty"`
+	TurnRetryable          bool       `json:"turn_retryable"`
 }
 
 type ConversationPage struct {

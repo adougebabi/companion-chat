@@ -123,6 +123,10 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,
 	})
 	if err == nil {
+		latestSummarySequence := 0
+		for _, summary := range summaries {
+			latestSummarySequence = max(latestSummarySequence, intValue(summary["to_sequence"]))
+		}
 		result.Diagnostics = map[string]any{
 			"fluctlight_id": projection.FluctlightID, "conversation_id": projection.ConversationID,
 			"working_persona": map[string]any{"profile_id": compiled.ProfileID, "source_revision": compiled.SourceRevision, "source_hash_prefix": compiled.SourceHash[:12], "overlay_revision": compiled.OverlayRevision, "rules_version": compiled.RulesVersion, "budget_runes": compiled.BudgetRunes, "cache_hit": false},
@@ -130,6 +134,7 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			"active_memory": activeResult.Trace, "long_term_memory": projection.MemoryRetrievalTrace,
 			"resident_memory": projection.ResidentMemoryTrace, "resident_budget_tokens": workingPolicy.ResidentTokens,
 			"conversation_summary": summaryTrace,
+			"history_coverage":     map[string]any{"summary_count": len(summaries), "latest_summary_sequence": latestSummarySequence, "raw_fetched": len(projection.RecentMessages), "raw_candidates": len(workingInput.RecentMessages)},
 		}
 	}
 	return result, projection, err
@@ -185,7 +190,13 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 			if len(compact) == 0 {
 				continue
 			}
-			input.Summaries = append(input.Summaries, PromptFragment{Kind: PromptFragmentSummary, Priority: intValue(item["to_sequence"]), Content: compact, SourceRefs: promptItemSourceRefs(compact, "summary")})
+			sourceRefs := promptItemSourceRefs(compact, "summary")
+			for _, raw := range arrayValue(item["source_message_refs"]) {
+				if ref := strings.TrimSpace(stringValue(raw)); strings.HasPrefix(ref, "message:") {
+					sourceRefs = append(sourceRefs, ref)
+				}
+			}
+			input.Summaries = append(input.Summaries, PromptFragment{Kind: PromptFragmentSummary, Priority: intValue(item["to_sequence"]), Content: compact, SourceRefs: sourceRefs})
 		}
 	}
 	if providerContextSurfaceAllowsRecentHistory(surface) {
@@ -220,14 +231,7 @@ func promptItemSourceRefs(item map[string]any, fallback string) []string {
 }
 
 func recentPromptFragments(projection ContextProjection) []PromptFragment {
-	skipIndex := -1
-	current := strings.TrimSpace(projection.CurrentUserText)
-	for index := len(projection.RecentMessages) - 1; index >= 0 && current != ""; index-- {
-		if stringValue(projection.RecentMessages[index]["kind"]) == "user" && strings.TrimSpace(stringValue(projection.RecentMessages[index]["text"])) == current {
-			skipIndex = index
-			break
-		}
-	}
+	skipIndex := currentInputRecentMessageIndex(projection.RecentMessages, projection.CurrentUserText)
 	result := make([]PromptFragment, 0, len(projection.RecentMessages))
 	for index, message := range projection.RecentMessages {
 		if index == skipIndex {
@@ -266,10 +270,42 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 		}
 		result = append(result, PromptFragment{Kind: PromptFragmentRecentMessage, Priority: index, Content: map[string]any{"role": role, "content": content}, SourceRefs: []string{ref}, GroupKey: groupKey})
 	}
-	if len(result) > 8 {
-		result = result[len(result)-8:]
-	}
 	return result
+}
+
+func currentInputRecentMessageIndex(messages []map[string]any, currentUserText string) int {
+	currentUserText = strings.TrimSpace(currentUserText)
+	if currentUserText == "" || len(messages) == 0 {
+		return -1
+	}
+	lastUser := -1
+	for index := len(messages) - 1; index >= 0; index-- {
+		if stringValue(messages[index]["kind"]) == "user" {
+			lastUser = index
+			break
+		}
+	}
+	if lastUser < 0 || strings.TrimSpace(stringValue(messages[lastUser]["text"])) != currentUserText {
+		return -1
+	}
+	if lastUser == len(messages)-1 {
+		return lastUser
+	}
+	// A conversation.reply Tool may already have committed one or more assistant
+	// messages for this turn before the next physical model decision. The user
+	// row remains the current input in that case even though it is not the final
+	// history row. Require an explicit shared turn ID so an older repeated phrase
+	// is never mistaken for the current input.
+	turnID := strings.TrimSpace(stringValue(messages[lastUser]["turn_id"]))
+	if turnID == "" {
+		return -1
+	}
+	for index := lastUser + 1; index < len(messages); index++ {
+		if stringValue(messages[index]["kind"]) != "assistant" || strings.TrimSpace(stringValue(messages[index]["turn_id"])) != turnID {
+			return -1
+		}
+	}
+	return lastUser
 }
 
 var providerHashPattern = regexp.MustCompile(`\b(?:active_memory|message|memory|inbox|wake_fact|fluctlight|conversation|claim|event|fact|turn|provider|assessment|decision)_[A-Za-z0-9]{16,64}\b`)
@@ -519,12 +555,12 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 	return compact
 }
 
-func providerSafeContextRef(value any, index ContextReferenceIndex) string {
+func providerSafeContextRef(value any, index ContextReferenceIndex, expectedKind ContextReferenceKind) string {
 	ref := strings.TrimSpace(stringValue(value))
 	if ref == "" {
 		return ""
 	}
-	if entry, ok := index.ByRef[ref]; ok && entry.Ref == ref {
+	if entry, ok := index.ByRef[ref]; ok && entry.Ref == ref && entry.Kind == expectedKind {
 		return ref
 	}
 	return ""
@@ -673,12 +709,21 @@ func compactLifeContextForSurface(value map[string]any, index ContextReferenceIn
 	// only Core-issued opaque references and the bounded revision token needed by
 	// Prepare/CAS validation; raw event/schedule/presence IDs never cross this
 	// surface.
-	if surfaceAllowsEntityRef(surface, ContextReferenceLifeContext) {
-		for _, key := range []string{"ref", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
-			if ref := providerSafeContextRef(value[key], index); ref != "" {
-				result[key] = ref
+	for _, source := range []struct {
+		key  string
+		kind ContextReferenceKind
+	}{
+		{"ref", ContextReferenceLifeContext}, {"event_ref", ContextReferenceScene},
+		{"schedule_ref", ContextReferenceSchedule}, {"schedule_item_ref", ContextReferenceScheduleItem},
+		{"presence_ref", ContextReferencePresence},
+	} {
+		if surfaceAllowsEntityRef(surface, source.kind) {
+			if ref := providerSafeContextRef(value[source.key], index, source.kind); ref != "" {
+				result[source.key] = ref
 			}
 		}
+	}
+	if surfaceAllowsEntityRef(surface, ContextReferenceLifeContext) {
 		if revision := strings.TrimSpace(stringValue(value["context_revision"])); providerLifeContextRevisionPattern.MatchString(revision) {
 			result["context_revision"] = revision
 		}
@@ -691,7 +736,7 @@ func compactLifeContextForSurface(value map[string]any, index ContextReferenceIn
 	if presence := mapValue(value["presence"]); len(presence) > 0 {
 		compact := map[string]any{}
 		if surfaceAllowsEntityRef(surface, ContextReferencePresence) {
-			if ref := providerSafeContextRef(presence["ref"], index); ref != "" {
+			if ref := providerSafeContextRef(presence["ref"], index, ContextReferencePresence); ref != "" {
 				compact["ref"] = ref
 			}
 		}
@@ -720,7 +765,7 @@ func compactDevelopingSelfForSurface(values []map[string]any, index ContextRefer
 			}
 		}
 		if surfaceAllowsEntityRef(surface, ContextReferenceDevelopingSelf) {
-			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			if ref := providerSafeContextRef(value["ref"], index, ContextReferenceDevelopingSelf); ref != "" {
 				item["ref"] = ref
 			}
 		}
@@ -741,7 +786,7 @@ func compactRelationshipsForSurface(values []map[string]any, actors []map[string
 			}
 		}
 		if surfaceAllowsEntityRef(surface, ContextReferenceRelationship) {
-			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			if ref := providerSafeContextRef(value["ref"], index, ContextReferenceRelationship); ref != "" {
 				item["ref"] = ref
 			}
 		}
@@ -766,7 +811,7 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 			}
 		}
 		if surfaceAllowsEntityRef(surface, ContextReferenceGoal) {
-			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			if ref := providerSafeContextRef(value["ref"], index, ContextReferenceGoal); ref != "" {
 				item["ref"] = ref
 			}
 		}
@@ -797,10 +842,10 @@ func compactProviderIntentionsForSurface(values []map[string]any, index ContextR
 			item["trigger"] = trigger
 		}
 		if surfaceAllowsEntityRef(surface, ContextReferenceIntention) {
-			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			if ref := providerSafeContextRef(value["ref"], index, ContextReferenceIntention); ref != "" {
 				item["ref"] = ref
 			}
-			if goalRef := providerSafeContextRef(value["goal_ref"], index); goalRef != "" {
+			if goalRef := providerSafeContextRef(value["goal_ref"], index, ContextReferenceGoal); goalRef != "" {
 				item["goal_ref"] = goalRef
 			}
 		}
@@ -877,7 +922,7 @@ func compactScheduleForSurface(value map[string]any, index ContextReferenceIndex
 		result["items"] = compactScheduleValueForSurface(items, index, surface)
 	}
 	if surfaceAllowsEntityRef(surface, ContextReferenceSchedule) {
-		if ref := providerSafeContextRef(base["ref"], index); ref != "" {
+		if ref := providerSafeContextRef(base["ref"], index, ContextReferenceSchedule); ref != "" {
 			result["ref"] = ref
 		}
 	}
@@ -894,7 +939,7 @@ func compactScheduleValueForSurface(value any, index ContextReferenceIndex, surf
 			}
 		}
 		if surfaceAllowsEntityRef(surface, ContextReferenceScheduleItem) {
-			if ref := providerSafeContextRef(typed["ref"], index); ref != "" {
+			if ref := providerSafeContextRef(typed["ref"], index, ContextReferenceScheduleItem); ref != "" {
 				result["ref"] = ref
 			}
 		}
@@ -1368,7 +1413,7 @@ func compactActiveMemoriesForSurface(memories []map[string]any, surface Provider
 				item[key] = value
 			}
 		}
-		if ref := providerSafeContextRef(memory["ref"], index); ref != "" {
+		if ref := providerSafeContextRef(memory["ref"], index, ContextReferenceActiveMemory); ref != "" {
 			item["ref"] = ref
 		}
 		if len(item) > 0 {
@@ -1391,7 +1436,7 @@ func compactMemoriesForProfileForSurface(memories []map[string]any, activeProfil
 				item[key] = value
 			}
 		}
-		if ref := providerSafeContextRef(memory["ref"], index); ref != "" {
+		if ref := providerSafeContextRef(memory["ref"], index, ContextReferenceMemory); ref != "" {
 			item["ref"] = ref
 		}
 		if len(item) > 0 {

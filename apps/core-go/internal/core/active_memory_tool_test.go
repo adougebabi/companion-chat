@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -38,6 +39,10 @@ func TestPostgresDirectActiveMemoryToolCommitsRejectsReplaysAndPersistsAudit(t *
 	created, err := app.ExecuteTool(ctx, request)
 	if err != nil || created.Result.Status != "completed" || !boolValueForTest(mapValue(created.Result.Output)["recorded"]) {
 		t.Fatalf("active create receipt=%#v err=%v", created, err)
+	}
+	createTargetRef := stringValue(mapValue(created.Result.Output)["target_ref"])
+	if !strings.HasPrefix(createTargetRef, "active_memory:ctx_") {
+		t.Fatalf("active create did not return reusable target ref: %#v", created.Result.Output)
 	}
 	var memoryID, sourceFact, actorID string
 	var occurredAt time.Time
@@ -77,10 +82,9 @@ func TestPostgresDirectActiveMemoryToolCommitsRejectsReplaysAndPersistsAudit(t *
 	if receipt, rejectErr := app.ExecuteTool(ctx, unknownTarget); rejectErr == nil || receipt.Result.Status != "failed" {
 		t.Fatalf("unknown target receipt=%#v err=%v", receipt, rejectErr)
 	}
-	ref := recallOpaqueRef("active_memory", memoryID+":1", MemoryRecallRequest{FluctlightID: fluctlightID, ConversationID: conversationID})
 	closeRequest := unknownTarget
 	closeRequest.OperationID = "active-close-" + suffix
-	closeRequest.Arguments = jsonBytes(map[string]any{"operation": "complete", "target_ref": ref})
+	closeRequest.Arguments = jsonBytes(map[string]any{"operation": "complete", "target_ref": createTargetRef})
 	closed, err := app.ExecuteTool(ctx, closeRequest)
 	if err != nil || closed.Result.Status != "completed" || stringValue(mapValue(closed.Result.Output)["status"]) != "completed" {
 		t.Fatalf("active close receipt=%#v err=%v", closed, err)

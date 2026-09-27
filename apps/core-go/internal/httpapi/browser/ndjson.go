@@ -591,16 +591,19 @@ func browserTurnErrorCode(payload map[string]any) string {
 func browserStreamMessage(message map[string]any) map[string]any {
 	result := make(map[string]any, 8)
 	for source, target := range map[string]string{
-		"id":              "id",
-		"conversation_id": "conversationId",
-		"sequence":        "sequence",
-		"author_actor_id": "authorActorId",
-		"kind":            "kind",
-		"text":            "text",
-		"created_at":      "createdAt",
-		"turn_id":         "turnId",
-		"idempotency_key": "idempotencyKey",
-		"turn_status":     "turnStatus",
+		"id":                        "id",
+		"conversation_id":           "conversationId",
+		"sequence":                  "sequence",
+		"author_actor_id":           "authorActorId",
+		"kind":                      "kind",
+		"text":                      "text",
+		"created_at":                "createdAt",
+		"sender_timezone":           "senderTimezone",
+		"sender_utc_offset_minutes": "senderUtcOffsetMinutes",
+		"sender_sent_at":            "senderSentAt",
+		"turn_id":                   "turnId",
+		"idempotency_key":           "idempotencyKey",
+		"turn_status":               "turnStatus",
 	} {
 		if value, ok := message[source]; ok {
 			result[target] = value

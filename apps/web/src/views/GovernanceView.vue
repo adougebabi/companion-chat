@@ -109,6 +109,7 @@ function capabilityRequestStatus(value: unknown): string {
         <form class="governance-form" @submit.prevent="controlCenter.createLifeEvent(store.fluctlightId)">
           <label for="event-kind">事件类型<Input id="event-kind" v-model="controlCenter.lifeEvent.kind" maxlength="128" required /></label>
           <div class="form-grid"><label for="event-start">开始时间<Input id="event-start" v-model="controlCenter.lifeEvent.startAt" type="datetime-local" required /></label><label for="event-end">结束时间<Input id="event-end" v-model="controlCenter.lifeEvent.endAt" type="datetime-local" required /></label></div>
+          <p class="field-note">以上时间按摇光时区 {{ governanceTimezone }} 输入。</p>
           <div class="form-grid"><label for="event-scene">场景（可选）<Input id="event-scene" v-model="controlCenter.lifeEvent.scene" maxlength="512" /></label><label for="event-activity">活动（可选）<Input id="event-activity" v-model="controlCenter.lifeEvent.activity" maxlength="512" /></label></div>
           <label for="event-location">地点（可选）<Input id="event-location" v-model="controlCenter.lifeEvent.location" maxlength="512" /></label>
           <p class="field-note">事件创建需要在下方“证据引用”中填写至少一条可追溯引用。</p>

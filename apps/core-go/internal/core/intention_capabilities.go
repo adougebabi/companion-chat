@@ -22,12 +22,12 @@ type intentionDecideCapability struct{ service *intentionService }
 func intentionInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: intentionInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "Read the current speaking profile's durable unfinished or specified intentions, their goals, status and linked activity. A plan is not a completed result.",
+		Description:   "List or read intentions. Detail auto-selects the sole open one; otherwise pass intention_id from list.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
 			"operation":      enumStringSchema("list", "detail"),
-			"intention_id":   map[string]any{"type": "string", "maxLength": 128},
+			"intention_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"include_closed": map[string]any{"type": "boolean"},
 		}, []string{"operation"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "read_only", SuccessBoundary: "query_result_available",
@@ -55,7 +55,11 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 	if stringValue(args["operation"]) == "detail" {
 		id := strings.TrimSpace(stringValue(args["intention_id"]))
 		if id == "" {
-			return failedCapabilityResult(invocation, "intention_id_required", false), ErrInvalidArguments
+			id, err = c.service.uniqueOpenIntentionID(ctx, c.service.repository.Pool(), fluctlightID, profileID)
+			if err != nil {
+				code, retryable := capabilityErrorInfo(err, "intention_read_failed", true)
+				return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), err
+			}
 		}
 		var goal, action, expected, status string
 		var revision int
@@ -124,15 +128,15 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 func intentionDecideDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: intentionDecideCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Create, qualify, adjust, pause, resume or cancel a durable intention for the current speaking profile. Completion is reserved for a verified ActionOutcome; this Tool cannot claim that a plan already succeeded.",
+		Description:   "Create or change an intention. Create needs goal/action/expected_outcome; update needs action or expected_outcome. Non-create auto-selects the sole open one; otherwise pass intention_id from inspect(list).",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
 			"operation":        enumStringSchema("create", "qualify", "update", "pause", "resume", "cancel"),
-			"intention_id":     map[string]any{"type": "string", "maxLength": 128},
-			"goal":             map[string]any{"type": "string", "maxLength": 2000},
-			"action":           map[string]any{"type": "string", "maxLength": 2000},
-			"expected_outcome": map[string]any{"type": "string", "maxLength": 2000},
+			"intention_id":     map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+			"goal":             map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
+			"action":           map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
+			"expected_outcome": map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
 			"reason":           map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
 		}, []string{"operation", "reason"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "native_projection", SuccessBoundary: "intention_revision_committed",
@@ -155,6 +159,32 @@ func (s *intentionService) resolveProfile(ctx context.Context, query DBTX, fluct
 		return "", err
 	}
 	return active, nil
+}
+
+func (s *intentionService) uniqueOpenIntentionID(ctx context.Context, query DBTX, fluctlightID, profileID string) (string, error) {
+	rows, err := query.Query(ctx, `SELECT id FROM public.fluctlight_intentions WHERE fluctlight_id=$1 AND COALESCE(profile_id,'')=$2 AND status NOT IN ('completed','cancelled','expired') ORDER BY created_at DESC,id LIMIT 2`, fluctlightID, profileID)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	ids := make([]string, 0, 2)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return "", err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	if len(ids) == 0 {
+		return "", newCapabilityError("intention_not_found", false, ErrNotFound)
+	}
+	if len(ids) > 1 {
+		return "", newCapabilityError("intention_selection_required", false, errors.New("multiple unfinished intentions; use intention.inspect(list) and specify intention_id"))
+	}
+	return ids[0], nil
 }
 func (c intentionDecideCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
 	if c.service == nil || c.service.repository == nil {
@@ -181,7 +211,11 @@ func (c intentionDecideCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv
 	}
 	id := strings.TrimSpace(stringValue(args["intention_id"]))
 	if id == "" {
-		return failedCapabilityResult(invocation, "intention_id_required", false), ErrInvalidArguments
+		id, err = c.service.uniqueOpenIntentionID(ctx, tx, fluctlightID, profileID)
+		if err != nil {
+			code, retryable := capabilityErrorInfo(err, "intention_read_failed", true)
+			return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), err
+		}
 	}
 	var goalID, storedProfile string
 	var revision int

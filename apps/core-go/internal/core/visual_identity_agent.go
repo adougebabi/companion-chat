@@ -65,11 +65,11 @@ const visualIdentityAgentInstruction = `You own one complete durable Visual Iden
 
 The application sets action_required from authoritative persisted state:
 - generate_candidate: call visual_identity.generate_candidate exactly once. Use reason=initial for attempt 1 and reason=regenerate for later attempts.
-- commit_review: first inspect the actual image content block in this request. Then call visual_identity.commit_review exactly once with bounded observations and an honest accepted or regenerate decision. Accept only a complete, text-free, realistic human character profile card with one consistent face, front/side/back full-body views, six expressions, clothing/accessory/detail panels, color swatches, intro/personality/signature visual areas, a white minimalist background, and editorial 3:4 composition. Do not penalize missing readable lettering because text is intentionally forbidden.
+- commit_review: first inspect the actual image content block in this request. Call visual_identity.commit_review with observations as an array of 1–24 nonempty short strings and an honest accepted or regenerate decision. If the Tool reports invalid_arguments or visual_identity_review_invalid, correct the arguments using that feedback; do not repeat a committed review. Accept only a complete, text-free, realistic human character profile card with one consistent face, front/side/back full-body views, six expressions, clothing/accessory/detail panels, color swatches, intro/personality/signature visual areas, a white minimalist background, and editorial 3:4 composition. Do not penalize missing readable lettering because text is intentionally forbidden.
 - finalize: call visual_identity.finalize exactly once.
 - none: do not call a tool; the durable media task is still running or the session is already terminal.
 
-Never claim that queued or running media is complete. After any tool result, return the final response contract. status must reflect the durable result: waiting for accepted asynchronous work, awaiting_review when automatic work stopped, completed only after visual_identity.finalize committed the character-sheet asset, or failed for a terminal persisted failure. Do not return prose outside the response contract.`
+Never claim that queued or running media is complete. After a committed tool result, return the final response contract; only a correctable argument failure may lead to another ToolCall. status must reflect the durable result: waiting for accepted asynchronous work, awaiting_review when automatic work stopped, completed only after visual_identity.finalize committed the character-sheet asset, or failed for a terminal persisted failure. Do not return prose outside the response contract.`
 
 // RunVisualIdentityAgent is the only model-owning entry for the complete
 // Visual Identity task. It uses the same formal Eino Runner and App.ExecuteTool
@@ -211,13 +211,20 @@ func validateVisualIdentityAgentToolProgress(expected string, trace *ADKCapabili
 			matched++
 		}
 	}
-	if matched != 1 {
+	if matched == 0 {
 		return fmt.Errorf("visual_identity_agent_required_tool_mismatch: expected=%s matched=%d", expected, matched)
 	}
+	committed := 0
 	for _, result := range results {
-		if result.CapabilityName == expected && (result.Status == "completed" || result.Status == "accepted" || result.Status == "rejected") {
-			return nil
+		if result.CapabilityName == expected && (result.Status == "completed" || result.Status == "accepted") && mapValue(result.Output)["replayed"] != true {
+			committed++
 		}
+	}
+	if committed == 1 {
+		return nil
+	}
+	if committed > 1 {
+		return fmt.Errorf("visual_identity_agent_multiple_committed_tools: expected=%s committed=%d", expected, committed)
 	}
 	return fmt.Errorf("visual_identity_agent_required_tool_result_missing: %s", expected)
 }

@@ -55,7 +55,7 @@ func (c personaActionCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoc
 func personaActionCapabilityDefinition(name string) CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: name, Version: "v1", Type: CapabilityTypeAction,
-		Description: "Apply a declared persona rule. persona.switch commits the persistent profile for future decisions; persona.takeover authorizes this run to use the returned working persona without changing the persistent profile. Use only declared profile and rule identifiers, consume rejection results, and never claim a switch before it commits.",
+		Description: "Apply a declared persona rule. For switch, provide source_profile_id, target_profile_id and trigger_id; for takeover, provide rule_id and target_profile_id unless skipped/not applicable. Core rejects missing or stale targets; never claim a switch before it commits.",
 		InputSchema: objectSchema(map[string]any{
 			"decision":          map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"rule_id":           map[string]any{"type": "string", "maxLength": 256},

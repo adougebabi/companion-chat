@@ -39,6 +39,7 @@ const creationDescription = ref("");
 const creationPreviewJson = ref("");
 const creationFoundation = ref<BrowserFluctlightCreationAnalysis | null>(null);
 const creationRequestId = ref<string | null>(null);
+const creationInitializationTimezone = ref<string | null>(null);
 const creationDiagnosticsCorrelationId = computed(() => creationFoundation.value?.correlation_id ?? "");
 const creationInitialGoals = computed(() => creationFoundation.value?.initial_goals ?? []);
 const creationInitialIntentions = computed(() => creationFoundation.value?.initial_intentions ?? []);
@@ -113,7 +114,9 @@ async function activateCreatedFluctlight(body: {
 }) {
   const requestId = creationRequestId.value ?? randomId();
   creationRequestId.value = requestId;
-  const created = await controlCenter.activateFluctlight({ requestId, ...body });
+  if (!creationInitializationTimezone.value) creationInitializationTimezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  const initializationTimezone = creationInitializationTimezone.value;
+  const created = await controlCenter.activateFluctlight({ requestId, ...body, ...(initializationTimezone ? { initializationTimezone } : {}) });
   if (!created?.id) return;
   await store.bootstrap();
   await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
@@ -200,6 +203,7 @@ function invalidateCreationPreview() {
   creationFoundation.value = null;
   creationPreviewJson.value = "";
   creationRequestId.value = null;
+  creationInitializationTimezone.value = null;
 }
 
 watch(creationPreviewJson, (value) => {
@@ -209,6 +213,7 @@ watch(creationPreviewJson, (value) => {
     creationFoundation.value = null;
   }
   creationRequestId.value = null;
+  creationInitializationTimezone.value = null;
 }, { flush: "sync" });
 
 async function openCreationDiagnostics() {

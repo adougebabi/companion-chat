@@ -33,6 +33,29 @@ func seedLifeContextFluctlight(t *testing.T, ctx context.Context, repository *Po
 	seedLegacyTestWorkingPersonas(t, &App{DB: repository})
 }
 
+func TestEnsureCurrentDayScheduleReadyReturnsConfiguredTimezone(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "ready-timezone-owner", "ready-timezone-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	location, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	localNow := time.Now().In(location)
+	start := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), 0, 0, 0, 0, location)
+	end := start.AddDate(0, 0, 1)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.life_schedules(id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,reschedule_policy,idempotency_key,request_digest,result) VALUES('ready-timezone-schedule',$1,$2,'Asia/Shanghai','accepted','test','["fact"]',1,'{}','ready-timezone-schedule',$3,'{"id":"ready-timezone-schedule","status":"accepted","revision":1,"expected_context_revision":"life_ctx_before","resulting_context_revision":"life_ctx_after","replayed":false}')`, fluctlightID, localNow.Format("2006-01-02"), stableDigest("ready-timezone-schedule")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.life_schedule_items(id,schedule_id,start_at,end_at,activity,scene,item_type,status,priority,flexibility,interruption_cost) VALUES('ready-timezone-item','ready-timezone-schedule',$1,$2,'阅读','书房','planned','planned','0.5','0.5','0.5')`, start, end); err != nil {
+		t.Fatal(err)
+	}
+	result, err := (&App{DB: repository}).EnsureCurrentDaySchedule(ctx, fluctlightID)
+	if err != nil || stringValue(result["status"]) != "ready" || stringValue(result["timezone"]) != "Asia/Shanghai" {
+		t.Fatalf("ready schedule lost configured timezone: result=%#v err=%v", result, err)
+	}
+}
+
 func TestLifeContextSnapshotResolvesPriorityPresenceAndTimeBoundaries(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID := "life-context-owner", "life-context-fluctlight"
@@ -399,16 +422,16 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 	if err == nil || !errors.Is(err, ErrLifeContextStale) {
 		t.Fatalf("stale conversation err=%v", err)
 	}
-	if providerCalls.Load() != 2 {
+	if providerCalls.Load() != 1 {
 		t.Fatalf("Provider calls=%d", providerCalls.Load())
 	}
 	var assistantCount int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND turn_id='life-turn-1' AND source_fact_id IS NOT NULL`, conversationID).Scan(&assistantCount); err != nil || assistantCount != 1 {
-		t.Fatalf("stale turn lost committed assistant count=%d err=%v", assistantCount, err)
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND turn_id='life-turn-1' AND source_fact_id IS NOT NULL`, conversationID).Scan(&assistantCount); err != nil || assistantCount != 0 {
+		t.Fatalf("stale turn published an assistant count=%d err=%v", assistantCount, err)
 	}
 	var inboxStatus, inboxError string
 	var inboxPayload []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn'`).Scan(&inboxStatus, &inboxError, &inboxPayload); err != nil || inboxStatus != "failed" || inboxError != "agent_cognition_settlement_failed" {
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn'`).Scan(&inboxStatus, &inboxError, &inboxPayload); err != nil || inboxStatus != "failed" || inboxError != "agent_run_failed" {
 		t.Fatalf("stale inbox status=%q error=%q err=%v", inboxStatus, inboxError, err)
 	}
 	invocations, err := capabilityInvocationsFromValue(mapValue(decodeObject(inboxPayload)["agent_partial"])["capability_invocations"])
@@ -421,7 +444,8 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 			sceneInvocation = invocation
 		}
 	}
-	if firstDecisionLifeRevision == decisionLifeRevision || stringValue(mapValue(sceneInvocation.ContextSnapshot["current_life"])["context_revision"]) != firstDecisionLifeRevision {
+	_, currentLife, readErr := app.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	if readErr != nil || stringValue(currentLife["context_revision"]) == firstDecisionLifeRevision || stringValue(mapValue(sceneInvocation.ContextSnapshot["current_life"])["context_revision"]) != firstDecisionLifeRevision {
 		t.Fatalf("conversation capability did not preserve decision context snapshot=%#v", sceneInvocation.ContextSnapshot)
 	}
 	var staleCapabilitySceneCount int

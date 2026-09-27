@@ -163,6 +163,9 @@ type RetryTurn = {
   turnId: string;
   attachmentRefs: string[];
   senderActorId?: string;
+	senderTimezone?: string;
+	senderUtcOffsetMinutes?: number;
+	senderSentAt?: string;
 	messageId?: string;
 };
 type QueuedTurn = RetryTurn & {
@@ -250,7 +253,14 @@ function persistQueuedTurn(turn: QueuedTurn | null): void {
 	else localStorage.removeItem(queuedTurnStorageKey);
 }
 
-function createLocalMessage(conversationId: string, text: string, sequence: number, authorActorId = "human", messageId?: string, createdAt?: string) : BrowserMessage {
+function captureSenderTime(): Pick<RetryTurn, "senderTimezone" | "senderUtcOffsetMinutes" | "senderSentAt"> {
+	const sentAt = new Date();
+	const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	if (!zone) return {};
+	return { senderTimezone: zone, senderUtcOffsetMinutes: -sentAt.getTimezoneOffset(), senderSentAt: sentAt.toISOString() };
+}
+
+function createLocalMessage(conversationId: string, text: string, sequence: number, authorActorId = "human", messageId?: string, createdAt?: string, senderTime?: Pick<RetryTurn, "senderTimezone" | "senderUtcOffsetMinutes" | "senderSentAt">) : BrowserMessage {
   return {
 	id: messageId ?? `local-${randomId()}`,
     conversationId,
@@ -260,6 +270,7 @@ function createLocalMessage(conversationId: string, text: string, sequence: numb
     text,
     attachmentRefs: [],
 	createdAt: createdAt ?? new Date().toISOString(),
+	...senderTime,
   };
 }
 
@@ -554,7 +565,8 @@ export const useConversationStore = defineStore("conversations", {
 		}
 		if (queuedRequest && (queuedRequest.conversationId !== conversationId || queuedRequest.fluctlightId !== fluctlightId)) return;
 		if (pendingRetry && !retry && !queuedRequest) {
-			const queuedMessage = createLocalMessage(conversationId, normalized, 0, this.senderActorId ?? "human");
+			const senderTime = captureSenderTime();
+			const queuedMessage = createLocalMessage(conversationId, normalized, 0, this.senderActorId ?? "human", undefined, senderTime.senderSentAt, senderTime);
 			const queuedTurn: QueuedTurn = {
 				conversationId,
 				fluctlightId,
@@ -563,6 +575,7 @@ export const useConversationStore = defineStore("conversations", {
 				turnId: `turn_${randomId()}`,
 				attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
 				senderActorId: this.senderActorId ?? undefined,
+				...senderTime,
 				messageId: queuedMessage.id,
 				createdAt: queuedMessage.createdAt,
 			};
@@ -588,6 +601,7 @@ export const useConversationStore = defineStore("conversations", {
             turnId: `turn_${randomId()}`,
             attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
 	            senderActorId: this.senderActorId ?? undefined,
+				...captureSenderTime(),
 	          };
 		this.activeTurnId = request.turnId;
 		persistRetry(request);
@@ -595,7 +609,7 @@ export const useConversationStore = defineStore("conversations", {
 	      if (!retry) {
 			const localAlreadyVisible = optimisticMessageId && this.messages.some((message) => message.id === optimisticMessageId);
 			if (!localAlreadyVisible) {
-				const userMessage = createLocalMessage(conversationId, normalized, 0, request.senderActorId ?? "human", optimisticMessageId ?? undefined, queuedRequest?.createdAt);
+				const userMessage = createLocalMessage(conversationId, normalized, 0, request.senderActorId ?? "human", optimisticMessageId ?? undefined, request.senderSentAt ?? queuedRequest?.createdAt, request);
 				optimisticMessageId = userMessage.id;
 				request.messageId = userMessage.id;
 				this.messages.push(userMessage);
@@ -612,6 +626,9 @@ export const useConversationStore = defineStore("conversations", {
             attachmentRefs: request.attachmentRefs,
             idempotencyKey: request.idempotencyKey,
             turnId: request.turnId,
+			senderTimezone: request.senderTimezone,
+			senderUtcOffsetMinutes: request.senderUtcOffsetMinutes,
+			senderSentAt: request.senderSentAt,
           },
           this.abortController.signal,
         );

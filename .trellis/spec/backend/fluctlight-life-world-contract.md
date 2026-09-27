@@ -243,3 +243,55 @@ INSERT INTO life_presence_overlays(fluctlight_id, actor_id, ...) VALUES ($1, $2,
   default (`Asia/Shanghai` when the optional identity field is absent). A
   pending review that carries an activation date must clear that date before
   `continue_as_new`, so the next activity recalculates the current local day.
+
+## Scenario: Activation Timezone and Bounded Activity Event (0040)
+
+### 1. Scope / Trigger
+
+- Trigger: activation lacks an explicit/model-recognized timezone, a `datetime-local` Event is submitted, or a virtual activity starts, extends, settles or reaches its boundary.
+
+### 2. Signatures
+
+```text
+activate.initializationTimezone?: IANA string
+life.activity.start: kind, reason, duration_minutes?, scene?, activity?, location?
+life.activity.advance: activity_id?, extend_minutes?, reason?
+fluctlight_life_activity_runs: authority_event_id?, active_until?
+```
+
+### 3. Contracts
+
+- Activation priority is explicit/model-recognized `core_persona.identity.timezone`, then the validated device IANA zone captured at activation, then the visible stable `Asia/Shanghai` default. Accepted Schedule, Context current time and local-midnight workflow all use the resulting identity zone. `EnsureCurrentDaySchedule` returns `timezone` even when the current day is already ready; a new workflow history fails explicitly on a missing/invalid zone while pre-change histories retain deterministic replay.
+- A browser `datetime-local` value is a wall clock in that Fluctlight zone. DST gaps are rejected; folds choose the earlier instant; the API receives an RFC3339 instant.
+- `life.activity.start` creates one authority Event and links the run to it in the same transaction. Its `active_until` is bounded by the current Schedule item/Event and a finite result window. The Event carries the chosen scene, activity and location; the run cannot project as current unless both boundaries are still valid.
+- A deliberate `life.activity.advance` extension updates the Event and run boundary together. `deferred` alone is not consent to extend. Scene end/switch, Owner cancellation and natural expiry close linked runs; a delayed result cannot write wardrobe/body effects after the boundary. `source_event_id` remains the historical *result* Event, distinct from `authority_event_id`.
+- A model-authored `conversation.reply` or natural final reply carries the Life Context revision frozen for that model decision into the publication transaction. Publication compares it under the Life Context lock before inserting an assistant message; an intervening external Event/Schedule change rejects stale prose rather than committing a message about the old scene. A current `scene_inferred`/`life_activity` Event sourced by the **same turn's frozen source fact** may advance that revision and still permit its own reply. Idempotent replay of an already committed message remains readable.
+- An activity can complete with no business effect. `virtual_shopping` may return `completed` without `acquired_item`; only a confirmed item grants wardrobe ownership or completes an acquisition Intention/Goal. The historical result Event ends at settlement and is never current scene authority.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Invalid activation zone | Reject activation; do not silently substitute a default. |
+| Activity run/Event expired or cancelled | Exclude from current projection; reconcile to cancelled, settle pending Outcome and skip the result Provider/effect. |
+| Life Context changed after the model decision | Reject a new assistant publication with `ErrLifeContextStale`; keep the user message and failure status for retry. |
+| Explicit extension after expiry | Reject; no Event or run revival. |
+| Completed shopping without item | End activity, preserve wardrobe and acquisition goal. |
+| Confirmed acquired item | Validate category/slot and add exactly one sourced item; wearing remains a separate action. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: shopping at a mall shows mall/selection while its Event is active; when the next Schedule item begins, Context and active activities both return to that item unless the activity was explicitly extended.
+- Base: a completed browse records that it ended without claiming a purchase.
+- Bad: letting `in_progress` status alone override an expired Event, or equating `completed` with `acquired_item`.
+
+### 6. Tests Required
+
+- PostgreSQL: start freezes matching Event/run boundary; completed shopping with and without item; expiry with Worker paused; delayed result does not call Provider or grant item; explicit extension advances both boundaries; old unlinked active runs receive bounded migration state.
+- Conversation: an intervening Owner Event between model input and Tool/natural reply prevents stale assistant publication; a scene switch and reply sourced by the same turn succeed; replay of an earlier committed reply is unchanged.
+- Workflow: existing-day timezone and DST local-midnight behavior. Browser: activation fallback and target-zone `datetime-local` including gap/fold cases.
+
+### 7. Wrong vs Correct
+
+Wrong: query active activities only by `status IN ('in_progress','deferred')` while Context independently expires Events.
+Correct: require valid `authority_event_id` and `active_until`, and settle the run/Outcome when the shared Event ends.

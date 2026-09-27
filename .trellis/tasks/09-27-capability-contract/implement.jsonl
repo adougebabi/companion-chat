@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend pre-development checklist"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"Tool authorization, idempotency and receipt boundaries"}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"Memory target refs and lifecycle"}
+{"file":".trellis/tasks/09-27-yaoguang-runtime-consistency/research/confirmed-paths.md","reason":"Verified schema/runtime mismatch"}
+{"file":".trellis/tasks/09-27-capability-contract/research/conversation-tool-audit.md","reason":"26-tool model-facing contract audit"}

@@ -66,6 +66,21 @@ func TestPromptDiagnosticsAreRedactedAndCollectionBounded(t *testing.T) {
 	}
 }
 
+func TestPromptDiagnosticsHashCoreSourceRefs(t *testing.T) {
+	trace := boundedPromptDiagnostics(map[string]any{
+		"working_memory": map[string]any{"selected": []any{
+			map[string]any{"kind": "summary", "source_refs": []string{"summary:ctx_safe", "message:message_internal_123"}},
+		}},
+	})
+	encoded := jsonString(trace)
+	if strings.Contains(encoded, "ctx_safe") || strings.Contains(encoded, "message_internal_123") {
+		t.Fatalf("Core source ref leaked through prompt diagnostics: %s", encoded)
+	}
+	if !strings.Contains(encoded, "summary:diag_") || !strings.Contains(encoded, "message:diag_") {
+		t.Fatalf("diagnostic source correlation was not retained safely: %s", encoded)
+	}
+}
+
 func TestProviderUsageAndWireBudgetDiagnosticsNormalizeActuals(t *testing.T) {
 	usage := normalizeProviderUsage(map[string]any{"usage": map[string]any{"prompt_tokens": 123, "completion_tokens": 45, "total_tokens": 168, "private": "drop"}})
 	if len(usage) != 3 || intValue(usage["prompt_tokens"]) != 123 || intValue(usage["completion_tokens"]) != 45 {
@@ -298,6 +313,94 @@ func TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop(t *testing.T) {
 	}
 	if status != providerRunFailed || errorCode != "provider_http_error" {
 		t.Fatalf("first terminal state changed to status=%q error_code=%q", status, errorCode)
+	}
+}
+
+func TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "adk-round-owner", "adk-round-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	correlationID := "adk-rounds:test"
+	for index, callID := range []string{"call-one", "call-two"} {
+		response := map[string]any{"content": "最终回答"}
+		if index == 0 {
+			response = map[string]any{"tool_calls": []any{map[string]any{"id": "tool-one", "function": map[string]any{"arguments": "private argument"}}}, "reasoning_content": "private reasoning"}
+		}
+		if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,model_id,prompt,response,status,correlation_id,metrics) VALUES($1,'cognitive_assessment','generic_llm','cognitive_assessment','test-model',$2,$3,'completed',$4,$5)`, "adk-round-"+callID, jsonBytes(map[string]any{"messages": []any{}}), jsonBytes(response), correlationID, jsonBytes(map[string]any{"run_id": "logical-adk-rounds", "model_call_id": callID})); err != nil {
+			t.Fatal(err)
+		}
+		for _, event := range []struct {
+			kind    string
+			payload map[string]any
+		}{
+			{"adk.model.input", map[string]any{"model_call_id": callID, "sequence": index + 1}},
+			{"adk.model.output", map[string]any{"model_call_id": callID, "sequence": index + 1, "status": "completed", "tool_call_ids": map[bool][]any{true: {"tool-one"}, false: {}}[index == 0]}},
+		} {
+			if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,correlation_id,payload) VALUES($1,$2,'info',$3,$4)`, "adk-round-event-"+callID+"-"+event.kind, event.kind, correlationID, jsonBytes(event.payload)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,correlation_id,payload) VALUES('adk-round-tool','adk.tool.result','info',$1,$2)`, correlationID, jsonBytes(map[string]any{"model_call_id": "call-one", "call_id": "tool-one", "capability": "scene_event", "status": "completed", "arguments_digest": "secret-digest"})); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := (&App{DB: repository}).modelRunsFiltered(ctx, ownerID, 10, correlationID, "")
+	if err != nil || len(runs) != 2 {
+		t.Fatalf("model runs: rows=%#v err=%v", runs, err)
+	}
+	byCall := map[string]map[string]any{}
+	for _, run := range runs {
+		byCall[stringValue(run["model_call_id"])] = run
+		encoded := jsonString(run)
+		if strings.Contains(encoded, "private argument") || strings.Contains(encoded, "private reasoning") || strings.Contains(encoded, "secret-digest") {
+			t.Fatalf("raw Tool/reasoning data leaked: %s", encoded)
+		}
+	}
+	if intValue(byCall["call-one"]["sequence"]) != 1 || byCall["call-one"]["round_count"] != int64(2) || stringValue(byCall["call-one"]["stage"]) != "tool_request" {
+		t.Fatalf("first round mislabeled: %#v", byCall["call-one"])
+	}
+	if stringValue(byCall["call-two"]["stage"]) != "final_response" || intValue(byCall["call-two"]["sequence"]) != 2 {
+		t.Fatalf("final round mislabeled: %#v", byCall["call-two"])
+	}
+	tools, ok := byCall["call-one"]["tool_summaries"].([]map[string]any)
+	if !ok || len(tools) != 1 || stringValue(tools[0]["capability"]) != "scene_event" {
+		t.Fatalf("safe Tool summary missing: %#v", tools)
+	}
+}
+
+func TestPostgresADKModelRunFailureAndLegacyRowDoNotInventFinalStage(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "adk-legacy-owner", "adk-legacy-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []struct{ id, status, metrics string }{
+		{"adk-failed", "failed", `{"run_id":"legacy-corr","model_call_id":"failed-call"}`},
+		{"adk-old", "completed", `{}`},
+	} {
+		if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,model_id,prompt,status,correlation_id,metrics) VALUES($1,'cognitive_assessment','generic_llm','cognitive_assessment','test-model','{}',$2,'legacy-corr',$3)`, row.id, row.status, row.metrics); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runs, err := (&App{DB: repository}).modelRunsFiltered(ctx, ownerID, 10, "legacy-corr", "")
+	if err != nil || len(runs) != 2 {
+		t.Fatalf("model runs: rows=%#v err=%v", runs, err)
+	}
+	for _, run := range runs {
+		switch run["id"] {
+		case "adk-failed":
+			if run["stage"] != "failed" || run["sequence"] != nil || run["response"] != nil {
+				t.Fatalf("failed physical request misrepresented: %#v", run)
+			}
+		case "adk-old":
+			if run["stage"] != "unknown" || run["sequence"] != nil || run["response"] != nil {
+				t.Fatalf("old row invented final answer or sequence: %#v", run)
+			}
+		}
 	}
 }
 

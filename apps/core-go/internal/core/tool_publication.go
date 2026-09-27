@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -26,13 +27,14 @@ func NewToolPublicationService(app *App) *ToolPublicationService {
 }
 
 type ConversationReplyPublication struct {
-	SuppressRecentDuplicate bool
-	AuthorizationActorID    string
-	FluctlightID            string
-	ConversationID          string
-	OperationID             string
-	CorrelationID           string
-	Text                    string
+	SuppressRecentDuplicate     bool
+	AuthorizationActorID        string
+	FluctlightID                string
+	ConversationID              string
+	OperationID                 string
+	CorrelationID               string
+	Text                        string
+	ExpectedLifeContextRevision string
 }
 
 type MomentPublication struct {
@@ -108,6 +110,13 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return publishedResource{}, err
 	}
+	if command.ExpectedLifeContextRevision != "" {
+		if live, err := service.app.requireLifeContextRevisionTx(ctx, tx, command.FluctlightID, command.ExpectedLifeContextRevision, time.Now().UTC()); err != nil {
+			if !errors.Is(err, ErrLifeContextStale) || sourceFactID == "" || !sameTurnLifeEventTx(ctx, tx, command.FluctlightID, sourceFactID, stringValue(live["event_id"])) {
+				return publishedResource{}, err
+			}
+		}
+	}
 	var sequence int
 	if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.conversation_heads WHERE conversation_id=$1 FOR UPDATE`, command.ConversationID).Scan(&sequence); err != nil {
 		return publishedResource{}, err
@@ -124,13 +133,30 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, command.ConversationID, sequence+1); err != nil {
 		return publishedResource{}, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9)`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID); err != nil {
+	zone, err := readLifeContextTimezoneWith(ctx, tx, command.FluctlightID)
+	if err != nil {
+		return publishedResource{}, err
+	}
+	snapshot, err := messageTimeForZone(zone, time.Now())
+	if err != nil {
+		return publishedResource{}, err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12)`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt); err != nil {
 		return publishedResource{}, err
 	}
 	if err := service.app.enqueueConversationSummaryIntentTx(ctx, tx, command.FluctlightID, command.ConversationID, messageID); err != nil {
 		return publishedResource{}, err
 	}
 	return publishedResource{ID: messageID}, nil
+}
+
+func sameTurnLifeEventTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, eventID string) bool {
+	if eventID == "" {
+		return false
+	}
+	var sameTurn bool
+	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_events WHERE id=$1 AND fluctlight_id=$2 AND kind IN ('scene_inferred','life_activity') AND evidence_refs ? $3)`, eventID, fluctlightID, sourceFactID).Scan(&sameTurn)
+	return err == nil && sameTurn
 }
 
 func canonicalConversationPublicationCorrelation(correlationID string) string {

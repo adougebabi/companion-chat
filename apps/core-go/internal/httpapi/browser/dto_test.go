@@ -68,6 +68,24 @@ func TestBrowserDiagnosticModelRunOmitsMissingResponsePayload(t *testing.T) {
 	}
 }
 
+func TestBrowserDiagnosticModelRunMapsBoundedRoundAndToolIdentityOnly(t *testing.T) {
+	row := map[string]any{"id": "run-1", "role": "cognitive_assessment", "model_id": "model", "prompt": map[string]any{}, "status": "completed", "correlation_id": "corr", "created_at": "2026-09-01T00:00:00Z",
+		"logical_run_id": "logical", "model_call_id": "call-1", "sequence": 1, "round_count": 2, "stage": "tool_request",
+		"tool_summaries": []any{map[string]any{"call_id": "tool-1", "capability": "scene_event", "status": "completed", "arguments_digest": "private"}},
+	}
+	mapped := browserDiagnosticModelRun(row)
+	if mapped["logicalRunId"] != "logical" || mapped["sequence"] != 1 || mapped["roundCount"] != 2 || mapped["stage"] != "tool_request" {
+		t.Fatalf("round fields missing: %#v", mapped)
+	}
+	tools, ok := mapped["toolSummaries"].([]map[string]any)
+	if !ok || len(tools) != 1 || tools[0]["callId"] != "tool-1" {
+		t.Fatalf("Tool summary missing: %#v", mapped["toolSummaries"])
+	}
+	if _, leaked := tools[0]["arguments_digest"]; leaked {
+		t.Fatalf("Tool arguments digest leaked: %#v", tools[0])
+	}
+}
+
 func TestBrowserDiagnosticMediaPromptMapsProviderAndSubmittedPrompts(t *testing.T) {
 	row := map[string]any{
 		"id": "media-1", "media_intent_id": "media-1", "fluctlight_id": "fl-1", "kind": "image", "mime_type": "image/png",

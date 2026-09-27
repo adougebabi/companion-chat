@@ -73,6 +73,7 @@ func activeMemoryEventCapabilityDefinition() CapabilityDefinition {
 				"operation": map[string]any{"type": "string"}, "status": map[string]any{"type": "string"},
 				"disposition": map[string]any{"type": "string"}, "reason_code": map[string]any{"type": "string"},
 				"recorded": map[string]any{"type": "boolean"}, "replayed": map[string]any{"type": "boolean"},
+				"target_ref": map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes},
 			},
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "active_memory_revision_committed",
@@ -123,6 +124,10 @@ func (a *App) prepareActiveMemoryCapability(ctx context.Context, invocation Capa
 	if operation != ActiveMemoryCreate {
 		target, snapshot, targetErr := a.resolveActiveMemoryCapabilityTarget(ctx, stringValue(args["target_ref"]), invocation, resolved, source, index, hasIndex)
 		if targetErr != nil {
+			switch targetErr.Error() {
+			case "active_memory_context_ref_unknown", "active_memory_context_ref_snapshot_invalid":
+				return invocation, newCapabilityError("active_memory_target_invalid", false, targetErr)
+			}
 			return invocation, targetErr
 		}
 		if targetConversationID := strings.TrimSpace(stringValue(snapshot["conversation_id"])); targetConversationID != "" && targetConversationID != command.ConversationID {
@@ -370,6 +375,11 @@ func (a *App) applyActiveMemoryCapabilityTx(ctx context.Context, tx pgx.Tx, invo
 	output := map[string]any{
 		"operation": string(result.Operation), "status": result.Status, "disposition": result.Disposition,
 		"reason_code": result.ReasonCode, "recorded": result.Disposition == "applied" || result.Disposition == "no_change", "replayed": result.Replayed,
+	}
+	if result.Status == "active" && result.ActiveMemoryID != "" {
+		output["target_ref"] = recallOpaqueRef("active_memory", result.ActiveMemoryID+":"+fmt.Sprint(result.Revision), MemoryRecallRequest{
+			FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID,
+		})
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "active-memory:" + stableDigest(result.ActiveMemoryID)}, nil
 }

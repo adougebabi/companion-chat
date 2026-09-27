@@ -28,6 +28,26 @@ func TestWorkingMemorySelectsNewestWholeRecentTurnsChronologically(t *testing.T)
 	}
 }
 
+func TestWorkingMemoryDoesNotSelectOlderTurnAfterRecentBudgetGap(t *testing.T) {
+	fragments := []PromptFragment{
+		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "old"}, EstimatedTokens: 10, SourceRefs: []string{"message:old"}, GroupKey: "turn-old"},
+		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "large"}, EstimatedTokens: 30, SourceRefs: []string{"message:large"}, GroupKey: "turn-large"},
+		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "new"}, EstimatedTokens: 10, SourceRefs: []string{"message:new"}, GroupKey: "turn-new"},
+	}
+	policy := DefaultWorkingMemoryPolicy()
+	policy.RecentTokens = 25
+	result, err := ResolveWorkingMemory(WorkingMemoryInput{RecentMessages: fragments}, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Recent) != 1 || result.Recent[0].SourceRefs[0] != "message:new" {
+		t.Fatalf("older turn crossed a budget gap: %#v", result.Recent)
+	}
+	if len(result.Trace.Dropped) != 2 || result.Trace.Dropped[0].Reason != "section_cap" || result.Trace.Dropped[1].Reason != "recent_contiguity_excluded" {
+		t.Fatalf("gap reasons were not preserved: %#v", result.Trace.Dropped)
+	}
+}
+
 func TestWorkingMemoryDeduplicatesAcrossAuthorityLayers(t *testing.T) {
 	shared := "fact:shared"
 	result, err := ResolveWorkingMemory(WorkingMemoryInput{

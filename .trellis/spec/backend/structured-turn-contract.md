@@ -247,3 +247,68 @@ post-commit publication, supersession and real streamed request coverage.
 Wrong: treat the last assistant sentence as evidence of a scene/Memory write.
 Correct: read the owned resource or committed Tool receipt and retain its source,
 revision and operation identity.
+
+## Scenario: Recoverable Tool Arguments And Minimal Model Result
+
+### 1. Scope / Trigger
+
+- Trigger: a native ADK ToolCall has schema-invalid or missing model arguments, a Tool returns an authorized business rejection, or a later model decision consumes its result.
+- The same rules apply to a first execution, same native-ID replay, and an early same-batch rejection (for example a reply requested alongside a Schedule mutation).
+
+### 2. Signatures
+
+```go
+App.ExecuteTool(ctx, ToolExecutionRequest) (ToolExecutionReceipt, error)
+classifyToolPrepareError(error) (code string, retryable bool, detail string)
+modelFacingToolResult(ToolExecutionReceipt, CapabilityDefinition) map[string]any
+```
+
+`CapabilityDefinition.ModelResultOmitFields` is a Core-owned, output-schema-declared list of fields to omit only from the model-facing result. It does not change the persisted receipt or direct Tool output.
+
+### 3. Contracts
+
+- `CapabilityInvocation.Validate` remains the sole model-argument schema gate. An `ErrInvalidArguments` from either the Core or shared capability package becomes `invalid_arguments`, `retryable=false`, and a bounded field/type hint. Unknown model-supplied property names are not copied into this hint.
+- A typed, non-retryable business target error retains its domain code. Database, resolver, dependency, authorization and cancellation failures are not converted into a successful or correctable schema error.
+- ADK sends the next model decision only `{status,error_code?,retryable?,output?}`. Native ToolCall pairing stays in the actual Tool message ID; operation ID, execution call ID, Provider request ID, authority revisions and the complete receipt remain Core-side.
+- `ModelResultOmitFields` must name declared output properties. For `memory_event`, the model receives `target_ref` for a later correction while the raw `memory_id` and `revision` remain only in the canonical receipt. A replay must apply the same projection.
+- Queries keep their requested answer in `output`. Mutations retain only business fields required for a later decision. No fixed Agent round/tool-count limit is introduced; the existing request lifetime governs continuation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+| --- | --- |
+| `commit_review.observations` has the wrong JSON type | `invalid_arguments`, non-retryable Tool result with field/type feedback; no domain write |
+| An unknown Memory/Active Memory target ref | Non-retryable target error; no guessed ID or revision |
+| A unique current profile intention/activity omits its ID | Core binds that one target under the current scope |
+| Multiple possible targets omit an ID | `*_selection_required`, non-retryable; no arbitrary first-row choice |
+| Tool preparation cannot reach PostgreSQL or another dependency | Retryable failure; ADK run may terminate and retains prior committed receipts |
+| Native ToolCall ID is absent or reused inconsistently | Protocol error, never reinterpreted as a missing business target ID |
+| First/replayed/same-batch Tool result | Same bounded model-facing projection; full Core receipt remains available for audit |
+
+### 5. Good / Base / Bad Cases
+
+- Good: malformed `observations` comes back as a field/type failure, the model corrects the ToolCall, and exactly one accepted review commits.
+- Base: `memory_event` creates a Memory; its result supplies an opaque `target_ref` that the next model decision can use without a raw database ID.
+- Bad: mark a schema mistake as retryable infrastructure failure, expose a full receipt in a replay fast path, or select one of several active activities by row order.
+
+### 6. Tests Required
+
+- A direct/ADK schema-invalid Tool test asserts `invalid_arguments`, `retryable=false`, field/type feedback, and no write; a dependency fault retains retryable classification.
+- First execution, same native-ID replay and same-batch rejection all assert model input omits receipt identity and configured fields while the internal trace still contains them.
+- Isolated PostgreSQL tests assert unique/ambiguous/missing target behavior, profile isolation, Memory create→revise and Active Memory create→complete via returned `target_ref`.
+- `TestConversationCapabilityCatalogFitsDefaultPromptBudget` must remain green; concise descriptions and Core target inference are preferred to unbounded `oneOf` expansion.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+return jsonString(receipt), fmt.Errorf("tool execution capability_prepare_failed: %w", schemaErr)
+```
+
+#### Correct
+
+```go
+result := failedCapabilityResultDetail(invocation, "invalid_arguments", false, safeToolArgumentFeedback(schemaErr))
+return jsonString(modelFacingToolResult(toolExecutionReceipt(request, callID, result), definition)), nil
+```

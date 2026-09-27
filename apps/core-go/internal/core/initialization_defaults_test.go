@@ -2,6 +2,7 @@ package core
 
 import (
 	"testing"
+	"time"
 )
 
 // TestInitializationDefaultFieldSourcesAreExplicit pins R11's default-value fix
@@ -47,6 +48,26 @@ func TestInitializationDefaultFieldSourcesAreExplicit(t *testing.T) {
 	// A declared number must never be silently downgraded to a default.
 	if _, marked := sources["core_persona.personality.openness"]; marked {
 		t.Fatal("a declared personality trait was recorded as a server default")
+	}
+}
+
+func TestBlankActivationCapturesDeviceTimezoneForLifeContext(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	app := &App{DB: repository}
+	ownerID, fluctlightID := "device-zone-owner", "device-zone-fluctlight"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	created, err := app.CreateFluctlight(ctx, ownerID, fluctlightID, "摇光", "blank_slate", "", nil, nil, nil, "America/New_York")
+	if err != nil || stringValue(created.Identity["timezone"]) != "America/New_York" {
+		t.Fatalf("activation did not capture device timezone: identity=%#v err=%v", created.Identity, err)
+	}
+	_, life, err := app.readLifeContextSnapshotAt(ctx, fluctlightID, time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC))
+	if err != nil || stringValue(life["timezone"]) != "America/New_York" || stringValue(life["local_date"]) != "2026-07-01" {
+		t.Fatalf("life context ignored activation timezone: life=%#v err=%v", life, err)
 	}
 }
 

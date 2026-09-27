@@ -101,6 +101,11 @@ func TestPrivateReplyWaitsForFreshScheduleAfterSameBatchPlanning(t *testing.T) {
 	if err != nil || !strings.Contains(result, "schedule_context_refresh_required") {
 		t.Fatalf("same-batch premature reply was not rejected: result=%s err=%v", result, err)
 	}
+	for _, internal := range []string{"operation_id", "native_tool_call_id", "execution_call_id", "agent_tool_"} {
+		if strings.Contains(result, internal) {
+			t.Fatalf("same-batch rejection leaked internal receipt field %q: %s", internal, result)
+		}
+	}
 	_, results := trace.Snapshot()
 	if len(results) != 1 || results[0].Status != "rejected" {
 		t.Fatalf("premature reply did not leave a rejected Tool result: %#v", results)

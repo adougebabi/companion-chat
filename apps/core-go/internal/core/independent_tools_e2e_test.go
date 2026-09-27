@@ -258,7 +258,7 @@ func TestIndependentToolE2EAffectEvent(t *testing.T) {
 		businessFailure: fixture.request("affect_event", "affect-invalid-type", map[string]any{
 			"event": map[string]any{"type": "not-a-real-affect", "confidence": 0.8},
 		}),
-		checkBusinessError:   expectIndependentToolFailure("capability_prepare_failed"),
+		checkBusinessError:   expectIndependentToolFailure("invalid_arguments"),
 		conflictingArgs:      jsonBytes(map[string]any{"event": map[string]any{"type": "sad", "confidence": 0.8}}),
 		dependencyApp:        func(t *testing.T) *App { return fixture.faultApp(t, affectEventCapability{}) },
 		checkDependencyError: expectIndependentToolFailure("affect_capability_unavailable"),

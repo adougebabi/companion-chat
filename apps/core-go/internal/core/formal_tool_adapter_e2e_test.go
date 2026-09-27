@@ -73,8 +73,9 @@ type formalToolAdapterFixture struct {
 // the direct production boundary, then replays the same stable operation
 // through an actual OpenAI-compatible HTTP response, Eino ChatModelAgent,
 // NewADKCapabilityTools, appADKCapabilityInvoker, and App.ExecuteTool. Every
-// row observes two physical controlled model calls and the exact serialized
-// Tool receipt in the second request.
+// row observes two physical controlled model calls. The second request gets
+// only the bounded model-facing business result; the full identity remains in
+// the execution trace.
 func TestFormalToolEinoAdapterE2E(t *testing.T) {
 	if strings.TrimSpace(testEnvironment("GO_CORE_TEST_DATABASE_URL")) == "" {
 		t.Skip("GO_CORE_TEST_DATABASE_URL is required for the isolated PostgreSQL adapter E2E")
@@ -205,18 +206,20 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			if invocations[0].ProviderRequestID != requestIDs[0] || results[0].ProviderRequestID != requestIDs[0] {
 				t.Fatalf("provider identity mismatch invocation=%q result=%q physical=%q", invocations[0].ProviderRequestID, results[0].ProviderRequestID, requestIDs[0])
 			}
-			adapterReceipt, found := formalAdapterReceiptFromPayload(requests[1], callID)
+			visibleResult, found := formalAdapterResultFromPayload(requests[1], callID)
 			if !found {
-				t.Fatalf("second physical request omitted matching role=tool receipt: %#v", requests[1]["messages"])
+				t.Fatalf("second physical request omitted matching role=tool result: %#v", requests[1]["messages"])
 			}
-			if adapterReceipt.OperationID != request.OperationID || adapterReceipt.NativeToolCallID != callID || adapterReceipt.ExecutionCallID != callID {
-				t.Fatalf("serialized adapter receipt identity mismatch: %#v", adapterReceipt)
+			if _, leaked := visibleResult["operation_id"]; leaked {
+				t.Fatalf("model-facing result leaked internal receipt identity: %#v", visibleResult)
 			}
-			if adapterReceipt.Result.Status != direct.Result.Status || !formalAdapterSameBusinessOutput(direct.Result.Output, adapterReceipt.Result.Output) {
-				t.Fatalf("serialized adapter result drifted: direct=%#v adapter=%#v", direct.Result, adapterReceipt.Result)
+			expectedVisible := modelFacingToolResult(ToolExecutionReceipt{Result: results[0]}, definition)
+			if !formalAdapterSameBusinessOutput(expectedVisible, visibleResult) {
+				t.Fatalf("model-facing adapter result drifted: expected=%#v actual=%#v", expectedVisible, visibleResult)
 			}
-			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName && !adapterReceipt.Replayed {
-				t.Fatalf("stable mutation operation was executed twice instead of replayed: %#v", adapterReceipt)
+			adapterReceipt := ToolExecutionReceipt{OperationID: request.OperationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: results[0]}
+			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName {
+				requireFormalAdapterSQLCountArgs(t, fixture, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND operation_id=$3`, 1, fixture.fluctlightID, testCase.name, request.OperationID)
 			}
 			testCase.verify(t, fixture, adapterReceipt)
 		})
@@ -487,7 +490,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 		{
 			name: "scene_event", surface: CapabilitySurfaceNativeCognition, wantStatus: "completed",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
-				return f.request("scene_event", "adapter-scene", map[string]any{"operation": "start", "scene": "书房", "activity": "核验", "location": "家", "confidence": 0.95})
+				return f.request("scene_event", "adapter-scene", map[string]any{"operation": "switch", "scene": "书房", "activity": "核验", "location": "家", "confidence": 0.95})
 			},
 			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
 				id := stringValue(mapValue(receipt.Result.Output)["event_id"])
@@ -785,18 +788,18 @@ func formalAdapterOperationID(operationRoot, capabilityName string) string {
 	return "agent_tool_" + stableDigest(fmt.Sprintf("%s\x1f%d\x1f%d\x1f%s", operationRoot, 1, 0, capabilityName))
 }
 
-func formalAdapterReceiptFromPayload(payload map[string]any, callID string) (ToolExecutionReceipt, bool) {
+func formalAdapterResultFromPayload(payload map[string]any, callID string) (map[string]any, bool) {
 	for _, raw := range arrayValue(payload["messages"]) {
 		message := mapValue(raw)
 		if stringValue(message["role"]) != "tool" || stringValue(message["tool_call_id"]) != callID {
 			continue
 		}
-		var receipt ToolExecutionReceipt
-		if json.Unmarshal([]byte(stringValue(message["content"])), &receipt) == nil {
-			return receipt, true
+		var result map[string]any
+		if json.Unmarshal([]byte(stringValue(message["content"])), &result) == nil {
+			return result, true
 		}
 	}
-	return ToolExecutionReceipt{}, false
+	return nil, false
 }
 
 func formalAdapterSameBusinessOutput(direct, adapter any) bool {

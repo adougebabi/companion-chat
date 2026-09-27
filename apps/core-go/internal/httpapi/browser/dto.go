@@ -58,14 +58,17 @@ func browserMessage(message map[string]any) map[string]any {
 		attachments = []any{}
 	}
 	result := map[string]any{
-		"id":             message["id"],
-		"conversationId": message["conversation_id"],
-		"sequence":       message["sequence"],
-		"authorActorId":  message["author_actor_id"],
-		"kind":           message["kind"],
-		"text":           message["text"],
-		"attachmentRefs": attachments,
-		"createdAt":      message["created_at"],
+		"id":                     message["id"],
+		"conversationId":         message["conversation_id"],
+		"sequence":               message["sequence"],
+		"authorActorId":          message["author_actor_id"],
+		"kind":                   message["kind"],
+		"text":                   message["text"],
+		"attachmentRefs":         attachments,
+		"createdAt":              message["created_at"],
+		"senderTimezone":         message["sender_timezone"],
+		"senderUtcOffsetMinutes": message["sender_utc_offset_minutes"],
+		"senderSentAt":           message["sender_sent_at"],
 	}
 	for coreName, browserName := range map[string]string{"turn_id": "turnId", "idempotency_key": "idempotencyKey", "turn_status": "turnStatus", "turn_error_code": "turnErrorCode"} {
 		if value := stringValue(message[coreName]); value != "" {
@@ -113,6 +116,12 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 		"correlationId":     stringValue(first(row, "correlation_id")),
 		"createdAt":         stringValue(first(row, "created_at")),
 		"queuedAt":          stringValue(first(row, "queued_at")),
+		"logicalRunId":      stringValue(first(row, "logical_run_id")),
+		"modelCallId":       stringValue(first(row, "model_call_id")),
+		"roundCount":        first(row, "round_count"),
+		"sequence":          first(row, "sequence"),
+		"stage":             stringValue(first(row, "stage")),
+		"toolSummaries":     browserDiagnosticToolSummaries(first(row, "tool_summaries")),
 	}
 	if value, exists := row["endpoint_id"]; exists {
 		result["endpointId"] = value
@@ -130,6 +139,21 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 		result["completedAt"] = value
 	}
 	return result
+}
+
+func browserDiagnosticToolSummaries(value any) []map[string]any {
+	items := make([]map[string]any, 0)
+	for _, raw := range array(value) {
+		if len(items) >= 32 {
+			break
+		}
+		item := object(raw)
+		items = append(items, map[string]any{
+			"callId": stringValue(item["call_id"]), "capability": stringValue(item["capability"]),
+			"status": stringValue(item["status"]), "errorCode": stringValue(item["error_code"]),
+		})
+	}
+	return items
 }
 
 func jsonPayloadPresent(value any) bool {

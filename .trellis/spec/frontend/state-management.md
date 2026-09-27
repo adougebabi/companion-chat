@@ -20,6 +20,8 @@ while sending, composing, or while the document is hidden.
 
 Do not treat optimistic messages as persisted until the server stream emits `done` or a later refresh returns them. A streamed chat may end in several separately persisted assistant records: read ordered `payload.messages` first, then fall back to `[payload.message]` for a pre-migration server. Replace the one transient typing entry with that whole collection in order; do not leave the transient entry between or after persisted messages. History pages merge by message ID at the head; new messages merge at the tail. An initial or background page is authoritative for any matching message ID, while local-only optimistic messages are retained and ordered by timestamp. This prevents a queued media placeholder from overwriting the server's later ready projection. Generation jobs are queued through the server chat contract and restored from conversation state after a refresh.
 
+For a new turn, capture `senderTimezone`, `senderUtcOffsetMinutes` (local minus UTC), and `senderSentAt` once when its `RetryTurn`/`QueuedTurn` identity is created. Persist and reuse the same three fields through offline queue, retry, optimistic bubble and stream/history reconciliation; never recapture the device zone on retry. Display a committed message using its frozen sender offset, and label legacy rows with unknown provenance rather than silently using the viewer zone. Activation similarly freezes the device IANA timezone with its request ID and sends it only as a fallback to an explicit/model-recognized identity timezone.
+
 ## Scenario: Durable Private Chat State After Refresh
 
 ### 1. Scope / Trigger
