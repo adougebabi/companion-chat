@@ -243,6 +243,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.HasSuffix(path, "/detail") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		return b.server.app.FluctlightDetail(ctx, actorID, pathPart(parts, 2))
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/wardrobe") && method == http.MethodGet:
+		parts := splitInternalPath(path)
+		return b.server.app.WardrobeItems(ctx, actorID, pathPart(parts, 2), parsed.Query().Get("cursor"))
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/autonomy-actions") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		return b.server.app.AutonomyActions(ctx, actorID, pathPart(parts, 2))

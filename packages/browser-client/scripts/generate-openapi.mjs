@@ -102,6 +102,26 @@ const schema = {
           initialization_source: { anyOf: [{ $ref: "#/components/schemas/BrowserInitializationSource" }, { type: "null" }] },
         },
       },
+      BrowserWardrobeItem: {
+        type: "object", additionalProperties: false,
+        properties: {
+          id: { type: "string" }, category: { type: "string" }, slot: { type: "string" },
+          description: { type: "string" }, ownership: { type: "string" }, availability: { type: "string" },
+          source_kind: { type: "string" }, revision: { type: "integer" },
+        },
+        required: ["id", "category", "slot", "description", "ownership", "availability", "source_kind", "revision"],
+      },
+      BrowserWardrobePage: {
+        type: "object", additionalProperties: false,
+        properties: {
+          operation: { type: "string", enum: ["list"] },
+          revision: { type: "integer" }, inventory_complete: { type: "boolean" },
+          items: { type: "array", items: { $ref: "#/components/schemas/BrowserWardrobeItem" } },
+          has_more: { type: "boolean" }, next_cursor: { type: "string" },
+          searched_scope: { type: "string" }, can_conclude_absent: { type: "boolean" },
+        },
+        required: ["operation", "revision", "inventory_complete", "items", "has_more", "next_cursor", "searched_scope", "can_conclude_absent"],
+      },
       BrowserLifeEventRequest: {
         type: "object",
         additionalProperties: false,
@@ -216,6 +236,7 @@ const schema = {
     "/api/diagnostics/workflows/{workflowId}/reset": { post: { operationId: "resetWorkflow" } },
     "/api/diagnostics/workflows/{workflowId}/restart": { post: { operationId: "restartWorkflow" } },
     "/api/fluctlights/{fluctlightId}/detail": { get: { operationId: "fluctlightDetail", ...jsonResponse("BrowserFluctlightDetail") } },
+    "/api/fluctlights/{fluctlightId}/wardrobe": { get: { operationId: "fluctlightWardrobe", ...jsonResponse("BrowserWardrobePage") } },
     "/api/fluctlights/{fluctlightId}/wake-up": { post: { operationId: "triggerWakeUp" } },
     "/api/fluctlights/{fluctlightId}/developing-self": { get: { operationId: "developingSelf" } },
     "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/rollback": { post: { operationId: "rollbackDevelopingSelf" } },

@@ -79,6 +79,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/fluctlights", s.listFluctlights)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}", s.getFluctlight)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/detail", s.fluctlightDetail)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/wardrobe", s.wardrobeItems)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/wake-up", s.triggerWakeUp)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/developing-self", s.developingSelf)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/developing-self/{claimID}/rollback", s.rollbackDevelopingSelf)
@@ -358,6 +359,27 @@ func (s *Server) fluctlightDetail(response http.ResponseWriter, request *http.Re
 	if err != nil {
 		s.logger.Error("Go Core fluctlight detail failed", "fluctlight_id", request.PathValue("fluctlightID"), "error", err)
 		writeError(response, http.StatusBadGateway, "fluctlight_detail_failed")
+		return
+	}
+	writeJSON(response, http.StatusOK, value)
+}
+
+func (s *Server) wardrobeItems(response http.ResponseWriter, request *http.Request) {
+	actorID, ok := s.authorizeHuman(response, request)
+	if !ok || s.app == nil {
+		return
+	}
+	value, err := s.app.WardrobeItems(request.Context(), actorID, request.PathValue("fluctlightID"), request.URL.Query().Get("cursor"))
+	if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrUnauthorized) {
+		writeError(response, http.StatusNotFound, "fluctlight_not_found")
+		return
+	}
+	if errors.Is(err, core.ErrInvalidArguments) {
+		writeError(response, http.StatusBadRequest, "wardrobe_cursor_invalid")
+		return
+	}
+	if err != nil {
+		writeError(response, http.StatusBadGateway, "wardrobe_read_failed")
 		return
 	}
 	writeJSON(response, http.StatusOK, value)

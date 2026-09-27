@@ -26,6 +26,21 @@ func newWardrobeService(app *App) *WardrobeService {
 type wardrobeInspectCapability struct{ service *WardrobeService }
 type wardrobeWearCapability struct{ service *WardrobeService }
 
+// WardrobeItems is the Owner-facing read projection used by the detail view.
+// It shares the same bounded, cursor-based inventory query as wardrobe.inspect.
+func (a *App) WardrobeItems(ctx context.Context, actorID, fluctlightID, cursor string) (map[string]any, error) {
+	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
+		return nil, err
+	}
+	cursor = strings.TrimSpace(cursor)
+	if len(cursor) > 128 {
+		return nil, ErrInvalidArguments
+	}
+	return newWardrobeService(a).inspectWardrobe(ctx, fluctlightID, "", map[string]any{
+		"operation": "list", "limit": 30, "cursor": cursor,
+	})
+}
+
 func wardrobeInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: wardrobeInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,

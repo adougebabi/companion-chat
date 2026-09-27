@@ -553,6 +553,16 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/detail", http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "fluctlight_not_found", "Fluctlight detail is unavailable"), nil)
 		return
 	}
+	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wardrobe"); ok && methodName == http.MethodGet {
+		cursor := request.URL.Query().Get("cursor")
+		if len(cursor) > 128 {
+			writeError(response, http.StatusBadRequest, "wardrobe_cursor_invalid", "Invalid wardrobe cursor")
+			return
+		}
+		response.Header().Set("Cache-Control", "no-store, private")
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe?cursor="+url.QueryEscape(cursor), http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "wardrobe_unavailable", "Wardrobe is unavailable"), nil)
+		return
+	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wake-up"); ok && methodName == http.MethodPost {
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wake-up", http.MethodPost, map[string]any{}, s.readOnlyError(http.StatusUnprocessableEntity, "wake_up_trigger_failed", "Wake-up could not be triggered"), nil)
 		return

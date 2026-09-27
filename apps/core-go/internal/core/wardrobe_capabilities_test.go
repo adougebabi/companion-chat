@@ -3,10 +3,32 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 )
+
+func TestOwnerWardrobeItemsPagesRecordedInventory(t *testing.T) {
+	fixture := seedWardrobeToolFixture(t)
+	for index := 0; index < 31; index++ {
+		id := fmt.Sprintf("wardrobe_extra_%02d_%s", index, fixture.suffix)
+		if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key) VALUES($1,$2,'accessory','accessory',$3,'owned','available','initialization',$4,$5)`, id, fixture.fluctlightID, fmt.Sprintf("收藏物品 %d", index), "fixture:"+fixture.suffix, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first, err := fixture.app.WardrobeItems(fixture.ctx, fixture.ownerID, fixture.fluctlightID, "")
+	if err != nil || len(arrayValue(first["items"])) != 30 || first["has_more"] != true || first["inventory_complete"] != false {
+		t.Fatalf("first wardrobe page=%#v err=%v", first, err)
+	}
+	second, err := fixture.app.WardrobeItems(fixture.ctx, fixture.ownerID, fixture.fluctlightID, stringValue(first["next_cursor"]))
+	if err != nil || len(arrayValue(second["items"])) != 5 || second["has_more"] != false {
+		t.Fatalf("second wardrobe page=%#v err=%v", second, err)
+	}
+	if _, err := fixture.app.WardrobeItems(fixture.ctx, fixture.foreignOwnerID, fixture.fluctlightID, ""); err == nil {
+		t.Fatal("another Owner could read this Fluctlight's wardrobe")
+	}
+}
 
 func seedWardrobeToolFixture(t *testing.T) independentToolE2EFixture {
 	t.Helper()

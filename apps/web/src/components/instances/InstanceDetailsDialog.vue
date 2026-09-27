@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { BrowserClient, type BrowserWardrobeItem } from "@fluctlight/browser-client";
 
 import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
@@ -23,6 +24,7 @@ const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: []; manage: [] }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
+const wardrobeClient = new BrowserClient(apiOrigin);
 const dialogOpen = computed(() => props.open && Boolean(store.selectedFluctlight));
 
 function mediaUrl(assetId: string): string {
@@ -55,6 +57,67 @@ const detail = computed(() => hasCurrentFluctlightDetail.value ? asRecord(contro
 const corePersona = computed(() => asRecord(detail.value.core_persona));
 const developingSelf = computed(() => asRecord(detail.value.developing_self));
 const currentState = computed(() => asRecord(detail.value.current_state));
+const wornItems = computed(() => asRecords(asRecord(currentState.value.appearance).worn_items));
+const wardrobeItems = ref<BrowserWardrobeItem[]>([]);
+const wardrobeFluctlightId = ref("");
+const wardrobeNextCursor = ref("");
+const wardrobeHasMore = ref(false);
+const wardrobeInventoryComplete = ref(false);
+const wardrobeLoading = ref(false);
+const wardrobeError = ref("");
+const wardrobeLoaded = ref(false);
+const wardrobeExpanded = ref(false);
+let wardrobeRequestId = 0;
+
+function resetWardrobe(fluctlightId = "") {
+  wardrobeRequestId += 1;
+  wardrobeFluctlightId.value = fluctlightId;
+  wardrobeItems.value = [];
+  wardrobeNextCursor.value = "";
+  wardrobeHasMore.value = false;
+  wardrobeInventoryComplete.value = false;
+  wardrobeLoading.value = false;
+  wardrobeError.value = "";
+  wardrobeLoaded.value = false;
+}
+
+async function loadWardrobePage() {
+  const fluctlightId = store.selectedFluctlight?.id;
+  if (!fluctlightId || wardrobeLoading.value) return;
+  if (wardrobeFluctlightId.value !== fluctlightId) resetWardrobe(fluctlightId);
+  const cursor = wardrobeLoaded.value ? wardrobeNextCursor.value : "";
+  const requestId = ++wardrobeRequestId;
+  wardrobeLoading.value = true;
+  wardrobeError.value = "";
+  try {
+    const page = await wardrobeClient.wardrobe(fluctlightId, cursor);
+    if (requestId !== wardrobeRequestId || store.selectedFluctlight?.id !== fluctlightId) return;
+    wardrobeItems.value = cursor ? [...wardrobeItems.value, ...page.items] : page.items;
+    wardrobeNextCursor.value = page.next_cursor;
+    wardrobeHasMore.value = page.has_more;
+    wardrobeInventoryComplete.value = page.inventory_complete;
+    wardrobeLoaded.value = true;
+  } catch {
+    if (requestId === wardrobeRequestId) wardrobeError.value = "衣柜读取失败，请重试。";
+  } finally {
+    if (requestId === wardrobeRequestId) wardrobeLoading.value = false;
+  }
+}
+
+function onWardrobeToggle(event: Event) {
+  if (!(event.target instanceof HTMLDetailsElement)) return;
+  wardrobeExpanded.value = event.target.open;
+  if (!event.target.open) return;
+  const fluctlightId = store.selectedFluctlight?.id ?? "";
+  if (wardrobeFluctlightId.value !== fluctlightId) resetWardrobe(fluctlightId);
+  if (!wardrobeLoaded.value) void loadWardrobePage();
+}
+
+watch(() => props.open, (open) => { if (!open) { wardrobeExpanded.value = false; resetWardrobe(); } });
+watch(() => store.selectedFluctlight?.id, () => {
+  resetWardrobe();
+  if (props.open && wardrobeExpanded.value) void loadWardrobePage();
+});
 const identity = computed(() => {
   const detailedIdentity = asRecord(detail.value.identity);
   return Object.keys(detailedIdentity).length ? detailedIdentity : asRecord(store.selectedFluctlight?.identity);
@@ -403,6 +466,25 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <div><span>关系</span><strong>{{ relationships.length }}</strong></div>
               <div><span>可展示记忆</span><strong>{{ memories.length }}</strong></div>
             </div>
+            <details class="detail-state-drawer wardrobe-drawer" @toggle="onWardrobeToggle">
+              <summary><span><strong>衣柜与物品</strong><small>查看已记录物品与当前穿着</small></span><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+              <div class="detail-state-drawer-body">
+                <section class="detail-state-section">
+                  <div class="detail-state-heading"><h4>当前穿着</h4><span>{{ wornItems.length }} 件</span></div>
+                  <p v-if="!wornItems.length" class="field-note">当前没有已确认的穿着记录。</p>
+                  <ul v-else class="modal-detail-list"><li v-for="item in wornItems" :key="String(item.id)"><strong>{{ formatDisplayValue(item.description) }}</strong><small>{{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.availability) }}</small></li></ul>
+                </section>
+                <section class="detail-state-section">
+                  <div class="detail-state-heading"><h4>已记录物品</h4><span>{{ wardrobeItems.length }} 件{{ wardrobeHasMore ? "以上" : "" }}</span></div>
+                  <p v-if="wardrobeLoaded && !wardrobeInventoryComplete" class="field-note">这是已记录清单；未列出的物品不代表不存在。</p>
+                  <p v-if="wardrobeLoading && !wardrobeLoaded" class="field-note">正在读取衣柜...</p>
+                  <p v-if="wardrobeError" class="field-note" role="alert">{{ wardrobeError }}</p>
+                  <p v-if="wardrobeLoaded && !wardrobeItems.length" class="field-note">尚无已记录的物品。</p>
+                  <ul v-if="wardrobeItems.length" class="modal-detail-list"><li v-for="item in wardrobeItems" :key="item.id"><strong>{{ item.description }}</strong><small>{{ formatDisplayValue(item.category) }} · {{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.ownership) }} · {{ enumLabel(item.availability) }}</small></li></ul>
+                  <Button v-if="wardrobeError || wardrobeHasMore" variant="outline" type="button" :disabled="wardrobeLoading" @click="loadWardrobePage">{{ wardrobeLoading ? "读取中..." : wardrobeError ? "重试" : "查看更多物品" }}</Button>
+                </section>
+              </div>
+            </details>
             <h3>目标与意图</h3>
             <p v-if="!goals.length && !intentions.length" class="field-note">当前没有目标或待执行意图。</p>
             <ul v-else class="modal-detail-list">

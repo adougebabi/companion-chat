@@ -11,6 +11,8 @@ const requestTypeNames = [
   "BrowserFluctlightActivationRequest",
   "BrowserInitializationSource",
   "BrowserFluctlightDetail",
+  "BrowserWardrobeItem",
+  "BrowserWardrobePage",
   "BrowserLifeEventRequest",
   "BrowserLifeEventCancelRequest",
   "BrowserPresenceRequest",
@@ -138,6 +140,7 @@ export class BrowserClient {
   async removeActorGroupMember(groupId: string, actorId: string): Promise<void> { await this.json(\`/api/actor-groups/\${encodeURIComponent(groupId)}/members/\${encodeURIComponent(actorId)}\`, { method: "DELETE", body: {} }); }
   async getFluctlight(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}\`) as Promise<Record<string, unknown>>; }
   async detail(fluctlightId: string): Promise<BrowserFluctlightDetail> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/detail\`) as Promise<BrowserFluctlightDetail>; }
+  async wardrobe(fluctlightId: string, cursor = ""): Promise<BrowserWardrobePage> { const query = cursor ? \`?cursor=\${encodeURIComponent(cursor)}\` : ""; return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/wardrobe\${query}\`) as Promise<BrowserWardrobePage>; }
   async triggerWakeUp(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/wake-up\`, { method: "POST", body: {} }) as Promise<Record<string, unknown>>; }
   async developingSelf(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/developing-self\`) as Promise<Record<string, unknown>>; }
   async rollbackDevelopingSelf(fluctlightId: string, claimId: string, body: { expectedRevision: number; reason: string }): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/developing-self/\${encodeURIComponent(claimId)}/rollback\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }

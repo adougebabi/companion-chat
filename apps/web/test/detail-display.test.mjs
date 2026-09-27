@@ -51,6 +51,15 @@ test("detail owns read-only life-world sections and uses timezone-aware timeline
   assert.match(governanceSource, /formatZonedRange\(event\.start_at, event\.end_at/);
 });
 
+test("detail exposes the recorded wardrobe with a paged read-only view", () => {
+  assert.match(detailSource, /衣柜与物品/);
+  assert.match(detailSource, /wardrobeClient\.wardrobe\(fluctlightId, cursor\)/);
+  assert.match(detailSource, /wardrobeHasMore/);
+  assert.match(detailSource, /查看更多物品/);
+  assert.match(detailSource, /未列出的物品不代表不存在/);
+  assert.doesNotMatch(detailSource, /v-html\s*=\s*["'][^"']*wardrobe/);
+});
+
 test("detail exposes a Chinese progressive state drawer", () => {
   assert.match(detailSource, /<details class="detail-state-drawer">/);
   assert.match(detailSource, /状态数值与当前氛围/);

@@ -38,6 +38,17 @@ test("BrowserClient maps an unauthenticated session response without treating it
   assert.deepEqual(await client.session(), { authenticated: false });
 });
 
+test("BrowserClient pages the recorded wardrobe using an encoded cursor", async () => {
+  let requestedUrl = "";
+  const client = new BrowserClient("http://fluctlight.local", async (input) => {
+    requestedUrl = String(input);
+    return Response.json({ operation: "list", revision: 2, inventory_complete: false, items: [], has_more: false, next_cursor: "", searched_scope: "recorded_items", can_conclude_absent: false });
+  });
+  const page = await client.wardrobe("fl/1", "wardrobe:two");
+  assert.equal(requestedUrl, "http://fluctlight.local/api/fluctlights/fl%2F1/wardrobe?cursor=wardrobe%3Atwo");
+  assert.equal(page.inventory_complete, false);
+});
+
 test("BrowserClient requires an explicit base URL outside the browser", async () => {
   const previousWindow = globalThis.window;
   // @ts-expect-error This test deliberately exercises the non-browser boundary.
