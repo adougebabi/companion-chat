@@ -206,6 +206,19 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			if invocations[0].ProviderRequestID != requestIDs[0] || results[0].ProviderRequestID != requestIDs[0] {
 				t.Fatalf("provider identity mismatch invocation=%q result=%q physical=%q", invocations[0].ProviderRequestID, results[0].ProviderRequestID, requestIDs[0])
 			}
+			if testCase.name == conversationReplyCapabilityName {
+				correlationID := "controlled-formal-tool-adapter:" + testCase.name + ":" + fixture.suffix
+				var firstModelCount, secondModelCount, toolOnFirst, toolOnSecond int
+				if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FILTER (WHERE metrics->>'model_call_id'=$2),count(*) FILTER (WHERE metrics->>'model_call_id'=$3) FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID, requestIDs[0], requestIDs[1]).Scan(&firstModelCount, &secondModelCount); err != nil {
+					t.Fatal(err)
+				}
+				if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FILTER (WHERE payload->>'model_call_id'=$2),count(*) FILTER (WHERE payload->>'model_call_id'=$3) FROM public.diagnostic_events WHERE correlation_id=$1 AND event_type='adk.tool.result' AND payload->>'call_id'=$4`, correlationID, requestIDs[0], requestIDs[1], callID).Scan(&toolOnFirst, &toolOnSecond); err != nil {
+					t.Fatal(err)
+				}
+				if firstModelCount != 1 || secondModelCount != 1 || toolOnFirst != 1 || toolOnSecond != 0 {
+					t.Fatalf("real two-round Tool diagnostic association: model_first=%d model_second=%d tool_first=%d tool_second=%d", firstModelCount, secondModelCount, toolOnFirst, toolOnSecond)
+				}
+			}
 			visibleResult, found := formalAdapterResultFromPayload(requests[1], callID)
 			if !found {
 				t.Fatalf("second physical request omitted matching role=tool result: %#v", requests[1]["messages"])
@@ -365,13 +378,21 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 		{
 			name: "media.image.generate", surface: CapabilitySurfaceConversation, wantStatus: "accepted",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
-				request := f.request("media.image.generate", "adapter-image", map[string]any{"intent": "窗边阅读的纪实照片"})
+				request := f.request("media.image.generate", "adapter-image", map[string]any{"intent": "窗边阅读的手持自拍", "capture": map[string]any{"mode": "selfie", "camera": "front", "framing": "upper body", "device_visibility": "hidden"}})
 				request.TargetKind, request.TargetRef = "conversation", f.conversationID
 				return request
 			},
 			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
 				id := stringValue(mapValue(receipt.Result.Output)["media_intent_id"])
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.media_intents WHERE id=$1 AND owner_fluctlight_id=$2`, 1, id, f.fluctlightID)
+				var prompt string
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT prompt FROM public.media_intents WHERE id=$1`, id).Scan(&prompt); err != nil {
+					t.Fatal(err)
+				}
+				var frozen map[string]any
+				if err := json.Unmarshal([]byte(prompt), &frozen); err != nil || mapValue(frozen["capture"])["mode"] != "selfie" || mapValue(frozen["capture"])["camera"] != "front" {
+					t.Fatalf("durable media intent lost declared capture: %s (%v)", prompt, err)
+				}
 			},
 		},
 		{

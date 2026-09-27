@@ -628,6 +628,23 @@ func (s *Server) modelRuns(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, value)
 }
 
+func (s *Server) agentRuns(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	value, err := s.app.AgentRunsFiltered(r.Context(), actor, queryLimit(r), r.URL.Query().Get("correlation_id"))
+	if err != nil {
+		if errors.Is(err, core.ErrDiagnosticsFilterInvalid) {
+			s.opErrorWithDetails(w, err, "diagnostics_filter_invalid", diagnosticsFilterDetails())
+			return
+		}
+		s.opError(w, err, "diagnostics_agent_runs_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+
 func (s *Server) mediaPrompts(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {

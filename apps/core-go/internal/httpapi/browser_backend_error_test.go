@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser"
 )
 
@@ -38,5 +40,23 @@ func TestBrowserConversationTurnErrorLeavesUnknownFailuresForFallback(t *testing
 	err := errors.New("private database detail")
 	if got := browserConversationTurnError(err); got != err {
 		t.Fatalf("error = %v, want original unknown error for route fallback", got)
+	}
+}
+
+func TestBrowserAgentRunDiagnosticsErrorKeepsAuthorizationAndFilterCodes(t *testing.T) {
+	for _, testCase := range []struct {
+		name, code string
+		err        error
+		status     int
+	}{
+		{name: "non-owner", err: core.ErrUnauthorized, status: http.StatusForbidden, code: "diagnostics_forbidden"},
+		{name: "invalid-filter", err: core.ErrDiagnosticsFilterInvalid, status: http.StatusUnprocessableEntity, code: "diagnostics_filter_invalid"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			var mapped *browser.CoreError
+			if err := browserAgentRunDiagnosticsError(testCase.err); !errors.As(err, &mapped) || mapped.Status != testCase.status || mapped.Code != testCase.code {
+				t.Fatalf("Agent diagnostic error mapping = %#v", err)
+			}
+		})
 	}
 }

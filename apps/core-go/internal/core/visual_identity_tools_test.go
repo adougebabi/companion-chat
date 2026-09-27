@@ -628,6 +628,10 @@ func TestVisualIdentityAgentMessagesCarryRealImageContentBlock(t *testing.T) {
 	if !ok || len(content) != 2 || mapValue(content[1])["type"] != "image_url" || !strings.HasPrefix(stringValue(mapValue(mapValue(content[1])["image_url"])["url"]), "data:image/png;base64,") {
 		t.Fatalf("real multimodal image block missing: %#v", messages[1]["content"])
 	}
+	textPart := stringValue(mapValue(content[0])["text"])
+	if strings.HasPrefix(textPart, "{") || strings.Contains(textPart, `\"`) || !strings.Contains(textPart, "session_status: running") || jsonString(content[1]) != jsonString(image) {
+		t.Fatalf("visual identity multimodal text/image formatting drifted: text=%s image=%#v", textPart, content[1])
+	}
 	registry := mustCapabilityRegistry(builtinCapabilities(&App{})...)
 	if got := capabilityDefinitionNames(registry.Catalog(CapabilitySurfaceVisualIdentity)); !phase8EqualStrings(got, []string{visualIdentityGenerateCandidateCapabilityName, visualIdentityCommitReviewCapabilityName, visualIdentityFinalizeCapabilityName}) {
 		t.Fatalf("visual Agent catalog=%v", got)

@@ -362,7 +362,10 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		WHERE owner_fluctlight_id=$1
 		  AND status='active'
 		  AND provenance_status NOT IN ('pending','invalid')
-		  AND (provenance_status='legacy_unknown' OR source_support.live_count>0)
+		  AND (provenance_status='legacy_unknown' OR (
+		    source_support.live_count>0 AND (
+		      NOT EXISTS (SELECT 1 FROM public.conversation_daily_memories d WHERE d.memory_id=memories.id)
+		      OR source_support.live_count=source_support.total_count)))
 		  AND type=ANY($3::text[])
 		  AND (
 		    (visibility IN ('private','owner') AND $4)

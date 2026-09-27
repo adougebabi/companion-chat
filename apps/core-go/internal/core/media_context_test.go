@@ -11,7 +11,7 @@ import (
 
 func TestImageCapabilityPrepareConsumesResolvedContext(t *testing.T) {
 	capability := imageGenerateCapability{}
-	invocation := CapabilityInvocation{CallID: "image-1", CapabilityName: "media.image.generate", Arguments: []byte(`{"intent":"portrait"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
+	invocation := CapabilityInvocation{CallID: "image-1", CapabilityName: "media.image.generate", Arguments: []byte(`{"intent":"portrait","capture":{"mode":"mirror_selfie","framing":"full body","mirror":true,"device_visibility":"visible"}}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
 	resolved := CapabilityContext{
 		Visual: &VisualIdentityContext{Data: map[string]any{"asset_id": "visual-1"}},
 		Life:   &CurrentLifeContext{Data: map[string]any{"scene": "studio"}},
@@ -33,6 +33,20 @@ func TestImageCapabilityPrepareConsumesResolvedContext(t *testing.T) {
 	binding := mapValue(concept["context_binding"])
 	if stringValue(concept["intent"]) != "portrait" || stringValue(mapValue(binding["current_life"])["scene"]) != "studio" || stringValue(mapValue(binding["appearance"])["hair"]) != "long" {
 		t.Fatalf("prepared image payload lost context: %#v", concept)
+	}
+	if capture := mapValue(concept["capture"]); capture["mode"] != "mirror_selfie" || capture["framing"] != "full body" || capture["mirror"] != true {
+		t.Fatalf("prepared image payload lost explicit capture: %#v", concept)
+	}
+	if err := validatePreparedMediaConcept(concept, "portrait", map[string]any{"mode": "external_capture"}); err == nil {
+		t.Fatal("replay accepted a different capture relationship")
+	}
+}
+
+func TestImageCapabilityRejectsUnknownCaptureModeWithoutVisualGuessing(t *testing.T) {
+	definition := imageGenerateCapability{}.Definition()
+	invocation := CapabilityInvocation{CallID: "bad-capture", CapabilityName: definition.Name, Arguments: []byte(`{"intent":"portrait","capture":{"mode":"guess_from_keywords"}}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
+	if err := invocation.Validate(definition); err == nil {
+		t.Fatal("unknown capture mode passed the closed Tool schema")
 	}
 }
 
@@ -61,7 +75,7 @@ func TestImageIntentAndCanonicalContextReachMediaPromptInput(t *testing.T) {
 	binding := mapValue(providerConcept["context_binding"])
 	if stringValue(providerConcept["intent"]) != "在窗边读书" ||
 		stringValue(mapValue(binding["current_life"])["scene"]) != "窗边" ||
-		stringValue(mapValue(mapValue(binding["current_state"])["mood"])["label"]) != "平静" ||
+		stringValue(mapValue(binding["current_state"])["mood"]) != "平静" ||
 		stringValue(mapValue(binding["appearance"])["outfit"]) != "针织衫" ||
 		stringValue(mapValue(mapValue(binding["visual_identity"])["renderer_constraints"])["chest_cup"]) != "B" {
 		t.Fatalf("canonical media intent/context was lost: %s", promptInput)
@@ -101,6 +115,115 @@ func TestSceneMediaPromptUsesCurrentAppearanceWithoutHistoricalVisualSnapshot(t 
 	}
 }
 
+func TestMediaCurrentAppearanceRetainsStableVisualIdentityTraits(t *testing.T) {
+	identity := map[string]any{"status": "active", "identity_snapshot": map[string]any{
+		"identity":     map[string]any{"name": "摇光", "gender": "female", "appearance": map[string]any{"hair": "旧长发", "face_shape": "鹅蛋脸", "eye_color": "深棕"}},
+		"life_profile": map[string]any{"appearance": map[string]any{"description": "过去穿白衬衫", "body_type": "匀称"}},
+	}}
+	concept := map[string]any{
+		"intent": "现在自拍", "visual_identity": identity,
+		"context_binding": map[string]any{
+			"visual_identity": identity,
+			"appearance":      map[string]any{"body_fields": map[string]any{"hair_length": map[string]any{"status": "known", "value": "短发"}}, "worn_items": []any{map[string]any{"slot": "top", "description": "深色上衣"}}},
+		},
+	}
+	input := compactMediaConceptForProvider(jsonString(concept))
+	for _, stable := range []string{"摇光", "鹅蛋脸", "深棕", "匀称", "短发", "深色上衣"} {
+		if !strings.Contains(input, stable) {
+			t.Fatalf("stable or current visual fact %q was dropped: %s", stable, input)
+		}
+	}
+	for _, stale := range []string{"旧长发", "过去穿白衬衫"} {
+		if strings.Contains(input, stale) {
+			t.Fatalf("historical mutable appearance %q overrode current facts: %s", stale, input)
+		}
+	}
+}
+
+func TestMediaProviderBindingUsesKnownBodyRowsAndDriveLabels(t *testing.T) {
+	concept := map[string]any{
+		"intent":  "在家休息时自己拍一张",
+		"capture": map[string]any{"mode": "selfie", "camera": "front", "framing": "upper body"},
+		"context_binding": map[string]any{
+			"appearance": map[string]any{
+				"body_revision": 4, "wardrobe_revision": 7, "captured_at": "2026-09-28T00:00:00Z",
+				"body_fields": map[string]any{
+					"hair_length": map[string]any{"status": "known", "value": "短发", "source": "db"},
+					"hair_color":  map[string]any{"status": "known", "value": "黑色"},
+					"injuries":    map[string]any{"status": "unknown"},
+				},
+				"worn_items": []any{map[string]any{"id": "internal-shirt-id", "slot": "top", "description": "棉质家居服"}},
+			},
+			"current_state": map[string]any{
+				"mood": map[string]any{"label": "平静", "intensity": 0.5},
+				"drives": []any{
+					map[string]any{"key": "rest", "label": "休息", "description": "对降低负荷的需求", "pressure": 0.7, "salience": 0.5, "direction": "stable"},
+					map[string]any{"key": "social", "label": "社交", "description": "想要交流", "pressure": 0.0, "salience": 0.0, "direction": "stable"},
+				},
+			},
+		},
+	}
+	input := mediaPromptInput(mediaIntent{Prompt: jsonString(concept)})
+	var compact map[string]any
+	if err := json.Unmarshal([]byte(input), &compact); err != nil {
+		t.Fatal(err)
+	}
+	binding := mapValue(compact["context_binding"])
+	appearance := mapValue(binding["appearance"])
+	fields := arrayValue(appearance["body_fields"])
+	if len(fields) != 2 || appearance["captured_at"] != nil || appearance["body_revision"] != nil || appearance["wardrobe_revision"] != nil || appearance["injuries"] != nil {
+		t.Fatalf("media appearance kept unknown or transport metadata: %#v", appearance)
+	}
+	state := mapValue(binding["current_state"])
+	if state["mood"] != "平静" || jsonString(state["drives"]) != `["休息"]` || strings.Contains(input, "对降低负荷的需求") || strings.Contains(input, "想要交流") || strings.Contains(input, "internal-shirt-id") {
+		t.Fatalf("media state repeated drive template or leaked storage ID: %s", input)
+	}
+	formatted := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": input}}, "media_prompt")
+	wire := stringValue(formatted[0]["content"])
+	if !strings.Contains(wire, "body_fields[2]{field,value}:") || !strings.Contains(wire, "mode: selfie") || strings.Contains(wire, `\"`) {
+		t.Fatalf("media concept did not render compact TOON with capture: %s", wire)
+	}
+}
+
+func TestExplicitCaptureModesReachPromptAndQualityWithoutReinterpretation(t *testing.T) {
+	for _, testCase := range []struct {
+		name, mode, camera string
+		mirror             bool
+	}{
+		{name: "handheld", mode: "selfie", camera: "front"},
+		{name: "mirror", mode: "mirror_selfie", camera: "rear", mirror: true},
+		{name: "first-person", mode: "first_person", camera: "rear"},
+		{name: "external", mode: "external_capture", camera: "external"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			concept := map[string]any{"intent": "拍一张照片", "capture": map[string]any{"mode": testCase.mode, "camera": testCase.camera, "mirror": testCase.mirror}}
+			intent := mediaIntent{Kind: "image", Prompt: jsonString(concept), ProviderPrompt: "candidate prompt"}
+			input := mediaPromptInput(intent)
+			var promptConcept map[string]any
+			if err := json.Unmarshal([]byte(input), &promptConcept); err != nil {
+				t.Fatal(err)
+			}
+			capture := mapValue(promptConcept["capture"])
+			if capture["mode"] != testCase.mode || capture["camera"] != testCase.camera || capture["mirror"] != testCase.mirror {
+				t.Fatalf("prompt capture changed: %#v", capture)
+			}
+			messages, err := mediaQualityMessages(intent, "image/png", []byte("candidate"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			text := stringValue(mapValue(arrayValue(messages[1]["content"])[0])["text"])
+			var qualityPayload map[string]any
+			if err := json.Unmarshal([]byte(text), &qualityPayload); err != nil {
+				t.Fatal(err)
+			}
+			qualityCapture := mapValue(mapValue(qualityPayload["frozen_media_concept"])["capture"])
+			if qualityCapture["mode"] != testCase.mode || qualityCapture["camera"] != testCase.camera || qualityCapture["mirror"] != testCase.mirror {
+				t.Fatalf("quality capture changed: %#v", qualityCapture)
+			}
+		})
+	}
+}
+
 func TestCompletedMediaIntentMarksCapturedAppearanceStaleWhenBodyChanges(t *testing.T) {
 	fixture := seedWardrobeToolFixture(t)
 	appearance, _, _, err := fixture.app.readEffectiveLifeSnapshot(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
@@ -133,7 +256,7 @@ func TestWithContextAuthorityInstructionKeepsUserMessageLast(t *testing.T) {
 	if len(messages) != 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
 		t.Fatalf("messages = %#v", messages)
 	}
-	if !strings.Contains(stringValue(messages[0]["content"]), "context.current_state") || !strings.Contains(stringValue(messages[0]["content"]), "life_context.current_time") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
+	if !strings.Contains(stringValue(messages[0]["content"]), "context.current_state") || !strings.Contains(stringValue(messages[0]["content"]), "current_time/timezone") || !strings.Contains(stringValue(messages[0]["content"]), "actor_self") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
 		t.Fatalf("authority instruction = %#v", messages[0])
 	}
 }

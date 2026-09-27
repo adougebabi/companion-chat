@@ -9,7 +9,7 @@ import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
 import { diagnosticsSections, type DiagnosticsSection } from "../app/navigation";
-import type { BrowserDiagnosticModelRun } from "@fluctlight/browser-client";
+import type { BrowserDiagnosticAgentRun, BrowserDiagnosticModelRun } from "@fluctlight/browser-client";
 import { useControlCenterStore } from "../stores/control-center";
 
 const props = defineProps<{ section?: DiagnosticsSection | null }>();
@@ -20,6 +20,7 @@ const scenarioLabels: Record<string, string> = { reply: "回复生成", autonomy
 const bindingLabels: Record<string, string> = { generic_llm: "通用 LLM", embedding: "Embedding" };
 const statusLabels: Record<string, string> = { queued: "排队中", running: "执行中", started: "已启动", scheduled: "已计划", retry: "待重试", completed: "已完成", no_op: "无操作", blocked: "已阻止", paused: "已暂停", inactive: "未激活", disabled: "已禁用", overdue: "已逾期", dead_letter: "已终止", failed: "失败", cancelled: "已取消", timeout: "超时" };
 const mediaFailureStageLabels: Record<string, string> = { prepare: "准备提示词", submit: "提交 ComfyUI", poll_quality: "轮询或质量检查" };
+const agentFailureStageLabels: Record<string, string> = { tool: "Tool 执行", model: "模型请求", model_input: "模型输入预算", cancellation: "取消", agent: "Agent 结果", unknown: "阶段未知" };
 function scenarioLabel(scenario: string) { return scenarioLabels[scenario] ?? scenario; }
 function bindingLabel(role: string) { return bindingLabels[role] ?? role; }
 function statusLabel(status: string) { return statusLabels[status] ?? status; }
@@ -35,16 +36,25 @@ const queueSummary = computed(() => {
 });
 const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 const modelRunGroups = computed(() => {
-  const groups = new Map<string, { id: string; correlationId: string; runs: BrowserDiagnosticModelRun[]; total: number }>();
+  const groups = new Map<string, { id: string; correlationId: string; runs: BrowserDiagnosticModelRun[]; agents: BrowserDiagnosticAgentRun[]; total: number }>();
   for (const run of controlCenter.diagnosticModelRuns) {
     const id = run.logicalRunId || run.correlationId || run.id;
     let group = groups.get(id);
     if (!group) {
-      group = { id, correlationId: run.correlationId, runs: [], total: 0 };
+      group = { id, correlationId: run.correlationId, runs: [], agents: [], total: 0 };
       groups.set(id, group);
     }
     group.runs.push(run);
     group.total = Math.max(group.total, Number(run.roundCount ?? 0));
+  }
+  for (const agent of controlCenter.diagnosticAgentRuns) {
+    const id = agent.correlationId || `agent:${agent.fluctlightId}:${agent.agentId}:${agent.runId}`;
+    let group = groups.get(id);
+    if (!group) {
+      group = { id, correlationId: agent.correlationId, runs: [], agents: [], total: 0 };
+      groups.set(id, group);
+    }
+    group.agents.push(agent);
   }
   for (const group of groups.values()) group.runs.sort((a, b) => {
     if (a.sequence != null && b.sequence != null) return a.sequence - b.sequence || a.id.localeCompare(b.id);
@@ -52,7 +62,14 @@ const modelRunGroups = computed(() => {
     if (b.sequence != null) return 1;
     return (a.queuedAt || a.createdAt).localeCompare(b.queuedAt || b.createdAt) || a.id.localeCompare(b.id);
   });
-  return [...groups.values()];
+  return [...groups.values()].sort((a, b) => {
+    const aFailed = a.agents.some((agent) => agent.status === "failed");
+    const bFailed = b.agents.some((agent) => agent.status === "failed");
+    if (aFailed !== bFailed) return aFailed ? -1 : 1;
+    const aTime = a.agents[0]?.startedAt || a.runs[0]?.createdAt || "";
+    const bTime = b.agents[0]?.startedAt || b.runs[0]?.createdAt || "";
+    return bTime.localeCompare(aTime);
+  });
 });
 function modelRoundLabel(run: BrowserDiagnosticModelRun, total: number): string {
   return run.sequence != null ? `第 ${run.sequence}/${Math.max(total, run.sequence)} 次` : "轮次未知（旧记录）";
@@ -153,7 +170,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
         <div class="lifecycle-filter-actions"><Button type="submit">应用过滤</Button><Button variant="outline" type="button" @click="clearLifecycleFilters">清除</Button><Button variant="outline" type="button" @click="controlCenter.exportDiagnostics">导出当前过滤</Button></div>
       </form>
       <div v-if="controlCenter.loading" class="empty-panel compact">正在加载诊断信息...</div>
-      <div v-else-if="(currentSection === 'lifecycle' && !controlCenter.lifecycleDiagnostics.length && !controlCenter.workflowIntentSnapshots.length) || (currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length) || (currentSection === 'media-prompts' && !controlCenter.diagnosticMediaPrompts.length) || (currentSection === 'events' && !controlCenter.diagnostics.length)" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>{{ currentSection === 'lifecycle' ? '没有匹配的触发或工作流状态；可清除过滤查看全部。' : '该主题暂时没有可展示的脱敏记录。' }}</p></div>
+      <div v-else-if="(currentSection === 'lifecycle' && !controlCenter.lifecycleDiagnostics.length && !controlCenter.workflowIntentSnapshots.length) || (currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length && !controlCenter.diagnosticAgentRuns.length) || (currentSection === 'media-prompts' && !controlCenter.diagnosticMediaPrompts.length) || (currentSection === 'events' && !controlCenter.diagnostics.length)" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>{{ currentSection === 'lifecycle' ? '没有匹配的触发或工作流状态；可清除过滤查看全部。' : '该主题暂时没有可展示的脱敏记录。' }}</p></div>
       <div v-else class="diagnostics-groups">
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="diagnostics-accordion">
         <AccordionItem v-if="currentSection === 'lifecycle'" value="lifecycle" class="diagnostic-group diagnostics-drawer">
@@ -169,12 +186,18 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
             <section v-if="controlCenter.workflowIntentSnapshots.length" class="intent-snapshot-list" aria-labelledby="intent-snapshot-title"><h3 id="intent-snapshot-title">PostgreSQL Intent 快照</h3><article v-for="intent in controlCenter.workflowIntentSnapshots" :key="intent.intentId" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ intent.intentType }}</strong><Badge class="status-pill" :class="statusClass(intent.status)" variant="secondary">{{ statusLabel(intent.status) }}</Badge><small>{{ intent.intentId }} · 尝试 {{ intent.attemptCount }}</small></div><p v-if="intent.nextAttemptAt">下次调度：{{ formatRunTime(intent.nextAttemptAt) }}</p><p v-if="intent.lastError" class="diagnostic-error">{{ intent.lastError }}</p><Button variant="outline" type="button" @click="openWorkflow(intent.runtimeWorkflowId || intent.workflowId)">查看 Workflow</Button></article></section>
           </div></AccordionContent>
         </AccordionItem>
-        <AccordionItem v-if="currentSection === 'model-runs' && controlCenter.diagnosticModelRuns.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
-          <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MODEL RUNS</p><h2>模型运行<small v-if="queueSummary" class="queue-summary"> · 队列 {{ queueSummary }}</small></h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticModelRuns.length }}</Badge></AccordionTrigger>
+        <AccordionItem v-if="currentSection === 'model-runs' && modelRunGroups.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
+          <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">AGENT & MODEL RUNS</p><h2>运行诊断<small v-if="queueSummary" class="queue-summary"> · 队列 {{ queueSummary }}</small></h2></div><Badge class="count-pill" variant="secondary">{{ modelRunGroups.length }}</Badge></AccordionTrigger>
           <AccordionContent><div class="diagnostic-drawer-body">
             <section v-for="group in modelRunGroups" :key="group.id" class="model-run-group" :aria-label="`逻辑运行 ${group.id}`">
-              <h3>{{ scenarioLabel(group.runs[0]?.scenario || group.runs[0]?.role || "model") }} · {{ group.correlationId }}</h3>
+              <h3>{{ scenarioLabel(group.runs[0]?.scenario || group.runs[0]?.role || group.agents[0]?.agentId || "agent") }} · {{ group.correlationId || group.id }}</h3>
+              <article v-for="agent in group.agents" :key="agent.runId" class="diagnostic-row" :class="statusClass(agent.status)">
+                <div class="diagnostic-meta"><strong>{{ agent.source === 'termination_event' ? 'Agent 终止记录' : '逻辑 Agent' }} · {{ agent.agentId }}</strong><Badge class="status-pill" :class="statusClass(agent.status)" variant="secondary">{{ statusLabel(agent.status) }}</Badge><small>Run {{ agent.runId }} · {{ agent.source === 'termination_event' ? '记录' : '开始' }} {{ formatRunTime(agent.startedAt) }}<template v-if="agent.finishedAt && agent.source !== 'termination_event'"> · 结束 {{ formatRunTime(agent.finishedAt) }}</template></small></div>
+                <p v-if="agent.associationStatus === 'unknown'" class="field-note">与模型轮次的关联未知（旧记录）。</p>
+                <p v-if="agent.status === 'failed'" class="diagnostic-error"><strong>失败阶段：</strong>{{ agentFailureStageLabels[agent.failureStage || 'unknown'] || agent.failureStage }} · <strong>错误：</strong>{{ agent.failureCode || 'agent_run_failed' }}<template v-if="agent.safeCause"> · {{ agent.safeCause }}</template></p>
+              </article>
               <p v-if="group.total > group.runs.length" class="field-note">当前筛选只显示 {{ group.runs.length }}/{{ group.total }} 次模型请求。</p>
+              <p v-if="!group.runs.length" class="field-note">此运行没有可关联的物理模型记录。</p>
               <article v-for="run in group.runs" :key="run.id" class="diagnostic-row">
                 <div class="diagnostic-meta">
                   <strong>{{ modelRoundLabel(run, group.total) }} · {{ modelStageLabel(run.stage) }}</strong>

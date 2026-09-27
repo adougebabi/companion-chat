@@ -333,6 +333,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.diagnosticModelRuns(response, request)
 		return
 	}
+	if path == "/api/diagnostics/agent-runs" && methodName == http.MethodGet {
+		s.diagnosticAgentRuns(response, request)
+		return
+	}
 	if path == "/api/diagnostics/media-prompts" && methodName == http.MethodGet {
 		s.diagnosticMediaPrompts(response, request)
 		return
@@ -1199,6 +1203,27 @@ func (s *Server) diagnosticModelRuns(response http.ResponseWriter, request *http
 	result := make([]any, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, browserDiagnosticModelRun(row))
+	}
+	writeJSON(response, http.StatusOK, result)
+}
+
+func (s *Server) diagnosticAgentRuns(response http.ResponseWriter, request *http.Request) {
+	session, ok := s.requireSession(response, request)
+	if !ok {
+		return
+	}
+	query := url.Values{"limit": []string{strconv.Itoa(queryInt(request.URL.Query().Get("limit"), 100))}}
+	if value := request.URL.Query().Get("correlationId"); value != "" {
+		query.Set("correlation_id", value)
+	}
+	var rows []map[string]any
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/agent-runs?"+query.Encode(), session, nil, &rows); err != nil {
+		s.diagnosticsError(response, err)
+		return
+	}
+	result := make([]any, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, browserDiagnosticAgentRun(row))
 	}
 	writeJSON(response, http.StatusOK, result)
 }

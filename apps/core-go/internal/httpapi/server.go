@@ -120,6 +120,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/diagnostics/lifecycle", s.lifecycleDiagnostics)
 	mux.HandleFunc("DELETE /internal/diagnostics", s.clearDiagnostics)
 	mux.HandleFunc("GET /internal/diagnostics/model-runs", s.modelRuns)
+	mux.HandleFunc("GET /internal/diagnostics/agent-runs", s.agentRuns)
 	mux.HandleFunc("GET /internal/diagnostics/media-prompts", s.mediaPrompts)
 	mux.HandleFunc("POST /internal/diagnostics/media-prompts/{mediaIntentID}/retry", s.retryMediaPrompt)
 	mux.HandleFunc("GET /internal/diagnostics/export", s.exportDiagnostics)

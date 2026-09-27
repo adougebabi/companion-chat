@@ -561,7 +561,7 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	if _, err := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, RunID: "portrait-after-haircut", CurrentInput: "你现在的头发怎么样？"}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(finalWire, "value: short") || strings.Contains(finalWire, "value: long") || strings.Contains(finalWire, "起初留长发") || !strings.Contains(finalWire, "白衬衫") || !strings.Contains(initialWire, "value: long") {
+	if !strings.Contains(finalWire, "hair_length: short") || strings.Contains(finalWire, "hair_length: long") || strings.Contains(finalWire, "起初留长发") || !strings.Contains(finalWire, "白衬衫") || !strings.Contains(initialWire, "hair_length: long") {
 		t.Fatalf("final Provider request did not replace current appearance: first=%s after=%s", initialWire, finalWire)
 	}
 	detail, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: personaDetailCapabilityName, OperationID: "portrait-current-appearance",

@@ -69,6 +69,7 @@ func affectEventCapabilityDefinition() CapabilityDefinition {
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "state_revision_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
 		ProvenanceFields: []string{"evidence_refs", "idempotency_key"}, NestedProvenanceObject: "event",
+		ModelResultOmitFields: []string{"event_id", "revision", "label", "intensity"},
 	}
 }
 

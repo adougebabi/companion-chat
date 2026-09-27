@@ -15,7 +15,6 @@ const (
 	reflectionTriggerPrefix = "fluctlight:reflection:due:"
 	wakeUpTriggerPrefix     = "fluctlight:wakeup:due:"
 	reflectionQuietPeriod   = 10 * time.Minute
-	wakeUpCognitionGrace    = 10 * time.Minute
 	wakeUpDueSweepLimit     = 50
 	wakeUpOverdueGrace      = 2 * time.Minute
 	wakeUpOverdueEventType  = "lifecycle.wake_up.overdue"
@@ -64,17 +63,13 @@ func (a *App) scheduleWakeUpTriggerWithDelay(ctx context.Context, fluctlightID s
 	return a.Redis.Set(ctx, wakeUpTriggerPrefix+fluctlightID, fluctlightID, delay).Err()
 }
 
-func wakeUpAfterCognitionDelay(intervalSeconds int) time.Duration {
-	if intervalSeconds <= 0 {
-		intervalSeconds = defaultWakeUpIntervalSeconds
-	}
-	return time.Duration(intervalSeconds)*time.Second + wakeUpCognitionGrace
+func wakeUpAfterCognitionDelay(_ int) time.Duration {
+	return wakeUpFirstIdleDelay
 }
 
-// scheduleWakeUpAfterCognition moves the durable Wake-up clock and its Redis
-// hint together. A cognition completion gets the configured Wake-up interval
-// plus the ten-minute quiet period; the next Wake-up completion re-arms the
-// clock with only the configured interval.
+// Cognition completion releases a preempted clock without changing the
+// user-message idle epoch. The due time remains an absolute offset from the
+// accepted message, even if the model took longer than ten minutes.
 func (a *App) scheduleWakeUpAfterCognition(ctx context.Context, fluctlightID string) error {
 	if a == nil || strings.TrimSpace(fluctlightID) == "" {
 		return nil
@@ -87,12 +82,18 @@ func (a *App) scheduleWakeUpAfterCognition(ctx context.Context, fluctlightID str
 			return err
 		}
 	}
-	delay := wakeUpAfterCognitionDelay(settings.IntervalSeconds)
-	nextDue := a.now().UTC().Add(delay)
+	nextDue := a.now().UTC().Add(wakeUpAfterCognitionDelay(settings.IntervalSeconds))
 	if a.DB != nil && a.DB.Pool() != nil {
 		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
 				return err
+			}
+			var payloadRaw []byte
+			if err := tx.QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_type='wake_up.current' AND payload->>'fluctlight_id'=$1 FOR UPDATE`, fluctlightID).Scan(&payloadRaw); err != nil {
+				return err
+			}
+			if clock, ok := wakeUpIdleClockFromPayload(decodeObject(payloadRaw)); ok {
+				nextDue = wakeUpIdleDue(clock, settings.IntervalSeconds)
 			}
 			command, err := tx.Exec(ctx, `
 				UPDATE public.platform_workflow_intents
@@ -110,6 +111,10 @@ func (a *App) scheduleWakeUpAfterCognition(ctx context.Context, fluctlightID str
 		}); err != nil {
 			return err
 		}
+	}
+	delay := time.Until(nextDue)
+	if delay <= 0 {
+		delay = time.Second
 	}
 	return a.scheduleWakeUpTriggerWithDelay(ctx, fluctlightID, delay)
 }

@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"Actor语义、Tool提交与模型语义边界"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"Event/Schedule/Presence地点权威"}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"用户地点语义和opaque ref/工作记忆边界"}
+{"file":".trellis/tasks/09-27-yaoguang-prompt-context-convergence/research/confirmed-paths.md","reason":"已核实场景漂移与outcome重复路径"}

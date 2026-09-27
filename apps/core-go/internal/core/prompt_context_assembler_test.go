@@ -165,6 +165,32 @@ func TestPromptAssemblerRestoresRawWhenSummaryMissesTotalBudget(t *testing.T) {
 	}
 }
 
+func TestPromptAssemblerOmitsDailyCoveredRawOnlyWhenMemorySelected(t *testing.T) {
+	input := WorkingMemoryInput{
+		RetrievedMemories: []PromptFragment{{Kind: PromptFragmentRetrievedMemory, Priority: 80,
+			Content: map[string]any{"ref": "memory:ctx_daily", "type": "episodic", "content": "昨日对话经历"}, SourceRefs: []string{"memory:ctx_daily"}}},
+		RecentMessages: []PromptFragment{
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "昨日问题"}, SourceRefs: []string{"message:1"}, GroupKey: "turn:1"},
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "assistant", "content": "昨日回答"}, SourceRefs: []string{"message:2"}, GroupKey: "turn:1"},
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "今天问题"}, SourceRefs: []string{"message:3"}, GroupKey: "turn:2"},
+			{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "assistant", "content": "今天回答"}, SourceRefs: []string{"message:4"}, GroupKey: "turn:2"},
+		},
+	}
+	memory, err := ResolveWorkingMemory(input, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	memory.Retrieved[0].SourceRefs = append(memory.Retrieved[0].SourceRefs, "message:1", "message:2")
+	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: memory, CurrentInput: "现在", Policy: DefaultPromptBudgetPolicy(4096)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire := jsonString(result.Messages)
+	if !strings.Contains(wire, "昨日对话经历") || strings.Contains(wire, "昨日问题") || strings.Contains(wire, "昨日回答") || !strings.Contains(wire, "今天问题") {
+		t.Fatalf("daily memory/raw coverage = %s", wire)
+	}
+}
+
 func TestPromptAssemblerKeepsOlderRepeatedCurrentText(t *testing.T) {
 	memory := WorkingMemory{Recent: []PromptFragment{
 		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "repeat"}, SourceRefs: []string{"message:old-user"}, GroupKey: "turn:old"},

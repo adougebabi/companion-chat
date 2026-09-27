@@ -10,28 +10,62 @@ import (
 	"unicode/utf8"
 )
 
-// FormatMessages converts only complete JSON payloads in user/tool
-// messages. System instructions and ordinary prose are intentionally left
-// untouched so response-format contracts remain explicit.
+// FormatMessages converts only complete JSON payloads in user/assistant text.
+// System instructions, native ToolResult JSON, image parts and ordinary prose
+// stay untouched so provider protocol and response contracts remain explicit.
 func FormatMessages(messages []map[string]any) []map[string]any {
 	return FormatMessagesForRole(messages, "")
 }
 
-func FormatMessagesForRole(messages []map[string]any, role string) []map[string]any {
+func FormatMessagesForRole(messages []map[string]any, _ string) []map[string]any {
 	formatted := make([]map[string]any, 0, len(messages))
-	useTOON := role != "media_prompt"
+	useTOON := true
 	for _, message := range messages {
 		copyMessage := make(map[string]any, len(message))
 		for key, value := range message {
 			copyMessage[key] = value
 		}
 		roleStr, _ := message["role"].(string)
-		if content, ok := message["content"].(string); ok && roleStr != "system" {
-			copyMessage["content"] = FormatPromptContentWithMode(content, useTOON)
+		if roleStr != "system" && roleStr != "tool" && roleStr != "function" {
+			switch content := message["content"].(type) {
+			case string:
+				copyMessage["content"] = FormatPromptContentWithMode(content, useTOON)
+			case []any:
+				copyMessage["content"] = formatMultimodalTextParts(content, useTOON)
+			case []map[string]any:
+				parts := make([]any, len(content))
+				for index, part := range content {
+					parts[index] = part
+				}
+				copyMessage["content"] = formatMultimodalTextParts(parts, useTOON)
+			}
 		}
 		formatted = append(formatted, copyMessage)
 	}
 	return formatted
+}
+
+func formatMultimodalTextParts(parts []any, useTOON bool) []any {
+	result := make([]any, len(parts))
+	for index, raw := range parts {
+		part, ok := raw.(map[string]any)
+		if !ok || part["type"] != "text" {
+			result[index] = raw
+			continue
+		}
+		text, ok := part["text"].(string)
+		if !ok {
+			result[index] = raw
+			continue
+		}
+		copyPart := make(map[string]any, len(part))
+		for key, value := range part {
+			copyPart[key] = value
+		}
+		copyPart["text"] = FormatPromptContentWithMode(text, useTOON)
+		result[index] = copyPart
+	}
+	return result
 }
 
 func FormatPromptContent(content string) string {

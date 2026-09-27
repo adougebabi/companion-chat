@@ -26,6 +26,14 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 	if !strings.Contains(providerRuntimeProtocol, "actor_user") || !strings.Contains(providerRuntimeProtocol, "context reference") || strings.Contains(providerRuntimeProtocol, "除用户明确要求") {
 		t.Fatalf("runtime protocol must use actor_user and a concrete context-reference boundary: %s", providerRuntimeProtocol)
 	}
+	for _, rule := range []string{providerRuntimeProtocol, providerSingleRuntimeProtocol, providerContextAuthorityRule} {
+		if !strings.Contains(rule, "actor_self") || !strings.Contains(rule, "actor_user") || !strings.Contains(rule, "scene_event") {
+			t.Fatalf("scene authority rule lost actor ownership: %s", rule)
+		}
+	}
+	if description := sceneCapabilityDefinition().Description; !strings.Contains(description, "actor_self") || !strings.Contains(description, "human saying where they are") {
+		t.Fatalf("scene Tool does not identify the location subject: %s", description)
+	}
 	for _, check := range checks {
 		t.Run(check.name, func(t *testing.T) {
 			if got := len([]rune(check.value)); got > check.max {
@@ -42,5 +50,21 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		if strings.Contains(providerLanguageRule, forbidden) {
 			t.Fatalf("transport-only instruction %q leaked into language rule: %s", forbidden, providerLanguageRule)
 		}
+	}
+}
+
+func TestMediaPromptInstructionRestoresCaptureFirstAndIdentityAuthority(t *testing.T) {
+	for _, required := range []string{"先确定画面取景", "手持自拍", "镜前自拍", "first_person", "operator_pov", "external_capture", "默认本人前置相机自拍", "视觉身份和当下已知身体"} {
+		if !strings.Contains(mediaPromptInstruction, required) {
+			t.Fatalf("media instruction lost capture/identity rule %q", required)
+		}
+	}
+	for _, forbidden := range []string{"画面不是普通自拍", "视觉年龄约 20–26", "胸部饱满", "默认生成年轻成年东方女性"} {
+		if strings.Contains(mediaPromptInstruction, forbidden) {
+			t.Fatalf("media instruction kept conflicting template %q", forbidden)
+		}
+	}
+	if len([]rune(mediaPromptInstruction)) > 2500 {
+		t.Fatalf("media instruction grew beyond bounded task contract: %d runes", len([]rune(mediaPromptInstruction)))
 	}
 }

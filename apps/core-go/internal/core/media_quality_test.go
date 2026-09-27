@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -109,7 +110,7 @@ func TestMediaQualityImageDataURLBoundsAndMime(t *testing.T) {
 
 func TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL(t *testing.T) {
 	messages, err := mediaQualityMessages(mediaIntent{
-		Kind: "image", Prompt: `{"scene":"library"}`, ProviderPrompt: "A library portrait", QualityRetryCount: 1,
+		Kind: "image", Prompt: `{"scene":"library","capture":{"mode":"mirror_selfie","mirror":true}}`, ProviderPrompt: "A library mirror selfie", QualityRetryCount: 1,
 	}, "image/png", []byte("candidate"))
 	if err != nil {
 		t.Fatalf("messages error = %v", err)
@@ -132,6 +133,15 @@ func TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL(t *test
 	imageURL := mapValue(imagePart["image_url"])
 	if !strings.HasPrefix(stringValue(imageURL["url"]), "data:image/png;base64,") {
 		t.Fatalf("image part = %#v", imagePart)
+	}
+	formatted := formatProviderMessagesForRole(messages, "media_prompt")
+	formattedParts := arrayValue(formatted[1]["content"])
+	formattedText := stringValue(mapValue(formattedParts[0])["text"])
+	if !strings.Contains(formattedText, "frozen_media_concept:") || !strings.Contains(formattedText, "mode: mirror_selfie") || strings.Contains(formattedText, `\"`) || strings.Contains(formattedText, "frozen_media_concept: '{") {
+		t.Fatalf("quality text part retained nested JSON or lost capture: %s", formattedText)
+	}
+	if jsonString(formattedParts[1]) != jsonString(imagePart) {
+		t.Fatalf("quality formatter changed candidate image part: %#v", formattedParts[1])
 	}
 }
 
@@ -170,6 +180,10 @@ func TestMediaPromptInputCarriesOnlyFrozenRetryFeedback(t *testing.T) {
 	}
 	if !strings.Contains(input, "A previous library portrait") {
 		t.Fatalf("retry input lost prior provider prompt: %s", input)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(input), &decoded); err != nil || len(mapValue(decoded["frozen_media_concept"])) == 0 {
+		t.Fatalf("retry concept was serialized as a nested JSON string: %s (%v)", input, err)
 	}
 }
 
@@ -272,11 +286,11 @@ func TestMediaQualityRetryPersistsStructuredFeedbackAndAcceptsSecondCandidate(t 
 
 func TestMediaPromptInputOmitsVisualIdentityWorkflowHistory(t *testing.T) {
 	input := mediaPromptInput(mediaIntent{Prompt: `{"scene":"library","context_binding":{"visual_identity":{"status":"active","identity_snapshot":{"identity":{"name":"影者"}},"renderer_constraints":{"chest_cup":"B","chest_lora_weight":-3},"timeline":[{"stage":"seed_requested","summary":"工作流节点"}],"canonical_asset_id":"asset-1"}}}`})
-	if strings.Contains(input, "timeline") || strings.Contains(input, "seed_requested") || strings.Contains(input, "canonical_asset_id") || strings.Contains(input, "identity_snapshot") {
+	if strings.Contains(input, "timeline") || strings.Contains(input, "seed_requested") || strings.Contains(input, "canonical_asset_id") {
 		t.Fatalf("media prompt retained visual identity workflow metadata: %s", input)
 	}
-	if !strings.Contains(input, "chest_cup") || !strings.Contains(input, "chest_lora_weight") {
-		t.Fatalf("media prompt lost renderer constraints: %s", input)
+	if !strings.Contains(input, "chest_cup") || !strings.Contains(input, "chest_lora_weight") || !strings.Contains(input, "影者") {
+		t.Fatalf("media prompt lost renderer constraints or stable identity: %s", input)
 	}
 }
 

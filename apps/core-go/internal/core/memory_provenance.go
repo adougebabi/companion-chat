@@ -29,9 +29,10 @@ func memorySourcesStillValid(ctx context.Context, query currentAuthorityReader, 
 		return true, nil
 	}
 	var supported bool
-	err := query.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.memory_source_links l
-WHERE l.memory_id=$1 AND l.memory_revision=$2 AND l.status='valid'
- AND public.memory_source_is_live(l.source_kind,l.source_id,l.source_revision,l.source_fingerprint))`, memoryID, revision).Scan(&supported)
+	err := query.QueryRow(ctx, `SELECT CASE WHEN EXISTS(SELECT 1 FROM public.conversation_daily_memories d WHERE d.memory_id=$1)
+ THEN count(*)>0 AND count(*) FILTER (WHERE l.status='valid' AND public.memory_source_is_live(l.source_kind,l.source_id,l.source_revision,l.source_fingerprint))=count(*)
+ ELSE count(*) FILTER (WHERE l.status='valid' AND public.memory_source_is_live(l.source_kind,l.source_id,l.source_revision,l.source_fingerprint))>0 END
+ FROM public.memory_source_links l WHERE l.memory_id=$1 AND l.memory_revision=$2`, memoryID, revision).Scan(&supported)
 	return supported, err
 }
 
@@ -114,6 +115,21 @@ FROM public.conversation_messages msg WHERE msg.id=$1 AND
 func resolveFrozenMemorySourceTx(ctx context.Context, tx pgx.Tx, command PreparedMemoryMutation, dependent memoryAuthorityRow, frozen FrozenMemoryEvidenceSource) (memorySource, error) {
 	var source memorySource
 	switch frozen.Kind {
+	case "conversation_summary":
+		var owner, conversationID, status, fingerprint string
+		var revision int
+		var endedAt *time.Time
+		err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,conversation_id,status,revision,public.conversation_summary_source_fingerprint(id),ended_at FROM public.conversation_summaries WHERE id=$1 FOR SHARE`, frozen.ID).Scan(&owner, &conversationID, &status, &revision, &fingerprint, &endedAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return source, errors.New("memory_source_version_stale")
+		}
+		if err != nil {
+			return source, err
+		}
+		if owner != command.OwnerFluctlightID || conversationID != command.ConversationID || (status != "active" && status != "consolidated") || revision != frozen.Revision || fingerprint != frozen.Fingerprint {
+			return source, errors.New("memory_source_version_stale")
+		}
+		source = memorySource{kind: "conversation_summary", id: frozen.ID, revision: &revision, fingerprint: fingerprint, occurredAt: endedAt}
 	case "memory":
 		if frozen.ID == dependent.ID {
 			return source, errors.New("memory_source_cycle")

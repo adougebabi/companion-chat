@@ -349,6 +349,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		return b.server.app.LifecycleDiagnostics(ctx, actorID, lifecycleFilter(parsed.Query()))
 	case path == "/internal/diagnostics/model-runs":
 		return b.server.app.ModelRunsFiltered(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")), parsed.Query().Get("correlation_id"))
+	case path == "/internal/diagnostics/agent-runs":
+		rows, err := b.server.app.AgentRunsFiltered(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")), parsed.Query().Get("correlation_id"))
+		return rows, browserAgentRunDiagnosticsError(err)
 	case path == "/internal/diagnostics/media-prompts":
 		return b.server.app.MediaPromptsFiltered(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")))
 	case strings.HasPrefix(path, "/internal/diagnostics/media-prompts/"):
@@ -374,6 +377,19 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		return nil, browserBackendError(err, "core_operation_failed")
 	}
 	return map[string]any{}, nil
+}
+
+func browserAgentRunDiagnosticsError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, core.ErrUnauthorized) {
+		return &browser.CoreError{Status: http.StatusForbidden, Code: "diagnostics_forbidden", Message: "Diagnostics are available to the owner only"}
+	}
+	if errors.Is(err, core.ErrDiagnosticsFilterInvalid) {
+		return &browser.CoreError{Status: http.StatusUnprocessableEntity, Code: "diagnostics_filter_invalid", Message: "Invalid diagnostics filter"}
+	}
+	return err
 }
 
 func (b *browserBackend) resolveActor(ctx context.Context, session string) (string, error) {

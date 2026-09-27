@@ -144,7 +144,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12)`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt); err != nil {
 		return publishedResource{}, err
 	}
-	if err := service.app.enqueueConversationSummaryIntentTx(ctx, tx, command.FluctlightID, command.ConversationID, messageID); err != nil {
+	if err := service.app.enqueueConversationSegmentTx(ctx, tx, command.FluctlightID, command.ConversationID, false); err != nil {
 		return publishedResource{}, err
 	}
 	return publishedResource{ID: messageID}, nil

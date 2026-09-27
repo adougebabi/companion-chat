@@ -20,10 +20,11 @@ test("Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshot
 });
 
 test("diagnostics sources use independent filter epochs", () => {
-  assert.match(store, /diagnosticsSourceEpochs: \{ lifecycle: "", events: "", modelRuns: "", mediaPrompts: "" \}/);
+  assert.match(store, /diagnosticsSourceEpochs: \{ lifecycle: "", events: "", modelRuns: "", agentRuns: "", mediaPrompts: "" \}/);
   assert.match(store, /diagnosticsSourceEpochs\.lifecycle !== epochs\.lifecycle/);
   assert.match(store, /diagnosticsSourceEpochs\.events === epochs\.events/);
   assert.match(store, /diagnosticsSourceEpochs\.modelRuns === epochs\.modelRuns/);
+  assert.match(store, /diagnosticsSourceEpochs\.agentRuns === epochs\.agentRuns/);
   assert.match(store, /requestId !== this\.diagnosticsRequestId/);
   assert.match(store, /error\.details\.correlation_id/);
   assert.match(store, /error\.code, correlationId/);

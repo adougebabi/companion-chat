@@ -256,7 +256,8 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 		}
 	}
 	if err != nil && (result.Status == "" || result.Status == "completed" || result.Status == "accepted") {
-		result = failedCapabilityResultDetail(prepared, "tool_execution_dependency_failed", true, err.Error())
+		code, retryable := capabilityErrorInfo(err, "tool_execution_dependency_failed", true)
+		result = failedCapabilityResultDetail(prepared, code, retryable, err.Error())
 	}
 	if result.CallID == "" {
 		result.CallID = prepared.CallID

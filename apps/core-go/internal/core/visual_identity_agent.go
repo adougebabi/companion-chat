@@ -169,10 +169,11 @@ func visualIdentityAgentMessages(state visualIdentityAgentState, imageContent ma
 		// reference; the formal adapter sends them in the model request.
 		content = append(content, imageContent)
 	}
-	return (&PromptComposer{}).ComposeTaskMessages("visual_identity_agent", []map[string]any{
+	messages := (&PromptComposer{}).ComposeTaskMessages("visual_identity_agent", []map[string]any{
 		{"role": "system", "content": visualIdentityAgentInstruction},
 		{"role": "user", "content": content},
 	})
+	return formatProviderMessagesForRole(messages, "visual_identity_agent")
 }
 
 func visualIdentityAgentActionLabel(capabilityName string) string {

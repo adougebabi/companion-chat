@@ -290,6 +290,10 @@ func workflowFunction(intentType string) (any, error) {
 		return MemoryEmbeddingWorkflow, nil
 	case "conversation.summary":
 		return ConversationSummaryWorkflow, nil
+	case "conversation.segment":
+		return ConversationSegmentWorkflow, nil
+	case "conversation.daily_memory":
+		return ConversationDailyMemoryWorkflow, nil
 	case "cognition.processing":
 		return CognitionProcessingWorkflow, nil
 	case "platform.control":

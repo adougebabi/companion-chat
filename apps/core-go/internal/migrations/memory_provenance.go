@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS public.memory_source_links (
  memory_id varchar(128) NOT NULL,
  memory_revision integer NOT NULL CHECK (memory_revision >= 0),
  source_ref varchar(256) NOT NULL CHECK (btrim(source_ref)<>''),
- source_kind varchar(24) NOT NULL DEFAULT 'legacy' CHECK (source_kind IN ('legacy','fact','message','outcome','memory','owner_confirmation','authenticated_command')),
+ source_kind varchar(24) NOT NULL DEFAULT 'legacy' CHECK (source_kind IN ('legacy','fact','message','outcome','memory','conversation_summary','owner_confirmation','authenticated_command')),
  source_id varchar(256),
  source_revision integer,
  source_fingerprint varchar(32),
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS public.memory_source_links (
 ALTER TABLE public.memory_source_links ALTER COLUMN source_id TYPE varchar(256);
 ALTER TABLE public.memory_source_links DROP CONSTRAINT IF EXISTS memory_source_links_source_kind_check;
 ALTER TABLE public.memory_source_links ADD CONSTRAINT memory_source_links_source_kind_check
- CHECK (source_kind IN ('legacy','fact','message','outcome','memory','owner_confirmation','authenticated_command'));
+ CHECK (source_kind IN ('legacy','fact','message','outcome','memory','conversation_summary','owner_confirmation','authenticated_command'));
 CREATE INDEX IF NOT EXISTS ix_memory_source_lookup ON public.memory_source_links(source_kind,source_id,status,memory_id);
 CREATE INDEX IF NOT EXISTS ix_memory_source_current ON public.memory_source_links(memory_id,memory_revision,status);
 

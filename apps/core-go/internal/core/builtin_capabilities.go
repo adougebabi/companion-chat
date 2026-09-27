@@ -287,7 +287,7 @@ func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 }
 func (c imageGenerateCapability) Definition() CapabilityDefinition {
 	d := imageCapabilityDefinition()
-	d.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []any{"intent"}, "properties": map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 4000}}}
+	d.InputSchema = imageCapabilityInputSchema()
 	d.RequiredContext = []ContextSlot{SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState}
 	return d
 }
@@ -309,12 +309,15 @@ func (c imageGenerateCapability) Prepare(_ context.Context, invocation Capabilit
 	if rawConcept, found, err := capabilityPreparedData(invocation, "media_concept"); err != nil {
 		return invocation, err
 	} else if found {
-		if err := validatePreparedMediaConcept(mapValue(rawConcept), intent); err != nil {
+		if err := validatePreparedMediaConcept(mapValue(rawConcept), intent, mapValue(args["capture"])); err != nil {
 			return invocation, err
 		}
 		return invocation, nil
 	}
 	prepared := map[string]any{"intent": intent, "context_binding": map[string]any{}}
+	if capture := mapValue(args["capture"]); len(capture) > 0 {
+		prepared["capture"] = cloneMap(capture)
+	}
 	binding := mapValue(prepared["context_binding"])
 	if resolved.Visual != nil {
 		binding["visual_identity"] = resolved.Visual.Data
@@ -332,9 +335,12 @@ func (c imageGenerateCapability) Prepare(_ context.Context, invocation Capabilit
 	return withCapabilityPreparedData(invocation, "media_concept", prepared)
 }
 
-func validatePreparedMediaConcept(concept map[string]any, intent string) error {
+func validatePreparedMediaConcept(concept map[string]any, intent string, capture ...map[string]any) error {
 	if strings.TrimSpace(stringValue(concept["intent"])) == "" || strings.TrimSpace(stringValue(concept["intent"])) != strings.TrimSpace(intent) {
 		return errors.New("prepared media intent does not match provider arguments")
+	}
+	if len(capture) > 0 && jsonString(mapValue(concept["capture"])) != jsonString(capture[0]) {
+		return errors.New("prepared media capture does not match provider arguments")
 	}
 	binding := mapValue(concept["context_binding"])
 	for _, key := range []string{"visual_identity", "current_life", "appearance", "current_state"} {

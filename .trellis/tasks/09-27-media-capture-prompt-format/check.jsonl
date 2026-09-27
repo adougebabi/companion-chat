@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"检查自拍/第三人称/镜前契约与禁用Go语义启发式"}
+{"file":".trellis/tasks/09-27-media-capture-prompt-format/research/contract-slice.md","reason":"检查多模态输入与Provider错误边界"}
+{"file":".trellis/tasks/09-27-media-capture-prompt-format/research/implementation-evidence.md","reason":"实施验证与真实模型验收限制"}

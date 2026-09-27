@@ -79,6 +79,18 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if _, err := tx.Exec(ctx, `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`); err != nil {
 			return err
 		}
+		if request.Surface == CapabilitySurfaceWakeUp && lifecycleIntentID(ctx) != "" {
+			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, request.FluctlightID); err != nil {
+				return err
+			}
+			current, err := wakeUpExecutionCurrentTx(ctx, tx, expectedWakeUpCycle(ctx))
+			if err != nil {
+				return err
+			}
+			if !current {
+				return newCapabilityError("superseded_by_cognition", false, errLifecycleSupersededByCognition)
+			}
+		}
 		key := request.FluctlightID + "\x1f" + request.CapabilityName + "\x1f" + request.OperationID
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, key); err != nil {
 			return err

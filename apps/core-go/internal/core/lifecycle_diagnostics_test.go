@@ -56,6 +56,23 @@ func TestLifecycleDiagnosticPayloadIsBoundedAndRedacted(t *testing.T) {
 	}
 }
 
+func TestLifecycleCauseRejectsFreeformSecretsAndURLCredentials(t *testing.T) {
+	for _, unsafe := range []string{
+		"request failed: token=sk-live-private",
+		"session=private-session",
+		"credential: private",
+		"https://user:password@example.invalid/api",
+		"upstream key sk-live-private",
+	} {
+		if got := boundedLifecycleCause(unsafe); got != "[REDACTED]" {
+			t.Fatalf("unsafe cause %q was rendered as %q", unsafe, got)
+		}
+	}
+	if got := boundedLifecycleCause("tool execution capability_prepare_failed: invalid arguments"); !strings.Contains(got, "invalid arguments") {
+		t.Fatalf("safe cause lost useful failure detail: %q", got)
+	}
+}
+
 func TestLifecycleDiagnosticTransitionIdentityDeduplicatesRepeats(t *testing.T) {
 	base := LifecycleDiagnostic{
 		Surface: "wake_up", Transition: LifecycleTransitionRetryScheduled,
@@ -82,6 +99,21 @@ func TestLifecycleDiagnosticWriterRejectsUnavailableStore(t *testing.T) {
 	})
 	if !errors.Is(err, ErrDiagnosticsUnavailable) {
 		t.Fatalf("RecordLifecycleDiagnostic error = %v, want diagnostics unavailable", err)
+	}
+}
+
+func TestLifecycleFailureDiagnosticPersistsAfterCallerCancellation(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	newProviderRuntimeSupport(repository).RecordLifecycleDiagnosticBestEffort(cancelled, LifecycleDiagnostic{
+		Surface: "wake_up", Transition: LifecycleTransitionFailed,
+		CorrelationID: "wake_up:cancelled-diagnostic:cycle:1", Stage: "activity",
+		Status: "failed", ReasonCode: "agent_run_failed", SafeCause: "Tool execution failed",
+	})
+	var count int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.diagnostic_events WHERE correlation_id='wake_up:cancelled-diagnostic:cycle:1' AND event_type LIKE 'lifecycle.%'`).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("cancelled failure diagnostic count = %d: %v", count, err)
 	}
 }
 

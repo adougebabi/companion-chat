@@ -314,7 +314,9 @@ var lifecycleDiagnosticWarningState = struct {
 }{last: map[string]time.Time{}}
 
 func (s providerRuntimeSupport) RecordLifecycleDiagnosticBestEffort(ctx context.Context, value LifecycleDiagnostic) {
-	if _, err := s.RecordLifecycleDiagnostic(ctx, value); err != nil {
+	diagnosticCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	if _, err := s.RecordLifecycleDiagnostic(diagnosticCtx, value); err != nil {
 		recordDiagnosticPersistenceFailure(
 			value.Surface,
 			value.Stage,
@@ -381,10 +383,14 @@ func boundedLifecycleCause(value string) string {
 		return ""
 	}
 	lower := strings.ToLower(value)
-	for _, secret := range []string{"authorization", "bearer ", "password", "secret", "api_key", "apikey", "cookie", "service_key"} {
-		if strings.Contains(lower, secret) {
+	normalized := strings.NewReplacer("_", "", "-", "", " ", "", "=", "", ":", "").Replace(lower)
+	for _, secret := range []string{"token", "password", "secret", "credential", "authorization", "apikey", "cookie", "session", "servicekey", "rawprompt", "rawresponse", "reasoning"} {
+		if strings.Contains(normalized, secret) {
 			return "[REDACTED]"
 		}
+	}
+	if strings.Contains(lower, "bearer ") || strings.Contains(lower, "sk-") || (strings.Contains(lower, "://") && strings.Contains(lower, "@")) {
+		return "[REDACTED]"
 	}
 	return boundedLifecycleString(value)
 }

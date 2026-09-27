@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"检查Tool、Actor归属、引用与预算回归"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"检查场景当前事实和Presence不伪造地点"}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"检查Raw/Summary/Memory去重和安全来源"}
+{"file":".trellis/tasks/09-27-actor-location-runtime-context/research/implementation-evidence.md","reason":"已修复审查发现的问题及联合验收限制"}

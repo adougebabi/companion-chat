@@ -318,8 +318,8 @@ func TestComposeProviderMessagesKeepsMediaPromptOutOfOrdinaryComposer(t *testing
 	if len(formatted) != 2 || stringValue(formatted[0]["content"]) != "media prompt instruction" {
 		t.Fatalf("media messages changed by ordinary composer: %#v", formatted)
 	}
-	if strings.Contains(stringValue(formatted[1]["content"]), "# 运行协议") || strings.Contains(stringValue(formatted[1]["content"]), "items[2]{name}") {
-		t.Fatalf("media payload used ordinary composition: %#v", formatted[1])
+	if strings.Contains(stringValue(formatted[1]["content"]), "# 运行协议") || !strings.Contains(stringValue(formatted[1]["content"]), "items[2]{name}") {
+		t.Fatalf("media payload lost its compact TOON without staying task-scoped: %#v", formatted[1])
 	}
 }
 

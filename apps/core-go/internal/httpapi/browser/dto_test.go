@@ -86,6 +86,25 @@ func TestBrowserDiagnosticModelRunMapsBoundedRoundAndToolIdentityOnly(t *testing
 	}
 }
 
+func TestBrowserDiagnosticAgentRunMapsOnlySafeFailureFields(t *testing.T) {
+	row := map[string]any{
+		"fluctlight_id": "fl-1", "agent_id": "conversation_cognition", "run_id": "run-1",
+		"correlation_id": "turn:1", "association_status": "linked", "status": "failed", "source": "agent_runs",
+		"failure_stage": "tool", "failure_code": "capability_prepare_failed", "safe_cause": "invalid arguments",
+		"error_detail": "PRIVATE RAW ERROR", "input_digest": "PRIVATE DIGEST", "started_at": "2026-09-01T00:00:00Z",
+	}
+	mapped := browserDiagnosticAgentRun(row)
+	if mapped["failureStage"] != "tool" || mapped["failureCode"] != "capability_prepare_failed" || mapped["safeCause"] != "invalid arguments" || mapped["correlationId"] != "turn:1" || mapped["source"] != "agent_runs" {
+		t.Fatalf("Agent failure fields missing: %#v", mapped)
+	}
+	if _, exists := mapped["error_detail"]; exists {
+		t.Fatalf("raw error leaked: %#v", mapped)
+	}
+	if _, exists := mapped["input_digest"]; exists {
+		t.Fatalf("input digest leaked: %#v", mapped)
+	}
+}
+
 func TestBrowserDiagnosticMediaPromptMapsProviderAndSubmittedPrompts(t *testing.T) {
 	row := map[string]any{
 		"id": "media-1", "media_intent_id": "media-1", "fluctlight_id": "fl-1", "kind": "image", "mime_type": "image/png",

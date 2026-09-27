@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"拍摄关系、framing-first和生成主提示词权威"}
+{"file":".trellis/tasks/09-27-media-capture-prompt-format/research/contract-slice.md","reason":"媒体Provider角色与格式变更的相关规格摘录"}
+{"file":".trellis/tasks/09-27-yaoguang-prompt-context-convergence/research/confirmed-paths.md","reason":"已核实媒体上下文冗余及多模态JSON入口"}

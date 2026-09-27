@@ -57,8 +57,37 @@ func TestReflectionQuietPeriodIsFixedTenMinutes(t *testing.T) {
 	if got, want := (&App{}).reflectionDelay(context.Background()), reflectionQuietPeriod; got != want {
 		t.Fatalf("reflection delay = %s, want fixed %s", got, want)
 	}
-	if got, want := wakeUpAfterCognitionDelay(30*60), 40*time.Minute; got != want {
+	if got, want := wakeUpAfterCognitionDelay(30*60), 10*time.Minute; got != want {
 		t.Fatalf("wake-up delay after cognition = %s, want %s", got, want)
+	}
+}
+
+func TestWakeUpIdleClockKeepsAbsoluteTenThirtyAndRecurringPhases(t *testing.T) {
+	t0 := time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC)
+	clock := wakeUpIdleClock{Epoch: "message-1", Since: t0, Slot: 0}
+	for _, expected := range []time.Duration{10 * time.Minute, 30 * time.Minute, 60 * time.Minute, 90 * time.Minute} {
+		if got := wakeUpIdleDue(clock, 1800); !got.Equal(t0.Add(expected)) {
+			t.Fatalf("slot %d due=%s, want %s", clock.Slot, got, t0.Add(expected))
+		}
+		clock = nextWakeUpIdleClock(clock, t0.Add(expected), 1800)
+	}
+	lateFirst := nextWakeUpIdleClock(wakeUpIdleClock{Epoch: "message-1", Since: t0, Slot: 0}, t0.Add(35*time.Minute), 1800)
+	if lateFirst.Slot != 1 || !wakeUpIdleDue(lateFirst, 1800).Equal(t0.Add(30*time.Minute)) {
+		t.Fatalf("late first wake-up skipped the required second phase: %#v", lateFirst)
+	}
+	lateSecond := nextWakeUpIdleClock(lateFirst, t0.Add(95*time.Minute), 1800)
+	if lateSecond.Slot != 4 || !wakeUpIdleDue(lateSecond, 1800).Equal(t0.Add(120*time.Minute)) {
+		t.Fatalf("late recurring wake-up burst instead of preserving absolute phase: %#v", lateSecond)
+	}
+}
+
+func TestWakeUpExecutionRejectsChangedIdleEpochOrCycle(t *testing.T) {
+	payload := map[string]any{"cycle": 3, "idle_epoch": "message-new"}
+	if wakeUpExecutionMatches("running", payload, 3, "message-old") || wakeUpExecutionMatches("running", payload, 2, "message-new") || wakeUpExecutionMatches("superseded", payload, 3, "message-new") {
+		t.Fatal("stale Wake-up execution remained executable")
+	}
+	if !wakeUpExecutionMatches("running", payload, 3, "message-new") {
+		t.Fatal("current Wake-up execution was rejected")
 	}
 }
 
@@ -79,8 +108,8 @@ func TestCognitionFollowupsArmReflectionAndWakeUpWithIndependentTTLs(t *testing.
 	if reflectionTTL < 9*time.Minute || reflectionTTL > reflectionQuietPeriod {
 		t.Fatalf("Reflection TTL = %s, want approximately %s", reflectionTTL, reflectionQuietPeriod)
 	}
-	if wakeTTL < 39*time.Minute || wakeTTL > 40*time.Minute {
-		t.Fatalf("WakeUp TTL = %s, want approximately 40m with default interval", wakeTTL)
+	if wakeTTL < 9*time.Minute || wakeTTL > 10*time.Minute {
+		t.Fatalf("WakeUp TTL = %s, want approximately 10m after cognition without a stored user epoch", wakeTTL)
 	}
 	server.FastForward(5 * time.Minute)
 	if err := app.scheduleCognitionFollowups(context.Background(), "fl-followup"); err != nil {
@@ -89,7 +118,7 @@ func TestCognitionFollowupsArmReflectionAndWakeUpWithIndependentTTLs(t *testing.
 	if refreshed := client.TTL(context.Background(), reflectionTriggerPrefix+"fl-followup").Val(); refreshed < 9*time.Minute {
 		t.Fatalf("repeated cognition did not refresh Reflection TTL: %s", refreshed)
 	}
-	if refreshed := client.TTL(context.Background(), wakeUpTriggerPrefix+"fl-followup").Val(); refreshed < 39*time.Minute {
+	if refreshed := client.TTL(context.Background(), wakeUpTriggerPrefix+"fl-followup").Val(); refreshed < 9*time.Minute {
 		t.Fatalf("repeated cognition did not refresh WakeUp TTL: %s", refreshed)
 	}
 }

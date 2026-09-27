@@ -59,8 +59,40 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
+	if Head != "0042_conversation_daily_memory" || ConversationDailyMemoryPreviousHead != "0041_agent_run_diagnostics" || AgentRunDiagnosticsPreviousHead != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
 		t.Fatalf("Head = %q", Head)
+	}
+}
+
+func TestPostgresAgentRunDiagnosticsUpgrades0040Additively(t *testing.T) {
+	ctx, pool := isolatedMigrationPool(t)
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES('agent-upgrade-owner','human','active'),('agent-upgrade-fluctlight','fluctlight','active'); INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES('agent-upgrade-fluctlight','agent-upgrade-owner','blank_slate','active','{}','{}','{}','{}','{}','{}'); INSERT INTO public.agent_runs(fluctlight_id,agent_id,run_id,input_digest,status,error_detail,result) VALUES('agent-upgrade-fluctlight','conversation_cognition','old-run','old-digest','failed','old failure','{"old":true}')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `ALTER TABLE public.agent_runs DROP COLUMN correlation_id,DROP COLUMN failure_stage,DROP COLUMN failure_code`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE public.alembic_version SET version_num=$1`, AgentRunDiagnosticsPreviousHead); err != nil {
+		t.Fatal(err)
+	}
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='agent_runs' AND column_name IN ('correlation_id','failure_stage','failure_code')`).Scan(&count); err != nil || count != 3 {
+		t.Fatalf("Agent diagnostics columns = %d: %v", count, err)
+	}
+	var head string
+	if err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil || head != Head {
+		t.Fatalf("migration head = %q: %v", head, err)
+	}
+	var status, digest, detail, correlation, stage, code string
+	var result []byte
+	if err := pool.QueryRow(ctx, `SELECT status,input_digest,error_detail,result,correlation_id,failure_stage,failure_code FROM public.agent_runs WHERE run_id='old-run'`).Scan(&status, &digest, &detail, &result, &correlation, &stage, &code); err != nil || status != "failed" || digest != "old-digest" || detail != "old failure" || string(result) != `{"old": true}` || correlation != "" || stage != "" || code != "" {
+		t.Fatalf("legacy Agent run changed during migration: status=%q digest=%q detail=%q result=%s correlation=%q stage=%q code=%q err=%v", status, digest, detail, result, correlation, stage, code, err)
 	}
 }
 

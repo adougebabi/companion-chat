@@ -122,7 +122,7 @@ func invalidateConversationSummariesBySourceRefsTx(ctx context.Context, tx pgx.T
 		return nil
 	}
 	_, err := tx.Exec(ctx, `UPDATE public.conversation_summaries SET status='invalidated'
-WHERE owner_fluctlight_id=$1 AND status='active' AND source_message_refs ?| $2::text[]`, fluctlightID, sourceRefs)
+WHERE owner_fluctlight_id=$1 AND status IN ('active','consolidated') AND source_message_refs ?| $2::text[]`, fluctlightID, sourceRefs)
 	return err
 }
 
@@ -186,7 +186,7 @@ func (a *App) enqueueConversationSummaryIntentTx(ctx context.Context, tx pgx.Tx,
 		}
 	}
 	var coveredThrough int
-	if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(to_sequence),0) FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status IN ('active','invalidated')`, fluctlightID, conversationID).Scan(&coveredThrough); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(to_sequence),0) FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status IN ('active','invalidated','consolidated')`, fluctlightID, conversationID).Scan(&coveredThrough); err != nil {
 		return err
 	}
 	if eligibleThrough <= coveredThrough {
@@ -426,6 +426,14 @@ func (a *App) settleConversationSummary(ctx context.Context, work conversationSu
 		if invalidated {
 			return errors.New("conversation_summary_source_invalidated")
 		}
+		var consolidated bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND schema_version=$5 AND status='consolidated')`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence, conversationSegmentSchemaVersion).Scan(&consolidated); err != nil {
+			return err
+		}
+		if consolidated {
+			result = map[string]any{"status": "superseded", "reason": "new_segment_consolidated", "from_sequence": work.FromSequence, "to_sequence": work.ToSequence}
+			return nil
+		}
 		if existing, found, err := readReadyConversationSummaryTx(ctx, tx, work, requestDigest); err != nil {
 			return err
 		} else if found {
@@ -435,10 +443,15 @@ func (a *App) settleConversationSummary(ctx context.Context, work conversationSu
 		}
 		var priorID string
 		var priorRevision int
+		var priorSchema string
 		priorStatus := "active"
-		err = tx.QueryRow(ctx, `SELECT id,revision FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND status='active' FOR UPDATE`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence).Scan(&priorID, &priorRevision)
+		err = tx.QueryRow(ctx, `SELECT id,revision,schema_version FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND status='active' FOR UPDATE`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence).Scan(&priorID, &priorRevision, &priorSchema)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
+		}
+		if priorID != "" && priorSchema == conversationSegmentSchemaVersion {
+			result = map[string]any{"status": "superseded", "reason": "new_segment_active", "from_sequence": work.FromSequence, "to_sequence": work.ToSequence}
+			return nil
 		}
 		if errors.Is(err, pgx.ErrNoRows) {
 			priorStatus = "invalidated"
@@ -448,7 +461,7 @@ func (a *App) settleConversationSummary(ctx context.Context, work conversationSu
 			}
 			if errors.Is(err, pgx.ErrNoRows) {
 				var coveredThrough int
-				if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(to_sequence),0) FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status IN ('active','invalidated')`, work.FluctlightID, work.ConversationID).Scan(&coveredThrough); err != nil {
+				if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(to_sequence),0) FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status IN ('active','invalidated','consolidated')`, work.FluctlightID, work.ConversationID).Scan(&coveredThrough); err != nil {
 					return err
 				}
 				if coveredThrough+1 != work.FromSequence {
@@ -547,22 +560,25 @@ func (a *App) retrieveConversationSummaries(ctx context.Context, query Conversat
 	if query.MaxRunes > conversationSummaryDefaultBudget {
 		query.MaxRunes = conversationSummaryDefaultBudget
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,from_sequence,to_sequence,source_message_refs,source_digest,summary,revision,completed_at FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status='active' ORDER BY to_sequence DESC,revision DESC LIMIT $3`, query.FluctlightID, query.ConversationID, conversationSummaryMaxResults)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,from_sequence,to_sequence,source_message_refs,source_digest,summary,revision,completed_at,
+		COALESCE(ending_state,''),open_threads,core_events,COALESCE(timezone,''),COALESCE(local_date::text,'')
+		FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status='active' ORDER BY to_sequence DESC,revision DESC LIMIT $3`, query.FluctlightID, query.ConversationID, conversationSummaryMaxResults)
 	if err != nil {
 		return ConversationSummaryRetrievalResult{}, err
 	}
 	defer rows.Close()
 	type candidate struct {
-		id, digest, summary string
-		from, to, revision  int
-		refs                []string
-		completed           time.Time
+		id, digest, summary, endingState, timezone, localDate string
+		from, to, revision                                    int
+		refs                                                  []string
+		completed                                             time.Time
+		openThreads, coreEvents                               []byte
 	}
 	candidates := make([]candidate, 0)
 	for rows.Next() {
 		var item candidate
 		var refs []byte
-		if err := rows.Scan(&item.id, &item.from, &item.to, &refs, &item.digest, &item.summary, &item.revision, &item.completed); err != nil {
+		if err := rows.Scan(&item.id, &item.from, &item.to, &refs, &item.digest, &item.summary, &item.revision, &item.completed, &item.endingState, &item.openThreads, &item.coreEvents, &item.timezone, &item.localDate); err != nil {
 			return ConversationSummaryRetrievalResult{}, err
 		}
 		item.refs = conversationSummarySourceRefValues(decodeArray(refs))
@@ -578,8 +594,10 @@ func (a *App) retrieveConversationSummaries(ctx context.Context, query Conversat
 		disposition, reason := "selected", "recent_source_window"
 		windowLength := candidate.to - candidate.from + 1
 		validSource := false
+		var sourceMessages []ConversationSummarySourceMessage
 		if windowLength > 0 && windowLength <= conversationSummaryMaxMessages {
-			sourceMessages, sourceErr := readConversationSummaryMessages(ctx, a.DB.Pool(), query.ConversationID, candidate.from, candidate.to, windowLength)
+			var sourceErr error
+			sourceMessages, sourceErr = readConversationSummaryMessages(ctx, a.DB.Pool(), query.ConversationID, candidate.from, candidate.to, windowLength)
 			if sourceErr != nil {
 				return ConversationSummaryRetrievalResult{}, sourceErr
 			}
@@ -593,12 +611,26 @@ func (a *App) retrieveConversationSummaries(ctx context.Context, query Conversat
 			disposition, reason = "dropped", "summary_budget"
 		} else {
 			trace.BudgetUsed += cost
-			items = append(items, map[string]any{
+			item := map[string]any{
 				"ref":     "summary:ctx_" + stableDigest(candidate.id+"\x1f"+fmt.Sprint(candidate.revision)+"\x1f"+candidate.digest),
 				"summary": candidate.summary, "from_sequence": candidate.from, "to_sequence": candidate.to,
 				"source_digest": candidate.digest, "source_message_refs": candidate.refs, "revision": candidate.revision,
 				"source_kind": "episode_memory", "completed_at": candidate.completed.UTC().Format(time.RFC3339Nano),
-			})
+				"started_at": sourceMessages[0].CreatedAt.UTC().Format(time.RFC3339Nano),
+				"ended_at":   sourceMessages[len(sourceMessages)-1].CreatedAt.UTC().Format(time.RFC3339Nano),
+			}
+			for key, value := range map[string]string{"ending_state": candidate.endingState, "timezone": candidate.timezone, "local_date": candidate.localDate} {
+				if value != "" {
+					item[key] = value
+				}
+			}
+			if values := decodeArray(candidate.openThreads); len(values) > 0 {
+				item["open_threads"] = values
+			}
+			if values := decodeArray(candidate.coreEvents); len(values) > 0 {
+				item["core_events"] = values
+			}
+			items = append(items, item)
 		}
 		trace.Selections = append(trace.Selections, ConversationSummarySelectionTrace{SummaryID: candidate.id, Disposition: disposition, Reason: reason, Runes: cost})
 	}

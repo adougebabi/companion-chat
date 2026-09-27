@@ -36,7 +36,7 @@
 - When the concept leaves framing or capture incomplete, the image-prompt master reasons from the requested framing before choosing a camera relationship. For one or more human subjects, a body-part/partial-body close-up maps to rear-camera phone self-capture, an upper-body/face close-up maps to front-camera phone self-capture, and a self-captured full-body image requires a sufficiently large full-length mirror; an external third-person capture may use any framing but keeps the photographer and their camera/phone out of frame. A non-mirror selfie keeps the held phone out of frame, while a mirror photo may and normally should show the phone in the reflection. If neither framing nor capture is specified, the master conservatively defaults to an upper-body/face close-up (single subject) or an upper-body close group selfie (multiple subjects), both using the front camera with the phone out of frame. Explicit capture, camera, mirror, device-visibility, framing, angle, and composition requirements override these defaults. This completion policy belongs in the `media_prompt` model instruction; it must never become server-side keyword, regex, counting, or fallback logic.
 - The master must list the explicit human subjects rather than generate a broad “共 X 人” clause. Clothes, props, animals, reflections, screens, environmental objects, and other `nonHumanObjects` are never semantically counted or reclassified by the server as people.
 - Provider-facing prompts are continuous natural-language photography/video descriptions, never `field=value`, internal enum, raw user-direction prefix, or an unstructured direct model answer.
-- The `media_prompt` user message is the already-normalized YAML media concept;
+- The `media_prompt` user message is the already-normalized, TOON-capable media concept;
   do not prepend a prose authority wrapper around it. Before formatting, Core
   keeps only the bounded visual-semantic allowlist (scene, action, appearance,
   explicit human/non-human subjects, capture/framing, lighting/style,
@@ -97,6 +97,64 @@ const concept = await generatePersonaMediaConcept(envelope);
 const template = await fillMediaPromptTemplate({envelope, concept});
 const prompt = renderMediaPromptTemplate(template); // joins fixed slots only
 ```
+
+## Scenario: Go frozen capture, compact context and multimodal reviewer input
+
+### 1. Scope / Trigger
+
+- Trigger: `media.image.generate` freezes an image intent, the `media_prompt` Agent writes the Provider prompt, or `media_quality_acceptance`/Visual Identity reviews an image with a multimodal text+image message.
+- The durable media concept remains Core-owned and complete; only the model-facing semantic copy is compacted.
+
+### 2. Signatures
+
+```text
+media.image.generate input: {intent: string[1..4000], capture?: {
+  mode?: selfie|mirror_selfie|external_capture|operator_pov|first_person,
+  framing?: string[0..256], angle?: string[0..256],
+  camera?: front|rear|external, mirror?: boolean,
+  device_visibility?: visible|hidden
+}}
+compactMediaConceptObjectForProvider(frozenJSON) -> bounded object
+FormatMessagesForRole(messages, "media_prompt") -> TOON-capable text parts + unchanged image parts
+```
+
+### 3. Contracts
+
+- The model declares capture/framing when the request or persona intent supports it. Core validates a closed bounded schema, freezes the declared object, and checks replay against the same declared values; Core never derives selfie/angle/camera from keywords. Old frozen intents with only `intent` remain valid, with missing capture completed by the Prompt Agent under the framing-first rule above.
+- Prompt Agent instructions begin with camera relationship and preserve explicit mode, mirror, device visibility, framing and angle. Without capture/framing they use the conservative front-camera self-capture completion above. Fixed age, body type, gender, cup size or editorial aesthetic never overrides frozen identity/current appearance/user style.
+- Model-facing `context_binding.appearance` keeps known body values as homogeneous `{field,value}` rows, explicit cleared state and current wearing semantics; unknown body fields, capture timestamps and revision metadata are excluded. Worn-item storage IDs are omitted from media prose. Model-facing `current_state` keeps mood and active drive labels, not zero-pressure built-in template descriptions/direction/key. With current appearance bound, `visual_identity.identity_snapshot` still keeps structured stable traits (name, face/eye/skin/body baseline) while old hair/clothing prose is excluded; without current appearance, the original bounded visual snapshot remains available. The full durable concept keeps revision/IDs for Core retries and stale-capture detection.
+- The initial media concept is rendered with TOON tables for homogeneous rows. Quality and retry payloads embed `frozen_media_concept` as an object, not a JSON string inside another JSON/YAML document. The common formatter transforms only `type=text` parts of multimodal `content[]`; `image_url` parts and encoded image data are byte-preserved. Native `role=tool`/`role=function` result JSON and ToolCall protocol fields are never reformatted. The same text-part path handles Visual Identity vision/formal Agent messages.
+- Quality verdicts compare candidate pixels to frozen capture/identity facts; transport or vision failure remains an infrastructure error, not a content pass/reject. Native ToolCall/ToolResult JSON remains the provider protocol and is not converted to TOON.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unknown capture mode or extra capture key | Reject closed Tool input before a new media intent. |
+| Replay changes declared capture | `prepared media capture does not match provider arguments`; no second intent. |
+| Legacy intent has no capture | Keep its original intent; Prompt Agent applies bounded framing-first completion. |
+| Frozen concept is invalid at quality stage | Fail that media quality task; do not send a raw/nested JSON fallback to the reviewer. |
+| Multimodal message contains text and image parts | Render structured text as compact TOON/YAML hybrid; preserve image URL/data exactly. |
+| Candidate visibly conflicts with declared camera/mirror relationship | Reviewer returns factual retry/reject guidance under its existing verdict schema. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a mirror selfie with a full-body framing keeps `mirror_selfie` and visible device in the frozen concept, Provider prompt and quality input; the model describes a physically plausible reflection.
+- Base: an older media intent has only free-text intent and no capture object; the Prompt Agent can conservatively choose a front-camera upper-body selfie without Core semantic code.
+- Bad: an unconditional “不是普通自拍” system rule turns every photo into external third-person portrait, or `frozen_media_concept` appears as an escaped JSON scalar inside the quality text part.
+
+### 6. Tests Required
+
+- Tool schema rejects invalid mode/extra fields; Prepare/replay and real two-round media Tool execution retain explicit capture in `media_intents.prompt`.
+- Selfie, mirror, first-person/operator POV and external capture fixtures preserve declared camera fields through prompt and quality input; controlled/real-model acceptance separately checks visual physics.
+- Provider text tests exclude unknown body fields, zero-meaning drive descriptions, frozen transport metadata, nested JSON escapes and fixed age/body defaults; homogeneous body rows render as TOON.
+- Multimodal tests prove image part equality before/after formatting in media quality and Visual Identity, while text becomes readable structure; provider vision/schema errors do not become verdict pass.
+
+### 7. Wrong vs Correct
+
+Wrong: `qualityText = JSON.stringify({frozen_media_concept: compactMediaConceptForProvider(raw)})` when `compactMediaConceptForProvider` already returns a JSON string.
+
+Correct: place the bounded concept **object** in the quality payload, render only its text part, and carry the image part unchanged.
 
 ## Scenario: Provider-selected durable media execution
 

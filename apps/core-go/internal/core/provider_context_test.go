@@ -798,7 +798,7 @@ func TestRecentPromptFragmentsSkipCurrentInputBeforeSameTurnReply(t *testing.T) 
 	}}
 	fragments := recentPromptFragments(projection)
 	if len(fragments) != 3 {
-		t.Fatalf("current input was duplicated after same-turn reply: %#v", fragments)
+		t.Fatalf("fresh run lost historical publication or duplicated current input: %#v", fragments)
 	}
 	for _, fragment := range fragments {
 		if fragment.SourceRefs[0] == "message:current-user" {
@@ -806,7 +806,154 @@ func TestRecentPromptFragmentsSkipCurrentInputBeforeSameTurnReply(t *testing.T) 
 		}
 	}
 	if fragments[2].SourceRefs[0] != "message:published-assistant" {
-		t.Fatalf("same-turn published reply was lost: %#v", fragments)
+		t.Fatalf("fresh retry lost the already published reply: %#v", fragments)
+	}
+	projection.CurrentUserText = "下一轮输入"
+	projection.RecentMessages = append(projection.RecentMessages, map[string]any{"id": "next-user", "sequence": 5, "turn_id": "turn-3", "kind": "user", "text": "下一轮输入"})
+	fragments = recentPromptFragments(projection)
+	if len(fragments) != 4 || fragments[3].SourceRefs[0] != "message:published-assistant" {
+		t.Fatalf("committed reply did not return in next independent run: %#v", fragments)
+	}
+}
+
+func TestLiveToolContinuationOmitsOnlyItsOwnCommittedReply(t *testing.T) {
+	projection := ContextProjection{CurrentUserText: "当前输入", RecentMessages: []map[string]any{
+		{"id": "previous-assistant", "kind": "assistant", "text": "上一轮回复", "turn_id": "turn-1"},
+		{"id": "current-user", "kind": "user", "text": "当前输入", "turn_id": "turn-2"},
+		{"id": "published-assistant", "kind": "assistant", "text": "已由工具发布", "turn_id": "turn-2"},
+	}}
+	fresh := projection
+	suppressCommittedReplyHistoryForContinuation(&fresh, &ADKCapabilityTrace{})
+	if len(fresh.RecentMessages) != 3 {
+		t.Fatalf("fresh retry without Tool transcript lost a committed reply: %#v", fresh.RecentMessages)
+	}
+	trace := &ADKCapabilityTrace{}
+	trace.AppendResult(CapabilityResult{CapabilityName: conversationReplyCapabilityName, Status: "completed", Output: map[string]any{"target_ref": "published-assistant"}})
+	suppressCommittedReplyHistoryForContinuation(&projection, trace)
+	if len(projection.RecentMessages) != 2 || stringValue(projection.RecentMessages[0]["id"]) != "previous-assistant" {
+		t.Fatalf("live continuation kept its own reply or dropped older history: %#v", projection.RecentMessages)
+	}
+	if fragments := recentPromptFragments(projection); len(fragments) != 1 || fragments[0].SourceRefs[0] != "message:previous-assistant" {
+		t.Fatalf("live continuation Recent section drifted: %#v", fragments)
+	}
+}
+
+func TestConversationOutcomesRemoveCommittedStateAndReplyNoise(t *testing.T) {
+	values := []map[string]any{
+		{"action_id": "action-4", "capability_name": "scene_event", "status": "failed", "error_code": "scene_plan_invalid", "occurred_at": "2026-09-28T04:00:00Z"},
+		{"action_id": "action-3", "capability_name": "media.image.generate", "status": "accepted", "occurred_at": "2026-09-28T03:00:00Z", "observed": map[string]any{"status": "pending"}},
+		{"action_id": "action-2", "capability_name": "affect_event", "status": "completed", "observed": map[string]any{"label": "焦虑", "intensity": 0.6}},
+		{"action_id": "action-2", "capability_name": conversationReplyCapabilityName, "status": "completed", "observed": map[string]any{"target_kind": "conversation_message"}},
+		{"action_id": "action-2", "capability_name": "", "status": "completed"},
+		{"action_id": "action-4", "capability_name": "scene_event", "status": "failed", "error_code": "scene_plan_invalid", "occurred_at": "2026-09-28T01:00:00Z"},
+		{"action_id": "action-4", "capability_name": "", "status": "failed", "error_code": "scene_plan_invalid"},
+	}
+	got := compactRecentActionOutcomesForSurface(values, ProviderContextSurfaceConversationMain)
+	if len(got) != 2 || got[0]["capability_name"] != "scene_event" || got[0]["occurred_at"] != "2026-09-28T04:00:00Z" || got[1]["capability_name"] != "media.image.generate" {
+		t.Fatalf("conversation outcomes kept duplicate state or lost pending work: %#v", got)
+	}
+	got = compactRecentActionOutcomesForSurface([]map[string]any{
+		{"capability_name": "scene_event", "status": "completed"},
+		{"capability_name": "scene_event", "status": "failed", "error_code": "old_error"},
+	}, ProviderContextSurfaceWakeUp)
+	if len(got) != 1 || got[0]["status"] != "completed" {
+		t.Fatalf("recovered failure remained current: %#v", got)
+	}
+	reflection := compactRecentActionOutcomesForSurface(values, ProviderContextSurfaceReflection)
+	if len(reflection) != len(values) {
+		t.Fatalf("conversation-only outcome policy changed reflection evidence: %#v", reflection)
+	}
+}
+
+func TestConversationCurrentStateKeepsActorSubjectAndOnlyKnownAppearance(t *testing.T) {
+	appearance := compactEffectiveAppearanceForSurface(map[string]any{
+		"ref": "appearance:ctx_known", "body_revision": 8, "wardrobe_revision": 3, "captured_at": "transport-time",
+		"body_fields": map[string]any{
+			"hair_length": map[string]any{"status": "known", "value": "短发", "source": "history"},
+			"hair_color":  map[string]any{"status": "unknown"},
+			"hair_style":  map[string]any{"status": "cleared"},
+		},
+		"worn_items": []any{map[string]any{"id": "shirt-1", "slot": "top", "category": "shirt", "description": "白衬衫", "ownership": "owned", "availability": "available"}},
+	})
+	if appearance["body_revision"] != nil || appearance["captured_at"] != nil || appearance["wardrobe_revision"] != nil {
+		t.Fatalf("Core metadata entered Provider appearance: %#v", appearance)
+	}
+	fields := mapValue(appearance["body_fields"])
+	if fields["hair_length"] != "短发" || fields["hair_color"] != nil || stringValue(mapValue(fields["hair_style"])["status"]) != "cleared" {
+		t.Fatalf("known/unknown/cleared body fields drifted: %#v", fields)
+	}
+	if worn := arrayValue(appearance["worn_items"]); len(worn) != 1 || mapValue(worn[0])["id"] != "shirt-1" || mapValue(worn[0])["ownership"] != nil {
+		t.Fatalf("worn-item target or compactness drifted: %#v", worn)
+	}
+	projection := ContextProjection{CurrentState: map[string]any{"data": map[string]any{"life_context": map[string]any{"scene": "摇光家", "location": "摇光家"}}}}
+	state := compactCurrentStateForSurface(projection, ProviderContextSurfaceConversationMain)
+	if state["subject"] != "actor_self" || stringValue(mapValue(mapValue(state["data"])["life_context"])["location"]) != "摇光家" {
+		t.Fatalf("Life Context actor ownership missing: %#v", state)
+	}
+}
+
+func TestConversationDriveProjectionOmitsZeroPressureBuiltIns(t *testing.T) {
+	got := compactCurrentDrivesForSurface([]any{
+		map[string]any{"key": "rest", "label": "休息", "description": "长期模板描述", "pressure": 0.0, "salience": 0.0, "direction": "stable", "authority": "built_in"},
+		map[string]any{"key": "social", "label": "社交", "description": "长期模板描述", "pressure": 0.6, "salience": 0.4, "direction": "stable", "authority": "built_in"},
+		map[string]any{"key": "custom", "label": "写作", "description": "完成今天的草稿", "pressure": 0.3, "salience": 0.2, "direction": "rising", "authority": "typed_slot"},
+		map[string]any{"key": "quiet", "label": "安静", "description": "偏好安静场所", "pressure": 0.0, "salience": 0.0, "direction": "stable", "authority": "typed_slot"},
+	})
+	if len(got) != 3 || got[0]["label"] != "社交" || got[0]["description"] != nil || got[0]["key"] != nil || got[0]["direction"] != nil || got[1]["description"] != "完成今天的草稿" || got[2]["description"] != "偏好安静场所" {
+		t.Fatalf("Drive projection kept template noise or lost typed semantics: %#v", got)
+	}
+}
+
+func TestConversationAndWakeUpRequireActorOwnedCurrentFacts(t *testing.T) {
+	projection := ContextProjection{
+		SelfActor:      map[string]any{"ref": "actor_self", "type": "fluctlight", "display_name": "摇光"},
+		CurrentSpeaker: map[string]any{"ref": "actor_user", "type": "human", "display_name": "用户"},
+		CurrentState:   map[string]any{"data": map[string]any{"life_context": map[string]any{"scene": "摇光家", "location": "摇光家"}}},
+	}
+	for _, surface := range []ProviderContextSurface{ProviderContextSurfaceConversationMain, ProviderContextSurfaceWakeUp} {
+		input := workingMemoryInputFromProjectionForSurface(projection, surface, nil, nil)
+		critical := map[string]bool{}
+		for _, fact := range input.RuntimeFacts {
+			critical[stringValue(mapValue(fact.Content)["kind"])] = fact.Required
+		}
+		for _, key := range []string{"current_state", "self_actor", "current_speaker"} {
+			if !critical[key] {
+				t.Fatalf("%s silently made %s optional: %#v", surface, key, critical)
+			}
+		}
+		policy := DefaultWorkingMemoryPolicy()
+		policy.RuntimeFactTokens = 1
+		if _, err := ResolveWorkingMemory(input, policy); err == nil || err.Error() != "working_memory_required_budget_exceeded" {
+			t.Fatalf("%s dropped critical fact without explicit error: %v", surface, err)
+		}
+	}
+}
+
+func TestDistantActorsKeepSeparateLocationSubjectsInPrompt(t *testing.T) {
+	projection := ContextProjection{
+		CurrentUserText: "你在做什么？",
+		SelfActor:       map[string]any{"ref": "actor_self", "type": "fluctlight", "display_name": "摇光"},
+		CurrentSpeaker:  map[string]any{"ref": "actor_user", "type": "human", "display_name": "用户"},
+		CurrentState: map[string]any{"data": map[string]any{"life_context": map[string]any{
+			"scene": "客厅", "activity": "读书", "location": "摇光家", "source": "event",
+		}}},
+		RecentMessages: []map[string]any{
+			{"id": "user-home", "sequence": 1, "turn_id": "turn-1", "kind": "user", "text": "我回到自己家了", "created_at": "2026-09-28T20:00:00+08:00"},
+			{"id": "self-reply", "sequence": 2, "turn_id": "turn-1", "kind": "assistant", "text": "我还在我的客厅读书", "created_at": "2026-09-28T20:01:00+08:00"},
+		},
+	}
+	input := workingMemoryInputFromProjectionForSurface(projection, ProviderContextSurfaceConversationMain, nil, nil)
+	working, err := ResolveWorkingMemory(input, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembled, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: working, CurrentInput: projection.CurrentUserText, Policy: DefaultPromptBudgetPolicy(4096)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire := jsonString(assembled.Messages)
+	if !strings.Contains(wire, "subject: actor_self") || !strings.Contains(wire, "location: 摇光家") || !strings.Contains(wire, "sender=actor_user") || !strings.Contains(wire, "我回到自己家了") {
+		t.Fatalf("distant Actor locations lost ownership in Provider wire: %s", wire)
 	}
 }
 
@@ -922,7 +1069,7 @@ func TestConversationProviderSurfaceKeepsSemanticFactsAndDropsInternalMetadata(t
 			t.Fatalf("conversation surface lost semantic field %q: %s", required, facts)
 		}
 	}
-	if len(input.Summaries) != 1 || jsonString(input.Summaries[0].Content) != `{"summary":"历史摘要","time_semantics":"historical_conversation","to_sequence":20}` {
+	if len(input.Summaries) != 1 || jsonString(input.Summaries[0].Content) != `{"summary":"历史摘要"}` {
 		t.Fatalf("summary metadata was not compacted: %#v", input.Summaries)
 	}
 	if len(input.RecentMessages) != 1 || strings.Contains(jsonString(input.RecentMessages), "actor_b") || !strings.Contains(jsonString(input.RecentMessages), "sender=actor_self") {

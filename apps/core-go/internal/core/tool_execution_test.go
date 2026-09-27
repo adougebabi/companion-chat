@@ -14,6 +14,23 @@ import (
 
 var errDirectToolDependency = errors.New("direct tool dependency unavailable")
 
+func TestModelFacingStateReceiptsOmitFactsAlreadyInCurrentContext(t *testing.T) {
+	reply := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: map[string]any{
+		"text": "已经发送的完整回复", "target_kind": "conversation_message", "target_ref": "message-db-id", "replayed": false,
+	}}}, conversationReplyCapabilityDefinition())
+	output := mapValue(reply["output"])
+	if reply["status"] != "completed" || output["target_kind"] != "conversation_message" || output["text"] != nil || output["target_ref"] != nil || output["replayed"] != nil {
+		t.Fatalf("reply receipt repeated published text or leaked target: %#v", reply)
+	}
+	affect := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: map[string]any{
+		"event_id": "event-db-id", "type": "anxious", "label": "焦虑", "intensity": 0.62, "revision": 4,
+	}}}, affectEventCapabilityDefinition())
+	affectOutput := mapValue(affect["output"])
+	if affectOutput["type"] != "anxious" || affectOutput["event_id"] != nil || affectOutput["revision"] != nil || affectOutput["label"] != nil || affectOutput["intensity"] != nil {
+		t.Fatalf("affect receipt repeated refreshed current state: %#v", affect)
+	}
+}
+
 type failingDirectQueryCapability struct{}
 
 func TestInvalidCapabilityArgumentsReturnCorrectableToolReceipt(t *testing.T) {

@@ -217,6 +217,7 @@ func conversationReplyCapabilityDefinition() CapabilityDefinition {
 			},
 		},
 		TargetKinds: []string{"conversation_message"}, OutputRole: "conversation_message", SideEffectClass: "external_async", SuccessBoundary: "visible_output_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		ModelResultOmitFields: []string{"text", "target_ref", "replayed"},
 	}
 }
 
@@ -250,14 +251,10 @@ func imageCapabilityDefinition() CapabilityDefinition {
 		Name:          "media.image.generate",
 		Version:       "v1",
 		Type:          CapabilityTypeAction,
-		Description:   "Request one image generation from the configured media capability.",
+		Description:   "Generate one image; capture specifies its camera relationship and framing.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
-		InputSchema: map[string]any{
-			"type": "object", "additionalProperties": false,
-			"required":   []any{"intent"},
-			"properties": map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 4000}},
-		},
+		InputSchema:   imageCapabilityInputSchema(),
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required": []any{"media_intent_id", "target_kind", "target_ref"},
@@ -281,6 +278,26 @@ func imageCapabilityDefinition() CapabilityDefinition {
 		SupportsRetry:         true,
 		RequiresPreflight:     true,
 		RequiredContext:       []ContextSlot{SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState},
+	}
+}
+
+func imageCapabilityInputSchema() map[string]any {
+	return map[string]any{
+		"type": "object", "additionalProperties": false, "required": []any{"intent"},
+		"properties": map[string]any{
+			"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+			"capture": map[string]any{
+				"type": "object", "additionalProperties": false,
+				"properties": map[string]any{
+					"mode":              map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person"}},
+					"framing":           map[string]any{"type": "string", "maxLength": 256},
+					"angle":             map[string]any{"type": "string", "maxLength": 256},
+					"camera":            map[string]any{"type": "string", "enum": []any{"front", "rear", "external"}},
+					"mirror":            map[string]any{"type": "boolean"},
+					"device_visibility": map[string]any{"type": "string", "enum": []any{"visible", "hidden"}},
+				},
+			},
+		},
 	}
 }
 

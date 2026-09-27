@@ -104,6 +104,9 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
+	if err := a.attachDailyMemoryMessageRefs(ctx, projection, &workingMemory); err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
 	policy := DefaultPromptBudgetPolicy(assignment.TokenBudget)
 	policy.ContextWindowTokens = assignment.ContextWindowTokens
 	policy.MaxInputTokens = assignment.MaxInputTokens
@@ -161,10 +164,21 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 	for _, key := range keys {
 		value := compact[key]
 		priority := 50
-		if key == "current_state" || key == "schedule" || key == "presence" || key == "current_speaker" || key == "relationships" {
+		if key == "schedule" || key == "presence" || key == "relationships" {
 			priority = 100
 		}
-		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Content: map[string]any{"kind": key, "value": value}, SourceRefs: []string{"runtime:" + key}})
+		critical := surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceWakeUp
+		switch key {
+		case "current_state":
+			priority = 130
+		case "self_actor":
+			priority = 125
+		case "current_speaker":
+			priority = 120
+		default:
+			critical = false
+		}
+		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Required: critical, Content: map[string]any{"kind": key, "value": value}, SourceRefs: []string{"runtime:" + key}})
 	}
 	for _, item := range compactActiveMemoriesForSurface(active, surface, projection.ReferenceIndex) {
 		cleaned := mapValue(cleanPromptValue(item))
@@ -543,7 +557,7 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 	} else {
 		delete(compact, "intentions")
 	}
-	if outcomes := compactRecentActionOutcomesForSurface(projection.RecentOutcomes); len(outcomes) > 0 {
+	if outcomes := compactRecentActionOutcomesForSurface(projection.RecentOutcomes, surface); len(outcomes) > 0 {
 		compact["recent_outcomes"] = outcomes
 	} else {
 		delete(compact, "recent_outcomes")
@@ -611,7 +625,7 @@ func compactCurrentStateForSurface(projection ContextProjection, surface Provide
 	if len(resultData) == 0 {
 		return nil
 	}
-	return map[string]any{"data": resultData}
+	return map[string]any{"subject": "actor_self", "data": resultData}
 }
 
 func compactActiveActivitiesForSurface(value any) []map[string]any {
@@ -645,18 +659,51 @@ func compactEffectiveAppearanceForSurface(value map[string]any) map[string]any {
 		return nil
 	}
 	result := map[string]any{}
-	for _, key := range []string{"ref", "body_revision", "wardrobe_revision", "wearing_state", "captured_at"} {
+	for _, key := range []string{"ref", "wearing_state"} {
 		if item, exists := value[key]; exists {
 			result[key] = item
 		}
 	}
-	if fields := mapValue(value["body_fields"]); len(fields) > 0 {
+	if fields := compactBodyFieldsForSurface(mapValue(value["body_fields"])); len(fields) > 0 {
 		result["body_fields"] = fields
 	}
-	if worn, ok := value["worn_items"].([]map[string]any); ok {
+	worn := make([]map[string]any, 0)
+	for _, raw := range arrayValue(value["worn_items"]) {
+		item := compactStateMap(raw, []string{"id", "slot", "category", "description"})
+		if len(item) > 0 {
+			worn = append(worn, item)
+		}
+	}
+	if len(worn) > 0 {
 		result["worn_items"] = worn
-	} else if worn := arrayValue(value["worn_items"]); worn != nil {
-		result["worn_items"] = worn
+	}
+	return result
+}
+
+func compactBodyFieldsForSurface(fields map[string]any) map[string]any {
+	result := make(map[string]any)
+	for key, raw := range fields {
+		field := mapValue(raw)
+		if len(field) == 0 {
+			if raw != nil && raw != "" {
+				result[key] = raw
+			}
+			continue
+		}
+		switch stringValue(field["status"]) {
+		case "unknown":
+			continue
+		case "cleared":
+			result[key] = map[string]any{"status": "cleared"}
+		case "known":
+			if value, present := field["value"]; present && value != nil {
+				result[key] = stripProviderContextMetadata(value)
+			}
+		default:
+			if value, present := field["value"]; present && value != nil {
+				result[key] = stripProviderContextMetadata(value)
+			}
+		}
 	}
 	return result
 }
@@ -688,11 +735,24 @@ func compactCurrentDrivesForSurface(value any) []map[string]any {
 	result := make([]map[string]any, 0)
 	for _, raw := range arrayValue(value) {
 		drive := mapValue(raw)
+		if stringValue(drive["authority"]) == "built_in" && numberOrZero(drive["pressure"]) <= 0 && numberOrZero(drive["salience"]) <= 0 {
+			continue
+		}
 		item := map[string]any{}
-		for _, key := range []string{"key", "label", "description", "pressure", "salience", "direction", "confidence"} {
+		for _, key := range []string{"label", "pressure", "salience"} {
 			if field, present := drive[key]; present && field != nil && field != "" {
 				item[key] = field
 			}
+		}
+		if stringValue(drive["authority"]) == "typed_slot" {
+			for _, key := range []string{"key", "description"} {
+				if field := drive[key]; field != nil && field != "" {
+					item[key] = field
+				}
+			}
+		}
+		if direction := stringValue(drive["direction"]); direction != "" && direction != "stable" {
+			item["direction"] = direction
 		}
 		if len(item) > 0 {
 			result = append(result, item)
@@ -879,10 +939,47 @@ func compactTriggerForSurface(value any) any {
 	return result
 }
 
-func compactRecentActionOutcomesForSurface(values []map[string]any) []map[string]any {
-	base := compactRecentActionOutcomes(values)
-	result := make([]map[string]any, 0, len(base))
-	for _, value := range base {
+func compactRecentActionOutcomesForSurface(values []map[string]any, surface ProviderContextSurface) []map[string]any {
+	// Values arrive newest-first. A completed reply is already in conversation
+	// history, and a completed affect event is already in current_state. Keep
+	// unresolved work and only the newest actionable failure of each kind.
+	filterRedundant := surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceWakeUp || surface == ProviderContextSurfaceTakeoverReply
+	specificFailureByAction := make(map[string]struct{})
+	for _, value := range values {
+		status := stringValue(value["status"])
+		if (status == "failed" || status == "rejected") && stringValue(value["capability_name"]) != "" {
+			if actionID := stringValue(value["action_id"]); actionID != "" {
+				specificFailureByAction[actionID] = struct{}{}
+			}
+		}
+	}
+	result := make([]map[string]any, 0, len(values))
+	seenSuccess := make(map[string]struct{})
+	seenFailure := make(map[string]struct{})
+	for _, value := range values {
+		capability := stringValue(value["capability_name"])
+		status := stringValue(value["status"])
+		if filterRedundant && status == "completed" && capability != "" {
+			seenSuccess[capability] = struct{}{}
+		}
+		if filterRedundant && status == "completed" && (capability == "" || capability == "affect_event" || capability == conversationReplyCapabilityName) {
+			continue
+		}
+		if filterRedundant && capability == "" {
+			if _, covered := specificFailureByAction[stringValue(value["action_id"])]; covered {
+				continue
+			}
+		}
+		if filterRedundant && (status == "failed" || status == "rejected") {
+			if _, recovered := seenSuccess[capability]; recovered && capability != "" {
+				continue
+			}
+			failureKey := capability + "\x1f" + stringValue(value["error_code"])
+			if _, repeated := seenFailure[failureKey]; repeated {
+				continue
+			}
+			seenFailure[failureKey] = struct{}{}
+		}
 		item := map[string]any{}
 		for _, key := range []string{"capability_name", "status", "error_code", "observed"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
@@ -898,6 +995,11 @@ func compactRecentActionOutcomesForSurface(values []map[string]any) []map[string
 					continue
 				}
 				item[key] = raw
+			}
+		}
+		if filterRedundant && status != "completed" {
+			if occurred := stringValue(value["occurred_at"]); occurred != "" {
+				item["occurred_at"] = occurred
 			}
 		}
 		if len(item) > 0 {
@@ -975,8 +1077,7 @@ func compactSummaryForSurface(value map[string]any, _ ProviderContextSurface) ma
 	result := map[string]any{}
 	if summary := strings.TrimSpace(stringValue(value["summary"])); summary != "" {
 		result["summary"] = summary
-		result["time_semantics"] = "historical_conversation"
-		for _, key := range []string{"from_sequence", "to_sequence", "completed_at"} {
+		for _, key := range []string{"started_at", "ended_at", "local_date", "timezone", "ending_state", "open_threads"} {
 			if field, exists := value[key]; exists {
 				result[key] = field
 			}
@@ -1934,12 +2035,20 @@ func compactProviderFact(raw []byte) any {
 // can upload them, but workflow/timeline and transport metadata are omitted
 // from the LLM-facing copy.
 func compactMediaConceptForProvider(raw string) string {
-	var value map[string]any
-	if err := json.Unmarshal([]byte(raw), &value); err != nil || len(value) == 0 {
+	value, ok := compactMediaConceptObjectForProvider(raw)
+	if !ok {
 		return raw
 	}
+	return jsonString(value)
+}
+
+func compactMediaConceptObjectForProvider(raw string) (map[string]any, bool) {
+	var value map[string]any
+	if err := json.Unmarshal([]byte(raw), &value); err != nil || len(value) == 0 {
+		return nil, false
+	}
 	result := cloneMap(value)
-	hasCurrentAppearance := len(mapValue(mapValue(result["context_binding"])["appearance"])) > 0
+	hasCurrentAppearance := len(compactMediaAppearance(mapValue(mapValue(result["context_binding"])["appearance"]))) > 0
 	if binding := mapValue(result["context_binding"]); len(binding) > 0 {
 		compactBinding := make(map[string]any, 4)
 		life := mapValue(binding["current_life"])
@@ -1949,17 +2058,21 @@ func compactMediaConceptForProvider(raw string) string {
 		if lifeContext := compactLifeContext(life); len(lifeContext) > 0 {
 			compactBinding["current_life"] = lifeContext
 		}
-		if visualIdentity := compactVisualIdentity(mapValue(binding["visual_identity"])); len(visualIdentity) > 0 {
+		visualIdentity := compactVisualIdentityForMediaProvider(mapValue(binding["visual_identity"]))
+		if hasCurrentAppearance {
+			visualIdentity = compactVisualIdentityForCurrentMedia(mapValue(binding["visual_identity"]))
+		}
+		if len(visualIdentity) > 0 {
 			compactBinding["visual_identity"] = visualIdentity
 		}
-		if appearance := mapValue(binding["appearance"]); len(appearance) > 0 {
+		if appearance := compactMediaAppearance(mapValue(binding["appearance"])); len(appearance) > 0 {
 			compactBinding["appearance"] = appearance
 		}
 		state := mapValue(binding["current_state"])
 		if len(state) == 0 {
 			state = mapValue(binding["inner_state"])
 		}
-		if innerState := compactInnerState(state); len(innerState) > 0 {
+		if innerState := compactMediaCurrentState(state); len(innerState) > 0 {
 			compactBinding["current_state"] = innerState
 		}
 		result["context_binding"] = compactBinding
@@ -1968,7 +2081,7 @@ func compactMediaConceptForProvider(raw string) string {
 	if hasCurrentAppearance {
 		// A canonical asset is an identity reference, not the current hair or
 		// clothing authority. The frozen appearance binding owns those facts.
-		visualIdentity = compactVisualIdentity(mapValue(result["visual_identity"]))
+		visualIdentity = compactVisualIdentityForCurrentMedia(mapValue(result["visual_identity"]))
 	}
 	if len(visualIdentity) > 0 {
 		result["visual_identity"] = visualIdentity
@@ -1978,9 +2091,104 @@ func compactMediaConceptForProvider(raw string) string {
 	}
 	cleaned, ok := stripProviderMetadata(result).(map[string]any)
 	if !ok {
-		return raw
+		return nil, false
 	}
-	return jsonString(filterMediaProviderConcept(cleaned))
+	return filterMediaProviderConcept(cleaned), true
+}
+
+// Current body/wardrobe facts override historical mutable snapshot prose. Keep
+// only structured identity traits that do not describe a former hairstyle or
+// outfit; never try to parse stable features from free-form old appearance text.
+func compactVisualIdentityForCurrentMedia(value map[string]any) map[string]any {
+	result := compactVisualIdentity(value)
+	if result == nil {
+		result = make(map[string]any)
+	}
+	snapshot := mapValue(value["identity_snapshot"])
+	stable := map[string]any{}
+	if identity := compactStateMap(snapshot["identity"], []string{"name", "gender", "age", "ethnicity", "face_shape", "eye_color", "skin_tone", "body_type"}); len(identity) > 0 {
+		if appearance := compactStateMap(mapValue(snapshot["identity"])["appearance"], []string{"face_shape", "facial_features", "eye_color", "skin_tone", "body_type"}); len(appearance) > 0 {
+			identity["appearance"] = appearance
+		}
+		stable["identity"] = identity
+	}
+	if appearance := compactStateMap(mapValue(snapshot["life_profile"])["appearance"], []string{"face_shape", "facial_features", "eye_color", "skin_tone", "body_type"}); len(appearance) > 0 {
+		stable["life_profile"] = map[string]any{"appearance": appearance}
+	}
+	if len(stable) > 0 {
+		result["identity_snapshot"] = stable
+	}
+	return result
+}
+
+func compactMediaAppearance(value map[string]any) map[string]any {
+	result := map[string]any{}
+	for _, key := range []string{"hair", "outfit", "clothing", "description"} {
+		if text := strings.TrimSpace(stringValue(value[key])); text != "" {
+			result[key] = text
+		}
+	}
+	if wearing := stringValue(value["wearing_state"]); wearing != "" && wearing != "unknown" {
+		result["wearing_state"] = wearing
+	}
+	fields := mapValue(value["body_fields"])
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	rows := make([]map[string]any, 0, len(keys))
+	for _, key := range keys {
+		field := mapValue(fields[key])
+		if stringValue(field["status"]) == "unknown" {
+			continue
+		}
+		value := field["value"]
+		if stringValue(field["status"]) == "cleared" {
+			value = "cleared"
+		}
+		if len(field) == 0 {
+			value = fields[key]
+		}
+		if value != nil && value != "" {
+			rows = append(rows, map[string]any{"field": key, "value": stripProviderMetadata(value)})
+		}
+	}
+	if len(rows) > 0 {
+		result["body_fields"] = rows
+	}
+	worn := make([]map[string]any, 0)
+	for _, raw := range arrayValue(value["worn_items"]) {
+		item := compactStateMap(raw, []string{"slot", "category", "description"})
+		if len(item) > 0 {
+			worn = append(worn, item)
+		}
+	}
+	if len(worn) > 0 {
+		result["worn_items"] = worn
+	}
+	return result
+}
+
+func compactMediaCurrentState(value map[string]any) map[string]any {
+	result := map[string]any{}
+	if mood := stringValue(mapValue(value["mood"])["label"]); mood != "" {
+		result["mood"] = mood
+	}
+	drives := make([]string, 0)
+	for _, raw := range arrayValue(value["drives"]) {
+		drive := mapValue(raw)
+		if numberOrZero(drive["pressure"]) <= 0 && numberOrZero(drive["salience"]) <= 0 {
+			continue
+		}
+		if label := strings.TrimSpace(stringValue(drive["label"])); label != "" {
+			drives = append(drives, label)
+		}
+	}
+	if len(drives) > 0 {
+		result["drives"] = sortedUniqueStrings(drives)
+	}
+	return result
 }
 
 var mediaProviderConceptKeys = map[string]struct{}{

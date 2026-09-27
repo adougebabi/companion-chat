@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"检查逻辑/物理状态、Owner权限和typed redaction"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"检查页面刷新、错误状态和生成构建"}
+{"file":".trellis/tasks/09-27-agent-failure-diagnostics/research/implementation-evidence.md","reason":"已执行验证及待联合浏览器验收"}

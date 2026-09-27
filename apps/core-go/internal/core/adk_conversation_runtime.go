@@ -215,7 +215,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		// Runtime/dependency failures terminate this run while the trace retains
 		// the invocation and receipt. A non-retryable business rejection is a
 		// normal tool result and is returned to the model for another decision.
-		return serialized, fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)
+		return serialized, &agentRunFailure{stage: "tool", code: result.ErrorCode, cause: fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)}
 	}
 	return serialized, nil
 }
@@ -237,7 +237,9 @@ func modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDe
 			for _, field := range definition.ModelResultOmitFields {
 				delete(output, field)
 			}
-			visible["output"] = output
+			if len(output) > 0 {
+				visible["output"] = output
+			}
 		} else {
 			visible["output"] = result.Output
 		}
@@ -255,9 +257,15 @@ func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, e
 	if runID == "" {
 		runID = correlationID
 	}
+	modelCallID := stringValue(diagnostics["model_call_id"])
+	if i.trace != nil && strings.TrimSpace(callID) != "" {
+		if identity, found := i.trace.ModelIdentity(strings.TrimSpace(callID)); found && strings.TrimSpace(identity.ProviderRequestID) != "" {
+			modelCallID = identity.ProviderRequestID
+		}
+	}
 	newProviderRuntimeSupport(i.app.DB).RecordDiagnosticEvent(ctx, eventType, statusSeverity(status), i.request.FluctlightID, i.request.SourceFactID, correlationID, map[string]any{
 		"run_id": runID, "stage": "tool", "surface": i.request.Surface,
-		"model_call_id": stringValue(diagnostics["model_call_id"]),
+		"model_call_id": modelCallID,
 		"call_id":       strings.TrimSpace(callID), "capability": strings.TrimSpace(capabilityName),
 		"status": strings.TrimSpace(status), "error_code": strings.TrimSpace(errorCode),
 		"arguments_digest": stableDigest(strings.TrimSpace(arguments)),

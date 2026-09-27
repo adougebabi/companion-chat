@@ -3,6 +3,7 @@ import {
   BrowserClient,
   BrowserApiError,
   type BrowserDiagnosticEvent,
+	type BrowserDiagnosticAgentRun,
   type BrowserDiagnosticMediaPrompt,
   type BrowserDiagnosticModelRun,
   type BrowserFluctlightActivationRequest,
@@ -25,6 +26,7 @@ export const useControlCenterStore = defineStore("control-center", {
   state: () => ({
     diagnostics: [] as BrowserDiagnosticEvent[],
     diagnosticModelRuns: [] as BrowserDiagnosticModelRun[],
+		diagnosticAgentRuns: [] as BrowserDiagnosticAgentRun[],
     diagnosticMediaPrompts: [] as BrowserDiagnosticMediaPrompt[],
     lifecycleDiagnostics: [] as BrowserLifecycleDiagnosticEvent[],
     workflowIntentSnapshots: [] as BrowserWorkflowIntentSnapshot[],
@@ -41,7 +43,7 @@ export const useControlCenterStore = defineStore("control-center", {
     diagnosticsRunFilter: "",
     diagnosticsSurfaceFilter: "",
     diagnosticsStatusFilter: "",
-    diagnosticsSourceEpochs: { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "" } as Record<string, string>,
+		diagnosticsSourceEpochs: { lifecycle: "", events: "", modelRuns: "", agentRuns: "", mediaPrompts: "" } as Record<string, string>,
     diagnosticsWarning: "",
     diagnosticsNotice: "",
     diagnosticsLoaded: false,
@@ -192,6 +194,7 @@ export const useControlCenterStore = defineStore("control-center", {
           lifecycle: JSON.stringify(lifecycleFilters),
           events: JSON.stringify({ correlationId, fluctlightId }),
           modelRuns: JSON.stringify({ correlationId }),
+			agentRuns: JSON.stringify({ correlationId }),
           mediaPrompts: "unfiltered",
         };
         if (this.diagnosticsSourceEpochs.lifecycle !== epochs.lifecycle) {
@@ -207,14 +210,19 @@ export const useControlCenterStore = defineStore("control-center", {
           this.diagnosticModelRuns = [];
           this.diagnosticsSourceEpochs.modelRuns = epochs.modelRuns;
         }
+		if (this.diagnosticsSourceEpochs.agentRuns !== epochs.agentRuns) {
+			this.diagnosticAgentRuns = [];
+			this.diagnosticsSourceEpochs.agentRuns = epochs.agentRuns;
+		}
         if (this.diagnosticsSourceEpochs.mediaPrompts !== epochs.mediaPrompts) {
           this.diagnosticMediaPrompts = [];
           this.diagnosticsSourceEpochs.mediaPrompts = epochs.mediaPrompts;
         }
-        const [lifecycle, events, modelRuns, mediaPrompts] = await Promise.allSettled([
+        const [lifecycle, events, modelRuns, agentRuns, mediaPrompts] = await Promise.allSettled([
           client.lifecycleDiagnostics(lifecycleFilters),
           client.diagnostics({ limit: 20, correlationId, fluctlightId }),
           client.diagnosticModelRuns({ limit: 20, correlationId }),
+		  client.diagnosticAgentRuns({ limit: 20, correlationId }),
           client.diagnosticMediaPrompts({ limit: 20 }),
         ]);
         if (requestId !== this.diagnosticsRequestId) return;
@@ -224,8 +232,9 @@ export const useControlCenterStore = defineStore("control-center", {
         }
         if (events.status === "fulfilled" && this.diagnosticsSourceEpochs.events === epochs.events) this.diagnostics = events.value;
         if (modelRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.modelRuns === epochs.modelRuns) this.diagnosticModelRuns = modelRuns.value;
+		if (agentRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.agentRuns === epochs.agentRuns) this.diagnosticAgentRuns = agentRuns.value;
         if (mediaPrompts.status === "fulfilled" && this.diagnosticsSourceEpochs.mediaPrompts === epochs.mediaPrompts) this.diagnosticMediaPrompts = mediaPrompts.value;
-        const readFailure = [lifecycle, events, modelRuns, mediaPrompts].find((result) => result.status === "rejected");
+		const readFailure = [lifecycle, events, modelRuns, agentRuns, mediaPrompts].find((result) => result.status === "rejected");
         if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);
         this.diagnosticsLoaded = true;
         this.diagnosticsLastLoadedAt = new Date().toISOString();
@@ -781,11 +790,12 @@ export const useControlCenterStore = defineStore("control-center", {
         await client.clearDiagnostics();
         this.diagnostics = [];
         this.diagnosticModelRuns = [];
+		this.diagnosticAgentRuns = [];
         this.diagnosticMediaPrompts = [];
         this.lifecycleDiagnostics = [];
         this.workflowIntentSnapshots = [];
-        this.diagnosticsSourceEpochs = { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "" };
-        this.diagnosticsNotice = "诊断记录已清空。";
+		this.diagnosticsSourceEpochs = { lifecycle: "", events: "", modelRuns: "", agentRuns: "", mediaPrompts: "" };
+        this.diagnosticsNotice = "诊断记录已清空；Agent 业务运行记录仍保留。";
       } catch {
         this.error = "无法清空诊断信息。";
       } finally { this.saving = false; }

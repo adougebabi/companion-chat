@@ -1,0 +1,32 @@
+{
+  "id": "yaoguang-prompt-context-convergence",
+  "name": "yaoguang-prompt-context-convergence",
+  "title": "摇光提示词与运行时上下文收敛",
+  "description": "规划并分项修复场景归属、摘要与日记忆、上下文及媒体提示词、Agent失败诊断和连续唤醒",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-09-27",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-27-conversation-segment-daily-memory",
+    "09-27-wakeup-idle-cadence",
+    "09-27-media-capture-prompt-format",
+    "09-27-actor-location-runtime-context",
+    "09-27-agent-failure-diagnostics"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -178,8 +179,105 @@ func TestWakeUpSupervisorRepairsStrandedSupersededClock(t *testing.T) {
 	if err := repository.Pool().QueryRow(ctx, `SELECT status,next_attempt_at FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&status, &due); err != nil {
 		t.Fatal(err)
 	}
-	if status != "completed" || time.Until(due) < 39*time.Minute {
+	if status != "completed" || time.Until(due) < 9*time.Minute || time.Until(due) > 11*time.Minute {
 		t.Fatalf("repaired WakeUp status=%q due=%s", status, due)
+	}
+}
+
+func TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases(t *testing.T) {
+	ctx, repository, app, ownerID, fluctlightID, conversationID := durableReplyFixture(t, "idle-phases")
+	accepted, err := app.AcceptTurn(ctx, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "我回来了", "idempotency_key": "idle-phases-first", "turn_id": "idle-phases-turn", "attachment_refs": []any{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	intentID := "wake_up_intent:" + fluctlightID
+	var status string
+	var payload []byte
+	var due time.Time
+	readClock := func() map[string]any {
+		t.Helper()
+		if err := repository.Pool().QueryRow(ctx, `SELECT status,payload,next_attempt_at FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&status, &payload, &due); err != nil {
+			t.Fatal(err)
+		}
+		return decodeObject(payload)
+	}
+	clock := readClock()
+	t0, err := time.Parse(time.RFC3339Nano, stringValue(accepted.UserMessage["created_at"]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if clock["idle_epoch"] != accepted.UserMessage["id"] || clock["idle_phase"] != "first_10m" || !due.Equal(t0.Add(10*time.Minute)) {
+		t.Fatalf("accepted user message did not set first idle phase: status=%q payload=%s due=%s t0=%s", status, payload, due, t0)
+	}
+	if err := app.scheduleWakeUpAfterCognition(ctx, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	clock = readClock()
+	if status != "completed" || !due.Equal(t0.Add(10*time.Minute)) {
+		t.Fatalf("cognition completion shifted last-user idle clock: status=%q payload=%s due=%s", status, payload, due)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='running',payload=jsonb_set(payload,'{cycle}','1'::jsonb) WHERE intent_id=$1`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
+		_, err := updateWakeUpNextDueTx(ctx, tx, fluctlightID, 1, 1800, t0.Add(10*time.Minute))
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	clock = readClock()
+	if clock["idle_phase"] != "second_30m" || !due.Equal(t0.Add(30*time.Minute)) {
+		t.Fatalf("first Wake-up completion did not schedule absolute t+30: %s due=%s", payload, due)
+	}
+	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
+		_, err := updateWakeUpNextDueTx(ctx, tx, fluctlightID, 1, 1800, t0.Add(11*time.Minute))
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if replay := readClock(); replay["idle_phase"] != "second_30m" || !due.Equal(t0.Add(30*time.Minute)) {
+		t.Fatalf("duplicate Wake-up completion advanced phase twice: %s due=%s", payload, due)
+	}
+}
+
+func TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions(t *testing.T) {
+	ctx, repository, app, ownerID, fluctlightID, conversationID := durableReplyFixture(t, "idle-fence")
+	accepted, err := app.AcceptTurn(ctx, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "现在聊天", "idempotency_key": "idle-fence-message", "turn_id": "idle-fence-turn", "attachment_refs": []any{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	intentID := "wake_up_intent:" + fluctlightID
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='running',payload=jsonb_set(payload,'{cycle}','1'::jsonb) WHERE intent_id=$1`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	staleCtx := WithWakeUpCycle(WithWakeUpIdleEpoch(WithLifecycleIntentID(ctx, intentID), "prior-message"), 1)
+	beforeModel, err := app.ProcessWakeUp(staleCtx, fluctlightID, 1)
+	if err != nil || beforeModel["status"] != "cancelled" {
+		t.Fatalf("stale Wake-up started Provider work: %#v %v", beforeModel, err)
+	}
+	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+jsonString(1))
+	settlement, err := app.persistCommittedWakeUp(staleCtx, wakeID, fluctlightID, 1, 1800, ContextProjection{}, map[string]any{"action_type": "no_op"}, agentCommittedOutcome{}, conversationID, "no_op", "no_action_selected")
+	if err != nil || settlement["status"] != "cancelled" {
+		t.Fatalf("stale Wake-up final settlement was not cancelled: %#v %v", settlement, err)
+	}
+	called := false
+	_, _, _, err = app.executeToolMutation(staleCtx, ToolExecutionRequest{FluctlightID: fluctlightID, Surface: CapabilitySurfaceWakeUp, CapabilityName: "moment.publish", OperationID: "stale-wake-tool"}, func(pgx.Tx) (CapabilityResult, error) {
+		called = true
+		return CapabilityResult{Status: "completed"}, nil
+	})
+	if err == nil || called {
+		t.Fatalf("stale Wake-up Tool crossed locked execution fence: called=%v err=%v", called, err)
+	}
+	var wakeFacts int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_wakeups WHERE id=$1`, wakeID).Scan(&wakeFacts); err != nil || wakeFacts != 0 {
+		t.Fatalf("stale Wake-up persisted a fact: count=%d err=%v", wakeFacts, err)
+	}
+	if accepted.UserMessage["id"] == "" {
+		t.Fatal("accepted user message identity missing")
 	}
 }
 
@@ -196,12 +294,19 @@ func TestCommittedReplyDegradationRearmsWakeUp(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id) VALUES($1,$2,2,$3,'assistant','已提交的回复','[]',$4,$5,$6,$7)`, "degraded-assistant", conversationID, fluctlightID, "assistant:"+accepted.TurnID, accepted.TurnID, accepted.InboxID, accepted.CorrelationID); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.failAgentTurnAfterRun(ctx, accepted.InboxID, agentCommittedOutcome{}, "agent_final_contract_invalid"); err != nil {
+	if err := app.failAgentTurnAfterRun(ctx, accepted.InboxID, agentCommittedOutcome{}, "agent_final_contract_invalid", errors.New("structured output missing required field")); err != nil {
 		t.Fatal(err)
+	}
+	var termination []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.diagnostic_events WHERE event_type='agent.run.termination' AND correlation_id=$1 ORDER BY created_at DESC LIMIT 1`, accepted.CorrelationID).Scan(&termination); err != nil {
+		t.Fatal(err)
+	}
+	if payload := decodeObject(termination); payload["safe_cause"] != "structured output missing required field" || payload["stage"] != "final_contract" {
+		t.Fatalf("Agent termination cause missing: %#v", payload)
 	}
 	var wakeUpStatus string
 	var nextWakeUp time.Time
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,next_attempt_at FROM public.platform_workflow_intents WHERE intent_id=$1`, "wake_up_intent:"+fluctlightID).Scan(&wakeUpStatus, &nextWakeUp); err != nil || wakeUpStatus != "completed" || time.Until(nextWakeUp) < 39*time.Minute {
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,next_attempt_at FROM public.platform_workflow_intents WHERE intent_id=$1`, "wake_up_intent:"+fluctlightID).Scan(&wakeUpStatus, &nextWakeUp); err != nil || wakeUpStatus != "completed" || time.Until(nextWakeUp) < 9*time.Minute || time.Until(nextWakeUp) > 11*time.Minute {
 		t.Fatalf("degraded reply WakeUp=%q due=%s err=%v", wakeUpStatus, nextWakeUp, err)
 	}
 	page, err := repository.History(ctx, conversationID, ownerID, nil, 50)

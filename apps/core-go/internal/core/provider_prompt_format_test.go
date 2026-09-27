@@ -64,15 +64,34 @@ func TestFormatProviderPromptContentFormatsJSONAfterAuthorityPreamble(t *testing
 	}
 }
 
-func TestFormatProviderMessagesUsesTOONOnlyForNonMediaContexts(t *testing.T) {
+func TestFormatProviderMessagesUsesTOONForMediaAndCognition(t *testing.T) {
 	content := `{"items":[{"id":"a","value":"one"},{"id":"b","value":"two"}]}`
 	generic := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": content}}, "cognitive_assessment")
 	if !strings.Contains(generic[0]["content"].(string), "items[2]{id,value}:") {
 		t.Fatalf("generic context did not use compact table: %q", generic[0]["content"])
 	}
 	media := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": content}}, "media_prompt")
-	if strings.Contains(media[0]["content"].(string), "items[2]{id,value}:") || !strings.Contains(media[0]["content"].(string), "- id: a") {
-		t.Fatalf("media prompt should remain standard YAML: %q", media[0]["content"])
+	if !strings.Contains(media[0]["content"].(string), "items[2]{id,value}:") {
+		t.Fatalf("media prompt did not use compact TOON table: %q", media[0]["content"])
+	}
+}
+
+func TestMultimodalFormatterChangesOnlyStructuredTextPart(t *testing.T) {
+	image := map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:image/png;base64,PRIVATE_IMAGE_BYTES"}}
+	text := `{"frozen_media_concept":{"context_binding":{"appearance":{"body_fields":[{"field":"hair_length","value":"短发"},{"field":"hair_color","value":"黑色"}]}}}}`
+	toolResult := `{"status":"completed","output":{"target_kind":"conversation_message"}}`
+	messages := []map[string]any{{"role": "user", "content": []any{map[string]any{"type": "text", "text": text}, image}}, {"role": "tool", "content": toolResult, "tool_call_id": "call-1"}}
+	formatted := formatProviderMessagesForRole(messages, "media_prompt")
+	parts := arrayValue(formatted[0]["content"])
+	formattedText := stringValue(mapValue(parts[0])["text"])
+	if !strings.Contains(formattedText, "body_fields[2]{field,value}:") || strings.Contains(formattedText, `\"`) || strings.Contains(formattedText, "frozen_media_concept: '{") {
+		t.Fatalf("structured multimodal text retained escaped JSON: %s", formattedText)
+	}
+	if jsonString(parts[1]) != jsonString(image) || stringValue(mapValue(arrayValue(messages[0]["content"])[0])["text"]) != text {
+		t.Fatalf("formatter changed image part or mutated source: original=%#v formatted=%#v", messages, formatted)
+	}
+	if formatted[1]["content"] != toolResult || formatted[1]["tool_call_id"] != "call-1" {
+		t.Fatalf("formatter rewrote native ToolResult protocol: %#v", formatted[1])
 	}
 }
 
@@ -123,7 +142,7 @@ func TestProviderFormatterLeavesRuntimeContextEnvelopeUntouched(t *testing.T) {
 	}
 }
 
-func TestMediaPromptUserPayloadIsOnlyFormattedYAML(t *testing.T) {
+func TestMediaPromptUserPayloadIsOnlyFormattedStructuredText(t *testing.T) {
 	content := `{"context_binding":{"life_context":{"scene":"图书馆"}},"scene":"图书馆","action":"阅读"}`
 	formatted := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": content}}, "media_prompt")
 	got := formatted[0]["content"].(string)
@@ -132,7 +151,7 @@ func TestMediaPromptUserPayloadIsOnlyFormattedYAML(t *testing.T) {
 	}
 	for _, fragment := range []string{"context_binding:", "scene: 图书馆", "action: 阅读"} {
 		if !strings.Contains(got, fragment) {
-			t.Fatalf("media prompt YAML missing %q: %q", fragment, got)
+			t.Fatalf("media prompt structured text missing %q: %q", fragment, got)
 		}
 	}
 }

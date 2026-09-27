@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 )
 
 type ProjectionTaskResult struct {
@@ -155,6 +156,7 @@ func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdent
 	messages := (&PromptComposer{}).ComposeTaskMessages("visual_identity_vision", []map[string]any{
 		{"role": "system", "content": visualIdentityVisionTaskInstruction}, {"role": "user", "content": content},
 	})
+	messages = formatProviderMessagesForRole(messages, "visual_identity_vision")
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentVisualIdentityVision, messages, nil, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false, nil)
 	return run.Completion.Structured, err
 }
@@ -199,6 +201,43 @@ func (a *App) RunConversationSummaryTask(ctx context.Context, input Conversation
 		return conversationSummaryProviderResponse{}, err
 	}
 	return decodeConversationSummaryProviderResponse(run.Completion.Structured)
+}
+
+func (a *App) RunConversationSegmentTask(ctx context.Context, source []ConversationSummarySourceMessage) (conversationSegmentResponse, error) {
+	from, to := source[0].CreatedAt.UTC(), source[len(source)-1].CreatedAt.UTC()
+	messages := (&PromptComposer{}).ComposeTaskMessages("reflection", []map[string]any{
+		{"role": "system", "content": conversationSummaryInstruction + " 这是按真实时间界定的聊天阶段。summary 概括重要事件与变化，ending_state 说明这段实际怎样结束，open_threads 只列未完成线索，core_events 只列已发生的关键事情。不要逐条复述。"},
+		{"role": "user", "content": jsonString(map[string]any{"started_at": from.Format(time.RFC3339Nano), "ended_at": to.Format(time.RFC3339Nano), "source_messages": conversationSummaryProviderMessages(source)})},
+	})
+	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "conversation_segment"), FormalAgentConversationSummary, messages, nil, "conversation_segment_v1", conversationSegmentProviderSchema(), false, nil)
+	if err != nil {
+		return conversationSegmentResponse{}, err
+	}
+	var response conversationSegmentResponse
+	if err := jsonUnmarshal(jsonBytes(run.Completion.Structured), &response); err != nil {
+		return response, err
+	}
+	return response, nil
+}
+
+func (a *App) RunConversationDailyEpisodeTask(ctx context.Context, localDate, timezone string, sources []conversationDailySource) (conversationDailyEpisodeResponse, error) {
+	segments := make([]map[string]any, 0, len(sources))
+	for _, source := range sources {
+		segments = append(segments, map[string]any{"started_at": source.StartedAt.UTC().Format(time.RFC3339Nano), "ended_at": source.EndedAt.UTC().Format(time.RFC3339Nano), "summary": source.Summary, "ending_state": source.EndingState, "open_threads": source.OpenThreads, "core_events": source.CoreEvents})
+	}
+	messages := (&PromptComposer{}).ComposeTaskMessages("reflection", []map[string]any{
+		{"role": "system", "content": "将同一当地日的阶段摘要合成一段简洁的对话经历记忆。只写已发生的交流、结束状态和未完成线索；不把愿望、玩笑、推测、模型回复或约定当成已执行事实，不推导稳定偏好或关系身份。按时间脉络叙述，避免逐条流水账。"},
+		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "timezone": timezone, "segments": segments})},
+	})
+	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "conversation_daily_memory"), FormalAgentConversationSummary, messages, nil, "conversation_daily_memory_v1", conversationDailyEpisodeProviderSchema(), false, nil)
+	if err != nil {
+		return conversationDailyEpisodeResponse{}, err
+	}
+	var response conversationDailyEpisodeResponse
+	if err := jsonUnmarshal(jsonBytes(run.Completion.Structured), &response); err != nil {
+		return response, err
+	}
+	return response, nil
 }
 
 type ScheduleGenerationTaskInput struct {

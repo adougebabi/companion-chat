@@ -55,6 +55,16 @@ func main() {
 	} else if ensured > 0 {
 		slog.Default().Info("Go Worker ensured wake-up intents", "count", ensured)
 	}
+	if ensured, err := application.EnsureConversationSegmentIntents(ctx, 100); err != nil {
+		log.Printf("ensure conversation segment intents: %v", err)
+	} else if ensured > 0 {
+		slog.Default().Info("Go Worker ensured conversation segment intents", "count", ensured)
+	}
+	if reconciled, err := application.ReconcileLegacyConversationSummaries(ctx, 100); err != nil {
+		log.Printf("reconcile legacy conversation summaries: %v", err)
+	} else if reconciled > 0 {
+		slog.Default().Info("Go Worker reconciled legacy conversation summaries", "count", reconciled)
+	}
 	if released, err := application.ReleaseDueWakeUpIntents(ctx, 50); err != nil {
 		log.Printf("release due WakeUp intents: %v", err)
 	} else if released > 0 {
@@ -166,6 +176,16 @@ func main() {
 				logger.Info("Go Worker periodic 30m WakeUp supervision reconciled intents", "count", reconciled)
 			}
 		case <-wakeUpRepairTicker.C:
+			if reconciled, err := application.ReconcileLegacyConversationSummaries(ctx, 100); err != nil {
+				logger.Warn("Go Worker legacy conversation summary reconciliation retry", "error", err)
+			} else if reconciled > 0 {
+				logger.Info("Go Worker reconciled legacy conversation summaries", "count", reconciled)
+			}
+			if ensured, err := application.EnsureConversationSegmentIntents(ctx, 100); err != nil {
+				logger.Warn("Go Worker conversation segment repair retry", "error", err)
+			} else if ensured > 0 {
+				logger.Info("Go Worker repaired conversation segment intents", "count", ensured)
+			}
 			if repaired, err := application.RepairWakeUpClocks(ctx); err != nil {
 				logger.Warn("Go Worker WakeUp clock repair retry", "error", err)
 			} else if repaired > 0 {

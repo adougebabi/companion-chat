@@ -86,7 +86,7 @@ BEGIN
  IF TG_OP='DELETE' THEN v_conversation_id := OLD.conversation_id; ELSE v_conversation_id := NEW.conversation_id; END IF;
  IF TG_OP<>'INSERT' THEN
   UPDATE public.conversation_summaries SET status='invalidated'
-  WHERE conversation_id=v_conversation_id AND status='active'
+  WHERE conversation_id=v_conversation_id AND status IN ('active','consolidated')
    AND source_message_refs ? ('message:' || OLD.id);
  END IF;
  FOR v_fluctlight_id IN
@@ -120,7 +120,7 @@ BEGIN
  END IF;
  IF TG_OP<>'INSERT' THEN
   UPDATE public.conversation_summaries s SET status='invalidated'
-  WHERE s.owner_fluctlight_id=v_fluctlight_id AND s.status='active'
+  WHERE s.owner_fluctlight_id=v_fluctlight_id AND s.status IN ('active','consolidated')
    AND EXISTS (SELECT 1 FROM public.conversation_messages msg
      WHERE msg.source_fact_id=v_fact_id AND msg.conversation_id=s.conversation_id
       AND s.source_message_refs ? ('message:' || msg.id));

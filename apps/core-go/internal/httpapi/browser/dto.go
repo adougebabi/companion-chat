@@ -141,6 +141,28 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	return result
 }
 
+func browserDiagnosticAgentRun(row map[string]any) map[string]any {
+	result := map[string]any{
+		"fluctlightId":      stringValue(first(row, "fluctlight_id")),
+		"agentId":           stringValue(first(row, "agent_id")),
+		"runId":             stringValue(first(row, "run_id")),
+		"correlationId":     stringValue(first(row, "correlation_id")),
+		"associationStatus": stringValue(first(row, "association_status")),
+		"status":            stringValue(first(row, "status")),
+		"source":            stringValue(first(row, "source")),
+		"startedAt":         stringValue(first(row, "started_at")),
+	}
+	for _, field := range []struct{ source, target string }{
+		{"finished_at", "finishedAt"}, {"failure_stage", "failureStage"},
+		{"failure_code", "failureCode"}, {"safe_cause", "safeCause"},
+	} {
+		if value, exists := row[field.source]; exists {
+			result[field.target] = value
+		}
+	}
+	return result
+}
+
 func browserDiagnosticToolSummaries(value any) []map[string]any {
 	items := make([]map[string]any, 0)
 	for _, raw := range array(value) {

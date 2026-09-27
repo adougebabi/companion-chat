@@ -67,15 +67,30 @@ const schema = {
       BrowserDiagnosticModelRun: {
         type: "object", additionalProperties: false,
         properties: {
-          id: { type: "string" }, role: { type: "string" }, scenario: { type: "string" }, status: { type: "string" },
+          id: { type: "string" }, role: { type: "string" }, bindingRole: { type: "string" }, scenario: { type: "string" }, status: { type: "string" },
+          priority: { type: "integer" }, queuePendingCount: { type: "integer" }, queuePosition: { anyOf: [{ type: "integer" }, { type: "null" }] },
+          endpointId: { anyOf: [{ type: "string" }, { type: "null" }] }, modelId: { type: "string" },
+          errorCode: { anyOf: [{ type: "string" }, { type: "null" }] },
           correlationId: { type: "string" }, logicalRunId: { type: "string" }, modelCallId: { type: "string" },
           sequence: { anyOf: [{ type: "integer" }, { type: "null" }] }, roundCount: { type: "integer" }, stage: { type: "string" },
           toolSummaries: { type: "array", maxItems: 32, items: { $ref: "#/components/schemas/BrowserDiagnosticToolSummary" } },
           prompt: {}, response: {}, createdAt: { type: "string", format: "date-time" },
+          queuedAt: { type: "string", format: "date-time" }, startedAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] }, completedAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] },
         },
-        required: ["id", "role", "status", "correlationId", "prompt", "createdAt"],
+        required: ["id", "role", "modelId", "status", "correlationId", "prompt", "createdAt"],
       },
       BrowserDiagnosticModelRuns: { type: "array", items: { $ref: "#/components/schemas/BrowserDiagnosticModelRun" } },
+      BrowserDiagnosticAgentRun: {
+        type: "object", additionalProperties: false,
+        properties: {
+          fluctlightId: { type: "string" }, agentId: { type: "string" }, runId: { type: "string" },
+          correlationId: { type: "string" }, associationStatus: { type: "string" }, status: { type: "string" }, source: { type: "string" },
+          failureStage: { type: "string" }, failureCode: { type: "string" }, safeCause: { type: "string" },
+          startedAt: { type: "string", format: "date-time" }, finishedAt: { type: "string", format: "date-time" },
+        },
+        required: ["fluctlightId", "agentId", "runId", "correlationId", "associationStatus", "status", "startedAt"],
+      },
+      BrowserDiagnosticAgentRuns: { type: "array", items: { $ref: "#/components/schemas/BrowserDiagnosticAgentRun" } },
       BrowserFluctlightCreateRequest: {
         type: "object",
         additionalProperties: false,
@@ -315,6 +330,10 @@ const schema = {
     "/api/diagnostics": { get: { operationId: "readDiagnostics" }, delete: { operationId: "clearDiagnostics" } },
     "/api/diagnostics/lifecycle": { get: { operationId: "readLifecycleDiagnostics" } },
     "/api/diagnostics/model-runs": { get: { operationId: "readDiagnosticModelRuns", ...jsonResponse("BrowserDiagnosticModelRuns") } },
+    "/api/diagnostics/agent-runs": { get: { operationId: "readDiagnosticAgentRuns", parameters: [
+      { in: "query", name: "limit", required: false, schema: { type: "integer", minimum: 1, maximum: 500, default: 100 } },
+      { in: "query", name: "correlationId", required: false, schema: { type: "string", maxLength: 128 } },
+    ], ...jsonResponse("BrowserDiagnosticAgentRuns") } },
     "/api/diagnostics/media-prompts": { get: { operationId: "readDiagnosticMediaPrompts" } },
     "/api/diagnostics/media-prompts/{mediaIntentId}/retry": { post: { operationId: "retryDiagnosticMediaPrompt" } },
     "/api/diagnostics/export": { get: { operationId: "exportDiagnostics" } },

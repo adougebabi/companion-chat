@@ -12,6 +12,23 @@ func conversationSummaryProviderSchema() map[string]any {
 	}, []string{"schema_version", "summary"}, false)
 }
 
+func conversationSegmentProviderSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"schema_version": enumStringSchema(conversationSegmentSchemaVersion),
+		"summary":        map[string]any{"type": "string", "minLength": 1, "maxLength": conversationSummaryMaxRunes},
+		"ending_state":   map[string]any{"type": "string", "minLength": 1, "maxLength": 1000},
+		"open_threads":   arraySchema(map[string]any{"type": "string", "minLength": 1, "maxLength": 500}),
+		"core_events":    arraySchema(map[string]any{"type": "string", "minLength": 1, "maxLength": 500}),
+	}, []string{"schema_version", "summary", "ending_state", "open_threads", "core_events"}, false)
+}
+
+func conversationDailyEpisodeProviderSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"schema_version": enumStringSchema(conversationDailyMemorySchemaVersion),
+		"episode":        map[string]any{"type": "string", "minLength": 1, "maxLength": conversationSummaryMaxRunes},
+	}, []string{"schema_version", "episode"}, false)
+}
+
 func objectSchema(properties map[string]any, required []string, additionalProperties bool) map[string]any {
 	result := map[string]any{"type": "object", "properties": properties, "additionalProperties": additionalProperties}
 	if len(required) > 0 {

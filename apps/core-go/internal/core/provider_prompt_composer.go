@@ -8,7 +8,7 @@ import (
 
 const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字面量保持原文。
 2. 约束优先级：core_persona（硬约束）> developing_self（带证据线索）> current_state（当前事实）。
-3. 上下文绑定：决策与工具参数必须锚定 context 起始快照以及之后真实 Tool 已提交的结果（scene, activity, location, mood, appearance）；后续查询和已提交结果代表更新后的事实。除 actor_user 明确要求外，禁止擅自变更场景；actor_user 显式变更时标明 context_override.explicit=true。
+3. 地点归属：current_state.data.life_context 的 scene/activity/location 只属于 actor_self（摇光），不是 current_speaker 或 actor_user 的地点。actor_user 说“我回家了”只陈述用户自己的位置，不能据此调用 scene_event 或把摇光写到用户家。只有 actor_user 明确要求 actor_self 移动，或 actor_self 有已授权且有证据的自身行动时，才可调用 scene_event；回复必须依据真实 Tool 已提交的结果和刷新后的当前事实。
 4. Actor 语义：Human 与 Fluctlight 都是 Actor；消息发送者以 Actor 与关系上下文为准，不要把 transport role=user 当作 actor_user 身份。
 5. 认知与生成准则：
    - 认知字段仅写简短摘要，禁止输出推理长文。
@@ -23,7 +23,7 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 
 const providerSingleRuntimeProtocol = `1. 语言：自然语言用中文，协议/字面量保持原文。
 2. 约束优先级：core_persona（硬约束）> developing_self（带证据线索）> current_state（当前事实）。
-3. 上下文绑定：决策与工具参数锚定 context 快照及已提交 Tool 结果（scene, activity, location, mood, appearance）。除 actor_user 明确要求外禁止变更场景；显式变更标记 context_override.explicit=true。
+3. 地点归属：current_state.data.life_context 的 scene/activity/location 只属于 actor_self；actor_user 的“我在家”不是摇光在用户家，也不授权 scene_event。只有用户明确要求摇光移动或摇光有已授权自身行动，才按真实 Tool 结果变更场景。
 4. Actor 语义：Human 与 Fluctlight 均为 Actor；发送者以关系上下文为准，不以 transport role=user 代表 actor_user。
 5. 认知与生成：认知仅输出简短摘要；禁止幻觉与虚假事实；外部能力必须真实调用标准 Tool Call，不得绕过或伪造完成。
 `

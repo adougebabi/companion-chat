@@ -944,7 +944,11 @@ func (a *App) completeTurnCognitionTx(ctx context.Context, tx pgx.Tx, inboxID, f
 	}
 	if actionType == "reply" {
 		if messageID := strings.TrimSpace(stringValue(settledRealization["message_id"])); messageID != "" {
-			if err := a.enqueueConversationSummaryIntentTx(ctx, tx, fluctlightID, "", messageID); err != nil {
+			var conversationID string
+			if err := tx.QueryRow(ctx, `SELECT conversation_id FROM public.conversation_messages WHERE id=$1`, messageID).Scan(&conversationID); err != nil {
+				return "", err
+			}
+			if err := a.enqueueConversationSegmentTx(ctx, tx, fluctlightID, conversationID, false); err != nil {
 				return "", err
 			}
 		}

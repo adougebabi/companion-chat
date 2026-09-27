@@ -42,7 +42,7 @@ func TestFormalWakeUpFinalProviderRequestUsesCurrentSharedBodyAndWearing(t *test
 	if err != nil {
 		t.Fatalf("formal WakeUp did not finish: result=%#v err=%v", result, err)
 	}
-	if !strings.Contains(finalWire, "value: short") || strings.Contains(finalWire, "value: long") || !strings.Contains(finalWire, "白衬衫") {
+	if !strings.Contains(finalWire, "hair_length: short") || strings.Contains(finalWire, "hair_length: long") || !strings.Contains(finalWire, "白衬衫") {
 		t.Fatalf("final WakeUp Provider request used an old body or omitted actual wearing: %s", finalWire)
 	}
 }

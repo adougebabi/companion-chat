@@ -41,13 +41,51 @@ func (a *App) bindProjectionRefresh(
 				return modelContextRefreshContent{}, err
 			}
 		}
-		assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(refreshCtx, surface, projection, role, rules, currentInput, tools, schemaName, schema)
+		modelProjection := projection
+		modelProjection.RecentMessages = append([]map[string]any(nil), projection.RecentMessages...)
+		if adkContext, ok := adkCapabilityContext(refreshCtx); ok {
+			suppressCommittedReplyHistoryForContinuation(&modelProjection, adkContext.Trace)
+		}
+		assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(refreshCtx, surface, modelProjection, role, rules, currentInput, tools, schemaName, schema)
 		if err != nil {
 			return modelContextRefreshContent{}, err
 		}
+		assembledProjection.RecentMessages = projection.RecentMessages
 		content, err := modelContextContent(assembly.Messages)
 		content.Projection = assembledProjection
 		content.BudgetTrace = assembly.Trace
 		return content, err
 	})
+}
+
+// The current ADK transcript already contains its own reply ToolCall. Remove
+// only replies whose committed message IDs appear in this exact run's trace;
+// a fresh retry has a new trace and must still see the earlier publication.
+func suppressCommittedReplyHistoryForContinuation(projection *ContextProjection, trace *ADKCapabilityTrace) {
+	if projection == nil || trace == nil || len(projection.RecentMessages) == 0 {
+		return
+	}
+	_, results := trace.Snapshot()
+	committed := make(map[string]struct{})
+	for _, result := range results {
+		if result.CapabilityName != conversationReplyCapabilityName || result.Status != "completed" {
+			continue
+		}
+		if targetID := stringValue(mapValue(result.Output)["target_ref"]); targetID != "" {
+			committed[targetID] = struct{}{}
+		}
+	}
+	if len(committed) == 0 {
+		return
+	}
+	filtered := make([]map[string]any, 0, len(projection.RecentMessages))
+	for _, message := range projection.RecentMessages {
+		if stringValue(message["kind"]) == "assistant" {
+			if _, sameRun := committed[stringValue(message["id"])]; sameRun {
+				continue
+			}
+		}
+		filtered = append(filtered, message)
+	}
+	projection.RecentMessages = filtered
 }

@@ -1,0 +1,2 @@
+{"file":".trellis/tasks/09-27-wakeup-idle-cadence/research/contract-slice.md","reason":"检查due CAS、取消、replay与时钟迁移"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"检查迟到/过期cycle和安全诊断"}

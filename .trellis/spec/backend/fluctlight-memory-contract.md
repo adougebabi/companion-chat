@@ -245,7 +245,11 @@ active_memories / active_memory_revisions / active_memory_commands
   current short-lived authority + immutable lifecycle/command audit
 
 conversation_summaries
-  source-range projection with source refs/digest and superseding revision
+  source-range projection with source refs/digest, source time bounds,
+  local-day attribution, and superseding/consolidated revisions
+
+conversation_daily_memories
+  one episodic Memory link per conversation/local date/frozen timezone
 ```
 
 Active operations are `create|confirm|revise|complete|expire|supersede`;
@@ -279,11 +283,32 @@ default conversation catalog is not an execution restriction.
   start; omit it or use current/source time when it must be visible beforehand.
   Provider input never supplies owner, database ID,
   revision, canonical key, evidence storage, or idempotency.
-- Summary work retains the latest 24 messages. An older chunk becomes eligible
-  at 20 completed assistant turns, about 6000 estimated tokens, or 40 messages,
-  and is cut on an assistant boundary. Settlement re-reads the contiguous Raw
-  range and requires the same ordered refs and digest; old summaries are never
-  summary input.
+- New assistant publication and accepted user activity maintain a durable
+  `conversation.segment` intent due ten minutes after the latest accepted user
+  message. Each source window ends at a complete assistant turn, targets about
+  6000 estimated tokens with a hard 40-message bound, and belongs to the local date of the user run closed
+  by that assistant. Consecutive user messages before a reply belong to the
+  final user-start date. Settlement verifies contiguous Raw, ordered refs and
+  digest, then drains further windows after a long quiet session. Old summaries
+  are never segment input. The former 24-message reserve, 20-turn and
+  6000-token `conversation.summary` path remains for pre-upgrade replay only.
+- When a new local day begins during continuous chat, completed turns of the
+  preceding day are sealed immediately under a `day_rollover` source intent;
+  new-day user messages do not supersede that sealed window. An unanswered
+  user run crossing midnight stays with the date of its eventual completed
+  reply, so it cannot strand the segment cursor.
+- Segments store Core-owned source `started_at`/`ended_at`, frozen IANA timezone
+  and local date, plus model-produced summary, ending state, open threads and
+  core events. Provider context uses source times, never `completed_at` as chat
+  time. Same-day legacy chunks are classified from raw sources; cross-day
+  chunks are rebuilt from raw into day-bounded segments.
+- `conversation.daily_memory` freezes the conversation, local date, timezone
+  and UTC half-open day bounds. It creates or revises one `episodic` Memory
+  through `applyMemoryCommandTx` with versioned Summary source links. Distinct
+  date/zone event identity prevents equal daily text from collapsing across
+  days. Only after Memory and links commit does the same transaction mark
+  segments `consolidated`; Raw and audit rows remain. Correction invalidates
+  dependent daily provenance; daily Memory requires every linked source live.
 - Conversation prompt assembly reads up to 200 recent Raw messages as candidates;
   it does not pre-truncate to eight. A verified Summary fragment keeps its
   original `source_message_refs` only as internal provenance, while Provider
@@ -296,11 +321,21 @@ default conversation catalog is not an execution restriction.
   raw messages eligible for the 8192-token Recent cap and final wire budget.
   A partially covered turn stays whole, even if that duplicates a summarized
   message; losing its uncovered half is worse. Budget/dedupe reasons are traced.
+- After daily consolidation, the segment leaves active Summary retrieval.
+  Core expands only its live Summary links into recent message refs internally
+  for a selected daily episodic Memory. Final wire selection removes a fully
+  covered raw turn only if that Memory fits; its source IDs never enter Provider
+  content, and a dropped Memory leaves raw fallback available.
 - Working Memory receives already-authorized fragments and performs no SQL,
   embedding, extraction, or LLM call. Default section caps are runtime `6144`,
   Active `2048`, Recent `8192`, retrieved Long-term `3072`, Summary `2048`.
   It selects whole fragments and whole recent turns, restores chronological
   order, and deduplicates shared source refs without deleting source rows.
+- Conversation/Wake-up `current_state`, `self_actor`, and `current_speaker` are
+  required Runtime Facts after surface compaction. They precede optional
+  schedule/relationship facts; if their combined size exceeds the runtime
+  section cap, return `working_memory_required_budget_exceeded` instead of
+  silently omitting the actor or present life context.
 - Once a recent complete turn fails the Recent section cap, older turns are
   excluded with `recent_contiguity_excluded`; do not select a small older turn
   after a larger newer one and silently create a time gap. The current user
@@ -334,6 +369,8 @@ default conversation catalog is not an execution restriction.
 | Active target revision is stale or idempotency payload differs | Conflict; replay only an identical prior command. |
 | Active row is expired at read time but cleanup has not run | Exclude immediately; cleanup may later append `expire`. |
 | Summary source has a gap, changed ref/digest, wrong author boundary, or foreign owner | Reject settlement; keep Raw rows and retryable intent. |
+| Daily Memory Provider or Memory mutation fails | Keep segments active; Memory, source links and segment retirement share one transaction. |
+| Raw correction invalidates a consolidated Summary | Invalidate dependent daily provenance, omit stale Memory from retrieval, regenerate the segment, then revise the daily episode. |
 | Summary is selected by Working Memory but dropped by final wire budget | Covered raw turns remain fallback candidates; final trace records `budget_excluded` for Summary. |
 | A Summary covers only part of one raw turn | Keep the whole raw turn; never drop its uncovered message to avoid duplication. |
 | Required Working Memory fragment exceeds its section | `working_memory_required_budget_exceeded`; do not truncate it. |
@@ -367,6 +404,9 @@ default conversation catalog is not an execution restriction.
   guards.
 - Summary threshold/range/digest/source-drift/rebuild/supersede tests and
   Provider/restart replay with no recursive summary input.
+- Segment idle debounce, 140-message backlog drain, same-day/cross-day legacy
+  migration, consecutive-user midnight, DST day length, daily Memory atomicity
+  and revision, source invalidation, and final-wire raw fallback.
 - Working Memory whole-fragment/whole-turn, source-dedupe, required overflow,
   fixed-cap stress, real-role order, and dropped-reason trace assertions.
 - Prompt composition tests assert the 24/8 window mismatch is gone, a selected

@@ -178,7 +178,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	var user map[string]any
 	var inboxID string
 	var supersededInboxIDs []string
+	var acceptedWakeUpDue time.Time
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		// A user-message commit and a Wake-up final settlement serialize on
+		// one lifecycle lock. The new idle epoch becomes visible atomically
+		// with the accepted message, before post-commit cancellation hints.
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
 		var existingID, existingText, existingAuthor, existingTurnID, existingSourceFactID, existingCorrelationID string
 		var existingSequence int
 		var existingAttachments []byte
@@ -242,6 +249,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": sequence, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments, "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
 		snapshot.addTo(user)
+		if err := setWakeUpIdleEpochTx(ctx, tx, fluctlightID, messageID, createdAt); err != nil {
+			return err
+		}
+		if err := a.enqueueConversationSegmentTx(ctx, tx, fluctlightID, conversationID, false); err != nil {
+			return err
+		}
+		acceptedWakeUpDue = createdAt.UTC().Add(wakeUpFirstIdleDelay)
 		return nil
 	})
 	if err != nil {
@@ -250,6 +264,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	a.cancelSupersededCognitionFacts(ctx, supersededInboxIDs)
 	if preemptErr := a.CancelLifecycleForCognition(ctx, fluctlightID, "cognition:"+inboxID); preemptErr != nil {
 		a.recordDiagnosticEvent(ctx, "cognition.lifecycle_preemption.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "lifecycle_preemption_failed"})
+	}
+	if !acceptedWakeUpDue.IsZero() {
+		a.scheduleWakeUpHint(ctx, fluctlightID, 0, acceptedWakeUpDue)
 	}
 	if callbacks.acceptOnly {
 		user["turn_id"] = turnID
@@ -298,7 +315,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	projection := run.Projection
 	outcome, outcomeErr := committedAgentOutcome(run.Trace)
 	if outcomeErr != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, agentCommittedOutcome{}, "agent_run_failed")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, agentCommittedOutcome{}, "agent_run_failed", outcomeErr)
 		return TurnResult{}, outcomeErr
 	}
 	replyResults := committedConversationReplyResults(outcome.Results)
@@ -318,9 +335,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 
 	if err != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_run_failed")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_run_failed", err)
 		if len(assistantMessages) > 0 {
-			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_run_failed_after_reply", "error": err.Error()})
+			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_run_failed_after_reply", "safe_cause": boundedLifecycleCause(err.Error())})
 			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
 			claimSettled = true
 			mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
@@ -337,9 +354,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		decision = map[string]any{}
 	}
 	if _, err := freezeDecisionInfluences(decision, projection, false); err != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid", err)
 		if len(assistantMessages) > 0 {
-			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_final_contract_invalid_after_reply", "error": err.Error()})
+			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_final_contract_invalid_after_reply", "safe_cause": boundedLifecycleCause(err.Error())})
 			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
 			claimSettled = true
 			mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
@@ -352,9 +369,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 	responsePlan, err := normalizeResponsePlan(decision, inboxID, projection)
 	if err != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_final_contract_invalid", err)
 		if len(assistantMessages) > 0 {
-			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "normalize_response_plan_invalid_after_reply", "error": err.Error()})
+			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "normalize_response_plan_invalid_after_reply", "safe_cause": boundedLifecycleCause(err.Error())})
 			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
 			claimSettled = true
 			mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
@@ -376,15 +393,15 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 	}
 	if err != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_output_publication_failed")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_output_publication_failed", err)
 		return TurnResult{}, fmt.Errorf("agent_output_publication_failed: %w", err)
 	}
 	mediaIntentID := mediaIntentFromCommittedResults(outcome.Results)
 	if err := a.settleAgentConversationTurn(ctx, inboxID, turnID, fluctlightID, actorID, projection, decision, responsePlan, assistant, mediaIntentID, outcome); err != nil {
 		// The reply and every Tool result above are already committed facts. A
 		// cognition projection failure must not erase or republish them.
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_cognition_settlement_failed")
-		a.recordDiagnosticEvent(ctx, "cognition.settlement.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_cognition_settlement_failed", "error": err.Error()})
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_cognition_settlement_failed", err)
+		a.recordDiagnosticEvent(ctx, "cognition.settlement.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_cognition_settlement_failed", "safe_cause": boundedLifecycleCause(err.Error())})
 		_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
 		if len(assistantMessages) > 0 {
 			claimSettled = true
@@ -477,7 +494,7 @@ func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any,
 	return &TurnResult{UserMessage: user, Assistant: assistants[len(assistants)-1], MediaIntentID: stringValue(result["media_intent_id"]), TurnID: turnID, CorrelationID: "turn:" + turnID}, assistants, nil
 }
 
-func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome agentCommittedOutcome, code string) error {
+func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome agentCommittedOutcome, code string, causes ...error) error {
 	// Cancellation ends model work, not the bounded recording of facts already
 	// committed by a Tool. A retry must see failure rather than replay the run.
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
@@ -498,10 +515,21 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 	case "agent_cognition_settlement_failed", "native_cognition_settlement_failed":
 		stage = "settlement"
 	}
-	a.recordDiagnosticEvent(ctx, "agent.run.termination", "error", fluctlightID, inboxID, correlationID, map[string]any{
+	agentID := string(FormalAgentConversationCognition)
+	if strings.HasPrefix(code, "native_cognition_") {
+		agentID = string(FormalAgentNativeCognition)
+	}
+	payload := map[string]any{
 		"run_id": firstString(correlationID, inboxID), "stage": stage, "status": "failed", "reason": strings.TrimSpace(code),
-		"committed_tool_count": len(outcome.Results),
-	})
+		"agent_id": agentID, "committed_tool_count": len(outcome.Results),
+	}
+	if len(causes) > 0 && causes[0] != nil {
+		failureStage, failureCode := classifyAgentRunFailure(causes[0])
+		payload["failure_stage"] = failureStage
+		payload["failure_code"] = failureCode
+		payload["safe_cause"] = boundedLifecycleCause(causes[0].Error())
+	}
+	a.recordDiagnosticEvent(ctx, "agent.run.termination", "error", fluctlightID, inboxID, correlationID, payload)
 	if err := a.scheduleCognitionFollowups(ctx, fluctlightID); err != nil {
 		a.recordDiagnosticEvent(ctx, "cognition.followup.degraded", "warning", fluctlightID, inboxID, correlationID, map[string]any{"error_code": "followup_schedule_failed"})
 	}
@@ -661,12 +689,20 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
 		return cancelled(), nil
 	}
+	if current, err := a.wakeUpExecutionCurrent(ctx, cycle); err != nil {
+		return nil, err
+	} else if !current {
+		return cancelled(), nil
+	}
 	settings, err := a.readWakeUpSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if !settings.Enabled {
 		nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "wake_up_disabled")
+		if errors.Is(err, errLifecycleSupersededByCognition) {
+			return cancelled(), nil
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -683,6 +719,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			reason, status = "fluctlight_paused", "paused"
 		}
 		nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, reason)
+		if errors.Is(err, errLifecycleSupersededByCognition) {
+			return cancelled(), nil
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -695,6 +734,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	var replayResult []byte
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,action_type,result FROM public.cognition_wakeups WHERE id=$1`, wakeID).Scan(&replayStatus, &replayAction, &replayResult); err == nil {
 		nextDue, dueErr := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "wake_up_replay_repaired")
+		if errors.Is(dueErr, errLifecycleSupersededByCognition) {
+			return cancelled(), nil
+		}
 		if dueErr != nil {
 			return nil, dueErr
 		}
@@ -816,7 +858,19 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 	factID := "wake_fact_" + stableDigest(wakeID)
 	result := map[string]any{"status": status, "reason": reason, "conversation_id": conversationID, "capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
 	var nextDue time.Time
+	superseded := false
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
+		current, err := wakeUpExecutionCurrentTx(ctx, tx, cycle)
+		if err != nil {
+			return err
+		}
+		if !current {
+			superseded = true
+			return nil
+		}
 		if status != "failed" && status != "cancelled" {
 			foundation, currentState, lifeContext, currentFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
 			if err != nil {
@@ -830,9 +884,6 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 					return err
 				}
 			}
-		}
-		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
-			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,1,0) ON CONFLICT DO NOTHING`, fluctlightID); err != nil {
 			return err
@@ -865,7 +916,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-fact:"+wakeID, payload); err != nil {
 			return err
 		}
-		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, a.now().UTC())
+		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, cycle, intervalSeconds, a.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -873,6 +924,9 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 	})
 	if err != nil {
 		return nil, err
+	}
+	if superseded {
+		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
 	}
 	a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
 	_ = a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod)
@@ -982,13 +1036,13 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		return outcomeErr
 	}
 	if runErr != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_agent_failed")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_agent_failed", runErr)
 		return runErr
 	}
 	projection = taskResult.Projection
 	stages, semanticStages, err := normalizeCognitiveStages(taskResult.Completion.Structured, len(outcome.Invocations) > 0)
 	if err != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_final_contract_invalid")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_final_contract_invalid", err)
 		return err
 	}
 	if _, err := freezeDecisionInfluences(stages, projection, false); err != nil {
@@ -1082,7 +1136,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		return err
 	})
 	if err != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_settlement_failed")
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_settlement_failed", err)
 		return err
 	}
 	if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {

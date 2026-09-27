@@ -56,6 +56,7 @@ export type BrowserLifecycleDiagnosticEvent = { id: string; eventType: string; s
 export type BrowserWorkflowIntentSnapshot = { intentId: string; workflowId: string; runtimeWorkflowId: string; taskQueue: string; intentType: string; status: string; attemptCount: number; fluctlightId?: string | null; correlationId: string; causationId?: string | null; lastError?: string | null; nextAttemptAt?: string; startedAt?: string; completedAt?: string; createdAt: string };
 export type BrowserLifecycleDiagnosticsPage = { events: BrowserLifecycleDiagnosticEvent[]; workflowIntents: BrowserWorkflowIntentSnapshot[]; filters: Required<BrowserLifecycleDiagnosticsFilter> };
 export type BrowserDiagnosticModelRun = { id: string; role: string; bindingRole?: string; scenario?: string; priority?: number; queuePendingCount?: number; queuePosition?: number; endpointId?: string | null; modelId: string; prompt: unknown; response?: unknown; status: string; errorCode?: string | null; correlationId: string; logicalRunId?: string; modelCallId?: string; roundCount?: number; sequence?: number | null; stage?: string; toolSummaries?: Array<{ callId: string; capability: string; status: string; errorCode?: string }>; createdAt: string; queuedAt?: string; startedAt?: string | null; completedAt?: string | null };
+export type BrowserDiagnosticAgentRun = { fluctlightId: string; agentId: string; runId: string; correlationId: string; associationStatus: "linked" | "unknown"; status: string; source?: "agent_runs" | "termination_event"; failureStage?: string; failureCode?: string; safeCause?: string; startedAt: string; finishedAt?: string };
 export type BrowserDiagnosticMediaPrompt = { id: string; mediaIntentId: string; fluctlightId: string; kind: string; mimeType: string; prompt: unknown; providerPrompt: string; submittedPrompt?: string; requestPayload?: unknown; providerRequestId: string; providerJobId?: string; workflowId: string; status: string; qualityVerdict?: string; correlationId: string; createdAt: string; submittedEventId?: string; submittedAt?: string; errorMessage?: string; failureStage?: string; workflowStatus?: string; attemptCount?: number; modelRun?: BrowserDiagnosticModelRun };
 export type BrowserConversation = { id: string; createdByActorId: string; title?: string | null; revision: number; createdAt: string; updatedAt: string };
 export type BrowserParticipant = { conversationId: string; actorId: string; role: string; status: string; joinedAt: string; leftAt?: string | null };
@@ -218,6 +219,11 @@ export class BrowserClient {
     const query = new URLSearchParams({ limit: String(options.limit ?? 100) });
     if (options.correlationId) query.set("correlationId", options.correlationId);
     return this.json(\`/api/diagnostics/model-runs?\${query}\`) as Promise<BrowserDiagnosticModelRun[]>;
+  }
+  async diagnosticAgentRuns(options: { limit?: number; correlationId?: string } = {}): Promise<BrowserDiagnosticAgentRun[]> {
+    const query = new URLSearchParams({ limit: String(options.limit ?? 100) });
+    if (options.correlationId) query.set("correlationId", options.correlationId);
+    return this.json(\`/api/diagnostics/agent-runs?\${query}\`) as Promise<BrowserDiagnosticAgentRun[]>;
   }
   async diagnosticMediaPrompts(options: { limit?: number } = {}): Promise<BrowserDiagnosticMediaPrompt[]> {
     const limit = Math.min(Math.max(options.limit ?? 20, 1), 20);

@@ -12,7 +12,9 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0040_activity_authority"
+const Head = "0042_conversation_daily_memory"
+const ConversationDailyMemoryPreviousHead = "0041_agent_run_diagnostics"
+const AgentRunDiagnosticsPreviousHead = "0040_activity_authority"
 const ActivityAuthorityPreviousHead = "0039_message_time"
 const MessageTimePreviousHead = "0038_scheduled_actions"
 const PreviousHead = "0036_effective_life"
@@ -90,7 +92,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead {
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -169,6 +171,12 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, activityAuthoritySchemaSQL); err != nil {
 		return fmt.Errorf("apply activity authority schema: %w", err)
 	}
+	if _, err := tx.Exec(ctx, agentRunDiagnosticsSchemaSQL); err != nil {
+		return fmt.Errorf("apply Agent run diagnostics schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, conversationDailyMemorySchemaSQL); err != nil {
+		return fmt.Errorf("apply conversation daily memory schema: %w", err)
+	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {
 			return err
@@ -216,6 +224,14 @@ ALTER TABLE public.fluctlight_life_activity_runs ADD COLUMN IF NOT EXISTS active
 UPDATE public.fluctlight_life_activity_runs SET active_until=not_before
   WHERE active_until IS NULL AND status IN ('scheduled','in_progress','deferred');
 CREATE INDEX IF NOT EXISTS ix_life_activity_authority ON public.fluctlight_life_activity_runs(authority_event_id,status,active_until);
+`
+
+const agentRunDiagnosticsSchemaSQL = `
+ALTER TABLE public.agent_runs ADD COLUMN IF NOT EXISTS correlation_id varchar(128) NOT NULL DEFAULT '';
+ALTER TABLE public.agent_runs ADD COLUMN IF NOT EXISTS failure_stage varchar(64) NOT NULL DEFAULT '';
+ALTER TABLE public.agent_runs ADD COLUMN IF NOT EXISTS failure_code varchar(128) NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS ix_agent_runs_correlation ON public.agent_runs(correlation_id,started_at DESC) WHERE correlation_id <> '';
+CREATE INDEX IF NOT EXISTS ix_agent_runs_recent ON public.agent_runs(started_at DESC,run_id DESC);
 `
 
 // schemaSQL contains the authoritative tables needed by the Go Core.  It is

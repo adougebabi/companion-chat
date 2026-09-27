@@ -111,6 +111,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "lifecycle diagnostics", method: http.MethodGet, path: "/api/diagnostics/lifecycle"},
 		{name: "diagnostics clear", method: http.MethodDelete, path: "/api/diagnostics"},
 		{name: "diagnostic model runs", method: http.MethodGet, path: "/api/diagnostics/model-runs"},
+		{name: "diagnostic agent runs", method: http.MethodGet, path: "/api/diagnostics/agent-runs"},
 		{name: "diagnostic media prompts", method: http.MethodGet, path: "/api/diagnostics/media-prompts"},
 		{name: "diagnostic media prompt retry", method: http.MethodPost, path: "/api/diagnostics/media-prompts/media-1/retry"},
 		{name: "diagnostics export", method: http.MethodGet, path: "/api/diagnostics/export"},

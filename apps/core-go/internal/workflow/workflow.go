@@ -44,7 +44,7 @@ const (
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','visual_identity.initialize')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
@@ -71,6 +71,12 @@ func workflowIntentRetryExhausted(intentType string, attemptCount int) bool {
 	return maximum > 0 && attemptCount >= maximum
 }
 
+func conversationLifecycleAwaitingNewRun(intentType, currentIntentStatus, terminalStatus string) bool {
+	return (intentType == "conversation.segment" || intentType == "conversation.daily_memory") &&
+		(terminalStatus == "completed" || terminalStatus == "failed") &&
+		(currentIntentStatus == "pending" || currentIntentStatus == "retry")
+}
+
 // ApplicationService specifies the narrow operations invoked by Temporal activities.
 // This decouples the workflow activities from the monolithic *core.App struct.
 type ApplicationService interface {
@@ -85,6 +91,8 @@ type ApplicationService interface {
 	ProcessReflection(ctx context.Context, fluctlightID, triggerEventID string) (map[string]any, error)
 	ProcessMemoryEmbeddingIntentAt(ctx context.Context, intentID, memoryID string, revision int, providerEndpointID, modelID string) (map[string]any, error)
 	ProcessConversationSummaryIntent(ctx context.Context, intentID, fluctlightID, conversationID, sourceMessageID string, sourceSequence, fromSequence, toSequence int, sourceDigest string, sourceMessageRefs []string) (map[string]any, error)
+	ProcessConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error)
+	ProcessConversationDailyMemoryIntent(ctx context.Context, intentID string) (map[string]any, error)
 	EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string) (map[string]any, error)
 	ProcessVisualIdentity(ctx context.Context, sessionID string) (map[string]any, error)
 	EnsureVisualIdentityInitializationWithPersona(ctx context.Context, fluctlightID, personaID, visualIdentityID string, options map[string]any) (string, error)
@@ -183,6 +191,11 @@ type Input struct {
 	SessionID          string   `json:"session_id"`
 	LocalDate          string   `json:"local_date"`
 	Cycle              int      `json:"cycle"`
+	IdleVersion        int      `json:"idle_version,omitempty"`
+	IdleEpoch          string   `json:"idle_epoch,omitempty"`
+	IdleSince          string   `json:"idle_since,omitempty"`
+	IdleSlot           int      `json:"idle_slot,omitempty"`
+	IdlePhase          string   `json:"idle_phase,omitempty"`
 	ActionID           string   `json:"action_id"`
 	MemoryID           string   `json:"memory_id"`
 	Revision           int      `json:"revision"`
@@ -666,6 +679,24 @@ func ConversationSummaryWorkflow(ctx workflow.Context, input Input) (map[string]
 	return result, nil
 }
 
+func ConversationSegmentWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessConversationSegmentActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func ConversationDailyMemoryWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessConversationDailyMemoryActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func ProcessDailyReviewActivity(ctx context.Context, input Input) (map[string]any, error) {
 	application := app()
 	if application == nil {
@@ -681,6 +712,8 @@ func ProcessWakeUpActivity(ctx context.Context, input Input) (map[string]any, er
 	}
 	ctx, input = prepareActivityLifecycleContext(ctx, input, "wake_up")
 	ctx = core.WithLifecycleIntentID(ctx, input.IntentID)
+	ctx = core.WithWakeUpIdleEpoch(ctx, input.IdleEpoch)
+	ctx = core.WithWakeUpCycle(ctx, input.Cycle)
 	ctx = core.WithProviderCancellationKey(ctx, core.WakeUpProviderCancellationMarker(input.FluctlightID, input.Cycle))
 	recordActivityLifecycle(application, ctx, input, "wake_up", core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
 	slog.Default().Info("Go Worker wake-up activity started", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "correlation_id", input.CorrelationID)
@@ -917,6 +950,22 @@ func ProcessConversationSummaryActivity(ctx context.Context, input Input) (map[s
 	return application.ProcessConversationSummaryIntent(ctx, input.IntentID, input.FluctlightID, input.ConversationID, input.SourceMessageID, input.SourceSequence, input.FromSequence, input.ToSequence, input.SourceDigest, input.SourceMessageRefs)
 }
 
+func ProcessConversationSegmentActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessConversationSegmentIntent(ctx, input.IntentID)
+}
+
+func ProcessConversationDailyMemoryActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessConversationDailyMemoryIntent(ctx, input.IntentID)
+}
+
 func EnsureCurrentDayScheduleActivity(ctx context.Context, input Input) (map[string]any, error) {
 	application := app()
 	if application == nil {
@@ -1036,6 +1085,8 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(IntentionTriggerWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
 			w.RegisterWorkflow(ConversationSummaryWorkflow)
+			w.RegisterWorkflow(ConversationSegmentWorkflow)
+			w.RegisterWorkflow(ConversationDailyMemoryWorkflow)
 			w.RegisterWorkflow(PlatformControlWorkflow)
 			w.RegisterWorkflow(VisualIdentityWorkflow)
 			w.RegisterActivity(ProcessDailyReviewActivity)
@@ -1046,6 +1097,8 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ResolveScheduledLifeActivityActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
 			w.RegisterActivity(ProcessConversationSummaryActivity)
+			w.RegisterActivity(ProcessConversationSegmentActivity)
+			w.RegisterActivity(ProcessConversationDailyMemoryActivity)
 			w.RegisterActivity(PlatformControlActivity)
 			w.RegisterActivity(ProcessVisualIdentityActivity)
 		case CriticalLifecycleQueue:
@@ -1220,6 +1273,13 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		} else if status == enumspb.WORKFLOW_EXECUTION_STATUS_FAILED || status == enumspb.WORKFLOW_EXECUTION_STATUS_TIMED_OUT || status == enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED {
 			intentStatus = "failed"
 		}
+		if conversationLifecycleAwaitingNewRun(intentType, currentIntentStatus, intentStatus) {
+			// A source correction or a later same-day segment can reopen the
+			// stable intent after its previous Temporal Run finished. Dispatch
+			// owns pending/retry admission; reconciliation of the old Run must
+			// neither erase this source set nor push its retry deadline forward.
+			continue
+		}
 		terminalFailure := ""
 		if intentStatus == "failed" {
 			var historyErr error
@@ -1254,6 +1314,29 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				count++
 				continue
 			}
+		}
+		if (intentType == "conversation.segment" || intentType == "conversation.daily_memory") && intentStatus == "failed" {
+			retryDelay := 5 * time.Minute
+			nextAttemptCount := attemptCount
+			if attemptCount >= 5 {
+				retryDelay = 30 * time.Minute
+				nextAttemptCount = 0
+			}
+			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents
+				SET status='retry',next_attempt_at=now()+($2 * interval '1 second'),attempt_count=$3,
+				started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($4,''),last_error,'conversation_lifecycle_workflow_terminal')
+				WHERE intent_id=$1 AND status IN ('pending','started','failed')`, intentID, int64(retryDelay/time.Second), nextAttemptCount, terminalFailure)
+			if err != nil {
+				return count, err
+			}
+			if command.RowsAffected() == 1 {
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_reconcile", "retry", "conversation_lifecycle_retry_scheduled", attemptCount, errors.New(firstString(terminalFailure, "workflow_terminal_failure")))
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+			}
+			continue
 		}
 		if intentType == "wake_up.current" {
 			var fluctlightStatus string
@@ -1691,6 +1774,15 @@ func reflectionIntentShouldRetry(fluctlightStatus string, hasEvidence bool, atte
 // required by their stable workflow IDs while keeping one-shot intents
 // protected from accidental duplicate starts.
 func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
+	if intentType == "conversation.daily_memory" {
+		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if intentType == "conversation.segment" {
+		// A corrected raw message can return to an earlier digest. The same
+		// source identity then needs a new immutable Summary revision even after
+		// its previous Temporal run completed.
+		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
 	if intentType == "wake_up.current" {
 		// Reconciliation deliberately retries both failed and completed wake-up
 		// executions for live Fluctlights. ALLOW_DUPLICATE is therefore required
@@ -1886,6 +1978,12 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "conversation.summary":
 			workflowFn = ConversationSummaryWorkflow
+			taskQueue = LifecycleQueue
+		case "conversation.segment":
+			workflowFn = ConversationSegmentWorkflow
+			taskQueue = LifecycleQueue
+		case "conversation.daily_memory":
+			workflowFn = ConversationDailyMemoryWorkflow
 			taskQueue = LifecycleQueue
 		case "cognition.processing":
 			workflowFn = CognitionProcessingWorkflow
@@ -2115,6 +2213,10 @@ func lifecycleSurfaceForIntent(intentType string) string {
 		return "memory"
 	case "conversation.summary":
 		return "conversation_summary"
+	case "conversation.segment":
+		return "conversation_summary"
+	case "conversation.daily_memory":
+		return "memory"
 	case "intention.trigger":
 		return "intention"
 	case "platform.control":

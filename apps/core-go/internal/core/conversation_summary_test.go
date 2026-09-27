@@ -94,7 +94,7 @@ func TestConversationSummaryStaticGuardKeepsProjectionWritesInOneModule(t *testi
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || name == "conversation_summary.go" {
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || name == "conversation_summary.go" || name == "conversation_segment.go" || name == "conversation_daily_memory.go" {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Clean(name))

@@ -445,15 +445,19 @@ rows = await session.execute(priority_order(statement).limit(limit))
 - Trigger: an active Fluctlight is activated, its PostgreSQL WakeUp clock
   becomes due, or a Worker repairs/releases a stable cycle after Redis or
   Worker failure.
-- WakeUp is a fixed recurring cognition cycle. Reflection is a separate
-  user-activity quiet-period one-shot and never owns or resets the WakeUp clock.
+- WakeUp follows the last successfully accepted user message: one cycle at
+  `t0+10m`, another at `t0+30m`, then every configured interval (default 30m)
+  while no newer user message arrives. WakeUp's own proactive message does not
+  reset `t0`. Reflection is a separate user-activity quiet-period one-shot.
 
 ### 2. Signatures
 
 ```text
 intent_type: wake_up.current
 task_queue: lifecycle-critical (new Runs); lifecycle (pre-isolation histories)
-payload: {fluctlight_id: string, cycle: integer, correlation_id: string}
+payload: {fluctlight_id: string, cycle: integer, idle_version?: 1,
+          idle_epoch?: message_id, idle_since?: RFC3339 time,
+          idle_slot?: integer, idle_phase?: first_10m|second_30m|recurring}
 correlation_id: wake_up:<fluctlight_id>:cycle:<cycle>
 next_attempt_at: authoritative next_due_at
 workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
@@ -472,12 +476,19 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   the periodic Worker sweep call the same conditional PostgreSQL release.
   Redis SET/subscription loss, listener restart, and process crashes cannot
   strand a completed due cycle.
-- Private-chat acceptance preempts a pending/running WakeUp. Cognition terminal
-  settlement moves its durable due time to the configured interval plus ten
-  minutes and re-arms the Redis hint; Reflection separately uses a ten-minute
-  quiet period. A degraded turn that already committed its visible reply still
-  runs the same follow-up scheduling. `EnsureWakeUpIntents` repairs a stranded
-  `superseded` clock once no executable cognition intent remains.
+- Private-chat acceptance atomically records a new idle epoch and `t0+10m`
+  due time while preempting a pending/running WakeUp. Cognition settlement only
+  re-arms that absolute due time and the Redis hint; it cannot postpone `t0`.
+  A degraded turn with a committed visible reply follows the same repair path.
+  `EnsureWakeUpIntents` repairs a stranded `superseded` clock once no
+  executable cognition intent remains. Legacy activation clocks without an
+  idle epoch keep their completion-based cadence until a user message arrives.
+- Each released cycle carries its frozen idle epoch and cycle into the
+  Activity. At start, before a Tool mutation, and in final settlement, Core
+  checks both under the lifecycle lock. A newer user message cancels stale
+  work without writing a new wake fact, child intent, or next clock. Duplicate
+  Redis/PG releases converge on the same durable cycle. A long first cycle
+  cannot move the second absolute due beyond `t0+30m`.
 - Due release uses expected status/due/cycle CAS. Duplicate Redis expiry,
   multiple Workers, startup repair, and periodic sweep converge on one cycle
   and one stable correlation identity.
@@ -540,7 +551,7 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
 | Existing live Fluctlight has no wake-up intent | Worker startup inserts the stable `wake_up.current` intent idempotently |
 | Schedule is pending, failed, or absent | Run cognition with explicit schedule status and no invented activity/place |
 | Redis SET/expiry/subscription is lost | PostgreSQL due sweep releases the same cycle and records bounded diagnostics |
-| Frequent user conversation | Each settled turn moves WakeUp due to its configured interval plus ten minutes; Reflection uses a ten-minute quiet period. |
+| Frequent user conversation | Each accepted user message resets the idle epoch to `t0+10m`; Reflection independently uses a ten-minute quiet period. |
 | Cognition preempts WakeUp but then fails after reply publication | Re-arm follow-ups; supervisor repairs a residual `superseded` intent when no active cognition remains. |
 | Wake-up activity/provider failure | Reconcile requeues the live Fluctlight's intent after a bounded delay; preserve the failure in diagnostics |
 | Assessment selects no capability | Persist `completed_noop` with a stable reason and schedule the next PostgreSQL due cycle |
@@ -573,9 +584,12 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   terminal wake-up intent without duplicating the stable workflow ID.
 - Assert lost Redis SET/expiry/listener and Worker restart are repaired by the
   PostgreSQL due sweep with one CAS release per cycle.
-- Assert each settled user turn moves WakeUp due by configured interval plus
-  ten minutes, Reflection remains a ten-minute quiet period, and a stranded
-  `superseded` clock is repaired after cognition terminates.
+- Assert accepted user messages establish the absolute 10/30-minute phases,
+  proactive WakeUp messages do not reset them, and later recurring phases use
+  the configured interval. Reflection remains a ten-minute quiet period, and
+  a stranded `superseded` clock is repaired after cognition terminates.
+- Assert an old epoch cannot commit Tool/final effects after a new user message,
+  even when Provider work or a disabled/paused/replay branch is in progress.
 - Assert a retry with a future `next_attempt_at` is not requeued on every
   reconciliation poll; assert the same for future pending Reflection, and that
   a due retry starts a new Temporal run with the stable wake-up ID.
@@ -715,8 +729,9 @@ workflow.ExecuteActivity(ctx, ProcessIntentionTriggerActivity, input)
 
 ### 1. Scope / Trigger
 
-- Trigger: a Fluctlight-authored assistant message settles and leaves an older,
-  stable conversation range beyond the 24-message Recent reserve.
+- Trigger: a pre-upgrade `conversation.summary` intent is replayed or repaired.
+  New production turns use the segment and daily-memory intents below; old
+  Temporal histories keep their recorded commands and schema.
 - Summary is a rebuildable projection over Raw conversation messages. Temporal
   owns retry/timing history; PostgreSQL owns intent and projection state.
 
@@ -740,7 +755,8 @@ The committed payload contains `intent_id`, `fluctlight_id`, `conversation_id`,
 
 - Enqueue runs in the assistant settlement transaction and accepts only an
   assistant message authored by the target Fluctlight. It retains the latest
-  24 messages and reads at most 40 older messages after current active coverage.
+  24 messages and reads at most 40 older messages after current active coverage
+  for legacy replay only.
 - A chunk is ready at 20 assistant-completed turns, about 6000 estimated tokens,
   or 40 messages, and ends only at an assistant message. The stable identity
   binds owner, conversation, inclusive range, and source digest.
@@ -777,6 +793,8 @@ The committed payload contains `intent_id`, `fluctlight_id`, `conversation_id`,
 - Good: 40 old messages produce one assistant-bounded range; a crash after
   Provider success retries the same request identity and commits one active
   source-bound projection.
+- A late legacy Activity cannot replace an active or consolidated segment for
+  the same exact raw window; it settles as superseded after source recheck.
 - Base: 19 completed assistant turns and a small range create no Summary intent;
   Working Memory continues with Recent/Raw recall.
 - Bad: recursively summarize `old summary + new messages`, schedule one model
@@ -810,3 +828,50 @@ intent := enqueueConversationSummaryIntentTx(tx, settledAssistant)
 // After commit, Temporal reads the exact Raw range with stable identity.
 workflow.ExecuteActivity(ctx, ProcessConversationSummaryActivity, intent)
 ```
+
+## Scenario: Idle Conversation Segments And Daily Episodic Memory
+
+- New successful user-message acceptance and assistant publication update a
+  PostgreSQL `conversation.segment` intent. Its due time is the latest accepted
+  user's `created_at + 10m`; the immutable payload binds conversation, source
+  range/refs/digest, user idle epoch, frozen timezone and local date. A newer
+  source window supersedes the older pending/started intent. Before Provider
+  work and again under the conversation lock at settlement, Core checks the
+  latest user epoch and exact raw sources. A superseded Activity writes no
+  projection. Periodic Worker repair covers pre-upgrade backlog and missed
+  publication scheduling; it is not a second runtime.
+- A new local-day user message immediately seals the previous day's completed
+  source window as `day_rollover`. This intent is anchored to its source/date
+  instead of the newer user idle epoch, so ongoing conversation cannot keep
+  postponing yesterday's daily episode.
+- Segment windows end at assistant boundaries and contain at most 40 messages.
+  Settlement enqueues the next uncovered window immediately if quiet backlog
+  remains, so a 140-message session drains without another user turn. Core
+  stores actual source timestamps and local-day attribution; the model supplies
+  only summary, ending state, open threads and core events. Legacy same-day
+  fixed chunks receive source-derived metadata; cross-day chunks rebuild from
+  raw messages. The old `conversation.summary` Workflow is unchanged for
+  persisted history replay.
+- Segment settlement enqueues `conversation.daily_memory` for the same
+  conversation/local date/frozen timezone. Its due time is ten minutes after
+  the next local midnight; UTC bounds use IANA calendar arithmetic, including
+  23/25-hour DST days. It waits while a segment for that day is pending. The
+  Activity revalidates source revisions and raw digests before and after model
+  work, then creates/revises one episodic Memory through Core's Memory command
+  in the same transaction that records links and retires segments. Correction
+  invalidates dependent Memory provenance and reopens stage/day work.
+- Both workflows run only on `lifecycle`. A terminal Activity failure requeues
+  its PostgreSQL intent after five minutes, backing off to 30 minutes after
+  five failures, while preserving `last_error`. Stable Workflow IDs allow a
+  new completed run when corrected raw text returns to an earlier digest or a
+  same-day source set changes. Reconciliation must not mark a reopened
+  `pending|retry` intent completed or postpone its due time merely because an
+  older Run with the same Workflow ID completed or failed. Intent/source checks still prevent duplicate
+  Summary or Memory writes. A failed daily Memory commit leaves segments
+  active and Raw available.
+
+Validation must cover quiet debounce, new-user supersession, duplicate due,
+late Provider settlement, 140-message drain, legacy replay, local midnight and
+DST, source edit/return-to-earlier-digest, Memory failure rollback, same-day
+revision, and final Prompt raw fallback. Redis is not a scheduler for these
+intents; PostgreSQL due times and the existing Temporal dispatcher own them.

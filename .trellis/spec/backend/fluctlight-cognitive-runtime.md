@@ -135,6 +135,60 @@ Correct: validate model semantics/evidence, compute the domain's bounded policy
 transition, and commit through the owning service. Let Eino consume each actual
 Tool result before another decision.
 
+## Scenario: Actor-owned life context and bounded conversation outcomes
+
+### 1. Scope / Trigger
+
+- Trigger: a conversation or Wake-up Provider projection includes the current Life Context, recent Action Outcomes, current appearance/drives and an ADK Tool continuation.
+- A Human speaker may report being at home while the Fluctlight remains at a different location.
+
+### 2. Signatures
+
+```text
+current_state: {subject: "actor_self", data: {life_context, inner_state, appearance, active_activities}}
+compactRecentActionOutcomesForSurface(values, surface) -> bounded current signals
+scene_event -> mutates actor_self Life Context only
+conversation.reply Tool result -> {status, output?: {target_kind, delivery_status?}}
+```
+
+### 3. Contracts
+
+- `current_state.data.life_context.scene/activity/location` belongs only to `actor_self`. `current_speaker` and `[sender=actor_user]` label the Human's statements; they do not reassign the Fluctlight's location. A Human saying “我回家了” is not an authorization to call `scene_event`. Provider rules and Tool description must state this ownership without an impossible `context_override` Tool parameter. User location may be drawn only from attributed message/authorized memory evidence; Core does not guess it from keywords or write it into Presence.
+- Conversation/Wake-up/Takeover outcome projection drops completed `affect_event` once current inner state represents it, completed `conversation.reply` once published history represents it, and empty completed aggregate rows. Newer success suppresses older failure for the same capability; repeated failed/rejected `(capability,error_code)` keeps the newest. Pending/accepted external work remains, and unresolved outcomes keep occurrence time. Other surfaces retain their own evidence policy.
+- The model-facing `conversation.reply` receipt omits already-visible text, target storage ref and replay marker; the `affect_event` receipt omits event ID/revision and refreshed label/intensity, retaining business status/type. Full native ToolCall/ToolResult and Core audit receipts remain intact. During an ADK continuation, exclude a published reply from the **outbound Recent view only** when the current in-memory trace contains its completed `conversation.reply` result with that exact target message ID; the authoritative refreshed Projection still retains the message for later Tool resolution. A fresh retry has an empty trace and must still see the committed reply, even when it reuses the same user text and turn ID.
+- Conversation and Wake-up Runtime Facts `current_state`, `self_actor`, and `current_speaker` are critical at the first Working Memory cap. After field compaction, if one cannot fit, return `working_memory_required_budget_exceeded` rather than silently dropping it. Their priority precedes optional schedule/relationship fragments.
+- Provider appearance keeps its safe ref, current wearing state, known body values, explicit `cleared` state and bounded worn-item target/description. It omits `unknown` body fields, revision/captured metadata and worn-item transport metadata. Built-in zero-pressure/zero-salience drives are omitted; nonzero built-ins use short label/pressure signals, while custom typed drives may retain their distinct description.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| User reports their own location | Attribute to `actor_user`; no Fluctlight `scene_event` from that report alone. |
+| User explicitly asks Fluctlight to move | Tool may be proposed; only committed Tool result changes `actor_self` Life Context. |
+| Completed affect/reply outcome repeats current state/history | Omit model-facing outcome; keep Core audit row. |
+| Latest failure still actionable | Keep one safe status/code/occurred time; do not erase pending work. |
+| Critical Runtime Fact exceeds section cap | Explicit `working_memory_required_budget_exceeded`; no silent scene/actor loss. |
+| Body field is `unknown` or `cleared` | Omit unknown; preserve explicit cleared marker. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: user is at the user's home, Fluctlight is at the Fluctlight's home; the wire prompt labels self Life Context and user message separately, and no scene Tool is inferred from user self-location.
+- Base: no user-location fact is available; do not invent a current Human position.
+- Bad: treat the only structured `location: 家` as the current speaker's home, copy twelve identical affect/reply outcomes into every prompt, or remove current_state to satisfy a section cap.
+
+### 6. Tests Required
+
+- Dual-location wire fixture, actor-subject prompt/Tool contract, Event→Schedule authority and same-turn scene/reply continuity.
+- Conversation/Wake-up outcome fixture with repeated affect/reply/failure and pending media; reflect/review surfaces must retain their separate policy.
+- Tool continuation fixture proves native pair preservation and no triple reply text; a fresh retry of the same turn (as well as the next independent user turn) includes the committed historical reply.
+- Appearance/drives fixture covers known/unknown/cleared, worn item target, zero-pressure built-in and custom typed drive. Critical-fact overflow must fail explicitly.
+
+### 7. Wrong vs Correct
+
+Wrong: interpret `actor_user`'s “我回家了” as a `scene_event` for `actor_self`, or rely on a YAML→TOON switch to remove duplicate facts.
+
+Correct: mark current Life Context as `subject=actor_self`, keep the Human's statement attributed to `actor_user`, and remove already-absorbed outcomes before serialization.
+
 ## Scenario: Reflection and final semantic projection
 
 ### 1. Scope / Trigger

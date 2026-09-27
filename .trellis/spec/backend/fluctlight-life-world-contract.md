@@ -87,6 +87,7 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
 - User commitments are explicit high-authority facts with provenance; affect/drives/goals/interaction may cause the LLM to propose replan but code thresholds cannot invent semantic schedule changes.
 - Context authority: confirmed active Event > accepted active Schedule item > explicit `unplanned/schedule_pending`.
 - Conversation Presence may overlay user presence/current task but cannot fabricate scene, activity, location, or Event.
+- The resolved `life_context.scene/activity/location` is the Fluctlight (`actor_self`) current fact. `scene_event` can change only that subject. A Human's attributed self-location is separate conversation/memory evidence, never a Presence scene overlay or an implicit Fluctlight move.
 - Identity/occupation/weekday/clock are prompt inputs, not code rules for “working,” “studying,” “sleeping,” or other semantic state.
 - Provider outage retries. Existing accepted Schedule remains through its day; missing plan yields `schedule_pending` and no fabricated past activity.
 - Timezone change preserves historical versions, supersedes future versions, and regenerates future plans/timers in the new timezone.

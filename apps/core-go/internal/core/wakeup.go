@@ -18,7 +18,160 @@ const (
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
+	wakeUpFirstIdleDelay         = 10 * time.Minute
+	wakeUpSecondIdleDelay        = 30 * time.Minute
 )
+
+type wakeUpIdleClock struct {
+	Epoch string
+	Since time.Time
+	Slot  int
+}
+
+type wakeUpIdleEpochContextKey struct{}
+type wakeUpCycleContextKey struct{}
+
+func WithWakeUpIdleEpoch(ctx context.Context, epoch string) context.Context {
+	return context.WithValue(ctx, wakeUpIdleEpochContextKey{}, strings.TrimSpace(epoch))
+}
+
+func WithWakeUpCycle(ctx context.Context, cycle int) context.Context {
+	return context.WithValue(ctx, wakeUpCycleContextKey{}, cycle)
+}
+
+func expectedWakeUpCycle(ctx context.Context) int {
+	cycle, _ := ctx.Value(wakeUpCycleContextKey{}).(int)
+	return cycle
+}
+
+func expectedWakeUpIdleEpoch(ctx context.Context) string {
+	epoch, _ := ctx.Value(wakeUpIdleEpochContextKey{}).(string)
+	return strings.TrimSpace(epoch)
+}
+
+func wakeUpExecutionMatches(status string, payload map[string]any, cycle int, expectedEpoch string) bool {
+	switch status {
+	case "pending", "retry", "started", "running":
+	default:
+		return false
+	}
+	if intValue(payload["cycle"]) != cycle {
+		return false
+	}
+	return stringValue(payload["idle_epoch"]) == expectedEpoch
+}
+
+func (a *App) wakeUpExecutionCurrent(ctx context.Context, cycle int) (bool, error) {
+	intentID := lifecycleIntentID(ctx)
+	if intentID == "" {
+		return true, nil
+	}
+	var status string
+	var raw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current'`, intentID).Scan(&status, &raw); err != nil {
+		return false, err
+	}
+	return wakeUpExecutionMatches(status, decodeObject(raw), cycle, expectedWakeUpIdleEpoch(ctx)), nil
+}
+
+func wakeUpExecutionCurrentTx(ctx context.Context, tx pgx.Tx, cycle int) (bool, error) {
+	intentID := lifecycleIntentID(ctx)
+	if intentID == "" {
+		return true, nil
+	}
+	var status string
+	var raw []byte
+	if err := tx.QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&status, &raw); err != nil {
+		return false, err
+	}
+	return wakeUpExecutionMatches(status, decodeObject(raw), cycle, expectedWakeUpIdleEpoch(ctx)), nil
+}
+
+func wakeUpIdlePhase(slot int) string {
+	switch slot {
+	case 0:
+		return "first_10m"
+	case 1:
+		return "second_30m"
+	default:
+		return "recurring"
+	}
+}
+
+func wakeUpIdleClockFromPayload(payload map[string]any) (wakeUpIdleClock, bool) {
+	if intValue(payload["idle_version"]) != 1 || strings.TrimSpace(stringValue(payload["idle_epoch"])) == "" {
+		return wakeUpIdleClock{}, false
+	}
+	since, err := time.Parse(time.RFC3339Nano, stringValue(payload["idle_since"]))
+	if err != nil || intValue(payload["idle_slot"]) < 0 {
+		return wakeUpIdleClock{}, false
+	}
+	return wakeUpIdleClock{Epoch: stringValue(payload["idle_epoch"]), Since: since.UTC(), Slot: intValue(payload["idle_slot"])}, true
+}
+
+func wakeUpIdleDue(clock wakeUpIdleClock, intervalSeconds int) time.Time {
+	if intervalSeconds <= 0 {
+		intervalSeconds = defaultWakeUpIntervalSeconds
+	}
+	if clock.Slot <= 0 {
+		return clock.Since.Add(wakeUpFirstIdleDelay)
+	}
+	if clock.Slot == 1 {
+		return clock.Since.Add(wakeUpSecondIdleDelay)
+	}
+	return clock.Since.Add(wakeUpSecondIdleDelay + time.Duration(clock.Slot-1)*time.Duration(intervalSeconds)*time.Second)
+}
+
+func nextWakeUpIdleClock(clock wakeUpIdleClock, now time.Time, intervalSeconds int) wakeUpIdleClock {
+	if intervalSeconds <= 0 {
+		intervalSeconds = defaultWakeUpIntervalSeconds
+	}
+	next := clock
+	next.Slot++
+	if clock.Slot >= 1 {
+		interval := time.Duration(intervalSeconds) * time.Second
+		elapsed := now.UTC().Sub(clock.Since.Add(wakeUpSecondIdleDelay))
+		if elapsed >= 0 {
+			futureSlot := int((elapsed+interval-time.Nanosecond)/interval) + 1
+			if futureSlot < 2 {
+				futureSlot = 2
+			}
+			if futureSlot > next.Slot {
+				next.Slot = futureSlot
+			}
+		}
+	}
+	return next
+}
+
+func setWakeUpIdleEpochTx(ctx context.Context, tx pgx.Tx, fluctlightID, messageID string, acceptedAt time.Time) error {
+	if strings.TrimSpace(messageID) == "" {
+		return errors.New("wake_up_idle_message_required")
+	}
+	intentID := "wake_up_intent:" + fluctlightID
+	var raw []byte
+	err := tx.QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&raw)
+	if errors.Is(err, pgx.ErrNoRows) {
+		payload := map[string]any{"fluctlight_id": fluctlightID, "cycle": 0, "idle_version": 1, "idle_epoch": messageID, "idle_since": acceptedAt.UTC().Format(time.RFC3339Nano), "idle_slot": 0, "idle_phase": wakeUpIdlePhase(0)}
+		inserted, insertErr := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at) VALUES($1,$2,'lifecycle','wake_up.current',$3,'completed',$4) ON CONFLICT (intent_id) DO NOTHING`, intentID, "wake_up:"+fluctlightID, jsonBytes(payload), acceptedAt.UTC().Add(wakeUpFirstIdleDelay))
+		if insertErr != nil || inserted.RowsAffected() == 1 {
+			return insertErr
+		}
+		err = tx.QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&raw)
+	}
+	if err != nil {
+		return err
+	}
+	payload := decodeObject(raw)
+	payload["idle_version"] = 1
+	payload["idle_epoch"] = messageID
+	payload["idle_since"] = acceptedAt.UTC().Format(time.RFC3339Nano)
+	payload["idle_slot"] = 0
+	payload["idle_phase"] = wakeUpIdlePhase(0)
+	delete(payload, "idle_last_settled_cycle")
+	_, err = tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET payload=$2,next_attempt_at=$3 WHERE intent_id=$1 AND intent_type='wake_up.current'`, intentID, jsonBytes(payload), acceptedAt.UTC().Add(wakeUpFirstIdleDelay))
+	return err
+}
 
 // WakeUpSettings controls the durable internal-life timer. The setting is
 // intentionally small and owner-editable through product settings so a local
@@ -54,8 +207,20 @@ func nextWakeUpDue(previousDue, now time.Time, intervalSeconds int) time.Time {
 func (a *App) ensureWakeUpNextDue(ctx context.Context, fluctlightID string, cycle, intervalSeconds int, reason string) (time.Time, error) {
 	var nextDue time.Time
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if lifecycleIntentID(ctx) != "" {
+			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+				return err
+			}
+			current, err := wakeUpExecutionCurrentTx(ctx, tx, cycle)
+			if err != nil {
+				return err
+			}
+			if !current {
+				return errLifecycleSupersededByCognition
+			}
+		}
 		var err error
-		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, a.now().UTC())
+		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, cycle, intervalSeconds, a.now().UTC())
 		return err
 	})
 	if err != nil {
@@ -178,7 +343,13 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 		// durable clock instead of leaving the one-shot intent superseded.
 		repaired, err := tx.Exec(ctx, `
 			UPDATE public.platform_workflow_intents AS i
-			SET status='completed',next_attempt_at=now()+(($1 + 600) * interval '1 second'),
+			SET status='completed',next_attempt_at=CASE
+				WHEN i.payload->>'idle_version'='1' AND i.payload ? 'idle_since' THEN
+					(i.payload->>'idle_since')::timestamptz +
+					CASE WHEN COALESCE((i.payload->>'idle_slot')::integer,0) <= 0 THEN interval '10 minutes'
+					     WHEN (i.payload->>'idle_slot')::integer = 1 THEN interval '30 minutes'
+					     ELSE interval '30 minutes' + (((i.payload->>'idle_slot')::integer-1) * $1 * interval '1 second') END
+				ELSE now()+interval '10 minutes' END,
 				started_at=NULL,completed_at=now(),last_error=NULL
 			FROM public.fluctlights AS f
 			WHERE i.intent_type='wake_up.current'
@@ -453,18 +624,17 @@ func wakeUpScheduleStatus(schedule map[string]any) string {
 // External effects are frozen only after their capability contract and hard
 // execution invariants pass; delivery itself remains owned by a Temporal
 // action workflow.
-func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, intervalSeconds int, now time.Time) (time.Time, error) {
-	// Lock the single durable clock row so a completion and a cognition
-	// follow-up cannot overwrite one another silently.  The next Wake-up is
-	// measured from this completion boundary, not from an older nominal slot:
-	// if a provider call ran late, preserving fixed cadence would make the next
-	// Redis key expire almost immediately and defeat the configured quiet time.
+func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, cycle, intervalSeconds int, now time.Time) (time.Time, error) {
+	// Keep each user-idle phase anchored to the accepted message. Legacy
+	// activation clocks without an idle epoch retain completion cadence.
+	var payloadRaw []byte
+	var existingDue *time.Time
 	if err := tx.QueryRow(ctx, `
-		SELECT 1
+		SELECT payload,next_attempt_at
 		FROM public.platform_workflow_intents
 		WHERE intent_type='wake_up.current'
 		  AND payload->>'fluctlight_id'=$1
-		FOR UPDATE`, fluctlightID).Scan(new(int)); errors.Is(err, pgx.ErrNoRows) {
+		FOR UPDATE`, fluctlightID).Scan(&payloadRaw, &existingDue); errors.Is(err, pgx.ErrNoRows) {
 		return time.Time{}, ErrNotFound
 	} else if err != nil {
 		return time.Time{}, err
@@ -472,12 +642,23 @@ func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, 
 	if intervalSeconds <= 0 {
 		intervalSeconds = defaultWakeUpIntervalSeconds
 	}
+	payload := decodeObject(payloadRaw)
 	nextDue := now.UTC().Add(time.Duration(intervalSeconds) * time.Second)
+	if clock, ok := wakeUpIdleClockFromPayload(payload); ok {
+		if cycle > 0 && intValue(payload["idle_last_settled_cycle"]) == cycle && existingDue != nil {
+			return existingDue.UTC(), nil
+		}
+		nextClock := nextWakeUpIdleClock(clock, now, intervalSeconds)
+		nextDue = wakeUpIdleDue(nextClock, intervalSeconds)
+		payload["idle_slot"] = nextClock.Slot
+		payload["idle_phase"] = wakeUpIdlePhase(nextClock.Slot)
+		payload["idle_last_settled_cycle"] = cycle
+	}
 	command, err := tx.Exec(ctx, `
 		UPDATE public.platform_workflow_intents
-		SET next_attempt_at=$2,attempt_count=0
+		SET next_attempt_at=$2,attempt_count=0,payload=$3
 		WHERE intent_type='wake_up.current'
-		  AND payload->>'fluctlight_id'=$1`, fluctlightID, nextDue)
+		  AND payload->>'fluctlight_id'=$1`, fluctlightID, nextDue, jsonBytes(payload))
 	if err != nil {
 		return time.Time{}, err
 	}

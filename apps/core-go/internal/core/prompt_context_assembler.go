@@ -357,7 +357,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
 			if estimatePromptWireInput(assemblePromptMessages(system, current, trial), input.Tools, input.ResponseFormat) <= input.Policy.MaxInputTokens {
 				selected = append(selected, unit.items...)
-				if unit.kind == PromptFragmentSummary {
+				if unit.kind == PromptFragmentSummary || unit.kind == PromptFragmentRetrievedMemory || unit.kind == PromptFragmentResidentMemory {
 					for _, candidate := range unit.items {
 						for _, ref := range candidate.fragment.SourceRefs {
 							summarizedSources[ref] = struct{}{}

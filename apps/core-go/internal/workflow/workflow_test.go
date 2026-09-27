@@ -724,7 +724,7 @@ func TestWakeUpAndReflectionUseCriticalQueueWithLifecycleCompatibility(t *testin
 }
 
 func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
-	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action", "visual_identity.initialize", "conversation.summary"} {
+	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action", "visual_identity.initialize", "conversation.summary", "conversation.segment", "conversation.daily_memory"} {
 		if fn, err := workflowFunction(intentType); err != nil || fn == nil {
 			t.Fatalf("workflowFunction(%q) = %#v, %v", intentType, fn, err)
 		}
@@ -757,6 +757,43 @@ func TestConversationSummaryWorkflowExecutesOneSourceBoundedActivity(t *testing.
 	}
 	if fmt.Sprint(result["from_sequence"]) != "1" || fmt.Sprint(result["to_sequence"]) != "40" {
 		t.Fatalf("workflow result = %#v", result)
+	}
+}
+
+func TestConversationSegmentAndDailyMemoryUseOneDurableActivity(t *testing.T) {
+	for _, item := range []struct {
+		name     string
+		workflow any
+		activity any
+	}{
+		{"segment", ConversationSegmentWorkflow, ProcessConversationSegmentActivity},
+		{"daily", ConversationDailyMemoryWorkflow, ProcessConversationDailyMemoryActivity},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			var suite testsuite.WorkflowTestSuite
+			env := suite.NewTestWorkflowEnvironment()
+			input := Input{IntentID: "conversation-" + item.name + "-intent", FluctlightID: "fl-1", ConversationID: "conv-1"}
+			calls := 0
+			env.OnActivity(item.activity, mock.Anything, input).Return(func(context.Context, Input) (map[string]any, error) {
+				calls++
+				return map[string]any{"status": "completed"}, nil
+			})
+			env.ExecuteWorkflow(item.workflow, input)
+			if err := env.GetWorkflowError(); err != nil || calls != 1 {
+				t.Fatalf("workflow err=%v activity calls=%d", err, calls)
+			}
+		})
+	}
+	for _, intentType := range []string{"conversation.segment", "conversation.daily_memory"} {
+		if got := workflowIDReusePolicy(intentType); got != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE {
+			t.Fatalf("%s reuse policy=%v", intentType, got)
+		}
+		if !strings.Contains(reconcileIntentQuery, "'"+intentType+"'") {
+			t.Fatalf("%s is not reconciled after a failed Run", intentType)
+		}
+		if !conversationLifecycleAwaitingNewRun(intentType, "retry", "completed") || !conversationLifecycleAwaitingNewRun(intentType, "pending", "completed") || !conversationLifecycleAwaitingNewRun(intentType, "retry", "failed") || conversationLifecycleAwaitingNewRun(intentType, "started", "completed") {
+			t.Fatalf("%s historical completed Run can overwrite a reopened source intent", intentType)
+		}
 	}
 }
 

@@ -206,7 +206,7 @@ func validatePreparedMemoryMutation(command PreparedMemoryMutation) error {
 		}
 	}
 	for ref, source := range command.FrozenEvidenceSources {
-		if !slices.Contains(command.EvidenceRefs, ref) || (source.Kind != "memory" && source.Kind != "outcome") || strings.TrimSpace(source.ID) == "" || source.Revision < 0 || len(source.Fingerprint) != 32 {
+		if !slices.Contains(command.EvidenceRefs, ref) || (source.Kind != "memory" && source.Kind != "outcome" && source.Kind != "conversation_summary") || strings.TrimSpace(source.ID) == "" || source.Revision < 0 || len(source.Fingerprint) != 32 {
 			return errors.New("memory_command_frozen_source_invalid")
 		}
 	}

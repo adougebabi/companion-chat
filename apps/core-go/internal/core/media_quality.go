@@ -134,9 +134,13 @@ func mediaQualityMessages(intent mediaIntent, contentType string, content []byte
 	if err != nil {
 		return nil, err
 	}
+	concept, ok := compactMediaConceptObjectForProvider(intent.Prompt)
+	if !ok {
+		return nil, errors.New("media quality frozen concept invalid")
+	}
 	textPayload := map[string]any{
 		"media_kind":           intent.Kind,
-		"frozen_media_concept": compactMediaConceptForProvider(intent.Prompt),
+		"frozen_media_concept": concept,
 		"provider_prompt":      intent.ProviderPrompt,
 		"quality_retry_count":  intent.QualityRetryCount,
 	}
@@ -248,8 +252,12 @@ func mediaPromptInput(intent mediaIntent) string {
 	if len(feedback) == 0 {
 		feedback = map[string]any{"retry_guidance": intent.QualityRetryGuidance}
 	}
+	concept := any(compactMediaConceptForProvider(intent.Prompt))
+	if structured, ok := compactMediaConceptObjectForProvider(intent.Prompt); ok {
+		concept = structured
+	}
 	return jsonString(map[string]any{
-		"frozen_media_concept":     compactMediaConceptForProvider(intent.Prompt),
+		"frozen_media_concept":     concept,
 		"previous_provider_prompt": intent.ProviderPrompt,
 		"quality_feedback":         feedback,
 	})

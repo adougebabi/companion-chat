@@ -12,7 +12,7 @@ import (
 func sceneCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: "scene_event", Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Start, switch, or end the Fluctlight's current scene, activity, or location.",
+		Description:     "Start, switch, or end actor_self's (the Fluctlight's) own scene, activity, or location. A human saying where they are does not authorize moving actor_self.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCurrentLife},

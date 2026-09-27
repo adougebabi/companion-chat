@@ -291,6 +291,66 @@ WHERE role=$2::varchar(64)
   sharing one logical correlation, and that failed/cancelled generations have
   terminal diagnostics without fabricated success.
 
+## Scenario: Owner Logical Agent Failure Diagnosis
+
+### 1. Scope / Trigger
+
+- Trigger: a physical model call returns a ToolCall, then Tool execution or final Agent settlement fails, including a later replay reporting `agent_run_failed` without a new model call.
+- `agent_runs` remains the durable replay fence and authority for the formal Agent model/Tool loop; caller-owned final-contract, publication and settlement may fail after that loop completed. `diagnostic_model_runs` remains the independent physical Provider-call record.
+
+### 2. Signatures
+
+```text
+agent_runs += correlation_id varchar(128), failure_stage varchar(64), failure_code varchar(128)
+App.AgentRunsFiltered(actorID, limit, correlationID) -> []AgentRunDiagnostic
+GET /internal/diagnostics/agent-runs?limit=&correlation_id=
+GET /api/diagnostics/agent-runs?limit=&correlationId=
+```
+
+Core response fields are `fluctlight_id`, `agent_id`, `run_id`, `correlation_id`, `association_status`, `status`, `started_at`, optional `finished_at`, and for failed runs `failure_stage`, `failure_code`, optional `safe_cause`. The browser maps each field explicitly to camelCase and exposes no raw `error_detail`, input digest, result JSON or Tool arguments.
+
+### 3. Contracts
+
+- Admission stores the Provider parent correlation alongside the stable business run ID. An old row without correlation reports `association_status=unknown`; it is not joined to a model call by timestamp or guessed to have a final response. A failure before formal admission has no `agent_runs` row, so the Owner read may use a bounded `agent.run.termination` event as a separately labelled `source=termination_event` fallback. A completed formal row does not suppress a later final-contract/publication/settlement failure event. Only a matching failed formal row suppresses its duplicate failed termination event, using DB-wide existence rather than the current page of rows.
+- Tool execution failures carry typed stage/code through ADK wrapping into `finishFormalRun`. Cancellation, timeout, input-budget and Provider suppression/failure use their typed errors. An unknown failure stays `stage=agent`, `code=agent_run_failed`; never parse arbitrary `err.Error()` text into a stage.
+- A non-retryable `invalid_arguments` Tool result is a recoverable business rejection returned to the next model decision, not an automatic Agent failure. Its Tool summary still displays `invalid_arguments`; if the Agent later fails its final contract, the termination event displays that later failure as a separate state.
+- Owner reads render `error_detail` only through bounded secret-safe cause redaction. The physical model row keeps its own `completed/failed/timeout` status even if the logical Agent failed later. `agent_runs` is not deleted by Diagnostics clear/retention.
+- A Tool event's `model_call_id` comes from the `ADKCapabilityTrace.ModelIdentity(callID)` recorded at the physical Generate/Stream boundary. The callback's parent `context.Context` need not inherit a child Generate context; never join a Tool to the newest model row by time.
+- Best-effort lifecycle failure diagnostics use an independent bounded context after cancellation. Diagnostic sink failure still cannot replace the business result and must keep its bounded warning/health signal.
+- The Owner Model Runs page groups physical rows and logical Agent rows by known correlation, displays distinct status badges and a safe failure stage/cause, and labels missing old associations as unknown. Termination-event fallback uses its event timestamp as record time, not an invented Agent start time. Public chat remains unchanged.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Non-Owner queries logical run | Reject before reading `agent_runs`. |
+| Correlation filter malformed or over 128 characters | `diagnostics_filter_invalid`. |
+| Model call completed, Tool/Agent failed | Keep physical `completed`; display logical `failed`, typed stage/code and bounded cause. |
+| Tool `invalid_arguments` is corrected in a later model round | Keep Tool rejection visible and mark the formal Agent completed only after its final contract succeeds; do not relabel the rejected Tool as an Agent crash. |
+| Old Agent row has no correlation/stage | Show `association_status=unknown`, stage `unknown`; do not invent a model round. |
+| Conversation fails before formal Agent admission | Persist a bounded `agent.run.termination` cause and show the event fallback; no physical model row is invented. |
+| Error detail contains a credential-bearing phrase | Return `[REDACTED]` cause, not the raw detail. |
+| Caller context is cancelled during lifecycle failure write | Attempt persistence with detached five-second context; a sink failure remains best-effort. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: one Tool-request model call is `completed`; its Tool summary reports `capability_prepare_failed`; the same correlation shows logical Agent `failed` with `stage=tool` and safe cause.
+- Base: a pre-upgrade failed Agent row appears as a standalone logical record with unknown model association.
+- Bad: turn the successful physical model row red, hide the logical failure because no new Provider request ran on replay, or display raw Tool arguments/error text.
+
+### 6. Tests Required
+
+- PostgreSQL migration from `0040` retains `agent_runs` and adds the three columns/indexes; old rows remain readable.
+- Real trace-recorded Tool callback attaches its safe summary to the correct `model_call_id` in a two-round run; manually inserted event IDs alone do not prove this.
+- Owner query checks logical failed + physical completed under the same correlation, pre-admission event fallback, duplicate event suppression, legacy unknown, non-Owner rejection, bounded/redacted cause and cancelled-context lifecycle persistence.
+- Browser DTO/OpenAPI/generated client and page tests check explicit mapping, grouped status, missing-response/old-row states, and no public chat trace insertion.
+
+### 7. Wrong vs Correct
+
+Wrong: `agentFailed := modelRun.Status == "failed"` or `tool.model_call_id = latestModelRun(correlation)`.
+
+Correct: read `agent_runs.status` for logical outcome, keep `diagnostic_model_runs.status` per physical call, and bind Tool events to the trace-recorded physical request identity.
+
 ## Scenario: Owner ADK Physical Round Display
 
 ### 1. Scope / Trigger

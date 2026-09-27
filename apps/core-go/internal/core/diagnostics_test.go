@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -368,6 +369,106 @@ func TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary(t *testing.T) 
 	tools, ok := byCall["call-one"]["tool_summaries"].([]map[string]any)
 	if !ok || len(tools) != 1 || stringValue(tools[0]["capability"]) != "scene_event" {
 		t.Fatalf("safe Tool summary missing: %#v", tools)
+	}
+}
+
+func TestPostgresADKToolDiagnosticUsesRecordedPhysicalCallIdentity(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "tool-link-owner", "tool-link-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	trace := &ADKCapabilityTrace{}
+	trace.RecordModelToolCalls("physical-request-1", 1, []schema.ToolCall{{ID: "tool-1", Function: schema.FunctionCall{Name: "scene_event"}}})
+	invoker := &appADKCapabilityInvoker{app: &App{DB: repository}, request: ADKCapabilityRequest{FluctlightID: fluctlightID, CorrelationID: "agent-correlation-1", Surface: CapabilitySurfaceConversation}, trace: trace}
+	invoker.recordADKToolDiagnostic(ctx, "adk.tool.result", "tool-1", "scene_event", "failed", "scene_plan_invalid", `{"location":"PRIVATE"}`)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,model_id,prompt,response,status,correlation_id,metrics) VALUES('tool-link-model','cognitive_assessment','generic_llm','cognitive_assessment','test-model','{}','{}','completed','agent-correlation-1',$1)`, jsonBytes(map[string]any{"run_id": "agent-correlation-1", "model_call_id": "physical-request-1"})); err != nil {
+		t.Fatal(err)
+	}
+	var payload []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.diagnostic_events WHERE correlation_id='agent-correlation-1' AND event_type='adk.tool.result' ORDER BY created_at DESC LIMIT 1`).Scan(&payload); err != nil {
+		t.Fatal(err)
+	}
+	decoded := decodeObject(payload)
+	if decoded["model_call_id"] != "physical-request-1" || decoded["run_id"] != "agent-correlation-1" || strings.Contains(string(payload), "PRIVATE") {
+		t.Fatalf("Tool event did not retain safe physical call identity: %s", payload)
+	}
+	runs, err := (&App{DB: repository}).ModelRunsFiltered(ctx, ownerID, 10, "agent-correlation-1")
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("physical rounds: %#v %v", runs, err)
+	}
+	summaries, ok := runs[0]["tool_summaries"].([]map[string]any)
+	if !ok || len(summaries) != 1 || summaries[0]["call_id"] != "tool-1" || summaries[0]["error_code"] != "scene_plan_invalid" {
+		t.Fatalf("real Tool callback not attached to physical model run: %#v", runs[0]["tool_summaries"])
+	}
+}
+
+func TestPostgresAgentRunDiagnosticsShowLogicalFailureWithoutChangingPhysicalStatus(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "agent-diagnostic-owner", "agent-diagnostic-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	correlationID := "agent-diagnostic:failed"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.agent_runs(fluctlight_id,agent_id,run_id,input_digest,correlation_id,status,failure_stage,failure_code,error_detail,finished_at) VALUES($1,'conversation_cognition','agent-run-1','digest',$2,'failed','tool','capability_prepare_failed','tool execution capability_prepare_failed: invalid arguments',now())`, fluctlightID, correlationID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,model_id,prompt,response,status,correlation_id,metrics) VALUES('agent-model-1','cognitive_assessment','generic_llm','cognitive_assessment','test-model','{}','{}','completed',$1,$2)`, correlationID, jsonBytes(map[string]any{"run_id": correlationID, "model_call_id": "physical-request-1"})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.agent_runs(fluctlight_id,agent_id,run_id,input_digest,status,error_detail,finished_at) VALUES($1,'conversation_cognition','legacy-run','legacy-digest','failed','Authorization: Bearer private-token',now())`, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,fluctlight_id,correlation_id,payload) VALUES('agent-termination-duplicate','agent.run.termination','error',$1,$2,$3),('agent-termination-pre-admission','agent.run.termination','error',$1,'pre-admission-failure',$4)`, fluctlightID, correlationID, jsonBytes(map[string]any{"status": "failed", "reason": "agent_run_failed", "safe_cause": "duplicate"}), jsonBytes(map[string]any{"status": "failed", "stage": "agent_run", "failure_stage": "model_input", "reason": "agent_run_failed", "safe_cause": "prompt budget exceeded", "agent_id": "conversation_cognition"})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.agent_runs(fluctlight_id,agent_id,run_id,input_digest,correlation_id,status,finished_at) VALUES($1,'conversation_cognition','formal-completed-before-settlement','digest-2','downstream-failure','completed',now())`, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,fluctlight_id,correlation_id,payload) VALUES('agent-termination-downstream','agent.run.termination','error',$1,'downstream-failure',$2)`, fluctlightID, jsonBytes(map[string]any{"status": "failed", "stage": "settlement", "reason": "agent_cognition_settlement_failed", "safe_cause": "settlement conflict", "agent_id": "conversation_cognition"})); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository}
+	agentRuns, err := app.AgentRunsFiltered(ctx, ownerID, 10, correlationID)
+	if err != nil || len(agentRuns) != 1 {
+		t.Fatalf("logical runs: %#v %v", agentRuns, err)
+	}
+	if agentRuns[0]["status"] != "failed" || agentRuns[0]["failure_stage"] != "tool" || agentRuns[0]["failure_code"] != "capability_prepare_failed" || !strings.Contains(stringValue(agentRuns[0]["safe_cause"]), "invalid arguments") {
+		t.Fatalf("logical failure omitted: %#v", agentRuns[0])
+	}
+	modelRuns, err := app.ModelRunsFiltered(ctx, ownerID, 10, correlationID)
+	if err != nil || len(modelRuns) != 1 || modelRuns[0]["status"] != "completed" {
+		t.Fatalf("physical status changed or missing: %#v %v", modelRuns, err)
+	}
+	if _, err := app.AgentRunsFiltered(ctx, "foreign-owner", 10, correlationID); err == nil {
+		t.Fatal("non-owner read Agent diagnostics")
+	}
+	preAdmission, err := app.AgentRunsFiltered(ctx, ownerID, 10, "pre-admission-failure")
+	if err != nil || len(preAdmission) != 1 || preAdmission[0]["source"] != "termination_event" || preAdmission[0]["failure_stage"] != "model_input" || preAdmission[0]["safe_cause"] != "prompt budget exceeded" {
+		t.Fatalf("pre-admission Agent failure missing: %#v %v", preAdmission, err)
+	}
+	downstream, err := app.AgentRunsFiltered(ctx, ownerID, 10, "downstream-failure")
+	if err != nil || len(downstream) != 2 {
+		t.Fatalf("post-model failure hidden by formal completion: %#v %v", downstream, err)
+	}
+	seenCompleted, seenFailure := false, false
+	for _, run := range downstream {
+		seenCompleted = seenCompleted || run["source"] == "agent_runs" && run["status"] == "completed"
+		seenFailure = seenFailure || run["source"] == "termination_event" && run["status"] == "failed" && run["failure_stage"] == "settlement"
+	}
+	if !seenCompleted || !seenFailure {
+		t.Fatalf("post-model status layers conflated: %#v", downstream)
+	}
+	allRuns, err := app.AgentRunsFiltered(ctx, ownerID, 10, "")
+	if err != nil || len(allRuns) != 5 {
+		t.Fatalf("all logical runs: %#v %v", allRuns, err)
+	}
+	for _, run := range allRuns {
+		if run["run_id"] == "legacy-run" && (run["association_status"] != "unknown" || run["safe_cause"] != "[REDACTED]") {
+			t.Fatalf("legacy run inferred association or leaked secret: %#v", run)
+		}
 	}
 }
 
