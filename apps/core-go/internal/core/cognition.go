@@ -280,7 +280,7 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 					}
 				}
 				retryCount := intValue(existingData["retry_count"]) + 1
-				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',error_code=NULL,processed_at=NULL,claimed_by=NULL,claimed_at=NULL,payload=jsonb_set(payload,'{retry_count}',to_jsonb($2::int),true) WHERE id=$1`, existing, retryCount); err != nil {
+				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',error_code=NULL,processed_at=NULL,claimed_by=NULL,claimed_at=NULL,attempt_count=attempt_count+1,payload=jsonb_set(payload,'{retry_count}',to_jsonb($2::int),true) WHERE id=$1`, existing, retryCount); err != nil {
 					return "", nil, err
 				}
 				if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',workflow_id=$2,attempt_count=0,next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, "cognition_intent:"+existing, fmt.Sprintf("cognition:%s:retry:%d", existing, retryCount)); err != nil {

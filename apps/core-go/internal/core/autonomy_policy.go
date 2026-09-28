@@ -66,6 +66,11 @@ func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader auton
 				if rawQuiet := mapValue(setting["quiet_hours"]); len(rawQuiet) > 0 {
 					quietRaw = jsonBytes(rawQuiet)
 				}
+				if rawConcurrency := setting["concurrency_limit"]; rawConcurrency != nil {
+					if c := intValue(rawConcurrency); c > 0 {
+						concurrency = c
+					}
+				}
 			}
 		}
 	} else if err != nil {
