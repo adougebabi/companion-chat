@@ -92,10 +92,11 @@ async function loadWardrobePage() {
   try {
     const page = await wardrobeClient.wardrobe(fluctlightId, cursor);
     if (requestId !== wardrobeRequestId || store.selectedFluctlight?.id !== fluctlightId) return;
-    wardrobeItems.value = cursor ? [...wardrobeItems.value, ...page.items] : page.items;
-    wardrobeNextCursor.value = page.next_cursor;
-    wardrobeHasMore.value = page.has_more;
-    wardrobeInventoryComplete.value = page.inventory_complete;
+    const items = Array.isArray(page?.items) ? page.items : [];
+    wardrobeItems.value = cursor ? [...wardrobeItems.value, ...items] : items;
+    wardrobeNextCursor.value = typeof page?.next_cursor === "string" ? page.next_cursor : "";
+    wardrobeHasMore.value = Boolean(page?.has_more);
+    wardrobeInventoryComplete.value = Boolean(page?.inventory_complete);
     wardrobeLoaded.value = true;
   } catch {
     if (requestId === wardrobeRequestId) wardrobeError.value = "衣柜读取失败，请重试。";
@@ -470,17 +471,17 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <summary><span><strong>衣柜与物品</strong><small>查看已记录物品与当前穿着</small></span><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
               <div class="detail-state-drawer-body">
                 <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>当前穿着</h4><span>{{ wornItems.length }} 件</span></div>
-                  <p v-if="!wornItems.length" class="field-note">当前没有已确认的穿着记录。</p>
+                  <div class="detail-state-heading"><h4>当前穿着</h4><span>{{ (wornItems ?? []).length }} 件</span></div>
+                  <p v-if="!(wornItems ?? []).length" class="field-note">当前没有已确认的穿着记录。</p>
                   <ul v-else class="modal-detail-list"><li v-for="item in wornItems" :key="String(item.id)"><strong>{{ formatDisplayValue(item.description) }}</strong><small>{{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.availability) }}</small></li></ul>
                 </section>
                 <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>已记录物品</h4><span>{{ wardrobeItems.length }} 件{{ wardrobeHasMore ? "以上" : "" }}</span></div>
+                  <div class="detail-state-heading"><h4>已记录物品</h4><span>{{ (wardrobeItems ?? []).length }} 件{{ wardrobeHasMore ? "以上" : "" }}</span></div>
                   <p v-if="wardrobeLoaded && !wardrobeInventoryComplete" class="field-note">这是已记录清单；未列出的物品不代表不存在。</p>
                   <p v-if="wardrobeLoading && !wardrobeLoaded" class="field-note">正在读取衣柜...</p>
                   <p v-if="wardrobeError" class="field-note" role="alert">{{ wardrobeError }}</p>
-                  <p v-if="wardrobeLoaded && !wardrobeItems.length" class="field-note">尚无已记录的物品。</p>
-                  <ul v-if="wardrobeItems.length" class="modal-detail-list"><li v-for="item in wardrobeItems" :key="item.id"><strong>{{ item.description }}</strong><small>{{ formatDisplayValue(item.category) }} · {{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.ownership) }} · {{ enumLabel(item.availability) }}</small></li></ul>
+                  <p v-if="wardrobeLoaded && !(wardrobeItems ?? []).length" class="field-note">尚无已记录的物品。</p>
+                  <ul v-if="(wardrobeItems ?? []).length" class="modal-detail-list"><li v-for="item in wardrobeItems" :key="item.id"><strong>{{ item.description }}</strong><small>{{ formatDisplayValue(item.category) }} · {{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.ownership) }} · {{ enumLabel(item.availability) }}</small></li></ul>
                   <Button v-if="wardrobeError || wardrobeHasMore" variant="outline" type="button" :disabled="wardrobeLoading" @click="loadWardrobePage">{{ wardrobeLoading ? "读取中..." : wardrobeError ? "重试" : "查看更多物品" }}</Button>
                 </section>
               </div>

@@ -23,3 +23,14 @@ func TestBrowserBackendHasNoHTTPForwardingClient(t *testing.T) {
 		}
 	}
 }
+
+func TestBrowserBackendSplitInternalPathSubresourceIsolation(t *testing.T) {
+	fluctlightPathParts := splitInternalPath("/internal/fluctlights/fl-1")
+	if len(fluctlightPathParts) != 3 || pathPart(fluctlightPathParts, 2) != "fl-1" {
+		t.Fatalf("unexpected parts for single fluctlight path: %#v", fluctlightPathParts)
+	}
+	wardrobePathParts := splitInternalPath("/internal/fluctlights/fl-1/wardrobe")
+	if len(wardrobePathParts) != 4 || pathPart(wardrobePathParts, 3) != "wardrobe" {
+		t.Fatalf("unexpected parts for wardrobe subresource path: %#v", wardrobePathParts)
+	}
+}

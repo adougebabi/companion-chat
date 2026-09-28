@@ -193,7 +193,7 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 			return nil, browserBackendError(createErr, "fluctlight_create_failed")
 		}
 		return map[string]any{"id": item.ID, "identity": item.Identity, "status": item.Status}, nil
-	case strings.HasPrefix(path, "/internal/fluctlights/") && method == http.MethodGet && !strings.Contains(path, "/conversation") && !strings.Contains(path, "/detail") && !strings.Contains(path, "/developing-self") && !strings.Contains(path, "/moments") && !strings.Contains(path, "/autonomy-actions"):
+	case strings.HasPrefix(path, "/internal/fluctlights/") && method == http.MethodGet && len(splitInternalPath(path)) == 3:
 		parts := splitInternalPath(path)
 		item, getErr := b.server.repository.GetFluctlight(ctx, pathPart(parts, 2), actorID)
 		if getErr != nil {
