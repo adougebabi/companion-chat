@@ -97,7 +97,8 @@ func (a *App) admitFormalRun(ctx context.Context, definition FormalAgentDefiniti
 	}
 	var previousDigest, status, failure string
 	var encoded []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT input_digest,status,error_detail,result FROM public.agent_runs WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3`, record.FluctlightID, record.AgentID, record.RunID).Scan(&previousDigest, &status, &failure, &encoded); err != nil {
+	var startedAt time.Time
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT input_digest,status,error_detail,result,started_at FROM public.agent_runs WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3`, record.FluctlightID, record.AgentID, record.RunID).Scan(&previousDigest, &status, &failure, &encoded, &startedAt); err != nil {
 		return nil, nil, err
 	}
 	result := &ADKStructuredTaskResult{Trace: &ADKCapabilityTrace{}}
@@ -110,6 +111,10 @@ func (a *App) admitFormalRun(ctx context.Context, definition FormalAgentDefiniti
 		return nil, result, newCapabilityError("agent_run_input_conflict", false, ErrConflict)
 	}
 	if status == "running" {
+		if time.Since(startedAt) > 5*time.Minute {
+			_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.agent_runs SET status='failed',error_detail='stale_run_timeout',failure_stage='timeout',failure_code='request_timeout',finished_at=now() WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3 AND status='running'`, record.FluctlightID, record.AgentID, record.RunID)
+			return nil, result, errors.New("agent_run_failed: stale_run_timeout")
+		}
 		rows, err := a.DB.Pool().Query(ctx, `SELECT invocation,result FROM public.tool_executions WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3 ORDER BY committed_at,operation_id`, record.FluctlightID, record.AgentID, record.RunID)
 		if err != nil {
 			return nil, result, err

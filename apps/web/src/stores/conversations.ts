@@ -325,6 +325,7 @@ export const useConversationStore = defineStore("conversations", {
     requestEpoch: 0,
     retrying: false,
 		queuedTurn: persistedQueuedTurn(),
+    dismissedTurnId: null as string | null,
     senderActorId: null as string | null,
   }),
   getters: {
@@ -499,6 +500,7 @@ export const useConversationStore = defineStore("conversations", {
       this.messages = [];
       this.senderActorId = null;
       this.nextBeforeSequence = null;
+      this.dismissedTurnId = null;
 	      persistSelection(null);
     },
 	syncServerTurnState() {
@@ -508,6 +510,9 @@ export const useConversationStore = defineStore("conversations", {
 		const latest = [...this.messages].reverse().find((message) => message.kind === "user" && !isTransientMessage(message));
 		if (!latest?.turnStatus) return;
 		if ((latest.turnStatus === "failed" || latest.turnStatus === "cancelled") && latest.turnId && latest.idempotencyKey) {
+			if (this.dismissedTurnId && this.dismissedTurnId === latest.turnId) {
+				return;
+			}
 			const retry: RetryTurn = {
 				conversationId,
 				fluctlightId,
@@ -738,6 +743,7 @@ export const useConversationStore = defineStore("conversations", {
 				this.retryTurn = null;
 				persistRetry(null);
 			}
+			this.dismissedTurnId = null;
       } catch (error) {
         if (this.requestEpoch !== requestEpoch) return;
         if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
@@ -860,6 +866,7 @@ export const useConversationStore = defineStore("conversations", {
     },
 	    dismissRetry() {
 		const queued = this.queuedTurn;
+		this.dismissedTurnId = this.retryTurn?.turnId ?? null;
 	      this.retryTurn = null;
 	      this.retrying = false;
 	      this.error = "";

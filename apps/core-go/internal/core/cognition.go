@@ -267,10 +267,11 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 			}
 			if !assistantExists {
 				var workflowStatus string
-				if err := tx.QueryRow(ctx, `SELECT status FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, "cognition_intent:"+existing).Scan(&workflowStatus); err != nil {
+				var startedAt *time.Time
+				if err := tx.QueryRow(ctx, `SELECT status,started_at FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, "cognition_intent:"+existing).Scan(&workflowStatus, &startedAt); err != nil {
 					return "", nil, err
 				}
-				if workflowStatus == "started" || workflowStatus == "running" || workflowStatus == "cancel_requested" {
+				if (workflowStatus == "started" || workflowStatus == "running" || workflowStatus == "cancel_requested") && (startedAt == nil || time.Since(*startedAt) < 2*time.Minute) {
 					return "", nil, ErrConflict
 				}
 				if a.Redis != nil {
@@ -297,7 +298,7 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',claimed_by=NULL,claimed_at=NULL,processed_at=COALESCE(processed_at,now()),error_code=NULL WHERE id=$1`, existing); err != nil {
 					return "", nil, err
 				}
-			} else if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 10*time.Minute {
+			} else if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 2*time.Minute {
 				if assistantExists && frozenStatus == "frozen" {
 					// The assistant transaction committed before cognition completion.
 					// Transfer the lease so the normal recovery path can settle the same

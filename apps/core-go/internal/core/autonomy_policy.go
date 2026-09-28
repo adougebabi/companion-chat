@@ -108,9 +108,9 @@ func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader auton
 	var active int
 	var activeErr error
 	if excludeActionID == "" {
-		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND status IN ('frozen','running')`, fluctlightID).Scan(&active)
+		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND status IN ('frozen','running') AND created_at > now() - interval '5 minutes'`, fluctlightID).Scan(&active)
 	} else {
-		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND id<>$2 AND status IN ('frozen','running')`, fluctlightID, excludeActionID).Scan(&active)
+		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND id<>$2 AND status IN ('frozen','running') AND created_at > now() - interval '5 minutes'`, fluctlightID, excludeActionID).Scan(&active)
 	}
 	if activeErr != nil {
 		return AutonomyPolicyDecision{}, activeErr

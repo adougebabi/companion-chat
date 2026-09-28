@@ -53,7 +53,7 @@ func (a *App) authorizeToolPolicyTx(ctx context.Context, tx pgx.Tx, request Tool
 	}
 	if !reserved {
 		var concurrent int
-		if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.tool_policy_reservations p JOIN public.agent_runs r ON r.fluctlight_id=p.fluctlight_id AND r.agent_id=p.agent_id AND r.run_id=p.run_id WHERE p.fluctlight_id=$1 AND p.reservation_id<>$2 AND r.status='running'`, request.FluctlightID, reservationID).Scan(&concurrent); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.tool_policy_reservations p JOIN public.agent_runs r ON r.fluctlight_id=p.fluctlight_id AND r.agent_id=p.agent_id AND r.run_id=p.run_id WHERE p.fluctlight_id=$1 AND p.reservation_id<>$2 AND r.status='running' AND r.started_at > now() - interval '5 minutes'`, request.FluctlightID, reservationID).Scan(&concurrent); err != nil {
 			return false, "", err
 		}
 		limit := intValue(policy.Snapshot["concurrency_limit"])

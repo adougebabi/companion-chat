@@ -2093,11 +2093,36 @@ func (a *App) RecoverStaleModelRuns(ctx context.Context, olderThan time.Duration
 	if olderThan <= 0 {
 		olderThan = 15 * time.Minute
 	}
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.diagnostic_model_runs SET status='failed',error_code='provider_process_restarted',completed_at=COALESCE(completed_at,now()) WHERE status IN ('queued','running') AND COALESCE(started_at,queued_at,created_at) < now()-$1::interval`, fmt.Sprintf("%d seconds", int64(olderThan/time.Second)))
+	interval := fmt.Sprintf("%d seconds", int64(olderThan/time.Second))
+	var total int64
+
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.diagnostic_model_runs SET status='failed',error_code='provider_process_restarted',completed_at=COALESCE(completed_at,now()) WHERE status IN ('queued','running') AND COALESCE(started_at,queued_at,created_at) < now()-$1::interval`, interval)
 	if err != nil {
 		return 0, err
 	}
-	return command.RowsAffected(), nil
+	total += command.RowsAffected()
+
+	if agentRuns, err := a.DB.Pool().Exec(ctx, `UPDATE public.agent_runs SET status='failed',error_detail='stale_run_timeout',finished_at=COALESCE(finished_at,now()),failure_stage='timeout',failure_code='request_timeout' WHERE status='running' AND started_at < now()-$1::interval`, interval); err == nil {
+		total += agentRuns.RowsAffected()
+	}
+
+	if autonomyActions, err := a.DB.Pool().Exec(ctx, `UPDATE public.autonomy_actions SET status='failed',error_code='timeout',settled_at=COALESCE(settled_at,now()) WHERE status IN ('frozen','running') AND created_at < now()-$1::interval`, interval); err == nil {
+		total += autonomyActions.RowsAffected()
+	}
+
+	if cognitionClaims, err := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',claimed_by=NULL,claimed_at=NULL WHERE status='claimed' AND claimed_at < now()-$1::interval`, interval); err == nil {
+		total += cognitionClaims.RowsAffected()
+	}
+
+	if workflowIntents, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error='stale_workflow_timeout',completed_at=COALESCE(completed_at,now()) WHERE status IN ('started','running','cancel_requested') AND COALESCE(started_at,next_attempt_at,created_at) < now()-$1::interval`, interval); err == nil {
+		total += workflowIntents.RowsAffected()
+	}
+
+	if _, err := a.DB.Pool().Exec(ctx, `DELETE FROM public.tool_policy_reservations p WHERE created_at < now()-$1::interval OR NOT EXISTS (SELECT 1 FROM public.agent_runs r WHERE r.fluctlight_id=p.fluctlight_id AND r.agent_id=p.agent_id AND r.run_id=p.run_id AND r.status='running')`, interval); err != nil {
+		// ignore reservation cleanup failure if table doesn't exist
+	}
+
+	return total, nil
 }
 
 // PruneDiagnostics enforces the local retention contract without touching any
