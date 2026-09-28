@@ -1,0 +1,9 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend quality scope across affected layers"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Required Go and browser workspace checks"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"Verify user-approved diagnostic contract revision and Owner boundary"}
+{"file":".trellis/spec/backend/fluctlight-provider-queue-contract.md","reason":"Verify queue lifecycle and physical model-run association"}
+{"file":".trellis/spec/backend/visual-identity-contract.md","reason":"Verify durable visual Agent and review path"}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"Verify multimodal image and media prompt behavior"}
+{"file":".trellis/spec/frontend/index.md","reason":"Verify browser contract and view layer"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Frontend required typecheck, build and browser checks"}
+{"file":".trellis/tasks/09-28-diagnostics-prompt-input-cleanup/research/provider-audit.md","reason":"Audit coverage matrix and known valid capability references"}

@@ -1,0 +1,10 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend package boundaries and pre-development checklist"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"Current diagnostic redaction, Owner access, lifecycle and initialization contracts; user-directed revision required"}
+{"file":".trellis/spec/backend/fluctlight-provider-queue-contract.md","reason":"Physical run lifecycle, binding role and diagnostics semantics"}
+{"file":".trellis/spec/backend/visual-identity-contract.md","reason":"Durable visual Agent and tool recovery constraints"}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"Media prompt/quality and multimodal text/image formatting contract"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"Schedule and current life authority, references and planning constraints"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"Goal/intention/tool selection and authorization constraints"}
+{"file":".trellis/spec/frontend/index.md","reason":"Vue diagnostics UI and browser-boundary checklist"}
+{"file":".trellis/tasks/09-28-diagnostics-prompt-input-cleanup/research/code-paths.md","reason":"Reproducible path findings for reported issues"}
+{"file":".trellis/tasks/09-28-diagnostics-prompt-input-cleanup/research/provider-audit.md","reason":"Production scenario coverage and safe/unsafe input distinctions"}
