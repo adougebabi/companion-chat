@@ -60,7 +60,8 @@ idempotency, and side effects.
   breaker, so equal priorities are FIFO.
 - A run transitions `queued → running → completed|failed|cancelled|timeout`.
   `queued_at`, `started_at`, `completed_at`, scenario, priority, binding role,
-  model, and correlation ID stay on one row. Prompt/response remain redacted.
+  model, and correlation ID stay on one row. Owner Prompt/Response retain
+  non-image text; image payloads are replaced before storage and export.
 - Cancelling while queued removes the task; cancelling while running reaches
   the HTTP request context and releases the slot. A crashed process's stale
   queued/running rows are marked failed with `provider_process_restarted`.
@@ -103,7 +104,7 @@ process restart.
   slot release. Run the running-Provider explicit-turn cancellation regression
   with `go test -race` to detect late result writes.
 - Provider/diagnostic tests cover scenario persistence, lifecycle updates,
-  generic-role compatibility, and redaction.
+  generic-role compatibility, original non-image text and image replacement.
 - Redis coordinator tests cover score ordering, atomic claim/release, lease
   renewal/requeue, orphan-job cleanup, cancellation, and unavailable-Redis
   fallback. Integration tests use a disposable Redis when local listeners are

@@ -226,27 +226,6 @@ func einoBudgetMessage(message *schema.Message) map[string]any {
 	if message.ToolCallID != "" {
 		value["tool_call_id"] = message.ToolCallID
 	}
-	if len(message.UserInputMultiContent) > 0 {
-		parts := make([]any, 0, len(message.UserInputMultiContent))
-		for _, part := range message.UserInputMultiContent {
-			switch part.Type {
-			case schema.ChatMessagePartTypeText:
-				parts = append(parts, map[string]any{"type": "text", "text": part.Text})
-			case schema.ChatMessagePartTypeImageURL:
-				image := map[string]any{}
-				if part.Image != nil {
-					if part.Image.URL != nil {
-						image["url"] = *part.Image.URL
-					}
-					if part.Image.Detail != "" {
-						image["detail"] = string(part.Image.Detail)
-					}
-				}
-				parts = append(parts, map[string]any{"type": "image_url", "image_url": image})
-			}
-		}
-		value["content"] = parts
-	}
 	return value
 }
 
@@ -898,12 +877,34 @@ func einoMessageRaw(message *schema.Message) map[string]any {
 			"function": map[string]any{"name": call.Function.Name, "arguments": call.Function.Arguments},
 		})
 	}
-	return map[string]any{
+	result := map[string]any{
 		"role":              string(message.Role),
 		"content":           message.Content,
 		"tool_calls":        toolCalls,
 		"reasoning_content": message.ReasoningContent,
 	}
+	if len(message.UserInputMultiContent) > 0 {
+		parts := make([]any, 0, len(message.UserInputMultiContent))
+		for _, part := range message.UserInputMultiContent {
+			switch part.Type {
+			case schema.ChatMessagePartTypeText:
+				parts = append(parts, map[string]any{"type": "text", "text": part.Text})
+			case schema.ChatMessagePartTypeImageURL:
+				image := map[string]any{}
+				if part.Image != nil {
+					if part.Image.URL != nil {
+						image["url"] = *part.Image.URL
+					}
+					if part.Image.Detail != "" {
+						image["detail"] = string(part.Image.Detail)
+					}
+				}
+				parts = append(parts, map[string]any{"type": "image_url", "image_url": image})
+			}
+		}
+		result["content"] = parts
+	}
+	return result
 }
 
 // validateADKStructuredResponse is the post-Runner semantic boundary for an

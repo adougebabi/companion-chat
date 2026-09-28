@@ -231,9 +231,9 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 	if err != nil {
 		return CompiledWorkingPersona{}, err
 	}
-	messages := (&PromptComposer{}).ComposeTaskMessages("initialization", []map[string]any{
+	messages := (&PromptComposer{}).ComposeTaskMessages("persona_compilation", []map[string]any{
 		{"role": "system", "content": personaCompilationInstruction},
-		{"role": "user", "content": jsonString(map[string]any{"profile_id": input.ProfileID, "rules_version": personaCompilationRulesVersion, "target_max_runes": input.TargetBudgetRunes, "source": source})},
+		{"role": "user", "content": jsonString(personaCompilationModelPayload(input, source))},
 	})
 	for attempt := 0; attempt < 2; attempt++ {
 		runCtx := WithProviderScenario(ctx, "persona_compilation")
@@ -254,6 +254,15 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		messages = append(messages, map[string]any{"role": "user", "content": fmt.Sprintf("The portrait text was unusable (%v). Return only a JSON object with one non-empty portrait_text string for the same supplied source and profile. Keep it within the stated rune budget; do not include fact arrays or source paths.", validationErr)})
 	}
 	return CompiledWorkingPersona{}, errors.New("persona_compilation_retry_exhausted")
+}
+
+func personaCompilationModelPayload(input PersonaCompilationInput, source map[string]any) map[string]any {
+	visible := cloneMap(source)
+	profile := mapValue(visible["profile"])
+	delete(profile, "id")
+	delete(visible, "personality")
+	delete(visible, "behavioral_policy")
+	return map[string]any{"target_max_runes": input.TargetBudgetRunes, "source": visible}
 }
 
 func decodeCompiledWorkingPersona(output, source map[string]any, input PersonaCompilationInput) (CompiledWorkingPersona, error) {

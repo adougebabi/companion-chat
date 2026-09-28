@@ -21,14 +21,8 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	if limit > 500 {
 		limit = 500
 	}
-	query := `WITH runs AS (
-		SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,metrics,
-			COUNT(*) OVER (PARTITION BY COALESCE(NULLIF(metrics->>'run_id',''),correlation_id)) AS round_count,
-			COUNT(*) FILTER (WHERE status IN ('queued','running')) OVER (PARTITION BY binding_role) AS queue_pending_count,
-			CASE WHEN status IN ('queued','running') THEN ROW_NUMBER() OVER (
-				PARTITION BY binding_role
-				ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END, priority DESC, queued_at ASC, id ASC
-			) END AS queue_position
+	query := `WITH candidates AS (
+		SELECT *, COUNT(*) FILTER (WHERE COALESCE(metrics->>'model_call_id','') <> '') OVER (PARTITION BY COALESCE(NULLIF(metrics->>'run_id',''),correlation_id)) AS adk_physical_count
 		FROM public.diagnostic_model_runs`
 	args := []any{}
 	where := make([]string, 0, 2)
@@ -43,10 +37,22 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
+	query += `
+	), runs AS (
+		SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,metrics,
+			COUNT(*) OVER (PARTITION BY COALESCE(NULLIF(metrics->>'run_id',''),correlation_id)) AS round_count,
+			ROW_NUMBER() OVER (PARTITION BY COALESCE(NULLIF(metrics->>'run_id',''),correlation_id) ORDER BY queued_at ASC,id ASC) AS physical_sequence,
+			COUNT(*) FILTER (WHERE status IN ('queued','running')) OVER (PARTITION BY binding_role) AS queue_pending_count,
+			CASE WHEN status IN ('queued','running') THEN ROW_NUMBER() OVER (
+				PARTITION BY binding_role
+				ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END, priority DESC, queued_at ASC, id ASC
+			) END AS queue_position
+		FROM candidates
+		WHERE NOT (adk_physical_count > 0 AND COALESCE(metrics->>'model_call_id','') = '' AND COALESCE(metrics->>'provider_attempt_id','') NOT IN ('','legacy'))`
 	args = append(args, limit)
 	query += fmt.Sprintf(`
 	)
-	SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,metrics,round_count,queue_pending_count,queue_position
+	SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,metrics,round_count,physical_sequence,queue_pending_count,queue_position
 	FROM runs
 	ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END,
 		CASE WHEN status IN ('queued','running') THEN priority END DESC NULLS LAST,
@@ -67,10 +73,10 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 		var endpoint, code *string
 		var prompt, response []byte
 		var metrics []byte
-		var roundCount int64
+		var roundCount, physicalSequence int64
 		var created, queued time.Time
 		var started, completed *time.Time
-		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed, &metrics, &roundCount, &queuePendingCount, &queuePosition); err != nil {
+		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed, &metrics, &roundCount, &physicalSequence, &queuePendingCount, &queuePosition); err != nil {
 			return nil, err
 		}
 		metricValues := decodeObject(metrics)
@@ -86,6 +92,13 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 			_ = json.Unmarshal(response, &safeResponse)
 		}
 		row := map[string]any{"id": id, "role": role, "binding_role": bindingRole, "scenario": scenario, "priority": priority, "endpoint_id": endpoint, "model_id": model, "prompt": redactDiagnostic(safePrompt), "response": redactDiagnostic(safeResponse), "status": status, "error_code": code, "correlation_id": corr, "created_at": created.Format(time.RFC3339Nano), "queued_at": queued.Format(time.RFC3339Nano), "logical_run_id": logicalID, "model_call_id": stringValue(metricValues["model_call_id"]), "round_count": roundCount, "stage": "unknown", "tool_summaries": []any{}}
+		preflight := stringValue(mapValue(safeResponse)["stage"]) != ""
+		if attemptID := stringValue(metricValues["provider_attempt_id"]); attemptID != "" && attemptID != "legacy" && stringValue(metricValues["model_call_id"]) == "" && !preflight {
+			row["sequence"] = int(physicalSequence)
+			row["stage"] = nonADKModelRunStage(status, safeResponse)
+		} else if preflight {
+			row["stage"] = status
+		}
 		if queuePendingCount != nil {
 			row["queue_pending_count"] = *queuePendingCount
 		}
@@ -108,6 +121,20 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 		return nil, err
 	}
 	return out, nil
+}
+
+func nonADKModelRunStage(status string, response any) string {
+	switch status {
+	case "failed", "cancelled", "timeout":
+		return status
+	case "queued", "running":
+		return "pending"
+	case "completed":
+		if response != nil {
+			return "final_response"
+		}
+	}
+	return "unknown"
 }
 
 func (a *App) decorateModelRunRounds(ctx context.Context, runs []map[string]any) error {

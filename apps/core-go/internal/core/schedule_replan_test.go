@@ -72,7 +72,39 @@ func TestAcceptScheduleUsesDatabaseIdempotencyBoundary(t *testing.T) {
 	}
 }
 
-func TestSchedulePlannerProviderRequestUsesOpaqueAllowlist(t *testing.T) {
+func TestScheduleReplanModelInputOmitsOpaqueRefsAndRepeatedSchedule(t *testing.T) {
+	input := SchedulePlanInput{
+		Intent: "调整计划", Timezone: "Asia/Shanghai",
+		Schedule:    map[string]any{"ref": "schedule:ctx_secret", "revision": 4, "local_date": "2026-09-28", "items": []any{map[string]any{"ref": "schedule_item:ctx_secret", "activity": "读书", "scene": "书房", "intention_id": "intention-linked"}}},
+		CurrentLife: map[string]any{"scene": "书房", "context_revision": "life_ctx_secret", "schedule": map[string]any{"items": []any{map[string]any{"activity": "读书"}}}},
+		Agency:      map[string]any{"goals": []any{map[string]any{"ref": "goal:ctx_secret", "desired_outcome": "完成阅读"}}},
+	}
+	encoded := jsonString(scheduleReplanModelInput(input))
+	for _, forbidden := range []string{"schedule:ctx_secret", "schedule_item:ctx_secret", "life_ctx_secret", "goal:ctx_secret", "expected_revision", "current_item", "upcoming_items"} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("replan model input retained %q: %s", forbidden, encoded)
+		}
+	}
+	if strings.Count(encoded, `"items"`) != 1 {
+		t.Fatalf("replan model input repeated schedule items: %s", encoded)
+	}
+	for _, necessary := range []string{"intention-linked", "读书", "书房", "完成阅读", "调整计划"} {
+		if !strings.Contains(encoded, necessary) {
+			t.Fatalf("replan model input lost %q: %s", necessary, encoded)
+		}
+	}
+}
+
+func TestScheduleReplanCompletedBoundaryComesFromCore(t *testing.T) {
+	if got := scheduleReplanCompletedBefore(map[string]any{"revision": 0, "local_date": "2026-09-28", "timezone": "Asia/Shanghai"}); got != "2026-09-28T00:00:00+08:00" {
+		t.Fatalf("new schedule completed boundary = %q", got)
+	}
+	if got := scheduleReplanCompletedBefore(map[string]any{"revision": 2, "completed_before": "2026-09-28T10:00:00+08:00"}); got != "2026-09-28T10:00:00+08:00" {
+		t.Fatalf("existing schedule completed boundary = %q", got)
+	}
+}
+
+func TestSchedulePlannerProviderRequestUsesSemanticAllowlist(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	endpointID := "schedule-provider-egress"
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES($1,'openai_compatible','http://schedule-egress.invalid','schedule-egress-secret','ready',now())`, endpointID); err != nil {
@@ -119,9 +151,14 @@ func TestSchedulePlannerProviderRequestUsesOpaqueAllowlist(t *testing.T) {
 			t.Fatalf("Schedule planner Provider request leaked %q: %s", forbidden, requestBody)
 		}
 	}
-	for _, allowed := range []string{"schedule:ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "schedule_item:ctx_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "life_context:ctx_cccccccccccccccccccccccccccccccc", "scene:ctx_dddddddddddddddddddddddddddddddd", "presence:ctx_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "goal:ctx_ffffffffffffffffffffffffffffffff", "intention:ctx_11111111111111111111111111111111"} {
-		if !strings.Contains(requestBody, allowed) {
-			t.Fatalf("Schedule planner Provider request lost %q: %s", allowed, requestBody)
+	for _, forbidden := range []string{"schedule:ctx_", "schedule_item:ctx_", "life_context:ctx_", "scene:ctx_", "presence:ctx_", "goal:ctx_", "intention:ctx_", "expected_revision", "context_revision", "current_item", "upcoming_items"} {
+		if strings.Contains(requestBody, forbidden) {
+			t.Fatalf("Schedule planner Provider request retained %q: %s", forbidden, requestBody)
+		}
+	}
+	for _, necessary := range []string{"阅读", "书房", "继续阅读", "调整计划"} {
+		if !strings.Contains(requestBody, necessary) {
+			t.Fatalf("Schedule planner Provider request lost %q: %s", necessary, requestBody)
 		}
 	}
 }

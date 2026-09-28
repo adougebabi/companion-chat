@@ -30,8 +30,15 @@ func TestFormalWakeUpFinalProviderRequestUsesCurrentSharedBodyAndWearing(t *test
 	}
 	seedCognitiveProviderRole(t, ctx, repository, "effective-wakeup-endpoint")
 	var finalWire string
+	var finalPrompt string
 	router := newFakeProviderRouter().on("wake_up_response", func(payload map[string]any) fakeProviderResult {
 		finalWire = jsonString(payload)
+		for _, raw := range arrayValue(payload["messages"]) {
+			message := mapValue(raw)
+			if stringValue(message["role"]) == "user" {
+				finalPrompt += stringValue(message["content"]) + "\n"
+			}
+		}
 		if os.Getenv("YAOGUANG_CAPTURE_WIRE") == "1" {
 			t.Logf("WIRE_WAKE_SHORT=%s", finalWire)
 		}
@@ -44,6 +51,14 @@ func TestFormalWakeUpFinalProviderRequestUsesCurrentSharedBodyAndWearing(t *test
 	}
 	if !strings.Contains(finalWire, "hair_length: short") || strings.Contains(finalWire, "hair_length: long") || !strings.Contains(finalWire, "白衬衫") {
 		t.Fatalf("final WakeUp Provider request used an old body or omitted actual wearing: %s", finalWire)
+	}
+	for _, forbidden := range []string{"schedule_ref:", "wake_up_id:", "context_revision:"} {
+		if strings.Contains(finalPrompt, forbidden) {
+			t.Fatalf("WakeUp model text retained %q: %s", forbidden, finalPrompt)
+		}
+	}
+	if !strings.Contains(finalPrompt, "阅读") || !strings.Contains(finalPrompt, "schedule_status") {
+		t.Fatalf("WakeUp model text lost schedule meaning: %s", finalPrompt)
 	}
 }
 

@@ -44,6 +44,12 @@ const providerInitializationRuntimeProtocol = `1. 语言：自然语言字段使
 7. 输出边界：只返回初始化 response schema 要求的 JSON 对象；不要输出解释、Markdown、对话、行动建议或隐藏推理。
 `
 
+const providerPersonaCompilationRuntimeProtocol = `1. 语言：使用中文编写 Working Persona 文本，协议字段保持原文。
+2. 任务性质：压缩已由 Core 选定的人格资料；不要重新解析 Owner 的原始描述，也不要扮演 actor_self。
+3. 只使用当前提供的选定资料；保留稳定人格语义，删除重复叙事，不加入当前状态或未给出的事实。
+4. 只返回包含 portrait_text 的 JSON 对象，不输出解释或 Markdown。
+`
+
 func withContextAuthorityInstruction(messages []map[string]any) []map[string]any {
 	if len(messages) == 0 {
 		return messages
@@ -173,6 +179,8 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 	builder.WriteString("# 运行协议\n\n")
 	if role == "initialization" {
 		builder.WriteString(providerInitializationRuntimeProtocol)
+	} else if role == "persona_compilation" {
+		builder.WriteString(providerPersonaCompilationRuntimeProtocol)
 	} else {
 		builder.WriteString(renderProviderRuntimeProtocol(persona))
 	}

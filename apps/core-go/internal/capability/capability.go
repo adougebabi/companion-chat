@@ -797,13 +797,12 @@ func (definition CapabilityDefinition) Validate() error {
 		return fmt.Errorf("capability_definition_output_schema_invalid: %w", err)
 	}
 	if len(definition.ModelResultOmitFields) > 0 {
-		properties := mapValue(definition.OutputSchema["properties"])
 		seen := map[string]struct{}{}
 		for _, field := range definition.ModelResultOmitFields {
 			if field == "" {
 				return errors.New("capability_definition_model_result_field_invalid")
 			}
-			if _, exists := properties[field]; !exists {
+			if !modelResultOmitPathDeclared(definition.OutputSchema, strings.Split(field, ".")) {
 				return fmt.Errorf("capability_definition_model_result_field_undeclared: %s", field)
 			}
 			if _, duplicate := seen[field]; duplicate {
@@ -821,6 +820,27 @@ func (definition CapabilityDefinition) Validate() error {
 		}
 	}
 	return nil
+}
+
+func modelResultOmitPathDeclared(schema map[string]any, path []string) bool {
+	for _, segment := range path {
+		if strings.TrimSpace(segment) == "" {
+			return false
+		}
+	}
+	for len(path) > 0 {
+		if stringValue(schema["type"]) == "array" {
+			schema = mapValue(schema["items"])
+			continue
+		}
+		property, exists := mapValue(schema["properties"])[path[0]]
+		if !exists {
+			return schema["additionalProperties"] != false
+		}
+		schema = mapValue(property)
+		path = path[1:]
+	}
+	return true
 }
 
 type CapabilityInvocation struct {

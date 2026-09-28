@@ -116,6 +116,7 @@ func visualIdentityGenerateCandidateCapabilityDefinition() CapabilityDefinition 
 		SideEffectClass: "native_projection", SuccessBoundary: "durable_candidate_media_intent_created",
 		CompletionBoundary: "candidate_asset_ready", OutcomeReferenceField: "media_intent_id",
 		ConcurrencyClass: "exclusive", SupportsCancel: true, SupportsRetry: true,
+		ModelResultOmitFields: visualIdentityModelResultOmitFields(),
 	}
 }
 
@@ -144,6 +145,7 @@ func visualIdentityCommitReviewCapabilityDefinition() CapabilityDefinition {
 		OutputSchema:    visualIdentityToolOutputSchema(),
 		SideEffectClass: "native_projection", SuccessBoundary: "visual_identity_review_committed",
 		ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		ModelResultOmitFields: visualIdentityModelResultOmitFields(),
 	}
 }
 
@@ -156,7 +158,12 @@ func visualIdentityFinalizeCapabilityDefinition() CapabilityDefinition {
 		OutputSchema:    visualIdentityToolOutputSchema(),
 		SideEffectClass: "native_projection", SuccessBoundary: "visual_identity_character_sheet_committed",
 		ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		ModelResultOmitFields: visualIdentityModelResultOmitFields(),
 	}
+}
+
+func visualIdentityModelResultOmitFields() []string {
+	return []string{"session_id", "media_intent_id", "task_id", "candidate_asset_id", "canonical_asset_id", "character_sheet_media_intent_id", "character_sheet_asset_id", "replayed"}
 }
 
 func visualIdentityToolOutputSchema() map[string]any {

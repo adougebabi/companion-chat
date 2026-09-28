@@ -45,6 +45,7 @@ func scheduledActivityDefinition() CapabilityDefinition {
 			"schedule_item_id": stringSchema(), "start_at": stringSchema(), "status": enumStringSchema("scheduled"),
 		}, []string{"goal_id", "intention_id", "schedule_id", "schedule_item_id", "start_at", "status"}, false),
 		SideEffectClass: "native_projection", SuccessBoundary: "scheduled_intention_committed", ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"goal_id", "schedule_id"},
 	}
 }
 

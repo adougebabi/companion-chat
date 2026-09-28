@@ -30,7 +30,7 @@ emit(record: DiagnosticRecord) -> None
 record_model_run(run: ModelRunDiagnostic) -> None
 query(filter: DiagnosticFilter) -> DiagnosticPage
 tail(filter: DiagnosticFilter) -> AsyncIterator[DiagnosticRecord]
-export(command: ExportDiagnostics) -> RedactedBundle
+export(command: ExportDiagnostics) -> OwnerDiagnosticBundle
 clear(command: ClearDiagnostics) -> ClearResult
 ```
 
@@ -39,7 +39,7 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 ### 3. Contracts
 
 - Model runs capture role, endpoint/model/version, prompt/schema/policy version,
-  redacted rendered prompt layers, bounded raw/structured response,
+  rendered prompt layers with image payloads replaced, raw/structured response,
   parse/schema diagnostics, estimated/actual token use, Provider latency,
   timeout/cancel status, correlation identity, and optional Fluctlight scope.
 - `metrics.prompt_budget` contains policy/context/max-input/output-reserve/safety
@@ -48,11 +48,15 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
   Provider usage is normalized to `prompt_tokens`, `completion_tokens`, and
   `total_tokens`; estimator delta is actual prompt minus estimated input.
 - Assembler/Working Memory/Active/Long-term/Summary selection traces remain
-  Core-only. Prompt diagnostic arrays are capped at 64 entries and recursively
-  redacted before persistence. Ordinary ModelRuns API rows intentionally omit
+  Core-only. Prompt diagnostic arrays are capped at 64 entries; retained text
+  and source refs keep their original values, while image payloads are replaced.
+  Ordinary ModelRuns API rows intentionally omit
   these metrics, raw scope, token, and latency fields.
-- Hidden reasoning fields are discarded or reduced to an explicitly safe bounded summary; they are never stored as full reasoning.
-- Typed redaction removes settings/API keys, cookies, sessions, service credentials, auth headers, object grants, `.env` values, and other secret types before persistence/stdout/export.
+- Owner-only diagnostics persist available non-image Prompt, Response, Tool arguments,
+  reasoning and other text verbatim, including credential-bearing values. Image
+  data URLs and binary image payloads are replaced with `REDACTED_IMAGE_DATA`
+  before persistence and export. Operational stdout warnings remain separately
+  credential-redacted; they are not the Owner diagnostic store.
 - Diagnostic writes are best-effort and never participate in the business Unit
   of Work. Lifecycle/metric updates use an independent bounded context. A sink
   failure cannot replace the business result, but it must increment the
@@ -69,7 +73,7 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 - Lifecycle cleanup enforces age and row limits. Domain audit/revision/evidence tables are excluded.
 - Owner-only UI/API supports filter, live tail, correlation chain,
   prompt/response comparison, turn state transitions, workflow links, clear,
-  and redacted export. The Lifecycle timeline reads transition-only events plus
+  and image-sanitized export. The Lifecycle timeline reads transition-only events plus
   PostgreSQL workflow-intent snapshots and filters by Fluctlight, correlation,
   intent, workflow, Run, surface, and status even when Temporal is unavailable.
 - Opening the Diagnostics UI must invoke its data loader. An empty local store is
@@ -82,14 +86,10 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
   correlation ID and a separate initialization `analysis_id`. The creation
   review retains them and can open a pre-filtered diagnostic view for that
   exact analysis, while activation uses `analysis_id` only as source authority.
-- Initialization model-run rows are metadata-only by default: message count,
-  estimated input tokens, prompt/response byte counts and digests, model,
-  timing, status, safe error, coverage counts, finish reason, structured
-  framing, candidate lengths/count, delimiter balance and JSON syntax offset.
-  Original character-card
-  text, complete structured response, field derivations, and accepted source
-  projection are excluded from ordinary Diagnostics and exist only behind the
-  Owner-authorized initialization-source detail boundary.
+- Initialization model-run rows follow the same Owner-only non-image original-text
+  policy as other scenarios. The separate initialization-source detail boundary
+  still supplies accepted source authority and derivation data; it does not
+  suppress the actual Provider Prompt/Response from new diagnostic rows.
 - Foundation validation failures expose a bounded structured detail object at
   the Core/browser boundary, including `details.validation_error` and a safe error
   type. Clients must preserve this detail; a stable top-level code alone is not
@@ -99,8 +99,8 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 
 | Condition | Result |
 | --- | --- |
-| Record contains typed secret/credential | Redact before persistence/stdout/export. |
-| Model response contains hidden reasoning field | Drop/full-reasoning deny; retain only allowed structured output/bounded diagnostic. |
+| Owner diagnostic contains typed secret/credential or available reasoning | Persist and return its original non-image text only through Owner-authorized diagnostics; keep operational stdout separately credential-redacted. |
+| Diagnostic contains image data URL or binary image | Replace payload with `REDACTED_IMAGE_DATA` before persistence and export. |
 | Diagnostics PostgreSQL write fails | Preserve the business result; increment the bounded failure signal and emit one rate-limited structured operational warning. |
 | Best-effort diagnostic insert/update fails repeatedly | Retain first/latest safe cause and occurrence count without recursively writing or flooding logs. |
 | Metric JSON is not an object or token/latency value is negative | PostgreSQL rejects the diagnostic mutation; domain result remains unaffected. |
@@ -109,22 +109,23 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 | Non-Owner queries/exports/clears | Reject before returning diagnostic content. |
 | Workflow runtime is unavailable while reading diagnostics | Keep loaded events/model runs visible; show a workflow-only unavailable state. |
 | Expected active WakeUp passes due plus grace with no durable progress | Emit one transition-deduped `overdue` event with the stable cycle correlation. |
-| Initialization diagnostics are queried/exported | Return metadata only; never include source text or the complete Provider response. |
-| Initialization content is non-empty but parse fails | Persist/log only structural metadata and the typed parse category; never collapse it into semantic-empty or expose the candidate text. |
+| Initialization diagnostics are queried/exported | Return the same image-sanitized original Provider Prompt/Response as other Owner model runs. |
+| Initialization content is non-empty but parse fails | Persist the original non-image candidate text plus typed parse category in Owner diagnostics; operational stdout remains credential-redacted. |
 | Owner opens diagnostics from Settings | Invoke the same loader as a filter submission; do not only mutate the active view. |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: Owner opens one turn correlation view and sees redacted prompt layers, structured assessment, policy deltas, frozen action, realization, workflow attempts, and final message.
+- Good: Owner opens one turn correlation view and sees original non-image prompt/response text, structured assessment, policy deltas, frozen action, realization, workflow attempts, and final message.
 - Base: diagnostics database insert fails during a successful chat; chat
   succeeds and one rate-bounded structured warning appears on stdout/health.
 - Bad: require Grafana to inspect a local prompt, log API keys, put diagnostic rows in the business transaction, or delete relationship revisions during retention cleanup.
 
 ### 6. Tests Required
 
-- Typed-redaction tests with credentials in nested request/response/header/URL/config objects and exported bundles.
-- Model-run tests for prompt sections, bounded/redacted selection traces,
-  parse errors, provenance, hidden-reasoning drop, estimated/actual token
+- Owner-only diagnostic tests retain nested non-image text and credentials, replace
+  image data in writes/reads/exports, and reject non-Owner queries.
+- Model-run tests for prompt sections, bounded selection traces,
+  parse errors, provenance, available reasoning, estimated/actual token
   normalization, estimator delta, latency, and collection cap.
 - Sink tests for database failure, independent diagnostic context,
   rate-bounded operational warning, non-recursion, and no business rollback.
@@ -134,9 +135,8 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 - Lifecycle API/UI tests filter by Fluctlight/correlation/intent/workflow/Run/
   surface/status, retain PostgreSQL snapshots during Temporal failure, render
   no-op/retry/failure/overdue distinctly, and traverse a complete correlation.
-- Initialization tests assert ordinary rows/export contain metadata/digests but
-  not source text, full response, structured projection, or derivation evidence;
-  truncated/invalid candidates retain finish/framing/length/balance/offset.
+- Initialization tests assert physical and outer model-run rows consistently retain
+  original non-image Prompt/Response; invalid candidates retain typed parse details.
 
 ### 7. Wrong vs Correct
 
@@ -152,7 +152,7 @@ async with business_uow.begin() as tx:
 
 ```python
 result = await conversations.commit_turn(turn)
-diagnostics.emit(redactor.model_run(model_run_record))
+diagnostics.emit(image_payload_filter.model_run(model_run_record))
 return result
 ```
 
@@ -175,20 +175,15 @@ return result
   failed write produces a rate-bounded operational warning/health signal with
   component, stage, correlation ID, error type, and a 512-rune secret-redacted
   `safe_cause`. Logging only the Go error type is not sufficient.
-- Recursive redaction removes credentials, cookies, API keys and hidden
-  reasoning before persistence or export.
+- Owner diagnostic persistence/export replaces image payloads only; it retains
+  available credentials, cookies, API keys and reasoning as non-image text.
 - Owner authorization and correlation/fluctlight filters apply to reads.
 - Periodic retention deletes only diagnostic tables, never domain audit or
   revision/evidence rows.
 - Prompt diagnostics include final wire section counts/tokens, output reserve,
   actual Provider usage/latency, estimator delta, bounded selected/dropped refs,
-  ranking reasons/components, and optional continuation phase. Credentials,
-  raw prompt/response keys, reasoning/perception/appraisal, image data, and
-  Core-only raw IDs are redacted or omitted.
-- Summary source refs and Recent message refs may be needed internally for
-  prompt deduplication, but any `source_refs` copied into Owner diagnostics
-  must use a stable kind-preserving `*:diag_<digest>` token. Raw `message:<id>`
-  or other Core entity identifiers must not be persisted in prompt traces.
+  ranking reasons/components, and optional continuation phase. Retained
+  non-image values, including `source_refs`, are unchanged; image data is replaced.
 - The ordinary ModelRuns API keeps its existing small projection and does not
   expose the new prompt metrics or Fluctlight scope. Clear/prune still includes
   `diagnostic_model_runs` as operational data.
@@ -218,23 +213,23 @@ return result
 | Provider failure writes `failed`, then queue classifies the same error as `timeout` | preserve the first terminal row and treat the late terminal callback as an idempotent no-op; do not emit `diagnostic_model_run_state_not_written` |
 | model-run ID is genuinely absent during a state update | emit the bounded `state_not_written` warning with ID and safe cause |
 | retention cleanup fails | bounded Worker warning and retry |
-| prompt selection trace contains more than 64 array entries | persist only the first 64 after recursive redaction |
+| prompt selection trace contains more than 64 array entries | persist only the first 64, preserving their non-image values |
 | Provider returns usage fields outside the allowlist | discard unknown usage fields |
 
 ### 5. Good/Base/Bad Cases
 
-- Good: a Provider failure is visible as a redacted failed model run while the
+- Good: a Provider failure is visible as an image-sanitized failed model run while the
   chat error remains bounded.
 - Base: clearing diagnostics returns the number of deleted records.
-- Bad: persisting raw authorization headers or deleting relationship history
-  during retention.
+- Bad: exposing Owner diagnostic content to a non-Owner or deleting relationship
+  history during retention.
 
 ### 6. Tests Required
 
-- Recursive redaction, Owner isolation, filters, clear counts and age/row
+- Image-data replacement, Owner isolation, filters, clear counts and age/row
   retention tests against PostgreSQL.
 - Provider success/failure producer tests with sink failure injection and
-  bounded operational-warning assertions, including redacted `safe_cause`.
+  bounded operational-warning assertions, including credential-redacted stdout `safe_cause`.
 - PostgreSQL/Compose test asserts a live WakeUp or Reflection attempt persists
   model run and provenance with the same correlation and attempt identity.
 - PostgreSQL regression writes one terminal row, delivers a different late
@@ -250,13 +245,13 @@ return result
 #### Wrong
 
 ```go
-INSERT INTO diagnostic_model_runs(prompt) VALUES ($1) // raw request
+INSERT INTO diagnostic_model_runs(prompt) VALUES ($1) // raw request with image bytes
 ```
 
 #### Correct
 
 ```go
-recordModelRun(redactDiagnostic(prompt), boundedResponse, correlationID)
+recordModelRun(redactDiagnostic(prompt), originalNonImageResponse, correlationID)
 ```
 
 ```go
@@ -277,10 +272,9 @@ WHERE role=$2::varchar(64)
   each physical Provider generation with its own attempt/request identity,
   queue lifecycle, timing and normalized usage when the diagnostic store is
   available.
-- Tool-call IDs, result pairing, surface and bounded invocation/result status
-  are safe structured trace data. Hidden reasoning, credentials, raw prompts,
-  complete provider responses and unbounded arguments remain redacted or
-  omitted.
+- Tool-call IDs, result pairing, surface and invocation/result status remain
+  structured trace data. Owner diagnostics retain available non-image reasoning,
+  credentials, Prompt/Response and Tool arguments; images are replaced before storage.
 - Diagnostic failure is best-effort: it cannot turn a committed domain result
   into a failure, and it cannot authorize a capability or publish an ADK
   intermediate message.
@@ -314,7 +308,7 @@ Core response fields are `fluctlight_id`, `agent_id`, `run_id`, `correlation_id`
 - Admission stores the Provider parent correlation alongside the stable business run ID. An old row without correlation reports `association_status=unknown`; it is not joined to a model call by timestamp or guessed to have a final response. A failure before formal admission has no `agent_runs` row, so the Owner read may use a bounded `agent.run.termination` event as a separately labelled `source=termination_event` fallback. A completed formal row does not suppress a later final-contract/publication/settlement failure event. Only a matching failed formal row suppresses its duplicate failed termination event, using DB-wide existence rather than the current page of rows.
 - Tool execution failures carry typed stage/code through ADK wrapping into `finishFormalRun`. Cancellation, timeout, input-budget and Provider suppression/failure use their typed errors. An unknown failure stays `stage=agent`, `code=agent_run_failed`; never parse arbitrary `err.Error()` text into a stage.
 - A non-retryable `invalid_arguments` Tool result is a recoverable business rejection returned to the next model decision, not an automatic Agent failure. Its Tool summary still displays `invalid_arguments`; if the Agent later fails its final contract, the termination event displays that later failure as a separate state.
-- Owner reads render `error_detail` only through bounded secret-safe cause redaction. The physical model row keeps its own `completed/failed/timeout` status even if the logical Agent failed later. `agent_runs` is not deleted by Diagnostics clear/retention.
+- Owner reads render `error_detail` through the bounded cause field without changing its non-image text. The physical model row keeps its own `completed/failed/timeout` status even if the logical Agent failed later. `agent_runs` is not deleted by Diagnostics clear/retention.
 - A Tool event's `model_call_id` comes from the `ADKCapabilityTrace.ModelIdentity(callID)` recorded at the physical Generate/Stream boundary. The callback's parent `context.Context` need not inherit a child Generate context; never join a Tool to the newest model row by time.
 - Best-effort lifecycle failure diagnostics use an independent bounded context after cancellation. Diagnostic sink failure still cannot replace the business result and must keep its bounded warning/health signal.
 - The Owner Model Runs page groups physical rows and logical Agent rows by known correlation, displays distinct status badges and a safe failure stage/cause, and labels missing old associations as unknown. Termination-event fallback uses its event timestamp as record time, not an invented Agent start time. Public chat remains unchanged.
@@ -329,20 +323,20 @@ Core response fields are `fluctlight_id`, `agent_id`, `run_id`, `correlation_id`
 | Tool `invalid_arguments` is corrected in a later model round | Keep Tool rejection visible and mark the formal Agent completed only after its final contract succeeds; do not relabel the rejected Tool as an Agent crash. |
 | Old Agent row has no correlation/stage | Show `association_status=unknown`, stage `unknown`; do not invent a model round. |
 | Conversation fails before formal Agent admission | Persist a bounded `agent.run.termination` cause and show the event fallback; no physical model row is invented. |
-| Error detail contains a credential-bearing phrase | Return `[REDACTED]` cause, not the raw detail. |
+| Error detail contains a credential-bearing phrase | Return the original bounded cause to the Owner; keep the separate stdout warning credential-redacted. |
 | Caller context is cancelled during lifecycle failure write | Attempt persistence with detached five-second context; a sink failure remains best-effort. |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: one Tool-request model call is `completed`; its Tool summary reports `capability_prepare_failed`; the same correlation shows logical Agent `failed` with `stage=tool` and safe cause.
 - Base: a pre-upgrade failed Agent row appears as a standalone logical record with unknown model association.
-- Bad: turn the successful physical model row red, hide the logical failure because no new Provider request ran on replay, or display raw Tool arguments/error text.
+- Bad: turn the successful physical model row red, hide the logical failure because no new Provider request ran on replay, or expose raw diagnostic text outside the Owner boundary.
 
 ### 6. Tests Required
 
 - PostgreSQL migration from `0040` retains `agent_runs` and adds the three columns/indexes; old rows remain readable.
 - Real trace-recorded Tool callback attaches its safe summary to the correct `model_call_id` in a two-round run; manually inserted event IDs alone do not prove this.
-- Owner query checks logical failed + physical completed under the same correlation, pre-admission event fallback, duplicate event suppression, legacy unknown, non-Owner rejection, bounded/redacted cause and cancelled-context lifecycle persistence.
+- Owner query checks logical failed + physical completed under the same correlation, pre-admission event fallback, duplicate event suppression, legacy unknown, non-Owner rejection, bounded original non-image cause and cancelled-context lifecycle persistence.
 - Browser DTO/OpenAPI/generated client and page tests check explicit mapping, grouped status, missing-response/old-row states, and no public chat trace insertion.
 
 ### 7. Wrong vs Correct
@@ -368,8 +362,9 @@ ModelRunsFiltered row += logical_run_id, model_call_id, sequence?, round_count,
 ### 3. Contracts
 
 - Each physical `diagnostic_model_runs` row keeps its own Prompt/Response. `metrics.run_id` groups rows and `metrics.model_call_id` joins bounded `adk.model.input/output` and `adk.tool.*` events. The Core reader derives sequence and stage; the browser only groups and sorts. A completed output with ToolCall IDs is an intermediate request; only a completed output with zero ToolCalls is a final model answer.
-- Missing events on old rows mean `unknown` stage/sequence; stable queued-at/id ordering is labelled as unknown rather than inventing a final answer. A page cut within a logical run reports its full round count.
-- Tool summaries expose only call identity, capability, status and safe error code. Model Prompt/Response, including the nested media-prompt model-run view, are redacted on write *and read* so historical `reasoning_content` and `tool_calls[].function.arguments` cannot leak. Diagnostics timestamps use the Owner's current viewing IANA zone and show its name; chat messages keep their own sender-time provenance.
+- ADK rows use their recorded model-call events for Tool/final stage. New non-ADK rows with explicit Provider attempt identity derive a stable physical sequence from queued-at/id and status-derived stage; genuinely old rows without these markers remain `unknown`. A page cut within a logical run reports its full round count.
+- ADK `queuedToolCallingChatModel` writes one row per actual physical request. The outer Agent completion must not write a second model-run summary. Owner reads exclude historical no-`model_call_id` outer summary rows when the same logical run has ADK physical rows; preflight failure rows without a Provider request remain diagnosable but do not receive a fabricated physical sequence.
+- Tool summaries expose call identity, capability, status and error code; the correlated Owner event retains original arguments. Model Prompt/Response retain available non-image `reasoning_content` and `tool_calls[].function.arguments`, while image data is replaced on write and read. Diagnostics timestamps use the Owner's current viewing IANA zone and show its name; chat messages keep their own sender-time provenance.
 - Public chat NDJSON continues to emit only committed visible messages, never physical intermediate responses.
 
 ### 4. Validation & Error Matrix
@@ -379,18 +374,18 @@ ModelRunsFiltered row += logical_run_id, model_call_id, sequence?, round_count,
 | Output contains ToolCall IDs | Stage `tool_request`, not final reply. |
 | Physical row is failed/cancelled/timeout or lacks Response | Display its actual status and no copied Response. |
 | Old row has no model-call event | Stage/sequence `unknown`. |
-| Tool payload contains arguments/reasoning | Redact before storage and on Owner read; never include in summary. |
+| Tool payload contains arguments/reasoning | Retain original non-image values in Owner diagnostics; summary may remain compact. |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: a two-call run displays “第 1/2 次 · 请求 Tool” then its safe Tool result, followed by “第 2/2 次 · 最终模型回答.”
-- Base: an old row says “轮次未知（旧记录）”.
-- Bad: flattening both rows under identical “认知判断” titles or showing hidden reasoning in raw Response.
+- Base: a genuinely old row says “轮次未知”; a new non-ADK row has a sequence and status-derived stage.
+- Bad: flattening both rows under identical “认知判断” titles or dropping available multimodal text from the physical Prompt.
 
 ### 6. Tests Required
 
 - PostgreSQL: two physical rows and Tool events preserve distinct responses, sequence/stage, bounded safe summary, and full group count; failure and old-row cases do not fabricate final output.
-- BFF: explicit snake_case↔camelCase mapping omits arguments/digests. Browser: group ordering, missing Response, time-zone labels and no public-chat trace insertion.
+- BFF: explicit snake_case↔camelCase mapping; raw Tool arguments remain in the Owner event payload, not public chat. Browser: group ordering, missing Response, time-zone labels and no public-chat trace insertion.
 
 ### 7. Wrong vs Correct
 
@@ -422,9 +417,9 @@ DiagnosticsExportFiltered(filter.RunID)
 - `adk.model.input` records message count, formal tool-result IDs and matched
   assistant/tool pair count. “Model received the result” is true only when
   this actual next-input event contains the pair; direct return is `n/a`.
-- Tool events retain call ID, capability, surface, status, error code and an
-  arguments digest. Raw arguments, prompts, hidden reasoning and credentials
-  never enter the diagnostic payload.
+- Tool events retain call ID, capability, surface, status, error code, original
+  non-image arguments and an arguments digest. Physical model rows retain
+  Prompt/Response and available reasoning under Owner authorization.
 - Diagnostic writes are best-effort and do not authorize, settle or publish a
   Capability. Owner-authorized export may filter ordinary events and model
   runs by `run_id` while keeping the small ordinary ModelRuns projection.
@@ -444,12 +439,12 @@ DiagnosticsExportFiltered(filter.RunID)
   next-input pair, typed tool result and final termination.
 - Base: a legal direct return records `tool_result_pair_status=n/a` because
   there is no next model call.
-- Bad: infer “model received result” from a successful tool log, persist raw
-  arguments, or reuse one model-run row for two physical calls.
+- Bad: infer “model received result” from a successful tool log, expose the
+  arguments outside Owner diagnostics, or reuse one model-run row for two calls.
 
 ### 6. Tests Required
 
-- Assert bounded/redacted event payloads, separate model input/output/termination
+- Assert image-sanitized event payloads, separate model input/output/termination
   events, run ID filtering, owner authorization and no diagnostic write in the
   business transaction.
 - Use controlled Conversation/WakeUp success, Tool failure and model parse
@@ -488,9 +483,8 @@ updateModelRunPromptMetrics(ctx, modelRunID, usage, latency)
 - The parent turn correlation may be shared, but each physical ChatModel
   Generate/Stream call creates its own queued→running→terminal
   `diagnostic_model_runs` row, attempt identity and Provider request ID.
-- Prompt/response/arguments remain recursively redacted and bounded. Tool-call
-  IDs may be retained only as bounded identity metadata; raw arguments and
-  hidden reasoning do not enter ordinary diagnostics.
+- Prompt/response/arguments retain original non-image text. Tool-call IDs remain
+  bounded identity metadata; available reasoning is retained in Owner diagnostics.
 - Queue cancellation, timeout, tool failure and iteration-limit errors update
   the affected row with a stable bounded error code without changing the
   business settlement result.
@@ -502,7 +496,7 @@ updateModelRunPromptMetrics(ctx, modelRunID, usage, latency)
 | Two ADK model generations | Two model-run rows with distinct attempt/request IDs and one parent correlation |
 | First model call fails | First row terminalizes; no second call or fabricated final row |
 | Diagnostics sink unavailable | Core result remains governed by domain outcome; bounded persistence warning only |
-| Raw prompt/reasoning/tool args supplied | Redact/drop before persistence |
+| Raw prompt/reasoning/tool args supplied | Persist original non-image values for Owner reads; replace image data before storage. |
 
 ### 5. Good/Base/Bad Cases
 
@@ -517,8 +511,8 @@ updateModelRunPromptMetrics(ctx, modelRunID, usage, latency)
 - Assert two ADK calls create two rows, distinct request IDs, bounded usage and
   one shared parent correlation.
 - Assert cancellation/timeout terminalization and queue release per call.
-- Assert redaction of image data, credentials, raw arguments and reasoning in
-  both rows.
+- Assert image data is replaced and non-image credentials, arguments and
+  available reasoning survive in both rows under Owner authorization.
 
 ### 7. Wrong vs Correct
 
@@ -551,9 +545,8 @@ runProviderQueued(ctx, callID, generateOneModelCall)
   queue lifecycle, timing and normalized usage when the diagnostic store is
   available.
 - Tool-call IDs, result pairing, surface and bounded invocation/result status
-  are safe structured trace data. Hidden reasoning, credentials, raw prompts,
-  complete provider responses and unbounded arguments remain redacted or
-  omitted.
+  remain structured trace data. Owner diagnostics retain available non-image
+  reasoning, credentials, Prompt/Response and Tool arguments; images are replaced.
 - Diagnostic failure is best-effort: it cannot turn a committed domain result
   into a failure, and it cannot authorize a capability or publish an ADK
   intermediate message.

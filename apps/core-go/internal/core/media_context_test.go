@@ -87,6 +87,20 @@ func TestImageIntentAndCanonicalContextReachMediaPromptInput(t *testing.T) {
 	}
 }
 
+func TestMediaPromptLifeContextOmitsCoreRevisionsAndReferences(t *testing.T) {
+	input := mediaPromptInput(mediaIntent{Prompt: `{"scene":"客厅","context_binding":{"current_life":{"scene":"客厅","activity":"读书","location":"家中","context_revision":"life_ctx_secret","schedule_ref":"schedule:ctx_secret","presence":{"current_task":"休息","revision":3}}}}`})
+	for _, forbidden := range []string{"life_ctx_secret", "schedule:ctx_secret", "expected_revision", "context_revision"} {
+		if strings.Contains(input, forbidden) {
+			t.Fatalf("media prompt retained %q: %s", forbidden, input)
+		}
+	}
+	for _, necessary := range []string{"客厅", "读书", "家中", "休息"} {
+		if !strings.Contains(input, necessary) {
+			t.Fatalf("media prompt lost %q: %s", necessary, input)
+		}
+	}
+}
+
 func TestSceneMediaPromptUsesCurrentAppearanceWithoutHistoricalVisualSnapshot(t *testing.T) {
 	concept := map[string]any{
 		"intent": "拍一张现在的照片",

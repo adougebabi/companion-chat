@@ -33,6 +33,25 @@ func TestPersonaCompilationSourceExcludesDynamicStateAndOtherProfiles(t *testing
 	}
 }
 
+func TestPersonaCompilationModelPayloadOmitsCoreMetadataAndDuplicateTraits(t *testing.T) {
+	source := map[string]any{
+		"profile":     map[string]any{"id": "warm-internal-id", "voice": "温暖", "personality": map[string]any{"value": "耐心"}, "behavioral_policy": map[string]any{"rule": "慢慢说"}},
+		"personality": map[string]any{"value": "耐心"}, "behavioral_policy": map[string]any{"rule": "慢慢说"},
+		"identity": map[string]any{"name": "摇光"},
+	}
+	payload := personaCompilationModelPayload(PersonaCompilationInput{ProfileID: "warm-internal-id", TargetBudgetRunes: 1800}, source)
+	encoded := jsonString(payload)
+	if strings.Contains(encoded, "warm-internal-id") || strings.Contains(encoded, "rules_version") || strings.Count(encoded, "耐心") != 1 || strings.Count(encoded, "慢慢说") != 1 {
+		t.Fatalf("persona model payload retained metadata or duplicates: %s", encoded)
+	}
+	if !strings.Contains(encoded, "温暖") || !strings.Contains(encoded, "摇光") || !strings.Contains(encoded, "1800") {
+		t.Fatalf("persona model payload lost selected semantics: %s", encoded)
+	}
+	if stringValue(mapValue(source["profile"])["id"]) != "warm-internal-id" {
+		t.Fatalf("model projection mutated durable source: %#v", source)
+	}
+}
+
 func TestPersonaCompilationSourceSeparatesCurrentAppearanceFromPreferencesAndHabits(t *testing.T) {
 	core := map[string]any{
 		"identity": map[string]any{"name": "摇光", "background_story": "过去曾留长发", "appearance": "当前长发"},

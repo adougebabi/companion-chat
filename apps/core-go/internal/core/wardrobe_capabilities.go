@@ -58,6 +58,7 @@ func wardrobeInspectDefinition() CapabilityDefinition {
 		}, []string{"operation"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "read_only", SuccessBoundary: "query_result_available",
 		ConcurrencyClass: "parallel", SupportsRetry: true,
+		ModelResultOmitFields: []string{"revision", "items.revision", "items.source_kind", "items.source_ref", "item.revision", "item.source_kind", "item.source_ref", "outfits.revision", "outfits.profile_id", "outfit.revision", "outfit.profile_id"},
 	}
 }
 
@@ -269,6 +270,7 @@ func wardrobeWearDefinition() CapabilityDefinition {
 		}, []string{"mode", "item_ids"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "native_projection", SuccessBoundary: "wearing_state_committed",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"revision", "items"},
 	}
 }
 
@@ -392,6 +394,7 @@ func wardrobeOutfitSaveDefinition() CapabilityDefinition {
 		}, []string{"name", "item_ids"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "native_projection", SuccessBoundary: "wardrobe_outfit_saved",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"revision", "wardrobe_revision"},
 	}
 }
 

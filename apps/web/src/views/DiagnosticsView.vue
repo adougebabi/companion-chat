@@ -72,12 +72,34 @@ const modelRunGroups = computed(() => {
   });
 });
 function modelRoundLabel(run: BrowserDiagnosticModelRun, total: number): string {
-  return run.sequence != null ? `第 ${run.sequence}/${Math.max(total, run.sequence)} 次` : "轮次未知（旧记录）";
+  return run.sequence != null ? `第 ${run.sequence}/${Math.max(total, run.sequence)} 次` : "轮次未知";
 }
 function modelStageLabel(stage?: string): string {
   return ({ tool_request: "请求 Tool · 中间响应", final_response: "最终模型回答", failed: "请求失败", cancelled: "已取消", timeout: "请求超时", pending: "等待模型响应", unknown: "阶段未知" } as Record<string, string>)[stage || "unknown"] || "阶段未知";
 }
-function pretty(value: unknown) { return JSON.stringify(value, null, 2); }
+function pretty(value: unknown): string { return JSON.stringify(value, null, 2) ?? String(value); }
+function diagnosticText(value: unknown): string {
+  let messages: unknown[] | null = null;
+  if (Array.isArray(value)) messages = value;
+  else if (value && typeof value === "object") {
+    const nested = (value as Record<string, unknown>).messages;
+    if (Array.isArray(nested)) messages = nested;
+  }
+  if (messages) return messages.map((message) => diagnosticText(message)).join("\n\n");
+  if (!value || typeof value !== "object" || Array.isArray(value) || !("role" in value)) return pretty(value);
+  const message = value as Record<string, unknown>;
+  const content = Array.isArray(message.content)
+    ? message.content.map((part) => {
+        if (!part || typeof part !== "object") return pretty(part);
+        const item = part as Record<string, unknown>;
+        if (item.type === "text") return String(item.text ?? "");
+        if (item.type === "image_url") return `[图片：${String((item.image_url as Record<string, unknown> | undefined)?.url ?? "REDACTED_IMAGE_DATA")}]`;
+        return pretty(item);
+      }).join("\n")
+    : typeof message.content === "string" ? message.content : pretty(message.content);
+  const extra = Object.fromEntries(Object.entries(message).filter(([key, item]) => key !== "role" && key !== "content" && item != null && item !== "" && (!Array.isArray(item) || item.length > 0)));
+  return `[${String(message.role)}]\n${content}${Object.keys(extra).length ? `\n${pretty(extra)}` : ""}`;
+}
 function isMetadataOnlyPrompt(prompt: unknown): boolean {
   if (!prompt || typeof prompt !== "object") return false;
   if ("diagnostic_scope" in (prompt as Record<string, unknown>) && (prompt as Record<string, unknown>).diagnostic_scope === "metadata_only") return true;
@@ -170,7 +192,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
         <div class="lifecycle-filter-actions"><Button type="submit">应用过滤</Button><Button variant="outline" type="button" @click="clearLifecycleFilters">清除</Button><Button variant="outline" type="button" @click="controlCenter.exportDiagnostics">导出当前过滤</Button></div>
       </form>
       <div v-if="controlCenter.loading" class="empty-panel compact">正在加载诊断信息...</div>
-      <div v-else-if="(currentSection === 'lifecycle' && !controlCenter.lifecycleDiagnostics.length && !controlCenter.workflowIntentSnapshots.length) || (currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length && !controlCenter.diagnosticAgentRuns.length) || (currentSection === 'media-prompts' && !controlCenter.diagnosticMediaPrompts.length) || (currentSection === 'events' && !controlCenter.diagnostics.length)" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>{{ currentSection === 'lifecycle' ? '没有匹配的触发或工作流状态；可清除过滤查看全部。' : '该主题暂时没有可展示的脱敏记录。' }}</p></div>
+      <div v-else-if="(currentSection === 'lifecycle' && !controlCenter.lifecycleDiagnostics.length && !controlCenter.workflowIntentSnapshots.length) || (currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length && !controlCenter.diagnosticAgentRuns.length) || (currentSection === 'media-prompts' && !controlCenter.diagnosticMediaPrompts.length) || (currentSection === 'events' && !controlCenter.diagnostics.length)" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>{{ currentSection === 'lifecycle' ? '没有匹配的触发或工作流状态；可清除过滤查看全部。' : '该主题暂时没有可展示的诊断记录。' }}</p></div>
       <div v-else class="diagnostics-groups">
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="diagnostics-accordion">
         <AccordionItem v-if="currentSection === 'lifecycle'" value="lifecycle" class="diagnostic-group diagnostics-drawer">
@@ -202,12 +224,12 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
                 <div class="diagnostic-meta">
                   <strong>{{ modelRoundLabel(run, group.total) }} · {{ modelStageLabel(run.stage) }}</strong>
                   <Badge class="status-pill" :class="statusClass(run.status)" variant="secondary">{{ statusLabel(run.status) }}</Badge>
-                  <Badge v-if="isMetadataOnlyPrompt(run.prompt)" variant="outline" class="meta-only-pill">安全脱敏</Badge>
+                  <Badge v-if="isMetadataOnlyPrompt(run.prompt)" variant="outline" class="meta-only-pill">历史元数据</Badge>
                   <small>绑定：{{ bindingLabel(run.bindingRole || run.role) }} · {{ run.modelId }}<template v-if="run.priority"> · 优先级 {{ run.priority }}</template><template v-if="run.queuePosition"> · 队列第 {{ run.queuePosition }}</template> · <time class="diagnostic-time" :datetime="run.createdAt">{{ formatRunTime(run.createdAt) }}</time><template v-if="run.queuedAt && run.queuedAt !== run.createdAt"> · 排队 {{ formatRunTime(run.queuedAt) }}</template><template v-if="run.startedAt"> · 开始 {{ formatRunTime(run.startedAt) }}</template><template v-if="run.completedAt"> · 结束 {{ formatRunTime(run.completedAt) }}</template></small>
                 </div>
                 <p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p>
-                <details><summary>查看本次 Prompt <small v-if="isMetadataOnlyPrompt(run.prompt)" class="prompt-meta-note">（脱敏元数据）</small></summary><p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此运行的原始提示词已脱敏，显示安全元数据。</p><pre>{{ pretty(run.prompt) }}</pre></details>
-                <details v-if="run.response != null"><summary>查看本次 Response</summary><pre>{{ pretty(run.response) }}</pre></details>
+                <details><summary>查看本次 Prompt <small v-if="isMetadataOnlyPrompt(run.prompt)" class="prompt-meta-note">（历史元数据记录）</small></summary><p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此历史记录只保存了元数据，原始提示词无法恢复。</p><pre>{{ diagnosticText(run.prompt) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.prompt) }}</pre></details></details>
+                <details v-if="run.response != null"><summary>查看本次 Response</summary><pre>{{ diagnosticText(run.response) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.response) }}</pre></details></details>
                 <p v-else class="field-note">本次请求尚无 Response。</p>
                 <ul v-if="run.toolSummaries?.length" class="detail-list" aria-label="Tool 往返摘要"><li v-for="tool in run.toolSummaries" :key="tool.callId"><strong>{{ tool.capability }}</strong> · {{ tool.status }}<template v-if="tool.errorCode"> · {{ tool.errorCode }}</template></li></ul>
               </article>

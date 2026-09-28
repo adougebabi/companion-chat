@@ -27,6 +27,7 @@ func habitInspectDefinition() CapabilityDefinition {
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema:   objectSchema(map[string]any{}, nil, false), OutputSchema: openObjectSchema(),
 		SideEffectClass: "read_only", SuccessBoundary: "query_result_available", ConcurrencyClass: "parallel", SupportsRetry: true,
+		ModelResultOmitFields: []string{"profile_id", "revision"},
 	}
 }
 func (c habitInspectCapability) Definition() CapabilityDefinition { return habitInspectDefinition() }
@@ -66,6 +67,7 @@ func habitDecideDefinition() CapabilityDefinition {
 		}, []string{"operation", "reason"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "native_projection", SuccessBoundary: "effective_habit_committed",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"profile_id", "revision", "habits", "working_persona_source_hash_prefix"},
 	}
 }
 func (c habitDecideCapability) Definition() CapabilityDefinition { return habitDecideDefinition() }

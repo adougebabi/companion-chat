@@ -104,8 +104,8 @@ func TestFormalWakeUpAdvancesElapsedHaircutWithoutSendingMessage(t *testing.T) {
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("wake-advance-haircut", lifeActivityAdvanceCapabilityName,
 				map[string]any{"activity_id": activityID})}}
 		}
-		if !payloadHasToolResult(payload) || !strings.Contains(nativePersonaToolMessages(payload), "body_revision") {
-			t.Fatalf("WakeUp continuation did not consume actual haircut result: %#v", payload["messages"])
+		if !payloadHasToolResult(payload) || !strings.Contains(jsonString(payload), "hair_length") || strings.Contains(nativePersonaToolMessages(payload), "body_revision") {
+			t.Fatalf("WakeUp continuation did not receive refreshed haircut state: %#v", payload["messages"])
 		}
 		return fakeProviderResult{Structured: map[string]any{"action_type": "no_op", "response_intent": "已完成生活活动，不主动打扰用户", "evidence_refs": []any{}, "influences": []any{}}}
 	})

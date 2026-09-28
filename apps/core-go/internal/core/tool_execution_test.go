@@ -31,6 +31,90 @@ func TestModelFacingStateReceiptsOmitFactsAlreadyInCurrentContext(t *testing.T) 
 	}
 }
 
+func TestModelFacingMutationReceiptsOmitCoreIdentifiers(t *testing.T) {
+	cases := []struct {
+		name       string
+		definition CapabilityDefinition
+		output     map[string]any
+		forbidden  []string
+	}{
+		{"image", imageCapabilityDefinition(), map[string]any{"status": "pending", "media_intent_id": "media-intent-private", "task_id": "workflow-private", "target_ref": "target-private", "replayed": false}, []string{"media-intent-private", "workflow-private", "target-private", "replayed"}},
+		{"scene", sceneCapabilityDefinition(), map[string]any{"operation": "switch", "status": "confirmed", "event_id": "event-private", "inbox_id": "inbox-private", "event_revision": 2, "expected_context_revision": "life-private", "resulting_context_revision": "life-next", "replayed": false}, []string{"event-private", "inbox-private", "event_revision", "life-private", "life-next", "replayed"}},
+		{"presence", presenceCapabilityDefinition(), map[string]any{"status": "active", "overlay_id": "overlay-private", "inbox_id": "inbox-private", "overlay_revision": 2, "replayed": false}, []string{"overlay-private", "inbox-private", "overlay_revision", "replayed"}},
+		{"schedule", scheduleReplanCapabilityDefinition(), map[string]any{"status": "completed", "schedule_id": "schedule-private", "revision": 2, "previous_version": "version-private"}, []string{"schedule-private", "revision", "version-private"}},
+		{"moment", momentPublishCapabilityDefinition(), map[string]any{"text": "posted text", "target_ref": "moment-private", "replayed": false}, []string{"posted text", "moment-private", "replayed"}},
+		{"visual", visualIdentityGenerateCandidateCapabilityDefinition(), map[string]any{"status": "pending", "session_id": "session-private", "media_intent_id": "media-private", "task_id": "workflow-private", "replayed": false}, []string{"session-private", "media-private", "workflow-private", "replayed"}},
+		{"visual initialize", visualIdentityInitializeCapabilityDefinition(), map[string]any{"status": "queued", "session_id": "session-private"}, []string{"session-private"}},
+		{"intention decide", intentionDecideDefinition(), map[string]any{"status": "candidate", "intention_id": "intention-select", "goal_id": "goal-private", "revision": 3, "reused": false}, []string{"goal-private", "revision", "reused"}},
+		{"appearance style", appearanceStyleDefinition(), map[string]any{"status": "known", "style": "ponytail", "body_revision": 3}, []string{"body_revision"}},
+		{"wardrobe wear", wardrobeWearDefinition(), map[string]any{"mode": "partial", "revision": 3, "items": []any{map[string]any{"id": "item-private"}}}, []string{"revision", "item-private"}},
+		{"wardrobe outfit", wardrobeOutfitSaveDefinition(), map[string]any{"outfit_id": "outfit-select", "revision": 3, "wardrobe_revision": 4, "item_count": 2}, []string{"revision"}},
+		{"intention schedule", scheduledActivityDefinition(), map[string]any{"status": "scheduled", "goal_id": "goal-private", "intention_id": "intention-select", "schedule_id": "schedule-private", "schedule_item_id": "item-select"}, []string{"goal-private", "schedule-private"}},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			visible := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: testCase.output}}, testCase.definition)
+			encoded := jsonString(visible)
+			for _, forbidden := range testCase.forbidden {
+				if strings.Contains(encoded, forbidden) {
+					t.Fatalf("model-facing %s receipt contains %q: %s", testCase.name, forbidden, encoded)
+				}
+			}
+			if visible["status"] != "completed" {
+				t.Fatalf("receipt lost completion status: %#v", visible)
+			}
+		})
+	}
+}
+
+func TestModelFacingHabitAndWardrobeQueriesKeepSelectionKeysWithoutStorageMetadata(t *testing.T) {
+	habit := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: map[string]any{"profile_id": "profile-private", "revision": 3, "habits": []any{map[string]any{"index": 0, "value": "每天读书"}}}}}, habitInspectDefinition())
+	if encoded := jsonString(habit); strings.Contains(encoded, "profile-private") || strings.Contains(encoded, "revision") || !strings.Contains(encoded, "每天读书") || !strings.Contains(encoded, `"index":0`) {
+		t.Fatalf("habit query projection wrong: %s", encoded)
+	}
+	wardrobe := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: map[string]any{
+		"revision": 5, "items": []any{map[string]any{"id": "item-select", "description": "蓝色外套", "revision": 2, "source_ref": "source-private", "source_kind": "purchase"}},
+		"outfits": []any{map[string]any{"id": "outfit-select", "name": "周末", "revision": 3, "profile_id": "profile-private"}},
+	}}}, wardrobeInspectDefinition())
+	encoded := jsonString(wardrobe)
+	for _, forbidden := range []string{"revision", "source-private", "source_kind", "profile-private"} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("wardrobe query exposed %q: %s", forbidden, encoded)
+		}
+	}
+	for _, necessary := range []string{"item-select", "outfit-select", "蓝色外套", "周末"} {
+		if !strings.Contains(encoded, necessary) {
+			t.Fatalf("wardrobe query lost %q: %s", necessary, encoded)
+		}
+	}
+}
+
+func TestModelFacingQueryReceiptKeepsSelectionRefWithoutNestedRevision(t *testing.T) {
+	output := map[string]any{"items": []any{map[string]any{"ref": "memory:ctx_0123456789abcdef0123456789abcdef", "content": "记得那家书店", "revision": 7}}, "count": 1}
+	visible := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: output}}, memoryRecallCapabilityDefinition())
+	encoded := jsonString(visible)
+	if strings.Contains(encoded, "revision") || !strings.Contains(encoded, "memory:ctx_0123456789abcdef0123456789abcdef") || !strings.Contains(encoded, "记得那家书店") {
+		t.Fatalf("memory recall model result lost semantic ref or kept revision: %s", encoded)
+	}
+	if intValue(mapValue(arrayValue(output["items"])[0])["revision"]) != 7 {
+		t.Fatalf("model projection mutated Core receipt: %#v", output)
+	}
+}
+
+func TestNestedModelResultOmitPathsRejectMalformedSegmentsAndUnknownClosedFields(t *testing.T) {
+	for _, invalid := range []string{".revision", "items..revision", "items.revision.", "items.revison"} {
+		definition := memoryRecallCapabilityDefinition()
+		definition.ModelResultOmitFields = []string{invalid}
+		if err := definition.Validate(); err == nil {
+			t.Fatalf("invalid model result omit path %q was accepted", invalid)
+		}
+	}
+	definition := memoryRecallCapabilityDefinition()
+	if err := definition.Validate(); err != nil {
+		t.Fatalf("declared array-item omit path was rejected: %v", err)
+	}
+}
+
 type failingDirectQueryCapability struct{}
 
 func TestInvalidCapabilityArgumentsReturnCorrectableToolReceipt(t *testing.T) {

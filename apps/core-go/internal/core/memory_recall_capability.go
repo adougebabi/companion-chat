@@ -48,6 +48,7 @@ func memoryRecallCapabilityDefinition() CapabilityDefinition {
 			},
 		},
 		SideEffectClass: "read_only", SuccessBoundary: "query_result_available", ConcurrencyClass: "parallel", SupportsRetry: true,
+		ModelResultOmitFields: []string{"items.revision"},
 	}
 }
 

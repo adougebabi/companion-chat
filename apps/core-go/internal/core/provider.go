@@ -358,18 +358,12 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		usage = response.Usage
 		message := einoMessageRaw(response.Message)
 		finishReason := response.FinishReason
-		// Persist the actual Provider response before any ADK normalization,
-		// final-schema validation, or Tool settlement. A model can return a
-		// response successfully while a later Core stage fails; diagnostics
-		// must still display what the Provider returned. For ADK this summary is
-		// already a completed physical Provider response; later Agent failures
-		// are recorded as adk.run.termination events instead of a second failed
-		// model-run row that would hide this response in the Diagnostics Center.
-		modelRunStatus := providerRunRunning
-		if adkEnabled {
-			modelRunStatus = providerRunCompleted
+		// ADK physical calls persist their own request and response in
+		// queuedToolCallingChatModel. An outer summary here would look like an
+		// extra model round despite no additional Provider request.
+		if !adkEnabled {
+			p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, map[string]any{"message": message, "finish_reason": finishReason, "usage": response.Usage}), providerRunRunning, "")
 		}
-		p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, map[string]any{"message": message, "finish_reason": finishReason, "usage": response.Usage}), modelRunStatus, "")
 		if adkEnabled && jsonMode {
 			if responseErr := validateADKStructuredResponse(response.Message, role); responseErr != nil {
 				diagnostic := providerResponseDiagnostic(message, providerStructuredCandidates(message), 0)
@@ -897,10 +891,11 @@ func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment p
 }
 
 func (p *ProviderClient) recordProviderSuccessBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
-	// ADK uses several low-level model calls, but each completed call still
-	// needs a response snapshot in Diagnostics. The ADK capability trace owns
-	// execution semantics; this record is observability only and is safe to
-	// persist as a separate model-run row.
+	// Each ADK physical call has already persisted its own request and response.
+	// Do not add a parent summary that appears as an extra physical round.
+	if _, adk := adkCapabilityContext(ctx); adk {
+		return
+	}
 	p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, response)
 }
 
@@ -917,51 +912,11 @@ func (p *ProviderClient) recordBoundaryFailure(ctx context.Context, adkEnabled b
 }
 
 func providerDiagnosticMessages(role string, messages []map[string]any) []map[string]any {
-	if role != "initialization" {
-		return messages
-	}
-	return []map[string]any{{"role": "diagnostic", "content": providerPreflightDiagnosticPrompt(messages)}}
+	return messages
 }
 
 func providerDiagnosticResponse(role string, response any) any {
-	if role != "initialization" {
-		return response
-	}
-	encoded, _ := json.Marshal(response)
-	result := map[string]any{"diagnostic_scope": "metadata_only", "response_bytes": len(encoded), "response_digest": stableDigest(string(encoded))}
-	diagnostic := mapValue(response)
-	for _, key := range []string{
-		"content_present", "content_length", "reasoning_content_present", "reasoning_content_length",
-		"candidate_count", "tool_call_count", "delimiters_balanced", "syntax_offset",
-		"call_count", "failed_item_index", "id_present", "name_present", "name_length", "name_valid",
-		"arguments_present", "arguments_length",
-	} {
-		switch value := diagnostic[key].(type) {
-		case bool:
-			result[key] = value
-		case int:
-			result[key] = value
-		case int64:
-			result[key] = value
-		case float64:
-			if value >= 0 {
-				result[key] = value
-			}
-		}
-	}
-	for _, key := range []string{"parse_error", "finish_reason", "framing", "source", "value_shape", "item_shape", "function_shape", "id_type", "type_value", "arguments_shape", "normalization_reason"} {
-		if value := strings.TrimSpace(stringValue(diagnostic[key])); validLifecycleToken(value, 128, false) && value != "" {
-			result[key] = value
-		}
-	}
-	lengths := arrayValue(diagnostic["candidate_lengths"])
-	if len(lengths) > 4 {
-		lengths = lengths[:4]
-	}
-	if len(lengths) > 0 {
-		result["candidate_lengths"] = lengths
-	}
-	return result
+	return response
 }
 
 func (p *ProviderClient) recordProviderPreflightFailure(ctx context.Context, assignment providerAssignment, role, correlationID, stage string, messages []map[string]any, preflightErr error) {
@@ -1026,13 +981,7 @@ func classifyProviderPreflightError(stage string, preflightErr error) (category,
 }
 
 func providerPreflightDiagnosticPrompt(messages []map[string]any) map[string]any {
-	encoded, _ := json.Marshal(messages)
-	return map[string]any{
-		"diagnostic_scope":       "metadata_only",
-		"message_count":          len(messages),
-		"estimated_input_tokens": EstimatePromptTokens(messages),
-		"prompt_digest":          stableDigest(string(encoded)),
-	}
+	return map[string]any{"messages": messages}
 }
 
 func (p *ProviderClient) Structured(ctx context.Context, role string, messages []map[string]any) (map[string]any, error) {

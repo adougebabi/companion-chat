@@ -60,6 +60,7 @@ func lifeActivityStartDefinition() CapabilityDefinition {
 		OutputSchema: lifeActivityOutputSchema(), SideEffectClass: "native_projection", SuccessBoundary: "virtual_activity_started",
 		CompletionBoundary: "virtual_activity_resolved", OutcomeReferenceField: "activity_id",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"event_id", "item_id", "body_revision", "wardrobe_revision", "intention_id"},
 	}
 }
 func (c lifeActivityStartCapability) Definition() CapabilityDefinition {
@@ -303,6 +304,7 @@ func lifeActivityAdvanceDefinition() CapabilityDefinition {
 		InputSchema:   objectSchema(map[string]any{"activity_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "extend_minutes": map[string]any{"type": "integer", "minimum": 15, "maximum": 240}, "reason": map[string]any{"type": "string", "minLength": 1, "maxLength": 500}}, nil, false),
 		OutputSchema:  lifeActivityOutputSchema(), SideEffectClass: "native_projection", SuccessBoundary: "virtual_activity_resolution_committed",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"event_id", "item_id", "body_revision", "wardrobe_revision", "intention_id"},
 	}
 }
 func (c lifeActivityAdvanceCapability) Definition() CapabilityDefinition {

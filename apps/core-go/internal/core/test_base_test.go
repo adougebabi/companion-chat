@@ -293,7 +293,7 @@ func providerWireSchemaName(payload map[string]any) string {
 	if stringValue(responseFormat["type"]) == "json_object" {
 		for _, raw := range arrayValue(payload["messages"]) {
 			message := mapValue(raw)
-			if stringValue(message["role"]) == "user" && strings.Contains(stringValue(message["content"]), "rules_version: "+personaCompilationRulesVersion) {
+			if stringValue(message["role"]) == "system" && strings.Contains(stringValue(message["content"]), "压缩已由 Core 选定的人格资料") {
 				return "persona_compilation_response"
 			}
 		}

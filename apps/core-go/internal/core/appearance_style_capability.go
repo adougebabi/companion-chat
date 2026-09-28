@@ -41,6 +41,7 @@ func appearanceStyleDefinition() CapabilityDefinition {
 			"style":         map[string]any{"type": "string"},
 		}, []string{"body_revision", "status"}, false),
 		SideEffectClass: "native_projection", SuccessBoundary: "temporary_hairstyle_committed", ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"body_revision"},
 	}
 }
 func (c appearanceStyleCapability) Definition() CapabilityDefinition {

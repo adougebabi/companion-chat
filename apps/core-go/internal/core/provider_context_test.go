@@ -408,7 +408,7 @@ func TestCompactCognitionContextOmitsVisualIdentityWorkflowTimeline(t *testing.T
 		t.Fatal("full visual identity snapshot leaked into cognition context")
 	}
 	constraints := mapValue(visual["renderer_constraints"])
-	if constraints["chest_cup"] != "B" || constraints["chest_lora_weight"] != -3.0 {
+	if constraints["chest_cup"] != "B" || constraints["chest_lora_weight"] != nil {
 		t.Fatalf("renderer constraints = %#v", constraints)
 	}
 	if _, ok := constraints["adapter_version"]; ok {
@@ -978,11 +978,14 @@ func TestConversationLifeContextFiltersValidNestedRefsByKind(t *testing.T) {
 		"schedule_ref":      "schedule:ctx_cccccccccccccccccccccccccccccccc",
 		"schedule_item_ref": "schedule_item:ctx_dddddddddddddddddddddddddddddddd",
 		"presence_ref":      "presence:ctx_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-		"scene":             "书房", "presence": map[string]any{"ref": "presence:ctx_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "current_task": "阅读"},
+		"scene":             "书房", "context_revision": "life_ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "presence": map[string]any{"ref": "presence:ctx_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "current_task": "阅读"},
 	}
 	main := compactLifeContextForSurface(life, index, ProviderContextSurfaceConversationMain)
 	if main["ref"] != life["ref"] || main["scene"] != "书房" || mapValue(main["presence"])["current_task"] != "阅读" {
 		t.Fatalf("conversation lost current life semantics: %#v", main)
+	}
+	if main["context_revision"] != nil {
+		t.Fatalf("conversation exposed Core CAS revision: %#v", main)
 	}
 	for _, key := range []string{"event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
 		if _, exists := main[key]; exists {
@@ -993,9 +996,14 @@ func TestConversationLifeContextFiltersValidNestedRefsByKind(t *testing.T) {
 		t.Fatalf("conversation leaked nested presence ref: %#v", main)
 	}
 	wake := compactLifeContextForSurface(life, index, ProviderContextSurfaceWakeUp)
-	for _, key := range []string{"ref", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
+	for _, key := range []string{"ref", "event_ref", "presence_ref"} {
 		if wake[key] != life[key] {
 			t.Fatalf("wake-up lost %s: %#v", key, wake)
+		}
+	}
+	for _, key := range []string{"schedule_ref", "schedule_item_ref", "context_revision"} {
+		if _, exists := wake[key]; exists {
+			t.Fatalf("wake-up retained redundant %s: %#v", key, wake)
 		}
 	}
 	life["schedule_ref"] = life["ref"]

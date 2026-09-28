@@ -8,6 +8,26 @@ import (
 	"time"
 )
 
+func TestVirtualActivityModelInputOmitsStoredIDsAndRevisions(t *testing.T) {
+	input := VirtualActivityResultTaskInput{
+		Kind: "haircut", Request: map[string]any{"activity_id": "activity-private", "desired_hair_length": "短发", "description": "剪短头发", "revision": 3},
+		CurrentAppearance: map[string]any{"body_revision": 4, "hair": "长发"},
+		CurrentLife:       map[string]any{"scene": "理发店", "context_revision": "life-private"},
+		RecentOutcomes:    []map[string]any{{"id": "outcome-private", "status": "completed", "observed": map[string]any{"hair_length": "长发"}}},
+	}
+	encoded := jsonString(virtualActivityModelInput(input))
+	for _, forbidden := range []string{"activity-private", "body_revision", "life-private", "outcome-private", "\"revision\""} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("virtual activity input retained %q: %s", forbidden, encoded)
+		}
+	}
+	for _, necessary := range []string{"短发", "剪短头发", "长发", "理发店", "completed"} {
+		if !strings.Contains(encoded, necessary) {
+			t.Fatalf("virtual activity input lost %q: %s", necessary, encoded)
+		}
+	}
+}
+
 func TestLifeActivityAdvanceSchemaAllowsUniqueTargetInference(t *testing.T) {
 	advance := lifeActivityAdvanceDefinition()
 	if err := advance.Validate(); err != nil {

@@ -364,15 +364,14 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 		t.Fatal(err)
 	}
 	var providerCalls atomic.Int32
-	var decisionLifeRevision string
-	var firstDecisionLifeRevision string
 	app := &App{DB: repository}
+	decisionLifeRevision := stringValue(currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())["context_revision"])
+	var firstDecisionLifeRevision string
 	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		call := providerCalls.Add(1)
 		body, _ := io.ReadAll(request.Body)
 		lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(string(body))
-		decisionLifeRevision = regexp.MustCompile(`life_ctx_[a-f0-9]{32}`).FindString(string(body))
-		if lifeRef == "" || decisionLifeRevision == "" {
+		if lifeRef == "" || strings.Contains(string(body), decisionLifeRevision) {
 			t.Fatalf("Provider request omitted frozen Life Context ref: %s", body)
 		}
 		if call == 1 {

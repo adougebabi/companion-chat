@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -131,7 +132,7 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	}
 	workerLife := mapValue(mapValue(workerConcept["context_binding"])["current_life"])
 	liveLife := currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())
-	if stringValue(workerLife["context_revision"]) != stringValue(frozenLife["context_revision"]) || stringValue(workerLife["scene"]) != "客厅" || stringValue(workerLife["context_revision"]) == stringValue(liveLife["context_revision"]) || stringValue(liveLife["scene"]) != "厨房" {
+	if workerLife["context_revision"] != nil || stringValue(workerLife["scene"]) != "客厅" || stringValue(liveLife["scene"]) != "厨房" {
 		t.Fatalf("media worker did not keep committed snapshot: worker=%#v live=%#v", workerLife, liveLife)
 	}
 }
@@ -177,13 +178,12 @@ func TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale(t *test
 				t.Fatal(err)
 			}
 			var providerCalls atomic.Int32
-			var decisionRevision string
+			decisionRevision := stringValue(currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())["context_revision"])
 			providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 				call := providerCalls.Add(1)
 				body, _ := io.ReadAll(request.Body)
 				lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(string(body))
-				decisionRevision = regexp.MustCompile(`life_ctx_[a-f0-9]{32}`).FindString(string(body))
-				if lifeRef == "" || decisionRevision == "" {
+				if lifeRef == "" || strings.Contains(string(body), decisionRevision) {
 					return nil, errors.New("model-visible Life Context authority missing")
 				}
 				if call == 1 {

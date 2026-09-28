@@ -254,13 +254,13 @@ func TestInitializationPromptRestoresCompleteSemanticVocabulary(t *testing.T) {
 	}
 }
 
-func TestInitializationModelRunDiagnosticsAreMetadataOnly(t *testing.T) {
+func TestInitializationModelRunDiagnosticsKeepOriginalText(t *testing.T) {
 	const canary = "PRIVATE_INITIALIZATION_CARD_CANARY"
 	messages := providerDiagnosticMessages("initialization", []map[string]any{{"role": "user", "content": canary}})
 	response := providerDiagnosticResponse("initialization", map[string]any{"core_persona": map[string]any{"notes": canary}})
 	encoded := jsonString(map[string]any{"messages": messages, "response": response})
-	if strings.Contains(encoded, canary) || !strings.Contains(encoded, "metadata_only") || !strings.Contains(encoded, "prompt_digest") || !strings.Contains(encoded, "response_digest") {
-		t.Fatalf("initialization diagnostics leaked source/response: %s", encoded)
+	if !strings.Contains(encoded, canary) || strings.Contains(encoded, "metadata_only") {
+		t.Fatalf("initialization diagnostic text was replaced: %s", encoded)
 	}
 }
 

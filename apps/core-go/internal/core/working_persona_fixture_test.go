@@ -26,23 +26,7 @@ func withControlledPersonaCompilation(inner http.RoundTripper) http.RoundTripper
 		if providerWireSchemaName(payload) != "persona_compilation_response" {
 			return inner.RoundTrip(request)
 		}
-		profileID := ""
-		for _, raw := range arrayValue(payload["messages"]) {
-			message := mapValue(raw)
-			if stringValue(message["role"]) != "user" {
-				continue
-			}
-			for _, line := range strings.Split(stringValue(message["content"]), "\n") {
-				if strings.HasPrefix(line, "profile_id:") {
-					profileID = strings.TrimSpace(strings.TrimPrefix(line, "profile_id:"))
-					break
-				}
-			}
-		}
-		if profileID == "" {
-			return embeddingHTTPResponse(request, http.StatusBadRequest, `{"error":"fixture_profile_missing"}`), nil
-		}
-		result := map[string]any{"portrait_text": "保留" + profileID + "人格的稳定机制"}
+		result := map[string]any{"portrait_text": "保留选定人格的稳定机制"}
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(result)}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})

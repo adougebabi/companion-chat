@@ -2,15 +2,18 @@ package core
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"reflect"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -345,7 +348,7 @@ func recordDiagnosticPersistenceFailure(component, stage, correlationID string, 
 		"stage", stage,
 		"correlation_id", correlationID,
 		"error_type", fmt.Sprintf("%T", err),
-		"safe_cause", boundedLifecycleCause(err.Error()),
+		"safe_cause", boundedOperationalCause(err.Error()),
 	}
 	fields = append(fields, attributes...)
 	slog.Warn("Go Core diagnostic persistence failed", fields...)
@@ -382,6 +385,10 @@ func boundedLifecycleCause(value string) string {
 	if value == "" {
 		return ""
 	}
+	return boundedLifecycleString(redactDiagnostic(value).(string))
+}
+
+func boundedOperationalCause(value string) string {
 	lower := strings.ToLower(value)
 	normalized := strings.NewReplacer("_", "", "-", "", " ", "", "=", "", ":", "").Replace(lower)
 	for _, secret := range []string{"token", "password", "secret", "credential", "authorization", "apikey", "cookie", "session", "servicekey", "rawprompt", "rawresponse", "reasoning"} {
@@ -392,7 +399,7 @@ func boundedLifecycleCause(value string) string {
 	if strings.Contains(lower, "bearer ") || strings.Contains(lower, "sk-") || (strings.Contains(lower, "://") && strings.Contains(lower, "@")) {
 		return "[REDACTED]"
 	}
-	return boundedLifecycleString(value)
+	return boundedLifecycleCause(value)
 }
 
 func boundedLifecycleString(value string) string {
@@ -421,11 +428,37 @@ func boundedLifecycleDiagnosticValue(value reflect.Value, depth int, seen map[li
 		}
 		value = value.Elem()
 	}
-	if lifecycleMetadataSecretField(fieldName) {
-		return "[REDACTED]", nil
+	imageField := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(fieldName, "_", ""), "-", "")) == "imageurl"
+	if imageField || diagnosticImagePayloadField(fieldName) {
+		if imageField && (value.Kind() == reflect.Map || value.Kind() == reflect.Struct || value.Kind() == reflect.Pointer) {
+			encoded, err := json.Marshal(value.Interface())
+			if err == nil {
+				var decoded any
+				if json.Unmarshal(encoded, &decoded) == nil {
+					return mapValue(redactDiagnostic(map[string]any{"image_url": decoded}))["image_url"], nil
+				}
+			}
+		}
+		return "[REDACTED_IMAGE_DATA]", nil
 	}
 	if value.Type() == reflect.TypeOf(json.RawMessage{}) || ((value.Kind() == reflect.Slice || value.Kind() == reflect.Array) && value.Type().Elem().Kind() == reflect.Uint8) {
-		return "[REDACTED_BINARY]", nil
+		raw := make([]byte, value.Len())
+		for index := range raw {
+			raw[index] = byte(value.Index(index).Uint())
+		}
+		if strings.HasPrefix(http.DetectContentType(raw), "image/") {
+			return "[REDACTED_IMAGE_DATA]", nil
+		}
+		if value.Type() == reflect.TypeOf(json.RawMessage{}) {
+			var decoded any
+			if json.Unmarshal(raw, &decoded) == nil {
+				return redactDiagnostic(decoded), nil
+			}
+		}
+		if utf8.Valid(raw) {
+			return redactDiagnostic(string(raw)), nil
+		}
+		return base64.StdEncoding.EncodeToString(raw), nil
 	}
 	if value.Kind() == reflect.Pointer {
 		if value.IsNil() {
@@ -461,9 +494,6 @@ func boundedLifecycleDiagnosticValue(value reflect.Value, depth int, seen map[li
 		result := make(map[string]any, len(keys))
 		for _, key := range keys {
 			name := key.String()
-			if lifecycleMetadataDroppedField(name) {
-				continue
-			}
 			child, err := boundedLifecycleDiagnosticValue(value.MapIndex(key), depth+1, seen, name)
 			if err != nil {
 				return nil, err
@@ -489,9 +519,6 @@ func boundedLifecycleDiagnosticValue(value reflect.Value, depth int, seen map[li
 				continue
 			} else if tag != "" {
 				name = tag
-			}
-			if lifecycleMetadataDroppedField(name) {
-				continue
 			}
 			child, err := boundedLifecycleDiagnosticValue(value.FieldByIndex(field.Index), depth+1, seen, name)
 			if err != nil {
@@ -523,7 +550,7 @@ func boundedLifecycleDiagnosticValue(value reflect.Value, depth int, seen map[li
 		}
 		return result, nil
 	case reflect.String:
-		return boundedLifecycleString(value.String()), nil
+		return boundedLifecycleString(redactDiagnostic(value.String()).(string)), nil
 	case reflect.Bool:
 		return value.Bool(), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -535,15 +562,4 @@ func boundedLifecycleDiagnosticValue(value reflect.Value, depth int, seen map[li
 	default:
 		return "[UNSUPPORTED]", nil
 	}
-}
-
-func lifecycleMetadataSecretField(fieldName string) bool {
-	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(fieldName, "-", ""), "_", ""))
-	_, secret := diagnosticSecretKeys[normalized]
-	return secret
-}
-
-func lifecycleMetadataDroppedField(fieldName string) bool {
-	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(fieldName, "-", ""), "_", ""))
-	return normalized == "perception" || normalized == "appraisal"
 }

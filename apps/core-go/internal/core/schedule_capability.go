@@ -36,6 +36,7 @@ func scheduleReplanCapabilityDefinition() CapabilityDefinition {
 			},
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "schedule_version_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		ModelResultOmitFields: []string{"schedule_id", "revision", "previous_version"},
 	}
 }
 
@@ -73,14 +74,7 @@ func (planner providerSchedulePlanner) Plan(ctx context.Context, input ScheduleP
 	instruction := scheduleReplanPlannerInstruction(input)
 	messages := []map[string]any{
 		{"role": "system", "content": instruction},
-		{"role": "user", "content": jsonString(map[string]any{
-			"intent":         input.Intent,
-			"planned_action": input.PlannedAction,
-			"schedule":       compactScheduleForProvider(input.Schedule),
-			"current_life":   compactLifeContext(input.CurrentLife),
-			"agency":         compactSchedulePlannerAgency(input.Agency),
-			"timezone":       input.Timezone,
-		})},
+		{"role": "user", "content": jsonString(scheduleReplanModelInput(input))},
 	}
 	return planner.provider.StructuredWithSchema(WithProviderScenario(ctx, "schedule_replan_planner"), "cognitive_assessment", messages, "schedule_replan_plan", schedulePlannerOutputSchema(), false)
 }
@@ -96,13 +90,45 @@ func compactSchedulePlannerAgency(agency map[string]any) map[string]any {
 		}
 		return rows
 	}
-	if goals := compactProviderGoals(toRows(agency["goals"])); len(goals) > 0 {
+	goals := make([]map[string]any, 0)
+	for _, source := range toRows(agency["goals"]) {
+		goal := compactStateMap(source, []string{"scope", "success_criteria", "motivation", "status", "importance", "urgency", "progress", "deadline"})
+		goal["desired_outcome"] = firstString(stringValue(source["desired_outcome"]), stringValue(source["description"]))
+		goals = append(goals, goal)
+	}
+	if len(goals) > 0 {
 		result["goals"] = goals
 	}
-	if intentions := compactProviderIntentions(toRows(agency["intentions"])); len(intentions) > 0 {
+	intentions := make([]map[string]any, 0)
+	for _, source := range toRows(agency["intentions"]) {
+		intention := compactStateMap(source, []string{"expected_outcome", "status", "confidence", "preferred_time", "expiration", "capability_constraints"})
+		intention["action_intent"] = firstString(stringValue(source["action_intent"]), stringValue(source["action"]))
+		intentions = append(intentions, intention)
+	}
+	if len(intentions) > 0 {
 		result["intentions"] = intentions
 	}
 	return result
+}
+
+func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
+	schedule := compactStateMap(input.Schedule, []string{"local_date", "timezone", "completed_before", "reschedule_policy"})
+	items := make([]map[string]any, 0)
+	for _, raw := range arrayValue(input.Schedule["items"]) {
+		item := compactStateMap(raw, []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id"})
+		if len(item) > 0 {
+			items = append(items, item)
+		}
+	}
+	schedule["items"] = items
+	return map[string]any{
+		"intent":         input.Intent,
+		"planned_action": scheduleGenerationSemanticValue(input.PlannedAction),
+		"schedule":       schedule,
+		"current_life":   compactMediaLifeContext(input.CurrentLife),
+		"agency":         compactSchedulePlannerAgency(input.Agency),
+		"timezone":       input.Timezone,
+	}
 }
 
 func schedulePlannerOutputSchema() map[string]any {
@@ -113,13 +139,12 @@ func schedulePlannerOutputSchema() map[string]any {
 		"planned_action_slot": map[string]any{"type": "boolean"},
 	}, []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"}, false)
 	return objectSchema(map[string]any{
-		"local_date": stringSchema(), "timezone": stringSchema(), "expected_revision": integerSchema(),
-		"completed_before": stringSchema(), "items": arraySchema(item), "reschedule_policy": openObjectSchema(),
-	}, []string{"local_date", "timezone", "expected_revision", "completed_before", "items", "reschedule_policy"}, false)
+		"items": arraySchema(item), "reschedule_policy": openObjectSchema(),
+	}, []string{"items", "reschedule_policy"}, false)
 }
 
 func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
-	instruction := "Return only a complete schedule replacement. Preserve completed history and use the supplied timezone and revision. If an existing future item has intention_id, preserve that exact intention_id on one corresponding item in the replacement; do not invent or drop executable intention links."
+	instruction := "Return only replacement items and reschedule_policy. Preserve completed history and use the supplied timezone; Core binds schedule identity and revisions. If an existing future item has intention_id, preserve that exact intention_id on one corresponding item in the replacement; do not invent or drop executable intention links."
 	if intValue(input.Schedule["revision"]) == 0 {
 		instruction = "Return a complete current-local-day Schedule covering midnight to next midnight, with explicit free time. No accepted schedule exists yet."
 	}
@@ -127,6 +152,24 @@ func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
 		instruction += " Place the planned_action into exactly one future item of the current local day. Mark that item planned_action_slot=true; all other items must omit it. The chosen item must last at least planned_action.duration_minutes. This is an appointment plan, not an activity already started or completed. Keep completed intervals unchanged."
 	}
 	return instruction
+}
+
+func scheduleReplanCompletedBefore(schedule map[string]any) string {
+	if boundary := strings.TrimSpace(stringValue(schedule["completed_before"])); boundary != "" {
+		return boundary
+	}
+	if intValue(schedule["revision"]) != 0 {
+		return ""
+	}
+	location, err := time.LoadLocation(stringValue(schedule["timezone"]))
+	if err != nil {
+		return ""
+	}
+	day, err := time.ParseInLocation("2006-01-02", stringValue(schedule["local_date"]), location)
+	if err != nil {
+		return ""
+	}
+	return day.Format(time.RFC3339)
 }
 
 func (a *App) applyScheduleReplanCapability(ctx context.Context, invocation CapabilityInvocation) (CapabilityResult, error) {

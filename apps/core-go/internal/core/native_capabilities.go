@@ -46,7 +46,8 @@ func sceneCapabilityDefinition() CapabilityDefinition {
 			},
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "life_context_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
-		ProvenanceFields: []string{"evidence_refs", "idempotency_key"},
+		ProvenanceFields:      []string{"evidence_refs", "idempotency_key"},
+		ModelResultOmitFields: []string{"event_id", "inbox_id", "event_revision", "expected_context_revision", "resulting_context_revision", "replayed"},
 	}
 }
 
@@ -88,7 +89,8 @@ func presenceCapabilityDefinition() CapabilityDefinition {
 			},
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "presence_overlay_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
-		ProvenanceFields: []string{"evidence_refs", "idempotency_key"},
+		ProvenanceFields:      []string{"evidence_refs", "idempotency_key"},
+		ModelResultOmitFields: []string{"overlay_id", "inbox_id", "overlay_revision", "expected_context_revision", "resulting_context_revision", "replayed"},
 	}
 }
 

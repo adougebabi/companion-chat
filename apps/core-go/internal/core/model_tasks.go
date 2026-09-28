@@ -70,6 +70,9 @@ type MediaPromptTaskInput struct {
 }
 
 func (a *App) RunMediaPromptTask(ctx context.Context, input MediaPromptTaskInput) (string, error) {
+	if _, ok := compactMediaConceptObjectForProvider(input.Intent.Prompt); !ok {
+		return "", errors.New("media_prompt_frozen_concept_invalid")
+	}
 	messages := []map[string]any{
 		{"role": "system", "content": mediaPromptSystemInstruction(input.Intent)},
 		{"role": "user", "content": mediaPromptInput(input.Intent)},
@@ -284,14 +287,30 @@ func virtualActivityResultSchema() map[string]any {
 func (a *App) RunVirtualActivityResultTask(ctx context.Context, input VirtualActivityResultTaskInput) (map[string]any, error) {
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": virtualActivityResultInstruction},
-		{"role": "user", "content": jsonString(map[string]any{
-			"kind": input.Kind, "request": input.Request, "started_at": input.StartedAt, "not_before": input.NotBefore,
-			"current_appearance": input.CurrentAppearance, "current_life": input.CurrentLife, "recent_outcomes": input.RecentOutcomes,
-		})},
+		{"role": "user", "content": jsonString(virtualActivityModelInput(input))},
 	})
 	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "virtual_activity_result"), FormalAgentVirtualActivityResult, messages,
 		nil, "virtual_activity_result", virtualActivityResultSchema(), false, nil)
 	return run.Completion.Structured, err
+}
+
+func virtualActivityModelInput(input VirtualActivityResultTaskInput) map[string]any {
+	outcomes := make([]map[string]any, 0, len(input.RecentOutcomes))
+	for _, source := range input.RecentOutcomes {
+		outcome := compactStateMap(source, []string{"capability_name", "status", "success_boundary", "error_code", "occurred_at"})
+		if observed := scheduleGenerationSemanticValue(source["observed"]); observed != nil {
+			outcome["observed"] = observed
+		}
+		outcomes = append(outcomes, outcome)
+	}
+	return map[string]any{
+		"kind":       input.Kind,
+		"request":    compactStateMap(input.Request, []string{"category", "slot", "description", "desired_hair_length", "desired_hair_color", "scene", "activity", "location", "duration_minutes"}),
+		"started_at": input.StartedAt, "not_before": input.NotBefore,
+		"current_appearance": compactMediaAppearance(input.CurrentAppearance),
+		"current_life":       compactMediaLifeContext(input.CurrentLife),
+		"recent_outcomes":    outcomes,
+	}
 }
 
 const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. Use only as many intervals as the supplied facts require, no more than 16; cover the local day contiguously from 00:00 through the next 00:00, with explicit free/unplanned/rest intervals where nothing is committed. Identity or occupation alone does not establish a daily class, library visit, uniform, or fixed routine. Preserve supplied recurring commitments as constraints, distinguish an intention from a scheduled action and a completed result, and consider current state, existing activities and recent outcomes. Do not claim an activity happened just because its planned time passed. Every item needs start_at, end_at, activity, scene, location, item_type, status, priority, flexibility, interruption_cost. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent equivalent periods. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1. Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
@@ -303,10 +322,76 @@ func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGener
 	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": instruction},
-		{"role": "user", "content": jsonString(map[string]any{"local_date": input.LocalDate, "timezone": input.Timezone, "identity": input.Identity, "life_profile": input.LifeProfile, "current_state": input.CurrentState, "current_life": input.CurrentLife, "goals": input.Goals, "intentions": input.Intentions, "recent_outcomes": input.RecentOutcomes})},
+		{"role": "user", "content": jsonString(scheduleGenerationModelInput(input))},
 	})
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleResponseSchema(), false, nil)
 	return run.Completion.Structured, err
+}
+
+func scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]any {
+	goals := make([]map[string]any, 0, len(input.Goals))
+	for _, source := range input.Goals {
+		goal := compactStateMap(source, []string{"scope", "success_criteria", "motivation", "status", "importance", "urgency", "progress", "deadline"})
+		goal["desired_outcome"] = firstString(stringValue(source["desired_outcome"]), stringValue(source["description"]))
+		goals = append(goals, goal)
+	}
+	intentions := make([]map[string]any, 0, len(input.Intentions))
+	for _, source := range input.Intentions {
+		intention := compactStateMap(source, []string{"expected_outcome", "status", "confidence", "preferred_time", "expiration", "capability_constraints"})
+		intention["action_intent"] = firstString(stringValue(source["action_intent"]), stringValue(source["action"]))
+		intentions = append(intentions, intention)
+	}
+	outcomes := make([]map[string]any, 0, len(input.RecentOutcomes))
+	for _, source := range input.RecentOutcomes {
+		outcome := compactStateMap(source, []string{"capability_name", "status", "success_boundary", "error_code", "occurred_at"})
+		for _, key := range []string{"expected", "observed"} {
+			if semantic := scheduleGenerationSemanticValue(source[key]); semantic != nil {
+				outcome[key] = semantic
+			}
+		}
+		outcomes = append(outcomes, outcome)
+	}
+	currentLife := compactStateMap(input.CurrentLife, []string{"scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"})
+	if presence := compactStateMap(input.CurrentLife["presence"], []string{"current_task", "user_presence", "effective_at", "expires_at"}); len(presence) > 0 {
+		currentLife["presence"] = presence
+	}
+	return map[string]any{
+		"local_date": input.LocalDate, "timezone": input.Timezone,
+		"identity":      scheduleGenerationSemanticValue(input.Identity),
+		"life_profile":  scheduleGenerationSemanticValue(input.LifeProfile),
+		"current_state": scheduleGenerationSemanticValue(input.CurrentState),
+		"current_life":  currentLife,
+		"goals":         goals, "intentions": intentions, "recent_outcomes": outcomes,
+	}
+}
+
+func scheduleGenerationSemanticValue(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
+			if normalized != "status" && (providerMetadataKey(key) || normalized == "profileid" || normalized == "activeprofileid" || normalized == "ref" || strings.HasSuffix(normalized, "revision") || strings.Contains(normalized, "digest") || strings.HasSuffix(normalized, "ref") || strings.HasSuffix(normalized, "refs")) {
+				continue
+			}
+			result[key] = scheduleGenerationSemanticValue(child)
+		}
+		return result
+	case []map[string]any:
+		result := make([]any, len(typed))
+		for index, child := range typed {
+			result[index] = scheduleGenerationSemanticValue(child)
+		}
+		return result
+	case []any:
+		result := make([]any, len(typed))
+		for index, child := range typed {
+			result[index] = scheduleGenerationSemanticValue(child)
+		}
+		return result
+	default:
+		return value
+	}
 }
 
 // Projection-backed tasks own selection of context surfaces, operation rules,
@@ -443,9 +528,7 @@ func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionPro
 func (a *App) RunScheduleReplanTask(ctx context.Context, input SchedulePlanInput) (map[string]any, error) {
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": scheduleReplanPlannerInstruction(input)},
-		{"role": "user", "content": jsonString(map[string]any{
-			"intent": input.Intent, "planned_action": input.PlannedAction, "schedule": compactScheduleForProvider(input.Schedule), "current_life": compactLifeContext(input.CurrentLife), "agency": compactSchedulePlannerAgency(input.Agency), "timezone": input.Timezone,
-		})},
+		{"role": "user", "content": jsonString(scheduleReplanModelInput(input))},
 	})
 	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchema(), false, nil)
 	return run.Completion.Structured, err

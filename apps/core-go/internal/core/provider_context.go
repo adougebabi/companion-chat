@@ -633,7 +633,7 @@ func compactActiveActivitiesForSurface(value any) []map[string]any {
 	for _, raw := range arrayValue(value) {
 		activity := mapValue(raw)
 		item := map[string]any{}
-		for _, key := range []string{"id", "profile_id", "kind", "status", "intention_id", "started_at", "not_before", "ready_for_resolution"} {
+		for _, key := range []string{"id", "kind", "status", "started_at", "not_before", "ready_for_resolution"} {
 			if field, exists := activity[key]; exists {
 				item[key] = field
 			}
@@ -761,8 +761,6 @@ func compactCurrentDrivesForSurface(value any) []map[string]any {
 	return result
 }
 
-var providerLifeContextRevisionPattern = regexp.MustCompile(`^life_ctx_[a-f0-9]{32}$`)
-
 func compactLifeContextForSurface(value map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) map[string]any {
 	result := map[string]any{}
 	// Life Context is the authority boundary for scene/schedule decisions. Keep
@@ -777,15 +775,13 @@ func compactLifeContextForSurface(value map[string]any, index ContextReferenceIn
 		{"schedule_ref", ContextReferenceSchedule}, {"schedule_item_ref", ContextReferenceScheduleItem},
 		{"presence_ref", ContextReferencePresence},
 	} {
+		if surface == ProviderContextSurfaceWakeUp && (source.key == "schedule_ref" || source.key == "schedule_item_ref") {
+			continue
+		}
 		if surfaceAllowsEntityRef(surface, source.kind) {
 			if ref := providerSafeContextRef(value[source.key], index, source.kind); ref != "" {
 				result[source.key] = ref
 			}
-		}
-	}
-	if surfaceAllowsEntityRef(surface, ContextReferenceLifeContext) {
-		if revision := strings.TrimSpace(stringValue(value["context_revision"])); providerLifeContextRevisionPattern.MatchString(revision) {
-			result["context_revision"] = revision
 		}
 	}
 	for _, key := range []string{"source", "authority_status", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
@@ -890,12 +886,17 @@ func compactProviderIntentionsForSurface(values []map[string]any, index ContextR
 	result := make([]map[string]any, 0, len(base))
 	for _, value := range base {
 		item := map[string]any{}
-		for _, key := range []string{"goal", "action", "action_intent", "expected_outcome", "capability_constraints", "confidence", "preferred_time", "deadline", "state"} {
+		for _, key := range []string{"goal", "action_intent", "expected_outcome", "capability_constraints", "confidence", "preferred_time", "deadline", "state"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
 				if key == "capability_constraints" {
 					raw = stripProviderContextMetadata(raw)
 				}
 				item[key] = raw
+			}
+		}
+		if stringValue(item["action_intent"]) == "" {
+			if action := stringValue(value["action"]); action != "" {
+				item["action_intent"] = action
 			}
 		}
 		if trigger := compactTriggerForSurface(value["trigger"]); trigger != nil {
@@ -1818,13 +1819,7 @@ func compactVisualIdentityForMediaProvider(value map[string]any) map[string]any 
 		result = make(map[string]any, 2)
 	}
 	if snapshot := mapValue(value["identity_snapshot"]); len(snapshot) > 0 {
-		compactSnapshot := make(map[string]any, 2)
-		if identity := stripProviderMetadata(mapValue(snapshot["identity"])); len(mapValue(identity)) > 0 {
-			compactSnapshot["identity"] = identity
-		}
-		if lifeProfile := stripProviderMetadata(mapValue(snapshot["life_profile"])); len(mapValue(lifeProfile)) > 0 {
-			compactSnapshot["life_profile"] = lifeProfile
-		}
+		compactSnapshot := visualIdentityAgentSnapshot(snapshot)
 		if len(compactSnapshot) > 0 {
 			result["identity_snapshot"] = compactSnapshot
 		}
@@ -1833,8 +1828,8 @@ func compactVisualIdentityForMediaProvider(value map[string]any) map[string]any 
 }
 
 func compactRendererConstraints(value map[string]any) map[string]any {
-	result := make(map[string]any, 3)
-	for _, key := range []string{"chest_cup", "chest_lora_weight", "chest_lora_applicable"} {
+	result := make(map[string]any, 1)
+	for _, key := range []string{"chest_cup"} {
 		if item, ok := value[key]; ok && item != nil && item != "" {
 			result[key] = item
 		}
@@ -1961,7 +1956,7 @@ func compactReflectionEvidencePayload(eventType string, value any) any {
 func compactReflectionPolicySnapshot(value any) map[string]any {
 	snapshot := mapValue(value)
 	result := make(map[string]any)
-	for _, key := range []string{"mode", "action_type", "allowed_actions", "budget_remaining", "quiet_hours", "cooldown_until", "concurrency_limit", "revision", "denied_reason", "budget_reserved", "rejected"} {
+	for _, key := range []string{"mode", "action_type", "allowed_actions", "budget_remaining", "quiet_hours", "cooldown_until", "concurrency_limit", "denied_reason", "budget_reserved", "rejected"} {
 		if child, ok := snapshot[key]; ok && child != nil && child != "" {
 			result[key] = child
 		}
@@ -2055,7 +2050,7 @@ func compactMediaConceptObjectForProvider(raw string) (map[string]any, bool) {
 		if len(life) == 0 {
 			life = mapValue(binding["life_context"])
 		}
-		if lifeContext := compactLifeContext(life); len(lifeContext) > 0 {
+		if lifeContext := compactMediaLifeContext(life); len(lifeContext) > 0 {
 			compactBinding["current_life"] = lifeContext
 		}
 		visualIdentity := compactVisualIdentityForMediaProvider(mapValue(binding["visual_identity"]))
@@ -2094,6 +2089,14 @@ func compactMediaConceptObjectForProvider(raw string) (map[string]any, bool) {
 		return nil, false
 	}
 	return filterMediaProviderConcept(cleaned), true
+}
+
+func compactMediaLifeContext(value map[string]any) map[string]any {
+	result := compactStateMap(value, []string{"scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"})
+	if presence := compactStateMap(value["presence"], []string{"current_task", "user_presence"}); len(presence) > 0 {
+		result["presence"] = presence
+	}
+	return result
 }
 
 // Current body/wardrobe facts override historical mutable snapshot prose. Keep

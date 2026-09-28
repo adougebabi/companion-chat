@@ -273,8 +273,24 @@ func TestVisualIdentityCommitReviewToolPreservesRejectedAssetAndCreatesNextAttem
 		t.Fatal(err)
 	}
 	next := decodeObject(nextSnapshot)
-	if stringValue(next["previous_asset_id"]) != assetID || len(mapValue(next["identity"])) == 0 {
+	if stringValue(next["previous_asset_id"]) != assetID || len(mapValue(next["identity"])) == 0 || stringValue(mapValue(next["previous_review"])["feedback"]) != "下一轮必须保持同一张脸" {
 		t.Fatalf("next attempt lost identity/history: %#v", next)
+	}
+	var profileID string
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT visual_identity_id FROM public.fluctlight_visual_identity_sessions WHERE id=$1`, fixture.sessionID).Scan(&profileID); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.app.refreshVisualIdentityRendererConstraints(fixture.ctx, fixture.fluctlightID, profileID); err != nil {
+		t.Fatal(err)
+	}
+	state, err := fixture.app.loadVisualIdentityAgentState(fixture.ctx, fixture.sessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	modelText := stringValue(mapValue(arrayValue(visualIdentityAgentMessages(state, nil)[1]["content"])[0])["text"])
+	seedText := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": state.InputSnapshot}})
+	if !strings.Contains(modelText, "下一轮必须保持同一张脸") || !strings.Contains(seedText, "下一轮必须保持同一张脸") || strings.Contains(modelText, assetID) || strings.Contains(seedText, assetID) {
+		t.Fatalf("committed review was not carried into regeneration: model=%s seed=%s", modelText, seedText)
 	}
 	var historicalAssets int
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.media_assets WHERE id=$1 AND status='ready'`, assetID).Scan(&historicalAssets); err != nil || historicalAssets != 1 {
@@ -414,13 +430,21 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if len(requests) != 2 || !strings.Contains(requests[1], "visual_identity.generate_candidate") || !strings.Contains(requests[1], result.MediaIntentID) {
+	if len(requests) != 2 || !strings.Contains(requests[1], "visual_identity.generate_candidate") || strings.Contains(requests[1], result.MediaIntentID) {
 		t.Fatalf("formal runner requests=%d second=%s", len(requests), func() string {
 			if len(requests) > 1 {
 				return requests[1]
 			}
 			return ""
 		}())
+	}
+	var second map[string]any
+	if err := json.Unmarshal([]byte(requests[1]), &second); err != nil {
+		t.Fatal(err)
+	}
+	receipt, found := formalAdapterResultFromPayload(second, "visual-generate-call")
+	if !found || stringValue(mapValue(receipt["output"])["status"]) != "pending" {
+		t.Fatalf("second request lost model-facing pending receipt: %#v", receipt)
 	}
 }
 
@@ -601,8 +625,8 @@ func TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical(t *testing.T
 	if !strings.Contains(requests[1], "invalid_arguments") || !strings.Contains(requests[1], "observations") {
 		t.Fatalf("second formal model request did not receive correctable schema feedback")
 	}
-	if !strings.Contains(requests[2], result.CharacterMediaIntentID) || !strings.Contains(requests[2], visualIdentityCommitReviewCapabilityName) {
-		t.Fatalf("third formal model request did not carry the committed review receipt")
+	if strings.Contains(requests[2], result.CharacterMediaIntentID) || !strings.Contains(requests[2], visualIdentityCommitReviewCapabilityName) || !strings.Contains(requests[2], "character_sheet_pending") {
+		t.Fatalf("third formal model request lost review status or exposed internal ID")
 	}
 	var canonicalID string
 	var revision int
@@ -618,8 +642,10 @@ func TestVisualIdentityAgentMessagesCarryRealImageContentBlock(t *testing.T) {
 	image := map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB", "detail": "high"}}
 	messages := visualIdentityAgentMessages(visualIdentityAgentState{
 		SessionID: "session-1", FluctlightID: "fl-1", SessionStatus: "running", Attempt: 1, MaxAttempts: 3,
-		ActionRequired: visualIdentityCommitReviewCapabilityName, CandidateAssetID: "asset-1", CandidateAssetReady: true,
-		InputSnapshot: map[string]any{"identity": map[string]any{"name": "澄光"}}, RendererConstraints: map[string]any{"adapter_version": visualIdentityAdapterVersion},
+		ActionRequired: visualIdentityCommitReviewCapabilityName, MediaIntentID: "media-intent-1", CandidateAssetID: "asset-1", CandidateAssetReady: true,
+		InputSnapshot:       map[string]any{"identity": map[string]any{"id": "fl-1", "name": "澄光", "background": "secret-background", "background_story": "secret-story", "eye_color": "blue"}},
+		RendererConstraints: map[string]any{"adapter_version": visualIdentityAdapterVersion},
+		History:             []map[string]any{{"attempt": 1, "candidate_asset_id": "asset-1", "decision": "regenerate", "status": "reviewed"}},
 	}, image)
 	if len(messages) != 2 {
 		t.Fatalf("messages=%#v", messages)
@@ -632,6 +658,14 @@ func TestVisualIdentityAgentMessagesCarryRealImageContentBlock(t *testing.T) {
 	if strings.HasPrefix(textPart, "{") || strings.Contains(textPart, `\"`) || !strings.Contains(textPart, "session_status: running") || jsonString(content[1]) != jsonString(image) {
 		t.Fatalf("visual identity multimodal text/image formatting drifted: text=%s image=%#v", textPart, content[1])
 	}
+	for _, forbidden := range []string{"session-1", "fl-1", "media-intent-1", "asset-1", "secret-background", "secret-story", "adapter_version"} {
+		if strings.Contains(textPart, forbidden) {
+			t.Fatalf("visual identity input leaked %q: %s", forbidden, textPart)
+		}
+	}
+	if !strings.Contains(textPart, "澄光") || !strings.Contains(textPart, "blue") {
+		t.Fatalf("visual identity traits missing: %s", textPart)
+	}
 	registry := mustCapabilityRegistry(builtinCapabilities(&App{})...)
 	if got := capabilityDefinitionNames(registry.Catalog(CapabilitySurfaceVisualIdentity)); !phase8EqualStrings(got, []string{visualIdentityGenerateCandidateCapabilityName, visualIdentityCommitReviewCapabilityName, visualIdentityFinalizeCapabilityName}) {
 		t.Fatalf("visual Agent catalog=%v", got)
@@ -642,5 +676,52 @@ func TestVisualIdentityAgentMessagesCarryRealImageContentBlock(t *testing.T) {
 				t.Fatalf("private visual tool %q leaked into %s", definition.Name, surface)
 			}
 		}
+	}
+}
+
+func TestVisualIdentityRegenerationKeepsReviewMeaningWithoutIDs(t *testing.T) {
+	snapshot := map[string]any{
+		"identity":          map[string]any{"name": "澄光", "background_story": "irrelevant story"},
+		"previous_asset_id": "asset-private",
+		"previous_review":   map[string]any{"decision": "regenerate", "summary": "侧面视图缺失", "feedback": "补齐侧面视图并保持同一张脸", "missing_sections": []any{"侧面视图"}, "candidate_asset_id": "asset-private"},
+	}
+	messages := visualIdentityAgentMessages(visualIdentityAgentState{SessionStatus: "running", Attempt: 2, MaxAttempts: 3, ActionRequired: visualIdentityGenerateCandidateCapabilityName, InputSnapshot: snapshot}, nil)
+	textPart := stringValue(mapValue(arrayValue(messages[1]["content"])[0])["text"])
+	seedPrompt := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": snapshot}})
+	for _, value := range []string{"补齐侧面视图", "保持同一张脸"} {
+		if !strings.Contains(textPart, value) || !strings.Contains(seedPrompt, value) {
+			t.Fatalf("regeneration lost %q: model=%s seed=%s", value, textPart, seedPrompt)
+		}
+	}
+	for _, forbidden := range []string{"asset-private", "irrelevant story"} {
+		if strings.Contains(textPart, forbidden) || strings.Contains(seedPrompt, forbidden) {
+			t.Fatalf("regeneration exposed %q: model=%s seed=%s", forbidden, textPart, seedPrompt)
+		}
+	}
+}
+
+func TestVisualIdentityRefreshPreservesPreviousReviewForRegeneration(t *testing.T) {
+	fixture := newVisualIdentityToolFixture(t)
+	var profileID, attemptID string
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT visual_identity_id FROM public.fluctlight_visual_identity_sessions WHERE id=$1`, fixture.sessionID).Scan(&profileID); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT id FROM public.fluctlight_visual_identity_attempts WHERE session_id=$1 ORDER BY attempt_number DESC LIMIT 1`, fixture.sessionID).Scan(&attemptID); err != nil {
+		t.Fatal(err)
+	}
+	previous := map[string]any{"feedback": "补齐侧面视图", "decision": "regenerate"}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=jsonb_set(input_snapshot,'{previous_review}',$2::jsonb,true) WHERE id=$1`, attemptID, jsonBytes(previous)); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.app.refreshVisualIdentityRendererConstraints(fixture.ctx, fixture.fluctlightID, profileID); err != nil {
+		t.Fatal(err)
+	}
+	var raw []byte
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT input_snapshot FROM public.fluctlight_visual_identity_attempts WHERE id=$1`, attemptID).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := decodeObject(raw)
+	if stringValue(mapValue(snapshot["previous_review"])["feedback"]) != "补齐侧面视图" || stringValue(mapValue(snapshot["identity"])["name"]) != "澄光" {
+		t.Fatalf("refresh lost review or identity: %#v", snapshot)
 	}
 }

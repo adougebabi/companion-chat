@@ -576,7 +576,34 @@ func visualIdentityPromptFromConcept(concept map[string]any) string {
 	if description == "" {
 		description = "保持同一张脸的角色"
 	}
-	return fmt.Sprintf(visualIdentityPromptTemplate, description)
+	prompt := fmt.Sprintf(visualIdentityPromptTemplate, description)
+	if guidance := visualIdentityReviewGuidance(mapValue(target["identity_snapshot"])); guidance != "" {
+		prompt += "\n\n上一轮评审修正要求：" + guidance
+	}
+	return prompt
+}
+
+func visualIdentityReviewGuidance(snapshot map[string]any) string {
+	review := visualIdentityPreviousReviewForModel(snapshot)
+	if len(review) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, 3)
+	for _, key := range []string{"summary", "feedback"} {
+		if text := strings.TrimSpace(stringValue(review[key])); text != "" {
+			parts = append(parts, text)
+		}
+	}
+	missing := make([]string, 0)
+	for _, raw := range arrayValue(review["missing_sections"]) {
+		if text := strings.TrimSpace(stringValue(raw)); text != "" {
+			missing = append(missing, text)
+		}
+	}
+	if len(missing) > 0 {
+		parts = append(parts, "补齐缺失分区："+strings.Join(missing, "、"))
+	}
+	return visualIdentityBoundedText(strings.Join(parts, "；"), 2400)
 }
 
 func visualIdentityPromptFromSnapshot(snapshot VisualIdentitySnapshot) string {
@@ -1122,14 +1149,14 @@ func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluc
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,identity_snapshot=$3,renderer_constraints=$4,adapter_version=$5,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0`, profileID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status IN ('queued','image_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2::jsonb || jsonb_strip_nulls(jsonb_build_object('previous_review',input_snapshot->'previous_review','previous_asset_id',input_snapshot->'previous_asset_id')),renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status IN ('queued','image_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
 			return err
 		}
 		// A compatibility-created attempt may already have a pending media
 		// intent from the previous build. It is still safe to repair its frozen
 		// renderer snapshot until ComfyUI has accepted a provider job; after
 		// that point the attempt must remain immutable.
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts AS a SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() FROM public.media_intents AS m WHERE a.visual_identity_id=$1 AND a.media_intent_id=m.id AND a.candidate_asset_id IS NULL AND m.provider_job_id IS NULL AND a.status IN ('queued','image_queued','vision_queued','patch_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts AS a SET input_snapshot=$2::jsonb || jsonb_strip_nulls(jsonb_build_object('previous_review',a.input_snapshot->'previous_review','previous_asset_id',a.input_snapshot->'previous_asset_id')),renderer_constraints=$3,updated_at=now() FROM public.media_intents AS m WHERE a.visual_identity_id=$1 AND a.media_intent_id=m.id AND a.candidate_asset_id IS NULL AND m.provider_job_id IS NULL AND a.status IN ('queued','image_queued','vision_queued','patch_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
 			return err
 		}
 		rows, err := tx.Query(ctx, `SELECT media_intent_id FROM public.fluctlight_visual_identity_attempts WHERE visual_identity_id=$1 AND media_intent_id IS NOT NULL AND candidate_asset_id IS NULL`, profileID)

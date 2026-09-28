@@ -157,7 +157,9 @@ embed(role, inputs) -> VersionedEmbeddings
   are concatenated in caller order; `user`/`assistant` history keeps its order
   after that merged system message. This prevents strict chat templates such
   as mlx-serve from rejecting a late or repeated system role.
-- API keys are resolved only in Go Core through the configuration secret contract and never returned to the browser boundary, browser/debug output.
+- API keys are resolved only in Go Core through the configuration secret contract.
+  Ordinary product/settings responses do not expose them. Owner-only Diagnostics
+  may retain an available credential-bearing non-image value; image data is replaced.
 
 ### 4. Validation & Error Matrix
 
@@ -178,7 +180,7 @@ embed(role, inputs) -> VersionedEmbeddings
 | Direct conversation returns valid ACTION calls without `conversation.reply` | Settle each call independently, complete cognition without fabricating assistant prose, and keep each per-call failure isolated; do not use ACTION arguments or reasoning as visible text. |
 | Provider/model is temporarily unavailable | Report degraded role health; request/workflow handles explicit failure. |
 | API key decryption fails | Configuration error; do not use env/old-key fallback. |
-| Provider returns hidden reasoning/raw diagnostics | Bound/redact and keep out of ordinary result/trace/browser contract. |
+| Provider returns reasoning/raw diagnostics | Keep available non-image text in Owner-only Diagnostics; do not promote it to ordinary chat or product DTOs. |
 
 ### 5. Good / Base / Bad Cases
 
@@ -204,14 +206,14 @@ embed(role, inputs) -> VersionedEmbeddings
 - Real initialization regression calls the configured LLM with a complex
   multi-personality description and asserts non-empty distinct raw profiles
   before Core defaults; mocks are not sufficient for this gate.
-- Provenance tests assert every result stores role/endpoint/model/prompt/schema/correlation metadata without credentials or hidden reasoning.
+- Provenance tests assert every result stores role/endpoint/model/prompt/schema/correlation metadata; Owner-only diagnostics retain available non-image text and replace images.
 - Failure tests prove one degraded role does not silently use another and follows owning interaction/workflow policy.
 - Initialization scenario tests assert the operation floor, insufficient
   context rejection, typed timeout/cancellation codes, outer HTTP budget, and a
   configured-LLM dense multi-card completion using the same effective values.
 - Parser tests cover a greater-than-12,000-character embedded complete fence,
   double encoding, thinking wrappers, malformed JSON, unbalanced/truncated
-  output, non-object root, typed failure, and metadata-only diagnostics.
+  output, non-object root, typed failure, and image-sanitized original-text diagnostics.
 - Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
 - The opt-in live conversation regression asserts that a media ACTION is
   returned together with `conversation.reply`, that both native calls normalize
@@ -267,7 +269,7 @@ return await provider.complete_structured(
 
 - Endpoint reconfiguration invalidates bound roles until the next preflight.
 - A missing ComfyUI model is a bounded failure; no alternate model is chosen.
-- Successful and failed model runs are recorded with redacted diagnostics.
+- Successful and failed model runs retain original non-image text in Owner-only diagnostics and replace image payloads.
 
 ### 4. Validation & Error Matrix
 
@@ -277,7 +279,7 @@ return await provider.complete_structured(
 | model list uses a supported `data[]`/`models[]` envelope | normalize IDs, deduplicate and sort before matching |
 | model list is empty or has an unsupported envelope | reject role with `provider_model_not_available`; no role row |
 | configured media model absent | retry, then mark media intent `failed` |
-| diagnostic contains credentials/hidden reasoning | redact/drop before persistence |
+| Owner diagnostic contains credentials/available reasoning | Retain non-image text under Owner authorization; operational stdout stays credential-redacted. |
 
 ### 5. Good/Base/Bad Cases
 
@@ -289,7 +291,7 @@ return await provider.complete_structured(
 ### 6. Tests Required
 
 - Fake `/models` preflight success/unknown-model tests.
-- Header idempotency and recursive diagnostic-redaction tests.
+- Header idempotency, Owner authorization and image-only diagnostic replacement tests.
 - Real ComfyUI model-not-found test asserting failed durable media state.
 
 ### 7. Wrong vs Correct
@@ -312,12 +314,13 @@ return err
 - Only `schema.Message.ToolCalls` authorizes execution. Body, reasoning and
   structured `tool_calls` fields never create calls.
 - Missing IDs fail as `tool_call_invalid`; never derive `call_derived_*`.
-- Diagnostics retain bounded shape/reason metadata, physical request identity
-  and formal correlation, not arguments, hidden reasoning or credentials.
+- Diagnostics retain bounded shape/reason metadata, physical request identity,
+  formal correlation and available non-image arguments/reasoning/credentials
+  under Owner authorization.
 - Invalid siblings never execute; previously committed valid calls remain facts.
 - Cancellation/timeout terminal writes retain scenario/attempt values through
   bounded `context.WithoutCancel`; first-terminal-wins remains authoritative.
-- Tests assert malformed call rejection, no argument canary leaks, physical
+- Tests assert malformed call rejection, argument fidelity in Owner diagnostics, physical
   request/Tool/result association and cancelled-run diagnostic persistence.
 
 ## Scenario: Compact Provider Cognition Context
@@ -845,3 +848,57 @@ The native Tool adapter also passes the Core-owned snapshot from the same projec
 Provider claim `evidence_refs` use only the opaque references exposed in Runtime Context. Before persistence, Core resolves an exact entry through its frozen `ContextReferenceIndex`; current life/state references become the turn's source fact anchor, and durable entity references become authorized internal IDs. Each normalized claim must carry Core's private proof that every submitted ref came from an exact visible token. An unknown token, raw entity ID, or model-supplied imitation of that proof remains invalid. Do not validate a model-visible `kind:ctx_...` token against an allowlist of raw database IDs.
 
 Current body and wearing also carry an `appearance:ctx_...` reference in the compact Runtime view. This token is generated from the same effective snapshot without its read timestamp and is valid for claims and influences about current appearance; the underlying body and wardrobe tables remain authoritative. Wardrobe item IDs are business Tool arguments, not context references, and must never be joined to a `wardrobe:ctx_` prefix.
+
+## Scenario: Task-Specific Model-Visible Input And Tool Result Projection
+
+### 1. Scope / Trigger
+
+- Trigger: a Formal Agent or a later ADK Tool result is about to become a physical Provider message. Core may hold richer durable state than the model needs.
+
+### 2. Signatures
+
+```go
+scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]any
+scheduleReplanModelInput(input SchedulePlanInput) map[string]any
+modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDefinition) map[string]any
+```
+
+### 3. Contracts
+
+- Keep Core-owned storage IDs, CAS revisions, hashes, workflow coordinates and renderer adapter values in durable state and Tool receipts. Provider-facing task projections select only semantic fields and valid model selection keys. `ModelResultOmitFields` may name a nested path such as `items.revision`; it acts on a deep copy and never mutates the Core receipt.
+- Visual Identity Agent input retains the actual image, current action, bounded attempt status, visual traits and review feedback, but not session/Fluctlight/media/asset IDs or narrative `background`/`background_story`. Media prompt/quality keep image/visual/scene/retry semantics; ComfyUI retains renderer weights outside the LLM message.
+- Schedule generation removes `foundation:*`, initial goal/intention IDs, revisions and same-value aliases. Schedule replan sees one schedule item list plus current life/agency meaning. A linked item `intention_id` is retained because the model output must preserve it; `expected_revision`, local date/timezone and completion boundary are bound by Core before CAS validation, not required from the model.
+- Wake-up hides its Core-bound wake ID and redundant nested `life_context.schedule_ref`; the separate schedule fact preserves activity/time/status and legitimate influence refs. Other surfaces keep `kind:ctx_*` evidence/target refs when their output schema or Tool selection needs them. Personality switch profile/rule IDs, active activity IDs and worn-item IDs remain valid business selection keys.
+- Persona compilation receives one copy of the selected personality/behavior traits and target rune budget; the profile ID, rules version and source hash remain Core-owned. Conversation summary/segment/daily memory already use narrow semantic inputs. Dormant legacy Agent definitions are not evidence that production egress is clean.
+- Diagnostics must inspect the actual `messages[].content` or multimodal text part, not interpret the OpenAI-compatible JSON envelope or Owner UI message container as an embedded JSON prompt.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Frozen media concept is malformed | Fail before Provider I/O; do not send raw persisted bytes as prompt text. |
+| Model omits Core-owned schedule revision/boundary | Core installs frozen values before `validatePreparedSchedulePlan`; stale CAS still fails closed. |
+| A Tool receipt contains workflow IDs or revisions | Keep them in the Core receipt, omit them from the next model message. |
+| A Tool result contains an ID accepted by the next Tool or output schema | Preserve that specific selection key; do not apply a global `*_id` deletion. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `schedule_replan_planner` sees one semantic item list and returns `items`/`reschedule_policy`; Core binds revision and completed boundary. The next ADK round sees a media Tool's status without its internal workflow ID.
+- Base: a historical stored concept contains extra fields; a task-specific projector removes them while durable state remains unchanged.
+- Bad: send a raw goal DTO, duplicate full schedule under `current_life`, remove a Tool-required `activity_id`, or delete renderer weight from the ComfyUI path merely because the LLM should not see it.
+
+### 6. Tests Required
+
+- Capture final physical Provider HTTP requests for Visual Identity, schedule generation/replan, media prompt/quality, wake-up, persona compilation and virtual activity. Assert forbidden IDs/revisions/duplicates are absent while images and task semantics remain.
+- Compare multimodal wire messages with Owner model-run diagnostics; the image bytes belong only on Provider wire and Owner diagnostics contain `REDACTED_IMAGE_DATA`.
+- Test model-facing Tool output per capability and assert the full Core receipt, legitimate chaining keys, stale-CAS checks and durable settlement remain intact.
+
+### 7. Wrong vs Correct
+
+```go
+// Wrong: a database DTO becomes the model's task packet.
+prompt := jsonString(map[string]any{"goals": agencyProfileGoals, "schedule": fullSchedule})
+
+// Correct: each task owns a semantic projection; Core keeps authoritative IDs.
+prompt := jsonString(scheduleReplanModelInput(frozenPlanInput))
+```

@@ -235,7 +235,7 @@ func modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDe
 		if outputMap, ok := result.Output.(map[string]any); ok && len(definition.ModelResultOmitFields) > 0 {
 			output := cloneMap(outputMap)
 			for _, field := range definition.ModelResultOmitFields {
-				delete(output, field)
+				omitModelResultPath(output, strings.Split(field, "."))
 			}
 			if len(output) > 0 {
 				visible["output"] = output
@@ -245,6 +245,24 @@ func modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDe
 		}
 	}
 	return visible
+}
+
+func omitModelResultPath(value any, path []string) {
+	if len(path) == 0 {
+		return
+	}
+	switch typed := value.(type) {
+	case map[string]any:
+		if len(path) == 1 {
+			delete(typed, path[0])
+			return
+		}
+		omitModelResultPath(typed[path[0]], path[1:])
+	case []any:
+		for _, item := range typed {
+			omitModelResultPath(item, path)
+		}
+	}
 }
 
 func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, eventType, callID, capabilityName, status, errorCode, arguments string) {
@@ -268,7 +286,7 @@ func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, e
 		"model_call_id": modelCallID,
 		"call_id":       strings.TrimSpace(callID), "capability": strings.TrimSpace(capabilityName),
 		"status": strings.TrimSpace(status), "error_code": strings.TrimSpace(errorCode),
-		"arguments_digest": stableDigest(strings.TrimSpace(arguments)),
+		"arguments": arguments, "arguments_digest": stableDigest(strings.TrimSpace(arguments)),
 	})
 }
 

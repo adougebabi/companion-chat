@@ -74,7 +74,7 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 	}
 	providerCalls := 0
 	providerLifeRef := ""
-	providerLifeRevision := ""
+	providerLifeRevision := initialLifeRevision
 	assistantText := "我会根据" + initialScene + "的状态调整接下来的安排。"
 	app.Provider = &ProviderClient{DB: repository, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		providerCalls++
@@ -84,12 +84,10 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 			return nil, fmt.Errorf("Provider did not receive initial Scene %q", initialScene)
 		}
 		lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(bodyText)
-		lifeRevision := regexp.MustCompile(`life_ctx_[a-f0-9]{32}`).FindString(bodyText)
 		if providerCalls == 1 {
 			providerLifeRef = lifeRef
-			providerLifeRevision = lifeRevision
 		}
-		if providerLifeRef == "" || providerLifeRevision == "" {
+		if providerLifeRef == "" || strings.Contains(bodyText, initialLifeRevision) {
 			return nil, errors.New("Provider request omitted Life Context authority")
 		}
 		structured := map[string]any{

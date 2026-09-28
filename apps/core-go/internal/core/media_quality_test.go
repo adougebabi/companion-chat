@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"strings"
@@ -145,6 +146,56 @@ func TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL(t *test
 	}
 }
 
+func TestMediaQualityFinalProviderRequestKeepsImageAndReadableText(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	seedCognitiveProviderRole(t, ctx, repository, "media-quality-wire")
+	var modelText, imageURL string
+	router := newFakeProviderRouter().on("media_quality_acceptance_response", func(payload map[string]any) fakeProviderResult {
+		for _, raw := range arrayValue(payload["messages"]) {
+			message := mapValue(raw)
+			if stringValue(message["role"]) != "user" {
+				continue
+			}
+			for _, rawPart := range arrayValue(message["content"]) {
+				part := mapValue(rawPart)
+				if stringValue(part["type"]) == "text" {
+					modelText += stringValue(part["text"])
+				}
+				if stringValue(part["type"]) == "image_url" {
+					imageURL = stringValue(mapValue(part["image_url"])["url"])
+				}
+			}
+		}
+		return fakeProviderResult{Structured: map[string]any{
+			"schema_version": 1, "verdict": "pass", "violations": []any{}, "retry_guidance": "",
+			"observed_facts": map[string]any{"subject_matches": true, "appearance_matches": true, "scene_matches": true, "capture_matches": true, "framing_matches": true},
+		}}
+	})
+	app := newTestApp(t, repository, router)
+	_, err := app.RunMediaQualityTask(ctx, MediaQualityTaskInput{Intent: mediaIntent{
+		Kind: "image", ProviderPrompt: "A portrait in the library",
+		Prompt: `{"purpose":"visual_identity","scene":"library","visual_identity":{"identity_snapshot":{"identity":{"name":"澄光","background_story":"private story","fluctlight_id":"fl-private"}}},"renderer_constraints":{"chest_cup":"B","chest_lora_weight":-3}}`,
+	}, ContentType: "image/png", Content: []byte("candidate-image")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var diagnosticPrompt []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT prompt FROM public.diagnostic_model_runs WHERE scenario='media_quality_acceptance' ORDER BY queued_at DESC LIMIT 1`).Scan(&diagnosticPrompt); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(diagnosticPrompt), "frozen_media_concept:") || !strings.Contains(string(diagnosticPrompt), "REDACTED_IMAGE_DATA") || strings.Contains(string(diagnosticPrompt), imageURL) {
+		t.Fatalf("physical diagnostic does not match readable multimodal wire: prompt=%s image=%s", diagnosticPrompt, imageURL)
+	}
+	if !strings.HasPrefix(imageURL, "data:image/png;base64,") || !strings.Contains(modelText, "frozen_media_concept:") || !strings.Contains(modelText, "澄光") || strings.HasPrefix(modelText, "{") {
+		t.Fatalf("media quality wire lost multimodal readable input: text=%s image=%s", modelText, imageURL)
+	}
+	for _, forbidden := range []string{"private story", "fl-private", "chest_lora_weight", `\"`} {
+		if strings.Contains(modelText, forbidden) {
+			t.Fatalf("media quality wire retained %q: %s", forbidden, modelText)
+		}
+	}
+}
+
 func TestRedactDiagnosticRemovesVisionDataURLs(t *testing.T) {
 	redacted := redactDiagnostic(map[string]any{
 		"content": []any{map[string]any{
@@ -285,12 +336,19 @@ func TestMediaQualityRetryPersistsStructuredFeedbackAndAcceptsSecondCandidate(t 
 }
 
 func TestMediaPromptInputOmitsVisualIdentityWorkflowHistory(t *testing.T) {
-	input := mediaPromptInput(mediaIntent{Prompt: `{"scene":"library","context_binding":{"visual_identity":{"status":"active","identity_snapshot":{"identity":{"name":"影者"}},"renderer_constraints":{"chest_cup":"B","chest_lora_weight":-3},"timeline":[{"stage":"seed_requested","summary":"工作流节点"}],"canonical_asset_id":"asset-1"}}}`})
-	if strings.Contains(input, "timeline") || strings.Contains(input, "seed_requested") || strings.Contains(input, "canonical_asset_id") {
+	input := mediaPromptInput(mediaIntent{Prompt: `{"scene":"library","context_binding":{"visual_identity":{"status":"active","identity_snapshot":{"identity":{"name":"影者","background":"private background","background_story":"private story"}},"renderer_constraints":{"chest_cup":"B","chest_lora_weight":-3},"timeline":[{"stage":"seed_requested","summary":"工作流节点"}],"canonical_asset_id":"asset-1"}}}`})
+	if strings.Contains(input, "timeline") || strings.Contains(input, "seed_requested") || strings.Contains(input, "canonical_asset_id") || strings.Contains(input, "private background") || strings.Contains(input, "private story") || strings.Contains(input, "chest_lora_weight") {
 		t.Fatalf("media prompt retained visual identity workflow metadata: %s", input)
 	}
-	if !strings.Contains(input, "chest_cup") || !strings.Contains(input, "chest_lora_weight") || !strings.Contains(input, "影者") {
-		t.Fatalf("media prompt lost renderer constraints or stable identity: %s", input)
+	if !strings.Contains(input, "chest_cup") || !strings.Contains(input, "影者") {
+		t.Fatalf("media prompt lost visual semantics: %s", input)
+	}
+}
+
+func TestMediaPromptRejectsInvalidFrozenConceptBeforeProvider(t *testing.T) {
+	_, err := (&App{}).RunMediaPromptTask(context.Background(), MediaPromptTaskInput{Intent: mediaIntent{Prompt: `{"scene":`}})
+	if err == nil || !strings.Contains(err.Error(), "media_prompt_frozen_concept_invalid") {
+		t.Fatalf("invalid frozen concept reached Provider boundary: %v", err)
 	}
 }
 
@@ -307,11 +365,11 @@ func TestMediaPromptConceptFiltersRequestAndCharacterMetadata(t *testing.T) {
 }
 
 func TestMediaQualityConceptKeepsIdentitySemanticsWithoutTimeline(t *testing.T) {
-	input := compactMediaConceptForProvider(`{"purpose":"visual_identity","visual_identity":{"identity_snapshot":{"identity":{"visible_text":"一位短发角色"}},"timeline":[{"stage":"vision_ready"}]},"renderer_constraints":{"chest_cup":"B"}}`)
+	input := compactMediaConceptForProvider(`{"purpose":"visual_identity","visual_identity":{"identity_snapshot":{"identity":{"visible_text":"一位短发角色","background_story":"private story"}},"timeline":[{"stage":"vision_ready"}]},"renderer_constraints":{"chest_cup":"B","chest_lora_weight":-3}}`)
 	if !strings.Contains(input, "一位短发角色") || !strings.Contains(input, "chest_cup") {
 		t.Fatalf("visual identity semantics were removed: %s", input)
 	}
-	if strings.Contains(input, "timeline") || strings.Contains(input, "vision_ready") {
+	if strings.Contains(input, "timeline") || strings.Contains(input, "vision_ready") || strings.Contains(input, "private story") || strings.Contains(input, "chest_lora_weight") {
 		t.Fatalf("visual identity timeline leaked: %s", input)
 	}
 }

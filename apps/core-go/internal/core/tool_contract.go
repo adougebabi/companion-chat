@@ -243,6 +243,7 @@ func momentPublishCapabilityDefinition() CapabilityDefinition {
 			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
 		},
 		TargetKinds: []string{"moment"}, OutputRole: "moment", SideEffectClass: "external_async", SuccessBoundary: "visible_output_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		ModelResultOmitFields: []string{"text", "target_ref", "replayed"},
 	}
 }
 
@@ -278,6 +279,7 @@ func imageCapabilityDefinition() CapabilityDefinition {
 		SupportsRetry:         true,
 		RequiresPreflight:     true,
 		RequiredContext:       []ContextSlot{SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState},
+		ModelResultOmitFields: []string{"media_intent_id", "task_id", "target_ref", "replayed"},
 	}
 }
 
@@ -320,6 +322,7 @@ func visualIdentityInitializeCapabilityDefinition() CapabilityDefinition {
 			},
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "durable_workflow_intent_created", CompletionBoundary: "visual_identity_ready", OutcomeReferenceField: "session_id", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+		ModelResultOmitFields: []string{"session_id"},
 	}
 }
 

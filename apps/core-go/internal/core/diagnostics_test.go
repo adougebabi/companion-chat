@@ -51,7 +51,7 @@ func TestPromptDiagnosticsAlwaysReturnsMutableMap(t *testing.T) {
 	}
 }
 
-func TestPromptDiagnosticsAreRedactedAndCollectionBounded(t *testing.T) {
+func TestPromptDiagnosticsKeepTextAndCollectionBounded(t *testing.T) {
 	ranking := make([]any, 100)
 	for index := range ranking {
 		ranking[index] = map[string]any{"memory_id": "internal", "score": index, "api_key": "secret", "reasoning": "hidden"}
@@ -62,23 +62,104 @@ func TestPromptDiagnosticsAreRedactedAndCollectionBounded(t *testing.T) {
 		t.Fatalf("bounded ranking length = %d", len(values))
 	}
 	encoded := jsonString(trace)
-	if strings.Contains(encoded, "Bearer secret") || strings.Contains(encoded, `"secret"`) || strings.Contains(encoded, "hidden") || !strings.Contains(encoded, "[REDACTED]") {
-		t.Fatalf("diagnostic redaction failed: %s", encoded)
+	if !strings.Contains(encoded, "Bearer secret") || !strings.Contains(encoded, `"secret"`) || !strings.Contains(encoded, "hidden") || strings.Contains(encoded, "[REDACTED]") {
+		t.Fatalf("diagnostic text was changed: %s", encoded)
 	}
 }
 
-func TestPromptDiagnosticsHashCoreSourceRefs(t *testing.T) {
+func TestDiagnosticPreservesNonImageTextAndToolArguments(t *testing.T) {
+	value := redactDiagnostic(map[string]any{
+		"authorization":     "Bearer private-token",
+		"reasoning_content": "reasoning text",
+		"arguments":         `{"place":"library"}`,
+		"content":           `{"tool_calls":[{"function":{"arguments":"private text"}}]}`,
+		"inline_image":      "see data:image/png;base64,ZmFrZQ== now",
+		"typed_images":      []string{"data:image/png;base64,ZmFrZQ=="},
+		"typed_map":         map[string]string{"image": "data:image/png;base64,ZmFrZQ==", "note": "keep me"},
+		"remote_image":      map[string]any{"type": "image_url", "image_url": map[string]any{"url": "https://media.invalid/private-image?grant=secret", "detail": "high"}},
+		"image_base64":      "aW1hZ2VieXRlcw==",
+		"image_url":         map[string]any{"url": "data:image/png;base64,ZmFrZQ=="},
+	})
+	encoded := jsonString(value)
+	for _, expected := range []string{"Bearer private-token", "reasoning text", "library", "private text", "keep me", "REDACTED_IMAGE_DATA"} {
+		if !strings.Contains(encoded, expected) {
+			t.Fatalf("missing %q in diagnostic: %s", expected, encoded)
+		}
+	}
+	if strings.Contains(encoded, "ZmFrZQ==") || strings.Contains(encoded, "aW1hZ2VieXRlcw==") || strings.Contains(encoded, "media.invalid") || strings.Contains(encoded, "[REDACTED]") || strings.Contains(encoded, "[REDACTED_STRUCTURED_TOOL_CALLS]") {
+		t.Fatalf("unexpected diagnostic replacement: %s", encoded)
+	}
+}
+
+func TestEinoDiagnosticMessagesKeepMultimodalTextWithImageMarker(t *testing.T) {
+	imageURL := "data:image/png;base64,ZmFrZQ=="
+	message := &schema.Message{Role: schema.User, UserInputMultiContent: []schema.MessageInputPart{
+		{Type: schema.ChatMessagePartTypeText, Text: "frozen_media_concept:\n  subject: companion"},
+		{Type: schema.ChatMessagePartTypeImageURL, Image: &schema.MessageInputImage{MessagePartCommon: schema.MessagePartCommon{URL: &imageURL}}},
+	}}
+	encoded := jsonString(redactDiagnostic(einoDiagnosticMessages([]*schema.Message{message})))
+	if !strings.Contains(encoded, "frozen_media_concept:") || !strings.Contains(encoded, "REDACTED_IMAGE_DATA") || strings.Contains(encoded, "ZmFrZQ==") {
+		t.Fatalf("multimodal diagnostic differs from model input: %s", encoded)
+	}
+}
+
+func TestPostgresOwnerModelRunWriteReadExportReplacesOnlyImages(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "image-diag-owner", "image-diag-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	correlationID := "image-diag:" + stableDigest(t.Name())
+	prompt := []map[string]any{{"role": "user", "content": []any{
+		map[string]any{"type": "text", "text": "private prompt with Bearer keep-me"},
+		map[string]any{"type": "image_url", "image_url": map[string]any{"url": "https://media.invalid/signed-image?grant=hide-me", "detail": "high"}},
+	}}}
+	response := map[string]any{"content": "private answer", "reasoning_content": "private reasoning", "tool_calls": []any{map[string]any{"function": map[string]any{"arguments": `{"note":"private argument"}`}}}}
+	writeCtx := WithProviderAttemptIdentity(WithProviderScenario(ctx, "media_quality_acceptance"), "image-diag-attempt")
+	id, err := (&App{DB: repository}).persistModelRunLifecycle(writeCtx, "media_prompt", "", "test-model", correlationID, "media_quality_acceptance", 80, prompt, response, providerRunCompleted, "")
+	if err != nil || id == "" {
+		t.Fatalf("persist model run id=%q err=%v", id, err)
+	}
+	var stored []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT prompt FROM public.diagnostic_model_runs WHERE id=$1`, id).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository}
+	runs, err := app.ModelRunsFiltered(ctx, ownerID, 10, correlationID)
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("Owner runs=%#v err=%v", runs, err)
+	}
+	exported, err := app.DiagnosticsExportFiltered(ctx, ownerID, LifecycleDiagnosticsFilter{CorrelationID: correlationID, Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, encoded := range []string{string(stored), jsonString(runs), jsonString(exported)} {
+		for _, forbidden := range []string{"media.invalid", "hide-me"} {
+			if strings.Contains(encoded, forbidden) {
+				t.Fatalf("image locator %q reached diagnostics: %s", forbidden, encoded)
+			}
+		}
+		for _, necessary := range []string{"REDACTED_IMAGE_DATA", "Bearer keep-me", "private prompt"} {
+			if !strings.Contains(encoded, necessary) {
+				t.Fatalf("Owner diagnostic lost %q: %s", necessary, encoded)
+			}
+		}
+	}
+	if exportedText := jsonString(exported); !strings.Contains(exportedText, "private reasoning") || !strings.Contains(exportedText, "private argument") {
+		t.Fatalf("Owner export lost non-image response: %s", exportedText)
+	}
+}
+
+func TestPromptDiagnosticsKeepCoreSourceRefs(t *testing.T) {
 	trace := boundedPromptDiagnostics(map[string]any{
 		"working_memory": map[string]any{"selected": []any{
 			map[string]any{"kind": "summary", "source_refs": []string{"summary:ctx_safe", "message:message_internal_123"}},
 		}},
 	})
 	encoded := jsonString(trace)
-	if strings.Contains(encoded, "ctx_safe") || strings.Contains(encoded, "message_internal_123") {
-		t.Fatalf("Core source ref leaked through prompt diagnostics: %s", encoded)
-	}
-	if !strings.Contains(encoded, "summary:diag_") || !strings.Contains(encoded, "message:diag_") {
-		t.Fatalf("diagnostic source correlation was not retained safely: %s", encoded)
+	if !strings.Contains(encoded, "ctx_safe") || !strings.Contains(encoded, "message_internal_123") || strings.Contains(encoded, ":diag_") {
+		t.Fatalf("Core source refs changed in Owner diagnostics: %s", encoded)
 	}
 }
 
@@ -169,11 +250,11 @@ func TestDiagnosticPersistenceWarningIncludesBoundedSafeCause(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := sourceBetween(t, string(source), "func recordDiagnosticPersistenceFailure", "func validLifecycleIdentity")
-	if !strings.Contains(body, `"safe_cause", boundedLifecycleCause(err.Error())`) {
+	if !strings.Contains(body, `"safe_cause", boundedOperationalCause(err.Error())`) {
 		t.Fatal("diagnostic persistence warning omits the bounded failure cause")
 	}
-	if got := boundedLifecycleCause("Authorization: Bearer private-token"); got != "[REDACTED]" {
-		t.Fatalf("sensitive persistence cause = %q", got)
+	if got := boundedOperationalCause("Authorization: Bearer private-token"); got != "[REDACTED]" {
+		t.Fatalf("operational warning exposed credential: %q", got)
 	}
 }
 
@@ -243,12 +324,12 @@ func TestProviderPreflightFailuresAreDiagnosedBeforeQueue(t *testing.T) {
 	}
 }
 
-func TestProviderPreflightDiagnosticsAreMetadataOnly(t *testing.T) {
+func TestProviderPreflightDiagnosticsKeepSourceText(t *testing.T) {
 	const canary = "PRIVATE_CHARACTER_CARD_CANARY"
 	prompt := providerPreflightDiagnosticPrompt([]map[string]any{{"role": "user", "content": canary}})
 	encoded := jsonString(prompt)
-	if strings.Contains(encoded, canary) || stringValue(prompt["diagnostic_scope"]) != "metadata_only" || stringValue(prompt["prompt_digest"]) == "" {
-		t.Fatalf("Provider preflight diagnostic leaked source content: %s", encoded)
+	if !strings.Contains(encoded, canary) || strings.Contains(encoded, "metadata_only") {
+		t.Fatalf("Provider preflight diagnostic replaced source content: %s", encoded)
 	}
 }
 
@@ -345,6 +426,9 @@ func TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary(t *testing.T) 
 			}
 		}
 	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,model_id,prompt,response,status,correlation_id,metrics) VALUES('adk-outer-summary','cognitive_assessment','generic_llm','cognitive_assessment','test-model','{}','{}','completed',$1,$2)`, correlationID, jsonBytes(map[string]any{"run_id": "logical-adk-rounds", "provider_attempt_id": "parent-attempt"})); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,correlation_id,payload) VALUES('adk-round-tool','adk.tool.result','info',$1,$2)`, correlationID, jsonBytes(map[string]any{"model_call_id": "call-one", "call_id": "tool-one", "capability": "scene_event", "status": "completed", "arguments_digest": "secret-digest"})); err != nil {
 		t.Fatal(err)
 	}
@@ -355,10 +439,9 @@ func TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary(t *testing.T) 
 	byCall := map[string]map[string]any{}
 	for _, run := range runs {
 		byCall[stringValue(run["model_call_id"])] = run
-		encoded := jsonString(run)
-		if strings.Contains(encoded, "private argument") || strings.Contains(encoded, "private reasoning") || strings.Contains(encoded, "secret-digest") {
-			t.Fatalf("raw Tool/reasoning data leaked: %s", encoded)
-		}
+	}
+	if encoded := jsonString(byCall["call-one"]); !strings.Contains(encoded, "private argument") || !strings.Contains(encoded, "private reasoning") || strings.Contains(encoded, "secret-digest") {
+		t.Fatalf("first model response text or tool summary changed: %s", encoded)
 	}
 	if intValue(byCall["call-one"]["sequence"]) != 1 || byCall["call-one"]["round_count"] != int64(2) || stringValue(byCall["call-one"]["stage"]) != "tool_request" {
 		t.Fatalf("first round mislabeled: %#v", byCall["call-one"])
@@ -391,8 +474,8 @@ func TestPostgresADKToolDiagnosticUsesRecordedPhysicalCallIdentity(t *testing.T)
 		t.Fatal(err)
 	}
 	decoded := decodeObject(payload)
-	if decoded["model_call_id"] != "physical-request-1" || decoded["run_id"] != "agent-correlation-1" || strings.Contains(string(payload), "PRIVATE") {
-		t.Fatalf("Tool event did not retain safe physical call identity: %s", payload)
+	if decoded["model_call_id"] != "physical-request-1" || decoded["run_id"] != "agent-correlation-1" || !strings.Contains(string(payload), "PRIVATE") {
+		t.Fatalf("Tool event did not retain physical call identity and arguments: %s", payload)
 	}
 	runs, err := (&App{DB: repository}).ModelRunsFiltered(ctx, ownerID, 10, "agent-correlation-1")
 	if err != nil || len(runs) != 1 {
@@ -466,8 +549,8 @@ func TestPostgresAgentRunDiagnosticsShowLogicalFailureWithoutChangingPhysicalSta
 		t.Fatalf("all logical runs: %#v %v", allRuns, err)
 	}
 	for _, run := range allRuns {
-		if run["run_id"] == "legacy-run" && (run["association_status"] != "unknown" || run["safe_cause"] != "[REDACTED]") {
-			t.Fatalf("legacy run inferred association or leaked secret: %#v", run)
+		if run["run_id"] == "legacy-run" && (run["association_status"] != "unknown" || run["safe_cause"] != "Authorization: Bearer private-token") {
+			t.Fatalf("legacy run inferred association or changed Owner cause: %#v", run)
 		}
 	}
 }
@@ -501,6 +584,56 @@ func TestPostgresADKModelRunFailureAndLegacyRowDoNotInventFinalStage(t *testing.
 			if run["stage"] != "unknown" || run["sequence"] != nil || run["response"] != nil {
 				t.Fatalf("old row invented final answer or sequence: %#v", run)
 			}
+		}
+	}
+}
+
+func TestPostgresCurrentNonADKModelRunsHaveRoundsAndStages(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "fixed-round-owner", "fixed-round-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []struct{ id, status, attempt string }{
+		{"fixed-round-one", "completed", "attempt-one"},
+		{"fixed-round-two", "timeout", "attempt-two"},
+	} {
+		metrics := map[string]any{"run_id": "fixed-round-run", "provider_attempt_id": row.attempt}
+		if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,model_id,prompt,response,status,correlation_id,metrics) VALUES($1,'cognitive_assessment','generic_llm','schedule_generation','test-model','{}','{}',$2,'fixed-round-correlation',$3)`, row.id, row.status, jsonBytes(metrics)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runs, err := (&App{DB: repository}).modelRunsFiltered(ctx, ownerID, 10, "fixed-round-correlation", "")
+	if err != nil || len(runs) != 2 {
+		t.Fatalf("model runs: %#v %v", runs, err)
+	}
+	byID := map[string]map[string]any{}
+	for _, run := range runs {
+		byID[stringValue(run["id"])] = run
+	}
+	if intValue(byID["fixed-round-one"]["sequence"]) != 1 || byID["fixed-round-one"]["stage"] != "final_response" {
+		t.Fatalf("first current run mislabeled: %#v", byID["fixed-round-one"])
+	}
+	if intValue(byID["fixed-round-two"]["sequence"]) != 2 || byID["fixed-round-two"]["stage"] != "timeout" {
+		t.Fatalf("second current run mislabeled: %#v", byID["fixed-round-two"])
+	}
+}
+
+func TestNonADKModelRunStageNeedsResponseForFinalAnswer(t *testing.T) {
+	for _, testCase := range []struct {
+		status   string
+		response any
+		want     string
+	}{
+		{"completed", map[string]any{"content": "完成"}, "final_response"},
+		{"completed", nil, "unknown"},
+		{"running", nil, "pending"},
+		{"timeout", nil, "timeout"},
+		{"failed", nil, "failed"},
+	} {
+		if got := nonADKModelRunStage(testCase.status, testCase.response); got != testCase.want {
+			t.Fatalf("stage for %q/%#v = %q, want %q", testCase.status, testCase.response, got, testCase.want)
 		}
 	}
 }
@@ -645,7 +778,7 @@ func TestLifecycleProviderAttemptsRemainDistinct(t *testing.T) {
 	}
 }
 
-func TestLifecycleMetadataRedactionHandlesTypedContainersAndCycles(t *testing.T) {
+func TestLifecycleMetadataKeepsTypedContainersAndRejectsCycles(t *testing.T) {
 	type typedMetadata struct {
 		Authorization string `json:"authorization"`
 		Note          string `json:"note"`
@@ -664,8 +797,8 @@ func TestLifecycleMetadataRedactionHandlesTypedContainersAndCycles(t *testing.T)
 		t.Fatal(err)
 	}
 	encoded := jsonString(payload)
-	if strings.Contains(encoded, "typed-map-secret") || strings.Contains(encoded, "typed-struct-secret") || strings.Contains(encoded, "[1,2,3,4]") {
-		t.Fatalf("typed lifecycle metadata leaked: %s", encoded)
+	if !strings.Contains(encoded, "typed-map-secret") || !strings.Contains(encoded, "typed-struct-secret") || strings.Contains(encoded, "[REDACTED]") {
+		t.Fatalf("typed lifecycle metadata changed: %s", encoded)
 	}
 	cycle := map[string]any{}
 	cycle["self"] = cycle

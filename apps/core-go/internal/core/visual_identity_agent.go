@@ -150,17 +150,20 @@ func visualIdentityAgentCheckpointOperationID(state visualIdentityAgentState) st
 }
 
 func visualIdentityAgentMessages(state visualIdentityAgentState, imageContent map[string]any) []map[string]any {
+	history := make([]map[string]any, 0, len(state.History))
+	for _, attempt := range state.History {
+		history = append(history, compactStateMap(attempt, []string{"attempt", "decision", "status"}))
+	}
 	contextPayload := map[string]any{
-		"session_id": state.SessionID, "fluctlight_id": state.FluctlightID,
 		"session_status": state.SessionStatus, "attempt": state.Attempt, "max_attempts": state.MaxAttempts,
 		"action_required": visualIdentityAgentActionLabel(state.ActionRequired), "waiting_stage": state.WaitingStage,
-		"media_intent_id": state.MediaIntentID, "media_status": state.MediaStatus,
-		"candidate_asset_id": state.CandidateAssetID, "candidate_asset_ready": state.CandidateAssetReady,
-		"character_sheet_media_intent_id": state.CharacterMediaIntentID, "character_sheet_media_status": state.CharacterMediaStatus,
-		"canonical_asset_id": state.CanonicalAssetID, "character_sheet_asset_id": state.CharacterSheetAssetID,
-		"identity_snapshot": state.InputSnapshot, "renderer_constraints": state.RendererConstraints,
-		"attempt_history": state.History, "required_card_sections": append([]string(nil), visualIdentityRequiredCardSections...),
-		"expected_views": visualIdentityExpectedViews(),
+		"media_status": state.MediaStatus, "candidate_asset_ready": state.CandidateAssetReady,
+		"character_sheet_media_status": state.CharacterMediaStatus, "character_asset_ready": state.CharacterAssetReady,
+		"canonical_asset_ready": state.CanonicalAssetID != "",
+		"identity_snapshot":     visualIdentityAgentSnapshot(state.InputSnapshot), "attempt_history": history,
+	}
+	if review := visualIdentityPreviousReviewForModel(state.InputSnapshot); len(review) > 0 {
+		contextPayload["previous_review"] = review
 	}
 	content := []any{map[string]any{"type": "text", "text": jsonString(contextPayload)}}
 	if len(imageContent) > 0 {
@@ -174,6 +177,68 @@ func visualIdentityAgentMessages(state visualIdentityAgentState, imageContent ma
 		{"role": "user", "content": content},
 	})
 	return formatProviderMessagesForRole(messages, "visual_identity_agent")
+}
+
+func visualIdentityAgentSnapshot(snapshot map[string]any) map[string]any {
+	result := map[string]any{}
+	identity := compactStateMap(snapshot["identity"], []string{
+		"name", "display_name", "visible_text", "age", "gender", "nationality", "ethnicity",
+		"face_shape", "facial_features", "eye_color", "skin_tone", "body_type", "hair",
+	})
+	if appearance := visualIdentityAgentAppearance(mapValue(snapshot["identity"])["appearance"]); appearance != nil {
+		if identity == nil {
+			identity = map[string]any{}
+		}
+		identity["appearance"] = appearance
+	}
+	if len(identity) > 0 {
+		result["identity"] = identity
+	}
+	if appearance := visualIdentityAgentAppearance(mapValue(snapshot["life_profile"])["appearance"]); appearance != nil {
+		result["life_profile"] = map[string]any{"appearance": appearance}
+	}
+	return result
+}
+
+func visualIdentityAgentAppearance(value any) any {
+	if text := strings.TrimSpace(stringValue(value)); text != "" {
+		return text
+	}
+	appearance := compactStateMap(value, []string{
+		"description", "text", "summary", "hair", "hairstyle", "hair_color", "face_shape",
+		"facial_features", "eye_color", "skin_tone", "body_type", "height",
+		"outfit", "clothing", "accessories", "chest_cup",
+	})
+	if len(appearance) == 0 {
+		return nil
+	}
+	return appearance
+}
+
+func visualIdentityPreviousReviewForModel(snapshot map[string]any) map[string]any {
+	previous := mapValue(snapshot["previous_review"])
+	if len(previous) == 0 {
+		return nil
+	}
+	review := compactStateMap(previous, []string{"decision", "missing_sections"})
+	for _, key := range []string{"summary", "feedback"} {
+		if text := visualIdentityBoundedText(stringValue(previous[key]), 2000); text != "" {
+			review[key] = text
+		}
+	}
+	observations := make([]any, 0)
+	for _, item := range arrayValue(previous["observations"]) {
+		if len(observations) >= 8 {
+			break
+		}
+		if text := visualIdentityBoundedText(stringValue(item), 200); text != "" {
+			observations = append(observations, text)
+		}
+	}
+	if len(observations) > 0 {
+		review["observations"] = observations
+	}
+	return review
 }
 
 func visualIdentityAgentActionLabel(capabilityName string) string {

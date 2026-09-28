@@ -32,6 +32,7 @@ func intentionInspectDefinition() CapabilityDefinition {
 		}, []string{"operation"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "read_only", SuccessBoundary: "query_result_available",
 		ConcurrencyClass: "parallel", SupportsRetry: true,
+		ModelResultOmitFields: []string{"profile_id", "intention.revision", "intentions.revision"},
 	}
 }
 func (c intentionInspectCapability) Definition() CapabilityDefinition {
@@ -141,6 +142,7 @@ func intentionDecideDefinition() CapabilityDefinition {
 		}, []string{"operation", "reason"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "native_projection", SuccessBoundary: "intention_revision_committed",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
+		ModelResultOmitFields: []string{"goal_id", "revision", "reused"},
 	}
 }
 func (c intentionDecideCapability) Definition() CapabilityDefinition {

@@ -579,10 +579,10 @@ func (c scheduleReplanCapability) Prepare(ctx context.Context, invocation Capabi
 	if err := preserveScheduledActionPlans(planned, resolved.Schedule.Data); err != nil {
 		return invocation, newCapabilityError("schedule_replan_planner_failed", false, err)
 	}
-	planned["local_date"] = firstString(planned["local_date"], stringValue(resolved.Schedule.Data["local_date"]))
-	planned["timezone"] = firstString(planned["timezone"], stringValue(resolved.Schedule.Data["timezone"]))
-	planned["expected_revision"] = firstInt(planned["expected_revision"], intValue(resolved.Schedule.Data["revision"]))
-	planned["completed_before"] = firstString(planned["completed_before"], stringValue(resolved.Schedule.Data["completed_before"]))
+	planned["local_date"] = resolved.Schedule.Data["local_date"]
+	planned["timezone"] = resolved.Schedule.Data["timezone"]
+	planned["expected_revision"] = intValue(resolved.Schedule.Data["revision"])
+	planned["completed_before"] = scheduleReplanCompletedBefore(resolved.Schedule.Data)
 	planned["expected_life_context_revision"] = stringValue(resolved.Life.Data["context_revision"])
 	planned["intent"] = stringValue(args["intent"])
 	planned["evidence_refs"] = []any{invocation.SourceFactID}

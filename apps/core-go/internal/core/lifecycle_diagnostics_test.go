@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-func TestLifecycleDiagnosticPayloadIsBoundedAndRedacted(t *testing.T) {
+func TestLifecycleDiagnosticPayloadKeepsTextAndBoundsCollections(t *testing.T) {
+	type imagePart struct {
+		URL    string `json:"url"`
+		Detail string `json:"detail"`
+	}
 	long := strings.Repeat("x", 900)
 	many := make([]any, 80)
 	for index := range many {
@@ -35,8 +39,16 @@ func TestLifecycleDiagnosticPayloadIsBoundedAndRedacted(t *testing.T) {
 			"authorization": "Bearer secret",
 			"raw_prompt":    "private character card",
 			"binary":        []byte("private binary card"),
-			"items":         many,
-			"note":          long,
+			"image_url":     "https://media.invalid/private-image?grant=secret",
+			"image_object":  map[string]any{"image_url": map[string]any{"url": "https://media.invalid/nested?grant=secret", "detail": "high"}},
+			"typed_image": struct {
+				ImageURL imagePart `json:"image_url"`
+			}{ImageURL: imagePart{URL: "https://media.invalid/typed?grant=secret", Detail: "high"}},
+			"image_bytes":  []byte("raw-image-bytes-without-mime"),
+			"image_base64": []byte("raw-base64-without-mime"),
+			"image_note":   "saw data:image/png;base64,ZmFrZQ== today",
+			"items":        many,
+			"note":         long,
 		},
 	}
 	payload, err := lifecycleDiagnosticPayload(event, time.Date(2026, 9, 13, 1, 0, 0, 0, time.UTC))
@@ -44,8 +56,8 @@ func TestLifecycleDiagnosticPayloadIsBoundedAndRedacted(t *testing.T) {
 		t.Fatal(err)
 	}
 	encoded := jsonString(payload)
-	if strings.Contains(encoded, "Bearer secret") || strings.Contains(encoded, "private character card") || strings.Contains(encoded, "private binary card") {
-		t.Fatalf("lifecycle diagnostic leaked a secret payload: %s", encoded)
+	if !strings.Contains(encoded, "Bearer secret") || !strings.Contains(encoded, "private character card") || !strings.Contains(encoded, "private binary card") || strings.Contains(encoded, "[REDACTED]") || strings.Contains(encoded, "media.invalid") || strings.Contains(encoded, "ZmFrZQ==") || strings.Contains(encoded, "raw-image-bytes-without-mime") || strings.Contains(encoded, "raw-base64-without-mime") {
+		t.Fatalf("lifecycle diagnostic changed non-image text: %s", encoded)
 	}
 	if stringValue(payload["safe_cause"]) == long || len([]rune(stringValue(payload["safe_cause"]))) > 512 {
 		t.Fatalf("safe cause was not bounded: %#v", payload["safe_cause"])
@@ -56,7 +68,7 @@ func TestLifecycleDiagnosticPayloadIsBoundedAndRedacted(t *testing.T) {
 	}
 }
 
-func TestLifecycleCauseRejectsFreeformSecretsAndURLCredentials(t *testing.T) {
+func TestLifecycleCauseKeepsFreeformText(t *testing.T) {
 	for _, unsafe := range []string{
 		"request failed: token=sk-live-private",
 		"session=private-session",
@@ -64,8 +76,8 @@ func TestLifecycleCauseRejectsFreeformSecretsAndURLCredentials(t *testing.T) {
 		"https://user:password@example.invalid/api",
 		"upstream key sk-live-private",
 	} {
-		if got := boundedLifecycleCause(unsafe); got != "[REDACTED]" {
-			t.Fatalf("unsafe cause %q was rendered as %q", unsafe, got)
+		if got := boundedLifecycleCause(unsafe); got != unsafe {
+			t.Fatalf("cause %q was changed to %q", unsafe, got)
 		}
 	}
 	if got := boundedLifecycleCause("tool execution capability_prepare_failed: invalid arguments"); !strings.Contains(got, "invalid arguments") {

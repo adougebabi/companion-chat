@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ const (
 	providerRunCancelled = "cancelled"
 	providerRunTimeout   = "timeout"
 )
+
+var diagnosticImageDataURLPattern = regexp.MustCompile(`(?i)data:image/[^\s"'\\]+`)
 
 func boundedDiagnosticWriteContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	if ctx == nil {
@@ -122,26 +125,6 @@ func boundedPromptDiagnostics(trace map[string]any) map[string]any {
 		case map[string]any:
 			result := make(map[string]any, len(typed))
 			for key, child := range typed {
-				if strings.EqualFold(strings.ReplaceAll(key, "_", ""), "sourcerefs") {
-					refs := arrayValue(child)
-					boundedRefs := make([]any, 0, min(len(refs), 64))
-					for index, raw := range refs {
-						if index >= 64 {
-							break
-						}
-						ref := strings.TrimSpace(stringValue(raw))
-						if ref == "" {
-							continue
-						}
-						kind, _, _ := strings.Cut(ref, ":")
-						if kind == "" {
-							kind = "source"
-						}
-						boundedRefs = append(boundedRefs, kind+":diag_"+stableDigest(ref))
-					}
-					result[key] = boundedRefs
-					continue
-				}
 				result[key] = bound(child)
 			}
 			return result
@@ -258,12 +241,6 @@ func providerPriority(scenario string) int {
 	}
 }
 
-var diagnosticSecretKeys = map[string]struct{}{
-	"token": {}, "password": {}, "secret": {}, "credential": {}, "authorization": {},
-	"apikey": {}, "api_key": {}, "cookie": {}, "session": {}, "servicekey": {},
-	"rawprompt": {}, "rawresponse": {}, "reasoning": {}, "reasoningcontent": {}, "hiddenreasoning": {}, "arguments": {},
-}
-
 func diagnosticCorrelation(messages []map[string]any, fallback string) string {
 	for _, message := range messages {
 		for _, key := range []string{"correlation_id", "correlationId", "turn_id", "turnId"} {
@@ -283,20 +260,42 @@ func redactDiagnostic(value any) any {
 	switch typed := value.(type) {
 	case map[string]any:
 		result := make(map[string]any, len(typed))
+		imagePart := stringValue(typed["type"]) == "image" || stringValue(typed["type"]) == "image_url"
 		for key, child := range typed {
-			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
 			if normalized == "imageurl" {
-				result[key] = map[string]any{"url": "[REDACTED_IMAGE_DATA]"}
+				if image := mapValue(child); len(image) > 0 {
+					copyImage := make(map[string]any, len(image))
+					for imageKey, imageValue := range image {
+						if imageKey == "url" || diagnosticImagePayloadField(imageKey) {
+							copyImage[imageKey] = "[REDACTED_IMAGE_DATA]"
+						} else {
+							copyImage[imageKey] = redactDiagnostic(imageValue)
+						}
+					}
+					result[key] = copyImage
+				} else {
+					result[key] = "[REDACTED_IMAGE_DATA]"
+				}
 				continue
 			}
-			if _, secret := diagnosticSecretKeys[normalized]; secret {
-				result[key] = "[REDACTED]"
-				continue
-			}
-			if normalized == "perception" || normalized == "appraisal" {
+			if diagnosticImagePayloadField(key) || normalized == "image" && stringValue(child) != "" || imagePart && (normalized == "url" || normalized == "data" || normalized == "base64") {
+				result[key] = "[REDACTED_IMAGE_DATA]"
 				continue
 			}
 			result[key] = redactDiagnostic(child)
+		}
+		return result
+	case map[string]string:
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			result[key] = child
+		}
+		return redactDiagnostic(result)
+	case []map[string]any:
+		result := make([]any, len(typed))
+		for index, child := range typed {
+			result[index] = redactDiagnostic(child)
 		}
 		return result
 	case []any:
@@ -305,20 +304,26 @@ func redactDiagnostic(value any) any {
 			result[index] = redactDiagnostic(child)
 		}
 		return result
+	case []string:
+		result := make([]any, len(typed))
+		for index, child := range typed {
+			result[index] = redactDiagnostic(child)
+		}
+		return result
 	case string:
-		// A structured Content sidecar with tool_calls is an invalid execution
-		// channel. Keep its shape for diagnostics without persisting arguments
-		// embedded inside an otherwise opaque JSON string.
-		var structured map[string]any
-		if json.Unmarshal([]byte(typed), &structured) == nil && len(arrayValue(structured["tool_calls"])) > 0 {
-			return "[REDACTED_STRUCTURED_TOOL_CALLS]"
-		}
-		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(typed)), "data:image/") {
-			return "[REDACTED_IMAGE_DATA]"
-		}
-		return typed
+		return diagnosticImageDataURLPattern.ReplaceAllString(typed, "[REDACTED_IMAGE_DATA]")
 	default:
 		return value
+	}
+}
+
+func diagnosticImagePayloadField(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
+	switch normalized {
+	case "imagedata", "imagebase64", "imagebytes", "imagecontent", "b64json":
+		return true
+	default:
+		return false
 	}
 }
 

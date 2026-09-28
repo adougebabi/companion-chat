@@ -208,15 +208,15 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			}
 			if testCase.name == conversationReplyCapabilityName {
 				correlationID := "controlled-formal-tool-adapter:" + testCase.name + ":" + fixture.suffix
-				var firstModelCount, secondModelCount, toolOnFirst, toolOnSecond int
-				if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FILTER (WHERE metrics->>'model_call_id'=$2),count(*) FILTER (WHERE metrics->>'model_call_id'=$3) FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID, requestIDs[0], requestIDs[1]).Scan(&firstModelCount, &secondModelCount); err != nil {
+				var totalModelCount, firstModelCount, secondModelCount, toolOnFirst, toolOnSecond int
+				if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*),count(*) FILTER (WHERE metrics->>'model_call_id'=$2),count(*) FILTER (WHERE metrics->>'model_call_id'=$3) FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID, requestIDs[0], requestIDs[1]).Scan(&totalModelCount, &firstModelCount, &secondModelCount); err != nil {
 					t.Fatal(err)
 				}
 				if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FILTER (WHERE payload->>'model_call_id'=$2),count(*) FILTER (WHERE payload->>'model_call_id'=$3) FROM public.diagnostic_events WHERE correlation_id=$1 AND event_type='adk.tool.result' AND payload->>'call_id'=$4`, correlationID, requestIDs[0], requestIDs[1], callID).Scan(&toolOnFirst, &toolOnSecond); err != nil {
 					t.Fatal(err)
 				}
-				if firstModelCount != 1 || secondModelCount != 1 || toolOnFirst != 1 || toolOnSecond != 0 {
-					t.Fatalf("real two-round Tool diagnostic association: model_first=%d model_second=%d tool_first=%d tool_second=%d", firstModelCount, secondModelCount, toolOnFirst, toolOnSecond)
+				if totalModelCount != len(requestIDs) || firstModelCount != 1 || secondModelCount != 1 || toolOnFirst != 1 || toolOnSecond != 0 {
+					t.Fatalf("real two-round Tool diagnostic association: model_total=%d model_first=%d model_second=%d tool_first=%d tool_second=%d", totalModelCount, firstModelCount, secondModelCount, toolOnFirst, toolOnSecond)
 				}
 			}
 			visibleResult, found := formalAdapterResultFromPayload(requests[1], callID)
@@ -654,8 +654,7 @@ func newFormalToolAdapterFixture(t *testing.T) *formalToolAdapterFixture {
 	local := now.In(location)
 	dayStart := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, location)
 	fixture.provider = &controlledFormalToolProvider{schedulePlan: map[string]any{
-		"local_date": dayStart.Format("2006-01-02"), "timezone": "Asia/Shanghai", "expected_revision": 1,
-		"completed_before": dayStart.Format(time.RFC3339), "reschedule_policy": map[string]any{},
+		"reschedule_policy": map[string]any{},
 		"items": []any{map[string]any{
 			"start_at": dayStart.Format(time.RFC3339), "end_at": dayStart.AddDate(0, 0, 1).Format(time.RFC3339),
 			"activity": "受控 adapter 核验", "scene": "书房", "location": "家", "item_type": "planned", "status": "planned",
@@ -761,18 +760,32 @@ func (provider *controlledFormalToolProvider) ServeHTTP(w http.ResponseWriter, r
 	if providerWireSchemaName(payload) == "schedule_replan_plan" {
 		location, _ := time.LoadLocation("Asia/Shanghai")
 		now := time.Now().In(location).Truncate(time.Second)
+		for _, raw := range arrayValue(payload["messages"]) {
+			message := mapValue(raw)
+			if stringValue(message["role"]) != "user" {
+				continue
+			}
+			for _, line := range strings.Split(stringValue(message["content"]), "\n") {
+				line = strings.TrimSpace(line)
+				if !strings.HasPrefix(line, "completed_before:") {
+					continue
+				}
+				value := strings.Trim(strings.TrimSpace(strings.TrimPrefix(line, "completed_before:")), "'\"")
+				if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
+					now = parsed.In(location)
+				}
+			}
+		}
 		dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, location)
 		dayEnd := dayStart.AddDate(0, 0, 1)
-		schedulePlan["local_date"] = dayStart.Format("2006-01-02")
-		schedulePlan["completed_before"] = now.Format(time.RFC3339)
 		schedulePlan["items"] = []any{
 			map[string]any{
-				"start_at": dayStart.Format(time.RFC3339), "end_at": now.Format(time.RFC3339),
+				"start_at": dayStart.Format(time.RFC3339Nano), "end_at": now.Format(time.RFC3339Nano),
 				"activity": "阅读", "scene": "书房", "item_type": "planned", "status": "planned",
 				"priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5,
 			},
 			map[string]any{
-				"start_at": now.Format(time.RFC3339), "end_at": dayEnd.Format(time.RFC3339),
+				"start_at": now.Format(time.RFC3339Nano), "end_at": dayEnd.Format(time.RFC3339Nano),
 				"activity": "阅读", "scene": "书房", "item_type": "planned", "status": "planned",
 				"priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5,
 			},

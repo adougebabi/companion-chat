@@ -786,7 +786,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
 	schema := wakeUpResponseSchema()
 	operationRules := []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}
-	currentInput := jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
+	currentInput := jsonString(map[string]any{"cycle": cycle, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
 	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema)
 	if err != nil {
 		return nil, err

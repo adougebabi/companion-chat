@@ -99,8 +99,8 @@ func TestProviderToolCallFailuresPersistBoundedDiagnosticsForNativeAndStructured
 				t.Fatalf("tool call model run = status=%q error_code=%q", status, errorCode)
 			}
 			if testCase.wantReason == "" {
-				if strings.Contains(string(response), "PRIVATE_STRUCTURED_ARGUMENT_CANARY") || strings.Contains(string(response), "PRIVATE_NATIVE_ARGUMENT_CANARY") {
-					t.Fatalf("pseudo tool diagnostic leaked argument content: %s", string(response))
+				if !strings.Contains(string(response), "PRIVATE_STRUCTURED_ARGUMENT_CANARY") {
+					t.Fatalf("Owner diagnostic lost original structured response text: %s", string(response))
 				}
 				return
 			}
@@ -110,10 +110,6 @@ func TestProviderToolCallFailuresPersistBoundedDiagnosticsForNativeAndStructured
 			}
 			if stringValue(diagnostic["source"]) != testCase.source || stringValue(diagnostic["normalization_reason"]) != testCase.wantReason || intValue(diagnostic["failed_item_index"]) != 0 || intValue(diagnostic["call_count"]) != 1 {
 				t.Fatalf("tool call diagnostic = %#v", diagnostic)
-			}
-			encoded := string(response)
-			if strings.Contains(encoded, "PRIVATE_NATIVE_ARGUMENT_CANARY") || strings.Contains(encoded, "PRIVATE_STRUCTURED_ARGUMENT_CANARY") {
-				t.Fatalf("tool call diagnostic leaked argument content: %s", encoded)
 			}
 		})
 	}

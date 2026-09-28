@@ -890,7 +890,7 @@ func TestScheduleIntentUsesConfiguredPlanner(t *testing.T) {
 	capability := scheduleReplanCapability{planner: planner, apply: func(_ context.Context, invocation CapabilityInvocation) (CapabilityResult, error) {
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"schedule_id": "schedule-1", "revision": 2, "status": "accepted"}, ProviderRequestID: invocation.ProviderRequestID}, nil
 	}}
-	_, err := capability.Execute(context.Background(), CapabilityInvocation{CallID: "schedule-1", CapabilityName: "schedule.replan", Arguments: json.RawMessage(`{"intent":"move reading"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}, CapabilityContext{Schedule: &ScheduleContext{Data: map[string]any{"local_date": "2026-09-09", "timezone": "Asia/Shanghai", "revision": 1}}, Life: &CurrentLifeContext{Data: map[string]any{"timezone": "Asia/Shanghai", "context_revision": "life_ctx_test"}}, Agency: &AgencyContext{Data: map[string]any{}}})
+	_, err := capability.Execute(context.Background(), CapabilityInvocation{CallID: "schedule-1", CapabilityName: "schedule.replan", Arguments: json.RawMessage(`{"intent":"move reading"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}, CapabilityContext{Schedule: &ScheduleContext{Data: map[string]any{"local_date": "2026-09-09", "timezone": "Asia/Shanghai", "revision": 1, "completed_before": "2026-09-09T10:00:00+08:00"}}, Life: &CurrentLifeContext{Data: map[string]any{"timezone": "Asia/Shanghai", "context_revision": "life_ctx_test"}}, Agency: &AgencyContext{Data: map[string]any{}}})
 	if err != nil {
 		t.Fatalf("configured planner execution = %v", err)
 	}
@@ -925,7 +925,7 @@ func TestSchedulePlannerPrepareIsPersistableAndRunsOnce(t *testing.T) {
 	}}
 	resolver := NewStaticContextResolver(map[ContextSlot]ContextLoader{
 		SlotSchedule: func(context.Context, ContextRequest) (any, error) {
-			return map[string]any{"revision": 1, "local_date": "2026-09-09", "timezone": "Asia/Shanghai"}, nil
+			return map[string]any{"revision": 1, "local_date": "2026-09-09", "timezone": "Asia/Shanghai", "completed_before": "2026-09-09T10:00:00+08:00"}, nil
 		},
 		SlotCurrentLife: func(context.Context, ContextRequest) (any, error) {
 			return map[string]any{"timezone": "Asia/Shanghai", "context_revision": "life_ctx_test"}, nil
@@ -968,9 +968,14 @@ func TestPreparedSchedulePayloadIsValidatedWithoutPlannerReplay(t *testing.T) {
 
 func TestSchedulePlannerSchemaIsCapabilityLocalAndComplete(t *testing.T) {
 	schema := schedulePlannerOutputSchema()
-	for _, key := range []string{"local_date", "timezone", "expected_revision", "completed_before", "items", "reschedule_policy"} {
+	for _, key := range []string{"items", "reschedule_policy"} {
 		if !containsSchemaRequired(schema, key) {
 			t.Fatalf("planner schema missing %q: %#v", key, schema)
+		}
+	}
+	for _, key := range []string{"local_date", "timezone", "expected_revision", "completed_before"} {
+		if containsSchemaRequired(schema, key) {
+			t.Fatalf("planner schema requires Core-owned %q: %#v", key, schema)
 		}
 	}
 	definition := scheduleReplanCapabilityDefinition()
