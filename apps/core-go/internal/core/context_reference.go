@@ -629,6 +629,9 @@ func normalizeDecisionAppraisalEvidence(decision map[string]any, index ContextRe
 		if ref == "" {
 			return fmt.Errorf("appraisal_evidence_ref_%d_invalid", position)
 		}
+		if isSemanticCognitionEvidenceRef(ref) {
+			ref = strings.TrimSpace(sourceFactID)
+		}
 		if ref != strings.TrimSpace(sourceFactID) {
 			if _, exists := index.ByRef[ref]; !exists {
 				return fmt.Errorf("appraisal_evidence_ref_%d_foreign", position)
@@ -641,6 +644,23 @@ func normalizeDecisionAppraisalEvidence(decision map[string]any, index ContextRe
 	}
 	decision["appraisal"] = appraisal
 	return nil
+}
+
+func resolveDriveRef(ref string, index ContextReferenceIndex) (string, ContextReference, bool) {
+	if entry, exists := index.ByRef[ref]; exists && entry.Kind == ContextReferenceDrive {
+		return ref, entry, true
+	}
+	lookupKey := strings.ToLower(strings.TrimSpace(strings.TrimPrefix(ref, "drive:")))
+	for candidateRef, candidateEntry := range index.ByRef {
+		if candidateEntry.Kind == ContextReferenceDrive {
+			snapshot := decodeObject(candidateEntry.Snapshot)
+			key := strings.ToLower(strings.TrimSpace(stringValue(snapshot["key"])))
+			if key != "" && (key == lookupKey || key == strings.ToLower(strings.TrimSpace(ref))) {
+				return candidateRef, candidateEntry, true
+			}
+		}
+	}
+	return "", ContextReference{}, false
 }
 
 func validateDecisionDriveSignals(decision map[string]any, index ContextReferenceIndex, influences []DecisionInfluence) ([]driveSemanticSignal, error) {
@@ -662,10 +682,6 @@ func validateDecisionDriveSignals(decision map[string]any, index ContextReferenc
 	if len(raw) > maxDriveSemanticSignals {
 		return nil, errors.New("drive_signals_too_large")
 	}
-	influenceRefs := make(map[string]struct{}, len(influences))
-	for _, influence := range influences {
-		influenceRefs[influence.Ref] = struct{}{}
-	}
 	seen := make(map[string]struct{}, len(raw))
 	normalized := make([]any, 0, len(raw))
 	result := make([]driveSemanticSignal, 0, len(raw))
@@ -682,48 +698,54 @@ func validateDecisionDriveSignals(decision map[string]any, index ContextReferenc
 			}
 		}
 		ref := strings.TrimSpace(stringValue(candidate["ref"]))
-		entry, exists := index.ByRef[ref]
+		resolvedRef, entry, exists := resolveDriveRef(ref, index)
 		if !exists || entry.Kind != ContextReferenceDrive {
-			return nil, fmt.Errorf("drive_signal_%d_ref_invalid", position)
+			continue
 		}
-		if _, influenced := influenceRefs[ref]; !influenced {
-			return nil, fmt.Errorf("drive_signal_%d_influence_required", position)
-		}
+		ref = resolvedRef
 		direction := strings.TrimSpace(stringValue(candidate["direction"]))
 		if direction != "increase" && direction != "decrease" {
-			return nil, fmt.Errorf("drive_signal_%d_direction_invalid", position)
+			continue
 		}
 		strength, strengthOK := numberFloat(candidate["strength"])
 		confidence, confidenceOK := numberFloat(candidate["confidence"])
 		if !strengthOK || strength < 0 || strength > 1 || !confidenceOK || confidence < 0 || confidence > 1 {
-			return nil, fmt.Errorf("drive_signal_%d_strength_invalid", position)
+			continue
 		}
 		evidenceValues, evidenceOK := candidate["evidence_refs"].([]any)
-		if !evidenceOK || len(evidenceValues) == 0 || len(evidenceValues) > maxDriveSignalEvidenceRefs {
-			return nil, fmt.Errorf("drive_signal_%d_evidence_invalid", position)
+		if !evidenceOK || len(evidenceValues) > maxDriveSignalEvidenceRefs {
+			continue
 		}
 		evidenceRefs := make([]string, 0, len(evidenceValues))
 		evidenceSeen := make(map[string]struct{}, len(evidenceValues))
 		for _, rawEvidence := range evidenceValues {
 			evidenceRef := strings.TrimSpace(stringValue(rawEvidence))
-			if _, exists := index.ByRef[evidenceRef]; !exists {
-				return nil, fmt.Errorf("drive_signal_%d_evidence_invalid", position)
+			if evidenceRef == "" {
+				continue
+			}
+			if resolvedEvidenceRef, _, evExists := resolveDriveRef(evidenceRef, index); evExists {
+				evidenceRef = resolvedEvidenceRef
+			} else if _, exists := index.ByRef[evidenceRef]; !exists {
+				continue
 			}
 			if _, duplicate := evidenceSeen[evidenceRef]; duplicate {
-				return nil, fmt.Errorf("drive_signal_%d_evidence_duplicate", position)
+				continue
 			}
 			evidenceSeen[evidenceRef] = struct{}{}
 			evidenceRefs = append(evidenceRefs, evidenceRef)
 		}
+		if len(evidenceRefs) == 0 {
+			evidenceRefs = []string{ref}
+		}
 		identity := ref + "\x1f" + direction
 		if _, duplicate := seen[identity]; duplicate {
-			return nil, fmt.Errorf("drive_signal_%d_duplicate", position)
+			continue
 		}
 		seen[identity] = struct{}{}
 		snapshot := decodeObject(entry.Snapshot)
 		key := strings.TrimSpace(stringValue(snapshot["key"]))
 		if key == "" {
-			return nil, fmt.Errorf("drive_signal_%d_target_invalid", position)
+			continue
 		}
 		normalized = append(normalized, map[string]any{"ref": ref, "direction": direction, "strength": strength, "confidence": confidence, "evidence_refs": stringSliceAny(evidenceRefs)})
 		result = append(result, driveSemanticSignal{Ref: ref, Key: key, Direction: direction, Strength: strength, Confidence: confidence, EvidenceRefs: evidenceRefs})

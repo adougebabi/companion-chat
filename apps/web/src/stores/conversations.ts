@@ -588,6 +588,9 @@ export const useConversationStore = defineStore("conversations", {
 			persistQueuedTurn(queuedTurn);
 			this.messages.push(queuedMessage);
 			await this.retry();
+			if (this.retryTurn && this.queuedTurn?.conversationId === conversationId && this.queuedTurn?.fluctlightId === fluctlightId) {
+				this.dismissRetry();
+			}
 			return;
 		}
 	      this.error = "";

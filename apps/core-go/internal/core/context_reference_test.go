@@ -485,6 +485,58 @@ func TestDriveSemanticSignalsResolveFrozenRefsAndCoreOwnsPressure(t *testing.T) 
 	}
 }
 
+func TestDriveSemanticSignalsAcceptSemanticKeyAndIgnoreUnknown(t *testing.T) {
+	now := "2026-09-10T12:00:00Z"
+	drives := mergeEffectiveDriveState(nil, nil)
+	projection := ContextProjection{
+		SchemaVersion: "fluctlight.context.v3", FluctlightID: "fluctlight_drive", OwnerActorID: "actor_drive", CurrentStateRevision: 2,
+		InnerState: map[string]any{
+			"revision": 2, "last_updated_at": now,
+			"pad":  map[string]any{"pleasure": 0.0, "arousal": 0.0, "dominance": 0.0},
+			"mood": map[string]any{"intensity": 0.0}, "momentum": map[string]any{"value": 0.0},
+			"regulation": map[string]any{"stability": 0.0}, "drives": drives, "conflicts": []any{},
+		},
+		CurrentState: map[string]any{"authority": "transient_state", "data": map[string]any{}},
+	}
+	mapValue(projection.CurrentState["data"])["inner_state"] = projection.InnerState
+	if err := buildContextReferenceIndex(&projection); err != nil {
+		t.Fatalf("build index: %v", err)
+	}
+	var socialRef string
+	for _, raw := range arrayValue(projection.InnerState["drives"]) {
+		if drive := mapValue(raw); stringValue(drive["key"]) == "social" {
+			socialRef = stringValue(drive["ref"])
+		}
+	}
+	if socialRef == "" {
+		t.Fatal("socialRef missing")
+	}
+
+	decision := map[string]any{
+		"appraisal": map[string]any{
+			"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.0, "social_threat": 0.0,
+			"controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.0, "expected_effect": 0.5,
+			"evidence_refs": []any{socialRef}, "event_kind": "test", "direction": "mixed",
+			"drive_signals": []any{
+				map[string]any{"ref": "social", "direction": "increase", "strength": 0.8, "confidence": 1.0, "evidence_refs": []any{"social"}},
+				map[string]any{"ref": "drive:social", "direction": "decrease", "strength": 0.05, "confidence": 0.5, "evidence_refs": []any{socialRef}},
+				map[string]any{"ref": "nonexistent_drive", "direction": "increase", "strength": 0.9, "confidence": 0.9, "evidence_refs": []any{socialRef}},
+			},
+		},
+		"influences": []any{map[string]any{"ref": socialRef, "role": "motivates", "confidence": 0.9, "note": "社交需要影响行动选择"}},
+	}
+	if _, err := freezeDecisionInfluences(decision, projection, false); err != nil {
+		t.Fatalf("freeze semantic drive signals failed: %v", err)
+	}
+	signals, err := frozenDecisionDriveSignals(decision)
+	if err != nil {
+		t.Fatalf("frozenDecisionDriveSignals err=%v", err)
+	}
+	if len(signals) != 2 || signals[0].Key != "social" || signals[1].Key != "social" {
+		t.Fatalf("expected 2 resolved social signals, got %#v", signals)
+	}
+}
+
 func TestDriveSemanticSignalSchemaIsClosedOnAppraisalSurfaces(t *testing.T) {
 	for name, schema := range map[string]map[string]any{
 		"conversation": cognitiveTurnResponseSchema(),

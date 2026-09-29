@@ -66,7 +66,6 @@ func decisionInfluenceSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"ref": map[string]any{
 			"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes,
-			"pattern": `^[a-z][a-z0-9_]{1,31}:ctx_[a-f0-9]{32}$`,
 		},
 		"role":       enumStringSchema("grounds", "motivates", "constrains", "conflicts", "satisfies"),
 		"confidence": unitNumberSchema(),
@@ -84,7 +83,6 @@ func driveSignalsSchema() map[string]any {
 	item := objectSchema(map[string]any{
 		"ref": map[string]any{
 			"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes,
-			"pattern": `^drive:ctx_[a-f0-9]{32}$`,
 		},
 		"direction":     enumStringSchema("increase", "decrease"),
 		"strength":      unitNumberSchema(),
@@ -125,7 +123,6 @@ func appraisalResponseSchema() map[string]any {
 	}
 	properties["evidence_refs"] = arraySchema(map[string]any{
 		"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes,
-		"pattern": `^[a-z][a-z0-9_]{1,31}:ctx_[a-f0-9]{32}$`,
 	})
 	properties["event_kind"] = stringSchema()
 	properties["direction"] = stringSchema()

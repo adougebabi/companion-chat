@@ -115,6 +115,22 @@ func (p *ProviderClient) refreshQueueLimits(ctx context.Context) {
 	p.queueFor("embedding").setLimit(embedding)
 }
 
+type providerTimeoutContextKey struct{}
+
+func withProviderTimeout(ctx context.Context, timeout time.Duration) context.Context {
+	if timeout <= 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, providerTimeoutContextKey{}, timeout)
+}
+
+func providerTimeoutFromContext(ctx context.Context) time.Duration {
+	if value, ok := ctx.Value(providerTimeoutContextKey{}).(time.Duration); ok {
+		return value
+	}
+	return 0
+}
+
 func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scenario string, priority int, diagnosticID string, fn func(context.Context) (T, error)) (T, error) {
 	var result T
 	if p == nil {
@@ -124,7 +140,14 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 		return fn(ctx)
 	}
 	p.refreshQueueLimits(ctx)
-	runCtx, cancel := context.WithCancel(ctx)
+	timeout := providerTimeoutFromContext(ctx)
+	var runCtx context.Context
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		runCtx, cancel = context.WithTimeout(ctx, timeout)
+	} else {
+		runCtx, cancel = context.WithCancel(ctx)
+	}
 	defer cancel()
 	stopWatch := p.watchProviderCancellation(runCtx, cancel)
 	defer stopWatch()

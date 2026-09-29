@@ -91,6 +91,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	// model-call attempt. Diagnostics and cancellation state must distinguish
 	// Generate #1 from Generate #2 while both share one turn correlation.
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
+	callCtx = withProviderTimeout(callCtx, m.assignment.Timeout)
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
 		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, m.correlationID, m.scenario, m.priority, einoDiagnosticMessages(input))
@@ -133,6 +134,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
+	callCtx = withProviderTimeout(callCtx, m.assignment.Timeout)
 	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
 	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, input)
 	callDiagnosticID := ""
@@ -398,7 +400,14 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 	}
 	p.refreshQueueLimits(ctx)
 	reader, writer := schema.Pipe[*schema.Message](1)
-	runCtx, cancel := context.WithCancel(ctx)
+	timeout := providerTimeoutFromContext(ctx)
+	var runCtx context.Context
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		runCtx, cancel = context.WithTimeout(ctx, timeout)
+	} else {
+		runCtx, cancel = context.WithCancel(ctx)
+	}
 	stopWatch := p.watchProviderCancellation(runCtx, cancel)
 	go func() {
 		defer stopWatch()
