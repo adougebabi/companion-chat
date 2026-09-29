@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/fluctlight-provider-contract.md", "reason": "模型角色预算、原生 Eino 调用与 Provider 行为契约"}
+{"file": ".trellis/spec/backend/fluctlight-cognitive-runtime.md", "reason": "人格、状态与 Agent 认知边界"}
+{"file": ".trellis/spec/backend/fluctlight-memory-contract.md", "reason": "摘要检索来源与记忆注入规则"}
+{"file": ".trellis/spec/backend/persona-layer-contract.md", "reason": "Working Persona 与 Current State 权威"}
