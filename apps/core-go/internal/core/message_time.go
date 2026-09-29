@@ -83,6 +83,15 @@ func (snapshot messageTime) addTo(message map[string]any) {
 	}
 }
 
+func (snapshot messageTime) addToPayload(payload map[string]any) {
+	if snapshot.zone == nil {
+		return
+	}
+	payload["sender_timezone"] = *snapshot.zone
+	payload["sender_utc_offset_minutes"] = *snapshot.offset
+	payload["sender_sent_at"] = snapshot.sentAt.UTC().Format(time.RFC3339Nano)
+}
+
 func (snapshot messageTime) equal(other messageTime) bool {
 	if snapshot.zone == nil || other.zone == nil {
 		return snapshot.zone == nil && other.zone == nil

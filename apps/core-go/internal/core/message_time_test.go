@@ -64,3 +64,53 @@ func TestPostgresConversationSenderTimeSurvivesReplayHistoryAndPersonaTimezoneCh
 		t.Fatalf("assistant timezone snapshots drifted: %#v", page.Messages)
 	}
 }
+
+func TestDurableTimedTurnReplaysAcceptedSenderTime(t *testing.T) {
+	for _, legacyInbox := range []bool{false, true} {
+		name := "fresh_inbox"
+		if legacyInbox {
+			name = "existing_inbox_without_time"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurn(t, name, fakeProviderResult{ToolCalls: mixedImageReplyToolCalls()})
+			payload := map[string]any{
+				"fluctlight_id": fluctlightID, "text": "带发送时间的消息", "idempotency_key": "timed-" + name,
+				"turn_id": "timed-turn-" + name, "attachment_refs": []any{},
+				"sender_timezone": "Asia/Shanghai", "sender_utc_offset_minutes": 480,
+				"sender_sent_at": "2026-09-29T02:00:00Z",
+			}
+			accepted, err := app.AcceptTurn(ctx, ownerID, conversationID, payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if legacyInbox {
+				if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET payload=payload-'sender_timezone'-'sender_utc_offset_minutes'-'sender_sent_at',status='failed',error_code='cognition_attempts_exhausted',attempt_count=3,processed_at=now() WHERE id=$1`, accepted.InboxID); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := repository.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',completed_at=now() WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID); err != nil {
+					t.Fatal(err)
+				}
+				reopened, err := app.AcceptTurn(ctx, ownerID, conversationID, payload)
+				if err != nil || reopened.InboxID != accepted.InboxID {
+					t.Fatalf("existing failed turn could not reopen: %#v %v", reopened, err)
+				}
+			} else {
+				var stored []byte
+				if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_inbox WHERE id=$1`, accepted.InboxID).Scan(&stored); err != nil {
+					t.Fatal(err)
+				}
+				if snapshot, err := parseMessageTime(decodeObject(stored)); err != nil || snapshot.zone == nil || *snapshot.zone != "Asia/Shanghai" {
+					t.Fatalf("inbox lost accepted sender time: %s, %v", stored, err)
+				}
+			}
+			result, err := app.ProcessCognitionInbox(ctx, accepted.InboxID)
+			if err != nil || stringValue(result["status"]) != "processed" {
+				t.Fatalf("timed Worker replay failed: result=%#v err=%v", result, err)
+			}
+			page, err := repository.History(ctx, conversationID, ownerID, nil, 10)
+			if err != nil || len(page.Messages) < 2 || page.Messages[0].TurnStatus != "completed" {
+				t.Fatalf("timed turn did not commit a reply: page=%#v err=%v", page, err)
+			}
+		})
+	}
+}

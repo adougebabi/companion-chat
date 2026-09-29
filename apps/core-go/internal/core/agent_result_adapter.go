@@ -210,7 +210,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 		var enqueueErr error
-		inboxID, supersededInboxIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, authorizationActorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"], claimOwner)
+		inboxID, supersededInboxIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, authorizationActorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"], snapshot, claimOwner)
 		if enqueueErr != nil {
 			return enqueueErr
 		}

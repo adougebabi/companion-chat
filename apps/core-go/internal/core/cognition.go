@@ -57,6 +57,17 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 		}
 	}()
 	data := decodeObject(payload)
+	if _, hasSenderTime := data["sender_timezone"]; !hasSenderTime && stringValue(data["conversation_id"]) != "" && stringValue(data["turn_id"]) != "" {
+		// Older accepted turns stored sender time only on the user message.
+		// Recover that immutable snapshot before HandleTurn validates the replay.
+		var acceptedTime messageTime
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT sender_timezone,sender_utc_offset_minutes,sender_sent_at FROM public.conversation_messages WHERE source_fact_id=$1 AND kind='user'`, inboxID).Scan(&acceptedTime.zone, &acceptedTime.offset, &acceptedTime.sentAt); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+		if acceptedTime.zone != nil {
+			acceptedTime.addToPayload(data)
+		}
+	}
 	if eventType := stringValue(data["event_type"]); strings.HasPrefix(eventType, "life.") || eventType == intentionDueFactType {
 		if depth := intValue(data["native_cognition_depth"]); nativeCognitionCycleGuarded(depth) {
 			if err := a.settleNativeCognitionCycleGuard(ctx, inboxID, depth); err != nil {
@@ -264,7 +275,7 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 	var supersededIDs []string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var enqueueErr error
-		inboxID, supersededIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, "", fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, claimOwner)
+		inboxID, supersededIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, "", fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, messageTime{}, claimOwner)
 		return enqueueErr
 	})
 	if err == nil {
@@ -279,7 +290,7 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 // enqueueTurnFactTx is the transaction-injected authority for a conversation
 // observation. Interactive callers compose the source message and this fact in
 // one short transaction; background/public wrappers still own a transaction.
-func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authorizationActorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, []string, error) {
+func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authorizationActorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, snapshot messageTime, claimOwner string) (string, []string, error) {
 	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
 	supersededIDs := make([]string, 0)
 	var existing, existingText, existingStatus, existingError, existingClaimedBy string
@@ -384,6 +395,9 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		attachmentRefs = []any{}
 	}
 	payload := map[string]any{"actor_id": actorID, "authorization_actor_id": authorizationActorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
+	if snapshot.zone != nil {
+		snapshot.addToPayload(payload)
+	}
 	status := "pending"
 	claimedBy := nullableString("")
 	var claimedAt any
