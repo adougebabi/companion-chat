@@ -89,6 +89,27 @@ func TestModelFacingHabitAndWardrobeQueriesKeepSelectionKeysWithoutStorageMetada
 	}
 }
 
+func TestModelFacingWardrobeListKeepsRealContinuationAndCanonicalReceipt(t *testing.T) {
+	items := make([]any, 15)
+	for index := range items {
+		items[index] = map[string]any{"id": fmt.Sprintf("item-%02d", index), "description": strings.Repeat("红色", 100)}
+	}
+	output := map[string]any{"operation": "list", "items": items, "has_more": false, "next_cursor": "", "can_conclude_absent": true}
+	visible := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: output}}, wardrobeInspectDefinition())
+	modelOutput := mapValue(visible["output"])
+	modelItems := arrayValue(modelOutput["items"])
+	if len(modelItems) != 12 || modelOutput["has_more"] != true || modelOutput["next_cursor"] != "item-11" || modelOutput["can_conclude_absent"] != false {
+		t.Fatalf("model wardrobe continuation = %#v", modelOutput)
+	}
+	if modelItems[0].(map[string]any)["description_truncated"] != true || len([]rune(stringValue(mapValue(modelItems[0])["description"]))) != 160 {
+		t.Fatalf("model description detail marker missing: %#v", modelItems[0])
+	}
+	if len(arrayValue(output["items"])) != 15 || output["has_more"] != false || mapValue(items[0])["description_truncated"] != nil {
+		t.Fatalf("canonical wardrobe result was mutated: %#v", output)
+	}
+	t.Logf("controlled wardrobe result estimate canonical/model-visible: %d / %d tokens", EstimatePromptTokens(output), EstimatePromptTokens(visible))
+}
+
 func TestModelFacingQueryReceiptKeepsSelectionRefWithoutNestedRevision(t *testing.T) {
 	output := map[string]any{"items": []any{map[string]any{"ref": "memory:ctx_0123456789abcdef0123456789abcdef", "content": "记得那家书店", "revision": 7}}, "count": 1}
 	visible := modelFacingToolResult(ToolExecutionReceipt{Result: CapabilityResult{Status: "completed", Output: output}}, memoryRecallCapabilityDefinition())

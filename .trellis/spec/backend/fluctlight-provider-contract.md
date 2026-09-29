@@ -569,6 +569,9 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
 - Runtime Context has distinct `facts`, `active_memory`, `retrieved_memory`,
   and `conversation_summaries` keys. Recent selection uses complete messages/
   turns; it is not rendered as one synthetic user-history table.
+- An unknown/default task surface uses the same compact semantic projection as
+  registered surfaces; it must not restore the broad replay-safe Persona,
+  recent-message or Memory DTO into Runtime content.
 - Memory `created_at` and a valid opaque `ContextReference` are semantic
   grounding fields and may remain; raw storage IDs, evidence IDs, revision,
   status/FK/audit fields do not. An arbitrary `ref` is not provider-safe just
@@ -578,13 +581,18 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
 - The conservative estimator is
   `ceil(max(ceil(utf8_bytes/3), unicode_runes) * 1.25)` plus message/final-wire
   overhead. Tools and response schema count toward input.
-- Defaults are context `65536`, max input `49152`, output reserve `4096`, safety
-  margin `4096`, and policy `prompt-budget.v1`, leaving `8192` headroom. System
-  and current input each cap at `8192`/`16384`; Tools plus response schema cap at
-  `16384`. Required overflow returns `prompt_required_budget_exceeded` before
-  network I/O; optional items are dropped whole by priority.
+- Persisted role defaults are context `65536`, max input `49152`, output reserve
+  `4096`, safety margin `4096`, and policy `prompt-budget.v1`. A role configured
+  for a confirmed `16384`-token window may use `prompt-budget.v2` with margin
+  `512`, reserve `4096`, and max input `11776`; the role must explicitly carry
+  the actual window and policy. Required overflow returns
+  `prompt_required_budget_exceeded` before network I/O; optional items are
+  dropped whole by priority.
 - Every non-media structured and streaming request executes a final wire
-  estimate. `max_tokens` receives output reserve only; it is not input budget.
+  estimate. The Eino OpenAI-compatible adapter sends the configured output
+  reserve as `max_completion_tokens` for direct, ADK and streaming calls; it is
+  not the input budget. The local input counter is an estimate, marked
+  `count_mode=estimated`; available Provider prompt usage is recorded separately.
 - Later native rounds retain the full assistant ToolCall/result association and
   installed Tools. Writes, mixed calls and repeated queries are legal; the
   final Agent schema applies only to the terminal assistant output.
@@ -603,7 +611,7 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
 | Current time is missing/malformed | Core supplies the canonical local-time fallback; raw `instant` remains internal. |
 | Required system/current/tools/schema cost exceeds section or total input cap | Return `prompt_required_budget_exceeded`; send no Provider request and never tail-truncate. |
 | Optional whole item exceeds section/total/final-wire budget | Drop it with `section_cap`, `total_cap`, or `total_cap_final_wire` trace reason. |
-| Role budget violates `max_input + output_reserve + 4096 <= context_window` or uses an unknown policy | Reject configuration as `provider_prompt_budget_invalid` or `prompt_budget_policy_unknown`. |
+| Role budget violates `max_input + output_reserve + policy_margin <= context_window` or uses an unknown policy | Reject configuration as `provider_prompt_budget_invalid` or `prompt_budget_policy_unknown`. |
 | Preassembled messages have multiple/late system roles, empty content, or non-user final input | Reject as `provider_assembled_messages_invalid`. |
 | Media role reaches composer | Preserve media-specific formatter/instructions; ordinary protocol is not injected. |
 
@@ -633,7 +641,7 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
   Developing Self evidence refs.
 - Assert whole-fragment/whole-turn selection, cross-source dedupe, exact default
   role budgets, estimator formula, section/final-wire drops, required overflow,
-  and output reserve mapped to `max_tokens`.
+  and output reserve mapped to the actual Eino `max_completion_tokens` request.
 - Assert later native rounds preserve historical messages, matching Tool
   results, installed Tools and final output validation.
 - Assert media prompt/quality/Visual Identity payloads remain outside the
@@ -866,6 +874,14 @@ modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDefinit
 ### 3. Contracts
 
 - Keep Core-owned storage IDs, CAS revisions, hashes, workflow coordinates and renderer adapter values in durable state and Tool receipts. Provider-facing task projections select only semantic fields and valid model selection keys. `ModelResultOmitFields` may name a nested path such as `items.revision`; it acts on a deep copy and never mutates the Core receipt.
+- The model-facing `wardrobe.inspect` list contains at most twelve entries per
+  page; if more were returned, it retains the real last item ID as
+  `next_cursor` and reports `has_more=true`. Long descriptions are marked
+  `description_truncated` and can be read in full with the authorized
+  `detail` operation. The canonical Tool receipt remains complete.
+- `intention.inspect` list exposes ten rows per page with an integer
+  `next_cursor`; a further independent call with the same `include_closed`
+  filter retrieves the next page. IDs and lifecycle status remain in each row.
 - Visual Identity Agent input retains the actual image, current action, bounded attempt status, visual traits and review feedback, but not session/Fluctlight/media/asset IDs or narrative `background`/`background_story`. Media prompt/quality keep image/visual/scene/retry semantics; ComfyUI retains renderer weights outside the LLM message.
 - Schedule generation removes `foundation:*`, initial goal/intention IDs, revisions and same-value aliases. Schedule replan sees one schedule item list plus current life/agency meaning. A linked item `intention_id` is retained because the model output must preserve it; `expected_revision`, local date/timezone and completion boundary are bound by Core before CAS validation, not required from the model.
 - Wake-up hides its Core-bound wake ID and redundant nested `life_context.schedule_ref`; the separate schedule fact preserves activity/time/status and legitimate influence refs. Other surfaces keep `kind:ctx_*` evidence/target refs when their output schema or Tool selection needs them. Personality switch profile/rule IDs, active activity IDs and worn-item IDs remain valid business selection keys.

@@ -246,7 +246,7 @@ CREATE TABLE IF NOT EXISTS public.auth_sessions (id varchar(128) PRIMARY KEY, to
 CREATE TABLE IF NOT EXISTS public.owner_setup_tokens (id varchar(128) PRIMARY KEY, token_hash varchar(64) NOT NULL UNIQUE, expires_at timestamptz NOT NULL, consumed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.auth_audit_log (id varchar(128) PRIMARY KEY, action varchar(64) NOT NULL, actor_id varchar(128), result varchar(16) NOT NULL, details text NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.provider_endpoints (id varchar(128) PRIMARY KEY, kind varchar(64) NOT NULL, base_url text NOT NULL, secret_purpose varchar(128) NOT NULL, capability_status varchar(32) NOT NULL DEFAULT 'unknown', checked_at timestamptz);
-CREATE TABLE IF NOT EXISTS public.model_roles (role varchar(64) PRIMARY KEY, provider_endpoint_id varchar(128) NOT NULL, model_id varchar(256) NOT NULL, required_capabilities text NOT NULL DEFAULT '', token_budget integer NOT NULL DEFAULT 4096, timeout_seconds integer NOT NULL DEFAULT 120, retry_policy text NOT NULL DEFAULT '{}', context_window_tokens integer NOT NULL DEFAULT 65536, max_input_tokens integer NOT NULL DEFAULT 49152, prompt_budget_policy_version varchar(64) NOT NULL DEFAULT 'prompt-budget.v1', CONSTRAINT ck_model_roles_prompt_budget CHECK (context_window_tokens > 0 AND max_input_tokens > 0 AND token_budget > 0 AND prompt_budget_policy_version='prompt-budget.v1' AND max_input_tokens + token_budget + 4096 <= context_window_tokens));
+CREATE TABLE IF NOT EXISTS public.model_roles (role varchar(64) PRIMARY KEY, provider_endpoint_id varchar(128) NOT NULL, model_id varchar(256) NOT NULL, required_capabilities text NOT NULL DEFAULT '', token_budget integer NOT NULL DEFAULT 4096, timeout_seconds integer NOT NULL DEFAULT 120, retry_policy text NOT NULL DEFAULT '{}', context_window_tokens integer NOT NULL DEFAULT 65536, max_input_tokens integer NOT NULL DEFAULT 49152, prompt_budget_policy_version varchar(64) NOT NULL DEFAULT 'prompt-budget.v1', CONSTRAINT ck_model_roles_prompt_budget CHECK (context_window_tokens > 0 AND max_input_tokens > 0 AND token_budget > 0 AND prompt_budget_policy_version IN ('prompt-budget.v1','prompt-budget.v2') AND max_input_tokens + token_budget + CASE WHEN prompt_budget_policy_version='prompt-budget.v2' THEN 512 ELSE 4096 END <= context_window_tokens));
 CREATE TABLE IF NOT EXISTS public.provider_preflights (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, result varchar(32) NOT NULL, capability_version varchar(128), checked_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.provider_provenance (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, endpoint_id varchar(128) NOT NULL, model_id varchar(256) NOT NULL, prompt_version varchar(128) NOT NULL, schema_version varchar(128) NOT NULL, correlation_id varchar(128) NOT NULL, token_budget integer NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.runtime_settings (key varchar(128) PRIMARY KEY, value_json text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
@@ -2091,10 +2091,18 @@ BEGIN
   WHERE context_window_tokens <= 0
      OR max_input_tokens <= 0
      OR token_budget <= 0
-     OR prompt_budget_policy_version <> 'prompt-budget.v1'
-     OR max_input_tokens + token_budget + 4096 > context_window_tokens;
+     OR prompt_budget_policy_version NOT IN ('prompt-budget.v1','prompt-budget.v2')
+     OR max_input_tokens + token_budget + CASE WHEN prompt_budget_policy_version='prompt-budget.v2' THEN 512 ELSE 4096 END > context_window_tokens;
   IF malformed > 0 THEN
     RAISE EXCEPTION 'Prompt Context migration found % invalid model role budget(s)', malformed;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname='ck_model_roles_prompt_budget'
+      AND conrelid='public.model_roles'::regclass
+      AND position('prompt-budget.v2' in pg_get_constraintdef(oid))=0
+  ) THEN
+    ALTER TABLE public.model_roles DROP CONSTRAINT ck_model_roles_prompt_budget;
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
@@ -2103,8 +2111,8 @@ BEGIN
   ) THEN
     ALTER TABLE public.model_roles ADD CONSTRAINT ck_model_roles_prompt_budget CHECK (
       context_window_tokens > 0 AND max_input_tokens > 0 AND token_budget > 0
-      AND prompt_budget_policy_version='prompt-budget.v1'
-      AND max_input_tokens + token_budget + 4096 <= context_window_tokens
+      AND prompt_budget_policy_version IN ('prompt-budget.v1','prompt-budget.v2')
+      AND max_input_tokens + token_budget + CASE WHEN prompt_budget_policy_version='prompt-budget.v2' THEN 512 ELSE 4096 END <= context_window_tokens
     );
   END IF;
 END $$;

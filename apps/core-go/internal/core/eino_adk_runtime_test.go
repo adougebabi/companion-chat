@@ -137,10 +137,16 @@ func TestEinoFactoryUsesOfficialEmbedder(t *testing.T) {
 }
 
 func TestStreamWithEinoAggregatesChunksAndPropagatesCallback(t *testing.T) {
+	var completionLimit int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/chat/completions" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("decode streaming request: %v", err)
+		}
+		completionLimit = intValue(payload["max_completion_tokens"])
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"hel\"}}]}\n\n"))
 		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"lo\"}}]}\n\n"))
@@ -159,8 +165,31 @@ func TestStreamWithEinoAggregatesChunksAndPropagatesCallback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if text != "hello" || len(chunks) != 2 {
-		t.Fatalf("text=%q chunks=%#v", text, chunks)
+	if text != "hello" || len(chunks) != 2 || completionLimit != 64 {
+		t.Fatalf("text=%q chunks=%#v completion_limit=%d", text, chunks, completionLimit)
+	}
+}
+
+func TestDirectEinoRequestUsesBudgetedCompletionLimit(t *testing.T) {
+	var completionLimit int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("decode direct request: %v", err)
+			return
+		}
+		completionLimit = intValue(payload["max_completion_tokens"])
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"ok"}}]}`))
+	}))
+	defer server.Close()
+	response, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(context.Background(), EinoModelCall{
+		Assignment: providerAssignment{BaseURL: server.URL, ModelID: "fake", Timeout: 5 * time.Second, TokenBudget: 96},
+		Role:       "generic_llm", Messages: []map[string]any{{"role": "user", "content": "hello"}},
+	})
+	if err != nil || response.Message == nil || response.Message.Content != "ok" || completionLimit != 96 {
+		t.Fatalf("direct response=%#v completion_limit=%d err=%v", response, completionLimit, err)
 	}
 }
 
@@ -504,6 +533,7 @@ func TestRunADKLoopStreamingUsesTheSameNativeToolLoop(t *testing.T) {
 
 func TestProviderFormalAgentStreamingUsesTheSameRunnerStream(t *testing.T) {
 	var sawStream bool
+	var completionLimit int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		defer request.Body.Close()
 		var payload map[string]any
@@ -511,6 +541,7 @@ func TestProviderFormalAgentStreamingUsesTheSameRunnerStream(t *testing.T) {
 			t.Fatal(err)
 		}
 		sawStream = boolValue(payload["stream"])
+		completionLimit = intValue(payload["max_completion_tokens"])
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"{\\\"answer\\\":\"}}]}\n\n"))
 		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"\\\"streamed\\\"}\",\"finish_reason\":\"stop\"}}]}\n\n"))
@@ -529,8 +560,8 @@ func TestProviderFormalAgentStreamingUsesTheSameRunnerStream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !sawStream || response.Message == nil || response.Message.Content != `{"answer":"streamed"}` {
-		t.Fatalf("stream=%t response=%#v", sawStream, response.Message)
+	if !sawStream || completionLimit != 64 || response.Message == nil || response.Message.Content != `{"answer":"streamed"}` {
+		t.Fatalf("stream=%t completion_limit=%d response=%#v", sawStream, completionLimit, response.Message)
 	}
 }
 
@@ -875,6 +906,47 @@ func TestProviderADKLoopContinuesAfterDeferredResultsAndPreservesEveryCall(t *te
 	}
 	if len(invoker.calls) != 2 || invoker.calls[0] != "deferred-1" || invoker.calls[1] != "deferred-2" {
 		t.Fatalf("tool executions = %#v", invoker.calls)
+	}
+}
+
+func TestProviderADKChecksThirdToolContinuationBeforeHTTP(t *testing.T) {
+	var mu sync.Mutex
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		mu.Lock()
+		requests++
+		sequence := requests
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(w, `{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"","tool_calls":[{"id":"budget-call-%d","type":"function","function":{"name":"test.tool","arguments":"{}"}}]}}]}`, sequence)
+	}))
+	defer server.Close()
+	invoker := &adkResultInvoker{results: map[string]string{
+		"budget-call-1": `{"status":"completed","output":{"value":"first"}}`,
+		"budget-call-2": `{"status":"completed","output":{"value":"second"}}`,
+		"budget-call-3": `{"status":"completed","output":{"value":"` + strings.Repeat("真实结果", 3000) + `"}}`,
+	}}
+	trace := &ADKCapabilityTrace{}
+	ctx := WithADKCapabilityInvoker(context.Background(), invoker, trace)
+	_, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{
+		Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second,
+			TokenBudget: 1000, ContextWindowTokens: 12000, MaxInputTokens: 5000, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1},
+		Role: "cognitive_assessment", Scenario: "wake_up", Messages: []map[string]any{{"role": "user", "content": "检查三个工具结果"}},
+		Definitions: []CapabilityDefinition{{Name: "test.tool", Description: "controlled result"}},
+		JSONMode:    true, SchemaName: "wake_up_response", ResponseSchema: map[string]any{"type": "object"},
+		ProviderRequestID: "budget-third-result", CorrelationID: "wake:budget-third-result",
+	})
+	if !errors.Is(err, ErrPromptToolResultBudgetExceeded) || !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+		t.Fatalf("third result budget error = %v", err)
+	}
+	mu.Lock()
+	requestCount := requests
+	mu.Unlock()
+	if requestCount != 3 || len(invoker.calls) != 3 || len(trace.Results) != 0 {
+		// adkResultInvoker is a test-only Tool adapter; its calls prove the
+		// budget check never re-ran a Tool to prepare the fourth request.
+		t.Fatalf("requests=%d tool_calls=%#v trace=%#v", requestCount, invoker.calls, trace)
 	}
 }
 

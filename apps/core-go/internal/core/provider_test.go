@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-func TestProviderWirePayloadDoesNotImposeAnOutputTokenLimit(t *testing.T) {
+func TestProviderWirePayloadMatchesConfiguredOutputReserve(t *testing.T) {
 	definitions := []CapabilityDefinition{conversationReplyCapabilityDefinition()}
 	schema := objectSchema(map[string]any{"result": stringSchema()}, []string{"result"}, false)
 	messages := []map[string]any{{"role": "system", "content": "system"}, {"role": "user", "content": "current"}}
 	payload := providerChatPayloadWithSchema("model", messages, 4096, true, definitions, "cognitive_assessment", "test_schema", schema, false)
-	if _, exists := payload["max_tokens"]; exists {
-		t.Fatalf("provider payload imposed max_tokens: %#v", payload["max_tokens"])
+	if payload["max_completion_tokens"] != 4096 {
+		t.Fatalf("provider payload output reserve = %#v", payload["max_completion_tokens"])
 	}
 	tools := arrayValue(payload["tools"])
 	responseFormat := mapValue(payload["response_format"])
@@ -25,9 +25,9 @@ func TestProviderWirePayloadDoesNotImposeAnOutputTokenLimit(t *testing.T) {
 	}
 }
 
-func TestProviderStreamingPayloadDoesNotImposeAnOutputTokenLimit(t *testing.T) {
+func TestProviderStreamingPayloadMatchesConfiguredOutputReserve(t *testing.T) {
 	payload := providerStreamingPayload("model", []map[string]any{{"role": "user", "content": "hello"}}, 4096)
-	if streaming, _ := payload["stream"].(bool); !streaming || payload["max_tokens"] != nil {
+	if streaming, _ := payload["stream"].(bool); !streaming || payload["max_completion_tokens"] != 4096 {
 		t.Fatalf("streaming payload = %#v", payload)
 	}
 }
@@ -70,10 +70,21 @@ func TestPostgresProviderRolePromptBudgetRoundTripAndValidation(t *testing.T) {
 	if err := app.ConfigureProviderRole(ctx, ownerID, invalid); err == nil || err.Error() != "provider_prompt_budget_invalid" {
 		t.Fatalf("invalid budget error = %v", err)
 	}
+	compact := cloneMap(payload)
+	compact["context_window_tokens"] = 16384
+	compact["max_input_tokens"] = 11776
+	compact["prompt_budget_policy_version"] = promptBudgetPolicyVersionV2
+	if err := app.ConfigureProviderRole(ctx, ownerID, compact); err != nil {
+		t.Fatalf("configure 16K budget failed: %v", err)
+	}
+	bindings, err = app.ProviderBindings(ctx, ownerID)
+	if err != nil || len(bindings) != 1 || intValue(bindings[0]["safety_margin_tokens"]) != 512 {
+		t.Fatalf("16K bindings = %#v err=%v", bindings, err)
+	}
 
 	largeBudgetPayload := map[string]any{
 		"role": "generic_llm", "endpoint_id": "prompt-budget-provider", "model_id": "prompt-budget-model",
-		"token_budget": 32768, "timeout_seconds": 120,
+		"token_budget": 32768, "timeout_seconds": 120, "prompt_budget_policy_version": promptBudgetPolicyVersionV1,
 	}
 	if err := app.ConfigureProviderRole(ctx, ownerID, largeBudgetPayload); err != nil {
 		t.Fatalf("configure large budget failed: %v", err)

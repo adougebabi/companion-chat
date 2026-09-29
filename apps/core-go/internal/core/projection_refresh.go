@@ -41,6 +41,11 @@ func (a *App) bindProjectionRefresh(
 				return modelContextRefreshContent{}, err
 			}
 		}
+		if adkContext, ok := adkCapabilityContext(refreshCtx); ok {
+			if err := adkContext.Refs.registerIndex(projection.ReferenceIndex); err != nil {
+				return modelContextRefreshContent{}, err
+			}
+		}
 		modelProjection := projection
 		modelProjection.RecentMessages = append([]map[string]any(nil), projection.RecentMessages...)
 		if adkContext, ok := adkCapabilityContext(refreshCtx); ok {

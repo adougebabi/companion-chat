@@ -423,6 +423,18 @@ func providerRunErrorCode(err error) string {
 	if err == nil {
 		return ""
 	}
+	if errors.Is(err, ErrPromptOutputReserveConflict) {
+		return "prompt_output_reserve_conflict"
+	}
+	if errors.Is(err, ErrPromptToolResultBudgetExceeded) {
+		return "prompt_tool_result_budget_exceeded"
+	}
+	if errors.Is(err, ErrPromptCurrentInputBudgetExceeded) {
+		return "prompt_current_input_budget_exceeded"
+	}
+	if errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+		return "prompt_required_budget_exceeded"
+	}
 	// Tool-call normalization is a protocol failure, rather than a generic
 	// transport/provider failure. Keep this classification on the queue callback
 	// path as well as the immediate Provider response path so the terminal model

@@ -14,7 +14,7 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 	}{
 		{name: "language", value: providerLanguageRule, max: 100, must: []string{"自然语言内容使用中文", "协议字面量保持原文"}},
 		{name: "context", value: providerContextAuthorityRule, max: 520, must: []string{"core_persona", "developing_self", "current_state", "confirmed Event", "inferred Event", "accepted Schedule item", "context_override.explicit=true"}},
-		{name: "wake-up", value: capabilityWakeUpPolicyInstruction, max: 700, must: []string{"正式 Agent", "Tool result", "no_op", "accepted"}},
+		{name: "wake-up", value: capabilityWakeUpPolicyInstruction, max: 700, must: []string{"正式 Agent", "Tool result", "no_op", "accepted", "memory_event", "新事实"}},
 		{name: "conversation", value: capabilityConversationPolicyInstruction, max: 900, must: []string{"正式 Agent", "Tool result", "conversation.reply", "visible_text", "evidence_refs"}},
 		{name: "daily-review", value: capabilityDailyReviewPolicyInstruction, max: 700, must: []string{"正式 Agent", "Tool result", "Moment", "accepted"}},
 		{name: "reflection", value: reflectionV2Instruction, max: 850, must: []string{"memory_candidates", "relationship_observations", "emotional_summary", "personality_evolution_candidates", "behavior_policy_evolution_candidates", "evidence_refs", "Core Persona"}},

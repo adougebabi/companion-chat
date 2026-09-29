@@ -8,32 +8,45 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
-	defaultContextWindowTokens      = 131072
-	defaultMaxInputTokens           = 98304
-	defaultOutputReserveTokens      = 4096
-	defaultPromptSafetyMarginTokens = 4096
-	promptBudgetPolicyVersionV1     = "prompt-budget.v1"
-	defaultSystemTokensCap          = 16384
-	defaultToolsSchemaTokensCap     = 29696
-	defaultCurrentInputTokensCap    = 16384
-	defaultPromptImageTokens        = 1536
-	defaultPromptLowDetailImage     = 85
+	defaultContextWindowTokens        = 131072
+	defaultMaxInputTokens             = 98304
+	defaultOutputReserveTokens        = 4096
+	defaultPromptSafetyMarginTokens   = 4096
+	compactPromptSafetyMarginTokens   = 512
+	promptBudgetPolicyVersionV1       = "prompt-budget.v1"
+	promptBudgetPolicyVersionV2       = "prompt-budget.v2"
+	defaultSystemTokensCap            = 16384
+	defaultToolsSchemaTokensCap       = 29696
+	defaultCurrentInputTokensCap      = 16384
+	defaultPromptImageTokens          = 1536
+	defaultPromptLowDetailImage       = 85
+	conversationFirstTurnTargetTokens = 8000
 )
 
 var ErrPromptRequiredBudgetExceeded = errors.New("prompt_required_budget_exceeded")
+var ErrPromptCurrentInputBudgetExceeded = errors.New("prompt_current_input_budget_exceeded")
+var ErrPromptToolResultBudgetExceeded = errors.New("prompt_tool_result_budget_exceeded")
+var ErrPromptOutputReserveConflict = errors.New("prompt_output_reserve_conflict")
+
+type promptBudgetConfigError struct{ cause error }
+
+func (err promptBudgetConfigError) Error() string { return "provider_prompt_budget_invalid" }
+func (err promptBudgetConfigError) Unwrap() error { return err.cause }
 
 type PromptBudgetPolicy struct {
-	Version               string `json:"version"`
-	ContextWindowTokens   int    `json:"context_window_tokens"`
-	MaxInputTokens        int    `json:"max_input_tokens"`
-	OutputReserveTokens   int    `json:"output_reserve_tokens"`
-	SafetyMarginTokens    int    `json:"safety_margin_tokens"`
-	SystemTokensCap       int    `json:"system_tokens_cap"`
-	ToolsSchemaTokensCap  int    `json:"tools_schema_tokens_cap"`
-	CurrentInputTokensCap int    `json:"current_input_tokens_cap"`
+	Version                   string `json:"version"`
+	ContextWindowTokens       int    `json:"context_window_tokens"`
+	MaxInputTokens            int    `json:"max_input_tokens"`
+	OutputReserveTokens       int    `json:"output_reserve_tokens"`
+	SafetyMarginTokens        int    `json:"safety_margin_tokens"`
+	SystemTokensCap           int    `json:"system_tokens_cap"`
+	ToolsSchemaTokensCap      int    `json:"tools_schema_tokens_cap"`
+	CurrentInputTokensCap     int    `json:"current_input_tokens_cap"`
+	OptionalInputTargetTokens int    `json:"optional_input_target_tokens,omitempty"`
 }
 
 func DefaultPromptBudgetPolicy(outputReserve int) PromptBudgetPolicy {
@@ -49,10 +62,14 @@ func DefaultPromptBudgetPolicy(outputReserve int) PromptBudgetPolicy {
 }
 
 func promptSafetyMargin(policyVersion string) (int, error) {
-	if strings.TrimSpace(policyVersion) != promptBudgetPolicyVersionV1 {
+	switch strings.TrimSpace(policyVersion) {
+	case promptBudgetPolicyVersionV1:
+		return defaultPromptSafetyMarginTokens, nil
+	case promptBudgetPolicyVersionV2:
+		return compactPromptSafetyMarginTokens, nil
+	default:
 		return 0, errors.New("prompt_budget_policy_unknown")
 	}
-	return defaultPromptSafetyMarginTokens, nil
 }
 
 func validatePromptBudgetConfiguration(contextWindow, maxInput, outputReserve int, policyVersion string) error {
@@ -60,17 +77,43 @@ func validatePromptBudgetConfiguration(contextWindow, maxInput, outputReserve in
 	if err != nil {
 		return err
 	}
-	if contextWindow <= 0 || maxInput <= 0 || outputReserve <= 0 || maxInput > contextWindow || maxInput+outputReserve+margin > contextWindow {
+	if contextWindow <= 0 || maxInput <= 0 || outputReserve <= 0 {
 		return errors.New("provider_prompt_budget_invalid")
+	}
+	if maxInput > contextWindow || maxInput+outputReserve+margin > contextWindow {
+		return promptBudgetConfigError{cause: ErrPromptOutputReserveConflict}
 	}
 	return nil
 }
 
 func (policy PromptBudgetPolicy) Validate() error {
-	if policy.SystemTokensCap <= 0 || policy.ToolsSchemaTokensCap <= 0 || policy.CurrentInputTokensCap <= 0 || policy.SafetyMarginTokens != defaultPromptSafetyMarginTokens {
+	margin, err := promptSafetyMargin(policy.Version)
+	if err != nil {
+		return err
+	}
+	if policy.SystemTokensCap <= 0 || policy.ToolsSchemaTokensCap <= 0 || policy.CurrentInputTokensCap <= 0 || policy.SafetyMarginTokens != margin || policy.OptionalInputTargetTokens < 0 || policy.OptionalInputTargetTokens > policy.MaxInputTokens {
 		return errors.New("prompt_budget_policy_invalid")
 	}
 	return validatePromptBudgetConfiguration(policy.ContextWindowTokens, policy.MaxInputTokens, policy.OutputReserveTokens, policy.Version)
+}
+
+func promptBudgetPolicyForAssignment(assignment providerAssignment) (PromptBudgetPolicy, error) {
+	policy := DefaultPromptBudgetPolicy(assignment.TokenBudget)
+	if assignment.ContextWindowTokens > 0 {
+		policy.ContextWindowTokens = assignment.ContextWindowTokens
+	}
+	if assignment.MaxInputTokens > 0 {
+		policy.MaxInputTokens = assignment.MaxInputTokens
+	}
+	if assignment.PromptBudgetPolicyVersion != "" {
+		policy.Version = assignment.PromptBudgetPolicyVersion
+	}
+	margin, err := promptSafetyMargin(policy.Version)
+	if err != nil {
+		return PromptBudgetPolicy{}, err
+	}
+	policy.SafetyMarginTokens = margin
+	return policy, policy.Validate()
 }
 
 var dataImageRegex = regexp.MustCompile(`data:image/[a-zA-Z0-9.+_-]+;base64,[A-Za-z0-9+/=\r\n]+`)
@@ -214,20 +257,22 @@ type PromptAssemblyDecision struct {
 }
 
 type PromptAssemblyTrace struct {
-	PolicyVersion        string                   `json:"policy_version"`
-	ContextWindowTokens  int                      `json:"context_window_tokens"`
-	MaxInputTokens       int                      `json:"max_input_tokens"`
-	OutputReserveTokens  int                      `json:"output_reserve_tokens"`
-	SafetyMarginTokens   int                      `json:"safety_margin_tokens"`
-	EstimatedInputTokens int                      `json:"estimated_input_tokens"`
-	WireBytes            int                      `json:"wire_bytes"`
-	WireChars            int                      `json:"wire_chars"`
-	TokenEstimateMethod  string                   `json:"token_estimate_method"`
-	SectionTokens        map[string]int           `json:"section_tokens"`
-	SectionBytes         map[string]int           `json:"section_bytes"`
-	SectionChars         map[string]int           `json:"section_chars"`
-	Selected             []PromptAssemblyDecision `json:"selected"`
-	Dropped              []PromptAssemblyDecision `json:"dropped"`
+	PolicyVersion             string                   `json:"policy_version"`
+	ContextWindowTokens       int                      `json:"context_window_tokens"`
+	MaxInputTokens            int                      `json:"max_input_tokens"`
+	OptionalInputTargetTokens int                      `json:"optional_input_target_tokens,omitempty"`
+	OutputReserveTokens       int                      `json:"output_reserve_tokens"`
+	SafetyMarginTokens        int                      `json:"safety_margin_tokens"`
+	EstimatedInputTokens      int                      `json:"estimated_input_tokens"`
+	WireBytes                 int                      `json:"wire_bytes"`
+	WireChars                 int                      `json:"wire_chars"`
+	TokenEstimateMethod       string                   `json:"token_estimate_method"`
+	CountMode                 string                   `json:"count_mode"`
+	SectionTokens             map[string]int           `json:"section_tokens"`
+	SectionBytes              map[string]int           `json:"section_bytes"`
+	SectionChars              map[string]int           `json:"section_chars"`
+	Selected                  []PromptAssemblyDecision `json:"selected"`
+	Dropped                   []PromptAssemblyDecision `json:"dropped"`
 }
 
 type PromptAssemblyResult struct {
@@ -263,14 +308,17 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	currentTokens := estimateProviderMessageTokens(current)
 	toolsTokens := EstimatePromptTokens(input.Tools)
 	schemaTokens := EstimatePromptTokens(input.ResponseFormat)
-	if systemTokens > input.Policy.SystemTokensCap || currentTokens > input.Policy.CurrentInputTokensCap || toolsTokens+schemaTokens > input.Policy.ToolsSchemaTokensCap {
+	if currentTokens > input.Policy.CurrentInputTokensCap {
+		return PromptAssemblyResult{}, fmt.Errorf("%w: %w: current=%d cap=%d", ErrPromptRequiredBudgetExceeded, ErrPromptCurrentInputBudgetExceeded, currentTokens, input.Policy.CurrentInputTokensCap)
+	}
+	if systemTokens > input.Policy.SystemTokensCap || toolsTokens+schemaTokens > input.Policy.ToolsSchemaTokensCap {
 		return PromptAssemblyResult{}, fmt.Errorf("%w: required section cap exceeded system=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, systemTokens, currentTokens, toolsTokens, schemaTokens)
 	}
 	selected := make([]promptOptionalCandidate, 0, len(candidates))
 	optional := make([]promptOptionalCandidate, 0, len(candidates))
 	trace := PromptAssemblyTrace{
 		PolicyVersion: input.Policy.Version, ContextWindowTokens: input.Policy.ContextWindowTokens,
-		MaxInputTokens: input.Policy.MaxInputTokens, OutputReserveTokens: input.Policy.OutputReserveTokens,
+		MaxInputTokens: input.Policy.MaxInputTokens, OptionalInputTargetTokens: input.Policy.OptionalInputTargetTokens, OutputReserveTokens: input.Policy.OutputReserveTokens,
 		SafetyMarginTokens: input.Policy.SafetyMarginTokens, SectionTokens: map[string]int{},
 		Selected: []PromptAssemblyDecision{}, Dropped: []PromptAssemblyDecision{},
 	}
@@ -289,6 +337,10 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	requiredTotal := estimatePromptWireInput(assemblePromptMessages(system, current, orderedSelected), input.Tools, input.ResponseFormat)
 	if requiredTotal > input.Policy.MaxInputTokens {
 		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens)
+	}
+	selectionLimit := input.Policy.MaxInputTokens
+	if target := input.Policy.OptionalInputTargetTokens; target > 0 && target < selectionLimit {
+		selectionLimit = max(requiredTotal, target)
 	}
 	type optionalUnit struct {
 		items []promptOptionalCandidate
@@ -355,7 +407,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 			reason = "recent_contiguity_excluded"
 		} else {
 			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
-			if estimatePromptWireInput(assemblePromptMessages(system, current, trial), input.Tools, input.ResponseFormat) <= input.Policy.MaxInputTokens {
+			if estimatePromptWireInput(assemblePromptMessages(system, current, trial), input.Tools, input.ResponseFormat) <= selectionLimit {
 				selected = append(selected, unit.items...)
 				if unit.kind == PromptFragmentSummary || unit.kind == PromptFragmentRetrievedMemory || unit.kind == PromptFragmentResidentMemory {
 					for _, candidate := range unit.items {
@@ -387,6 +439,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		trace.WireBytes, trace.WireChars = len(wire), len([]rune(string(wire)))
 	}
 	trace.TokenEstimateMethod = "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance"
+	trace.CountMode = "estimated"
 	return PromptAssemblyResult{Messages: messages, Tools: cloneMapSlice(input.Tools), ResponseFormat: cloneMap(input.ResponseFormat), Trace: trace}, nil
 }
 
@@ -478,11 +531,57 @@ func assemblePromptMessages(system, current map[string]any, selected []promptOpt
 	}
 	messages := []map[string]any{cloneMap(system)}
 	if len(runtimeContext) > 0 {
-		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + renderProviderYAMLWithMode(runtimeContext, true) + "\n[/RUNTIME CONTEXT]"})
+		formatted := formatRuntimeContextTimes(runtimeContext)
+		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + renderProviderYAMLWithMode(formatted, true) + "\n[/RUNTIME CONTEXT]"})
 	}
 	messages = append(messages, recent...)
 	messages = append(messages, cloneMap(current))
 	return messages
+}
+
+// formatRuntimeContextTimes changes only the Provider-facing copy. The
+// projection and Tool inputs retain their authoritative RFC3339 timestamps.
+func formatRuntimeContextTimes(context map[string]any) map[string]any {
+	zoneName := stringValue(mapValue(mapValue(mapValue(context["current_state"])["data"])["life_context"])["timezone"])
+	zone, _ := time.LoadLocation(zoneName)
+	return formatRuntimeContextTimeValue(context, "", zone).(map[string]any)
+}
+
+func formatRuntimeContextTimeValue(value any, key string, zone *time.Location) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for childKey, childValue := range typed {
+			result[childKey] = formatRuntimeContextTimeValue(childValue, childKey, zone)
+		}
+		return result
+	case []any:
+		result := make([]any, len(typed))
+		for i, item := range typed {
+			result[i] = formatRuntimeContextTimeValue(item, "", zone)
+		}
+		return result
+	case []map[string]any:
+		result := make([]map[string]any, len(typed))
+		for i, item := range typed {
+			result[i] = formatRuntimeContextTimeValue(item, "", zone).(map[string]any)
+		}
+		return result
+	case string:
+		if !strings.HasSuffix(key, "_at") {
+			return typed
+		}
+		parsed, err := time.Parse(time.RFC3339Nano, typed)
+		if err != nil {
+			return typed
+		}
+		if zone != nil {
+			parsed = parsed.In(zone)
+		}
+		return parsed.Format("2006-01-02 15:04:05 -07:00")
+	default:
+		return value
+	}
 }
 
 func estimatePromptWireInput(messages, tools []map[string]any, responseFormat map[string]any) int {

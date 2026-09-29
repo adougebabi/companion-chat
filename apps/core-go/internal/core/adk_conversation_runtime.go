@@ -24,6 +24,7 @@ type adkConversationContext struct {
 	Invoker ADKCapabilityInvoker
 	Trace   *ADKCapabilityTrace
 	Refresh *runtimeContextRefresh
+	Refs    *providerContextRefCodec
 }
 
 func WithADKCapabilityInvoker(ctx context.Context, invoker ADKCapabilityInvoker, trace *ADKCapabilityTrace) context.Context {
@@ -31,7 +32,11 @@ func WithADKCapabilityInvoker(ctx context.Context, invoker ADKCapabilityInvoker,
 }
 
 func withADKCapabilityContext(ctx context.Context, invoker ADKCapabilityInvoker, trace *ADKCapabilityTrace, refresh *runtimeContextRefresh) context.Context {
-	return context.WithValue(ctx, adkConversationContextKey{}, adkConversationContext{Invoker: invoker, Trace: trace, Refresh: refresh})
+	return withADKCapabilityContextRefs(ctx, invoker, trace, refresh, nil)
+}
+
+func withADKCapabilityContextRefs(ctx context.Context, invoker ADKCapabilityInvoker, trace *ADKCapabilityTrace, refresh *runtimeContextRefresh, refs *providerContextRefCodec) context.Context {
+	return context.WithValue(ctx, adkConversationContextKey{}, adkConversationContext{Invoker: invoker, Trace: trace, Refresh: refresh, Refs: refs})
 }
 
 func adkCapabilityContext(ctx context.Context) (adkConversationContext, bool) {
@@ -101,6 +106,13 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if len(arguments) == 0 {
 		arguments = json.RawMessage(`{}`)
 	}
+	if adkContext, ok := adkCapabilityContext(ctx); ok {
+		decoded, err := adkContext.Refs.decodeArguments(arguments)
+		if err != nil {
+			return "", err
+		}
+		arguments = decoded
+	}
 	callID = strings.TrimSpace(callID)
 	if callID == "" {
 		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_required", argumentsJSON)
@@ -117,7 +129,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 				return "", errors.New("adk_tool_call_id_reused")
 			}
 			if previousResult, resultFound := i.trace.FindResult(callID); resultFound {
-				return jsonString(modelFacingToolResult(ToolExecutionReceipt{Result: previousResult}, definition)), nil
+				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: previousResult}, definition)
 			}
 			return "", errors.New("adk_tool_result_missing")
 		}
@@ -170,7 +182,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 				ProviderRequestID: modelIdentity.ProviderRequestID, CorrelationID: "capability:" + callID}
 			i.trace.AppendResult(result)
 			i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
-			return jsonString(modelFacingToolResult(ToolExecutionReceipt{Result: result}, definition)), nil
+			return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
@@ -210,7 +222,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
-	serialized := jsonString(modelFacingToolResult(receipt, definition))
+	serialized, encodeErr := modelFacingToolResultForContext(ctx, receipt, definition)
+	if encodeErr != nil {
+		return "", encodeErr
+	}
 	if execErr != nil && result.Retryable {
 		// Runtime/dependency failures terminate this run while the trace retains
 		// the invocation and receipt. A non-retryable business rejection is a
@@ -218,6 +233,18 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		return serialized, &agentRunFailure{stage: "tool", code: result.ErrorCode, cause: fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)}
 	}
 	return serialized, nil
+}
+
+func modelFacingToolResultForContext(ctx context.Context, receipt ToolExecutionReceipt, definition CapabilityDefinition) (string, error) {
+	visible := modelFacingToolResult(receipt, definition)
+	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refs != nil {
+		encoded, err := adkContext.Refs.encodeResult(visible)
+		if err != nil {
+			return "", err
+		}
+		visible = encoded.(map[string]any)
+	}
+	return jsonString(visible), nil
 }
 
 // The native ToolCall ID and the Core receipt remain in the execution trace.
@@ -232,10 +259,13 @@ func modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDe
 		visible["retryable"] = true
 	}
 	if result.Output != nil {
-		if outputMap, ok := result.Output.(map[string]any); ok && len(definition.ModelResultOmitFields) > 0 {
+		if outputMap, ok := result.Output.(map[string]any); ok {
 			output := cloneMap(outputMap)
 			for _, field := range definition.ModelResultOmitFields {
 				omitModelResultPath(output, strings.Split(field, "."))
+			}
+			if definition.Name == wardrobeInspectCapabilityName && stringValue(output["operation"]) == "list" {
+				boundModelWardrobeList(output)
 			}
 			if len(output) > 0 {
 				visible["output"] = output
@@ -245,6 +275,29 @@ func modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDe
 		}
 	}
 	return visible
+}
+
+// The canonical receipt remains complete. A list can be continued with the
+// same authorized Tool and the real ID of the final item exposed here.
+func boundModelWardrobeList(output map[string]any) {
+	const maxItems = 12
+	const maxDescriptionRunes = 160
+	items := arrayValue(output["items"])
+	if len(items) > maxItems {
+		items = items[:maxItems]
+		output["items"] = items
+		output["has_more"] = true
+		output["next_cursor"] = stringValue(mapValue(items[len(items)-1])["id"])
+		output["can_conclude_absent"] = false
+	}
+	for _, raw := range items {
+		item := mapValue(raw)
+		description := []rune(stringValue(item["description"]))
+		if len(description) > maxDescriptionRunes {
+			item["description"] = string(description[:maxDescriptionRunes])
+			item["description_truncated"] = true
+		}
+	}
 }
 
 func omitModelResultPath(value any, path []string) {
@@ -389,11 +442,19 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 		request = *input.Capability
 	}
 	invoker := newAppADKCapabilityInvoker(a, request, trace)
+	var refs *providerContextRefCodec
+	if input.Capability != nil {
+		var refErr error
+		refs, refErr = newProviderContextRefCodec(request.Projection.ReferenceIndex)
+		if refErr != nil {
+			return ADKStructuredTaskResult{Trace: trace}, refErr
+		}
+	}
 	var refresh *runtimeContextRefresh
 	if plan := runtimeContextRefreshPlan(ctx); plan != nil {
 		refresh = &runtimeContextRefresh{refresh: plan, base: request.Projection}
 	}
-	ctx = withADKCapabilityContext(ctx, invoker, trace, refresh)
+	ctx = withADKCapabilityContextRefs(ctx, invoker, trace, refresh, refs)
 	if strings.TrimSpace(input.Scenario) != "" {
 		ctx = WithProviderScenario(ctx, input.Scenario)
 	}

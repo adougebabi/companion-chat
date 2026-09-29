@@ -892,6 +892,23 @@ func TestConversationCurrentStateKeepsActorSubjectAndOnlyKnownAppearance(t *test
 	}
 }
 
+func TestDefaultSurfaceCannotRestoreBroadRuntimeDump(t *testing.T) {
+	projection := ContextProjection{
+		CorePersona:    map[string]any{"identity": map[string]any{"name": "摇光"}},
+		CurrentState:   map[string]any{"data": map[string]any{"life_context": map[string]any{"scene": "家", "location": "书房"}}},
+		RecentMessages: []map[string]any{{"id": "message-1", "kind": "user", "text": "之前的话"}},
+		Memories:       []map[string]any{{"ref": "memory:ctx_test", "content": "需要保留的事实", "revision": 9, "event_refs": []any{"event-private"}}},
+	}
+	got := compactCognitionContextForSurface(projection, ProviderContextSurfaceDefault)
+	if got["core_persona"] != nil || got["recent_messages"] != nil || got["memories"] != nil || !strings.Contains(jsonString(got["current_state"]), "书房") {
+		t.Fatalf("default surface retained broad dump or lost current state: %#v", got)
+	}
+	memories := compactMemoriesForProfileForSurface(projection.Memories, "", ProviderContextSurfaceDefault, ContextReferenceIndex{})
+	if len(memories) != 1 || memories[0]["revision"] != nil || memories[0]["event_refs"] != nil || memories[0]["content"] != "需要保留的事实" {
+		t.Fatalf("default memory surface retained storage data: %#v", memories)
+	}
+}
+
 func TestConversationDriveProjectionOmitsZeroPressureBuiltIns(t *testing.T) {
 	got := compactCurrentDrivesForSurface([]any{
 		map[string]any{"key": "rest", "label": "休息", "description": "长期模板描述", "pressure": 0.0, "salience": 0.0, "direction": "stable", "authority": "built_in"},

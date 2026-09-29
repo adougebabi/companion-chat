@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -20,6 +21,8 @@ func TestIntentionToolSchemasAllowUniqueTargetInference(t *testing.T) {
 		valid      bool
 	}{
 		{"list needs no id", intentionInspectDefinition(), map[string]any{"operation": "list"}, true},
+		{"list continuation cursor", intentionInspectDefinition(), map[string]any{"operation": "list", "cursor": 10, "include_closed": false}, true},
+		{"list rejects negative cursor", intentionInspectDefinition(), map[string]any{"operation": "list", "cursor": -1}, false},
 		{"detail may resolve unique target", intentionInspectDefinition(), map[string]any{"operation": "detail"}, true},
 		{"detail with id", intentionInspectDefinition(), map[string]any{"operation": "detail", "intention_id": "intent-1"}, true},
 		{"decision needs operation", intentionDecideDefinition(), map[string]any{"reason": "asked"}, false},
@@ -35,6 +38,48 @@ func TestIntentionToolSchemasAllowUniqueTargetInference(t *testing.T) {
 				t.Fatalf("valid=%v err=%v arguments=%#v", item.valid, err, item.arguments)
 			}
 		})
+	}
+}
+
+func TestIntentionInspectListCanReadEveryPageByCursor(t *testing.T) {
+	fixture := seedWardrobeToolFixture(t)
+	for index := 0; index < 12; index++ {
+		created, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionDecideCapabilityName, fmt.Sprintf("page-create-%02d", index), map[string]any{
+			"operation": "create", "goal": fmt.Sprintf("目标 %02d", index), "action": fmt.Sprintf("行动 %02d", index),
+			"expected_outcome": fmt.Sprintf("结果 %02d", index), "reason": "分页验证",
+		}))
+		if err != nil || created.Result.Status != "completed" {
+			t.Fatalf("create %d: result=%#v err=%v", index, created.Result, err)
+		}
+	}
+	first, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionInspectCapabilityName, "page-first", map[string]any{"operation": "list"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstOutput := mapValue(first.Result.Output)
+	if len(arrayValue(firstOutput["intentions"])) != 10 || firstOutput["has_more"] != true || intValue(firstOutput["next_cursor"]) != 10 {
+		t.Fatalf("first page = %#v", firstOutput)
+	}
+	second, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionInspectCapabilityName, "page-second", map[string]any{"operation": "list", "cursor": firstOutput["next_cursor"]}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondOutput := mapValue(second.Result.Output)
+	if len(arrayValue(secondOutput["intentions"])) != 2 || secondOutput["has_more"] != false || intValue(secondOutput["next_cursor"]) != 12 {
+		t.Fatalf("second page = %#v", secondOutput)
+	}
+	seen := map[string]struct{}{}
+	for _, output := range []map[string]any{firstOutput, secondOutput} {
+		for _, raw := range arrayValue(output["intentions"]) {
+			id := stringValue(mapValue(raw)["id"])
+			if id == "" {
+				t.Fatalf("missing true intention ID: %#v", raw)
+			}
+			if _, duplicated := seen[id]; duplicated {
+				t.Fatalf("duplicate intention across pages: %s", id)
+			}
+			seen[id] = struct{}{}
+		}
 	}
 }
 

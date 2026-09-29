@@ -107,10 +107,13 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	if err := a.attachDailyMemoryMessageRefs(ctx, projection, &workingMemory); err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
-	policy := DefaultPromptBudgetPolicy(assignment.TokenBudget)
-	policy.ContextWindowTokens = assignment.ContextWindowTokens
-	policy.MaxInputTokens = assignment.MaxInputTokens
-	policy.Version = assignment.PromptBudgetPolicyVersion
+	policy, err := promptBudgetPolicyForAssignment(assignment)
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
+	if surface == ProviderContextSurfaceConversationMain && policy.Version == promptBudgetPolicyVersionV2 && policy.ContextWindowTokens == 16384 {
+		policy.OptionalInputTargetTokens = min(conversationFirstTurnTargetTokens, policy.MaxInputTokens)
+	}
 	composer, composerErr := NewPromptComposer(policy)
 	if composerErr != nil {
 		return PromptAssemblyResult{}, projection, composerErr
@@ -149,6 +152,10 @@ func workingMemoryInputFromProjection(projection ContextProjection, active, summ
 
 func workingMemoryInputFromProjectionForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any) WorkingMemoryInput {
 	compact := compactCognitionContextForSurface(projection, surface)
+	refIndex := projection.ReferenceIndex
+	if surface == ProviderContextSurfacePersistentSwitch || surface == ProviderContextSurfaceReflection || surface == ProviderContextSurfaceDefault {
+		refIndex = ContextReferenceIndex{}
+	}
 	// Persona material belongs to the System Persona (the Working Persona).
 	// Repeating it in the runtime context gave the model two copies of the same
 	// persona to reconcile.
@@ -178,24 +185,24 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		default:
 			critical = false
 		}
-		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Required: critical, Content: map[string]any{"kind": key, "value": value}, SourceRefs: []string{"runtime:" + key}})
+		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Required: critical, Content: map[string]any{"kind": key, "value": providerEncodeContextRefs(value, refIndex)}, SourceRefs: []string{"runtime:" + key}})
 	}
 	for _, item := range compactActiveMemoriesForSurface(active, surface, projection.ReferenceIndex) {
 		cleaned := mapValue(cleanPromptValue(item))
 		if len(cleaned) > 0 {
-			input.ActiveCandidates = append(input.ActiveCandidates, PromptFragment{Kind: PromptFragmentActiveMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: cleaned, SourceRefs: promptItemSourceRefs(cleaned, "active")})
+			input.ActiveCandidates = append(input.ActiveCandidates, PromptFragment{Kind: PromptFragmentActiveMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: providerEncodeContextRefs(cleaned, refIndex), SourceRefs: promptItemSourceRefs(cleaned, "active")})
 		}
 	}
 	for _, item := range compactMemoriesForProfileForSurface(projection.Memories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]), surface, projection.ReferenceIndex) {
 		cleaned := mapValue(cleanPromptValue(item))
 		if len(cleaned) > 0 {
-			input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: cleaned, SourceRefs: promptItemSourceRefs(cleaned, "memory")})
+			input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: providerEncodeContextRefs(cleaned, refIndex), SourceRefs: promptItemSourceRefs(cleaned, "memory")})
 		}
 	}
 	for _, item := range compactMemoriesForProfileForSurface(projection.ResidentMemories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]), surface, projection.ReferenceIndex) {
 		cleaned := mapValue(cleanPromptValue(item))
 		if len(cleaned) > 0 {
-			input.ResidentCandidates = append(input.ResidentCandidates, PromptFragment{Kind: PromptFragmentResidentMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: cleaned, SourceRefs: promptItemSourceRefs(cleaned, "resident")})
+			input.ResidentCandidates = append(input.ResidentCandidates, PromptFragment{Kind: PromptFragmentResidentMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: providerEncodeContextRefs(cleaned, refIndex), SourceRefs: promptItemSourceRefs(cleaned, "resident")})
 		}
 	}
 	if providerContextSurfaceAllowsSummaries(surface) {
@@ -494,9 +501,6 @@ func cleanPromptValue(v any) any {
 // ordinary model only needs semantic facts for the current operation.
 func compactCognitionContextForSurface(projection ContextProjection, surface ProviderContextSurface) map[string]any {
 	compact := compactCognitionContext(projection)
-	if surface == ProviderContextSurfaceDefault {
-		return compact
-	}
 	allowed := map[string]struct{}{
 		"current_state": {}, "self_actor": {}, "current_speaker": {}, "developing_self": {},
 		"relationships": {}, "schedule": {}, "visual_identity": {}, "goals": {},
@@ -1504,9 +1508,6 @@ func compactMemoriesForProfile(memories []map[string]any, activeProfileID string
 }
 
 func compactActiveMemoriesForSurface(memories []map[string]any, surface ProviderContextSurface, index ContextReferenceIndex) []map[string]any {
-	if surface == ProviderContextSurfaceDefault {
-		return compactActiveMemories(memories)
-	}
 	result := make([]map[string]any, 0, len(memories))
 	for _, memory := range compactActiveMemories(memories) {
 		item := map[string]any{}
@@ -1527,9 +1528,6 @@ func compactActiveMemoriesForSurface(memories []map[string]any, surface Provider
 
 func compactMemoriesForProfileForSurface(memories []map[string]any, activeProfileID string, surface ProviderContextSurface, index ContextReferenceIndex) []map[string]any {
 	base := compactMemoriesForProfile(memories, activeProfileID)
-	if surface == ProviderContextSurfaceDefault {
-		return base
-	}
 	result := make([]map[string]any, 0, len(base))
 	for _, memory := range base {
 		item := map[string]any{}

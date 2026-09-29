@@ -33,8 +33,14 @@ func TestPhysicalEinoContinuationBudgetCountsToolResultAndMultimodalImage(t *tes
 		{Role: schema.Assistant, ToolCalls: []schema.ToolCall{{ID: "call-1", Type: "function", Function: schema.FunctionCall{Name: "wardrobe.inspect", Arguments: `{}`}}}},
 		{Role: schema.Tool, ToolCallID: "call-1", Content: strings.Repeat("真实衣柜查询结果", 1500)},
 	}
-	if err := model.enforcePhysicalInputBudget(context.Background(), input); !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
-		t.Fatalf("oversize real Tool result was sent to Provider: %v", err)
+	if err := model.enforcePhysicalInputBudget(context.Background(), input); !errors.Is(err, ErrPromptToolResultBudgetExceeded) || !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+		t.Fatalf("oversize real Tool result was sent to Provider or misclassified: %v", err)
+	}
+	if got := providerRunErrorCode(ErrPromptRequiredBudgetExceeded); got != "prompt_required_budget_exceeded" {
+		t.Fatalf("physical budget classified as %q", got)
+	}
+	if got := wrapPhysicalProviderRequestError(ErrPromptRequiredBudgetExceeded); !errors.Is(got, ErrPromptRequiredBudgetExceeded) {
+		t.Fatalf("physical budget error was hidden: %v", got)
 	}
 	parts, err := providerMessagesToEino([]map[string]any{{"role": "user", "content": []any{
 		map[string]any{"type": "text", "text": "看这张图"},
@@ -85,11 +91,47 @@ func TestPromptAssemblerBuildsBLayoutAndCurrentInputExactlyOnce(t *testing.T) {
 	}
 }
 
+func TestFormatRuntimeContextTimesUsesLifeTimezoneWithoutChangingSource(t *testing.T) {
+	context := map[string]any{
+		"current_state": map[string]any{"data": map[string]any{"life_context": map[string]any{
+			"timezone": "Asia/Shanghai", "effective_at": "2026-09-29T09:13:44.667612Z",
+		}}},
+		"retrieved_memory": []any{map[string]any{
+			"content":     "记忆中的 2026-09-29T09:13:44Z 保持原样",
+			"created_at":  "2026-09-29T09:13:44.667612Z",
+			"occurred_at": "2026-09-28T23:00:00+08:00",
+		}},
+	}
+	formatted := formatRuntimeContextTimes(context)
+	life := mapValue(mapValue(mapValue(formatted["current_state"])["data"])["life_context"])
+	memory := mapValue(arrayValue(formatted["retrieved_memory"])[0])
+	if life["effective_at"] != "2026-09-29 17:13:44 +08:00" || memory["created_at"] != "2026-09-29 17:13:44 +08:00" || memory["occurred_at"] != "2026-09-28 23:00:00 +08:00" {
+		t.Fatalf("formatted runtime times = %#v %#v", life, memory)
+	}
+	if memory["content"] != "记忆中的 2026-09-29T09:13:44Z 保持原样" || mapValue(arrayValue(context["retrieved_memory"])[0])["created_at"] != "2026-09-29T09:13:44.667612Z" {
+		t.Fatalf("formatting changed content or source: %#v %#v", context, formatted)
+	}
+}
+
+func TestAssemblePromptMessagesFormatsRuntimeTimesOnWire(t *testing.T) {
+	selected := []promptOptionalCandidate{{fragment: PromptFragment{
+		Kind: PromptFragmentRuntimeFact,
+		Content: map[string]any{"kind": "current_state", "value": map[string]any{"data": map[string]any{"life_context": map[string]any{
+			"timezone": "Asia/Shanghai", "effective_at": "2026-09-29T09:13:44.667612Z",
+		}}}},
+	}}}
+	messages := assemblePromptMessages(map[string]any{"role": "system", "content": "test"}, map[string]any{"role": "user", "content": "hi"}, selected)
+	wire := stringValue(messages[1]["content"])
+	if !strings.Contains(wire, "2026-09-29 17:13:44 +08:00") || strings.Contains(wire, "2026-09-29T09:13:44.667612Z") {
+		t.Fatalf("runtime wire time was not formatted: %s", wire)
+	}
+}
+
 func TestPromptAssemblerFailsWhenRequiredWireSectionsExceedCaps(t *testing.T) {
 	policy := DefaultPromptBudgetPolicy(4096)
 	policy.CurrentInputTokensCap = 8
 	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", CurrentInput: strings.Repeat("x", 100), Policy: policy})
-	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || len(result.Messages) != 0 {
+	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || !errors.Is(err, ErrPromptCurrentInputBudgetExceeded) || len(result.Messages) != 0 {
 		t.Fatalf("oversize required content was sent or silently cut: result=%#v err=%v", result, err)
 	}
 }
@@ -253,18 +295,82 @@ func TestPromptAssemblerPressureDoesNotScaleWithStores(t *testing.T) {
 	if result.Trace.EstimatedInputTokens > defaultMaxInputTokens || len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
 		t.Fatalf("pressure assembly/store mutation: tokens=%d recent=%d durable=%d active=%d", result.Trace.EstimatedInputTokens, len(input.RecentMessages), len(input.RetrievedMemories), len(input.ActiveCandidates))
 	}
+	compactPolicy := DefaultPromptBudgetPolicy(4096)
+	compactPolicy.Version = promptBudgetPolicyVersionV2
+	compactPolicy.ContextWindowTokens = 16384
+	compactPolicy.MaxInputTokens = 11776
+	compactPolicy.SafetyMarginTokens = 512
+	compactPolicy.OptionalInputTargetTokens = 8000
+	compact, err := AssemblePromptContext(PromptAssemblyInput{
+		Role: "cognitive_assessment", OperationRules: []string{"bounded"}, CorePersona: map[string]any{"identity": map[string]any{"name": "摇光"}},
+		WorkingMemory: memory, CurrentInput: "当前问题", Policy: compactPolicy,
+	})
+	if err != nil || compact.Trace.EstimatedInputTokens > 8000 || len(input.RecentMessages) != 1000 {
+		t.Fatalf("16K long-history admission: tokens=%d source=%d err=%v", compact.Trace.EstimatedInputTokens, len(input.RecentMessages), err)
+	}
 }
 
 func TestPromptBudgetConfigurationUsesOutputReserveAndSafetyMargin(t *testing.T) {
 	if err := validatePromptBudgetConfiguration(65536, 49152, 4096, promptBudgetPolicyVersionV1); err != nil {
 		t.Fatal(err)
 	}
-	if err := validatePromptBudgetConfiguration(55000, 49152, 4096, promptBudgetPolicyVersionV1); err == nil {
-		t.Fatal("capacity formula accepted insufficient context window")
+	if err := validatePromptBudgetConfiguration(55000, 49152, 4096, promptBudgetPolicyVersionV1); !errors.Is(err, ErrPromptOutputReserveConflict) {
+		t.Fatalf("capacity formula accepted insufficient context window or lost category: %v", err)
 	}
 	if err := validatePromptBudgetConfiguration(65536, 49152, 4096, "unknown"); err == nil || err.Error() != "prompt_budget_policy_unknown" {
 		t.Fatalf("unknown policy error = %v", err)
 	}
+	if err := validatePromptBudgetConfiguration(16384, 11776, 4096, promptBudgetPolicyVersionV2); err != nil {
+		t.Fatalf("16K policy rejected its exact boundary: %v", err)
+	}
+	if err := validatePromptBudgetConfiguration(16384, 11777, 4096, promptBudgetPolicyVersionV2); err == nil {
+		t.Fatal("16K policy accepted one token beyond the input boundary")
+	}
+	if category, code, retryable := classifyProviderPreflightError("assignment", promptBudgetConfigError{cause: ErrPromptOutputReserveConflict}); category != "budget" || code != "prompt_output_reserve_conflict" || retryable {
+		t.Fatalf("output conflict diagnostic = %s/%s retryable=%t", category, code, retryable)
+	}
+	policy, err := promptBudgetPolicyForAssignment(providerAssignment{TokenBudget: 4096, ContextWindowTokens: 16384, MaxInputTokens: 11776, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV2})
+	if err != nil || policy.SafetyMarginTokens != 512 || policy.OutputReserveTokens != 4096 {
+		t.Fatalf("16K policy=%#v err=%v", policy, err)
+	}
+}
+
+func TestConversationSoftInputTargetLeavesRoomWithoutDroppingRequiredInput(t *testing.T) {
+	policy := DefaultPromptBudgetPolicy(4096)
+	policy.Version = promptBudgetPolicyVersionV2
+	policy.ContextWindowTokens = 16384
+	policy.MaxInputTokens = 11776
+	policy.SafetyMarginTokens = 512
+	policy.OptionalInputTargetTokens = 8000
+	largeMemory := WorkingMemory{RuntimeFacts: []PromptFragment{{Kind: PromptFragmentRuntimeFact,
+		Content: map[string]any{"kind": "current_state", "value": map[string]any{"appearance": "当前短发", "activity": "在家阅读"}}, SourceRefs: []string{"runtime:current_state"},
+	}}}
+	for index := 0; index < 4; index++ {
+		largeMemory.Summaries = append(largeMemory.Summaries, PromptFragment{Kind: PromptFragmentSummary,
+			Content: map[string]any{"summary": strings.Repeat("较早的对话事实。", 250), "episode": index}, SourceRefs: []string{fmt.Sprintf("summary:%d", index)},
+		})
+	}
+	tools := []map[string]any{{"type": "function", "function": map[string]any{"name": "conversation.reply", "description": "发送回复", "parameters": map[string]any{"type": "object"}}}}
+	format := map[string]any{"type": "json_object"}
+	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: largeMemory, CurrentInput: "现在的问题", Tools: tools, ResponseFormat: format, Policy: policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Trace.EstimatedInputTokens > 8000 || len(result.Trace.Dropped) == 0 || result.Trace.OptionalInputTargetTokens != 8000 || !strings.Contains(jsonString(result.Messages), "当前短发") {
+		t.Fatalf("optional target did not bound the first turn: %#v", result.Trace)
+	}
+	policy.OptionalInputTargetTokens = 0
+	roomy, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: largeMemory, CurrentInput: "现在的问题", Tools: tools, ResponseFormat: format, Policy: policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if roomy.Trace.EstimatedInputTokens <= result.Trace.EstimatedInputTokens || len(roomy.Trace.Selected) == 0 {
+		t.Fatalf("soft target did not distinguish optional admission: target=%#v roomy=%#v", result.Trace, roomy.Trace)
+	}
+	t.Logf("controlled full-request estimate without/with 8K soft target: %d / %d tokens; system=%d tools=%d schema=%d current=%d summary_before=%d summary_after=%d",
+		roomy.Trace.EstimatedInputTokens, result.Trace.EstimatedInputTokens,
+		result.Trace.SectionTokens["system"], result.Trace.SectionTokens["tools"], result.Trace.SectionTokens["response_schema"],
+		result.Trace.SectionTokens["current_input"], roomy.Trace.SectionTokens["conversation_summary"], result.Trace.SectionTokens["conversation_summary"])
 }
 
 func TestPromptEstimatorHandlesMultimodalImages(t *testing.T) {

@@ -387,6 +387,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 					if identity, found := adkCtx.Trace.ModelIdentity(calls[index].CallID); found {
 						calls[index].ProviderRequestID = identity.ProviderRequestID
 					}
+					decoded, decodeErr := adkCtx.Refs.decodeArguments(calls[index].Arguments)
+					if decodeErr != nil {
+						return ProviderCompletion{}, decodeErr
+					}
+					calls[index].Arguments = decoded
 				}
 			}
 		}
@@ -435,6 +440,16 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			addStructuredParseFailureDiagnostic(diagnostic, structuredCandidates, finishReason)
 			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
 			return ProviderCompletion{}, errors.New("adk_structured_response_invalid")
+		}
+		if adkEnabled && parsedStructuredOK {
+			if adkCtx, ok := adkCapabilityContext(ctx); ok && adkCtx.Refs != nil {
+				decoded, decodeErr := adkCtx.Refs.decode(parsedStructured)
+				if decodeErr != nil {
+					return ProviderCompletion{}, decodeErr
+				}
+				parsedStructured = decoded.(map[string]any)
+				content = jsonString(parsedStructured)
+			}
 		}
 		if !adkEnabled && parsedStructuredOK && len(toolCallArrayValue(parsedStructured["tool_calls"])) > 0 {
 			err := errors.New("provider_tool_call_unhandled: structured Content tool_calls are not an execution channel")
@@ -742,7 +757,7 @@ func providerChatPayload(model string, messages []map[string]any, tokenBudget in
 }
 
 func providerStreamingPayload(model string, messages []map[string]any, outputReserve int) map[string]any {
-	payload := map[string]any{"model": model, "messages": messages, "temperature": 0.7, "stream": true}
+	payload := map[string]any{"model": model, "messages": messages, "temperature": 0.7, "stream": true, "max_completion_tokens": outputReserve}
 	return payload
 }
 
@@ -755,7 +770,10 @@ func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, too
 	result["context_window_tokens"] = assignment.ContextWindowTokens
 	result["max_input_tokens"] = assignment.MaxInputTokens
 	result["output_reserve_tokens"] = assignment.TokenBudget
-	result["safety_margin_tokens"] = defaultPromptSafetyMarginTokens
+	if margin, err := promptSafetyMargin(assignment.PromptBudgetPolicyVersion); err == nil {
+		result["safety_margin_tokens"] = margin
+	}
+	result["count_mode"] = "estimated"
 	result["estimated_input_tokens"] = wireEstimate
 	sectionTokens := map[string]any{"system": 0, "runtime": 0, "recent": 0, "current_input": 0, "tools": EstimatePromptTokens(tools), "response_schema": EstimatePromptTokens(responseFormat)}
 	sectionCounts := map[string]any{"system": 0, "runtime": 0, "recent": 0, "current_input": 0, "tools": len(tools), "response_schema": 0}
@@ -790,10 +808,11 @@ func providerChatPayloadForRole(model string, messages []map[string]any, tokenBu
 func providerChatPayloadWithSchema(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition, role, schemaName string, schema map[string]any, enableThinking bool) map[string]any {
 	definitionList := definitions
 	payload := map[string]any{
-		"model":       model,
-		"messages":    messages,
-		"temperature": 0.7,
-		"stream":      false,
+		"model":                 model,
+		"messages":              messages,
+		"temperature":           0.7,
+		"stream":                false,
+		"max_completion_tokens": tokenBudget,
 	}
 	if len(definitionList) > 0 {
 		payload["tools"] = RenderCapabilityTools(definitionList)
@@ -953,6 +972,8 @@ func (p *ProviderClient) recordProviderPreflightFailure(ctx context.Context, ass
 func classifyProviderPreflightError(stage string, preflightErr error) (category, code string, retryable bool) {
 	message := strings.ToLower(strings.TrimSpace(preflightErr.Error()))
 	switch {
+	case errors.Is(preflightErr, ErrPromptOutputReserveConflict):
+		return "budget", "prompt_output_reserve_conflict", false
 	case errors.Is(preflightErr, context.Canceled):
 		return "request", "provider_request_cancelled", false
 	case errors.Is(preflightErr, context.DeadlineExceeded):

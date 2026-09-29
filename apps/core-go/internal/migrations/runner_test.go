@@ -392,7 +392,8 @@ func TestPromptContextMemoryMigrationAddsValidatedModelPromptBudgets(t *testing.
 		"max_input_tokens integer NOT NULL DEFAULT 49152",
 		"prompt_budget_policy_version varchar(64) NOT NULL DEFAULT 'prompt-budget.v1'",
 		"ck_model_roles_prompt_budget",
-		"max_input_tokens + token_budget + 4096 <= context_window_tokens",
+		"prompt_budget_policy_version IN ('prompt-budget.v1','prompt-budget.v2')",
+		"max_input_tokens + token_budget + CASE WHEN prompt_budget_policy_version='prompt-budget.v2' THEN 512 ELSE 4096 END <= context_window_tokens",
 		"invalid model role budget(s)",
 	} {
 		if !strings.Contains(schemaSQL, fragment) && !strings.Contains(promptContextMemorySchemaSQL, fragment) {
@@ -401,6 +402,9 @@ func TestPromptContextMemoryMigrationAddsValidatedModelPromptBudgets(t *testing.
 	}
 	if !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS context_window_tokens") || !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS max_input_tokens") || !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS prompt_budget_policy_version") {
 		t.Fatalf("0032 model prompt budget ALTER contract is incomplete: %s", promptContextMemorySchemaSQL)
+	}
+	if !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles DROP CONSTRAINT ck_model_roles_prompt_budget") {
+		t.Fatal("existing v1-only constraint is not upgraded for the 16K policy")
 	}
 }
 

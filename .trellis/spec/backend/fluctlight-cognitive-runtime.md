@@ -55,6 +55,12 @@ still use it. Embedding remains model infrastructure rather than an Agent.
   nested Scene/Schedule/Schedule Item/Presence refs remain Core-side unless the
   surface explicitly admits those kinds. A valid token of the wrong kind is
   not a valid ref for another field.
+- Conversation, Takeover, Wake-up, Daily Review and Native Cognition render
+  Memory, Active Memory, Life Context and Appearance refs as deterministic
+  short aliases in the Provider prompt. One Agent run restores known aliases
+  in Tool arguments and final structured output before Core validation; newly
+  exposed Tool-result/refresh refs extend that run's mapping. Unknown aliases
+  fail closed. Core projections, receipts and persisted decisions keep full refs.
 - No-tool completion is valid. Read, write, mixed and multiple Tool batches may
   continue normally. Model errors and cancellation are errors, never inferred
   completion. Only the actual final assistant result is decoded against the

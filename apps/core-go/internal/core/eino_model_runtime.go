@@ -55,18 +55,20 @@ type EinoModelCall struct {
 }
 
 type queuedToolCallingChatModel struct {
-	inner           model.ToolCallingChatModel
-	provider        *ProviderClient
-	role            string
-	scenario        string
-	priority        int
-	diagnosticID    string
-	assignment      providerAssignment
-	correlationID   string
-	sequence        *atomic.Uint64
-	cumulativeInput *atomic.Int64
-	definitions     []CapabilityDefinition
-	responseFormat  map[string]any
+	inner             model.ToolCallingChatModel
+	provider          *ProviderClient
+	agentName         string
+	role              string
+	scenario          string
+	priority          int
+	diagnosticID      string
+	assignment        providerAssignment
+	correlationID     string
+	sequence          *atomic.Uint64
+	cumulativeInput   *atomic.Int64
+	lastInputEstimate *atomic.Int64
+	definitions       []CapabilityDefinition
+	responseFormat    map[string]any
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
@@ -111,6 +113,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 	}
 	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, result, err)
+	m.recordUsageComparison(callCtx, result)
 	if callDiagnosticID != "" {
 		m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
 	}
@@ -148,6 +151,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		return stream, err
 	}
 	adkContext, traceEnabled := adkCapabilityContext(ctx)
+	var usageRecorded atomic.Bool
 	if !traceEnabled || adkContext.Trace == nil {
 		return stream, nil
 	}
@@ -156,6 +160,9 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	// the trace map is an idempotent overwrite for the same physical request.
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
 		if message != nil {
+			if message.ResponseMeta != nil && message.ResponseMeta.Usage != nil && usageRecorded.CompareAndSwap(false, true) {
+				m.recordUsageComparison(callCtx, message)
+			}
 			adkContext.Refresh.noteModelToolCalls(sequence, message.ToolCalls)
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, message.ToolCalls)
 			if callDiagnosticID != "" && (message.Content != "" || len(message.ToolCalls) > 0 || message.ReasoningContent != "") {
@@ -174,17 +181,8 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
-	policy := DefaultPromptBudgetPolicy(m.assignment.TokenBudget)
-	if m.assignment.ContextWindowTokens > 0 {
-		policy.ContextWindowTokens = m.assignment.ContextWindowTokens
-	}
-	if m.assignment.MaxInputTokens > 0 {
-		policy.MaxInputTokens = m.assignment.MaxInputTokens
-	}
-	if m.assignment.PromptBudgetPolicyVersion != "" {
-		policy.Version = m.assignment.PromptBudgetPolicyVersion
-	}
-	if err := policy.Validate(); err != nil {
+	policy, err := promptBudgetPolicyForAssignment(m.assignment)
+	if err != nil {
 		return err
 	}
 	messages := make([]map[string]any, 0, len(input))
@@ -195,6 +193,16 @@ func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Cont
 	}
 	tools := RenderCapabilityTools(m.definitions)
 	estimated := estimatePromptWireInput(messages, tools, m.responseFormat)
+	if m.lastInputEstimate != nil {
+		m.lastInputEstimate.Store(int64(estimated))
+	}
+	toolResultTokens := 0
+	for _, message := range messages {
+		if stringValue(message["role"]) == "tool" {
+			toolResultTokens += estimateProviderMessageTokens(message)
+		}
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
 	encoded, err := json.Marshal(map[string]any{"messages": messages, "tools": tools, "response_format": m.responseFormat})
 	if err != nil {
 		return err
@@ -203,21 +211,45 @@ func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Cont
 	if m.cumulativeInput != nil {
 		cumulative = m.cumulativeInput.Add(int64(estimated))
 	}
+	iteration := uint64(1)
+	if m.sequence != nil {
+		iteration = m.sequence.Load() + 1
+	}
 	if m.provider != nil && m.provider.DB != nil {
 		status := "within_budget"
 		if estimated > policy.MaxInputTokens {
 			status = "required_budget_exceeded"
 		}
 		m.provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.input_budget", "info", "", "", m.correlationID, map[string]any{
-			"status": status, "estimated_input_tokens": estimated, "cumulative_estimated_input_tokens": cumulative,
-			"max_input_tokens": policy.MaxInputTokens, "wire_bytes": len(encoded), "wire_chars": len([]rune(string(encoded))),
-			"message_count": len(messages), "tool_count": len(tools), "schema_tokens": EstimatePromptTokens(m.responseFormat),
+			"status": status, "count_mode": "estimated", "estimated_input_tokens": estimated, "cumulative_estimated_input_tokens": cumulative,
+			"context_window_tokens": policy.ContextWindowTokens, "max_input_tokens": policy.MaxInputTokens,
+			"generation_reserve_tokens": policy.OutputReserveTokens, "safety_margin_tokens": policy.SafetyMarginTokens,
+			"model": m.assignment.ModelID, "agent": m.agentName, "run_id": firstString(stringValue(diagnostics["run_id"]), m.correlationID),
+			"conversation_id": stringValue(diagnostics["conversation_id"]), "iteration": iteration,
+			"wire_bytes": len(encoded), "wire_chars": len([]rune(string(encoded))),
+			"message_count": len(messages), "tool_count": len(tools), "tool_schema_tokens": EstimatePromptTokens(tools),
+			"tool_result_tokens": toolResultTokens, "schema_tokens": EstimatePromptTokens(m.responseFormat),
 		})
 	}
 	if estimated > policy.MaxInputTokens {
+		if toolResultTokens > 0 && estimated-toolResultTokens <= policy.MaxInputTokens {
+			return fmt.Errorf("%w: %w: physical request estimate=%d tool_results=%d max=%d", ErrPromptRequiredBudgetExceeded, ErrPromptToolResultBudgetExceeded, estimated, toolResultTokens, policy.MaxInputTokens)
+		}
 		return fmt.Errorf("%w: physical request estimate=%d max=%d", ErrPromptRequiredBudgetExceeded, estimated, policy.MaxInputTokens)
 	}
 	return nil
+}
+
+func (m *queuedToolCallingChatModel) recordUsageComparison(ctx context.Context, message *schema.Message) {
+	if m == nil || m.lastInputEstimate == nil || m.provider == nil || m.provider.DB == nil || message == nil || message.ResponseMeta == nil || message.ResponseMeta.Usage == nil {
+		return
+	}
+	usage := message.ResponseMeta.Usage
+	m.provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.usage_comparison", "info", "", "", m.correlationID, map[string]any{
+		"count_mode": "estimated", "estimated_input_tokens": m.lastInputEstimate.Load(),
+		"provider_prompt_usage": usage.PromptTokens, "provider_completion_usage": usage.CompletionTokens,
+		"model": m.assignment.ModelID,
+	})
 }
 
 func einoBudgetMessage(message *schema.Message) map[string]any {
@@ -483,7 +515,7 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if sequence == nil {
 		sequence = &atomic.Uint64{}
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, definitions: m.definitions, responseFormat: m.responseFormat}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, definitions: m.definitions, responseFormat: m.responseFormat}, nil
 }
 
 type einoModelResponse struct {
@@ -578,7 +610,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: call.Assignment.Secret, BaseURL: call.Assignment.BaseURL,
 		Model: call.Assignment.ModelID, Timeout: call.Assignment.Timeout,
-		MaxCompletionTokens: 0, HTTPClient: p.HTTP,
+		MaxCompletionTokens: DefaultPromptBudgetPolicy(call.Assignment.TokenBudget).OutputReserveTokens, HTTPClient: p.HTTP,
 		ResponseFormat: responseFormat, ExtraFields: extra,
 	})
 	if err != nil {
@@ -654,7 +686,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: call.Assignment.Secret, BaseURL: call.Assignment.BaseURL,
 		Model: call.Assignment.ModelID, Timeout: call.Assignment.Timeout,
-		MaxCompletionTokens: 0, HTTPClient: requestHTTP,
+		MaxCompletionTokens: DefaultPromptBudgetPolicy(call.Assignment.TokenBudget).OutputReserveTokens, HTTPClient: requestHTTP,
 		ResponseFormat: responseFormat, ExtraFields: extra,
 	})
 	if err != nil {
@@ -665,10 +697,10 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		budgetResponseFormat = providerResponseFormatForSchema(call.Role, call.SchemaName, call.ResponseSchema)
 	}
 	chat = &queuedToolCallingChatModel{
-		inner: chat, provider: p, role: call.Role, scenario: call.Scenario, priority: call.Priority,
+		inner: chat, provider: p, agentName: call.Agent.Name, role: call.Role, scenario: call.Scenario, priority: call.Priority,
 		diagnosticID: call.DiagnosticID, assignment: call.Assignment, correlationID: call.CorrelationID,
 		sequence: &atomic.Uint64{}, definitions: call.Definitions, responseFormat: budgetResponseFormat,
-		cumulativeInput: &atomic.Int64{},
+		cumulativeInput: &atomic.Int64{}, lastInputEstimate: &atomic.Int64{},
 	}
 	tools, err := NewADKCapabilityTools(call.Definitions, adkContext.Invoker)
 	if err != nil {
@@ -764,7 +796,7 @@ func adkTerminationReason(err error) string {
 }
 
 func wrapPhysicalProviderRequestError(err error) error {
-	if err == nil || errors.Is(err, errProviderRequestFailed) || errors.Is(err, errProviderPaused) || errors.Is(err, errProviderInactive) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	if err == nil || errors.Is(err, ErrPromptRequiredBudgetExceeded) || errors.Is(err, errProviderRequestFailed) || errors.Is(err, errProviderPaused) || errors.Is(err, errProviderInactive) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return err
 	}
 	return fmt.Errorf("%w: %w", errProviderRequestFailed, err)
@@ -829,7 +861,7 @@ func (p *ProviderClient) streamWithEino(ctx context.Context, assignment provider
 	factory := NewEinoModelFactory(p.HTTP)
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: assignment.Secret, BaseURL: assignment.BaseURL, Model: assignment.ModelID,
-		Timeout: assignment.Timeout, MaxCompletionTokens: 0, HTTPClient: p.HTTP,
+		Timeout: assignment.Timeout, MaxCompletionTokens: DefaultPromptBudgetPolicy(assignment.TokenBudget).OutputReserveTokens, HTTPClient: p.HTTP,
 	})
 	if err != nil {
 		return "", err

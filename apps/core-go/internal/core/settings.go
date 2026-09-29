@@ -281,11 +281,15 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 		if err := rows.Scan(&role, &endpoint, &model, &budget, &timeout, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion, &endpointStatus); err != nil {
 			return nil, err
 		}
+		margin, err := promptSafetyMargin(promptBudgetPolicyVersion)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, map[string]any{
 			"role": role, "endpoint_id": endpoint, "model_id": model,
 			"token_budget": budget, "output_reserve_tokens": budget, "timeout_seconds": timeout,
 			"context_window_tokens": contextWindowTokens, "max_input_tokens": maxInputTokens,
-			"prompt_budget_policy_version": promptBudgetPolicyVersion, "safety_margin_tokens": defaultPromptSafetyMarginTokens,
+			"prompt_budget_policy_version": promptBudgetPolicyVersion, "safety_margin_tokens": margin,
 			"endpoint_status": endpointStatus,
 		})
 	}

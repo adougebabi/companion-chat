@@ -22,13 +22,14 @@ type intentionDecideCapability struct{ service *intentionService }
 func intentionInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: intentionInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "List or read intentions. Detail auto-selects the sole open one; otherwise pass intention_id from list.",
+		Description:   "List or read intentions. List returns at most ten rows; when has_more is true, pass next_cursor with the same include_closed filter. Detail auto-selects the sole open one; otherwise pass intention_id from list.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
 			"operation":      enumStringSchema("list", "detail"),
 			"intention_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"include_closed": map[string]any{"type": "boolean"},
+			"cursor":         map[string]any{"type": "integer", "minimum": 0, "maximum": 10000},
 		}, []string{"operation"}, false),
 		OutputSchema: openObjectSchema(), SideEffectClass: "read_only", SuccessBoundary: "query_result_available",
 		ConcurrencyClass: "parallel", SupportsRetry: true,
@@ -98,7 +99,8 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 		output["activities"] = activities
 	} else {
 		includeClosed, _ := args["include_closed"].(bool)
-		rows, err := c.service.repository.Pool().Query(ctx, `SELECT i.id,g.desired_outcome,i.action_intent,i.expected_outcome,i.status,i.revision,i.expiration FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND COALESCE(i.profile_id,'')=$2 AND ($3 OR i.status NOT IN ('completed','cancelled','expired')) ORDER BY i.created_at DESC LIMIT 21`, fluctlightID, profileID, includeClosed)
+		cursor := intValue(args["cursor"])
+		rows, err := c.service.repository.Pool().Query(ctx, `SELECT i.id,g.desired_outcome,i.action_intent,i.expected_outcome,i.status,i.revision,i.expiration FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND COALESCE(i.profile_id,'')=$2 AND ($3 OR i.status NOT IN ('completed','cancelled','expired')) ORDER BY i.created_at DESC,i.id DESC LIMIT 11 OFFSET $4`, fluctlightID, profileID, includeClosed, cursor)
 		if err != nil {
 			return failedCapabilityResult(invocation, "intention_read_failed", true), err
 		}
@@ -116,10 +118,11 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 		if err := rows.Err(); err != nil {
 			return failedCapabilityResult(invocation, "intention_read_failed", true), err
 		}
-		output["has_more"] = len(items) > 20
-		if len(items) > 20 {
-			items = items[:20]
+		output["has_more"] = len(items) > 10
+		if len(items) > 10 {
+			items = items[:10]
 		}
+		output["next_cursor"] = cursor + len(items)
 		output["intentions"] = items
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output,

@@ -46,6 +46,15 @@ func classifyAgentRunFailure(err error) (string, string) {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "model", "request_timeout"
 	}
+	if errors.Is(err, ErrPromptOutputReserveConflict) {
+		return "model_input", "prompt_output_reserve_conflict"
+	}
+	if errors.Is(err, ErrPromptToolResultBudgetExceeded) {
+		return "model_input", "prompt_tool_result_budget_exceeded"
+	}
+	if errors.Is(err, ErrPromptCurrentInputBudgetExceeded) {
+		return "model_input", "prompt_current_input_budget_exceeded"
+	}
 	if errors.Is(err, ErrPromptRequiredBudgetExceeded) {
 		return "model_input", "prompt_required_budget_exceeded"
 	}
