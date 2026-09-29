@@ -638,9 +638,7 @@ func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
 		lifeProfile = mapValue(visualIdentity["life_profile"])
 	}
 
-	if visible := stringValue(identity["visible_text"]); visible != "" {
-		return visible
-	}
+	visibleText := stringValue(identity["visible_text"])
 
 	var appearance map[string]any
 	var appearanceText string
@@ -699,6 +697,16 @@ func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
 
 	if appearance == nil {
 		appearance = make(map[string]any)
+	}
+	_, currentWearKnown := appearance["currently_worn"]
+	currentWorn := arrayValue(appearance["currently_worn"])
+	if !currentWearKnown && visibleText != "" {
+		return visibleText
+	}
+	if currentWearKnown {
+		// Foundation prose can describe an earlier outfit. When current wear is
+		// known, do not send that prose alongside contradictory clothing facts.
+		appearanceText = ""
 	}
 
 	physical := mapValue(appearance["physical_features"])
@@ -785,9 +793,21 @@ func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
 		}
 	}
 
-	// 9. Outfit / Clothing preferences
-	outfit := firstVisualIdentityString(appearance["outfit"], appearance["clothing"])
-	if outfit == "" {
+	// 9. Current wear takes precedence over historical outfit descriptions and
+	// preferences. Inventory by itself does not establish what is being worn.
+	outfit := ""
+	if currentWearKnown {
+		items := make([]string, 0, len(currentWorn))
+		for _, raw := range currentWorn {
+			if description := strings.TrimSpace(stringValue(mapValue(raw)["description"])); description != "" {
+				items = append(items, description)
+			}
+		}
+		outfit = strings.Join(items, "、")
+	} else {
+		outfit = firstVisualIdentityString(appearance["outfit"], appearance["clothing"])
+	}
+	if outfit == "" && !currentWearKnown {
 		if rawOutfits, ok := appearance["daily_outfit_preferences"].([]any); ok && len(rawOutfits) > 0 {
 			items := make([]string, 0, len(rawOutfits))
 			for _, item := range rawOutfits {
@@ -801,7 +821,9 @@ func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
 		}
 	}
 	if outfit != "" && (appearanceText == "" || !strings.Contains(appearanceText, outfit)) {
-		if strings.HasPrefix(outfit, "着装") || strings.HasPrefix(outfit, "服装") || strings.HasPrefix(outfit, "穿") {
+		if len(currentWorn) > 0 {
+			parts = append(parts, "当前穿着（服装及颜色必须保持一致）："+outfit)
+		} else if strings.HasPrefix(outfit, "着装") || strings.HasPrefix(outfit, "服装") || strings.HasPrefix(outfit, "穿") {
 			parts = append(parts, outfit)
 		} else {
 			parts = append(parts, "着装："+outfit)
@@ -852,6 +874,9 @@ func enrichIdentitySnapshotWithPersona(snapshot, corePersona map[string]any) {
 		}
 	} else if coreAppMap := mapValue(coreAppRaw); len(coreAppMap) > 0 {
 		for k, v := range coreAppMap {
+			if k == "currently_worn" {
+				continue // Only the effective Life snapshot can assert current wear.
+			}
 			if current, exists := app[k]; !exists || current == nil || stringValue(current) == "" {
 				app[k] = v
 			}
@@ -865,6 +890,9 @@ func enrichIdentitySnapshotWithPersona(snapshot, corePersona map[string]any) {
 			}
 		} else if idMap := mapValue(idAppRaw); len(idMap) > 0 {
 			for k, v := range idMap {
+				if k == "currently_worn" {
+					continue
+				}
 				if current, exists := app[k]; !exists || current == nil || stringValue(current) == "" {
 					app[k] = v
 				}

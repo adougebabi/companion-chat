@@ -289,14 +289,46 @@ func TestVisualIdentityPromptIncludesCharacterNameAndAppearance(t *testing.T) {
 		"identity": map[string]any{"name": "摇光", "gender": "女性", "age": 22},
 		"life_profile": map[string]any{
 			"appearance": map[string]any{
-				"description": "及腰黑发，眼神清冷，常穿白衬衫",
+				"description":    "及腰黑发，眼神清冷，常穿白衬衫",
+				"currently_worn": []any{map[string]any{"description": "黑色外套"}},
 			},
 		},
 	}
 	enrichIdentitySnapshotWithPersona(emptySnapshot, corePersona)
+	if _, exists := mapValue(mapValue(emptySnapshot["life_profile"])["appearance"])["currently_worn"]; exists {
+		t.Fatal("Foundation clothing was promoted to effective current wear")
+	}
 	desc := visualIdentityCharacterDescription(emptySnapshot)
 	if !strings.Contains(desc, "摇光") || !strings.Contains(desc, "及腰黑发，眼神清冷，常穿白衬衫") {
 		t.Fatalf("enriched description failed: %q", desc)
+	}
+}
+
+func TestVisualIdentityPromptUsesCurrentWearBeforeHistoricalClothing(t *testing.T) {
+	snapshot := map[string]any{
+		"identity": map[string]any{"name": "摇光", "visible_text": "摇光穿黑色外套"},
+		"life_profile": map[string]any{"appearance": map[string]any{
+			"description":              "黑色长裙，短发",
+			"outfit":                   "黑色长裙",
+			"daily_outfit_preferences": []any{"黑色外套"},
+			"wardrobe_items":           []any{map[string]any{"description": "黑色长裙"}},
+			"currently_worn":           []any{map[string]any{"slot": "top", "category": "shirt", "description": "白色衬衫"}},
+		}},
+	}
+	prompt := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": snapshot}})
+	if !strings.Contains(prompt, "当前穿着（服装及颜色必须保持一致）：白色衬衫") || strings.Contains(prompt, "黑色") {
+		t.Fatalf("current wear did not override historical clothing: %s", prompt)
+	}
+	mapValue(mapValue(snapshot["life_profile"])["appearance"])["currently_worn"] = []any{}
+	knownEmpty := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": snapshot}})
+	if strings.Contains(knownEmpty, "黑色") || strings.Contains(knownEmpty, "当前穿着") {
+		t.Fatalf("known empty wear restored historical clothing: %s", knownEmpty)
+	}
+
+	delete(mapValue(mapValue(snapshot["life_profile"])["appearance"]), "currently_worn")
+	withoutCurrent := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": snapshot}})
+	if strings.Contains(withoutCurrent, "当前穿着") {
+		t.Fatalf("inventory alone was promoted to current wear: %s", withoutCurrent)
 	}
 }
 
