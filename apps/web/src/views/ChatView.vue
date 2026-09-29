@@ -44,7 +44,7 @@ function focusComposer() {
 
 async function send() {
   const text = draft.value.trim();
-  if (!text || store.sending || store.hasPendingTurn) return;
+  if (!text || store.sending) return;
   // The submitted text is already represented by the optimistic message and
   // retryTurn; keeping it in the editor makes a queued request look unsent.
   draft.value = "";
@@ -187,7 +187,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
         />
         <div class="composer-actions">
           <Button v-if="store.canCancel" class="secondary-button" variant="outline" type="button" @click="store.cancel">取消</Button>
-          <Button class="primary-button send-button" type="submit" :disabled="store.sending || store.hasPendingTurn || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
+          <Button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
         </div>
       </div>
       <div class="composer-footer">

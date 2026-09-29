@@ -145,13 +145,39 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
 			return ErrConflict
 		}
+		// Automatically reconcile stale claims or exhausted attempts for this Fluctlight
+		// before evaluating earlierPending so an abandoned turn or dead background fact
+		// does not block all future turns indefinitely.
+		_, _ = tx.Exec(ctx, `
+			UPDATE public.cognition_inbox
+			SET status = CASE WHEN attempt_count >= 3 THEN 'failed' ELSE 'pending' END,
+				claimed_by = NULL,
+				claimed_at = NULL,
+				error_code = CASE WHEN attempt_count >= 3 THEN 'cognition_attempts_exhausted' ELSE error_code END,
+				processed_at = CASE WHEN attempt_count >= 3 THEN COALESCE(processed_at, now()) ELSE processed_at END
+			WHERE fluctlight_id = $1 AND status = 'claimed' AND claimed_at < now() - interval '10 minutes'`, fluctlightID)
+		_, _ = tx.Exec(ctx, `
+			UPDATE public.cognition_inbox
+			SET status = 'failed',
+				error_code = COALESCE(NULLIF(error_code, ''), 'cognition_attempts_exhausted'),
+				processed_at = COALESCE(processed_at, now())
+			WHERE fluctlight_id = $1 AND status = 'pending' AND attempt_count >= 3`, fluctlightID)
+
 		// Ordering is enforced by the durable pending/claimed predecessor
 		// check below. Do not reject a recoverable turn merely because the head's
 		// last_processed_sequence was not advanced by an older synchronous
 		// stream request or by a superseded turn; that would strand a frozen
 		// action after the request process dies before message settlement.
 		var earlierPending bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence<$2 AND status IN ('pending','claimed'))`, fluctlightID, sequence).Scan(&earlierPending); err != nil {
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS(
+				SELECT 1 FROM public.cognition_inbox
+				WHERE fluctlight_id = $1 AND sequence < $2
+				  AND (
+					(status = 'claimed' AND claimed_at >= now() - interval '10 minutes')
+					OR (status = 'pending' AND attempt_count < 3)
+				  )
+			)`, fluctlightID, sequence).Scan(&earlierPending); err != nil {
 			return err
 		}
 		if earlierPending {
@@ -187,7 +213,9 @@ func (a *App) releaseCognitionClaim(ctx context.Context, inboxID, claimOwner str
 				WHERE m.conversation_id = i.payload->>'conversation_id'
 				  AND m.idempotency_key = 'assistant:' || (i.payload->>'turn_id')
 			  ))
-			) THEN 'processed' ELSE 'pending' END,
+			) THEN 'processed'
+			WHEN i.attempt_count >= 3 THEN 'failed'
+			ELSE 'pending' END,
 			claimed_by = NULL,
 			claimed_at = NULL,
 			processed_at = CASE WHEN (
@@ -198,8 +226,11 @@ func (a *App) releaseCognitionClaim(ctx context.Context, inboxID, claimOwner str
 					  AND m.idempotency_key = 'assistant:' || (i.payload->>'turn_id')
 				)
 				AND EXISTS (SELECT 1 FROM public.cognition_frozen_actions f WHERE f.inbox_id=i.id AND f.status='completed')
-			) OR EXISTS (SELECT 1 FROM public.cognition_frozen_actions f WHERE f.inbox_id=i.id AND f.status='completed' AND f.action_type='no_op') THEN COALESCE(i.processed_at, now()) ELSE NULL END,
-			error_code = CASE WHEN EXISTS (SELECT 1 FROM public.cognition_frozen_actions f WHERE f.inbox_id=i.id AND f.status='failed') THEN (SELECT error_code FROM public.cognition_frozen_actions f WHERE f.inbox_id=i.id AND f.status='failed' ORDER BY f.frozen_at DESC LIMIT 1) ELSE NULL END
+			) OR EXISTS (SELECT 1 FROM public.cognition_frozen_actions f WHERE f.inbox_id=i.id AND f.status='completed' AND f.action_type='no_op') OR i.attempt_count >= 3 THEN COALESCE(i.processed_at, now()) ELSE NULL END,
+			error_code = CASE
+				WHEN EXISTS (SELECT 1 FROM public.cognition_frozen_actions f WHERE f.inbox_id=i.id AND f.status='failed') THEN (SELECT error_code FROM public.cognition_frozen_actions f WHERE f.inbox_id=i.id AND f.status='failed' ORDER BY f.frozen_at DESC LIMIT 1)
+				WHEN i.attempt_count >= 3 THEN COALESCE(NULLIF(i.error_code, ''), 'cognition_attempts_exhausted')
+				ELSE NULL END
 		WHERE i.id = $1
 		  AND i.status = 'claimed'
 		  AND i.claimed_by = $2`, inboxID, claimOwner)

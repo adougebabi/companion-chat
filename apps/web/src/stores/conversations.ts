@@ -552,8 +552,13 @@ export const useConversationStore = defineStore("conversations", {
 		const normalized = text.trim();
 		if (!normalized || this.sending) return;
 		if (!retry && this.hasPendingTurn) {
-			this.error = "上一条消息仍在后台处理；完成或取消后再发送。";
-			return;
+			if (!this.sending) {
+				await this.cancel();
+			}
+			if (this.hasPendingTurn) {
+				this.error = "上一条消息仍在后台处理；可点击取消后再发送。";
+				return;
+			}
 		}
 		const initialConversationId = this.conversation?.id;
 		const initialFluctlightId = this.fluctlightId;
@@ -842,7 +847,16 @@ export const useConversationStore = defineStore("conversations", {
 	    async cancel() {
 		const conversationId = this.conversation?.id;
 		const pending = [...this.messages].reverse().find((message) => message.kind === "user" && (message.turnStatus === "pending" || message.turnStatus === "running") && message.turnId);
-		if (!conversationId || !pending?.turnId) return;
+		if (!conversationId || !pending?.turnId) {
+			for (const m of this.messages) {
+				if (m.kind === "user" && (m.turnStatus === "pending" || m.turnStatus === "running")) {
+					m.turnStatus = "cancelled";
+					m.turnErrorCode = "user_cancelled";
+				}
+			}
+			this.syncServerTurnState();
+			return;
+		}
 		try {
 			await client.cancelTurn(conversationId, pending.turnId);
 			this.abortController?.abort();
@@ -851,7 +865,11 @@ export const useConversationStore = defineStore("conversations", {
 			this.messages = mergeConversationMessages(page.messages, this.messages);
 			this.syncServerTurnState();
 		} catch {
-			this.error = "取消请求未完成，请查看消息状态后重试。";
+			if (pending) {
+				pending.turnStatus = "cancelled";
+				pending.turnErrorCode = "user_cancelled";
+			}
+			this.syncServerTurnState();
 		}
 	    },
 	    async retry() {

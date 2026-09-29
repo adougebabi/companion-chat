@@ -529,3 +529,63 @@ test("transport loss after server acceptance keeps background cognition pending"
 		globalThis.localStorage = originalLocalStorage;
 	}
 });
+
+test("sending a new message when previous turn is stuck pending auto-cancels and sends", async () => {
+	const originalWindow = globalThis.window;
+	const originalFetch = globalThis.fetch;
+	const originalLocalStorage = globalThis.localStorage;
+	const storageValues = new Map();
+	globalThis.window = { addEventListener() {}, removeEventListener() {}, document: { visibilityState: "visible" }, location: { origin: "http://fluctlight.test" } };
+	globalThis.localStorage = {
+		getItem: (key) => storageValues.get(key) ?? null,
+		setItem: (key, value) => storageValues.set(key, String(value)),
+		removeItem: (key) => storageValues.delete(key),
+	};
+	const conversation = { id: "conversation-stuck-pending", createdByActorId: "owner", revision: 0, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:00Z" };
+	let cancelled = false;
+	let newSent = false;
+	globalThis.fetch = async (input, init = {}) => {
+		const url = String(input);
+		if (url.includes("/cancel")) {
+			cancelled = true;
+			return new Response(null, { status: 200 });
+		}
+		if (url.includes("/turn")) {
+			newSent = true;
+			const body = new ReadableStream({ start(controller) { controller.close(); } });
+			return new Response(body, { status: 200, headers: { "content-type": "application/x-ndjson" } });
+		}
+		if (url.includes("/messages")) {
+			return Response.json({
+				conversation,
+				participants: [],
+				messages: [
+					{ id: "stuck-user", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "卡住的消息", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z", turnId: "turn_stuck", idempotencyKey: "idem_stuck", turnStatus: cancelled ? "cancelled" : "pending" },
+				],
+				nextBeforeSequence: null,
+			});
+		}
+		if (url.includes("/read")) return new Response(null, { status: 204 });
+		throw new Error(`unexpected request ${url}`);
+	};
+	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
+	try {
+		setActivePinia(createPinia());
+		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
+		const store = useConversationStore();
+		store.conversation = conversation;
+		store.fluctlightId = "fluctlight-stuck";
+		store.messages = [
+			{ id: "stuck-user", conversationId: conversation.id, sequence: 1, authorActorId: "owner", kind: "user", text: "卡住的消息", attachmentRefs: [], createdAt: "2026-09-11T00:00:01Z", turnId: "turn_stuck", idempotencyKey: "idem_stuck", turnStatus: "pending" },
+		];
+		assert.equal(store.hasPendingTurn, true);
+		await store.send("新发送的消息");
+		assert.equal(cancelled, true);
+		assert.equal(newSent, true);
+	} finally {
+		await server.close();
+		globalThis.window = originalWindow;
+		globalThis.fetch = originalFetch;
+		globalThis.localStorage = originalLocalStorage;
+	}
+});

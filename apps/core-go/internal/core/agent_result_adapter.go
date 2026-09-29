@@ -1046,10 +1046,12 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		return err
 	}
 	if _, err := freezeDecisionInfluences(stages, projection, false); err != nil {
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_influences_invalid", err)
 		return err
 	}
 	causality, err := frozenDecisionCausality(stages)
 	if err != nil {
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_causality_invalid", err)
 		return err
 	}
 	if !semanticStages {
@@ -1060,7 +1062,9 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		goalRef := strings.TrimSpace(stringValue(dueFact["goal_ref"]))
 		intentionRef := strings.TrimSpace(stringValue(dueFact["intention_ref"]))
 		if goalRef == "" || intentionRef == "" || !containsString(decisionServiceRefValues(stages["goal_refs"]), goalRef) || !containsString(decisionServiceRefValues(stages["intention_refs"]), intentionRef) {
-			return errors.New("intention_due_service_influences_required")
+			err := errors.New("intention_due_service_influences_required")
+			_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "intention_due_service_influences_required", err)
+			return err
 		}
 	}
 	settlement := map[string]any{"status": "completed", "capability_invocations": outcome.Invocations, "capability_results": outcome.Results,

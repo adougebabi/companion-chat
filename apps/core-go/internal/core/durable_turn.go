@@ -136,6 +136,12 @@ func (a *App) CancelTurn(ctx context.Context, actorID, conversationID, turnID st
 		if err != nil {
 			return err
 		}
+		_, _ = tx.Exec(ctx, `
+			UPDATE public.cognition_inbox
+			SET status='failed',error_code='stale_predecessor_cancelled',claimed_by=NULL,claimed_at=NULL,processed_at=now()
+			WHERE fluctlight_id=$1
+			  AND sequence < (SELECT sequence FROM public.cognition_inbox WHERE id=$2)
+			  AND ((status='claimed' AND claimed_at < now()-interval '10 minutes') OR (status='pending' AND attempt_count>=3))`, fluctlightID, inboxID)
 		_, err = tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status=CASE WHEN status IN ('pending','retry') AND $2::bool THEN 'cancel_requested' WHEN status IN ('pending','retry') THEN 'cancelled' WHEN status IN ('started','running') THEN 'cancel_requested' ELSE status END,completed_at=CASE WHEN status IN ('pending','retry') AND NOT $2::bool THEN now() ELSE completed_at END,last_error='user_cancelled' WHERE intent_id=$1`, "cognition_intent:"+inboxID, inboxStatus == "claimed")
 		newlyCancelled = err == nil
 		return err
