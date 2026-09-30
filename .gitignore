@@ -19,7 +19,7 @@ apps/*/.gomodcache/
 
 # Test artifacts and audit evidence
 image.png
-phase8-eino-*
+docs/verification/phase-8/
 .trellis/tasks/**/runs/
 .trellis/tasks/**/research/*.json
 .trellis/tasks/**/research/*.txt

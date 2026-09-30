@@ -36,15 +36,13 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 数据库、Redis、Temporal 或对象存储；传输层不承载领域规则；所有领域事实和写入
 都由 Go Core 统一完成。Nginx 只提供静态资源和公共路径的基础反向代理。
 
-一次交互大致经过以下路径：用户消息、已 claim 的 cognition fact、
-workflow intent 与 outbox 在一个短 PostgreSQL 事务内持久化；Core 通过统一
-Prompt Context Assembler 生成受预算约束的 B-layout，再调用 Main
-`cognitive_assessment`。Direct conversation 默认由这次 Main 同时返回最终可见文本
-与能力调用。唯一同轮例外是：首轮没有可见文本、且回答必须依赖 1–2 个
-pure QUERY 结果时，Core 持久化 bounded 结果后最多进行一次不带 Tools、
-仅返回可见文本的 continuation。ACTION 或 QUERY+ACTION mixed batch 仍在第一次
-Main 完成可见回复，不进入 continuation。需要跨进程、重试或长时间运行的
-工作会先记录为 durable intent，再由 Worker 投递给 Temporal 执行。
+一次交互大致经过以下路径：
+- 用户消息、已 claim 的 cognition fact、workflow intent 与 outbox 在一个短 PostgreSQL 事务内持久化。
+- Core 通过统一 Prompt Composer 生成受预算约束的 Prompt Layout，并将 Capability Registry 适配为原生工具集合。
+- 对话核心的 Agent Loop 由官方 Eino 组件库与 ADK Runtime（`adk.NewChatModelAgent` + `adk.NewRunner`）推进，迭代轮次上限设为 2。
+- 纯查询能力（Query Tools）在 ADK 工具回合直接执行，并将规范化的执行结果回填给下一次模型输入。
+- 变更与外部能力（Action Tools）返回明确的 `deferred` result，由 Core 统一进行 `PreparedPayload` 冻结与数据库事务结算，模型不会直接修改领域状态。
+- 长周期、定时调度或需要重试恢复的工作（如主动唤醒 `WakeUp`、作息调度 `Schedule`、意图触发 `Intention`、ComfyUI 生图 `Media`、记忆提炼与切片 `ConversationSummary/Segment`），先记录为 durable intent，再由 Worker 投递到 **Temporal** 分布式工作流引擎执行。
 
 ## 当前能力
 
@@ -175,21 +173,48 @@ Core 以 PostgreSQL 中的领域事实为权威来源。Temporal 是 intent 的�
 事实来源；Redis 是事件投递通道而不是领域状态库；MinIO/S3 只保存媒体对象。
 这种分离使同步请求、异步工作流、重试和故障恢复可以共享同一套事实与审计语义。
 
-### 4. 异步层：Worker、Temporal 与 Redis
+### 4. 认知与模型交互层：Eino + ADK Runner
 
-Go Worker 注册三个规范队列：`interaction`、`lifecycle` 和 `media`。它同时负责
-读取待处理 intent、启动 Temporal workflow、发布 PostgreSQL outbox 事件，并运行
-durable consumer groups。Temporal Worker 使用 `TEMPORAL_WORKER_BUILD_ID` 和
-Worker Deployment 版本，Compose 的 `cutover` 服务会在新 Worker 接管前处理旧运行
-时的执行围栏。
+Core 采用官方 CloudWeGo Eino 生态统一模型契约：
+- **微观 Agent Loop**：采用 Eino `adk.NewChatModelAgent` + `adk.NewRunner` 推进单次会话回合内的 Model ↔ Tool 交互循环，单次交互最多 2 轮迭代；
+- **能力适配**：`CapabilityDefinition` 通过 `ADKCapabilityInvoker` 统一适配为 Eino `BaseTool`，纯查询立即回填模型上下文，动作变更返回 `deferred` 由 Core 冻结与事务结算；
+- **协议收敛**：OpenAI-compatible 模型的 ChatModel、Stream、Embedder 均通过 Eino 官方扩展组件发起，严格遵循原生 Message 和 ToolCall 规范。
 
-### 5. 契约层：OpenAPI 与生成客户端
+### 5. 异步生命周期层：Worker、Temporal 与 Redis
+
+系统级长任务与后台编排由 Go Worker 与 Temporal 协作完成：
+- **宏观持久化工作流**：Temporal 负责主动唤醒循环（`WakeUpWorkflow`）、跨天日程刷新（`CurrentDayScheduleWorkflow`）、定时意图触发（`IntentionTriggerWorkflow`）、ComfyUI 媒体生成（`MediaWorkflow`，支持长超时与心跳容灾）、记忆提炼与切片（`ConversationSummaryWorkflow`、`ConversationSegmentWorkflow`）等。
+- **调度与容灾**：Go Worker 注册 `lifecycle`、`interaction`、`media` 等任务队列；负责轮询待处理 intent、分发至 Temporal、发布 PostgreSQL Outbox 事件并驱动 Redis Streams consumer groups。
+- **平滑升级与隔离**：Temporal Worker 声明 `TEMPORAL_WORKER_BUILD_ID` 和 Worker Deployment 版本，配合 Compose `cutover` 实现无缝切换与执行隔离。
+
+### 6. 契约层：OpenAPI 与生成客户端
 
 `packages/browser-client` 保存浏览器契约与生成的 TypeScript 客户端，
 `packages/core-client` 保存 Core 内部契约与参考客户端。Core 使用 snake_case，
 浏览器使用 camelCase；两者不能混用。修改接口时需要同步 OpenAPI artifact、生成
 客户端、API route inventory、契约/Parity 测试和 Web store，否则 CI 或运行时检查会
 拒绝不一致的边界。
+
+## 文档与技术报告索引
+
+系统各阶段架构设计、迁移规范与质量审计报告均归档于 [`docs/`](docs/) 及根目录：
+
+- **领域模型与核心概念**：
+  - [`CONTEXT.md`](CONTEXT.md)：Fluctlight 领域规范与核心名词定义（人格、自知力契约、心智状态、记忆与生活世界）。
+- **LLM 与 Agent 架构**：
+  - [`docs/yaoguang-eino-adk-migration.md`](docs/yaoguang-eino-adk-migration.md)：Eino 基础层与 ADK 对话接入交付边界说明。
+  - [`docs/llm-subsystem-architecture-inventory.md`](docs/llm-subsystem-architecture-inventory.md)：LLM 子系统全量架构清单。
+  - [`docs/phase8-eino-native-report.md`](docs/phase8-eino-native-report.md)：第八阶段 Eino Native 收敛交付报告。
+  - [`docs/phase8-eino-audit.md`](docs/phase8-eino-audit.md)：第八阶段 Eino 迁移前定向取证报告。
+- **能力体系与工具契约**：
+  - [`docs/capability-architecture.md`](docs/capability-architecture.md)：Capability 能力运行时与安全冻结架构。
+  - [`docs/capability-schema-report.md`](docs/capability-schema-report.md)：能力契约与 Schema 治理报告。
+- **人格演进与接管治理**：
+  - [`docs/persona-takeover-architecture.md`](docs/persona-takeover-architecture.md)：Persona 接管架构设计。
+  - [`docs/persona-takeover-delivery-report.md`](docs/persona-takeover-delivery-report.md)：Persona 接管落地交付报告。
+- **架构治理与阶段审计**：
+  - [`docs/architecture-responsibility-audit.md`](docs/architecture-responsibility-audit.md)：第七阶段模块职责、依赖方向与架构治理审计报告。
+  - [`docs/verification/`](docs/verification/)：各阶段端到端测试与质量验证证据归档。
 
 ## 目录结构
 
@@ -200,11 +225,13 @@ Worker Deployment 版本，Compose 的 `cutover` 服务会在新 Worker 接管�
 | `apps/web/` | Vue 3/Vite/Pinia 产品 UI 与 Control Center；构建产物由 Nginx 提供。 |
 | `packages/browser-client/` | 浏览器 OpenAPI artifact、生成脚本、TypeScript 客户端及客户端测试。 |
 | `packages/core-client/` | Core 内部 OpenAPI artifact、生成脚本和参考 TypeScript 客户端。 |
+| `docs/` | 领域架构设计、技术演进规范、各阶段审计与验收交付报告。 |
 | `infra/compose/` | 完整平台的 Docker Compose 拓扑、环境变量示例和整栈 smoke 入口。 |
 | `infra/acceptance/` | Compose bind mount、OpenAPI、路由边界、迁移和平台验收脚本。 |
 | `infra/backup/` | PostgreSQL、Temporal、MinIO/S3 和部署环境的备份清单、校验与恢复演练。 |
 | `infra/minio/`、`infra/postgres/`、`infra/redis/` | MinIO bucket、Temporal 数据库初始化 SQL 和 Redis 配置等部署默认值。 |
 | `.trellis/` | 项目开发流程、领域/分层规范、任务规划和工作记录，不参与运行时部署。 |
+| `CONTEXT.md` | 项目全局领域事实与实体名词标准规范。 |
 
 ## 本地开发与检查
 
