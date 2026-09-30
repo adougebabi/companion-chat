@@ -754,4 +754,3 @@ func (a *App) DeleteWardrobeItem(ctx context.Context, actorID, fluctlightID, ite
 		"wardrobe_revision": newRevision,
 	}, nil
 }
-

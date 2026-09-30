@@ -241,4 +241,3 @@ func TestOwnerAddUpdateDeleteWardrobeItems(t *testing.T) {
 		t.Fatalf("deleted item still exists: exists=%v", itemExists)
 	}
 }
-
