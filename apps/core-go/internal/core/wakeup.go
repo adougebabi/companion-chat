@@ -481,7 +481,8 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 		var intentStatus, workflowID string
 		var payloadRaw []byte
 		var nextDue time.Time
-		if err := tx.QueryRow(ctx, `SELECT workflow_id,status,payload,COALESCE(next_attempt_at,now()) FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&workflowID, &intentStatus, &payloadRaw, &nextDue); err != nil {
+		var startedAt *time.Time
+		if err := tx.QueryRow(ctx, `SELECT workflow_id,status,payload,COALESCE(next_attempt_at,now()),started_at FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&workflowID, &intentStatus, &payloadRaw, &nextDue, &startedAt); err != nil {
 			if !errors.Is(err, pgx.ErrNoRows) {
 				return err
 			}
@@ -492,7 +493,7 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 				return err
 			}
 			if inserted.RowsAffected() == 0 {
-				if err := tx.QueryRow(ctx, `SELECT workflow_id,status,payload,COALESCE(next_attempt_at,now()) FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&workflowID, &intentStatus, &payloadRaw, &nextDue); err != nil {
+				if err := tx.QueryRow(ctx, `SELECT workflow_id,status,payload,COALESCE(next_attempt_at,now()),started_at FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&workflowID, &intentStatus, &payloadRaw, &nextDue, &startedAt); err != nil {
 					return err
 				}
 			} else {
@@ -510,9 +511,14 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 		result = map[string]any{"id": fluctlightID, "intent_id": intentID, "workflow_id": workflowID}
 		switch intentStatus {
 		case "started", "running", "cancel_requested":
-			result["status"] = "running"
-			result["cycle"] = cycle
-			return nil
+			if startedAt != nil && time.Since(*startedAt) < 2*time.Minute {
+				result["status"] = "running"
+				result["cycle"] = cycle
+				return nil
+			}
+			cycle++
+			payload["cycle"] = cycle
+			payloadRaw = jsonBytes(payload)
 		case "completed":
 			cycle++
 			payload["cycle"] = cycle
@@ -539,6 +545,9 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 	}
 	if stringValue(result["status"]) == "queued" {
 		a.recordWakeUpReleaseDiagnostics(ctx, release, "manual_wake_up")
+		if hintErr := a.scheduleWakeUpTriggerWithDelay(ctx, fluctlightID, time.Millisecond); hintErr != nil {
+			slog.Default().Warn("Go Core manual wake up Redis trigger hint failed", "fluctlight_id", fluctlightID, "error", hintErr)
+		}
 	}
 	return result, nil
 }

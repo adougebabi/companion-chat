@@ -348,6 +348,20 @@ func (a *App) AuditWakeUpClocks(ctx context.Context, limit int) (int64, error) {
 	if limit < 1 || limit > wakeUpDueSweepLimit {
 		limit = wakeUpDueSweepLimit
 	}
+	// Recover wake_up.current intents stuck in started/running for >= 15 minutes.
+	if _, reapErr := a.DB.Pool().Exec(ctx, `
+		UPDATE public.platform_workflow_intents
+		SET status='retry',
+			started_at=NULL,
+			completed_at=NULL,
+			next_attempt_at=now(),
+			last_error='reaped_stuck_wake_up'
+		WHERE intent_type='wake_up.current'
+		  AND status IN ('started','running','cancel_requested')
+		  AND (started_at < now() - interval '15 minutes' OR (started_at IS NULL AND created_at < now() - interval '15 minutes'))
+	`); reapErr != nil {
+		return 0, reapErr
+	}
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT f.id
 		FROM public.fluctlights AS f

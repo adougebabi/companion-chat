@@ -1227,6 +1227,22 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				count++
 				continue
 			}
+			if intentType == "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
+				retryInterval := "5 minutes"
+				newAttemptCount := attemptCount
+				if attemptCount >= 5 {
+					retryInterval = "30 minutes"
+					newAttemptCount = 0
+				}
+				if _, err := d.App.DB.Pool().Exec(ctx, fmt.Sprintf(`UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '%s',attempt_count=$2,started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),last_error,'wake_up_describe_exhausted') WHERE intent_id=$1 AND status IN ('pending','started','failed')`, retryInterval), intentID, newAttemptCount, describeErr.Error()); err != nil {
+					return count, err
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
 			d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionFailed, "workflow_describe", "retry", "workflow_describe_failed", attemptCount, describeErr)
 			continue
 		}
@@ -1234,6 +1250,22 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
 				if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_describe_empty"); exhaustErr != nil {
 					return count, exhaustErr
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
+			if intentType == "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
+				retryInterval := "5 minutes"
+				newAttemptCount := attemptCount
+				if attemptCount >= 5 {
+					retryInterval = "30 minutes"
+					newAttemptCount = 0
+				}
+				if _, err := d.App.DB.Pool().Exec(ctx, fmt.Sprintf(`UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '%s',attempt_count=$2,started_at=NULL,completed_at=NULL,last_error='wake_up_describe_empty' WHERE intent_id=$1 AND status IN ('pending','started','failed')`, retryInterval), intentID, newAttemptCount); err != nil {
+					return count, err
 				}
 				if d.Started != nil {
 					delete(d.Started, intentID)
