@@ -599,6 +599,26 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe?cursor="+url.QueryEscape(cursor), http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "wardrobe_unavailable", "Wardrobe is unavailable"), nil)
 		return
 	}
+	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wardrobe/items"); ok && methodName == http.MethodPost {
+		body, ok := readBody(response, request)
+		if !ok {
+			return
+		}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items", http.MethodPost, body, s.readOnlyError(422, "wardrobe_add_failed", "Wardrobe items could not be added"), nil)
+		return
+	}
+	if fluctlightID, itemID, ok := match2(path, "/api/fluctlights/:fluctlightId/wardrobe/items/:itemId"); ok && methodName == http.MethodPut {
+		body, ok := readBody(response, request)
+		if !ok {
+			return
+		}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items/"+escape(itemID), http.MethodPut, body, s.readOnlyError(422, "wardrobe_update_failed", "Wardrobe item could not be updated"), nil)
+		return
+	}
+	if fluctlightID, itemID, ok := match2(path, "/api/fluctlights/:fluctlightId/wardrobe/items/:itemId"); ok && methodName == http.MethodDelete {
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items/"+escape(itemID), http.MethodDelete, nil, s.readOnlyError(422, "wardrobe_delete_failed", "Wardrobe item could not be deleted"), nil)
+		return
+	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wake-up"); ok && methodName == http.MethodPost {
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wake-up", http.MethodPost, map[string]any{}, s.readOnlyError(http.StatusUnprocessableEntity, "wake_up_trigger_failed", "Wake-up could not be triggered"), nil)
 		return

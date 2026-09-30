@@ -261,7 +261,11 @@ func (a *App) compileOneWorkingPersona(ctx context.Context, input PersonaCompila
 	if mode == "blank_slate" && input.SourceRevision == 0 && input.OverlayRevision == 0 {
 		return synthesizeBaselineWorkingPersona(input)
 	}
-	return a.CompileWorkingPersona(ctx, input)
+	compiled, err := a.CompileWorkingPersona(ctx, input)
+	if err != nil {
+		return synthesizeBaselineWorkingPersona(input)
+	}
+	return compiled, nil
 }
 
 func insertCompiledWorkingPersonasTx(ctx context.Context, tx pgx.Tx, fluctlightID string, compiled []CompiledWorkingPersona) error {

@@ -1389,6 +1389,19 @@
         }
       }
     },
+    "/api/fluctlights/{fluctlightId}/wardrobe/items": {
+      "post": {
+        "operationId": "addWardrobeItems"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/wardrobe/items/{itemId}": {
+      "put": {
+        "operationId": "updateWardrobeItem"
+      },
+      "delete": {
+        "operationId": "deleteWardrobeItem"
+      }
+    },
     "/api/fluctlights/{fluctlightId}/wake-up": {
       "post": {
         "operationId": "triggerWakeUp"

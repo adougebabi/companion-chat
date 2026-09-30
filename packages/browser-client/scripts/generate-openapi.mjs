@@ -307,6 +307,8 @@ const schema = {
     "/api/diagnostics/workflows/{workflowId}/restart": { post: { operationId: "restartWorkflow" } },
     "/api/fluctlights/{fluctlightId}/detail": { get: { operationId: "fluctlightDetail", ...jsonResponse("BrowserFluctlightDetail") } },
     "/api/fluctlights/{fluctlightId}/wardrobe": { get: { operationId: "fluctlightWardrobe", ...jsonResponse("BrowserWardrobePage") } },
+    "/api/fluctlights/{fluctlightId}/wardrobe/items": { post: { operationId: "addWardrobeItems" } },
+    "/api/fluctlights/{fluctlightId}/wardrobe/items/{itemId}": { put: { operationId: "updateWardrobeItem" }, delete: { operationId: "deleteWardrobeItem" } },
     "/api/fluctlights/{fluctlightId}/wake-up": { post: { operationId: "triggerWakeUp" } },
     "/api/fluctlights/{fluctlightId}/developing-self": { get: { operationId: "developingSelf" } },
     "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/rollback": { post: { operationId: "rollbackDevelopingSelf" } },

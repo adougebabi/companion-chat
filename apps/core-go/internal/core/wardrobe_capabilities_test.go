@@ -182,3 +182,63 @@ func TestWardrobeSavedOutfitReferencesExistingItemWithoutChangingWearing(t *test
 		t.Fatalf("saving outfit created clothes or changed current wearing: items=%d worn=%d", totalItems, wornCount)
 	}
 }
+
+func TestOwnerAddUpdateDeleteWardrobeItems(t *testing.T) {
+	fixture := seedWardrobeToolFixture(t)
+	// Add an item
+	added, err := fixture.app.AddWardrobeItems(fixture.ctx, fixture.ownerID, fixture.fluctlightID, map[string]any{
+		"category":    "hat",
+		"slot":        "head",
+		"description": "黑色针织帽",
+		"ownership":   "owned",
+		"worn":        true,
+	})
+	if err != nil {
+		t.Fatalf("add wardrobe item failed: %v", err)
+	}
+	items := arrayValue(added["items"])
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+	itemID := stringValue(mapValue(items[0])["id"])
+	if itemID == "" {
+		t.Fatal("expected non-empty item ID")
+	}
+
+	// Verify wearing was updated
+	var wornItem string
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT item_id FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND slot='head'`, fixture.fluctlightID).Scan(&wornItem); err != nil || wornItem != itemID {
+		t.Fatalf("worn head item=%s err=%v", wornItem, err)
+	}
+
+	// Update the item
+	updated, err := fixture.app.UpdateWardrobeItem(fixture.ctx, fixture.ownerID, fixture.fluctlightID, itemID, map[string]any{
+		"description":  "灰色羊毛帽",
+		"availability": "lost",
+	})
+	if err != nil {
+		t.Fatalf("update wardrobe item failed: %v", err)
+	}
+	if stringValue(mapValue(updated["item"])["description"]) != "灰色羊毛帽" || stringValue(mapValue(updated["item"])["availability"]) != "lost" {
+		t.Fatalf("unexpected updated item: %#v", updated)
+	}
+
+	// Verify it was removed from worn items because it is lost
+	var headWornExists bool
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND slot='head')`, fixture.fluctlightID).Scan(&headWornExists); err != nil || headWornExists {
+		t.Fatalf("lost item still marked as worn: exists=%v", headWornExists)
+	}
+
+	// Delete the item
+	deleted, err := fixture.app.DeleteWardrobeItem(fixture.ctx, fixture.ownerID, fixture.fluctlightID, itemID)
+	if err != nil || deleted["deleted"] != true {
+		t.Fatalf("delete item failed: %#v err=%v", deleted, err)
+	}
+
+	// Verify item is gone
+	var itemExists bool
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2)`, fixture.fluctlightID, itemID).Scan(&itemExists); err != nil || itemExists {
+		t.Fatalf("deleted item still exists: exists=%v", itemExists)
+	}
+}
+

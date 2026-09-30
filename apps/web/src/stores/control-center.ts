@@ -11,6 +11,7 @@ import {
   type BrowserLifecycleDiagnosticEvent,
   type BrowserLifecycleDiagnosticsFilter,
   type BrowserSafeSettings,
+  type BrowserWardrobeItem,
   type BrowserWorkflowIntentSnapshot,
 } from "@fluctlight/browser-client";
 import { apiOrigin } from "../runtime-config";
@@ -90,6 +91,11 @@ export const useControlCenterStore = defineStore("control-center", {
     wakeUpSettingsJson: "",
     diagnosticsRetentionJson: "",
     settings: null as BrowserSafeSettings | null,
+    wardrobeItems: [] as BrowserWardrobeItem[],
+    wardrobeLoading: false,
+    wardrobeLoaded: false,
+    wardrobeError: "",
+    wardrobeNewItemJson: '{\n  "category": "top",\n  "slot": "upper_body",\n  "description": "白色衬衫",\n  "ownership": "owned",\n  "availability": "available"\n}',
     loading: false,
     saving: false,
     error: "",
@@ -456,14 +462,71 @@ export const useControlCenterStore = defineStore("control-center", {
         this.revisionChangesJson = "";
         this.revisionReason = "";
         await this.loadFluctlightDetail(fluctlightId);
+        this.governanceNotice = "基础修订已提出，请审核后接受。";
       } catch { this.error = "无法提出修订，字段、revision 或治理策略可能不满足要求。"; }
       finally { this.saving = false; }
     },
-    async acceptFoundationRevision(fluctlightId: string | null, revisionId: string) {
+    async applyFoundationChanges(fluctlightId: string | null, changesOverride?: Record<string, unknown>, customReason?: string) {
       const detail = this.fluctlightDetail;
-      const reason = this.revisionReason.trim();
-      if (!fluctlightId || !detail || !reason) {
-        this.error = "接受修订需要填写原因。";
+      if (!fluctlightId || !detail) {
+        this.error = "未选定 Fluctlight。";
+        return false;
+      }
+      let changes: Record<string, unknown>;
+      if (changesOverride) {
+        changes = changesOverride;
+      } else {
+        try {
+          changes = JSON.parse(this.revisionChangesJson) as Record<string, unknown>;
+          if (!changes || Array.isArray(changes) || !Object.keys(changes).length) throw new Error("invalid_changes");
+        } catch {
+          this.error = "属性内容必须是包含字段变更的 JSON 对象。";
+          return false;
+        }
+      }
+      const reason = (customReason ?? this.revisionReason).trim() || "直接更新基础属性 JSON";
+      this.saving = true;
+      this.error = "";
+      try {
+        const proposed = await client.submitFoundationRevision(fluctlightId, {
+          changes,
+          expectedRevision: Number(detail.current_revision ?? 0),
+          reason,
+        }) as { id?: string };
+        const revisionId = typeof proposed?.id === "string" ? proposed.id : "";
+        if (revisionId) {
+          await client.acceptFoundationRevision(fluctlightId, revisionId, {
+            expectedRevision: Number(detail.current_revision ?? 0),
+            reason,
+          });
+        }
+        this.revisionReason = "";
+        await this.loadFluctlightDetail(fluctlightId);
+        this.governanceNotice = "属性修改已成功保存并立即生效。";
+        return true;
+      } catch {
+        this.error = "无法更新属性，JSON 格式或治理策略可能不满足要求。";
+        return false;
+      } finally {
+        this.saving = false;
+      }
+    },
+    populateCurrentFoundationJson() {
+      const detail = this.fluctlightDetail;
+      if (!detail) return;
+      const foundation = {
+        identity: detail.identity ?? {},
+        personality: detail.personality ?? {},
+        behavioral_policy: detail.behavioral_policy ?? {},
+        life_profile: detail.life_profile ?? {},
+      };
+      this.revisionChangesJson = JSON.stringify(foundation, null, 2);
+    },
+    async acceptFoundationRevision(fluctlightId: string | null, revisionId: string, customReason?: string) {
+      const detail = this.fluctlightDetail;
+      const reason = (customReason ?? this.revisionReason).trim() || "管理员确认接受修订";
+      if (!fluctlightId || !detail) {
+        this.error = "未选定 Fluctlight。";
         return;
       }
       this.saving = true;
@@ -475,8 +538,88 @@ export const useControlCenterStore = defineStore("control-center", {
         });
         this.revisionReason = "";
         await this.loadFluctlightDetail(fluctlightId);
+        this.governanceNotice = "修订已成功接受并生效。";
       } catch { this.error = "无法接受修订，当前基础版本可能已变化。"; }
       finally { this.saving = false; }
+    },
+    async loadWardrobeItems(fluctlightId: string | null) {
+      if (!fluctlightId) return;
+      this.wardrobeLoading = true;
+      this.wardrobeError = "";
+      try {
+        const page = await client.wardrobe(fluctlightId);
+        this.wardrobeItems = Array.isArray(page?.items) ? page.items : [];
+        this.wardrobeLoaded = true;
+      } catch {
+        this.wardrobeError = "无法加载衣柜物品列表。";
+      } finally {
+        this.wardrobeLoading = false;
+      }
+    },
+    async addWardrobeItems(fluctlightId: string | null, customJson?: string) {
+      if (!fluctlightId) {
+        this.error = "未选定 Fluctlight。";
+        return false;
+      }
+      const raw = customJson ?? this.wardrobeNewItemJson;
+      let body: Record<string, unknown>;
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (!parsed || typeof parsed !== "object") throw new Error("invalid_json");
+        if (Array.isArray(parsed)) {
+          body = { items: parsed };
+        } else {
+          body = parsed as Record<string, unknown>;
+        }
+      } catch {
+        this.error = "衣柜物品必须是有效的 JSON 对象或对象数组。";
+        return false;
+      }
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.addWardrobeItems(fluctlightId, body);
+        this.governanceNotice = "衣柜物品已添加。";
+        await this.loadWardrobeItems(fluctlightId);
+        return true;
+      } catch {
+        this.error = "添加衣柜物品失败，请检查 category、slot、description 等必填字段。";
+        return false;
+      } finally {
+        this.saving = false;
+      }
+    },
+    async updateWardrobeItem(fluctlightId: string | null, itemId: string, patch: Record<string, unknown>) {
+      if (!fluctlightId || !itemId) return false;
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.updateWardrobeItem(fluctlightId, itemId, patch);
+        this.governanceNotice = "物品已更新。";
+        await this.loadWardrobeItems(fluctlightId);
+        return true;
+      } catch {
+        this.error = "更新衣柜物品失败。";
+        return false;
+      } finally {
+        this.saving = false;
+      }
+    },
+    async deleteWardrobeItem(fluctlightId: string | null, itemId: string) {
+      if (!fluctlightId || !itemId) return false;
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.deleteWardrobeItem(fluctlightId, itemId);
+        this.governanceNotice = "物品已从衣柜中删除。";
+        await this.loadWardrobeItems(fluctlightId);
+        return true;
+      } catch {
+        this.error = "删除衣柜物品失败。";
+        return false;
+      } finally {
+        this.saving = false;
+      }
     },
     async rejectFoundationRevision(fluctlightId: string | null, revisionId: string) {
       const detail = this.fluctlightDetail;

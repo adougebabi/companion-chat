@@ -63,6 +63,12 @@ function capabilityRequestStatus(value: unknown): string {
   const labels: Record<string, string> = { proposed: "待审核", reviewing: "评估中", accepted: "已接受", rejected: "已拒绝", fulfilled: "已接入", cancelled: "已取消" };
   return labels[String(value)] ?? String(value ?? "未知");
 }
+function onWardrobeToggle(event: Event) {
+  const target = event.target as HTMLDetailsElement | null;
+  if (target?.open && store.fluctlightId) {
+    void controlCenter.loadWardrobeItems(store.fluctlightId);
+  }
+}
 </script>
 
 <template>
@@ -175,9 +181,88 @@ function capabilityRequestStatus(value: unknown): string {
         <details v-if="developingSelfRevisions.length" class="governance-subsection"><summary>查看 Developing Self revision JSON</summary><pre>{{ jsonDisplay(developingSelfRevisions) }}</pre></details>
         <h3>身份与人格修订记录</h3>
         <p v-if="!(controlCenter.fluctlightDetail.foundation_revisions as unknown[])?.length" class="field-note">还没有修订记录。</p>
-        <ul v-else class="detail-list"><li v-for="revision in controlCenter.fluctlightDetail.foundation_revisions as Array<Record<string, unknown>>" :key="String(revision.id)"><strong>版本 {{ formatDisplayValue(revision.revision) }} · {{ enumLabel(revision.source) }}</strong><small>{{ enumLabel(revision.status) }}<template v-if="revision.reason"> · {{ formatDisplayValue(revision.reason) }}</template></small><div v-if="revision.status === 'proposed'" class="inline-controls"><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.acceptFoundationRevision(store.fluctlightId, String(revision.id))">接受</Button><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.rejectFoundationRevision(store.fluctlightId, String(revision.id))">拒绝</Button></div></li></ul>
-        <form class="governance-form" @submit.prevent="controlCenter.submitFoundationRevision(store.fluctlightId)"><label for="revision-json">基础修订 JSON<Textarea id="revision-json" v-model="controlCenter.revisionChangesJson" rows="4" placeholder='{"name":"新的名称"}' /></label><label for="revision-reason">修订原因<Input id="revision-reason" v-model="controlCenter.revisionReason" maxlength="1024" /></label><Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving || !controlCenter.revisionChangesJson.trim() || !controlCenter.revisionReason.trim()">提出修订</Button></form>
+        <ul v-else class="detail-list"><li v-for="revision in controlCenter.fluctlightDetail.foundation_revisions as Array<Record<string, unknown>>" :key="String(revision.id)"><strong>版本 {{ formatDisplayValue(revision.revision) }} · {{ enumLabel(revision.source) }}</strong><small>{{ enumLabel(revision.status) }}<template v-if="revision.reason"> · {{ formatDisplayValue(revision.reason) }}</template></small><div v-if="revision.status === 'proposed'" class="inline-controls"><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.acceptFoundationRevision(store.fluctlightId, String(revision.id))">接受</Button><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.rejectFoundationRevision(store.fluctlightId, String(revision.id))">拒绝</Button></div></li></ul>
+        <div class="governance-form">
+          <div class="inline-controls" style="margin-bottom: 0.5rem;">
+            <Button class="text-button" variant="ghost" type="button" @click="controlCenter.populateCurrentFoundationJson()">载入当前完整属性 JSON</Button>
+          </div>
+          <label for="revision-json">基础修订 JSON<Textarea id="revision-json" v-model="controlCenter.revisionChangesJson" rows="8" placeholder='{"name":"新的名称", "personality": {...}}' /></label>
+          <label for="revision-reason">修订原因 (选填，直接保存时会自动填充)<Input id="revision-reason" v-model="controlCenter.revisionReason" maxlength="1024" placeholder="例如：手动修改性格与基础设定" /></label>
+          <div class="inline-controls">
+            <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.revisionChangesJson.trim()" @click="controlCenter.applyFoundationChanges(store.fluctlightId)">保存并立即生效</Button>
+            <Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.revisionChangesJson.trim() || !controlCenter.revisionReason.trim()" @click="controlCenter.submitFoundationRevision(store.fluctlightId)">仅提出修订</Button>
+          </div>
+        </div>
         <form class="governance-form" @submit.prevent="controlCenter.rollbackFoundationRevision(store.fluctlightId)"><label for="rollback-revision">回滚目标版本<Input id="rollback-revision" v-model="controlCenter.rollbackTargetRevision" type="number" min="0" step="1" /></label><Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving || !controlCenter.rollbackTargetRevision || !controlCenter.revisionReason.trim()">回滚到该版本</Button></form>
+      </details>
+
+      <details class="governance-section" @toggle="onWardrobeToggle">
+        <summary class="section-heading"><span class="section-index">06</span><div><p class="eyebrow">WARDROBE & ITEMS</p><h2>衣柜与物品管理</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <p class="field-note">管理摇光的衣物、装备与物品。支持通过直接操作 JSON 批量或单件录入新物品，也可以修改可用状态或删除物品。</p>
+        <p v-if="controlCenter.wardrobeLoading" class="field-note">正在加载衣柜与物品…</p>
+        <p v-else-if="controlCenter.wardrobeError" class="field-note" role="alert">
+          {{ controlCenter.wardrobeError }}
+          <Button class="text-button" variant="ghost" type="button" @click="controlCenter.loadWardrobeItems(store.fluctlightId)">重试</Button>
+        </p>
+        <p v-else-if="controlCenter.wardrobeLoaded && !controlCenter.wardrobeItems.length" class="field-note">当前衣柜与物品清单为空。</p>
+        <ul v-if="controlCenter.wardrobeItems.length" class="detail-list">
+          <li v-for="item in controlCenter.wardrobeItems" :key="item.id">
+            <strong>{{ item.description || item.id }}</strong>
+            <small>分类：{{ formatDisplayValue(item.category) }} · 部位：{{ formatDisplayValue(item.slot) }} · 状态：{{ item.availability === 'available' ? '可用' : item.availability }} · 所有权：{{ formatDisplayValue(item.ownership) }}</small>
+            <small>来源：{{ item.source_kind }}</small>
+            <div class="inline-controls">
+              <Button
+                v-if="item.availability === 'available'"
+                class="text-button"
+                variant="ghost"
+                type="button"
+                :disabled="controlCenter.saving"
+                @click="controlCenter.updateWardrobeItem(store.fluctlightId, item.id, { availability: 'stored' })"
+              >收纳</Button>
+              <Button
+                v-else
+                class="text-button"
+                variant="ghost"
+                type="button"
+                :disabled="controlCenter.saving"
+                @click="controlCenter.updateWardrobeItem(store.fluctlightId, item.id, { availability: 'available' })"
+              >设为可用</Button>
+              <Button
+                class="text-button danger-text"
+                variant="ghost"
+                type="button"
+                :disabled="controlCenter.saving"
+                @click="controlCenter.deleteWardrobeItem(store.fluctlightId, item.id)"
+              >删除</Button>
+            </div>
+          </li>
+        </ul>
+
+        <h3>主动添加衣柜与物品 (JSON)</h3>
+        <p class="field-note">支持单件对象或数组对象批量添加。包含 description、category、slot、worn（可选布尔值）。</p>
+        <form class="governance-form" @submit.prevent="controlCenter.addWardrobeItems(store.fluctlightId)">
+          <label for="wardrobe-item-json">物品 JSON
+            <Textarea
+              id="wardrobe-item-json"
+              v-model="controlCenter.wardrobeNewItemJson"
+              rows="6"
+              placeholder='[
+  {
+    "category": "clothing",
+    "slot": "top",
+    "description": "白色针织开衫",
+    "worn": false
+  }
+]'
+            />
+          </label>
+          <Button
+            class="secondary-button"
+            variant="outline"
+            type="submit"
+            :disabled="controlCenter.saving || !controlCenter.wardrobeNewItemJson.trim()"
+          >添加物品</Button>
+        </form>
       </details>
 
       <section class="danger-zone" aria-labelledby="retirement-title">

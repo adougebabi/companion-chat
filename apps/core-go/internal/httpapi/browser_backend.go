@@ -246,6 +246,15 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/wardrobe") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		return b.server.app.WardrobeItems(ctx, actorID, pathPart(parts, 2), parsed.Query().Get("cursor"))
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/wardrobe/items") && method == http.MethodPost:
+		parts := splitInternalPath(path)
+		return b.server.app.AddWardrobeItems(ctx, actorID, pathPart(parts, 2), values)
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.Contains(path, "/wardrobe/items/") && method == http.MethodPut:
+		parts := splitInternalPath(path)
+		return b.server.app.UpdateWardrobeItem(ctx, actorID, pathPart(parts, 2), pathPart(parts, 5), values)
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.Contains(path, "/wardrobe/items/") && method == http.MethodDelete:
+		parts := splitInternalPath(path)
+		return b.server.app.DeleteWardrobeItem(ctx, actorID, pathPart(parts, 2), pathPart(parts, 5))
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/autonomy-actions") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		return b.server.app.AutonomyActions(ctx, actorID, pathPart(parts, 2))
