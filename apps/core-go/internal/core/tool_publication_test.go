@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -234,3 +235,169 @@ func toolBoolValue(value any) bool {
 	result, _ := value.(bool)
 	return result
 }
+
+func TestIsNoOpOrControlPayload(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected bool
+	}{
+		{"", true},
+		{"   ", true},
+		{"no_op", true},
+		{"NO_OP", true},
+		{"noop", true},
+		{"no-op", true},
+		{"none", true},
+		{"None", true},
+		{"null", true},
+		{"{}", true},
+		{"[]", true},
+		{`{"action_type": "no_op"}`, true},
+		{`{"action_type": "no_op", "reason": "sleeping"}`, true},
+		{"```json\n{\"action_type\": \"no_op\"}\n```", true},
+		{"```\n{\"action_type\": \"no_op\"}\n```", true},
+		{`{"response_intent": "no_op"}`, true},
+		{`{"status": "no_op"}`, true},
+		{`{"wake_up_response": {"action_type": "no_op"}}`, true},
+		{`action_type: no_op`, true},
+		{"你好，在忙吗？", false},
+		{"（揉了揉眼睛）早上好呀", false},
+		{`{"action":{"action_type":"send_message","content":"你好"}}`, false},
+	}
+	for _, tc := range cases {
+		if got := isNoOpOrControlPayload(tc.input); got != tc.expected {
+			t.Errorf("isNoOpOrControlPayload(%q) = %v, want %v", tc.input, got, tc.expected)
+		}
+	}
+}
+
+func TestExecuteToolConversationReplySuppressesNoOpAndControlPayload(t *testing.T) {
+	ctx, repository, app, ownerID, fluctlightID, conversationID := setupDirectPublicationToolTest(t, "reply-noop")
+
+	testPayloads := []string{
+		`{"text":"no_op"}`,
+		`{"text":"{\"action_type\": \"no_op\"}"}`,
+		"{\"text\":\"```json\\n{\\\"action_type\\\": \\\"no_op\\\"}\\n```\"}",
+	}
+
+	for i, payload := range testPayloads {
+		receipt, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+			CapabilityName:       "conversation.reply",
+			OperationID:          fmt.Sprintf("reply-noop-%d", i),
+			AuthorizationActorID: ownerID,
+			FluctlightID:         fluctlightID,
+			ConversationID:       conversationID,
+			Arguments:            json.RawMessage(payload),
+		})
+		if err != nil {
+			t.Fatalf("execute reply with %s failed: %v", payload, err)
+		}
+		if receipt.Result.Status != "completed" {
+			t.Fatalf("receipt status = %q, want completed", receipt.Result.Status)
+		}
+		output := mapValue(receipt.Result.Output)
+		if stringValue(output["delivery_status"]) != "no_op_suppressed" {
+			t.Fatalf("output delivery_status = %q, want no_op_suppressed", stringValue(output["delivery_status"]))
+		}
+		if stringValue(output["target_ref"]) != "suppressed" {
+			t.Fatalf("output target_ref = %q, want suppressed", stringValue(output["target_ref"]))
+		}
+	}
+
+	var messageCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID).Scan(&messageCount); err != nil {
+		t.Fatal(err)
+	}
+	if messageCount != 0 {
+		t.Fatalf("expected 0 messages published, got %d", messageCount)
+	}
+}
+
+func TestExecuteToolMomentPublishSuppressesNoOpAndControlPayload(t *testing.T) {
+	ctx, repository, app, ownerID, fluctlightID, _ := setupDirectPublicationToolTest(t, "moment-noop")
+
+	receipt, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+		CapabilityName:       "moment.publish",
+		OperationID:          "moment-noop-1",
+		AuthorizationActorID: ownerID,
+		FluctlightID:         fluctlightID,
+		Arguments:            json.RawMessage(`{"text":"{\"action_type\": \"no_op\"}"}`),
+	})
+	if err != nil {
+		t.Fatalf("execute moment with noop failed: %v", err)
+	}
+	if receipt.Result.Status != "completed" {
+		t.Fatalf("receipt status = %q, want completed", receipt.Result.Status)
+	}
+	output := mapValue(receipt.Result.Output)
+	if stringValue(output["delivery_status"]) != "no_op_suppressed" {
+		t.Fatalf("output delivery_status = %q, want no_op_suppressed", stringValue(output["delivery_status"]))
+	}
+
+	var count int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("expected 0 moments published, got %d", count)
+	}
+}
+
+func TestConversationReplyDirectTxSuppressesNoOp(t *testing.T) {
+	cap := conversationReplyCapability{
+		publication: &ToolPublicationService{app: &App{}},
+	}
+	ctx := context.Background()
+	invocation := CapabilityInvocation{
+		CallID:         "call_1",
+		CapabilityName: "conversation.reply",
+		Arguments:      json.RawMessage(`{"text":"{\"action_type\": \"no_op\"}"}`),
+	}
+	resolved := CapabilityContext{
+		Life: &CurrentLifeContext{Data: map[string]any{"context_revision": "1"}},
+	}
+	target := DirectToolTarget{
+		FluctlightID:   "f1",
+		ConversationID: "c1",
+	}
+	result, err := cap.ExecuteDirectTx(ctx, nil, invocation, resolved, target)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != "completed" {
+		t.Fatalf("status = %q, want completed", result.Status)
+	}
+	if ds := stringValue(mapValue(result.Output)["delivery_status"]); ds != "no_op_suppressed" {
+		t.Fatalf("delivery_status = %q, want no_op_suppressed", ds)
+	}
+	if ref := stringValue(mapValue(result.Output)["target_ref"]); ref != "suppressed" {
+		t.Fatalf("target_ref = %q, want suppressed", ref)
+	}
+}
+
+func TestMomentPublishDirectTxSuppressesNoOp(t *testing.T) {
+	cap := momentPublishCapability{
+		publication: &ToolPublicationService{app: &App{}},
+	}
+	ctx := context.Background()
+	invocation := CapabilityInvocation{
+		CallID:         "call_2",
+		CapabilityName: "moment.publish",
+		Arguments:      json.RawMessage(`{"text":"{\"action_type\": \"no_op\"}"}`),
+	}
+	target := DirectToolTarget{
+		FluctlightID: "f1",
+	}
+	result, err := cap.ExecuteDirectTx(ctx, nil, invocation, CapabilityContext{}, target)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != "completed" {
+		t.Fatalf("status = %q, want completed", result.Status)
+	}
+	if ds := stringValue(mapValue(result.Output)["delivery_status"]); ds != "no_op_suppressed" {
+		t.Fatalf("delivery_status = %q, want no_op_suppressed", ds)
+	}
+}
+
+

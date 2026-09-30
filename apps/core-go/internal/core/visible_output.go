@@ -83,7 +83,7 @@ func distinctVisibleTexts(values ...string) []string {
 // in a conversation message.
 func normalizeVisibleReply(value string) string {
 	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
+	if trimmed == "" || isNoOpOrControlPayload(trimmed) {
 		return ""
 	}
 	object, ok := visibleReplyObject(trimmed)
@@ -93,6 +93,9 @@ func normalizeVisibleReply(value string) string {
 	if action := mapValue(object["action"]); len(action) > 0 {
 		for _, key := range []string{"content", "text", "visible_text", "message"} {
 			if text := strings.TrimSpace(stringValue(action[key])); text != "" {
+				if isNoOpOrControlPayload(text) {
+					return ""
+				}
 				return text
 			}
 		}
@@ -100,8 +103,17 @@ func normalizeVisibleReply(value string) string {
 	}
 	for _, key := range []string{"content", "text", "visible_text", "message"} {
 		if text := strings.TrimSpace(stringValue(object[key])); text != "" {
+			if isNoOpOrControlPayload(text) {
+				return ""
+			}
 			return text
 		}
+	}
+	if _, ok := object["action_type"]; ok {
+		return ""
+	}
+	if _, ok := object["response_intent"]; ok {
+		return ""
 	}
 	return trimmed
 }
