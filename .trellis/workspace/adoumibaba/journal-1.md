@@ -1442,3 +1442,25 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Status
 
 [OK] **Completed**
+
+
+## Session 46: 治理JSON编辑与衣柜物品增删管理闭环
+<!-- trellis-session: v=2 fp=cb5cbca7530c775a -->
+
+**Date**: 2026-10-01
+**Task**: 治理JSON编辑与衣柜物品增删管理闭环
+**Branch**: `master`
+
+### Summary
+
+修复基础属性修订直接保存与JSON载入流程，新增衣柜物品批量/单件JSON录入与增删状态管理，补充核心OpenAPI与客户端生成并验证全量单测
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aea34ce` | feat(governance): add direct json editing for foundation attributes and wardrobe item management |
+
+### Status
+
+[OK] **Completed**
