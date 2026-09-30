@@ -75,8 +75,8 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if command.Text == "" || len([]rune(command.Text)) > 32000 {
 		return publishedResource{}, fmt.Errorf("%w: reply text is invalid", ErrInvalidArguments)
 	}
-	if isNoOpOrControlPayload(command.Text) {
-		return publishedResource{}, fmt.Errorf("%w: control token or no_op payload %q cannot be published as conversation reply", ErrInvalidArguments, command.Text)
+	if lower := strings.ToLower(command.Text); lower == "no_op" || lower == "noop" || lower == "none" {
+		return publishedResource{}, fmt.Errorf("%w: control token %q cannot be published as conversation reply", ErrInvalidArguments, command.Text)
 	}
 	if err := requireConversationPublicationOwnershipTx(ctx, tx, command.AuthorizationActorID, command.FluctlightID, command.ConversationID); err != nil {
 		return publishedResource{}, err
@@ -228,9 +228,6 @@ func (service *ToolPublicationService) PublishMomentTx(ctx context.Context, tx p
 	if command.Text == "" || len([]rune(command.Text)) > 32000 {
 		return publishedResource{}, fmt.Errorf("%w: Moment text is invalid", ErrInvalidArguments)
 	}
-	if isNoOpOrControlPayload(command.Text) {
-		return publishedResource{}, fmt.Errorf("%w: control token or no_op payload %q cannot be published as moment", ErrInvalidArguments, command.Text)
-	}
 	momentID := "moment_" + stableDigest(strings.Join([]string{command.FluctlightID, "moment.publish", command.OperationID}, "\x1f"))
 	var existingOwner, existingAuthor, existingText, existingVisibility, existingStatus string
 	err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,author_actor_id,text,visibility,status FROM public.moments WHERE id=$1`, momentID).Scan(&existingOwner, &existingAuthor, &existingText, &existingVisibility, &existingStatus)
@@ -345,64 +342,4 @@ func requireConversationPublicationOwnershipTx(ctx context.Context, tx pgx.Tx, a
 		return ErrUnauthorized
 	}
 	return nil
-}
-
-func isNoOpOrControlPayload(text string) bool {
-	trimmed := strings.TrimSpace(text)
-	if trimmed == "" {
-		return true
-	}
-	lower := strings.ToLower(trimmed)
-	if lower == "no_op" || lower == "noop" || lower == "no-op" || lower == "none" || lower == "null" || lower == "{}" || lower == "[]" {
-		return true
-	}
-	cleaned := trimmed
-	if strings.HasPrefix(cleaned, "```") {
-		lines := strings.Split(cleaned, "\n")
-		if len(lines) >= 2 && strings.HasPrefix(strings.TrimSpace(lines[len(lines)-1]), "```") {
-			cleaned = strings.Join(lines[1:len(lines)-1], "\n")
-			cleaned = strings.TrimSpace(cleaned)
-		}
-	}
-	cleanedLower := strings.ToLower(cleaned)
-	if cleanedLower == "no_op" || cleanedLower == "noop" || cleanedLower == "no-op" || cleanedLower == "none" || cleanedLower == "null" || cleanedLower == "{}" || cleanedLower == "[]" {
-		return true
-	}
-	var obj map[string]any
-	if err := json.Unmarshal([]byte(cleaned), &obj); err == nil {
-		if at, ok := obj["action_type"].(string); ok {
-			atLower := strings.ToLower(strings.TrimSpace(at))
-			if atLower == "no_op" || atLower == "noop" || atLower == "no-op" || atLower == "none" {
-				return true
-			}
-		}
-		if ri, ok := obj["response_intent"].(string); ok {
-			riLower := strings.ToLower(strings.TrimSpace(ri))
-			if riLower == "no_op" || riLower == "noop" || riLower == "no-op" || riLower == "none" {
-				return true
-			}
-		}
-		if status, ok := obj["status"].(string); ok {
-			sLower := strings.ToLower(strings.TrimSpace(status))
-			if sLower == "no_op" || sLower == "noop" || sLower == "no-op" {
-				return true
-			}
-		}
-		if _, hasActionType := obj["action_type"]; hasActionType {
-			var visibleText string
-			for _, k := range []string{"text", "content", "visible_text", "message"} {
-				if v := strings.TrimSpace(stringValue(obj[k])); v != "" {
-					visibleText = v
-					break
-				}
-			}
-			if visibleText == "" || isNoOpOrControlPayload(visibleText) {
-				return true
-			}
-		}
-	}
-	if strings.Contains(cleanedLower, "action_type") && (strings.Contains(cleanedLower, "no_op") || strings.Contains(cleanedLower, "noop")) {
-		return true
-	}
-	return false
 }

@@ -233,16 +233,6 @@ func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx
 		return failedCapabilityResult(invocation, "reply_arguments_invalid", false), newCapabilityError("reply_arguments_invalid", false, err)
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
-	if isNoOpOrControlPayload(text) {
-		return CapabilityResult{
-			CallID:            invocation.CallID,
-			CapabilityName:    invocation.CapabilityName,
-			Status:            "completed",
-			Output:            map[string]any{"text": text, "target_kind": "conversation_message", "target_ref": "suppressed", "delivery_status": "no_op_suppressed", "replayed": false},
-			ProviderRequestID: invocation.ProviderRequestID,
-			CorrelationID:     invocation.Metadata.CorrelationID,
-		}, nil
-	}
 	resource, err := c.publication.PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
 		SuppressRecentDuplicate:     target.AuthorizationPolicy == "autonomy",
 		AuthorizationActorID:        target.AuthorizationActorID,
@@ -284,16 +274,6 @@ func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		return failedCapabilityResult(invocation, "moment_arguments_invalid", false), newCapabilityError("moment_arguments_invalid", false, err)
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
-	if isNoOpOrControlPayload(text) {
-		return CapabilityResult{
-			CallID:            invocation.CallID,
-			CapabilityName:    invocation.CapabilityName,
-			Status:            "completed",
-			Output:            map[string]any{"text": text, "target_kind": "moment", "target_ref": "suppressed", "delivery_status": "no_op_suppressed", "replayed": false},
-			ProviderRequestID: invocation.ProviderRequestID,
-			CorrelationID:     invocation.Metadata.CorrelationID,
-		}, nil
-	}
 	resource, err := c.publication.PublishMomentTx(ctx, tx, MomentPublication{
 		FluctlightID: target.FluctlightID, OperationID: capabilityOperationID(invocation),
 		CorrelationID: invocation.Metadata.CorrelationID, Text: text,

@@ -123,7 +123,7 @@ func finalAgentVisibleText(completion ProviderCompletion) string {
 // rules without manufacturing a ToolCall.
 func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightID, conversationID, operationID, correlationID, expectedLifeRevision, text string) (map[string]any, error) {
 	text = strings.TrimSpace(text)
-	if text == "" || isNoOpOrControlPayload(text) {
+	if text == "" {
 		return nil, errors.New("cognition_visible_text_missing")
 	}
 	var resource publishedResource
@@ -828,15 +828,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	status, reason := "no_op", "no_action_selected"
-	hasEffectiveAction := false
-	for _, res := range outcome.Results {
-		ds := stringValue(mapValue(res.Output)["delivery_status"])
-		if (res.Status == "completed" || res.Status == "accepted") && ds != "no_op_suppressed" {
-			hasEffectiveAction = true
-			break
-		}
-	}
-	if hasEffectiveAction {
+	if len(outcome.Results) > 0 {
 		status, reason = "completed", "agent_tools_committed"
 	}
 	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
@@ -849,22 +841,14 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
 	actionType := normalizeConversationActionType(stringValue(assessment["action_type"]))
 	if len(outcome.Results) > 0 {
-		hasEffectiveResult := false
+		actionType = "capability"
 		for _, result := range outcome.Results {
-			ds := stringValue(mapValue(result.Output)["delivery_status"])
-			if (result.Status == "completed" || result.Status == "accepted") && ds != "no_op_suppressed" {
-				hasEffectiveResult = true
-				if result.CapabilityName == "conversation.reply" {
-					actionType = "proactive_message"
-				} else if result.CapabilityName == "moment.publish" {
-					actionType = "moment"
-				} else if actionType != "proactive_message" && actionType != "moment" {
-					actionType = "capability"
-				}
+			if result.CapabilityName == "conversation.reply" && result.Status == "completed" {
+				actionType = "proactive_message"
 			}
-		}
-		if !hasEffectiveResult && (actionType == "capability" || actionType == "proactive_message" || actionType == "moment") {
-			actionType = "no_op"
+			if result.CapabilityName == "moment.publish" && result.Status == "completed" {
+				actionType = "moment"
+			}
 		}
 	}
 	if actionType == "reply" || actionType == "" {

@@ -118,7 +118,7 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 	case "pending", "queued", "deferred":
 		status = ActionOutcomePending
 	}
-	if ds := stringValue(settlement["delivery_status"]); ds == "duplicate_suppressed" || ds == "no_op_suppressed" {
+	if stringValue(settlement["delivery_status"]) == "duplicate_suppressed" {
 		status = ActionOutcomeSuppressed
 	}
 	observed := map[string]any{"status": protocolStatus}
@@ -161,7 +161,7 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 				status = ActionOutcomePending
 			}
 		}
-		if ds := stringValue(mapValue(result.Output)["delivery_status"]); ds == "duplicate_suppressed" || ds == "no_op_suppressed" {
+		if stringValue(mapValue(result.Output)["delivery_status"]) == "duplicate_suppressed" {
 			status = ActionOutcomeSuppressed
 		}
 		externalRef := ""
