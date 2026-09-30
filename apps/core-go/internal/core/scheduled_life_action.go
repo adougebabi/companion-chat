@@ -83,9 +83,12 @@ func preserveScheduledActionPlans(planned, current map[string]any) error {
 		if id == "" {
 			continue
 		}
-		plan := links[id]
-		if len(plan) == 0 {
+		plan, known := links[id]
+		if !known {
 			return errors.New("schedule_replan_intention_link_unknown")
+		}
+		if len(plan) == 0 {
+			return errors.New("schedule_replan_action_plan_missing")
 		}
 		item["action_plan"] = cloneMap(plan)
 	}

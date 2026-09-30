@@ -96,6 +96,7 @@ async function openGovernanceFor(id: string) {
   await Promise.all([
     controlCenter.loadFluctlightDetail(id),
     controlCenter.loadAutonomyActions(id),
+    controlCenter.loadCapabilityRequests(),
   ]);
   showGovernance.value = true;
 }

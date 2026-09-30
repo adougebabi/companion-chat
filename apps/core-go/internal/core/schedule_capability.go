@@ -43,6 +43,7 @@ func scheduleReplanCapabilityDefinition() CapabilityDefinition {
 type SchedulePlanInput struct {
 	Intent        string
 	PlannedAction map[string]any
+	TargetEdit    map[string]any
 	Schedule      map[string]any
 	CurrentLife   map[string]any
 	Agency        map[string]any
@@ -76,7 +77,7 @@ func (planner providerSchedulePlanner) Plan(ctx context.Context, input ScheduleP
 		{"role": "system", "content": instruction},
 		{"role": "user", "content": jsonString(scheduleReplanModelInput(input))},
 	}
-	return planner.provider.StructuredWithSchema(WithProviderScenario(ctx, "schedule_replan_planner"), "cognitive_assessment", messages, "schedule_replan_plan", schedulePlannerOutputSchema(), false)
+	return planner.provider.StructuredWithSchema(WithProviderScenario(ctx, "schedule_replan_planner"), "cognitive_assessment", messages, "schedule_replan_plan", schedulePlannerOutputSchemaForInput(input), false)
 }
 
 func compactSchedulePlannerAgency(agency map[string]any) map[string]any {
@@ -115,13 +116,17 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 	schedule := compactStateMap(input.Schedule, []string{"local_date", "timezone", "completed_before", "reschedule_policy"})
 	items := make([]map[string]any, 0)
 	for _, raw := range arrayValue(input.Schedule["items"]) {
-		item := compactStateMap(raw, []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id"})
+		fields := []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id"}
+		if len(input.TargetEdit) > 0 {
+			fields = append(fields, "id")
+		}
+		item := compactStateMap(raw, fields)
 		if len(item) > 0 {
 			items = append(items, item)
 		}
 	}
 	schedule["items"] = items
-	return map[string]any{
+	result := map[string]any{
 		"intent":         input.Intent,
 		"planned_action": scheduleGenerationSemanticValue(input.PlannedAction),
 		"schedule":       schedule,
@@ -129,6 +134,10 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 		"agency":         compactSchedulePlannerAgency(input.Agency),
 		"timezone":       input.Timezone,
 	}
+	if len(input.TargetEdit) > 0 {
+		result["target_edit"] = input.TargetEdit
+	}
+	return result
 }
 
 func schedulePlannerOutputSchema() map[string]any {
@@ -136,11 +145,39 @@ func schedulePlannerOutputSchema() map[string]any {
 		"start_at": stringSchema(), "end_at": stringSchema(), "activity": stringSchema(), "scene": stringSchema(), "location": stringSchema(),
 		"item_type": stringSchema(), "status": stringSchema(), "priority": unitNumberSchema(), "flexibility": unitNumberSchema(), "interruption_cost": unitNumberSchema(),
 		"intention_id":        stringSchema(),
+		"source_item_id":      stringSchema(),
 		"planned_action_slot": map[string]any{"type": "boolean"},
 	}, []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"}, false)
 	return objectSchema(map[string]any{
 		"items": arraySchema(item), "reschedule_policy": openObjectSchema(),
 	}, []string{"items", "reschedule_policy"}, false)
+}
+
+// The model may carry an existing executable link forward, but the Core
+// creates new intention IDs only after the plan is accepted. Restrict the
+// planner's choices to links visible in the frozen current schedule.
+func schedulePlannerOutputSchemaForInput(input SchedulePlanInput) map[string]any {
+	schema := schedulePlannerOutputSchema()
+	item := mapValue(mapValue(schema["properties"])["items"])
+	itemProperties := mapValue(mapValue(item["items"])["properties"])
+	links := []any{""}
+	selections := []any{""}
+	for _, raw := range arrayValue(input.Schedule["items"]) {
+		current := mapValue(raw)
+		if id := strings.TrimSpace(stringValue(current["intention_id"])); id != "" {
+			links = append(links, id)
+		}
+		if len(input.TargetEdit) > 0 {
+			if id := strings.TrimSpace(stringValue(current["id"])); id != "" {
+				selections = append(selections, id)
+			}
+		}
+	}
+	itemProperties["intention_id"] = map[string]any{"type": "string", "enum": links}
+	if len(input.TargetEdit) > 0 {
+		itemProperties["source_item_id"] = map[string]any{"type": "string", "enum": selections}
+	}
+	return schema
 }
 
 func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
@@ -150,6 +187,9 @@ func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
 	}
 	if len(input.PlannedAction) > 0 {
 		instruction += " Place the planned_action into exactly one future item of the current local day. Mark that item planned_action_slot=true; all other items must omit it. The chosen item must last at least planned_action.duration_minutes. This is an appointment plan, not an activity already started or completed. Keep completed intervals unchanged."
+	}
+	if len(input.TargetEdit) > 0 {
+		instruction += " Apply target_edit to exactly the selected existing item. For move or revise, include source_item_id equal to target_edit.item_id on exactly one resulting item and satisfy every requested field. For cancel, omit that source_item_id and its intention_id, replacing its time with a sensible explicit activity. Preserve all other executable links. Do not copy or invent source_item_id for other items."
 	}
 	return instruction
 }
@@ -256,7 +296,7 @@ func (a *App) applyScheduleReplanCapabilityWithTx(ctx context.Context, callerTx 
 	payload["generated_from"] = "model_replan"
 	payload["source_fact_id"] = sourceFactID
 	payload["conversation_id"] = conversationID
-	payload["trigger"] = "capability:schedule.replan"
+	payload["trigger"] = "capability:" + invocation.CapabilityName
 
 	var result map[string]any
 	result, err = a.replanScheduleTx(ctx, callerTx, ownerID, fluctlightID, payload)

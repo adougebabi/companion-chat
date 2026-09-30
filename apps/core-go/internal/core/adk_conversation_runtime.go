@@ -99,6 +99,9 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	i.recordADKToolDiagnostic(ctx, "adk.tool.requested", callID, capabilityName, "requested", "", argumentsJSON)
 	definition, ok := i.app.capabilityRegistry().Definition(capabilityName)
 	if !ok {
+		// Unknown native calls cannot execute. Preserve an Owner-reviewable
+		// capability need when the run has an authenticated source fact.
+		i.recordMissingCapabilityRequest(ctx, callID, capabilityName, projection)
 		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "capability_not_found", argumentsJSON)
 		return "", fmt.Errorf("capability_not_found: %s", capabilityName)
 	}
@@ -233,6 +236,43 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		return serialized, &agentRunFailure{stage: "tool", code: result.ErrorCode, cause: fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)}
 	}
 	return serialized, nil
+}
+
+func (i *appADKCapabilityInvoker) recordMissingCapabilityRequest(ctx context.Context, callID, capabilityName string, projection ContextProjection) {
+	if i == nil || i.app == nil || i.trace == nil || !toolNamePattern.MatchString(capabilityName) || strings.TrimSpace(callID) == "" || strings.TrimSpace(i.request.SourceFactID) == "" {
+		return
+	}
+	identity, ok := i.trace.ModelIdentity(callID)
+	if !ok || strings.TrimSpace(identity.ProviderRequestID) == "" {
+		return
+	}
+	operationRoot := firstString(i.request.OperationID, firstString(i.request.ActionID, i.request.SourceFactID))
+	if operationRoot == "" {
+		return
+	}
+	actorID := firstString(i.request.AuthorizationActorID, projection.OwnerActorID)
+	if actorID == "" || i.request.FluctlightID == "" {
+		return
+	}
+	arguments := jsonBytes(map[string]any{
+		"capability_key":    capabilityName,
+		"title":             capabilityName,
+		"description":       "The Agent requested this unavailable tool during an authorized run.",
+		"rationale":         "The requested action could not be executed because the capability is not installed.",
+		"desired_contract":  map[string]any{"requested_tool": capabilityName},
+		"side_effect_class": "unknown",
+	})
+	agentDefinition, _ := formalAgentDefinitionFromContext(ctx)
+	_, _ = i.app.ExecuteTool(ctx, ToolExecutionRequest{
+		AgentID: agentDefinition.ID, RunID: operationRoot,
+		CapabilityName: "capability.request", OperationID: "missing_capability_" + stableDigest(operationRoot+"\x1f"+callID+"\x1f"+capabilityName),
+		ProviderRequestID:    identity.ProviderRequestID,
+		AuthorizationActorID: actorID, FluctlightID: i.request.FluctlightID,
+		SubjectActorID: firstString(i.request.SubjectActorID, actorID), ConversationID: i.request.ConversationID,
+		EvidenceID: i.request.SourceFactID, Surface: i.request.Surface, Arguments: arguments,
+		AuthorizationPolicy: i.request.AuthorizationPolicy,
+		TargetKind:          i.request.TargetKind, TargetRef: i.request.TargetRef,
+	})
 }
 
 func modelFacingToolResultForContext(ctx context.Context, receipt ToolExecutionReceipt, definition CapabilityDefinition) (string, error) {

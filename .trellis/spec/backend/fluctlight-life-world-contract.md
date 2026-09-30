@@ -91,6 +91,9 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
 - Identity/occupation/weekday/clock are prompt inputs, not code rules for “working,” “studying,” “sleeping,” or other semantic state.
 - Provider outage retries. Existing accepted Schedule remains through its day; missing plan yields `schedule_pending` and no fabricated past activity.
 - Timezone change preserves historical versions, supersedes future versions, and regenerates future plans/timers in the new timezone.
+- `schedule.inspect` queries today's accepted schedule on demand (`list` with pagination or `detail` by `item_id`). Items expose selection identity and status while stripping executable `action_plan` data.
+- `schedule.edit` applies targeted `move`, `revise`, or `cancel` operations to a future item under CAS (`expected_revision`). It validates concrete parameter changes, rejects mutations to running activities (`schedule_active_activity_replan_blocked`), cancels linked intentions atomically on cancel, and preserves all immutable schedule history.
+- Schedule planners only receive schemas with enum constraints matching existing future items in the frozen current schedule. Unknown model links fail with `schedule_replan_intention_link_unknown`, and corrupt stored plans yield `schedule_replan_action_plan_missing`.
 
 ### 4. Validation & Error Matrix
 
@@ -101,6 +104,10 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
 | Replan attempts to rewrite completed history | Reject; future-only replacement required. |
 | Replan drops or changes an open executable item | Reject the new version; keep the existing plan and timed Intention. |
 | Replan races with a started or deferred linked activity | Lock the accepted version and reject replacement until the run settles or is cancelled. |
+| Schedule edit targets past or non-existent item | Reject with `schedule_edit_history_immutable` or `schedule_item_not_found`. |
+| Schedule edit CAS revision mismatch | Reject with `schedule_edit_revision_stale`. |
+| Schedule edit targets activity currently `in_progress` | Reject with `schedule_active_activity_replan_blocked`. |
+| Planner invents ungrounded `intention_id` | Schema gate/validation rejects with `schedule_replan_intention_link_unknown`. |
 | Accepted schedule is cancelled | Cancel future/ongoing linked intentions and their trigger intents atomically; do not execute the old item. |
 | Accepted version/revision changed during planning | CAS fails; re-read and replan explicitly. |
 | Reflection Provider unavailable/invalid | Retry workflow; no code-generated default routine. |

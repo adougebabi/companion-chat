@@ -346,10 +346,17 @@ capability.request({capability_key, title, description, rationale,
   It records a missing capability request and never executes an external
   provider. Requests are globally aggregated by `capability_key` while each
   Fluctlight's source fact and evidence remain separate.
+- When an authorized native ToolCall invokes an unknown or uninstalled capability,
+  the runtime records an idempotent bounded `capability.request` row on the
+  authenticated source fact and returns a typed non-execution error (`capability_not_found`).
+  It never claims the unavailable action completed.
 - Owner review moves a request through `proposed`, `reviewing`, `accepted`,
   `rejected`, `fulfilled`, or `cancelled`. Only a manually registered and
   preflighted direct `Capability` with a valid `CapabilityDefinition` may be
   marked fulfilled.
+- Schedule inspection (`schedule.inspect`) and targeted mutation (`schedule.edit`)
+  are exposed as standard capabilities on conversation, wake-up, and native cognition surfaces,
+  preserving schedule immutability and life-world invariants without full-schedule prompt embedding.
 
 ### 4. Validation & Error Matrix
 

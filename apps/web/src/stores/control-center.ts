@@ -75,6 +75,9 @@ export const useControlCenterStore = defineStore("control-center", {
     relationshipEditDrafts: {} as Record<string, { role: string; metrics: string; trend: string; summary: string; emotionalAssociation: string }>,
     autonomyActions: [] as Array<{ id: string; action_type: string; status: string; workflow_id: string; created_at: string }>,
     capabilityRequests: [] as Array<Record<string, unknown>>,
+    capabilityRequestsLoading: false,
+    capabilityRequestsLoaded: false,
+    capabilityRequestsError: "",
     capabilityRequestVersions: {} as Record<string, string>,
     lifeEvent: { kind: "", startAt: "", endAt: "", scene: "", activity: "", location: "" },
     presence: { currentTask: "", userPresence: "" },
@@ -626,8 +629,18 @@ export const useControlCenterStore = defineStore("control-center", {
       catch { this.error = "无法加载自治动作。"; }
     },
     async loadCapabilityRequests() {
-      try { this.capabilityRequests = await client.listCapabilityRequests(); }
-      catch { this.error = "无法加载能力需求。"; }
+      this.capabilityRequestsLoading = true;
+      this.capabilityRequestsError = "";
+      try {
+        this.capabilityRequests = await client.listCapabilityRequests();
+        this.capabilityRequestsLoaded = true;
+      } catch {
+        this.capabilityRequestsError = "无法加载能力需求，请重试。";
+        this.capabilityRequestsLoaded = false;
+        this.capabilityRequests = [];
+      } finally {
+        this.capabilityRequestsLoading = false;
+      }
     },
     async reviewCapabilityRequest(requestId: string, status: "reviewing" | "accepted" | "rejected" | "fulfilled" | "cancelled", capabilityVersion = "") {
       const note = this.governanceReason.trim();

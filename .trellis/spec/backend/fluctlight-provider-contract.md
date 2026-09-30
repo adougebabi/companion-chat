@@ -149,6 +149,13 @@ embed(role, inputs) -> VersionedEmbeddings
 - Thinking is operation-owned and never becomes visible output or Tool execution
   authority. Final structured output must satisfy the Agent contract; no
   reasoning/prose fallback supplies missing native calls or a failed final DTO.
+- When final structured content is malformed or violates schema/influence-reference
+  contracts, the runtime triggers a single bounded, tool-free correction call
+  (`ADKLoop` with `unboundChat` and no tool catalog) using the existing transcript.
+  It strictly forbids re-executing or repeating previously committed ToolCalls.
+- An omitted `appraisal.evidence_refs` field is interpreted as "no evidence" and
+  is normalized to `[]` before schema evaluation; it never synthesizes or fabricates
+  context references.
 - Native cognition may complete a tool-only task with an explicit legal final
   DTO and committed receipts. It does not fabricate semantic state from calls.
   The native cognition depth guard still bounds recursive life facts.

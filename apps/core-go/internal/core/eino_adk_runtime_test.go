@@ -991,9 +991,13 @@ func TestADKToolSuccessThenStructuredParseFailureKeepsTrace(t *testing.T) {
 			_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"","tool_calls":[{"id":"parse-after-tool-1","type":"function","function":{"name":"memory.recall","arguments":"{\"intent\":\"recent\"}"}}]}}]}`))
 			return
 		}
+		content := `{"visible_text":`
+		if requestCount == 3 {
+			content = `{"visible_text":"已修复"}`
+		}
 		_, _ = w.Write(jsonBytes(map[string]any{"choices": []any{map[string]any{
 			"finish_reason": "stop",
-			"message":       map[string]any{"role": "assistant", "content": `{"visible_text":`},
+			"message":       map[string]any{"role": "assistant", "content": content},
 		}}}))
 	}))
 	defer server.Close()
@@ -1015,11 +1019,11 @@ func TestADKToolSuccessThenStructuredParseFailureKeepsTrace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if response.Message == nil || len(trace.Invocations) != 1 || len(trace.Results) != 1 || trace.Invocations[0].CallID != "parse-after-tool-1" || trace.Results[0].Status != "completed" {
+	if response.Message == nil || requestCount != 3 || len(trace.Invocations) != 1 || len(trace.Results) != 1 || trace.Invocations[0].CallID != "parse-after-tool-1" || trace.Results[0].Status != "completed" {
 		t.Fatalf("tool fact was lost before parse failure: response=%#v trace=%#v", response.Message, trace)
 	}
-	if parseErr := validateADKStructuredResponse(response.Message, "cognitive_assessment"); parseErr == nil || !strings.Contains(parseErr.Error(), "adk_structured_response_invalid") {
-		t.Fatalf("expected model-stage parse failure, got %v", parseErr)
+	if parseErr := validateADKStructuredResponse(response.Message, "cognitive_assessment"); parseErr != nil || response.Message.Content != `{"visible_text":"已修复"}` {
+		t.Fatalf("expected bounded final correction, got message=%#v error=%v", response.Message, parseErr)
 	}
 }
 

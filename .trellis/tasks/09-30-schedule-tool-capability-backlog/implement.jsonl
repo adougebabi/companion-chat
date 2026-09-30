@@ -1,0 +1,9 @@
+{"file":".trellis/spec/backend/index.md","reason":"Go Core and browser boundary ownership"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"immutable schedule versions, replan and linked intention invariants"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"capability request and authorized Tool lifecycle"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"model context references and final contract authority"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"structured output, preflight and Provider failure behavior"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"transaction, idempotency and outbox boundaries"}
+{"file":".trellis/spec/frontend/index.md","reason":"Vue client and generated browser boundary rules"}
+{"file":".trellis/spec/frontend/state-management.md","reason":"server state and governance refresh behavior"}
+{"file":".trellis/tasks/09-30-schedule-tool-capability-backlog/research/code-paths.md","reason":"verified entry points and failure conditions"}

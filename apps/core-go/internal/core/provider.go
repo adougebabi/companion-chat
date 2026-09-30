@@ -448,8 +448,12 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 					return ProviderCompletion{}, decodeErr
 				}
 				parsedStructured = decoded.(map[string]any)
-				content = jsonString(parsedStructured)
 			}
+			// An omitted evidence list asserts no evidence. The domain normalizer
+			// already gives it this meaning; make the shape explicit before the
+			// Provider schema gate, without inventing a reference.
+			normalizeAbsentAppraisalEvidence(parsedStructured)
+			content = jsonString(parsedStructured)
 		}
 		if !adkEnabled && parsedStructuredOK && len(toolCallArrayValue(parsedStructured["tool_calls"])) > 0 {
 			err := errors.New("provider_tool_call_unhandled: structured Content tool_calls are not an execution channel")
@@ -621,6 +625,16 @@ func parseStructuredCandidate(candidate string, _ int) (map[string]any, bool) {
 		return structured, true
 	}
 	return nil, false
+}
+
+func normalizeAbsentAppraisalEvidence(structured map[string]any) {
+	appraisal, ok := structured["appraisal"].(map[string]any)
+	if !ok || appraisal == nil {
+		return
+	}
+	if _, exists := appraisal["evidence_refs"]; !exists {
+		appraisal["evidence_refs"] = []any{}
+	}
 }
 
 func providerResponseDiagnostic(message map[string]any, candidates []string, toolCallCount int) map[string]any {
@@ -924,7 +938,7 @@ func (p *ProviderClient) recordProviderFailureBoundary(ctx context.Context, assi
 
 func (p *ProviderClient) recordBoundaryFailure(ctx context.Context, adkEnabled bool, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
 	if adkEnabled {
-		recordADKBoundaryFailureDiagnostic(ctx, p, role, correlationID, code)
+		recordADKBoundaryFailureDiagnostic(ctx, p, role, correlationID, code, diagnostic...)
 		return
 	}
 	p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, code, diagnostic...)

@@ -138,7 +138,7 @@ func builtinCapabilities(app *App) []Capability {
 		personaDetailCapability{service: newPersonaDetailService(app)},
 		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe}, wardrobeOutfitSaveCapability{service: wardrobe},
 		habitInspectCapability{service: habits}, habitDecideCapability{service: habits},
-		intentionInspectCapability{service: intentions}, intentionDecideCapability{service: intentions},
+		intentionInspectCapability{service: intentions}, intentionDecideCapability{service: intentions}, scheduleInspectCapability{service: app}, scheduleEditCapability{service: app, planner: schedule.planner, intents: intentions},
 		scheduleActivityCapability{service: app, planner: schedule.planner, intents: intentions},
 		lifeActivityStartCapability{service: activities}, lifeActivityAdvanceCapability{service: activities},
 		appearanceStyleCapability{repository: appearanceRepository},
@@ -168,6 +168,9 @@ var (
 	_ Capability                   = habitInspectCapability{}
 	_ Capability                   = habitDecideCapability{}
 	_ Capability                   = intentionInspectCapability{}
+	_ Capability                   = scheduleInspectCapability{}
+	_ Capability                   = scheduleEditCapability{}
+	_ TransactionalCapability      = scheduleEditCapability{}
 	_ Capability                   = intentionDecideCapability{}
 	_ Capability                   = lifeActivityStartCapability{}
 	_ Capability                   = lifeActivityAdvanceCapability{}
@@ -883,6 +886,8 @@ func mediaInvocationIdentity(invocation CapabilityInvocation) (string, string, s
 
 func publicationCapabilityError(err error, fallback string) (string, bool) {
 	switch {
+	case errors.Is(err, ErrReplyAlreadyPublished):
+		return "reply_already_published", false
 	case errors.Is(err, ErrUnauthorized):
 		return "tool_target_unauthorized", false
 	case errors.Is(err, ErrNotFound):

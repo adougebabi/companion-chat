@@ -1,0 +1,9 @@
+{"file":".trellis/spec/backend/index.md","reason":"backend pre-development and quality checks"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Go/browser validation and test gates"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"schedule safety and linked activity acceptance"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"capability request and Tool receipt checks"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"reference and final output fail-closed checks"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"Provider schema and diagnostics checks"}
+{"file":".trellis/spec/frontend/index.md","reason":"frontend quality checklist"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"browser verification"}
+{"file":".trellis/tasks/09-30-schedule-tool-capability-backlog/research/code-paths.md","reason":"reported failure regression matrix"}

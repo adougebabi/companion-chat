@@ -41,6 +41,8 @@ var independentToolProductInventory = []string{
 	"presence_event",
 	"relationship.lookup",
 	"scene_event",
+	"schedule.edit",
+	"schedule.inspect",
 	"schedule.replan",
 	"visual_identity.commit_review",
 	"visual_identity.finalize",

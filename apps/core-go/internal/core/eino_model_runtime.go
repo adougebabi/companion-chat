@@ -20,6 +20,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	jsonschema "github.com/eino-contrib/jsonschema"
 	aimodel "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 // EinoModelConfig is the transport-neutral configuration needed to construct
@@ -702,6 +703,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		sequence: &atomic.Uint64{}, definitions: call.Definitions, responseFormat: budgetResponseFormat,
 		cumulativeInput: &atomic.Int64{}, lastInputEstimate: &atomic.Int64{},
 	}
+	unboundChat := chat
 	tools, err := NewADKCapabilityTools(call.Definitions, adkContext.Invoker)
 	if err != nil {
 		return einoModelResponse{}, err
@@ -734,13 +736,78 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		return einoModelResponse{}, errors.New("adk_final_message_missing")
 	}
 	final := loopResult.FinalMessage
+	if call.JSONMode {
+		if validationErr := validateADKFinalContract(final, call.Role, call.ResponseSchema, adkContext.Refs); validationErr != nil {
+			// A second, tool-free model call can correct a malformed final DTO.
+			// The original Tool effects are already committed, so the repair loop
+			// must not receive the Tool catalog or execute another ToolCall.
+			correctionInput := append([]*schema.Message(nil), input...)
+			for _, message := range loopResult.Messages {
+				if message == nil || (message.Role == schema.Assistant && len(message.ToolCalls) == 0) {
+					continue
+				}
+				correctionInput = append(correctionInput, message)
+			}
+			correctionInput = append(correctionInput, schema.UserMessage("Correct the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."))
+			correction, correctionErr := RunADKLoop(ctx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: unboundChat, MaxIterations: 1}, correctionInput)
+			if correctionErr == nil && correction.FinalMessage != nil && len(correction.ToolCalls) == 0 {
+				if err := validateADKFinalContract(correction.FinalMessage, call.Role, call.ResponseSchema, adkContext.Refs); err == nil {
+					final = correction.FinalMessage
+					loopResult.FinalMessage = final
+				} else {
+					runErr = fmt.Errorf("adk_final_repair_invalid: %w", err)
+				}
+			} else if correctionErr != nil {
+				runErr = fmt.Errorf("adk_final_repair_failed: %w", correctionErr)
+			} else {
+				runErr = errors.New("adk_final_repair_tool_call_invalid")
+			}
+			if runErr != nil {
+				return einoModelResponse{}, fmt.Errorf("%w: %w", validationErr, runErr)
+			}
+		}
+	}
 	// Final output and executed calls are separate contracts. Intermediate
 	// calls remain in the execution trace and must never be copied onto the
 	// final assistant message, where they could bypass the final output schema.
+	finishReason := "stop"
+	if final.ResponseMeta != nil && strings.TrimSpace(final.ResponseMeta.FinishReason) != "" {
+		finishReason = strings.TrimSpace(final.ResponseMeta.FinishReason)
+	}
 	return einoModelResponse{
 		Message: final, ExecutedToolCalls: append([]schema.ToolCall(nil), loopResult.ToolCalls...),
-		Usage: einoUsage(final), FinishReason: "stop",
+		Usage: einoUsage(final), FinishReason: finishReason,
 	}, nil
+}
+
+func validateADKFinalContract(message *schema.Message, role string, outputSchema map[string]any, refs *providerContextRefCodec) error {
+	if err := validateADKStructuredResponse(message, role); err != nil {
+		return err
+	}
+	parsed, ok, err := parseStructuredCandidatesForRole(role, providerStructuredCandidates(einoMessageRaw(message)))
+	if err != nil || !ok {
+		return errors.New("adk_final_output_missing")
+	}
+	if refs != nil {
+		decoded, decodeErr := refs.decode(parsed)
+		if decodeErr != nil {
+			return decodeErr
+		}
+		parsed = decoded.(map[string]any)
+	}
+	normalizeAbsentAppraisalEvidence(parsed)
+	if role != "initialization" {
+		if err := capabilitycontract.ValidateCapabilitySchemaValue(parsed, outputSchema); err != nil {
+			return fmt.Errorf("adk_final_output_invalid: %w", err)
+		}
+	}
+	for position, raw := range arrayValue(parsed["influences"]) {
+		ref := strings.TrimSpace(stringValue(mapValue(raw)["ref"]))
+		if ref == "" || len([]rune(ref)) > maxContextReferenceRunes || !contextReferencePattern.MatchString(ref) {
+			return fmt.Errorf("decision_influence_%d_ref_invalid", position)
+		}
+	}
+	return nil
 }
 
 func recordADKTerminationDiagnostic(ctx context.Context, provider *ProviderClient, call EinoModelCall, result ADKLoopResult, runErr error) {
@@ -806,7 +873,7 @@ func wrapPhysicalProviderRequestError(err error) error {
 // loop has returned (for example final contract validation). Those failures
 // belong to the Agent boundary and must not create a synthetic Provider model
 // run that masks the physical response-bearing call.
-func recordADKBoundaryFailureDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID, code string) {
+func recordADKBoundaryFailureDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID, code string, diagnostic ...any) {
 	if provider == nil || provider.DB == nil || provider.DB.Pool() == nil {
 		return
 	}
@@ -815,10 +882,16 @@ func recordADKBoundaryFailureDiagnostic(ctx context.Context, provider *ProviderC
 	if runID == "" {
 		runID = correlationID
 	}
-	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", "error", stringValue(diagnostics["fluctlight_id"]), "", correlationID, map[string]any{
+	payload := map[string]any{
 		"run_id": runID, "stage": "provider_boundary", "status": "failed", "reason": strings.TrimSpace(code),
 		"role": strings.TrimSpace(role), "model_call_id": stringValue(diagnostics["model_call_id"]),
-	})
+	}
+	if len(diagnostic) > 0 {
+		if detail := mapValue(diagnostic[0]); len(detail) > 0 {
+			payload["parse_diagnostic"] = detail
+		}
+	}
+	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", "error", stringValue(diagnostics["fluctlight_id"]), "", correlationID, payload)
 }
 
 // mergeADKTraceInvocations joins calls retained by the final assistant event

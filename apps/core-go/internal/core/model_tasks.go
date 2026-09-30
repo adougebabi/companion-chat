@@ -530,7 +530,7 @@ func (a *App) RunScheduleReplanTask(ctx context.Context, input SchedulePlanInput
 		{"role": "system", "content": scheduleReplanPlannerInstruction(input)},
 		{"role": "user", "content": jsonString(scheduleReplanModelInput(input))},
 	})
-	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchema(), false, nil)
+	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchemaForInput(input), false, nil)
 	return run.Completion.Structured, err
 }
 

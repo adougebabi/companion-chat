@@ -20,7 +20,7 @@ const (
 	promptBudgetPolicyVersionV1       = "prompt-budget.v1"
 	promptBudgetPolicyVersionV2       = "prompt-budget.v2"
 	defaultSystemTokensCap            = 16384
-	defaultToolsSchemaTokensCap       = 29696
+	defaultToolsSchemaTokensCap       = 32768
 	defaultCurrentInputTokensCap      = 16384
 	defaultPromptImageTokens          = 1536
 	defaultPromptLowDetailImage       = 85

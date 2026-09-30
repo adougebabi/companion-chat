@@ -22,6 +22,8 @@ type ToolPublicationService struct {
 	app *App
 }
 
+var ErrReplyAlreadyPublished = errors.New("reply_already_published")
+
 func NewToolPublicationService(app *App) *ToolPublicationService {
 	return &ToolPublicationService{app: app}
 }
@@ -121,6 +123,22 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.conversation_heads WHERE conversation_id=$1 FOR UPDATE`, command.ConversationID).Scan(&sequence); err != nil {
 		return publishedResource{}, err
 	}
+	// The Tool ledger is keyed by operation, while a conversation turn may
+	// publish only one assistant message. A later ToolCall in the same turn has
+	// a different operation ID, so resolve it before the unique index does.
+	if turnID != "" {
+		var existingID, existingReply string
+		err := tx.QueryRow(ctx, `SELECT id,text FROM public.conversation_messages WHERE conversation_id=$1 AND turn_id=$2 AND kind='assistant'`, command.ConversationID, turnID).Scan(&existingID, &existingReply)
+		if err == nil {
+			if existingReply == command.Text {
+				return publishedResource{ID: existingID, Replayed: true}, nil
+			}
+			return publishedResource{}, ErrReplyAlreadyPublished
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return publishedResource{}, err
+		}
+	}
 	if command.SuppressRecentDuplicate {
 		id, duplicate, err := recentExactAssistantMessageTx(ctx, tx, command.ConversationID, command.FluctlightID, command.Text, proactiveMessageDuplicateWindow)
 		if err != nil {
@@ -141,8 +159,12 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if err != nil {
 		return publishedResource{}, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12)`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt); err != nil {
+	inserted, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (conversation_id,turn_id,kind) WHERE turn_id IS NOT NULL DO NOTHING`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt)
+	if err != nil {
 		return publishedResource{}, err
+	}
+	if inserted.RowsAffected() == 0 {
+		return publishedResource{}, ErrReplyAlreadyPublished
 	}
 	if err := service.app.enqueueConversationSegmentTx(ctx, tx, command.FluctlightID, command.ConversationID, false); err != nil {
 		return publishedResource{}, err

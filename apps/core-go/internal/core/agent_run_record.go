@@ -61,6 +61,11 @@ func classifyAgentRunFailure(err error) (string, string) {
 	if providerToolCallInvalidError(err) {
 		return "model", "tool_call_invalid"
 	}
+	for _, code := range []string{"adk_structured_response_invalid", "adk_final_output_invalid", "provider_context_ref_alias_unknown"} {
+		if strings.Contains(err.Error(), code) {
+			return "model_output", code
+		}
+	}
 	if errors.Is(err, errProviderPaused) {
 		return "model", "provider_suppressed_fluctlight_paused"
 	}
