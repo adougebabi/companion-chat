@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 44
-- **Last Active**: 2026-09-28
+- **Total Sessions**: 45
+- **Last Active**: 2026-09-30
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1422 | Active |
+| `journal-1.md` | ~1444 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 45 | 2026-09-30 | 修复日程工具与待补充能力回流 | `d1363b7` | `codex/schedule-tools-runtime` |
 | 44 | 2026-09-28 | 摇光提示词与生命周期收敛 | `744b18a` | `codex/yaoguang-prompt-context-convergence` |
 | 43 | 2026-09-27 | 目标意图驱动日程与染发行动闭环 | `36355bd` | `codex/goal-schedule-hairdye` |
 | 42 | 2026-09-27 | 私聊断线后台处理与 WakeUp 恢复 | `310893d` | `codex/private-chat-durable-turns` |

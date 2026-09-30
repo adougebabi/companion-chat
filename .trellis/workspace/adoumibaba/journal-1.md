@@ -1420,3 +1420,25 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Status
 
 [OK] **Completed**
+
+
+## Session 45: 修复日程工具与待补充能力回流
+<!-- trellis-session: v=2 fp=25a4379ff9d9cd77 -->
+
+**Date**: 2026-09-30
+**Task**: 修复日程工具与待补充能力回流
+**Branch**: `codex/schedule-tools-runtime`
+
+### Summary
+
+完成日程按需查询与定向编辑工具(schedule.inspect/schedule.edit)、约束规划器枚举链接、原生缺失工具自动建需求回流治理页、ADK最终输出单轮无工具纠错与缺失证据补空数组、同轮回复幂等保护，更新Spec规范并归档任务。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d1363b7` | feat(core,web): implement schedule tools and missing capability backlog flow |
+
+### Status
+
+[OK] **Completed**
