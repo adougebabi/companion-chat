@@ -39,6 +39,10 @@ func jsonValue(value any) []byte {
 	return data
 }
 
+func jsonString(value any) string {
+	return string(jsonValue(value))
+}
+
 // decodeObjectBody enforces the Core boundary contract: exactly one JSON
 // object, with no trailing values. The caller supplies a bounded reader.
 func decodeObjectBody(body io.Reader) (map[string]any, bool) {

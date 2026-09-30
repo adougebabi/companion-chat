@@ -350,30 +350,46 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 	}
 	analysisStartedAt := time.Now().UTC()
 	correlationID := initializationAnalysisCorrelation()
-	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "initialization"), correlationID)
-	result, err := a.RunInitializationTask(providerCtx, InitializationTaskInput{Description: description})
-	if err != nil {
-		failure := &initializationAnalysisError{Code: initializationProviderErrorCode(err), CorrelationID: correlationID, ValidationType: "provider", Path: "provider_response", Retryable: true}
-		slog.Default().Warn("Go Core initialization analysis failed",
-			"code", failure.Code,
-			"correlation_id", correlationID,
-			"validation_type", failure.ValidationType,
-			"path", failure.Path,
-			"provider_error_code", initializationProviderCauseCode(err),
-			"retryable", failure.Retryable,
-			"error_type", fmt.Sprintf("%T", err),
-			"safe_cause", boundedLifecycleCause(err.Error()),
-		)
-		return nil, failure
+
+	var prepared map[string]any
+	if standardJSON, isJSON := parseStandardPersonaJSON(description); isJSON {
+		var prepErr error
+		prepared, prepErr = prepareInitializationResponse(standardJSON)
+		if prepErr != nil {
+			failure := initializationErrorWithCorrelation(prepErr, correlationID)
+			details := failure.PublicDetails()
+			validation := mapValue(details["validation_error"])
+			slog.Default().Warn("Go Core standard json initialization rejected", "code", failure.Code, "correlation_id", correlationID, "validation_type", validation["type"], "path", validation["path"])
+			return nil, failure
+		}
+	} else {
+		providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "initialization"), correlationID)
+		result, err := a.RunInitializationTask(providerCtx, InitializationTaskInput{Description: description})
+		if err != nil {
+			failure := &initializationAnalysisError{Code: initializationProviderErrorCode(err), CorrelationID: correlationID, ValidationType: "provider", Path: "provider_response", Retryable: true}
+			slog.Default().Warn("Go Core initialization analysis failed",
+				"code", failure.Code,
+				"correlation_id", correlationID,
+				"validation_type", failure.ValidationType,
+				"path", failure.Path,
+				"provider_error_code", initializationProviderCauseCode(err),
+				"retryable", failure.Retryable,
+				"error_type", fmt.Sprintf("%T", err),
+				"safe_cause", boundedLifecycleCause(err.Error()),
+			)
+			return nil, failure
+		}
+		var prepErr error
+		prepared, prepErr = prepareInitializationResponse(result)
+		if prepErr != nil {
+			failure := initializationErrorWithCorrelation(prepErr, correlationID)
+			details := failure.PublicDetails()
+			validation := mapValue(details["validation_error"])
+			slog.Default().Warn("Go Core initialization analysis rejected", "code", failure.Code, "correlation_id", correlationID, "validation_type", validation["type"], "path", validation["path"])
+			return nil, failure
+		}
 	}
-	prepared, err := prepareInitializationResponse(result)
-	if err != nil {
-		failure := initializationErrorWithCorrelation(err, correlationID)
-		details := failure.PublicDetails()
-		validation := mapValue(details["validation_error"])
-		slog.Default().Warn("Go Core initialization analysis rejected", "code", failure.Code, "correlation_id", correlationID, "validation_type", validation["type"], "path", validation["path"])
-		return nil, failure
-	}
+
 	analysisID, err := a.persistInitializationAnalysisSource(ctx, actorID, description, correlationID, analysisStartedAt, prepared)
 	if err != nil {
 		failure := &initializationAnalysisError{Code: "initialization_source_persistence_failed", CorrelationID: correlationID, ValidationType: "persistence", Path: "initialization_source", Retryable: true}
@@ -384,6 +400,72 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 	response["analysis_id"] = analysisID
 	response["correlation_id"] = correlationID
 	return response, nil
+}
+
+func parseStandardPersonaJSON(description string) (map[string]any, bool) {
+	trimmed := strings.TrimSpace(description)
+	if !strings.HasPrefix(trimmed, "{") || !strings.HasSuffix(trimmed, "}") {
+		return nil, false
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(trimmed), &data); err != nil || data == nil {
+		return nil, false
+	}
+	if rawCore, hasCore := data["core_persona"]; hasCore {
+		if coreMap, ok := rawCore.(map[string]any); ok && len(coreMap) > 0 {
+			clean := cloneMap(data)
+			delete(clean, "analysis_id")
+			delete(clean, "correlation_id")
+			delete(clean, "id")
+			delete(clean, "provenance")
+			delete(clean, "status")
+			delete(clean, "current_revision")
+			delete(clean, "created_at")
+			delete(clean, "updated_at")
+			return clean, true
+		}
+	}
+	if _, hasIdentity := data["identity"]; hasIdentity {
+		if _, hasSys := data["personality_system"]; hasSys {
+			clean := cloneMap(data)
+			delete(clean, "analysis_id")
+			delete(clean, "correlation_id")
+			delete(clean, "id")
+			delete(clean, "provenance")
+			delete(clean, "status")
+			delete(clean, "current_revision")
+			delete(clean, "created_at")
+			delete(clean, "updated_at")
+			return map[string]any{
+				"schema_version": 2,
+				"core_persona":   clean,
+			}, true
+		}
+		if _, hasProfile := data["life_profile"]; hasProfile {
+			clean := cloneMap(data)
+			delete(clean, "analysis_id")
+			delete(clean, "correlation_id")
+			delete(clean, "id")
+			delete(clean, "provenance")
+			delete(clean, "status")
+			delete(clean, "current_revision")
+			delete(clean, "created_at")
+			delete(clean, "updated_at")
+			return map[string]any{
+				"schema_version": 2,
+				"core_persona":   clean,
+			}, true
+		}
+	}
+	return nil, false
+}
+
+func (a *App) ImportInitializationJSON(ctx context.Context, actorID string, rawJSON map[string]any) (map[string]any, error) {
+	bytes, err := json.Marshal(rawJSON)
+	if err != nil {
+		return nil, errors.New("initialization_persona_invalid")
+	}
+	return a.AnalyzeDescription(ctx, actorID, string(bytes))
 }
 
 func validInitializationDescription(description string) bool {

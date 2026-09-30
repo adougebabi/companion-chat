@@ -453,11 +453,34 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if path == "/api/fluctlight-creations/analysis" && methodName == http.MethodPost {
-		body, ok := s.mutationBody(response, request, func(value map[string]any) bool { return validateInitializationDescriptionShape(value["description"]) })
+		body, ok := s.mutationBody(response, request, func(value map[string]any) bool {
+			if validateInitializationDescriptionShape(value["description"]) {
+				return true
+			}
+			if _, hasCore := value["core_persona"]; hasCore {
+				return true
+			}
+			if rawJSON := object(value["json"]); len(rawJSON) > 0 {
+				return true
+			}
+			return false
+		})
 		if !ok {
 			return
 		}
-		if !validateInitializationDescription(body["description"]) {
+		descriptionText, _ := body["description"].(string)
+		if strings.TrimSpace(descriptionText) == "" {
+			if _, hasCore := body["core_persona"]; hasCore {
+				if encoded, err := json.Marshal(body); err == nil {
+					descriptionText = string(encoded)
+				}
+			} else if rawJSON := object(body["json"]); len(rawJSON) > 0 {
+				if encoded, err := json.Marshal(rawJSON); err == nil {
+					descriptionText = string(encoded)
+				}
+			}
+		}
+		if !validateInitializationDescription(descriptionText) {
 			writeError(response, http.StatusRequestEntityTooLarge, "initialization_description_too_large", "Description exceeds the 60000-byte UTF-8 limit")
 			return
 		}
@@ -465,7 +488,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		value, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/analysis", session, map[string]any{"description": body["description"]})
+		value, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/analysis", session, map[string]any{"description": descriptionText})
 		if err != nil {
 			if s.publicUnauthorized(response, err) {
 				return

@@ -503,6 +503,13 @@ func (s *Server) analyzeCreation(response http.ResponseWriter, request *http.Req
 		return
 	}
 	description := stringValue(body["description"])
+	if description == "" {
+		if _, hasCore := body["core_persona"]; hasCore {
+			description = jsonString(body)
+		} else if rawJSON := mapValue(body["json"]); len(rawJSON) > 0 {
+			description = jsonString(rawJSON)
+		}
+	}
 	if !validInitializationDescriptionRequest(description) {
 		writeError(response, http.StatusUnprocessableEntity, "description_invalid")
 		return

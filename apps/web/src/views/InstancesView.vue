@@ -33,9 +33,10 @@ const controlCenter = useControlCenterStore();
 const showCreateForm = ref(false);
 const showGroupForm = ref(false);
 const showGovernance = ref(false);
-const creationMode = ref<"blank_slate" | "llm_defined">("blank_slate");
+const creationMode = ref<"blank_slate" | "llm_defined" | "json_import">("blank_slate");
 const newFluctlightName = ref("");
 const creationDescription = ref("");
+const creationJsonInput = ref("");
 const creationPreviewJson = ref("");
 const creationFoundation = ref<BrowserFluctlightCreationAnalysis | null>(null);
 const creationRequestId = ref<string | null>(null);
@@ -45,6 +46,8 @@ const creationInitialGoals = computed(() => creationFoundation.value?.initial_go
 const creationInitialIntentions = computed(() => creationFoundation.value?.initial_intentions ?? []);
 const creationDescriptionBytes = computed(() => new TextEncoder().encode(creationDescription.value.trim()).byteLength);
 const creationDescriptionTooLong = computed(() => creationDescriptionBytes.value > 60_000);
+const creationJsonBytes = computed(() => new TextEncoder().encode(creationJsonInput.value.trim()).byteLength);
+const creationJsonTooLong = computed(() => creationJsonBytes.value > 60_000);
 const defaultGroupId = computed(() => controlCenter.actorGroups.find((group) => group.name === "默认")?.id ?? controlCenter.actorGroups[0]?.id ?? "");
 const orderedActorGroups = computed(() => [...controlCenter.actorGroups].sort((left, right) => { if (left.name === "默认") return -1; if (right.name === "默认") return 1; return left.name.localeCompare(right.name, "zh-CN"); }));
 
@@ -124,9 +127,18 @@ async function activateCreatedFluctlight(body: {
   await store.selectFluctlight(created.id);
   newFluctlightName.value = "";
   creationDescription.value = "";
+  creationJsonInput.value = "";
   invalidateCreationPreview();
   showCreateForm.value = false;
   emit("openChat");
+}
+
+function selectCreationMode(mode: "blank_slate" | "llm_defined" | "json_import") {
+  if (creationMode.value !== mode) {
+    creationMode.value = mode;
+    invalidateCreationPreview();
+    controlCenter.error = "";
+  }
 }
 
 async function createBlank() {
@@ -147,6 +159,37 @@ async function analyzeDescription() {
   const foundation = parseCreationFoundation(result);
   if (!foundation) {
     if (result) controlCenter.error = "初始化模型返回了不包含分层 Persona 的无效结果。";
+    return;
+  }
+  creationFoundation.value = foundation;
+  creationPreviewJson.value = JSON.stringify(foundation, null, 2);
+}
+
+async function importJson() {
+  const raw = creationJsonInput.value.trim();
+  invalidateCreationPreview();
+  if (!raw) return;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    controlCenter.error = "JSON 格式错误，请检查语法。";
+    return;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    controlCenter.error = "JSON 根节点必须是一个对象。";
+    return;
+  }
+  const jsonPayload = JSON.stringify(parsed);
+  const jsonBytes = new TextEncoder().encode(jsonPayload).byteLength;
+  if (jsonBytes > 60_000) {
+    controlCenter.error = `JSON 大小不能超过 60000 个 UTF-8 字节（当前 ${jsonBytes} 字节）。`;
+    return;
+  }
+  const result = await controlCenter.analyzeFluctlight(jsonPayload);
+  const foundation = parseCreationFoundation(result);
+  if (!foundation) {
+    if (result) controlCenter.error = "初始化返回了不包含分层 Persona 的无效结果。";
     return;
   }
   creationFoundation.value = foundation;
@@ -278,8 +321,9 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
 
         <div class="create-dialog-body">
           <div class="segmented-control" role="group" aria-label="Fluctlight 创建方式">
-            <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="creationMode = 'blank_slate'">白纸创建</Button>
-            <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="creationMode = 'llm_defined'">从描述创建</Button>
+            <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="selectCreationMode('blank_slate')">白纸创建</Button>
+            <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="selectCreationMode('llm_defined')">从描述创建</Button>
+            <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'json_import' }" type="button" @click="selectCreationMode('json_import')">从 JSON 导入</Button>
           </div>
           <p v-if="controlCenter.error" class="error-banner" role="alert">
             {{ controlCenter.error }}
@@ -290,11 +334,15 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
             <label for="fluctlight-name">实例名称<Input id="fluctlight-name" v-model="newFluctlightName" type="text" maxlength="256" required placeholder="例如：苏洛星" /></label>
           </form>
 
-          <form v-else id="analyze-description-form" class="stack-form" @submit.prevent="analyzeDescription">
+          <form v-else-if="creationMode === 'llm_defined'" id="analyze-description-form" class="stack-form" @submit.prevent="analyzeDescription">
 			<label for="fluctlight-description">描述你希望创建的 Fluctlight<Textarea id="fluctlight-description" v-model="creationDescription" rows="5" placeholder="描述身份、经历、价值观、表达方式或你希望它如何生活..." /><small class="field-note" :class="{ 'error-banner': creationDescriptionTooLong }">{{ creationDescriptionBytes }} / 60000 UTF-8 字节</small></label>
           </form>
 
-          <form v-if="creationMode === 'llm_defined' && creationPreviewJson" id="activate-preview-form" class="stack-form preview-form" @submit.prevent="activatePreview">
+          <form v-else-if="creationMode === 'json_import'" id="import-json-form" class="stack-form" @submit.prevent="importJson">
+            <label for="fluctlight-json">标准 Persona JSON<Textarea id="fluctlight-json" v-model="creationJsonInput" rows="7" spellcheck="false" placeholder="粘贴包含 core_persona 或分层设定的标准 JSON，系统将自动填充分析与关联 ID 并生成预览..." /><small class="field-note" :class="{ 'error-banner': creationJsonTooLong }">{{ creationJsonBytes }} / 60000 UTF-8 字节</small></label>
+          </form>
+
+          <form v-if="(creationMode === 'llm_defined' || creationMode === 'json_import') && creationPreviewJson" id="activate-preview-form" class="stack-form preview-form" @submit.prevent="activatePreview">
             <label for="fluctlight-preview">可编辑的 Persona 分层预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label>
             <div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary">
               <strong>创建后会带入</strong>
@@ -311,10 +359,12 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
           <Button v-if="creationMode === 'blank_slate'" class="primary-button" variant="default" type="submit" form="blank-create-form" :disabled="controlCenter.saving || controlCenter.loading || !newFluctlightName.trim()">创建并开始对话</Button>
           <template v-else-if="creationPreviewJson">
             <Button v-if="creationDiagnosticsCorrelationId" class="secondary-button" variant="outline" type="button" @click="openCreationDiagnostics">查看本次分析诊断</Button>
-			<Button class="secondary-button" variant="outline" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim() || creationDescriptionTooLong">重新分析</Button>
+			<Button v-if="creationMode === 'llm_defined'" class="secondary-button" variant="outline" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim() || creationDescriptionTooLong">重新分析</Button>
+			<Button v-else-if="creationMode === 'json_import'" class="secondary-button" variant="outline" type="submit" form="import-json-form" :disabled="controlCenter.saving || !creationJsonInput.trim() || creationJsonTooLong">重新解析</Button>
 			<Button class="primary-button" variant="default" type="submit" form="activate-preview-form" :disabled="controlCenter.saving || !creationFoundation">确认激活并开始对话</Button>
           </template>
-		  <Button v-else class="primary-button" variant="default" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim() || creationDescriptionTooLong">分析并生成预览</Button>
+		  <Button v-else-if="creationMode === 'llm_defined'" class="primary-button" variant="default" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim() || creationDescriptionTooLong">分析并生成预览</Button>
+		  <Button v-else-if="creationMode === 'json_import'" class="primary-button" variant="default" type="submit" form="import-json-form" :disabled="controlCenter.saving || !creationJsonInput.trim() || creationJsonTooLong">解析并生成预览</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
