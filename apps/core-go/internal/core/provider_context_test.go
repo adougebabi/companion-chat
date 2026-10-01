@@ -265,7 +265,7 @@ func TestCompactCognitionContextRetainsNonEmptySemanticCollections(t *testing.T)
 		}
 	}
 	recent := arrayValue(compact["recent_messages"])
-	if len(recent) != 1 || stringValue(mapValue(recent[0])["role"]) != "user" || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00Z" {
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["role"]) != "user" || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 08:00:00 · Asia/Shanghai (UTC+08:00)" {
 		t.Fatalf("compact recent messages = %#v", compact["recent_messages"])
 	}
 }
@@ -292,7 +292,7 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 		}},
 	})
 	recent := arrayValue(compact["recent_messages"])
-	if len(recent) != 1 || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00Z" {
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 08:00:00 · Asia/Shanghai (UTC+08:00)" {
 		t.Fatalf("message semantics changed: %#v", recent)
 	}
 	memory := mapValue(arrayValue(compact["memories"])[0])
@@ -351,20 +351,19 @@ func TestCompactCognitionContextRebuildsMissingCorePersonaEnvelope(t *testing.T)
 }
 
 func TestCompactMessageTimeKeepsDateAndSecondsWithoutSequence(t *testing.T) {
-	if got := compactMessageTime("2026-09-03T05:27:14.105684Z"); got != "09-03 05:27:14Z" {
+	if got := compactMessageTime("2026-09-03T05:27:14.105684Z"); got != "09-03 13:27:14 · Asia/Shanghai (UTC+08:00)" {
 		t.Fatalf("compact message time = %q", got)
 	}
 }
 
-// TestCompactMessageTimePreservesTheOriginalOffset pins the R11 timezone fix:
-// the stamp must carry the message's own offset instead of being relabelled as
-// UTC. A 13:27+08:00 message must not render as an unmarked "05:27".
+// TestCompactMessageTimePreservesTheOriginalOffset pins the timezone fix:
+// the stamp must convert UTC messages to local wall-clock time with explicit timezone.
 func TestCompactMessageTimePreservesTheOriginalOffset(t *testing.T) {
-	if got := compactMessageTime("2026-09-03T13:27:14.105684+08:00"); got != "09-03 13:27:14+08:00" {
+	if got := compactMessageTime("2026-09-03T13:27:14.105684+08:00"); got != "09-03 13:27:14 · Asia/Shanghai (UTC+08:00)" {
 		t.Fatalf("local message time lost its offset: %q", got)
 	}
-	if got := compactMessageTime("2026-09-03T13:27:14.105684-05:00"); got != "09-03 13:27:14-05:00" {
-		t.Fatalf("negative offset was not preserved: %q", got)
+	if got := formatMessageTimeWithTimezone("2026-09-30T15:47:11Z", "Asia/Shanghai"); got != "09-30 23:47:11 · Asia/Shanghai (UTC+08:00)" {
+		t.Fatalf("Shanghai local time mismatch: %q", got)
 	}
 }
 
@@ -602,7 +601,7 @@ func TestRecentHistoryNeverAttributesSelfUtteranceToTheUser(t *testing.T) {
 	if strings.Contains(selfContent, "sender=actor_user") {
 		t.Fatalf("the Main prompt attributed a self utterance to the user: %q", selfContent)
 	}
-	if !strings.Contains(selfContent, "time=09-06 00:00:00Z") {
+	if !strings.Contains(selfContent, "time=09-06 08:00:00 · Asia/Shanghai (UTC+08:00)") {
 		t.Fatalf("the self utterance lost its timestamp: %q", selfContent)
 	}
 	if !strings.Contains(userContent, "sender=actor_user") {
@@ -769,7 +768,7 @@ func TestRecentHistoryBridgesSummaryCoverageBeforeTokenBudget(t *testing.T) {
 		t.Fatalf("summary section-budget drop lacks an exact trace reason: %#v", fallback.Trace.Dropped)
 	}
 	boundedPolicy := DefaultWorkingMemoryPolicy()
-	boundedPolicy.RecentTokens = 1500
+	boundedPolicy.RecentTokens = 2000
 	bounded, err := ResolveWorkingMemory(input, boundedPolicy)
 	if err != nil {
 		t.Fatal(err)

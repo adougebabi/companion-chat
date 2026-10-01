@@ -362,6 +362,60 @@ func (a *App) AuditWakeUpClocks(ctx context.Context, limit int) (int64, error) {
 	`); reapErr != nil {
 		return 0, reapErr
 	}
+	// Recover wake_up.current intents stuck in cancelled, failed, or dead_letter.
+	if _, reapErr := a.DB.Pool().Exec(ctx, `
+		UPDATE public.platform_workflow_intents AS i
+		SET status='retry',
+			started_at=NULL,
+			completed_at=NULL,
+			next_attempt_at=now(),
+			last_error=COALESCE(i.last_error, 'reaped_dead_wake_up')
+		FROM public.fluctlights AS f
+		WHERE i.intent_type='wake_up.current'
+		  AND i.payload->>'fluctlight_id'=f.id
+		  AND f.status IN ('active', 'paused')
+		  AND i.status IN ('cancelled', 'failed', 'dead_letter')
+	`); reapErr != nil {
+		return 0, reapErr
+	}
+	// Recover wake_up.current intents superseded where cognition has completed.
+	if _, reapErr := a.DB.Pool().Exec(ctx, `
+		UPDATE public.platform_workflow_intents AS i
+		SET status='completed',
+			started_at=NULL,
+			completed_at=now(),
+			next_attempt_at=now(),
+			last_error=NULL
+		FROM public.fluctlights AS f
+		WHERE i.intent_type='wake_up.current'
+		  AND i.payload->>'fluctlight_id'=f.id
+		  AND f.status IN ('active', 'paused')
+		  AND i.status='superseded'
+		  AND NOT EXISTS (
+			SELECT 1 FROM public.cognition_inbox AS c
+			JOIN public.platform_workflow_intents AS w ON w.intent_id='cognition_intent:'||c.id
+			WHERE c.fluctlight_id=f.id AND c.status IN ('pending','claimed')
+			  AND w.status IN ('pending','retry','started','running','cancel_requested')
+		  )
+	`); reapErr != nil {
+		return 0, reapErr
+	}
+	// Sweep overdue completed wake_up.current intents that missed triggers.
+	if _, reapErr := a.DB.Pool().Exec(ctx, `
+		UPDATE public.platform_workflow_intents AS i
+		SET status='retry',
+			started_at=NULL,
+			completed_at=NULL,
+			payload=jsonb_set(i.payload,'{cycle}',to_jsonb(COALESCE((i.payload->>'cycle')::integer,0)+1),true)
+		FROM public.fluctlights AS f
+		WHERE i.intent_type='wake_up.current'
+		  AND i.payload->>'fluctlight_id'=f.id
+		  AND f.status='active'
+		  AND i.status='completed'
+		  AND i.next_attempt_at <= now() - interval '15 minutes'
+	`); reapErr != nil {
+		return 0, reapErr
+	}
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT f.id
 		FROM public.fluctlights AS f

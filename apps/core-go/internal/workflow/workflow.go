@@ -1384,7 +1384,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 					retryInterval = "30 minutes"
 					newAttemptCount = 0
 				}
-				command, err := d.App.DB.Pool().Exec(ctx, fmt.Sprintf(`UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '%s',attempt_count=$2,started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),last_error,'wake_up_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','started','failed')`, retryInterval), intentID, newAttemptCount, terminalFailure)
+				command, err := d.App.DB.Pool().Exec(ctx, fmt.Sprintf(`UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '%s',attempt_count=$2,started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),last_error,'wake_up_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','started','retry','failed','cancelled')`, retryInterval), intentID, newAttemptCount, terminalFailure)
 				if err != nil {
 					return count, err
 				}
@@ -1783,7 +1783,7 @@ func wakeUpIntentShouldRetry(fluctlightStatus, workflowStatus string) bool {
 	if fluctlightStatus != "active" && fluctlightStatus != "paused" {
 		return false
 	}
-	return workflowStatus == "failed"
+	return workflowStatus == "failed" || workflowStatus == "cancelled" || workflowStatus == "terminated" || workflowStatus == "timed_out"
 }
 
 func actionIntentShouldRetry(actionStatus string) bool {

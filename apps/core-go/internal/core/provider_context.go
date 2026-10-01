@@ -8,6 +8,7 @@ import (
 	"math"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -253,6 +254,10 @@ func promptItemSourceRefs(item map[string]any, fallback string) []string {
 
 func recentPromptFragments(projection ContextProjection) []PromptFragment {
 	skipIndex := currentInputRecentMessageIndex(projection.RecentMessages, projection.CurrentUserText)
+	defaultTz := canonicalTimezone(stringValue(projection.LifeContext["timezone"]))
+	if defaultTz == "" {
+		defaultTz = "Asia/Shanghai"
+	}
 	result := make([]PromptFragment, 0, len(projection.RecentMessages))
 	for index, message := range projection.RecentMessages {
 		if index == skipIndex {
@@ -266,7 +271,11 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 		if content == "" {
 			continue
 		}
-		stamp := compactMessageTime(stringValue(message["created_at"]))
+		msgTz := canonicalTimezone(stringValue(message["sender_timezone"]))
+		if msgTz == "" {
+			msgTz = defaultTz
+		}
+		stamp := formatMessageTimeWithTimezone(stringValue(message["created_at"]), msgTz)
 		sender := "actor_self"
 		if role == "user" {
 			sender = "actor_user"
@@ -1040,7 +1049,7 @@ func compactScheduleValueForSurface(value any, index ContextReferenceIndex, surf
 	switch typed := value.(type) {
 	case map[string]any:
 		result := map[string]any{}
-		for _, key := range []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "current_item", "upcoming_items", "items"} {
+		for _, key := range []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "current_item", "upcoming_items", "items", "local_start_time", "local_end_time", "local_time_range", "local_start_at", "local_end_at"} {
 			if raw, ok := typed[key]; ok && raw != nil && raw != "" {
 				result[key] = compactScheduleValueForSurface(raw, index, surface)
 			}
@@ -1052,6 +1061,14 @@ func compactScheduleValueForSurface(value any, index ContextReferenceIndex, surf
 		}
 		return result
 	case []any:
+		result := make([]any, 0, len(typed))
+		for _, raw := range typed {
+			if compact := compactScheduleValueForSurface(raw, index, surface); len(mapValue(compact)) > 0 {
+				result = append(result, compact)
+			}
+		}
+		return result
+	case []map[string]any:
 		result := make([]any, 0, len(typed))
 		for _, raw := range typed {
 			if compact := compactScheduleValueForSurface(raw, index, surface); len(mapValue(compact)) > 0 {
@@ -1405,7 +1422,11 @@ func compactRecentMessagesForActors(messages []map[string]any, currentUserText s
 		if kind == "" {
 			kind = "message"
 		}
-		stamp := compactMessageTime(stringValue(message["created_at"]))
+		tz := canonicalTimezone(stringValue(message["sender_timezone"]))
+		if tz == "" {
+			tz = "Asia/Shanghai"
+		}
+		stamp := formatMessageTimeWithTimezone(stringValue(message["created_at"]), tz)
 		item := map[string]any{"role": kind, "time": stamp, "content": text}
 		if sender := actorRefForID(actors, stringValue(message["author_actor_id"])); len(sender) > 0 {
 			if stringValue(sender["type"]) == "human" {
@@ -1439,15 +1460,60 @@ func actorRefForID(actors []map[string]any, actorID string) map[string]any {
 	return nil
 }
 
-func compactMessageTime(value string) string {
+func loadLocationOrOffset(tz string) (*time.Location, string) {
+	tz = canonicalTimezone(tz)
+	if tz == "" {
+		tz = "Asia/Shanghai"
+	}
+	if loc, err := time.LoadLocation(tz); err == nil {
+		return loc, tz
+	}
+	normalized := strings.TrimPrefix(strings.TrimPrefix(tz, "UTC"), "GMT")
+	if len(normalized) >= 2 && (normalized[0] == '+' || normalized[0] == '-') {
+		parts := strings.Split(normalized[1:], ":")
+		hours, _ := strconv.Atoi(parts[0])
+		mins := 0
+		if len(parts) > 1 {
+			mins, _ = strconv.Atoi(parts[1])
+		}
+		totalSec := (hours*60 + mins) * 60
+		if normalized[0] == '-' {
+			totalSec = -totalSec
+		}
+		return time.FixedZone(tz, totalSec), tz
+	}
+	return time.UTC, "UTC"
+}
+
+func formatMessageTimeWithTimezone(value string, timezone string) string {
 	if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
-		// Keep the timestamp's own offset and state it. Converting to UTC before
-		// formatting silently relabels a local time as UTC: a message sent at
-		// 13:27+08:00 renders as "05:27" with no zone at all, so neither the
-		// wall-clock time nor the offset survives into the prompt. The RFC3339
-		// zone suffix ("Z" or "+08:00") is the smallest change that keeps the
-		// message's real time readable and comparable (R11/M7).
-		return parsed.Format("01-02 15:04:05Z07:00")
+		var loc *time.Location
+		var tzName string
+		if strings.TrimSpace(timezone) != "" {
+			loc, tzName = loadLocationOrOffset(timezone)
+		} else {
+			_, offsetSec := parsed.Zone()
+			if offsetSec != 0 {
+				loc = parsed.Location()
+				sign := "+"
+				if offsetSec < 0 {
+					sign = "-"
+					offsetSec = -offsetSec
+				}
+				tzName = fmt.Sprintf("UTC%s%02d:%02d", sign, offsetSec/3600, (offsetSec%3600)/60)
+			} else {
+				loc, tzName = loadLocationOrOffset("Asia/Shanghai")
+			}
+		}
+		localTime := parsed.In(loc)
+		_, offsetSec := localTime.Zone()
+		sign := "+"
+		if offsetSec < 0 {
+			sign = "-"
+			offsetSec = -offsetSec
+		}
+		offsetStr := fmt.Sprintf("UTC%s%02d:%02d", sign, offsetSec/3600, (offsetSec%3600)/60)
+		return fmt.Sprintf("%s · %s (%s)", localTime.Format("01-02 15:04:05"), tzName, offsetStr)
 	}
 	if len(value) >= 8 && value[2] == '-' && value[5] == ' ' {
 		return value[:8]
@@ -1456,6 +1522,10 @@ func compactMessageTime(value string) string {
 		return value[:8]
 	}
 	return "--:--"
+}
+
+func compactMessageTime(value string) string {
+	return formatMessageTimeWithTimezone(value, "Asia/Shanghai")
 }
 
 func compactDevelopingSelf(claims []map[string]any) []map[string]any {
@@ -1714,6 +1784,11 @@ func compactScheduleForProvider(value map[string]any) map[string]any {
 	if revision >= 0 {
 		result["expected_revision"] = revision
 	}
+	tz := canonicalTimezone(stringValue(value["timezone"]))
+	if tz == "" {
+		tz = "Asia/Shanghai"
+	}
+	loc, _ := loadLocationOrOffset(tz)
 	items := make([]map[string]any, 0)
 	for _, raw := range arrayValue(value["items"]) {
 		item := mapValue(raw)
@@ -1725,6 +1800,15 @@ func compactScheduleForProvider(value map[string]any) map[string]any {
 			if child, ok := item[key]; ok && child != nil && child != "" {
 				compact[key] = child
 			}
+		}
+		start, startErr := time.Parse(time.RFC3339Nano, stringValue(item["start_at"]))
+		end, endErr := time.Parse(time.RFC3339Nano, stringValue(item["end_at"]))
+		if startErr == nil && endErr == nil && loc != nil {
+			compact["local_start_time"] = start.In(loc).Format("15:04")
+			compact["local_end_time"] = end.In(loc).Format("15:04")
+			compact["local_time_range"] = fmt.Sprintf("%s - %s", start.In(loc).Format("15:04"), end.In(loc).Format("15:04"))
+			compact["local_start_at"] = start.In(loc).Format("2006-01-02 15:04:05 MST")
+			compact["local_end_at"] = end.In(loc).Format("2006-01-02 15:04:05 MST")
 		}
 		if len(compact) > 0 {
 			items = append(items, compact)

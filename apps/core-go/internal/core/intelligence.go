@@ -266,7 +266,27 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		}
 		recentMessages = make([]map[string]any, 0, len(history.Messages))
 		for _, message := range history.Messages {
-			recentMessages = append(recentMessages, map[string]any{"id": message.ID, "sequence": message.Sequence, "turn_id": message.TurnID, "author_actor_id": message.AuthorActorID, "kind": message.Kind, "text": message.Text, "attachment_refs": message.AttachmentRefs, "created_at": message.CreatedAt.Format(time.RFC3339Nano), "source": "message:" + message.ID})
+			entry := map[string]any{
+				"id":              message.ID,
+				"sequence":        message.Sequence,
+				"turn_id":         message.TurnID,
+				"author_actor_id": message.AuthorActorID,
+				"kind":            message.Kind,
+				"text":            message.Text,
+				"attachment_refs": message.AttachmentRefs,
+				"created_at":      message.CreatedAt.Format(time.RFC3339Nano),
+				"source":          "message:" + message.ID,
+			}
+			if message.SenderTimezone != nil {
+				entry["sender_timezone"] = *message.SenderTimezone
+			}
+			if message.SenderUTCOffsetMinutes != nil {
+				entry["sender_utc_offset_minutes"] = *message.SenderUTCOffsetMinutes
+			}
+			if message.SenderSentAt != nil {
+				entry["sender_sent_at"] = message.SenderSentAt.Format(time.RFC3339Nano)
+			}
+			recentMessages = append(recentMessages, entry)
 		}
 	}
 	activeResult, err := a.retrieveActiveMemories(ctx, ActiveMemoryQuery{AuthorizationActorID: actorID, OwnerFluctlightID: fluctlightID, ConversationID: conversationID, Cue: userText, At: projectionAt, Limit: activeMemoryResultLimit})

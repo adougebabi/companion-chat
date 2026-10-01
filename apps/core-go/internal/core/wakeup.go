@@ -169,7 +169,7 @@ func setWakeUpIdleEpochTx(ctx context.Context, tx pgx.Tx, fluctlightID, messageI
 	payload["idle_slot"] = 0
 	payload["idle_phase"] = wakeUpIdlePhase(0)
 	delete(payload, "idle_last_settled_cycle")
-	_, err = tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET payload=$2,next_attempt_at=$3 WHERE intent_id=$1 AND intent_type='wake_up.current'`, intentID, jsonBytes(payload), acceptedAt.UTC().Add(wakeUpFirstIdleDelay))
+	_, err = tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET payload=$2,next_attempt_at=$3,status=CASE WHEN status IN ('superseded','cancelled','failed','dead_letter') THEN 'completed' ELSE status END WHERE intent_id=$1 AND intent_type='wake_up.current'`, intentID, jsonBytes(payload), acceptedAt.UTC().Add(wakeUpFirstIdleDelay))
 	return err
 }
 
@@ -331,7 +331,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			  AND i.payload->>'fluctlight_id' = f.id
 			  AND f.status IN ('active', 'paused')
 			  AND (
-			    i.status IN ('failed', 'dead_letter')
+			    i.status IN ('failed', 'dead_letter', 'cancelled')
 			    OR (i.status = 'started' AND (i.started_at IS NULL OR i.started_at < now() - interval '5 minutes'))
 			  )`)
 		if err != nil {
@@ -345,17 +345,17 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			UPDATE public.platform_workflow_intents AS i
 			SET status='completed',next_attempt_at=CASE
 				WHEN i.payload->>'idle_version'='1' AND i.payload ? 'idle_since' THEN
-					(i.payload->>'idle_since')::timestamptz +
+					GREATEST(now(), (i.payload->>'idle_since')::timestamptz +
 					CASE WHEN COALESCE((i.payload->>'idle_slot')::integer,0) <= 0 THEN interval '10 minutes'
 					     WHEN (i.payload->>'idle_slot')::integer = 1 THEN interval '30 minutes'
-					     ELSE interval '30 minutes' + (((i.payload->>'idle_slot')::integer-1) * $1 * interval '1 second') END
+					     ELSE interval '30 minutes' + (((i.payload->>'idle_slot')::integer-1) * $1 * interval '1 second') END)
 				ELSE now()+interval '10 minutes' END,
 				started_at=NULL,completed_at=now(),last_error=NULL
 			FROM public.fluctlights AS f
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id'=f.id
 			  AND f.status IN ('active','paused')
-			  AND i.status='superseded'
+			  AND i.status IN ('superseded', 'cancelled')
 			  AND NOT EXISTS (
 				SELECT 1 FROM public.cognition_inbox AS c
 				JOIN public.platform_workflow_intents AS w ON w.intent_id='cognition_intent:'||c.id
@@ -659,13 +659,21 @@ func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, 
 		}
 		nextClock := nextWakeUpIdleClock(clock, now, intervalSeconds)
 		nextDue = wakeUpIdleDue(nextClock, intervalSeconds)
+		for !nextDue.After(now.UTC()) {
+			nextClock.Slot++
+			nextDue = wakeUpIdleDue(nextClock, intervalSeconds)
+		}
 		payload["idle_slot"] = nextClock.Slot
 		payload["idle_phase"] = wakeUpIdlePhase(nextClock.Slot)
 		payload["idle_last_settled_cycle"] = cycle
+	} else {
+		for !nextDue.After(now.UTC()) {
+			nextDue = nextDue.Add(time.Duration(intervalSeconds) * time.Second)
+		}
 	}
 	command, err := tx.Exec(ctx, `
 		UPDATE public.platform_workflow_intents
-		SET next_attempt_at=$2,attempt_count=0,payload=$3
+		SET next_attempt_at=$2,attempt_count=0,payload=$3,status='completed',completed_at=now(),started_at=NULL,last_error=NULL
 		WHERE intent_type='wake_up.current'
 		  AND payload->>'fluctlight_id'=$1`, fluctlightID, nextDue, jsonBytes(payload))
 	if err != nil {
