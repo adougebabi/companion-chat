@@ -135,3 +135,70 @@ Wrong: `result = nilMap; if result == nil { apply() }` skips first CLI apply.
 Correct: assign the replay map to the interface only when the map is non-nil.
 Wrong: render clothing from model text or mark shopping complete on scheduling.
 Correct: commit acquisition, mutate wear independently, render frozen authority.
+
+## Scenario: WakeUp Silence Reasons Stay In Diagnostics
+
+### 1. Scope / Trigger
+
+An awake periodic check has no reason to contact the human, or a model incorrectly
+calls `conversation.reply` with a no-op control value.
+
+### 2. Signatures
+
+```json
+{"action_type":"no_op","response_intent":"No new event; continue current work without contacting the user","evidence_refs":[],"influences":[]}
+```
+
+WakeUp `result.response_intent` persists the final internal decision reason.
+`conversation.reply({text,topic_key?,purpose?})` remains the actual message Tool.
+
+### 3. Contracts
+
+- Final `response_intent` contains the internal silence reason and is never
+  published as conversation text. Tool `purpose` describes real communication,
+  not the reason for no communication. Silence needs no additional Tool.
+- The shared reply description and WakeUp final field descriptions must expose
+  this distinction to the Provider. Keep the canonical registry definition;
+  do not install an unregistered shadow Tool or alternate execution protocol.
+- Publication rejects trimmed, case-insensitive exact `no_op`, `noop`, `no-op`
+  and `none`. Natural prose mentioning those tokens stays valid; there is no
+  keyword interpretation of `purpose` or arbitrary prose classification.
+- Rejection returns non-retryable `reply_control_value_invalid` and tells the
+  model to return final no_op/response_intent. The native loop may then finish
+  silently; do not resend the control value or fabricate a successful message.
+- `publicationCapabilityError` preserves explicit typed domain errors before
+  generic cause classification, so the model receives the stable correction code.
+- WakeUp failed/rejected Tool attempts remain in the audit, but their mere
+  presence does not make a cycle `completed/agent_tools_committed` or overwrite
+  final no_op with `capability`. A successful Tool result retains the existing
+  behavior, including actual natural replies already delivered.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Exact reserved control text | reply_control_value_invalid; zero message/outbox publication |
+| Failed reply then final no_op | cycle no_op; failure audited, response_intent persisted |
+| Natural sentence mentioning no_op | normal publication |
+| Truly delivered reply then final no_op | delivered reply remains a real fact |
+
+### 5. Good / Base / Bad Cases
+
+Good: quiet work interval returns final no_op with a private diagnostic reason.
+Base: no new event yields no Tool calls and no chat message.
+Bad: `conversation.reply({text:"no_op",purpose:"continue silently"})`.
+
+### 6. Tests Required
+
+`TestConversationReplyControlValuesNeverPublishAndExplainSilentWakeUp` covers
+independent ordinary/autonomous execution, stable non-retryable feedback and
+zero visible messages. `TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage`
+uses the formal native loop, scripted Provider and real isolated PostgreSQL:
+rejected Tool → feedback → final no_op → persisted reason → zero private rows →
+cycle replay without another Provider call. Preserve genuine proactive-reply
+and internal life-activity WakeUp tests. This does not prove live model compliance.
+
+### 7. Wrong vs Correct
+
+Wrong: send the internal silence decision via `conversation.reply.text`.
+Correct: final `action_type=no_op`, private reason in `response_intent`, no message Tool.

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
+	"strings"
 	"testing"
 	"time"
 )
@@ -253,4 +255,30 @@ func TestExecuteToolImageGenerateDependencyFailureCreatesNoIntent(t *testing.T) 
 func toolBoolValue(value any) bool {
 	result, _ := value.(bool)
 	return result
+}
+
+func TestConversationReplyControlValuesNeverPublishAndExplainSilentWakeUp(t *testing.T) {
+	for _, policy := range []string{"", "autonomy"} {
+		t.Run("policy-"+policy, func(t *testing.T) {
+			ctx, repo, app, owner, fl, conversation := setupDirectPublicationToolTest(t, "control-"+policy)
+			for n, text := range []string{"no_op", " NO_OP ", "noop", "no-op", "none"} {
+				receipt, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: conversationReplyCapabilityName, OperationID: fmt.Sprintf("control-%d", n), AuthorizationPolicy: policy, AuthorizationActorID: owner, FluctlightID: fl, ConversationID: conversation, Arguments: jsonBytes(map[string]any{"text": text, "topic_key": "afternoon_work_resume", "purpose": "无新事件，继续静默执行"})})
+				if err == nil || receipt.Result.Status != "failed" || receipt.Result.ErrorCode != "reply_control_value_invalid" || receipt.Result.Retryable {
+					t.Fatalf("control %q receipt=%#v err=%v", text, receipt, err)
+				}
+				if !strings.Contains(err.Error(), "response_intent") {
+					t.Fatalf("no recovery instruction: %v", err)
+				}
+			}
+			var visible int
+			if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversation).Scan(&visible); err != nil || visible != 0 {
+				t.Fatalf("control published=%d err=%v", visible, err)
+			}
+			// Prose that discusses a token is an actual message, not a control value.
+			receipt, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: conversationReplyCapabilityName, OperationID: "explain-control", AuthorizationPolicy: policy, AuthorizationActorID: owner, FluctlightID: fl, ConversationID: conversation, Arguments: jsonBytes(map[string]any{"text": "no_op 是内部控制值。", "topic_key": "explain-control", "purpose": "回答用户关于控制值的问题"})})
+			if err != nil || receipt.Result.Status != "completed" {
+				t.Fatalf("natural message rejected %#v %v", receipt, err)
+			}
+		})
+	}
 }

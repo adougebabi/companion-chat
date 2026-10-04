@@ -222,3 +222,24 @@ preflight原始日志已清理，阻塞结果保留于validation-summary.json与
 真实模型与视觉验收继续待完成，任务保持in_progress。
 
 源码提交：`d6636ef`（既有tracked改动）及`e86ab1f`（补齐新增源码、迁移与测试）。
+
+## 2026-10-04 Wake-up 静默原因补充修复
+
+用户提供的native ToolCall将内部周期检查说明放入conversation.reply.purpose，
+text为no_op。当前源码原本已在最终publication边界拒绝精确no_op；仅有ToolCall
+记录不能证明该值已实际送达，也没有本轮运行实例trace证明线上二进制版本。
+本次确认并修复的是模型契约与诊断保存：共享reply描述不再暗示必须输出当前轮，
+WakeUp policy/schema明确final response_intent承载内部静默原因；周期result持久化
+该字段。对精确控制值返回稳定reply_control_value_invalid及明确纠正指引，并保留
+typed domain error，避免被invalid_arguments覆盖。failed/rejected Tool尝试继续留审计，
+但不再仅因有result就把静默周期改成completed/capability。
+
+正式native Loop回归复现同类误调用：首次请求conversation.reply{text:no_op}，
+领域拒绝且无消息写入；第二轮读取真实失败结果并返回no_op/response_intent；
+周期no_op、原因保存、assistant消息数0，重放无额外Provider调用。独立普通/自主
+Tool执行同时覆盖大小写与空白、noop/no-op/none；自然文本提及no_op仍可发送。
+真正主动私聊及无消息生活活动的原有回归继续验证。没有新增诊断Tool或自然语言
+关键词门禁；本次未部署，实际Provider的新行为仍需运行新版本后验证。
+
+本次定向race验证128个test/subtest通过、0失败、4个live外部依赖跳过；
+vet/build通过，独立只读核验无发现。本补充修复尚未提交或部署。

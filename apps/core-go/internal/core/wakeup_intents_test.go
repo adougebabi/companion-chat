@@ -625,3 +625,55 @@ func TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease(t *testing.T
 		t.Fatal("lost Redis expiry recovery did not record an overdue lifecycle event")
 	}
 }
+
+func TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage(t *testing.T) {
+	ctx, repo := isolatedCoreTestRepository(t)
+	owner, fl := "wake-control-owner", "wake-control-fl"
+	seedLifeContextFluctlight(t, ctx, repo, owner, fl)
+	base := &App{DB: repo}
+	at := time.Now().UTC()
+	life := currentLifeForTest(t, ctx, base, fl, at)
+	if _, err := base.AcceptSchedule(ctx, owner, fl, fullDaySchedulePayloadForTest(at, "wake-control-schedule", stringValue(life["context_revision"]))); err != nil {
+		t.Fatal(err)
+	}
+	seedCognitiveProviderRole(t, ctx, repo, "wake-control-endpoint")
+	reason := "周期性检查，无新事件，继续当前工作，不联系用户"
+	calls := 0
+	router := newFakeProviderRouter().on("wake_up_response", func(payload map[string]any) fakeProviderResult {
+		calls++
+		if calls == 1 {
+			wire := jsonString(payload)
+			if !strings.Contains(wire, "response_intent") || !strings.Contains(wire, "internal diagnostics") {
+				t.Fatal("WakeUp lost diagnostic routing contract")
+			}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("wake-control-call", conversationReplyCapabilityName, map[string]any{"text": "no_op", "topic_key": "afternoon_work_resume", "purpose": reason})}}
+		}
+		if calls != 2 || !payloadHasToolResult(payload) || !strings.Contains(jsonString(payload), "reply_control_value_invalid") {
+			t.Fatalf("missing nonretryable Tool feedback: calls=%d", calls)
+		}
+		return fakeProviderResult{Structured: map[string]any{"action_type": "no_op", "response_intent": reason, "evidence_refs": []any{}, "influences": []any{}}}
+	})
+	app := newTestApp(t, repo, router)
+	wake, err := app.ProcessWakeUp(ctx, fl, 1)
+	if err != nil || wake["status"] != "no_op" || wake["action_type"] != "no_op" || calls != 2 {
+		t.Fatalf("quiet recovery=%#v err=%v calls=%d", wake, err, calls)
+	}
+	if mapValue(wake["result"])["response_intent"] != reason {
+		t.Fatalf("diagnostic reason lost %#v", wake)
+	}
+	var visible int
+	var raw []byte
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE author_actor_id=$1 AND kind='assistant'`, fl).Scan(&visible); err != nil || visible != 0 {
+		t.Fatalf("private messages=%d err=%v", visible, err)
+	}
+	if err := repo.Pool().QueryRow(ctx, `SELECT result FROM public.cognition_wakeups WHERE fluctlight_id=$1 AND cycle=1`, fl).Scan(&raw); err != nil || decodeObject(raw)["response_intent"] != reason {
+		t.Fatalf("persisted diagnostic=%s err=%v", raw, err)
+	}
+	results, _ := mapValue(wake["result"])["capability_results"].([]CapabilityResult)
+	if len(results) != 1 || results[0].ErrorCode != "reply_control_value_invalid" {
+		t.Fatalf("failed Tool audit missing %#v", results)
+	}
+	if _, err := app.ProcessWakeUp(ctx, fl, 1); err != nil || calls != 2 {
+		t.Fatalf("cycle replay reran Provider calls=%d err=%v", calls, err)
+	}
+}

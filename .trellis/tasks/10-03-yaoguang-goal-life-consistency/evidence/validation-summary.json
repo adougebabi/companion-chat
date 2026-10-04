@@ -49,5 +49,25 @@
   "live_visual": "BLOCKED missing acceptance config; pixels unverified",
   "core_client_validation": "generate/typecheck PASS; no package test script",
   "additional_targeted_physical_budget": "PASS 5 physical calls actual PostgreSQL/scripted Provider",
-  "additional_targeted_instant_log": "PASS"
+  "additional_targeted_instant_log": "PASS",
+  "wake_up_silent_diagnostic_patch": {
+    "targeted_race_test_events": {
+      "pass": 128,
+      "skip": 4
+    },
+    "skipped_live_tests": [
+      "TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply",
+      "TestLiveWakeUpRealToolCallsReachDurableActionAndReflection",
+      "TestLiveRegressionConversationImageAndReplySameTurn",
+      "TestLiveRegressionWakeUpProactiveImageAndReplyBundle"
+    ],
+    "vet": "PASS",
+    "build": "PASS",
+    "read_only_review": "no findings",
+    "provider": "scripted with actual isolated PostgreSQL",
+    "private_messages_for_control_reply": 0,
+    "response_intent": "persisted in cycle result",
+    "committed": false,
+    "deployed": false
+  }
 }

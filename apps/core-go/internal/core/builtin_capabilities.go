@@ -913,6 +913,9 @@ func mediaInvocationIdentity(invocation CapabilityInvocation) (string, string, s
 }
 
 func publicationCapabilityError(err error, fallback string) (string, bool) {
+	if code, retryable := capabilityErrorInfo(err, "", false); code != "" {
+		return code, retryable
+	}
 	switch {
 	case errors.Is(err, ErrReplyAlreadyPublished):
 		return "reply_already_published", false

@@ -196,14 +196,14 @@ func CapabilityToolSchemaStats(definitions []CapabilityDefinition) (bytes int, c
 func conversationReplyCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: conversationReplyCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Deliver the final user-visible text for the current conversation turn.",
+		Description:     "Send an actual user-visible private message, only when you intend to contact the recipient. Never use this Tool for internal diagnostics, silence decisions, or control values such as no_op. During WakeUp, finish with action_type=no_op and put the private diagnostic reason in final response_intent instead. For autonomous messages, topic_key and purpose describe the real communication topic and purpose.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCurrentLife},
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required":   []any{"text"},
-			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}, "topic_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "purpose": map[string]any{"type": "string", "minLength": 1, "maxLength": 256}},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "Actual natural message delivered to the recipient; never no_op, noop, no-op or an internal cycle diagnostic."}, "topic_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "purpose": map[string]any{"type": "string", "minLength": 1, "maxLength": 256, "description": "Purpose of contacting the recipient, not the reason for staying silent. Put a silence reason in WakeUp final response_intent."}},
 		},
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,

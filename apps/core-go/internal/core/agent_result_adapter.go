@@ -831,7 +831,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	status, reason := "no_op", "no_action_selected"
-	if len(outcome.Results) > 0 {
+	if wakeUpHasSuccessfulToolResult(outcome) {
 		status, reason = "completed", "agent_tools_committed"
 	}
 	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
@@ -840,10 +840,19 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	return a.persistCommittedWakeUp(ctx, wakeID, fluctlightID, cycle, settings.IntervalSeconds, projection, assessment, outcome, conversationID, status, reason)
 }
 
+func wakeUpHasSuccessfulToolResult(outcome agentCommittedOutcome) bool {
+	for _, result := range outcome.Results {
+		if result.Status == "completed" || result.Status == "accepted" {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle, intervalSeconds int, projection ContextProjection, assessment map[string]any, outcome agentCommittedOutcome, conversationID, status, reason string) (map[string]any, error) {
 	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
 	actionType := normalizeConversationActionType(stringValue(assessment["action_type"]))
-	if len(outcome.Results) > 0 {
+	if wakeUpHasSuccessfulToolResult(outcome) {
 		actionType = "capability"
 		for _, result := range outcome.Results {
 			if result.CapabilityName == "conversation.reply" && result.Status == "completed" {
@@ -859,7 +868,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 	}
 	reflectionIntentID := "reflection_intent:wake:" + wakeID
 	factID := "wake_fact_" + stableDigest(wakeID)
-	result := map[string]any{"status": status, "reason": reason, "conversation_id": conversationID, "capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
+	result := map[string]any{"status": status, "reason": reason, "response_intent": stringValue(assessment["response_intent"]), "conversation_id": conversationID, "capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
 	var nextDue time.Time
 	superseded := false
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {

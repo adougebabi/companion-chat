@@ -81,3 +81,17 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ## 2026-10-04 用户授权提交与清理
 
 用户明确回复“提交吧，一些测试数据就删除”。HEAD d6636ef已包含前轮tracked edits，本次补交剩余新增源码/测试/迁移/spec/report。删除77个临时产物（5951602 bytes），保留13个精简结果JSON及README；报告链接同步，不再声称原始日志仍可查阅。无生产数据清理，live验收未完成，不归档。
+
+
+## 2026-10-04 Wake-up静默诊断路由
+
+用户报告conversation.reply{text:no_op,purpose:周期静默诊断}。当前源码原本已有精确
+no_op拦截，因此ToolCall本身不证明私聊成功。补齐正式Tool描述与final schema/policy：
+内部原因放response_intent，无需消息Tool；周期result保存该字段。typed error优先
+保留reply_control_value_invalid及纠正指导；failed/rejected result不强制completed/
+capability，真正送达回复仍以实际结果为准。
+独立普通/autonomy及原生WakeUp误调用→失败反馈→静默final→持久原因→重放回归
+通过，零assistant消息；既有自然私聊、生活活动、预算/Tool registry回归保留。
+定向race测试128 pass、0 fail、4 live skip；vet/build通过；只读核验无发现。
+测试使用新临时PG容器，原始日志仅/tmp且测试结束清理；精简统计追加到validation-summary.json。
+本次补丁尚未提交或部署，无生产数据操作。

@@ -56,3 +56,15 @@ PG 测试使用 GO_CORE_TEST_DATABASE_URL 对应可丢弃实例及 per-test 随�
 
 ## 规划收敛结果
 目标/范围/边界/验收已有附件基线；没有需要用户补充的产品问题。数据库具体最小迁移结构、工具对外命名、真实环境可用性是 T00 技术核对与执行 preflight，不能据此改变已承诺行为。最终方案审批后才能进入实现；若实施发现必须改变目标或安全边界，回规划。
+
+## 2026-10-04 Wake-up 静默原因路由修复
+
+用户报告模型将周期检查说明放进 conversation.reply.purpose，并发送 text=no_op。
+最小边界：复用 final response_intent 保存不对外发布的原因；修改正式 reply 描述/
+字段说明及 Wake-up policy；领域 publication 对精确控制值返回可纠正的稳定错误；
+Wake-up 将 failed Tool audit 与真正completed/accepted效果区分，保存静默诊断。
+预期修改 capability_prompt_policy.go、provider_schemas.go、tool_contract.go、
+tool_publication.go、agent_result_adapter.go 及定向测试/spec。
+不新增诊断Tool、不解析purpose自然语言、不凭final no_op撤销真正已提交的自然回复，
+不改变日程/睡眠/库存权威。验证直调Tool拒绝无消息、清醒周期误调用→失败结果→
+final no_op保存原因及真实主动私聊仍可送达。
