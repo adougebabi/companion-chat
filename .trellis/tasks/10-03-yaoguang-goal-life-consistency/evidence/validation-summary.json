@@ -1,0 +1,53 @@
+{
+  "go_test_events_including_subtests": {
+    "pass": 1641,
+    "skip": 24
+  },
+  "go_package_events": {
+    "skip": 10,
+    "pass": 15
+  },
+  "go_external_skips": [
+    "TestFormalAgentE2E",
+    "TestIndependentToolE2EScheduleReplan",
+    "TestLiveStreamTurnFormalAgentNDJSON",
+    "TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment",
+    "TestLiveHandleTurnOrdinaryChatHasNoFixedPlanningOrMemoryPass",
+    "TestLiveHandleTurnReadsCompletedHaircutAfterReload",
+    "TestLiveHandleTurnReadsChangedWearingAfterReload",
+    "TestLiveHandleTurnDoesNotTreatUnexecutedWishAsPurchase",
+    "TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory",
+    "TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply",
+    "TestLiveWakeUpRealToolCallsReachDurableActionAndReflection",
+    "TestLiveRegressionMultiPersonalityDayNightContract",
+    "TestLiveRegressionConversationImageAndReplySameTurn",
+    "TestLiveRegressionWakeUpProactiveImageAndReplyBundle",
+    "TestLiveProviderDenseSingleInitialization",
+    "TestLiveProviderDenseMultiInitialization",
+    "TestLiveProviderDenseExternalInitialization",
+    "TestLiveProviderRecognizesImageGenerationIntent",
+    "TestLiveProviderRoleOrganization",
+    "TestLiveProviderActiveMemory",
+    "TestLiveProviderComplexMultiPersonalityInitialization",
+    "TestLiveProviderPersonalityDecision",
+    "TestVisualIdentityLiveE2EPreflight",
+    "TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical"
+  ],
+  "additional_targeted_repair_periodic": "PASS (test appended after full-run compilation)",
+  "go_vet": "PASS",
+  "go_build": "PASS",
+  "pnpm_generate": "PASS",
+  "pnpm_typecheck": "PASS",
+  "pnpm_test": {
+    "browser_client": 14,
+    "web": 59,
+    "fail": 0
+  },
+  "pnpm_build": "PASS",
+  "phase8_contract_gate": "PASS",
+  "live_model": "BLOCKED connection refused errno61",
+  "live_visual": "BLOCKED missing acceptance config; pixels unverified",
+  "core_client_validation": "generate/typecheck PASS; no package test script",
+  "additional_targeted_physical_budget": "PASS 5 physical calls actual PostgreSQL/scripted Provider",
+  "additional_targeted_instant_log": "PASS"
+}

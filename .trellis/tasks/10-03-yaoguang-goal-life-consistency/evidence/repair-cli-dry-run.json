@@ -1,0 +1,39 @@
+{
+  "owner_id": "repair-cli-owner",
+  "reason": "isolated CLI fixture correction",
+  "digest": "be407450b7b88e02320e8b134974a890",
+  "classification_counts": {
+    "actor_fact:explicit_invalidated": 1
+  },
+  "items": [
+    {
+      "entry": {
+        "fluctlight_id": "repair-cli-fl",
+        "kind": "actor_fact",
+        "id": "repair-cli-wrong-location",
+        "expected_revision": 1,
+        "qualification": "explicit_invalidated"
+      },
+      "before": {
+        "attribute": "location_scope",
+        "created_at": "2026-10-03T22:08:17.519955+00:00",
+        "epistemic_kind": "owner_defined",
+        "id": "repair-cli-wrong-location",
+        "operation_id": "fixture-location",
+        "owner_fluctlight_id": "repair-cli-fl",
+        "replaced_by": null,
+        "revision": 1,
+        "source_fingerprint": "00000000000000000000000000000000",
+        "source_message_id": null,
+        "source_ref": "owner-command:fixture",
+        "status": "active",
+        "subject_actor_id": "repair-cli-owner",
+        "transition_kind": "assert",
+        "valid_from": "2026-10-03T22:08:17.519955+00:00",
+        "valid_until": null,
+        "value_json": "same_building"
+      },
+      "sources": []
+    }
+  ]
+}

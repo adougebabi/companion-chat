@@ -1,0 +1,812 @@
+{
+  "after": {
+    "policy_version": "prompt-budget.v1",
+    "context_window_tokens": 131072,
+    "max_input_tokens": 98304,
+    "output_reserve_tokens": 4096,
+    "safety_margin_tokens": 4096,
+    "estimated_input_tokens": 2032,
+    "wire_bytes": 2739,
+    "wire_chars": 1653,
+    "token_estimate_method": "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance",
+    "count_mode": "estimated",
+    "section_tokens": {
+      "active_memory": 0,
+      "conversation_summary": 62,
+      "current_input": 51,
+      "protocol": 535,
+      "recent": 764,
+      "response_schema": 28,
+      "retrieved_memory": 0,
+      "runtime.time_view": 248,
+      "runtime_facts": 248,
+      "system": 671,
+      "tools": 114,
+      "working_persona": 63
+    },
+    "section_bytes": {
+      "conversation_summary": 110,
+      "current_input": 55,
+      "protocol": 778,
+      "recent": 1262,
+      "response_schema": 22,
+      "runtime.time_view": 195,
+      "runtime_facts": 195,
+      "system": 873,
+      "tools": 91,
+      "working_persona": 69
+    },
+    "section_chars": {
+      "conversation_summary": 46,
+      "current_input": 37,
+      "protocol": 450,
+      "recent": 598,
+      "response_schema": 22,
+      "runtime.time_view": 195,
+      "runtime_facts": 195,
+      "system": 533,
+      "tools": 91,
+      "working_persona": 57
+    },
+    "selected": [
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "runtime:time_view"
+        ],
+        "tokens": 248,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-37"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-38"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-39"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-40"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "conversation_summary",
+        "source_refs": [
+          "message:budget-message-1",
+          "message:budget-message-10",
+          "message:budget-message-11",
+          "message:budget-message-12",
+          "message:budget-message-13",
+          "message:budget-message-14",
+          "message:budget-message-15",
+          "message:budget-message-16",
+          "message:budget-message-17",
+          "message:budget-message-18",
+          "message:budget-message-19",
+          "message:budget-message-2",
+          "message:budget-message-20",
+          "message:budget-message-21",
+          "message:budget-message-22",
+          "message:budget-message-23",
+          "message:budget-message-24",
+          "message:budget-message-25",
+          "message:budget-message-26",
+          "message:budget-message-27",
+          "message:budget-message-28",
+          "message:budget-message-29",
+          "message:budget-message-3",
+          "message:budget-message-30",
+          "message:budget-message-31",
+          "message:budget-message-32",
+          "message:budget-message-33",
+          "message:budget-message-34",
+          "message:budget-message-35",
+          "message:budget-message-36",
+          "message:budget-message-4",
+          "message:budget-message-5",
+          "message:budget-message-6",
+          "message:budget-message-7",
+          "message:budget-message-8",
+          "message:budget-message-9",
+          "summary:64d79ce486c3c833e2127cf90c955081"
+        ],
+        "tokens": 62,
+        "reason": "selected"
+      }
+    ],
+    "dropped": [
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-35"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-36"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-33"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-34"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-31"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-32"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-29"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-30"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-27"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-28"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-25"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-26"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-23"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-24"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-21"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-22"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-19"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-20"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-17"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-18"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-15"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-16"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-13"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-14"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-11"
+        ],
+        "tokens": 188,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-12"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-9"
+        ],
+        "tokens": 187,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-10"
+        ],
+        "tokens": 194,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-7"
+        ],
+        "tokens": 187,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-8"
+        ],
+        "tokens": 193,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-5"
+        ],
+        "tokens": 187,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-6"
+        ],
+        "tokens": 193,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-3"
+        ],
+        "tokens": 187,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-4"
+        ],
+        "tokens": 193,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-1"
+        ],
+        "tokens": 187,
+        "reason": "summarized_source"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-2"
+        ],
+        "tokens": 193,
+        "reason": "summarized_source"
+      }
+    ]
+  },
+  "before": {
+    "policy_version": "prompt-budget.v1",
+    "context_window_tokens": 131072,
+    "max_input_tokens": 98304,
+    "output_reserve_tokens": 4096,
+    "safety_margin_tokens": 4096,
+    "estimated_input_tokens": 8703,
+    "wire_bytes": 13988,
+    "wire_chars": 6990,
+    "token_estimate_method": "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance",
+    "count_mode": "estimated",
+    "section_tokens": {
+      "active_memory": 0,
+      "conversation_summary": 0,
+      "current_input": 51,
+      "protocol": 535,
+      "recent": 7631,
+      "response_schema": 28,
+      "retrieved_memory": 0,
+      "runtime.time_view": 248,
+      "runtime_facts": 248,
+      "system": 671,
+      "tools": 114,
+      "working_persona": 63
+    },
+    "section_bytes": {
+      "current_input": 55,
+      "protocol": 778,
+      "recent": 12611,
+      "response_schema": 22,
+      "runtime.time_view": 195,
+      "runtime_facts": 195,
+      "system": 873,
+      "tools": 91,
+      "working_persona": 69
+    },
+    "section_chars": {
+      "current_input": 37,
+      "protocol": 450,
+      "recent": 5971,
+      "response_schema": 22,
+      "runtime.time_view": 195,
+      "runtime_facts": 195,
+      "system": 533,
+      "tools": 91,
+      "working_persona": 57
+    },
+    "selected": [
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "runtime:time_view"
+        ],
+        "tokens": 248,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-1"
+        ],
+        "tokens": 187,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-2"
+        ],
+        "tokens": 193,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-3"
+        ],
+        "tokens": 187,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-4"
+        ],
+        "tokens": 193,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-5"
+        ],
+        "tokens": 187,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-6"
+        ],
+        "tokens": 193,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-7"
+        ],
+        "tokens": 187,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-8"
+        ],
+        "tokens": 193,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-9"
+        ],
+        "tokens": 187,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-10"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-11"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-12"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-13"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-14"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-15"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-16"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-17"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-18"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-19"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-20"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-21"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-22"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-23"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-24"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-25"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-26"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-27"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-28"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-29"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-30"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-31"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-32"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-33"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-34"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-35"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-36"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-37"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-38"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-39"
+        ],
+        "tokens": 188,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:budget-message-40"
+        ],
+        "tokens": 194,
+        "reason": "selected"
+      }
+    ],
+    "dropped": []
+  },
+  "covered_through": 36,
+  "dataset_messages": 40,
+  "measurement": "estimated tokens; no live tokenizer/usage",
+  "summary_runes": 32,
+  "tail_messages": 4
+}

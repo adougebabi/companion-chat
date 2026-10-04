@@ -1,0 +1,19 @@
+{
+  "prompt": {
+    "1": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "A photographic image. An upper-body composition. The subject is seated. A smiling expression. Soft light. A handheld phone self-capture; the phone camera defines the viewpoint. Keep the capture device outside the visible composition. The subject wears 银项链 and 白衬衫. Hair length is long. Hair color is black."
+      }
+    },
+    "2": {
+      "class_type": "KSampler",
+      "inputs": {
+        "positive": [
+          "1",
+          0
+        ]
+      }
+    }
+  }
+}

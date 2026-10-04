@@ -1,0 +1,11 @@
+{
+  "build": "production dist",
+  "api": "synthetic localhost fixture, not live backend",
+  "agent_refresh": "PASS",
+  "model_append_server_order": "PASS",
+  "older_partial_page_poll_retention": "PASS after explicit state fix",
+  "viewport": 390,
+  "scroll_width": 390,
+  "console_errors": [],
+  "cleanup": "screenshots and temporary API fixture removed at user request"
+}

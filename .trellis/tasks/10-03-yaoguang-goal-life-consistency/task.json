@@ -1,0 +1,33 @@
+{
+  "id": "yaoguang-goal-life-consistency",
+  "name": "yaoguang-goal-life-consistency",
+  "title": "摇光目标驱动生活与事实一致性修复",
+  "description": "按测试问题总结 T00—T10 修复目标、事实、生活状态、购买使用闭环、上下文与诊断并交付证据",
+  "status": "in_progress",
+  "dev_type": "fullstack",
+  "scope": "goal-life-consistency",
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-10-03",
+  "completedAt": null,
+  "branch": "codex/goal-life-consistency",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": "e86ab1f",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/tasks/10-03-yaoguang-goal-life-consistency/source-requirements.md",
+    ".trellis/tasks/10-03-yaoguang-goal-life-consistency/prd.md",
+    ".trellis/tasks/10-03-yaoguang-goal-life-consistency/design.md",
+    ".trellis/tasks/10-03-yaoguang-goal-life-consistency/implement.md",
+    ".trellis/tasks/10-03-yaoguang-goal-life-consistency/research/entry-map.md",
+    ".trellis/tasks/10-03-yaoguang-goal-life-consistency/research/prior-work.md"
+  ],
+  "notes": "用户已授权提交。确定性验证及精简结果已保存，真实模型/视觉验收仍待完成；任务保持in_progress。临时测试数据与日志已按要求清理。",
+  "meta": {}
+}

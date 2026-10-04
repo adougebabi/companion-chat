@@ -1,0 +1,224 @@
+# 摇光目标驱动生活与事实一致性实施报告
+
+更新：2026-10-04。分支 `codex/goal-life-consistency`，基线 `528bb97`。
+
+代码与确定性闭环已实施，真实服务联合验收尚未完成。任务保持
+`in_progress`，本轮源码已提交，未推送、未部署、未对生产库执行修复。
+本报告中的“确定性通过”指真实隔离 PostgreSQL、正式 Tool 或原生 Eino/ADK
+配合脚本 Provider 的可重复验证，不能替代真实模型行为或真实图片验收。
+
+## 实際定位与修改
+
+| 症状 | 确认的代码原因/修改 | 正式入口 |
+| --- | --- | --- |
+| 目标只在人格描述里、下一轮难以推进 | 将已有Goal/Intention持久权威加入required Runtime；execution按已有Activity派生；共享NULL profile保持共享，native goal_ref可复用目标 | goal_execution.go、intention_capabilities.go、provider_context.go |
+| 异地纠正后旧同楼断言回来 | 增加qualified Actor属性事实与revision/source依赖；过滤Memory、Active、Resident、Self、overlay，源消息edit/delete撤回资格；晚Reflection/summary事务CAS | actor_facts.go、reflection_runtime_v2.go、runtime_summary.go |
+| 定时检查当真人发话/自然醒 | system trigger显式区分目标与speaker；typed sleep在领域门禁；20次睡眠检查no-op，不产生生活经历 | sleep_cycle.go、wakeup.go、life_behavior.go |
+| 不存在衣物进入实拍 | 获取/穿着分离；来源核验；冻结Life snapshot，闭合style plan；最终worker重渲染并校验workflow条件/参考来源 | inventory_source.go、current_capture.go、media.go |
+| 聊天原文与历史摘要重复增长 | sole累计摘要与覆盖游标，最多40条批次/4条尾部；required摘要替换覆盖raw；每次物理调用计完整wire预算 | runtime_summary.go、prompt_context_assembler.go、eino_model_runtime.go |
+| 诊断旧失败排在新成功前 | 后端先union/全局固定时间与id倒序再分页，NULLS LAST与PG snapshot membership；前端不按失败重排 | diagnostic_page.go、agent_run_diagnostics.go、DiagnosticsView.vue |
+| 八小时时间混淆 | 公共instant formatter，明确reference_timezone/as_of，未知用户zone不推断；业务Clock与审计时钟分开 | internal/instant、instant.go、message_time.go |
+
+用户原现场未提供完整购买Tool trace，因此不能追认原现场曾经成功购买或换装。
+本轮根因结论依据入口代码与隔离复现，不把用户观察直接等同于已确认的数据库事件。
+
+## 复用能力、新增契约与旧路径
+
+保留formal Agent/Task registry、Eino原生Loop、独立ExecuteTool、receipt ledger、
+领域事务/outbox与Temporal。Goal/Intention、Schedule/Event/Activity、wardrobe、
+Summary formal Agent、Memory治理和诊断存储均复用现有权威。
+
+新增/实质扩展：`actor.inspect`、`actor.fact.record`、`item.use`，普通库存类型和
+套装购买，当前实拍style plan与最终workflow guard，proactive topic/purpose，
+累计摘要/cursor，修复CLI及诊断page envelope。受影响入口包括Main/WakeUp/
+Reflection/native cognition/daily review、购买日程/Activity、MediaPrompt/worker。
+正式独立Tool adapter固定矩阵现在35项，原有项保留；严格live runner清单未缩减。
+
+旧累计producer `settleConversationSummary` 与固定块选择器移出production，仅作为
+历史回归fixture保留在 `_test.go`；历史episode显式 `memory.recall` 继续可用。
+Runtime只读取累计摘要。失败自由文本不能提交baseline编译人格；图片不回写生活事实。
+
+## 数据、时间和配置
+
+新head `0048_proactive_topics`，迁移依次为0043 Actor facts、0044 inventory usage、
+0045 runtime summary、0046 diagnostic pagination、0047 history repair、0048 proactive topics。
+迁移测试包含空库→head、相邻head升级/reapply；源撤回SQL增量进入新迁移，未改已发布历史SQL。
+
+- 公共瞬时：`2026-10-03T11:26:18.000+00:00`；LLM历史统一reference zone。
+- Storage/cursor保留DB真实精度；user原话、prompt/audit snapshot不重写。
+- DST本地缺失钟点拒绝；重复钟点选择较早瞬时；显式offset输入优先。
+- `product.summary.interval_seconds` 300–600，默认300；`max_runes` 512–4096，默认2048。
+- `product.autonomy.topic_suppression_seconds` 300–604800，默认43200。
+- 物理输入预算复用现有Provider binding/context/max-input/output-reserve与安全余量；
+  required overflow明确失败。summary显式请求`enable_thinking=false`，诊断声明provider支持/实际模式未验证。
+
+Actor correction有一项保守限制：模型生成产物关联该次调用全部可见Actor事实，
+不声称精确到每candidate；无关事实纠正也可能排除产物，需要重新生成。
+叠加项失效会使旧Working Persona source/hash不匹配并失败关闭，需要现有受控编译流程重编译。
+当前reference workflow验证也较保守，库存/衣着版本变化可能拒绝视觉上仍可用的旧参考。
+
+## 成功、失败与最终输入证据
+
+完整确定性链路日志（原始产物已清理，见精简验收记录）
+保存boots与brush两个子场景。每条JSON包含Goal/Intention、scheduled receipt、Activity、
+acquisition Event/item IDs、独立wear/use receipt、capture snapshot与final workflow。
+[短靴链](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/chain-0.json)和
+[画笔链](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/chain-1.json)可独立复核。
+
+链路断言：查询为空仍能建立描述Goal；未来未执行无item；Clock推进启动；未到最短
+耗时结果accepted；实际完成后item入库且wear/use不变；相同请求replay；随后独立穿着/
+使用；最终conditioning只能来自冻结authority。失败购买测试断言无库存、无意图完成；
+已提交Tool后final错误与重启不得重复mutation。详见life_activity_capabilities_test.go和
+精简验收记录（原始日志已清理）。该失败证据不是实际部署模型timeout实验。
+
+[实际worker传输捕获](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/final-comfy.json)
+是正式MediaPrompt→worker→`/prompt`的真实HTTP request body（使用受控Transport）。
+其中白衬衫/银项链来自冻结着装，愿望短靴未进入；renderer返回503后状态不变。
+model-clothing/workflow-clothing两种恶意覆盖提交计数均为0。成功链生成的workflow
+与这个worker submit测试为互补证据，尚无同一live run贯穿Provider/Comfy/S3。
+
+Actor纠正重载、source edit/delete、Active/Resident/Self依赖过滤、晚snapshot拒绝、
+overlay重载均有测试。20 sleeping cycles断言model调用0、assistant0、shopping0、
+新增cognition/reflection evidence0；confirmed wake只在业务到期时成为current Event。
+
+## 同数据集输入预算
+
+[完整分项trace](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/budget.json)
+使用相同40条消息、相同系统协议/人格/Tool/schema/current input，摘要覆盖1–36，保留37–40。
+摘要32 runes，重要纠正“用户在国外、具体时区未知”和未完成购买保留。
+
+| 估算项 | before | after |
+| --- | ---: | ---: |
+| 完整wire estimated input tokens | 8703 | 2032 |
+| Recent | 7631 | 764 |
+| Summary | 0 | 62 |
+| System（含protocol/persona） | 671 | 671 |
+| Runtime time view | 248 | 248 |
+| Current input | 51 | 51 |
+| Tool schema | 114 | 114 |
+| Response schema | 28 | 28 |
+| Wire bytes | 13988 | 2739 |
+
+估算方法为UTF-8/runes保守公式加image allowance，count_mode=estimated。
+section subtotal不是总wire精确和；protocol/persona/runtime.*是父项内明细。
+实际部署模型usage/tokenizer对比仍未获得，不能将8703/2032描述成精确token数。
+多轮native Tool loop以及超大Tool结果的物理调用门禁有独立测试。
+
+[五轮物理请求预算](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/physical-budget.json)
+记录run_id=`turn:native-budget-turn-1`，每轮估算输入42297、43866、44866、45681、46141；
+max_input=49152，output/safety各4096。Tool结果从0增长到2684 tokens，五轮均独立检查。
+累计计费输入估算222851不等于单轮context占用；这组也不是真实Provider usage。
+
+## 诊断后端与浏览器
+
+后端测试覆盖same instant/ns精度、NULL尾部、new success/old failure、union先排序、
+status更新不退页、晚到backdated insert不进入旧snapshot、filter/cursor绑定/异常拒绝。
+Core→BFF snake/camel envelope→generated clients→Web同步。
+
+浏览器在本地production dist静态服务+明确fixture API运行；独立检查Agent/model页、
+load-more保持new success先于old failure、刷新保留`agent-runs`、timezone offset。
+发现并修复partial old page被后台poll抹掉；增加可执行测试及实际再次检查。
+390px viewport和scrollWidth均390，console error日志为空。
+fixture未运行真实授权/服务链；页面原有默认分组提示因fixture不提供创建接口，
+不把它记为真实业务错误或完整浏览器E2E通过。
+
+浏览器截图已按用户要求删除；检查结果保留于 browser-qa-result.json。
+
+## 清理CLI实际调用与生产范围
+
+全部执行在可丢弃库`codex_goal_life_cli_20261004`，合成owner/fluctlight/item清单明确。
+fixture（原始产物已清理，见精简验收记录）、
+manifest（原始产物已清理，见精简验收记录）、
+[dry-run](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/repair-cli-dry-run.json)。
+
+```sh
+# CORE_GO_DATABASE_URL由操作员设置为已确认的目标库，不把凭据写进命令日志。
+go -C apps/core-go run ./cmd/history-pollution-repair --owner OWNER --reason REASON --manifest manifest.json
+# 人工审阅exact IDs、before/source与digest后才应用：
+go -C apps/core-go run ./cmd/history-pollution-repair --owner OWNER --reason REASON --manifest manifest.json --apply --expected-plan-digest DIGEST
+# 重复apply回放稳定batch，回滚必须没有后续变更：
+go -C apps/core-go run ./cmd/history-pollution-repair --owner OWNER --reason REASON --rollback-batch BATCH_ID
+```
+
+实际batch `history_repair_a5a05ec3244207bba796207d27e45170`：apply applied/replayed=false，
+apply replay applied/true，rollback rolled_back/false，rollback replay rolled_back/true。
+最终输出JSON保留；第一次apply发现typed nil map导致CLI输出null并跳过操作，已修复后重跑。
+程序不会扫描/清空未知生产库，没有`--all`；生产manifest尚需Owner按真实来源审阅。
+periodic-only负例另验证mixed真实来源与confirmed合法wake不得清理。
+
+## 全部38场景状态
+
+“部分通过”保留具体不足；“真实行为阻塞”不计验收PASS。
+表中代码路径在`apps/core-go/internal/core/`，证据在任务`evidence/`。
+
+| 编号 | 状态 | 测试/证据 | 断言及限制 |
+| --- | --- | --- | --- |
+| A01 | 确定性通过 | goal_life_chain_test.go | 初始化共享关系目标进入持久化与下一步投影 |
+| A02 | 真实行为阻塞 | 精简验收记录（原始日志已清理） | 模型服务拒绝连接；未证明自然关系探索语义 |
+| A03 | 部分通过 | proactive_topics_test.go / sleep_cycle_test.go | 重复主题与睡眠门禁通过；明确拒绝的长期模型行为待验证 |
+| A04 | 部分通过 | reflection_runtime_v2.go / evolution_persistence_test.go | 复盘来源与下一步权威有契约；错失机会的模型语义未实测 |
+| B01 | 确定性通过 | actor_facts_test.go | 同楼纠正、常驻背景、来源派生退出当前事实 |
+| B02 | 部分通过 | actor_facts_test.go / runtime_summary_test.go | 重载/源失效/晚提交/摘要纠正输入通过；多轮真实模型跨天待测 |
+| B03 | 确定性通过 | actor_facts_test.go | change保留历史有效区间，correct明确不同 |
+| B04 | 确定性通过 | actor_facts_test.go | 外主体/角色自述不升格事实；system无真人speaker |
+| C01 | 确定性通过 | sleep_cycle_test.go | 20轮无model/assistant/activity/新反思证据 |
+| C02 | 确定性通过 | sleep_cycle_test.go | confirmed wake到期后才生效 |
+| C03 | 确定性通过 | goal_life_chain_test.go / schedule_tool_regression_test.go | 提前触发不执行；冲突保留旧状态 |
+| C04 | 确定性通过 | schedule_tool_regression_test.go | 当前剩余段合法修改，历史/不可中断/执行中拒绝 |
+| D01 | 确定性通过 | goal_life_chain_test.go | 缺物无需库存ID即可建Goal/Intention |
+| D02 | 部分通过 | formal_tool_adapter_e2e_test.go | 独立查询失败有正式失败结果；失败后模型不重复买的语义待live |
+| D03 | 确定性通过 | goal_life_chain_test.go | 未来日程链接真实目标/意图，提前检查不持有 |
+| D04 | 确定性通过 | goal_life_chain_test.go | 推进Clock，正式due trigger启动购物并结算 |
+| D05 | 确定性通过 | chain-0.json | 获取event/item IDs，Goal完成，未自动wear |
+| D06 | 确定性通过 | life_activity_capabilities_test.go / 精简验收记录（原始日志已清理） | 失败无物品/无意图完成；重复成功尝试重用item |
+| D07 | 确定性通过 | shopping_items.go / item_use_capability_test.go | 单件/套装/普通物品原子获取，独立使用 |
+| D08 | 确定性通过 | scheduled_activity_closure_test.go / durable_turn_test.go | 固定尝试重放、重启及取消/改期权威回归 |
+| E01 | 确定性通过 | current_capture_test.go | 持有未穿仍渲染权威旧衣物 |
+| E02 | 确定性通过 | inventory_source.go / wardrobe_capabilities.go | 跨属主/无来源/失效物品失败，状态不变 |
+| E03 | 确定性通过 | chain-0.json | 独立wear后snapshot与最终workflow含已持有物品 |
+| E04 | 确定性通过 | current_capture_test.go | model clothing和workflow追加覆盖在submit前拒绝 |
+| E05 | 部分通过 | final-comfy.json | 模拟renderer失败不反写事实；真实图片/S3/像素尚阻塞 |
+| E06 | 确定性通过 | 精简验收记录（原始日志已清理） | 受控初始化合法，未溯源历史不补造 |
+| F01 | 确定性通过 | runtime_summary_test.go | 300..600秒有新增触发，覆盖raw替换，无新增不重复 |
+| F02 | 确定性通过 | runtime_summary_test.go | 生成中新消息carry-forward；写库失败不推进；删除重建 |
+| F03 | 确定性通过 | prompt_context_assembler_test.go | 完整recent单元与物理Tool续接预算保护 |
+| F04 | 部分通过 | budget.json / conversation_segment_test.go | 同数据集预算及跨天历史回归通过；长期真实对话语义待测 |
+| F05 | 确定性通过 | prompt_context_assembler_test.go / turn_chain_budget_test.go | 每次物理调用计Tool结果/多模态；超限显式失败 |
+| G01 | 确定性通过 | instant_test.go / internal/instant | Z归一数字偏移、UTC毫秒，unknown不猜 |
+| G02 | 确定性通过 | instant_test.go / instant-display.test.mjs | 同瞬时投影、跨午夜、明确海外zone |
+| G03 | 确定性通过 | instant_test.go | LA/Berlin缺失拒绝、重复选择较早瞬时 |
+| G04 | 部分通过 | instant.go | opaque原始审计不重写；未知裸历史未批量迁移，需实际历史清单核查 |
+| H01 | 确定性通过 | diagnostic_page_test.go | 全局固定时间/id DESC，null尾部，状态不置顶 |
+| H02 | 确定性通过 | diagnostic_page_test.go / diagnostics.test.mjs | 快照多页/filter/cursor；浏览器append与partial-page暂停轮询 |
+| I01 | 确定性通过 | repair-cli-apply.json / repair-cli-rollback.json | 实际CLI dry-run/apply/replay/rollback/replay；原始保留 |
+
+## 执行检查与外部阻塞
+
+检查命令在implement.md，结果摘要在任务evidence/。原始日志已按用户要求清理。`go test -race -json ./...`使用隔离PG，
+`go vet ./...`、`go build ./...`，`pnpm generate/typecheck/test/build`，
+`run-phase8-contract-gates.sh`、`git diff --check`均实际执行。
+最新完整race日志：1641个test/subtest通过，0失败，24个外部/live测试跳过；
+15个package通过、10个无测试package跳过。随后新增periodic repair负例、physical budget
+日志断言及instant日志回归各自通过。浏览器客户端14、Web59测试通过；core-client
+没有test脚本，记录generate/typecheck通过。数量亦保存于`validation-summary.json`。
+原始与重复日志均已清理；完整race的统计和跳过名单保留于validation-summary.json。
+
+严格live tools/agents/all确实运行过但没有通过。`100.80.75.9:8001`连接拒绝errno61；
+配置模型为`qwen3.8-27b-abliterated-mtplx-optimized-speed`。ComfyUI8188可连，但缺
+`FLUCTLIGHT_VISUAL_LIVE_CONFIG_FILE`验收配置，不能完成真实workflow/S3/像素链。
+preflight原始日志已清理，阻塞结果保留于validation-summary.json与live-connectivity-final.json；本轮未擅自换服务或模型。
+
+待完成：实际模型多轮/重复关系与纠正语义；实际模型usage预算对比；实际ComfyUI/S3
+完整闭环及像素评价；按真实来源审阅生产repair清单。任务不归档，不声明T10完整通过。
+在这些必需验收补齐前不提出“全部完成”或执行提交/推送。后续提交仍需按Trellis
+流程给出具体分批提交方案供用户一次审阅。
+
+
+## 2026-10-04 提交与测试产物清理
+
+用户明确授权提交及删除部分测试数据。保留测试源码、必要合成链路结果与检查摘要，
+删除临时seed SQL/manifest、fixture服务、截图、重复及原始运行日志。
+[精简证据说明](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/README.md)。
+真实模型与视觉验收继续待完成，任务保持in_progress。
+
+源码提交：`d6636ef`（既有tracked改动）及`e86ab1f`（补齐新增源码、迁移与测试）。

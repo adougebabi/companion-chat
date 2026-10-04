@@ -1,0 +1,137 @@
+# Goal, Actor Facts, Life And Runtime Consistency
+
+This contract refines field ownership in the Persona, Memory, Life World,
+Autonomy, Provider and Diagnostics contracts. Earlier blanket persona priority
+and active historical-summary prompt rules are superseded for these fields.
+
+## 1. Scope / Trigger
+
+Applies to chat, periodic WakeUp, native cognition, Reflection, scheduled
+activities, independent Tools, current capture, summary workers and repair.
+Keep the formal Eino/ADK loop, Tool registry, receipts, transactions and outbox.
+
+## 2. Signatures
+
+```text
+instant.Format(time.Time) -> YYYY-MM-DDTHH:mm:ss.SSS+00:00
+instant.FormatLocal(time.Time, *time.Location) -> fixed millis + numeric offset
+App.Clock() -> business instant; App.now() -> one injectable authority
+actor.inspect({actor_id?,attribute?,history?,limit?}) -> facts
+actor.fact.record({operation:assert|correct|change,attribute,value,reason,
+                   source_message_id?,corrected_fact_ids?}) -> fact receipt
+item.use({operation:start|stop,item_id,activity?}) -> actual usage receipt
+ProcessConversationSummaryIntent(...) -> pending|active|conflict
+GET /api/diagnostics/{model-runs|agent-runs}?limit=&correlation_id=&cursor=
+  -> {items,next_cursor,snapshot}
+history-pollution-repair --owner ID --reason TEXT --manifest JSON
+history-pollution-repair ... --apply --expected-plan-digest DIGEST
+history-pollution-repair --owner ID --reason TEXT --rollback-batch ID
+```
+
+Migrations 0043–0048 add Actor facts/dependencies, ordinary inventory/uses,
+cumulative summary/revisions, diagnostic snapshot membership, repair audit,
+and proactive deliveries. Existing released migrations are unchanged.
+
+## 3. Contracts
+
+- All public instant fields use fixed milliseconds and numeric offsets. DB
+  `timestamptz`, cursor timestamps and audit payloads retain precision. Dates,
+  durations and original user text stay their own types. Operational leases,
+  diagnostics and physical runtime timestamps retain the real clock.
+- Projection records `as_of` and `reference_timezone`. User timezone is null
+  until explicitly qualified; sender/browser zone is never location authority.
+  Local DST gaps fail; a local ambiguous fold chooses its earlier instant.
+- Actor facts bind owner, subject, attribute, source/fingerprint, effective
+  interval, transition kind, revision and replacement. Inference stays uncertain.
+  Native assertions require the actual inbound user source and matching subject.
+  Explicit corrected IDs must be for the same owner, subject and attribute.
+- Current location/body/wardrobe come from effective Life; persona controls
+  behavioral style; qualified human statements control that human's facts.
+  A failed Tool, wish, image or authored narrative cannot create ownership.
+- Actor corrections retire linked artifacts; Active, Resident, Self and
+  evolution overlay reads filter stale fact revisions. Model-derived outputs
+  conservatively link all facts visible to that model call, including overlays.
+  This can exclude unrelated output after an unrelated correction; do not claim
+  per-candidate evidence precision. Full snapshot validation guards late commits.
+  Source edits withdraw current evidence while preserving admission audit.
+  Stale compiled working persona fails its source/version check and requires
+  recompilation through the existing governed compilation path.
+- Sleep is a typed accepted item/Event. Periodic checks settle due state first,
+  then return `no_op/sleeping` without model or physiological facts. No human
+  speaker is synthesized for system triggers. Autonomous repeated topic+purpose
+  with no new inbound sequence is suppressed by the configured window.
+- Goal execution is a projection of existing Goal/Intention/Activity records.
+  Shared NULL profile scope stays shared. Goal dynamic execution fields do not
+  enter opaque reference hashes. Relationship goals cannot complete from shopping.
+- Shopping requirements are descriptions before acquisition. Completed purchase
+  commits the acquisition Event and all item IDs atomically; an entire bundle
+  succeeds or fails. Ownership does not change wear/use. Only sourced available
+  owned IDs can be worn/used; ordinary objects have no wearing slot.
+- Current capture freezes effective body/worn/used items and their versions.
+  Models supply closed style fields; Core renders garments and body facts.
+  Worker re-renders before `/prompt`; workflow conditioning/reference ancestry
+  is validated. Pixels do not write facts. Reference validation is conservative
+  and may reject an otherwise visually compatible older configured reference.
+- One cumulative summary replaces covered runtime history. Tail=4, batch<=40,
+  closed assistant boundary; previous summary plus frozen source range plus
+  Actor corrections feed the formal summary Task. Cursor and revision commit
+  atomically after source/fact CAS; failure advances neither. Raw history stays.
+  Historic episodes remain accessible by explicit recall, not cumulative injection.
+- `product.summary`: interval_seconds 300..600 (default300), max_runes 512..4096
+  (default2048). `product.autonomy.topic_suppression_seconds`: 300..604800
+  (default43200). No-thinking is explicitly requested for cumulative summary;
+  provider support/effective mode remain `unverified` until live evidence exists.
+- Every physical model call checks complete messages, Tool schemas/results,
+  response schema and reserves. Estimates are labeled; required overflow fails
+  rather than truncating JSON, facts or protocol. Trace `runtime.*` breakdowns
+  overlap their parent; do not sum all trace keys as disjoint sections.
+- Diagnostic SQL sorts all sources before LIMIT by fixed time/id DESC,
+  NULLS LAST; snapshot membership uses PostgreSQL transaction visibility.
+  Updated statuses stay members; late backdated inserts wait for refresh.
+- Repair is exact scoped IDs/revisions, audited dry-run by default. First apply
+  requires reviewed digest; replay uses stable manifest batch. All items validate
+  before mutation. Rollback refuses newer state, appends compensating revisions,
+  and never deletes original chat. A nil replay map must stay a nil interface.
+
+## 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Cross-attribute corrected fact ID | actor_correction_target_invalid, full rollback |
+| Late Actor snapshot/dependency | conflict, no model-derived commit |
+| Sleep action | life_state_sleeping, no side effect |
+| Earliest purchase result outside active window | reject admission |
+| Purchase failed or partial bundle | no inventory, no completion |
+| Unsourced/wrong-owner item or stale snapshot | reject wear/use/capture |
+| Model/workflow attempts garment override | reject before renderer submission |
+| Required physical input too large | prompt_required_budget_exceeded |
+| Edited summary source/CAS conflict | no cursor advancement |
+| Malformed/mismatched diagnostic cursor | invalid filter |
+| Stale repair digest/revision/newer wardrobe | refuse whole batch |
+| Periodic history mixed with real evidence | refuse periodic_only classification |
+
+## 5. Good / Base / Bad Cases
+
+Good: missing boots → descriptive Goal → future schedule → business Clock due
+→ real acquisition ID → independent wear → frozen capture → final conditioning.
+Base: sleep check has no event and stays silent; user timezone remains null.
+Bad: treating an accepted plan as completed ownership, using an image as evidence,
+or restoring a corrected fact through cached Self/persona content.
+
+## 6. Tests Required
+
+Use disposable real PostgreSQL plus formal independent Tool and native ADK tests.
+Keep the fixed 35-Tool adapter inventory and existing strict live suites.
+Assert purchase atomicity/replay, separate wear/use, final worker payload,
+20 sleeping checks, legal wake, source withdrawal, restart lineage, overlay
+reload, shared Goal scope, summary concurrency/failure/CAS, full-wire budgets,
+precise diagnostics pages and actual repair CLI apply/replay/rollback.
+Live model semantics and real ComfyUI/S3 pixels require separate evidence;
+SKIP, blocked preflight and scripted Providers never count as live PASS.
+
+## 7. Wrong vs Correct
+
+Wrong: `result = nilMap; if result == nil { apply() }` skips first CLI apply.
+Correct: assign the replay map to the interface only when the map is non-nil.
+Wrong: render clothing from model text or mark shopping complete on scheduling.
+Correct: commit acquisition, mutate wear independently, render frozen authority.

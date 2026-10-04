@@ -1,0 +1,111 @@
+{
+  "acquisition": {
+    "activity_id": "activity_ba104c98d3c22acd5046b28d6a25af8c",
+    "event_id": "life_event_5e660e8b2b72a828a88439afc75f1630",
+    "intention_id": "intention_tool_0af9a73142edc49d8b5c546ecd41901f",
+    "item_id": "wardrobe_cc02930aec590bb55e9233f56ed747b2",
+    "item_ids": [
+      "wardrobe_cc02930aec590bb55e9233f56ed747b2"
+    ],
+    "reason": "实际获取成功",
+    "status": "completed",
+    "wardrobe_revision": 1
+  },
+  "activity_id": "activity_ba104c98d3c22acd5046b28d6a25af8c",
+  "capture_snapshot": {
+    "body_fields": {
+      "chest_cup": {
+        "status": "unknown"
+      },
+      "hair_color": {
+        "status": "unknown"
+      },
+      "hair_length": {
+        "status": "unknown"
+      },
+      "hair_style": {
+        "status": "unknown"
+      },
+      "injuries": {
+        "status": "unknown"
+      }
+    },
+    "body_revision": 0,
+    "captured_at": "2026-10-05T03:15:00.000+00:00",
+    "ref": "appearance:ctx_bbf8683050edea988abef6813ae1c555",
+    "used_items": [],
+    "wardrobe_revision": 2,
+    "wearing_state": "known",
+    "worn_items": [
+      {
+        "availability": "available",
+        "category": "coat",
+        "description": "blue coat",
+        "id": "wardrobe_8f4a670232234f312020386efc580ff8",
+        "ownership": "owned",
+        "slot": "outer",
+        "source_verified": true
+      },
+      {
+        "availability": "available",
+        "category": "boots",
+        "description": "黑色短靴",
+        "id": "wardrobe_cc02930aec590bb55e9233f56ed747b2",
+        "ownership": "owned",
+        "slot": "shoes",
+        "source_verified": true
+      }
+    ]
+  },
+  "final_workflow": {
+    "positive": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "A photographic image. An upper-body composition. The subject is seated. A smiling expression. Soft light. A self-capture through a mirror, showing the subject's reflection. The phone's rear camera is used. The capture device is visible only where physically consistent with this camera relationship. The subject wears blue coat and 黑色短靴. The current setting is 商场."
+      }
+    },
+    "sampler": {
+      "class_type": "KSampler",
+      "inputs": {
+        "positive": [
+          "positive",
+          0
+        ]
+      }
+    }
+  },
+  "goal_id": "goal_tool_0af9a73142edc49d8b5c546ecd41901f",
+  "intention_id": "intention_tool_0af9a73142edc49d8b5c546ecd41901f",
+  "schedule": {
+    "goal_id": "goal_tool_0af9a73142edc49d8b5c546ecd41901f",
+    "intention_id": "intention_tool_0af9a73142edc49d8b5c546ecd41901f",
+    "schedule_id": "schedule_fdca5ceb8c01a06029bc02be39d9baec",
+    "schedule_item_id": "schedule_item_87fa876082cd8e7f4ad74c6b5aac647a",
+    "start_at": "2026-10-05T03:00:00.000+00:00",
+    "status": "scheduled"
+  },
+  "use": {
+    "items": [
+      {
+        "availability": "available",
+        "category": "coat",
+        "description": "blue coat",
+        "id": "wardrobe_8f4a670232234f312020386efc580ff8",
+        "ownership": "owned",
+        "slot": "outer",
+        "source_verified": true
+      },
+      {
+        "availability": "available",
+        "category": "boots",
+        "description": "黑色短靴",
+        "id": "wardrobe_cc02930aec590bb55e9233f56ed747b2",
+        "ownership": "owned",
+        "slot": "shoes",
+        "source_verified": true
+      }
+    ],
+    "mode": "partial",
+    "revision": 2
+  }
+}

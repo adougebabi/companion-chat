@@ -1,0 +1,18 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Go Core 权威与正式层次"}
+{"file": ".trellis/spec/backend/effective-life-contract.md", "reason": "获取、穿着、当前状态与真实结果"}
+{"file": ".trellis/spec/backend/fluctlight-life-world-contract.md", "reason": "日程版本/有效事件/时区与 action plan"}
+{"file": ".trellis/spec/backend/fluctlight-autonomy-contract.md", "reason": "目标意图、授权与结果"}
+{"file": ".trellis/spec/backend/fluctlight-memory-contract.md", "reason": "来源、有效性与召回"}
+{"file": ".trellis/spec/backend/fluctlight-persistence-contract.md", "reason": "短事务、CAS、outbox 与恢复"}
+{"file": ".trellis/spec/backend/structured-turn-contract.md", "reason": "正式 Tool/Agent 结算与结果"}
+{"file": ".trellis/spec/backend/media-prompt-contract.md", "reason": "媒体最终输入权威"}
+{"file": ".trellis/spec/backend/fluctlight-diagnostics-contract.md", "reason": "诊断时间与证据"}
+{"file": ".trellis/spec/backend/fluctlight-api-contract.md", "reason": "API/OpenAPI 同步"}
+{"file": ".trellis/spec/backend/fluctlight-bff-contract.md", "reason": "浏览器 DTO/路由契约"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Web 当前入口与规范"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "分页和刷新状态"}
+{"file": ".trellis/tasks/10-03-yaoguang-goal-life-consistency/research/entry-map.md", "reason": "正式入口、最小接缝、已有测试与证据边界"}
+{"file": ".trellis/tasks/10-03-yaoguang-goal-life-consistency/research/prior-work.md", "reason": "历史方案和当前复用/替代关系"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "全量 Go/领域质量验证"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "浏览器与前端验证"}
+{"file": ".trellis/tasks/10-03-yaoguang-goal-life-consistency/research/spec-loading.md", "reason": "超限规范完整文件加载方式，避免 native 注入截断"}
