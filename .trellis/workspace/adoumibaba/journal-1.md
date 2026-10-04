@@ -1566,3 +1566,38 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 48: 提交目标生活一致性修复并清理临时测试产物
+<!-- trellis-session: v=2 fp=d7c65a153eda834d -->
+
+**Date**: 2026-10-04
+**Task**: 提交目标生活一致性修复并清理临时测试产物
+**Branch**: `codex/goal-life-consistency`
+
+### Summary
+
+按用户授权补齐源码/测试/迁移与文档提交，删除77个临时测试产物约5.95MB，保留精简验证摘要；build通过，live验收仍待完成。
+
+### Main Changes
+
+- 保留既有d6636ef提交，新增e86ab1f和1aa5b6d；无推送、无生产数据操作。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e86ab1f` | fix(core): complete goal life consistency sources and regression tests |
+| `1aa5b6d` | docs: record goal life contracts and compact acceptance evidence |
+
+### Testing
+
+- [OK] 此前全量race/vet/typecheck/测试通过；本次提交前go build与diff check通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 恢复实际模型服务并提供visual live验收配置后，完成live验证；任务保持in_progress。
