@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import ts from "typescript";
 
 const view = await readFile(new URL("../src/views/DiagnosticsView.vue", import.meta.url), "utf8");
 const store = await readFile(new URL("../src/stores/control-center.ts", import.meta.url), "utf8");
@@ -31,7 +32,7 @@ test("diagnostics sources use independent filter epochs", () => {
 });
 
 test("background diagnostics refresh does not request the workflow runtime list", () => {
-  const refreshStart = store.indexOf("async loadDiagnostics()");
+  const refreshStart = store.indexOf("async loadDiagnostics(background = false)");
   const workflowStart = store.indexOf("async loadWorkflows()", refreshStart);
   const refreshEnd = store.indexOf("async exportDiagnostics()", workflowStart);
   assert.ok(refreshStart >= 0 && workflowStart > refreshStart && refreshEnd > workflowStart);
@@ -98,4 +99,18 @@ test("filtered export reuses every active lifecycle filter", () => {
   for (const field of ["correlationId", "fluctlightId", "intentId", "workflowId", "runId", "surface", "status"]) {
     assert.match(body, new RegExp(`${field}:`));
   }
+});
+
+test("loading an older partial page pauses polling independently of row count", async () => {
+  const start = store.indexOf('async loadDiagnostics(background = false)');
+  assert.ok(start >= 0);
+  const method = store.slice(start, store.indexOf('async loadWorkflows()',start));
+  const js = ts.transpileModule(`const methods = {${method}};`, {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+  const loadDiagnostics = new Function(`${js}; return methods.loadDiagnostics`)();
+  const state = {diagnosticOlderPagesLoaded:true, diagnosticModelRuns:[{id:'new'},{id:'old'}], diagnosticAgentRuns:[],diagnosticsRequestId:1};
+  await loadDiagnostics.call(state,true);
+  assert.equal(state.diagnosticsRequestId,1);
+  assert.equal(state.diagnosticModelRuns.length,2);
+  assert.match(store,/diagnosticOlderPagesLoaded = true/);
+  assert.match(store,/diagnosticOlderPagesLoaded = false/);
 });

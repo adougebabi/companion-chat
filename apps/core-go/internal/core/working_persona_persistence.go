@@ -263,7 +263,7 @@ func (a *App) compileOneWorkingPersona(ctx context.Context, input PersonaCompila
 	}
 	compiled, err := a.CompileWorkingPersona(ctx, input)
 	if err != nil {
-		return synthesizeBaselineWorkingPersona(input)
+		return CompiledWorkingPersona{}, err
 	}
 	return compiled, nil
 }

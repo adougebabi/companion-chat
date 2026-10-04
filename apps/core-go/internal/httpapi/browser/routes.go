@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/instant"
 	"io"
 	"log/slog"
 	"math"
@@ -1238,16 +1239,27 @@ func (s *Server) diagnosticModelRuns(response http.ResponseWriter, request *http
 	if value := request.URL.Query().Get("correlationId"); value != "" {
 		query.Set("correlation_id", value)
 	}
-	var rows []map[string]any
-	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/model-runs?"+query.Encode(), session, nil, &rows); err != nil {
+	if cursor := request.URL.Query().Get("cursor"); cursor != "" {
+		if len(cursor) > 8192 {
+			writeJSON(response, http.StatusBadRequest, map[string]any{"error": "diagnostics_filter_invalid"})
+			return
+		}
+		query.Set("cursor", cursor)
+	}
+	var page struct {
+		Items      []map[string]any `json:"items"`
+		NextCursor string           `json:"next_cursor"`
+		Snapshot   string           `json:"snapshot"`
+	}
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/model-runs?"+query.Encode(), session, nil, &page); err != nil {
 		s.diagnosticsError(response, err)
 		return
 	}
-	result := make([]any, 0, len(rows))
-	for _, row := range rows {
+	result := make([]any, 0, len(page.Items))
+	for _, row := range page.Items {
 		result = append(result, browserDiagnosticModelRun(row))
 	}
-	writeJSON(response, http.StatusOK, result)
+	writeJSON(response, http.StatusOK, map[string]any{"items": result, "nextCursor": page.NextCursor, "snapshot": page.Snapshot})
 }
 
 func (s *Server) diagnosticAgentRuns(response http.ResponseWriter, request *http.Request) {
@@ -1259,16 +1271,27 @@ func (s *Server) diagnosticAgentRuns(response http.ResponseWriter, request *http
 	if value := request.URL.Query().Get("correlationId"); value != "" {
 		query.Set("correlation_id", value)
 	}
-	var rows []map[string]any
-	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/agent-runs?"+query.Encode(), session, nil, &rows); err != nil {
+	if cursor := request.URL.Query().Get("cursor"); cursor != "" {
+		if len(cursor) > 8192 {
+			writeJSON(response, http.StatusBadRequest, map[string]any{"error": "diagnostics_filter_invalid"})
+			return
+		}
+		query.Set("cursor", cursor)
+	}
+	var page struct {
+		Items      []map[string]any `json:"items"`
+		NextCursor string           `json:"next_cursor"`
+		Snapshot   string           `json:"snapshot"`
+	}
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/agent-runs?"+query.Encode(), session, nil, &page); err != nil {
 		s.diagnosticsError(response, err)
 		return
 	}
-	result := make([]any, 0, len(rows))
-	for _, row := range rows {
+	result := make([]any, 0, len(page.Items))
+	for _, row := range page.Items {
 		result = append(result, browserDiagnosticAgentRun(row))
 	}
-	writeJSON(response, http.StatusOK, result)
+	writeJSON(response, http.StatusOK, map[string]any{"items": result, "nextCursor": page.NextCursor, "snapshot": page.Snapshot})
 }
 
 func (s *Server) diagnosticMediaPrompts(response http.ResponseWriter, request *http.Request) {
@@ -1433,7 +1456,12 @@ func methodNotAllowed(response http.ResponseWriter, allowed string) {
 func writeJSON(response http.ResponseWriter, status int, value any) {
 	response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	response.WriteHeader(status)
-	_ = json.NewEncoder(response).Encode(value)
+	encoded, err := instant.Marshal(value)
+	if err != nil {
+		slog.Error("encode Browser response failed", "error", err)
+		return
+	}
+	_, _ = response.Write(append(encoded, '\n'))
 }
 
 func writeError(response http.ResponseWriter, status int, code, message string) {

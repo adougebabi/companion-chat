@@ -30,6 +30,8 @@ var validClaimKinds = map[string]struct{}{
 // Reflection, and native capability slots. It deliberately carries provenance
 // alongside semantic values so model output cannot become an unowned fact.
 type ContextProjection struct {
+	AsOf                   string                        `json:"as_of,omitempty"`
+	ReferenceTimezone      string                        `json:"reference_timezone,omitempty"`
 	SchemaVersion          string                        `json:"schema_version"`
 	FluctlightID           string                        `json:"fluctlight_id"`
 	OwnerActorID           string                        `json:"owner_actor_id"`
@@ -38,6 +40,8 @@ type ContextProjection struct {
 	CurrentUserText        string                        `json:"current_user_text"`
 	SelfActor              map[string]any                `json:"self_actor"`
 	CurrentSpeaker         map[string]any                `json:"current_speaker,omitempty"`
+	CommunicationState     map[string]any                `json:"communication_state,omitempty"`
+	ActorFacts             []map[string]any              `json:"actor_facts,omitempty"`
 	Actors                 []map[string]any              `json:"actors,omitempty"`
 	RecentMessages         []map[string]any              `json:"recent_messages"`
 	ContextRevision        int                           `json:"context_revision"`
@@ -163,14 +167,18 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	retry, _ := ctx.Value(contextProjectionRetryKey{}).(int)
 	actorID := strings.TrimSpace(request.AuthorizationActorID)
 	speakerActorID := strings.TrimSpace(request.SpeakerActorID)
-	if speakerActorID == "" {
+	if speakerActorID == "" && request.TriggerSource == "" {
 		speakerActorID = actorID
+	}
+	targetActorID := firstString(request.TargetActorID, speakerActorID)
+	if targetActorID == "" {
+		targetActorID = actorID
 	}
 	fluctlightID := strings.TrimSpace(request.FluctlightID)
 	conversationID := strings.TrimSpace(request.ConversationID)
 	sourceFactID := strings.TrimSpace(request.SourceFactID)
 	userText := request.CurrentUserText
-	projectionAt := time.Now().UTC()
+	projectionAt := a.now().UTC()
 	currentFactsRevision, err := a.readCurrentFactsRevision(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -210,14 +218,14 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	relationships, err := a.readRelationships(ctx, fluctlightID, speakerActorID)
+	relationships, err := a.readRelationships(ctx, fluctlightID, targetActorID)
 	if err != nil {
 		return ContextProjection{}, err
 	}
 	if conversationID != "" {
 		filtered := make([]map[string]any, 0, 1)
 		for _, relationship := range relationships {
-			if stringValue(relationship["target_actor_id"]) == speakerActorID {
+			if stringValue(relationship["target_actor_id"]) == targetActorID {
 				filtered = append(filtered, relationship)
 			}
 		}
@@ -245,7 +253,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		return ContextProjection{}, err
 	}
 	if conversationID != "" {
-		goals, intentions = filterAgencyForTarget(goals, intentions, speakerActorID)
+		goals, intentions = filterAgencyForTarget(goals, intentions, firstString(request.TargetActorID, speakerActorID))
 	}
 	recentOutcomes, err := a.readRecentActionOutcomes(ctx, fluctlightID, 12)
 	if err != nil {
@@ -260,7 +268,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		// Fetch a bounded candidate window; WorkingMemory applies the actual token
 		// budget and whole-turn selection. A fixed 12-row fetch must not remain the
 		// effective Recent Context boundary.
-		history, historyErr := a.DB.History(ctx, conversationID, speakerActorID, nil, 200)
+		history, historyErr := a.DB.History(ctx, conversationID, actorID, nil, 200)
 		if historyErr != nil {
 			return ContextProjection{}, historyErr
 		}
@@ -294,7 +302,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		return ContextProjection{}, err
 	}
 	memoryCues := buildProjectionMemoryCues(request.MemoryOperation, request.MemoryCues, userText, lifeContext, inner, recentMessages, activeResult.Items, goals, intentions, recentOutcomes, hypotheses)
-	viewers := []string{speakerActorID}
+	viewers := []string{targetActorID}
 	memoryPlan, err := buildMemoryQueryPlan(request.MemoryOperation, viewers, request.MemoryConversationMode, conversationID, request.AllowedConversationIDs, stringValue(mapValue(personalityRuntime)["active_profile_id"]), memoryCues, projectionMemoryResultLimit(request.MemoryOperation), 2400)
 	if err != nil {
 		return ContextProjection{}, err
@@ -304,7 +312,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		return ContextProjection{}, err
 	}
 	memories := memoryResult.Items
-	residentResult, err := a.readResidentMemorySnapshot(ctx, actorID, speakerActorID, fluctlightID, projectionAt)
+	residentResult, err := a.readResidentMemorySnapshot(ctx, actorID, targetActorID, fluctlightID, projectionAt)
 	if err != nil {
 		return ContextProjection{}, err
 	}
@@ -335,7 +343,14 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 			relationshipActorIDs = append(relationshipActorIDs, target)
 		}
 	}
-	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, speakerActorID, fluctlightDisplayName, recentMessages, relationshipActorIDs)
+	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, targetActorID, fluctlightDisplayName, recentMessages, relationshipActorIDs)
+	if speakerActorID == "" {
+		currentSpeaker = nil
+	}
+	actorFacts, err := readActorFactsWith(ctx, a.DB.Pool(), fluctlightID, "", projectionAt, false, 16)
+	if err != nil {
+		return ContextProjection{}, err
+	}
 	developingSelfClaims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -352,10 +367,14 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 			"status": claim.Status, "expires_at": claim.ExpiresAt, "revision": claim.Revision,
 		})
 	}
+	communication, err := readCommunicationStateWith(ctx, a.DB.Pool(), fluctlightID, conversationID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
 	projection := ContextProjection{
-		SchemaVersion: "fluctlight.context.v2",
-		FluctlightID:  fluctlightID, OwnerActorID: actorID, ConversationID: conversationID, SourceFactID: sourceFactID,
-		CurrentUserText: userText, SelfActor: selfActor, CurrentSpeaker: currentSpeaker, Actors: actors, RecentMessages: recentMessages, ContextRevision: fluctlight.CurrentRevision,
+		SchemaVersion: "fluctlight.context.v2", AsOf: formatInstant(projectionAt), ReferenceTimezone: stringValue(lifeContext["timezone"]),
+		FluctlightID: fluctlightID, OwnerActorID: actorID, ConversationID: conversationID, SourceFactID: sourceFactID,
+		CommunicationState: communication, ActorFacts: actorFacts, CurrentUserText: userText, SelfActor: selfActor, CurrentSpeaker: currentSpeaker, Actors: actors, RecentMessages: recentMessages, ContextRevision: fluctlight.CurrentRevision,
 		CorePersonaRevision: fluctlight.CurrentRevision, DevelopingSelfRevision: developingSelfRevision, CurrentStateRevision: intValue(inner["revision"]),
 		CurrentFactsRevision: currentFactsRevision,
 		LifeContextRevision:  stringValue(lifeContext["context_revision"]),
@@ -576,7 +595,7 @@ func annotateLifeContextClock(lifeContext map[string]any, timezone string) {
 			instant = parsed
 		}
 	}
-	lifeContext["current_time"] = instant.In(location).Format("2006-01-02 15:04:05 MST")
+	lifeContext["current_time"] = formatLocalInstant(instant, location)
 	lifeContext["timezone"] = timezone
 }
 
@@ -1058,7 +1077,7 @@ func sameEvidence(left, right []any) bool {
 	return true
 }
 
-func persistClaimsTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, plan map[string]any) error {
+func persistClaimsTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, plan map[string]any, businessAt time.Time) error {
 	for _, raw := range append(arrayValue(plan["approved_claims"]), append(arrayValue(plan["uncertain_claims"]), arrayValue(plan["omitted_claims"])...)...) {
 		claim := mapValue(raw)
 		kind := firstString(claim["kind"], "")
@@ -1071,7 +1090,7 @@ func persistClaimsTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID 
 		id := "claim_" + stableDigest(fluctlightID+":"+firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))))
 		var expires any
 		if status == "uncertain" || kind == ClaimSupportedHypothesis {
-			expires = time.Now().UTC().Add(7 * 24 * time.Hour)
+			expires = businessAt.UTC().Add(7 * 24 * time.Hour)
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_claims(id,fluctlight_id,source_fact_id,claim_type,content,evidence_refs,confidence,repetition_key,status,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(fluctlight_id,repetition_key) DO NOTHING`, id, fluctlightID, sourceFactID, kind, stringValue(claim["content"]), jsonBytes(arrayValue(claim["evidence_refs"])), boundedNumber(claim["confidence"], 0), firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))), status, expires)
 		if err != nil {

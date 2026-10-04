@@ -23,7 +23,7 @@ type lifeContextQuerier interface {
 
 func (a *App) readLifeContextSnapshotAt(ctx context.Context, fluctlightID string, at time.Time) (map[string]any, map[string]any, error) {
 	if at.IsZero() {
-		at = time.Now().UTC()
+		at = a.now().UTC()
 	}
 	tx, err := a.DB.Pool().BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -42,7 +42,7 @@ func (a *App) readLifeContextSnapshotAt(ctx context.Context, fluctlightID string
 
 func (a *App) readFoundationLifeSnapshotAt(ctx context.Context, fluctlightID, ownerActorID string, at time.Time) (Fluctlight, map[string]any, map[string]any, error) {
 	if at.IsZero() {
-		at = time.Now().UTC()
+		at = a.now().UTC()
 	}
 	tx, err := a.DB.Pool().BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -138,7 +138,7 @@ func readScheduleAtWith(ctx context.Context, query lifeContextQuerier, fluctligh
 			return nil, err
 		}
 		entry := map[string]any{
-			"id": itemID, "start_at": start.UTC().Format(time.RFC3339Nano), "end_at": end.UTC().Format(time.RFC3339Nano),
+			"id": itemID, "start_at": start.UTC().Format(instantLayout), "end_at": end.UTC().Format(instantLayout),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": scheduleContextNumber(priority), "flexibility": scheduleContextNumber(flexibility), "interruption_cost": scheduleContextNumber(interruptionCost),
 		}
@@ -154,7 +154,7 @@ func readScheduleAtWith(ctx context.Context, query lifeContextQuerier, fluctligh
 	}
 	schedule := map[string]any{
 		"id": id, "local_date": localDate.Format("2006-01-02"), "timezone": canonicalTimezone(storedTimezone),
-		"revision": revision, "status": status, "completed_before": at.UTC().Format(time.RFC3339Nano),
+		"revision": revision, "status": status, "completed_before": at.UTC().Format(instantLayout),
 		"reschedule_policy": decodeJSONValue(reschedulePolicy), "items": items,
 	}
 	if item := scheduleItemAt(schedule, at); len(item) > 0 {
@@ -177,12 +177,16 @@ func resolveLifeContextAtWith(ctx context.Context, query lifeContextQuerier, flu
 		result["source"] = "event"
 		result["authority_status"] = eventStatus
 		result["event_kind"] = eventKind
+		result["behavior_state"] = "awake"
+		if eventKind == "sleep" {
+			result["behavior_state"] = "sleep"
+		}
 		result["event_id"] = eventID
 		result["event_revision"] = eventRevision
-		result["effective_at"] = eventStart.UTC().Format(time.RFC3339Nano)
-		result["expires_at"] = eventEnd.UTC().Format(time.RFC3339Nano)
+		result["effective_at"] = eventStart.UTC().Format(instantLayout)
+		result["expires_at"] = eventEnd.UTC().Format(instantLayout)
 		if eventExpires != nil && eventExpires.Before(eventEnd) {
-			result["expires_at"] = eventExpires.UTC().Format(time.RFC3339Nano)
+			result["expires_at"] = eventExpires.UTC().Format(instantLayout)
 		}
 		result["scene"], result["activity"], result["location"] = nullablePointerValue(scene), nullablePointerValue(activity), nullablePointerValue(location)
 	} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -200,10 +204,10 @@ func resolveLifeContextAtWith(ctx context.Context, query lifeContextQuerier, flu
 	} else if err == nil {
 		presence := map[string]any{
 			"id": presenceID, "actor_id": presenceActorID, "status": presenceStatus, "revision": presenceRevision,
-			"current_task": nullablePointerValue(currentTask), "user_presence": nullablePointerValue(userPresence), "effective_at": presenceCreated.UTC().Format(time.RFC3339Nano),
+			"current_task": nullablePointerValue(currentTask), "user_presence": nullablePointerValue(userPresence), "effective_at": presenceCreated.UTC().Format(instantLayout),
 		}
 		if presenceExpires != nil {
-			presence["expires_at"] = presenceExpires.UTC().Format(time.RFC3339Nano)
+			presence["expires_at"] = presenceExpires.UTC().Format(instantLayout)
 		}
 		result["presence"] = presence
 		result["presence_overlay"] = true
@@ -222,14 +226,14 @@ func nullablePointerValue(value *string) any {
 func pendingLifeContext(timezone string, at time.Time) map[string]any {
 	result := map[string]any{
 		"source": "pending", "authority_status": "pending", "scene": nil, "activity": nil, "location": nil,
-		"instant": at.UTC().Format(time.RFC3339Nano), "timezone": timezone,
+		"instant": at.UTC().Format(instantLayout), "timezone": timezone,
 	}
 	if location, err := time.LoadLocation(timezone); err == nil {
 		local := at.In(location)
 		start := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, location)
 		result["local_date"] = start.Format("2006-01-02")
-		result["effective_at"] = start.UTC().Format(time.RFC3339Nano)
-		result["expires_at"] = start.AddDate(0, 0, 1).UTC().Format(time.RFC3339Nano)
+		result["effective_at"] = start.UTC().Format(instantLayout)
+		result["expires_at"] = start.AddDate(0, 0, 1).UTC().Format(instantLayout)
 	}
 	return result
 }
@@ -246,6 +250,10 @@ func contextFromScheduleAt(result map[string]any, schedule map[string]any, at ti
 	result["scene"] = item["scene"]
 	result["activity"] = item["activity"]
 	result["location"] = item["location"]
+	result["behavior_state"] = "awake"
+	if stringValue(item["item_type"]) == "sleep" {
+		result["behavior_state"] = "sleep"
+	}
 }
 
 func scheduleItemAt(schedule map[string]any, at time.Time) map[string]any {
@@ -457,7 +465,7 @@ func (a *App) applyLifeContextTimezoneChangeTx(
 	if previousErr != nil || resultingErr != nil {
 		return errors.New("schedule_timezone_invalid")
 	}
-	now := time.Now().UTC()
+	now := a.now().UTC()
 	cutoff := now.In(previousLocation).Format("2006-01-02")
 	if resultingDate := now.In(resultingLocation).Format("2006-01-02"); resultingDate < cutoff {
 		cutoff = resultingDate

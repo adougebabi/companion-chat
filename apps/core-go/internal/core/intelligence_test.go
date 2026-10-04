@@ -11,7 +11,7 @@ func TestAnnotateLifeContextClockUsesPersonaTimezone(t *testing.T) {
 	if lifeContext["timezone"] != "Asia/Shanghai" {
 		t.Fatalf("timezone = %#v, want Asia/Shanghai", lifeContext["timezone"])
 	}
-	if lifeContext["current_time"] != "2026-09-05 09:30:00 CST" {
+	if lifeContext["current_time"] != "2026-09-05T09:30:00.000+08:00" {
 		t.Fatalf("current_time = %#v, want local wall-clock value", lifeContext["current_time"])
 	}
 }
@@ -20,7 +20,7 @@ func TestAnnotateLifeContextClockFallsBackToNowForMalformedInstant(t *testing.T)
 	lifeContext := map[string]any{"instant": "not-a-timestamp"}
 	annotateLifeContextClock(lifeContext, "UTC")
 	value := stringValue(lifeContext["current_time"])
-	if value == "" || !strings.HasSuffix(value, " UTC") {
+	if value == "" || !strings.HasSuffix(value, "+00:00") {
 		t.Fatalf("current_time = %q, want a UTC wall-clock value", value)
 	}
 }

@@ -89,12 +89,12 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 	}
 	// The read model is a schedule version; the immutable-history boundary is
 	// the time of this planning attempt, not a persisted schedule field.
-	current["completed_before"] = time.Now().UTC().Format(time.RFC3339Nano)
+	current["completed_before"] = c.intents.now().Format(instantLayout)
 	resolved.Schedule = &ScheduleContext{Data: current}
 	if raw, found, err := capabilityPreparedData(invocation, "scheduled_activity_plan"); err != nil {
 		return invocation, err
 	} else if found {
-		if err := validateScheduledActivityPlan(mapValue(raw), args, actionPlan, resolved); err != nil {
+		if err := validateScheduledActivityPlan(mapValue(raw), args, actionPlan, resolved, c.intents.now()); err != nil {
 			return invocation, err
 		}
 		return invocation, nil
@@ -115,18 +115,18 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 	planned["local_date"] = stringValue(current["local_date"])
 	planned["timezone"] = stringValue(current["timezone"])
 	planned["expected_revision"] = intValue(current["revision"])
-	planned["completed_before"] = firstString(current["completed_before"], time.Now().UTC().Format(time.RFC3339Nano))
+	planned["completed_before"] = firstString(current["completed_before"], c.intents.now().Format(instantLayout))
 	planned["expected_life_context_revision"] = stringValue(resolved.Life.Data["context_revision"])
 	planned["intent"] = stringValue(args["action"])
 	planned["evidence_refs"] = []any{invocation.SourceFactID}
 	planned["idempotency_key"] = "tool:" + capabilityOperationID(invocation)
-	if err := validateScheduledActivityPlan(planned, args, actionPlan, resolved); err != nil {
+	if err := validateScheduledActivityPlan(planned, args, actionPlan, resolved, c.intents.now()); err != nil {
 		return invocation, err
 	}
 	return withCapabilityPreparedData(invocation, "scheduled_activity_plan", planned)
 }
 
-func validateScheduledActivityPlan(planned, args, actionPlan map[string]any, resolved CapabilityContext) error {
+func validateScheduledActivityPlan(planned, args, actionPlan map[string]any, resolved CapabilityContext, at time.Time) error {
 	if intValue(planned["expected_revision"]) == 0 {
 		if resolved.Life == nil || stringValue(planned["expected_life_context_revision"]) != stringValue(resolved.Life.Data["context_revision"]) || stringValue(planned["local_date"]) != stringValue(resolved.Life.Data["local_date"]) || canonicalTimezone(stringValue(planned["timezone"])) != canonicalTimezone(stringValue(resolved.Life.Data["timezone"])) {
 			return ErrConflict
@@ -137,13 +137,13 @@ func validateScheduledActivityPlan(planned, args, actionPlan map[string]any, res
 	} else if err := validatePreparedSchedulePlan(planned, map[string]any{"intent": args["action"]}, resolved); err != nil {
 		return err
 	}
-	if _, err := scheduledAppointmentItem(planned, actionPlan, args); err != nil {
+	if _, err := scheduledAppointmentItem(planned, actionPlan, args, at); err != nil {
 		return err
 	}
 	return nil
 }
 
-func scheduledAppointmentItem(plan, actionPlan, args map[string]any) (map[string]any, error) {
+func scheduledAppointmentItem(plan, actionPlan, args map[string]any, at time.Time) (map[string]any, error) {
 	var selected map[string]any
 	for _, raw := range arrayValue(plan["items"]) {
 		item := mapValue(raw)
@@ -158,7 +158,7 @@ func scheduledAppointmentItem(plan, actionPlan, args map[string]any) (map[string
 		return nil, errors.New("schedule_action_slot_missing")
 	}
 	start, err := parseScheduleTime(stringValue(selected["start_at"]))
-	if err != nil || !start.After(time.Now().UTC().Add(30*time.Second)) {
+	if err != nil || !start.After(at.Add(30*time.Second)) {
 		return nil, errors.New("schedule_action_start_not_future")
 	}
 	end, err := parseScheduleTime(stringValue(selected["end_at"]))
@@ -201,7 +201,7 @@ func (c scheduleActivityCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, in
 	if intValue(current["revision"]) != intValue(planned["expected_revision"]) {
 		return failedCapabilityResult(invocation, "schedule_revision_stale", true), ErrConflict
 	}
-	if err := validateScheduledActivityPlan(planned, args, actionPlan, resolved); err != nil {
+	if err := validateScheduledActivityPlan(planned, args, actionPlan, resolved, c.intents.now()); err != nil {
 		return failedCapabilityResult(invocation, "schedule_activity_plan_stale", true), err
 	}
 	fluctlightID := invocation.Metadata.FluctlightID
@@ -209,7 +209,7 @@ func (c scheduleActivityCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, in
 	if err != nil {
 		return failedCapabilityResult(invocation, "intention_profile_unavailable", true), err
 	}
-	created, err := c.intents.createIntentionTx(ctx, tx, invocation, profileID, args, stringValue(args["reason"]), []string{"tool-operation:" + stableDigest(fluctlightID+"\x1f"+capabilityOperationID(invocation))}, time.Now().UTC())
+	created, err := c.intents.createIntentionTx(ctx, tx, invocation, profileID, args, stringValue(args["reason"]), []string{"tool-operation:" + stableDigest(fluctlightID+"\x1f"+capabilityOperationID(invocation))}, c.intents.now())
 	if err != nil {
 		return failedCapabilityResult(invocation, "intention_create_failed", false), err
 	}
@@ -220,11 +220,11 @@ func (c scheduleActivityCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, in
 	if reused, _ := mapValue(created.Output)["reused"].(bool); reused {
 		var existingScheduleID, existingItemID string
 		var existingStart time.Time
-		lookupErr := tx.QueryRow(ctx, `SELECT s.id,item.id,item.start_at FROM public.life_schedule_items item JOIN public.life_schedules s ON s.id=item.schedule_id WHERE item.intention_id=$1 AND s.fluctlight_id=$2 AND s.status='accepted' AND item.end_at>now() ORDER BY item.start_at DESC LIMIT 1`, intentionID, fluctlightID).Scan(&existingScheduleID, &existingItemID, &existingStart)
+		lookupErr := tx.QueryRow(ctx, `SELECT s.id,item.id,item.start_at FROM public.life_schedule_items item JOIN public.life_schedules s ON s.id=item.schedule_id WHERE item.intention_id=$1 AND s.fluctlight_id=$2 AND s.status='accepted' AND item.end_at>$3 ORDER BY item.start_at DESC LIMIT 1`, intentionID, fluctlightID, c.intents.now()).Scan(&existingScheduleID, &existingItemID, &existingStart)
 		if lookupErr == nil {
 			return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{
 				"goal_id": goalID, "intention_id": intentionID, "schedule_id": existingScheduleID,
-				"schedule_item_id": existingItemID, "start_at": existingStart.UTC().Format(time.RFC3339Nano), "status": "scheduled",
+				"schedule_item_id": existingItemID, "start_at": existingStart.UTC().Format(instantLayout), "status": "scheduled",
 			}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "schedule:" + existingScheduleID}, nil
 		}
 		if !errors.Is(lookupErr, pgx.ErrNoRows) {
@@ -234,7 +234,7 @@ func (c scheduleActivityCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, in
 			return failedCapabilityResult(invocation, "intention_already_active", false), ErrConflict
 		}
 	}
-	item, err := scheduledAppointmentItem(planned, actionPlan, args)
+	item, err := scheduledAppointmentItem(planned, actionPlan, args, c.intents.now())
 	if err != nil {
 		return failedCapabilityResult(invocation, "schedule_action_slot_invalid", false), err
 	}

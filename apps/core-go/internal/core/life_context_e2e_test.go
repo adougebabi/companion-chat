@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -33,7 +32,7 @@ func TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjec
 		t.Fatalf("different scenes did not change the structured chain: A=%#v B=%#v", chainA, chainB)
 	}
 	for _, chain := range []sceneDecisionChain{chainA, chainB} {
-		if chain.ProviderCalls != 2 || chain.InfluenceRef != chain.InitialLifeRef || chain.PreparedRevision != chain.InitialLifeRevision || len(chain.OutcomeRefs) < 2 {
+		if chain.ProviderCalls != 2 || (chain.InfluenceRef != chain.InitialLifeRef && providerShortRef(chain.InfluenceRef) != chain.InitialLifeRef) || chain.PreparedRevision != chain.InitialLifeRevision || len(chain.OutcomeRefs) < 2 {
 			t.Fatalf("scene chain lost cognition/planner/outcome causality: %#v", chain)
 		}
 	}
@@ -83,7 +82,7 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 		if !strings.Contains(bodyText, initialScene) {
 			return nil, fmt.Errorf("Provider did not receive initial Scene %q", initialScene)
 		}
-		lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(bodyText)
+		lifeRef := providerLifeReferenceForTest(body)
 		if providerCalls == 1 {
 			providerLifeRef = lifeRef
 		}

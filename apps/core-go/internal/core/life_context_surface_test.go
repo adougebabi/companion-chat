@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -36,7 +35,7 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	resolved := CapabilityContext{
 		Visual: &VisualIdentityContext{Data: map[string]any{"status": "active", "ref": "visual:test"}},
 		Life:   &CurrentLifeContext{Data: initialLife},
-		Outfit: &AppearanceContext{Data: map[string]any{"outfit": "针织衫"}},
+		Outfit: &AppearanceContext{Data: seedControlledCurrentCapture(t, ctx, repository, fluctlightID)},
 		State:  &CurrentStateContext{Data: map[string]any{"mood": map[string]any{"label": "平静"}}},
 	}
 	baseInvocation := CapabilityInvocation{
@@ -182,7 +181,7 @@ func TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale(t *test
 			providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 				call := providerCalls.Add(1)
 				body, _ := io.ReadAll(request.Body)
-				lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(string(body))
+				lifeRef := providerLifeReferenceForTest(body)
 				if lifeRef == "" || strings.Contains(string(body), decisionRevision) {
 					return nil, errors.New("model-visible Life Context authority missing")
 				}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 )
 
 // AppContextResolver is the initial Core resolver implementation. It loads
@@ -62,7 +61,7 @@ func (resolver *AppContextResolver) Resolve(ctx context.Context, request Context
 	var cachedSchedule map[string]any
 	var cachedLifeContext map[string]any
 	var lifeContextLoaded bool
-	contextAt := time.Now().UTC()
+	contextAt := resolver.app.now().UTC()
 	loadFluctlight := func() (Fluctlight, error) {
 		if cachedFluctlight != nil {
 			return *cachedFluctlight, nil
@@ -143,7 +142,7 @@ func (resolver *AppContextResolver) load(ctx context.Context, request ContextReq
 		if err != nil {
 			return nil, err
 		}
-		state = projectAffectStateAt(state, policy, time.Now().UTC())
+		state = projectAffectStateAt(state, policy, resolver.app.now().UTC())
 		state["affect_profile"] = profile
 		return state, nil
 	case SlotSchedule:
@@ -158,7 +157,7 @@ func (resolver *AppContextResolver) load(ctx context.Context, request ContextReq
 	case SlotVisualIdentity:
 		return app.readVisualIdentityDetail(ctx, request.FluctlightID)
 	case SlotAppearance:
-		appearance, _, _, err := app.readEffectiveLifeSnapshot(ctx, request.FluctlightID, time.Now().UTC())
+		appearance, _, _, err := app.readEffectiveLifeSnapshot(ctx, request.FluctlightID, resolver.app.now().UTC())
 		return appearance, err
 	case SlotRelationshipScope:
 		relationships, err := app.readRelationships(ctx, request.FluctlightID, ownerID)

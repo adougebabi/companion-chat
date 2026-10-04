@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -27,7 +26,7 @@ type scheduleEditService interface {
 func scheduleEditDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: scheduleEditCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Edit one future Schedule item. Inspect first for item_id and revision. Set changes.start_at/end_at for move, changes.activity/scene/location for revise; cancel needs no changes.",
+		Description:     "Edit a future item or the interruptible remainder of a current Schedule item. Inspect first for item_id and revision. Set changes.start_at/end_at for move, changes.activity/scene/location for revise; cancel needs no changes.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotSchedule, SlotCurrentLife, SlotAgency},
@@ -69,8 +68,13 @@ func (c scheduleEditCapability) Prepare(ctx context.Context, invocation Capabili
 		return invocation, newCapabilityError("schedule_item_not_found", false, ErrNotFound)
 	}
 	start, err := parseScheduleTime(stringValue(target["start_at"]))
-	if err != nil || !start.After(time.Now().UTC()) {
+	end, endErr := parseScheduleTime(stringValue(target["end_at"]))
+	at := c.intents.now()
+	if err != nil || endErr != nil || !end.After(at) {
 		return invocation, newCapabilityError("schedule_edit_history_immutable", false, ErrConflict)
+	}
+	if !start.After(at) && (numberOrZero(target["flexibility"]) <= 0 || numberOrZero(target["interruption_cost"]) >= 1 || target["action_status"] == "in_progress" || target["status"] == "completed") {
+		return invocation, newCapabilityError("schedule_current_item_not_interruptible", false, ErrConflict)
 	}
 	if raw, found, err := capabilityPreparedData(invocation, "schedule_plan"); err != nil {
 		return invocation, err
@@ -164,6 +168,11 @@ func validateScheduleEditPlan(planned, args, target map[string]any, resolved Cap
 	changes := mapValue(args["changes"])
 	for _, raw := range arrayValue(planned["items"]) {
 		item := mapValue(raw)
+		boundary, _ := parseScheduleTime(stringValue(planned["completed_before"]))
+		end, endErr := parseScheduleTime(stringValue(item["end_at"]))
+		if endErr == nil && !end.After(boundary) {
+			continue
+		}
 		if stringValue(item["source_item_id"]) != stringValue(args["item_id"]) {
 			if stringValue(args["operation"]) == "cancel" && stringValue(target["intention_id"]) != "" && stringValue(item["intention_id"]) == stringValue(target["intention_id"]) {
 				return errors.New("cancelled intention link remains in replacement")
@@ -193,6 +202,10 @@ func validateScheduleEditPlan(planned, args, target map[string]any, resolved Cap
 			newStart, newStartErr := parseScheduleTime(stringValue(item["start_at"]))
 			oldEnd, endErr := parseScheduleTime(stringValue(target["end_at"]))
 			newEnd, newEndErr := parseScheduleTime(stringValue(item["end_at"]))
+			boundary, _ := parseScheduleTime(stringValue(planned["completed_before"]))
+			if oldStart.Before(boundary) && oldEnd.After(boundary) {
+				oldStart = boundary
+			}
 			if startErr != nil || newStartErr != nil || endErr != nil || newEndErr != nil || !oldStart.Equal(newStart) || !oldEnd.Equal(newEnd) {
 				return errors.New("revised item changed its time")
 			}

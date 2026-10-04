@@ -20,7 +20,7 @@ const (
 	promptBudgetPolicyVersionV1       = "prompt-budget.v1"
 	promptBudgetPolicyVersionV2       = "prompt-budget.v2"
 	defaultSystemTokensCap            = 16384
-	defaultToolsSchemaTokensCap       = 32768
+	defaultToolsSchemaTokensCap       = 49152
 	defaultCurrentInputTokensCap      = 16384
 	defaultPromptImageTokens          = 1536
 	defaultPromptLowDetailImage       = 85
@@ -327,7 +327,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		if candidate.fragment.Kind == PromptFragmentRecentMessage {
 			candidate.fragment.EstimatedTokens = estimateProviderMessageTokens(mapValue(candidate.fragment.Content))
 		}
-		if candidate.fragment.Kind == PromptFragmentRuntimeFact {
+		if candidate.fragment.Kind == PromptFragmentRuntimeFact || candidate.fragment.Required {
 			selected = append(selected, candidate)
 		} else {
 			optional = append(optional, candidate)
@@ -383,6 +383,13 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	})
 	recentGap := false
 	summarizedSources := make(map[string]struct{})
+	for _, candidate := range selected {
+		if candidate.fragment.Kind == PromptFragmentSummary {
+			for _, ref := range candidate.fragment.SourceRefs {
+				summarizedSources[ref] = struct{}{}
+			}
+		}
+	}
 	for _, unit := range units {
 		reason := "budget_excluded"
 		summarized := unit.kind == PromptFragmentRecentMessage && len(unit.items) > 0
@@ -542,7 +549,7 @@ func assemblePromptMessages(system, current map[string]any, selected []promptOpt
 // formatRuntimeContextTimes changes only the Provider-facing copy. The
 // projection and Tool inputs retain their authoritative RFC3339 timestamps.
 func formatRuntimeContextTimes(context map[string]any) map[string]any {
-	zoneName := stringValue(mapValue(mapValue(mapValue(context["current_state"])["data"])["life_context"])["timezone"])
+	zoneName := firstString(mapValue(context["time_view"])["reference_timezone"], stringValue(mapValue(mapValue(mapValue(context["current_state"])["data"])["life_context"])["timezone"]))
 	zone, _ := time.LoadLocation(zoneName)
 	return formatRuntimeContextTimeValue(context, "", zone).(map[string]any)
 }
@@ -568,7 +575,7 @@ func formatRuntimeContextTimeValue(value any, key string, zone *time.Location) a
 		}
 		return result
 	case string:
-		if !strings.HasSuffix(key, "_at") {
+		if !strings.HasSuffix(key, "_at") && key != "as_of" && key != "valid_from" && key != "valid_until" && key != "current_time" {
 			return typed
 		}
 		parsed, err := time.Parse(time.RFC3339Nano, typed)
@@ -578,7 +585,7 @@ func formatRuntimeContextTimeValue(value any, key string, zone *time.Location) a
 		if zone != nil {
 			parsed = parsed.In(zone)
 		}
-		return parsed.Format("2006-01-02 15:04:05 -07:00")
+		return parsed.Format(instantLayout)
 	default:
 		return value
 	}
@@ -603,6 +610,11 @@ func promptAssemblySectionTokens(system, current map[string]any, selected []prom
 	for _, candidate := range selected {
 		section := promptFragmentSection(candidate.fragment.Kind)
 		result[section] += candidate.fragment.EstimatedTokens
+		if candidate.fragment.Kind == PromptFragmentRuntimeFact {
+			if kind := stringValue(mapValue(candidate.fragment.Content)["kind"]); kind != "" {
+				result["runtime."+kind] += candidate.fragment.EstimatedTokens
+			}
+		}
 	}
 	return result
 }
@@ -649,6 +661,11 @@ func promptAssemblySectionSizes(system, current map[string]any, selected []promp
 	}
 	for _, candidate := range selected {
 		add(promptFragmentSection(candidate.fragment.Kind), candidate.fragment.Content)
+		if candidate.fragment.Kind == PromptFragmentRuntimeFact {
+			if kind := stringValue(mapValue(candidate.fragment.Content)["kind"]); kind != "" {
+				add("runtime."+kind, candidate.fragment.Content)
+			}
+		}
 	}
 	return bytesBySection, charsBySection
 }

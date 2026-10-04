@@ -32,7 +32,7 @@ func TestDelegatedToolBudgetReservesOncePerRunAndHonorsPolicyRevocation(t *testi
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,'active','["proactive_message","moment","capability"]',1,'{}',1,0) ON CONFLICT(fluctlight_id) DO UPDATE SET allowed_actions='["proactive_message","moment","capability"]',mode='active',budget_remaining=1`, fl); err != nil {
 		t.Fatal(err)
 	}
-	request := ToolExecutionRequest{AuthorizationPolicy: "autonomy", AgentID: FormalAgentWakeUp, RunID: "one-authorized-run", CapabilityName: "conversation.reply", OperationID: "first-reply", AuthorizationActorID: owner, FluctlightID: fl, ConversationID: conversation, Arguments: json.RawMessage(`{"text":"first"}`)}
+	request := ToolExecutionRequest{AuthorizationPolicy: "autonomy", AgentID: FormalAgentWakeUp, RunID: "one-authorized-run", CapabilityName: "conversation.reply", OperationID: "first-reply", AuthorizationActorID: owner, FluctlightID: fl, ConversationID: conversation, Arguments: json.RawMessage(`{"text":"first","topic_key":"test","purpose":"核对预算"}`)}
 	for _, op := range []string{"first-reply", "second-reply"} {
 		request.OperationID = op
 		result, err := app.ExecuteTool(ctx, request)

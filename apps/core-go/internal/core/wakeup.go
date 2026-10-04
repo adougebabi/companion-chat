@@ -652,6 +652,11 @@ func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, 
 		intervalSeconds = defaultWakeUpIntervalSeconds
 	}
 	payload := decodeObject(payloadRaw)
+	epoch := firstString(payload["idle_epoch"], "activation")
+	if previous, exists := payload["last_settled_cycle"]; exists && intValue(previous) == cycle && stringValue(payload["last_settled_epoch"]) == epoch && existingDue != nil {
+		return existingDue.UTC(), nil
+	}
+	payload["last_settled_cycle"], payload["last_settled_epoch"] = cycle, epoch
 	nextDue := now.UTC().Add(time.Duration(intervalSeconds) * time.Second)
 	if clock, ok := wakeUpIdleClockFromPayload(payload); ok {
 		if cycle > 0 && intValue(payload["idle_last_settled_cycle"]) == cycle && existingDue != nil {

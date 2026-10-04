@@ -26,6 +26,7 @@ const (
 type ContextReferenceKind string
 
 const (
+	ContextReferenceActorFact        ContextReferenceKind = "actor_fact"
 	ContextReferenceMemory           ContextReferenceKind = "memory"
 	ContextReferenceActiveMemory     ContextReferenceKind = "active_memory"
 	ContextReferenceAppearance       ContextReferenceKind = "appearance"
@@ -49,7 +50,7 @@ const (
 
 var (
 	validContextReferenceKinds = map[ContextReferenceKind]struct{}{
-		ContextReferenceMemory: {}, ContextReferenceActiveMemory: {}, ContextReferenceAppearance: {}, ContextReferenceRelationship: {}, ContextReferenceGoal: {},
+		ContextReferenceActorFact: {}, ContextReferenceMemory: {}, ContextReferenceActiveMemory: {}, ContextReferenceAppearance: {}, ContextReferenceRelationship: {}, ContextReferenceGoal: {},
 		ContextReferenceIntention: {}, ContextReferenceScene: {}, ContextReferenceLifeContext: {}, ContextReferenceSchedule: {},
 		ContextReferenceScheduleItem: {}, ContextReferencePresence: {}, ContextReferenceState: {},
 		ContextReferenceAffectProfile: {}, ContextReferenceDevelopingSelf: {}, ContextReferenceDrive: {},
@@ -201,6 +202,9 @@ func (index *ContextReferenceIndex) add(kind ContextReferenceKind, entityID stri
 func addReferenceToRow(index *ContextReferenceIndex, kind ContextReferenceKind, row map[string]any, entityID string, revision int) (string, error) {
 	snapshot := cloneMap(row)
 	delete(snapshot, "ref")
+	if kind == ContextReferenceGoal {
+		delete(snapshot, "execution")
+	}
 	ref, err := index.add(kind, entityID, revision, snapshot)
 	if err != nil {
 		return "", err
@@ -244,6 +248,11 @@ func buildContextReferenceIndex(projection *ContextProjection) error {
 	}
 	index := newContextReferenceIndex(*projection)
 	activeProfileID := index.ActiveProfileID
+	for _, fact := range projection.ActorFacts {
+		if _, err := addReferenceToRow(&index, ContextReferenceActorFact, fact, stringValue(fact["fact_id"]), intValue(fact["revision"])); err != nil {
+			return err
+		}
+	}
 
 	for _, memory := range append(append([]map[string]any(nil), projection.ResidentMemories...), projection.Memories...) {
 		if _, err := addReferenceToRow(&index, ContextReferenceMemory, memory, stringValue(memory["id"]), intValue(memory["revision"])); err != nil {

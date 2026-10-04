@@ -25,6 +25,7 @@ func lifeActivityOutputSchema() map[string]any {
 		"not_before":        map[string]any{"type": "string"},
 		"active_until":      map[string]any{"type": "string"},
 		"event_id":          map[string]any{"type": "string"},
+		"item_ids":          map[string]any{"type": "array", "items": stringSchema()},
 		"item_id":           map[string]any{"type": "string"},
 		"body_revision":     map[string]any{"type": "integer"},
 		"wardrobe_revision": map[string]any{"type": "integer"},
@@ -46,6 +47,8 @@ func lifeActivityStartDefinition() CapabilityDefinition {
 				"intention_id":        map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"schedule_item_id":    map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"duration_minutes":    map[string]any{"type": "integer", "minimum": 15, "maximum": 240},
+				"item_kind":           enumStringSchema("wearable", "object"),
+				"items":               map[string]any{"type": "array", "maxItems": 8, "items": shoppingItemSchema()},
 				"category":            map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 				"slot":                map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 				"description":         map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
@@ -60,7 +63,7 @@ func lifeActivityStartDefinition() CapabilityDefinition {
 		OutputSchema: lifeActivityOutputSchema(), SideEffectClass: "native_projection", SuccessBoundary: "virtual_activity_started",
 		CompletionBoundary: "virtual_activity_resolved", OutcomeReferenceField: "activity_id",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
-		ModelResultOmitFields: []string{"event_id", "item_id", "body_revision", "wardrobe_revision", "intention_id"},
+		ModelResultOmitFields: []string{"event_id", "body_revision", "wardrobe_revision", "intention_id"},
 	}
 }
 func (c lifeActivityStartCapability) Definition() CapabilityDefinition {
@@ -82,13 +85,22 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 	request := map[string]any{"kind": kind}
 	switch kind {
 	case "virtual_shopping":
-		for _, key := range []string{"category", "slot", "description"} {
-			text := strings.TrimSpace(stringValue(args[key]))
-			if text == "" {
-				return failedCapabilityResult(invocation, "shopping_item_required", false), ErrInvalidArguments
-			}
-			request[key] = text
+		items, err := shoppingRequestedItems(args)
+		if err != nil {
+			return failedCapabilityResult(invocation, "shopping_item_required", false), err
 		}
+		if _, bundle := args["items"]; bundle {
+			members := make([]any, 0, len(items))
+			for _, item := range items {
+				members = append(members, item)
+			}
+			request["items"] = members
+		} else {
+			for key, value := range items[0] {
+				request[key] = value
+			}
+		}
+
 	case "haircut":
 		length := strings.TrimSpace(stringValue(args["desired_hair_length"]))
 		if length == "" {
@@ -123,7 +135,7 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		return failedCapabilityResult(invocation, "activity_duration_invalid", false), ErrInvalidArguments
 	}
 	activityID := "activity_" + stableDigest(fluctlightID+"\x1f"+capabilityOperationID(invocation))
-	now := time.Now().UTC()
+	now := c.service.app.now().UTC()
 	notBefore := now.Add(time.Duration(duration) * time.Minute)
 	scheduleItemID := strings.TrimSpace(stringValue(args["schedule_item_id"]))
 	if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
@@ -132,6 +144,9 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 	schedule, life, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, now)
 	if err != nil {
 		return failedCapabilityResult(invocation, "activity_context_read_failed", true), err
+	}
+	if stringValue(life["behavior_state"]) == "sleep" {
+		return failedCapabilityResult(invocation, "life_state_sleeping", false), ErrConflict
 	}
 	activeUntil := notBefore.Add(30 * time.Minute)
 	if boundary, parseErr := time.Parse(time.RFC3339Nano, stringValue(schedule["current_item_expires_at"])); parseErr == nil && boundary.Before(activeUntil) {
@@ -162,7 +177,7 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		var itemLocation *string
 		var itemEnd time.Time
 		var actionPlanRaw []byte
-		if err := tx.QueryRow(ctx, `SELECT COALESCE(item.intention_id,''),item.action_plan->>'kind',item.action_plan,item.activity,item.scene,item.location,item.end_at FROM public.life_schedule_items item JOIN public.life_schedules s ON s.id=item.schedule_id WHERE item.id=$1 AND s.fluctlight_id=$2 AND s.status='accepted' AND item.start_at<=now() AND item.end_at>now() FOR UPDATE OF s,item`, scheduleItemID, fluctlightID).Scan(&plannedIntention, &scheduledKind, &actionPlanRaw, &itemActivity, &itemScene, &itemLocation, &itemEnd); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(item.intention_id,''),item.action_plan->>'kind',item.action_plan,item.activity,item.scene,item.location,item.end_at FROM public.life_schedule_items item JOIN public.life_schedules s ON s.id=item.schedule_id WHERE item.id=$1 AND s.fluctlight_id=$2 AND s.status='accepted' AND item.start_at<=$3 AND item.end_at>$3 FOR UPDATE OF s,item`, scheduleItemID, fluctlightID, now).Scan(&plannedIntention, &scheduledKind, &actionPlanRaw, &itemActivity, &itemScene, &itemLocation, &itemEnd); err != nil {
 			return failedCapabilityResult(invocation, "scheduled_activity_not_due", false), ErrConflict
 		}
 		if plannedIntention == "" || plannedIntention != intentionID || scheduledKind != kind || !scheduledActionMatchesArguments(decodeObject(actionPlanRaw), args) {
@@ -186,6 +201,9 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		}
 		request["schedule_item_id"] = scheduleItemID
 	}
+	if !notBefore.Before(activeUntil) {
+		return failedCapabilityResult(invocation, "activity_completion_outside_window", false), ErrConflict
+	}
 	var dueContext map[string]any
 	if intentionID != "" && invocation.Metadata.Surface == CapabilitySurfaceNativeCognition && invocation.Metadata.Source == "model_tool" && invocation.SourceFactID != "" {
 		var eventType string
@@ -207,7 +225,7 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		var constraintRaw []byte
 		var intentionStatus string
 		var triggerRaw []byte
-		if err := tx.QueryRow(ctx, `SELECT expiration,capability_constraints,status,trigger FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 AND COALESCE(profile_id,'')=$3 FOR UPDATE`, intentionID, fluctlightID, profileID).Scan(&expiration, &constraintRaw, &intentionStatus, &triggerRaw); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT expiration,capability_constraints,status,trigger FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 AND (COALESCE(profile_id,'')='' OR COALESCE(profile_id,'')=$3) FOR UPDATE`, intentionID, fluctlightID, profileID).Scan(&expiration, &constraintRaw, &intentionStatus, &triggerRaw); err != nil {
 			return failedCapabilityResult(invocation, "activity_intention_not_found", false), err
 		}
 		if !now.Before(expiration) {
@@ -243,7 +261,7 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 	result := map[string]any{"request": request, "reason": strings.TrimSpace(stringValue(args["reason"]))}
 	eventID := "event_" + stableDigest(activityID+"\x1fauthority")
 	if priorID := stringValue(life["event_id"]); priorID != "" {
-		if _, err := tx.Exec(ctx, `UPDATE public.life_events SET end_at=LEAST(end_at,$3),expires_at=$3,revision=revision+1,updated_at=$3 WHERE id=$1 AND fluctlight_id=$2 AND status IN ('confirmed','inferred') AND end_at>$3`, priorID, fluctlightID, now); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.life_events SET end_at=LEAST(end_at,$3),expires_at=$3,revision=revision+1,result=jsonb_set(result,'{revision}',to_jsonb(revision+1),true),updated_at=$3 WHERE id=$1 AND fluctlight_id=$2 AND status IN ('confirmed','inferred') AND end_at>$3`, priorID, fluctlightID, now); err != nil {
 			return failedCapabilityResult(invocation, "activity_prior_event_end_failed", true), err
 		}
 		if err := c.service.app.closeActivityRunsForEventTx(ctx, tx, fluctlightID, priorID, now); err != nil {
@@ -271,11 +289,11 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		return failedCapabilityResult(invocation, "activity_start_failed", true), err
 	}
 	if err := appendOutboxTx(ctx, tx, "life.activity.started", "life_activity", activityID, fluctlightID, invocation.SourceFactID,
-		"activity:"+activityID, "activity-start:"+activityID, map[string]any{"activity_id": activityID, "kind": kind, "status": "in_progress", "not_before": notBefore.Format(time.RFC3339Nano)}); err != nil {
+		"activity:"+activityID, "activity-start:"+activityID, map[string]any{"activity_id": activityID, "kind": kind, "status": "in_progress", "not_before": notBefore.Format(instantLayout)}); err != nil {
 		return failedCapabilityResult(invocation, "activity_event_failed", true), err
 	}
 	receiptResult := CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "accepted",
-		Output:            map[string]any{"activity_id": activityID, "status": "in_progress", "not_before": notBefore.Format(time.RFC3339Nano), "intention_id": intentionID, "event_id": eventID},
+		Output:            map[string]any{"activity_id": activityID, "status": "in_progress", "not_before": notBefore.Format(instantLayout), "intention_id": intentionID, "event_id": eventID},
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}
 	if dueContext != nil {
 		goalRef, intentionRef := stringValue(dueContext["goal_ref"]), stringValue(dueContext["intention_ref"])
@@ -284,7 +302,7 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 			return failedCapabilityResult(invocation, "activity_due_references_invalid", false), ErrConflict
 		}
 		settlement := map[string]any{"status": "pending", "goal_refs": []string{goalRef}, "intention_refs": []string{intentionRef}, "context_references": contextRefs}
-		outcomes, err := buildActionOutcomes("agent_native_"+stableDigest(invocation.SourceFactID), fluctlightID, invocation.SourceFactID, "no_op", []CapabilityResult{receiptResult}, settlement, c.service.app.capabilityRegistry())
+		outcomes, err := buildActionOutcomes("agent_native_"+stableDigest(invocation.SourceFactID), fluctlightID, invocation.SourceFactID, "no_op", []CapabilityResult{receiptResult}, settlement, c.service.app.capabilityRegistry(), c.service.app.now().UTC())
 		if err != nil {
 			return failedCapabilityResult(invocation, "activity_due_outcome_invalid", true), err
 		}
@@ -304,7 +322,7 @@ func lifeActivityAdvanceDefinition() CapabilityDefinition {
 		InputSchema:   objectSchema(map[string]any{"activity_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "extend_minutes": map[string]any{"type": "integer", "minimum": 15, "maximum": 240}, "reason": map[string]any{"type": "string", "minLength": 1, "maxLength": 500}}, nil, false),
 		OutputSchema:  lifeActivityOutputSchema(), SideEffectClass: "native_projection", SuccessBoundary: "virtual_activity_resolution_committed",
 		ConcurrencyClass: "exclusive", SupportsRetry: true,
-		ModelResultOmitFields: []string{"event_id", "item_id", "body_revision", "wardrobe_revision", "intention_id"},
+		ModelResultOmitFields: []string{"event_id", "body_revision", "wardrobe_revision", "intention_id"},
 	}
 }
 func (c lifeActivityAdvanceCapability) Definition() CapabilityDefinition {
@@ -330,7 +348,7 @@ func (c lifeActivityAdvanceCapability) Prepare(ctx context.Context, invocation C
 		return invocation, profileErr
 	}
 	if activityID == "" {
-		rows, queryErr := app.DB.Pool().Query(ctx, `SELECT r.id FROM public.fluctlight_life_activity_runs r WHERE r.fluctlight_id=$1 AND r.profile_id=$2 AND r.status IN ('in_progress','deferred') AND r.active_until>now() AND (r.authority_event_id IS NULL OR EXISTS(SELECT 1 FROM public.life_events e WHERE e.id=r.authority_event_id AND e.status IN ('confirmed','inferred') AND e.start_at<=now() AND e.end_at>now() AND (e.expires_at IS NULL OR e.expires_at>now()))) ORDER BY r.started_at DESC,r.id LIMIT 2`, fluctlightID, currentProfileID)
+		rows, queryErr := app.DB.Pool().Query(ctx, `SELECT r.id FROM public.fluctlight_life_activity_runs r WHERE r.fluctlight_id=$1 AND r.profile_id=$2 AND r.status IN ('in_progress','deferred') AND r.active_until>$3 AND (r.authority_event_id IS NULL OR EXISTS(SELECT 1 FROM public.life_events e WHERE e.id=r.authority_event_id AND e.status IN ('confirmed','inferred') AND e.start_at<=$3 AND e.end_at>$3 AND (e.expires_at IS NULL OR e.expires_at>$3))) ORDER BY r.started_at DESC,r.id LIMIT 2`, fluctlightID, currentProfileID, app.now().UTC())
 		if queryErr != nil {
 			return invocation, queryErr
 		}
@@ -371,11 +389,11 @@ func (c lifeActivityAdvanceCapability) Prepare(ctx context.Context, invocation C
 		return invocation, newCapabilityError("activity_not_found", false, ErrNotFound)
 	}
 	plan := map[string]any{"activity_id": activityID, "profile_id": profileID, "kind": kind, "status": status,
-		"revision": revision, "not_before": notBefore.UTC().Format(time.RFC3339Nano)}
+		"revision": revision, "not_before": notBefore.UTC().Format(instantLayout)}
 	if status != "in_progress" && status != "deferred" {
 		return withCapabilityPreparedData(invocation, "activity_advance", plan)
 	}
-	authorityActive, err := activityAuthorityActiveWith(ctx, app.DB.Pool(), activityID, fluctlightID, time.Now().UTC())
+	authorityActive, err := activityAuthorityActiveWith(ctx, app.DB.Pool(), activityID, fluctlightID, c.service.app.now().UTC())
 	if err != nil {
 		return invocation, err
 	}
@@ -400,21 +418,21 @@ func (c lifeActivityAdvanceCapability) Prepare(ctx context.Context, invocation C
 		if err := app.DB.Pool().QueryRow(ctx, `SELECT status,expiration FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2`, intentionID, fluctlightID).Scan(&intentionStatus, &expiration); err != nil {
 			return invocation, err
 		}
-		if !accepted || intentionStatus != string(IntentionInProgress) || !time.Now().UTC().Before(expiration) {
+		if !accepted || intentionStatus != string(IntentionInProgress) || !c.service.app.now().UTC().Before(expiration) {
 			plan["result"] = map[string]any{"status": "cancelled"}
 			return withCapabilityPreparedData(invocation, "activity_advance", plan)
 		}
 	}
-	if time.Now().UTC().Before(notBefore) {
+	if c.service.app.now().UTC().Before(notBefore) {
 		plan["result"] = map[string]any{"status": "not_due"}
 		return withCapabilityPreparedData(invocation, "activity_advance", plan)
 	}
 	request := mapValue(decodeObject(resultRaw)["request"])
-	appearance, _, _, err := app.readEffectiveLifeSnapshot(ctx, fluctlightID, time.Now().UTC())
+	appearance, _, _, err := app.readEffectiveLifeSnapshot(ctx, fluctlightID, c.service.app.now().UTC())
 	if err != nil {
 		return invocation, err
 	}
-	_, life, err := app.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	_, life, err := app.readLifeContextSnapshotAt(ctx, fluctlightID, c.service.app.now().UTC())
 	if err != nil {
 		return invocation, err
 	}
@@ -423,7 +441,7 @@ func (c lifeActivityAdvanceCapability) Prepare(ctx context.Context, invocation C
 		return invocation, err
 	}
 	result, err := app.RunVirtualActivityResultTask(ctx, VirtualActivityResultTaskInput{
-		Kind: kind, Request: request, StartedAt: startedAt.UTC().Format(time.RFC3339Nano), NotBefore: notBefore.UTC().Format(time.RFC3339Nano),
+		Kind: kind, Request: request, StartedAt: startedAt.UTC().Format(instantLayout), NotBefore: notBefore.UTC().Format(instantLayout),
 		CurrentAppearance: appearance, CurrentLife: life, RecentOutcomes: outcomes,
 	})
 	if err != nil {
@@ -444,27 +462,27 @@ func validateVirtualActivityResult(kind string, request, result map[string]any) 
 		return errors.New("virtual_activity_result_status_invalid")
 	}
 	if status != "completed" {
-		if len(mapValue(result["acquired_item"])) > 0 || stringValue(result["hair_length"]) != "" || stringValue(result["hair_color"]) != "" || stringValue(result["hair_style"]) != "" {
+		if len(acquiredShoppingItems(result)) > 0 || stringValue(result["hair_length"]) != "" || stringValue(result["hair_color"]) != "" || stringValue(result["hair_style"]) != "" {
 			return errors.New("virtual_activity_uncompleted_result_has_effect")
 		}
 		return nil
 	}
 	switch kind {
 	case "virtual_shopping":
-		item := mapValue(result["acquired_item"])
-		if len(item) > 0 && (stringValue(item["category"]) != stringValue(request["category"]) || stringValue(item["slot"]) != stringValue(request["slot"]) || strings.TrimSpace(stringValue(item["description"])) == "" || len([]rune(stringValue(item["description"]))) > 512) {
-			return errors.New("virtual_shopping_item_mismatch")
+		if err := validateShoppingAcquisition(request, result); err != nil {
+			return err
 		}
 		if stringValue(result["hair_length"]) != "" || stringValue(result["hair_color"]) != "" {
 			return errors.New("virtual_shopping_body_effect_invalid")
 		}
+
 	case "haircut":
-		if len(mapValue(result["acquired_item"])) > 0 || strings.TrimSpace(stringValue(result["hair_length"])) == "" || len([]rune(stringValue(result["hair_length"]))) > 128 {
+		if len(acquiredShoppingItems(result)) > 0 || strings.TrimSpace(stringValue(result["hair_length"])) == "" || len([]rune(stringValue(result["hair_length"]))) > 128 {
 			return errors.New("virtual_haircut_result_invalid")
 		}
 	case "hair_dye":
 		color := strings.TrimSpace(stringValue(result["hair_color"]))
-		if len(mapValue(result["acquired_item"])) > 0 || stringValue(result["hair_length"]) != "" || color == "" || color != strings.TrimSpace(stringValue(request["desired_hair_color"])) {
+		if len(acquiredShoppingItems(result)) > 0 || stringValue(result["hair_length"]) != "" || color == "" || color != strings.TrimSpace(stringValue(request["desired_hair_color"])) {
 			return errors.New("virtual_hair_dye_color_mismatch")
 		}
 	default:
@@ -512,7 +530,7 @@ func (c lifeActivityAdvanceCapability) ExecuteTx(ctx context.Context, tx pgx.Tx,
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "rejected", ErrorCode: "activity_already_resolved",
 			Output: map[string]any{"activity_id": activityID, "status": status}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
 	}
-	authorityActive, err := activityAuthorityActiveWith(ctx, tx, activityID, fluctlightID, time.Now().UTC())
+	authorityActive, err := activityAuthorityActiveWith(ctx, tx, activityID, fluctlightID, c.service.app.now().UTC())
 	if err != nil {
 		return failedCapabilityResult(invocation, "activity_authority_read_failed", true), err
 	}
@@ -527,27 +545,27 @@ func (c lifeActivityAdvanceCapability) ExecuteTx(ctx context.Context, tx pgx.Tx,
 		}
 		if errors.Is(readErr, pgx.ErrNoRows) {
 			if err := cancelScheduledIntentionTx(ctx, tx, fluctlightID, intentionID, "schedule-item:"+scheduleItemID,
-				"stale-scheduled-run:"+activityID, time.Now().UTC()); err != nil {
+				"stale-scheduled-run:"+activityID, c.service.app.now().UTC()); err != nil {
 				return failedCapabilityResult(invocation, "activity_intention_cancel_failed", true), err
 			}
-			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, intentionID, revision, resultRaw)
+			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, intentionID, revision, resultRaw, c.service.app.now().UTC())
 		}
 		var intentionStatus string
 		var expiration time.Time
 		if err := tx.QueryRow(ctx, `SELECT status,expiration FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, intentionID, fluctlightID).Scan(&intentionStatus, &expiration); err != nil {
 			return failedCapabilityResult(invocation, "activity_intention_read_failed", true), err
 		}
-		if intentionStatus != string(IntentionInProgress) || !time.Now().UTC().Before(expiration) {
-			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, intentionID, revision, resultRaw)
+		if intentionStatus != string(IntentionInProgress) || !c.service.app.now().UTC().Before(expiration) {
+			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, intentionID, revision, resultRaw, c.service.app.now().UTC())
 		}
 	}
 	result := mapValue(plan["result"])
 	if stringValue(result["status"]) == "extended" {
-		return extendLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, revision, result)
+		return extendLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, revision, result, c.service.app.now().UTC())
 	}
-	if time.Now().UTC().Before(notBefore) || stringValue(result["status"]) == "not_due" {
+	if c.service.app.now().UTC().Before(notBefore) || stringValue(result["status"]) == "not_due" {
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "accepted",
-			Output:            map[string]any{"activity_id": activityID, "status": status, "not_before": notBefore.UTC().Format(time.RFC3339Nano)},
+			Output:            map[string]any{"activity_id": activityID, "status": status, "not_before": notBefore.UTC().Format(instantLayout)},
 			ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
 	}
 	if err := validateVirtualActivityResult(kind, mapValue(plan["request"]), result); err != nil {

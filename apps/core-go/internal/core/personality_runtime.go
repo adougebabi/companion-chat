@@ -140,7 +140,7 @@ func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID strin
 	if target == "" {
 		return nil, errors.New("personality_target_profile_required")
 	}
-	if cooldownUntil != nil && time.Now().UTC().Before(cooldownUntil.UTC()) && target != current {
+	if cooldownUntil != nil && a.now().UTC().Before(cooldownUntil.UTC()) && target != current {
 		return nil, errors.New("personality_switch_cooldown")
 	}
 	if target != "default" {
@@ -188,7 +188,7 @@ func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID strin
 	if target != current {
 		newRevision++
 		if seconds, ok := numberFloat(mapValue(system["switching"])["cooldown_seconds"]); ok && seconds > 0 && seconds <= 7*24*60*60 {
-			value := time.Now().UTC().Add(time.Duration(seconds * float64(time.Second)))
+			value := a.now().UTC().Add(time.Duration(seconds * float64(time.Second)))
 			switchCooldownUntil = &value
 		}
 	}

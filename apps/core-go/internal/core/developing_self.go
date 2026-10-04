@@ -122,7 +122,7 @@ func decodeStringArray(value []byte) []string {
 }
 
 func (a *App) listDevelopingSelfClaims(ctx context.Context, fluctlightID string) ([]DevelopingSelfClaim, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,fluctlight_id,category,claim,value,confidence,evidence_refs,provenance,status,expires_at,revision,superseded_by,created_at,updated_at FROM public.fluctlight_developing_self_claims WHERE fluctlight_id=$1 AND status IN ('active','uncertain') AND (expires_at IS NULL OR expires_at > now()) ORDER BY updated_at DESC,id LIMIT 200`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,fluctlight_id,category,claim,value,confidence,evidence_refs,provenance,status,expires_at,revision,superseded_by,created_at,updated_at FROM public.fluctlight_developing_self_claims WHERE fluctlight_id=$1 AND status IN ('active','uncertain') AND (expires_at IS NULL OR expires_at > $2) AND NOT EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='developing_self' AND d.artifact_id=fluctlight_developing_self_claims.id AND d.artifact_revision=fluctlight_developing_self_claims.revision AND (f.status<>'active' OR f.revision<>d.fact_revision OR (f.valid_until IS NOT NULL AND f.valid_until<=$2))) ORDER BY updated_at DESC,id LIMIT 200`, fluctlightID, a.now().UTC())
 	if err != nil {
 		return nil, err
 	}

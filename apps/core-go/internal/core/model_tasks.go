@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -69,23 +70,43 @@ type MediaPromptTaskInput struct {
 	Intent mediaIntent
 }
 
+type MediaPromptTaskResult struct {
+	Prompt      string
+	CapturePlan map[string]any
+}
+
 func (a *App) RunMediaPromptTask(ctx context.Context, input MediaPromptTaskInput) (string, error) {
+	result, err := a.runMediaPromptTaskResult(ctx, input)
+	return result.Prompt, err
+}
+func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTaskInput) (MediaPromptTaskResult, error) {
 	if _, ok := compactMediaConceptObjectForProvider(input.Intent.Prompt); !ok {
-		return "", errors.New("media_prompt_frozen_concept_invalid")
+		return MediaPromptTaskResult{}, errors.New("media_prompt_frozen_concept_invalid")
 	}
-	messages := []map[string]any{
-		{"role": "system", "content": mediaPromptSystemInstruction(input.Intent)},
-		{"role": "user", "content": mediaPromptInput(input.Intent)},
+	concept := decodeObject([]byte(input.Intent.Prompt))
+	instruction := mediaPromptSystemInstruction(input.Intent)
+	prompt := PromptAssemblyResult{}
+	if hasCurrentCapture(concept) {
+		if err := validateCurrentCaptureSnapshot(concept); err != nil {
+			return MediaPromptTaskResult{}, err
+		}
+		instruction = "Choose only framing, pose, expression, lighting and style for this current capture. Honor the frozen explicit capture framing and camera relationship; do not substitute a different framing. Return exactly the supplied JSON schema. Body, current clothing, used objects and reference images are server-owned snapshot facts; they cannot be supplied or overridden in your response. No prose or extra fields."
+		prompt.ResponseFormat = providerResponseFormatForSchema("media_prompt", "current_capture_plan", currentCapturePlanSchema())
 	}
-	messages = addVisualIdentityMediaPromptInstruction("media_prompt", messages)
-	messages = formatProviderMessagesForRole(messages, "media_prompt")
-	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{
-		Prompt: PromptAssemblyResult{Messages: messages}, SchemaName: "media_prompt_text",
-	})
+	prompt.Messages = formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": mediaPromptInput(input.Intent)}}, "media_prompt")
+	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
 	if err != nil {
-		return "", err
+		return MediaPromptTaskResult{}, err
 	}
-	return cleanGeneratedMediaPrompt(run.Completion.Text), nil
+	if hasCurrentCapture(concept) {
+		var plan map[string]any
+		if err := jsonUnmarshal([]byte(run.Completion.Text), &plan); err != nil {
+			return MediaPromptTaskResult{}, errors.New("current_capture_plan_invalid")
+		}
+		rendered, err := renderCurrentCapturePrompt(concept, plan)
+		return MediaPromptTaskResult{Prompt: rendered, CapturePlan: plan}, err
+	}
+	return MediaPromptTaskResult{Prompt: cleanGeneratedMediaPrompt(run.Completion.Text)}, nil
 }
 
 func cleanGeneratedMediaPrompt(text string) string {
@@ -187,18 +208,44 @@ func (a *App) RunVisualIdentityPatchTask(ctx context.Context, input VisualIdenti
 }
 
 type ConversationSummaryTaskInput struct {
-	Messages []ConversationSummarySourceMessage
+	Messages        []ConversationSummarySourceMessage
+	PreviousSummary string
+	ActorFacts      []map[string]any
+	MaxRunes        int
+	OwnerActorID    string
+	FluctlightID    string
 }
 
 func (a *App) RunConversationSummaryTask(ctx context.Context, input ConversationSummaryTaskInput) (conversationSummaryProviderResponse, error) {
+	if a != nil && a.DB != nil {
+		a.recordDiagnosticEvent(ctx, "conversation_summary.thinking_mode", "info", input.FluctlightID, "", providerCorrelation(ctx), map[string]any{"requested_enable_thinking": false, "provider_support": "unverified", "effective_mode": "unverified"})
+	}
 	providerMessages := conversationSummaryProviderMessages(input.Messages)
+	for index, message := range input.Messages {
+		alias := "actor:" + stableDigest(message.AuthorActorID)[:12]
+		if message.AuthorActorID == input.OwnerActorID {
+			alias = "actor_user"
+		}
+		if message.AuthorActorID == input.FluctlightID {
+			alias = "actor_self"
+		}
+		providerMessages[index]["author"] = alias
+	}
+	instruction := conversationSummaryInstruction
+	if input.MaxRunes > 0 {
+		instruction = fmt.Sprintf("以一份有界运行摘要替换旧运行摘要。只合并 previous_runtime_summary 与尚未覆盖的 source_messages，并以 authoritative_actor_facts 中的明确纠正校正旧误判；不把新状态变化改写为过去一直如此。保留主体、明确纠正、意图、承诺、未完成事项与真实结果，计划/推断/失败不可变成已完成事实。重复问候、光线和衣物颜色无新信息时归并。最多%d个字符，不新增事实，不追加摘要块。", input.MaxRunes)
+	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("reflection", []map[string]any{
-		{"role": "system", "content": conversationSummaryInstruction},
-		{"role": "user", "content": jsonString(map[string]any{"source_messages": providerMessages})},
+		{"role": "system", "content": instruction},
+		{"role": "user", "content": jsonString(map[string]any{"previous_runtime_summary": input.PreviousSummary, "authoritative_actor_facts": input.ActorFacts, "source_messages": providerMessages})},
 	})
+	summarySchema := conversationSummaryProviderSchema()
+	if input.MaxRunes > 0 {
+		mapValue(mapValue(summarySchema["properties"])["summary"])["maxLength"] = input.MaxRunes
+	}
 	run, err := a.runFormalStructuredTask(
 		WithProviderScenario(ctx, "conversation_summary"), FormalAgentConversationSummary, messages,
-		nil, "conversation_summary_v1", conversationSummaryProviderSchema(), false, nil,
+		nil, "conversation_summary_v1", summarySchema, false, nil,
 	)
 	if err != nil {
 		return conversationSummaryProviderResponse{}, err
@@ -266,21 +313,18 @@ type VirtualActivityResultTaskInput struct {
 	RecentOutcomes    []map[string]any
 }
 
-const virtualActivityResultInstruction = "Resolve one already started and elapsed virtual-life activity. The activity is fictional and grants no real purchase, payment, delivery, medical care, or external action. Return completed, failed, or deferred with a concrete short reason grounded in the supplied request and current facts. Do not always choose success. A completed virtual_shopping activity may end without buying anything; include acquired_item only when acquisition is confirmed, with category and slot matching the request. No acquired item on failure or defer. For completed haircut return the resulting hair_length and optional hair_color/hair_style. For completed hair_dye return hair_color exactly equal to request.desired_hair_color and no hair_length; a different result must be failed or deferred. No body change on failure or defer. Do not infer that a scheduled activity was completed before its not_before time. Return only the specified JSON."
+const virtualActivityResultInstruction = "Resolve one already started and elapsed virtual-life activity. The activity is fictional and grants no real purchase, payment, delivery, medical care, or external action. Return completed, failed, or deferred with a concrete short reason grounded in the supplied request and current facts. Do not always choose success. A completed virtual_shopping activity may end without buying anything; include acquired_item only when acquisition is confirmed, with item_kind, category and slot matching the request. Ordinary objects have item_kind=object and no wearing slot. For a bundle, acquired_items must contain every requested member in the supplied order; partial acquisition is a failed result, never whole-bundle success. No acquired item on failure or defer. For completed haircut return the resulting hair_length and optional hair_color/hair_style. For completed hair_dye return hair_color exactly equal to request.desired_hair_color and no hair_length; a different result must be failed or deferred. No body change on failure or defer. Do not infer that a scheduled activity was completed before its not_before time. Return only the specified JSON."
 
 func virtualActivityResultSchema() map[string]any {
-	item := objectSchema(map[string]any{
-		"category":    map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
-		"slot":        map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
-		"description": map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-	}, []string{"category", "slot", "description"}, false)
+	item := shoppingItemSchema()
 	return objectSchema(map[string]any{
-		"status":        enumStringSchema("completed", "failed", "deferred"),
-		"reason":        map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
-		"acquired_item": item,
-		"hair_length":   map[string]any{"type": "string", "maxLength": 128},
-		"hair_color":    map[string]any{"type": "string", "maxLength": 128},
-		"hair_style":    map[string]any{"type": "string", "maxLength": 128},
+		"status":         enumStringSchema("completed", "failed", "deferred"),
+		"reason":         map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
+		"acquired_item":  item,
+		"acquired_items": map[string]any{"type": "array", "maxItems": 8, "items": item},
+		"hair_length":    map[string]any{"type": "string", "maxLength": 128},
+		"hair_color":     map[string]any{"type": "string", "maxLength": 128},
+		"hair_style":     map[string]any{"type": "string", "maxLength": 128},
 	}, []string{"status", "reason"}, false)
 }
 
@@ -305,7 +349,7 @@ func virtualActivityModelInput(input VirtualActivityResultTaskInput) map[string]
 	}
 	return map[string]any{
 		"kind":       input.Kind,
-		"request":    compactStateMap(input.Request, []string{"category", "slot", "description", "desired_hair_length", "desired_hair_color", "scene", "activity", "location", "duration_minutes"}),
+		"request":    compactStateMap(input.Request, []string{"item_kind", "items", "category", "slot", "description", "desired_hair_length", "desired_hair_color", "scene", "activity", "location", "duration_minutes"}),
 		"started_at": input.StartedAt, "not_before": input.NotBefore,
 		"current_appearance": compactMediaAppearance(input.CurrentAppearance),
 		"current_life":       compactMediaLifeContext(input.CurrentLife),
@@ -313,7 +357,7 @@ func virtualActivityModelInput(input VirtualActivityResultTaskInput) map[string]
 	}
 }
 
-const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. Use only as many intervals as the supplied facts require, no more than 16; cover the local day contiguously from 00:00 through the next 00:00, with explicit free/unplanned/rest intervals where nothing is committed. Identity or occupation alone does not establish a daily class, library visit, uniform, or fixed routine. Preserve supplied recurring commitments as constraints, distinguish an intention from a scheduled action and a completed result, and consider current state, existing activities and recent outcomes. Do not claim an activity happened just because its planned time passed. Every item needs start_at, end_at, activity, scene, location, item_type, status, priority, flexibility, interruption_cost. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent equivalent periods. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1. Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
+const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. Use only as many intervals as the supplied facts require, no more than 16; cover the local day contiguously from 00:00 through the next 00:00, with explicit free/unplanned/rest intervals where nothing is committed. Identity or occupation alone does not establish a daily class, library visit, uniform, or fixed routine. Preserve supplied recurring commitments as constraints, distinguish an intention from a scheduled action and a completed result, and consider current state, existing activities and recent outcomes. Do not claim an activity happened just because its planned time passed. Every item needs start_at, end_at, activity, scene, location, item_type, status, priority, flexibility, interruption_cost. A sleep interval must have item_type='sleep'; this is the authoritative behavior classification, not a claim that a periodic check wakes the actor. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent equivalent periods. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1. Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
 
 func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGenerationTaskInput) (map[string]any, error) {
 	instruction := scheduleGenerationTaskInstruction

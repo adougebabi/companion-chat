@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -104,7 +103,7 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if err != nil {
 			return err
 		}
-		beforeFoundation, beforeState, beforeLife, err := readCognitionAuthorityRevisionsWith(ctx, tx, request.FluctlightID, time.Now().UTC())
+		beforeFoundation, beforeState, beforeLife, err := readCognitionAuthorityRevisionsWith(ctx, tx, request.FluctlightID, a.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -125,7 +124,7 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if result.Status != "completed" && result.Status != "accepted" && result.Status != "rejected" && result.Status != "failed" {
 			return fmt.Errorf("tool returned nonterminal execution status %q", result.Status)
 		}
-		foundation, currentState, lifeContext, err := readCognitionAuthorityRevisionsWith(ctx, tx, request.FluctlightID, time.Now().UTC())
+		foundation, currentState, lifeContext, err := readCognitionAuthorityRevisionsWith(ctx, tx, request.FluctlightID, a.now().UTC())
 		if err != nil {
 			return err
 		}

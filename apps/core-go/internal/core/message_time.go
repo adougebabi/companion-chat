@@ -77,7 +77,7 @@ func (snapshot messageTime) addTo(message map[string]any) {
 	message["sender_timezone"] = snapshot.zone
 	message["sender_utc_offset_minutes"] = snapshot.offset
 	if snapshot.sentAt != nil {
-		message["sender_sent_at"] = snapshot.sentAt.UTC().Format(time.RFC3339Nano)
+		message["sender_sent_at"] = formatInstant(*snapshot.sentAt)
 	} else {
 		message["sender_sent_at"] = nil
 	}
@@ -89,12 +89,12 @@ func (snapshot messageTime) addToPayload(payload map[string]any) {
 	}
 	payload["sender_timezone"] = *snapshot.zone
 	payload["sender_utc_offset_minutes"] = *snapshot.offset
-	payload["sender_sent_at"] = snapshot.sentAt.UTC().Format(time.RFC3339Nano)
+	payload["sender_sent_at"] = formatInstant(*snapshot.sentAt)
 }
 
 func (snapshot messageTime) equal(other messageTime) bool {
 	if snapshot.zone == nil || other.zone == nil {
 		return snapshot.zone == nil && other.zone == nil
 	}
-	return *snapshot.zone == *other.zone && *snapshot.offset == *other.offset && snapshot.sentAt.Equal(*other.sentAt)
+	return *snapshot.zone == *other.zone && *snapshot.offset == *other.offset && snapshot.sentAt.Truncate(time.Millisecond).Equal(other.sentAt.Truncate(time.Millisecond))
 }

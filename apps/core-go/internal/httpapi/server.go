@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/instant"
 	"io"
 	"log/slog"
 	"net/http"
@@ -970,7 +971,12 @@ func (s *Server) authorizeHuman(response http.ResponseWriter, request *http.Requ
 func writeJSON(response http.ResponseWriter, status int, value any) {
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(status)
-	if err := json.NewEncoder(response).Encode(value); err != nil {
+	encoded, err := instant.Marshal(value)
+	if err != nil {
+		slog.Default().Error("encode Core Go response failed", "error", err)
+		return
+	}
+	if _, err := response.Write(append(encoded, '\n')); err != nil {
 		slog.Default().Error("write Core Go response failed", "error", err)
 	}
 }

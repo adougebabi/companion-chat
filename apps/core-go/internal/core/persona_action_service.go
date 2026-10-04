@@ -77,7 +77,7 @@ func (service *personaActionBusinessService) preparePersonaAction(ctx context.Co
 			plan.SwitchPlan = switchPlan
 		}
 	case personaTakeoverCapabilityName:
-		if rejection, validateErr := validatePersonaTakeoverAction(ctx, service.app.DB.Pool(), plan.FluctlightID, args); validateErr != nil {
+		if rejection, validateErr := validatePersonaTakeoverAction(ctx, service.app.DB.Pool(), plan.FluctlightID, args, service.app.now().UTC()); validateErr != nil {
 			return invocation, validateErr
 		} else {
 			plan.RejectionCode = rejection
@@ -116,7 +116,7 @@ type personaActionRowQuerier interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
-func validatePersonaTakeoverAction(ctx context.Context, querier personaActionRowQuerier, fluctlightID string, args map[string]any) (string, error) {
+func validatePersonaTakeoverAction(ctx context.Context, querier personaActionRowQuerier, fluctlightID string, args map[string]any, businessTime ...time.Time) (string, error) {
 	decision := strings.TrimSpace(stringValue(args["decision"]))
 	validDecision := map[string]struct{}{
 		takeoverDecisionNotApplicable: {}, takeoverDecisionSkipped: {}, takeoverDecisionJudgeKeptA: {},
@@ -184,7 +184,11 @@ func validatePersonaTakeoverAction(ctx context.Context, querier personaActionRow
 	if _, ok := personalityProfileIDs(corePersona)[targetID]; !ok || targetID == activeProfile {
 		return "persona_takeover_target_not_available", nil
 	}
-	if cooldownUntil != nil && time.Now().UTC().Before(cooldownUntil.UTC()) {
+	at := time.Now().UTC()
+	if len(businessTime) > 0 {
+		at = businessTime[0].UTC()
+	}
+	if cooldownUntil != nil && at.Before(cooldownUntil.UTC()) {
 		return "persona_takeover_cooldown", nil
 	}
 	return "", nil
@@ -213,7 +217,7 @@ func (service *personaActionBusinessService) applyPersonaActionTx(ctx context.Co
 	}
 	if plan.CapabilityName == personaTakeoverCapabilityName && plan.RejectionCode == "" {
 		var validationErr error
-		plan.RejectionCode, validationErr = validatePersonaTakeoverAction(ctx, tx, plan.FluctlightID, plan.Arguments)
+		plan.RejectionCode, validationErr = validatePersonaTakeoverAction(ctx, tx, plan.FluctlightID, plan.Arguments, service.app.now().UTC())
 		if validationErr != nil {
 			return failedCapabilityResult(invocation, "persona_takeover_validation_failed", true), validationErr
 		}

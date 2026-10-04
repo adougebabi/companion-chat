@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5"
 	"testing"
+	"time"
 )
 
 func setupDirectPublicationToolTest(t *testing.T, suffix string) (context.Context, *PostgresRepository, *App, string, string, string) {
@@ -14,6 +16,7 @@ func setupDirectPublicationToolTest(t *testing.T, suffix string) (context.Contex
 	fluctlightID := "tool-fluctlight-" + suffix
 	conversationID := "tool-conversation-" + suffix
 	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	seedControlledCurrentCapture(t, ctx, repository, fluctlightID)
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET identity=$2 WHERE id=$1`, fluctlightID, jsonBytes(map[string]any{
 		"timezone": "Asia/Shanghai", "appearance": map[string]any{"hair": "black", "outfit": "blue coat"},
 	})); err != nil {
@@ -25,6 +28,23 @@ func setupDirectPublicationToolTest(t *testing.T, suffix string) (context.Contex
 		t.Fatal(err)
 	}
 	return ctx, repository, newTestApp(t, repository, nil), ownerID, fluctlightID, conversationID
+}
+
+func seedControlledCurrentCapture(t *testing.T, ctx context.Context, repo *PostgresRepository, id string) map[string]any {
+	t.Helper()
+	// These are explicit test initialization facts, never derived from a generated image.
+	if _, err := repo.Pool().Exec(ctx, `DELETE FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 AND NOT EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1)`, id); err != nil {
+		t.Fatal(err)
+	}
+	persona := map[string]any{"life_profile": map[string]any{"appearance": map[string]any{"wardrobe_items": []any{map[string]any{"category": "coat", "slot": "outer", "description": "blue coat", "ownership": "owned", "currently_worn": true}}}}}
+	if err := withTransaction(ctx, repo.Pool(), func(tx pgx.Tx) error { return initializeEffectiveLifeTx(ctx, tx, id, persona) }); err != nil {
+		t.Fatal(err)
+	}
+	appearance, _, _, err := (&App{DB: repo}).readEffectiveLifeSnapshot(ctx, id, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return appearance
 }
 
 func TestExecuteToolConversationReplyPublishesReplaysAndRejectsPayloadConflict(t *testing.T) {

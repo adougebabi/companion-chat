@@ -2142,7 +2142,7 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 			Importance: importance, Urgency: urgency, Progress: 0, NeedsReflection: len(criteria) == 0,
 			Status: GoalActive, Revision: 1, EvidenceRefs: evidence,
 		}
-		created, record, err := CreateGoalAuthority(goal, evidence, time.Now().UTC())
+		created, record, err := CreateGoalAuthority(goal, evidence, a.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -2179,10 +2179,10 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 			Ref: "intention:ctx_" + stableDigest(intentionID), FluctlightID: fluctlightID, ProfileID: profileID,
 			GoalRef: goalAuthorities[goalIndex].Ref, ActionIntent: action, ExpectedOutcome: firstString(item["expected_outcome"], action),
 			CapabilityConstraints: decisionServiceRefValues(item["capability_constraints"]), Trigger: TypedIntentionTrigger{Type: IntentionTriggerSemantic},
-			Expiration: time.Now().UTC().Add(24 * time.Hour), Confidence: boundedNumber(item["confidence"], 0.5),
+			Expiration: a.now().UTC().Add(24 * time.Hour), Confidence: boundedNumber(item["confidence"], 0.5),
 			Status: IntentionCandidate, Revision: 1, EvidenceRefs: evidence,
 		}
-		created, record, err := CreateIntentionAuthority(intention, evidence, time.Now().UTC())
+		created, record, err := CreateIntentionAuthority(intention, evidence, a.now().UTC())
 		if err != nil {
 			return err
 		}

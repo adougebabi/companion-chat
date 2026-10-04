@@ -439,7 +439,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	if err := lockEffectiveLifeSnapshotTx(ctx, tx, fluctlightID); err != nil {
 		return "", err
 	}
-	current, bodyRevision, wardrobeRevision, err := readEffectiveLifeSnapshotWith(ctx, tx, fluctlightID, time.Now().UTC())
+	current, bodyRevision, wardrobeRevision, err := readEffectiveLifeSnapshotWith(ctx, tx, fluctlightID, a.now().UTC())
 	if err != nil {
 		return "", err
 	}

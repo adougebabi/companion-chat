@@ -308,6 +308,9 @@
           },
           "prompt": {},
           "response": {},
+          "orderingKey": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -350,10 +353,27 @@
         ]
       },
       "BrowserDiagnosticModelRuns": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/BrowserDiagnosticModelRun"
-        }
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrowserDiagnosticModelRun"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "snapshot"
+        ]
       },
       "BrowserDiagnosticAgentRun": {
         "type": "object",
@@ -378,6 +398,9 @@
             "type": "string"
           },
           "source": {
+            "type": "string"
+          },
+          "orderingKey": {
             "type": "string"
           },
           "failureStage": {
@@ -409,10 +432,27 @@
         ]
       },
       "BrowserDiagnosticAgentRuns": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/BrowserDiagnosticAgentRun"
-        }
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrowserDiagnosticAgentRun"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "snapshot"
+        ]
       },
       "BrowserFluctlightCreateRequest": {
         "type": "object",
@@ -1572,6 +1612,33 @@
     "/api/diagnostics/model-runs": {
       "get": {
         "operationId": "readDiagnosticModelRuns",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "maxLength": 8192
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          {
+            "in": "query",
+            "name": "correlationId",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -1590,6 +1657,15 @@
       "get": {
         "operationId": "readDiagnosticAgentRuns",
         "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 8192
+            }
+          },
           {
             "in": "query",
             "name": "limit",

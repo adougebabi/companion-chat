@@ -84,7 +84,7 @@ test("diagnostics keeps existing modules and adds a filtered lifecycle disclosur
   assert.match(controlCenterSource, /diagnosticsSourceEpochs/);
   assert.match(controlCenterSource, /workflowIntentSnapshots/);
   assert.match(controlCenterSource, /client\.diagnostics\(\{ limit: 20/);
-  assert.match(controlCenterSource, /client\.diagnosticModelRuns\(\{ limit: 20/);
+  assert.match(controlCenterSource, /client\.diagnosticModelRuns\(\{ limit: Math\.min\(500/);
   assert.match(controlCenterSource, /client\.diagnosticMediaPrompts\(\{ limit: 20/);
   assert.match(diagnosticsSource, /queueSummary/);
   assert.match(diagnosticsSource, /queuePosition/);

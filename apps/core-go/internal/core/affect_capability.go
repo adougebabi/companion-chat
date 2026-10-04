@@ -281,7 +281,7 @@ func (a *App) applyAffectEventTx(ctx context.Context, tx pgx.Tx, fluctlightID, s
 			return nil, newCapabilityError("affect_state_revision_conflict", false, ErrConflict)
 		}
 	}
-	transitionAt := time.Now().UTC()
+	transitionAt := a.now().UTC()
 	resulting, requested, applied, label, err := applyAffectDeltasWithProfile(current, event, profile, transitionAt)
 	if err != nil {
 		return nil, err

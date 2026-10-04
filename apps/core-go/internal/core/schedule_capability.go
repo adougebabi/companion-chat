@@ -209,7 +209,7 @@ func scheduleReplanCompletedBefore(schedule map[string]any) string {
 	if err != nil {
 		return ""
 	}
-	return day.Format(time.RFC3339)
+	return formatInstant(day)
 }
 
 func (a *App) applyScheduleReplanCapability(ctx context.Context, invocation CapabilityInvocation) (CapabilityResult, error) {
@@ -241,7 +241,7 @@ func (a *App) applyScheduleReplanCapabilityWithTx(ctx context.Context, callerTx 
 		return failedCapabilityResult(invocation, "schedule_prepared_context_mismatch", false), newCapabilityError("schedule_prepared_context_mismatch", false, err)
 	}
 	frozenLifeContextRevision := stringValue(resolved.Life.Data["context_revision"])
-	if _, err := a.requireLifeContextRevisionTx(ctx, callerTx, fluctlightID, frozenLifeContextRevision, time.Now().UTC()); err != nil {
+	if _, err := a.requireLifeContextRevisionTx(ctx, callerTx, fluctlightID, frozenLifeContextRevision, a.now().UTC()); err != nil {
 		if errors.Is(err, ErrLifeContextStale) {
 			return failedCapabilityResult(invocation, "schedule_replan_context_stale", false), newCapabilityError("schedule_replan_context_stale", false, err)
 		}
@@ -358,14 +358,17 @@ type scheduleQuerier interface {
 }
 
 func (a *App) currentAcceptedSchedule(ctx context.Context, fluctlightID string) (map[string]any, error) {
-	return currentAcceptedScheduleWith(ctx, a.DB.Pool(), fluctlightID)
+	if a == nil || a.DB == nil {
+		return nil, errors.New("schedule service unavailable")
+	}
+	return currentAcceptedScheduleWith(ctx, a.DB.Pool(), fluctlightID, a.now())
 }
 
 func (a *App) currentAcceptedScheduleTx(ctx context.Context, tx pgx.Tx, fluctlightID string) (map[string]any, error) {
-	return currentAcceptedScheduleWith(ctx, tx, fluctlightID)
+	return currentAcceptedScheduleWith(ctx, tx, fluctlightID, a.now())
 }
 
-func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, fluctlightID string) (map[string]any, error) {
+func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, fluctlightID string, at time.Time) (map[string]any, error) {
 	var ownerID, id, timezone string
 	var localDate time.Time
 	var revision int
@@ -382,7 +385,7 @@ func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, flu
 	if err != nil {
 		return nil, fmt.Errorf("schedule_timezone_invalid: %w", err)
 	}
-	currentDate := time.Now().In(location).Format("2006-01-02")
+	currentDate := at.In(location).Format("2006-01-02")
 	if err := query.QueryRow(ctx, `
 		SELECT s.id,s.local_date,s.timezone,s.revision,s.reschedule_policy
 		FROM public.life_schedules s
@@ -406,7 +409,7 @@ func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, flu
 			return nil, err
 		}
 		entry := map[string]any{
-			"id": itemID, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano),
+			"id": itemID, "start_at": formatInstant(start), "end_at": formatInstant(end),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": priority, "flexibility": flexibility, "interruption_cost": interruptionCost,
 		}

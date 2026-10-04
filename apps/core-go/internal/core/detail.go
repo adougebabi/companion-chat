@@ -13,7 +13,7 @@ import (
 
 func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string) (map[string]any, error) {
 	retry, _ := ctx.Value(detailProjectionRetryKey{}).(int)
-	readAt := time.Now().UTC()
+	readAt := a.now().UTC()
 	fluctlight, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func (a *App) readInitializationSource(ctx context.Context, actorID, fluctlightI
 		"classification": classification, "classification_evidence": decodeObject(classificationEvidence),
 		"field_derivations": decodeObject(fieldDerivations), "coverage": decodeObject(coverage),
 		"structured_projection": decodeObject(structuredProjection), "projection_digest": projectionDigest,
-		"created_at": createdAt.UTC().Format(time.RFC3339Nano), "linked_at": linkedAt.UTC().Format(time.RFC3339Nano),
+		"created_at": createdAt.UTC().Format(instantLayout), "linked_at": linkedAt.UTC().Format(instantLayout),
 	}, nil
 }
 
@@ -196,7 +196,7 @@ func (a *App) readWakeUpHistory(ctx context.Context, fluctlightID string) ([]map
 			return nil, err
 		}
 		result = append(result, map[string]any{
-			"id": id, "cycle": cycle, "trigger_type": triggerType, "occurred_at": occurred.Format(time.RFC3339Nano),
+			"id": id, "cycle": cycle, "trigger_type": triggerType, "occurred_at": occurred.Format(instantLayout),
 			"internal_dynamics": decodeJSONValue(internalDynamics), "attention": decodeJSONValue(attention), "thought": decodeJSONValue(thought), "desire": decodeJSONValue(desire), "agency": decodeJSONValue(agency),
 			"action_type": actionType, "action_id": actionID, "result": decodeObject(wakeResult), "reflection_intent_id": reflectionIntent, "status": status,
 		})
@@ -219,13 +219,13 @@ func (a *App) readEvolutionRevisions(ctx context.Context, fluctlightID string) (
 		if err := rows.Scan(&id, &field, &base, &revision, &kind, &before, &after, &refs, &source, &status, &created); err != nil {
 			return nil, err
 		}
-		result = append(result, map[string]any{"id": id, "field": field, "base_revision": base, "revision": revision, "candidate_type": kind, "before": decodeJSONValue(before), "after": decodeJSONValue(after), "evidence_refs": decodeArray(refs), "source_window": source, "status": status, "created_at": created.Format(time.RFC3339Nano)})
+		result = append(result, map[string]any{"id": id, "field": field, "base_revision": base, "revision": revision, "candidate_type": kind, "before": decodeJSONValue(before), "after": decodeJSONValue(after), "evidence_refs": decodeArray(refs), "source_window": source, "status": status, "created_at": created.Format(instantLayout)})
 	}
 	return result, rows.Err()
 }
 
 func resolveScheduleContext(value any) map[string]any {
-	result := map[string]any{"source": "unknown", "scene": nil, "activity": nil, "location": nil, "instant": time.Now().UTC().Format(time.RFC3339Nano)}
+	result := map[string]any{"source": "unknown", "scene": nil, "activity": nil, "location": nil, "instant": time.Now().UTC().Format(instantLayout)}
 	schedule, ok := value.(map[string]any)
 	if !ok {
 		return result
@@ -266,7 +266,7 @@ func (a *App) readInnerState(ctx context.Context, fluctlightID string) (map[stri
 			moodValue["source"] = "server_default"
 		}
 	}
-	return map[string]any{"pad": decodeObject(pad), "mood": moodValue, "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": revision, "last_updated_at": updated.Format(time.RFC3339Nano)}, nil
+	return map[string]any{"pad": decodeObject(pad), "mood": moodValue, "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": revision, "last_updated_at": updated.Format(instantLayout)}, nil
 }
 
 func (a *App) readAgency(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
@@ -347,7 +347,7 @@ func (a *App) readRelationships(ctx context.Context, fluctlightID, currentHumanA
 }
 
 func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,created_at FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC,id DESC LIMIT 100`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,created_at FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' AND provenance_status NOT IN ('pending','invalid') ORDER BY created_at DESC,id DESC LIMIT 100`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +363,7 @@ func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[stri
 		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationID, &eventRefs, &evidenceRefs, &perspectives, &confidence, &importance, &emotional, &visibility, &status, &rev, &created); err != nil {
 			return nil, err
 		}
-		item := map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "type": typ, "content": content, "actor_refs": decodeArray(actorRefs), "conversation_id": conversationID, "event_refs": decodeArray(eventRefs), "evidence_refs": decodeArray(evidenceRefs), "confidence": confidence, "importance": importance, "emotional_significance": emotional, "visibility": visibility, "status": status, "revision": rev, "created_at": created.Format(time.RFC3339Nano)}
+		item := map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "type": typ, "content": content, "actor_refs": decodeArray(actorRefs), "conversation_id": conversationID, "event_refs": decodeArray(eventRefs), "evidence_refs": decodeArray(evidenceRefs), "confidence": confidence, "importance": importance, "emotional_significance": emotional, "visibility": visibility, "status": status, "revision": rev, "created_at": created.Format(instantLayout)}
 		if values := decodeArray(perspectives); len(values) > 0 {
 			item["personality_perspectives"] = values
 		}
@@ -373,7 +373,7 @@ func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[stri
 }
 
 func (a *App) readSchedule(ctx context.Context, fluctlightID string) (map[string]any, error) {
-	schedule, _, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	schedule, _, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, a.now().UTC())
 	return schedule, err
 }
 
@@ -393,7 +393,7 @@ func decodeJSONValue(value []byte) any {
 }
 
 func (a *App) resolveContext(ctx context.Context, fluctlightID string, schedule any) (map[string]any, error) {
-	at := time.Now().UTC()
+	at := a.now().UTC()
 	timezone, err := readLifeContextTimezoneWith(ctx, a.DB.Pool(), fluctlightID)
 	if err != nil {
 		return nil, err
@@ -424,7 +424,7 @@ func (a *App) readEvents(ctx context.Context, fluctlightID string) ([]map[string
 		if err := rows.Scan(&id, &kind, &start, &end, &scene, &activity, &location, &status, &revision, &refs); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"id": id, "kind": kind, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "scene": scene, "activity": activity, "location": location, "status": status, "revision": revision, "evidence_refs": decodeArray(refs)})
+		out = append(out, map[string]any{"id": id, "kind": kind, "start_at": start.Format(instantLayout), "end_at": end.Format(instantLayout), "scene": scene, "activity": activity, "location": location, "status": status, "revision": revision, "evidence_refs": decodeArray(refs)})
 	}
 	return out, nil
 }
@@ -446,9 +446,9 @@ func (a *App) readCognitionHistory(ctx context.Context, fluctlightID string) ([]
 		}
 		var completedValue any
 		if completed != nil {
-			completedValue = completed.Format(time.RFC3339Nano)
+			completedValue = completed.Format(instantLayout)
 		}
-		out = append(out, map[string]any{"id": id, "action_type": typ, "status": status, "error_code": code, "frozen_at": frozen.Format(time.RFC3339Nano), "completed_at": completedValue})
+		out = append(out, map[string]any{"id": id, "action_type": typ, "status": status, "error_code": code, "frozen_at": frozen.Format(instantLayout), "completed_at": completedValue})
 	}
 	return out, nil
 }
@@ -471,10 +471,10 @@ func (a *App) readFoundationRevisions(ctx context.Context, fluctlightID string) 
 		}
 		var c, a any
 		if created != nil {
-			c = created.Format(time.RFC3339Nano)
+			c = created.Format(instantLayout)
 		}
 		if accepted != nil {
-			a = accepted.Format(time.RFC3339Nano)
+			a = accepted.Format(instantLayout)
 		}
 		out = append(out, map[string]any{"id": id, "revision": rev, "source": source, "status": status, "changes": decodeObject(changes), "core_persona": decodeObject(corePersona), "created_at": c, "accepted_at": a, "reason": reason})
 	}
@@ -528,7 +528,7 @@ func (a *App) MomentsWithOptions(ctx context.Context, actorID, fluctlightID stri
 		if err := rows.Scan(&id, &author, &text, &visibility, &status, &media, &created); err != nil {
 			return nil, err
 		}
-		moment := map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "author_actor_id": author, "text": text, "visibility": visibility, "status": status, "media_asset_ids": decodeArray(media), "created_at": created.Format(time.RFC3339Nano)}
+		moment := map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "author_actor_id": author, "text": text, "visibility": visibility, "status": status, "media_asset_ids": decodeArray(media), "created_at": created.Format(instantLayout)}
 		if err := a.hydrateMoment(ctx, actorID, moment); err != nil {
 			return nil, err
 		}
@@ -557,9 +557,9 @@ func (a *App) AutonomyActions(ctx context.Context, actorID, fluctlightID string)
 		}
 		var settledValue any
 		if settled != nil {
-			settledValue = settled.Format(time.RFC3339Nano)
+			settledValue = settled.Format(instantLayout)
 		}
-		out = append(out, map[string]any{"id": id, "fluctlight_id": fluctlightID, "action_type": typ, "status": status, "workflow_id": wf, "provider_request_id": pr, "created_at": created.Format(time.RFC3339Nano), "settled_at": settledValue, "error_code": code})
+		out = append(out, map[string]any{"id": id, "fluctlight_id": fluctlightID, "action_type": typ, "status": status, "workflow_id": wf, "provider_request_id": pr, "created_at": created.Format(instantLayout), "settled_at": settledValue, "error_code": code})
 	}
 	return out, rows.Err()
 }

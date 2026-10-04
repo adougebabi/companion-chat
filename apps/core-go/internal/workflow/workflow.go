@@ -670,8 +670,27 @@ func ConversationSummaryWorkflow(ctx workflow.Context, input Input) (map[string]
 		return nil, fmt.Errorf("conversation summary input is invalid")
 	}
 	var result map[string]any
-	if err := workflow.ExecuteActivity(ctx, ProcessConversationSummaryActivity, input).Get(ctx, &result); err != nil {
-		return nil, err
+	for {
+		if err := workflow.ExecuteActivity(ctx, ProcessConversationSummaryActivity, input).Get(ctx, &result); err != nil {
+			return nil, err
+		}
+		if result["status"] != "pending" {
+			break
+		}
+		due, err := time.Parse(time.RFC3339Nano, fmt.Sprint(result["next_due_at"]))
+		if err != nil {
+			return nil, fmt.Errorf("conversation summary pending time invalid: %w", err)
+		}
+		delay := due.Sub(workflow.Now(ctx))
+		if delay <= 0 {
+			delay = time.Second
+		}
+		if err := workflow.Sleep(ctx, delay); err != nil {
+			return nil, err
+		}
+		if err := control.waitUntilResumed(ctx); err != nil {
+			return nil, err
+		}
 	}
 	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err

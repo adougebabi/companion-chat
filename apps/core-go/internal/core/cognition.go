@@ -302,6 +302,9 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		if existingText != text || stringValue(existingData["conversation_id"]) != conversationID || stringValue(existingData["actor_id"]) != actorID {
 			return "", nil, ErrConflict
 		}
+		if existingStatus == "failed" && partialHasCommittedMutation(existingData["agent_partial"], a.capabilityRegistry()) {
+			return existing, nil, nil
+		}
 		if claimOwner == "" && existingStatus == "failed" && existingError != "superseded_by_newer_turn" {
 			var assistantExists bool
 			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND turn_id=$2 AND kind='assistant')`, conversationID, turnID).Scan(&assistantExists); err != nil {
@@ -974,7 +977,7 @@ func (a *App) completeTurnCognitionTx(ctx context.Context, tx pgx.Tx, inboxID, f
 	if err != nil {
 		return "", err
 	}
-	outcomes, err := buildActionOutcomes(frozenID, fluctlightID, inboxID, actionType, capabilityResults, settledRealization, a.capabilityRegistry())
+	outcomes, err := buildActionOutcomes(frozenID, fluctlightID, inboxID, actionType, capabilityResults, settledRealization, a.capabilityRegistry(), a.now().UTC())
 	if err != nil {
 		return "", err
 	}
@@ -1072,9 +1075,9 @@ func (a *App) FailTurnCognition(ctx context.Context, inboxID, frozenID, code str
 			capabilityResults = nil
 			settlement["reason_code"] = "capability_results_invalid"
 		}
-		outcomes, outcomeErr := buildActionOutcomes(frozenID, fluctlightID, inboxID, actionType, capabilityResults, settlement, a.capabilityRegistry())
+		outcomes, outcomeErr := buildActionOutcomes(frozenID, fluctlightID, inboxID, actionType, capabilityResults, settlement, a.capabilityRegistry(), a.now().UTC())
 		if outcomeErr != nil {
-			outcomes, outcomeErr = buildActionOutcomes(frozenID, fluctlightID, inboxID, actionType, nil, settlement, a.capabilityRegistry())
+			outcomes, outcomeErr = buildActionOutcomes(frozenID, fluctlightID, inboxID, actionType, nil, settlement, a.capabilityRegistry(), a.now().UTC())
 		}
 		if outcomeErr != nil {
 			return outcomeErr
@@ -1115,4 +1118,21 @@ func (a *App) CognitionFactAge(ctx context.Context, inboxID string) (time.Time, 
 	var t time.Time
 	err := a.DB.Pool().QueryRow(ctx, `SELECT occurred_at FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&t)
 	return t, err
+}
+
+// A failed final decision cannot make a committed mutation eligible for a
+// fresh operation identity. Pure query failures may still retry normally.
+func partialHasCommittedMutation(value any, registry *CapabilityRegistry) bool {
+	for _, raw := range arrayValue(mapValue(value)["capability_results"]) {
+		result := mapValue(raw)
+		status := stringValue(result["status"])
+		if status != "completed" && status != "accepted" {
+			continue
+		}
+		definition, known := registry.Definition(stringValue(result["capability_name"]))
+		if !known || definition.SideEffectClass != "read_only" {
+			return true
+		}
+	}
+	return false
 }

@@ -80,7 +80,7 @@ func (outcome ActionOutcome) Validate() error {
 	return nil
 }
 
-func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string, results []CapabilityResult, settlement map[string]any, registry *CapabilityRegistry) ([]ActionOutcome, error) {
+func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string, results []CapabilityResult, settlement map[string]any, registry *CapabilityRegistry, businessTime ...time.Time) ([]ActionOutcome, error) {
 	goalRefs := decisionServiceRefValues(settlement["goal_refs"])
 	intentionRefs := decisionServiceRefValues(settlement["intention_refs"])
 	contextReferences, err := actionOutcomeContextReferences(settlement["context_references"])
@@ -92,6 +92,9 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 		evidenceRefs = append(evidenceRefs, source)
 	}
 	createdAt := time.Now().UTC()
+	if len(businessTime) > 0 {
+		createdAt = businessTime[0].UTC()
+	}
 	makeOutcome := func(callID, capabilityName string, status ActionOutcomeStatus, boundary, errorCode string, observed map[string]any) (ActionOutcome, error) {
 		outcome := ActionOutcome{
 			SchemaVersion: actionOutcomeSchemaVersion,
@@ -394,7 +397,7 @@ func (a *App) persistStandaloneCapabilityOutcomes(ctx context.Context, fluctligh
 			if executionErr != nil {
 				settlement["error_code"] = "capability_execution_failed"
 			}
-			outcomes, err := buildActionOutcomes(actionID, fluctlightID, group.sourceFactID, "capability", group.results, settlement, a.capabilityRegistry())
+			outcomes, err := buildActionOutcomes(actionID, fluctlightID, group.sourceFactID, "capability", group.results, settlement, a.capabilityRegistry(), a.now().UTC())
 			if err != nil {
 				return err
 			}
@@ -488,7 +491,7 @@ func (a *App) settleActionOutcomeByExternalRefTx(ctx context.Context, tx pgx.Tx,
 		return false, errors.New("action_outcome_context_references_invalid")
 	}
 	outcome.Revision++
-	outcome.OccurredAt = time.Now().UTC()
+	outcome.OccurredAt = a.now().UTC()
 	if err := outcome.Validate(); err != nil {
 		return false, err
 	}
@@ -499,7 +502,7 @@ func (a *App) settleActionOutcomeByExternalRefTx(ctx context.Context, tx pgx.Tx,
 	if command.RowsAffected() != 1 {
 		return false, ErrConflict
 	}
-	if _, err := settleAggregateActionOutcomeTx(ctx, tx, outcome.ActionID); err != nil {
+	if _, err := settleAggregateActionOutcomeTx(ctx, tx, outcome.ActionID, a.now().UTC()); err != nil {
 		return false, err
 	}
 	revisionKey := outcome.ID + ":" + strconv.Itoa(outcome.Revision)
@@ -521,7 +524,7 @@ func (a *App) settleActionOutcomeByExternalRefTx(ctx context.Context, tx pgx.Tx,
 	return true, nil
 }
 
-func settleAggregateActionOutcomeTx(ctx context.Context, tx pgx.Tx, actionID string) (*ActionOutcome, error) {
+func settleAggregateActionOutcomeTx(ctx context.Context, tx pgx.Tx, actionID string, businessTime ...time.Time) (*ActionOutcome, error) {
 	var open int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.cognition_action_outcomes WHERE action_id=$1 AND call_id<>$2 AND status IN ('pending','unknown')`, actionID, actionPrimaryCallID).Scan(&open); err != nil {
 		return nil, err
@@ -559,6 +562,9 @@ func settleAggregateActionOutcomeTx(ctx context.Context, tx pgx.Tx, actionID str
 	aggregate.Observed["status"] = string(aggregate.Status)
 	aggregate.Revision++
 	aggregate.OccurredAt = time.Now().UTC()
+	if len(businessTime) > 0 {
+		aggregate.OccurredAt = businessTime[0].UTC()
+	}
 	if err := aggregate.Validate(); err != nil {
 		return nil, err
 	}

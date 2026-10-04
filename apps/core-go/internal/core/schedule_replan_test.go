@@ -96,7 +96,7 @@ func TestScheduleReplanModelInputOmitsOpaqueRefsAndRepeatedSchedule(t *testing.T
 }
 
 func TestScheduleReplanCompletedBoundaryComesFromCore(t *testing.T) {
-	if got := scheduleReplanCompletedBefore(map[string]any{"revision": 0, "local_date": "2026-09-28", "timezone": "Asia/Shanghai"}); got != "2026-09-28T00:00:00+08:00" {
+	if got := scheduleReplanCompletedBefore(map[string]any{"revision": 0, "local_date": "2026-09-28", "timezone": "Asia/Shanghai"}); got != "2026-09-27T16:00:00.000+00:00" {
 		t.Fatalf("new schedule completed boundary = %q", got)
 	}
 	if got := scheduleReplanCompletedBefore(map[string]any{"revision": 2, "completed_before": "2026-09-28T10:00:00+08:00"}); got != "2026-09-28T10:00:00+08:00" {

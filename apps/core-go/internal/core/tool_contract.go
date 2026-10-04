@@ -203,7 +203,7 @@ func conversationReplyCapabilityDefinition() CapabilityDefinition {
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required":   []any{"text"},
-			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}, "topic_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "purpose": map[string]any{"type": "string", "minLength": 1, "maxLength": 256}},
 		},
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,

@@ -696,9 +696,9 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 				results = nil
 				settlement["reason_code"] = "capability_results_invalid"
 			}
-			outcomes, outcomeErr := buildActionOutcomes(actionID, fluctlightID, firstString(payload["source_fact_id"], actionID), actionType, results, settlement, a.capabilityRegistry())
+			outcomes, outcomeErr := buildActionOutcomes(actionID, fluctlightID, firstString(payload["source_fact_id"], actionID), actionType, results, settlement, a.capabilityRegistry(), a.now().UTC())
 			if outcomeErr != nil {
-				outcomes, outcomeErr = buildActionOutcomes(actionID, fluctlightID, firstString(payload["source_fact_id"], actionID), actionType, nil, settlement, a.capabilityRegistry())
+				outcomes, outcomeErr = buildActionOutcomes(actionID, fluctlightID, firstString(payload["source_fact_id"], actionID), actionType, nil, settlement, a.capabilityRegistry(), a.now().UTC())
 			}
 			if outcomeErr != nil {
 				return outcomeErr
@@ -1012,7 +1012,7 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 	if err != nil {
 		return nil, err
 	}
-	if (len(bodyEffect) > 0 || len(wardrobeEffect) > 0) && start.After(time.Now().UTC()) {
+	if (len(bodyEffect) > 0 || len(wardrobeEffect) > 0) && start.After(a.now().UTC()) {
 		return nil, errors.New("state_event_future_requires_activity_result")
 	}
 	refs := arrayValue(payload["evidence_refs"])
@@ -1055,7 +1055,7 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 		} else if !errors.Is(replayErr, pgx.ErrNoRows) {
 			return replayErr
 		}
-		applyAt := time.Now().UTC()
+		applyAt := a.now().UTC()
 		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
 		}
@@ -1148,7 +1148,7 @@ func (a *App) CancelLifeEvent(ctx context.Context, actorID, fluctlightID, eventI
 			result = replay
 			return nil
 		}
-		applyAt := time.Now().UTC()
+		applyAt := a.now().UTC()
 		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
 		}
@@ -1240,7 +1240,7 @@ func (a *App) SetPresence(ctx context.Context, actorID, fluctlightID string, pay
 		} else if !errors.Is(replayErr, pgx.ErrNoRows) {
 			return replayErr
 		}
-		applyAt := time.Now().UTC()
+		applyAt := a.now().UTC()
 		expiresAt := applyAt.Add(presenceDefaultDuration)
 		if requestedExpiry != nil {
 			expiresAt = requestedExpiry.UTC()
@@ -1317,7 +1317,7 @@ func (a *App) CancelScheduleExpected(ctx context.Context, actorID, fluctlightID,
 			result = replay
 			return nil
 		}
-		applyAt := time.Now().UTC()
+		applyAt := a.now().UTC()
 		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
 		}

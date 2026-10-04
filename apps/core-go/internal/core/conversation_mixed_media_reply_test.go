@@ -299,6 +299,7 @@ func setupMixedMediaReplyTurnWithTransport(t *testing.T, suffix string, transpor
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "mixed-owner-"+suffix, "mixed-fluctlight-"+suffix, "mixed-conversation-"+suffix
 	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	seedControlledCurrentCapture(t, ctx, repository, fluctlightID)
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1')`, ownerID); err != nil {
 		t.Fatal(err)
 	}
@@ -318,6 +319,7 @@ func setupMixedMediaReplyTurn(t *testing.T, suffix string, providerResult fakePr
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "mixed-owner-"+suffix, "mixed-fluctlight-"+suffix, "mixed-conversation-"+suffix
 	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	seedControlledCurrentCapture(t, ctx, repository, fluctlightID)
 	seedCognitiveProviderRole(t, ctx, repository, "mixed-endpoint")
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET identity=$2 WHERE id=$1`, fluctlightID, jsonBytes(map[string]any{
 		"timezone":   "Asia/Shanghai",

@@ -98,7 +98,7 @@ func (a *App) loadCommittedAssistantMessage(ctx context.Context, conversationID,
 	message := map[string]any{
 		"id": id, "conversation_id": ownerConversation, "sequence": sequence,
 		"author_actor_id": authorID, "kind": kind, "text": text,
-		"attachment_refs": decodeArray(attachments), "created_at": createdAt.UTC().Format(time.RFC3339Nano),
+		"attachment_refs": decodeArray(attachments), "created_at": createdAt.UTC().Format(instantLayout),
 	}
 	snapshot.addTo(message)
 	return message, nil
@@ -224,7 +224,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 					return err
 				}
 			}
-			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": existingAuthor, "kind": "user", "text": existingText, "attachment_refs": decodeArray(existingAttachments), "created_at": existingCreatedAt.UTC().Format(time.RFC3339Nano)}
+			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": existingAuthor, "kind": "user", "text": existingText, "attachment_refs": decodeArray(existingAttachments), "created_at": existingCreatedAt.UTC().Format(instantLayout)}
 			existingTime.addTo(user)
 			return nil
 		}
@@ -247,7 +247,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at`, messageID, conversationID, sequence, actorID, text, jsonBytes(attachments), idempotency, turnID, inboxID, correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt).Scan(&createdAt); err != nil {
 			return err
 		}
-		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": sequence, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments, "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
+		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": sequence, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments, "created_at": createdAt.UTC().Format(instantLayout)}
 		snapshot.addTo(user)
 		if err := setWakeUpIdleEpochTx(ctx, tx, fluctlightID, messageID, createdAt); err != nil {
 			return err
@@ -552,7 +552,7 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 		if err != nil {
 			return err
 		}
-		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundation, expectedState, expectedLife, time.Now().UTC()); err != nil {
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundation, expectedState, expectedLife, a.now().UTC()); err != nil {
 			return err
 		}
 		if expectedFacts != "" {
@@ -568,7 +568,7 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, actionType, actionID, expectedState); err != nil {
 			return err
 		}
-		if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan); err != nil {
+		if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan, a.now()); err != nil {
 			return err
 		}
 		assessmentID := "assessment_" + stableDigest(inboxID)
@@ -610,7 +610,7 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 		if err := enqueueQuietPeriodReflectionIntentTx(ctx, tx, fluctlightID, inboxID, a.now().UTC().Add(a.reflectionDelay(ctx)), "conversation_quiet_period"); err != nil {
 			return err
 		}
-		outcomes, err := buildActionOutcomes(actionID, fluctlightID, inboxID, actionType, outcome.Results, resultPayload, a.capabilityRegistry())
+		outcomes, err := buildActionOutcomes(actionID, fluctlightID, inboxID, actionType, outcome.Results, resultPayload, a.capabilityRegistry(), a.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -707,7 +707,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			return nil, err
 		}
 		a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
-		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "disabled", "reason": "wake_up_disabled", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "disabled", "reason": "wake_up_disabled", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(instantLayout)}, nil
 	}
 	fluctlight, err := a.readFluctlightByID(ctx, fluctlightID)
 	if err != nil {
@@ -726,7 +726,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			return nil, err
 		}
 		a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
-		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(instantLayout)}, nil
 	}
 	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+jsonString(cycle))
@@ -741,7 +741,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			return nil, dueErr
 		}
 		a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
-		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": replayStatus, "reason": "wake_up_replayed", "action_type": replayAction, "result": decodeObject(replayResult), "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": replayStatus, "reason": "wake_up_replayed", "action_type": replayAction, "result": decodeObject(replayResult), "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(instantLayout)}, nil
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
@@ -754,13 +754,16 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	projectionRequest := ContextProjectionRequest{
-		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
+		AuthorizationActorID: ownerID, TargetActorID: ownerID, TriggerSource: "periodic_check", FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: wakeID,
 		MemoryOperation: MemoryForWakeUp, MemoryConversationMode: MemoryConversationExact,
 	}
 	projection, err := a.BuildContextProjectionFor(ctx, projectionRequest)
 	if err != nil {
 		return nil, err
+	}
+	if stringValue(projection.LifeContext["behavior_state"]) == "sleep" {
+		return a.persistSleepingCycle(ctx, wakeID, fluctlightID, cycle, settings.IntervalSeconds)
 	}
 	decorateProjection := func(decorateCtx context.Context, target *ContextProjection) error {
 		active, identityErr := a.hasActiveVisualIdentity(decorateCtx, fluctlightID)
@@ -786,7 +789,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
 	schema := wakeUpResponseSchema()
 	operationRules := []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}
-	currentInput := jsonString(map[string]any{"cycle": cycle, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
+	currentInput := jsonString(map[string]any{"cycle": cycle, "trigger_source": "periodic_check", "target_actor": "actor_user", "has_new_inbound_message": false, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
 	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema)
 	if err != nil {
 		return nil, err
@@ -876,7 +879,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 			if err != nil {
 				return err
 			}
-			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentState, lifeContext, time.Now().UTC()); err != nil {
+			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentState, lifeContext, a.now().UTC()); err != nil {
 				return err
 			}
 			if currentFacts != "" {
@@ -906,7 +909,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 			return err
 		}
 		actionID := "agent_wake_" + stableDigest(wakeID)
-		outcomes, err := buildActionOutcomes(actionID, fluctlightID, factID, actionType, outcome.Results, result, a.capabilityRegistry())
+		outcomes, err := buildActionOutcomes(actionID, fluctlightID, factID, actionType, outcome.Results, result, a.capabilityRegistry(), a.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -920,7 +923,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		if err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "reflection_intent_id": reflectionIntentID, "correlation_id": correlationID, "next_due_at": nextDue.Format(time.RFC3339Nano)})
+		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "reflection_intent_id": reflectionIntentID, "correlation_id": correlationID, "next_due_at": nextDue.Format(instantLayout)})
 	})
 	if err != nil {
 		return nil, err
@@ -930,7 +933,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 	}
 	a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
 	_ = a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod)
-	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "action_type": actionType, "reflection_intent_id": reflectionIntentID, "result": result, "interval_seconds": intervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "action_type": actionType, "reflection_intent_id": reflectionIntentID, "result": result, "interval_seconds": intervalSeconds, "next_due_at": nextDue.Format(instantLayout)}, nil
 }
 
 // ProcessNativeCognitionFact consumes the final contract and the Tool trace
@@ -997,7 +1000,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		return err
 	}
 	projectionRequest := ContextProjectionRequest{
-		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
+		AuthorizationActorID: ownerID, TargetActorID: ownerID, TriggerSource: eventType, FluctlightID: fluctlightID,
 		SourceFactID: inboxID, MemoryOperation: MemoryForNativeCognition,
 		MemoryConversationMode: MemoryConversationGlobalOnly,
 		MemoryCues:             []MemoryQueryCue{{Kind: "native_event_type", Text: eventType}, {Kind: "native_fact", Text: jsonString(compactProviderFact(payload))}},
@@ -1085,7 +1088,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		if err != nil {
 			return err
 		}
-		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentRevision, lifeContext, time.Now().UTC()); err != nil {
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentRevision, lifeContext, a.now().UTC()); err != nil {
 			return err
 		}
 		if currentFacts != "" {
@@ -1107,7 +1110,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads h SET last_processed_sequence=GREATEST(h.last_processed_sequence,i.sequence) FROM public.cognition_inbox i WHERE h.fluctlight_id=i.fluctlight_id AND i.id=$1`, inboxID); err != nil {
 			return err
 		}
-		outcomes, err := buildActionOutcomes(actionID, fluctlightID, inboxID, "no_op", outcome.Results, settlement, a.capabilityRegistry())
+		outcomes, err := buildActionOutcomes(actionID, fluctlightID, inboxID, "no_op", outcome.Results, settlement, a.capabilityRegistry(), a.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -1189,7 +1192,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	sourceFactID := "daily-review:" + fluctlightID + ":" + localDate
 	projectionRequest := ContextProjectionRequest{
-		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
+		AuthorizationActorID: ownerID, TargetActorID: ownerID, TriggerSource: "daily_review", FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: sourceFactID,
 		MemoryOperation: MemoryForDailyReview, MemoryConversationMode: MemoryConversationExact,
 	}
@@ -1249,7 +1252,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			if err != nil {
 				return err
 			}
-			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentState, lifeContext, time.Now().UTC()); err != nil {
+			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundation, currentState, lifeContext, a.now().UTC()); err != nil {
 				return err
 			}
 			if currentFacts != "" {
@@ -1261,7 +1264,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at,error_code) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),now(),$10)`, actionID, fluctlightID, actionType, jsonBytes(payload), jsonBytes(policy.Snapshot), jsonBytes(map[string]any{"foundation_revision": taskResult.Projection.ContextRevision, "current_state_revision": taskResult.Projection.CurrentStateRevision, "life_context_revision": taskResult.Projection.LifeContextRevision}), status, workflowID, "formal_agent_daily_"+stableDigest(actionID), nullableString(map[bool]string{true: "agent_run_failed"}[runErr != nil])); err != nil {
 			return err
 		}
-		outcomes, err := buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, outcome.Results, payload, a.capabilityRegistry())
+		outcomes, err := buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, outcome.Results, payload, a.capabilityRegistry(), a.now().UTC())
 		if err != nil {
 			return err
 		}

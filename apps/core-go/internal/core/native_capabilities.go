@@ -134,7 +134,7 @@ func (a *App) applySceneCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, i
 	} else if !errors.Is(replayErr, pgx.ErrNoRows) {
 		return failedCapabilityResult(invocation, "scene_persist_failed", true), replayErr
 	}
-	applyAt := time.Now().UTC()
+	applyAt := a.now().UTC()
 	if !plan.EndsAt.After(applyAt) {
 		return failedCapabilityResult(invocation, "scene_plan_expired", false), newCapabilityError("scene_plan_expired", false, ErrConflict)
 	}
@@ -144,6 +144,9 @@ func (a *App) applySceneCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, i
 			return failedCapabilityResult(invocation, "scene_context_stale", false), newCapabilityError("scene_context_stale", false, err)
 		}
 		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+	}
+	if stringValue(liveContext["behavior_state"]) == "sleep" {
+		return failedCapabilityResult(invocation, "life_state_sleeping", false), ErrConflict
 	}
 	previousScene := map[string]any{"source": liveContext["source"], "scene": liveContext["scene"], "activity": liveContext["activity"], "location": liveContext["location"], "context_revision": liveContext["context_revision"]}
 	if plan.Operation == "switch" || plan.Operation == "end" {
@@ -263,7 +266,7 @@ func (a *App) applyPresenceCapabilityWithTx(ctx context.Context, callerTx pgx.Tx
 	} else if !errors.Is(replayErr, pgx.ErrNoRows) {
 		return failedCapabilityResult(invocation, "presence_persist_failed", true), replayErr
 	}
-	applyAt := time.Now().UTC()
+	applyAt := a.now().UTC()
 	if plan.Operation == "set" && (plan.ExpiresAt == nil || !plan.ExpiresAt.After(applyAt)) {
 		return failedCapabilityResult(invocation, "presence_plan_expired", false), newCapabilityError("presence_plan_expired", false, ErrConflict)
 	}

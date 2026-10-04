@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -370,7 +369,7 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		call := providerCalls.Add(1)
 		body, _ := io.ReadAll(request.Body)
-		lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(string(body))
+		lifeRef := providerLifeReferenceForTest(body)
 		if lifeRef == "" || strings.Contains(string(body), decisionLifeRevision) {
 			t.Fatalf("Provider request omitted frozen Life Context ref: %s", body)
 		}
@@ -451,4 +450,32 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.life_events WHERE fluctlight_id=$1 AND scene='书房'`, fluctlightID).Scan(&staleCapabilitySceneCount); err != nil || staleCapabilitySceneCount != 0 {
 		t.Fatalf("stale conversation capability mutated scene count=%d err=%v", staleCapabilitySceneCount, err)
 	}
+}
+
+// Read the direct Life reference from the actual wire payload, including the
+// production per-run alias. Do not accidentally select an Appearance alias.
+func providerLifeReferenceForTest(body []byte) string {
+	payload := decodeObject(body)
+	for _, raw := range arrayValue(payload["messages"]) {
+		lines := strings.Split(stringValue(mapValue(raw)["content"]), "\n")
+		for i, line := range lines {
+			if strings.TrimSpace(line) != "life_context:" {
+				continue
+			}
+			indent := len(line) - len(strings.TrimLeft(line, " "))
+			for _, child := range lines[i+1:] {
+				if strings.TrimSpace(child) == "" {
+					continue
+				}
+				childIndent := len(child) - len(strings.TrimLeft(child, " "))
+				if childIndent <= indent {
+					break
+				}
+				if childIndent == indent+2 && strings.HasPrefix(strings.TrimSpace(child), "ref:") {
+					return strings.Trim(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(child), "ref:")), "\"'")
+				}
+			}
+		}
+	}
+	return ""
 }

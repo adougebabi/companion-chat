@@ -265,6 +265,11 @@ func (a *App) applyActiveMemoryCommandTx(ctx context.Context, tx pgx.Tx, command
 	if target.OwnerFluctlightID != command.OwnerFluctlightID || target.Revision != command.Target.ExpectedRevision || target.Status != "active" {
 		return ActiveMemoryApplyResult{}, errors.New("active_memory_target_revision_conflict")
 	}
+	if command.Operation == ActiveMemoryConfirm || command.Operation == ActiveMemoryRevise || command.Operation == ActiveMemorySupersede {
+		if err := validateArtifactActorDependenciesTx(ctx, tx, command.OwnerFluctlightID, "active_memory", target.ID, target.Revision, command.OccurredAt); err != nil {
+			return ActiveMemoryApplyResult{}, err
+		}
+	}
 	switch command.Operation {
 	case ActiveMemoryConfirm:
 		return a.applyActiveMemoryConfirmTx(ctx, tx, command, target)
@@ -482,6 +487,11 @@ func writeActiveMemoryRevisionTx(ctx context.Context, tx pgx.Tx, command Prepare
 	}
 	if inserted.RowsAffected() != 1 {
 		return errors.New("active_memory_revision_identity_conflict")
+	}
+	if command.Operation == ActiveMemoryConfirm {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.actor_fact_artifacts(fact_id,fact_revision,artifact_kind,artifact_id,artifact_revision) SELECT fact_id,fact_revision,artifact_kind,artifact_id,$3 FROM public.actor_fact_artifacts WHERE artifact_kind='active_memory' AND artifact_id=$1 AND artifact_revision=$2 ON CONFLICT DO NOTHING`, row.ID, baseRevision, row.Revision); err != nil {
+			return err
+		}
 	}
 	return nil
 }

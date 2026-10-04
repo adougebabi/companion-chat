@@ -118,6 +118,7 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 		"queuedAt":          stringValue(first(row, "queued_at")),
 		"logicalRunId":      stringValue(first(row, "logical_run_id")),
 		"modelCallId":       stringValue(first(row, "model_call_id")),
+		"orderingKey":       stringValue(row["ordering_key"]),
 		"roundCount":        first(row, "round_count"),
 		"sequence":          first(row, "sequence"),
 		"stage":             stringValue(first(row, "stage")),
@@ -150,6 +151,7 @@ func browserDiagnosticAgentRun(row map[string]any) map[string]any {
 		"associationStatus": stringValue(first(row, "association_status")),
 		"status":            stringValue(first(row, "status")),
 		"source":            stringValue(first(row, "source")),
+		"orderingKey":       stringValue(row["ordering_key"]),
 		"startedAt":         stringValue(first(row, "started_at")),
 	}
 	for _, field := range []struct{ source, target string }{

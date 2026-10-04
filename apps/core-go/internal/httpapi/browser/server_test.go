@@ -34,6 +34,9 @@ func (f *fakeBackend) DoJSON(_ context.Context, method, endpoint, _ string, _ an
 }
 
 func (f *fakeBackend) DoAny(_ context.Context, method, endpoint, session string, body any) (any, error) {
+	if strings.Contains(endpoint, "/diagnostics/model-runs") || strings.Contains(endpoint, "/diagnostics/agent-runs") {
+		return map[string]any{"items": []any{}, "next_cursor": "", "snapshot": "test-snapshot"}, nil
+	}
 	if strings.Contains(endpoint, "/diagnostics/lifecycle") {
 		return map[string]any{"events": []any{}, "workflow_intents": []any{}, "filters": map[string]any{}}, nil
 	}

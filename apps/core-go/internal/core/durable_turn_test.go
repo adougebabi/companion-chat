@@ -208,6 +208,13 @@ func TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	displayTime := t0
+	if err := repository.Pool().QueryRow(ctx, `SELECT created_at FROM public.conversation_messages WHERE id=$1`, stringValue(accepted.UserMessage["id"])).Scan(&t0); err != nil {
+		t.Fatal(err)
+	}
+	if !displayTime.Equal(t0.Truncate(time.Millisecond)) {
+		t.Fatal("public timestamp violated millisecond contract")
+	}
 	if clock["idle_epoch"] != accepted.UserMessage["id"] || clock["idle_phase"] != "first_10m" || !due.Equal(t0.Add(10*time.Minute)) {
 		t.Fatalf("accepted user message did not set first idle phase: status=%q payload=%s due=%s t0=%s", status, payload, due, t0)
 	}

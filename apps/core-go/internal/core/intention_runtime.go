@@ -34,12 +34,12 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 		if loadErr != nil {
 			return loadErr
 		}
-		now := time.Now().UTC()
+		now := a.now().UTC()
 		if current.Status == IntentionInProgress {
 			var activityID string
 			var notBefore time.Time
 			if err := tx.QueryRow(ctx, `SELECT id,not_before FROM public.fluctlight_life_activity_runs WHERE intention_id=$1 AND fluctlight_id=$2 AND status IN ('in_progress','deferred') ORDER BY started_at DESC LIMIT 1`, intentionID, fluctlightID).Scan(&activityID, &notBefore); err == nil {
-				result = map[string]any{"intention_id": intentionID, "status": "activity_started", "activity_id": activityID, "not_before": notBefore.UTC().Format(time.RFC3339Nano)}
+				result = map[string]any{"intention_id": intentionID, "status": "activity_started", "activity_id": activityID, "not_before": notBefore.UTC().Format(instantLayout)}
 				return nil
 			} else if !errors.Is(err, pgx.ErrNoRows) {
 				return err
@@ -71,7 +71,7 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 		return scheduled, err
 	}
 	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
-		AuthorizationActorID: ownerActorID, SpeakerActorID: ownerActorID, FluctlightID: fluctlightID,
+		AuthorizationActorID: ownerActorID, TargetActorID: ownerActorID, TriggerSource: "intention_trigger", FluctlightID: fluctlightID,
 		SourceFactID: "intention-trigger:" + intentionID, MemoryOperation: MemoryForNativeCognition,
 		MemoryConversationMode: MemoryConversationGlobalOnly,
 	})
@@ -99,7 +99,7 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 			result["status"] = string(current.Status)
 			return nil
 		}
-		now := time.Now().UTC()
+		now := a.now().UTC()
 		observation := IntentionTriggerObservation{At: now}
 		if current.Trigger.Type != IntentionTriggerTime {
 			var cursor int
@@ -183,7 +183,7 @@ func syncIntentionTriggerWorkflowTx(ctx context.Context, tx pgx.Tx, intention In
 	workflowID := "intention-trigger:" + intention.EntityID + ":" + fmt.Sprint(intention.Revision)
 	payload := map[string]any{"intent_id": intentID, "fluctlight_id": intention.FluctlightID, "intention_id": intention.EntityID, "intention_ref": intention.Ref, "intention_revision": intention.Revision, "trigger_type": intention.Trigger.Type}
 	if intention.Trigger.DueAt != nil {
-		payload["due_at"] = intention.Trigger.DueAt.UTC().Format(time.RFC3339Nano)
+		payload["due_at"] = intention.Trigger.DueAt.UTC().Format(instantLayout)
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle',$3,$4) ON CONFLICT(intent_id) DO NOTHING`, intentID, workflowID, intentionTriggerWorkflowType, jsonBytes(payload))
 	return err

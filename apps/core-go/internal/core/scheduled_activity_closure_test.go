@@ -373,6 +373,9 @@ func TestCancellingAcceptedScheduleClosesLinkedIntentionAndGoal(t *testing.T) {
 func TestPausedStartedScheduledDyeCannotCommitHairColor(t *testing.T) {
 	fixture, _, intentionID, _, itemID := seedFutureScheduledDye(t)
 	forcedStart := time.Now().UTC().Add(-time.Minute)
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_schedule_items SET end_at=$2 WHERE schedule_id=(SELECT schedule_id FROM public.life_schedule_items WHERE id=$1) AND end_at=(SELECT start_at FROM public.life_schedule_items WHERE id=$1) AND intention_id IS NULL`, itemID, forcedStart); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_schedule_items SET start_at=$2,end_at=now()+interval '20 minutes' WHERE id=$1`, itemID, forcedStart); err != nil {
 		t.Fatal(err)
 	}
@@ -430,6 +433,9 @@ func TestPausedStartedScheduledDyeCannotCommitHairColor(t *testing.T) {
 func TestStartedScheduledDyeBlocksReplanAndStaleVersionCannotSettle(t *testing.T) {
 	fixture, _, intentionID, scheduleID, itemID := seedFutureScheduledDye(t)
 	forcedStart := time.Now().UTC().Add(-time.Minute)
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_schedule_items SET end_at=$2 WHERE schedule_id=(SELECT schedule_id FROM public.life_schedule_items WHERE id=$1) AND end_at=(SELECT start_at FROM public.life_schedule_items WHERE id=$1) AND intention_id IS NULL`, itemID, forcedStart); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_schedule_items SET start_at=$2,end_at=now()+interval '20 minutes' WHERE id=$1`, itemID, forcedStart); err != nil {
 		t.Fatal(err)
 	}
@@ -474,6 +480,9 @@ func TestStartedScheduledDyeBlocksReplanAndStaleVersionCannotSettle(t *testing.T
 func TestCancellingScheduleAfterDeferredSlotClosesDye(t *testing.T) {
 	fixture, goalID, intentionID, scheduleID, itemID := seedFutureScheduledDye(t)
 	forcedStart := time.Now().UTC().Add(-time.Minute)
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_schedule_items SET end_at=$2 WHERE schedule_id=(SELECT schedule_id FROM public.life_schedule_items WHERE id=$1) AND end_at=(SELECT start_at FROM public.life_schedule_items WHERE id=$1) AND intention_id IS NULL`, itemID, forcedStart); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_schedule_items SET start_at=$2,end_at=now()+interval '20 minutes' WHERE id=$1`, itemID, forcedStart); err != nil {
 		t.Fatal(err)
 	}

@@ -10,6 +10,7 @@ import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
 import { diagnosticsSections, type DiagnosticsSection } from "../app/navigation";
 import type { BrowserDiagnosticAgentRun, BrowserDiagnosticModelRun } from "@fluctlight/browser-client";
+import { formatInstantInZone } from "../lib/instant";
 import { useControlCenterStore } from "../stores/control-center";
 
 const props = defineProps<{ section?: DiagnosticsSection | null }>();
@@ -34,11 +35,12 @@ const queueSummary = computed(() => {
   }
   return [...counts.entries()].map(([role, count]) => `${bindingLabel(role)} ${count}`).join(" · ");
 });
-const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+const viewerTimezone = computed(() => controlCenter.diagnosticDisplayTimezone);
+const displayTimezones = [...new Set([controlCenter.diagnosticDisplayTimezone,"UTC","Asia/Shanghai","America/New_York","Europe/Berlin"])];
 const modelRunGroups = computed(() => {
   const groups = new Map<string, { id: string; correlationId: string; runs: BrowserDiagnosticModelRun[]; agents: BrowserDiagnosticAgentRun[]; total: number }>();
   for (const run of controlCenter.diagnosticModelRuns) {
-    const id = run.logicalRunId || run.correlationId || run.id;
+    const id = controlCenter.diagnosticsCorrelationFilter ? (run.logicalRunId || run.correlationId || run.id) : run.id;
     let group = groups.get(id);
     if (!group) {
       group = { id, correlationId: run.correlationId, runs: [], agents: [], total: 0 };
@@ -47,14 +49,8 @@ const modelRunGroups = computed(() => {
     group.runs.push(run);
     group.total = Math.max(group.total, Number(run.roundCount ?? 0));
   }
-  for (const agent of controlCenter.diagnosticAgentRuns) {
-    const id = agent.correlationId || `agent:${agent.fluctlightId}:${agent.agentId}:${agent.runId}`;
-    let group = groups.get(id);
-    if (!group) {
-      group = { id, correlationId: agent.correlationId, runs: [], agents: [], total: 0 };
-      groups.set(id, group);
-    }
-    group.agents.push(agent);
+  if (controlCenter.diagnosticsCorrelationFilter) for (const group of groups.values()) {
+    group.agents = controlCenter.diagnosticAgentRuns.filter((agent) => agent.correlationId === group.correlationId);
   }
   for (const group of groups.values()) group.runs.sort((a, b) => {
     if (a.sequence != null && b.sequence != null) return a.sequence - b.sequence || a.id.localeCompare(b.id);
@@ -62,14 +58,9 @@ const modelRunGroups = computed(() => {
     if (b.sequence != null) return 1;
     return (a.queuedAt || a.createdAt).localeCompare(b.queuedAt || b.createdAt) || a.id.localeCompare(b.id);
   });
-  return [...groups.values()].sort((a, b) => {
-    const aFailed = a.agents.some((agent) => agent.status === "failed");
-    const bFailed = b.agents.some((agent) => agent.status === "failed");
-    if (aFailed !== bFailed) return aFailed ? -1 : 1;
-    const aTime = a.agents[0]?.startedAt || a.runs[0]?.createdAt || "";
-    const bTime = b.agents[0]?.startedAt || b.runs[0]?.createdAt || "";
-    return bTime.localeCompare(aTime);
-  });
+  // The default list keeps the globally paged server order. A correlation
+  // detail groups physical calls and orders steps by their execution sequence.
+  return [...groups.values()];
 });
 function modelRoundLabel(run: BrowserDiagnosticModelRun, total: number): string {
   return run.sequence != null ? `第 ${run.sequence}/${Math.max(total, run.sequence)} 次` : "轮次未知";
@@ -110,10 +101,9 @@ function isMetadataOnlyPrompt(prompt: unknown): boolean {
   return false;
 }
 function formatRunTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "时间未知";
-  return `${date.toLocaleString("zh-CN", { timeZone: viewerTimezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · ${viewerTimezone}`;
+  return formatInstantInZone(value, viewerTimezone.value);
 }
+
 function workflowIdFor(value: Record<string, unknown>): string {
   if (typeof value.workflow_id === "string") return value.workflow_id;
   if (typeof value.workflowId === "string") return value.workflowId;
@@ -149,7 +139,7 @@ onMounted(() => {
   void controlCenter.loadDiagnostics();
   if (currentSection.value === "workflows") void controlCenter.loadWorkflows();
   pollTimer = window.setInterval(() => {
-    if (document.visibilityState === "visible") void controlCenter.loadDiagnostics();
+    if (document.visibilityState === "visible") void controlCenter.loadDiagnostics(true);
   }, 2000);
 });
 watch(currentSection, (section) => {
@@ -194,6 +184,8 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
       <div v-if="controlCenter.loading" class="empty-panel compact">正在加载诊断信息...</div>
       <div v-else-if="(currentSection === 'lifecycle' && !controlCenter.lifecycleDiagnostics.length && !controlCenter.workflowIntentSnapshots.length) || (currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length && !controlCenter.diagnosticAgentRuns.length) || (currentSection === 'media-prompts' && !controlCenter.diagnosticMediaPrompts.length) || (currentSection === 'events' && !controlCenter.diagnostics.length)" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>{{ currentSection === 'lifecycle' ? '没有匹配的触发或工作流状态；可清除过滤查看全部。' : '该主题暂时没有可展示的诊断记录。' }}</p></div>
       <div v-else class="diagnostics-groups">
+      <label>显示时区 <select v-model="controlCenter.diagnosticDisplayTimezone"><option v-for="zone in displayTimezones" :key="zone" :value="zone">{{ zone }}</option></select></label>
+      <p v-if="controlCenter.diagnosticModelRuns.length > 20 || controlCenter.diagnosticAgentRuns.length > 20" class="field-note">已加载历史分页；点击刷新查看最新记录。</p>
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="diagnostics-accordion">
         <AccordionItem v-if="currentSection === 'lifecycle'" value="lifecycle" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">LIFECYCLE</p><h2>生命周期时间线</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.lifecycleDiagnostics.length }}</Badge></AccordionTrigger>
@@ -206,6 +198,17 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
               <div class="diagnostic-actions"><Button v-if="event.workflowId" variant="outline" type="button" @click="openWorkflow(event.workflowId)">查看 Workflow</Button><Button v-if="event.modelRunId" variant="outline" type="button" @click="openModelRun(event.correlationId)">查看 Model Run</Button></div>
             </article>
             <section v-if="controlCenter.workflowIntentSnapshots.length" class="intent-snapshot-list" aria-labelledby="intent-snapshot-title"><h3 id="intent-snapshot-title">PostgreSQL Intent 快照</h3><article v-for="intent in controlCenter.workflowIntentSnapshots" :key="intent.intentId" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ intent.intentType }}</strong><Badge class="status-pill" :class="statusClass(intent.status)" variant="secondary">{{ statusLabel(intent.status) }}</Badge><small>{{ intent.intentId }} · 尝试 {{ intent.attemptCount }}</small></div><p v-if="intent.nextAttemptAt">下次调度：{{ formatRunTime(intent.nextAttemptAt) }}</p><p v-if="intent.lastError" class="diagnostic-error">{{ intent.lastError }}</p><Button variant="outline" type="button" @click="openWorkflow(intent.runtimeWorkflowId || intent.workflowId)">查看 Workflow</Button></article></section>
+          </div></AccordionContent>
+        </AccordionItem>
+        <AccordionItem v-if="currentSection === 'agent-runs'" value="agent-runs" class="diagnostic-group diagnostics-drawer">
+          <AccordionTrigger class="diagnostics-drawer-summary section-heading"><h2>Agent 运行</h2><Badge variant="secondary">{{ controlCenter.diagnosticAgentRuns.length }}</Badge></AccordionTrigger>
+          <AccordionContent><div class="diagnostic-drawer-body">
+            <article v-for="agent in controlCenter.diagnosticAgentRuns" :key="`${agent.fluctlightId}:${agent.agentId}:${agent.runId}`" class="diagnostic-row">
+              <div class="diagnostic-meta"><strong>{{ agent.agentId }}</strong><Badge variant="secondary">{{ statusLabel(agent.status) }}</Badge><time :datetime="agent.startedAt">{{ formatRunTime(agent.startedAt) }}</time></div>
+              <p v-if="agent.status === 'failed'" class="diagnostic-error">{{ agentFailureStageLabels[agent.failureStage || 'unknown'] || agent.failureStage }} · {{ agent.failureCode }}<template v-if="agent.safeCause"> · {{ agent.safeCause }}</template></p>
+              <Button variant="outline" @click="openModelRun(agent.correlationId)">查看运行步骤</Button>
+            </article>
+            <Button v-if="controlCenter.diagnosticAgentCursor" variant="outline" :disabled="controlCenter.diagnosticPagesLoading" @click="controlCenter.loadMoreDiagnosticRuns('agent')">加载更多 Agent 记录</Button>
           </div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'model-runs' && modelRunGroups.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
@@ -234,6 +237,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
                 <ul v-if="run.toolSummaries?.length" class="detail-list" aria-label="Tool 往返摘要"><li v-for="tool in run.toolSummaries" :key="tool.callId"><strong>{{ tool.capability }}</strong> · {{ tool.status }}<template v-if="tool.errorCode"> · {{ tool.errorCode }}</template></li></ul>
               </article>
             </section>
+            <Button v-if="controlCenter.diagnosticModelCursor" variant="outline" :disabled="controlCenter.diagnosticPagesLoading" @click="controlCenter.loadMoreDiagnosticRuns('model')">加载更多模型记录</Button>
           </div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'media-prompts' && controlCenter.diagnosticMediaPrompts.length" value="media-prompts" class="diagnostic-group diagnostics-drawer">

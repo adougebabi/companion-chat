@@ -68,33 +68,6 @@ func estimateConversationSummaryTokens(message ConversationSummarySourceMessage)
 	return runeEstimate + 8
 }
 
-func selectConversationSummaryChunk(messages []ConversationSummarySourceMessage) ([]ConversationSummarySourceMessage, bool) {
-	if len(messages) > conversationSummaryMaxMessages {
-		messages = messages[:conversationSummaryMaxMessages]
-	}
-	tokens := 0
-	completedTurns := 0
-	thresholdReached := false
-	lastAssistant := -1
-	for index, message := range messages {
-		tokens += estimateConversationSummaryTokens(message)
-		if message.Kind == "assistant" {
-			lastAssistant = index
-			completedTurns++
-		}
-		if tokens >= conversationSummaryTargetTokens || completedTurns >= conversationSummaryTargetTurns || index+1 >= conversationSummaryMaxMessages {
-			thresholdReached = true
-		}
-		if thresholdReached && lastAssistant == index {
-			return append([]ConversationSummarySourceMessage(nil), messages[:index+1]...), true
-		}
-	}
-	if thresholdReached && lastAssistant >= 0 {
-		return append([]ConversationSummarySourceMessage(nil), messages[:lastAssistant+1]...), true
-	}
-	return nil, false
-}
-
 func conversationSummarySourceRefs(messages []ConversationSummarySourceMessage) []string {
 	refs := make([]string, 0, len(messages))
 	for _, message := range messages {
@@ -127,80 +100,12 @@ WHERE owner_fluctlight_id=$1 AND status IN ('active','consolidated') AND source_
 }
 
 func (a *App) enqueueConversationSummaryIntentTx(ctx context.Context, tx pgx.Tx, fluctlightID, conversationID, sourceMessageID string) error {
-	if strings.TrimSpace(fluctlightID) == "" || strings.TrimSpace(sourceMessageID) == "" {
-		return errors.New("conversation_summary_source_identity_invalid")
-	}
-	if strings.TrimSpace(conversationID) == "" {
+	if conversationID == "" {
 		if err := tx.QueryRow(ctx, `SELECT conversation_id FROM public.conversation_messages WHERE id=$1`, sourceMessageID).Scan(&conversationID); err != nil {
 			return err
 		}
 	}
-	var sourceSequence int
-	var sourceAuthor, sourceKind string
-	if err := tx.QueryRow(ctx, `SELECT sequence,author_actor_id,kind FROM public.conversation_messages WHERE id=$1 AND conversation_id=$2`, sourceMessageID, conversationID).Scan(&sourceSequence, &sourceAuthor, &sourceKind); err != nil {
-		return err
-	}
-	if sourceAuthor != fluctlightID || sourceKind != "assistant" {
-		return errors.New("conversation_summary_source_message_invalid")
-	}
-	eligibleThrough := sourceSequence - conversationSummaryRetainedMessages
-	if eligibleThrough < 1 {
-		return nil
-	}
-	// A source edit can make an invalidated Episode rebuildable. A governance
-	// correction without a changed raw source keeps the old window omitted;
-	// publishing the same digest would revive the known stale conclusion.
-	type invalidatedWindow struct {
-		from, to int
-		digest   string
-	}
-	invalidated := make([]invalidatedWindow, 0)
-	rows, err := tx.Query(ctx, `SELECT from_sequence,to_sequence,source_digest FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status='invalidated' AND to_sequence<=$3 ORDER BY from_sequence LIMIT 8`, fluctlightID, conversationID, eligibleThrough)
-	if err != nil {
-		return err
-	}
-	for rows.Next() {
-		var window invalidatedWindow
-		if err := rows.Scan(&window.from, &window.to, &window.digest); err != nil {
-			rows.Close()
-			return err
-		}
-		invalidated = append(invalidated, window)
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		return err
-	}
-	for _, window := range invalidated {
-		length := window.to - window.from + 1
-		if length < 1 || length > conversationSummaryMaxMessages {
-			continue
-		}
-		current, err := readConversationSummaryMessages(ctx, tx, conversationID, window.from, window.to, length)
-		if err != nil {
-			return err
-		}
-		if len(current) == length && current[len(current)-1].Kind == "assistant" && conversationSummarySourceDigest(current) != window.digest {
-			return enqueueConversationSummaryChunkTx(ctx, tx, fluctlightID, conversationID, sourceMessageID, sourceSequence, current)
-		}
-	}
-	var coveredThrough int
-	if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(to_sequence),0) FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status IN ('active','invalidated','consolidated')`, fluctlightID, conversationID).Scan(&coveredThrough); err != nil {
-		return err
-	}
-	if eligibleThrough <= coveredThrough {
-		return nil
-	}
-	messages, err := readConversationSummaryMessages(ctx, tx, conversationID, coveredThrough+1, eligibleThrough, conversationSummaryMaxMessages)
-	if err != nil {
-		return err
-	}
-	chunk, ready := selectConversationSummaryChunk(messages)
-	if !ready || len(chunk) == 0 {
-		return nil
-	}
-	return enqueueConversationSummaryChunkTx(ctx, tx, fluctlightID, conversationID, sourceMessageID, sourceSequence, chunk)
+	return a.enqueueRuntimeSummaryTx(ctx, tx, fluctlightID, conversationID, sourceMessageID)
 }
 
 func enqueueConversationSummaryChunkTx(ctx context.Context, tx pgx.Tx, fluctlightID, conversationID, sourceMessageID string, sourceSequence int, chunk []ConversationSummarySourceMessage) error {
@@ -281,52 +186,8 @@ func decodeConversationSummaryProviderResponse(value map[string]any) (conversati
 }
 
 func (a *App) ProcessConversationSummaryIntent(ctx context.Context, intentID, fluctlightID, conversationID, sourceMessageID string, sourceSequence, fromSequence, toSequence int, sourceDigest string, sourceMessageRefs []string) (map[string]any, error) {
-	work := conversationSummaryWork{
-		IntentID: strings.TrimSpace(intentID), FluctlightID: strings.TrimSpace(fluctlightID), ConversationID: strings.TrimSpace(conversationID),
-		SourceMessageID: strings.TrimSpace(sourceMessageID), SourceSequence: sourceSequence,
-		FromSequence: fromSequence, ToSequence: toSequence, SourceDigest: strings.TrimSpace(sourceDigest),
-		SourceMessageRefs: append([]string(nil), sourceMessageRefs...),
-	}
-	if err := a.validateConversationSummaryWorkIdentity(ctx, work); err != nil {
-		return nil, err
-	}
-	messages, err := readConversationSummaryMessages(ctx, a.DB.Pool(), work.ConversationID, work.FromSequence, work.ToSequence, conversationSummaryMaxMessages)
-	if err != nil {
-		return nil, err
-	}
-	work.Messages = messages
-	if err := validateConversationSummarySources(work); err != nil {
-		return nil, err
-	}
-	if a.Provider == nil {
-		return nil, errors.New("conversation_summary_provider_unavailable")
-	}
-	assignment, err := a.Provider.assignment(ctx, "reflection")
-	if err != nil {
-		return nil, err
-	}
-	requestDigest := stableDigest(strings.Join([]string{work.SourceDigest, assignment.EndpointID, assignment.ModelID, conversationSummaryPromptVersion, conversationSummarySchemaVersion, conversationSummaryPolicyVersion}, "\x1f"))
-	if existing, found, err := a.readReadyConversationSummary(ctx, work, requestDigest); err != nil {
-		return nil, err
-	} else if found {
-		existing["replayed"] = true
-		return existing, nil
-	}
-	correlationID := "conversation-summary:" + work.IntentID
-	providerContext := WithProviderCorrelation(WithProviderScenario(ctx, "conversation_summary"), correlationID)
-	response, err := a.RunConversationSummaryTask(providerContext, ConversationSummaryTaskInput{Messages: work.Messages})
-	if err != nil {
-		return nil, err
-	}
-	liveAssignment, err := a.Provider.assignment(ctx, "reflection")
-	if err != nil {
-		return nil, err
-	}
-	if liveAssignment.EndpointID != assignment.EndpointID || liveAssignment.ModelID != assignment.ModelID {
-		return nil, errors.New("conversation_summary_provider_assignment_stale")
-	}
-	providerRequestID := "provider:" + stableDigest("reflection:"+correlationID)
-	return a.settleConversationSummary(ctx, work, response, assignment, providerRequestID, requestDigest)
+	work := conversationSummaryWork{IntentID: strings.TrimSpace(intentID), FluctlightID: strings.TrimSpace(fluctlightID), ConversationID: strings.TrimSpace(conversationID), SourceMessageID: strings.TrimSpace(sourceMessageID), SourceSequence: sourceSequence, FromSequence: fromSequence, ToSequence: toSequence, SourceDigest: strings.TrimSpace(sourceDigest), SourceMessageRefs: append([]string(nil), sourceMessageRefs...)}
+	return a.processRuntimeSummary(ctx, work)
 }
 
 func conversationSummaryProviderMessages(messages []ConversationSummarySourceMessage) []map[string]any {
@@ -403,116 +264,6 @@ func (a *App) readReadyConversationSummary(ctx context.Context, work conversatio
 	return map[string]any{"summary_id": id, "status": "active", "revision": revision, "from_sequence": work.FromSequence, "to_sequence": work.ToSequence, "summary": summary}, true, nil
 }
 
-func (a *App) settleConversationSummary(ctx context.Context, work conversationSummaryWork, response conversationSummaryProviderResponse, assignment providerAssignment, providerRequestID, requestDigest string) (map[string]any, error) {
-	var result map[string]any
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var lockedConversationID string
-		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversations WHERE id=$1 FOR UPDATE`, work.ConversationID).Scan(&lockedConversationID); err != nil {
-			return err
-		}
-		messages, err := readConversationSummaryMessages(ctx, tx, work.ConversationID, work.FromSequence, work.ToSequence, conversationSummaryMaxMessages)
-		if err != nil {
-			return err
-		}
-		liveWork := work
-		liveWork.Messages = messages
-		if err := validateConversationSummarySources(liveWork); err != nil {
-			return err
-		}
-		var invalidated bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND source_digest=$5 AND status='invalidated')`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence, work.SourceDigest).Scan(&invalidated); err != nil {
-			return err
-		}
-		if invalidated {
-			return errors.New("conversation_summary_source_invalidated")
-		}
-		var consolidated bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND schema_version=$5 AND status='consolidated')`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence, conversationSegmentSchemaVersion).Scan(&consolidated); err != nil {
-			return err
-		}
-		if consolidated {
-			result = map[string]any{"status": "superseded", "reason": "new_segment_consolidated", "from_sequence": work.FromSequence, "to_sequence": work.ToSequence}
-			return nil
-		}
-		if existing, found, err := readReadyConversationSummaryTx(ctx, tx, work, requestDigest); err != nil {
-			return err
-		} else if found {
-			existing["replayed"] = true
-			result = existing
-			return nil
-		}
-		var priorID string
-		var priorRevision int
-		var priorSchema string
-		priorStatus := "active"
-		err = tx.QueryRow(ctx, `SELECT id,revision,schema_version FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND status='active' FOR UPDATE`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence).Scan(&priorID, &priorRevision, &priorSchema)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		if priorID != "" && priorSchema == conversationSegmentSchemaVersion {
-			result = map[string]any{"status": "superseded", "reason": "new_segment_active", "from_sequence": work.FromSequence, "to_sequence": work.ToSequence}
-			return nil
-		}
-		if errors.Is(err, pgx.ErrNoRows) {
-			priorStatus = "invalidated"
-			err = tx.QueryRow(ctx, `SELECT id,revision FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND status='invalidated' AND source_digest<>$5 ORDER BY revision DESC LIMIT 1 FOR UPDATE`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence, work.SourceDigest).Scan(&priorID, &priorRevision)
-			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-				return err
-			}
-			if errors.Is(err, pgx.ErrNoRows) {
-				var coveredThrough int
-				if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(to_sequence),0) FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND status IN ('active','invalidated','consolidated')`, work.FluctlightID, work.ConversationID).Scan(&coveredThrough); err != nil {
-					return err
-				}
-				if coveredThrough+1 != work.FromSequence {
-					return errors.New("conversation_summary_projection_stale")
-				}
-			}
-		}
-		revision := 1
-		if priorID != "" {
-			revision = priorRevision + 1
-			if priorStatus == "active" {
-				updated, err := tx.Exec(ctx, `UPDATE public.conversation_summaries SET status='superseded' WHERE id=$1 AND status='active' AND revision=$2`, priorID, priorRevision)
-				if err != nil || updated.RowsAffected() != 1 {
-					if err != nil {
-						return err
-					}
-					return errors.New("conversation_summary_projection_stale")
-				}
-			}
-		}
-		summaryID := "conversation_summary_" + stableDigest(work.IntentID+"\x1f"+requestDigest)
-		idempotencyKey := "conversation-summary:" + work.IntentID + ":" + requestDigest
-		_, err = tx.Exec(ctx, `INSERT INTO public.conversation_summaries(id,owner_fluctlight_id,conversation_id,from_sequence,to_sequence,source_message_refs,source_digest,summary,status,revision,supersedes_summary_id,provider_endpoint_id,model_id,provider_request_id,prompt_version,schema_version,policy_version,request_digest,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`, summaryID, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence, jsonBytes(work.SourceMessageRefs), work.SourceDigest, response.Summary, revision, nullableString(priorID), assignment.EndpointID, assignment.ModelID, providerRequestID, conversationSummaryPromptVersion, conversationSummarySchemaVersion, conversationSummaryPolicyVersion, requestDigest, idempotencyKey)
-		if err != nil {
-			return err
-		}
-		if err := appendOutboxTx(ctx, tx, "conversation.summary.ready", "conversation_summary", summaryID, work.FluctlightID, work.SourceMessageID, "conversation-summary:"+work.ConversationID, "conversation-summary-ready:"+summaryID, map[string]any{
-			"summary_id": summaryID, "conversation_id": work.ConversationID, "from_sequence": work.FromSequence, "to_sequence": work.ToSequence,
-			"source_digest": work.SourceDigest, "revision": revision, "status": "active",
-		}); err != nil {
-			return err
-		}
-		result = map[string]any{"summary_id": summaryID, "status": "active", "revision": revision, "from_sequence": work.FromSequence, "to_sequence": work.ToSequence, "summary": response.Summary, "replayed": false}
-		return nil
-	})
-	return result, err
-}
-
-func readReadyConversationSummaryTx(ctx context.Context, tx pgx.Tx, work conversationSummaryWork, requestDigest string) (map[string]any, bool, error) {
-	var id, summary string
-	var revision int
-	err := tx.QueryRow(ctx, `SELECT id,summary,revision FROM public.conversation_summaries WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND from_sequence=$3 AND to_sequence=$4 AND source_digest=$5 AND request_digest=$6 AND status='active' FOR UPDATE`, work.FluctlightID, work.ConversationID, work.FromSequence, work.ToSequence, work.SourceDigest, requestDigest).Scan(&id, &summary, &revision)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return map[string]any{"summary_id": id, "status": "active", "revision": revision, "from_sequence": work.FromSequence, "to_sequence": work.ToSequence, "summary": summary}, true, nil
-}
-
 type ConversationSummaryQuery struct {
 	AuthorizationActorID string
 	FluctlightID         string
@@ -539,6 +290,28 @@ type ConversationSummaryRetrievalTrace struct {
 type ConversationSummaryRetrievalResult struct {
 	Items []map[string]any                  `json:"items"`
 	Trace ConversationSummaryRetrievalTrace `json:"trace"`
+}
+
+func invalidateSummaryIDTx(ctx context.Context, tx pgx.Tx, owner, id string) error {
+	command, err := tx.Exec(ctx, `UPDATE public.conversation_summaries SET status='invalidated',revision=revision+1 WHERE id=$1 AND owner_fluctlight_id=$2 AND status IN ('active','consolidated')`, id, owner)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != 1 {
+		return ErrConflict
+	}
+	return nil
+}
+func restoreSummaryIDTx(ctx context.Context, tx pgx.Tx, owner, id string, before map[string]any) error {
+	messages, err := readConversationSummaryMessages(ctx, tx, stringValue(before["conversation_id"]), intValue(before["from_sequence"]), intValue(before["to_sequence"]), conversationSummaryMaxMessages)
+	if err != nil {
+		return err
+	}
+	if conversationSummarySourceDigest(messages) != stringValue(before["source_digest"]) {
+		return errors.New("repair_summary_source_changed")
+	}
+	_, err = tx.Exec(ctx, `UPDATE public.conversation_summaries SET status=$3,revision=revision+1 WHERE id=$1 AND owner_fluctlight_id=$2`, id, owner, before["status"])
+	return err
 }
 
 func (a *App) retrieveConversationSummaries(ctx context.Context, query ConversationSummaryQuery) (ConversationSummaryRetrievalResult, error) {
@@ -638,3 +411,6 @@ func (a *App) retrieveConversationSummaries(ctx context.Context, query Conversat
 	sort.Slice(items, func(i, j int) bool { return intValue(items[i]["from_sequence"]) < intValue(items[j]["from_sequence"]) })
 	return ConversationSummaryRetrievalResult{Items: items, Trace: trace}, nil
 }
+
+// Explicit scoped repair is a projection lifecycle operation; Raw messages
+// and the original summary remain available for audit.

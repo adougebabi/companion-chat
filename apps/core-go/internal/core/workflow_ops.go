@@ -423,9 +423,9 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 			settlement["reason_code"] = "capability_results_invalid"
 		}
 		sourceFactID := firstString(payload["source_fact_id"], actionID)
-		outcomes, outcomeErr := buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, capabilityResults, settlement, a.capabilityRegistry())
+		outcomes, outcomeErr := buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, capabilityResults, settlement, a.capabilityRegistry(), a.now().UTC())
 		if outcomeErr != nil {
-			outcomes, outcomeErr = buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, nil, settlement, a.capabilityRegistry())
+			outcomes, outcomeErr = buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, nil, settlement, a.capabilityRegistry(), a.now().UTC())
 		}
 		if outcomeErr != nil {
 			return outcomeErr
@@ -495,7 +495,7 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 	}
 	sourceFactID := firstString(payload["source_fact_id"], actionID)
 	rootCorrelationID := firstString(payload["correlation_id"], "action-result:"+actionID)
-	outcomes, err := buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, results, settledResult, a.capabilityRegistry())
+	outcomes, err := buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, results, settledResult, a.capabilityRegistry(), a.now().UTC())
 	if err != nil {
 		return err
 	}
@@ -565,7 +565,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	if err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at,public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at,public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' AND COALESCE(payload->>'source_message_invalidated','false')<>'true' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -684,7 +684,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		memoryMode = MemoryConversationAllowedSet
 	}
 	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
-		AuthorizationActorID: ownerActorID, SpeakerActorID: ownerActorID, FluctlightID: fluctlightID,
+		AuthorizationActorID: ownerActorID, TargetActorID: ownerActorID, TriggerSource: "reflection", FluctlightID: fluctlightID,
 		SourceFactID: "reflection:" + fluctlightID, MemoryOperation: MemoryForReflection,
 		MemoryConversationMode: memoryMode, AllowedConversationIDs: allowedConversationIDs, MemoryCues: memoryCues,
 	})

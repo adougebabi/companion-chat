@@ -13,6 +13,7 @@ import (
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/config"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/instant"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform"
 	coreworkflow "github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"
 	"github.com/redis/go-redis/v9"
@@ -22,6 +23,7 @@ import (
 const workerTickOperationTimeout = 15 * time.Second
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo, ReplaceAttr: instant.LogAttribute})))
 	settings, err := config.FromEnv(os.LookupEnv)
 	if err != nil {
 		log.Fatal(err)

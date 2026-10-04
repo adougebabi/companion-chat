@@ -291,14 +291,14 @@ func loadGoalAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref strin
 	var targetActorID *string
 	var criteria, importance, urgency, progress, evidence []byte
 	var deadline *time.Time
-	err := tx.QueryRow(ctx, `SELECT id,COALESCE(profile_id,'default'),scope,target_actor_id,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,deadline,status,evidence_refs,revision FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&goal.EntityID, &profileID, &goal.Scope, &targetActorID, &goal.DesiredOutcome, &criteria, &goal.Motivation, &goal.NeedsReflection, &importance, &urgency, &progress, &deadline, &goal.Status, &evidence, &goal.Revision)
+	err := tx.QueryRow(ctx, `SELECT id,profile_id,scope,target_actor_id,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,deadline,status,evidence_refs,revision FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&goal.EntityID, &profileID, &goal.Scope, &targetActorID, &goal.DesiredOutcome, &criteria, &goal.Motivation, &goal.NeedsReflection, &importance, &urgency, &progress, &deadline, &goal.Status, &evidence, &goal.Revision)
 	if err != nil {
 		return GoalAuthority{}, err
 	}
 	if goal.Revision != entry.Revision {
 		return GoalAuthority{}, errors.New("reflection_goal_revision_stale")
 	}
-	goal.SchemaVersion, goal.Ref, goal.FluctlightID, goal.ProfileID = goalAuthoritySchemaVersion, ref, fluctlightID, "default"
+	goal.SchemaVersion, goal.Ref, goal.FluctlightID, goal.ProfileID = goalAuthoritySchemaVersion, ref, fluctlightID, ""
 	if profileID != nil && strings.TrimSpace(*profileID) != "" {
 		goal.ProfileID = *profileID
 	}
@@ -321,7 +321,7 @@ func loadIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref,
 	if intention.Revision != entry.Revision {
 		return IntentionAuthority{}, errors.New("reflection_intention_revision_stale")
 	}
-	intention.SchemaVersion, intention.Ref, intention.FluctlightID, intention.ProfileID, intention.GoalRef = intentionAuthoritySchemaVersion, ref, fluctlightID, "default", goalRef
+	intention.SchemaVersion, intention.Ref, intention.FluctlightID, intention.ProfileID, intention.GoalRef = intentionAuthoritySchemaVersion, ref, fluctlightID, "", goalRef
 	if profileID != nil && strings.TrimSpace(*profileID) != "" {
 		intention.ProfileID = *profileID
 	}

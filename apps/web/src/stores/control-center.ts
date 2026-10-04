@@ -27,6 +27,7 @@ export const useControlCenterStore = defineStore("control-center", {
   state: () => ({
     diagnostics: [] as BrowserDiagnosticEvent[],
     diagnosticModelRuns: [] as BrowserDiagnosticModelRun[],
+    diagnosticModelCursor:"",diagnosticAgentCursor:"",diagnosticPagesLoading:false,diagnosticOlderPagesLoaded:false,diagnosticDisplayTimezone:Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 		diagnosticAgentRuns: [] as BrowserDiagnosticAgentRun[],
     diagnosticMediaPrompts: [] as BrowserDiagnosticMediaPrompt[],
     lifecycleDiagnostics: [] as BrowserLifecycleDiagnosticEvent[],
@@ -179,7 +180,37 @@ export const useControlCenterStore = defineStore("control-center", {
       catch (error) { this.error = creationActivationFailureMessage(error); return null; }
       finally { this.saving = false; }
     },
-    async loadDiagnostics() {
+    async loadMoreDiagnosticRuns(kind: "model" | "agent") {
+      if (this.diagnosticPagesLoading) return;
+      const cursor = kind === "model" ? this.diagnosticModelCursor : this.diagnosticAgentCursor;
+      if (!cursor) return;
+      const epoch = this.diagnosticsSourceEpochs[kind === "model" ? "modelRuns" : "agentRuns"];
+      this.diagnosticPagesLoading = true;
+      try {
+        const options = { limit: 20, correlationId: this.diagnosticsCorrelationFilter.trim() || undefined, cursor };
+        if (kind === "model") {
+          const page = await client.diagnosticModelRuns(options);
+          if (epoch !== this.diagnosticsSourceEpochs.modelRuns || cursor !== this.diagnosticModelCursor) return;
+          const seen = new Set(this.diagnosticModelRuns.map((row) => row.id));
+          this.diagnosticModelRuns.push(...page.items.filter((row) => !seen.has(row.id)));
+          this.diagnosticModelCursor = page.nextCursor;
+          this.diagnosticOlderPagesLoaded = true;
+        } else {
+          const page = await client.diagnosticAgentRuns(options);
+          if (epoch !== this.diagnosticsSourceEpochs.agentRuns || cursor !== this.diagnosticAgentCursor) return;
+          const key = (row: BrowserDiagnosticAgentRun) => [row.fluctlightId, row.agentId, row.runId].join(":");
+          const seen = new Set(this.diagnosticAgentRuns.map(key));
+          this.diagnosticAgentRuns.push(...page.items.filter((row) => !seen.has(key(row))));
+          this.diagnosticAgentCursor = page.nextCursor;
+          this.diagnosticOlderPagesLoaded = true;
+        }
+      } catch (error) { this.error = diagnosticsFailureMessage(error); }
+      finally { this.diagnosticPagesLoading = false; }
+    },
+    async loadDiagnostics(background = false) {
+      if (background && this.diagnosticOlderPagesLoaded) return;
+      if (this.diagnosticPagesLoading) return;
+      this.diagnosticOlderPagesLoaded = false;
       const requestId = this.diagnosticsRequestId + 1;
       this.diagnosticsRequestId = requestId;
       const initialLoad = !this.diagnosticsLoaded;
@@ -217,10 +248,12 @@ export const useControlCenterStore = defineStore("control-center", {
         }
         if (this.diagnosticsSourceEpochs.modelRuns !== epochs.modelRuns) {
           this.diagnosticModelRuns = [];
+			this.diagnosticModelCursor="";
           this.diagnosticsSourceEpochs.modelRuns = epochs.modelRuns;
         }
 		if (this.diagnosticsSourceEpochs.agentRuns !== epochs.agentRuns) {
 			this.diagnosticAgentRuns = [];
+			this.diagnosticAgentCursor="";
 			this.diagnosticsSourceEpochs.agentRuns = epochs.agentRuns;
 		}
         if (this.diagnosticsSourceEpochs.mediaPrompts !== epochs.mediaPrompts) {
@@ -230,8 +263,8 @@ export const useControlCenterStore = defineStore("control-center", {
         const [lifecycle, events, modelRuns, agentRuns, mediaPrompts] = await Promise.allSettled([
           client.lifecycleDiagnostics(lifecycleFilters),
           client.diagnostics({ limit: 20, correlationId, fluctlightId }),
-          client.diagnosticModelRuns({ limit: 20, correlationId }),
-		  client.diagnosticAgentRuns({ limit: 20, correlationId }),
+          client.diagnosticModelRuns({ limit: Math.min(500,Math.max(20,this.diagnosticModelRuns.length)), correlationId }),
+		  client.diagnosticAgentRuns({ limit: Math.min(500,Math.max(20,this.diagnosticAgentRuns.length)), correlationId }),
           client.diagnosticMediaPrompts({ limit: 20 }),
         ]);
         if (requestId !== this.diagnosticsRequestId) return;
@@ -240,8 +273,8 @@ export const useControlCenterStore = defineStore("control-center", {
           this.workflowIntentSnapshots = lifecycle.value.workflowIntents;
         }
         if (events.status === "fulfilled" && this.diagnosticsSourceEpochs.events === epochs.events) this.diagnostics = events.value;
-        if (modelRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.modelRuns === epochs.modelRuns) this.diagnosticModelRuns = modelRuns.value;
-		if (agentRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.agentRuns === epochs.agentRuns) this.diagnosticAgentRuns = agentRuns.value;
+        if (modelRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.modelRuns === epochs.modelRuns) {this.diagnosticModelRuns = modelRuns.value.items;this.diagnosticModelCursor=modelRuns.value.nextCursor;}
+		if (agentRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.agentRuns === epochs.agentRuns) {this.diagnosticAgentRuns = agentRuns.value.items;this.diagnosticAgentCursor=agentRuns.value.nextCursor;}
         if (mediaPrompts.status === "fulfilled" && this.diagnosticsSourceEpochs.mediaPrompts === epochs.mediaPrompts) this.diagnosticMediaPrompts = mediaPrompts.value;
 		const readFailure = [lifecycle, events, modelRuns, agentRuns, mediaPrompts].find((result) => result.status === "rejected");
         if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);

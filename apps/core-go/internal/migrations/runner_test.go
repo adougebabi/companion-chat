@@ -59,7 +59,7 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0042_conversation_daily_memory" || ConversationDailyMemoryPreviousHead != "0041_agent_run_diagnostics" || AgentRunDiagnosticsPreviousHead != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
+	if Head != "0048_proactive_topics" || ProactiveTopicsPreviousHead != "0047_history_repair" || HistoryRepairPreviousHead != "0046_diagnostic_pagination" || DiagnosticPaginationPreviousHead != "0045_runtime_summary" || RuntimeSummaryPreviousHead != "0044_inventory_usage" || InventoryUsagePreviousHead != "0043_actor_facts" || ActorFactsPreviousHead != "0042_conversation_daily_memory" || ConversationDailyMemoryPreviousHead != "0041_agent_run_diagnostics" || AgentRunDiagnosticsPreviousHead != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -127,7 +127,7 @@ func TestPostgresEffectiveLifeMigrationUpgrades0035WithoutChangingFoundation(t *
 INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES('effective-upgrade-fluctlight','effective-upgrade-owner','blank_slate','active','{"identity":{"name":"旧实例"}}','{"name":"旧实例"}','{}','{}','{}','{}');`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `DROP TABLE public.fluctlight_life_activity_runs,public.fluctlight_worn_items,public.fluctlight_wardrobe_outfit_items,public.fluctlight_wardrobe_outfits,public.fluctlight_wardrobe_items,public.fluctlight_wardrobe_states,public.fluctlight_profile_habit_revisions,public.fluctlight_profile_habits,public.fluctlight_appearance_revisions,public.fluctlight_appearance_states;
+	if _, err := pool.Exec(ctx, `DROP TABLE public.fluctlight_item_use_events,public.fluctlight_item_uses,public.fluctlight_life_activity_runs,public.fluctlight_worn_items,public.fluctlight_wardrobe_outfit_items,public.fluctlight_wardrobe_outfits,public.fluctlight_wardrobe_items,public.fluctlight_wardrobe_states,public.fluctlight_profile_habit_revisions,public.fluctlight_profile_habits,public.fluctlight_appearance_revisions,public.fluctlight_appearance_states;
 UPDATE public.alembic_version SET version_num='0035_working_persona';`); err != nil {
 		t.Fatal(err)
 	}

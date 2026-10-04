@@ -13,13 +13,14 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/config"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/instant"
 	coreworkflow "github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"
 	"github.com/redis/go-redis/v9"
 	"go.temporal.io/sdk/client"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo, ReplaceAttr: instant.LogAttribute}))
 	slog.SetDefault(logger)
 
 	settings, err := config.FromEnv(os.LookupEnv)

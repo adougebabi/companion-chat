@@ -60,6 +60,32 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 		return nil, err
 	}
 	values := mapValue(payload["values"])
+	if raw, exists := values["product.summary"]; exists {
+		setting := mapValue(raw)
+		seconds, ok := intValueExact(setting["interval_seconds"])
+		if !ok || seconds < 300 || seconds > 600 || len(setting) > 2 {
+			return nil, ErrInvalidArguments
+		}
+	}
+	if value, exists := mapValue(values["product.autonomy"])["topic_suppression_seconds"]; exists {
+		seconds, ok := intValueExact(value)
+		if !ok || seconds < 300 || seconds > 7*24*60*60 {
+			return nil, ErrInvalidArguments
+		}
+	}
+	if setting, exists := values["product.summary"]; exists {
+		for key := range mapValue(setting) {
+			if key != "interval_seconds" && key != "max_runes" {
+				return nil, ErrInvalidArguments
+			}
+		}
+		if value, exists := mapValue(setting)["max_runes"]; exists {
+			budget, ok := intValueExact(value)
+			if !ok || budget < 512 || budget > 4096 {
+				return nil, ErrInvalidArguments
+			}
+		}
+	}
 	previousWakeUp := normalizeWakeUpSettings(mapValue(mapValue(current["values"])["product.wakeup"]))
 	var nextWakeUp *WakeUpSettings
 	if raw, exists := values["product.wakeup"]; exists {
@@ -77,7 +103,7 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	clear := arrayValue(payload["clear_secrets"])
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		for key, value := range values {
-			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
+			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
 				return fmt.Errorf("unknown setting %s", key)
 			}
 			if key == "llm.queue" {
@@ -88,6 +114,15 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.runtime_settings (key,value_json,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at`, key, jsonString(value), time.Now().UTC()); err != nil {
 				return err
+			}
+			if key == "product.summary" {
+				budget := intValue(mapValue(value)["max_runes"])
+				if budget == 0 {
+					budget = runtimeSummaryMaxRunes
+				}
+				if err := a.rebuildRuntimeSummariesForBudgetTx(ctx, tx, actorID, budget); err != nil {
+					return err
+				}
 			}
 			if key == "product.autonomy" {
 				autonomyMap := mapValue(value)

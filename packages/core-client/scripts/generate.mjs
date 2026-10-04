@@ -23,6 +23,7 @@ export type CoreConversationTurn = { text: string; fluctlight_id: string; attach
 export type CoreFluctlight = { id: string; identity: Record<string, unknown>; status: string };
 export type CoreDiagnosticEvent = { id: string; event_type: string; severity: string; fluctlight_id?: string | null; causation_id?: string | null; correlation_id: string; payload: Record<string, unknown>; created_at?: string | null };
 export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: unknown; response?: unknown; status: string; error_code?: string | null; correlation_id: string; created_at: string };
+export type CoreDiagnosticRunPage<T> = {items:T[];next_cursor:string;snapshot:string};
 export type CoreDiagnosticAgentRun = { fluctlight_id: string; agent_id: string; run_id: string; correlation_id: string; association_status: "linked" | "unknown"; status: string; source?: "agent_runs" | "termination_event"; failure_stage?: string; failure_code?: string; safe_cause?: string; started_at: string; finished_at?: string };
 export type CoreFluctlightCreationAnalysis = { analysis_id: string; correlation_id: string; schema_version: number; core_persona: Record<string, unknown>; developing_self: Record<string, unknown>; extensions: Record<string, unknown>; initial_goals: Array<Record<string, unknown>>; initial_intentions: Array<Record<string, unknown>>; initial_relationships: Array<Record<string, unknown>> };
 export type CoreFluctlightActivationRequest = { request_id: string; initialization_mode: "blank_slate" | "llm_defined"; analysis_id?: string; schema_version?: number; name?: string | null; core_persona?: Record<string, unknown>; developing_self?: Record<string, unknown>; extensions?: Record<string, unknown>; initial_goals?: Array<Record<string, unknown>>; initial_intentions?: Array<Record<string, unknown>>; initial_relationships?: Array<Record<string, unknown>> };
@@ -173,16 +174,17 @@ export class CoreClient {
     const rows = await this.json(\`/internal/diagnostics?\${query}\`, humanSession, "GET") as Array<Record<string, unknown>>;
     return rows.map((row) => ({ id: String(row.id), event_type: String(row.event_type), severity: String(row.severity), fluctlight_id: row.fluctlight_id as string | null | undefined, causation_id: row.causation_id as string | null | undefined, correlation_id: String(row.correlation_id), payload: (row.payload ?? {}) as Record<string, unknown>, created_at: row.created_at as string | null | undefined }));
   }
-  async readDiagnosticModelRuns(humanSession: string, options: { limit?: number; correlation_id?: string } = {}): Promise<CoreDiagnosticModelRun[]> {
+  async readDiagnosticModelRuns(humanSession: string, options: { limit?: number; correlation_id?: string; cursor?: string } = {}): Promise<CoreDiagnosticRunPage<CoreDiagnosticModelRun>> {
     const query = new URLSearchParams({ limit: String(options.limit ?? 100) });
     if (options.correlation_id) query.set("correlation_id", options.correlation_id);
-    const rows = await this.json(\`/internal/diagnostics/model-runs?\${query}\`, humanSession, "GET") as Array<Record<string, unknown>>;
-    return rows.map((row) => ({ id: String(row.id), role: String(row.role), endpoint_id: row.endpoint_id as string | null | undefined, model_id: String(row.model_id), prompt: (row.prompt ?? {}) as Record<string, unknown>, response: row.response as Record<string, unknown> | null | undefined, status: String(row.status), error_code: row.error_code as string | null | undefined, correlation_id: String(row.correlation_id), created_at: String(row.created_at) }));
+    if (options.cursor) query.set("cursor", options.cursor);
+    return this.json(\`/internal/diagnostics/model-runs?\${query}\`, humanSession, "GET") as Promise<CoreDiagnosticRunPage<CoreDiagnosticModelRun>>;
   }
-  async readDiagnosticAgentRuns(humanSession: string, options: { limit?: number; correlation_id?: string } = {}): Promise<CoreDiagnosticAgentRun[]> {
+  async readDiagnosticAgentRuns(humanSession: string, options: { limit?: number; correlation_id?: string; cursor?: string } = {}): Promise<CoreDiagnosticRunPage<CoreDiagnosticAgentRun>> {
     const query = new URLSearchParams({ limit: String(options.limit ?? 100) });
     if (options.correlation_id) query.set("correlation_id", options.correlation_id);
-    return this.json(\`/internal/diagnostics/agent-runs?\${query}\`, humanSession, "GET") as Promise<CoreDiagnosticAgentRun[]>;
+    if (options.cursor) query.set("cursor", options.cursor);
+    return this.json(\`/internal/diagnostics/agent-runs?\${query}\`, humanSession, "GET") as Promise<CoreDiagnosticRunPage<CoreDiagnosticAgentRun>>;
   }
   async exportDiagnostics(humanSession: string, options: { limit?: number; correlation_id?: string } = {}): Promise<Record<string, unknown>> {
     const query = new URLSearchParams({ limit: String(options.limit ?? 500) });

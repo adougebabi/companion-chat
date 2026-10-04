@@ -38,7 +38,7 @@ func (a *App) tryDailyReviewExecutionLock(ctx context.Context, fluctlightID, loc
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
 	goals := make([]map[string]any, 0)
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision FROM public.fluctlight_goals WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status IN ('candidate','active','paused') ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -57,7 +57,7 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 		}
 		item := map[string]any{"id": id, "scope": scope, "description": description, "desired_outcome": desiredOutcome, "success_criteria": decodeArray(successCriteria), "motivation": motivation, "needs_reflection": needsReflection, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress), "evidence_refs": decodeArray(evidenceRefs), "revision": revision}
 		if deadline != nil {
-			item["deadline"] = deadline.Format(time.RFC3339Nano)
+			item["deadline"] = formatInstant(*deadline)
 		}
 		if profileID != nil && strings.TrimSpace(*profileID) != "" {
 			item["profile_id"] = *profileID
@@ -73,7 +73,7 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 	}
 	rows.Close()
 	intentions := make([]map[string]any, 0)
-	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.profile_id,i.goal_id,COALESCE(g.desired_outcome,''),i.action_intent,i.expected_outcome,i.capability_constraints,i.status,i.confidence,i.preferred_time,i.expiration,i.trigger,i.evidence_refs,i.revision,COALESCE(i.current_attempt_id,'') FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > now() ORDER BY i.created_at`, fluctlightID)
+	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.profile_id,i.goal_id,COALESCE(g.desired_outcome,''),i.action_intent,i.expected_outcome,i.capability_constraints,i.status,i.confidence,i.preferred_time,i.expiration,i.trigger,i.evidence_refs,i.revision,COALESCE(i.current_attempt_id,'') FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > $2 ORDER BY i.created_at`, fluctlightID, a.now().UTC())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -103,10 +103,10 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 			item["target_actor_id"] = target
 		}
 		if preferredTime != nil {
-			item["preferred_time"] = preferredTime.Format(time.RFC3339)
+			item["preferred_time"] = formatInstant(*preferredTime)
 		}
 		if expiration != nil {
-			item["expiration"] = expiration.Format(time.RFC3339)
+			item["expiration"] = formatInstant(*expiration)
 		}
 		intentions = append(intentions, item)
 	}
@@ -115,6 +115,13 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 		return nil, nil, err
 	}
 	intentRows.Close()
+	for _, goal := range goals {
+		execution, err := readGoalExecutionStateWith(ctx, a.DB.Pool(), fluctlightID, stringValue(goal["id"]), stringValue(goal["status"]), a.now().UTC())
+		if err != nil {
+			return nil, nil, err
+		}
+		goal["execution"] = execution
+	}
 	return goals, intentions, nil
 }
 

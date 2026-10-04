@@ -12,7 +12,13 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0042_conversation_daily_memory"
+const Head = "0048_proactive_topics"
+const ProactiveTopicsPreviousHead = "0047_history_repair"
+const HistoryRepairPreviousHead = "0046_diagnostic_pagination"
+const DiagnosticPaginationPreviousHead = "0045_runtime_summary"
+const RuntimeSummaryPreviousHead = "0044_inventory_usage"
+const InventoryUsagePreviousHead = "0043_actor_facts"
+const ActorFactsPreviousHead = "0042_conversation_daily_memory"
 const ConversationDailyMemoryPreviousHead = "0041_agent_run_diagnostics"
 const AgentRunDiagnosticsPreviousHead = "0040_activity_authority"
 const ActivityAuthorityPreviousHead = "0039_message_time"
@@ -92,7 +98,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead {
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -176,6 +182,27 @@ func (r *Runner) Apply(ctx context.Context) error {
 	}
 	if _, err := tx.Exec(ctx, conversationDailyMemorySchemaSQL); err != nil {
 		return fmt.Errorf("apply conversation daily memory schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, actorFactsSchemaSQL); err != nil {
+		return fmt.Errorf("apply Actor facts schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, inventoryUsageSchemaSQL); err != nil {
+		return fmt.Errorf("apply item usage schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, runtimeSummarySchemaSQL); err != nil {
+		return fmt.Errorf("apply runtime summary schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, diagnosticPaginationSchemaSQL); err != nil {
+		return fmt.Errorf("apply diagnostic pagination schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, historyRepairSchemaSQL); err != nil {
+		return fmt.Errorf("apply history repair schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, withdrawnSourceSchemaSQL); err != nil {
+		return fmt.Errorf("apply withdrawn source guard: %w", err)
+	}
+	if _, err := tx.Exec(ctx, proactiveTopicsSchemaSQL); err != nil {
+		return fmt.Errorf("apply proactive topics schema: %w", err)
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {

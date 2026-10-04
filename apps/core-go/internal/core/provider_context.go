@@ -67,7 +67,7 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	if activeResult.Items == nil {
 		activeResult, err = a.retrieveActiveMemories(ctx, ActiveMemoryQuery{
 			AuthorizationActorID: projection.OwnerActorID, OwnerFluctlightID: projection.FluctlightID,
-			ConversationID: projection.ConversationID, Cue: currentInput, At: time.Now().UTC(), Limit: activeMemoryResultLimit,
+			ConversationID: projection.ConversationID, Cue: currentInput, At: a.now().UTC(), Limit: activeMemoryResultLimit,
 		})
 		if err != nil {
 			return PromptAssemblyResult{}, projection, err
@@ -86,10 +86,10 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	var summaries []map[string]any
 	var summaryTrace ConversationSummaryRetrievalTrace
 	if strings.TrimSpace(projection.ConversationID) != "" && providerContextSurfaceAllowsSummaries(surface) {
-		summaryResult, summaryErr := a.retrieveConversationSummaries(ctx, ConversationSummaryQuery{
+		summaryResult, summaryErr := a.retrieveRuntimeSummary(ctx, ConversationSummaryQuery{
 			AuthorizationActorID: projection.OwnerActorID, FluctlightID: projection.FluctlightID,
 			ConversationID: projection.ConversationID, Limit: conversationSummaryMaxResults, MaxRunes: 2048,
-		})
+		}, projection.RecentMessages)
 		if summaryErr != nil {
 			return PromptAssemblyResult{}, projection, summaryErr
 		}
@@ -153,6 +153,13 @@ func workingMemoryInputFromProjection(projection ContextProjection, active, summ
 
 func workingMemoryInputFromProjectionForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any) WorkingMemoryInput {
 	compact := compactCognitionContextForSurface(projection, surface)
+	compact["time_view"] = projectionTimeView(projection)
+	if len(projection.CommunicationState) > 0 {
+		compact["communication_state"] = projection.CommunicationState
+	}
+	if facts := compactActorBackground(projection); len(facts) > 0 {
+		compact["actor_background"] = facts
+	}
 	refIndex := projection.ReferenceIndex
 	if surface == ProviderContextSurfacePersistentSwitch || surface == ProviderContextSurfaceReflection || surface == ProviderContextSurfaceDefault {
 		refIndex = ContextReferenceIndex{}
@@ -177,6 +184,10 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		}
 		critical := surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceWakeUp
 		switch key {
+		case "actor_background", "time_view":
+			priority = 135
+		case "goals", "intentions":
+			priority = 128
 		case "current_state":
 			priority = 130
 		case "self_actor":
@@ -218,7 +229,7 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 					sourceRefs = append(sourceRefs, ref)
 				}
 			}
-			input.Summaries = append(input.Summaries, PromptFragment{Kind: PromptFragmentSummary, Priority: intValue(item["to_sequence"]), Content: compact, SourceRefs: sourceRefs})
+			input.Summaries = append(input.Summaries, PromptFragment{Kind: PromptFragmentSummary, Required: item["required"] == true, Priority: intValue(item["to_sequence"]), Content: compact, SourceRefs: sourceRefs})
 		}
 	}
 	if providerContextSurfaceAllowsRecentHistory(surface) {
@@ -271,10 +282,7 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 		if content == "" {
 			continue
 		}
-		msgTz := canonicalTimezone(stringValue(message["sender_timezone"]))
-		if msgTz == "" {
-			msgTz = defaultTz
-		}
+		msgTz := defaultTz
 		stamp := formatMessageTimeWithTimezone(stringValue(message["created_at"]), msgTz)
 		sender := "actor_self"
 		if role == "user" {
@@ -282,7 +290,7 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 		}
 		if actor := actorRefForID(projection.Actors, stringValue(message["author_actor_id"])); len(actor) > 0 {
 			if stringValue(actor["type"]) == "human" {
-				sender = "actor_user"
+				sender = firstString(actor["ref"], "actor:"+stableDigest(stringValue(message["author_actor_id"]))[:12])
 			} else if display := stringValue(compactActorForSurface(actor)["display_name"]); display != "" {
 				sender = display
 			}
@@ -690,6 +698,9 @@ func compactEffectiveAppearanceForSurface(value map[string]any) map[string]any {
 	if len(worn) > 0 {
 		result["worn_items"] = worn
 	}
+	if used := arrayValue(value["used_items"]); len(used) > 0 {
+		result["used_items"] = used
+	}
 	return result
 }
 
@@ -874,7 +885,7 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 	result := make([]map[string]any, 0, len(base))
 	for _, value := range base {
 		item := map[string]any{}
-		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "importance", "urgency", "progress", "scope", "deadline", "state"} {
+		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "execution", "importance", "urgency", "progress", "scope", "deadline", "state"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
 				item[key] = raw
 			}
@@ -1248,7 +1259,7 @@ func compactProviderGoalsForActors(goals []map[string]any, actors []map[string]a
 	result := make([]map[string]any, 0, len(goals))
 	for _, goal := range goals {
 		item := map[string]any{}
-		for _, key := range []string{"ref", "description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "importance", "urgency", "progress", "scope", "target_actor_id", "deadline"} {
+		for _, key := range []string{"ref", "description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "execution", "importance", "urgency", "progress", "scope", "target_actor_id", "deadline"} {
 			if value, ok := goal[key]; ok && value != nil {
 				item[key] = value
 			}
@@ -1486,42 +1497,17 @@ func loadLocationOrOffset(tz string) (*time.Location, string) {
 }
 
 func formatMessageTimeWithTimezone(value string, timezone string) string {
-	if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
-		var loc *time.Location
-		var tzName string
-		if strings.TrimSpace(timezone) != "" {
-			loc, tzName = loadLocationOrOffset(timezone)
-		} else {
-			_, offsetSec := parsed.Zone()
-			if offsetSec != 0 {
-				loc = parsed.Location()
-				sign := "+"
-				if offsetSec < 0 {
-					sign = "-"
-					offsetSec = -offsetSec
-				}
-				tzName = fmt.Sprintf("UTC%s%02d:%02d", sign, offsetSec/3600, (offsetSec%3600)/60)
-			} else {
-				loc, tzName = loadLocationOrOffset("Asia/Shanghai")
-			}
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return "unknown"
+	}
+	location := time.UTC
+	if timezone != "" {
+		if configured, loadErr := time.LoadLocation(timezone); loadErr == nil {
+			location = configured
 		}
-		localTime := parsed.In(loc)
-		_, offsetSec := localTime.Zone()
-		sign := "+"
-		if offsetSec < 0 {
-			sign = "-"
-			offsetSec = -offsetSec
-		}
-		offsetStr := fmt.Sprintf("UTC%s%02d:%02d", sign, offsetSec/3600, (offsetSec%3600)/60)
-		return fmt.Sprintf("%s · %s (%s)", localTime.Format("01-02 15:04:05"), tzName, offsetStr)
 	}
-	if len(value) >= 8 && value[2] == '-' && value[5] == ' ' {
-		return value[:8]
-	}
-	if len(value) >= 8 && value[2] == ':' {
-		return value[:8]
-	}
-	return "--:--"
+	return formatLocalInstant(parsed, location)
 }
 
 func compactMessageTime(value string) string {
@@ -1807,8 +1793,8 @@ func compactScheduleForProvider(value map[string]any) map[string]any {
 			compact["local_start_time"] = start.In(loc).Format("15:04")
 			compact["local_end_time"] = end.In(loc).Format("15:04")
 			compact["local_time_range"] = fmt.Sprintf("%s - %s", start.In(loc).Format("15:04"), end.In(loc).Format("15:04"))
-			compact["local_start_at"] = start.In(loc).Format("2006-01-02 15:04:05 MST")
-			compact["local_end_at"] = end.In(loc).Format("2006-01-02 15:04:05 MST")
+			compact["local_start_at"] = formatLocalInstant(start, loc)
+			compact["local_end_at"] = formatLocalInstant(end, loc)
 		}
 		if len(compact) > 0 {
 			items = append(items, compact)
@@ -2251,6 +2237,13 @@ func compactMediaAppearance(value map[string]any) map[string]any {
 	}
 	if len(worn) > 0 {
 		result["worn_items"] = worn
+	}
+	if used := arrayValue(value["used_items"]); len(used) > 0 {
+		items := make([]map[string]any, 0, len(used))
+		for _, raw := range used {
+			items = append(items, compactStateMap(raw, []string{"category", "description", "activity"}))
+		}
+		result["used_items"] = items
 	}
 	return result
 }

@@ -357,9 +357,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case path == "/internal/diagnostics/lifecycle":
 		return b.server.app.LifecycleDiagnostics(ctx, actorID, lifecycleFilter(parsed.Query()))
 	case path == "/internal/diagnostics/model-runs":
-		return b.server.app.ModelRunsFiltered(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")), parsed.Query().Get("correlation_id"))
+		return b.server.app.ModelRunsPage(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")), parsed.Query().Get("correlation_id"), parsed.Query().Get("cursor"))
 	case path == "/internal/diagnostics/agent-runs":
-		rows, err := b.server.app.AgentRunsFiltered(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")), parsed.Query().Get("correlation_id"))
+		rows, err := b.server.app.AgentRunsPage(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")), parsed.Query().Get("correlation_id"), parsed.Query().Get("cursor"))
 		return rows, browserAgentRunDiagnosticsError(err)
 	case path == "/internal/diagnostics/media-prompts":
 		return b.server.app.MediaPromptsFiltered(ctx, actorID, queryLimitValue(parsed.Query().Get("limit")))

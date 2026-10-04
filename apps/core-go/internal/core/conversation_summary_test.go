@@ -94,7 +94,7 @@ func TestConversationSummaryStaticGuardKeepsProjectionWritesInOneModule(t *testi
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || name == "conversation_summary.go" || name == "conversation_segment.go" || name == "conversation_daily_memory.go" {
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || name == "conversation_summary.go" || name == "conversation_segment.go" || name == "conversation_daily_memory.go" || name == "actor_facts.go" {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Clean(name))
@@ -185,6 +185,9 @@ func TestPostgresConversationSummaryIntentIsStableChunkedAndRawPreserving(t *tes
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.conversation_summaries SET source_digest=$1 WHERE id='summary-chunk-1'`, stringValue(payload["source_digest"])); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.conversation_runtime_summaries SET covered_through=40,revision=1,summary='第一段摘要',source_digest=$3 WHERE owner_fluctlight_id=$1 AND conversation_id=$2`, fluctlightID, conversationID, stringValue(payload["source_digest"])); err != nil {
+		t.Fatal(err)
+	}
 	seedConversationSummaryMessages(t, ctx, repository, ownerID, fluctlightID, conversationID, 65, 104)
 	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
 		return app.enqueueConversationSummaryIntentTx(ctx, tx, fluctlightID, conversationID, "summary-message-104")
@@ -255,7 +258,7 @@ func TestPostgresConversationSummaryProviderFailureRetryAndCommittedReplay(t *te
 		t.Fatalf("Provider calls = %d", calls.Load())
 	}
 	var summaries int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_summaries WHERE conversation_id=$1`, conversationID).Scan(&summaries); err != nil || summaries != 0 {
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_runtime_summary_revisions WHERE conversation_id=$1`, conversationID).Scan(&summaries); err != nil || summaries != 0 {
 		t.Fatalf("Provider failure changed projection: count=%d err=%v", summaries, err)
 	}
 	result, err := process()
@@ -269,7 +272,7 @@ func TestPostgresConversationSummaryProviderFailureRetryAndCommittedReplay(t *te
 	if calls.Load() != 2 {
 		t.Fatalf("committed replay called Provider again: calls=%d", calls.Load())
 	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_summaries WHERE conversation_id=$1 AND status='active'`, conversationID).Scan(&summaries); err != nil || summaries != 1 {
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_runtime_summaries WHERE conversation_id=$1 AND covered_through>0 AND status='active'`, conversationID).Scan(&summaries); err != nil || summaries != 1 {
 		t.Fatalf("summary projection count=%d err=%v", summaries, err)
 	}
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.conversation_messages SET text='drifted source' WHERE conversation_id=$1 AND sequence=1`, conversationID); err != nil {

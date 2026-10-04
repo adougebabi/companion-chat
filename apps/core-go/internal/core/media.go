@@ -85,10 +85,11 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 					return nil, err
 				}
 			}
-		} else if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry {
+		} else if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry || (hasCurrentCapture(concept) && len(mapValue(concept["capture_plan"])) == 0) {
 			recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
 			providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "media_prompt"), "media:"+intent.ID)
-			value, providerErr := a.RunMediaPromptTask(providerCtx, MediaPromptTaskInput{Intent: intent})
+			taskResult, providerErr := a.runMediaPromptTaskResult(providerCtx, MediaPromptTaskInput{Intent: intent})
+			value := taskResult.Prompt
 			if providerErr != nil || strings.TrimSpace(value) == "" {
 				if providerErr != nil {
 					return nil, fmt.Errorf("media prompt generation failed: %w", providerErr)
@@ -96,12 +97,31 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 				return nil, errors.New("media prompt generation returned empty text")
 			}
 			prompt = strings.TrimSpace(value)
+			if len(taskResult.CapturePlan) > 0 {
+				concept["capture_plan"] = taskResult.CapturePlan
+				intent.Prompt = jsonString(concept)
+				if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET prompt=$2 WHERE id=$1 AND status IN ('pending','running') AND provider_job_id IS NULL`, intent.ID, intent.Prompt); err != nil {
+					return nil, err
+				}
+			}
 			if err := a.persistMediaProviderPrompt(ctx, intent.ID, prompt); err != nil {
 				return nil, err
 			}
 			intent.ProviderPrompt = prompt
 			intent.QualityVerdict = ""
 			intent.QualityCandidateSHA = ""
+		}
+		if hasCurrentCapture(concept) {
+			if err := validateCurrentCaptureWorkflow(workflow); err != nil {
+				return nil, err
+			}
+			expected, err := renderCurrentCapturePrompt(concept, mapValue(concept["capture_plan"]))
+			if err != nil {
+				return nil, err
+			}
+			if prompt != expected {
+				return nil, errors.New("current_capture_prompt_conflict")
+			}
 		}
 		recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
 		constraints := map[string]any{}
@@ -110,6 +130,9 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		}
 		referenceImageFilename := ""
 		if mediaWorkflowNeedsVisualIdentityReference(workflow) {
+			if hasCurrentCapture(concept) && !currentCaptureReferenceCompatible(concept) {
+				return nil, errors.New("current_capture_reference_unverified")
+			}
 			referenceAssetID := visualIdentityReferenceAssetID(concept)
 			if referenceAssetID == "" {
 				return nil, errors.New("visual_identity_reference_image_missing")

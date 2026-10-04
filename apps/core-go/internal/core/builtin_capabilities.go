@@ -124,8 +124,13 @@ func builtinCapabilities(app *App) []Capability {
 	intentions := &intentionService{}
 	if app != nil {
 		intentions.repository = app.DB
+		intentions.clock = app.now
 	}
 	activities := &lifeActivityService{app: app}
+	facts := &actorFactService{clock: app.now}
+	if app != nil {
+		facts.repository = app.DB
+	}
 	var appearanceRepository *PostgresRepository
 	if app != nil {
 		appearanceRepository = app.DB
@@ -135,13 +140,14 @@ func builtinCapabilities(app *App) []Capability {
 		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
 		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},
 		memoryRecallCapability{service: newMemoryRecallService(app)},
+		actorInspectCapability{service: facts}, actorFactCapability{service: facts},
 		personaDetailCapability{service: newPersonaDetailService(app)},
-		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe}, wardrobeOutfitSaveCapability{service: wardrobe},
+		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe}, itemUseCapability{service: wardrobe}, wardrobeOutfitSaveCapability{service: wardrobe},
 		habitInspectCapability{service: habits}, habitDecideCapability{service: habits},
 		intentionInspectCapability{service: intentions}, intentionDecideCapability{service: intentions}, scheduleInspectCapability{service: app}, scheduleEditCapability{service: app, planner: schedule.planner, intents: intentions},
 		scheduleActivityCapability{service: app, planner: schedule.planner, intents: intentions},
 		lifeActivityStartCapability{service: activities}, lifeActivityAdvanceCapability{service: activities},
-		appearanceStyleCapability{repository: appearanceRepository},
+		appearanceStyleCapability{repository: appearanceRepository, clock: app.now},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
 		capabilityRequestCapability{service: &capabilityRequestService{app: app}},
 		personaActionCapability{name: personaTakeoverCapabilityName, service: personaActions},
@@ -234,7 +240,8 @@ func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
 	resource, err := c.publication.PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
-		SuppressRecentDuplicate:     target.AuthorizationPolicy == "autonomy",
+		SuppressRecentDuplicate: target.AuthorizationPolicy == "autonomy",
+		TopicKey:                stringValue(args["topic_key"]), Purpose: stringValue(args["purpose"]),
 		AuthorizationActorID:        target.AuthorizationActorID,
 		FluctlightID:                target.FluctlightID,
 		ConversationID:              target.ConversationID,
@@ -358,7 +365,7 @@ func (c imageGenerateCapability) Execute(_ context.Context, invocation Capabilit
 }
 
 func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
-	if c.service == nil || c.publication == nil {
+	if c.service == nil || c.publication == nil || c.publication.app == nil {
 		return failedCapabilityResultDetail(invocation, "media_capability_unavailable", true, "media capability is unavailable"), errors.New("media capability unavailable")
 	}
 	if err := requireCapabilityContext(resolved, SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState); err != nil {
@@ -372,6 +379,9 @@ func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		return failedCapabilityResultDetail(invocation, "media_prepare_required", false, err.Error()), newCapabilityError("media_prepare_required", false, err)
 	}
 	concept := mapValue(preparedConcept)
+	if stringValue(concept["purpose"]) != "" {
+		return failedCapabilityResult(invocation, "media_prepared_purpose_invalid", false), ErrInvalidArguments
+	}
 	contextBinding := mapValue(concept["context_binding"])
 	expectedLifeContextRevision := stringValue(mapValue(contextBinding["current_life"])["context_revision"])
 	frozenLifeContextRevision := stringValue(resolved.Life.Data["context_revision"])
@@ -379,11 +389,29 @@ func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		err := newCapabilityError("media_prepared_context_mismatch", false, ErrConflict)
 		return failedCapabilityResult(invocation, "media_prepared_context_mismatch", false), err
 	}
-	if _, err := c.service.requireLifeContextRevisionTx(ctx, tx, invocation.Metadata.FluctlightID, frozenLifeContextRevision, time.Now().UTC()); err != nil {
+	if _, err := c.service.requireLifeContextRevisionTx(ctx, tx, invocation.Metadata.FluctlightID, frozenLifeContextRevision, c.publication.app.now().UTC()); err != nil {
 		if errors.Is(err, ErrLifeContextStale) {
 			return failedCapabilityResult(invocation, "media_context_stale", false), newCapabilityError("media_context_stale", false, err)
 		}
 		return failedCapabilityResult(invocation, "media_intent_failed", true), err
+	}
+	if err := validateCurrentCaptureSnapshot(concept); err != nil {
+		return failedCapabilityResult(invocation, "current_capture_snapshot_invalid", false), err
+	}
+	if err := lockEffectiveLifeSnapshotTx(ctx, tx, invocation.Metadata.FluctlightID); err != nil {
+		return failedCapabilityResult(invocation, "media_snapshot_lock_failed", true), err
+	}
+	frozenAppearance := mapValue(contextBinding["appearance"])
+	var currentBody, currentWardrobe int
+	if err := tx.QueryRow(ctx, `SELECT (SELECT revision FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1),(SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1)`, invocation.Metadata.FluctlightID).Scan(&currentBody, &currentWardrobe); err != nil {
+		return failedCapabilityResult(invocation, "media_snapshot_missing", true), err
+	}
+	liveAppearance, _, _, err := readEffectiveLifeSnapshotWith(ctx, tx, invocation.Metadata.FluctlightID, c.publication.app.now().UTC())
+	if err != nil {
+		return failedCapabilityResult(invocation, "media_snapshot_missing", true), err
+	}
+	if currentBody != intValue(frozenAppearance["body_revision"]) || currentWardrobe != intValue(frozenAppearance["wardrobe_revision"]) || appearanceSnapshotIdentity(liveAppearance) != appearanceSnapshotIdentity(frozenAppearance) {
+		return failedCapabilityResult(invocation, "media_snapshot_stale", false), ErrConflict
 	}
 	conversationID, messageID, momentID, err := c.publication.ValidateMediaTargetTx(ctx, tx, MediaPublicationTarget{
 		AuthorizationActorID: target.AuthorizationActorID, FluctlightID: target.FluctlightID,

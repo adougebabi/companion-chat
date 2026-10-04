@@ -43,11 +43,11 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 	if err != nil {
 		return nil, err
 	}
-	appearance, _, _, err := a.readEffectiveLifeSnapshot(ctx, fluctlightID, time.Now().UTC())
+	appearance, _, _, err := a.readEffectiveLifeSnapshot(ctx, fluctlightID, a.now().UTC())
 	if err != nil {
 		return nil, err
 	}
-	_, currentLife, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	_, currentLife, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, a.now().UTC())
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +156,9 @@ func parseScheduleTimeInLocation(value string, day time.Time, location *time.Loc
 	if value == "" {
 		return time.Time{}, errors.New("timestamp is required")
 	}
+	if value == "24:00" || value == "24:00:00" {
+		return resolveScheduleWallTime(time.Date(day.Year(), day.Month(), day.Day()+1, 0, 0, 0, 0, time.UTC), location)
+	}
 	// Models commonly express the end of a local day as `24:00`, which is
 	// valid ISO-8601 notation but rejected by Go's time parser. Normalize only
 	// an exact midnight marker to the following calendar day; other malformed
@@ -167,8 +170,20 @@ func parseScheduleTimeInLocation(value string, day time.Time, location *time.Loc
 			var err error
 			if strings.Contains(normalized, "T") {
 				parsed, err = time.Parse(time.RFC3339, normalized)
+				if err != nil {
+					for _, layout := range []string{"2006-01-02T15:04", "2006-01-02T15:04:05"} {
+						if nominal, e := time.Parse(layout, normalized); e == nil {
+							return resolveScheduleWallTime(nominal.AddDate(0, 0, 1), location)
+						}
+					}
+				}
 			} else {
-				parsed, err = time.ParseInLocation("2006-01-02 15:04", normalized, location)
+				for _, layout := range []string{"2006-01-02 15:04", "2006-01-02 15:04:05"} {
+					if nominal, e := time.Parse(layout, normalized); e == nil {
+						return resolveScheduleWallTime(nominal.AddDate(0, 0, 1), location)
+					}
+				}
+				err = ErrInvalidArguments
 			}
 			if err == nil {
 				return parsed.AddDate(0, 0, 1), nil
@@ -179,11 +194,13 @@ func parseScheduleTimeInLocation(value string, day time.Time, location *time.Loc
 		return parsed, nil
 	}
 	for _, layout := range []string{"2006-01-02 15:04", "2006-01-02T15:04", "15:04"} {
-		if parsed, err := time.ParseInLocation(layout, value, location); err == nil {
+		// Parse the nominal wall fields in UTC first: ParseInLocation silently
+		// normalizes nonexistent times and may select either fold occurrence.
+		if nominal, err := time.Parse(layout, value); err == nil {
 			if layout == "15:04" {
-				return time.Date(day.Year(), day.Month(), day.Day(), parsed.Hour(), parsed.Minute(), 0, 0, location), nil
+				nominal = time.Date(day.Year(), day.Month(), day.Day(), nominal.Hour(), nominal.Minute(), 0, 0, time.UTC)
 			}
-			return parsed, nil
+			return resolveScheduleWallTime(nominal, location)
 		}
 	}
 	return time.Time{}, fmt.Errorf("unsupported timestamp %q", value)
@@ -196,4 +213,30 @@ func firstValue(values ...any) any {
 		}
 	}
 	return nil
+}
+
+// The supplied numeric offset is authoritative for ISO instants; this helper
+// applies only to unoffset local wall times. Gaps reject, folds select the
+// earliest matching instant consistently.
+func resolveScheduleWallTime(wall time.Time, location *time.Location) (time.Time, error) {
+	offsets := map[int]bool{}
+	for hour := -48; hour <= 48; hour++ {
+		_, offset := wall.Add(time.Duration(hour) * time.Hour).In(location).Zone()
+		offsets[offset] = true
+	}
+	var earliest time.Time
+	for offset := range offsets {
+		candidate := wall.Add(-time.Duration(offset) * time.Second)
+		local := candidate.In(location)
+		if local.Year() != wall.Year() || local.Month() != wall.Month() || local.Day() != wall.Day() || local.Hour() != wall.Hour() || local.Minute() != wall.Minute() || local.Second() != wall.Second() {
+			continue
+		}
+		if earliest.IsZero() || candidate.Before(earliest) {
+			earliest = candidate
+		}
+	}
+	if earliest.IsZero() {
+		return time.Time{}, errors.New("schedule_local_time_nonexistent")
+	}
+	return earliest.In(location), nil
 }

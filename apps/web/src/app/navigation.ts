@@ -1,6 +1,6 @@
 export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings";
 export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "owner";
-export type DiagnosticsSection = "lifecycle" | "model-runs" | "media-prompts" | "events" | "workflows";
+export type DiagnosticsSection = "lifecycle" | "agent-runs" | "model-runs" | "media-prompts" | "events" | "workflows";
 export type WorkspaceSection = SettingsSection | DiagnosticsSection;
 
 export const settingsSections = [
@@ -14,7 +14,8 @@ export const settingsSections = [
 
 export const diagnosticsSections = [
   { id: "lifecycle", label: "生命周期", description: "按关联标识追踪触发、工作流、模型调用与下个周期" },
-  { id: "model-runs", label: "Agent 与模型运行", description: "查看逻辑 Agent、Tool 与各次模型调用的状态及失败原因" },
+  { id: "agent-runs", label: "Agent 运行", description: "按发起时间查看逻辑 Agent 与终止记录" },
+  { id: "model-runs", label: "模型运行", description: "查看逻辑 Agent、Tool 与各次模型调用的状态及失败原因" },
   { id: "media-prompts", label: "媒体提示词", description: "最近 20 条媒体生成提示词" },
   { id: "events", label: "系统事件", description: "最近 20 条脱敏系统事件" },
   { id: "workflows", label: "工作流控制", description: "排查运行时工作流状态" },

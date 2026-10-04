@@ -67,6 +67,7 @@ type MemoryRecallService interface {
 }
 
 type memoryRecallService struct {
+	clock             func() time.Time
 	retrieveMemory    func(context.Context, string, string, MemoryQueryPlan) (MemoryRetrievalResult, error)
 	retrieveActive    func(context.Context, ActiveMemoryQuery) (ActiveMemoryRetrievalResult, error)
 	searchRaw         func(context.Context, RawHistorySearchQuery) ([]RawHistoryEvent, error)
@@ -79,6 +80,7 @@ func newMemoryRecallService(app *App) MemoryRecallService {
 	}
 	raw := NewRawHistoryReader(app.DB)
 	return &memoryRecallService{
+		clock:          app.now,
 		retrieveMemory: app.retrieveMemoryWithPlan, retrieveActive: app.retrieveActiveMemories,
 		searchRaw: raw.Search, retrieveSummaries: app.retrieveConversationSummaries,
 	}
@@ -97,7 +99,11 @@ func (service *memoryRecallService) Recall(ctx context.Context, request MemoryRe
 	if err != nil {
 		return nil, false, err
 	}
-	active, err := service.retrieveActive(ctx, ActiveMemoryQuery{AuthorizationActorID: request.AuthorizationActorID, OwnerFluctlightID: request.FluctlightID, ConversationID: request.ConversationID, Cue: request.Intent, At: time.Now().UTC(), Limit: activeMemoryResultLimit})
+	at := time.Now().UTC()
+	if service.clock != nil {
+		at = service.clock().UTC()
+	}
+	active, err := service.retrieveActive(ctx, ActiveMemoryQuery{AuthorizationActorID: request.AuthorizationActorID, OwnerFluctlightID: request.FluctlightID, ConversationID: request.ConversationID, Cue: request.Intent, At: at, Limit: activeMemoryResultLimit})
 	if err != nil {
 		return nil, false, err
 	}
@@ -209,7 +215,7 @@ func recallRawItem(event RawHistoryEvent, request MemoryRecallRequest) map[strin
 	if content == "" {
 		return nil
 	}
-	return compactRecallItem(map[string]any{"ref": recallOpaqueRef("conversation_record", event.SourceRef, request), "source_kind": "conversation_record", "kind": string(event.Kind), "content": content, "occurred_at": event.OccurredAt.UTC().Format(time.RFC3339Nano), "validity": "historical"})
+	return compactRecallItem(map[string]any{"ref": recallOpaqueRef("conversation_record", event.SourceRef, request), "source_kind": "conversation_record", "kind": string(event.Kind), "content": content, "occurred_at": formatInstant(event.OccurredAt), "validity": "historical"})
 }
 
 func recallSummaryItem(item map[string]any, request MemoryRecallRequest) map[string]any {

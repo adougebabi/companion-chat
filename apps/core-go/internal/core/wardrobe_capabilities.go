@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -14,13 +15,16 @@ const (
 	wardrobeWearCapabilityName    = "wardrobe.wear"
 )
 
-type WardrobeService struct{ repository *PostgresRepository }
+type WardrobeService struct {
+	repository *PostgresRepository
+	clock      func() time.Time
+}
 
 func newWardrobeService(app *App) *WardrobeService {
 	if app == nil {
 		return &WardrobeService{}
 	}
-	return &WardrobeService{repository: app.DB}
+	return &WardrobeService{repository: app.DB, clock: app.now}
 }
 
 type wardrobeInspectCapability struct{ service *WardrobeService }
@@ -107,20 +111,20 @@ func (s *WardrobeService) inspectWardrobe(ctx context.Context, fluctlightID, wor
 		cursor := strings.TrimSpace(stringValue(args["cursor"]))
 		category := strings.TrimSpace(stringValue(args["category"]))
 		phrase := strings.TrimSpace(stringValue(args["query"]))
-		rows, err := query.Query(ctx, `SELECT id,category,slot,description,ownership,availability,source_kind,revision FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id>$2 AND ($3='' OR category=$3) AND ($4='' OR position(lower($4) in lower(description))>0) ORDER BY id LIMIT $5`, fluctlightID, cursor, category, phrase, limit+1)
+		rows, err := query.Query(ctx, `SELECT id,category,slot,description,ownership,availability,source_kind,revision,item_kind FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id>$2 AND ($3='' OR category=$3) AND ($4='' OR position(lower($4) in lower(description))>0) ORDER BY id LIMIT $5`, fluctlightID, cursor, category, phrase, limit+1)
 		if err != nil {
 			return nil, err
 		}
 		defer rows.Close()
 		items := make([]map[string]any, 0, limit)
 		for rows.Next() {
-			var id, itemCategory, slot, description, ownership, availability, sourceKind string
+			var id, itemCategory, slot, description, ownership, availability, sourceKind, itemKind string
 			var itemRevision int
-			if err := rows.Scan(&id, &itemCategory, &slot, &description, &ownership, &availability, &sourceKind, &itemRevision); err != nil {
+			if err := rows.Scan(&id, &itemCategory, &slot, &description, &ownership, &availability, &sourceKind, &itemRevision, &itemKind); err != nil {
 				return nil, err
 			}
 			items = append(items, map[string]any{"id": id, "category": itemCategory, "slot": slot, "description": description,
-				"ownership": ownership, "availability": availability, "source_kind": sourceKind, "revision": itemRevision})
+				"ownership": ownership, "availability": availability, "source_kind": sourceKind, "revision": itemRevision, "item_kind": itemKind})
 		}
 		if err := rows.Err(); err != nil {
 			return nil, err
@@ -240,7 +244,7 @@ func (s *WardrobeService) effectiveProfileID(ctx context.Context, query DBTX, fl
 }
 
 func readCurrentWornItems(ctx context.Context, query DBTX, fluctlightID string) ([]map[string]any, error) {
-	rows, err := query.Query(ctx, `SELECT w.slot,i.id,i.category,i.description,i.ownership,i.availability FROM public.fluctlight_worn_items w JOIN public.fluctlight_wardrobe_items i ON i.fluctlight_id=w.fluctlight_id AND i.id=w.item_id WHERE w.fluctlight_id=$1 ORDER BY w.slot`, fluctlightID)
+	rows, err := query.Query(ctx, `SELECT w.slot,i.id,i.category,i.description,i.ownership,i.availability,`+inventorySourceVerifiedSQL+` FROM public.fluctlight_worn_items w JOIN public.fluctlight_wardrobe_items i ON i.fluctlight_id=w.fluctlight_id AND i.id=w.item_id WHERE w.fluctlight_id=$1 ORDER BY w.slot`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -248,11 +252,12 @@ func readCurrentWornItems(ctx context.Context, query DBTX, fluctlightID string) 
 	items := make([]map[string]any, 0)
 	for rows.Next() {
 		var slot, id, category, description, ownership, availability string
-		if err := rows.Scan(&slot, &id, &category, &description, &ownership, &availability); err != nil {
+		var verified bool
+		if err := rows.Scan(&slot, &id, &category, &description, &ownership, &availability, &verified); err != nil {
 			return nil, err
 		}
 		items = append(items, map[string]any{"slot": slot, "id": id, "category": category, "description": description,
-			"ownership": ownership, "availability": availability})
+			"ownership": ownership, "availability": availability, "source_verified": verified})
 	}
 	return items, rows.Err()
 }
@@ -302,6 +307,13 @@ func (c wardrobeWearCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 		return failedCapabilityResult(invocation, "wearing_plan_invalid", false), err
 	}
 	fluctlightID := invocation.Metadata.FluctlightID
+	at := time.Now().UTC()
+	if c.service.clock != nil {
+		at = c.service.clock().UTC()
+	}
+	if err := requireAwakeLifeTx(ctx, tx, fluctlightID, at); err != nil {
+		return failedCapabilityResult(invocation, "life_state_sleeping", false), err
+	}
 	var revision int
 	if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&revision); err != nil {
 		return failedCapabilityResult(invocation, "wardrobe_state_unavailable", true), err
@@ -313,13 +325,20 @@ func (c wardrobeWearCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 	selected := map[string]string{}
 	for _, rawID := range arrayValue(args["item_ids"]) {
 		id := strings.TrimSpace(stringValue(rawID))
-		var slot, availability string
-		err := tx.QueryRow(ctx, `SELECT slot,availability FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 FOR SHARE`, fluctlightID, id).Scan(&slot, &availability)
+		var slot, availability, itemKind, ownership string
+		var verified, alreadyWorn bool
+		err := tx.QueryRow(ctx, `SELECT slot,availability,item_kind,ownership,`+inventorySourceVerifiedSQL+`,EXISTS(SELECT 1 FROM public.fluctlight_worn_items w WHERE w.fluctlight_id=i.fluctlight_id AND w.item_id=i.id) FROM public.fluctlight_wardrobe_items i WHERE fluctlight_id=$1 AND id=$2 FOR SHARE`, fluctlightID, id).Scan(&slot, &availability, &itemKind, &ownership, &verified, &alreadyWorn)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return failedCapabilityResultDetail(invocation, "wardrobe_item_not_found", false, id), ErrNotFound
 		}
 		if err != nil {
 			return failedCapabilityResult(invocation, "wardrobe_item_read_failed", true), err
+		}
+		if itemKind != "wearable" {
+			return failedCapabilityResult(invocation, "item_not_wearable", false), ErrInvalidArguments
+		}
+		if !verified || (ownership != "owned" && ownership != "borrowed" && !alreadyWorn) {
+			return failedCapabilityResult(invocation, "wardrobe_item_source_unverified", false), ErrConflict
 		}
 		if availability != "available" {
 			return failedCapabilityResultDetail(invocation, "wardrobe_item_unavailable", false, id), ErrConflict

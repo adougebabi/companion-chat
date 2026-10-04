@@ -265,7 +265,7 @@ func TestCompactCognitionContextRetainsNonEmptySemanticCollections(t *testing.T)
 		}
 	}
 	recent := arrayValue(compact["recent_messages"])
-	if len(recent) != 1 || stringValue(mapValue(recent[0])["role"]) != "user" || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 08:00:00 · Asia/Shanghai (UTC+08:00)" {
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["role"]) != "user" || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "2026-09-03T08:00:00.000+08:00" {
 		t.Fatalf("compact recent messages = %#v", compact["recent_messages"])
 	}
 }
@@ -292,7 +292,7 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 		}},
 	})
 	recent := arrayValue(compact["recent_messages"])
-	if len(recent) != 1 || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 08:00:00 · Asia/Shanghai (UTC+08:00)" {
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "2026-09-03T08:00:00.000+08:00" {
 		t.Fatalf("message semantics changed: %#v", recent)
 	}
 	memory := mapValue(arrayValue(compact["memories"])[0])
@@ -351,7 +351,7 @@ func TestCompactCognitionContextRebuildsMissingCorePersonaEnvelope(t *testing.T)
 }
 
 func TestCompactMessageTimeKeepsDateAndSecondsWithoutSequence(t *testing.T) {
-	if got := compactMessageTime("2026-09-03T05:27:14.105684Z"); got != "09-03 13:27:14 · Asia/Shanghai (UTC+08:00)" {
+	if got := compactMessageTime("2026-09-03T05:27:14.105684Z"); got != "2026-09-03T13:27:14.105+08:00" {
 		t.Fatalf("compact message time = %q", got)
 	}
 }
@@ -359,10 +359,10 @@ func TestCompactMessageTimeKeepsDateAndSecondsWithoutSequence(t *testing.T) {
 // TestCompactMessageTimePreservesTheOriginalOffset pins the timezone fix:
 // the stamp must convert UTC messages to local wall-clock time with explicit timezone.
 func TestCompactMessageTimePreservesTheOriginalOffset(t *testing.T) {
-	if got := compactMessageTime("2026-09-03T13:27:14.105684+08:00"); got != "09-03 13:27:14 · Asia/Shanghai (UTC+08:00)" {
+	if got := compactMessageTime("2026-09-03T13:27:14.105684+08:00"); got != "2026-09-03T13:27:14.105+08:00" {
 		t.Fatalf("local message time lost its offset: %q", got)
 	}
-	if got := formatMessageTimeWithTimezone("2026-09-30T15:47:11Z", "Asia/Shanghai"); got != "09-30 23:47:11 · Asia/Shanghai (UTC+08:00)" {
+	if got := formatMessageTimeWithTimezone("2026-09-30T15:47:11Z", "Asia/Shanghai"); got != "2026-09-30T23:47:11.000+08:00" {
 		t.Fatalf("Shanghai local time mismatch: %q", got)
 	}
 }
@@ -601,7 +601,7 @@ func TestRecentHistoryNeverAttributesSelfUtteranceToTheUser(t *testing.T) {
 	if strings.Contains(selfContent, "sender=actor_user") {
 		t.Fatalf("the Main prompt attributed a self utterance to the user: %q", selfContent)
 	}
-	if !strings.Contains(selfContent, "time=09-06 08:00:00 · Asia/Shanghai (UTC+08:00)") {
+	if !strings.Contains(selfContent, "time=2026-09-06T08:00:00.000+08:00") {
 		t.Fatalf("the self utterance lost its timestamp: %q", selfContent)
 	}
 	if !strings.Contains(userContent, "sender=actor_user") {
@@ -691,7 +691,7 @@ func TestEvaluateOutputPreferenceActionRequiresCapabilityBinding(t *testing.T) {
 func TestRecentPromptFragmentsUseRealRolesAndSkipCurrentInput(t *testing.T) {
 	projection := ContextProjection{
 		CurrentUserText: "当前输入",
-		Actors:          []map[string]any{{"actor_id": "human-1", "type": "human", "display_name": "用户"}, {"actor_id": "fl-1", "type": "fluctlight", "display_name": "摇光"}},
+		Actors:          []map[string]any{{"actor_id": "human-1", "ref": "actor_user", "type": "human", "display_name": "用户"}, {"actor_id": "fl-1", "type": "fluctlight", "display_name": "摇光"}},
 		RecentMessages: []map[string]any{
 			{"id": "message-1", "sequence": 1, "turn_id": "turn-1", "author_actor_id": "human-1", "kind": "user", "text": "上一轮问题", "created_at": "2026-09-12T01:00:00Z"},
 			{"id": "message-2", "sequence": 2, "turn_id": "turn-1", "author_actor_id": "fl-1", "kind": "assistant", "text": "上一轮回答", "created_at": "2026-09-12T01:01:00Z"},

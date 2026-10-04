@@ -193,7 +193,7 @@ func (a *App) persistCognitiveStagesTx(ctx context.Context, tx pgx.Tx, fluctligh
 		profileProjection = cloneMap(projection.AffectProfile)
 	}
 	current["affect_profile"] = profileProjection
-	transitionAt := time.Now().UTC()
+	transitionAt := a.now().UTC()
 	resulting, requested, applied := reduceInternalDynamicsWithProfile(current, appraisal, profile, driveSignals, transitionAt)
 	newRevision := currentRevision + 1
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_inner_states SET revision=$2,pad=$3,mood=$4,momentum=$5,regulation=$6,drives=$7,conflicts=$8,last_updated_at=$9 WHERE fluctlight_id=$1 AND revision=$10`, fluctlightID, newRevision, jsonBytes(resulting["pad"]), jsonBytes(resulting["mood"]), jsonBytes(resulting["momentum"]), jsonBytes(resulting["regulation"]), jsonBytes(resulting["drives"]), jsonBytes(resulting["conflicts"]), transitionAt, currentRevision)

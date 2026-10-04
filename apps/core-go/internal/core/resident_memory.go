@@ -56,6 +56,14 @@ func (a *App) readResidentMemorySnapshot(ctx context.Context, ownerActorID, spea
 			}
 			result.Memories = append(result.Memories, cloneMap(item))
 		case "active_memory":
+			var current bool
+			err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.active_memories WHERE id=$1 AND owner_fluctlight_id=$2 AND revision=$3 AND status='active') AND NOT EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='active_memory' AND d.artifact_id=$1 AND d.artifact_revision=$3 AND (f.status<>'active' OR f.revision<>d.fact_revision OR (f.valid_until IS NOT NULL AND f.valid_until<=$4)))`, stringValue(item["id"]), fluctlightID, intValue(item["revision"]), at).Scan(&current)
+			if err != nil {
+				return residentMemorySnapshot{}, err
+			}
+			if !current {
+				continue
+			}
 			if speakerActorID != ownerActorID {
 				continue
 			}

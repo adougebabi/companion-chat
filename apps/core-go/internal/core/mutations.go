@@ -166,7 +166,7 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 		if !errors.Is(replayErr, pgx.ErrNoRows) {
 			return replayErr
 		}
-		applyAt := time.Now().UTC()
+		applyAt := a.now().UTC()
 		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
 		}
@@ -284,7 +284,7 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 				return err
 			}
 			if intentionID != "" && start.After(applyAt) {
-				if err := syncScheduledIntentionTx(ctx, tx, intentionID, itemID, start); err != nil {
+				if err := syncScheduledIntentionTx(ctx, tx, intentionID, itemID, start, a.now().UTC()); err != nil {
 					return err
 				}
 			}
@@ -293,7 +293,7 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 		if previousEnd == nil {
 			return errors.New("schedule item time is invalid")
 		}
-		if err := insertPostScheduleLifecycleIntentsTx(ctx, tx, fluctlightID, localDate, timezone); err != nil {
+		if err := insertPostScheduleLifecycleIntentsTx(ctx, tx, fluctlightID, localDate, timezone, a.now().UTC()); err != nil {
 			return err
 		}
 		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
@@ -408,7 +408,7 @@ func (a *App) replanScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 	if boundary.Before(dayStart) || boundary.After(dayEnd) {
 		return nil, errors.New("schedule_replan_completed_before_out_of_day")
 	}
-	if err := validateScheduleReplanBoundary(boundary, time.Now().In(location)); err != nil {
+	if err := validateScheduleReplanBoundary(boundary, a.now().In(location)); err != nil {
 		return nil, err
 	}
 	if err := validateCompletedScheduleHistory(current, payload, boundary); err != nil {
@@ -517,12 +517,12 @@ func sameScheduleItemSemantics(left, right map[string]any) bool {
 // Keeping these inserts in the same transaction as schedule acceptance makes
 // schedule-first ordering durable across Worker restarts and dispatcher
 // retries; an accepted future schedule does not wake the Fluctlight early.
-func insertPostScheduleLifecycleIntentsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, localDate time.Time, timezone string) error {
+func insertPostScheduleLifecycleIntentsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, localDate time.Time, timezone string, at time.Time) error {
 	location, err := time.LoadLocation(canonicalTimezone(timezone))
 	if err != nil {
 		return fmt.Errorf("schedule_timezone_invalid: %w", err)
 	}
-	if localDate.Format("2006-01-02") != time.Now().In(location).Format("2006-01-02") {
+	if localDate.Format("2006-01-02") != at.In(location).Format("2006-01-02") {
 		return nil
 	}
 	dateValue := localDate.Format("2006-01-02")

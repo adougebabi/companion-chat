@@ -23,7 +23,7 @@ func validateScheduledLifeActionPlan(plan map[string]any) error {
 	}
 	for key := range plan {
 		switch key {
-		case "capability", "kind", "duration_minutes", "desired_hair_color", "desired_hair_length", "category", "slot", "description", "reason":
+		case "capability", "kind", "duration_minutes", "desired_hair_color", "desired_hair_length", "category", "slot", "description", "item_kind", "items", "reason":
 		default:
 			return errors.New("schedule_action_field_invalid")
 		}
@@ -51,10 +51,8 @@ func validateScheduledLifeActionPlan(plan map[string]any) error {
 		if stringValue(plan["desired_hair_length"]) != "" || stringValue(plan["desired_hair_color"]) != "" {
 			return errors.New("schedule_shopping_target_invalid")
 		}
-		for _, key := range []string{"category", "slot", "description"} {
-			if strings.TrimSpace(stringValue(plan[key])) == "" {
-				return errors.New("schedule_shopping_target_invalid")
-			}
+		if _, err := shoppingRequestedItems(plan); err != nil {
+			return err
 		}
 	default:
 		return errors.New("schedule_action_kind_invalid")
@@ -99,15 +97,15 @@ func scheduledActionMatchesArguments(plan, args map[string]any) bool {
 	if validateScheduledLifeActionPlan(plan) != nil || stringValue(plan["kind"]) != stringValue(args["kind"]) || intValue(plan["duration_minutes"]) != intValue(args["duration_minutes"]) {
 		return false
 	}
-	for _, key := range []string{"desired_hair_color", "desired_hair_length", "category", "slot", "description"} {
+	for _, key := range []string{"desired_hair_color", "desired_hair_length", "category", "slot", "description", "item_kind"} {
 		if strings.TrimSpace(stringValue(plan[key])) != strings.TrimSpace(stringValue(args[key])) {
 			return false
 		}
 	}
-	return true
+	return jsonString(plan["items"]) == jsonString(args["items"])
 }
 
-func syncScheduledIntentionTx(ctx context.Context, tx pgx.Tx, intentionID, itemID string, startAt time.Time) error {
+func syncScheduledIntentionTx(ctx context.Context, tx pgx.Tx, intentionID, itemID string, startAt, at time.Time) error {
 	current, err := loadIntentionAuthorityByIDTx(ctx, tx, intentionID)
 	if err != nil {
 		return err
@@ -115,7 +113,7 @@ func syncScheduledIntentionTx(ctx context.Context, tx pgx.Tx, intentionID, itemI
 	if current.Status != IntentionCandidate && current.Status != IntentionQualified {
 		return errors.New("scheduled_intention_not_plannable")
 	}
-	if !startAt.After(time.Now().UTC()) || !startAt.Before(current.Expiration) {
+	if !startAt.After(at) || !startAt.Before(current.Expiration) {
 		return errors.New("scheduled_intention_time_invalid")
 	}
 	trigger := TypedIntentionTrigger{Type: IntentionTriggerTime, DueAt: &startAt}
@@ -123,7 +121,7 @@ func syncScheduledIntentionTx(ctx context.Context, tx pgx.Tx, intentionID, itemI
 		updated, record, err := ApplyIntentionCommand(current, IntentionCommand{
 			Operation: IntentionUpdate, ExpectedRevision: current.Revision,
 			Patch:        IntentionPatch{Trigger: &trigger, PreferredTime: &startAt, CapabilityConstraints: []string{lifeActivityStartCapabilityName}},
-			EvidenceRefs: []string{"schedule-item:" + itemID}, Reason: "accepted schedule item bound to intention", OccurredAt: time.Now().UTC(),
+			EvidenceRefs: []string{"schedule-item:" + itemID}, Reason: "accepted schedule item bound to intention", OccurredAt: at,
 		})
 		if err != nil {
 			return err
@@ -136,7 +134,7 @@ func syncScheduledIntentionTx(ctx context.Context, tx pgx.Tx, intentionID, itemI
 	if current.Status == IntentionCandidate {
 		qualified, record, err := ApplyIntentionCommand(current, IntentionCommand{
 			Operation: IntentionQualify, ExpectedRevision: current.Revision,
-			EvidenceRefs: []string{"schedule-item:" + itemID}, Reason: "future scheduled action accepted", OccurredAt: time.Now().UTC(),
+			EvidenceRefs: []string{"schedule-item:" + itemID}, Reason: "future scheduled action accepted", OccurredAt: at,
 		})
 		if err != nil {
 			return err

@@ -178,7 +178,7 @@ func TestVirtualShoppingActivityRequiresElapsedResultAndReusesPurchasedItem(t *t
 	intentionID := createQualifiedBootIntention(t, fixture, "boots-success")
 	started, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "start-boots-shopping", map[string]any{
 		"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15,
-		"category": "boots", "slot": "shoes", "description": "合适的黑色短靴", "reason": "实际安排一次虚拟购物",
+		"category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "实际安排一次虚拟购物",
 	}))
 	if err != nil || started.Result.Status != "accepted" {
 		t.Fatalf("shopping was not durably accepted: receipt=%#v err=%v", started, err)

@@ -98,6 +98,8 @@ type MemoryRetrievalResult struct {
 }
 
 type ContextProjectionRequest struct {
+	TriggerSource          string
+	TargetActorID          string
 	AuthorizationActorID   string
 	SpeakerActorID         string
 	FluctlightID           string

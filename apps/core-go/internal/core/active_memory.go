@@ -35,6 +35,7 @@ type ActiveMemoryCapabilitySource struct {
 
 func activeMemoryEventCapabilityDefinition() CapabilityDefinition {
 	properties := map[string]any{
+		"actor_fact_ids":           map[string]any{"type": "array", "maxItems": 16, "items": stringSchema()},
 		"operation":                map[string]any{"type": "string", "enum": []any{"create", "confirm", "revise", "complete", "supersede"}},
 		"target_ref":               map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes},
 		"kind":                     map[string]any{"type": "string", "enum": []any{"future_event", "commitment", "temporary_context"}},
@@ -372,6 +373,24 @@ func (a *App) applyActiveMemoryCapabilityTx(ctx context.Context, tx pgx.Tx, invo
 		code, retryable := capabilityErrorInfo(err, "active_memory_apply_failed", true)
 		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), err
 	}
+	if invocation.Metadata.Source != "direct" && result.ActiveMemoryID != "" && result.Status == "active" {
+		if index, err := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"]); err == nil {
+			for _, entry := range index.ByRef {
+				if entry.Kind == ContextReferenceActorFact {
+					if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, entry.EntityID, "active_memory", result.ActiveMemoryID, result.Revision, a.now().UTC()); err != nil {
+						return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), err
+					}
+				}
+			}
+		}
+	}
+	for _, raw := range arrayValue(decodeObject(invocation.Arguments)["actor_fact_ids"]) {
+		if result.ActiveMemoryID != "" && result.Status == "active" {
+			if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, stringValue(raw), "active_memory", result.ActiveMemoryID, result.Revision, a.now().UTC()); err != nil {
+				return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), err
+			}
+		}
+	}
 	output := map[string]any{
 		"operation": string(result.Operation), "status": result.Status, "disposition": result.Disposition,
 		"reason_code": result.ReasonCode, "recorded": result.Disposition == "applied" || result.Disposition == "no_change", "replayed": result.Replayed,
@@ -425,7 +444,7 @@ func (a *App) retrieveActiveMemories(ctx context.Context, query ActiveMemoryQuer
 		return ActiveMemoryRetrievalResult{}, err
 	}
 	if query.At.IsZero() {
-		query.At = time.Now().UTC()
+		query.At = a.now().UTC()
 	}
 	query.At = query.At.UTC()
 	if query.Limit < 1 {
@@ -452,6 +471,7 @@ func (a *App) retrieveActiveMemories(ctx context.Context, query ActiveMemoryQuer
 		) source_support ON true
 		WHERE owner_fluctlight_id=$1
 		  AND status='active'
+		  AND NOT EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='active_memory' AND d.artifact_id=active_memories.id AND d.artifact_revision=active_memories.revision AND (f.status<>'active' OR f.revision<>d.fact_revision OR (f.valid_until IS NOT NULL AND f.valid_until<=$3)))
 		  AND (source_support.source_kind IS NULL OR source_support.source_kind=''
 		   OR public.active_memory_source_is_live(source_support.source_kind,source_support.source_fact_id,source_support.source_fingerprint,source_support.command_id))
 		  AND (conversation_id IS NULL OR conversation_id=$2)

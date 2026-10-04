@@ -105,7 +105,7 @@ func TestFormatRuntimeContextTimesUsesLifeTimezoneWithoutChangingSource(t *testi
 	formatted := formatRuntimeContextTimes(context)
 	life := mapValue(mapValue(mapValue(formatted["current_state"])["data"])["life_context"])
 	memory := mapValue(arrayValue(formatted["retrieved_memory"])[0])
-	if life["effective_at"] != "2026-09-29 17:13:44 +08:00" || memory["created_at"] != "2026-09-29 17:13:44 +08:00" || memory["occurred_at"] != "2026-09-28 23:00:00 +08:00" {
+	if life["effective_at"] != "2026-09-29T17:13:44.667+08:00" || memory["created_at"] != "2026-09-29T17:13:44.667+08:00" || memory["occurred_at"] != "2026-09-28T23:00:00.000+08:00" {
 		t.Fatalf("formatted runtime times = %#v %#v", life, memory)
 	}
 	if memory["content"] != "记忆中的 2026-09-29T09:13:44Z 保持原样" || mapValue(arrayValue(context["retrieved_memory"])[0])["created_at"] != "2026-09-29T09:13:44.667612Z" {
@@ -122,7 +122,7 @@ func TestAssemblePromptMessagesFormatsRuntimeTimesOnWire(t *testing.T) {
 	}}}
 	messages := assemblePromptMessages(map[string]any{"role": "system", "content": "test"}, map[string]any{"role": "user", "content": "hi"}, selected)
 	wire := stringValue(messages[1]["content"])
-	if !strings.Contains(wire, "2026-09-29 17:13:44 +08:00") || strings.Contains(wire, "2026-09-29T09:13:44.667612Z") {
+	if !strings.Contains(wire, "2026-09-29T17:13:44.667+08:00") || strings.Contains(wire, "2026-09-29T09:13:44.667612Z") {
 		t.Fatalf("runtime wire time was not formatted: %s", wire)
 	}
 }

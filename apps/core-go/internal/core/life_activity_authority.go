@@ -72,7 +72,7 @@ func (a *App) settleClosedActivityOutcomesTx(ctx context.Context, tx pgx.Tx, row
 }
 
 func (a *App) cancelActivityForEndedEventTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte) (CapabilityResult, error) {
-	now := time.Now().UTC()
+	now := a.now().UTC()
 	result := decodeObject(resultRaw)
 	result["result"] = map[string]any{"status": "cancelled", "reason": "event_ended"}
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET status='cancelled',resolved_at=$3,result_json=$4,revision=revision+1 WHERE id=$1 AND fluctlight_id=$2 AND revision=$5 AND status IN ('scheduled','in_progress','deferred')`, activityID, fluctlightID, now, jsonBytes(result), revision)
@@ -96,7 +96,7 @@ func (a *App) cancelActivityForEndedEventTx(ctx context.Context, tx pgx.Tx, invo
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
 }
 
-func extendLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, activityID, fluctlightID string, revision int, decision map[string]any) (CapabilityResult, error) {
+func extendLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, activityID, fluctlightID string, revision int, decision map[string]any, now time.Time) (CapabilityResult, error) {
 	minutes := intValue(decision["extend_minutes"])
 	if minutes < 15 || minutes > 240 || stringValue(decision["reason"]) == "" {
 		return failedCapabilityResult(invocation, "activity_extension_invalid", false), ErrInvalidArguments
@@ -109,7 +109,6 @@ func extendLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityI
 	if eventID == "" {
 		return failedCapabilityResult(invocation, "activity_extension_legacy_run", false), ErrConflict
 	}
-	now := time.Now().UTC()
 	if !now.Before(previous) {
 		return failedCapabilityResult(invocation, "activity_window_ended", false), ErrConflict
 	}
@@ -121,7 +120,7 @@ func extendLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityI
 		}
 		return failedCapabilityResult(invocation, "activity_extension_event_failed", true), err
 	}
-	command, err = tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET active_until=$3,revision=revision+1,result_json=jsonb_set(result_json,'{extension}', $4::jsonb,true) WHERE id=$1 AND fluctlight_id=$2 AND revision=$5 AND status IN ('in_progress','deferred')`, activityID, fluctlightID, newUntil, jsonBytes(map[string]any{"reason": decision["reason"], "until": newUntil.Format(time.RFC3339Nano)}), revision)
+	command, err = tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET active_until=$3,revision=revision+1,result_json=jsonb_set(result_json,'{extension}', $4::jsonb,true) WHERE id=$1 AND fluctlight_id=$2 AND revision=$5 AND status IN ('in_progress','deferred')`, activityID, fluctlightID, newUntil, jsonBytes(map[string]any{"reason": decision["reason"], "until": newUntil.Format(instantLayout)}), revision)
 	if err != nil || command.RowsAffected() != 1 {
 		if err == nil {
 			err = ErrConflict
@@ -129,6 +128,6 @@ func extendLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityI
 		return failedCapabilityResult(invocation, "activity_extension_run_failed", true), err
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
-		Output:            map[string]any{"activity_id": activityID, "status": "extended", "active_until": newUntil.Format(time.RFC3339Nano), "reason": decision["reason"]},
+		Output:            map[string]any{"activity_id": activityID, "status": "extended", "active_until": newUntil.Format(instantLayout), "reason": decision["reason"]},
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
 }

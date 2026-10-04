@@ -15,7 +15,18 @@ const (
 	intentionDecideCapabilityName  = "intention.decide"
 )
 
-type intentionService struct{ repository *PostgresRepository }
+type intentionService struct {
+	repository *PostgresRepository
+	clock      func() time.Time
+}
+
+func (s *intentionService) now() time.Time {
+	if s != nil && s.clock != nil {
+		return s.clock().UTC()
+	}
+	return time.Now().UTC()
+}
+
 type intentionInspectCapability struct{ service *intentionService }
 type intentionDecideCapability struct{ service *intentionService }
 
@@ -23,7 +34,7 @@ func intentionInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: intentionInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
 		Description:   "List or read intentions. List returns at most ten rows; when has_more is true, pass next_cursor with the same include_closed filter. Detail auto-selects the sole open one; otherwise pass intention_id from list.",
-		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
+		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceAutonomy},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
 			"operation":      enumStringSchema("list", "detail"),
@@ -66,14 +77,14 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 		var goal, action, expected, status string
 		var revision int
 		var expiration time.Time
-		err := c.service.repository.Pool().QueryRow(ctx, `SELECT g.desired_outcome,i.action_intent,i.expected_outcome,i.status,i.revision,i.expiration FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.id=$2 AND COALESCE(i.profile_id,'')=$3`, fluctlightID, id, profileID).Scan(&goal, &action, &expected, &status, &revision, &expiration)
+		err := c.service.repository.Pool().QueryRow(ctx, `SELECT g.desired_outcome,i.action_intent,i.expected_outcome,i.status,i.revision,i.expiration FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.id=$2 AND (COALESCE(i.profile_id,'')='' OR COALESCE(i.profile_id,'')=$3)`, fluctlightID, id, profileID).Scan(&goal, &action, &expected, &status, &revision, &expiration)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return failedCapabilityResult(invocation, "intention_not_found", false), ErrNotFound
 		}
 		if err != nil {
 			return failedCapabilityResult(invocation, "intention_read_failed", true), err
 		}
-		output["intention"] = map[string]any{"id": id, "goal": goal, "action": action, "expected_outcome": expected, "status": status, "revision": revision, "expiration": expiration.UTC().Format(time.RFC3339Nano)}
+		output["intention"] = map[string]any{"id": id, "goal": goal, "action": action, "expected_outcome": expected, "status": status, "revision": revision, "expiration": expiration.UTC().Format(instantLayout)}
 		rows, err := c.service.repository.Pool().Query(ctx, `SELECT id,kind,status,scheduled_at,resolved_at FROM public.fluctlight_life_activity_runs WHERE fluctlight_id=$1 AND intention_id=$2 ORDER BY created_at DESC LIMIT 10`, fluctlightID, id)
 		if err != nil {
 			return failedCapabilityResult(invocation, "intention_activity_read_failed", true), err
@@ -87,9 +98,9 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 			if err := rows.Scan(&activityID, &kind, &activityStatus, &scheduled, &resolved); err != nil {
 				return failedCapabilityResult(invocation, "intention_activity_read_failed", true), err
 			}
-			entry := map[string]any{"id": activityID, "kind": kind, "status": activityStatus, "scheduled_at": scheduled.UTC().Format(time.RFC3339Nano)}
+			entry := map[string]any{"id": activityID, "kind": kind, "status": activityStatus, "scheduled_at": scheduled.UTC().Format(instantLayout)}
 			if resolved != nil {
-				entry["resolved_at"] = resolved.UTC().Format(time.RFC3339Nano)
+				entry["resolved_at"] = resolved.UTC().Format(instantLayout)
 			}
 			activities = append(activities, entry)
 		}
@@ -100,7 +111,7 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 	} else {
 		includeClosed, _ := args["include_closed"].(bool)
 		cursor := intValue(args["cursor"])
-		rows, err := c.service.repository.Pool().Query(ctx, `SELECT i.id,g.desired_outcome,i.action_intent,i.expected_outcome,i.status,i.revision,i.expiration FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND COALESCE(i.profile_id,'')=$2 AND ($3 OR i.status NOT IN ('completed','cancelled','expired')) ORDER BY i.created_at DESC,i.id DESC LIMIT 11 OFFSET $4`, fluctlightID, profileID, includeClosed, cursor)
+		rows, err := c.service.repository.Pool().Query(ctx, `SELECT i.id,g.desired_outcome,i.action_intent,i.expected_outcome,i.status,i.revision,i.expiration FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND (COALESCE(i.profile_id,'')='' OR COALESCE(i.profile_id,'')=$2) AND ($3 OR i.status NOT IN ('completed','cancelled','expired')) ORDER BY i.created_at DESC,i.id DESC LIMIT 11 OFFSET $4`, fluctlightID, profileID, includeClosed, cursor)
 		if err != nil {
 			return failedCapabilityResult(invocation, "intention_read_failed", true), err
 		}
@@ -113,7 +124,7 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 			if err := rows.Scan(&id, &goal, &action, &expected, &status, &revision, &expiration); err != nil {
 				return failedCapabilityResult(invocation, "intention_read_failed", true), err
 			}
-			items = append(items, map[string]any{"id": id, "goal": goal, "action": action, "expected_outcome": expected, "status": status, "revision": revision, "expiration": expiration.UTC().Format(time.RFC3339Nano)})
+			items = append(items, map[string]any{"id": id, "goal": goal, "action": action, "expected_outcome": expected, "status": status, "revision": revision, "expiration": expiration.UTC().Format(instantLayout)})
 		}
 		if err := rows.Err(); err != nil {
 			return failedCapabilityResult(invocation, "intention_read_failed", true), err
@@ -132,10 +143,12 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 func intentionDecideDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: intentionDecideCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Create or change an intention. Create needs goal/action/expected_outcome; update needs action or expected_outcome. Non-create auto-selects the sole open one; otherwise pass intention_id from inspect(list).",
-		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
-		FailurePolicy: FailurePolicyOptionalInternal,
+		Description:     "Create or change an intention. Create uses goal or an existing goal_ref, plus action/expected_outcome; shared intentions remain accessible from any profile; update needs action or expected_outcome. Non-create auto-selects the sole open one; otherwise pass intention_id from inspect(list).",
+		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceAutonomy},
+		FailurePolicy:   FailurePolicyOptionalInternal,
+		RequiredContext: []ContextSlot{SlotAgency},
 		InputSchema: objectSchema(map[string]any{
+			"goal_ref":         stringSchema(),
 			"operation":        enumStringSchema("create", "qualify", "update", "pause", "resume", "cancel"),
 			"intention_id":     map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"goal":             map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
@@ -151,7 +164,9 @@ func intentionDecideDefinition() CapabilityDefinition {
 func (c intentionDecideCapability) Definition() CapabilityDefinition {
 	return intentionDecideDefinition()
 }
-func (c intentionDecideCapability) RequiredContext() []ContextSlot { return nil }
+func (c intentionDecideCapability) RequiredContext() []ContextSlot {
+	return intentionDecideDefinition().RequiredContext
+}
 func (c intentionDecideCapability) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
 	return executeToolRequired(invocation)
 }
@@ -167,7 +182,7 @@ func (s *intentionService) resolveProfile(ctx context.Context, query DBTX, fluct
 }
 
 func (s *intentionService) uniqueOpenIntentionID(ctx context.Context, query DBTX, fluctlightID, profileID string) (string, error) {
-	rows, err := query.Query(ctx, `SELECT id FROM public.fluctlight_intentions WHERE fluctlight_id=$1 AND COALESCE(profile_id,'')=$2 AND status NOT IN ('completed','cancelled','expired') ORDER BY created_at DESC,id LIMIT 2`, fluctlightID, profileID)
+	rows, err := query.Query(ctx, `SELECT id FROM public.fluctlight_intentions WHERE fluctlight_id=$1 AND (COALESCE(profile_id,'')='' OR COALESCE(profile_id,'')=$2) AND status NOT IN ('completed','cancelled','expired') ORDER BY created_at DESC,id LIMIT 2`, fluctlightID, profileID)
 	if err != nil {
 		return "", err
 	}
@@ -209,7 +224,7 @@ func (c intentionDecideCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv
 	if reason == "" {
 		return failedCapabilityResult(invocation, "intention_reason_required", false), ErrInvalidArguments
 	}
-	at := time.Now().UTC()
+	at := c.service.now()
 	evidence := []string{"tool-operation:" + stableDigest(fluctlightID+"\x1f"+capabilityOperationID(invocation))}
 	if operation == "create" {
 		return c.service.createIntentionTx(ctx, tx, invocation, profileID, args, reason, evidence, at)
@@ -225,7 +240,7 @@ func (c intentionDecideCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv
 	var goalID, storedProfile string
 	var revision int
 	err = tx.QueryRow(ctx, `SELECT goal_id,COALESCE(profile_id,''),revision FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, id, fluctlightID).Scan(&goalID, &storedProfile, &revision)
-	if errors.Is(err, pgx.ErrNoRows) || storedProfile != profileID {
+	if errors.Is(err, pgx.ErrNoRows) || (storedProfile != profileID && storedProfile != "") {
 		return failedCapabilityResult(invocation, "intention_not_found", false), ErrNotFound
 	}
 	if err != nil {
@@ -283,6 +298,30 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 	goalText := strings.TrimSpace(stringValue(args["goal"]))
 	action := strings.TrimSpace(stringValue(args["action"]))
 	expected := strings.TrimSpace(stringValue(args["expected_outcome"]))
+	var linkedGoal *GoalAuthority
+	if ref := stringValue(args["goal_ref"]); ref != "" {
+		index, err := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"])
+		if err != nil || index.FluctlightID != fluctlightID || index.OwnerActorID != invocation.Metadata.AuthorizationActorID {
+			return failedCapabilityResult(invocation, "intention_goal_ref_invalid", false), ErrInvalidArguments
+		}
+		entry, exists := index.ByRef[ref]
+		if !exists || entry.Kind != ContextReferenceGoal {
+			return failedCapabilityResult(invocation, "intention_goal_ref_invalid", false), ErrInvalidArguments
+		}
+		goal, err := loadGoalAuthorityTx(ctx, tx, fluctlightID, ref, entry)
+		if err != nil {
+			return failedCapabilityResult(invocation, "intention_goal_stale", false), err
+		}
+		if goalStatusTerminal(goal.Status) || goal.Status == GoalPaused || (goal.ProfileID != "" && goal.ProfileID != profileID) {
+			return failedCapabilityResult(invocation, "intention_goal_not_active", false), ErrConflict
+		}
+		if goalText != "" && goalText != goal.DesiredOutcome {
+			return failedCapabilityResult(invocation, "intention_goal_ref_mismatch", false), ErrInvalidArguments
+		}
+		goalText = goal.DesiredOutcome
+		profileID = goal.ProfileID
+		linkedGoal = &goal
+	}
 	if goalText == "" || action == "" || expected == "" {
 		return failedCapabilityResult(invocation, "intention_create_fields_required", false), ErrInvalidArguments
 	}
@@ -290,7 +329,7 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 		return failedCapabilityResult(invocation, "intention_lock_failed", true), err
 	}
 	var existingID, existingGoalID, existingStatus string
-	err := tx.QueryRow(ctx, `SELECT i.id,g.id,i.status FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND COALESCE(i.profile_id,'')=$2 AND lower(trim(i.action_intent))=$3 AND lower(trim(g.desired_outcome))=$4 AND i.status NOT IN ('completed','cancelled','expired') ORDER BY i.created_at LIMIT 1 FOR UPDATE OF i`, fluctlightID, profileID, strings.ToLower(action), strings.ToLower(goalText)).Scan(&existingID, &existingGoalID, &existingStatus)
+	err := tx.QueryRow(ctx, `SELECT i.id,g.id,i.status FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND (COALESCE(i.profile_id,'')='' OR COALESCE(i.profile_id,'')=$2) AND lower(trim(i.action_intent))=$3 AND lower(trim(g.desired_outcome))=$4 AND i.status NOT IN ('completed','cancelled','expired') ORDER BY i.created_at LIMIT 1 FOR UPDATE OF i`, fluctlightID, profileID, strings.ToLower(action), strings.ToLower(goalText)).Scan(&existingID, &existingGoalID, &existingStatus)
 	if err == nil {
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
 			Output:            map[string]any{"intention_id": existingID, "goal_id": existingGoalID, "status": existingStatus, "reused": true},
@@ -301,18 +340,25 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 	}
 	identity := stableDigest(fluctlightID + "\x1f" + profileID + "\x1f" + capabilityOperationID(invocation))
 	goalID, intentionID := "goal_tool_"+identity, "intention_tool_"+identity
-	goal := GoalAuthority{
-		EntityID: goalID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(goalID),
-		FluctlightID: fluctlightID, ProfileID: profileID, DesiredOutcome: goalText, SuccessCriteria: []string{expected},
-		Motivation: reason, Scope: "personal", Importance: 0.5, Urgency: 0.5, Progress: 0,
-		Status: GoalActive, Revision: 1, EvidenceRefs: evidence,
-	}
-	createdGoal, goalRecord, err := CreateGoalAuthority(goal, evidence, at)
-	if err != nil {
-		return failedCapabilityResult(invocation, "goal_create_invalid", false), err
-	}
-	if _, err := persistGoalAuthorityTx(ctx, tx, nil, createdGoal, goalRecord, "tool:goal:"+identity); err != nil {
-		return failedCapabilityResult(invocation, "goal_persist_failed", true), err
+	var createdGoal GoalAuthority
+	if linkedGoal != nil {
+		goalID = linkedGoal.EntityID
+		createdGoal = *linkedGoal
+	} else {
+		goal := GoalAuthority{
+			EntityID: goalID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(goalID),
+			FluctlightID: fluctlightID, ProfileID: profileID, DesiredOutcome: goalText, SuccessCriteria: []string{expected},
+			Motivation: reason, Scope: "personal", Importance: 0.5, Urgency: 0.5, Progress: 0,
+			Status: GoalActive, Revision: 1, EvidenceRefs: evidence,
+		}
+		newGoal, goalRecord, err := CreateGoalAuthority(goal, evidence, at)
+		if err != nil {
+			return failedCapabilityResult(invocation, "goal_create_invalid", false), err
+		}
+		if _, err := persistGoalAuthorityTx(ctx, tx, nil, newGoal, goalRecord, "tool:goal:"+identity); err != nil {
+			return failedCapabilityResult(invocation, "goal_persist_failed", true), err
+		}
+		createdGoal = newGoal
 	}
 	intention := IntentionAuthority{
 		EntityID: intentionID, GoalEntityID: goalID, SchemaVersion: intentionAuthoritySchemaVersion,
@@ -346,7 +392,7 @@ func transitionLinkedIntentionTx(ctx context.Context, tx pgx.Tx, fluctlightID, p
 	if err != nil {
 		return IntentionAuthority{}, err
 	}
-	if storedProfile != profileID {
+	if storedProfile != profileID && storedProfile != "" {
 		return IntentionAuthority{}, errors.New("intention_profile_mismatch")
 	}
 	current, err := loadIntentionAuthorityTx(ctx, tx, fluctlightID, "intention:ctx_"+stableDigest(intentionID), "goal:ctx_"+stableDigest(goalID), ContextReference{EntityID: intentionID, Revision: revision})

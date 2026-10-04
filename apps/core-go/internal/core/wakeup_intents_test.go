@@ -247,7 +247,7 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 			Structured: map[string]any{"action_type": "reply", "response_intent": "主动联系 Owner", "influences": []any{}},
 			ToolCalls: []map[string]any{{
 				"id": "wakeup-reply-call", "type": "function",
-				"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text})},
+				"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text, "topic_key": "relationship-check-in", "purpose": "share-new-thought"})},
 			}},
 		}
 	})
@@ -299,7 +299,7 @@ func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testi
 			Structured: map[string]any{"action_type": "no_op", "evidence_refs": []any{}, "influences": []any{}, "response_intent": ""},
 			ToolCalls: []map[string]any{
 				{"id": "noop-affect-call", "type": "function", "function": map[string]any{"name": "affect_event", "arguments": jsonString(map[string]any{"event": map[string]any{"type": "excited", "confidence": 0.35}})}},
-				{"id": "noop-reply-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text})}},
+				{"id": "noop-reply-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text, "topic_key": "relationship-check-in", "purpose": "share-new-thought"})}},
 			},
 		}
 	})
@@ -340,7 +340,7 @@ func TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider(t *testing.T
 		if providerCalls == 1 {
 			return fakeProviderResult{ToolCalls: []map[string]any{{
 				"id": "wakeup-committed-before-final-failure", "type": "function",
-				"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text})},
+				"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text, "topic_key": "relationship-check-in", "purpose": "share-new-thought"})},
 			}}}
 		}
 		// The observed failure shape is a successful Tool round followed by an

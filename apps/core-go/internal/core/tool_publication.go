@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -30,6 +29,8 @@ func NewToolPublicationService(app *App) *ToolPublicationService {
 
 type ConversationReplyPublication struct {
 	SuppressRecentDuplicate     bool
+	TopicKey                    string
+	Purpose                     string
 	AuthorizationActorID        string
 	FluctlightID                string
 	ConversationID              string
@@ -113,7 +114,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		return publishedResource{}, err
 	}
 	if command.ExpectedLifeContextRevision != "" {
-		if live, err := service.app.requireLifeContextRevisionTx(ctx, tx, command.FluctlightID, command.ExpectedLifeContextRevision, time.Now().UTC()); err != nil {
+		if live, err := service.app.requireLifeContextRevisionTx(ctx, tx, command.FluctlightID, command.ExpectedLifeContextRevision, service.app.now().UTC()); err != nil {
 			if !errors.Is(err, ErrLifeContextStale) || sourceFactID == "" || !sameTurnLifeEventTx(ctx, tx, command.FluctlightID, sourceFactID, stringValue(live["event_id"])) {
 				return publishedResource{}, err
 			}
@@ -139,7 +140,31 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 			return publishedResource{}, err
 		}
 	}
+	var inboundSequence int
 	if command.SuppressRecentDuplicate {
+		command.TopicKey = strings.ToLower(strings.Join(strings.Fields(command.TopicKey), " "))
+		command.Purpose = strings.ToLower(strings.Join(strings.Fields(command.Purpose), " "))
+		if command.TopicKey == "" || command.Purpose == "" {
+			return publishedResource{}, newCapabilityError("proactive_topic_and_purpose_required", false, ErrInvalidArguments)
+		}
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(max(sequence),0) FROM public.conversation_messages WHERE conversation_id=$1 AND author_actor_id<>$2 AND kind='user'`, command.ConversationID, command.FluctlightID).Scan(&inboundSequence); err != nil {
+			return publishedResource{}, err
+		}
+		window, err := proactiveTopicWindowWith(ctx, tx)
+		if err != nil {
+			return publishedResource{}, err
+		}
+		var previousID string
+		err = tx.QueryRow(ctx, `SELECT message_id FROM public.conversation_proactive_deliveries WHERE fluctlight_id=$1 AND conversation_id=$2 AND topic_key=$3 AND purpose=$4 AND inbound_sequence=$5 AND occurred_at >= $6 ORDER BY occurred_at DESC,message_id DESC LIMIT 1`, command.FluctlightID, command.ConversationID, command.TopicKey, command.Purpose, inboundSequence, service.app.now().UTC().Add(-window)).Scan(&previousID)
+		if err == nil {
+			return publishedResource{ID: previousID, DuplicateSuppressed: true}, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return publishedResource{}, err
+		}
+		if err := requireAwakeLifeTx(ctx, tx, command.FluctlightID, service.app.now().UTC()); err != nil {
+			return publishedResource{}, err
+		}
 		id, duplicate, err := recentExactAssistantMessageTx(ctx, tx, command.ConversationID, command.FluctlightID, command.Text, proactiveMessageDuplicateWindow)
 		if err != nil {
 			return publishedResource{}, err
@@ -155,7 +180,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if err != nil {
 		return publishedResource{}, err
 	}
-	snapshot, err := messageTimeForZone(zone, time.Now())
+	snapshot, err := messageTimeForZone(zone, service.app.now())
 	if err != nil {
 		return publishedResource{}, err
 	}
@@ -165,6 +190,14 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	}
 	if inserted.RowsAffected() == 0 {
 		return publishedResource{}, ErrReplyAlreadyPublished
+	}
+	if command.SuppressRecentDuplicate {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_proactive_deliveries(message_id,fluctlight_id,conversation_id,topic_key,purpose,inbound_sequence,occurred_at) VALUES($1,$2,$3,$4,$5,$6,$7)`, messageID, command.FluctlightID, command.ConversationID, command.TopicKey, command.Purpose, inboundSequence, service.app.now().UTC()); err != nil {
+			return publishedResource{}, err
+		}
+	}
+	if err := service.app.enqueueRuntimeSummaryTx(ctx, tx, command.FluctlightID, command.ConversationID, messageID); err != nil {
+		return publishedResource{}, err
 	}
 	if err := service.app.enqueueConversationSegmentTx(ctx, tx, command.FluctlightID, command.ConversationID, false); err != nil {
 		return publishedResource{}, err
@@ -227,6 +260,9 @@ func (service *ToolPublicationService) PublishMomentTx(ctx context.Context, tx p
 	}
 	if command.Text == "" || len([]rune(command.Text)) > 32000 {
 		return publishedResource{}, fmt.Errorf("%w: Moment text is invalid", ErrInvalidArguments)
+	}
+	if err := requireAwakeLifeTx(ctx, tx, command.FluctlightID, service.app.now().UTC()); err != nil {
+		return publishedResource{}, err
 	}
 	momentID := "moment_" + stableDigest(strings.Join([]string{command.FluctlightID, "moment.publish", command.OperationID}, "\x1f"))
 	var existingOwner, existingAuthor, existingText, existingVisibility, existingStatus string
@@ -325,6 +361,9 @@ func (service *ToolPublicationService) CreateMediaIntentTx(ctx context.Context, 
 		return true, existingStatus, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
+		return false, "", err
+	}
+	if err := requireAwakeLifeTx(ctx, tx, fluctlightID, service.app.now().UTC()); err != nil {
 		return false, "", err
 	}
 	if err := media.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, intentID, workflowID, requestID, conversationID, messageID, momentID); err != nil {

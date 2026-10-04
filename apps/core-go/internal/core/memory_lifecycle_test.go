@@ -625,7 +625,7 @@ FOR EACH ROW EXECUTE FUNCTION public.fail_reflection_watermark_test();`); err !=
 	var providerCalls atomic.Int32
 	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		responseProposal := proposal
-		if providerCalls.Add(1) == 1 {
+		if providerCalls.Add(1) <= 2 {
 			responseProposal = cloneMap(proposal)
 			responseProposal["memory_candidates"] = []any{map[string]any{}}
 		}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -22,7 +23,10 @@ func validTemporaryHairStyle(value string) bool {
 	return false
 }
 
-type appearanceStyleCapability struct{ repository *PostgresRepository }
+type appearanceStyleCapability struct {
+	repository *PostgresRepository
+	clock      func() time.Time
+}
 
 func appearanceStyleDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
@@ -84,6 +88,13 @@ func (c appearanceStyleCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv
 		return failedCapabilityResult(invocation, "appearance_plan_missing", false), errors.New("appearance plan missing")
 	}
 	fluctlightID := invocation.Metadata.FluctlightID
+	at := time.Now().UTC()
+	if c.clock != nil {
+		at = c.clock().UTC()
+	}
+	if err := requireAwakeLifeTx(ctx, tx, fluctlightID, at); err != nil {
+		return failedCapabilityResult(invocation, "life_state_sleeping", false), err
+	}
 	var revision int
 	var raw []byte
 	if err := tx.QueryRow(ctx, `SELECT revision,state_json FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&revision, &raw); err != nil {

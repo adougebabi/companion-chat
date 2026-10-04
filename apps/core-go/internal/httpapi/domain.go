@@ -620,7 +620,7 @@ func (s *Server) modelRuns(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	value, err := s.app.ModelRunsFiltered(r.Context(), actor, queryLimit(r), r.URL.Query().Get("correlation_id"))
+	value, err := s.app.ModelRunsPage(r.Context(), actor, queryLimit(r), r.URL.Query().Get("correlation_id"), r.URL.Query().Get("cursor"))
 	if err != nil {
 		s.opError(w, err, "diagnostics_model_runs_failed")
 		return
@@ -633,7 +633,7 @@ func (s *Server) agentRuns(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	value, err := s.app.AgentRunsFiltered(r.Context(), actor, queryLimit(r), r.URL.Query().Get("correlation_id"))
+	value, err := s.app.AgentRunsPage(r.Context(), actor, queryLimit(r), r.URL.Query().Get("correlation_id"), r.URL.Query().Get("cursor"))
 	if err != nil {
 		if errors.Is(err, core.ErrDiagnosticsFilterInvalid) {
 			s.opErrorWithDetails(w, err, "diagnostics_filter_invalid", diagnosticsFilterDetails())
@@ -689,7 +689,7 @@ func (s *Server) exportDiagnostics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(value)
+	writeJSON(w, http.StatusOK, value)
 }
 func (s *Server) workflowList(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)

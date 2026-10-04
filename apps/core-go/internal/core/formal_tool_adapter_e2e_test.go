@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -47,6 +48,12 @@ var formalToolAdapterInventory = []string{
 	"wardrobe.inspect",
 	"wardrobe.outfit.save",
 	"wardrobe.wear",
+	"actor.fact.record",
+	"actor.inspect",
+	"item.use",
+	"intention.schedule",
+	"schedule.inspect",
+	"schedule.edit",
 }
 
 type formalToolAdapterCase struct {
@@ -226,12 +233,20 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			if _, leaked := visibleResult["operation_id"]; leaked {
 				t.Fatalf("model-facing result leaked internal receipt identity: %#v", visibleResult)
 			}
-			expectedVisible := modelFacingToolResult(ToolExecutionReceipt{Result: results[0]}, definition)
+			var expectedVisible any = modelFacingToolResult(ToolExecutionReceipt{Result: results[0]}, definition)
+			codec, err := newProviderContextRefCodec(projection.ReferenceIndex)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedVisible, err = codec.encodeResult(expectedVisible)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if !formalAdapterSameBusinessOutput(expectedVisible, visibleResult) {
 				t.Fatalf("model-facing adapter result drifted: expected=%#v actual=%#v", expectedVisible, visibleResult)
 			}
 			adapterReceipt := ToolExecutionReceipt{OperationID: request.OperationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: results[0]}
-			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName {
+			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName && testCase.name != actorInspectCapabilityName && testCase.name != scheduleInspectCapabilityName {
 				requireFormalAdapterSQLCountArgs(t, fixture, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND operation_id=$3`, 1, fixture.fluctlightID, testCase.name, request.OperationID)
 			}
 			testCase.verify(t, fixture, adapterReceipt)
@@ -586,7 +601,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
 				id := stringValue(mapValue(receipt.Result.Output)["outfit_id"])
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_wardrobe_outfit_items WHERE fluctlight_id=$1 AND outfit_id=$2`, 1, f.fluctlightID, id)
-				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1`, 0, f.fluctlightID)
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1`, 1, f.fluctlightID)
 			},
 		},
 		{
@@ -600,6 +615,117 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			},
 			verify: func(t *testing.T, f *formalToolAdapterFixture, _ ToolExecutionReceipt) {
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND slot='top'`, 1, f.fluctlightID)
+			},
+		},
+		{
+			name: actorFactCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				source := actorFactSourceMessage(t, f.independentToolE2EFixture, "adapter-abroad", f.ownerID, "我住在国外")
+				request := f.request(actorFactCapabilityName, "adapter-actor-fact", map[string]any{"operation": "assert", "attribute": "location_scope", "value": "abroad", "assertion_type": "explicit_statement", "source_message_id": source, "reason": "用户明确自述"})
+				return request
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				id := stringValue(mapValue(receipt.Result.Output)["fact_id"])
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.actor_facts WHERE id=$1 AND owner_fluctlight_id=$2 AND status='active' AND epistemic_kind='user_statement'`, 1, id, f.fluctlightID)
+			},
+		},
+		{
+			name: actorInspectCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(actorInspectCapabilityName, "adapter-actor-inspect", map[string]any{})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				facts := arrayValue(mapValue(receipt.Result.Output)["facts"])
+				if len(facts) != 1 || mapValue(facts[0])["value"] != "abroad" {
+					t.Fatalf("Actor query lost actual source: %#v", receipt.Result.Output)
+				}
+			},
+		},
+		{
+			name: itemUseCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				var id string
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND item_kind='object'`, f.fluctlightID).Scan(&id); err != nil {
+					t.Fatal(err)
+				}
+				return f.request(itemUseCapabilityName, "adapter-item-use", map[string]any{"operation": "start", "item_id": id, "activity": "画画"})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_item_uses WHERE fluctlight_id=$1 AND item_id=$2`, 1, f.fluctlightID, stringValue(mapValue(receipt.Result.Output)["item_id"]))
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_item_use_events WHERE id=$1`, 1, stringValue(mapValue(receipt.Result.Output)["event_id"]))
+			},
+		},
+		{
+			name: scheduleActivityCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				at := time.Date(2030, 1, 2, 2, 0, 0, 0, time.UTC)
+				f.app.Clock = fixedClock(at)
+				life := currentLifeForTest(t, f.ctx, f.app, f.fluctlightID, at)
+				baseline := fullDaySchedulePayloadForTest(at, "formal-future-baseline", stringValue(life["context_revision"]))
+				if _, err := f.app.AcceptSchedule(f.ctx, f.ownerID, f.fluctlightID, baseline); err != nil {
+					t.Fatal(err)
+				}
+				f.app.SchedulePlanner = scheduledPlannerFunc(func(_ context.Context, input SchedulePlanInput) (map[string]any, error) {
+					history := cloneMap(mapValue(arrayValue(input.Schedule["items"])[0]))
+					delete(history, "id")
+					history["end_at"] = input.Schedule["completed_before"]
+					makeItem := func(from, to time.Time, activity, scene string, selected bool) map[string]any {
+						v := map[string]any{"start_at": formatInstant(from), "end_at": formatInstant(to), "activity": activity, "scene": scene, "item_type": "planned", "status": "planned", "priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5}
+						if selected {
+							v["planned_action_slot"] = true
+						}
+						return v
+					}
+					dayEnd, _ := parseScheduleTime(stringValue(mapValue(arrayValue(input.Schedule["items"])[0])["end_at"]))
+					return map[string]any{"reschedule_policy": map[string]any{}, "items": []any{history, makeItem(at, at.Add(time.Hour), "阅读", "书房", false), makeItem(at.Add(time.Hour), at.Add(90*time.Minute), "购买茶杯", "商场", true), makeItem(at.Add(90*time.Minute), dayEnd, "阅读", "书房", false)}}, nil
+				})
+				f.app.Capabilities = nil
+				f.app.Runtime = nil
+				return f.request(scheduleActivityCapabilityName, "formal-schedule-cup", map[string]any{"goal": "获得茶杯", "action": "去商场挑选茶杯", "expected_outcome": "实际持有茶杯", "reason": "需要自己的茶杯", "action_plan": map[string]any{"kind": "virtual_shopping", "duration_minutes": 15, "item_kind": "object", "category": "cup", "description": "瓷茶杯"}})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				output := mapValue(receipt.Result.Output)
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.life_schedule_items WHERE id=$1 AND intention_id=$2`, 1, output["schedule_item_id"], output["intention_id"])
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND category='cup'`, 0, f.fluctlightID)
+			},
+		},
+		{
+			name: scheduleInspectCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(scheduleInspectCapabilityName, "formal-schedule-inspect", map[string]any{"operation": "list"})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
+				if len(arrayValue(mapValue(receipt.Result.Output)["items"])) != 4 {
+					t.Fatalf("schedule query omitted immutable intervals: %#v", receipt.Result.Output)
+				}
+			},
+		},
+		{
+			name: scheduleEditCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				var id string
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT i.id FROM public.life_schedule_items i JOIN public.life_schedules s ON s.id=i.schedule_id WHERE s.fluctlight_id=$1 AND s.status='accepted' AND i.activity='购买茶杯'`, f.fluctlightID).Scan(&id); err != nil {
+					t.Fatal(err)
+				}
+				f.app.SchedulePlanner = scheduledPlannerFunc(func(_ context.Context, input SchedulePlanInput) (map[string]any, error) {
+					items := []any{}
+					for _, raw := range arrayValue(input.Schedule["items"]) {
+						item := cloneMap(mapValue(raw))
+						if stringValue(item["id"]) == id {
+							item["source_item_id"] = id
+							item["activity"] = "挑选瓷茶杯"
+						}
+						delete(item, "id")
+						items = append(items, item)
+					}
+					return map[string]any{"items": items, "reschedule_policy": map[string]any{}}, nil
+				})
+				f.app.Capabilities = nil
+				f.app.Runtime = nil
+				return f.request(scheduleEditCapabilityName, "formal-schedule-edit", map[string]any{"operation": "revise", "item_id": id, "expected_revision": 2, "intent": "更具体地安排挑选茶杯", "reason": "明确下一步", "changes": map[string]any{"activity": "挑选瓷茶杯"}})
+			},
+			verify: func(t *testing.T, f *formalToolAdapterFixture, _ ToolExecutionReceipt) {
+				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.life_schedule_items i JOIN public.life_schedules s ON s.id=i.schedule_id WHERE s.fluctlight_id=$1 AND s.status='accepted' AND i.activity='挑选瓷茶杯' AND i.intention_id IS NOT NULL`, 1, f.fluctlightID)
 			},
 		},
 	}
@@ -626,7 +752,8 @@ func newFormalToolAdapterFixture(t *testing.T) *formalToolAdapterFixture {
 	wardrobeFoundation := cloneMap(persona)
 	mapValue(mapValue(wardrobeFoundation["life_profile"])["appearance"])["physical_features"] = map[string]any{"hair_length": "medium"}
 	mapValue(mapValue(wardrobeFoundation["life_profile"])["appearance"])["wardrobe_items"] = []any{
-		map[string]any{"category": "shirt", "slot": "top", "description": "正式 adapter 白衬衫", "ownership": "owned", "available": true, "currently_worn": false},
+		map[string]any{"category": "shirt", "slot": "top", "description": "正式 adapter 白衬衫", "ownership": "owned", "available": true, "currently_worn": true},
+		map[string]any{"item_kind": "object", "category": "art_supply", "description": "明确初始持有的画笔", "ownership": "owned", "available": true},
 	}
 	if err := withTransaction(base.ctx, base.repository.Pool(), func(tx pgx.Tx) error {
 		return initializeEffectiveLifeTx(base.ctx, tx, base.fluctlightID, wardrobeFoundation)

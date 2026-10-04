@@ -20,6 +20,8 @@ import (
 // removed product Tool silently shrink this suite.
 var independentToolProductInventory = []string{
 	"active_memory_event",
+	"actor.fact.record",
+	"actor.inspect",
 	"affect_event",
 	"appearance.style",
 	"capability.request",
@@ -29,6 +31,7 @@ var independentToolProductInventory = []string{
 	"intention.decide",
 	"intention.inspect",
 	"intention.schedule",
+	"item.use",
 	"life.activity.advance",
 	"life.activity.start",
 	"media.image.generate",

@@ -28,6 +28,7 @@ func memoryCapabilityDefinition() CapabilityDefinition {
 			"type": "object", "additionalProperties": false,
 			"required": []any{"content", "type", "confidence", "importance"},
 			"properties": map[string]any{
+				"actor_fact_ids":         map[string]any{"type": "array", "maxItems": 16, "items": stringSchema()},
 				"operation":              map[string]any{"type": "string", "enum": []any{"create", "revise"}},
 				"target_ref":             map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes},
 				"content":                map[string]any{"type": "string", "minLength": 1, "maxLength": 32000},
@@ -110,7 +111,7 @@ func (a *App) prepareMemoryCapability(ctx context.Context, invocation Capability
 		OwnerFluctlightID: invocation.Metadata.FluctlightID, OwnerActorID: ownerActorID, ActorID: invocation.Metadata.FluctlightID,
 		ActiveProfileID: activeProfileID, ConversationID: invocation.Metadata.ConversationID,
 		ActorRefs: []string{}, EventRefs: []string{}, EvidenceRefs: evidence, Semantic: &semantic,
-		Visibility: "private", OccurredAt: time.Now().UTC(), SourceFactID: invocation.SourceFactID,
+		Visibility: "private", OccurredAt: a.now().UTC(), SourceFactID: invocation.SourceFactID,
 		AuthenticatedDirect: invocation.Metadata.Source == "direct",
 		CandidateIndex:      -1, SemanticReason: "explicit_memory_event",
 		IdempotencyKey: "memory:" + string(operation) + ":" + invocation.Metadata.FluctlightID + ":" + capabilityOperationID(invocation),
@@ -167,6 +168,26 @@ func (a *App) applyMemoryCapabilityTx(ctx context.Context, tx pgx.Tx, invocation
 	if err != nil {
 		code, retryable := capabilityErrorInfo(err, "memory_apply_failed", true)
 		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), err
+	}
+	var nativeArgs map[string]any
+	if err := jsonUnmarshal(invocation.Arguments, &nativeArgs); err != nil {
+		return failedCapabilityResult(invocation, "invalid_arguments", false), err
+	}
+	if invocation.Metadata.Source != "direct" {
+		if index, err := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"]); err == nil {
+			for _, entry := range index.ByRef {
+				if entry.Kind == ContextReferenceActorFact {
+					if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, entry.EntityID, "memory", result.MemoryID, result.Revision, a.now().UTC()); err != nil {
+						return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), err
+					}
+				}
+			}
+		}
+	}
+	for _, raw := range arrayValue(nativeArgs["actor_fact_ids"]) {
+		if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, stringValue(raw), "memory", result.MemoryID, result.Revision, a.now().UTC()); err != nil {
+			return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), err
+		}
 	}
 	output := map[string]any{
 		"operation": string(result.Operation), "memory_id": result.MemoryID, "status": result.Status,

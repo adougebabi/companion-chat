@@ -18,6 +18,10 @@ func compactReflectionEvidenceV2(evidence []map[string]any) []map[string]any {
 	for _, item := range evidence {
 		eventType := boundedReflectionScalarText(item["event_type"], 128)
 		entry := map[string]any{"event_type": eventType, "evidence_ref": "sequence:" + fmt.Sprint(item["sequence"])}
+		if eventType == "internal.wake_up" {
+			entry["trigger_source"] = "periodic_check"
+			entry["physiological_event"] = false
+		}
 		if occurredAt, ok := item["occurred_at"].(time.Time); ok && !occurredAt.IsZero() {
 			entry["occurred_at"] = occurredAt.UTC().Format(time.RFC3339Nano)
 		}
@@ -142,7 +146,7 @@ func (a *App) processReflectionV2(
 	memoryAllowedEvidence map[string]struct{},
 	memoryEvidenceScopes map[string]reflectionMemoryEvidenceScope,
 ) (map[string]any, error) {
-	reflectionAt := time.Now().UTC()
+	reflectionAt := a.now().UTC()
 	activeMemoryResult, err := a.retrieveActiveMemories(ctx, ActiveMemoryQuery{
 		AuthorizationActorID: ownerActorID, OwnerFluctlightID: fluctlightID,
 		ConversationID: projection.ConversationID, Cue: projection.CurrentUserText, At: reflectionAt, Limit: activeMemoryResultLimit,
@@ -204,7 +208,7 @@ func (a *App) processReflectionV2(
 	evolutionOutcomes := make([]ActionOutcome, 0)
 	for index, item := range evidence {
 		sequence := intValue(item["sequence"])
-		occurredAt := time.Now().UTC()
+		occurredAt := reflectionAt
 		if value, ok := item["occurred_at"].(time.Time); ok && !value.IsZero() {
 			occurredAt = value.UTC()
 		}
@@ -282,7 +286,7 @@ func (a *App) processReflectionV2(
 		}
 		decision, compileErr := CompileEvolutionOverlay(workingOverlayState, EvolutionOverlayRequest{
 			ExpectedRevision: workingOverlayState.Revision, Candidate: candidate,
-			EvidenceWindows: evidenceWindows, OccurredAt: time.Now().UTC(),
+			EvidenceWindows: evidenceWindows, OccurredAt: reflectionAt,
 		}, EvolutionOverlayPolicy{})
 		if compileErr != nil {
 			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
@@ -381,6 +385,9 @@ func (a *App) processReflectionV2(
 				return ErrConflict
 			}
 		}
+		if err := validateActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, a.now().UTC()); err != nil {
+			return err
+		}
 		activeMemoryResults, err = a.applyReflectionActiveMemoryCommandsTx(ctx, tx, activeMemoryCommands)
 		if err != nil {
 			return err
@@ -390,11 +397,25 @@ func (a *App) processReflectionV2(
 		if err != nil {
 			return err
 		}
+		for _, result := range memoryResults {
+			if result.MemoryID != "" && result.Status == "active" {
+				if err := attachActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, "memory", result.MemoryID, result.Revision, a.now().UTC()); err != nil {
+					return err
+				}
+			}
+		}
+		for _, result := range activeMemoryResults {
+			if result.ActiveMemoryID != "" && result.Status == "active" {
+				if err := attachActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, "active_memory", result.ActiveMemoryID, result.Revision, a.now().UTC()); err != nil {
+					return err
+				}
+			}
+		}
 		reconcileReflectionMemoryDispositions(&plan, memoryResults)
-		if err := applyReflectionGoalCandidatesV2Tx(ctx, tx, fluctlightID, proposal, plan, evolution, time.Now().UTC()); err != nil {
+		if err := applyReflectionGoalCandidatesV2Tx(ctx, tx, fluctlightID, proposal, plan, evolution, a.now().UTC()); err != nil {
 			return err
 		}
-		if err := applyReflectionIntentionCandidatesV2Tx(ctx, tx, fluctlightID, proposal, plan, projection.ReferenceIndex, time.Now().UTC()); err != nil {
+		if err := applyReflectionIntentionCandidatesV2Tx(ctx, tx, fluctlightID, proposal, plan, projection.ReferenceIndex, a.now().UTC()); err != nil {
 			return err
 		}
 		if err := applyReflectionAffectProfileV2Tx(ctx, tx, fluctlightID, proposal, plan); err != nil {
@@ -408,6 +429,24 @@ func (a *App) processReflectionV2(
 		}
 		if err := a.applyReflectionDevelopingSelfV2Tx(ctx, tx, fluctlightID, proposal, plan, evolution); err != nil {
 			return err
+		}
+		for _, candidatePlan := range plan.Candidates {
+			if candidatePlan.Domain != EvolutionDevelopingSelf || candidatePlan.Disposition != EvolutionAccepted {
+				continue
+			}
+			candidate := proposal.DevelopingSelfCandidates[candidatePlan.Index]
+			var id string
+			var revision int
+			err := tx.QueryRow(ctx, `SELECT id,revision FROM public.fluctlight_developing_self_claims WHERE fluctlight_id=$1 AND category=$2 AND claim=$3 AND status IN ('active','uncertain') ORDER BY revision DESC LIMIT 1`, fluctlightID, candidate.Category, candidate.Claim).Scan(&id, &revision)
+			if errors.Is(err, pgx.ErrNoRows) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if err := attachActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, "developing_self", id, revision, a.now().UTC()); err != nil {
+				return err
+			}
 		}
 		liveOverlayState, loadErr := loadPersonaEvolutionState(ctx, tx, overlayBaseline)
 		if loadErr != nil {
@@ -427,6 +466,9 @@ func (a *App) processReflectionV2(
 			}
 			if _, persistErr := persistEvolutionOverlayTx(ctx, tx, liveOverlayState, nextState, *decision.Overlay); persistErr != nil {
 				return persistErr
+			}
+			if err := attachActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, "evolution_overlay", decision.Overlay.ID, decision.Overlay.Revision, a.now().UTC()); err != nil {
+				return err
 			}
 			liveOverlayState = nextState
 		}

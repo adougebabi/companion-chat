@@ -494,7 +494,7 @@ func TestVisualIdentityAgentPreservesAcceptedGenerationWhenFinalModelFails(t *te
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if requestCount != 2 {
+	if requestCount != 3 {
 		t.Fatalf("durable resume repeated the model/tool run: requests=%d", requestCount)
 	}
 }

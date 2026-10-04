@@ -44,6 +44,27 @@ func TestNativePersonaLoopUsesGenericIterationGuardInsteadOfLegacyStageBudget(t 
 	if stringValue(result.Assistant["text"]) != "四轮工具后完成" {
 		t.Fatalf("assistant=%#v", result.Assistant)
 	}
+	rows, err := repository.Pool().Query(ctx, `SELECT payload FROM public.diagnostic_events WHERE event_type='adk.model.input_budget' ORDER BY created_at,id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	budgets := []any{}
+	for rows.Next() {
+		var raw []byte
+		if err := rows.Scan(&raw); err != nil {
+			t.Fatal(err)
+		}
+		budgets = append(budgets, decodeObject(raw))
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if len(budgets) < step {
+		t.Fatalf("physical budgets=%d calls=%d", len(budgets), step)
+	}
+	t.Logf("PHYSICAL_BUDGET_EVIDENCE=%s", jsonString(map[string]any{"conversation_id": conversationID, "physical_main_calls": step, "budgets": budgets, "measurement": "scripted Provider and actual PostgreSQL; estimates, not live usage"}))
+
 }
 
 // A committed Tool receipt is the recovery unit. If the later final DTO is
@@ -70,7 +91,7 @@ func TestInvalidFinalKeepsCommittedPersonaReceiptAndFailedRunDoesNotReplay(t *te
 	if _, err := app.HandleTurn(ctx, ownerID, conversationID, payload); err == nil || !strings.Contains(err.Error(), "adk_final_output_invalid") {
 		t.Fatalf("invalid final must fail after the committed switch: %v", err)
 	}
-	if step != 2 || readActiveProfileForGate(t, ctx, repository, fluctlightID) != "twilight" {
+	if step != 3 || readActiveProfileForGate(t, ctx, repository, fluctlightID) != "twilight" {
 		t.Fatalf("switch was not committed before final failure: steps=%d active=%q", step, readActiveProfileForGate(t, ctx, repository, fluctlightID))
 	}
 	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.platform_outbox_events WHERE aggregate_type='persona_action' AND fluctlight_id=$1 AND kind='persona.switch.committed'`, fluctlightID); count != 1 {

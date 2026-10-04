@@ -30,7 +30,7 @@ func (a *App) processScheduledIntentionTrigger(ctx context.Context, intentionID,
 			if strings.HasPrefix(evidence, "schedule-item:") {
 				if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 					return cancelScheduledIntentionTx(ctx, tx, fluctlightID, intentionID, evidence,
-						"stale-schedule-intention:"+intentionID, time.Now().UTC())
+						"stale-schedule-intention:"+intentionID, a.now().UTC())
 				}); err != nil {
 					return nil, true, err
 				}
@@ -51,7 +51,7 @@ func (a *App) processScheduledIntentionTrigger(ctx context.Context, intentionID,
 	if parseErr != nil || stringValue(trigger["type"]) != string(IntentionTriggerTime) || !triggerAt.Equal(startAt) || (status != string(IntentionQualified) && status != string(IntentionDue)) {
 		return map[string]any{"intention_id": intentionID, "status": "stale_schedule"}, true, nil
 	}
-	now := time.Now().UTC()
+	now := a.now().UTC()
 	if now.Before(startAt) {
 		return map[string]any{"intention_id": intentionID, "status": "pending"}, true, nil
 	}
@@ -119,8 +119,8 @@ func (a *App) ResolveScheduledLifeActivity(ctx context.Context, activityID strin
 	if status == "completed" || status == "failed" || status == "cancelled" {
 		return map[string]any{"activity_id": activityID, "status": status}, nil
 	}
-	if time.Now().UTC().Before(notBefore) {
-		return map[string]any{"activity_id": activityID, "status": "pending", "not_before": notBefore.UTC().Format(time.RFC3339Nano)}, nil
+	if a.now().UTC().Before(notBefore) {
+		return map[string]any{"activity_id": activityID, "status": "pending", "not_before": notBefore.UTC().Format(instantLayout)}, nil
 	}
 	receipt, err := a.ExecuteTool(ctx, ToolExecutionRequest{
 		CapabilityName:       lifeActivityAdvanceCapabilityName,

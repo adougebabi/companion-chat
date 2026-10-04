@@ -159,3 +159,46 @@ assistantDraft.text = assistantText;
 ```ts
 messages.splice(index, 1, { ...messages[index], text: assistantText });
 ```
+
+
+## Scenario: Diagnostic Run Pages And Explicit Timezone
+
+### 1. Scope / Trigger
+
+Agent/model diagnostics navigation, polling, filter changes and load-more.
+
+### 2. Signatures
+
+`BrowserDiagnosticRunPage<T> = {items:T[],nextCursor:string,snapshot:string}`;
+`loadMoreDiagnosticRuns("model"|"agent")`; `formatInstantInZone(instant,zone)`.
+
+### 3. Contracts
+
+Keep server global order. Correlation detail alone orders physical steps forward.
+Use separate Agent/model cursors and filter epochs; reject late epoch responses.
+Set `diagnosticOlderPagesLoaded` after any loaded older page, including partial
+pages; background polling pauses until explicit refresh resets that state.
+Do not infer pagination position from `rows.length>20`. `agent-runs` must remain
+selected on refresh/back navigation. Timezone is an explicit display choice;
+all displayed instants retain milliseconds and numeric offsets.
+
+### 4. Validation & Error Matrix
+
+Stale filter response: discard. Duplicate page record: dedupe by stable identity.
+No next cursor: hide load-more. Older page loaded: polling must not erase it.
+
+### 5. Good / Base / Bad Cases
+
+Good: new successful row stays before old failed row after append.
+Base: empty list stays empty. Bad: reverse only the current page or prioritize errors.
+
+### 6. Tests Required
+
+Core/BFF cursor envelope tests; generated-client parity; executable Web polling
+regression for a 2-row partial page; production-build browser append/refresh,
+explicit timezone and 390px overflow/console checks. UI fixtures are not live API E2E.
+
+### 7. Wrong vs Correct
+
+Wrong: pause polling only when `rows.length > 20`.
+Correct: pause polling based on explicit older-page navigation state.

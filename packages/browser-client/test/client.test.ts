@@ -250,3 +250,22 @@ test("BrowserClient serializes the schema-derived Life Context command contracts
 		{ url: "http://fluctlight.local/api/fluctlights/fl-1/schedules/schedule-1/cancel", method: "POST", body: { expectedRevision: 1, expectedLifeContextRevision: lifeRevision, idempotencyKey: "schedule-cancel-1" } },
 	]);
 });
+
+test("diagnostic pages preserve the envelope and encode cursor/filter for both sources", async () => {
+  const requests: URL[] = [];
+  const page = { items: [{ id: "latest", status: "completed" }, { id: "older", status: "failed" }], nextCursor: "next:+/=", snapshot: "fixed-membership" };
+  const client = new BrowserClient("http://fluctlight.local", async (input) => {
+    requests.push(new URL(String(input)));
+    return Response.json(page);
+  });
+  const model = await client.diagnosticModelRuns({limit:2,correlationId:"corr +/&",cursor:"previous:+/="});
+  const agent = await client.diagnosticAgentRuns({limit:2,correlationId:"corr +/&",cursor:"previous:+/="});
+  assert.deepEqual(model,page);
+  assert.deepEqual(agent,page);
+  assert.deepEqual(requests.map(url=>url.pathname),["/api/diagnostics/model-runs","/api/diagnostics/agent-runs"]);
+  for (const url of requests) {
+    assert.equal(url.searchParams.get("cursor"),"previous:+/=");
+    assert.equal(url.searchParams.get("correlationId"),"corr +/&");
+    assert.equal(url.searchParams.get("limit"),"2");
+  }
+});

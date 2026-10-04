@@ -95,7 +95,7 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 	if len(evidence) != 1 || evidence[0] != invocation.SourceFactID {
 		return invocation, errors.New("scene_runtime_evidence_invalid")
 	}
-	occurredAt := time.Now().UTC()
+	occurredAt := a.now().UTC()
 	plan := preparedSceneMutation{
 		SchemaVersion: sceneMutationPlanVersion, Operation: operation, Scene: scene, Activity: activity,
 		Location: stringValue(args["location"]), Confidence: confidence, EvidenceRefs: evidence,
@@ -147,7 +147,7 @@ func (a *App) preparePresenceCapability(_ context.Context, invocation Capability
 	if len(evidence) != 1 || evidence[0] != invocation.SourceFactID {
 		return invocation, errors.New("presence_runtime_evidence_invalid")
 	}
-	occurredAt := time.Now().UTC()
+	occurredAt := a.now().UTC()
 	var expiresAt *time.Time
 	if operation == "set" {
 		expires := occurredAt.Add(presenceDefaultDuration)

@@ -13,8 +13,7 @@ import (
 // A scheduled activity has no confirmed outcome until advance commits one.
 // If its Intention was revoked in the meantime, close that pending run before
 // any Life Event or appearance effect can be written.
-func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte) (CapabilityResult, error) {
-	now := time.Now().UTC()
+func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte, now time.Time) (CapabilityResult, error) {
 	currentResult := decodeObject(resultRaw)
 	currentResult["result"] = map[string]any{"status": "cancelled", "reason": "scheduled_intention_inactive"}
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET status='cancelled',resolved_at=$3,result_json=$4,revision=revision+1 WHERE id=$1 AND fluctlight_id=$2 AND revision=$5`, activityID, fluctlightID, now, jsonBytes(currentResult), revision)
@@ -35,7 +34,7 @@ func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, invo
 
 func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invocation CapabilityInvocation, activityID, fluctlightID, profileID, intentionID, kind string, revision int, result map[string]any) (CapabilityResult, error) {
 	status := stringValue(result["status"])
-	now := time.Now().UTC()
+	now := app.now().UTC()
 	if status == "deferred" {
 		nextDue := now.Add(30 * time.Minute)
 		command, err := tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET status='deferred',not_before=$3,result_json=jsonb_set(result_json,'{last_result}',$4::jsonb,true),revision=revision+1 WHERE id=$1 AND fluctlight_id=$2 AND revision=$5`, activityID, fluctlightID, nextDue, jsonBytes(result), revision)
@@ -46,11 +45,11 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 			return failedCapabilityResult(invocation, "activity_defer_failed", true), err
 		}
 		if err := appendOutboxTx(ctx, tx, "life.activity.deferred", "life_activity", activityID, fluctlightID, invocation.SourceFactID,
-			"activity:"+activityID, "activity-deferred:"+activityID+":"+fmt.Sprint(revision+1), map[string]any{"activity_id": activityID, "revision": revision + 1, "not_before": nextDue.Format(time.RFC3339Nano)}); err != nil {
+			"activity:"+activityID, "activity-deferred:"+activityID+":"+fmt.Sprint(revision+1), map[string]any{"activity_id": activityID, "revision": revision + 1, "not_before": nextDue.Format(instantLayout)}); err != nil {
 			return failedCapabilityResult(invocation, "activity_event_failed", true), err
 		}
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "accepted",
-			Output:            map[string]any{"activity_id": activityID, "status": "deferred", "not_before": nextDue.Format(time.RFC3339Nano)},
+			Output:            map[string]any{"activity_id": activityID, "status": "deferred", "not_before": nextDue.Format(instantLayout)},
 			ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
 	}
 	var startedAt time.Time
@@ -65,8 +64,8 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	if err := validateVirtualActivityResult(kind, request, result); err != nil {
 		return failedCapabilityResult(invocation, "activity_result_invalid", false), err
 	}
-	businessCompleted := status == "completed" && (kind != "virtual_shopping" || len(mapValue(result["acquired_item"])) > 0)
-	if _, err := tx.Exec(ctx, `UPDATE public.life_events SET end_at=LEAST(end_at,$3),expires_at=$3,revision=revision+1,updated_at=$3 WHERE id=(SELECT authority_event_id FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2) AND fluctlight_id=$2 AND status IN ('confirmed','inferred')`, activityID, fluctlightID, now); err != nil {
+	businessCompleted := status == "completed" && (kind != "virtual_shopping" || len(acquiredShoppingItems(result)) > 0)
+	if _, err := tx.Exec(ctx, `UPDATE public.life_events SET end_at=LEAST(end_at,$3),expires_at=$3,revision=revision+1,result=jsonb_set(result,'{revision}',to_jsonb(revision+1),true),updated_at=$3 WHERE id=(SELECT authority_event_id FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2) AND fluctlight_id=$2 AND status IN ('confirmed','inferred')`, activityID, fluctlightID, now); err != nil {
 		return failedCapabilityResult(invocation, "activity_authority_end_failed", true), err
 	}
 	eventID := "life_event_" + stableDigest(activityID+"\x1fresult")
@@ -91,13 +90,25 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	if status == "completed" {
 		switch kind {
 		case "virtual_shopping":
-			if acquired := mapValue(result["acquired_item"]); len(acquired) > 0 {
-				itemID, wardrobeRevision, err := grantVirtualPurchaseItemTx(ctx, tx, fluctlightID, eventID, acquired)
+			acquired := acquiredShoppingItems(result)
+			ids := make([]string, 0, len(acquired))
+			for index, item := range acquired {
+				key := "primary"
+				if len(acquired) > 1 {
+					key = fmt.Sprintf("member:%d", index)
+				}
+				itemID, wardrobeRevision, err := grantVirtualPurchaseMemberTx(ctx, tx, fluctlightID, eventID, key, item)
 				if err != nil {
 					return failedCapabilityResult(invocation, "purchase_item_invalid", true), err
 				}
-				output["item_id"], output["wardrobe_revision"] = itemID, wardrobeRevision
+				ids = append(ids, itemID)
+				output["wardrobe_revision"] = wardrobeRevision
 			}
+			if len(ids) > 0 {
+				output["item_ids"] = ids
+				output["item_id"] = ids[0]
+			}
+
 		case "haircut":
 			bodyRevision, err := applyHaircutResultTx(ctx, tx, fluctlightID, eventID, result)
 			if err != nil {
@@ -131,12 +142,12 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 		settlementStatus, reasonCode = "failed", "virtual_activity_no_acquisition"
 	}
 	settlement := map[string]any{"status": settlementStatus, "resulting_state_ref": eventID, "reason_code": reasonCode}
-	outcomes, err := buildActionOutcomes(activityID, fluctlightID, eventID, kind, nil, settlement, nil)
+	outcomes, err := buildActionOutcomes(activityID, fluctlightID, eventID, kind, nil, settlement, nil, now)
 	if err != nil {
 		return failedCapabilityResult(invocation, "activity_outcome_invalid", true), err
 	}
 	var scheduledGoalID string
-	if businessCompleted && intentionID != "" && stringValue(request["schedule_item_id"]) != "" {
+	if intentionID != "" {
 		if err := tx.QueryRow(ctx, `SELECT COALESCE(goal_id,'') FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2`, intentionID, fluctlightID).Scan(&scheduledGoalID); err != nil {
 			return failedCapabilityResult(invocation, "activity_goal_read_failed", true), err
 		}
@@ -188,7 +199,7 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 			output["intention_id"] = intentionID
 		}
 	}
-	if scheduledGoalID != "" {
+	if businessCompleted && scheduledGoalID != "" {
 		if err := completeScheduledGoalTx(ctx, tx, fluctlightID, scheduledGoalID, activityID, outcomes[0], now); err != nil {
 			return failedCapabilityResult(invocation, "activity_goal_settlement_failed", true), err
 		}
@@ -222,7 +233,7 @@ func completeScheduledGoalTx(ctx context.Context, tx pgx.Tx, fluctlightID, goalI
 	if err != nil {
 		return err
 	}
-	if goalStatusTerminal(goal.Status) || len(goal.SuccessCriteria) != 1 {
+	if goalStatusTerminal(goal.Status) || goal.Scope == "relationship" || len(goal.SuccessCriteria) != 1 {
 		return nil
 	}
 	next, record, err := ApplyGoalProgress(goal, GoalProgressProposal{
@@ -249,22 +260,25 @@ func verifyCompletedActivityEventTx(ctx context.Context, tx pgx.Tx, fluctlightID
 }
 
 func grantVirtualPurchaseItemTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID string, item map[string]any) (string, int, error) {
+	return grantVirtualPurchaseMemberTx(ctx, tx, fluctlightID, eventID, "primary", item)
+}
+func grantVirtualPurchaseMemberTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID, key string, item map[string]any) (string, int, error) {
 	if err := verifyCompletedActivityEventTx(ctx, tx, fluctlightID, eventID, "virtual_shopping"); err != nil {
 		return "", 0, err
 	}
-	category, slot, description := strings.TrimSpace(stringValue(item["category"])), strings.TrimSpace(stringValue(item["slot"])), strings.TrimSpace(stringValue(item["description"]))
-	if category == "" || slot == "" || description == "" {
-		return "", 0, ErrInvalidArguments
-	}
-	itemID := "wardrobe_" + stableDigest(fluctlightID+"\x1f"+eventID+"\x1fprimary")
-	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key) VALUES($1,$2,$3,$4,$5,'owned','available','purchase_result',$6,'primary')`, itemID, fluctlightID, category, slot, description, eventID); err != nil {
+	normalized, err := normalizeShoppingItem(item)
+	if err != nil {
 		return "", 0, err
 	}
-	var wardrobeRevision int
-	if err := tx.QueryRow(ctx, `UPDATE public.fluctlight_wardrobe_states SET revision=revision+1,updated_at=now() WHERE fluctlight_id=$1 RETURNING revision`, fluctlightID).Scan(&wardrobeRevision); err != nil {
+	itemID := "wardrobe_" + stableDigest(fluctlightID+"\x1f"+eventID+"\x1f"+key)
+	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,item_kind,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key,acquired_at) SELECT $1::text,$2::text,$3::text,$4::text,$5::text,$6::text,'owned','available','purchase_result',$7::text,$8::text,end_at FROM public.life_events WHERE id=$7::text`, itemID, fluctlightID, normalized["item_kind"], normalized["category"], normalized["slot"], normalized["description"], eventID, key); err != nil {
 		return "", 0, err
 	}
-	return itemID, wardrobeRevision, nil
+	var revision int
+	if err := tx.QueryRow(ctx, `UPDATE public.fluctlight_wardrobe_states SET revision=revision+1,updated_at=now() WHERE fluctlight_id=$1 RETURNING revision`, fluctlightID).Scan(&revision); err != nil {
+		return "", 0, err
+	}
+	return itemID, revision, nil
 }
 
 func applyHaircutResultTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID string, result map[string]any) (int, error) {

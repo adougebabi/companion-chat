@@ -603,6 +603,8 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	extra := map[string]any{}
 	if call.EnableThinking {
 		extra["enable_thinking"] = true
+	} else if call.SchemaName == "conversation_summary_v1" {
+		extra["enable_thinking"] = false
 	}
 	if len(call.Definitions) > 1 {
 		extra["parallel_tool_calls"] = true
@@ -677,6 +679,8 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	extra := map[string]any{}
 	if call.EnableThinking {
 		extra["enable_thinking"] = true
+	} else if call.SchemaName == "conversation_summary_v1" {
+		extra["enable_thinking"] = false
 	}
 	if len(call.Definitions) > 1 {
 		extra["parallel_tool_calls"] = true

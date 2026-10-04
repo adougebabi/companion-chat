@@ -81,6 +81,12 @@ intention.inspect
 intention.decide
 life.activity.start
 life.activity.advance
+actor.inspect
+actor.fact.record
+item.use
+schedule.inspect
+schedule.edit
+intention.schedule
 EOF
 }
 
@@ -185,6 +191,9 @@ tool_test_regex() {
     habit.inspect|habit.decide) printf '%s\n' '^TestHabitDecisionUpdatesPortraitWithoutChangingWearingOrInventory$' ;;
     intention.inspect|intention.decide) printf '%s\n' '^TestIntentionIndependentToolPersistsAcrossDaysAndDoesNotConflatePlanWithResult$' ;;
     life.activity.start|life.activity.advance) printf '%s\n' '^(TestVirtualShoppingActivityRequiresElapsedResultAndReusesPurchasedItem|TestFailedVirtualShoppingDoesNotCreateItemOrCompleteIntention|TestVirtualHaircutUpdatesSharedBodyAndLeavesHistoricalFoundation)$' ;;
+    actor.inspect|actor.fact.record) printf '%s\n' '^TestActorFact|^TestActorCorrection' ;;
+    item.use) printf '%s\n' '^TestOrdinaryObjectAcquisitionAndIndependentUseShareOneAuthority$' ;;
+    schedule.inspect|schedule.edit|intention.schedule) printf '%s\n' '^(TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody|TestCancelledScheduledIntentionCannotStartDyeOrChangeColor|TestIntentionScheduleCreatesCurrentDayWhenNoScheduleExists|TestCancellingAcceptedScheduleClosesLinkedIntentionAndGoal|TestStartedScheduledDyeBlocksReplanAndStaleVersionCannotSettle)$' ;;
     persona.detail) printf '%s\n' '^TestPersonaDetailIndependentToolReadsCanonicalSource$' ;;
     relationship.lookup) printf '%s\n' '^TestIndependentToolE2ERelationshipLookup$' ;;
     capability.request) printf '%s\n' '^TestIndependentToolE2ECapabilityRequest$' ;;
@@ -215,6 +224,9 @@ tool_expected_tests() {
     habit.inspect|habit.decide) printf '%s\n' TestHabitDecisionUpdatesPortraitWithoutChangingWearingOrInventory ;;
     intention.inspect|intention.decide) printf '%s\n' TestIntentionIndependentToolPersistsAcrossDaysAndDoesNotConflatePlanWithResult ;;
     life.activity.start|life.activity.advance) printf '%s\n' TestVirtualShoppingActivityRequiresElapsedResultAndReusesPurchasedItem TestFailedVirtualShoppingDoesNotCreateItemOrCompleteIntention TestVirtualHaircutUpdatesSharedBodyAndLeavesHistoricalFoundation ;;
+    actor.inspect|actor.fact.record) printf '%s\n' TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject ;;
+    item.use) printf '%s\n' TestOrdinaryObjectAcquisitionAndIndependentUseShareOneAuthority ;;
+    schedule.inspect|schedule.edit|intention.schedule) printf '%s\n' TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody TestCancelledScheduledIntentionCannotStartDyeOrChangeColor TestIntentionScheduleCreatesCurrentDayWhenNoScheduleExists TestCancellingAcceptedScheduleClosesLinkedIntentionAndGoal TestStartedScheduledDyeBlocksReplanAndStaleVersionCannotSettle ;;
     persona.detail) printf '%s\n' TestPersonaDetailIndependentToolReadsCanonicalSource ;;
     relationship.lookup) printf '%s\n' TestIndependentToolE2ERelationshipLookup ;;
     capability.request) printf '%s\n' TestIndependentToolE2ECapabilityRequest ;;

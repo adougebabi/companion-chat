@@ -67,10 +67,11 @@ func initializeEffectiveLifeTx(ctx context.Context, tx pgx.Tx, fluctlightID stri
 			if !ok {
 				return fmt.Errorf("initial_wardrobe_item_%d_invalid", index)
 			}
+			kind := firstString(item["item_kind"], "wearable")
 			category := strings.TrimSpace(stringValue(item["category"]))
 			slot := strings.TrimSpace(stringValue(item["slot"]))
 			description := strings.TrimSpace(stringValue(item["description"]))
-			if category == "" || slot == "" || description == "" || len([]rune(category)) > 64 || len([]rune(slot)) > 64 || len([]rune(description)) > 512 {
+			if (kind != "wearable" && kind != "object") || (kind == "wearable" && slot == "") || (kind == "object" && slot != "") || category == "" || description == "" || len([]rune(category)) > 64 || len([]rune(slot)) > 64 || len([]rune(description)) > 512 {
 				return fmt.Errorf("initial_wardrobe_item_%d_fields_invalid", index)
 			}
 			ownership := firstString(stringValue(item["ownership"]), "unknown")
@@ -93,7 +94,7 @@ func initializeEffectiveLifeTx(ctx context.Context, tx pgx.Tx, fluctlightID stri
 				}
 				worn = flag
 			}
-			if worn && !available {
+			if worn && (kind != "wearable" || !available) {
 				return fmt.Errorf("initial_wardrobe_item_%d_unavailable_but_worn", index)
 			}
 			if worn {
@@ -108,7 +109,7 @@ func initializeEffectiveLifeTx(ctx context.Context, tx pgx.Tx, fluctlightID stri
 			if !available {
 				availability = "unavailable"
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key) VALUES($1,$2,$3,$4,$5,$6,$7,'initialization',$8,$9) ON CONFLICT(id) DO NOTHING`, itemID, fluctlightID, category, slot, description, ownership, availability, sourceRef, key); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key,item_kind) VALUES($1,$2,$3,$4,$5,$6,$7,'initialization',$8,$9,$10) ON CONFLICT(id) DO NOTHING`, itemID, fluctlightID, category, slot, description, ownership, availability, sourceRef, key, kind); err != nil {
 				return err
 			}
 			if worn && newWardrobeState {
@@ -183,10 +184,20 @@ func readEffectiveLifeSnapshotWith(ctx context.Context, query DBTX, fluctlightID
 	if err != nil {
 		return nil, 0, 0, err
 	}
+	used, err := readUsedItemsWith(ctx, query, fluctlightID)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	for _, item := range worn {
+		if item["source_verified"] != true || item["availability"] != "available" {
+			wearingState = "unknown"
+		}
+	}
 	appearance := map[string]any{
+		"used_items":    used,
 		"body_revision": bodyRevision, "body_fields": fields,
 		"wardrobe_revision": wardrobeRevision, "wearing_state": wearingState,
-		"worn_items": worn, "captured_at": at.UTC().Format(time.RFC3339Nano),
+		"worn_items": worn, "captured_at": at.UTC().Format(instantLayout),
 	}
 	return appearance, bodyRevision, wardrobeRevision, nil
 }
@@ -239,7 +250,7 @@ func readProfileHabits(ctx context.Context, query DBTX, fluctlightID, profileID 
 func (a *App) readActiveLifeActivities(ctx context.Context, fluctlightID string, at time.Time) ([]map[string]any, error) {
 	// Reconcile expired runs on present-time reads so even an offline Worker
 	// cannot leave an old activity represented as current.
-	if delta := at.Sub(time.Now().UTC()); delta > -time.Second && delta < time.Second {
+	if delta := at.Sub(a.now().UTC()); delta > -time.Second && delta < time.Second {
 		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			return a.closeExpiredActivityRunsTx(ctx, tx, fluctlightID, at)
 		}); err != nil {
@@ -261,10 +272,10 @@ func (a *App) readActiveLifeActivities(ctx context.Context, fluctlightID string,
 			return nil, err
 		}
 		entry := map[string]any{"id": id, "profile_id": profileID, "kind": kind, "status": status,
-			"not_before": notBefore.UTC().Format(time.RFC3339Nano), "ready_for_resolution": !at.Before(notBefore),
+			"not_before": notBefore.UTC().Format(instantLayout), "ready_for_resolution": !at.Before(notBefore),
 			"request": mapValue(decodeObject(raw)["request"])}
 		if started != nil {
-			entry["started_at"] = started.UTC().Format(time.RFC3339Nano)
+			entry["started_at"] = started.UTC().Format(instantLayout)
 		}
 		if intentionID != "" {
 			entry["intention_id"] = intentionID

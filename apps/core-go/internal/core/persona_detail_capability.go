@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -26,7 +25,7 @@ func newPersonaDetailService(app *App) personaDetailService {
 		return personaDetailService{}
 	}
 	return personaDetailService{repository: app.DB, appearance: func(ctx context.Context, fluctlightID string) (map[string]any, error) {
-		current, _, _, err := app.readEffectiveLifeSnapshot(ctx, fluctlightID, time.Now().UTC())
+		current, _, _, err := app.readEffectiveLifeSnapshot(ctx, fluctlightID, app.now().UTC())
 		return current, err
 	}}
 }
