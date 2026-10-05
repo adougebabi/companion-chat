@@ -84,3 +84,27 @@ func waitForStreamSignal(signal <-chan struct{}) bool {
 		return false
 	}
 }
+
+func TestRunProviderQueuedStreamConsumerCloseDoesNotPanicDoubleClose(t *testing.T) {
+	provider := &ProviderClient{generated: newProviderQueue(1)}
+	innerReader, innerWriter := schema.Pipe[*schema.Message](1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	reader, err := runProviderQueuedStream(provider, ctx, "generic_llm", "stream-double-close-test", 1, "", func(context.Context) (*schema.StreamReader[*schema.Message], error) {
+		return innerReader, nil
+	})
+	if err != nil {
+		t.Fatalf("stream setup: %v", err)
+	}
+
+	// Close reader early from consumer side
+	reader.Close()
+
+	// Send message through pipe, which causes writer.Send to detect reader close
+	_ = innerWriter.Send(&schema.Message{Role: schema.Assistant, Content: "chunk"}, nil)
+
+	// Cancel context concurrently to simulate concurrent cancel + close
+	cancel()
+	innerWriter.Close()
+}

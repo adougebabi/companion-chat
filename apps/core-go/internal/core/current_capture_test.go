@@ -94,7 +94,7 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 			if scenario == "workflow-clothing" {
 				mapValue(mapValue(workflow["1"])["inputs"])["text"] = "{{prompt}} wearing nonexistent boots"
 			}
-			if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1)`, jsonString(map[string]any{"baseUrl": "http://capture-comfy.invalid", "workflow": workflow})); err != nil {
+			if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT (key) DO UPDATE SET value_json=EXCLUDED.value_json`, jsonString(map[string]any{"baseUrl": "http://capture-comfy.invalid", "workflow": workflow})); err != nil {
 				t.Fatal(err)
 			}
 			submitted := 0

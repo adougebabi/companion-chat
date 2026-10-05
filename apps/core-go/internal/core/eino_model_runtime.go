@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -470,13 +471,19 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 			if inner == nil {
 				return errors.New("provider_stream_reader_missing")
 			}
-			defer inner.Close()
+			var closeOnce sync.Once
+			closeInner := func() {
+				closeOnce.Do(func() {
+					inner.Close()
+				})
+			}
+			defer closeInner()
 			innerDone := make(chan struct{})
 			defer close(innerDone)
 			go func() {
 				select {
 				case <-taskCtx.Done():
-					inner.Close()
+					closeInner()
 				case <-innerDone:
 				}
 			}()
@@ -489,7 +496,7 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 					return recvErr
 				}
 				if writer.Send(message, nil) {
-					inner.Close()
+					closeInner()
 					return context.Canceled
 				}
 			}

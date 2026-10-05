@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -139,6 +140,9 @@ func TestActorUserBackgroundBatchFailureRollsBackFactsAndGeneration(t *testing.T
 	if _, err := f.repository.Pool().Exec(f.ctx, `CREATE FUNCTION public.reject_actor_user_command_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'forced command ledger failure'; END $$; CREATE TRIGGER reject_actor_user_command_test BEFORE INSERT ON public.actor_user_background_commands FOR EACH ROW EXECUTE FUNCTION public.reject_actor_user_command_test()`); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		_, _ = f.repository.Pool().Exec(context.Background(), `DROP TRIGGER IF EXISTS reject_actor_user_command_test ON public.actor_user_background_commands; DROP FUNCTION IF EXISTS public.reject_actor_user_command_test()`)
+	})
 	body := map[string]any{"background": map[string]any{"name": "New User", "location_scope": "abroad"}, "operation": "correct", "reason": "atomic owner update", "idempotency_key": "batch-failure", "expected_current_facts_revision": revision}
 	if _, err := f.app.UpdateActorUserBackground(f.ctx, f.ownerID, f.fluctlightID, body); err == nil {
 		t.Fatal("ledger failure ignored")
@@ -154,5 +158,8 @@ func TestActorUserBackgroundBatchFailureRollsBackFactsAndGeneration(t *testing.T
 	current, err := f.app.readCurrentFactsRevision(f.ctx, f.fluctlightID)
 	if err != nil || current != revision {
 		t.Fatalf("generation advanced %q→%q %v", revision, current, err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `DROP TRIGGER reject_actor_user_command_test ON public.actor_user_background_commands; DROP FUNCTION public.reject_actor_user_command_test()`); err != nil {
+		t.Fatal(err)
 	}
 }
