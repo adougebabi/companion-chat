@@ -80,3 +80,16 @@ final no_op保存原因及真实主动私聊仍可送达。
 不建立第二事实权威。初始化digest包括actor_user；旧JSON未提供则保持旧语义。
 核验Core创建/重放/跨Owner/CAS/原子失败/聊天纠正共享来源，BFF/客户端字段保留、
 null/false、前端草稿与实例隔离及界面。未部署、未运行未知生产迁移。
+
+## 2026-10-05 当前实拍framing枚举与第一人称全身兜底
+
+用户明确授权：告诉MediaPrompt合法枚举；构图枚举无效时用first_person/full_body。
+在原schema之外把同一枚举源写进系统指令；解析后只对无效/缺失framing启用兜底，
+已知别名继续归一，合法显式构图仍保留。保留其他字段验证、额外字段和快照/衣物/
+所用物品/workflow拒绝；不把姿态自由文本当作安全枚举错误吞掉。
+CapturePlan保存合规full_body，CaptureFallback随冻结concept持久化（原capture留审计）；
+渲染及质量视图读取同一effective capture。质量重试的新生成清除旧兜底再评估，
+防止缓存prompt与重渲染冲突。普通无当前快照的media master不新增fallback。
+测试：合法值全部进入指令，未知值/空值/类型错→first_person/full_body，持久化重渲染
+一致、quality视图一致、原快照不变、额外衣物/坏穿着/非法pose继续拒绝；真实隔离PG
+Worker捕获最终Comfy payload并验证保存标记（传输为script fixture，不声明真实图片）。

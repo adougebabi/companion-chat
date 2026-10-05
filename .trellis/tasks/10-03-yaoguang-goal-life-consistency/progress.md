@@ -111,3 +111,19 @@ console errors为空。它不是实际Backend/DB E2E。
 真实数据库验证仍待完成：Docker daemon未运行，Mac锁定无法启动OrbStack，已
 异步请求用户解锁并启动。新增激活/CAS/重放/批次回滚测试已写，未把skip记PASS。
 本次未提交/部署或对生产库迁移，任务保持in_progress。
+
+
+## 2026-10-05 framing枚举与兜底验证
+
+用户明确授权current capture framing失败兜底first_person/full_body。模型指令从
+同一schema枚举生成，字段与合法值都明确列出。known aliases照常归一；缺失/非法
+framing恢复全身构图，有效pose/expression/lighting/style保留，其他非法枚举与额外
+物理字段拒绝，不吞掉invalid pose中的衣物描述。prepared plan与fallback标记持久化，
+保留原capture与原context_binding；cache重渲染、quality视图使用相同effective capture。
+新的quality重试生成先清除旧标记，不把旧兜底永久覆盖合法显式请求。
+真实隔离PG+脚本Provider/Comfy transport验证最终submit及保存标记，source snapshot
+不变。定向38 test/subtest通过且无skip；更宽media/capture/provider context/prompt
+race回归164通过、0失败、3 live外部skip；vet/build通过。真实图片像素未验收。
+本次恢复OrbStack后，也补验此前actor_user数据库创建、Owner CAS/重放、批次回滚、
+聊天纠正共享事实：全部通过，迁移到0049通过。此前数据库阻塞记录已由新证据覆盖。
+代码未提交/部署，无生产迁移；清理临时PG/运行日志，保留精简结果JSON。

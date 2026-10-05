@@ -99,6 +99,11 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			prompt = strings.TrimSpace(value)
 			if len(taskResult.CapturePlan) > 0 {
 				concept["capture_plan"] = taskResult.CapturePlan
+				if len(taskResult.CaptureFallback) > 0 {
+					concept["capture_plan_fallback"] = taskResult.CaptureFallback
+				} else {
+					delete(concept, "capture_plan_fallback")
+				}
 				intent.Prompt = jsonString(concept)
 				if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET prompt=$2 WHERE id=$1 AND status IN ('pending','running') AND provider_job_id IS NULL`, intent.ID, intent.Prompt); err != nil {
 					return nil, err

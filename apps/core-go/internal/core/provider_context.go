@@ -2111,6 +2111,17 @@ func compactMediaConceptObjectForProvider(raw string) (map[string]any, bool) {
 		return nil, false
 	}
 	result := cloneMap(value)
+	if len(mapValue(value["capture_plan_fallback"])) > 0 && hasCurrentCapture(value) {
+		capture, err := effectiveCurrentCaptureCamera(value)
+		if err != nil {
+			return nil, false
+		}
+		result["capture"] = capture
+		if _, exists := result["framing"]; exists {
+			result["framing"] = "full_body"
+		}
+	}
+
 	hasCurrentAppearance := len(compactMediaAppearance(mapValue(mapValue(result["context_binding"])["appearance"]))) > 0
 	if binding := mapValue(result["context_binding"]); len(binding) > 0 {
 		compactBinding := make(map[string]any, 4)

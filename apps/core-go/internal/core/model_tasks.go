@@ -71,8 +71,9 @@ type MediaPromptTaskInput struct {
 }
 
 type MediaPromptTaskResult struct {
-	Prompt      string
-	CapturePlan map[string]any
+	Prompt          string
+	CapturePlan     map[string]any
+	CaptureFallback map[string]any
 }
 
 func (a *App) RunMediaPromptTask(ctx context.Context, input MediaPromptTaskInput) (string, error) {
@@ -84,16 +85,22 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 		return MediaPromptTaskResult{}, errors.New("media_prompt_frozen_concept_invalid")
 	}
 	concept := decodeObject([]byte(input.Intent.Prompt))
+	promptIntent := input.Intent
+	if hasCurrentCapture(concept) {
+		concept = cloneMap(concept)
+		delete(concept, "capture_plan_fallback")
+		promptIntent.Prompt = jsonString(concept)
+	}
 	instruction := mediaPromptSystemInstruction(input.Intent)
 	prompt := PromptAssemblyResult{}
 	if hasCurrentCapture(concept) {
 		if err := validateCurrentCaptureSnapshot(concept); err != nil {
 			return MediaPromptTaskResult{}, err
 		}
-		instruction = "Choose only framing, pose, expression, lighting and style for this current capture. Honor the frozen explicit capture framing and camera relationship; do not substitute a different framing. Return exactly the supplied JSON schema. Body, current clothing, used objects and reference images are server-owned snapshot facts; they cannot be supplied or overridden in your response. No prose or extra fields."
+		instruction = "Choose only framing, pose, expression, lighting and style for this current capture. Honor the frozen explicit capture framing and camera relationship; do not substitute a different framing. Return exactly the supplied JSON schema. Body, current clothing, used objects and reference images are server-owned snapshot facts; they cannot be supplied or overridden in your response. No prose or extra fields. " + currentCaptureEnumInstruction()
 		prompt.ResponseFormat = providerResponseFormatForSchema("media_prompt", "current_capture_plan", currentCapturePlanSchema())
 	}
-	prompt.Messages = formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": mediaPromptInput(input.Intent)}}, "media_prompt")
+	prompt.Messages = formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": mediaPromptInput(promptIntent)}}, "media_prompt")
 	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
 	if err != nil {
 		return MediaPromptTaskResult{}, err
@@ -107,9 +114,22 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 				return MediaPromptTaskResult{}, errors.New("current_capture_plan_invalid")
 			}
 		}
-		plan = normalizeCurrentCapturePlan(concept, plan)
+		// A new model attempt may recover a previous fallback. Do not inherit its
+		// override unless this new attempt also requires the configured fallback.
+		concept = cloneMap(concept)
+		delete(concept, "capture_plan_fallback")
+		plan, fallback, err := resolveCurrentCapturePlan(concept, plan)
+		if err != nil {
+			return MediaPromptTaskResult{}, err
+		}
+		if len(fallback) > 0 {
+			concept["capture_plan_fallback"] = fallback
+			if a.DB != nil {
+				a.recordDiagnosticEvent(ctx, "media.current_capture.plan_fallback", "info", input.Intent.Owner, input.Intent.ID, providerCorrelation(ctx), fallback)
+			}
+		}
 		rendered, err := renderCurrentCapturePrompt(concept, plan)
-		return MediaPromptTaskResult{Prompt: rendered, CapturePlan: plan}, err
+		return MediaPromptTaskResult{Prompt: rendered, CapturePlan: plan, CaptureFallback: fallback}, err
 	}
 	return MediaPromptTaskResult{Prompt: cleanGeneratedMediaPrompt(run.Completion.Text)}, nil
 }

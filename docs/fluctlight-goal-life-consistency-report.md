@@ -263,3 +263,19 @@ production dist+syntheticAPI核对详情查看、治理保存反馈，390px无�
 目前Docker未运行且Mac锁定，无法启动OrbStack；真实PG的激活、CAS、重放、批次回滚
 及0049迁移验证待用户启动容器服务后继续。没有将这些skip或UI fixture计为数据库通过。
 此补充改动尚未提交、部署或执行生产迁移。
+
+
+## 2026-10-05 framing合法枚举与第一人称full_body恢复
+
+用户明确指定枚举错误的恢复方式，本次仅针对current-capture的framing，不替换
+普通media master的失败策略。合法枚举从schema生成到系统指令；unknown/缺失framing
+恢复为full_body，effective capture=first_person/rear/hidden device。合法显式构图
+继续保留。其他非法样式枚举、额外衣物/身体/物品字段、坏快照与workflow override
+继续失败；不从自由文本pose中解析或容忍未经来源的服装。
+prepared concept保留原capture与context_binding，另外保存capture_plan_fallback，
+确保提交前cache重渲染一致，质量检查看到相同effective capture；新生成不继承旧标记。
+真实隔离PG+脚本Provider/Comfy传输验证38个定向test/subtest通过（含此前未跑的
+actor_user初始化/Owner CAS/重放/批次回滚）；更宽媒体/上下文/Prompt race回归
+164通过、0失败、3 live skip，vet/build通过。已恢复数据库验证，0049迁移通过。
+[精简结果与最终传输入参](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/capture-framing-fallback-result.json)。
+Comfy传输为受控fixture，真实像素级全身/第一人称效果仍未验证。未提交或部署本次补丁。

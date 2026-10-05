@@ -14,3 +14,5 @@ manifest及live runner临时目录。保留回归测试源码和下面的最终�
 - live-connectivity-final.json：MTPLX拒绝连接、ComfyUI可连的最终检查。
 
 真实模型与图片验收仍未通过。清理产物不改变该状态。
+
+- capture-framing-fallback-result.json：2026-10-05构图枚举兜底、数据库回归及最终受控Comfy输入；真实像素未验证。

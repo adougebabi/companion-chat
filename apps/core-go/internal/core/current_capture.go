@@ -69,7 +69,7 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 	}
 
 	// 3. Key alias mapping for framing
-	if stringValue(plan["framing"]) == "" {
+	if _, provided := plan["framing"]; !provided {
 		for _, altKey := range []string{"frame", "shot", "composition", "framing_type", "view"} {
 			if val := stringValue(plan[altKey]); val != "" {
 				plan["framing"] = val
@@ -77,7 +77,7 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 			}
 		}
 	}
-	if stringValue(plan["framing"]) == "" {
+	if _, provided := plan["framing"]; !provided {
 		for k := range plan {
 			if canonical, ok := framingAliases[k]; ok {
 				plan["framing"] = canonical
@@ -87,7 +87,7 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 	}
 
 	// 4. Fallback from frozen concept if framing is still missing
-	if stringValue(plan["framing"]) == "" {
+	if _, provided := plan["framing"]; !provided {
 		capture := mapValue(concept["capture"])
 		if f := stringValue(capture["framing"]); f != "" {
 			plan["framing"] = f
@@ -107,9 +107,6 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 				plan["framing"] = canonical
 			}
 		}
-	}
-	if stringValue(plan["framing"]) == "" {
-		plan["framing"] = "upper_body"
 	}
 
 	// 6. Normalize pose
@@ -186,16 +183,75 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 		plan["style"] = "photographic"
 	}
 
-	// 10. Only retain allowed schema keys to prevent additionalProperties rejection
-	allowedKeys := map[string]bool{"framing": true, "pose": true, "expression": true, "lighting": true, "style": true}
-	finalPlan := make(map[string]any, 5)
-	for k, v := range plan {
-		if allowedKeys[k] {
-			finalPlan[k] = v
+	// Consume only documented key aliases. Unexpected fields remain visible
+	// to structural validation; a style fallback cannot hide body/outfit input.
+	finalPlan := cloneMap(plan)
+	for _, alias := range []string{"frame", "shot", "composition", "framing_type", "view"} {
+		delete(finalPlan, alias)
+	}
+	for alias := range framingAliases {
+		delete(finalPlan, alias)
+	}
+	// A canonical framing key is not a framing value alias.
+	for _, key := range []string{"framing", "pose", "expression", "lighting", "style"} {
+		if value, exists := plan[key]; exists {
+			finalPlan[key] = value
 		}
 	}
 
 	return finalPlan
+}
+
+func currentCaptureEnumInstruction() string {
+	return "Allowed values (use exactly one value for each field): " + jsonString(mapValue(currentCapturePlanSchema()["properties"])) + ". Prefer canonical framing tokens closeup, upper_body, full_body, body_detail, scene. If framing is unspecified and you are unsure, choose full_body; an explicit supported frozen framing takes priority. Never invent framing tokens or supply body, clothes, objects, references, prompt prose, or extra fields."
+}
+
+func resolveCurrentCapturePlan(concept, raw map[string]any) (map[string]any, map[string]any, error) {
+	plan := normalizeCurrentCapturePlan(concept, raw)
+	schema := currentCapturePlanSchema()
+	properties := mapValue(schema["properties"])
+	for key := range plan {
+		if _, allowed := properties[key]; !allowed {
+			return nil, nil, fmt.Errorf("current_capture_plan_invalid: unexpected field %q", key)
+		}
+	}
+	defaults := map[string]any{"framing": "full_body", "pose": "standing", "expression": "neutral", "lighting": "ambient", "style": "photographic"}
+	invalid := []any{}
+	for _, key := range []string{"framing", "pose", "expression", "lighting", "style"} {
+		valid := false
+		if value, ok := plan[key].(string); ok {
+			for _, choice := range arrayValue(mapValue(properties[key])["enum"]) {
+				if value == stringValue(choice) {
+					valid = true
+					break
+				}
+			}
+		}
+		if !valid {
+			invalid = append(invalid, key)
+		} else if key != "framing" {
+			defaults[key] = plan[key]
+		}
+	}
+	fallback := mapValue(concept["capture_plan_fallback"])
+	if len(invalid) > 0 {
+		// The user-authorized recovery is specifically a framing fallback. A
+		// free-text pose/style can contain factual overrides and must stay invalid.
+		for _, key := range invalid {
+			if key != "framing" {
+				return nil, nil, fmt.Errorf("current_capture_plan_invalid: field %q: value is not in enum", key)
+			}
+		}
+		plan = defaults
+		fallback = map[string]any{"mode": "first_person", "framing": "full_body", "reason_code": "invalid_framing_enum", "invalid_fields": invalid}
+	}
+	if len(fallback) > 0 && (fallback["mode"] != "first_person" || fallback["framing"] != "full_body" || fallback["reason_code"] != "invalid_framing_enum" || plan["framing"] != "full_body") {
+		return nil, nil, errors.New("current_capture_fallback_invalid")
+	}
+	if err := validateCapabilitySchemaValue(plan, schema); err != nil {
+		return nil, nil, fmt.Errorf("current_capture_plan_invalid: %w", err)
+	}
+	return plan, fallback, nil
 }
 
 func validateCurrentCaptureSnapshot(concept map[string]any) error {
@@ -230,10 +286,17 @@ func renderCurrentCapturePrompt(concept, plan map[string]any) (string, error) {
 	if err := validateCurrentCaptureSnapshot(concept); err != nil {
 		return "", err
 	}
-	plan = normalizeCurrentCapturePlan(concept, plan)
-	if err := validateCapabilitySchemaValue(plan, currentCapturePlanSchema()); err != nil {
-		return "", fmt.Errorf("current_capture_plan_invalid: %w", err)
+	var fallback map[string]any
+	var err error
+	plan, fallback, err = resolveCurrentCapturePlan(concept, plan)
+	if err != nil {
+		return "", err
 	}
+	if len(fallback) > 0 {
+		concept = cloneMap(concept)
+		concept["capture_plan_fallback"] = fallback
+	}
+
 	// Every phrase below is either a validated model enum or an authoritative
 	// snapshot value. The user's wish and a model-written outfit never enter.
 	phrases := []string{map[string]string{"photographic": "A photographic image.", "illustrated": "An illustrated image."}[stringValue(plan["style"])],
@@ -323,8 +386,32 @@ func appearanceSnapshotIdentity(value map[string]any) string {
 
 // Explicit camera semantics come from the frozen Tool DTO. Free framing/angle
 // strings are never concatenated into a renderer instruction.
-func currentCaptureCameraPhrases(concept, plan map[string]any) ([]string, error) {
+func effectiveCurrentCaptureCamera(concept map[string]any) (map[string]any, error) {
 	capture := mapValue(concept["capture"])
+	fallback := mapValue(concept["capture_plan_fallback"])
+	if len(fallback) == 0 {
+		return capture, nil
+	}
+	if fallback["mode"] != "first_person" || fallback["framing"] != "full_body" || fallback["reason_code"] != "invalid_framing_enum" {
+		return nil, errors.New("current_capture_fallback_invalid")
+	}
+	capture = cloneMap(capture)
+	if capture == nil {
+		capture = map[string]any{}
+	}
+	capture["mode"] = "first_person"
+	capture["framing"] = "full_body"
+	capture["camera"] = "rear"
+	capture["device_visibility"] = "hidden"
+	delete(capture, "mirror")
+	return capture, nil
+}
+
+func currentCaptureCameraPhrases(concept, plan map[string]any) ([]string, error) {
+	capture, err := effectiveCurrentCaptureCamera(concept)
+	if err != nil {
+		return nil, err
+	}
 	mode := firstString(capture["mode"], "selfie")
 	modes := map[string]string{
 		"selfie":           "A handheld phone self-capture; the phone camera defines the viewpoint.",

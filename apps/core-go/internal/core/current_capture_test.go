@@ -86,7 +86,7 @@ func TestCurrentCapturePreservesCameraAndRejectsFinalTemplateOverrides(t *testin
 }
 
 func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides(t *testing.T) {
-	for _, scenario := range []string{"valid-frozen", "model-clothing", "workflow-clothing"} {
+	for _, scenario := range []string{"valid-frozen", "enum-fallback", "model-clothing", "workflow-clothing"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "capture-worker-provider-"+f.suffix)
@@ -112,6 +112,12 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 				}
 				modelCalls++
 				plan := captureStyleForTest()
+				if scenario == "enum-fallback" {
+					if !strings.Contains(string(body), "Allowed values") || !strings.Contains(string(body), "full_body") || !strings.Contains(string(body), "closeup") {
+						t.Fatal("formal MediaPrompt request omitted enum choices")
+					}
+					plan["framing"] = "unsupported_medium_long_shot"
+				}
 				if scenario == "model-clothing" {
 					plan["clothing"] = "nonexistent boots"
 				}
@@ -133,10 +139,23 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 			if _, err := f.app.ProcessMediaIntent(f.ctx, intentID); err == nil {
 				t.Fatal("renderer failure/override was reported successful")
 			}
-			if scenario == "valid-frozen" {
+			if scenario == "valid-frozen" || scenario == "enum-fallback" {
 				wire := jsonString(final)
 				if submitted != 1 || !strings.Contains(wire, "白衬衫") || strings.Contains(wire, "短靴") || strings.Contains(wire, "nonexistent boots") {
 					t.Fatalf("final renderer lost authority: %s submits=%d", wire, submitted)
+				}
+				if scenario == "enum-fallback" {
+					if !strings.Contains(wire, "full-body composition") || !strings.Contains(wire, "first-person view") {
+						t.Fatalf("enum fallback lost requested camera/framing: %s", wire)
+					}
+					stored, err := f.app.readMediaIntent(f.ctx, intentID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					saved := decodeObject([]byte(stored.Prompt))
+					if mapValue(saved["capture_plan"])["framing"] != "full_body" || mapValue(saved["capture_plan_fallback"])["mode"] != "first_person" {
+						t.Fatalf("worker did not persist fallback %#v", saved)
+					}
 				}
 				t.Logf("FINAL_COMFY_INPUT=%s", wire)
 			} else if submitted != 0 {
@@ -233,5 +252,73 @@ func TestNormalizeCurrentCapturePlanHandlesSpacedFramingAndWrappers(t *testing.T
 				t.Fatalf("prompt missing expected %q: %s", tc.expected, prompt)
 			}
 		})
+	}
+}
+
+func TestCurrentCaptureInvalidEnumFallsBackToFirstPersonFullBodyAndKeepsFrozenFacts(t *testing.T) {
+	concept := map[string]any{"capture": map[string]any{"mode": "mirror_selfie", "framing": "upper body", "camera": "front", "mirror": true, "device_visibility": "visible"}, "context_binding": map[string]any{"appearance": map[string]any{"body_revision": 1, "wardrobe_revision": 2, "wearing_state": "known", "worn_items": []any{map[string]any{"id": "held-white-shirt", "slot": "top", "description": "白衬衫", "availability": "available", "source_verified": true}}}}}
+	before := jsonString(concept)
+	for _, value := range []any{"medium_long_shot", "first_person_full_body", nil, 42} {
+		raw := captureStyleForTest()
+		raw["framing"] = value
+		plan, fallback, err := resolveCurrentCapturePlan(concept, raw)
+		if err != nil || plan["framing"] != "full_body" || fallback["mode"] != "first_person" {
+			t.Fatalf("fallback %#v %#v %v", plan, fallback, err)
+		}
+		prepared := cloneMap(concept)
+		prepared["capture_plan"] = plan
+		prepared["capture_plan_fallback"] = fallback
+		prompt, err := renderCurrentCapturePrompt(prepared, plan)
+		if err != nil || !strings.Contains(prompt, "full-body composition") || !strings.Contains(prompt, "first-person view") || !strings.Contains(prompt, "白衬衫") || strings.Contains(prompt, "through a mirror") {
+			t.Fatalf("fallback prompt=%s err=%v", prompt, err)
+		}
+		reloaded := decodeObject(jsonBytes(prepared))
+		again, err := renderCurrentCapturePrompt(reloaded, mapValue(reloaded["capture_plan"]))
+		if err != nil || again != prompt {
+			t.Fatalf("persisted fallback changed %s %v", again, err)
+		}
+		provider, ok := compactMediaConceptObjectForProvider(jsonString(prepared))
+		if !ok || mapValue(provider["capture"])["mode"] != "first_person" || mapValue(provider["capture"])["framing"] != "full_body" {
+			t.Fatalf("quality/prompt view lost effective fallback %#v", provider)
+		}
+		if jsonString(concept) != before {
+			t.Fatal("fallback rewrote original snapshot/capture")
+		}
+	}
+}
+
+func TestCurrentCaptureFallbackRejectsPhysicalOverridesAndBadSnapshot(t *testing.T) {
+	concept := map[string]any{"context_binding": map[string]any{"appearance": map[string]any{"body_revision": 0, "wardrobe_revision": 0, "wearing_state": "known", "worn_items": []any{}}}}
+	for _, key := range []string{"clothing", "body", "objects", "reference_images", "prompt"} {
+		plan := captureStyleForTest()
+		plan["framing"] = "invalid-frame"
+		plan[key] = "invented boots"
+		if _, err := renderCurrentCapturePrompt(concept, plan); err == nil {
+			t.Fatalf("fallback accepted physical/extra field %s", key)
+		}
+	}
+	plan := captureStyleForTest()
+	plan["framing"] = "invalid-frame"
+	mapValue(mapValue(concept["context_binding"])["appearance"])["wearing_state"] = "unknown"
+	if _, err := renderCurrentCapturePrompt(concept, plan); err == nil {
+		t.Fatal("fallback bypassed unknown wearing state")
+	}
+}
+
+func TestCurrentCaptureEnumInstructionMatchesSchemaAndMissingFramingDefault(t *testing.T) {
+	instruction := currentCaptureEnumInstruction()
+	for key, value := range mapValue(currentCapturePlanSchema()["properties"]) {
+		if !strings.Contains(instruction, key) {
+			t.Fatalf("field missing %s", key)
+		}
+		for _, choice := range arrayValue(mapValue(value)["enum"]) {
+			if !strings.Contains(instruction, stringValue(choice)) {
+				t.Fatalf("choice missing %v", choice)
+			}
+		}
+	}
+	plan, fallback, err := resolveCurrentCapturePlan(map[string]any{}, map[string]any{})
+	if err != nil || plan["framing"] != "full_body" || fallback["mode"] != "first_person" {
+		t.Fatalf("missing framing default %#v %#v %v", plan, fallback, err)
 	}
 }

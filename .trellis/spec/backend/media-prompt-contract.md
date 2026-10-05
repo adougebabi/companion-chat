@@ -265,3 +265,70 @@ const action = stateFor(persona.id).situation;
 const state = resolvedStateFor(persona.id);
 const event = {scene: state.resolved_scene, situation: state.situation};
 ```
+
+## Scenario: Owner-Authorized Current-Capture Framing Recovery
+
+### 1. Scope / Trigger
+
+On 2026-10-05 the user explicitly requested first-person full-body recovery for
+invalid framing enum values. This narrowly supersedes the no-server-fallback
+rule above for current-capture **framing only**. Ordinary free-text media master,
+transport errors, missing snapshots, forbidden facts and workflow overrides
+retain their existing failure behavior.
+
+### 2. Signatures
+
+`resolveCurrentCapturePlan(concept,raw) -> (canonicalPlan,fallbackMetadata,error)`.
+`MediaPromptTaskResult.CaptureFallback` is Core-owned. Prepared concepts persist
+`capture_plan` and optional `capture_plan_fallback={mode:first_person,
+framing:full_body,reason_code:invalid_framing_enum,invalid_fields:[framing]}`.
+
+### 3. Contracts
+
+- Generate explicit allowed-value instructions from currentCapturePlanSchema;
+  keep the same response schema. Canonical framing: closeup, upper_body,
+  full_body, body_detail, scene. Documented aliases normalize first.
+- Unknown/missing framing with no usable explicit source framing recovers to
+  full_body and an effective first_person/rear-camera/hidden-device relationship.
+  Known explicit framing remains authoritative during normal valid generation.
+- Other invalid enum fields and extra fields remain errors; in particular a
+  pose string containing wardrobe prose is not accepted by fallback. Consume
+  documented key aliases only; do not silently discard physical override fields.
+- Preserve original capture and all context_binding/body/worn/used/reference
+  facts. Persist recovery metadata before submit so cached prompt re-render
+  agrees. Rendering and quality projection use the same effective capture.
+- A fresh model generation clears an old recovery override before composing
+  input; it can return to the original explicit capture if now valid.
+- Record media.current_capture.plan_fallback with field names/reason, not new
+  life facts. No acquisition, wearing, usage or completion follows from recovery.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Framing enum invalid or unspecified without supported frozen framing | first_person/full_body recovery |
+| Supported explicit framing and supported but conflicting plan | current_capture_framing_conflict |
+| Extra clothes/body/objects/reference/prompt field | reject, no submit |
+| Non-framing enum invalid | reject |
+| Unknown wearing/source/unsupported angle/workflow override | retain existing failure |
+| Bad recovery metadata or cached prompt mismatch | reject |
+
+### 5. Good / Base / Bad Cases
+
+Good: medium_long_shot typo becomes a full-body first-person composition using
+only the frozen white shirt. Base: valid upper_body stays upper_body.
+Bad: treating “seated wearing invented boots” as a recoverable pose.
+
+### 6. Tests Required
+
+Enum instruction/schema parity; invalid/null/type framing; alias/explicit-frame
+compatibility; persist→reload re-render equality; quality effective camera;
+immutable source snapshot; forbidden extras and wearing failures; real isolated
+PG worker through formal MediaPrompt to captured Comfy submission. Transport
+fixtures do not prove actual pixel fidelity.
+
+### 7. Wrong vs Correct
+
+Wrong: reject every unknown framing token forever, or replace the whole frozen
+concept with a generic prose prompt.
+Correct: persist a canonical framing recovery and render the same frozen facts.

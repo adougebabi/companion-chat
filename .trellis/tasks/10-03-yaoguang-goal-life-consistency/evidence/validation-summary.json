@@ -75,14 +75,7 @@
       "pass": 44,
       "skip": 6
     },
-    "database_tests_unverified": [
-      "TestActorUserBackgroundOwnerEditCASReplayAndChatCorrectionShareAuthority",
-      "TestActorUserBackgroundActivationWritesFactsAtomicallyAndReplays",
-      "TestActorUserBackgroundBatchFailureRollsBackFactsAndGeneration",
-      "TestCreateFluctlightRecordsPersonalityDefaultsEndToEnd",
-      "TestInitializationScopeDefaultsToSharedRow",
-      "TestInitializationTextToStoredPortraitToFormalRequest"
-    ],
+    "database_tests_unverified": [],
     "browser_client_tests": 15,
     "web_tests": 62,
     "bff_boundary_race": "PASS",
@@ -91,8 +84,55 @@
     "narrow_viewport": 390,
     "scroll_width": 390,
     "console_errors": [],
-    "postgres": "BLOCKED Docker unavailable; Mac locked prevents starting OrbStack",
-    "migration": "0049_actor_user_background prepared, not verified against PostgreSQL",
+    "postgres": "PASS on 2026-10-05; activation, Owner edit/CAS/replay, batch rollback and chat correction tests",
+    "migration": "PASS disposable PostgreSQL migration reached 0049_actor_user_background",
+    "committed": false,
+    "deployed": false
+  },
+  "capture_framing_fallback_patch": {
+    "date": "2026-10-05",
+    "regression_test_events": {
+      "pass": 164,
+      "skip": 3
+    },
+    "live_skips": [
+      "TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply",
+      "TestVisualIdentityLiveE2EPreflight",
+      "TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical"
+    ],
+    "targeted_tests_including_actor_user": {
+      "pass": 38,
+      "fail": 0,
+      "skip": 0
+    },
+    "database": "disposable real PostgreSQL",
+    "provider_and_comfy": "scripted transport; not live pixels",
+    "fallback": {
+      "mode": "first_person",
+      "framing": "full_body",
+      "scope": "framing enum only"
+    },
+    "final_comfy_input": {
+      "prompt": {
+        "1": {
+          "class_type": "CLIPTextEncode",
+          "inputs": {
+            "text": "A photographic image. A full-body composition. The subject is seated. A smiling expression. Soft light. The subject's first-person view, without an invented observer. The phone's rear camera is used. Keep the capture device outside the visible composition. The subject wears 银项链 and 白衬衫. Hair length is long. Hair color is black."
+          }
+        },
+        "2": {
+          "class_type": "KSampler",
+          "inputs": {
+            "positive": [
+              "1",
+              0
+            ]
+          }
+        }
+      }
+    },
+    "vet": "PASS",
+    "build": "PASS",
     "committed": false,
     "deployed": false
   }
