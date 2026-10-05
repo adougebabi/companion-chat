@@ -292,7 +292,7 @@ func imageCapabilityInputSchema() map[string]any {
 				"type": "object", "additionalProperties": false,
 				"properties": map[string]any{
 					"mode":              map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person"}},
-					"framing":           map[string]any{"type": "string", "maxLength": 256},
+					"framing":           map[string]any{"type": "string", "maxLength": 256, "description": "Photo framing intent for MediaPrompt to normalize. Prefer closeup, upper_body, full_body, body_detail or scene; natural descriptions are accepted as hints, not immutable renderer constraints."},
 					"angle":             map[string]any{"type": "string", "maxLength": 256},
 					"camera":            map[string]any{"type": "string", "enum": []any{"front", "rear", "external"}},
 					"mirror":            map[string]any{"type": "boolean"},

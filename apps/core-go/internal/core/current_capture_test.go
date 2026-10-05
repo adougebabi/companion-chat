@@ -67,8 +67,8 @@ func TestCurrentCapturePreservesCameraAndRejectsFinalTemplateOverrides(t *testin
 		t.Fatalf("capture lost %s %v", prompt, err)
 	}
 	plan["framing"] = "full_body"
-	if _, err := renderCurrentCapturePrompt(concept, plan); err == nil {
-		t.Fatal("explicit framing silently replaced")
+	if prompt, err := renderCurrentCapturePrompt(concept, plan); err != nil || !strings.Contains(prompt, "full-body composition") || !strings.Contains(prompt, "through a mirror") {
+		t.Fatalf("standardized framing was compared literally to upstream hint: %s %v", prompt, err)
 	}
 	valid := map[string]any{"1": map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}}, "2": map[string]any{"class_type": "KSampler", "inputs": map[string]any{"positive": []any{"1", 0}}}}
 	if err := validateCurrentCaptureWorkflow(valid); err != nil {
@@ -86,7 +86,7 @@ func TestCurrentCapturePreservesCameraAndRejectsFinalTemplateOverrides(t *testin
 }
 
 func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides(t *testing.T) {
-	for _, scenario := range []string{"valid-frozen", "enum-fallback", "model-clothing", "workflow-clothing"} {
+	for _, scenario := range []string{"valid-frozen", "enum-fallback", "framing-normalization", "model-clothing", "workflow-clothing"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "capture-worker-provider-"+f.suffix)
@@ -118,6 +118,13 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 					}
 					plan["framing"] = "unsupported_medium_long_shot"
 				}
+				if scenario == "framing-normalization" {
+					if !strings.Contains(string(body), "Normalize the upstream vague photo instruction") {
+						t.Fatal("MediaPrompt still acts as a literal validator")
+					}
+					plan["framing"] = "full_body"
+					plan["capture"] = map[string]any{"mode": "mirror_selfie", "camera": "rear", "mirror": true, "device_visibility": "visible"}
+				}
 				if scenario == "model-clothing" {
 					plan["clothing"] = "nonexistent boots"
 				}
@@ -129,6 +136,9 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 				t.Fatal(err)
 			}
 			request := f.request("media.image.generate", "current-worker", map[string]any{"intent": "穿上刚买的黑色短靴拍现在的照片"})
+			if scenario == "framing-normalization" {
+				request.Arguments = jsonBytes(map[string]any{"intent": "拍现在的全身自拍", "capture": map[string]any{"mode": "selfie", "framing": "portrait", "camera": "front"}})
+			}
 			request.TargetKind = "conversation"
 			request.TargetRef = f.conversationID
 			accepted, err := f.app.ExecuteTool(f.ctx, request)
@@ -139,7 +149,7 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 			if _, err := f.app.ProcessMediaIntent(f.ctx, intentID); err == nil {
 				t.Fatal("renderer failure/override was reported successful")
 			}
-			if scenario == "valid-frozen" || scenario == "enum-fallback" {
+			if scenario == "valid-frozen" || scenario == "enum-fallback" || scenario == "framing-normalization" {
 				wire := jsonString(final)
 				if submitted != 1 || !strings.Contains(wire, "白衬衫") || strings.Contains(wire, "短靴") || strings.Contains(wire, "nonexistent boots") {
 					t.Fatalf("final renderer lost authority: %s submits=%d", wire, submitted)
@@ -155,6 +165,19 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 					saved := decodeObject([]byte(stored.Prompt))
 					if mapValue(saved["capture_plan"])["framing"] != "full_body" || mapValue(saved["capture_plan_fallback"])["mode"] != "first_person" {
 						t.Fatalf("worker did not persist fallback %#v", saved)
+					}
+				}
+				if scenario == "framing-normalization" {
+					if !strings.Contains(wire, "full-body composition") || !strings.Contains(wire, "through a mirror") {
+						t.Fatalf("standard photo normalization lost %s", wire)
+					}
+					stored, err := f.app.readMediaIntent(f.ctx, intentID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					normalized, ok := compactMediaConceptObjectForProvider(stored.Prompt)
+					if !ok || mapValue(normalized["capture"])["framing"] != "full_body" || mapValue(normalized["capture"])["mode"] != "mirror_selfie" {
+						t.Fatalf("quality view disagrees with normalized photo %#v", normalized)
 					}
 				}
 				t.Logf("FINAL_COMFY_INPUT=%s", wire)
@@ -238,13 +261,7 @@ func TestNormalizeCurrentCapturePlanHandlesSpacedFramingAndWrappers(t *testing.T
 				t.Fatalf("validation failed: %v", err)
 			}
 			prompt, err := renderCurrentCapturePrompt(concept, tc.plan)
-			if tc.name == "spaced-pose-and-lighting-aliases" {
-				// concept has explicit framing "full body", so "upper body" should conflict
-				if err == nil {
-					t.Fatal("expected framing conflict between concept full body and plan upper body")
-				}
-				return
-			}
+
 			if err != nil {
 				t.Fatalf("render failed: %v", err)
 			}
@@ -320,5 +337,26 @@ func TestCurrentCaptureEnumInstructionMatchesSchemaAndMissingFramingDefault(t *t
 	plan, fallback, err := resolveCurrentCapturePlan(map[string]any{}, map[string]any{})
 	if err != nil || plan["framing"] != "full_body" || fallback["mode"] != "first_person" {
 		t.Fatalf("missing framing default %#v %#v %v", plan, fallback, err)
+	}
+}
+
+func TestMediaPromptStandardCaptureSupersedesVagueUpstreamHints(t *testing.T) {
+	concept := map[string]any{"capture": map[string]any{"mode": "selfie", "framing": "portrait crop", "camera": "front"}, "context_binding": map[string]any{"appearance": map[string]any{"body_revision": 0, "wardrobe_revision": 0, "wearing_state": "known", "worn_items": []any{}}}}
+	original := jsonString(concept)
+	plan := captureStyleForTest()
+	plan["framing"] = "full_body"
+	plan["capture"] = map[string]any{"mode": "mirror_selfie", "camera": "rear", "device_visibility": "visible", "mirror": true}
+	prompt, err := renderCurrentCapturePrompt(concept, plan)
+	if err != nil || !strings.Contains(prompt, "full-body composition") || !strings.Contains(prompt, "through a mirror") || !strings.Contains(prompt, "rear camera") {
+		t.Fatalf("normalization failed %s %v", prompt, err)
+	}
+	if jsonString(concept) != original {
+		t.Fatal("upstream audit or frozen facts rewritten")
+	}
+	prepared := cloneMap(concept)
+	prepared["capture_plan"] = plan
+	quality, ok := compactMediaConceptObjectForProvider(jsonString(prepared))
+	if !ok || mapValue(quality["capture"])["mode"] != "mirror_selfie" || mapValue(quality["capture"])["framing"] != "full_body" {
+		t.Fatalf("quality sees raw hints rather than standard result %#v", quality)
 	}
 }

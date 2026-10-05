@@ -332,3 +332,67 @@ fixtures do not prove actual pixel fidelity.
 Wrong: reject every unknown framing token forever, or replace the whole frozen
 concept with a generic prose prompt.
 Correct: persist a canonical framing recovery and render the same frozen facts.
+
+## Scenario: MediaPrompt Normalizes Photo Intent Rather Than Policing Hints
+
+### 1. Scope / Trigger
+
+User clarification on 2026-10-05: MediaPrompt turns vague upstream image
+instructions into an accurate standard photograph description. This supersedes
+literal capture/framing preservation and framing-conflict behavior above.
+
+### 2. Signatures
+
+Current-capture plan: `{framing,pose,expression,lighting,style,capture?:{
+mode,camera?,angle?,mirror?,device_visibility?}}`. The standard camera object is
+requested for new model outputs; legacy five-field plans stay readable.
+`effectiveCurrentCaptureCamera(concept)` prefers the prepared standard plan.
+
+### 3. Contracts
+
+- Main's intent and capture/framing fields are semantic hints, not another
+  immutable photo-layout authority. MediaPrompt interprets their meaning,
+  resolves vague wording and emits a consistent standard layout/camera.
+- The system instruction explicitly owns this normalization. It lists output
+  vocabulary and asks for camera/mirror/device relationships, including
+  physically coherent full-body self-capture.
+- Only the prepared plan controls photo rendering. Do not compare its framing
+  literally with the upstream hint and emit current_capture_framing_conflict.
+- Preserve original hints for audit. Prepared plan and fallback persist; quality
+  views consume the same effective standard capture as final submission.
+- Legacy hints contribute only recognized camera values; unresolved geometric
+  prose is not concatenated into prompts or treated as a hard renderer error.
+- Body, actual clothing, inventory/use, identity and scene facts remain frozen
+  authority. This does not let the model create or override them. Invalid
+  facts/references/workflow overrides keep their existing checks. If framing
+  output cannot be standardized, use the authorized first_person/full_body fallback.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Vague upstream framing, valid standard output | use standard output |
+| Different upstream and standard framing | normalize; no literal conflict |
+| Camera standardized by MediaPrompt | use it for render and quality |
+| Legacy camera hints contain unknown geometry | retain recognized hints only |
+| Framing output invalid | authorized first_person/full_body fallback |
+| Model supplies physical override or snapshot invalid | retain fact validation |
+
+### 5. Good / Base / Bad Cases
+
+Good: upstream portrait/selfie/front hints + full-body photo intent become a
+full_body/mirror_selfie/rear/visible-device standard description.
+Base: old standard five-field plan still renders without a layout conflict.
+Bad: use the prompt normalizer as a literal validator of Main's wording.
+
+### 6. Tests Required
+
+Vague and differing hints normalize without error; standard camera changes
+rendered mirror/device/camera semantics; original source remains unchanged;
+quality matches standard output; actual PG worker traverses formal MediaPrompt
+and captured submission; snapshot/garment/workflow negatives remain covered.
+
+### 7. Wrong vs Correct
+
+Wrong: raw capture.framing must equal the master's canonical framing string.
+Correct: interpret input hints, then render one consistent standard photo plan.

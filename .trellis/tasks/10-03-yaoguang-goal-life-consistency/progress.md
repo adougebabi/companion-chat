@@ -127,3 +127,17 @@ race回归164通过、0失败、3 live外部skip；vet/build通过。真实图�
 本次恢复OrbStack后，也补验此前actor_user数据库创建、Owner CAS/重放、批次回滚、
 聊天纠正共享事实：全部通过，迁移到0049通过。此前数据库阻塞记录已由新证据覆盖。
 代码未提交/部署，无生产迁移；清理临时PG/运行日志，保留精简结果JSON。
+
+
+## 2026-10-05 MediaPrompt规范化职责修正
+
+用户再次报告current_capture_framing_conflict并澄清规范化用途。旧实现只兜底非法
+framing，仍把Main提示与规范输出字面比较，职责偏差。本次把Main capture/framing
+定位为语义提示，MediaPrompt产出标准照片方案，新增标准capture输出（相机模式、
+相机、角度、镜面/设备可见性），取消字面冲突路径。渲染/quality读取准备好的同一
+方案；原请求留审计，身体/衣物/物品与workflow核验保留。旧plan兼容时只保留已知
+相机提示，未知几何文字不当作硬约束。无法规范framing仍first_person/full_body。
+真实隔离PG+脚本Provider/Comfy传输回归166 pass、0 fail、3 live skip；vet/build通过。
+新增portrait/selfie/front→full_body/mirror_selfie/rear可准备并实际走到捕获提交，
+quality与渲染一致，原快照/请求不变；已有物理事实负例不删。
+本次未提交或部署，真实模型/图片像素未验收；清理临时PG与日志，留精简JSON。

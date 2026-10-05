@@ -89,6 +89,7 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 	if hasCurrentCapture(concept) {
 		concept = cloneMap(concept)
 		delete(concept, "capture_plan_fallback")
+		delete(concept, "capture_plan")
 		promptIntent.Prompt = jsonString(concept)
 	}
 	instruction := mediaPromptSystemInstruction(input.Intent)
@@ -97,7 +98,7 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 		if err := validateCurrentCaptureSnapshot(concept); err != nil {
 			return MediaPromptTaskResult{}, err
 		}
-		instruction = "Choose only framing, pose, expression, lighting and style for this current capture. Honor the frozen explicit capture framing and camera relationship; do not substitute a different framing. Return exactly the supplied JSON schema. Body, current clothing, used objects and reference images are server-owned snapshot facts; they cannot be supplied or overridden in your response. No prose or extra fields. " + currentCaptureEnumInstruction()
+		instruction = "Normalize the upstream vague photo instruction into an accurate, physically consistent standard photograph description. Choose framing, pose, expression, lighting, style and capture (mode, camera, angle, mirror, device_visibility). The upstream capture/framing are interpretation hints from the main model, not immutable facts or literal enum strings to copy. Preserve the requested photo meaning while resolving ambiguity, e.g. full-body self-capture may use a full-length mirror. Use the supplied schema for your standardized result. Body, current clothing, used objects and reference images are server-owned snapshot facts; they cannot be supplied or overridden in your response. No prose or extra fields. " + currentCaptureEnumInstruction()
 		prompt.ResponseFormat = providerResponseFormatForSchema("media_prompt", "current_capture_plan", currentCapturePlanSchema())
 	}
 	prompt.Messages = formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": mediaPromptInput(promptIntent)}}, "media_prompt")

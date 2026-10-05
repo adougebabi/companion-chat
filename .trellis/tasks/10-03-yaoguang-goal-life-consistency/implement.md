@@ -93,3 +93,14 @@ CapturePlan保存合规full_body，CaptureFallback随冻结concept持久化（�
 测试：合法值全部进入指令，未知值/空值/类型错→first_person/full_body，持久化重渲染
 一致、quality视图一致、原快照不变、额外衣物/坏穿着/非法pose继续拒绝；真实隔离PG
 Worker捕获最终Comfy payload并验证保存标记（传输为script fixture，不声明真实图片）。
+
+## 2026-10-05 用户澄清MediaPrompt是规范化阶段
+
+current_capture_framing_conflict来自将Main的capture/framing与MediaPrompt输出当作
+两份同级约束做字面比较。用户明确用途是模糊指令→准确标准照片信息，本次取消该
+比较：Main拍摄字段是意图提示；MediaPrompt选择framing并产出标准capture对象
+（模式/相机/角度/镜面/设备可见性）。正文指令明确语义解释，已保存标准plan成为
+渲染及quality的唯一拍摄描述；原始提示留审计。旧5字段plan保留兼容，未知几何
+提示不直接拼接或导致硬失败。身体/衣物/物品/来源/workflow事实核验保持原职责，
+framing无法规范化仍按已授权first_person/full_body兜底。实测上游portrait+前置selfie
+提示→全身mirror_selfie标准输出可提交；原快照/上游审计不变。

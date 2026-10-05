@@ -279,3 +279,19 @@ actor_user初始化/Owner CAS/重放/批次回滚）；更宽媒体/上下文/Pr
 164通过、0失败、3 live skip，vet/build通过。已恢复数据库验证，0049迁移通过。
 [精简结果与最终传输入参](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/capture-framing-fallback-result.json)。
 Comfy传输为受控fixture，真实像素级全身/第一人称效果仍未验证。未提交或部署本次补丁。
+
+
+## 2026-10-05 MediaPrompt规范化用途澄清
+
+上一轮只恢复非法framing枚举，仍对Main提示与MediaPrompt结果做字面比较，导致
+current_capture_framing_conflict。用户明确用途是模糊生图指令→准确标准照片信息。
+本次将拍摄提示与领域事实分开：Main的capture/framing供模型解释；MediaPrompt
+输出标准framing/pose/expression/lighting/style/capture相机关系，渲染与quality以
+准备好的方案为准，不再存在字面framing conflict代码路径。原提示留审计，衣物/
+身体/物品和工作流的程序事实核验继续保留，非法framing输出保留first_person/full_body兜底。
+
+真实隔离PG+脚本传输测试166 pass、0 fail、3 live skip；vet/build通过。验证上游
+portrait/selfie/front提示可规范成全身镜面自拍并到达最终传输，而非准备阶段失败；
+相机/镜面/设备可见性和quality视图一致。
+[结果与最终标准照片入参](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/media-prompt-normalization-result.json)。
+没有宣称真实模型长期合规或真实像素效果通过，本补丁未提交/部署。

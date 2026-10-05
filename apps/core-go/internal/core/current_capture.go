@@ -15,6 +15,13 @@ func currentCapturePlanSchema() map[string]any {
 		"expression": enumStringSchema("neutral", "smiling", "thoughtful"),
 		"lighting":   enumStringSchema("ambient", "soft", "daylight"),
 		"style":      enumStringSchema("photographic", "illustrated"),
+		"capture": objectSchema(map[string]any{
+			"mode":              enumStringSchema("selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person"),
+			"camera":            enumStringSchema("front", "rear", "external"),
+			"angle":             enumStringSchema("front", "side", "rear", "high", "low", "eye_level"),
+			"device_visibility": enumStringSchema("visible", "hidden"),
+			"mirror":            map[string]any{"type": "boolean"},
+		}, []string{"mode"}, false),
 	}, []string{"framing", "pose", "expression", "lighting", "style"}, false)
 }
 func hasCurrentCapture(concept map[string]any) bool {
@@ -29,6 +36,15 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 	// 1. Unwrap if wrapped in an outer object
 	for _, wrapperKey := range []string{"current_capture_plan", "capture_plan", "capture", "plan", "data", "result", "properties"} {
 		if inner, ok := plan[wrapperKey].(map[string]any); ok && len(inner) > 0 {
+			if wrapperKey == "capture" && inner["mode"] != nil {
+				if plan["framing"] == nil && inner["framing"] != nil {
+					plan["framing"] = inner["framing"]
+				}
+				inner = cloneMap(inner)
+				delete(inner, "framing")
+				plan["capture"] = inner
+				continue
+			}
 			for k, v := range inner {
 				if _, exists := plan[k]; !exists {
 					plan[k] = v
@@ -193,7 +209,7 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 		delete(finalPlan, alias)
 	}
 	// A canonical framing key is not a framing value alias.
-	for _, key := range []string{"framing", "pose", "expression", "lighting", "style"} {
+	for _, key := range []string{"framing", "pose", "expression", "lighting", "style", "capture"} {
 		if value, exists := plan[key]; exists {
 			finalPlan[key] = value
 		}
@@ -203,7 +219,7 @@ func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
 }
 
 func currentCaptureEnumInstruction() string {
-	return "Allowed values (use exactly one value for each field): " + jsonString(mapValue(currentCapturePlanSchema()["properties"])) + ". Prefer canonical framing tokens closeup, upper_body, full_body, body_detail, scene. If framing is unspecified and you are unsure, choose full_body; an explicit supported frozen framing takes priority. Never invent framing tokens or supply body, clothes, objects, references, prompt prose, or extra fields."
+	return "Allowed values (use exactly one value for each field): " + jsonString(mapValue(currentCapturePlanSchema()["properties"])) + ". Prefer canonical framing tokens closeup, upper_body, full_body, body_detail, scene. If framing is unspecified and you are unsure, choose full_body; Interpret the upstream framing/capture as intent hints, not literal strings to copy. Output a physically consistent standard capture relationship. Never invent framing tokens or supply body, clothes, objects, references, prompt prose, or extra fields. Include capture.mode, camera, device_visibility and optional angle/mirror as needed for the photo."
 }
 
 func resolveCurrentCapturePlan(concept, raw map[string]any) (map[string]any, map[string]any, error) {
@@ -233,6 +249,9 @@ func resolveCurrentCapturePlan(concept, raw map[string]any) (map[string]any, map
 			defaults[key] = plan[key]
 		}
 	}
+	if capture := mapValue(plan["capture"]); len(capture) > 0 {
+		defaults["capture"] = capture
+	}
 	fallback := mapValue(concept["capture_plan_fallback"])
 	if len(invalid) > 0 {
 		// The user-authorized recovery is specifically a framing fallback. A
@@ -243,6 +262,7 @@ func resolveCurrentCapturePlan(concept, raw map[string]any) (map[string]any, map
 			}
 		}
 		plan = defaults
+		plan["capture"] = map[string]any{"mode": "first_person", "camera": "rear", "device_visibility": "hidden"}
 		fallback = map[string]any{"mode": "first_person", "framing": "full_body", "reason_code": "invalid_framing_enum", "invalid_fields": invalid}
 	}
 	if len(fallback) > 0 && (fallback["mode"] != "first_person" || fallback["framing"] != "full_body" || fallback["reason_code"] != "invalid_framing_enum" || plan["framing"] != "full_body") {
@@ -292,8 +312,9 @@ func renderCurrentCapturePrompt(concept, plan map[string]any) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	concept = cloneMap(concept)
+	concept["capture_plan"] = plan
 	if len(fallback) > 0 {
-		concept = cloneMap(concept)
 		concept["capture_plan_fallback"] = fallback
 	}
 
@@ -387,7 +408,38 @@ func appearanceSnapshotIdentity(value map[string]any) string {
 // Explicit camera semantics come from the frozen Tool DTO. Free framing/angle
 // strings are never concatenated into a renderer instruction.
 func effectiveCurrentCaptureCamera(concept map[string]any) (map[string]any, error) {
-	capture := mapValue(concept["capture"])
+	capture := cloneMap(mapValue(concept["capture"]))
+	if capture == nil {
+		capture = map[string]any{}
+	}
+	plan := mapValue(concept["capture_plan"])
+	if standard := mapValue(plan["capture"]); len(standard) > 0 {
+		capture = cloneMap(standard)
+	} else {
+		// Old prepared plans have no standardized camera object. Retain known
+		// hints only; unresolved natural-language geometry is not a renderer error.
+		clean := map[string]any{}
+		for key, choices := range map[string][]string{
+			"mode":              {"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person"},
+			"camera":            {"front", "rear", "external"},
+			"angle":             {"front", "side", "rear", "high", "low", "eye_level"},
+			"device_visibility": {"visible", "hidden"},
+		} {
+			for _, choice := range choices {
+				if capture[key] == choice {
+					clean[key] = choice
+					break
+				}
+			}
+		}
+		if mirror, ok := capture["mirror"].(bool); ok {
+			clean["mirror"] = mirror
+		}
+		capture = clean
+	}
+	if framing := stringValue(plan["framing"]); framing != "" {
+		capture["framing"] = framing
+	}
 	fallback := mapValue(concept["capture_plan_fallback"])
 	if len(fallback) == 0 {
 		return capture, nil
@@ -425,23 +477,9 @@ func currentCaptureCameraPhrases(concept, plan map[string]any) ([]string, error)
 		return nil, errors.New("current_capture_camera_invalid")
 	}
 	result := []string{phrase}
-	if raw := stringValue(capture["framing"]); raw != "" {
-		aliases := map[string]string{
-			"closeup": "closeup", "close-up": "closeup", "close up": "closeup", "face close-up": "closeup", "face closeup": "closeup", "特写": "closeup",
-			"upper_body": "upper_body", "upper body": "upper_body", "upper-body": "upper_body", "半身": "upper_body", "上半身": "upper_body",
-			"full_body": "full_body", "full body": "full_body", "full-body": "full_body", "full-length": "full_body", "full length": "full_body", "全身": "full_body",
-			"body_detail": "body_detail", "body detail": "body_detail", "body-detail": "body_detail", "局部": "body_detail",
-			"scene": "scene", "场景": "scene", "空镜": "scene",
-		}
-		framing := aliases[strings.ToLower(strings.TrimSpace(raw))]
-		planFraming := aliases[strings.ToLower(strings.TrimSpace(stringValue(plan["framing"])))]
-		if planFraming == "" {
-			planFraming = stringValue(plan["framing"])
-		}
-		if framing == "" || framing != planFraming {
-			return nil, errors.New("current_capture_framing_conflict")
-		}
-	}
+	// The MediaPrompt plan is the normalized photograph description. Upstream
+	// framing text is an intent hint, not a second authority to compare literally.
+
 	if raw := stringValue(capture["angle"]); raw != "" {
 		angles := map[string]string{"front": "Viewed from the front.", "side": "Viewed from the side.", "rear": "Viewed from behind.", "high": "A high camera angle.", "low": "A low camera angle.", "eye_level": "An eye-level camera angle."}
 		phrase, ok := angles[strings.ToLower(strings.TrimSpace(raw))]

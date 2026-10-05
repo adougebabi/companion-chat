@@ -2111,14 +2111,14 @@ func compactMediaConceptObjectForProvider(raw string) (map[string]any, bool) {
 		return nil, false
 	}
 	result := cloneMap(value)
-	if len(mapValue(value["capture_plan_fallback"])) > 0 && hasCurrentCapture(value) {
+	if (len(mapValue(value["capture_plan_fallback"])) > 0 || len(mapValue(value["capture_plan"])) > 0) && hasCurrentCapture(value) {
 		capture, err := effectiveCurrentCaptureCamera(value)
 		if err != nil {
 			return nil, false
 		}
 		result["capture"] = capture
 		if _, exists := result["framing"]; exists {
-			result["framing"] = "full_body"
+			result["framing"] = capture["framing"]
 		}
 	}
 
