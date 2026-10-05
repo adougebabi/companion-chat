@@ -516,6 +516,9 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if analysisID, exists := body["analysisId"]; exists {
 			mapped["analysis_id"] = analysisID
 		}
+		if actorUser, exists := body["actorUser"]; exists {
+			mapped["actor_user"] = actorUser
+		}
 		for from, to := range map[string]string{"initialGoals": "initial_goals", "initialIntentions": "initial_intentions", "initialRelationships": "initial_relationships"} {
 			if value, exists := body[from]; exists {
 				mapped[to] = value
@@ -583,6 +586,16 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/moments"); ok && methodName == http.MethodGet {
 		includeHidden := request.URL.Query().Get("includeHidden") == "true"
 		s.callAny(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/moments?include_hidden="+strconv.FormatBool(includeHidden), http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "fluctlight_moments_unavailable", "Fluctlight Moments are unavailable"), nil)
+		return
+	}
+	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/actor-user-background"); ok && methodName == http.MethodPut {
+		body, valid := s.mutationBody(response, request, validateActorUserBackgroundUpdate)
+		if !valid {
+			return
+		}
+		mapped := map[string]any{"background": body["background"], "operation": body["operation"], "reason": body["reason"], "idempotency_key": body["idempotencyKey"], "expected_current_facts_revision": body["expectedCurrentFactsRevision"]}
+		response.Header().Set("Cache-Control", "no-store, private")
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/actor-user-background", http.MethodPut, mapped, s.readOnlyError(http.StatusBadRequest, "actor_user_background_update_failed", "Unable to update user background"), nil)
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/detail"); ok && methodName == http.MethodGet {
@@ -1683,6 +1696,9 @@ func validateFluctlightCreate(value map[string]any) bool {
 	return true
 }
 func validateActivation(value map[string]any) bool {
+	if actorUser, exists := value["actorUser"]; exists && (value["initializationMode"] != "llm_defined" || !validateActorUserInput(object(actorUser))) {
+		return false
+	}
 	mode := stringValue(value["initializationMode"])
 	if !validateString(value["requestId"], 1, 256) || (mode != "blank_slate" && mode != "llm_defined") {
 		return false
@@ -1989,4 +2005,36 @@ func mapSettings(value map[string]any) map[string]any {
 		configuredSecrets = stringArray(value["configuredSecrets"])
 	}
 	return map[string]any{"values": objectValue(value["values"]), "configuredSecrets": configuredSecrets}
+}
+
+func validateActorUserInput(value map[string]any) bool {
+	if len(value) != 1 || !isObject(value["background"]) {
+		return false
+	}
+	fields := map[string]bool{"name": true, "occupation": true, "background": true, "location_scope": true, "location": true, "timezone": true, "relationship_distance": true, "meeting_confirmed": true}
+	for key, v := range object(value["background"]) {
+		if !fields[key] {
+			return false
+		}
+		if v == nil {
+			continue
+		}
+		if key == "meeting_confirmed" {
+			if _, ok := v.(bool); !ok {
+				return false
+			}
+		} else if !validateString(v, 1, 1024) {
+			return false
+		}
+	}
+	return true
+}
+func validateActorUserBackgroundUpdate(value map[string]any) bool {
+	allowed := map[string]bool{"background": true, "operation": true, "reason": true, "idempotencyKey": true, "expectedCurrentFactsRevision": true}
+	for key := range value {
+		if !allowed[key] {
+			return false
+		}
+	}
+	return validateActorUserInput(map[string]any{"background": value["background"]}) && (value["operation"] == "correct" || value["operation"] == "change") && validateString(value["reason"], 1, 500) && validateString(value["idempotencyKey"], 1, 256) && validateString(value["expectedCurrentFactsRevision"], 1, 64)
 }

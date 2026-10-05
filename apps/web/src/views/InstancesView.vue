@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { parseActorUserSettings, actorUserInitializationExample } from "../lib/actor-user-background";
 import { computed, ref, watch } from "vue";
 import { Plus, X } from "@lucide/vue";
 import type { BrowserFluctlightCreationAnalysis } from "@fluctlight/browser-client";
@@ -112,6 +113,7 @@ async function activateCreatedFluctlight(body: {
   corePersona?: Record<string, unknown>;
   developingSelf?: Record<string, unknown>;
   extensions?: Record<string, unknown>;
+  actorUser?: BrowserFluctlightCreationAnalysis["actor_user"];
   initialRelationships?: Array<Record<string, unknown>>;
   initialGoals?: Array<Record<string, unknown>>;
   initialIntentions?: Array<Record<string, unknown>>;
@@ -204,6 +206,7 @@ async function activatePreview() {
       initializationMode: "llm_defined",
       analysisId: foundation.analysis_id,
       schemaVersion: foundation.schema_version,
+      actorUser: foundation.actor_user,
       corePersona: foundation.core_persona,
       developingSelf: foundation.developing_self,
       extensions: foundation.extensions,
@@ -226,6 +229,8 @@ function parseCreationFoundation(value: unknown): BrowserFluctlightCreationAnaly
   const corePersona = candidate.core_persona;
   const developingSelf = candidate.developing_self;
   const extensions = candidate.extensions;
+  const actorUser = candidate.actor_user === undefined ? undefined : parseActorUserSettings(candidate.actor_user);
+  if (actorUser === null) return null;
   if (typeof candidate.analysis_id !== "string" || !candidate.analysis_id.trim() || typeof candidate.correlation_id !== "string" || !candidate.correlation_id.trim()) return null;
   if (typeof candidate.schema_version !== "number" || !Number.isInteger(candidate.schema_version) || candidate.schema_version < 1) return null;
   if (!corePersona || typeof corePersona !== "object" || Array.isArray(corePersona) || !developingSelf || typeof developingSelf !== "object" || Array.isArray(developingSelf)) return null;
@@ -234,6 +239,7 @@ function parseCreationFoundation(value: unknown): BrowserFluctlightCreationAnaly
     analysis_id: candidate.analysis_id,
     correlation_id: candidate.correlation_id,
     schema_version: candidate.schema_version,
+    ...(actorUser ? { actor_user: actorUser } : {}),
     core_persona: corePersona as Record<string, unknown>,
     developing_self: developingSelf as Record<string, unknown>,
     extensions: extensions as Record<string, unknown>,
@@ -343,6 +349,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
           </form>
 
           <form v-if="(creationMode === 'llm_defined' || creationMode === 'json_import') && creationPreviewJson" id="activate-preview-form" class="stack-form preview-form" @submit.prevent="activatePreview">
+            <details class="field-note"><summary>设置用户背景（actor_user）</summary><p>在初始化 JSON 顶层添加 actor_user。只填写你本人的明确资料；未知所在地与时区保持 null，不沿用摇光的时区。</p><pre>{{ JSON.stringify(actorUserInitializationExample, null, 2) }}</pre></details>
             <label for="fluctlight-preview">可编辑的 Persona 分层预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label>
             <div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary">
               <strong>创建后会带入</strong>

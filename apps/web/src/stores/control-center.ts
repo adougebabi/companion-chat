@@ -14,6 +14,7 @@ import {
   type BrowserWardrobeItem,
   type BrowserWorkflowIntentSnapshot,
 } from "@fluctlight/browser-client";
+import { actorUserBackgroundFields } from "../lib/actor-user-background";
 import { apiOrigin } from "../runtime-config";
 import { planDefaultGroupMembership } from "../lib/group-membership";
 import { normalizeActorGroups, type ActorGroupSnapshot } from "../lib/actor-groups";
@@ -66,6 +67,12 @@ export const useControlCenterStore = defineStore("control-center", {
     fluctlightDetail: null as BrowserFluctlightDetail | null,
 	fluctlightDetailRequestId: 0,
 	fluctlightDetailFluctlightId: "",
+    actorUserBackgroundDraft: {} as Record<string, string>,
+    actorUserBackgroundRevision: "",
+    actorUserBackgroundDirty: false,
+    actorUserBackgroundOperation: "correct" as "correct" | "change",
+    actorUserBackgroundReason: "",
+    actorUserBackgroundNotice: "",
     governanceReason: "",
     governanceNotice: "",
     revisionChangesJson: "",
@@ -389,6 +396,16 @@ export const useControlCenterStore = defineStore("control-center", {
 		const detail = await client.detail(targetId);
 		if (requestId !== this.fluctlightDetailRequestId || targetId !== this.fluctlightDetailFluctlightId) return;
 		this.fluctlightDetail = detail;
+        if (idChanged || !this.actorUserBackgroundDirty) {
+          const background = detail.actor_user?.background ?? {};
+          this.actorUserBackgroundDraft = Object.fromEntries(actorUserBackgroundFields.map(field => {
+            const value = background[field.key];
+            return [field.key, field.key === "meeting_confirmed" ? (value === true ? "true" : value === false ? "false" : "unknown") : typeof value === "string" ? value : ""];
+          }));
+          this.actorUserBackgroundRevision = String(detail.current_facts_revision ?? "");
+          this.actorUserBackgroundDirty = false;
+          if (idChanged) { this.actorUserBackgroundReason = ""; this.actorUserBackgroundNotice = ""; }
+        }
 		const relationships = Array.isArray(detail.relationships) ? detail.relationships as Array<Record<string, unknown>> : [];
         this.relationshipEditDrafts = Object.fromEntries(relationships.map((relationship) => {
           const key = relationshipKey(relationship);
@@ -409,6 +426,33 @@ export const useControlCenterStore = defineStore("control-center", {
 	  finally {
 		if (requestId === this.fluctlightDetailRequestId && fluctlightId === this.fluctlightDetailFluctlightId) this.loading = false;
 	  }
+    },
+    async reloadActorUserBackground(fluctlightId: string | null) {
+      this.actorUserBackgroundDirty = false;
+      await this.loadFluctlightDetail(fluctlightId);
+    },
+    async saveActorUserBackground(fluctlightId: string | null) {
+      if (!fluctlightId || this.saving || this.fluctlightDetailFluctlightId !== fluctlightId) return;
+      this.saving = true; this.error = ""; this.actorUserBackgroundNotice = "";
+      const background: NonNullable<BrowserFluctlightDetail["actor_user"]>["background"] = {};
+      for (const field of actorUserBackgroundFields) {
+        const draft = this.actorUserBackgroundDraft[field.key] ?? "";
+        if (field.key === "meeting_confirmed") background.meeting_confirmed = draft === "true" ? true : draft === "false" ? false : null;
+        else background[field.key] = draft.trim() || null;
+      }
+      const payload = {background, operation:this.actorUserBackgroundOperation, reason:this.actorUserBackgroundReason.trim(), expectedCurrentFactsRevision:this.actorUserBackgroundRevision};
+      const identity = `actor-user:${fluctlightId}:${JSON.stringify(payload)}`;
+      try {
+        await client.updateActorUserBackground(fluctlightId, {...payload,idempotencyKey:this.lifeCommandKey(identity)});
+        this.clearLifeCommandKey(identity);
+        if (this.fluctlightDetailFluctlightId !== fluctlightId) return;
+        this.actorUserBackgroundDirty = false;
+        await this.loadFluctlightDetail(fluctlightId);
+        if (this.fluctlightDetailFluctlightId === fluctlightId) this.actorUserBackgroundNotice = "用户背景已保存。";
+      } catch (error) {
+        if (this.fluctlightDetailFluctlightId !== fluctlightId) return;
+        this.error = error instanceof BrowserApiError && error.status === 409 ? "资料或当前状态已变化，请重新载入后核对再保存。未保存的填写内容仍保留。" : "无法保存用户背景，请检查字段与时区。";
+      } finally { this.saving = false; }
     },
     async setFluctlightStatus(fluctlightId: string | null, status: "active" | "paused") {
       const detail = this.fluctlightDetail;

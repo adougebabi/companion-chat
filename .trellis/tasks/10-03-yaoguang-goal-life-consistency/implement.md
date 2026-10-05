@@ -68,3 +68,15 @@ tool_publication.go、agent_result_adapter.go 及定向测试/spec。
 不新增诊断Tool、不解析purpose自然语言、不凭final no_op撤销真正已提交的自然回复，
 不改变日程/睡眠/库存权威。验证直调Tool拒绝无消息、清醒周期误调用→失败结果→
 final no_op保存原因及真实主动私聊仍可送达。
+
+## 2026-10-04 用户背景显式初始化与设置入口
+
+用户纠正聊天不应成为初始化入口。本次增加可选顶层actor_user.background（称呼、
+职业、简单背景、所在地概况/具体地点、明确IANA时区、双方距离、见面确认）；
+遗漏键不作断言，null明确未知。创建JSON分析/可编辑预览/激活透传，激活事务写入
+现有actor_facts，主体绑定认证Owner，不把背景放进摇光core_persona。
+详情只读展示、编辑与治理表单修改；新Owner PUT以current_facts_revision CAS，
+明确correct/change、reason与idempotency key，批次事务及0049命令审计只用于恢复，
+不建立第二事实权威。初始化digest包括actor_user；旧JSON未提供则保持旧语义。
+核验Core创建/重放/跨Owner/CAS/原子失败/聊天纠正共享来源，BFF/客户端字段保留、
+null/false、前端草稿与实例隔离及界面。未部署、未运行未知生产迁移。

@@ -269,3 +269,19 @@ test("diagnostic pages preserve the envelope and encode cursor/filter for both s
     assert.equal(url.searchParams.get("limit"),"2");
   }
 });
+
+test("actor user initialization and owner background update keep unknown values and scope",async()=>{
+ const calls:Array<{url:string;body:Record<string,unknown>}>=[];
+ const actorUser={background:{name:"Vinson",timezone:null,meeting_confirmed:false}};
+ const client=new BrowserClient("http://fluctlight.local",async(input,init)=>{
+  calls.push({url:String(input),body:JSON.parse(String(init?.body))});
+  return Response.json({background:actorUser.background,facts:[]});
+ });
+ await client.activateFluctlightCreation({requestId:"init",initializationMode:"llm_defined",actorUser});
+ assert.deepEqual(calls[0].body.actorUser,actorUser);
+ await client.updateActorUserBackground("fl/one",{background:actorUser.background,operation:"correct",reason:"owner settings",expectedCurrentFactsRevision:"facts_gen_1",idempotencyKey:"settings-1"});
+ assert.ok(calls[1].url.endsWith("/fl%2Fone/actor-user-background"));
+ assert.equal((calls[1].body.background as Record<string,unknown>).timezone,null);
+ assert.equal((calls[1].body.background as Record<string,unknown>).meeting_confirmed,false);
+ assert.equal(calls[1].body.expectedCurrentFactsRevision,"facts_gen_1");
+});

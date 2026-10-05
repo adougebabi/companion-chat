@@ -243,3 +243,23 @@ Tool执行同时覆盖大小写与空白、noop/no-op/none；自然文本提及n
 
 本次定向race验证128个test/subtest通过、0失败、4个live外部依赖跳过；
 vet/build通过，独立只读核验无发现。本补充修复尚未提交或部署。
+
+
+## 2026-10-04 补齐actor_user显式初始化与资料治理
+
+前轮缺少用户资料的显式配置入口，聊天录入不能替代该需求。本次补齐可选顶层
+actor_user.background，与core_persona并列；字段为name、occupation、background、
+location_scope、location、timezone、relationship_distance、meeting_confirmed。
+遗漏字段不作断言，null表示未知，false不丢失；时区须明确有效IANA，不取设备/摇光时区。
+初始化规范化、JSON导入预览及激活链保留此字段，进入来源/激活digest，并在同一创建
+事务写既有Actor事实。认证Owner是固定主体。
+详情新增只读用户背景；编辑与治理提供独立表单。Owner PUT拥有版本CAS、批次事务、
+correct/change区别与稳定请求重放；新0049_actor_user_background仅增加命令审计表，
+当前事实仍只在actor_facts，后续聊天纠正不另存一套。
+
+初始化相关44个test/subtest通过，6个DB依赖跳过（含3个本次集成用例）；BFF边界race
+通过，浏览器客户端15/Web62测试通过，生成/typecheck/build/vet通过。实际浏览器以
+production dist+syntheticAPI核对详情查看、治理保存反馈，390px无横向溢出、无console错误。
+目前Docker未运行且Mac锁定，无法启动OrbStack；真实PG的激活、CAS、重放、批次回滚
+及0049迁移验证待用户启动容器服务后继续。没有将这些skip或UI fixture计为数据库通过。
+此补充改动尚未提交、部署或执行生产迁移。

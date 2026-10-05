@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { actorUserBackgroundFields } from "../../lib/actor-user-background";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { BrowserClient, type BrowserWardrobeItem } from "@fluctlight/browser-client";
 
@@ -56,6 +57,7 @@ const hasCurrentFluctlightDetail = computed(() => Boolean(controlCenter.fluctlig
 const detail = computed(() => hasCurrentFluctlightDetail.value ? asRecord(controlCenter.fluctlightDetail) : {});
 const corePersona = computed(() => asRecord(detail.value.core_persona));
 const developingSelf = computed(() => asRecord(detail.value.developing_self));
+const actorUserBackground = computed(() => asRecord(asRecord(detail.value.actor_user).background));
 const currentState = computed(() => asRecord(detail.value.current_state));
 const wornItems = computed(() => asRecords(asRecord(currentState.value.appearance).worn_items));
 const wardrobeItems = ref<BrowserWardrobeItem[]>([]);
@@ -344,6 +346,11 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
             </div>
           </section>
 
+          <section class="detail-block">
+            <div class="detail-block-heading"><p class="eyebrow">ABOUT YOU</p><h3>用户背景</h3></div>
+            <p class="field-note">关于你本人的已确认资料。可在“进入编辑与治理”中设置；未提供的信息保持未知。</p>
+            <dl class="detail-list"><div v-for="field in actorUserBackgroundFields" :key="field.key"><dt>{{ field.label }}</dt><dd>{{ actorUserBackground[field.key] == null ? '未确认' : field.key === 'meeting_confirmed' ? (actorUserBackground[field.key] ? '已约定' : '未约定') : formatDisplayValue(actorUserBackground[field.key]) }}</dd></div></dl>
+          </section>
           <section class="detail-block">
             <div class="detail-block-heading"><p class="eyebrow">PERSONA LAYERS</p><h3>分层 Persona</h3></div>
             <div class="persona-json-grid">

@@ -69,5 +69,31 @@
     "response_intent": "persisted in cycle result",
     "committed": false,
     "deployed": false
+  },
+  "actor_user_settings_patch": {
+    "core_validation_test_events": {
+      "pass": 44,
+      "skip": 6
+    },
+    "database_tests_unverified": [
+      "TestActorUserBackgroundOwnerEditCASReplayAndChatCorrectionShareAuthority",
+      "TestActorUserBackgroundActivationWritesFactsAtomicallyAndReplays",
+      "TestActorUserBackgroundBatchFailureRollsBackFactsAndGeneration",
+      "TestCreateFluctlightRecordsPersonalityDefaultsEndToEnd",
+      "TestInitializationScopeDefaultsToSharedRow",
+      "TestInitializationTextToStoredPortraitToFormalRequest"
+    ],
+    "browser_client_tests": 15,
+    "web_tests": 62,
+    "bff_boundary_race": "PASS",
+    "generate_typecheck_build_vet": "PASS",
+    "browser_ui": "PASS local production build and synthetic API; readonly detail → governance → save feedback",
+    "narrow_viewport": 390,
+    "scroll_width": 390,
+    "console_errors": [],
+    "postgres": "BLOCKED Docker unavailable; Mac locked prevents starting OrbStack",
+    "migration": "0049_actor_user_background prepared, not verified against PostgreSQL",
+    "committed": false,
+    "deployed": false
   }
 }

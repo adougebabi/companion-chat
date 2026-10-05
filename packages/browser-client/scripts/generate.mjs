@@ -5,7 +5,10 @@ const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
 const paths = Object.keys(schema.paths).sort();
 const requestTypeNames = [
-  "BrowserFluctlightCreateRequest",
+  "BrowserActorUserSettings",
+ "BrowserActorUserBackgroundUpdate",
+ "BrowserActorUserState",
+ "BrowserFluctlightCreateRequest",
   "BrowserFluctlightCreationAnalysisRequest",
   "BrowserFluctlightCreationAnalysis",
   "BrowserFluctlightActivationRequest",
@@ -141,6 +144,7 @@ export class BrowserClient {
   async assignActorGroupMember(groupId: string, actorId: string): Promise<void> { await this.json(\`/api/actor-groups/\${encodeURIComponent(groupId)}/members\`, { method: "POST", body: { actorId } }); }
   async removeActorGroupMember(groupId: string, actorId: string): Promise<void> { await this.json(\`/api/actor-groups/\${encodeURIComponent(groupId)}/members/\${encodeURIComponent(actorId)}\`, { method: "DELETE", body: {} }); }
   async getFluctlight(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}\`) as Promise<Record<string, unknown>>; }
+  async updateActorUserBackground(fluctlightId: string, body: BrowserActorUserBackgroundUpdate): Promise<BrowserActorUserState> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/actor-user-background\`, {method:"PUT",body}) as Promise<BrowserActorUserState>; }
   async detail(fluctlightId: string): Promise<BrowserFluctlightDetail> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/detail\`) as Promise<BrowserFluctlightDetail>; }
   async wardrobe(fluctlightId: string, cursor = ""): Promise<BrowserWardrobePage> { const query = cursor ? \`?cursor=\${encodeURIComponent(cursor)}\` : ""; return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/wardrobe\${query}\`) as Promise<BrowserWardrobePage>; }
   async addWardrobeItems(fluctlightId: string, body: Record<string, unknown>): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/wardrobe/items\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }

@@ -68,6 +68,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "fluctlight moments", method: http.MethodGet, path: "/api/fluctlights/fl-1/moments"},
 		{name: "fluctlight moments read", method: http.MethodPost, path: "/api/fluctlights/fl-1/moments/read"},
 		{name: "global moments", method: http.MethodGet, path: "/api/moments"},
+		{name: "actor user background update", method: http.MethodPut, path: "/api/fluctlights/fl-1/actor-user-background", body: `{"background":{"name":"Vinson","timezone":null},"operation":"correct","reason":"initial settings","idempotencyKey":"user-1","expectedCurrentFactsRevision":"facts_gen_1"}`},
 		{name: "fluctlight detail", method: http.MethodGet, path: "/api/fluctlights/fl-1/detail"},
 		{name: "fluctlight wardrobe", method: http.MethodGet, path: "/api/fluctlights/fl-1/wardrobe"},
 		{name: "fluctlight wardrobe add items", method: http.MethodPost, path: "/api/fluctlights/fl-1/wardrobe/items", body: `{"items":[]}`},

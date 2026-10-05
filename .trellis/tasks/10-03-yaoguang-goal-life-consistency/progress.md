@@ -95,3 +95,19 @@ capability，真正送达回复仍以实际结果为准。
 定向race测试128 pass、0 fail、4 live skip；vet/build通过；只读核验无发现。
 测试使用新临时PG容器，原始日志仅/tmp且测试结束清理；精简统计追加到validation-summary.json。
 本次补丁尚未提交或部署，无生产数据操作。
+
+
+## 2026-10-04 显式actor_user设置入口
+
+补齐前轮遗漏：可选顶层actor_user.background，创建预览/JSON导入/激活透传；
+与core_persona并列，认证Owner作为subject，在激活事务写现有actor_facts。
+当前背景在详情独立只读展示；治理表单支持8项简单字段、未知null/见面false、
+correct/change语义、原因、版本CAS、稳定请求与单事务批次。0049命令ledger只
+用于重放审计，没有第二份运行背景authority。聊天纠正与设置读写同一事实层。
+相关初始化44 test/subtest pass、0 fail、6 DB-dependent skips，含3个本次数据库用例；
+Browser边界race通过；客户端15/Web62测试通过；generate/typecheck/build/vet通过。
+浏览器production dist+syntheticAPI实测详情→治理→保存反馈；390px无横向溢出，
+console errors为空。它不是实际Backend/DB E2E。
+真实数据库验证仍待完成：Docker daemon未运行，Mac锁定无法启动OrbStack，已
+异步请求用户解锁并启动。新增激活/CAS/重放/批次回滚测试已写，未把skip记PASS。
+本次未提交/部署或对生产库迁移，任务保持in_progress。

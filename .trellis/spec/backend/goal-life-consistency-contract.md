@@ -202,3 +202,75 @@ and internal life-activity WakeUp tests. This does not prove live model complian
 
 Wrong: send the internal silence decision via `conversation.reply.text`.
 Correct: final `action_type=no_op`, private reason in `response_intent`, no message Tool.
+
+## Scenario: Explicit Owner Background Initialization And Governance
+
+### 1. Scope / Trigger
+
+Creation JSON/analysis preview supplies human background; Owner views or edits
+that background in a Fluctlight detail/governance surface.
+
+### 2. Signatures
+
+```json
+{"actor_user":{"background":{"name":"Vinson","location_scope":"abroad","timezone":null,"meeting_confirmed":false}}}
+```
+
+Optional initialization root actor_user is separate from core_persona.
+PUT `/internal/fluctlights/{id}/actor-user-background` receives background,
+operation=correct|change, reason, expected_current_facts_revision, idempotency_key.
+Browser route uses expectedCurrentFactsRevision/idempotencyKey. Detail returns
+actor_user={background,facts}. Migration 0049 adds actor_user_background_commands.
+
+### 3. Contracts
+
+- Allowed fields: name, occupation, background, location_scope, location,
+  timezone, relationship_distance, meeting_confirmed. Values are bounded
+  nonempty strings or null; meeting_confirmed is boolean/null. Zone is explicit
+  valid IANA or null; neither server/device nor actor_self supplies a human zone.
+- Missing key is no assertion, null is explicit unknown, false stays false.
+  Older initialization JSON with no actor_user remains valid; do not insert
+  defaults that change old activation digest. New input participates in source
+  projection/activation digest and one activation transaction.
+- Subject is authenticated created_by_actor_id and scope is the Fluctlight.
+  Callers cannot choose an Actor, provenance, status or source. Seed and Owner
+  edits call the existing Actor fact transaction service; runtime/Tools and chat
+  corrections read this same authority. Foundation is actor_self only.
+- Owner writes hold lifecycle/Actor locks, validate current-facts CAS, apply the
+  entire batch and record its immutable command result atomically. Identical
+  retry replays before CAS; changed payload under the same key conflicts.
+  The command ledger is audit/recovery, never another background authority.
+- Current detail is authoritative after chat correction. Read-only detail has
+  no mutation inputs; governance distinguishes mistaken old info (correct) from
+  formerly true info that changed (change). Dirty form drafts freeze their
+  expected revision and survive failed saves; instance changes discard old scope.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unsupported key/type/invalid explicit zone | reject; no partial facts |
+| Caller supplies subject/source/status | boundary rejects; Owner binding stays server-owned |
+| Current facts changed during editing | 409, preserve draft and ask reload |
+| Identical committed command retry | recorded result replay, no extra facts |
+| Same key with changed payload | conflict |
+| Another Owner edits/reads instance | deny without exposing background |
+
+### 5. Good / Base / Bad Cases
+
+Good: actor_user timezone null and actor_self Asia/Shanghai coexist.
+Base: old JSON omits actor_user and seeds nothing; Owner can configure it later.
+Bad: hide human profile under core_persona or require an LLM chat to initialize it.
+
+### 6. Tests Required
+
+Initialization retention/validation, complete activation transaction/digest
+replay, Owner update/CAS/replay/foreign scope and chat correction sharing facts.
+Core/BFF/client generation and typed preview retain null/false. Interface tests
+cover read-only detail, separate governance, dirty draft and scope guards.
+Real PostgreSQL integration must be marked unverified if the service is unavailable.
+
+### 7. Wrong vs Correct
+
+Wrong: place user location inside Fluctlight identity and hope chat remembers it.
+Correct: actor_user.background → owner-approved actor_facts → same runtime projection.

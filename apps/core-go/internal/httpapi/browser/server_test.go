@@ -185,3 +185,23 @@ func TestBrowserHandlerRejectsUnknownAPIRouteAndInvalidOrigin(t *testing.T) {
 		t.Fatalf("invalid origin preflight status = %d", optionsResponse.Code)
 	}
 }
+
+func TestActorUserSettingsBoundaryKeepsSubjectServerOwnedAndNullExplicit(t *testing.T) {
+	good := map[string]any{"background": map[string]any{"name": "Vinson", "timezone": nil, "meeting_confirmed": false}, "operation": "correct", "reason": "owner settings", "idempotencyKey": "user-1", "expectedCurrentFactsRevision": "facts_gen_1"}
+	if !validateActorUserBackgroundUpdate(good) {
+		t.Fatal("explicit null/false rejected")
+	}
+	for _, key := range []string{"actorId", "sourceMessageId", "status"} {
+		changed := map[string]any{}
+		for k, v := range good {
+			changed[k] = v
+		}
+		changed[key] = "forged"
+		if validateActorUserBackgroundUpdate(changed) {
+			t.Fatalf("caller-owned %s accepted", key)
+		}
+	}
+	if validateActorUserInput(map[string]any{"background": map[string]any{"meeting_confirmed": "false"}}) {
+		t.Fatal("string boolean accepted")
+	}
+}

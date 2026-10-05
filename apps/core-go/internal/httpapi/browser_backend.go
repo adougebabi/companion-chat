@@ -240,6 +240,16 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 			return nil, pageErr
 		}
 		return jsonMap(page)
+	case strings.HasSuffix(path, "/actor-user-background") && strings.HasPrefix(path, "/internal/fluctlights/") && method == http.MethodPut:
+		parts := splitInternalPath(path)
+		value, err := b.server.app.UpdateActorUserBackground(ctx, actorID, pathPart(parts, 2), values)
+		if errors.Is(err, core.ErrInvalidArguments) {
+			return nil, &browser.CoreError{Status: http.StatusBadRequest, Code: "actor_user_background_invalid", Message: "Invalid user background fields or timezone"}
+		}
+		if errors.Is(err, core.ErrCurrentFactsStale) || errors.Is(err, core.ErrConflict) {
+			return nil, &browser.CoreError{Status: http.StatusConflict, Code: "actor_user_background_conflict", Message: "User background changed; reload before saving"}
+		}
+		return value, err
 	case strings.HasSuffix(path, "/detail") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		return b.server.app.FluctlightDetail(ctx, actorID, pathPart(parts, 2))
@@ -423,6 +433,9 @@ func (b *browserBackend) activate(ctx context.Context, actorID string, body map[
 		name = stringValue(identity["name"])
 	}
 	initialization := map[string]any{"schema_version": body["schema_version"], "core_persona": corePersona, "developing_self": mapValue(body["developing_self"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"]), "initial_relationships": arrayValue(body["initial_relationships"]), "extensions": mapValue(body["extensions"])}
+	if value, exists := body["actor_user"]; exists {
+		initialization["actor_user"] = value
+	}
 	if mode == "blank_slate" {
 		initialization = nil
 	}

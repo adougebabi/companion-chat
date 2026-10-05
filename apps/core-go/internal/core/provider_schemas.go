@@ -576,6 +576,7 @@ func initializationResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"schema_version":        integerSchema(),
 		"core_persona":          corePersona,
+		"actor_user":            actorUserSettingsSchema(),
 		"developing_self":       developingSelf,
 		"initial_goals":         arraySchema(goal),
 		"initial_intentions":    arraySchema(intention),

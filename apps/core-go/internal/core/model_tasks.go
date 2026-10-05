@@ -101,8 +101,13 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 	if hasCurrentCapture(concept) {
 		var plan map[string]any
 		if err := jsonUnmarshal([]byte(run.Completion.Text), &plan); err != nil {
-			return MediaPromptTaskResult{}, errors.New("current_capture_plan_invalid")
+			if structured, ok := parseStructuredCandidates([]string{run.Completion.Text}); ok {
+				plan = structured
+			} else {
+				return MediaPromptTaskResult{}, errors.New("current_capture_plan_invalid")
+			}
 		}
+		plan = normalizeCurrentCapturePlan(concept, plan)
 		rendered, err := renderCurrentCapturePrompt(concept, plan)
 		return MediaPromptTaskResult{Prompt: rendered, CapturePlan: plan}, err
 	}

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { actorUserBackgroundFields } from "../lib/actor-user-background";
 import { computed, ref } from "vue";
 
 import Button from "@/components/ui/button/Button.vue";
@@ -89,6 +90,24 @@ function onWardrobeToggle(event: Event) {
     <p v-if="controlCenter.governanceNotice" class="notice-banner" role="status">{{ controlCenter.governanceNotice }}</p>
 
     <template v-if="controlCenter.fluctlightDetail">
+      <details class="governance-section" open>
+        <summary class="section-heading"><div><p class="eyebrow">ABOUT YOU</p><h2>用户背景</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <p class="field-note">这是关于你本人的资料，供当前摇光了解；不修改摇光的人格。留空表示未知，时区不会从设备或摇光推断。</p>
+        <form @submit.prevent="controlCenter.saveActorUserBackground(store.fluctlightId)">
+          <div class="form-grid">
+            <label v-for="field in actorUserBackgroundFields" :key="field.key" :for="`actor-user-${field.key}`">{{ field.label }}
+              <select v-if="field.key === 'meeting_confirmed'" :id="`actor-user-${field.key}`" v-model="controlCenter.actorUserBackgroundDraft[field.key]" @change="controlCenter.actorUserBackgroundDirty = true" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option value="unknown">未确认</option><option value="true">已约定</option><option value="false">未约定</option></select>
+              <Textarea v-else-if="field.key === 'background'" :id="`actor-user-${field.key}`" v-model="controlCenter.actorUserBackgroundDraft[field.key]" maxlength="1024" rows="3" placeholder="未填写" @input="controlCenter.actorUserBackgroundDirty = true" />
+              <Input v-else :id="`actor-user-${field.key}`" v-model="controlCenter.actorUserBackgroundDraft[field.key]" maxlength="1024" placeholder="未填写 / 未确认" @input="controlCenter.actorUserBackgroundDirty = true" />
+            </label>
+          </div>
+          <label for="actor-user-operation">这次修改的含义<select id="actor-user-operation" v-model="controlCenter.actorUserBackgroundOperation" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option value="correct">纠正原信息：之前的内容不正确</option><option value="change">情况发生变化：之前正确，现在改变了</option></select></label>
+          <label for="actor-user-reason">修改说明<Input id="actor-user-reason" v-model="controlCenter.actorUserBackgroundReason" maxlength="500" required placeholder="例如：补充初始化资料，或今天已回国" /></label>
+          <div class="inline-controls"><Button type="submit" :disabled="controlCenter.saving || !controlCenter.actorUserBackgroundReason.trim()">保存用户背景</Button><Button type="button" variant="outline" :disabled="controlCenter.saving" @click="controlCenter.reloadActorUserBackground(store.fluctlightId)">重新载入（放弃未保存修改）</Button></div>
+          <p v-if="controlCenter.actorUserBackgroundNotice" role="status">{{ controlCenter.actorUserBackgroundNotice }}</p>
+        </form>
+      </details>
+
       <section class="governance-section governance-overview">
         <div class="section-heading"><span class="section-index">01</span><div><p class="eyebrow">概览</p><h2>当前状态</h2></div></div>
         <p class="field-note">暂停会阻止新的自主外部行为，历史事实和已观察到的状态不会被删除。</p>

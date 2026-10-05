@@ -256,7 +256,7 @@ func readActorFactsWith(ctx context.Context, q lifeContextQuerier, owner, subjec
 		query += ` AND $3::timestamptz IS NOT NULL`
 	}
 	if !history {
-		query += ` ORDER BY CASE WHEN f.attribute IN ('location_scope','location','timezone','relationship_distance','meeting_confirmed') THEN 0 ELSE 1 END,f.created_at DESC,f.id DESC LIMIT $4`
+		query += ` ORDER BY CASE WHEN f.attribute IN ('location_scope','location','timezone','relationship_distance','meeting_confirmed','name','occupation','background') THEN 0 ELSE 1 END,f.created_at DESC,f.id DESC LIMIT $4`
 	} else {
 		query += ` ORDER BY f.created_at DESC,f.id DESC LIMIT $4`
 	}
@@ -324,7 +324,7 @@ func compactActorBackground(projection ContextProjection) []map[string]any {
 	for _, fact := range projection.ActorFacts {
 		attribute := stringValue(fact["attribute"])
 		switch attribute {
-		case "location_scope", "location", "timezone", "relationship_distance", "meeting_confirmed", "same_building", "co_located":
+		case "name", "occupation", "background", "location_scope", "location", "timezone", "relationship_distance", "meeting_confirmed", "same_building", "co_located":
 		default:
 			continue
 		}

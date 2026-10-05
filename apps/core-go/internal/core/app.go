@@ -327,7 +327,7 @@ func (a *App) authAudit(ctx context.Context, action, actorID, result, details st
 	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.auth_audit_log(id,action,actor_id,result,details) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING`, randomID("auth_audit_"), action, nullableString(actorID), result, details)
 }
 
-const initializationResponseShapeInstruction = `Canonical JSON shape: {"schema_version":2,"core_persona":{"schema_version":1,"identity":{"name":"","nickname":null,"gender":null,"age":null,"occupation":null,"height":null,"height_cm":null,"blood_type":null,"birthplace":null,"residence":null,"timezone":null,"birthday":null,"background_story":null,"biography":null,"core_values":[],"worldview":null,"notes":null},"personality":{},"behavioral_policy":{},"life_profile":{"appearance":{"description":null,"physical_features":{"hair_length":null,"hair_color":null},"hair_style":null,"injuries":[],"daily_outfit_preferences":[],"style_preferences":{},"wardrobe_items":[{"category":"","slot":"","description":"","ownership":"owned|borrowed|unknown","available":true,"currently_worn":false}]},"social_background":{},"preferences":{},"life_habits":[],"recurring_commitments":[],"relationship_seeds":[],"character_constraints":[],"media_preferences":{}},"personality_system":{"mode":"single|multiple","profiles":[{"id":"stable_id","name":"","identity":{},"personality":{},"behavioral_policy":{},"emotional_state":{},"voice":{},"body_language":{},"behavior_state_machine":{},"behavior_loops":{},"scenario_behavior":{},"secrets":{},"intimacy_progression":{},"output_preferences":{},"fears":[],"desires":[],"extensions":{}}],"active_profile_id":"default","switching":{},"forced_activation":{},"takeover_rules":[{"id":"stable_rule_id","kind":"turn_takeover","version":"turn-takeover.v1","condition":"","target_profile_id":"stable_profile_id","source_profile_id":"stable_profile_id","priority":0,"cooldown_seconds":0,"enabled":true,"evidence_refs":[],"extensions":{}}],"influence":{},"core_relationship":null,"core_conflict":null,"conflict_resolution":{},"integration":{},"behavior_state_machine":{},"extensions":{}},"extensions":{}},"developing_self":{"claims":[]},"initial_relationships":[],"initial_goals":[],"initial_intentions":[],"extensions":{}}. Use these canonical keys; never replace them with actor_self, personas, goals, or another custom root. For every executable takeover declaration, emit an explicit stable id, kind=turn_takeover, version=turn-takeover.v1, non-empty condition, and target_profile_id that exactly matches a declared profile id. source_profile_id is optional but, when present, must also exactly match a declared profile id. Keep the original forced_activation prose verbatim as migration evidence; a profile display name or a profile mention in condition text cannot substitute for target_profile_id.`
+const initializationResponseShapeInstruction = `Canonical JSON shape: {"schema_version":2,"core_persona":{"schema_version":1,"identity":{"name":"","nickname":null,"gender":null,"age":null,"occupation":null,"height":null,"height_cm":null,"blood_type":null,"birthplace":null,"residence":null,"timezone":null,"birthday":null,"background_story":null,"biography":null,"core_values":[],"worldview":null,"notes":null},"personality":{},"behavioral_policy":{},"life_profile":{"appearance":{"description":null,"physical_features":{"hair_length":null,"hair_color":null},"hair_style":null,"injuries":[],"daily_outfit_preferences":[],"style_preferences":{},"wardrobe_items":[{"category":"","slot":"","description":"","ownership":"owned|borrowed|unknown","available":true,"currently_worn":false}]},"social_background":{},"preferences":{},"life_habits":[],"recurring_commitments":[],"relationship_seeds":[],"character_constraints":[],"media_preferences":{}},"personality_system":{"mode":"single|multiple","profiles":[{"id":"stable_id","name":"","identity":{},"personality":{},"behavioral_policy":{},"emotional_state":{},"voice":{},"body_language":{},"behavior_state_machine":{},"behavior_loops":{},"scenario_behavior":{},"secrets":{},"intimacy_progression":{},"output_preferences":{},"fears":[],"desires":[],"extensions":{}}],"active_profile_id":"default","switching":{},"forced_activation":{},"takeover_rules":[{"id":"stable_rule_id","kind":"turn_takeover","version":"turn-takeover.v1","condition":"","target_profile_id":"stable_profile_id","source_profile_id":"stable_profile_id","priority":0,"cooldown_seconds":0,"enabled":true,"evidence_refs":[],"extensions":{}}],"influence":{},"core_relationship":null,"core_conflict":null,"conflict_resolution":{},"integration":{},"behavior_state_machine":{},"extensions":{}},"extensions":{}},"developing_self":{"claims":[]},"initial_relationships":[],"initial_goals":[],"initial_intentions":[],"actor_user":{"background":{}},"extensions":{}}. Use these canonical keys; never replace them with actor_self, personas, goals, or another custom root. actor_user.background is an optional owner-approved human background input, distinct from core_persona (the Fluctlight). Allowed keys: name, occupation, background, location_scope, location, timezone, relationship_distance, meeting_confirmed. Emit only explicitly supplied human facts; missing fields are not assertions and null means unknown. Never infer a human location/timezone from the character, device or server. Strings are at most 1024 characters, meeting_confirmed is boolean or null, timezone must be explicitly supplied IANA or null. For every executable takeover declaration, emit an explicit stable id, kind=turn_takeover, version=turn-takeover.v1, non-empty condition, and target_profile_id that exactly matches a declared profile id. source_profile_id is optional but, when present, must also exactly match a declared profile id. Keep the original forced_activation prose verbatim as migration evidence; a profile display name or a profile mention in condition text cannot substitute for target_profile_id.`
 
 const InitializationDescriptionMaxBytes = 60000
 
@@ -625,6 +625,9 @@ func initializationSemanticUnitCount(value any) int {
 }
 
 func initializationValidationDiagnostic(value map[string]any) (string, string) {
+	if actorUser, exists := value["actor_user"]; exists && validateActorUserSettings(actorUser) != nil {
+		return "value_invalid", "actor_user.background"
+	}
 	if !isObjectValue(value["core_persona"]) {
 		return "type_invalid", "core_persona"
 	}
@@ -793,11 +796,14 @@ func hasInitializationEnvelope(value map[string]any) bool {
 }
 
 func validInitialization(value map[string]any) bool {
+	if actorUser, exists := value["actor_user"]; exists && validateActorUserSettings(actorUser) != nil {
+		return false
+	}
 	if _, ok := numberFloat(value["schema_version"]); !ok {
 		return false
 	}
 	for key := range value {
-		if _, ok := map[string]struct{}{"schema_version": {}, "core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}, "initial_relationships": {}, "extensions": {}}[key]; !ok {
+		if _, ok := map[string]struct{}{"schema_version": {}, "core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}, "initial_relationships": {}, "actor_user": {}, "extensions": {}}[key]; !ok {
 			return false
 		}
 	}
@@ -1046,7 +1052,7 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 		extensions["other"] = raw
 		delete(result, "other")
 	}
-	knownTopLevel := map[string]struct{}{"schema_version": {}, "core_persona": {}, "developing_self": {}, "initial_relationships": {}, "initial_goals": {}, "initial_intentions": {}, "extensions": {}}
+	knownTopLevel := map[string]struct{}{"schema_version": {}, "core_persona": {}, "developing_self": {}, "initial_relationships": {}, "initial_goals": {}, "initial_intentions": {}, "actor_user": {}, "extensions": {}}
 	for key, raw := range result {
 		if _, ok := knownTopLevel[key]; !ok {
 			extensions["top_level."+key] = raw
@@ -1904,6 +1910,9 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 			return err
 		}
 		if err := a.insertRelationshipSeeds(ctx, tx, id, actorID, foundation, profileIDs); err != nil {
+			return err
+		}
+		if err := a.initializeActorUserBackgroundTx(ctx, tx, actorID, id, foundation); err != nil {
 			return err
 		}
 		return nil

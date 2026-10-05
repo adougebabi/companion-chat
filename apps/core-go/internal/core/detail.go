@@ -109,6 +109,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["actor_user"], err = a.readActorUserBackground(ctx, a.DB.Pool(), actorID, fluctlightID, readAt)
+	if err != nil {
+		return nil, err
+	}
 	detail["current_facts_revision"] = currentFactsRevision
 	detail["current_state"] = map[string]any{"inner_state": inner, "context": detail["context"], "appearance": appearance, "active_activities": activities}
 	detail["hypotheses"], err = a.readActiveHypotheses(ctx, fluctlightID)

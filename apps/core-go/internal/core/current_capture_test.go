@@ -152,3 +152,86 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 		})
 	}
 }
+
+func TestNormalizeCurrentCapturePlanHandlesSpacedFramingAndWrappers(t *testing.T) {
+	concept := map[string]any{
+		"capture": map[string]any{"mode": "mirror_selfie", "framing": "full body", "camera": "rear", "device_visibility": "visible"},
+		"context_binding": map[string]any{
+			"appearance": map[string]any{"body_revision": 0, "wardrobe_revision": 0, "wearing_state": "known", "worn_items": []any{}},
+		},
+	}
+
+	testCases := []struct {
+		name     string
+		plan     map[string]any
+		expected string
+	}{
+		{
+			name:     "spaced-framing-full-body",
+			plan:     map[string]any{"framing": "full body", "pose": "standing", "expression": "smiling", "lighting": "soft", "style": "photographic"},
+			expected: "A full-body composition.",
+		},
+		{
+			name: "wrapped-in-current_capture_plan",
+			plan: map[string]any{
+				"current_capture_plan": map[string]any{
+					"framing": "full body", "pose": "standing", "expression": "neutral", "lighting": "daylight", "style": "photographic",
+				},
+			},
+			expected: "A full-body composition.",
+		},
+		{
+			name: "wrapped-in-capture_plan",
+			plan: map[string]any{
+				"capture_plan": map[string]any{
+					"framing": "full_body", "pose": "seated", "expression": "smiling", "lighting": "ambient", "style": "photographic",
+				},
+			},
+			expected: "A full-body composition.",
+		},
+		{
+			name: "capitalized-and-spaced-keys",
+			plan: map[string]any{
+				"Framing": "full body", "Pose": "standing", "Expression": "smiling", "Lighting": "soft", "Style": "photographic",
+			},
+			expected: "A full-body composition.",
+		},
+		{
+			name: "missing-framing-inherits-from-concept",
+			plan: map[string]any{
+				"pose": "standing", "expression": "smiling", "lighting": "soft", "style": "photographic",
+			},
+			expected: "A full-body composition.",
+		},
+		{
+			name: "spaced-pose-and-lighting-aliases",
+			plan: map[string]any{
+				"framing": "upper body", "pose": "raising hand", "expression": "smiling", "lighting": "soft light", "style": "photo",
+			},
+			expected: "An upper-body composition.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			normalized := normalizeCurrentCapturePlan(concept, tc.plan)
+			if err := validateCapabilitySchemaValue(normalized, currentCapturePlanSchema()); err != nil {
+				t.Fatalf("validation failed: %v", err)
+			}
+			prompt, err := renderCurrentCapturePrompt(concept, tc.plan)
+			if tc.name == "spaced-pose-and-lighting-aliases" {
+				// concept has explicit framing "full body", so "upper body" should conflict
+				if err == nil {
+					t.Fatal("expected framing conflict between concept full body and plan upper body")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("render failed: %v", err)
+			}
+			if !strings.Contains(prompt, tc.expected) {
+				t.Fatalf("prompt missing expected %q: %s", tc.expected, prompt)
+			}
+		})
+	}
+}

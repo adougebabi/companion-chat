@@ -12,6 +12,7 @@ const jsonObject = { type: "object", additionalProperties: true };
 const jsonObjectArray = { type: "array", items: jsonObject };
 const nullableString = { anyOf: [{ type: "string" }, { type: "null" }] };
 
+const actorUserBackground = { type: "object", additionalProperties: false, properties: Object.fromEntries(["name","occupation","background","location_scope","location","timezone","relationship_distance","meeting_confirmed"].map(key => [key, {anyOf: [key === "meeting_confirmed" ? {type:"boolean"} : {type:"string",minLength:1,maxLength:1024}, {type:"null"}]}])) };
 const lifeCommandProperties = {
   expectedLifeContextRevision: { type: "string", minLength: 1, maxLength: 64 },
   idempotencyKey: { type: "string", minLength: 1, maxLength: 256 },
@@ -107,6 +108,9 @@ const schema = {
         },
         required: ["description"],
       },
+      BrowserActorUserSettings: {type:"object",additionalProperties:false,properties:{background:actorUserBackground},required:["background"]},
+      BrowserActorUserBackgroundUpdate: {type:"object",additionalProperties:false,properties:{background:actorUserBackground,operation:{type:"string",enum:["correct","change"]},reason:{type:"string",minLength:1,maxLength:500},idempotencyKey:{type:"string",minLength:1,maxLength:256},expectedCurrentFactsRevision:{type:"string",minLength:1,maxLength:64}},required:["background","operation","reason","idempotencyKey","expectedCurrentFactsRevision"]},
+      BrowserActorUserState: {type:"object",additionalProperties:true,properties:{background:actorUserBackground,facts:jsonObjectArray,current_facts_revision:{type:"string"},replayed:{type:"boolean"}},required:["background","facts"]},
       BrowserFluctlightCreationAnalysis: {
         type: "object",
         additionalProperties: false,
@@ -120,6 +124,7 @@ const schema = {
           initial_goals: jsonObjectArray,
           initial_intentions: jsonObjectArray,
           initial_relationships: jsonObjectArray,
+          actor_user: {$ref:"#/components/schemas/BrowserActorUserSettings"},
         },
         required: ["analysis_id", "correlation_id", "schema_version", "core_persona", "developing_self", "extensions", "initial_goals", "initial_intentions", "initial_relationships"],
       },
@@ -139,6 +144,7 @@ const schema = {
           initialGoals: jsonObjectArray,
           initialIntentions: jsonObjectArray,
           initialRelationships: jsonObjectArray,
+          actorUser: {$ref:"#/components/schemas/BrowserActorUserSettings"},
         },
         required: ["requestId", "initializationMode"],
       },
@@ -169,6 +175,7 @@ const schema = {
         type: "object",
         additionalProperties: true,
         properties: {
+          actor_user: {$ref:"#/components/schemas/BrowserActorUserState"},
           initialization_source: { anyOf: [{ $ref: "#/components/schemas/BrowserInitializationSource" }, { type: "null" }] },
         },
       },
@@ -305,6 +312,7 @@ const schema = {
     "/api/diagnostics/workflows/{workflowId}/cancel": { post: { operationId: "cancelWorkflow" } },
     "/api/diagnostics/workflows/{workflowId}/reset": { post: { operationId: "resetWorkflow" } },
     "/api/diagnostics/workflows/{workflowId}/restart": { post: { operationId: "restartWorkflow" } },
+    "/api/fluctlights/{fluctlightId}/actor-user-background": { put: { operationId:"updateActorUserBackground", ...requestBody("BrowserActorUserBackgroundUpdate"), ...jsonResponse("BrowserActorUserState") } },
     "/api/fluctlights/{fluctlightId}/detail": { get: { operationId: "fluctlightDetail", ...jsonResponse("BrowserFluctlightDetail") } },
     "/api/fluctlights/{fluctlightId}/wardrobe": { get: { operationId: "fluctlightWardrobe", ...jsonResponse("BrowserWardrobePage") } },
     "/api/fluctlights/{fluctlightId}/wardrobe/items": { post: { operationId: "addWardrobeItems" } },

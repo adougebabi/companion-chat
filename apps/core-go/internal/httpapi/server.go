@@ -80,6 +80,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/fluctlights", s.listFluctlights)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}", s.getFluctlight)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/detail", s.fluctlightDetail)
+	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/actor-user-background", s.actorUserBackground)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/wardrobe", s.wardrobeItems)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/wardrobe/items", s.addWardrobeItems)
 	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/wardrobe/items/{itemID}", s.updateWardrobeItem)
@@ -655,6 +656,9 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 		name = stringValue(identity["name"])
 	}
 	initialization := map[string]any{"schema_version": body["schema_version"], "core_persona": corePersona, "developing_self": mapValue(body["developing_self"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"]), "initial_relationships": arrayValue(body["initial_relationships"]), "extensions": mapValue(body["extensions"])}
+	if value, exists := body["actor_user"]; exists {
+		initialization["actor_user"] = value
+	}
 	if mode == "blank_slate" {
 		initialization = nil
 	}

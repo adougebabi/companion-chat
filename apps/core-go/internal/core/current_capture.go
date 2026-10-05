@@ -10,7 +10,7 @@ import (
 // clothing, objects or reference images through a free-text prompt section.
 func currentCapturePlanSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"framing":    enumStringSchema("closeup", "upper_body", "full_body", "body_detail", "scene"),
+		"framing":    enumStringSchema("closeup", "upper_body", "full_body", "body_detail", "scene", "full body", "upper body", "body detail", "close up", "close-up"),
 		"pose":       enumStringSchema("standing", "seated", "walking", "resting", "raising_hand", "holding_used_item", "leaning", "lying", "kneeling"),
 		"expression": enumStringSchema("neutral", "smiling", "thoughtful"),
 		"lighting":   enumStringSchema("ambient", "soft", "daylight"),
@@ -20,6 +20,184 @@ func currentCapturePlanSchema() map[string]any {
 func hasCurrentCapture(concept map[string]any) bool {
 	return stringValue(concept["purpose"]) != "visual_identity" && len(mapValue(mapValue(concept["context_binding"])["appearance"])) > 0
 }
+
+func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {
+	if raw == nil {
+		raw = make(map[string]any)
+	}
+	plan := cloneMap(raw)
+	// 1. Unwrap if wrapped in an outer object
+	for _, wrapperKey := range []string{"current_capture_plan", "capture_plan", "capture", "plan", "data", "result", "properties"} {
+		if inner, ok := plan[wrapperKey].(map[string]any); ok && len(inner) > 0 {
+			for k, v := range inner {
+				if _, exists := plan[k]; !exists {
+					plan[k] = v
+				}
+			}
+			delete(plan, wrapperKey)
+		}
+	}
+	if plan["framing"] == nil && plan["pose"] == nil {
+		for k, v := range plan {
+			if inner, ok := v.(map[string]any); ok {
+				if inner["framing"] != nil || inner["pose"] != nil {
+					for ik, iv := range inner {
+						if _, exists := plan[ik]; !exists {
+							plan[ik] = iv
+						}
+					}
+					delete(plan, k)
+					break
+				}
+			}
+		}
+	}
+
+	// 2. Normalize key casing and whitespace
+	cleaned := make(map[string]any, len(plan))
+	for k, v := range plan {
+		cleaned[strings.ToLower(strings.TrimSpace(k))] = v
+	}
+	plan = cleaned
+
+	framingAliases := map[string]string{
+		"closeup": "closeup", "close-up": "closeup", "close up": "closeup", "face close-up": "closeup", "face closeup": "closeup", "特写": "closeup",
+		"upper_body": "upper_body", "upper body": "upper_body", "upper-body": "upper_body", "半身": "upper_body", "上半身": "upper_body",
+		"full_body": "full_body", "full body": "full_body", "full-body": "full_body", "full-length": "full_body", "full length": "full_body", "全身": "full_body",
+		"body_detail": "body_detail", "body detail": "body_detail", "body-detail": "body_detail", "局部": "body_detail",
+		"scene": "scene", "场景": "scene", "空镜": "scene",
+	}
+
+	// 3. Key alias mapping for framing
+	if stringValue(plan["framing"]) == "" {
+		for _, altKey := range []string{"frame", "shot", "composition", "framing_type", "view"} {
+			if val := stringValue(plan[altKey]); val != "" {
+				plan["framing"] = val
+				break
+			}
+		}
+	}
+	if stringValue(plan["framing"]) == "" {
+		for k := range plan {
+			if canonical, ok := framingAliases[k]; ok {
+				plan["framing"] = canonical
+				break
+			}
+		}
+	}
+
+	// 4. Fallback from frozen concept if framing is still missing
+	if stringValue(plan["framing"]) == "" {
+		capture := mapValue(concept["capture"])
+		if f := stringValue(capture["framing"]); f != "" {
+			plan["framing"] = f
+		} else if f := stringValue(concept["framing"]); f != "" {
+			plan["framing"] = f
+		}
+	}
+
+	// 5. Normalize framing value
+	if rawFraming := stringValue(plan["framing"]); rawFraming != "" {
+		normalized := strings.ToLower(strings.TrimSpace(rawFraming))
+		if canonical, ok := framingAliases[normalized]; ok {
+			plan["framing"] = canonical
+		} else {
+			cleanedVal := strings.ReplaceAll(strings.ReplaceAll(normalized, "-", "_"), " ", "_")
+			if canonical, ok := framingAliases[cleanedVal]; ok {
+				plan["framing"] = canonical
+			}
+		}
+	}
+	if stringValue(plan["framing"]) == "" {
+		plan["framing"] = "upper_body"
+	}
+
+	// 6. Normalize pose
+	poseAliases := map[string]string{
+		"standing": "standing", "stand": "standing", "站立": "standing",
+		"seated": "seated", "sitting": "seated", "sit": "seated", "坐": "seated", "坐着": "seated",
+		"walking": "walking", "walk": "walking", "走": "walking", "走路": "walking",
+		"resting": "resting", "rest": "resting", "休息": "resting",
+		"raising_hand": "raising_hand", "raising hand": "raising_hand", "raising-hand": "raising_hand", "举手": "raising_hand",
+		"holding_used_item": "holding_used_item", "holding used item": "holding_used_item", "holding-used-item": "holding_used_item", "holding item": "holding_used_item",
+		"leaning": "leaning", "lean": "leaning", "倚靠": "leaning", "靠着": "leaning",
+		"lying": "lying", "lie": "lying", "躺": "lying", "躺着": "lying",
+		"kneeling": "kneeling", "kneel": "kneeling", "跪": "kneeling", "跪着": "kneeling",
+	}
+	if rawPose := stringValue(plan["pose"]); rawPose != "" {
+		normalized := strings.ToLower(strings.TrimSpace(rawPose))
+		if canonical, ok := poseAliases[normalized]; ok {
+			plan["pose"] = canonical
+		} else {
+			cleanedVal := strings.ReplaceAll(strings.ReplaceAll(normalized, "-", "_"), " ", "_")
+			if canonical, ok := poseAliases[cleanedVal]; ok {
+				plan["pose"] = canonical
+			}
+		}
+	}
+	if stringValue(plan["pose"]) == "" {
+		plan["pose"] = "standing"
+	}
+
+	// 7. Normalize expression
+	expressionAliases := map[string]string{
+		"neutral": "neutral", "自然": "neutral", "平静": "neutral",
+		"smiling": "smiling", "smile": "smiling", "微笑": "smiling", "笑": "smiling",
+		"thoughtful": "thoughtful", "沉思": "thoughtful", "若有所思": "thoughtful",
+	}
+	if rawExpression := stringValue(plan["expression"]); rawExpression != "" {
+		normalized := strings.ToLower(strings.TrimSpace(rawExpression))
+		if canonical, ok := expressionAliases[normalized]; ok {
+			plan["expression"] = canonical
+		}
+	}
+	if stringValue(plan["expression"]) == "" {
+		plan["expression"] = "neutral"
+	}
+
+	// 8. Normalize lighting
+	lightingAliases := map[string]string{
+		"ambient": "ambient", "ambient light": "ambient", "ambient_light": "ambient", "环境光": "ambient",
+		"soft": "soft", "soft light": "soft", "soft_light": "soft", "柔光": "soft",
+		"daylight": "daylight", "day light": "daylight", "day_light": "daylight", "自然光": "daylight", "日光": "daylight",
+	}
+	if rawLighting := stringValue(plan["lighting"]); rawLighting != "" {
+		normalized := strings.ToLower(strings.TrimSpace(rawLighting))
+		if canonical, ok := lightingAliases[normalized]; ok {
+			plan["lighting"] = canonical
+		}
+	}
+	if stringValue(plan["lighting"]) == "" {
+		plan["lighting"] = "ambient"
+	}
+
+	// 9. Normalize style
+	styleAliases := map[string]string{
+		"photographic": "photographic", "photo": "photographic", "photography": "photographic", "写实": "photographic", "摄影": "photographic",
+		"illustrated": "illustrated", "illustration": "illustrated", "插画": "illustrated",
+	}
+	if rawStyle := stringValue(plan["style"]); rawStyle != "" {
+		normalized := strings.ToLower(strings.TrimSpace(rawStyle))
+		if canonical, ok := styleAliases[normalized]; ok {
+			plan["style"] = canonical
+		}
+	}
+	if stringValue(plan["style"]) == "" {
+		plan["style"] = "photographic"
+	}
+
+	// 10. Only retain allowed schema keys to prevent additionalProperties rejection
+	allowedKeys := map[string]bool{"framing": true, "pose": true, "expression": true, "lighting": true, "style": true}
+	finalPlan := make(map[string]any, 5)
+	for k, v := range plan {
+		if allowedKeys[k] {
+			finalPlan[k] = v
+		}
+	}
+
+	return finalPlan
+}
+
 func validateCurrentCaptureSnapshot(concept map[string]any) error {
 	if !hasCurrentCapture(concept) {
 		return nil
@@ -52,6 +230,7 @@ func renderCurrentCapturePrompt(concept, plan map[string]any) (string, error) {
 	if err := validateCurrentCaptureSnapshot(concept); err != nil {
 		return "", err
 	}
+	plan = normalizeCurrentCapturePlan(concept, plan)
 	if err := validateCapabilitySchemaValue(plan, currentCapturePlanSchema()); err != nil {
 		return "", fmt.Errorf("current_capture_plan_invalid: %w", err)
 	}
@@ -160,9 +339,19 @@ func currentCaptureCameraPhrases(concept, plan map[string]any) ([]string, error)
 	}
 	result := []string{phrase}
 	if raw := stringValue(capture["framing"]); raw != "" {
-		aliases := map[string]string{"closeup": "closeup", "close-up": "closeup", "close up": "closeup", "face close-up": "closeup", "upper body": "upper_body", "upper_body": "upper_body", "full body": "full_body", "full_body": "full_body", "full-length": "full_body", "body detail": "body_detail", "body_detail": "body_detail", "scene": "scene", "全身": "full_body", "半身": "upper_body", "特写": "closeup"}
+		aliases := map[string]string{
+			"closeup": "closeup", "close-up": "closeup", "close up": "closeup", "face close-up": "closeup", "face closeup": "closeup", "特写": "closeup",
+			"upper_body": "upper_body", "upper body": "upper_body", "upper-body": "upper_body", "半身": "upper_body", "上半身": "upper_body",
+			"full_body": "full_body", "full body": "full_body", "full-body": "full_body", "full-length": "full_body", "full length": "full_body", "全身": "full_body",
+			"body_detail": "body_detail", "body detail": "body_detail", "body-detail": "body_detail", "局部": "body_detail",
+			"scene": "scene", "场景": "scene", "空镜": "scene",
+		}
 		framing := aliases[strings.ToLower(strings.TrimSpace(raw))]
-		if framing == "" || framing != stringValue(plan["framing"]) {
+		planFraming := aliases[strings.ToLower(strings.TrimSpace(stringValue(plan["framing"])))]
+		if planFraming == "" {
+			planFraming = stringValue(plan["framing"])
+		}
+		if framing == "" || framing != planFraming {
 			return nil, errors.New("current_capture_framing_conflict")
 		}
 	}

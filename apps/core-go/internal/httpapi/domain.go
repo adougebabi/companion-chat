@@ -764,3 +764,24 @@ func queryLimit(r *http.Request) int {
 	return v
 }
 func _unusedHTTPDomain() { _ = strings.TrimSpace }
+
+func (s *Server) actorUserBackground(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	value, err := s.app.UpdateActorUserBackground(r.Context(), actor, r.PathValue("fluctlightID"), body)
+	if errors.Is(err, core.ErrCurrentFactsStale) || errors.Is(err, core.ErrConflict) {
+		writeError(w, http.StatusConflict, "actor_user_background_conflict")
+		return
+	}
+	if err != nil {
+		s.opError(w, err, "actor_user_background_update_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
