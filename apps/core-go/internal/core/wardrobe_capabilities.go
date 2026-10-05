@@ -562,6 +562,7 @@ func (a *App) AddWardrobeItems(ctx context.Context, actorID, fluctlightID string
 
 	type itemToAdd struct {
 		id           string
+		itemKind     string
 		category     string
 		slot         string
 		description  string
@@ -573,6 +574,7 @@ func (a *App) AddWardrobeItems(ctx context.Context, actorID, fluctlightID string
 	toAdd := make([]itemToAdd, 0, len(rawItems))
 	for i, raw := range rawItems {
 		m := mapValue(raw)
+		itemKind := firstString(m["item_kind"], "wearable")
 		category := strings.TrimSpace(stringValue(m["category"]))
 		slot := strings.TrimSpace(stringValue(m["slot"]))
 		description := strings.TrimSpace(stringValue(m["description"]))
@@ -584,8 +586,8 @@ func (a *App) AddWardrobeItems(ctx context.Context, actorID, fluctlightID string
 		if availability == "" {
 			availability = "available"
 		}
-		if category == "" || slot == "" || description == "" {
-			return nil, fmt.Errorf("item %d: category, slot and description are required", i)
+		if (itemKind != "wearable" && itemKind != "object") || category == "" || description == "" || (itemKind == "wearable" && slot == "") || (itemKind == "object" && slot != "") {
+			return nil, fmt.Errorf("item %d: category and description are required; wearable items need a slot and ordinary objects must have no slot", i)
 		}
 		if ownership != "owned" && ownership != "borrowed" && ownership != "unknown" {
 			return nil, fmt.Errorf("item %d: invalid ownership %q", i, ownership)
@@ -598,8 +600,12 @@ func (a *App) AddWardrobeItems(ctx context.Context, actorID, fluctlightID string
 			id = "wardrobe_" + randomID("item_")
 		}
 		worn, _ := m["worn"].(bool)
+		if itemKind == "object" && worn {
+			return nil, fmt.Errorf("item %d: ordinary objects cannot be worn", i)
+		}
 		toAdd = append(toAdd, itemToAdd{
 			id:           id,
+			itemKind:     itemKind,
 			category:     category,
 			slot:         slot,
 			description:  description,
@@ -618,11 +624,20 @@ func (a *App) AddWardrobeItems(ctx context.Context, actorID, fluctlightID string
 		}
 		for _, it := range toAdd {
 			sourceRef := "owner:" + actorID
-			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key)
-				VALUES($1,$2,$3,$4,$5,$6,$7,'accepted_event',$8,$9)
-				ON CONFLICT(id) DO UPDATE SET category=EXCLUDED.category,slot=EXCLUDED.slot,description=EXCLUDED.description,ownership=EXCLUDED.ownership,availability=EXCLUDED.availability,revision=public.fluctlight_wardrobe_items.revision+1,updated_at=now()`,
-				it.id, fluctlightID, it.category, it.slot, it.description, it.ownership, it.availability, sourceRef, it.id); err != nil {
+			command, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key,item_kind)
+				VALUES($1,$2,$3,$4,$5,$6,$7,'accepted_event',$8,$9,$10)
+				ON CONFLICT(id) DO UPDATE SET item_kind=EXCLUDED.item_kind,category=EXCLUDED.category,slot=EXCLUDED.slot,description=EXCLUDED.description,ownership=EXCLUDED.ownership,availability=EXCLUDED.availability,revision=public.fluctlight_wardrobe_items.revision+1,updated_at=now() WHERE public.fluctlight_wardrobe_items.fluctlight_id=EXCLUDED.fluctlight_id`,
+				it.id, fluctlightID, it.category, it.slot, it.description, it.ownership, it.availability, sourceRef, it.id, it.itemKind)
+			if err != nil {
 				return err
+			}
+			if command.RowsAffected() != 1 {
+				return ErrUnauthorized
+			}
+			if it.itemKind == "object" || it.availability != "available" {
+				if _, err := tx.Exec(ctx, `DELETE FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND item_id=$2`, fluctlightID, it.id); err != nil {
+					return err
+				}
 			}
 			if it.worn && it.availability == "available" {
 				if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_worn_items(fluctlight_id,slot,item_id) VALUES($1,$2,$3) ON CONFLICT(fluctlight_id,slot) DO UPDATE SET item_id=EXCLUDED.item_id`, fluctlightID, it.slot, it.id); err != nil {
@@ -631,6 +646,7 @@ func (a *App) AddWardrobeItems(ctx context.Context, actorID, fluctlightID string
 			}
 			createdItems = append(createdItems, map[string]any{
 				"id":           it.id,
+				"item_kind":    it.itemKind,
 				"category":     it.category,
 				"slot":         it.slot,
 				"description":  it.description,

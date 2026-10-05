@@ -104,3 +104,12 @@ current_capture_framing_conflict来自将Main的capture/framing与MediaPrompt输
 提示不直接拼接或导致硬失败。身体/衣物/物品/来源/workflow事实核验保持原职责，
 framing无法规范化仍按已授权first_person/full_body兜底。实测上游portrait+前置selfie
 提示→全身mirror_selfie标准输出可提交；原快照/上游审计不变。
+
+## 2026-10-05 衣柜物品中文选择表单
+
+用户要求category/slot/ownership/availability改为下拉中文展示。ownership与availability
+是后端枚举；category/slot开放名称，提供常用中文预设并联动兼容部位，不新增伪枚举。
+普通物品没有穿着槽位；修补Owner Add入口支持item_kind=object/slot空并拒绝worn。
+正常添加不换装/使用，批量自定义JSON留折叠高级入口，状态按钮stored改合法unavailable。
+ typed payload复用现有API，失败保留描述，实例变化重置草稿；清单同步中文标签。
+验证前端选项/错组合/状态/对象不穿着，隔离PG添加，界面实测和窄屏布局。

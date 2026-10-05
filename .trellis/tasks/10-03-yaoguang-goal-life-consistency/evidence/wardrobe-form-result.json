@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-05",
+  "go_wardrobe_inventory_race_test_events": {
+    "pass": 23
+  },
+  "browser_client_tests": 15,
+  "web_tests": 64,
+  "typecheck_build_vet": "PASS",
+  "browser_ui": "PASS production dist+synthetic API: boots→shoes linkage, borrowed/unavailable labels, submit/list feedback, object→no wearing slot",
+  "viewport_width": 390,
+  "scroll_width": 390,
+  "console_errors": [],
+  "category_slot": "Chinese safe presets over extensible backend names",
+  "ownership": [
+    "owned",
+    "borrowed",
+    "unknown"
+  ],
+  "availability": [
+    "available",
+    "unavailable",
+    "lost"
+  ],
+  "committed": false,
+  "deployed": false
+}

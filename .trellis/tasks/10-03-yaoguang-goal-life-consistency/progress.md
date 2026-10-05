@@ -141,3 +141,17 @@ framing，仍把Main提示与规范输出字面比较，职责偏差。本次把
 新增portrait/selfie/front→full_body/mirror_selfie/rear可准备并实际走到捕获提交，
 quality与渲染一致，原快照/请求不变；已有物理事实负例不删。
 本次未提交或部署，真实模型/图片像素未验收；清理临时PG与日志，留精简JSON。
+
+
+## 2026-10-05 衣柜与物品中文选项
+
+默认JSON录入改typed中文表单（类型/分类/联动部位/所有权/状态/描述）；分类部位是
+开放领域名称，UI安全预设不冒充后端枚举。普通物品部位禁用并提交空slot，正常添加
+不自动wear/use；Owner Add域补齐item_kind与对象校验。SQL重复ID仅允许同实例更新；
+对象/不可用项移除穿着关联。ownership三值、availability三值中文展示，stored动作
+修成unavailable。批量自定义JSON留折叠高级入口；失败草稿保留、实例改变重置。
+隔离PG wardrobe/inventory race23个test/subtest通过，无失败/skip；客户端15/Web64
+通过；typecheck/build/vet通过。production dist+fixture API界面实测靴子→鞋履、
+借用/不可用、添加反馈与中文清单、普通物品不适用部位；390px无横向溢出、console
+errors为空。UI fixture不当作真实业务Backend E2E。清理临时库/脚本/日志，留精简结果。
+本次未提交/部署，无生产数据操作。

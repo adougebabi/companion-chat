@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { actorUserBackgroundFields } from "../lib/actor-user-background";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
+import { newWardrobeItemDraft, wardrobeCategoryOptions, wardrobeSlotOptions, wardrobeItemPayload, wardrobeOwnershipOptions, wardrobeAvailabilityOptions, wardrobeCategoryLabel, wardrobeSlotLabel, wardrobeOwnershipLabel, wardrobeAvailabilityLabel } from "../lib/wardrobe-form";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
 import { enumLabel, formatDisplayValue, formatZonedRange, isCustomLabel, labelFor, resolveTimezone } from "../lib/fluctlight-display";
@@ -13,6 +14,20 @@ import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 const emit = defineEmits<{ close: []; retired: [] }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
+const wardrobeDraft = ref(newWardrobeItemDraft());
+const wardrobeCategoryChoices = computed(()=>wardrobeCategoryOptions(wardrobeDraft.value.itemKind));
+const wardrobeSlotChoices = computed(()=>wardrobeSlotOptions(wardrobeDraft.value.itemKind,wardrobeDraft.value.category));
+watch(()=>wardrobeDraft.value.itemKind,()=>{wardrobeDraft.value.category=wardrobeCategoryChoices.value[0].value;wardrobeDraft.value.slot=wardrobeSlotOptions(wardrobeDraft.value.itemKind,wardrobeDraft.value.category)[0].value;});
+watch(()=>wardrobeDraft.value.category,()=>{if(!wardrobeSlotChoices.value.some(item=>item.value===wardrobeDraft.value.slot)) wardrobeDraft.value.slot=wardrobeSlotChoices.value[0]?.value??"";});
+watch(()=>store.fluctlightId,()=>{wardrobeDraft.value=newWardrobeItemDraft();});
+async function addWardrobeFromForm() {
+ const selectedId=store.fluctlightId;
+ try {
+  const payload=wardrobeItemPayload(wardrobeDraft.value);
+  if(await controlCenter.addWardrobeItems(selectedId,payload) && store.fluctlightId===selectedId) wardrobeDraft.value.description="";
+ } catch(error) {controlCenter.error=error instanceof Error?error.message:"请检查物品选项。";}
+}
+
 const retirementReason = ref("");
 const retirementConfirmation = ref("");
 const governanceTimezone = computed(() => {
@@ -217,7 +232,7 @@ function onWardrobeToggle(event: Event) {
 
       <details class="governance-section" @toggle="onWardrobeToggle">
         <summary class="section-heading"><span class="section-index">06</span><div><p class="eyebrow">WARDROBE & ITEMS</p><h2>衣柜与物品管理</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
-        <p class="field-note">管理摇光的衣物、装备与物品。支持通过直接操作 JSON 批量或单件录入新物品，也可以修改可用状态或删除物品。</p>
+        <p class="field-note">管理摇光的衣物、装备与物品。通过中文选项登记新物品，也可以修改可用状态或删除；批量 JSON 导入保留在高级入口。</p>
         <p v-if="controlCenter.wardrobeLoading" class="field-note">正在加载衣柜与物品…</p>
         <p v-else-if="controlCenter.wardrobeError" class="field-note" role="alert">
           {{ controlCenter.wardrobeError }}
@@ -227,7 +242,7 @@ function onWardrobeToggle(event: Event) {
         <ul v-if="controlCenter.wardrobeItems.length" class="detail-list">
           <li v-for="item in controlCenter.wardrobeItems" :key="item.id">
             <strong>{{ item.description || item.id }}</strong>
-            <small>分类：{{ formatDisplayValue(item.category) }} · 部位：{{ formatDisplayValue(item.slot) }} · 状态：{{ item.availability === 'available' ? '可用' : item.availability }} · 所有权：{{ formatDisplayValue(item.ownership) }}</small>
+            <small>分类：{{ wardrobeCategoryLabel(item.category) }} · 部位：{{ wardrobeSlotLabel(item.slot) }} · 状态：{{ wardrobeAvailabilityLabel(item.availability) }} · 所有权：{{ wardrobeOwnershipLabel(item.ownership) }}</small>
             <small>来源：{{ item.source_kind }}</small>
             <div class="inline-controls">
               <Button
@@ -236,8 +251,8 @@ function onWardrobeToggle(event: Event) {
                 variant="ghost"
                 type="button"
                 :disabled="controlCenter.saving"
-                @click="controlCenter.updateWardrobeItem(store.fluctlightId, item.id, { availability: 'stored' })"
-              >收纳</Button>
+                @click="controlCenter.updateWardrobeItem(store.fluctlightId, item.id, { availability: 'unavailable' })"
+              >设为不可用</Button>
               <Button
                 v-else
                 class="text-button"
@@ -257,7 +272,20 @@ function onWardrobeToggle(event: Event) {
           </li>
         </ul>
 
-        <h3>主动添加衣柜与物品 (JSON)</h3>
+        <h3>添加衣柜与物品</h3>
+        <p class="field-note">选择分类与状态，填写描述即可登记。添加不会自动换装或开始使用。</p>
+        <form class="governance-form" @submit.prevent="addWardrobeFromForm">
+          <div class="form-grid">
+            <label for="wardrobe-item-kind">物品类型<select id="wardrobe-item-kind" v-model="wardrobeDraft.itemKind" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option value="wearable">服装与配饰</option><option value="object">普通物品</option></select></label>
+            <label for="wardrobe-category">分类<select id="wardrobe-category" v-model="wardrobeDraft.category" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeCategoryChoices" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
+            <label for="wardrobe-slot">穿着部位<select id="wardrobe-slot" v-model="wardrobeDraft.slot" :disabled="wardrobeDraft.itemKind === 'object'" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeSlotChoices" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
+            <label for="wardrobe-ownership">所有权<select id="wardrobe-ownership" v-model="wardrobeDraft.ownership" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeOwnershipOptions" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
+            <label for="wardrobe-availability">可用状态<select id="wardrobe-availability" v-model="wardrobeDraft.availability" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeAvailabilityOptions" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
+          </div>
+          <label for="wardrobe-description">物品描述<Textarea id="wardrobe-description" v-model="wardrobeDraft.description" rows="3" maxlength="512" required placeholder="例如：黑色低跟通勤短靴" /></label>
+          <Button type="submit" :disabled="controlCenter.saving || !wardrobeDraft.description.trim()">添加物品</Button>
+        </form>
+        <details class="field-note"><summary>批量 JSON 导入（高级）</summary>
         <p class="field-note">支持单件对象或数组对象批量添加。包含 description、category、slot、worn（可选布尔值）。</p>
         <form class="governance-form" @submit.prevent="controlCenter.addWardrobeItems(store.fluctlightId)">
           <label for="wardrobe-item-json">物品 JSON
@@ -282,6 +310,7 @@ function onWardrobeToggle(event: Event) {
             :disabled="controlCenter.saving || !controlCenter.wardrobeNewItemJson.trim()"
           >添加物品</Button>
         </form>
+        </details>
       </details>
 
       <section class="danger-zone" aria-labelledby="retirement-title">

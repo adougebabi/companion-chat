@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-05",
+  "contract": "MediaPrompt interprets vague intent and outputs standard photo/camera plan; no literal framing conflict",
+  "test_events": {
+    "pass": 166,
+    "skip": 3
+  },
+  "live_skips": [
+    "TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply",
+    "TestVisualIdentityLiveE2EPreflight",
+    "TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical"
+  ],
+  "database": "real disposable PostgreSQL",
+  "provider_comfy": "scripted transport, not live pixels",
+  "final_normalized_submission": {
+    "prompt": {
+      "1": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "text": "A photographic image. A full-body composition. The subject is seated. A smiling expression. Soft light. A self-capture through a mirror, showing the subject's reflection. The phone's rear camera is used. The capture device is visible only where physically consistent with this camera relationship. The subject wears 银项链 and 白衬衫. Hair length is long. Hair color is black."
+        }
+      },
+      "2": {
+        "class_type": "KSampler",
+        "inputs": {
+          "positive": [
+            "1",
+            0
+          ]
+        }
+      }
+    }
+  },
+  "vet": "PASS",
+  "build": "PASS",
+  "committed": false,
+  "deployed": false
+}

@@ -202,3 +202,48 @@ explicit timezone and 390px overflow/console checks. UI fixtures are not live AP
 
 Wrong: pause polling only when `rows.length > 20`.
 Correct: pause polling based on explicit older-page navigation state.
+
+## Scenario: Chinese Wardrobe And Object Entry Choices
+
+### 1. Scope / Trigger
+
+Owner adds wardrobe/inventory through the Fluctlight governance view.
+
+### 2. Signatures
+
+`WardrobeItemDraft = {itemKind,category,slot,description,ownership,availability}`;
+`wardrobeItemPayload(draft)` emits existing snake-case domain fields.
+`addWardrobeItems(id,input)` accepts a typed object/array or legacy JSON string.
+
+### 3. Contracts
+
+Use Chinese selects for kind/category/slot/ownership/availability; preserve raw
+codes only in payloads. Category changes constrain/reset slots, ordinary objects
+send item_kind=object and slot=""; no form addition implies worn or use.
+Ownership enum: owned/borrowed/unknown. Availability: available/unavailable/lost;
+never submit stored. Category/slot are extensible domain names: UI presets do
+not retroactively restrict existing data. Keep bulk custom JSON collapsed in
+an advanced entry. Form resets on instance change; success clears description,
+failure preserves the draft. Existing layout tokens and labels remain owners.
+
+### 4. Validation & Error Matrix
+
+Wrong category/slot pairing: prevent form submit. Invalid state code: prevent
+submit and keep backend rejection. Object with a wearing slot/worn=true: backend
+rejects. Empty description: required. Request failure: retain draft.
+
+### 5. Good / Base / Bad Cases
+
+Good: 靴子 → 鞋履; 绘画用品 → 不适用. Base: 上装/已拥有/可用 defaults.
+Bad: manually type stored as availability or put a brush in a clothing slot.
+
+### 6. Tests Required
+
+Payload/enum/slot pairing tests, actual isolated-PG ordinary-object insertion
+and invalid state/slot rejection, browser Chinese choices and category reset,
+form submission with fixture API, 390px overflow/console check, type/build.
+
+### 7. Wrong vs Correct
+
+Wrong: require JSON for ordinary entry and submit availability=stored.
+Correct: typed Chinese choices and the canonical available/unavailable/lost codes.

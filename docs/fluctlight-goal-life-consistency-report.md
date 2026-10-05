@@ -295,3 +295,18 @@ portrait/selfie/front提示可规范成全身镜面自拍并到达最终传输�
 相机/镜面/设备可见性和quality视图一致。
 [结果与最终标准照片入参](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/media-prompt-normalization-result.json)。
 没有宣称真实模型长期合规或真实像素效果通过，本补丁未提交/部署。
+
+
+## 2026-10-05 衣柜物品中文表单
+
+主动添加由默认JSON改为中文选择表单。类别与部位按UI常用预设联动；它们在领域
+仍是开放名称，未添加假的闭合集。所有权owned/borrowed/unknown及可用状态
+available/unavailable/lost使用中文选择，原stored状态按钮修正为unavailable。
+普通物品kind=object，slot空且不穿着；Owner Add写入口复用既有库存权威与来源，
+增加对象约束、同实例ID更新限定和失效穿着链接清理。正常添加不自动穿着/使用，
+批量自定义JSON保留折叠高级入口。
+验证：真实隔离PG wardrobe/inventory race23通过、0失败、0skip；客户端15、Web64
+通过；typecheck/build/vet通过。浏览器production构建+syntheticAPI实测分类联动、
+中文状态、提交反馈及对象无槽位；390px无横向溢出、无console errors。
+[精简结果](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/wardrobe-form-result.json)。
+本次未提交或部署，未对生产数据执行操作。

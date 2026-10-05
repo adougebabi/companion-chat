@@ -633,15 +633,15 @@ export const useControlCenterStore = defineStore("control-center", {
         this.wardrobeLoading = false;
       }
     },
-    async addWardrobeItems(fluctlightId: string | null, customJson?: string) {
+    async addWardrobeItems(fluctlightId: string | null, input?: string | Record<string, unknown> | Array<Record<string, unknown>>) {
       if (!fluctlightId) {
         this.error = "未选定 Fluctlight。";
         return false;
       }
-      const raw = customJson ?? this.wardrobeNewItemJson;
+      const raw = input ?? this.wardrobeNewItemJson;
       let body: Record<string, unknown>;
       try {
-        const parsed = JSON.parse(raw) as unknown;
+        const parsed = typeof raw === "string" ? JSON.parse(raw) as unknown : raw;
         if (!parsed || typeof parsed !== "object") throw new Error("invalid_json");
         if (Array.isArray(parsed)) {
           body = { items: parsed };
@@ -660,7 +660,7 @@ export const useControlCenterStore = defineStore("control-center", {
         await this.loadWardrobeItems(fluctlightId);
         return true;
       } catch {
-        this.error = "添加衣柜物品失败，请检查 category、slot、description 等必填字段。";
+        this.error = "添加物品失败，请检查分类、穿着部位、描述与状态。";
         return false;
       } finally {
         this.saving = false;

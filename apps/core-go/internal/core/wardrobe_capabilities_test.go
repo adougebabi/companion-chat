@@ -241,3 +241,31 @@ func TestOwnerAddUpdateDeleteWardrobeItems(t *testing.T) {
 		t.Fatalf("deleted item still exists: exists=%v", itemExists)
 	}
 }
+
+func TestOwnerWardrobeAddAcceptsObjectsWithoutWearAndRejectsInvalidChoices(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	added, err := f.app.AddWardrobeItems(f.ctx, f.ownerID, f.fluctlightID, map[string]any{"item_kind": "object", "category": "art_supply", "slot": "", "description": "细头画笔", "ownership": "owned", "availability": "available"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := arrayValue(added["items"])
+	if len(items) != 1 {
+		t.Fatal(added)
+	}
+	id := stringValue(mapValue(items[0])["id"])
+	var kind, slot string
+	var worn int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT item_kind,slot,(SELECT count(*) FROM public.fluctlight_worn_items WHERE item_id=i.id) FROM public.fluctlight_wardrobe_items i WHERE id=$1`, id).Scan(&kind, &slot, &worn); err != nil || kind != "object" || slot != "" || worn != 0 {
+		t.Fatalf("object %s/%s worn=%d %v", kind, slot, worn, err)
+	}
+	for _, item := range []map[string]any{
+		{"item_kind": "object", "category": "tool", "slot": "shoes", "description": "画笔"},
+		{"item_kind": "object", "category": "tool", "description": "画笔", "worn": true},
+		{"category": "boots", "slot": "shoes", "description": "短靴", "availability": "stored"},
+		{"category": "boots", "slot": "shoes", "description": "短靴", "ownership": "invented"},
+	} {
+		if _, err := f.app.AddWardrobeItems(f.ctx, f.ownerID, f.fluctlightID, item); err == nil {
+			t.Fatalf("invalid choices accepted %#v", item)
+		}
+	}
+}
