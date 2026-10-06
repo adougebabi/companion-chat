@@ -326,3 +326,19 @@ accepted 不当作完成。场景冲突先核对有效 life_context/时间/活�
 WakeUp 的“静默无需 Tool”明确限于静默本身，允许必要的生活状态处理。
 本轮未运行测试、构建、模型或媒体回归，只做源码审阅和 git diff --check；提示词
 是否使实际模型稳定调用 Tool 尚未验证。本轮未提交、部署或修改生产数据。
+
+
+## 2026-10-06 店内借用试穿与partial换装修复
+
+用户确认复用borrowed所有权并要求实施。trace明确蓝衬衫有owned/available ID，
+partial失败来自选中upper_body同时remove_slots；原第二套店内衣物缺少正式记录。
+最小实现新增wardrobe.borrow/wardrobe.return正式事务Tool，复用既有confirmed
+wardrobe_gain/wardrobe_unavailable Event效果、库存来源、Owner/autonomy授权、
+wardrobe revision CAS及Tool ledger；批量最多8件，同事务/outbox/receipt，不自动
+穿着、不完成购买。借用返回真实ID，归还仅允许可用borrowed wearable并解除穿着、
+设unavailable；历史所有权/来源保留。已结束库存Event不接管活动场景，无新迁移。
+工具说明和共享提示词明确店内借用→wear→照片、归还及独立恢复自有穿着；partial
+自动替换槽位，冲突详情直接指导删除重叠remove_slots，不升级full。
+补齐真实领域隔离PG回归用例（未执行）；本轮仅源码核对、gofmt、build、vet和
+差异检查，不启动测试数据库或媒体服务。没有新增行为/live通过证据。
+未提交、部署或操作生产数据；总任务真实模型联合验收仍未完成。

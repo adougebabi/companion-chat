@@ -113,3 +113,13 @@ framing无法规范化仍按已授权first_person/full_body兜底。实测上游
 正常添加不换装/使用，批量自定义JSON留折叠高级入口，状态按钮stored改合法unavailable。
  typed payload复用现有API，失败保留描述，实例变化重置草稿；清单同步中文标签。
 验证前端选项/错组合/状态/对象不穿着，隔离PG添加，界面实测和窄屏布局。
+
+
+## 2026-10-06 借用试穿实施边界
+
+缺口：商店试穿衣物没有模型可调用的借用登记/归还入口，聊天不能产生wear所需ID；
+同槽位替换被模型同时填remove_slots导致冲突。复用已存在的borrowed字段和确认
+衣柜Event效果写入。新增wardrobe_borrow_capability.go及定向用例，builtin注册；
+wardrobe_capabilities.go补说明与可纠正反馈，capability_prompt_policy.go补顺序。
+无独立试穿库存、无迁移、无自动穿着/恢复、无购买旁路。来源/Event、批量事务、
+CAS、重放、归还边界通过代码与规范审阅；本轮不执行测试，build/vet单独记证据。

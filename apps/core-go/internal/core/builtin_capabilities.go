@@ -142,7 +142,8 @@ func builtinCapabilities(app *App) []Capability {
 		memoryRecallCapability{service: newMemoryRecallService(app)},
 		actorInspectCapability{service: facts}, actorFactCapability{service: facts},
 		personaDetailCapability{service: newPersonaDetailService(app)},
-		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe}, itemUseCapability{service: wardrobe}, wardrobeOutfitSaveCapability{service: wardrobe},
+		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe},
+		wardrobeBorrowCapability{service: wardrobe}, wardrobeBorrowCapability{service: wardrobe, returning: true}, itemUseCapability{service: wardrobe}, wardrobeOutfitSaveCapability{service: wardrobe},
 		habitInspectCapability{service: habits}, habitDecideCapability{service: habits},
 		intentionInspectCapability{service: intentions}, intentionDecideCapability{service: intentions}, scheduleInspectCapability{service: app}, scheduleEditCapability{service: app, planner: schedule.planner, intents: intentions},
 		scheduleActivityCapability{service: app, planner: schedule.planner, intents: intentions},
@@ -170,6 +171,7 @@ var (
 	_ Capability                   = personaDetailCapability{}
 	_ Capability                   = wardrobeInspectCapability{}
 	_ Capability                   = wardrobeWearCapability{}
+	_ Capability                   = wardrobeBorrowCapability{}
 	_ Capability                   = wardrobeOutfitSaveCapability{}
 	_ Capability                   = habitInspectCapability{}
 	_ Capability                   = habitDecideCapability{}
@@ -182,6 +184,7 @@ var (
 	_ Capability                   = lifeActivityAdvanceCapability{}
 	_ Capability                   = appearanceStyleCapability{}
 	_ TransactionalCapability      = wardrobeWearCapability{}
+	_ TransactionalCapability      = wardrobeBorrowCapability{}
 	_ TransactionalCapability      = wardrobeOutfitSaveCapability{}
 	_ TransactionalCapability      = habitDecideCapability{}
 	_ TransactionalCapability      = intentionDecideCapability{}
@@ -189,6 +192,7 @@ var (
 	_ TransactionalCapability      = lifeActivityAdvanceCapability{}
 	_ TransactionalCapability      = appearanceStyleCapability{}
 	_ CapabilityPreparer           = wardrobeWearCapability{}
+	_ CapabilityPreparer           = wardrobeBorrowCapability{}
 	_ CapabilityPreparer           = wardrobeOutfitSaveCapability{}
 	_ CapabilityPreparer           = habitDecideCapability{}
 	_ CapabilityPreparer           = lifeActivityAdvanceCapability{}

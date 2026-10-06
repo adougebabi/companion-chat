@@ -112,3 +112,87 @@ The Provider-visible current appearance, including worn items, carries one `appe
 - This is prompt guidance on top of existing domain validation. At the user's
   explicit request, no tests or live-model checks were run for this amendment;
   no new model-behavior acceptance is claimed.
+
+
+## Scenario: Borrowed Shop Clothing Uses Existing Wardrobe (2026-10-06)
+
+### 1. Scope / Trigger
+
+Conversation, WakeUp or NativeCognition chooses to receive clothing on loan for
+shop try-on, return it, or replace one worn slot. Browsing/desire is not receipt.
+
+### 2. Signatures
+
+```text
+wardrobe.borrow({lender, reason, items:[{category, slot, description}]})
+  -> completed {items:[{item_id, ownership:"borrowed", availability:"available",
+                       category, slot, description, wardrobe_revision}]}
+wardrobe.return({reason, item_ids:[recorded_id]})
+  -> completed {items:[{item_id, ownership:"borrowed", availability:"unavailable",
+                       wardrobe_revision}]}
+wardrobe.wear({mode:"partial", item_ids:[replacement_id]})
+```
+
+### 3. Contracts
+
+- Borrow/return are registered transactional Tools, available on Conversation,
+  WakeUp and NativeCognition, with CurrentLife context, awake checks, Owner/
+  autonomy authorization, prepared wardrobe revision CAS, and the existing Tool
+  operation ledger. No model-owned ownership/revision/idempotency arguments.
+- Borrow accepts 1–8 concrete wearable descriptions; category/slot are bounded
+  at 64 characters, description/reason at 512 and lender at 256. It fixes
+  ownership to borrowed and registers available items, without auto-wear or
+  purchase/Goal completion. Inspect/reuse already recorded items before borrowing.
+- Each item receives a confirmed wardrobe_gain Event with lender, reason, source
+  fact and Life context provenance. The existing confirmed-Event effect writer
+  creates inventory and returns the server-generated ID. These are already-ended
+  inventory Events (`expires_at=end_at`), never active scene authority. A small
+  positive Event interval respects the released `end_at>start_at` constraint.
+- Return accepts 1–8 distinct IDs scoped to the instance; each must be wearable,
+  borrowed and available. The existing wardrobe_unavailable Event effect clears
+  worn links and sets unavailable, preserving ownership, source and history.
+  Restore one's own outfit through a separate wear Tool; no implicit dressing.
+- Batch effects, outbox and Tool receipt commit atomically. Same-operation replay
+  returns original IDs/results without duplicate effects; changed payload conflicts.
+- Partial wear automatically replaces selected slots through the existing UPSERT.
+  remove_slots only removes slots without a selected replacement. Full is an
+  explicit replacement of the entire outfit, not a conflict recovery default.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Selected slot also appears in remove_slots | wardrobe_slot_conflict with model-visible correction: omit overlapping removal and retry partial. |
+| Missing/invalid loan items or missing lender/source | borrowing_items_invalid / borrowed_item_invalid / borrowing_lender_required / borrowing_source_required; no inventory effect. |
+| Duplicate loan descriptions or return IDs | borrowed_item_duplicate (or schema rejection); rollback batch. |
+| Foreign/missing item | Owner authorization denial / wardrobe_item_not_found; no other item returned. |
+| Return owned, unavailable or non-wearable item | borrowed_item_not_returnable; retain state. |
+| Prepared wardrobe revision stale | wardrobe_revision_conflict; no effect. |
+| Borrow/return while sleeping | life_state_sleeping; no effect. |
+| Attempt to wear returned item | wardrobe_item_unavailable. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: receive blue shirt from shop -> borrow returns ID -> partial wear -> photo
+  freezes real worn borrowed shirt -> return -> restore personal outfit.
+- Base: an already recorded available borrowed shirt is worn directly, without
+  another registration. Replay of the same borrow/return operation has no effect.
+- Bad: describe a nonexistent outfit, fabricate an ID, claim a purchase, or switch
+  full merely because a replacement and removal target the same slot.
+
+### 6. Tests Required
+
+`wardrobe_borrow_capability_test.go` supplies real-domain/disposable-PG assertions
+for registration source verification, no auto-wear, borrow and return replay,
+partial slot replacement preserving accessories, failed-batch rollback, owned and
+foreign return rejection, returned clothing unusability, and model-visible conflict
+correction followed by successful partial wear. These tests were authored but not
+executed in this change; compilation/static checks are not behavioral acceptance.
+Live-model choice of borrowed items and photo pixels remain unverified.
+
+### 7. Wrong vs Correct
+
+Wrong: partial replacement with selected top ID plus remove_slots=[top], or chat
+claims that unregistered shop clothing is already worn.
+Correct: borrow concrete shop clothing -> consume real item_id -> partial wear
+without overlapping removal -> consume refreshed wearing -> request photo.

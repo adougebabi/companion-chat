@@ -265,7 +265,7 @@ func readCurrentWornItems(ctx context.Context, query DBTX, fluctlightID string) 
 func wardrobeWearDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: wardrobeWearCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Actually change what you are wearing using available recorded item IDs. Full replaces the entire outfit; partial changes only selected or removed slots. This never buys or creates clothing.",
+		Description:   "Actually change what you are wearing using available recorded item IDs. Full replaces the entire outfit, so include every item you intend to keep. Partial automatically replaces the selected items' slots and preserves all other slots; do not also put those slots in remove_slots. remove_slots only undresses slots without a replacement. This never buys or creates clothing.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		InputSchema: objectSchema(map[string]any{
@@ -355,7 +355,7 @@ func (c wardrobeWearCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 			return failedCapabilityResult(invocation, "wardrobe_slot_invalid", false), ErrInvalidArguments
 		}
 		if _, duplicate := selected[slot]; duplicate {
-			return failedCapabilityResult(invocation, "wardrobe_slot_conflict", false), ErrInvalidArguments
+			return failedCapabilityResultDetail(invocation, "wardrobe_slot_conflict", false, "A selected item already replaces its slot. Remove the overlapping slot from remove_slots and retry partial with only the replacement item IDs; full is not required."), ErrInvalidArguments
 		}
 		remove[slot] = struct{}{}
 	}
