@@ -310,3 +310,19 @@ available/unavailable/lost使用中文选择，原stored状态按钮修正为una
 中文状态、提交反馈及对象无槽位；390px无横向溢出、无console errors。
 [精简结果](../.trellis/tasks/10-03-yaoguang-goal-life-consistency/evidence/wardrobe-form-result.json)。
 本次未提交或部署，未对生产数据执行操作。
+
+
+## 2026-10-06 换装拍照与场景日程对齐提示词
+
+用户报告聊天宣称换另一套衣服拍照却未调用换装 Tool，以及店内场景与书房工作日程
+不一致；明确要求只调整提示词、不运行测试。变更边界为正式 Conversation、WakeUp、
+DailyReview 的 operation_rules，新增共享 capabilityLifeConsistencyInstruction 并在
+三个入口和其上下文刷新绑定中使用；不修改领域状态、Tool schema、权限或持久化。
+指令要求服装不同时先 wardrobe.wear completed 并确认当前穿着，再生成照片和回复；
+缺少 item IDs 时查询库存，不把购买/计划/失败当成穿上。照片按冻结快照描述，生成
+accepted 不当作完成。场景冲突先核对有效 life_context/时间/活动；有效 Event 保持
+权威。结束活动/返回计划通过获准活动结算与 scene_event，继续活动通过获准日程
+查询与编辑/重排处理，保留历史及可中断边界；消费真实结果和刷新状态后再描述。
+WakeUp 的“静默无需 Tool”明确限于静默本身，允许必要的生活状态处理。
+本轮未运行测试、构建、模型或媒体回归，只做源码审阅和 git diff --check；提示词
+是否使实际模型稳定调用 Tool 尚未验证。本轮未提交、部署或修改生产数据。

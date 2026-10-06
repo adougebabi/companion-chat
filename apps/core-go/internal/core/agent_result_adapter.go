@@ -788,7 +788,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	_ = policy // Effect authorization is rechecked atomically by each Tool; internal cognition can continue.
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
 	schema := wakeUpResponseSchema()
-	operationRules := []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}
+	operationRules := []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction, capabilityLifeConsistencyInstruction}
 	currentInput := jsonString(map[string]any{"cycle": cycle, "trigger_source": "periodic_check", "target_actor": "actor_user", "has_new_inbound_message": false, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
 	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema)
 	if err != nil {

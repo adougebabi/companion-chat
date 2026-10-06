@@ -85,7 +85,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		definitions = filterPersonaActionCapabilities(definitions)
 	}
 	schema := cognitiveTurnResponseSchema()
-	operationRules := []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}
+	operationRules := []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction, capabilityLifeConsistencyInstruction}
 	assembly, projection, err := a.assembleProjectionPromptForSurface(
 		ctx,
 		ProviderContextSurfaceConversationMain,

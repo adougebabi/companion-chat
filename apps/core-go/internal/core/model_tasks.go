@@ -508,7 +508,7 @@ func (a *App) RunDailyReviewTask(ctx context.Context, input DailyReviewTaskInput
 	if input.ProjectionRequest.FluctlightID != input.Projection.FluctlightID || input.ProjectionRequest.AuthorizationActorID != input.Projection.OwnerActorID {
 		return ProjectionTaskResult{}, errors.New("daily_review_projection_request_invalid")
 	}
-	operationRules := []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction}
+	operationRules := []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction, capabilityLifeConsistencyInstruction}
 	currentInput := jsonString(map[string]any{"local_date": input.LocalDate})
 	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceDailyReview, input.Projection, "cognitive_assessment", operationRules, currentInput, definitions, "daily_review_response", schema)
 	if err != nil {

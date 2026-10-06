@@ -88,3 +88,27 @@ Correct: keep Foundation as sourced history, initialize only evidenced current s
 The fence covers `cognition_claims` and newly inserted user `conversation_messages` because both feed a formal projection. An assistant message may be published before its own turn settlement, so its initial insert does not advance the fence; the sourced cognition result at settlement does. A semantic message update or deletion advances the fence and invalidates summaries that cite the old message. Do not refresh Resident on every new user message when no existing Memory source can depend on it.
 
 The Provider-visible current appearance, including worn items, carries one `appearance:ctx_...` reference built from its current snapshot. Its token excludes `captured_at`, because a reread is not a body or wardrobe change; the visible timestamp may remain in the data. It is a data reference for evidence and decision influences, never a second appearance authority. Keep it in the compact current-state surface; a model should cite this exact token rather than invent `current_state:ctx_...` or use raw wardrobe IDs as evidence.
+
+
+## Scenario: Tool Before Outfit Claims and Scene/Schedule Reconciliation (2026-10-06)
+
+- Conversation, WakeUp and DailyReview share a life-consistency operation rule.
+  An intended outfit change must complete through `wardrobe.wear` using recorded,
+  available item IDs before a current photo is requested or the change is claimed.
+  Inspect when IDs or current wearing are unclear; no wear is needed when the
+  authoritative current outfit already matches. Purchase, planning and failed
+  wear do not prove wearing. Accepted media generation does not prove a finished
+  photo; describe historical photos using their frozen capture appearance.
+- Resolve scene/schedule conflicts from effective Life, current time and active
+  activities. Valid Event authority stays above the accepted Schedule. When the
+  activity ends or an authorized return is chosen, settle applicable activities
+  and end/switch the scene through authorized Tools. When continuing the activity,
+  inspect and edit/replan permitted remaining/future schedule segments, preserving
+  completed history and interruption restrictions. Consume real Tool results and
+  refreshed state before claiming a transition; failed/rejected calls leave the
+  actual state authoritative. Historical chat cannot restore an obsolete scene.
+- WakeUp silence requires no publication Tool; authorized state maintenance can
+  still proceed. Do not turn consistency checks into private diagnostic messages.
+- This is prompt guidance on top of existing domain validation. At the user's
+  explicit request, no tests or live-model checks were run for this amendment;
+  no new model-behavior acceptance is claimed.
