@@ -7,7 +7,7 @@ import (
 )
 
 const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字面量保持原文。
-2. 约束优先级：core_persona（硬约束）> developing_self（带证据线索）> current_state（当前事实）。
+2. 人格边界：core_persona 约束身份与行为，developing_self 是有来源的软线索；二者不能覆盖 current_state 中的当前身体、穿着、地点、活动或持有事实。当前事实与历史冲突时，先依有效状态纠正认知，不能为延续剧情编造已经发生的行动。
 3. 地点归属：current_state.data.life_context 的 scene/activity/location 只属于 actor_self（摇光），不是 current_speaker 或 actor_user 的地点。actor_user 说“我回家了”只陈述用户自己的位置，不能据此调用 scene_event 或把摇光写到用户家。只有 actor_user 明确要求 actor_self 移动，或 actor_self 有已授权且有证据的自身行动时，才可调用 scene_event；回复必须依据真实 Tool 已提交的结果和刷新后的当前事实。
 4. Actor 语义：Human 与 Fluctlight 都是 Actor；消息发送者以 Actor 与关系上下文为准，不要把 transport role=user 当作 actor_user 身份。
 5. 认知与生成准则：
@@ -21,7 +21,7 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 7. 引用边界：evidence_refs 和 influences.ref 只使用当前 [RUNTIME CONTEXT] 中给出的 context reference；部分 ref 是 cr_ 开头的短标号，照抄即可，由 Core 还原。人格规则 ID 不是证据引用；当前身体或穿着只引用 appearance.ref。没有匹配引用时返回空数组，不得编造 ref。
 `
 
-const providerSingleRuntimeProtocol = `1. 自然语言用中文；协议字面量保持原文。core_persona > developing_self > current_state；后两者不得升级为固定人格。
+const providerSingleRuntimeProtocol = `1. 自然语言用中文；协议字面量保持原文。core_persona 约束身份与行为，developing_self 是有来源软线索；当前身体、穿着、地点与持有以有效 current_state 为准。人格偏好和旧聊天不能覆盖当前事实；后两者不得升级为固定人格。
 2. life_context 的 scene/activity/location 属于 actor_self。actor_user 说“我在家”不授权 scene_event；只有明确要求 actor_self 移动或其自身行动已获授权，才依据真实 Tool 结果变更场景。
 3. Human 与 Fluctlight 都是 Actor；以关系上下文识别发送者，不以 transport role=user 判定 actor_user。
 4. 认知只写摘要，事实须有依据；evidence_refs 照抄上下文中的 ref（包括 cr_ 短标号），不得编造。外部能力须真实调用 Tool，不得声称未完成的结果。
@@ -29,9 +29,9 @@ const providerSingleRuntimeProtocol = `1. 自然语言用中文；协议字面�
 
 func renderProviderRuntimeProtocol(persona map[string]any) string {
 	if len(persona) > 0 && isMultiPersonalitySystem(mapValue(persona["personality_system"])) {
-		return providerRuntimeProtocol
+		return providerRuntimeProtocol + "\n# 当前事实与来源\n\n" + providerContextAuthorityRule
 	}
-	return providerSingleRuntimeProtocol
+	return providerSingleRuntimeProtocol + "\n# 当前事实与来源\n\n" + providerContextAuthorityRule
 }
 
 const providerInitializationRuntimeProtocol = `1. 语言：自然语言字段使用中文，协议字段和枚举值保持原文。
@@ -185,18 +185,22 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 	}
 	filteredRules := make([]string, 0, len(operationRules))
 	for _, rule := range operationRules {
-		trimmed := strings.TrimSpace(rule)
-		if trimmed == "" || trimmed == providerLanguageRule || trimmed == providerContextAuthorityRule {
+		// Legacy callers may merge the authority fragment with a task rule.
+		// It is already emitted by the runtime protocol, so remove that exact
+		// trusted fragment while retaining the surrounding task instructions.
+		trimmed := strings.TrimSpace(strings.ReplaceAll(rule, providerContextAuthorityRule, ""))
+		if trimmed == "" || trimmed == providerLanguageRule {
 			continue
 		}
 		filteredRules = append(filteredRules, trimmed)
 	}
 	if len(filteredRules) > 0 {
-		builder.WriteString("\n\noperation_rules:\n")
-		for _, rule := range filteredRules {
-			builder.WriteString("  - ")
-			builder.WriteString(strings.ReplaceAll(rule, "\n", " "))
-			builder.WriteByte('\n')
+		builder.WriteString("\n\n# 行动规则\n\n")
+		for index, rule := range filteredRules {
+			if index > 0 {
+				builder.WriteString("\n\n")
+			}
+			builder.WriteString(rule)
 		}
 	}
 	if len(actorRelationshipContext) > 0 {

@@ -401,9 +401,10 @@ func TestRenderProviderSystemOmitsMultiPersonalityRuleForSingleAndFiltersRedunda
 	if strings.Contains(rendered, "6. 多重人格") || strings.Contains(rendered, "personality_system 中的 profiles") {
 		t.Fatalf("single personality prompt should not contain multi-personality rule: %s", rendered)
 	}
-	// 2. providerContextAuthorityRule should be filtered out because it is redundant with runtime protocol
-	if strings.Contains(rendered, "life_context authority 为 confirmed Event") {
-		t.Fatalf("operation_rules duplicated providerContextAuthorityRule: %s", rendered)
+	// Shared authority must reach the wire exactly once, even when supplied as
+	// an operation rule as well as embedded in the runtime protocol.
+	if strings.Count(rendered, providerContextAuthorityRule) != 1 {
+		t.Fatalf("current fact authority missing or duplicated: %s", rendered)
 	}
 	// 3. capabilityConversationPolicyInstruction should remain
 	if !strings.Contains(rendered, "正式 Agent") {
@@ -463,5 +464,39 @@ func TestSinglePersonalityProtocolOmitsEvidenceRefsRuleAndFiltersPersonaTools(t 
 	filtered := filterPersonaActionCapabilities(defs)
 	if len(filtered) != 2 || filtered[0].Name != "conversation.reply" || filtered[1].Name != "memory.recall" {
 		t.Fatalf("filterPersonaActionCapabilities = %#v", filtered)
+	}
+}
+
+func TestRenderedPromptPreservesSceneFirstActionSectionsAndDomainAuthority(t *testing.T) {
+	for _, persona := range []map[string]any{
+		{"shared_identity": map[string]any{"identity": map[string]any{"name": "摇光"}}},
+		{"personality_system": map[string]any{"mode": "multi", "profiles": []any{map[string]any{"id": "first"}, map[string]any{"id": "second"}}}},
+	} {
+		rendered := renderProviderSystem([]string{providerContextAuthorityRule, capabilityLifeConsistencyInstruction, capabilityConversationPolicyInstruction}, persona, nil, "cognitive_assessment")
+		if strings.Contains(rendered, "core_persona > developing_self > current_state") || strings.Contains(rendered, "core_persona（硬约束）> developing_self") {
+			t.Fatalf("flattened persona priority overrides domain facts: %s", rendered)
+		}
+		if strings.Count(rendered, providerContextAuthorityRule) != 1 || !strings.Contains(rendered, "current_state.data.appearance.worn_items") {
+			t.Fatalf("actual wearing authority absent from outgoing system: %s", rendered)
+		}
+		if !strings.Contains(rendered, capabilityLifeConsistencyInstruction) || !strings.Contains(rendered, "\n### 执行顺序：地点 → 获取或借用 → 穿着 → 拍照\n") {
+			t.Fatalf("outgoing prompt flattened or lost the action sequence: %s", rendered)
+		}
+	}
+}
+
+func TestSummaryEndingStateRemainsHistoricalInProviderView(t *testing.T) {
+	compact := compactSummaryForSurface(map[string]any{
+		"summary": "之前说在店内换了黑裙", "ending_state": map[string]any{"scene": "试衣间", "wearing": "黑裙"},
+	}, ProviderContextSurfaceConversationMain)
+	if compact["time_semantics"] != "historical_conversation" || compact["ending_state"] == nil {
+		t.Fatalf("summary lost history or presents its ending state as current: %#v", compact)
+	}
+}
+
+func TestMergedLegacyAuthorityRetainsTaskSectionsWithoutDuplicateFactsRule(t *testing.T) {
+	rendered := renderProviderSystem([]string{providerContextAuthorityRule + "\n\n" + capabilityLifeConsistencyInstruction}, nil, nil, "cognitive_assessment")
+	if strings.Count(rendered, providerContextAuthorityRule) != 1 || !strings.Contains(rendered, capabilityLifeConsistencyInstruction) {
+		t.Fatalf("merged system lost task sections or duplicated fact authority: %s", rendered)
 	}
 }

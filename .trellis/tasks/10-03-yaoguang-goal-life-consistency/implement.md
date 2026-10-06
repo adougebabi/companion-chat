@@ -123,3 +123,12 @@ framing无法规范化仍按已授权first_person/full_body兜底。实测上游
 wardrobe_capabilities.go补说明与可纠正反馈，capability_prompt_policy.go补顺序。
 无独立试穿库存、无迁移、无自动穿着/恢复、无购买旁路。来源/Event、批量事务、
 CAS、重放、归还边界通过代码与规范审阅；本轮不执行测试，build/vet单独记证据。
+
+
+## 2026-10-06 场景前置提示词修正边界
+
+用户反馈当前仍在家却叙述试穿店内衣服。调整provider_prompt_composer及共享prompt
+领域权威，替代全局人格>当前事实优先级，实际保留完整权威一次并保留规则分段；
+capability_prompt_policy补地点/移动→借用→穿着→照片及冲突恢复/结束本轮；
+provider_context仅为摘要输出添加历史时间语义。更新出站prompt定向用例及spec，
+不改持久化、能力schema、场景授权或原生循环；沿此前要求不运行测试/live服务。

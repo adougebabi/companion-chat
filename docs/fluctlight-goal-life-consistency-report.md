@@ -342,3 +342,21 @@ wardrobe revision CAS及Tool ledger；批量最多8件，同事务/outbox/receip
 补齐真实领域隔离PG回归用例（未执行）；本轮仅源码核对、gofmt、build、vet和
 差异检查，不启动测试数据库或媒体服务。没有新增行为/live通过证据。
 未提交、部署或操作生产数据；总任务真实模型联合验收仍未完成。
+
+
+## 2026-10-06 场景前置与提示词权威/结构优化
+
+用户澄清模型未切换场景，在家叙述试穿不存在的店内服装。所贴prompt已含借用流程，
+缺口是前置地点/实际状态和冲突恢复；不是规则完全缺失。源码确认成功Tool会markDirty，
+下一物理请求沿绑定projection重读当前状态，未发现需要新增刷新通道的依据。
+原composer过滤ProviderContextAuthorityRule为冗余，但短协议没有完整领域权威；且
+core_persona > developing_self > current_state被写作全局优先级，长规则换行被压平。
+本次改为身份行为/领域事实分权；single/multi运行协议实际嵌入共享权威一次，明确
+worn_items及wearing查询、有效Event和历史/摘要ending_state边界；摘要输出视图增加
+historical_conversation标签。主聊天/周期/日审规则按职责、步骤、失败结束分段，
+renderer保留换行。店内链明确地点→获准移动scene_event及刷新→实际借用→wear→拍照；
+不能在家为旧台词制造借用，不能拿自有不同衣服冒充目标款。属性不同则查询/承认未确认，
+禁止无证据发错图/缓存/换回解释；无新条件不重复失败调用，说明阻碍并结束本轮。
+修改只涉及提示词/Provider输出视图，不修改Tool领域校验/场景权威或加硬循环次数限制。
+补出站system与摘要历史标记回归用例，未执行测试或live服务；build/vet与diff检查
+单独记为静态证据。本次未提交或部署，模型遵循性尚待真实使用观察。

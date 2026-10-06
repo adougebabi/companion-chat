@@ -196,3 +196,79 @@ Wrong: partial replacement with selected top ID plus remove_slots=[top], or chat
 claims that unregistered shop clothing is already worn.
 Correct: borrow concrete shop clothing -> consume real item_id -> partial wear
 without overlapping removal -> consume refreshed wearing -> request photo.
+
+
+## Scenario: Scene-First Try-On and Contradictory Chat Recovery (2026-10-06)
+
+### 1. Scope / Trigger
+
+The chat or cumulative summary claims a shop visit/new outfit while effective
+Life still reports home/old wearing. Persona shopping habits are not execution.
+
+### 2. Signatures
+
+```text
+renderProviderRuntimeProtocol(persona) -> protocol + ProviderContextAuthorityRule
+renderProviderSystem(operationRules, ...) -> multiline action sections
+compactSummaryForSurface(summary, surface)
+  -> {summary, time_semantics:"historical_conversation", ending_state?, ...}
+```
+
+### 3. Contracts
+
+- Single- and multi-personality outbound prompts embed the shared domain-fact
+  authority exactly once; filtering the same operation-rule fragment does not
+  remove its actual content from the wire. Persona identity/behavior constraints
+  never override effective body/wearing/inventory/Life facts.
+- Rendering preserves operation-rule headings, ordered steps and newlines; do
+  not flatten them into one YAML list paragraph. Summary ending_state remains
+  historical and cannot restore an old scene/outfit.
+- Decision order is current place -> authorized own scene transition -> actual
+  acquisition/borrowing -> wear -> photo. At home, do not assume a shop from a
+  wish or history, register imaginary shop loans, or change scene merely to
+  manufacture a precondition. Respect schedule timing and movement authorization;
+  consume scene_event results and refreshed Life before shop actions.
+- If old prose claims changed clothes but worn_items disagrees, query wearing as
+  needed and acknowledge the unconfirmed action. Do not invent wrong-photo/cache/
+  changed-back excuses or repeatedly photograph the old outfit. Borrow only the
+  actual authorized target, not a different personal garment offered as if it
+  were the promised shop outfit.
+- Correct parameters from specific Tool feedback; with no new information,
+  do not repeat the same failed call. Missing items/movement/permission require
+  an accurate incomplete/blocker reply and an end to the current turn. This is
+  model decision guidance, not a new hard iteration limit or text parser.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required model behavior |
+| --- | --- |
+| Current home scene, historical shop chat | Keep home factual; complete authorized transition before shop actions. |
+| Old dialogue says new outfit, current wearing is old | Inspect/reconcile actual wearing; no successful-wear claim. |
+| No legal scene transition or actual borrowing conditions | Express plan/incompletion, do not fabricate inventory or loan. |
+| Failed Tool, identical context/arguments | Do not repeat indefinitely or invent success. |
+| Historical summary ending_state conflicts with Runtime | Runtime owns current facts; summary stays labeled historical. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: current home -> authorized scene Tool -> refreshed shop -> borrowed IDs
+  -> successful wear -> refreshed wearing -> frozen photo.
+- Base: stay home because the visit is only planned; explain that no try-on has
+  happened yet.
+- Bad: persona loves shopping, therefore claim a shop visit/new outfit despite
+  current home/old worn_items, then explain the repeated old photos as mistakes.
+
+### 6. Tests Required
+
+Provider prompt composer regression cases assert actual outgoing authority once,
+no blanket persona hierarchy, preservation of scene-first multiline rules and
+historical labeling of summary ending_state. These cases were authored but not
+run for this prompt-focused change. Build/vet and source/diff checks are separate
+from behavioral/live-model acceptance. The existing Tool continuation refresh
+path was inspected, not replaced or newly claimed as live-verified.
+
+### 7. Wrong vs Correct
+
+Wrong: remove shared authority as redundant while short runtime omits it; flatten
+scene-before-borrow instructions and let historical ending_state act as current.
+Correct: embed domain authority in the emitted runtime protocol, preserve action
+sections, label history and decide from refreshed current place and wearing.

@@ -1110,6 +1110,7 @@ func compactSummaryForSurface(value map[string]any, _ ProviderContextSurface) ma
 	result := map[string]any{}
 	if summary := strings.TrimSpace(stringValue(value["summary"])); summary != "" {
 		result["summary"] = summary
+		result["time_semantics"] = "historical_conversation"
 		for _, key := range []string{"started_at", "ended_at", "local_date", "timezone", "ending_state", "open_threads"} {
 			if field, exists := value[key]; exists {
 				result[key] = field
