@@ -312,3 +312,113 @@ return jsonString(receipt), fmt.Errorf("tool execution capability_prepare_failed
 result := failedCapabilityResultDetail(invocation, "invalid_arguments", false, safeToolArgumentFeedback(schemaErr))
 return jsonString(modelFacingToolResult(toolExecutionReceipt(request, callID, result), definition)), nil
 ```
+
+
+## Scenario: Recoverable Runtime Errors Without Fabricated Effects (2026-10-06)
+
+### 1. Scope / Trigger
+
+Borrowed wardrobe persistence, WorkingMemory section pressure, an oversized
+physical continuation, stale private reply context, unknown decision references,
+or cancellation during an Agent run. Preserve committed actions and domain fences.
+
+### 2. Signatures
+
+```text
+reserveRequiredWorkingMemory(input, policy, maxInput) -> policy | budget error
+queuedToolCallingChatModel.compactPhysicalInput(ctx, messages) -> outbound copy
+publicationCapabilityError(ErrLifeContextStale, ...) -> life_context_stale,false
+providerContextRefCodec.registerIndex(index) -> current permitted ref set
+validateADKFinalContract(..., codec) -> unknown-ref error before settlement
+borrowingPersistenceFailure(invocation, code, pgError) -> failed result
+```
+
+### 3. Contracts
+
+- PostgreSQL loan Event arithmetic explicitly casts the bound instant to
+  timestamptz. Every loan/return Event also carries real id, revision, status,
+  expected/resulting Life Context revision and replayed=false before commit.
+  The released deferred replay-ready trigger applies even to historical inserts;
+  do not bypass it. Event/effect/outbox/Tool receipt remain one transaction.
+- SQLSTATE class 42 indicates a SQL/schema/type/access failure that repeating
+  business arguments cannot repair. Borrowing returns failed/non-retryable feedback
+  saying no change committed. Transient connection/serialization errors retain
+  recovery behavior; never fabricate acquired IDs or clothing after a failure.
+- Required WorkingMemory fragments rank before optional ones. Assembly may expand
+  an individual section quota to its required content, bounded by the configured
+  total input limit. Required recent groups reserve the whole group/contiguous
+  tail. Final wire checks still include system, Runtime, current input, Tools,
+  results, response schema and output/safety reserves; no context-limit increase.
+- If the physical request is oversized, compact only its outbound copy: discard
+  older plain assistant reasoning first, then complete optional historical
+  user/assistant turns when a formal Runtime marker identifies them. Preserve
+  system, Runtime, the latest user input including images and every native
+  ToolCall/ToolResult unchanged. Original Eino history and receipts remain intact.
+  A still-oversized mandatory request fails before HTTP; never truncate a result
+  or silently convert it to a successful empty response. Record estimated
+  before/after counts and removed message counts in adk.model.input_compacted.
+- A private publication failing Life Context CAS returns non-retryable-in-place
+  life_context_stale as ordinary Tool feedback and marks projection refresh dirty.
+  The next physical decision reads the new context and may compose a new reply;
+  it does not resend old prose or re-execute earlier committed Tools automatically.
+  A confirmed stale-reply rejection followed by a real projection reread may
+  re-anchor settlement to that new decision: server-owned AfterRecoveryCallID
+  marks the last trace invocation already observed, and StaleReplyCallID must
+  identify an actual failed conversation.reply/life_context_stale result before
+  that boundary. Earlier effects stay in the audit/outcomes; only later receipts
+  extend the new CAS chain. Ordinary refresh never rebases, missing/forged
+  recovery markers are rejected, and later external changes still fail CAS.
+- Well-shaped influences.ref must be present in the current permitted projection
+  index, after alias decoding. Update the codec's permitted set after refresh
+  merges the run-start references allowed by scope; old alias decoding alone is
+  not authority. Unknown refs enter the existing single tool-free final repair
+  before business settlement. Do not drop refs silently, invent replacements,
+  replay Tools or restart the whole run. The unbound repair model also omits Tool
+  schema from physical budgeting, matching the actual no-Tool request.
+- Cancellation/timeout classification precedes wrapped Tool-stage classification.
+  Cancellation remains request_cancelled and never starts a replacement run.
+  Storage's existing failed terminal status is not changed by this classification.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| SQL 42804 or another class-42 loan write error | failed borrowing code, retryable=false, no committed inventory effect. |
+| Loan Event missing replay fields | Database rejects the transaction; fix the writer, not the trigger. |
+| Required section exceeds its default cap but fits total budget | Reserve sufficient section capacity, displace optional fragments. |
+| Required content itself exceeds total budget | prompt_required_budget_exceeded before model HTTP. |
+| Continuation exceeds budget due optional reasoning/history | Compact outbound copy, re-count full request and continue only if it fits. |
+| Latest mandatory Tool result still too large | prompt_tool_result_budget_exceeded; full result remains in audit. |
+| Reply context changes between decision and publication | life_context_stale feedback -> refresh -> new decision; stale prose not published. |
+| Unknown full ref or alias in final influences | Bounded tool-free final correction; a failed correction stays a failure. |
+| Wrapped context.Canceled | cancellation/request_cancelled, no automatic replay. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a stale home reply is rejected, fresh shop context is read, and the next
+  native reply publishes once without rerunning the scene change.
+- Good: SQL-safe borrowed registration -> actual ID -> wear -> return -> replay.
+- Base: a large required Tool result cannot fit even after optional compaction;
+  refuse the model request with explicit budget diagnostics.
+- Bad: fix a SQL defect by retrying indefinitely, remove domain/version guards,
+  raise the context ceiling, truncate Tool outputs, or discard unknown provenance.
+
+### 6. Tests Required
+
+runtime_recovery_test.go covers section borrowing and strict total refusal,
+reasoning/history compaction without changing raw Eino or Tool protocol, actual
+native final-ref correction with a script HTTP model, cancellation classification,
+and real-PG prior wearing effect -> stale reply rejection -> refresh -> exactly
+one new publication -> valid settlement. Negative checks preserve ordinary
+external-change rejection and reject forged recovery markers.
+wardrobe_borrow_capability_test.go covers actual timestamp writes, deferred commit
+constraints, ownership, replay, atomic return failure and unusable returned items.
+Existing required-result overflow tests remain negative cases. Script model
+transports validate the real loop, not actual vendor-model behavior or image pixels.
+
+### 7. Wrong vs Correct
+
+Wrong: use an untyped $4 - interval expression, create a replay-incomplete Event,
+retry stale prose, or allow syntactically valid but nonexistent refs to reach commit.
+Correct: typed time and replay-ready Events; consume refreshed context; validate
+actual scoped refs before the existing no-Tool final repair; respect the wire limit.

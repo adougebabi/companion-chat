@@ -1,8 +1,12 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestWardrobeBorrowWearReturnUsesExistingInventoryAuthority(t *testing.T) {
@@ -14,6 +18,10 @@ func TestWardrobeBorrowWearReturnUsesExistingInventoryAuthority(t *testing.T) {
 	borrowed, err := f.app.ExecuteTool(f.ctx, request)
 	if err != nil || borrowed.Result.Status != "completed" {
 		t.Fatalf("borrow: %#v err=%v", borrowed, err)
+	}
+	var startedAt, endedAt, expiresAt time.Time
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT start_at,end_at,expires_at FROM public.life_events WHERE fluctlight_id=$1 AND kind='wardrobe_gain' ORDER BY created_at DESC LIMIT 1`, f.fluctlightID).Scan(&startedAt, &endedAt, &expiresAt); err != nil || !endedAt.After(startedAt) || !expiresAt.Equal(endedAt) {
+		t.Fatalf("borrow Event timestamps invalid: start=%v end=%v expiry=%v err=%v", startedAt, endedAt, expiresAt, err)
 	}
 	item := mapValue(arrayValue(mapValue(borrowed.Result.Output)["items"])[0])
 	id := stringValue(item["item_id"])
@@ -62,6 +70,33 @@ func TestWardrobeBorrowWearReturnUsesExistingInventoryAuthority(t *testing.T) {
 	}
 	if receipt, err := f.app.ExecuteTool(f.ctx, f.request(wardrobeWearCapabilityName, "rewear-returned-shirt", map[string]any{"mode": "partial", "item_ids": []string{id}})); err == nil || receipt.Result.ErrorCode != "wardrobe_item_unavailable" {
 		t.Fatalf("returned item still wearable: %#v err=%v", receipt, err)
+	}
+}
+
+func TestBorrowingPersistenceFailureSeparatesPermanentSQLFromTransientErrors(t *testing.T) {
+	invocation := CapabilityInvocation{CallID: "loan", CapabilityName: wardrobeBorrowCapabilityName}
+	for _, test := range []struct {
+		name      string
+		err       error
+		retryable bool
+	}{
+		{"timestamp type", &pgconn.PgError{Code: "42804"}, false},
+		{"wrapped missing column", fmt.Errorf("wrapped: %w", &pgconn.PgError{Code: "42703"}), false},
+		{"serialization", &pgconn.PgError{Code: "40001"}, true},
+		{"connection", &pgconn.PgError{Code: "08006"}, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result := borrowingPersistenceFailure(invocation, "borrowing_event_failed", test.err)
+			if result.Status != "failed" || result.ErrorCode != "borrowing_event_failed" || result.Retryable != test.retryable {
+				t.Fatalf("wrong persistence failure classification: %#v", result)
+			}
+			if !test.retryable {
+				visible := modelFacingToolResult(ToolExecutionReceipt{Result: result}, wardrobeBorrowDefinition(false))
+				if !strings.Contains(stringValue(mapValue(visible["output"])["detail"]), "物品状态没有改变") {
+					t.Fatalf("model does not see unsuccessful atomic outcome: %#v", visible)
+				}
+			}
+		})
 	}
 }
 

@@ -177,9 +177,13 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 
 func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
 	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh != nil {
-		return adkContext.Refresh.prepare(ctx, input)
+		refreshed, err := adkContext.Refresh.prepare(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		return m.compactPhysicalInput(ctx, refreshed)
 	}
-	return normalizeEinoToolMessageNames(input), nil
+	return m.compactPhysicalInput(ctx, normalizeEinoToolMessageNames(input))
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
@@ -760,7 +764,13 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				correctionInput = append(correctionInput, message)
 			}
 			correctionInput = append(correctionInput, schema.UserMessage("Correct the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."))
-			correction, correctionErr := RunADKLoop(ctx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: unboundChat, MaxIterations: 1}, correctionInput)
+			repairModel := unboundChat
+			if queued, ok := unboundChat.(*queuedToolCallingChatModel); ok {
+				copyModel := *queued
+				copyModel.definitions = nil // The unbound inner model sends no Tools.
+				repairModel = &copyModel
+			}
+			correction, correctionErr := RunADKLoop(ctx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: repairModel, MaxIterations: 1}, correctionInput)
 			if correctionErr == nil && correction.FinalMessage != nil && len(correction.ToolCalls) == 0 {
 				if err := validateADKFinalContract(correction.FinalMessage, call.Role, call.ResponseSchema, adkContext.Refs); err == nil {
 					final = correction.FinalMessage
@@ -816,6 +826,9 @@ func validateADKFinalContract(message *schema.Message, role string, outputSchema
 		ref := strings.TrimSpace(stringValue(mapValue(raw)["ref"]))
 		if ref == "" || len([]rune(ref)) > maxContextReferenceRunes || !contextReferencePattern.MatchString(ref) {
 			return fmt.Errorf("decision_influence_%d_ref_invalid", position)
+		}
+		if refs != nil && !refs.contains(ref) {
+			return fmt.Errorf("decision_influence_%d_ref_unknown", position)
 		}
 	}
 	return nil

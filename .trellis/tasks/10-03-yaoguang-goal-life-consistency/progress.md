@@ -205,3 +205,37 @@ renderer保留换行。店内链明确地点→获准移动scene_event及刷新�
 修改只涉及提示词/Provider输出视图，不修改Tool领域校验/场景权威或加硬循环次数限制。
 补出站system与摘要历史标记回归用例，未执行测试或live服务；build/vet与diff检查
 单独记为静态证据。本次未提交或部署，模型遵循性尚待真实使用观察。
+
+
+## 2026-10-06 运行时恢复与SQL真实回归
+
+用户报告SQL42804、working_memory_required_budget_exceeded、工具结果预算超限、
+life_context_stale、decision_influence_0_ref_unknown及request_cancelled。
+借用SQL增加显式timestamptz；真实隔离PG进一步复现缺少Event replay-ready字段导致
+提交P0001，补齐真实id/revision/status/expected/resulting_context_revision/replayed，
+未改触发器或域校验。class42 SQL错误返回非重试失败及无提交说明；事务/来源保持。
+WorkingMemory必需片段优先，分区可在总输入预算内借用容量；物理续轮超限时清理
+出站副本中的旧推理及完整可选历史轮，保留system/Runtime/当前输入/全部Tool对，
+原始Eino/audit不变。最新必需结果仍过大保持拒绝，记录压缩前后估算。
+发布CAS失败改life_context_stale普通反馈并markDirty，下一物理轮重读后重组织回复。
+真实PG验证旧“在家”不发布、新“在商店”只发布一次。完整形状但未知ref提前进入
+已有一次tool-free final repair，不删除引用或重新执行动作；codec允许集与刷新后
+实际索引一致，修复模型预算不带未发送的Tool schema。取消优先正确分类，保留取消，
+不自动重启或更改已有终态DB契约。
+本轮实际执行隔离PG及脚本HTTP native-loop定向race回归，最终结果见精简evidence；
+build/vet/diff检查另记。没有实际Qwen长期行为或媒体像素验收，没有生产数据操作。
+临时数据库/日志清理，保留精简结果；未提交或部署。
+
+
+### 补充：stale回复恢复后的提交锚点
+
+定向检查发现仅markDirty可让新回复发送，但原AuthorityAtRunStart仍使最终receipt
+链比较失败。新增仅服务器可写的AfterRecoveryCallID/StaleReplyCallID：实际stale
+reply失败后、下一物理轮确实重读状态才使用新锚点；边界覆盖重读前已观察的所有
+调用，之前的effects/outcomes/audit保留，后续receipt继续CAS。普通刷新不改锚点，
+无真实失败/伪造边界拒绝，之后外部变化仍拒绝。真实PG补验先wear成功→外部场景
+改变→旧reply失败→刷新→新reply一次发布→提交链成功；旧wear仍有效，普通旧锚点
+及伪造恢复标记均拒绝。无整体Agent重启或重复Tool执行。
+
+最终本轮定向race回归51个test/subtest通过、0失败、0skip；build/vet/diff通过。
+精简结果保存在任务evidence/runtime-recovery-result.json；任务临时PG/卷与原始日志已清理。

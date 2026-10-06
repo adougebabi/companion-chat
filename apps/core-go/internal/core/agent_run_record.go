@@ -36,15 +36,21 @@ func classifyAgentRunFailure(err error) (string, string) {
 	if err == nil {
 		return "", ""
 	}
-	var typed *agentRunFailure
-	if errors.As(err, &typed) {
-		return typed.stage, safeAgentFailureCode(typed.code, "tool_execution_failed")
-	}
 	if errors.Is(err, context.Canceled) {
 		return "cancellation", "request_cancelled"
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "model", "request_timeout"
+	}
+	var typed *agentRunFailure
+	if errors.As(err, &typed) {
+		return typed.stage, safeAgentFailureCode(typed.code, "tool_execution_failed")
+	}
+	if strings.Contains(err.Error(), "working_memory_required_budget_exceeded") {
+		return "model_input", "working_memory_required_budget_exceeded"
+	}
+	if strings.Contains(err.Error(), "decision_influence_") && strings.Contains(err.Error(), "_ref_unknown") {
+		return "model_output", "decision_influence_ref_unknown"
 	}
 	if errors.Is(err, ErrPromptOutputReserveConflict) {
 		return "model_input", "prompt_output_reserve_conflict"

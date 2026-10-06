@@ -4,8 +4,9 @@ import "context"
 
 // bindProjectionRefresh preserves a surface's original authorization, task
 // rules and query scope for physical requests after committed Tool mutations.
-// It never changes the frozen projection used to authorize the Tool or settle
-// the run; it only rebuilds the outbound model view.
+// The original frozen projection remains intact. Ordinary refresh keeps its
+// settlement baseline; a verified stale-reply recovery may anchor a new model
+// decision to the reread state and a server-owned trace boundary.
 func (a *App) bindProjectionRefresh(
 	ctx context.Context,
 	request ContextProjectionRequest,

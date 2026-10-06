@@ -16,10 +16,11 @@ var providerShortRefPattern = regexp.MustCompile(`^cr_[a-f0-9]{12}$`)
 type providerContextRefCodec struct {
 	mu      sync.RWMutex
 	byShort map[string]string
+	known   map[string]struct{}
 }
 
 func newProviderContextRefCodec(index ContextReferenceIndex) (*providerContextRefCodec, error) {
-	codec := &providerContextRefCodec{byShort: map[string]string{}}
+	codec := &providerContextRefCodec{byShort: map[string]string{}, known: map[string]struct{}{}}
 	return codec, codec.registerIndex(index)
 }
 
@@ -55,12 +56,24 @@ func (codec *providerContextRefCodec) registerIndex(index ContextReferenceIndex)
 	if codec == nil {
 		return nil
 	}
+	known := make(map[string]struct{}, len(index.ByRef))
 	for ref := range index.ByRef {
+		known[ref] = struct{}{}
 		if err := codec.register(ref); err != nil {
 			return err
 		}
 	}
+	codec.mu.Lock()
+	codec.known = known
+	codec.mu.Unlock()
 	return nil
+}
+
+func (codec *providerContextRefCodec) contains(ref string) bool {
+	codec.mu.RLock()
+	defer codec.mu.RUnlock()
+	_, found := codec.known[ref]
+	return found
 }
 
 // The initial prompt uses the same deterministic alias before the codec is

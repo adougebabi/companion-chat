@@ -88,12 +88,16 @@ type ContextProjection struct {
 }
 
 // A refreshed model view can contain newer refs, while the settlement chain
-// still begins at the exact authority that produced the first model decision.
+// normally begins at the authority that produced the first model decision.
+// A rejected stale reply followed by a real reread may re-anchor that chain;
+// the trace boundary below is server-owned and never a model argument.
 type CognitionAuthorityAtRunStart struct {
-	Foundation   int    `json:"foundation_revision"`
-	CurrentState int    `json:"current_state_revision"`
-	CurrentFacts string `json:"current_facts_revision"`
-	LifeContext  string `json:"life_context_revision"`
+	Foundation          int    `json:"foundation_revision"`
+	CurrentState        int    `json:"current_state_revision"`
+	CurrentFacts        string `json:"current_facts_revision"`
+	LifeContext         string `json:"life_context_revision"`
+	AfterRecoveryCallID string `json:"after_recovery_call_id,omitempty"`
+	StaleReplyCallID    string `json:"stale_reply_call_id,omitempty"`
 }
 
 func contextProjectionFromValue(value any) (ContextProjection, bool) {

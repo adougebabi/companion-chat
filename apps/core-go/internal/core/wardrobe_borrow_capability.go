@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 const (
@@ -148,17 +149,33 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 			seen[key] = true
 		}
 		eventID := "wardrobe_loan_" + stableDigest(fluctlightID+"\x1f"+i.CapabilityName+"\x1f"+capabilityOperationID(i)+fmt.Sprintf("\x1f%d", index))
-		result := map[string]any{"wardrobe_effect": effect, "reason": args["reason"], "lender": args["lender"], "source_fact_id": i.SourceFactID}
+		_, beforeLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, at)
+		if err != nil {
+			return borrowingPersistenceFailure(i, "borrowing_context_failed", err), err
+		}
+		result := map[string]any{
+			"id": eventID, "revision": 1, "status": "confirmed", "replayed": false,
+			"expected_context_revision": beforeLife["context_revision"], "resulting_context_revision": beforeLife["context_revision"],
+			"wardrobe_effect": effect, "reason": args["reason"], "lender": args["lender"], "source_fact_id": i.SourceFactID,
+		}
 		if current.Life != nil {
 			result["loan_context"] = current.Life.Data
 		}
 		// This is a completed inventory fact, never a new active scene Event.
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,activity,status,revision,evidence_refs,idempotency_key,request_digest,result,expires_at) VALUES($1,$2,$3,$4 - interval '1 microsecond',$4,$5,'confirmed',1,$6,$7,$8,$9,$4)`, eventID, fluctlightID, kind, at, args["reason"], jsonBytes([]any{i.SourceFactID}), "loan:"+eventID, stableDigest(jsonString(result)), jsonBytes(result)); err != nil {
-			return failedCapabilityResult(i, "borrowing_event_failed", true), err
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,activity,status,revision,evidence_refs,idempotency_key,request_digest,result,expires_at) VALUES($1,$2,$3,$4::timestamptz - interval '1 microsecond',$4::timestamptz,$5,'confirmed',1,$6,$7,$8,$9,$4::timestamptz)`, eventID, fluctlightID, kind, at, args["reason"], jsonBytes([]any{i.SourceFactID}), "loan:"+eventID, stableDigest(jsonString(result)), jsonBytes(result)); err != nil {
+			return borrowingPersistenceFailure(i, "borrowing_event_failed", err), err
 		}
 		output, err := applyWardrobeEffectFromConfirmedEventTx(ctx, tx, fluctlightID, eventID, kind, effect)
 		if err != nil {
-			return failedCapabilityResult(i, "borrowing_effect_failed", true), err
+			return borrowingPersistenceFailure(i, "borrowing_effect_failed", err), err
+		}
+		_, afterLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, at)
+		if err != nil {
+			return borrowingPersistenceFailure(i, "borrowing_context_failed", err), err
+		}
+		result["resulting_context_revision"] = afterLife["context_revision"]
+		if _, err := tx.Exec(ctx, `UPDATE public.life_events SET result=$2 WHERE id=$1 AND fluctlight_id=$3`, eventID, jsonBytes(result), fluctlightID); err != nil {
+			return borrowingPersistenceFailure(i, "borrowing_event_failed", err), err
 		}
 		output["ownership"] = "borrowed"
 		if !c.returning {
@@ -168,4 +185,15 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 		items = append(items, output)
 	}
 	return CapabilityResult{CallID: i.CallID, CapabilityName: i.CapabilityName, Status: "completed", Output: map[string]any{"items": items}, ProviderRequestID: i.ProviderRequestID, CorrelationID: "wardrobe-loan:" + stableDigest(capabilityOperationID(i))}, nil
+}
+
+// A PostgreSQL syntax/type/schema error needs a code or deployment repair.
+// Repeating the model's identical business request cannot fix it. Transient
+// dependency errors retain the existing retry/recovery behavior.
+func borrowingPersistenceFailure(i CapabilityInvocation, code string, err error) CapabilityResult {
+	var postgresError *pgconn.PgError
+	if errors.As(err, &postgresError) && strings.HasPrefix(postgresError.Code, "42") {
+		return failedCapabilityResultDetail(i, code, false, "借用或归还未提交，物品状态没有改变。服务内部错误需要修复，重复相同调用无法解决；请说明尚未完成，不要继续换装或拍照来假装成功。")
+	}
+	return failedCapabilityResult(i, code, true)
 }

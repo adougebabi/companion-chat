@@ -921,6 +921,8 @@ func publicationCapabilityError(err error, fallback string) (string, bool) {
 		return code, retryable
 	}
 	switch {
+	case errors.Is(err, ErrLifeContextStale):
+		return "life_context_stale", false
 	case errors.Is(err, ErrReplyAlreadyPublished):
 		return "reply_already_published", false
 	case errors.Is(err, ErrUnauthorized):

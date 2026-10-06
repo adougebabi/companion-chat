@@ -97,19 +97,23 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		summaryTrace = summaryResult.Trace
 	}
 	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
+	policy, err := promptBudgetPolicyForAssignment(assignment)
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
 	workingPolicy := DefaultWorkingMemoryPolicy()
 	if assignment.MaxInputTokens > 0 {
 		workingPolicy.ResidentTokens = min(workingPolicy.ResidentTokens, max(128, assignment.MaxInputTokens/12))
+	}
+	workingPolicy, err = reserveRequiredWorkingMemory(workingInput, workingPolicy, policy.MaxInputTokens)
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
 	}
 	workingMemory, err := ResolveWorkingMemory(workingInput, workingPolicy)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
 	if err := a.attachDailyMemoryMessageRefs(ctx, projection, &workingMemory); err != nil {
-		return PromptAssemblyResult{}, projection, err
-	}
-	policy, err := promptBudgetPolicyForAssignment(assignment)
-	if err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
 	if surface == ProviderContextSurfaceConversationMain && policy.Version == promptBudgetPolicyVersionV2 && policy.ContextWindowTokens == 16384 {

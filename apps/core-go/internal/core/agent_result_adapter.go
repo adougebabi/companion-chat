@@ -631,7 +631,29 @@ func (a *App) agentSettlementAuthorityRevisionsTx(ctx context.Context, tx pgx.Tx
 	for _, result := range outcome.Results {
 		resultByCall[strings.TrimSpace(result.CallID)] = result
 	}
-	for _, invocation := range outcome.Invocations {
+	firstInvocation := 0
+	if start := projection.AuthorityAtRunStart; start != nil && start.AfterRecoveryCallID != "" {
+		rejected, found := resultByCall[start.StaleReplyCallID]
+		if !found || rejected.CapabilityName != conversationReplyCapabilityName || rejected.Status != "failed" || rejected.ErrorCode != "life_context_stale" {
+			return 0, 0, "", "", errors.New("agent_recovery_anchor_invalid")
+		}
+		boundary, rejection := -1, -1
+		for index, invocation := range outcome.Invocations {
+			if invocation.CallID == start.AfterRecoveryCallID {
+				boundary = index
+			}
+			if invocation.CallID == start.StaleReplyCallID {
+				rejection = index
+			}
+		}
+		if boundary < 0 || rejection < 0 || rejection > boundary {
+			return 0, 0, "", "", errors.New("agent_recovery_anchor_invalid")
+		}
+		// These earlier effects remain in outcomes/audit. Their actual state was
+		// reread by the next model decision, so only later receipts extend CAS.
+		firstInvocation = boundary + 1
+	}
+	for _, invocation := range outcome.Invocations[firstInvocation:] {
 		result, found := resultByCall[strings.TrimSpace(invocation.CallID)]
 		if !found || (result.Status != "completed" && result.Status != "accepted") {
 			continue

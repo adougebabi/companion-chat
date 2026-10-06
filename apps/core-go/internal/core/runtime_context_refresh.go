@@ -30,14 +30,15 @@ func runtimeContextRefreshPlan(ctx context.Context) func(context.Context) (model
 }
 
 type runtimeContextRefresh struct {
-	mu      sync.Mutex
-	target  *schema.Message
-	system  *schema.Message
-	dirty   bool
-	latest  *modelContextRefreshContent
-	refresh func(context.Context) (modelContextRefreshContent, error)
-	base    ContextProjection
-	batches map[uint64]map[string]string
+	mu               sync.Mutex
+	target           *schema.Message
+	system           *schema.Message
+	dirty            bool
+	latest           *modelContextRefreshContent
+	refresh          func(context.Context) (modelContextRefreshContent, error)
+	base             ContextProjection
+	batches          map[uint64]map[string]string
+	staleReplyCallID string
 }
 
 // A Schedule mutation and a visible reply from one physical model response
@@ -115,6 +116,16 @@ func (r *runtimeContextRefresh) markDirty() {
 	r.mu.Unlock()
 }
 
+func (r *runtimeContextRefresh) markStaleReply(callID string) {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	r.dirty = true
+	r.staleReplyCallID = callID
+	r.mu.Unlock()
+}
+
 func isRuntimeContextMessage(message *schema.Message) bool {
 	return message != nil && message.Role == schema.User && len(message.UserInputMultiContent) == 0 &&
 		strings.HasPrefix(message.Content, "[RUNTIME CONTEXT]\n") && strings.HasSuffix(message.Content, "\n[/RUNTIME CONTEXT]")
@@ -176,6 +187,7 @@ func (r *runtimeContextRefresh) prepare(ctx context.Context, original []*schema.
 	system := r.system
 	dirty := r.dirty
 	latest := r.latest
+	staleReplyCallID := r.staleReplyCallID
 	refresh := r.refresh
 	r.mu.Unlock()
 	if !dirty && latest == nil {
@@ -208,6 +220,25 @@ func (r *runtimeContextRefresh) prepare(ctx context.Context, original []*schema.
 			Foundation: r.base.ContextRevision, CurrentState: r.base.CurrentStateRevision,
 			CurrentFacts: r.base.CurrentFactsRevision, LifeContext: r.base.LifeContextRevision,
 		}
+		if latest != nil && latest.Projection.AuthorityAtRunStart != nil {
+			anchor := *latest.Projection.AuthorityAtRunStart
+			content.Projection.AuthorityAtRunStart = &anchor
+		}
+		if staleReplyCallID != "" {
+			adkContext, ok := adkCapabilityContext(ctx)
+			if !ok || adkContext.Trace == nil {
+				return nil, errors.New("stale_reply_recovery_trace_missing")
+			}
+			invocations, _ := adkContext.Trace.Snapshot()
+			if len(invocations) == 0 {
+				return nil, errors.New("stale_reply_recovery_trace_missing")
+			}
+			content.Projection.AuthorityAtRunStart = &CognitionAuthorityAtRunStart{
+				Foundation: content.Projection.ContextRevision, CurrentState: content.Projection.CurrentStateRevision,
+				CurrentFacts: content.Projection.CurrentFactsRevision, LifeContext: content.Projection.LifeContextRevision,
+				AfterRecoveryCallID: invocations[len(invocations)-1].CallID, StaleReplyCallID: staleReplyCallID,
+			}
+		}
 		if content.Projection.FluctlightID != "" && r.base.ReferenceIndex.expectedScope() == content.Projection.ReferenceIndex.expectedScope() {
 			for ref, entry := range r.base.ReferenceIndex.ByRef {
 				if _, present := content.Projection.ReferenceIndex.ByRef[ref]; !present {
@@ -215,6 +246,14 @@ func (r *runtimeContextRefresh) prepare(ctx context.Context, original []*schema.
 				}
 			}
 			if err := content.Projection.ReferenceIndex.Validate(); err != nil {
+				return nil, err
+			}
+		}
+		// Final validation must use the same scope/index as settlement, including
+		// the original references preserved above. Alias decoding may retain old
+		// mappings, but an old profile's ref is not automatically valid now.
+		if adkContext, ok := adkCapabilityContext(ctx); ok {
+			if err := adkContext.Refs.registerIndex(content.Projection.ReferenceIndex); err != nil {
 				return nil, err
 			}
 		}
@@ -230,6 +269,7 @@ func (r *runtimeContextRefresh) prepare(ctx context.Context, original []*schema.
 		r.mu.Lock()
 		r.latest = &content
 		r.dirty = false
+		r.staleReplyCallID = ""
 		r.mu.Unlock()
 	}
 	return copyMessages, nil

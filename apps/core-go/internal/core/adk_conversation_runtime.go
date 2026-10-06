@@ -219,9 +219,13 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		receipt = ToolExecutionReceipt{OperationID: operationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: result}
 	}
 	i.trace.AppendResult(result)
-	if execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted") {
+	if errors.Is(execErr, ErrLifeContextStale) || (execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted")) {
 		if adkContext, ok := adkCapabilityContext(ctx); ok {
-			adkContext.Refresh.markDirty()
+			if capabilityName == conversationReplyCapabilityName && errors.Is(execErr, ErrLifeContextStale) {
+				adkContext.Refresh.markStaleReply(callID)
+			} else {
+				adkContext.Refresh.markDirty()
+			}
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)

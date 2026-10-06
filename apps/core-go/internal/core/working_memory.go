@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -63,7 +64,55 @@ type WorkingMemory struct {
 }
 
 func DefaultWorkingMemoryPolicy() WorkingMemoryPolicy {
-	return WorkingMemoryPolicy{RuntimeFactTokens: 6144, ActiveTokens: 2048, ResidentTokens: 1024, RecentTokens: 12288, RetrievedTokens: 3072, SummaryTokens: 2048}
+	return WorkingMemoryPolicy{RuntimeFactTokens: 8144, ActiveTokens: 2048, ResidentTokens: 1024, RecentTokens: 12288, RetrievedTokens: 3072, SummaryTokens: 2048}
+}
+
+// Section quotas guide optional selection. Required state may borrow spare
+// capacity from the total wire budget; the final composer still enforces that
+// budget including system instructions, Tools and the current input.
+func reserveRequiredWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy, maxInput int) (WorkingMemoryPolicy, error) {
+	sections := []struct {
+		fragments []PromptFragment
+		cap       *int
+		recent    bool
+	}{
+		{input.RuntimeFacts, &policy.RuntimeFactTokens, false},
+		{input.ActiveCandidates, &policy.ActiveTokens, false},
+		{input.ResidentCandidates, &policy.ResidentTokens, false},
+		{input.Summaries, &policy.SummaryTokens, false},
+		{input.RecentMessages, &policy.RecentTokens, true},
+		{input.RetrievedMemories, &policy.RetrievedTokens, false},
+	}
+	for _, section := range sections {
+		requiredTokens := 0
+		requiredTail := len(section.fragments)
+		if section.recent {
+			for index, fragment := range section.fragments {
+				if fragment.Required {
+					requiredTail = index
+					for requiredTail > 0 && fragment.GroupKey != "" && section.fragments[requiredTail-1].GroupKey == fragment.GroupKey {
+						requiredTail--
+					}
+					break
+				}
+			}
+		}
+		for index, fragment := range section.fragments {
+			if !fragment.Required && !(section.recent && index >= requiredTail) {
+				continue
+			}
+			normalized, err := normalizePromptFragment(fragment)
+			if err != nil {
+				return policy, err
+			}
+			requiredTokens += normalized.EstimatedTokens
+		}
+		if requiredTokens > maxInput {
+			return policy, fmt.Errorf("%w: required section=%d max_input=%d", ErrPromptRequiredBudgetExceeded, requiredTokens, maxInput)
+		}
+		*section.cap = max(*section.cap, requiredTokens)
+	}
+	return policy, nil
 }
 
 func ResolveWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy) (WorkingMemory, error) {
@@ -139,6 +188,9 @@ func selectRankedPromptFragments(input []PromptFragment, capTokens int, seen map
 		fragments[index] = normalized
 	}
 	sort.SliceStable(fragments, func(i, j int) bool {
+		if fragments[i].Required != fragments[j].Required {
+			return fragments[i].Required
+		}
 		if fragments[i].Priority != fragments[j].Priority {
 			return fragments[i].Priority > fragments[j].Priority
 		}
