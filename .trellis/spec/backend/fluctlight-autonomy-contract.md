@@ -561,3 +561,74 @@ model evidence is separate from strictly serial real Provider acceptance.
 
 Wrong: caller freezes native ToolCalls for a second executor.
 Correct: native Runner executes Tools; caller records committed outcome.
+
+## Scenario: Linked Goal Execution Admission And Durable Attempts (0050)
+
+### 1. Scope / Trigger
+A due cognition is claimed, a direct/scheduled Tool starts a linked activity,
+Goal lifecycle/standards change, or an Attempt lease/callback deadline elapses.
+
+### 2. Signatures
+`prepareNativeDueAttempt(ctx,inboxID,fluctlightID)`,
+`admitGoalLinkedToolTx(ctx,tx,ToolExecutionRequest)`,
+`ReconcileGoalAttempts(ctx,limit<=100)`; migration `0050_goal_execution`.
+Goal rows add `criteria_version`, persisted `criterion_ids`, `deadline_policy`.
+Attempt rows retain running/waiting/needs_reconciliation and terminal states,
+operation identity, lease/deadline, wait_ref, reconciliation count and result.
+Intention rows retain next_attempt_at/retry_count/retry_reason/goal_hold_status.
+
+### 3. Contracts
+- Local linked admission and governance share Life -> inbox/domain-row lock order.
+  Provider work stays outside transactions; this is not external atomicity.
+- Claim precedes projection/Provider preparation. Failure records Attempt and
+  failed inbox together. New retry has a new Agent/Attempt, retaining committed
+  receipts; never replay the failed native Agent wholesale.
+- Active Goal, matching instance/profile, live revisions, permissions, window,
+  typed time maturity and next_attempt_at gate new effects. Replayed receipts
+  remain historical facts and do not constitute a new execution.
+- Only completed ACTION receipts settle synchronous action success. QUERY/no_op
+  do not prove business success; async acceptance binds an actual operation.
+  Goal standards require their own versioned evaluation, not action success.
+- Queued intentions pause/cancel with their Goal; standard changes pause them
+  for reassessment. Resume checks expiration. Started operations retain facts.
+- Callback reconciliation reads actual activity/media/visual identity state and
+  requires ready owned assets for media success. Unknown operations are not
+  resubmitted. Six unresolved checks halt automatic checking and hold execution
+  as needs_reconciliation; real late callbacks may still record results.
+- product.goal_retry config accepts max_attempts 1..20, base_seconds 30..3600,
+  max_seconds >=base and <=86400. Defaults are 5/60/3600 with stable <=25% jitter.
+  Explicit denial/refusal does not automatically retry. Suppression does not
+  count as a failed effort. next_attempt_at is also the durable workflow due time.
+- Standard IDs persist across reorder/copy edits; versioned Goal snapshots retain
+  mappings. Mixed standards revision/evaluation is rejected. Standard edits reset
+  old progress and require reevaluation; progress never gains fixed action points.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Inactive Goal/stale due/foreign scope | Suppress/reject before new Tool effect |
+| Future time trigger | intention_trigger_not_due |
+| Hard deadline | Expire unstarted intention; no permanent due/retry |
+| Backoff not elapsed | intention_retry_not_due; preserve queued evidence |
+| Standard revision plus outcome evaluation | goal_standard_revision_and_evaluation_mixed |
+| Stale Goal/criteria evaluation version | goal_evaluation_version_conflict |
+| Resume while operation unresolved | intention_operation_reconciliation_required |
+
+### 5. Good/Base/Bad Cases
+Good: pre-Tool Provider fails; Attempt fails, bounded retry survives App restart.
+Base: original async operation is unresolved; report/check its identity then hold.
+Bad: future Tool bypasses timer, re-send after unknown timeout, or increase Goal
+progress on repeated expressions without evidence of another standard.
+
+### 6. Tests Required
+Goal execution correctness suite covers pre-Tool failure/restart/lease expiry,
+pause/cancel/provider race, future direct start, hard deadline, bounded unknown
+operation, stable criterion identities and stale-version/repeated-points rejection.
+PostgresGoalExecution tests cover upgrade/history/rerun/ledger rollback. Existing
+formal due/start/failure/late-result tests preserve held logical lifecycle and
+independent physical attempt facts. Scripted Provider is not live acceptance.
+
+### 7. Wrong vs Correct
+Wrong: any Tool invocation -> pending; failed inbox alone recovers a due intention.
+Correct: durable claim -> classified actual receipt/operation -> atomic Attempt
+settlement or explicit waiting -> domain backoff/reconciliation -> durable work.

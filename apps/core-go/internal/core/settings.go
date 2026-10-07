@@ -103,8 +103,14 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	clear := arrayValue(payload["clear_secrets"])
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		for key, value := range values {
-			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
+			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
 				return fmt.Errorf("unknown setting %s", key)
+			}
+			if key == "product.goal_retry" {
+				policy := mapValue(value)
+				if len(policy) != 3 || intValue(policy["max_attempts"]) < 1 || intValue(policy["max_attempts"]) > 20 || intValue(policy["base_seconds"]) < 30 || intValue(policy["base_seconds"]) > 3600 || intValue(policy["max_seconds"]) < intValue(policy["base_seconds"]) || intValue(policy["max_seconds"]) > 86400 {
+					return errors.New("product_goal_retry_invalid")
+				}
 			}
 			if key == "llm.queue" {
 				value = normalizeProviderQueueSettings(value)

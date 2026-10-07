@@ -13,7 +13,7 @@ import (
 // A scheduled activity has no confirmed outcome until advance commits one.
 // If its Intention was revoked in the meantime, close that pending run before
 // any Life Event or appearance effect can be written.
-func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte, now time.Time) (CapabilityResult, error) {
+func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, app *App, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte, now time.Time) (CapabilityResult, error) {
 	currentResult := decodeObject(resultRaw)
 	currentResult["result"] = map[string]any{"status": "cancelled", "reason": "scheduled_intention_inactive"}
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET status='cancelled',resolved_at=$3,result_json=$4,revision=revision+1 WHERE id=$1 AND fluctlight_id=$2 AND revision=$5`, activityID, fluctlightID, now, jsonBytes(currentResult), revision)
@@ -22,6 +22,9 @@ func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, invo
 			err = ErrConflict
 		}
 		return failedCapabilityResult(invocation, "activity_cancel_failed", true), err
+	}
+	if _, err := app.settleActionOutcomeByExternalRefTx(ctx, tx, activityID, ActionOutcomeCancelled, map[string]any{"reason": "scheduled_intention_inactive"}, "scheduled_intention_inactive"); err != nil {
+		return failedCapabilityResult(invocation, "activity_cancel_outcome_failed", true), err
 	}
 	if err := appendOutboxTx(ctx, tx, "life.activity.resolved", "life_activity", activityID, fluctlightID, invocation.SourceFactID,
 		"activity:"+activityID, "activity-resolved:"+activityID, map[string]any{"activity_id": activityID, "status": "cancelled", "revision": revision + 1}); err != nil {
@@ -176,7 +179,7 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	}
 	if intentionID != "" {
 		var attemptSettled, frozenOutcome bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_intention_attempts a JOIN public.fluctlight_intentions i ON i.current_attempt_id=a.attempt_id JOIN public.cognition_action_outcomes o ON o.action_id=a.action_id WHERE o.external_ref=$1 AND i.id=$2 AND i.fluctlight_id=$3),EXISTS(SELECT 1 FROM public.cognition_action_outcomes WHERE external_ref=$1 AND fluctlight_id=$3 AND completion_boundary='virtual_activity_resolved')`, activityID, intentionID, fluctlightID).Scan(&attemptSettled, &frozenOutcome); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_intention_attempts a JOIN public.fluctlight_intentions i ON i.current_attempt_id=a.attempt_id JOIN public.cognition_action_outcomes o ON o.action_id=a.action_id WHERE o.external_ref=$1 AND i.id=$2 AND i.fluctlight_id=$3 AND a.status NOT IN ('running','waiting')),EXISTS(SELECT 1 FROM public.cognition_action_outcomes WHERE external_ref=$1 AND fluctlight_id=$3 AND completion_boundary='virtual_activity_resolved')`, activityID, intentionID, fluctlightID).Scan(&attemptSettled, &frozenOutcome); err != nil {
 			return failedCapabilityResult(invocation, "activity_attempt_lookup_failed", true), err
 		}
 		var linkedStatus string
@@ -233,11 +236,11 @@ func completeScheduledGoalTx(ctx context.Context, tx pgx.Tx, fluctlightID, goalI
 	if err != nil {
 		return err
 	}
-	if goalStatusTerminal(goal.Status) || goal.Scope == "relationship" || len(goal.SuccessCriteria) != 1 {
+	if goal.Status != GoalActive || goal.Scope == "relationship" || len(goal.SuccessCriteria) != 1 {
 		return nil
 	}
 	next, record, err := ApplyGoalProgress(goal, GoalProgressProposal{
-		GoalRef: goal.Ref, OutcomeRefs: []string{outcome.ID}, CriterionIndexes: []int{0},
+		ExpectedRevision: goal.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(goal), GoalRef: goal.Ref, OutcomeRefs: []string{outcome.ID}, CriterionIDs: goalCriteriaAtIndexes(goal, []int{0}),
 		Strength: 1, Confidence: 1, Complete: true, EvidenceRefs: []string{"activity:" + activityID}, OccurredAt: at,
 	}, map[string]ActionOutcome{outcome.ID: outcome})
 	if err != nil {

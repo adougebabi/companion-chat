@@ -500,12 +500,33 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	var fluctlightID, correlationID string
-	if err := a.DB.Pool().QueryRow(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed') RETURNING fluctlight_id,COALESCE(correlation_id,'')`, inboxID, code, jsonBytes(map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results})).Scan(&fluctlightID, &correlationID); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrConflict
-		}
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&fluctlightID); err != nil {
 		return err
 	}
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
+		}
+		var payload []byte
+		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,COALESCE(correlation_id,''),payload FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &correlationID, &payload); err != nil {
+			return err
+		}
+		if err := a.settleDueAgentFailureTx(ctx, tx, inboxID, fluctlightID, payload, outcome, code); err != nil {
+			return err
+		}
+		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, code, jsonBytes(map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results}))
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() != 1 {
+			return ErrConflict
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	stage := "agent_run"
 	switch strings.TrimSpace(code) {
 	case "agent_final_contract_invalid", "native_cognition_final_contract_invalid":
@@ -1019,6 +1040,15 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if status == "failed" {
 		return errors.New(firstString(errorCode, "native_cognition_failed"))
 	}
+	if eventType == intentionDueFactType {
+		stopped, err := a.prepareNativeDueAttempt(ctx, inboxID, fluctlightID)
+		if err != nil {
+			return err
+		}
+		if stopped {
+			return nil
+		}
+	}
 	factPayload := decodeObject(payload)
 	if depth := intValue(factPayload["native_cognition_depth"]); nativeCognitionCycleGuarded(depth) {
 		return a.settleNativeCognitionCycleGuard(ctx, inboxID, depth)
@@ -1038,6 +1068,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	}
 	projection, err := a.BuildContextProjectionFor(ctx, projectionRequest)
 	if err != nil {
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, agentCommittedOutcome{}, "native_cognition_projection_failed", err)
 		return err
 	}
 	// A due fact is enqueued before the Intention's due revision is projected.
@@ -1046,27 +1077,38 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if eventType == intentionDueFactType {
 		payload, factPayload, err = a.bindIntentionDueFact(ctx, fluctlightID, payload, projection)
 		if err != nil {
+			_ = a.failAgentTurnAfterRun(ctx, inboxID, agentCommittedOutcome{}, "native_cognition_due_binding_failed", err)
 			return err
 		}
 		// The model may commit an activity Tool and fail before final settlement.
 		// Freeze the scoped, Core-owned due references before any Tool can run.
 		candidate := mapValue(factPayload["candidate"])
 		goalRef, intentionRef := stringValue(candidate["goal_ref"]), stringValue(candidate["intention_ref"])
-		frozen := map[string]any{"intention_id": factPayload["source_fact_id"], "attempt_id": candidate["attempt_id"],
+		frozen := map[string]any{"inbox_id": inboxID, "intention_id": factPayload["source_fact_id"], "attempt_id": candidate["attempt_id"],
 			"intention_revision": candidate["intention_revision"], "goal_ref": goalRef, "intention_ref": intentionRef,
 			"context_references": map[string]ContextReference{goalRef: projection.ReferenceIndex.ByRef[goalRef], intentionRef: projection.ReferenceIndex.ByRef[intentionRef]}}
-		command, freezeErr := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET payload=jsonb_set(payload,'{due_context}',$2::jsonb,true) WHERE id=$1 AND fluctlight_id=$3 AND status IN ('pending','claimed') AND payload->>'source_fact_id'=$4`, inboxID, jsonBytes(frozen), fluctlightID, stringValue(factPayload["source_fact_id"]))
+		freezeErr := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			if err := a.beginDueAttemptTx(ctx, tx, fluctlightID, inboxID, frozen); err != nil {
+				return err
+			}
+			command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET payload=jsonb_set(payload,'{due_context}',$2::jsonb,true) WHERE id=$1 AND fluctlight_id=$3 AND status IN ('pending','claimed') AND payload->>'source_fact_id'=$4`, inboxID, jsonBytes(frozen), fluctlightID, stringValue(factPayload["source_fact_id"]))
+			if err != nil {
+				return err
+			}
+			if command.RowsAffected() != 1 {
+				return ErrConflict
+			}
+			return nil
+		})
 		if freezeErr != nil {
 			return freezeErr
-		}
-		if command.RowsAffected() != 1 {
-			return ErrConflict
 		}
 	}
 	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "native_cognition"), "native-cognition:"+inboxID)
 	taskResult, runErr := a.RunNativeCognitionTask(providerCtx, NativeCognitionTaskInput{EventType: eventType, Fact: payload, Projection: projection, ProjectionRequest: projectionRequest})
 	outcome, outcomeErr := committedAgentOutcome(taskResult.Trace)
 	if outcomeErr != nil {
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_trace_invalid", outcomeErr)
 		return outcomeErr
 	}
 	if runErr != nil {
@@ -1104,15 +1146,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	settlement := map[string]any{"status": "completed", "capability_invocations": outcome.Invocations, "capability_results": outcome.Results,
 		"goal_refs": stages["goal_refs"], "intention_refs": stages["intention_refs"], "context_references": causality["context_references"]}
 	if eventType == intentionDueFactType {
-		if len(outcome.Invocations) == 0 {
-			settlement["status"], settlement["reason_code"] = "suppressed", "intention_deferred"
-		} else {
-			// A ToolCall may have queried facts, arranged an activity, or even
-			// published a reply. None of those alone prove the desired outcome.
-			// The activity/result owner settles the Intention after its own
-			// completion boundary; do not mark the primary ActionOutcome done.
-			settlement["status"], settlement["reason_code"] = "pending", "intention_awaits_verified_result"
-		}
+		settlement["status"], settlement["reason_code"] = dueActionSettlement(outcome.Results, a.capabilityRegistry())
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		foundation, currentRevision, lifeContext, currentFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)

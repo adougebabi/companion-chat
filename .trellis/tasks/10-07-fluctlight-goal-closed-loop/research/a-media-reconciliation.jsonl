@@ -1,0 +1,8 @@
+{"Time":"2026-10-07T15:54:28.884727+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-10-07T15:54:29.895443+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestReconcileReadsReadyMediaAuthorityWithoutReissuingOperation"}
+{"Time":"2026-10-07T15:54:29.895496+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestReconcileReadsReadyMediaAuthorityWithoutReissuingOperation","Output":"=== RUN   TestReconcileReadsReadyMediaAuthorityWithoutReissuingOperation\n"}
+{"Time":"2026-10-07T15:54:30.186693+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestReconcileReadsReadyMediaAuthorityWithoutReissuingOperation","Output":"--- PASS: TestReconcileReadsReadyMediaAuthorityWithoutReissuingOperation (0.29s)\n"}
+{"Time":"2026-10-07T15:54:30.18671+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestReconcileReadsReadyMediaAuthorityWithoutReissuingOperation","Elapsed":0.29}
+{"Time":"2026-10-07T15:54:30.187245+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
+{"Time":"2026-10-07T15:54:31.193906+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t2.309s\n"}
+{"Time":"2026-10-07T15:54:31.193935+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":2.309}

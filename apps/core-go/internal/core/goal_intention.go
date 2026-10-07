@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -47,6 +48,9 @@ type GoalAuthority struct {
 	ProfileID       string              `json:"profile_id"`
 	DesiredOutcome  string              `json:"desired_outcome"`
 	SuccessCriteria []string            `json:"success_criteria"`
+	CriterionIDs    []string            `json:"criterion_ids"`
+	CriteriaVersion int                 `json:"criteria_version"`
+	DeadlinePolicy  string              `json:"deadline_policy"`
 	Motivation      string              `json:"motivation"`
 	Scope           string              `json:"scope"`
 	TargetActorID   string              `json:"-"`
@@ -65,6 +69,13 @@ func CreateGoalAuthority(goal GoalAuthority, evidenceRefs []string, occurredAt t
 	if goal.Revision != 1 || occurredAt.IsZero() || len(evidenceRefs) == 0 {
 		return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_create_invalid")
 	}
+	if goal.CriteriaVersion == 0 {
+		goal.CriteriaVersion = 1
+	}
+	if goal.DeadlinePolicy == "" {
+		goal.DeadlinePolicy = "soft"
+	}
+	goal.CriterionIDs = goalCriterionIDs(goal)
 	goal.EvidenceRefs = mergeStableRefs(goal.EvidenceRefs, evidenceRefs)
 	if err := goal.Validate(); err != nil {
 		return GoalAuthority{}, GoalGovernanceRecord{}, err
@@ -120,6 +131,18 @@ func (goal GoalAuthority) Validate() error {
 	if len(goal.SuccessCriteria) > 16 || (len(goal.SuccessCriteria) == 0 && !goal.NeedsReflection) {
 		return errors.New("goal_success_criteria_invalid")
 	}
+	if len(goal.CriterionIDs) > 0 {
+		if len(goal.CriterionIDs) != len(goal.SuccessCriteria) {
+			return errors.New("goal_criterion_identity_invalid")
+		}
+		seen := map[string]bool{}
+		for _, id := range goal.CriterionIDs {
+			if !strings.HasPrefix(id, "criterion_") || seen[id] {
+				return errors.New("goal_criterion_identity_invalid")
+			}
+			seen[id] = true
+		}
+	}
 	for _, criterion := range goal.SuccessCriteria {
 		if text := strings.TrimSpace(criterion); text == "" || len([]rune(text)) > 500 {
 			return errors.New("goal_success_criterion_invalid")
@@ -169,6 +192,12 @@ func ApplyGoalCommand(current *GoalAuthority, command GoalCommand) (GoalAuthorit
 	switch command.Operation {
 	case GoalUpdate:
 		applyGoalPatch(&next, command.Patch)
+		if !slices.Equal(current.SuccessCriteria, next.SuccessCriteria) || current.DesiredOutcome != next.DesiredOutcome {
+			next.CriteriaVersion = effectiveGoalCriteriaVersion(*current) + 1
+			next.CriterionIDs = reviseGoalCriterionIDs(*current, next)
+			next.Progress = 0
+			next.NeedsReflection = true
+		}
 	case GoalPause:
 		if from != GoalActive {
 			return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_transition_invalid")
@@ -235,9 +264,11 @@ func applyGoalPatch(goal *GoalAuthority, patch GoalPatch) {
 }
 
 type GoalProgressProposal struct {
+	CriterionIDs     []string
+	ExpectedRevision int
+	CriteriaVersion  int
 	GoalRef          string
 	OutcomeRefs      []string
-	CriterionIndexes []int
 	Strength         float64
 	Confidence       float64
 	Complete         bool
@@ -249,10 +280,13 @@ func ApplyGoalProgress(goal GoalAuthority, proposal GoalProgressProposal, outcom
 	if err := goal.Validate(); err != nil {
 		return GoalAuthority{}, GoalGovernanceRecord{}, err
 	}
-	if goalStatusTerminal(goal.Status) || proposal.GoalRef != goal.Ref || !unitFinite(proposal.Strength) || !unitFinite(proposal.Confidence) || proposal.Confidence == 0 || proposal.OccurredAt.IsZero() {
+	if proposal.ExpectedRevision != goal.Revision || proposal.CriteriaVersion != effectiveGoalCriteriaVersion(goal) {
+		return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_evaluation_version_conflict")
+	}
+	if goal.Status != GoalActive || proposal.GoalRef != goal.Ref || !unitFinite(proposal.Strength) || !unitFinite(proposal.Confidence) || proposal.Confidence == 0 || proposal.OccurredAt.IsZero() {
 		return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_progress_proposal_invalid")
 	}
-	if len(proposal.OutcomeRefs) == 0 || len(proposal.CriterionIndexes) == 0 {
+	if len(proposal.OutcomeRefs) == 0 || len(proposal.CriterionIDs) == 0 {
 		return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_progress_evidence_required")
 	}
 	for _, ref := range proposal.OutcomeRefs {
@@ -261,16 +295,18 @@ func ApplyGoalProgress(goal GoalAuthority, proposal GoalProgressProposal, outcom
 			return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_progress_outcome_not_successful")
 		}
 	}
-	criteria := make(map[int]struct{}, len(proposal.CriterionIndexes))
-	for _, index := range proposal.CriterionIndexes {
-		if index < 0 || index >= len(goal.SuccessCriteria) {
+	criteria := make(map[string]struct{}, len(proposal.CriterionIDs))
+	valid := goalCriterionIDs(goal)
+	for _, id := range proposal.CriterionIDs {
+		if !containsString(valid, id) {
 			return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_progress_criterion_invalid")
 		}
-		criteria[index] = struct{}{}
+		criteria[id] = struct{}{}
 	}
+
 	evidenceFloor := float64(len(criteria)) / float64(len(goal.SuccessCriteria))
-	semanticStep := goal.Progress + 0.25*proposal.Strength*proposal.Confidence
-	nextProgress := math.Min(1, math.Max(goal.Progress, math.Max(evidenceFloor, semanticStep)))
+	// Progress is an evidenced projection; repeated actions do not add points.
+	nextProgress := math.Max(goal.Progress, evidenceFloor)
 	if proposal.Complete {
 		if len(criteria) != len(goal.SuccessCriteria) {
 			return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_completion_criteria_incomplete")
@@ -662,6 +698,12 @@ func FreezeIntentionAction(goal GoalAuthority, intention IntentionAuthority, due
 	if err := intention.Validate(); err != nil {
 		return FrozenIntentionAction{}, err
 	}
+	if goal.Status != GoalActive {
+		return FrozenIntentionAction{}, errors.New("goal_not_active")
+	}
+	if goal.FluctlightID != intention.FluctlightID || (goal.ProfileID != "" && goal.ProfileID != intention.ProfileID) {
+		return FrozenIntentionAction{}, errors.New("intention_goal_scope_invalid")
+	}
 	if goal.Ref != intention.GoalRef || due.IntentionRef != intention.Ref || due.GoalRef != goal.Ref || due.IntentionRevision != intention.Revision || due.AttemptID == "" {
 		return FrozenIntentionAction{}, errors.New("intention_due_identity_invalid")
 	}
@@ -710,6 +752,8 @@ func FreezeIntentionAction(goal GoalAuthority, intention IntentionAuthority, due
 type IntentionAttemptStatus string
 
 const (
+	IntentionAttemptRunning    IntentionAttemptStatus = "running"
+	IntentionAttemptWaiting    IntentionAttemptStatus = "waiting"
 	IntentionAttemptSucceeded  IntentionAttemptStatus = "succeeded"
 	IntentionAttemptFailed     IntentionAttemptStatus = "failed"
 	IntentionAttemptCancelled  IntentionAttemptStatus = "cancelled"
@@ -722,6 +766,7 @@ type IntentionAttempt struct {
 	GoalRef       string                 `json:"goal_ref"`
 	ActionID      string                 `json:"action_id"`
 	OutcomeID     string                 `json:"outcome_id"`
+	ErrorCode     string                 `json:"error_code,omitempty"`
 	OutcomeDigest string                 `json:"outcome_digest"`
 	Status        IntentionAttemptStatus `json:"status"`
 	OccurredAt    time.Time              `json:"occurred_at"`
@@ -741,7 +786,7 @@ func SettleIntentionAttempt(intention IntentionAuthority, frozen FrozenIntention
 		return IntentionAttemptSettlement{}, errors.New("intention_outcome_identity_invalid")
 	}
 	digest := stableDigest(jsonString(map[string]any{"id": outcome.ID, "action_id": outcome.ActionID, "call_id": outcome.CallID, "status": outcome.Status, "success_boundary": outcome.SuccessBoundary, "error_code": outcome.ErrorCode, "revision": outcome.Revision}))
-	if existing != nil {
+	if existing != nil && existing.Status != IntentionAttemptRunning && existing.Status != IntentionAttemptWaiting && existing.Status != "needs_reconciliation" {
 		if existing.AttemptID == frozen.AttemptID && existing.OutcomeDigest == digest {
 			return IntentionAttemptSettlement{Intention: intention, Attempt: *existing, Replayed: true}, nil
 		}
@@ -774,7 +819,7 @@ func SettleIntentionAttempt(intention IntentionAuthority, frozen FrozenIntention
 	}
 	attempt := IntentionAttempt{
 		AttemptID: frozen.AttemptID, IntentionRef: intention.Ref, GoalRef: intention.GoalRef,
-		ActionID: outcome.ActionID, OutcomeID: outcome.ID, OutcomeDigest: digest, Status: attemptStatus, OccurredAt: outcome.OccurredAt.UTC(),
+		ActionID: outcome.ActionID, OutcomeID: outcome.ID, OutcomeDigest: digest, ErrorCode: outcome.ErrorCode, Status: attemptStatus, OccurredAt: outcome.OccurredAt.UTC(),
 	}
 	return IntentionAttemptSettlement{Intention: next, Attempt: attempt}, nil
 }
@@ -837,4 +882,71 @@ func influencesContainRefs(influences []DecisionInfluence, refs ...string) bool 
 		}
 	}
 	return true
+}
+
+func effectiveGoalCriteriaVersion(goal GoalAuthority) int {
+	if goal.CriteriaVersion > 0 {
+		return goal.CriteriaVersion
+	}
+	return 1
+}
+
+func goalCriterionIDs(goal GoalAuthority) []string {
+	if len(goal.CriterionIDs) == len(goal.SuccessCriteria) {
+		return append([]string(nil), goal.CriterionIDs...)
+	}
+	identity := goal.EntityID
+	if identity == "" {
+		identity = goal.Ref
+	}
+	ids := make([]string, len(goal.SuccessCriteria))
+	for i := range goal.SuccessCriteria {
+		ids[i] = "criterion_" + stableDigest(identity+"\x1f"+fmt.Sprint(effectiveGoalCriteriaVersion(goal))+"\x1f"+fmt.Sprint(i))
+	}
+	return ids
+}
+
+// Preserve explicit standard identity across reordering and textual revisions.
+// A new slot receives a new identity; history snapshots retain earlier versions.
+func reviseGoalCriterionIDs(before, after GoalAuthority) []string {
+	old := goalCriterionIDs(before)
+	ids := make([]string, len(after.SuccessCriteria))
+	used := map[string]bool{}
+	for i, text := range after.SuccessCriteria {
+		for j, prior := range before.SuccessCriteria {
+			if text == prior && !used[old[j]] {
+				ids[i] = old[j]
+				used[old[j]] = true
+				break
+			}
+		}
+	}
+	for i := range ids {
+		if ids[i] == "" && i < len(old) && !used[old[i]] {
+			ids[i] = old[i]
+			used[old[i]] = true
+		}
+		if ids[i] == "" {
+			identity := after.EntityID
+			if identity == "" {
+				identity = after.Ref
+			}
+			ids[i] = "criterion_" + stableDigest(identity+"\x1f"+fmt.Sprint(after.CriteriaVersion)+"\x1f"+fmt.Sprint(i))
+		}
+	}
+	return ids
+}
+
+// The existing Reflection DTO names indexes. This boundary adapter resolves
+// them against the frozen revision; the domain submission owns stable IDs.
+func goalCriteriaAtIndexes(goal GoalAuthority, indexes []int) []string {
+	ids := goalCriterionIDs(goal)
+	result := make([]string, 0, len(indexes))
+	for _, index := range indexes {
+		if index < 0 || index >= len(ids) {
+			return []string{"invalid_criterion"}
+		}
+		result = append(result, ids[index])
+	}
+	return result
 }

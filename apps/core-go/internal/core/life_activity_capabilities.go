@@ -548,7 +548,7 @@ func (c lifeActivityAdvanceCapability) ExecuteTx(ctx context.Context, tx pgx.Tx,
 				"stale-scheduled-run:"+activityID, c.service.app.now().UTC()); err != nil {
 				return failedCapabilityResult(invocation, "activity_intention_cancel_failed", true), err
 			}
-			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, intentionID, revision, resultRaw, c.service.app.now().UTC())
+			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, c.service.app, invocation, activityID, fluctlightID, intentionID, revision, resultRaw, c.service.app.now().UTC())
 		}
 		var intentionStatus string
 		var expiration time.Time
@@ -556,7 +556,7 @@ func (c lifeActivityAdvanceCapability) ExecuteTx(ctx context.Context, tx pgx.Tx,
 			return failedCapabilityResult(invocation, "activity_intention_read_failed", true), err
 		}
 		if intentionStatus != string(IntentionInProgress) || !c.service.app.now().UTC().Before(expiration) {
-			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, invocation, activityID, fluctlightID, intentionID, revision, resultRaw, c.service.app.now().UTC())
+			return cancelUnsettledScheduledLifeActivityTx(ctx, tx, c.service.app, invocation, activityID, fluctlightID, intentionID, revision, resultRaw, c.service.app.now().UTC())
 		}
 	}
 	result := mapValue(plan["result"])

@@ -1,0 +1,31 @@
+{
+  "id": "fluctlight-goal-closed-loop",
+  "name": "fluctlight-goal-closed-loop",
+  "title": "Fluctlight 目标执行与治理闭环",
+  "description": "落实目标闭环设计 G00–G13，统一执行资格、真实证据评估、阶段推进与 Owner 治理",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-10-07",
+  "completedAt": null,
+  "branch": "codex/fluctlight-goal-closed-loop",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-07-goal-execution-correctness",
+    "10-07-goal-evidence-progression",
+    "10-07-goal-review-owner-governance",
+    "10-07-goal-migration-joint-acceptance"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

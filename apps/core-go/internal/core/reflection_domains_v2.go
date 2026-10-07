@@ -60,6 +60,9 @@ func applyReflectionGoalCandidatesV2Tx(ctx context.Context, tx pgx.Tx, fluctligh
 		}
 		var next GoalAuthority
 		var record GoalGovernanceRecord
+		if err := validateGoalCandidateSeparation(candidate); err != nil {
+			return err
+		}
 		if len(candidate.OutcomeRefs) > 0 {
 			if operation != GoalUpdate && operation != GoalComplete {
 				return errors.New("reflection_goal_progress_operation_invalid")
@@ -69,23 +72,11 @@ func applyReflectionGoalCandidatesV2Tx(ctx context.Context, tx pgx.Tx, fluctligh
 				return outcomeErr
 			}
 			next, record, err = ApplyGoalProgress(current, GoalProgressProposal{
-				GoalRef: candidate.TargetRef, OutcomeRefs: candidate.OutcomeRefs, CriterionIndexes: candidate.CriterionIndexes,
+				ExpectedRevision: current.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(current), GoalRef: candidate.TargetRef, OutcomeRefs: candidate.OutcomeRefs, CriterionIDs: goalCriteriaAtIndexes(current, candidate.CriterionIndexes),
 				Strength: candidate.Strength, Confidence: candidate.Confidence,
 				Complete: candidate.Complete || operation == GoalComplete, EvidenceRefs: candidate.EvidenceRefs, OccurredAt: occurredAt,
 			}, outcomes)
-			if err == nil {
-				if patch.DesiredOutcome != nil {
-					next.DesiredOutcome = *patch.DesiredOutcome
-				}
-				if patch.SuccessCriteria != nil {
-					next.SuccessCriteria = append([]string(nil), patch.SuccessCriteria...)
-					next.NeedsReflection = len(next.SuccessCriteria) == 0
-				}
-				if patch.Motivation != nil {
-					next.Motivation = *patch.Motivation
-				}
-				err = next.Validate()
-			}
+
 		} else {
 			command := GoalCommand{Operation: operation, ExpectedRevision: current.Revision, Patch: patch, EvidenceRefs: candidate.EvidenceRefs, Reason: candidate.SemanticReason, OccurredAt: occurredAt}
 			next, record, err = ApplyGoalCommand(&current, command)
@@ -286,12 +277,15 @@ func applyAffectProfileRecalibration(baseline, decay, regulation map[string]any,
 }
 
 func loadGoalAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref string, entry ContextReference) (GoalAuthority, error) {
+	if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+		return GoalAuthority{}, err
+	}
 	var goal GoalAuthority
 	var profileID *string
 	var targetActorID *string
-	var criteria, importance, urgency, progress, evidence []byte
+	var criteria, criterionIDs, importance, urgency, progress, evidence []byte
 	var deadline *time.Time
-	err := tx.QueryRow(ctx, `SELECT id,profile_id,scope,target_actor_id,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,deadline,status,evidence_refs,revision FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&goal.EntityID, &profileID, &goal.Scope, &targetActorID, &goal.DesiredOutcome, &criteria, &goal.Motivation, &goal.NeedsReflection, &importance, &urgency, &progress, &deadline, &goal.Status, &evidence, &goal.Revision)
+	err := tx.QueryRow(ctx, `SELECT id,profile_id,scope,target_actor_id,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,deadline,status,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&goal.EntityID, &profileID, &goal.Scope, &targetActorID, &goal.DesiredOutcome, &criteria, &goal.Motivation, &goal.NeedsReflection, &importance, &urgency, &progress, &deadline, &goal.Status, &evidence, &goal.Revision, &goal.CriteriaVersion, &goal.DeadlinePolicy, &criterionIDs)
 	if err != nil {
 		return GoalAuthority{}, err
 	}
@@ -305,11 +299,15 @@ func loadGoalAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref strin
 	if targetActorID != nil {
 		goal.TargetActorID = *targetActorID
 	}
+	goal.CriterionIDs = decisionServiceRefValues(decodeArray(criterionIDs))
 	goal.SuccessCriteria, goal.Importance, goal.Urgency, goal.Progress, goal.Deadline, goal.EvidenceRefs = decisionServiceRefValues(decodeArray(criteria)), numberOrZero(jsonNumber(importance)), numberOrZero(jsonNumber(urgency)), numberOrZero(jsonNumber(progress)), deadline, decisionServiceRefValues(decodeArray(evidence))
 	return goal, goal.Validate()
 }
 
 func loadIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref, goalRef string, entry ContextReference) (IntentionAuthority, error) {
+	if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+		return IntentionAuthority{}, err
+	}
 	var intention IntentionAuthority
 	var profileID, goalID *string
 	var constraints, triggerRaw, confidenceRaw, evidence []byte
@@ -340,4 +338,12 @@ func activeEvolutionProfile(index ContextReferenceIndex) string {
 		return value
 	}
 	return "default"
+}
+
+// A successful evaluation must describe the exact standards that were read.
+func validateGoalCandidateSeparation(candidate ReflectionGoalCandidateV2) error {
+	if (len(candidate.OutcomeRefs) > 0 || candidate.Complete || candidate.Operation == string(GoalComplete)) && (candidate.SuccessCriteria != nil || candidate.DesiredOutcome != "") {
+		return errors.New("goal_standard_revision_and_evaluation_mixed")
+	}
+	return nil
 }

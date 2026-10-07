@@ -178,6 +178,11 @@ func main() {
 				logger.Info("Go Worker periodic 30m WakeUp supervision reconciled intents", "count", reconciled)
 			}
 		case <-wakeUpRepairTicker.C:
+			if reconciled, err := application.ReconcileGoalAttempts(ctx, 50); err != nil {
+				logger.Warn("Go Worker Goal attempt reconciliation retry", "error", err)
+			} else if reconciled > 0 {
+				logger.Info("Go Worker reconciled Goal attempts", "count", reconciled)
+			}
 			if reconciled, err := application.ReconcileLegacyConversationSummaries(ctx, 100); err != nil {
 				logger.Warn("Go Worker legacy conversation summary reconciliation retry", "error", err)
 			} else if reconciled > 0 {

@@ -312,6 +312,9 @@ func stampLifeContextRevision(life, schedule map[string]any, timezone string) {
 }
 
 func lockLifeContextTx(ctx context.Context, tx pgx.Tx, fluctlightID string) error {
+	if tx == nil {
+		return errors.New("life_context_transaction_required")
+	}
 	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "life-context:"+strings.TrimSpace(fluctlightID))
 	return err
 }

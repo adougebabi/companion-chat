@@ -35,6 +35,32 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 			return loadErr
 		}
 		now := a.now().UTC()
+		if now.Before(current.Expiration) && (current.Status == IntentionQualified || current.Status == IntentionDue) {
+			if gateErr := requireIntentionGoalActiveTx(ctx, tx, current, now); gateErr != nil {
+				code, _ := capabilityErrorInfo(gateErr, "intention_execution_blocked", false)
+				if code == "goal_hard_deadline_elapsed" {
+					next, record, err := ApplyIntentionCommand(current, IntentionCommand{Operation: IntentionExpire, ExpectedRevision: current.Revision, EvidenceRefs: current.EvidenceRefs, Reason: code, OccurredAt: now})
+					if err != nil {
+						return err
+					}
+					if _, err := persistIntentionAuthorityTx(ctx, tx, &current, next, record, "intention-hard-deadline:"+current.EntityID+":"+fmt.Sprint(current.Revision)); err != nil {
+						return err
+					}
+					result["status"], result["reason_code"] = "expired", code
+					return nil
+				}
+				result["status"], result["reason_code"] = "pending", code
+				var next *time.Time
+				if err := tx.QueryRow(ctx, `SELECT next_attempt_at FROM public.fluctlight_intentions WHERE id=$1`, current.EntityID).Scan(&next); err != nil {
+					return err
+				}
+				if next != nil {
+					result["not_before"] = formatInstant(*next)
+				}
+				result["execution_blocked"] = true
+				return nil
+			}
+		}
 		if current.Status == IntentionInProgress {
 			var activityID string
 			var notBefore time.Time
@@ -64,7 +90,7 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 		}
 		return nil
 	})
-	if err != nil || stringValue(result["status"]) != "pending" {
+	if err != nil || stringValue(result["status"]) != "pending" || result["execution_blocked"] == true {
 		return result, err
 	}
 	if scheduled, handled, err := a.processScheduledIntentionTrigger(ctx, intentionID, fluctlightID, ownerActorID); handled || err != nil {
@@ -100,6 +126,9 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 			return nil
 		}
 		now := a.now().UTC()
+		if err := requireIntentionGoalActiveTx(ctx, tx, current, now); err != nil {
+			return err
+		}
 		observation := IntentionTriggerObservation{At: now}
 		if current.Trigger.Type != IntentionTriggerTime {
 			var cursor int
@@ -149,10 +178,18 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 }
 
 func loadIntentionAuthorityByIDTx(ctx context.Context, tx pgx.Tx, intentionID string) (IntentionAuthority, error) {
+	var lockOwner string
+	if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.fluctlight_intentions WHERE id=$1`, intentionID).Scan(&lockOwner); err != nil {
+		return IntentionAuthority{}, err
+	}
+	if err := lockLifeContextTx(ctx, tx, lockOwner); err != nil {
+		return IntentionAuthority{}, err
+	}
 	var fluctlightID, status, goalID string
+	var liveAttempt string
 	var revision int
 	var expiration time.Time
-	if err := tx.QueryRow(ctx, `SELECT fluctlight_id,COALESCE(goal_id,''),status,revision,expiration FROM public.fluctlight_intentions WHERE id=$1 FOR UPDATE`, intentionID).Scan(&fluctlightID, &goalID, &status, &revision, &expiration); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT fluctlight_id,COALESCE(goal_id,''),status,revision,expiration,COALESCE(current_attempt_id,'') FROM public.fluctlight_intentions WHERE id=$1 FOR UPDATE`, intentionID).Scan(&fluctlightID, &goalID, &status, &revision, &expiration, &liveAttempt); err != nil {
 		return IntentionAuthority{}, err
 	}
 	var raw []byte
@@ -164,6 +201,7 @@ func loadIntentionAuthorityByIDTx(ctx context.Context, tx pgx.Tx, intentionID st
 		return IntentionAuthority{}, errors.New("intention_revision_snapshot_invalid")
 	}
 	current.EntityID, current.GoalEntityID, current.FluctlightID, current.Status, current.Revision, current.Expiration = intentionID, goalID, fluctlightID, IntentionLifecycleStatus(status), revision, expiration.UTC()
+	current.LastAttemptID = liveAttempt
 	if err := current.Validate(); err != nil {
 		return IntentionAuthority{}, err
 	}
@@ -185,6 +223,13 @@ func syncIntentionTriggerWorkflowTx(ctx context.Context, tx pgx.Tx, intention In
 	if intention.Trigger.DueAt != nil {
 		payload["due_at"] = intention.Trigger.DueAt.UTC().Format(instantLayout)
 	}
-	_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle',$3,$4) ON CONFLICT(intent_id) DO NOTHING`, intentID, workflowID, intentionTriggerWorkflowType, jsonBytes(payload))
+	var next *time.Time
+	if err := tx.QueryRow(ctx, `SELECT next_attempt_at FROM public.fluctlight_intentions WHERE id=$1`, intention.EntityID).Scan(&next); err != nil {
+		return err
+	}
+	if next != nil && (intention.Trigger.DueAt == nil || next.After(*intention.Trigger.DueAt)) {
+		payload["due_at"] = formatInstant(*next)
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle',$3,$4,COALESCE($5,now())) ON CONFLICT(intent_id) DO NOTHING`, intentID, workflowID, intentionTriggerWorkflowType, jsonBytes(payload), next)
 	return err
 }

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"github.com/jackc/pgx/v5"
 	"net/http"
 	"strings"
 	"testing"
@@ -328,23 +327,12 @@ func TestDueIntentionActivityResultSettlesFrozenAttempt(t *testing.T) {
 				t.Fatalf("start=%#v err=%v", started, err)
 			}
 			activityID := stringValue(mapValue(started.Result.Output)["activity_id"])
-			actionID := "due-action-" + fixture.suffix
-			outcomes, err := buildActionOutcomes(actionID, fixture.fluctlightID, "due-fact-"+fixture.suffix, "no_op", []CapabilityResult{started.Result}, map[string]any{
-				"status": "pending", "goal_refs": []string{goal.Ref}, "intention_refs": []string{intention.Ref},
-				"context_references": map[string]ContextReference{goal.Ref: goal, intention.Ref: intention},
-			}, fixture.app.capabilityRegistry())
-			if err != nil || len(outcomes) != 2 || outcomes[1].ExternalRef != activityID {
-				t.Fatalf("pending outcomes=%#v err=%v", outcomes, err)
-			}
-			if err := withTransaction(fixture.ctx, fixture.repository.Pool(), func(tx pgx.Tx) error {
-				return persistActionOutcomesTx(fixture.ctx, tx, outcomes)
-			}); err != nil {
-				t.Fatal(err)
-			}
 			var attempts int
-			if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.fluctlight_intention_attempts WHERE attempt_id=$1`, attemptID).Scan(&attempts); err != nil || attempts != 0 {
-				t.Fatalf("start prematurely settled attempt: count=%d err=%v", attempts, err)
+			var startedAttemptStatus string
+			if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*),min(status) FROM public.fluctlight_intention_attempts WHERE attempt_id=$1`, attemptID).Scan(&attempts, &startedAttemptStatus); err != nil || attempts != 1 || startedAttemptStatus != "waiting" {
+				t.Fatalf("start must retain a nonterminal durable attempt: %d %s %v", attempts, startedAttemptStatus, err)
 			}
+
 			forceVirtualActivityDue(t, fixture, activityID)
 			result := map[string]any{"status": terminal, "reason": "虚拟商店返回实际结果"}
 			if terminal == "completed" {

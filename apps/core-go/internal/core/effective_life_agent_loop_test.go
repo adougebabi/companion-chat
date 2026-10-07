@@ -242,7 +242,11 @@ func TestFormalDueActivityResultPreservesPausedOrCancelledIntention(t *testing.T
 			if operation == "cancel" {
 				expected = "cancelled"
 			}
-			if status != expected || items != 1 || attempts != 0 {
+			var attemptState string
+			if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT status FROM public.fluctlight_intention_attempts WHERE attempt_id=$1`, due["attempt_id"]).Scan(&attemptState); err != nil || attemptState != "succeeded" {
+				t.Fatalf("late real attempt was not recorded: %s %v", attemptState, err)
+			}
+			if status != expected || items != 1 || attempts != 1 {
 				t.Fatalf("result after %s: intention=%q items=%d attempts=%d", operation, status, items, attempts)
 			}
 		})
@@ -296,6 +300,12 @@ func TestFormalDueActivityResultCannotSettleSupersededAttempt(t *testing.T) {
 					args["expected_outcome"] = "希望改为另一种靴子"
 				}
 				receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionDecideCapabilityName, "supersede-"+change, args))
+				if change == "resume" {
+					if err == nil {
+						t.Fatal("unresolved operation allowed a new execution qualification")
+					}
+					continue
+				}
 				if err != nil || receipt.Result.Status != "completed" {
 					t.Fatalf("%s: receipt=%#v err=%v", change, receipt, err)
 				}
@@ -307,6 +317,12 @@ func TestFormalDueActivityResultCannotSettleSupersededAttempt(t *testing.T) {
 			receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "resolve-superseded", map[string]any{"activity_id": activityID}))
 			if err != nil || receipt.Result.Status != "completed" {
 				t.Fatalf("independent result failed: receipt=%#v err=%v", receipt, err)
+			}
+			if len(changes) == 2 {
+				resumed, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionDecideCapabilityName, "resume-after-reconciled", map[string]any{"operation": "resume", "intention_id": intentionID, "reason": "原操作结果已核实，现在重新评估意愿"}))
+				if err != nil || resumed.Result.Status != "completed" {
+					t.Fatalf("reconciled intention could not resume: %#v %v", resumed, err)
+				}
 			}
 			var status string
 			var items, attempts int
@@ -323,7 +339,7 @@ func TestFormalDueActivityResultCannotSettleSupersededAttempt(t *testing.T) {
 			if len(changes) == 2 {
 				want = "qualified"
 			}
-			if status != want || items != 1 || attempts != 0 {
+			if status != want || items != 1 || attempts != 1 {
 				t.Fatalf("superseded result: status=%q want=%q items=%d attempts=%d", status, want, items, attempts)
 			}
 		})

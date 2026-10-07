@@ -114,7 +114,7 @@ func TestGoalIntentionStageS07(t *testing.T) {
 		if err != nil || failedSettlement.Intention.Status != IntentionQualified || failedSettlement.Attempt.Status != IntentionAttemptFailed {
 			t.Fatalf("failed settlement=%#v err=%v", failedSettlement, err)
 		}
-		if _, _, err := ApplyGoalProgress(goal, GoalProgressProposal{GoalRef: goalRef, OutcomeRefs: []string{outcomeRef}, CriterionIndexes: []int{0}, Strength: 1, Confidence: 1, OccurredAt: now}, map[string]ActionOutcome{outcomeRef: makeOutcome(ActionOutcomeFailed)}); err == nil {
+		if _, _, err := ApplyGoalProgress(goal, GoalProgressProposal{ExpectedRevision: goal.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(goal), GoalRef: goalRef, OutcomeRefs: []string{outcomeRef}, CriterionIDs: goalCriteriaAtIndexes(goal, []int{0}), Strength: 1, Confidence: 1, OccurredAt: now}, map[string]ActionOutcome{outcomeRef: makeOutcome(ActionOutcomeFailed)}); err == nil {
 			t.Fatal("failed outcome advanced Goal")
 		}
 		success := makeOutcome(ActionOutcomeCompleted)
@@ -126,7 +126,7 @@ func TestGoalIntentionStageS07(t *testing.T) {
 		if err != nil || !replayed.Replayed || replayed.Attempt.AttemptID != succeeded.Attempt.AttemptID {
 			t.Fatalf("attempt replay=%#v err=%v", replayed, err)
 		}
-		progressed, record, err := ApplyGoalProgress(goal, GoalProgressProposal{GoalRef: goalRef, OutcomeRefs: []string{outcomeRef}, CriterionIndexes: []int{0, 1}, Strength: 1, Confidence: 1, Complete: true, EvidenceRefs: []string{"fact:assessment"}, OccurredAt: now}, map[string]ActionOutcome{outcomeRef: success})
+		progressed, record, err := ApplyGoalProgress(goal, GoalProgressProposal{ExpectedRevision: goal.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(goal), GoalRef: goalRef, OutcomeRefs: []string{outcomeRef}, CriterionIDs: goalCriteriaAtIndexes(goal, []int{0, 1}), Strength: 1, Confidence: 1, Complete: true, EvidenceRefs: []string{"fact:assessment"}, OccurredAt: now}, map[string]ActionOutcome{outcomeRef: success})
 		if err != nil || progressed.Progress != 1 || progressed.Status != GoalCompleted || record.Revision != 2 {
 			t.Fatalf("progressed=%#v record=%#v err=%v", progressed, record, err)
 		}

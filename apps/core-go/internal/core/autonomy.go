@@ -38,7 +38,7 @@ func (a *App) tryDailyReviewExecutionLock(ctx context.Context, fluctlightID, loc
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
 	goals := make([]map[string]any, 0)
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status IN ('candidate','active','paused') ORDER BY created_at`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status IN ('candidate','active','paused') ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -46,16 +46,18 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 		var id, scope, description, desiredOutcome, motivation, status string
 		var profileID *string
 		var targetActorID *string
-		var successCriteria, importance, urgency, progress []byte
+		var successCriteria, criterionIDs, importance, urgency, progress []byte
 		var needsReflection bool
 		var deadline *time.Time
 		var evidenceRefs []byte
-		var revision int
-		if err := rows.Scan(&id, &profileID, &scope, &targetActorID, &description, &desiredOutcome, &successCriteria, &motivation, &needsReflection, &status, &importance, &urgency, &progress, &deadline, &evidenceRefs, &revision); err != nil {
+		var revision, criteriaVersion int
+		var deadlinePolicy string
+		if err := rows.Scan(&id, &profileID, &scope, &targetActorID, &description, &desiredOutcome, &successCriteria, &motivation, &needsReflection, &status, &importance, &urgency, &progress, &deadline, &evidenceRefs, &revision, &criteriaVersion, &deadlinePolicy, &criterionIDs); err != nil {
 			rows.Close()
 			return nil, nil, err
 		}
-		item := map[string]any{"id": id, "scope": scope, "description": description, "desired_outcome": desiredOutcome, "success_criteria": decodeArray(successCriteria), "motivation": motivation, "needs_reflection": needsReflection, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress), "evidence_refs": decodeArray(evidenceRefs), "revision": revision}
+		item := map[string]any{"id": id, "scope": scope, "description": description, "desired_outcome": desiredOutcome, "success_criteria": decodeArray(successCriteria), "motivation": motivation, "needs_reflection": needsReflection, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress), "evidence_refs": decodeArray(evidenceRefs), "revision": revision, "criteria_version": criteriaVersion, "deadline_policy": deadlinePolicy}
+		item["criterion_ids"] = decodeArray(criterionIDs)
 		if deadline != nil {
 			item["deadline"] = formatInstant(*deadline)
 		}

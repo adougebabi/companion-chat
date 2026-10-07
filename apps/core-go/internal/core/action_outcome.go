@@ -250,6 +250,16 @@ func actionOutcomeRequestDigest(outcome ActionOutcome) string {
 }
 
 func persistActionOutcomesTx(ctx context.Context, tx pgx.Tx, outcomes []ActionOutcome) error {
+	if len(outcomes) > 0 {
+		if err := lockLifeContextTx(ctx, tx, outcomes[0].FluctlightID); err != nil {
+			return err
+		}
+		for _, outcome := range outcomes {
+			if outcome.FluctlightID != outcomes[0].FluctlightID {
+				return errors.New("outcome_owner_batch_invalid")
+			}
+		}
+	}
 	for _, outcome := range outcomes {
 		if err := outcome.Validate(); err != nil {
 			return err
@@ -268,6 +278,16 @@ func persistActionOutcomesTx(ctx context.Context, tx pgx.Tx, outcomes []ActionOu
 				return errors.New("action_outcome_replay_conflict")
 			}
 		}
+		if outcome.Status == ActionOutcomePending && outcome.ExternalRef != "" {
+			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_intention_attempts SET status='waiting',wait_ref=$2,deadline=$3 WHERE action_id=$1 AND status IN ('running','waiting')`, outcome.ActionID, outcome.ExternalRef, outcome.OccurredAt.Add(time.Hour)); err != nil {
+				return err
+			}
+		}
+		if outcome.Status == ActionOutcomePending && outcome.CompletionBoundary == "virtual_activity_resolved" && outcome.ExternalRef != "" {
+			if err := ensureLinkedActivityResultIntentTx(ctx, tx, outcome); err != nil {
+				return err
+			}
+		}
 		if outcome.CallID == actionPrimaryCallID {
 			if err := settleOutcomeIntentionAttemptsTx(ctx, tx, outcome); err != nil {
 				return err
@@ -278,7 +298,14 @@ func persistActionOutcomesTx(ctx context.Context, tx pgx.Tx, outcomes []ActionOu
 }
 
 func settleOutcomeIntentionAttemptsTx(ctx context.Context, tx pgx.Tx, outcome ActionOutcome) error {
-	if outcome.Status == ActionOutcomePending || outcome.Status == ActionOutcomeUnknown || len(outcome.IntentionRefs) == 0 {
+	if err := lockLifeContextTx(ctx, tx, outcome.FluctlightID); err != nil {
+		return err
+	}
+	if outcome.Status == ActionOutcomePending || outcome.Status == ActionOutcomeUnknown {
+		_, err := tx.Exec(ctx, `UPDATE public.fluctlight_intention_attempts SET status='waiting',wait_ref=COALESCE($2,wait_ref) WHERE action_id=$1 AND status IN ('running','waiting')`, outcome.ActionID, nullableString(outcome.ExternalRef))
+		return err
+	}
+	if len(outcome.IntentionRefs) == 0 {
 		return nil
 	}
 	for _, intentionRef := range outcome.IntentionRefs {
@@ -293,12 +320,14 @@ func settleOutcomeIntentionAttemptsTx(ctx context.Context, tx pgx.Tx, outcome Ac
 			continue
 		}
 		digest := stableDigest(jsonString(map[string]any{"id": outcome.ID, "action_id": outcome.ActionID, "call_id": outcome.CallID, "status": outcome.Status, "success_boundary": outcome.SuccessBoundary, "error_code": outcome.ErrorCode, "revision": outcome.Revision}))
-		var storedDigest string
-		if err := tx.QueryRow(ctx, `SELECT outcome_digest FROM public.fluctlight_intention_attempts WHERE attempt_id=$1`, attemptID).Scan(&storedDigest); err == nil {
-			if storedDigest != digest {
-				return errors.New("intention_attempt_replay_conflict")
+		var storedDigest, storedStatus string
+		if err := tx.QueryRow(ctx, `SELECT outcome_digest,status FROM public.fluctlight_intention_attempts WHERE attempt_id=$1`, attemptID).Scan(&storedDigest, &storedStatus); err == nil {
+			if storedStatus != "running" && storedStatus != "waiting" && storedStatus != "needs_reconciliation" {
+				if storedDigest != digest {
+					return errors.New("intention_attempt_replay_conflict")
+				}
+				continue
 			}
-			continue
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
@@ -311,6 +340,9 @@ func settleOutcomeIntentionAttemptsTx(ctx context.Context, tx pgx.Tx, outcome Ac
 			return err
 		}
 		if liveAttempt != attemptID || liveStatus == string(IntentionPaused) || liveStatus == string(IntentionCancelled) || liveStatus == string(IntentionExpired) {
+			if err := recordDetachedAttemptResultTx(ctx, tx, attemptID, outcome, digest); err != nil {
+				return err
+			}
 			continue
 		}
 		// The due snapshot predates a start ToolCall. A linked activity may
@@ -331,6 +363,9 @@ func settleOutcomeIntentionAttemptsTx(ctx context.Context, tx pgx.Tx, outcome Ac
 		// Keep the independently completed activity, without treating its
 		// result as satisfaction of a changed intention.
 		if liveRevision != entry.Revision {
+			if err := recordDetachedAttemptResultTx(ctx, tx, attemptID, outcome, digest); err != nil {
+				return err
+			}
 			continue
 		}
 		current, err := loadIntentionAuthorityTx(ctx, tx, outcome.FluctlightID, intentionRef, goalRef, entry)
@@ -433,6 +468,16 @@ func (a *App) settleActionOutcomeByExternalRefTx(ctx context.Context, tx pgx.Tx,
 	case ActionOutcomeCompleted, ActionOutcomeFailed, ActionOutcomeCancelled, ActionOutcomeUnknown:
 	default:
 		return false, errors.New("action_outcome_async_status_invalid")
+	}
+	var lockOwner string
+	if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_action_outcomes WHERE external_ref=$1`, externalRef).Scan(&lockOwner); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	if err := lockLifeContextTx(ctx, tx, lockOwner); err != nil {
+		return false, err
 	}
 	var outcome ActionOutcome
 	var currentStatus string
@@ -690,4 +735,40 @@ func sortedUniqueStrings(values []string) []string {
 	}
 	sort.Strings(result)
 	return result
+}
+
+func recordDetachedAttemptResultTx(ctx context.Context, tx pgx.Tx, attemptID string, outcome ActionOutcome, digest string) error {
+	status := "failed"
+	if outcome.Status == ActionOutcomeCompleted {
+		status = "succeeded"
+	} else if outcome.Status == ActionOutcomeCancelled {
+		status = "cancelled"
+	} else if outcome.Status == ActionOutcomeSuppressed {
+		status = "suppressed"
+	}
+	_, err := tx.Exec(ctx, `UPDATE public.fluctlight_intention_attempts SET status=$2,outcome_digest=$3,outcome_id=$4,result=$5,settled_at=$6 WHERE attempt_id=$1 AND status IN ('running','waiting','needs_reconciliation')`, attemptID, status, digest, outcome.ID, jsonBytes(map[string]any{"outcome": outcome, "logical_lifecycle_unchanged": true}), outcome.OccurredAt)
+	return err
+}
+
+// A committed asynchronous start always has a durable result owner, including
+// starts from an ordinary Agent or an independent Tool.
+func ensureLinkedActivityResultIntentTx(ctx context.Context, tx pgx.Tx, outcome ActionOutcome) error {
+	if len(outcome.IntentionRefs) != 1 {
+		return nil
+	}
+	entry, ok := outcome.ContextReferences[outcome.IntentionRefs[0]]
+	if !ok {
+		return errors.New("activity_result_intention_reference_missing")
+	}
+	var notBefore time.Time
+	if err := tx.QueryRow(ctx, `SELECT not_before FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2`, outcome.ExternalRef, outcome.FluctlightID).Scan(&notBefore); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_intention_attempts SET deadline=$2 WHERE action_id=$1 AND status IN ('running','waiting')`, outcome.ActionID, notBefore.Add(30*time.Minute)); err != nil {
+		return err
+	}
+	intentID := "intention_result_intent:" + outcome.ExternalRef
+	payload := map[string]any{"fluctlight_id": outcome.FluctlightID, "intention_id": entry.EntityID, "activity_id": outcome.ExternalRef, "due_at": formatInstant(notBefore)}
+	_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle','intention.trigger',$3,$4) ON CONFLICT(intent_id) DO NOTHING`, intentID, "intention-result:"+outcome.ExternalRef, jsonBytes(payload), notBefore)
+	return err
 }

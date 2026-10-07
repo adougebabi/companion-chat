@@ -178,6 +178,15 @@ func TestIntentionTriggerProductionFlowCreatesDueFactAndSettlesFromOutcome(t *te
 	}); err != nil {
 		t.Fatal(err)
 	}
+	blocked, err := app.ProcessIntentionTrigger(ctx, eventIntention.EntityID)
+	if err != nil || stringValue(blocked["reason_code"]) != "intention_retry_not_due" {
+		t.Fatalf("retry ignored backoff: %#v %v", blocked, err)
+	}
+	var retryAt time.Time
+	if err := repository.Pool().QueryRow(ctx, `SELECT next_attempt_at FROM public.fluctlight_intentions WHERE id=$1`, eventIntention.EntityID).Scan(&retryAt); err != nil {
+		t.Fatal(err)
+	}
+	app.Clock = fixedClock(retryAt.Add(time.Second))
 	asyncDue, err := app.ProcessIntentionTrigger(ctx, eventIntention.EntityID)
 	if err != nil || stringValue(asyncDue["status"]) != "due" {
 		t.Fatalf("re-armed intention did not become due: %#v err=%v", asyncDue, err)
@@ -234,7 +243,7 @@ func TestIntentionTriggerProductionFlowCreatesDueFactAndSettlesFromOutcome(t *te
 		Ref: "intention:ctx_cccccccccccccccccccccccccccccccc", FluctlightID: fluctlightID, ProfileID: "default", GoalRef: goal.Ref,
 		ActionIntent: "不会执行", ExpectedOutcome: "不会发生", Trigger: TypedIntentionTrigger{Type: IntentionTriggerSemantic},
 		Expiration: expiredAt, Confidence: 0.9, Status: IntentionQualified, Revision: 1, EvidenceRefs: []string{"owner:expired-intention"},
-	}, []string{"owner:expired-intention"}, now)
+	}, []string{"owner:expired-intention"}, now.Add(-2*time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,47 @@
+id	scenario	assertion	status	test	evidence
+A01	Goal 暂停后旧意图到期	不启动新副作用；有明确抑制原因	planned		
+A02	Goal 取消与 Worker 启动竞争	执行许可边界一致；无越权新动作	planned		
+A03	暂停后恢复，原窗口已过	重新校验并调整或结束，不盲目启动旧计划	planned		
+A04	首个 Tool 前 Provider 失败	Attempt 可结算；Intention 可按策略恢复，不永久 due	planned		
+A05	仅同步 ACTION	实际结果可结算，不永久 pending	planned		
+A06	仅 QUERY、仅计划或 no_op	不误记业务行动成功；信息型标准另按真实查询评估	planned		
+A07	异步成功、失败、丢回调、迟到回调	关联正确，有超时／核对，迟到不复活终止目标	planned		
+A08	同一事件、工作与回调重复投递	不重复副作用、入库、进展或下一阶段	planned		
+A09	已过期时间条件下连续失败	遵守退避、预算和上限，不形成热循环	planned		
+A10	超时但副作用未知	先核对原操作，不盲目重发／重买	planned		
+B01	按“买画笔”完成同时改为“画笔＋一幅画”	混合变更被拒绝；新版本重新评估	planned		
+B02	标准修改与评估并发	陈旧评估不能提交到新标准版本	planned		
+B03	多项必要标准仅满足一项	可记录部分进展，不能完成	planned		
+B04	Tool completed 但仅提交异步生成或未取得物品	不能认定实际生成／获得	planned		
+B05	普通对话实际达成目标，未绑定 Intention	候选关联、入证、评估、完成全部接通，无虚假 Attempt	planned		
+B06	引用、假设、草稿、模型自述、无效物品 ID	不作为成功事实	planned		
+B07	不同实例／Actor／人格作用域的证据	拒绝错误关联或读取	planned		
+B08	事件乱序到达且发生时间早于上次 Review	不因时间游标漏读，仍能评估	planned		
+B09	结果落库后进程崩溃，评估尚未执行	重启后恢复，状态最终收敛	planned		
+B10	Evaluation 模型失败或未知语义	显示待评估／需证据，不假记 no_change 或 completed	planned		
+B11	证据更正、撤销或来源失效	活动目标重评；结束目标保留历史并产生复核	planned		
+B12	父目标已经直接达成但仍有旧计划	能正确结束并处置冗余计划，不强制重复行动	planned		
+C01	长期目标初始化	形成适当阶段／承诺，不铺满机械日程	planned		
+C02	简单“获得短靴”	不强制额外层级；真实入库后可完成	planned		
+C03	一次短期试探已执行，对方没回应	可结算行动；不能自动增加长期关系进度	planned		
+C04	普通聊天没有相关机会	正常回应，不硬拽目标、不计错失机会	planned		
+C05	出现与当前阶段相关的机会	能识别并适当响应或有依据地暂缓；不要求固定台词	planned		
+C06	多次有机会却无动作／多次尝试无效	两种原因分别复核，调整下一步／策略，不只提高频率	planned		
+C07	用户未上线、摇光睡眠、等待外部结果	合理等待，不视为不努力，不制造场景动作	planned		
+C08	明确拒绝进一步亲密关系	尊重拒绝，复核目标；不通过重试或“惩罚”反复施压	planned		
+C09	阶段完成与 Goal 完成事件重复消费	不重复阶段、后续目标或关系状态修改	planned		
+C10	目标完成但没有未解决动机	不强制产生后续目标	planned		
+C11	用户在国外、双方异地	不编造线下约会、共同购买或同处一室的完成证据	planned		
+C12	人格切换	共享目标持续可见；私有目标与权限不串扰；不因推进而甜妹化	planned		
+D01	同一日 Review 重跑	不重复计数、惩罚或生成承诺	planned		
+D02	跨日承诺仍有效	不因零点清空，不每天复制新 Goal	planned		
+D03	软期限到期	有可见复核结果，不直接取消或假完成	planned		
+D04	硬期限到期	不启动新动作；已经执行的结果按策略接收	planned		
+D05	Actor 与用户分处不同时区、跨日／夏令时	周期归属按 Actor 时区；时间字段无歧义	planned		
+D06	已完成目标再次进入认知／WakeUp	不重复描述为尚未完成；使用有效动态状态	planned		
+D07	通用对话／Tool 目标无 life_activity_run	最近结果与评估仍可读，不显示空执行历史	planned		
+D08	Owner 暂停／恢复／取消／重新评估	后端正式领域命令生效，运行与 UI 一致	planned		
+D09	历史目标分页、修订与证据详情	completed／cancelled／abandoned 可查，时间倒序稳定	planned		
+D10	无权限请求及任意浏览器 actionPlan 注入	后端拒绝，原授权边界保留	planned		
+D11	长对话、多次 Review、工具续轮	运行上下文不重复堆积全历史；关键状态不丢	planned		
+D12	存量迁移、回填中断、再次启动	可重入且保留历史，不复活取消目标，不伪造证据	planned		

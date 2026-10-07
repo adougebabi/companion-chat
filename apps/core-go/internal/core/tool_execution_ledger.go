@@ -90,6 +90,9 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 				return newCapabilityError("superseded_by_cognition", false, errLifecycleSupersededByCognition)
 			}
 		}
+		if err := lockLifeContextTx(ctx, tx, request.FluctlightID); err != nil {
+			return err
+		}
 		key := request.FluctlightID + "\x1f" + request.CapabilityName + "\x1f" + request.OperationID
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, key); err != nil {
 			return err
@@ -113,12 +116,20 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		}
 		before := &ToolAuthorityRevisions{Foundation: beforeFoundation, CurrentState: beforeState, CurrentFacts: beforeFacts, LifeContext: beforeLife}
 		if allowed {
+			if err := a.admitGoalLinkedToolTx(ctx, tx, request); err != nil {
+				return err
+			}
 			result, err = execute(tx)
 		} else {
 			result = CapabilityResult{CallID: firstString(request.NativeToolCallID, "direct_call_"+stableDigest(request.FluctlightID + "\x1f" + request.CapabilityName + "\x1f" + request.OperationID)[:32]), CapabilityName: request.CapabilityName, Status: "rejected", ErrorCode: "policy_" + policyReason, Output: map[string]any{"reason": policyReason}, ProviderRequestID: request.ProviderRequestID}
 		}
 		if err != nil {
 			return err
+		}
+		if allowed {
+			if err := a.persistDirectLinkedOutcomeTx(ctx, tx, request, result); err != nil {
+				return err
+			}
 		}
 		result.ActingProfileID = request.WorkingProfileID
 		if result.Status != "completed" && result.Status != "accepted" && result.Status != "rejected" && result.Status != "failed" {

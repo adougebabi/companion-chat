@@ -85,7 +85,7 @@ func (a *App) processScheduledIntentionTrigger(ctx context.Context, intentionID,
 	arguments["intention_id"] = intentionID
 	arguments["schedule_item_id"] = itemID
 	receipt, err := a.ExecuteTool(ctx, ToolExecutionRequest{
-		CapabilityName: lifeActivityStartCapabilityName, OperationID: "scheduled-start:" + itemID,
+		AuthorizationPolicy: "autonomy", CapabilityName: lifeActivityStartCapabilityName, OperationID: "scheduled-start:" + itemID,
 		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
 		EvidenceID: "schedule-item:" + itemID, Surface: CapabilitySurfaceNativeCognition,
 		CorrelationID: "scheduled-intention:" + intentionID, Arguments: jsonBytes(arguments),

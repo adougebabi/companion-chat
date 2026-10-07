@@ -379,6 +379,9 @@ func validateReflectionProposalReferences(proposal ReflectionProposalV2, context
 		outcomeIDs[outcome.ID] = struct{}{}
 	}
 	for index, candidate := range proposal.GoalCandidates {
+		if err := validateGoalCandidateSeparation(candidate); err != nil {
+			return err
+		}
 		for _, ref := range candidate.OutcomeRefs {
 			entry, ok := context.ReferenceIndex.ByRef[ref]
 			if !ok || entry.Kind != ContextReferenceOutcome {

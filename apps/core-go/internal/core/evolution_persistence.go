@@ -13,6 +13,10 @@ func persistGoalAuthorityTx(ctx context.Context, tx pgx.Tx, before *GoalAuthorit
 	if tx == nil || strings.TrimSpace(after.EntityID) == "" || strings.TrimSpace(commandKey) == "" {
 		return false, errors.New("goal_persistence_identity_invalid")
 	}
+	after.CriterionIDs = goalCriterionIDs(after)
+	if err := lockLifeContextTx(ctx, tx, after.FluctlightID); err != nil {
+		return false, err
+	}
 	if err := after.Validate(); err != nil {
 		return false, err
 	}
@@ -52,6 +56,13 @@ func persistGoalAuthorityTx(ctx context.Context, tx pgx.Tx, before *GoalAuthorit
 			return false, errors.New("goal_revision_conflict")
 		}
 	}
+
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET criteria_version=$3,deadline_policy=$4,criterion_ids=$5 WHERE id=$1 AND fluctlight_id=$2`, after.EntityID, after.FluctlightID, effectiveGoalCriteriaVersion(after), firstString(after.DeadlinePolicy, "soft"), jsonBytes(after.CriterionIDs)); err != nil {
+		return false, err
+	}
+	if err := cascadeGoalLifecycleTx(ctx, tx, before, after, commandKey, record.OccurredAt); err != nil {
+		return false, err
+	}
 	revisionID := "goal_revision_" + stableDigest(commandKey)
 	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goal_revisions(id,goal_id,fluctlight_id,from_status,to_status,actor_id,reason,operation,base_revision,snapshot,evidence_refs,idempotency_key,policy_version,request_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, revisionID, after.EntityID, after.FluctlightID, record.FromStatus, record.ToStatus, after.FluctlightID, nullableString(record.Reason), record.Operation, record.BaseRevision, jsonBytes(after), jsonBytes(record.EvidenceRefs), commandKey, record.PolicyVersion, digest)
 	return false, err
@@ -63,6 +74,23 @@ func persistIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, before *Intenti
 	}
 	if err := after.Validate(); err != nil {
 		return false, err
+	}
+	if err := lockLifeContextTx(ctx, tx, after.FluctlightID); err != nil {
+		return false, err
+	}
+	if after.Status == IntentionQualified && before != nil {
+		var unresolved bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_intention_attempts WHERE attempt_id=$1 AND status IN ('waiting','needs_reconciliation'))`, before.LastAttemptID).Scan(&unresolved); err != nil {
+			return false, err
+		}
+		if unresolved {
+			return false, newCapabilityError("intention_operation_reconciliation_required", false, ErrConflict)
+		}
+	}
+	if after.Status == IntentionQualified || after.Status == IntentionDue || (after.Status == IntentionInProgress && record.Operation == IntentionStart) || before == nil {
+		if err := requireIntentionGoalActiveTx(ctx, tx, after, record.OccurredAt); err != nil {
+			return false, err
+		}
 	}
 	digest := stableDigest(jsonString(after))
 	var storedDigest string
@@ -92,7 +120,7 @@ func persistIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, before *Intenti
 		if before.EntityID != after.EntityID || before.Ref != after.Ref || record.BaseRevision != before.Revision || after.Revision != before.Revision+1 {
 			return false, errors.New("intention_update_persistence_invalid")
 		}
-		command, err := tx.Exec(ctx, `UPDATE public.fluctlight_intentions SET profile_id=$2,goal_id=$3,action=$4::varchar,action_intent=$4::text,expected_outcome=$5,capability_constraints=$6,preferred_time=$7,trigger=$8,confidence=$9,expiration=$10,evidence_refs=$11,status=$12,revision=$13,current_attempt_id=$14,updated_at=now() WHERE id=$1 AND fluctlight_id=$15 AND revision=$16`, after.EntityID, after.ProfileID, nullableString(after.GoalEntityID), after.ActionIntent, after.ExpectedOutcome, jsonBytes(stringSliceAny(after.CapabilityConstraints)), after.PreferredTime, jsonBytes(after.Trigger), jsonBytes(after.Confidence), after.Expiration, jsonBytes(stringSliceAny(after.EvidenceRefs)), after.Status, after.Revision, nullableString(after.LastAttemptID), after.FluctlightID, before.Revision)
+		command, err := tx.Exec(ctx, `UPDATE public.fluctlight_intentions SET profile_id=$2,goal_id=$3,action=$4::varchar,action_intent=$4::text,expected_outcome=$5,capability_constraints=$6,preferred_time=$7,trigger=$8,confidence=$9,expiration=$10,evidence_refs=$11,status=$12,revision=$13,current_attempt_id=$14,updated_at=now() WHERE id=$1 AND fluctlight_id=$15 AND revision=$16`, after.EntityID, nullableString(after.ProfileID), nullableString(after.GoalEntityID), after.ActionIntent, after.ExpectedOutcome, jsonBytes(stringSliceAny(after.CapabilityConstraints)), after.PreferredTime, jsonBytes(after.Trigger), jsonBytes(after.Confidence), after.Expiration, jsonBytes(stringSliceAny(after.EvidenceRefs)), after.Status, after.Revision, nullableString(after.LastAttemptID), after.FluctlightID, before.Revision)
 		if err != nil {
 			return false, err
 		}
@@ -112,6 +140,9 @@ func persistIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, before *Intenti
 }
 
 func persistIntentionDueFactTx(ctx context.Context, tx pgx.Tx, app *App, intention IntentionAuthority, due IntentionDueFact) (IntentionAuthority, IntentionDueFact, string, bool, error) {
+	if err := lockLifeContextTx(ctx, tx, intention.FluctlightID); err != nil {
+		return IntentionAuthority{}, IntentionDueFact{}, "", false, err
+	}
 	if tx == nil || app == nil || strings.TrimSpace(intention.EntityID) == "" || due.EventType != intentionDueFactType || due.IntentionRef != intention.Ref || due.AttemptID == "" {
 		return IntentionAuthority{}, IntentionDueFact{}, "", false, errors.New("intention_due_persistence_invalid")
 	}
@@ -153,15 +184,20 @@ func persistIntentionDueFactTx(ctx context.Context, tx pgx.Tx, app *App, intenti
 }
 
 func persistIntentionAttemptSettlementTx(ctx context.Context, tx pgx.Tx, before IntentionAuthority, settlement IntentionAttemptSettlement) (bool, error) {
+	if err := lockLifeContextTx(ctx, tx, before.FluctlightID); err != nil {
+		return false, err
+	}
 	if tx == nil || strings.TrimSpace(before.EntityID) == "" || settlement.Attempt.AttemptID == "" || settlement.Intention.EntityID != before.EntityID {
 		return false, errors.New("intention_attempt_persistence_invalid")
 	}
 	var digest, status string
-	if err := tx.QueryRow(ctx, `SELECT outcome_digest,status FROM public.fluctlight_intention_attempts WHERE attempt_id=$1`, settlement.Attempt.AttemptID).Scan(&digest, &status); err == nil {
-		if digest != settlement.Attempt.OutcomeDigest || status != string(settlement.Attempt.Status) {
-			return false, errors.New("intention_attempt_replay_conflict")
+	if err := tx.QueryRow(ctx, `SELECT outcome_digest,status FROM public.fluctlight_intention_attempts WHERE attempt_id=$1 FOR UPDATE`, settlement.Attempt.AttemptID).Scan(&digest, &status); err == nil {
+		if status != "running" && status != "waiting" && status != "needs_reconciliation" {
+			if digest != settlement.Attempt.OutcomeDigest || status != string(settlement.Attempt.Status) {
+				return false, errors.New("intention_attempt_replay_conflict")
+			}
+			return true, nil
 		}
-		return true, nil
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return false, err
 	}
@@ -172,7 +208,7 @@ func persistIntentionAttemptSettlementTx(ctx context.Context, tx pgx.Tx, before 
 	if currentRevision != before.Revision || settlement.Intention.Revision != before.Revision+1 {
 		return false, errors.New("intention_attempt_revision_conflict")
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intention_attempts(attempt_id,fluctlight_id,intention_ref,goal_ref,action_id,outcome_id,outcome_digest,status,result,occurred_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, settlement.Attempt.AttemptID, before.FluctlightID, before.Ref, before.GoalRef, settlement.Attempt.ActionID, settlement.Attempt.OutcomeID, settlement.Attempt.OutcomeDigest, settlement.Attempt.Status, jsonBytes(settlement), settlement.Attempt.OccurredAt); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intention_attempts(attempt_id,fluctlight_id,intention_ref,goal_ref,action_id,outcome_id,outcome_digest,status,result,occurred_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(attempt_id) DO UPDATE SET intention_ref=EXCLUDED.intention_ref,goal_ref=EXCLUDED.goal_ref,action_id=EXCLUDED.action_id,outcome_id=EXCLUDED.outcome_id,outcome_digest=EXCLUDED.outcome_digest,status=EXCLUDED.status,result=EXCLUDED.result,occurred_at=EXCLUDED.occurred_at,settled_at=EXCLUDED.occurred_at`, settlement.Attempt.AttemptID, before.FluctlightID, before.Ref, before.GoalRef, settlement.Attempt.ActionID, settlement.Attempt.OutcomeID, settlement.Attempt.OutcomeDigest, settlement.Attempt.Status, jsonBytes(settlement), settlement.Attempt.OccurredAt); err != nil {
 		return false, err
 	}
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_intentions SET status=$3,revision=$4,current_attempt_id=$5,evidence_refs=$6,updated_at=now() WHERE id=$1 AND fluctlight_id=$2 AND revision=$7`, before.EntityID, before.FluctlightID, settlement.Intention.Status, settlement.Intention.Revision, settlement.Attempt.AttemptID, jsonBytes(settlement.Intention.EvidenceRefs), before.Revision)
@@ -181,6 +217,17 @@ func persistIntentionAttemptSettlementTx(ctx context.Context, tx pgx.Tx, before 
 			err = errors.New("intention_attempt_revision_conflict")
 		}
 		return false, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_intention_attempts SET settled_at=$2 WHERE attempt_id=$1`, settlement.Attempt.AttemptID, settlement.Attempt.OccurredAt); err != nil {
+		return false, err
+	}
+	if settlement.Intention.Status == IntentionQualified {
+		if err := configureIntentionRetryTx(ctx, tx, settlement.Intention, settlement.Attempt.OccurredAt, firstString(settlement.Attempt.ErrorCode, string(settlement.Attempt.Status))); err != nil {
+			return false, err
+		}
+		if err := tx.QueryRow(ctx, `SELECT status FROM public.fluctlight_intentions WHERE id=$1`, before.EntityID).Scan(&settlement.Intention.Status); err != nil {
+			return false, err
+		}
 	}
 	operation := IntentionUpdate
 	if settlement.Intention.Status == IntentionCompleted {
