@@ -928,7 +928,6 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 	if actionType == "reply" || actionType == "" {
 		actionType = "no_op"
 	}
-	reflectionIntentID := "reflection_intent:wake:" + wakeID
 	factID := "wake_fact_" + stableDigest(wakeID)
 	result := map[string]any{"status": status, "reason": reason, "response_intent": stringValue(assessment["response_intent"]), "conversation_id": conversationID, "capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
 	var nextDue time.Time
@@ -969,19 +968,16 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2,last_processed_sequence=GREATEST(last_processed_sequence,$3) WHERE fluctlight_id=$1`, fluctlightID, sequence+1, sequence); err != nil {
 			return err
 		}
-		payload := map[string]any{"event_type": "internal.wake_up", "wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "correlation_id": correlationID}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,processed_at) VALUES($1,$2,$3,'internal.wake_up',$4,$5,$6,$7,now(),'processed',now()) ON CONFLICT DO NOTHING`, factID, fluctlightID, sequence, jsonBytes(payload), wakeID, correlationID, wakeID); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id,status) VALUES($1,$2,$3,$4,'{}','{}','{}','{}',$5,NULL,$6,$7,$8) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(projection.InnerState), actionType, jsonBytes(result), reflectionIntentID, status); err != nil {
-			return err
-		}
-		if err := insertReflectionIntentWithDelayTx(ctx, tx, reflectionIntentID, "reflection:wake:"+wakeID, map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID, "correlation_id": correlationID, "causation_id": factID}, reflectionQuietPeriod); err != nil {
-			return err
-		}
 		actionID := "agent_wake_" + stableDigest(wakeID)
 		outcomes, err := buildActionOutcomes(actionID, fluctlightID, factID, actionType, outcome.Results, result, a.capabilityRegistry(), a.now().UTC())
 		if err != nil {
+			return err
+		}
+		payload := map[string]any{"event_type": "internal.wake_up", "wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "correlation_id": correlationID, "conversation_id": conversationID, "outcomes": outcomes}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,processed_at) VALUES($1,$2,$3,'internal.wake_up',$4,$5,$6,$7,now(),'processed',now()) ON CONFLICT DO NOTHING`, factID, fluctlightID, sequence, jsonBytes(payload), wakeID, correlationID, wakeID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id,status) VALUES($1,$2,$3,$4,'{}','{}','{}','{}',$5,NULL,$6,NULL,$7) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(projection.InnerState), actionType, jsonBytes(result), status); err != nil {
 			return err
 		}
 		if err := persistActionOutcomesTx(ctx, tx, outcomes); err != nil {
@@ -994,7 +990,18 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		if err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "reflection_intent_id": reflectionIntentID, "correlation_id": correlationID, "next_due_at": nextDue.Format(instantLayout)})
+		for _, reply := range committedConversationReplyResults(outcome.Results) {
+			messageID := stringValue(mapValue(reply.Output)["target_ref"])
+			var messageAt time.Time
+			if err := tx.QueryRow(ctx, `SELECT created_at FROM public.conversation_messages WHERE id=$1 AND author_actor_id=$2 AND kind='assistant'`, messageID, fluctlightID).Scan(&messageAt); err != nil {
+				return err
+			}
+			if err := setWakeUpIdleEpochTx(ctx, tx, fluctlightID, messageID, messageAt); err != nil {
+				return err
+			}
+			nextDue = messageAt.UTC().Add(wakeUpFirstIdleDelay)
+		}
+		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "correlation_id": correlationID, "next_due_at": nextDue.Format(instantLayout)})
 	})
 	if err != nil {
 		return nil, err
@@ -1003,8 +1010,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
 	}
 	a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
-	_ = a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod)
-	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "action_type": actionType, "reflection_intent_id": reflectionIntentID, "result": result, "interval_seconds": intervalSeconds, "next_due_at": nextDue.Format(instantLayout)}, nil
+	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "action_type": actionType, "result": result, "interval_seconds": intervalSeconds, "next_due_at": nextDue.Format(instantLayout)}, nil
 }
 
 // ProcessNativeCognitionFact consumes the final contract and the Tool trace

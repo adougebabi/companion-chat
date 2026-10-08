@@ -23,7 +23,6 @@ func TestRedisTriggerSchedulingUsesStableKeysAndTTL(t *testing.T) {
 	if err := app.scheduleReflectionTrigger(context.Background(), "fl-1", 30*time.Second); err != nil {
 		t.Fatal(err)
 	}
-	server.FastForward(5 * time.Minute)
 	if err := app.scheduleReflectionTrigger(context.Background(), "fl-1", time.Second); err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +35,7 @@ func TestRedisTriggerSchedulingUsesStableKeysAndTTL(t *testing.T) {
 		value string
 		min   time.Duration
 	}{
-		{key: reflectionTriggerPrefix + "fl-1", value: "fl-1", min: 20 * time.Second},
+		{key: reflectionTriggerPrefix + "fl-1", value: "fl-1", min: 500 * time.Millisecond},
 		{key: wakeUpTriggerPrefix + "fl-1", value: "fl-1", min: 50 * time.Second},
 	} {
 		if got := client.Get(context.Background(), test.key).Val(); got != test.value {
@@ -53,7 +52,7 @@ func TestRedisTriggerSchedulingUsesStableKeysAndTTL(t *testing.T) {
 	}
 }
 
-func TestReflectionQuietPeriodIsFixedTenMinutes(t *testing.T) {
+func TestReflectionQuietPeriodIsFixedThirtyMinutes(t *testing.T) {
 	if got, want := (&App{}).reflectionDelay(context.Background()), reflectionQuietPeriod; got != want {
 		t.Fatalf("reflection delay = %s, want fixed %s", got, want)
 	}
@@ -62,21 +61,21 @@ func TestReflectionQuietPeriodIsFixedTenMinutes(t *testing.T) {
 	}
 }
 
-func TestWakeUpIdleClockKeepsAbsoluteTenThirtyAndRecurringPhases(t *testing.T) {
+func TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases(t *testing.T) {
 	t0 := time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC)
 	clock := wakeUpIdleClock{Epoch: "message-1", Since: t0, Slot: 0}
-	for _, expected := range []time.Duration{10 * time.Minute, 30 * time.Minute, 60 * time.Minute, 90 * time.Minute} {
+	for _, expected := range []time.Duration{10 * time.Minute, 20 * time.Minute, 30 * time.Minute, 40 * time.Minute} {
 		if got := wakeUpIdleDue(clock, 1800); !got.Equal(t0.Add(expected)) {
 			t.Fatalf("slot %d due=%s, want %s", clock.Slot, got, t0.Add(expected))
 		}
 		clock = nextWakeUpIdleClock(clock, t0.Add(expected), 1800)
 	}
 	lateFirst := nextWakeUpIdleClock(wakeUpIdleClock{Epoch: "message-1", Since: t0, Slot: 0}, t0.Add(35*time.Minute), 1800)
-	if lateFirst.Slot != 1 || !wakeUpIdleDue(lateFirst, 1800).Equal(t0.Add(30*time.Minute)) {
-		t.Fatalf("late first wake-up skipped the required second phase: %#v", lateFirst)
+	if lateFirst.Slot != 3 || !wakeUpIdleDue(lateFirst, 1800).Equal(t0.Add(40*time.Minute)) {
+		t.Fatalf("late first wake-up did not coalesce missed ticks into one future phase: %#v", lateFirst)
 	}
 	lateSecond := nextWakeUpIdleClock(lateFirst, t0.Add(95*time.Minute), 1800)
-	if lateSecond.Slot != 4 || !wakeUpIdleDue(lateSecond, 1800).Equal(t0.Add(120*time.Minute)) {
+	if lateSecond.Slot != 9 || !wakeUpIdleDue(lateSecond, 1800).Equal(t0.Add(100*time.Minute)) {
 		t.Fatalf("late recurring wake-up burst instead of preserving absolute phase: %#v", lateSecond)
 	}
 }
@@ -105,7 +104,7 @@ func TestCognitionFollowupsArmReflectionAndWakeUpWithIndependentTTLs(t *testing.
 	}
 	reflectionTTL := client.TTL(context.Background(), reflectionTriggerPrefix+"fl-followup").Val()
 	wakeTTL := client.TTL(context.Background(), wakeUpTriggerPrefix+"fl-followup").Val()
-	if reflectionTTL < 9*time.Minute || reflectionTTL > reflectionQuietPeriod {
+	if reflectionTTL < 29*time.Minute || reflectionTTL > reflectionQuietPeriod {
 		t.Fatalf("Reflection TTL = %s, want approximately %s", reflectionTTL, reflectionQuietPeriod)
 	}
 	if wakeTTL < 9*time.Minute || wakeTTL > 10*time.Minute {
@@ -115,7 +114,7 @@ func TestCognitionFollowupsArmReflectionAndWakeUpWithIndependentTTLs(t *testing.
 	if err := app.scheduleCognitionFollowups(context.Background(), "fl-followup"); err != nil {
 		t.Fatal(err)
 	}
-	if refreshed := client.TTL(context.Background(), reflectionTriggerPrefix+"fl-followup").Val(); refreshed < 9*time.Minute {
+	if refreshed := client.TTL(context.Background(), reflectionTriggerPrefix+"fl-followup").Val(); refreshed < 29*time.Minute {
 		t.Fatalf("repeated cognition did not refresh Reflection TTL: %s", refreshed)
 	}
 	if refreshed := client.TTL(context.Background(), wakeUpTriggerPrefix+"fl-followup").Val(); refreshed < 9*time.Minute {

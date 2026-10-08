@@ -50,7 +50,7 @@ func (a *App) recordGoalMessageTx(ctx context.Context, tx pgx.Tx, owner, message
 }
 
 func recordGoalOutcomeSourceTx(ctx context.Context, tx pgx.Tx, outcome ActionOutcome) error {
-	if outcome.Status == ActionOutcomePending {
+	if !goalOutcomeCarriesEvidence(outcome) {
 		return nil
 	}
 	profile := ""
@@ -69,6 +69,37 @@ func recordGoalOutcomeSourceTx(ctx context.Context, tx pgx.Tx, outcome ActionOut
 		_, err = queueGoalEvaluationTx(ctx, tx, outcome.FluctlightID, profile, "actual_outcome", fmt.Sprint(eventID), goalIDs)
 	}
 	return err
+}
+
+func goalOutcomeCarriesEvidence(outcome ActionOutcome) bool {
+	if outcome.Status == ActionOutcomePending {
+		return false
+	}
+	switch strings.TrimSpace(outcome.CapabilityName) {
+	case "goal.inspect", "goal.decide", "goal.evaluate", "goal.review",
+		"actor.inspect", "habit.inspect", "intention.inspect", "schedule.inspect",
+		"persona.detail", "relationship.lookup", "memory.recall":
+		return false
+	}
+	if strings.TrimSpace(outcome.CapabilityName) != "" {
+		return true
+	}
+	if names := arrayValue(outcome.Expected["capability_names"]); len(names) > 0 {
+		for _, raw := range names {
+			child := outcome
+			child.CapabilityName = stringValue(raw)
+			if child.CapabilityName != "" && goalOutcomeCarriesEvidence(child) {
+				return true
+			}
+		}
+		return false
+	}
+	switch strings.TrimSpace(stringValue(outcome.Expected["action_type"])) {
+	case "", "no_op", "noop", "no-op", "inspect", "control":
+		return false
+	default:
+		return true
+	}
 }
 
 // Source reads return current authority plus its exact version. Text is input

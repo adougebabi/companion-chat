@@ -39,3 +39,22 @@ Prefer forward repair after new schema records exist. Do not describe dropping t
 ## Validation layers
 
 Use a disposable PostgreSQL URL with `GO_CORE_TEST_DATABASE_URL`. Real Worker joint tests additionally require task-owned `GO_GOAL_TEST_TEMPORAL_ADDR` and `GO_GOAL_TEST_REDIS_ADDR`; they use scripted Provider semantics. Live model tests require `FLUCTLIGHT_LIVE_PROVIDER_URL`, `FLUCTLIGHT_LIVE_PROVIDER_MODEL`, optionally the API key and explicit live flag. Real media needs isolated `FLUCTLIGHT_VISUAL_LIVE_CONFIG_FILE` and storage configuration. Missing live/media settings are BLOCKED/SKIP, never counted as semantic/media quality PASS.
+
+## 2026-10-08 唤醒与反思的安静期规则
+
+新版唤醒从最后实际用户或助手聊天起10分钟到期，之后每10分钟一轮；
+新的聊天重置计时，错过的周期不会集中补发。Worker启动保留已有Redis
+key，只有缺key且没有同实例待处理认知才补一轮。
+
+反思在最后聊天后30分钟、存在未反思真实证据时才调用模型；无新情况
+返回no_op/no_real_evidence。静默唤醒和纯检查不会创建下一轮反思，也不
+推进Goal复核来源水位。Goal Evaluation是实际证据/显式复核驱动的目标
+标准评估，2秒用于合并事件，不是每2秒执行一次的定时任务。
+
+新认知入队会取消同实例的排队/执行中唤醒和反思，并拒绝旧结果提交。
+实际业务结果仍保留；唤醒自己真正发布的消息不会被误记为取消。
+
+发布时同步更新API、Worker和Web，以保证600秒设置投影、时钟和说明一致。
+本轮没有部署或清理用户实际队列。验收应查看实际last-chat时间、下一次
+到期、model-run queued/running/cancelled状态及来源水位；ADK多轮和有限
+失败重试可能让一个触发产生多个模型调用，不能把调用次数当触发频率。

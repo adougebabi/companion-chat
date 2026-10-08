@@ -520,8 +520,8 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 
 func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID string) (map[string]any, error) {
 	// Reflection is the evidence-windowed learning pass over processed
-	// cognition facts. A wake-up may create the fact that feeds this window,
-	// but reflection never substitutes for the periodic wake-up trigger.
+	// cognition facts. Silent periodic audit is skipped; an unchanged window
+	// never calls the model or substitutes for the periodic wake-up trigger.
 	if fluctlightID == "" {
 		return nil, fmt.Errorf("reflection_fluctlight_id_required")
 	}
@@ -565,44 +565,55 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	if err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at,public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' AND COALESCE(payload->>'source_message_invalidated','false')<>'true' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
-	if err != nil {
-		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
-		return nil, err
-	}
 	evidence := make([]map[string]any, 0)
 	allowedEvidence := make(map[string]struct{})
 	memoryAllowedEvidence := make(map[string]struct{})
 	memoryEvidenceScopes := make(map[string]reflectionMemoryEvidenceScope)
 	toSequence := watermark
-	for rows.Next() {
-		var id string
-		var sequence int
-		var typ string
-		var payload []byte
-		var occurredAt time.Time
-		var fingerprint string
-		if err := rows.Scan(&id, &sequence, &typ, &payload, &occurredAt, &fingerprint); err != nil {
+	for len(evidence) < 20 {
+		rows, queryErr := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at,public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' AND COALESCE(payload->>'source_message_invalidated','false')<>'true' ORDER BY sequence LIMIT 100`, fluctlightID, toSequence)
+		if queryErr != nil {
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+			return nil, queryErr
+		}
+		scanned := 0
+		for rows.Next() {
+			var id string
+			var sequence int
+			var typ string
+			var payload []byte
+			var occurredAt time.Time
+			var fingerprint string
+			if err := rows.Scan(&id, &sequence, &typ, &payload, &occurredAt, &fingerprint); err != nil {
+				rows.Close()
+				_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+				return nil, err
+			}
+			scanned++
+			toSequence = sequence
+			decodedPayload := mapValue(decodeJSONValue(payload))
+			if !reflectionFactCarriesRealEvidence(typ, decodedPayload) {
+				continue
+			}
+			evidenceRef := fmt.Sprintf("sequence:%d", sequence)
+			allowedEvidence[evidenceRef] = struct{}{}
+			memoryAllowedEvidence[evidenceRef] = struct{}{}
+			memoryEvidenceScopes[evidenceRef] = reflectionMemoryEvidenceScope{FactID: id, ConversationID: stringValue(decodedPayload["conversation_id"]), Fingerprint: fingerprint, SourceKind: "fact", SourceID: id, Known: true}
+			evidence = append(evidence, map[string]any{"id": id, "sequence": sequence, "event_type": typ, "payload": decodedPayload, "occurred_at": occurredAt})
+			if len(evidence) == 20 {
+				break
+			}
+		}
+		if err := rows.Err(); err != nil {
 			rows.Close()
 			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 			return nil, err
 		}
-		evidenceRef := fmt.Sprintf("sequence:%d", sequence)
-		allowedEvidence[evidenceRef] = struct{}{}
-		memoryAllowedEvidence[evidenceRef] = struct{}{}
-		decodedPayload := decodeJSONValue(payload)
-		memoryEvidenceScopes[evidenceRef] = reflectionMemoryEvidenceScope{FactID: id, ConversationID: stringValue(mapValue(decodedPayload)["conversation_id"]), Fingerprint: fingerprint, SourceKind: "fact", SourceID: id, Known: true}
-		evidence = append(evidence, map[string]any{"id": id, "sequence": sequence, "event_type": typ, "payload": decodedPayload, "occurred_at": occurredAt})
-		if sequence > toSequence {
-			toSequence = sequence
+		rows.Close()
+		if scanned < 100 || len(evidence) == 20 {
+			break
 		}
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
-		return nil, err
-	}
-	rows.Close()
 	// Appraisal is an authoritative semantic interpretation of each processed
 	// fact. Merge it into the corresponding source event rather than appending a
 	// second evidence row with the window's maximum sequence. This keeps one
@@ -639,8 +650,11 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		}
 	}
 	if len(evidence) == 0 {
-		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
-		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "no_op", "reason": "no_evidence", "watermark": watermark}, nil
+		if err := a.advanceReflectionWatermarkWithoutModel(ctx, fluctlightID, toSequence); err != nil {
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+			return nil, err
+		}
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "no_op", "reason": "no_real_evidence", "watermark": toSequence}, nil
 	}
 	var ownerActorID string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerActorID); err != nil {
@@ -711,6 +725,34 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	}
 	ctx = WithProviderCorrelation(ctx, correlationID)
 	return a.processReflectionV2(ctx, fluctlightID, ownerActorID, correlationID, watermark, toSequence, stateRevision, evidence, projection, memoryAllowedEvidence, memoryEvidenceScopes)
+}
+
+func reflectionFactCarriesRealEvidence(eventType string, payload map[string]any) bool {
+	switch strings.TrimSpace(eventType) {
+	case "internal.wake_up", "autonomy.result":
+		outcomes := reflectionActionOutcomeValues(payload)
+		if len(outcomes) == 0 {
+			if eventType == "internal.wake_up" {
+				return false
+			}
+			result := mapValue(payload["result"])
+			switch strings.TrimSpace(firstString(result["action_type"], stringValue(result["status"]))) {
+			case "", "no_op", "noop", "no-op", "inspect", "control":
+				return false
+			default:
+				return true
+			}
+		}
+		for _, raw := range outcomes {
+			var outcome ActionOutcome
+			if json.Unmarshal(jsonBytes(raw), &outcome) == nil && goalOutcomeCarriesEvidence(outcome) {
+				return true
+			}
+		}
+		return false
+	default:
+		return true
+	}
 }
 
 func boundedNumber(value any, fallback float64) float64 {

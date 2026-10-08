@@ -14,7 +14,7 @@ import (
 const (
 	reflectionTriggerPrefix = "fluctlight:reflection:due:"
 	wakeUpTriggerPrefix     = "fluctlight:wakeup:due:"
-	reflectionQuietPeriod   = 10 * time.Minute
+	reflectionQuietPeriod   = 30 * time.Minute
 	wakeUpDueSweepLimit     = 50
 	wakeUpOverdueGrace      = 2 * time.Minute
 	wakeUpOverdueEventType  = "lifecycle.wake_up.overdue"
@@ -38,12 +38,15 @@ func (a *App) reflectionDelay(_ context.Context) time.Duration {
 	return reflectionQuietPeriod
 }
 
-func (a *App) scheduleReflectionTrigger(ctx context.Context, fluctlightID string, _ time.Duration) error {
+func (a *App) scheduleReflectionTrigger(ctx context.Context, fluctlightID string, delay time.Duration) error {
 	if a == nil || a.Redis == nil || strings.TrimSpace(fluctlightID) == "" {
 		return nil
 	}
 	fluctlightID = strings.TrimSpace(fluctlightID)
-	return a.Redis.Set(ctx, reflectionTriggerPrefix+fluctlightID, fluctlightID, reflectionQuietPeriod).Err()
+	if delay <= 0 {
+		delay = reflectionQuietPeriod
+	}
+	return a.Redis.Set(ctx, reflectionTriggerPrefix+fluctlightID, fluctlightID, delay).Err()
 }
 
 func (a *App) scheduleWakeUpTrigger(ctx context.Context, fluctlightID string, intervalSeconds int) error {
@@ -124,7 +127,7 @@ func (a *App) scheduleCognitionFollowups(ctx context.Context, fluctlightID strin
 	// must not prevent the durable Wake-up clock from being moved (and vice
 	// versa); return the first error only after both maintenance attempts ran.
 	var firstErr error
-	if err := a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod); err != nil {
+	if err := a.schedulePendingReflectionTrigger(ctx, fluctlightID); err != nil {
 		firstErr = err
 	}
 	if err := a.scheduleWakeUpAfterCognition(ctx, fluctlightID); err != nil && firstErr == nil {
@@ -133,9 +136,44 @@ func (a *App) scheduleCognitionFollowups(ctx context.Context, fluctlightID strin
 	return firstErr
 }
 
+// schedulePendingReflectionTrigger mirrors the authoritative PostgreSQL due
+// time into Redis. In particular, cognition completion cannot move Reflection
+// thirty minutes past the model's completion when the quiet boundary is based
+// on an earlier chat publication.
+func (a *App) schedulePendingReflectionTrigger(ctx context.Context, fluctlightID string) error {
+	if a == nil || a.Redis == nil || strings.TrimSpace(fluctlightID) == "" {
+		return nil
+	}
+	if a.DB == nil || a.DB.Pool() == nil {
+		return a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod)
+	}
+	var due time.Time
+	err := a.DB.Pool().QueryRow(ctx, `
+		SELECT next_attempt_at
+		FROM public.platform_workflow_intents
+		WHERE intent_type='reflection.run'
+		  AND payload->>'fluctlight_id'=$1
+		  AND status IN ('pending','retry')
+		  AND next_attempt_at IS NOT NULL
+		ORDER BY created_at DESC,intent_id DESC
+		LIMIT 1`, strings.TrimSpace(fluctlightID)).Scan(&due)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return a.Redis.Del(ctx, reflectionTriggerPrefix+strings.TrimSpace(fluctlightID)).Err()
+	}
+	if err != nil {
+		return err
+	}
+	delay := time.Until(due.UTC())
+	if delay <= 0 {
+		delay = time.Second
+	}
+	return a.scheduleReflectionTrigger(ctx, fluctlightID, delay)
+}
+
 // ScheduleWakeUpTriggers repairs Redis quiet-period hints for completed
-// wake-up intents. It never creates a workflow and is safe to run at every
-// Worker start.
+// wake-up intents. An existing key is never rewritten at Worker startup. A
+// missing key releases exactly one durable cycle, after which normal WakeUp
+// settlement establishes the recurring ten-minute key.
 func (a *App) ScheduleWakeUpTriggers(ctx context.Context) (int64, error) {
 	if a == nil || a.Redis == nil {
 		return 0, nil
@@ -146,13 +184,16 @@ func (a *App) ScheduleWakeUpTriggers(ctx context.Context) (int64, error) {
 	}
 	if _, err := a.DB.Pool().Exec(ctx, `
 		UPDATE public.platform_workflow_intents
-		SET next_attempt_at=now()+($1 * interval '1 second')
+		SET next_attempt_at=now()+interval '10 minutes'
 		WHERE intent_type='wake_up.current'
 		  AND status='completed'
-		  AND next_attempt_at IS NULL`, settings.IntervalSeconds); err != nil {
+		  AND next_attempt_at IS NULL`); err != nil {
 		return 0, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT DISTINCT payload->>'fluctlight_id',next_attempt_at FROM public.platform_workflow_intents WHERE intent_type='wake_up.current' AND status='completed' AND next_attempt_at>now() AND payload->>'fluctlight_id' IS NOT NULL`)
+	if !settings.Enabled {
+		return 0, nil
+	}
+	rows, err := a.DB.Pool().Query(ctx, `SELECT DISTINCT i.payload->>'fluctlight_id' FROM public.platform_workflow_intents i JOIN public.fluctlights f ON f.id=i.payload->>'fluctlight_id' WHERE i.intent_type='wake_up.current' AND i.status='completed' AND f.status='active' AND i.payload->>'fluctlight_id' IS NOT NULL`)
 	if err != nil {
 		return 0, err
 	}
@@ -160,21 +201,63 @@ func (a *App) ScheduleWakeUpTriggers(ctx context.Context) (int64, error) {
 	var scheduled int64
 	for rows.Next() {
 		var fluctlightID string
-		var dueAt time.Time
-		if err := rows.Scan(&fluctlightID, &dueAt); err != nil {
+		if err := rows.Scan(&fluctlightID); err != nil {
 			return scheduled, err
 		}
-		delay := time.Until(dueAt)
-		seconds := int((delay + time.Second - 1) / time.Second)
-		if seconds < 1 {
-			seconds = 1
+		key := wakeUpTriggerPrefix + fluctlightID
+		claimed, claimErr := a.Redis.SetNX(ctx, key, fluctlightID, time.Minute).Result()
+		if claimErr != nil {
+			return scheduled, fmt.Errorf("claim WakeUp Redis hint: %w", claimErr)
 		}
-		if err := a.scheduleWakeUpTrigger(ctx, fluctlightID, seconds); err != nil {
-			return scheduled, fmt.Errorf("schedule WakeUp Redis hint: %w", err)
+		if !claimed {
+			continue
+		}
+		released, releaseErr := a.releaseWakeUpIntentNow(ctx, fluctlightID, "startup_missing_redis_key")
+		if releaseErr != nil {
+			_ = a.Redis.Del(ctx, key).Err()
+			return scheduled, releaseErr
+		}
+		if !released {
+			continue
 		}
 		scheduled++
 	}
 	return scheduled, rows.Err()
+}
+
+func (a *App) releaseWakeUpIntentNow(ctx context.Context, fluctlightID, reason string) (bool, error) {
+	var release wakeUpRelease
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
+		return tx.QueryRow(ctx, `
+		UPDATE public.platform_workflow_intents AS i
+		SET status='retry',started_at=NULL,completed_at=NULL,next_attempt_at=now(),
+			payload=jsonb_set(i.payload,'{cycle}',to_jsonb(COALESCE((i.payload->>'cycle')::integer,0)+1),true)
+		FROM public.fluctlights AS f
+		WHERE i.intent_type='wake_up.current'
+		  AND i.payload->>'fluctlight_id'=$1
+		  AND i.status='completed'
+		  AND f.id=$1 AND f.status='active'
+		  AND NOT EXISTS (
+			SELECT 1 FROM public.platform_workflow_intents c
+			WHERE c.intent_type='cognition.processing'
+			  AND c.payload->>'fluctlight_id'=$1
+			  AND c.status IN ('pending','retry','started','running','cancel_requested')
+		  )
+		RETURNING i.intent_id,i.workflow_id,i.payload->>'fluctlight_id',
+			(i.payload->>'cycle')::integer,i.next_attempt_at`, fluctlightID).
+			Scan(&release.IntentID, &release.WorkflowID, &release.FluctlightID, &release.Cycle, &release.DueAt)
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	a.recordWakeUpReleaseDiagnostics(ctx, release, reason)
+	return true, nil
 }
 
 // HandleRedisExpiredTrigger turns a best-effort keyevent into a durable

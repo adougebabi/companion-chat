@@ -76,13 +76,13 @@ func TestNormalizeWakeUpAssessmentRejectsInvalidAction(t *testing.T) {
 	}
 }
 
-func TestNormalizeWakeUpSettingsClampsInterval(t *testing.T) {
+func TestNormalizeWakeUpSettingsUsesFixedTenMinuteInterval(t *testing.T) {
 	settings := normalizeWakeUpSettings(map[string]any{"enabled": false, "interval_seconds": 1})
 	if settings.Enabled || settings.IntervalSeconds != minWakeUpIntervalSeconds {
 		t.Fatalf("settings = %#v", settings)
 	}
-	settings = normalizeWakeUpSettings(map[string]any{"interval_seconds": maxWakeUpIntervalSeconds + 1})
-	if settings.IntervalSeconds != maxWakeUpIntervalSeconds {
+	settings = normalizeWakeUpSettings(map[string]any{"interval_seconds": 24 * 60 * 60})
+	if settings.IntervalSeconds != defaultWakeUpIntervalSeconds {
 		t.Fatalf("maximum settings = %#v", settings)
 	}
 }

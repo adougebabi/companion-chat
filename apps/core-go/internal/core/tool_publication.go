@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -188,12 +189,13 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if err != nil {
 		return publishedResource{}, err
 	}
-	inserted, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (conversation_id,turn_id,kind) WHERE turn_id IS NOT NULL DO NOTHING`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt)
+	var createdAt time.Time
+	err = tx.QueryRow(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (conversation_id,turn_id,kind) WHERE turn_id IS NOT NULL DO NOTHING RETURNING created_at`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt).Scan(&createdAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return publishedResource{}, ErrReplyAlreadyPublished
+	}
 	if err != nil {
 		return publishedResource{}, err
-	}
-	if inserted.RowsAffected() == 0 {
-		return publishedResource{}, ErrReplyAlreadyPublished
 	}
 	profile := command.WorkingProfileID
 	if profile == "" {
@@ -204,6 +206,16 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		}
 	}
 	if err := service.app.recordGoalMessageTx(ctx, tx, command.FluctlightID, messageID, profile); err != nil {
+		return publishedResource{}, err
+	}
+	// A WakeUp's own reply must not invalidate its frozen execution before
+	// settlement. Its owning transaction resets the clock from this message.
+	if !strings.HasPrefix(lifecycleIntentID(ctx), "wake_up_intent:") {
+		if err := setWakeUpIdleEpochTx(ctx, tx, command.FluctlightID, messageID, createdAt); err != nil {
+			return publishedResource{}, err
+		}
+	}
+	if err := enqueueQuietPeriodReflectionIntentTx(ctx, tx, command.FluctlightID, messageID, createdAt.UTC().Add(reflectionQuietPeriod), "conversation_quiet_period"); err != nil {
 		return publishedResource{}, err
 	}
 	if command.SuppressRecentDuplicate {

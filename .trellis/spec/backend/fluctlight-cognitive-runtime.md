@@ -259,3 +259,96 @@ Wrong: silently default a missing Memory type or insert a missing watermark afte
 applying candidates.
 Correct: validate the closed proposal, resolve scope, apply through authority
 ports and require one successful claimed-watermark CAS in the same transaction.
+
+## Scenario: Chat Quiet Clocks And Evidence-Driven Background Work (2026-10-08)
+
+### 1. Scope / Trigger
+
+User-authorized correction of continuous WakeUp/Reflection/Goal assessment
+queue occupation. This supersedes prior 10m/30m/configured WakeUp slots and
+10m Reflection debounce rules. Keep the existing Eino Agents, Tool registry,
+PostgreSQL intent authority, outbox, Redis expiry hints and Temporal runtime.
+
+### 2. Signatures
+
+`wakeUpFirstIdleDelay=10m`, `reflectionQuietPeriod=30m`.
+`product.wakeup={enabled,interval_seconds:600}` reads/normalizes legacy values.
+Redis keys: `fluctlight:wakeup:due:<instance>` and
+`fluctlight:reflection:due:<instance>`; they are accelerators, not business facts.
+`supersedeLifecycleForCognitionTx`, `CancelLifecycleForCognition`,
+`enqueueQuietPeriodReflectionIntentTx`, `goalOutcomeCarriesEvidence`.
+
+### 3. Contracts
+
+- Every actual user/assistant dialogue publication resets the idle epoch to its
+  persisted message/time. First wake is10m later; future slots are10m apart.
+  Late execution skips missed slots to one future tick, never a catch-up burst.
+- Worker startup preserves an existing Redis key/TTL. Missing key claims one
+  stable completed PG intent via SETNX and releases one cycle. Duplicate starts
+  cannot increment the same cycle twice. New instances begin with a completed
+  dormant clock so startup can apply the same boundary. PG due scans recover
+  lost Pub/Sub without creating a second scheduling authority.
+- Reflection is one pending task per instance, due30m after the latest actual
+  chat. Give distinct chat epochs distinct intent/workflow/cancellation IDs;
+  replay of one completed epoch never reopens it. Redis mirrors the PG due
+  time, rather than resetting30m from slow model completion. Genuine external
+  results may coalesce a pending reflection but cannot precede last-chat+30m.
+- Silent WakeUp does not create a Reflection task. A real WakeUp reply resets
+  its clock at owning settlement without invalidating its own frozen loop;
+  actual committed results remain evidence. Reflection scans past
+  periodic/no-op/inspection facts to find real unreflected evidence, retaining
+  the20 real-evidence bound. Noise-only windows advance their claimed watermark
+  by CAS without calling a model. Cancellation still guards this no-model CAS.
+- New cognition enqueue atomically supersedes queued/running same-instance
+  WakeUp/Reflection; post-commit Provider markers and Temporal cancellation stop
+  execution. Final settlement rejects superseded identities. Cancelled epochs
+  do not revive as a new pending epoch. No unrelated instance is cancelled.
+- Lifecycle-before-Life is the shared lock order for mutating Tools, native
+  enqueue, user publication and background settlement. Model calls remain
+  outside transactions; add no long-lived locks around queue waiting.
+- Goal evaluation stays actual-evidence/explicit-review driven with its2s
+  coalescing. Inspection/control/no-op audit is durable in ActionOutcome but
+  cannot advance the Goal source journal/review watermark. Aggregate receipts
+  retain child capability names so inspection-only primary receipts cannot
+  bypass that filter. Real domain queries/actions and single legacy `outcome`
+  as well as `outcomes` arrays remain valid. Preserve revocation, Owner
+  reassess, criteria version/CAS and finite unoffered-source remainder.
+- Goal evaluation owns goal standards/completion/next strategy. Reflection
+  owns memory/relationship/self learning and delegates Goal evidence judgment
+  to the existing writer. Neither timer itself is evidence of a new situation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Existing startup key | Preserve TTL; zero duplicate release |
+| Missing startup key | Release exactly one PG cycle |
+| Same completed chat epoch replay | Keep completed; no new model request |
+| Only periodic/inspection history | no_op/no_real_evidence; zero Provider calls |
+| Real source behind125 audit rows | Reach real evidence; one semantic call |
+| New cognition during Provider request | Cancel context/release lease; reject late commit |
+| Source uses legacy single outcome | Preserve genuine proof |
+
+### 5. Good / Base / Bad Cases
+
+Good: assistant sends15:00, wake at15:10/15:20/15:30; Reflection due15:30
+only if real unreflected evidence exists. Base: another chat15:12 resets both
+clocks and cancels existing background work. Bad: every silent wake inserts a
+Reflection task whose Goal inspections reopen another review.
+
+### 6. Tests Required
+
+Real disposable PG/Redis tests assert startup key TTL preservation/missing-key
+single release, last-chat30m due/Redis mirror, completed-epoch replay no-op,
+125 silent records with zero calls then real evidence reached, aggregate
+inspection journal unchanged, running Provider context cancellation and late
+watermark refusal. Retain actual domain-query Goal closure, message/criteria
+CAS, instance/profile isolation and existing workflow tests. SDK seam assertions
+are not a live Temporal deployment proof; skipped live suites are not PASS.
+
+### 7. Wrong vs Correct
+
+Wrong: reuse `reflection_intent:quiet:<instance>` across all epochs, retain its
+old cancellation key, or reset quiet time from model completion.
+Correct: coalesce pending epochs but retain unique persisted chat identity and
+absolute last-chat due time; superseded old callbacks remain superseded.

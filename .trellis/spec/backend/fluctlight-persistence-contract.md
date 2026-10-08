@@ -430,3 +430,13 @@ atomicity, cancellation after commit, run replay and concurrency CAS.
 
 Wrong: rerun the whole failed Agent to recover an already-published reply.
 Correct: load committed receipts and durable task state; report the failed run.
+
+### Lifecycle preemption lock order (2026-10-08)
+
+`lockLifeContextTx` first takes the per-instance lifecycle advisory lock, then
+Life. Mutating Tool receipts, native/user cognition enqueue and background final
+settlement follow lifecycle → Life → operation/row locks. Startup immediate
+WakeUp release uses that lifecycle lock and refuses to enqueue while the same
+instance has pending/running cognition. Model/Redis/Temporal calls stay outside
+these transactions. Unique chat-epoch reflection IDs prevent old cancellation
+markers or callbacks from applying to a newer pending epoch.

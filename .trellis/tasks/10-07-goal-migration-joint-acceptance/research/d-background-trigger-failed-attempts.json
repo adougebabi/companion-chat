@@ -1,0 +1,367 @@
+[
+  {
+    "attempt": "core-first.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T16:08:07.158168+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop",
+        "Output": "=== RUN   TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:07.161637+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop",
+        "Output": "    diagnostics_test.go:374: ERROR: relation \"public.diagnostic_model_runs\" does not exist (SQLSTATE 42P01)\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:07.161756+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop",
+        "Output": "--- FAIL: TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:07.161773+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:08:08.232795+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderTimeoutPersistsOneTypedTerminalState",
+        "Output": "=== RUN   TestPostgresProviderTimeoutPersistsOneTypedTerminalState\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.236492+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderTimeoutPersistsOneTypedTerminalState",
+        "Output": "2026/10/08 16:08:08 WARN Go Core diagnostic persistence failed component=model_run stage=create correlation_id=initialization-analysis:21613c1224db2584b512fbc47c7f6c1f error_type=*fmt.wrapError safe_cause=\"persist diagnostic model run: ERROR: relation \\\"public.diagnostic_model_runs\\\" does not exist (SQLSTATE 42P01)\"\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.236933+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderTimeoutPersistsOneTypedTerminalState",
+        "Output": "    diagnostics_test.go:663: ERROR: relation \"public.diagnostic_model_runs\" does not exist (SQLSTATE 42P01)\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.236983+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderTimeoutPersistsOneTypedTerminalState",
+        "Output": "--- FAIL: TestPostgresProviderTimeoutPersistsOneTypedTerminalState (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.237005+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderTimeoutPersistsOneTypedTerminalState",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:08:08.237023+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation",
+        "Output": "=== RUN   TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.240837+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation",
+        "Output": "    diagnostics_test.go:702: ERROR: relation \"public.diagnostic_model_runs\" does not exist (SQLSTATE 42P01)\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.24089+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation",
+        "Output": "--- FAIL: TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.240897+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:08:08.240908+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure",
+        "Output": "=== RUN   TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.244315+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure",
+        "Output": "2026/10/08 16:08:08 WARN Go Core diagnostic persistence failed component=model_run stage=queue correlation_id=conversation-response-preserved:2aaa533fe78771cb94df7ee706e339aa error_type=*fmt.wrapError safe_cause=\"persist diagnostic model run: ERROR: relation \\\"public.diagnostic_model_runs\\\" does not exist (SQLSTATE 42P01)\"\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.244343+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure",
+        "Output": "    diagnostics_test.go:728: queued model run was not persisted\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.244352+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure",
+        "Output": "--- FAIL: TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:08:08.244358+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:09:15.839168+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecentExactAssistantMessageTxSuppressesOnlyRecentExactText",
+        "Output": "=== RUN   TestRecentExactAssistantMessageTxSuppressesOnlyRecentExactText\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:15.842643+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecentExactAssistantMessageTxSuppressesOnlyRecentExactText",
+        "Output": "    proactive_delivery_test.go:37: ERROR: relation \"public.conversation_heads\" does not exist (SQLSTATE 42P01)\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:15.842689+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecentExactAssistantMessageTxSuppressesOnlyRecentExactText",
+        "Output": "--- FAIL: TestRecentExactAssistantMessageTxSuppressesOnlyRecentExactText (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:15.842696+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecentExactAssistantMessageTxSuppressesOnlyRecentExactText",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:09:21.324976+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Output": "=== RUN   TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:21.504584+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Output": "    reflection_goal_progress_v2_test.go:98: Reflection result=map[string]interface {}{\"correlation_id\":\"goal-progress-reflection\", \"fluctlight_id\":\"goal-progress-fluctlight\", \"reason\":\"no_real_evidence\", \"status\":\"no_op\", \"watermark\":1} err=<nil>\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:21.508521+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Output": "--- FAIL: TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome (0.18s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:21.508556+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Elapsed": 0.18
+      },
+      {
+        "Time": "2026-10-08T16:09:40.644933+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Output": "=== RUN   TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:40.648816+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Output": "    wakeup_intents_test.go:483: ERROR: relation \"public.fluctlights\" does not exist (SQLSTATE 42P01)\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:40.648859+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Output": "--- FAIL: TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:40.64888+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:09:40.6489+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease",
+        "Output": "=== RUN   TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:40.651693+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease",
+        "Output": "    wakeup_intents_test.go:574: ERROR: relation \"public.fluctlights\" does not exist (SQLSTATE 42P01)\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:40.651723+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease",
+        "Output": "--- FAIL: TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:09:40.651734+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease",
+        "Elapsed": 0
+      }
+    ]
+  },
+  {
+    "attempt": "focused-second.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T16:18:05.846611+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod",
+        "Output": "=== RUN   TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:05.846672+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod",
+        "Output": "    reflection_v2_test.go:74: Reflection quiet-period debounce missing \"payload->>'trigger'='user_quiet_period'\"\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:05.846683+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod",
+        "Output": "--- FAIL: TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:05.846687+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:18:06.17752+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMergeWakeUpSettingsPreservesOmittedValuesAndRejectsWrongTypes",
+        "Output": "=== RUN   TestMergeWakeUpSettingsPreservesOmittedValuesAndRejectsWrongTypes\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:06.177524+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMergeWakeUpSettingsPreservesOmittedValuesAndRejectsWrongTypes",
+        "Output": "    settings_wakeup_test.go:33: partial WakeUp settings merge = core.WakeUpSettings{Enabled:true, IntervalSeconds:600}, <nil>\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:06.177528+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMergeWakeUpSettingsPreservesOmittedValuesAndRejectsWrongTypes",
+        "Output": "--- FAIL: TestMergeWakeUpSettingsPreservesOmittedValuesAndRejectsWrongTypes (0.00s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:06.177531+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMergeWakeUpSettingsPreservesOmittedValuesAndRejectsWrongTypes",
+        "Elapsed": 0
+      },
+      {
+        "Time": "2026-10-08T16:18:12.665198+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Output": "=== RUN   TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:12.674204+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Output": "    wakeup_intents_test.go:507: wake-up intent = type \"wake_up.current\", status \"completed\", payload {\"cycle\": 0, \"fluctlight_id\": \"test-wakeup-intent-51bd6456300afe1e37e0c9a7ab8f3c33\"}\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:12.674266+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Output": "--- FAIL: TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight (0.01s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:18:12.674279+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight",
+        "Elapsed": 0.01
+      }
+    ]
+  },
+  {
+    "attempt": "final-go-all-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T16:24:38.501667+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark",
+        "Output": "=== RUN   TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark\n"
+      },
+      {
+        "Time": "2026-10-08T16:24:39.027008+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark",
+        "Output": "    background_trigger_integration_test.go:184: real observation not reflected once: map[active_memory:map[counts:map[applied:0 deferred:0 no_change:0 rejected:0] results:[]] changed_refs:[] correlation_id:real-after-silent counts:map[] fluctlight_id:independent_fluctlight_wardrobe_1791447878673016000 memory:map[counts:map[applied:0 deferred:0 no_change:0 rejected:0] results:[]] proposal_id:reflection_proposal_2ac8ba3598c57694d103244e76acd4ba reason_codes:[] revisions:map[active_memory:0 affect_profile:0 behavior_policy_overlay:0 developing_self:0 drive:0 goal:0 intention:0 memory:0 personality_overlay:0 preference:0 relationship:0 trigger:0] status:no_change watermark:126] calls=1 err=<nil>\n"
+      },
+      {
+        "Time": "2026-10-08T16:24:39.05914+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark",
+        "Output": "--- FAIL: TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark (0.56s)\n"
+      },
+      {
+        "Time": "2026-10-08T16:24:39.059171+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark",
+        "Elapsed": 0.56
+      }
+    ]
+  }
+]

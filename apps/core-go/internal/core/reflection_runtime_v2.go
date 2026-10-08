@@ -31,8 +31,8 @@ func compactReflectionEvidenceV2(evidence []map[string]any) []map[string]any {
 			if observation := boundedReflectionObservation(stringValue(payload["text"])); observation != "" {
 				entry["observation"] = observation
 			}
-		case "autonomy.result":
-			if outcomes := compactReflectionEvidencePayload(eventType, payload); !isEmptyReflectionProviderValue(outcomes) {
+		case "autonomy.result", "internal.wake_up":
+			if outcomes := compactReflectionEvidencePayload("autonomy.result", payload); !isEmptyReflectionProviderValue(outcomes) {
 				entry["action_outcomes"] = outcomes
 			}
 		default:
@@ -217,7 +217,7 @@ func (a *App) processReflectionV2(
 			summary = string(runes[:2000])
 		}
 		evolutionEvidence = append(evolutionEvidence, EvolutionEvidence{Ref: fmt.Sprintf("sequence:%d", sequence), Kind: stringValue(item["event_type"]), Summary: summary, Sequence: sequence, OccurredAt: occurredAt})
-		if stringValue(item["event_type"]) == "autonomy.result" {
+		if stringValue(item["event_type"]) == "autonomy.result" || stringValue(item["event_type"]) == "internal.wake_up" {
 			for _, raw := range reflectionActionOutcomeValues(mapValue(item["payload"])) {
 				var outcome ActionOutcome
 				if encoded := jsonBytes(raw); json.Unmarshal(encoded, &outcome) != nil || outcome.Validate() != nil || outcome.FluctlightID != fluctlightID {

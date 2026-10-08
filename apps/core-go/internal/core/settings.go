@@ -38,6 +38,8 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 			values[key] = value
 		}
 	}
+	wake := normalizeWakeUpSettings(mapValue(values["product.wakeup"]))
+	values["product.wakeup"] = map[string]any{"enabled": wake.Enabled, "interval_seconds": wake.IntervalSeconds}
 	secretRows, err := a.DB.Pool().Query(ctx, `SELECT purpose FROM public.setting_secrets ORDER BY purpose`)
 	if err != nil {
 		return nil, err

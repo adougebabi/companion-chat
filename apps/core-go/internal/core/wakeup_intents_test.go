@@ -252,7 +252,14 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 		}
 	})
 	app := newTestApp(t, repository, router)
-	wakeResult, err := app.ProcessWakeUp(ctx, fluctlightID, 1)
+	if _, err := app.EnsureWakeUpIntents(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',payload=jsonb_set(payload,'{cycle}','1'::jsonb),started_at=now() WHERE intent_id=$1`, "wake_up_intent:"+fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	wakeCtx := WithWakeUpCycle(WithLifecycleIntentID(ctx, "wake_up_intent:"+fluctlightID), 1)
+	wakeResult, err := app.ProcessWakeUp(wakeCtx, fluctlightID, 1)
 	if err != nil {
 		t.Fatalf("ProcessWakeUp failed: %v", err)
 	}
@@ -273,6 +280,17 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	if messageCount != 1 {
 		t.Fatalf("WakeUp private message count = %d, want 1", messageCount)
 	}
+	if stringValue(wakeResult["status"]) != "completed" {
+		t.Fatalf("WakeUp cancelled its own committed reply: %v", wakeResult)
+	}
+	var messageAt, due time.Time
+	if err := repository.Pool().QueryRow(ctx, `SELECT m.created_at,i.next_attempt_at FROM public.conversation_messages m JOIN public.platform_workflow_intents i ON i.intent_id=$1 WHERE m.conversation_id=$2 AND m.text=$3`, "wake_up_intent:"+fluctlightID, conversationID, text).Scan(&messageAt, &due); err != nil {
+		t.Fatal(err)
+	}
+	if !due.Equal(messageAt.Add(10 * time.Minute)) {
+		t.Fatalf("own reply did not reset10m clock: %s -> %s", messageAt, due)
+	}
+
 }
 
 func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testing.T) {
@@ -387,7 +405,7 @@ func TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider(t *testing.T
 	}
 }
 
-func TestWakeUpDerivedIntentsKeepCycleCorrelation(t *testing.T) {
+func TestWakeUpCompletionKeepsCycleCorrelationWithoutReflectionSelfLoop(t *testing.T) {
 	wakeSource, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
@@ -396,12 +414,14 @@ func TestWakeUpDerivedIntentsKeepCycleCorrelation(t *testing.T) {
 	for _, required := range []string{
 		"correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)",
 		`"correlation_id": correlationID`,
-		`"causation_id": factID`,
 		"wakeID, correlationID",
 	} {
 		if !strings.Contains(body, required) {
 			t.Fatalf("WakeUp derivative lost root correlation contract %q", required)
 		}
+	}
+	if strings.Contains(body, "insertReflectionIntent") || strings.Contains(body, "scheduleReflectionTrigger") {
+		t.Fatal("WakeUp completion still creates a Reflection self-loop")
 	}
 	workflowSource, err := os.ReadFile("workflow_ops.go")
 	if err != nil {
@@ -501,7 +521,7 @@ func TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT intent_type,status,payload FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&intentType, &status, &payload); err != nil {
 		t.Fatal(err)
 	}
-	if intentType != "wake_up.current" || status != "pending" || string(payload) == "" {
+	if intentType != "wake_up.current" || status != "completed" || string(payload) == "" {
 		t.Fatalf("wake-up intent = type %q, status %q, payload %s", intentType, status, payload)
 	}
 

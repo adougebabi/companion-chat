@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -14,6 +15,7 @@ var errLifecycleSupersededByCognition = errors.New("superseded_by_cognition")
 type lifecycleIntent struct {
 	intentID, workflowID, intentType, status string
 	payload                                  []byte
+	startedAt                                *time.Time
 }
 
 type lifecycleIntentContextKey struct{}
@@ -68,6 +70,22 @@ func lifecycleIntentSupersededTx(ctx context.Context, tx pgx.Tx) (bool, error) {
 	return strings.TrimSpace(status) == "superseded" && strings.TrimSpace(lastError) == "superseded_by_cognition", nil
 }
 
+func supersedeLifecycleForCognitionTx(ctx context.Context, tx pgx.Tx, fluctlightID string) error {
+	if tx == nil || strings.TrimSpace(fluctlightID) == "" {
+		return nil
+	}
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `
+		UPDATE public.platform_workflow_intents
+		SET status='superseded',completed_at=now(),last_error='superseded_by_cognition'
+		WHERE payload->>'fluctlight_id'=$1
+		  AND intent_type IN ('wake_up.current','reflection.run')
+		  AND status IN ('pending','retry','started','running','cancel_requested')`, fluctlightID)
+	return err
+}
+
 // CancelLifecycleForCognition preempts the lifecycle jobs that can overlap a
 // newly-triggered cognition. Pending lifecycle work is superseded; running
 // work receives both a Provider cancellation marker and a Temporal cancel
@@ -83,17 +101,18 @@ func (a *App) CancelLifecycleForCognition(ctx context.Context, fluctlightID, req
 	// FOR UPDATE and also catches an intent inserted during this short window.
 	intents := make([]lifecycleIntent, 0)
 	rows, err := a.DB.Pool().Query(ctx, `
-		SELECT intent_id,workflow_id,intent_type,status,payload
+		SELECT intent_id,workflow_id,intent_type,status,payload,started_at
 		FROM public.platform_workflow_intents
 		WHERE payload->>'fluctlight_id'=$1
 		  AND intent_type IN ('wake_up.current','reflection.run')
-		  AND status IN ('pending','retry','started','running','cancel_requested')`, fluctlightID)
+		  AND (status IN ('pending','retry','started','running','cancel_requested')
+		       OR (status='superseded' AND last_error='superseded_by_cognition'))`, fluctlightID)
 	if err != nil {
 		return err
 	}
 	for rows.Next() {
 		var item lifecycleIntent
-		if scanErr := rows.Scan(&item.intentID, &item.workflowID, &item.intentType, &item.status, &item.payload); scanErr != nil {
+		if scanErr := rows.Scan(&item.intentID, &item.workflowID, &item.intentType, &item.status, &item.payload, &item.startedAt); scanErr != nil {
 			rows.Close()
 			return scanErr
 		}
@@ -119,18 +138,19 @@ func (a *App) CancelLifecycleForCognition(ctx context.Context, fluctlightID, req
 			return lockErr
 		}
 		rows, queryErr := tx.Query(ctx, `
-			SELECT intent_id,workflow_id,intent_type,status,payload
+			SELECT intent_id,workflow_id,intent_type,status,payload,started_at
 			FROM public.platform_workflow_intents
 			WHERE payload->>'fluctlight_id'=$1
 			  AND intent_type IN ('wake_up.current','reflection.run')
-			  AND status IN ('pending','retry','started','running','cancel_requested')
+			  AND (status IN ('pending','retry','started','running','cancel_requested')
+			       OR (status='superseded' AND last_error='superseded_by_cognition'))
 			FOR UPDATE`, fluctlightID)
 		if queryErr != nil {
 			return queryErr
 		}
 		for rows.Next() {
 			var item lifecycleIntent
-			if scanErr := rows.Scan(&item.intentID, &item.workflowID, &item.intentType, &item.status, &item.payload); scanErr != nil {
+			if scanErr := rows.Scan(&item.intentID, &item.workflowID, &item.intentType, &item.status, &item.payload, &item.startedAt); scanErr != nil {
 				rows.Close()
 				return scanErr
 			}
@@ -183,7 +203,7 @@ func (a *App) cancelLifecycleExecution(ctx context.Context, item lifecycleIntent
 	if err := a.RequestProviderCancellation(ctx, marker); err != nil {
 		firstErr = fmt.Errorf("request %s provider cancellation: %w", item.intentType, err)
 	}
-	if item.status == "started" || item.status == "running" || item.status == "cancel_requested" {
+	if item.status == "started" || item.status == "running" || item.status == "cancel_requested" || (item.status == "superseded" && item.startedAt != nil) {
 		workflowID := normalizedLifecycleWorkflowID(item.workflowID)
 		if a.Workflows != nil && workflowID != "" {
 			if cancelErr := a.Workflows.Cancel(ctx, workflowID, "", requestID); cancelErr != nil && !errors.Is(cancelErr, pgx.ErrNoRows) && firstErr == nil {

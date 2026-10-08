@@ -274,6 +274,9 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 	var inboxID string
 	var supersededIDs []string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
 		var enqueueErr error
 		inboxID, supersededIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, "", fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, messageTime{}, claimOwner)
 		return enqueueErr
@@ -413,6 +416,9 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		return "", nil, err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','cognition.processing',$3) ON CONFLICT DO NOTHING`, "cognition_intent:"+inboxID, "cognition:"+inboxID, jsonBytes(map[string]any{"inbox_id": inboxID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "idempotency_key": idempotency})); err != nil {
+		return "", nil, err
+	}
+	if err := supersedeLifecycleForCognitionTx(ctx, tx, fluctlightID); err != nil {
 		return "", nil, err
 	}
 	if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, turnID, "turn:"+turnID, "cognition:"+idempotency, payload); err != nil {
@@ -1006,52 +1012,39 @@ func (a *App) completeTurnCognitionTx(ctx context.Context, tx pgx.Tx, inboxID, f
 }
 
 func enqueueQuietPeriodReflectionIntentTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, nextReflectionAt time.Time, reasonCode string) error {
-	if _, err := tx.Exec(ctx, `
-		UPDATE public.platform_workflow_intents
-		SET status='superseded',completed_at=now(),last_error='superseded_by_newer_user_activity'
-		WHERE intent_type='reflection.run'
-		  AND payload->>'fluctlight_id'=$1
-		  AND payload->>'trigger'='user_quiet_period'
-		  AND status IN ('pending','retry')`, fluctlightID); err != nil {
+	// One pending epoch per instance, but a distinct identity per actual chat.
+	// Reusing a completed intent would also reuse its Provider cancellation key
+	// and allow an old Activity to mistake a newer epoch for its own.
+	var lastID string
+	var lastAt time.Time
+	err := tx.QueryRow(ctx, `SELECT m.id,m.created_at FROM public.conversation_messages m
+		JOIN public.conversation_participants p ON p.conversation_id=m.conversation_id
+		WHERE p.actor_id=$1 AND p.status='active' AND m.kind IN ('user','assistant')
+		ORDER BY m.created_at DESC,m.id DESC LIMIT 1`, fluctlightID).Scan(&lastID, &lastAt)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
-	payload := map[string]any{
-		"fluctlight_id":  fluctlightID,
-		"source_fact_id": sourceFactID,
-		"reason_code":    reasonCode,
-		"trigger":        "user_quiet_period",
+	if err == nil {
+		sourceFactID = lastID
+		nextReflectionAt = lastAt.UTC().Add(reflectionQuietPeriod)
 	}
-	command, err := tx.Exec(ctx, `
-		INSERT INTO public.platform_workflow_intents(
-			intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at
-		) VALUES($1,$2,'lifecycle','reflection.run',$3,$4)
-		ON CONFLICT(intent_id) DO UPDATE SET
-			payload=excluded.payload,
-			status=CASE
-				WHEN public.platform_workflow_intents.status IN ('pending','retry','completed','failed','dead_letter','superseded')
-				THEN 'pending'
-				ELSE public.platform_workflow_intents.status
-			END,
-			next_attempt_at=excluded.next_attempt_at,
-			started_at=CASE
-				WHEN public.platform_workflow_intents.status IN ('pending','retry','completed','failed','dead_letter','superseded')
-				THEN NULL
-				ELSE public.platform_workflow_intents.started_at
-			END,
-			completed_at=NULL,
-			last_error=NULL`,
-		"reflection_intent:"+sourceFactID,
-		"reflection:"+sourceFactID,
-		jsonBytes(payload),
-		nextReflectionAt.UTC(),
-	)
-	if err != nil {
+	epochID := stableDigest(fluctlightID + "\x1f" + sourceFactID)
+	intentID := "reflection_intent:" + epochID
+	var exists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&exists); err != nil {
 		return err
 	}
-	if command.RowsAffected() != 1 {
-		return errors.New("reflection_quiet_period_intent_not_written")
+	if exists {
+		return nil
 	}
-	return nil
+	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='superseded',completed_at=now(),last_error='superseded_by_newer_user_activity'
+		WHERE intent_type='reflection.run' AND payload->>'fluctlight_id'=$1 AND status IN ('pending','retry')`, fluctlightID); err != nil {
+		return err
+	}
+	payload := map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": sourceFactID, "reason_code": reasonCode, "trigger": "user_quiet_period"}
+	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at)
+		VALUES($1,$2,'lifecycle','reflection.run',$3,$4) ON CONFLICT(intent_id) DO NOTHING`, intentID, "reflection:"+epochID, jsonBytes(payload), nextReflectionAt.UTC())
+	return err
 }
 
 func (a *App) FailTurnCognition(ctx context.Context, inboxID, frozenID, code string) error {

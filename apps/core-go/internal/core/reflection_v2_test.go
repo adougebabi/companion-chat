@@ -66,7 +66,7 @@ func TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod(t *testing.T)
 	for _, required := range []string{
 		"status='superseded'",
 		"superseded_by_newer_user_activity",
-		"payload->>'trigger'='user_quiet_period'",
+		"payload->>'fluctlight_id'=$1",
 		"next_attempt_at",
 		"status IN ('pending','retry')",
 	} {

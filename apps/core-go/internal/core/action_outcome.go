@@ -134,6 +134,13 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 	if err != nil {
 		return nil, err
 	}
+	if len(results) > 0 {
+		names := []string{}
+		for _, result := range results {
+			names = append(names, result.CapabilityName)
+		}
+		primary.Expected["capability_names"] = names
+	}
 	outcomes := []ActionOutcome{primary}
 	if len(results) == 0 {
 		return outcomes, nil

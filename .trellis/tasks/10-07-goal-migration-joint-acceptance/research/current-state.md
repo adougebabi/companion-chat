@@ -35,3 +35,7 @@ Schema head 0053_goal_reconciliation。仅任务自有 PG fluctlight-goal-test-7
 ## 2026-10-08 实际推荐验收发现与修复
 
 实际推荐目标卡在评估输入超限（53609 > 16384），页面刷新不能恢复。已修复 Provider 来源投影、12000 输入预算准入、新消息优先、只消费本轮证据及剩余来源续批。真实 PostgreSQL 的完整 Goal race 回归：104 PASS events，0 FAIL/SKIP；vet/build 通过。独立复核发现并修复 Actor 工具与数据库源字段形状差异。详细证据见 `.trellis/tasks/10-07-goal-migration-joint-acceptance/research/d-live-recommendation-input-budget.md`。尚未部署到用户实际环境，线上完成状态和本次真实验收仍待验证。
+
+## 2026-10-08 后台持续占队列的最新修复
+
+唤醒改为实际最后聊天后10m及后续10m，启动只在无key且无待处理认知时放行一次；反思改为聊天后30m、有新未处理证据才一次，按实例合并/独立epoch；新认知入队取消同实例WakeUp/Reflection并拒绝晚到提交。静默/检查回执不驱动Reflection或Goal水位，真实结果及Goal writer保留。最终全Go race1866 PASS events，0 FAIL，36 SKIP；vet/build与Web68/68/type/build通过。详细证据见 `research/d-background-trigger-closure.md`。未部署，真实验收仍进行中。

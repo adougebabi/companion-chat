@@ -269,13 +269,13 @@ func TestMediaWorkflowStopsAfterOneQualityRetry(t *testing.T) {
 }
 
 func TestWakeUpIntervalIsBounded(t *testing.T) {
-	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 1}), 5*time.Minute; got != want {
+	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 1}), 10*time.Minute; got != want {
 		t.Fatalf("minimum interval = %s, want %s", got, want)
 	}
-	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 7 * 60}), 7*time.Minute; got != want {
+	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 7 * 60}), 10*time.Minute; got != want {
 		t.Fatalf("configured interval = %s, want %s", got, want)
 	}
-	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 100 * 24 * 60 * 60}), 24*time.Hour; got != want {
+	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 100 * 24 * 60 * 60}), 10*time.Minute; got != want {
 		t.Fatalf("maximum interval = %s, want %s", got, want)
 	}
 }

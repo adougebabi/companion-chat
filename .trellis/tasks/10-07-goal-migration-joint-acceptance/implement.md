@@ -13,3 +13,7 @@
 
 ## 高风险入口与停止点
 migrations/runner.go / isolatedCoreTestRepository / infra/acceptance / core与workflow与httpapi测试 / web测试 / docs报告。schema与worker/消息提交/完成编排要验证事务回滚、版本冲突、重放。未知副作用只核对，禁止failed Agent整轮重放；不修改生产数据。
+
+## 2026-10-08 实际后台队列持续占用修复
+
+最新用户规则与最小修改边界见 `research/background-trigger-contract.md`。唤醒为实际最后聊天后10分钟及后续每10分钟，启动无Redis key才补一次；反思为最后聊天后30分钟且仅新未处理证据；新认知入队取消同实例排队/执行中的唤醒与反思并阻止晚到提交；检查/静默回执不驱动Goal来源水位自循环。保留真实结果、独立Goal标准writer、已有Agent/Tool/短事务/outbox/Temporal。用户运行环境只读，本地修复不等于已部署/真实验收完成。

@@ -29,7 +29,7 @@ func TestWakeUpSettingsNeedsRearmOnlyWhenEnabledAgain(t *testing.T) {
 func TestMergeWakeUpSettingsPreservesOmittedValuesAndRejectsWrongTypes(t *testing.T) {
 	previous := WakeUpSettings{Enabled: false, IntervalSeconds: 3600}
 	merged, err := mergeWakeUpSettings(previous, map[string]any{"enabled": true})
-	if err != nil || !merged.Enabled || merged.IntervalSeconds != 3600 {
+	if err != nil || !merged.Enabled || merged.IntervalSeconds != 600 {
 		t.Fatalf("partial WakeUp settings merge = %#v, %v", merged, err)
 	}
 	for _, invalid := range []any{

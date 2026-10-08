@@ -315,6 +315,11 @@ func lockLifeContextTx(ctx context.Context, tx pgx.Tx, fluctlightID string) erro
 	if tx == nil {
 		return errors.New("life_context_transaction_required")
 	}
+	// Native inbox insertion can preempt a lifecycle execution in this same
+	// transaction. Always take its lock before Life, matching final settlement.
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+		return err
+	}
 	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "life-context:"+strings.TrimSpace(fluctlightID))
 	return err
 }

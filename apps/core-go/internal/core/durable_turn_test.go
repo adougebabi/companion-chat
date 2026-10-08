@@ -235,7 +235,7 @@ func TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases(t *testing.T) {
 		t.Fatal(err)
 	}
 	clock = readClock()
-	if clock["idle_phase"] != "second_30m" || !due.Equal(t0.Add(30*time.Minute)) {
+	if clock["idle_phase"] != "recurring_10m" || !due.Equal(t0.Add(20*time.Minute)) {
 		t.Fatalf("first Wake-up completion did not schedule absolute t+30: %s due=%s", payload, due)
 	}
 	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
@@ -244,7 +244,7 @@ func TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if replay := readClock(); replay["idle_phase"] != "second_30m" || !due.Equal(t0.Add(30*time.Minute)) {
+	if replay := readClock(); replay["idle_phase"] != "recurring_10m" || !due.Equal(t0.Add(20*time.Minute)) {
 		t.Fatalf("duplicate Wake-up completion advanced phase twice: %s due=%s", payload, due)
 	}
 }

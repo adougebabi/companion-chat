@@ -355,5 +355,8 @@ func (a *App) enqueueNativeFactTx(ctx context.Context, tx pgx.Tx, fluctlightID, 
 	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','cognition.processing',$3) ON CONFLICT DO NOTHING`, "cognition_intent:"+inboxID, "cognition:"+inboxID, jsonBytes(map[string]any{"inbox_id": inboxID, "fluctlight_id": fluctlightID})); err != nil {
 		return "", err
 	}
+	if err := supersedeLifecycleForCognitionTx(ctx, tx, fluctlightID); err != nil {
+		return "", err
+	}
 	return inboxID, nil
 }

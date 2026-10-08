@@ -276,6 +276,23 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	receipt := toolExecutionReceipt(request, callID, result)
 	receipt.AuthorityRevisions = authority
 	receipt.Replayed = replayed
+	output := mapValue(result.Output)
+	if err == nil && (result.Status == "completed" || result.Status == "accepted") && strings.TrimSpace(stringValue(output["inbox_id"])) != "" {
+		if preemptErr := a.CancelLifecycleForCognition(ctx, request.FluctlightID, "cognition:"+stringValue(output["inbox_id"])); preemptErr != nil {
+			a.recordDiagnosticEvent(ctx, "cognition.lifecycle_preemption.degraded", "warning", request.FluctlightID, stringValue(output["inbox_id"]), result.CorrelationID, map[string]any{"error_code": "lifecycle_preemption_failed"})
+		}
+	}
+	if err == nil && result.Status == "completed" && stringValue(output["target_kind"]) == "conversation_message" && stringValue(output["delivery_status"]) != "duplicate_suppressed" {
+		var followupErr error
+		if request.Surface == CapabilitySurfaceWakeUp {
+			followupErr = a.schedulePendingReflectionTrigger(ctx, request.FluctlightID)
+		} else {
+			followupErr = a.scheduleCognitionFollowups(ctx, request.FluctlightID)
+		}
+		if followupErr != nil {
+			a.recordDiagnosticEvent(ctx, "conversation.publication.followup.degraded", "warning", request.FluctlightID, stringValue(output["target_ref"]), result.CorrelationID, map[string]any{"error_code": "followup_schedule_failed"})
+		}
+	}
 	return receipt, err
 }
 

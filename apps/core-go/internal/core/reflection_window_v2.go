@@ -100,3 +100,33 @@ func (a *App) setReflectionWindowIdle(ctx context.Context, fluctlightID string) 
 	})
 	return err
 }
+
+func (a *App) advanceReflectionWatermarkWithoutModel(ctx context.Context, fluctlightID string, watermark int) error {
+	lease, ok := ctx.Value(reflectionWindowLeaseContextKey{}).(reflectionWindowLease)
+	if !ok || lease.FluctlightID != fluctlightID || lease.Token.IsZero() {
+		return errors.New("reflection_window_lease_missing")
+	}
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
+		if superseded, err := lifecycleIntentSupersededTx(ctx, tx); err != nil {
+			return err
+		} else if superseded {
+			return errLifecycleSupersededByCognition
+		}
+		command, err := tx.Exec(ctx, `
+			UPDATE public.cognition_reflection_windows
+			SET watermark=GREATEST(watermark,$2),status='idle',updated_at=now()
+			WHERE fluctlight_id=$1
+			  AND status='running'
+			  AND updated_at=$3`, fluctlightID, watermark, lease.Token)
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() != 1 {
+			return errors.New("reflection_window_lease_conflict")
+		}
+		return nil
+	})
+}

@@ -78,10 +78,12 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if _, err := tx.Exec(ctx, `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`); err != nil {
 			return err
 		}
+		// All mutating Tools share lifecycle-before-Life lock ordering with
+		// cognition enqueue and background final settlement.
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, request.FluctlightID); err != nil {
+			return err
+		}
 		if request.Surface == CapabilitySurfaceWakeUp && lifecycleIntentID(ctx) != "" {
-			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, request.FluctlightID); err != nil {
-				return err
-			}
 			current, err := wakeUpExecutionCurrentTx(ctx, tx, expectedWakeUpCycle(ctx))
 			if err != nil {
 				return err
