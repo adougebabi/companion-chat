@@ -1601,3 +1601,26 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ### Next Steps
 
 - 恢复实际模型服务并提供visual live验收配置后，完成live验证；任务保持in_progress。
+
+
+## Session 49: Goal 技术边界收口与真实验收分工
+<!-- trellis-session: v=2 fp=c17ec352baa88614 -->
+
+**Date**: 2026-10-08
+**Task**: Goal 技术边界收口与真实验收分工
+**Branch**: `codex/fluctlight-goal-closed-loop`
+
+### Summary
+
+完成 Goal 证据、原生 due 表达、作用域、重复结算、Review、Owner 分页/UI 与 Worker 幂等停止边界；全 Go 实际联合设施 race 1842 PASS events / 1712 leaf PASS / 0 FAIL / 24 live-media SKIP，Core client 2、browser client 17、Web 68通过；矩阵41技术验证/5用户真实验收待反馈，B/C/D保持进行中不归档；已清理任务自有测试设施，未部署或修改生产。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f80a7b2` | feat(goal): close evidence evaluation and owner governance boundaries |
+| `7b036ba` | test(goal): record complete technical acceptance and pending live checks |
+
+### Status
+
+[OK] **Completed**
