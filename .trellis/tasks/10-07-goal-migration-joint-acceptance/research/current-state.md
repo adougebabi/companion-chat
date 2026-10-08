@@ -31,3 +31,7 @@ Schema head 0053_goal_reconciliation。仅任务自有 PG fluctlight-goal-test-7
 
 ## 设施收尾
 2026-10-08 已移除三个任务自有测试容器及唯一自有网络，证据 d-task-facility-cleanup.json。其它容器／镜像／卷未修改。包装脚本仍在 /tmp，但旧端点已无服务；后续重跑需重新创建隔离设施。
+
+## 2026-10-08 实际推荐验收发现与修复
+
+实际推荐目标卡在评估输入超限（53609 > 16384），页面刷新不能恢复。已修复 Provider 来源投影、12000 输入预算准入、新消息优先、只消费本轮证据及剩余来源续批。真实 PostgreSQL 的完整 Goal race 回归：104 PASS events，0 FAIL/SKIP；vet/build 通过。独立复核发现并修复 Actor 工具与数据库源字段形状差异。详细证据见 `.trellis/tasks/10-07-goal-migration-joint-acceptance/research/d-live-recommendation-input-budget.md`。尚未部署到用户实际环境，线上完成状态和本次真实验收仍待验证。

@@ -64,3 +64,7 @@ race 联合验收暴露了显式 Stop 与 context shutdown 重复停止 SDK Work
 B／C／D 和整体仍保持 in_progress。只有最终门禁和对应用户真实验收均符合要求，才归档完成任务；当前不会将未反馈项、SKIP 或缺少配置记为通过。
 
 技术源码、生成契约与规格提交为 f80a7b2。任务自有 PostgreSQL／Redis／Temporal 测试容器及网络已清理；其它运行环境未修改。后续自动化重跑需重新准备隔离设施，原始测试证据保留。
+
+## 2026-10-08 实际推荐验收发现与修复
+
+实际推荐目标卡在评估输入超限（53609 > 16384），页面刷新不能恢复。已修复 Provider 来源投影、12000 输入预算准入、新消息优先、只消费本轮证据及剩余来源续批。真实 PostgreSQL 的完整 Goal race 回归：104 PASS events，0 FAIL/SKIP；vet/build 通过。独立复核发现并修复 Actor 工具与数据库源字段形状差异。详细证据见 `.trellis/tasks/10-07-goal-migration-joint-acceptance/research/d-live-recommendation-input-budget.md`。尚未部署到用户实际环境，线上完成状态和本次真实验收仍待验证。

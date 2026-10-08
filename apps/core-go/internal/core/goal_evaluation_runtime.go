@@ -22,17 +22,18 @@ type goalEvaluationGoal struct {
 }
 
 type goalEvaluationSnapshot struct {
-	Reviews         []GoalReviewContext  `json:"reviews"`
-	ClaimRevision   int                  `json:"claim_revision"`
-	DeferredGoalIDs []string             `json:"deferred_goal_ids"`
-	RequestID       string               `json:"request_id"`
-	FluctlightID    string               `json:"fluctlight_id"`
-	OwnerActorID    string               `json:"owner_actor_id"`
-	ProfileID       string               `json:"profile_id"`
-	Reason          string               `json:"reason"`
-	Goals           []goalEvaluationGoal `json:"goals"`
-	Sources         []GoalSource         `json:"sources"`
-	SourceIDs       []int64              `json:"source_ids"`
+	ProviderSourceIDs []int64              `json:"provider_source_ids,omitempty"`
+	Reviews           []GoalReviewContext  `json:"reviews"`
+	ClaimRevision     int                  `json:"claim_revision"`
+	DeferredGoalIDs   []string             `json:"deferred_goal_ids"`
+	RequestID         string               `json:"request_id"`
+	FluctlightID      string               `json:"fluctlight_id"`
+	OwnerActorID      string               `json:"owner_actor_id"`
+	ProfileID         string               `json:"profile_id"`
+	Reason            string               `json:"reason"`
+	Goals             []goalEvaluationGoal `json:"goals"`
+	Sources           []GoalSource         `json:"sources"`
+	SourceIDs         []int64              `json:"source_ids"`
 }
 
 func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluationSnapshot, map[string]any, error) {
@@ -208,7 +209,7 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		rows, err = tx.Query(ctx, `SELECT id FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND processed_at IS NULL ORDER BY recorded_at,id LIMIT 32`, snapshot.FluctlightID, snapshot.ProfileID)
+		rows, err = tx.Query(ctx, `SELECT id FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND processed_at IS NULL ORDER BY CASE WHEN source_kind='message' THEN 0 ELSE 1 END,recorded_at DESC,id DESC LIMIT 32`, snapshot.FluctlightID, snapshot.ProfileID)
 		if err != nil {
 			return err
 		}
@@ -299,6 +300,18 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	if len(snapshot.Goals) == 0 {
 		return a.settleEmptyGoalEvaluation(ctx, snapshot)
 	}
+	snapshot, err = admitGoalEvaluationSourceInput(snapshot)
+	if err != nil {
+		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
+	}
+	// Record the exact offered source subset without dropping the full CAS snapshot.
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.goal_evaluation_requests SET snapshot=$3 WHERE id=$1 AND status='processing' AND claim_revision=$2`, id, snapshot.ClaimRevision, jsonBytes(snapshot))
+	if err != nil {
+		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
+	}
+	if command.RowsAffected() != 1 {
+		return nil, ErrConflict
+	}
 	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: snapshot.OwnerActorID, TargetActorID: snapshot.OwnerActorID, FluctlightID: snapshot.FluctlightID, WorkingProfileID: snapshot.ProfileID, SourceFactID: id, TriggerSource: "goal_evaluation", MemoryOperation: MemoryForReflection, MemoryConversationMode: MemoryConversationGlobalOnly})
 	if err != nil {
 		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
@@ -325,7 +338,7 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 			return ErrConflict
 		}
 		sources := map[string]GoalSource{}
-		for _, source := range snapshot.Sources {
+		for _, source := range admittedGoalEvaluationSources(snapshot) {
 			sources[source.Ref] = source
 		}
 		goals := map[string]GoalAuthority{}
@@ -450,7 +463,7 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 			return err
 		}
 		if len(snapshot.SourceIDs) > 0 && len(snapshot.DeferredGoalIDs) == 0 {
-			if _, err := tx.Exec(ctx, `UPDATE public.goal_source_events SET processed_at=now() WHERE id=ANY($1::bigint[]) AND fluctlight_id=$2`, snapshot.SourceIDs, snapshot.FluctlightID); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE public.goal_source_events SET processed_at=now() WHERE id=ANY($1::bigint[]) AND fluctlight_id=$2`, snapshot.ProviderSourceIDs, snapshot.FluctlightID); err != nil {
 				return err
 			}
 		}
@@ -461,6 +474,25 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 			}
 			if _, err := tx.Exec(ctx, `UPDATE public.goal_reviews SET evaluation_request_id=$1 WHERE evaluation_request_id=$2 AND status='pending' AND goal_id=ANY($3::text[])`, remainderID, id, snapshot.DeferredGoalIDs); err != nil {
 				return err
+			}
+		}
+		if len(snapshot.DeferredGoalIDs) == 0 {
+			var remaining bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND processed_at IS NULL)`, snapshot.FluctlightID, snapshot.ProfileID).Scan(&remaining); err != nil {
+				return err
+			}
+			if remaining {
+				active := []string{}
+				for _, goal := range goals {
+					if goal.Status == GoalActive || goal.Status == GoalPaused {
+						active = append(active, goal.EntityID)
+					}
+				}
+				if len(active) > 0 {
+					if _, err := queueGoalEvaluationTx(ctx, tx, snapshot.FluctlightID, snapshot.ProfileID, "assessment_source_remainder", id+":source-remainder", active); err != nil {
+						return err
+					}
+				}
 			}
 		}
 		result["evaluated_goals"] = evaluated

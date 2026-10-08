@@ -632,3 +632,30 @@ independent physical attempt facts. Scripted Provider is not live acceptance.
 Wrong: any Tool invocation -> pending; failed inbox alone recovers a due intention.
 Correct: durable claim -> classified actual receipt/operation -> atomic Attempt
 settlement or explicit waiting -> domain backoff/reconciliation -> durable work.
+
+## Scenario: Goal Evaluation Source Admission Under Accumulated Tool History
+
+Goal evaluation retains the complete durable source/CAS snapshot and offers a
+bounded Provider view. Repeated Goal inspection snapshots must not be embedded
+as proof; selected Goal standards are already provided separately. Actor facts
+retain subject, value, epistemic kind, status and effective interval, supporting
+both database (`subject_actor_id/value_json/valid_from`) and Tool receipt
+(`actor_id/value/effective_at`) shapes. Domain query results and published
+message text retain their full semantic payload.
+
+Existing judgment evidence is mandatory. Admit recent messages before other
+sources and sort equal-priority sources by recorded time then ID descending.
+Keep the Provider source view below the existing required-input ceiling; the
+current implementation reserves headroom with a 12000 estimated-token budget.
+Oversized standards/mandatory proof fail visibly; never truncate proof or raise
+global limits to hide overflow. The normal physical prompt gate still applies.
+
+Only offered references may be accepted or marked processed. Unoffered sources
+remain durable and unprocessed; queue a source-remainder evaluation for selected
+active/paused Goals. Preserve existing deferred-Goal batching and claim CAS.
+
+Required regression: accumulated legal inspection receipts and genuine domain
+queries must still admit a recent preference/recommendation, close once without
+fabricated Attempts, preserve a specific unoffered source and consume it in the
+next batch. Actor Tool projection tests use the actual output field names and
+unique subject/value/time assertions, rather than database-shaped mock receipts.

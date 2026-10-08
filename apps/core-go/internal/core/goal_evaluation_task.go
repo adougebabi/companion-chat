@@ -69,11 +69,11 @@ func compactGoalEvaluationInput(input goalEvaluationSnapshot) map[string]any {
 		goals = append(goals, map[string]any{"goal_id": g.EntityID, "revision": g.Revision, "criteria_version": effectiveGoalCriteriaVersion(g), "criteria": criteria, "criteria_policy": nonNilGoalCriteriaPolicy(g.CriteriaPolicy), "desired_outcome": g.DesiredOutcome, "motivation": g.Motivation, "status": g.Status, "scope": g.Scope, "profile_id": g.ProfileID, "target_actor_id": g.TargetActorID, "deadline": g.Deadline, "deadline_policy": g.DeadlinePolicy, "current_stage_id": g.CurrentStageID, "execution_hint": g.ExecutionHint, "stages": entry.Stages, "commitments": entry.Commitments, "current_judgments": entry.CurrentJudgments, "review_policy": effectiveGoalReviewPolicy(g.ReviewPolicy)})
 	}
 	sources := []any{}
-	for _, s := range input.Sources {
+	for _, s := range admittedGoalEvaluationSources(input) {
 		if s.Kind == "goal_revision" {
 			continue
 		}
-		sources = append(sources, map[string]any{"ref": s.Ref, "kind": s.Kind, "id": s.ID, "version": s.Version, "profile_id": s.ProfileID, "conversation_id": s.ConversationID, "subject_actor_id": s.SubjectActorID, "occurred_at": s.OccurredAt, "valid": s.Valid, "can_support_success": s.CanSupportSuccess, "goal_ids": s.GoalIDs, "data": s.Data})
+		sources = append(sources, map[string]any{"ref": s.Ref, "kind": s.Kind, "id": s.ID, "version": s.Version, "profile_id": s.ProfileID, "conversation_id": s.ConversationID, "subject_actor_id": s.SubjectActorID, "occurred_at": s.OccurredAt, "valid": s.Valid, "can_support_success": s.CanSupportSuccess, "goal_ids": s.GoalIDs, "data": compactGoalEvaluationSourceData(s)})
 	}
 	return map[string]any{"actor_self": input.FluctlightID, "actor_user": input.OwnerActorID, "goals": goals, "sources": sources, "reviews": input.Reviews}
 }
