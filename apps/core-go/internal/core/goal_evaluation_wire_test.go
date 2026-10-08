@@ -148,7 +148,7 @@ func TestGoalEvaluationWireOmitsRawAuthorityAndHydratesFrozenValues(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	wire := jsonString(map[string]any{"stable_definitions": stable, "current": current, "schema": goalEvaluationResponseSchema()})
+	wire := jsonString(map[string]any{"stable_definitions": stable, "current": current, "schema": goalEvaluationResponseSchema(binding)})
 	for _, forbidden := range []string{"goal-secret", "criterion-required", "criterion-optional", "stage-secret", "commitment-secret", "source-raw-secret", "fluctlight-secret", "owner-secret", "target-secret", "profile-secret", "conversation-secret", "message-secret", "expected_revision", "criteria_version", "goal_id", "criterion_id", "target_actor_id", "dependency_ids"} {
 		if strings.Contains(wire, forbidden) {
 			t.Fatalf("raw authority escaped Provider wire: %s in %s", forbidden, wire)
@@ -172,6 +172,72 @@ func TestGoalEvaluationWireOmitsRawAuthorityAndHydratesFrozenValues(t *testing.T
 	}
 	if jsonString(snapshot) != durableBefore {
 		t.Fatal("Provider projection mutated the frozen durable snapshot")
+	}
+}
+
+func TestGoalEvaluationResponseSchemaUsesOnlyFrozenOfferedRefs(t *testing.T) {
+	snapshot := richGoalEvaluationWireSnapshot()
+	binding, err := newGoalEvaluationWireBinding(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := goalEvaluationResponseSchema(binding)
+	evaluation := mapValue(mapValue(mapValue(schema["properties"])["evaluations"])["items"])
+	evaluationProperties := mapValue(evaluation["properties"])
+	assertSchemaEnum := func(label string, node map[string]any, want ...string) {
+		t.Helper()
+		values := arrayValue(node["enum"])
+		if len(values) != len(want) {
+			t.Fatalf("%s enum=%#v want=%#v", label, values, want)
+		}
+		for index, expected := range want {
+			if stringValue(values[index]) != expected || stringValue(values[index]) == "" {
+				t.Fatalf("%s enum=%#v want=%#v", label, values, want)
+			}
+		}
+	}
+	assertSchemaEnum("goal", mapValue(evaluationProperties["goal_ref"]), "goal:1")
+	judgment := mapValue(mapValue(evaluationProperties["judgments"])["items"])
+	assertSchemaEnum("criterion", mapValue(mapValue(judgment["properties"])["criterion_ref"]), "criterion:1.1", "criterion:1.2", "criterion:1.c1.1", "criterion:1.s1.1")
+	assertSchemaEnum("evidence", mapValue(mapValue(mapValue(mapValue(judgment["properties"])["evidence_refs"])["items"])), "e1")
+	assertSchemaEnum("stage", mapValue(mapValue(mapValue(evaluationProperties["stage_evaluation"])["properties"])["object_ref"]), "stage:1.1")
+	assertSchemaEnum("commitment", mapValue(mapValue(mapValue(mapValue(evaluationProperties["commitment_evaluations"])["items"])["properties"])["object_ref"]), "commitment:1.1")
+	assertSchemaEnum("actor", mapValue(mapValue(mapValue(evaluationProperties["relationship_confirmation"])["properties"])["target_actor_ref"]), "actor_target:1")
+	wire := jsonString(schema)
+	for _, raw := range []string{"goal-secret", "criterion-required", "stage-secret", "commitment-secret", "source-raw-secret", "target-secret"} {
+		if strings.Contains(wire, raw) {
+			t.Fatalf("raw authority escaped bounded schema: %s", raw)
+		}
+	}
+}
+
+func TestGoalEvaluationResponseSchemaOmitsUnavailableObjectRefs(t *testing.T) {
+	snapshot := richGoalEvaluationWireSnapshot()
+	snapshot.Goals[0].Stages = nil
+	snapshot.Goals[0].Commitments = nil
+	snapshot.Goals[0].Goal.CurrentStageID = ""
+	binding, err := newGoalEvaluationWireBinding(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := goalEvaluationResponseSchema(binding)
+	evaluation := mapValue(mapValue(mapValue(schema["properties"])["evaluations"])["items"])
+	evaluationProperties := mapValue(evaluation["properties"])
+	for _, field := range []string{"stage_evaluation", "commitment_evaluations"} {
+		if _, ok := evaluationProperties[field]; ok {
+			t.Fatalf("no-object schema advertised %s", field)
+		}
+	}
+	if _, ok := mapValue(mapValue(evaluationProperties["review"])["properties"])["stage_ref"]; ok {
+		t.Fatal("review advertised a stage ref when no stage was served")
+	}
+	plan := mapValue(mapValue(mapValue(schema["properties"])["plans"])["items"])
+	planProperties := mapValue(plan["properties"])
+	if _, ok := mapValue(mapValue(planProperties["stage"])["properties"])["object_ref"]; ok {
+		t.Fatal("stage creation schema advertised an unavailable object_ref")
+	}
+	if _, ok := mapValue(mapValue(planProperties["commitment"])["properties"])["object_ref"]; ok {
+		t.Fatal("commitment creation schema advertised an unavailable object_ref")
 	}
 }
 

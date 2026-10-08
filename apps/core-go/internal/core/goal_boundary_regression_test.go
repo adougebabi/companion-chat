@@ -38,8 +38,8 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 		{"reported_action", "goal_judgment_not_actual_event"},
 		{"unpublished_draft", "goal_judgment_source_invalid"},
 		{"invalid_item", "goal_judgment_source_invalid"},
-		{"general_goal_relationship_confirmation", "goal_relationship_resolution_scope_invalid"},
-		{"unserved_stage", "goal_evaluation_wire_object_ref_invalid"},
+		{"general_goal_relationship_confirmation", "adk_final_contract_invalid"},
+		{"unserved_stage", "adk_final_contract_invalid"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)

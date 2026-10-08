@@ -56,7 +56,7 @@ type goalEvaluationWireReview struct {
 	Decision            string   `json:"decision"`
 	Explanation         string   `json:"explanation"`
 	EvidenceRefs        []string `json:"evidence_refs"`
-	StageRef            string   `json:"stage_ref"`
+	StageRef            string   `json:"stage_ref,omitempty"`
 	FeasibleAlternative string   `json:"feasible_alternative"`
 }
 

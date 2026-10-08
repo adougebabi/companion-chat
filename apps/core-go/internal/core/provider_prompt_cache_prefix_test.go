@@ -9,7 +9,7 @@ import (
 
 func TestGoalEvaluationAssemblyKeepsStablePhysicalPrefix(t *testing.T) {
 	snapshot := richGoalEvaluationWireSnapshot()
-	_, stable, current, err := goalEvaluationWireInput(snapshot)
+	binding, stable, current, err := goalEvaluationWireInput(snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestGoalEvaluationAssemblyKeepsStablePhysicalPrefix(t *testing.T) {
 	base := PromptAssemblyInput{
 		Role: "cognitive_assessment", OperationRules: []string{goalEvaluationInstruction},
 		CorePersona: map[string]any{"identity": map[string]any{"name": "摇光"}}, StableTaskContext: stable,
-		WorkingMemory: memory, CurrentInput: jsonString(current), ResponseFormat: providerResponseFormatForSchema("cognitive_assessment", "goal_evaluation_v1", goalEvaluationResponseSchema()),
+		WorkingMemory: memory, CurrentInput: jsonString(current), ResponseFormat: providerResponseFormatForSchema("cognitive_assessment", "goal_evaluation_v1", goalEvaluationResponseSchema(binding)),
 		Policy: DefaultPromptBudgetPolicy(4096),
 	}
 	first, err := AssemblePromptContext(base)

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,8 +82,17 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 		}
 		ref := refs[0]
 		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "认真表达自己的心意", "visible_text": "我喜欢你，这是我现在想清楚告诉你的心意。", "influences": []any{map[string]any{"ref": ref, "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": ref, "reason": "本轮正式表达可能满足原成功标准"}}}}
-	}).on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	}).on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
 		assessments++
+		schema := mapValue(mapValue(payload["response_format"])["json_schema"])
+		evaluation := mapValue(mapValue(mapValue(mapValue(schema["schema"])["properties"])["evaluations"])["items"])
+		properties := mapValue(evaluation["properties"])
+		if _, ok := properties["stage_evaluation"]; ok {
+			t.Error("no-stage Goal Provider schema advertised stage_evaluation")
+		}
+		if _, ok := properties["commitment_evaluations"]; ok {
+			t.Error("no-commitment Goal Provider schema advertised commitment_evaluations")
+		}
 		snapshot := readProcessingGoalSnapshot(t, f)
 		var expression GoalSource
 		for _, source := range snapshot.Sources {
@@ -139,6 +149,68 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 	}
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err != nil || assessments != 1 {
 		t.Fatalf("assessment replay called model: %d %v", assessments, err)
+	}
+}
+
+func TestGoalEvaluationGhostStageFailsBeforeDomainCommit(t *testing.T) {
+	for _, mode := range []string{"empty_stage_ref", "null_stage", "empty_commitments", "empty_review_stage_ref"} {
+		t.Run(mode, func(t *testing.T) {
+			f := seedWardrobeToolFixture(t)
+			goalID := createDialogueGoalForClosure(t, f, []string{"已实际清楚向对方表达自己的心意"})
+			seedCognitiveProviderRole(t, f.ctx, f.repository, "ghost-stage-model-"+f.suffix)
+			router := newFakeProviderRouter().on("conversation_turn_response", func(payload map[string]any) fakeProviderResult {
+				refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(jsonString(payload), -1)
+				if len(refs) == 0 {
+					return fakeProviderResult{Status: 500}
+				}
+				return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "完成真实表达", "visible_text": "我认真地告诉你，我很在意你。", "influences": []any{map[string]any{"ref": refs[0], "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": refs[0], "reason": "实际表达可能满足目标"}}}}
+			}).on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+				snapshot := readProcessingGoalSnapshot(t, f)
+				var proof GoalSource
+				for _, source := range snapshot.Sources {
+					if source.Kind == "message" && source.SubjectActorID == f.fluctlightID {
+						proof = source
+					}
+				}
+				entry := snapshot.Goals[0]
+				output := GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{{GoalID: entry.GoalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "satisfied", Kind: "communication", Subject: "actor_self", Discourse: "assertion", EvidenceRefs: []string{proof.Ref}, Reason: "实际消息"}}, Impact: "completed"}}, Plans: []GoalPlanCandidate{}}
+				wire := goalEvaluationProviderFixture(snapshot, output)
+				evaluation := mapValue(arrayValue(wire["evaluations"])[0])
+				switch mode {
+				case "empty_stage_ref":
+					evaluation["stage_evaluation"] = map[string]any{"object_ref": "", "judgments": []any{}, "completed": true, "reason": "ghost"}
+				case "null_stage":
+					evaluation["stage_evaluation"] = nil
+				case "empty_commitments":
+					evaluation["commitment_evaluations"] = []any{}
+				case "empty_review_stage_ref":
+					evaluation["review"] = map[string]any{"reason_category": "progressed", "decision": "continue", "explanation": "真实消息满足标准", "evidence_refs": []any{"e1"}, "stage_ref": "", "feasible_alternative": ""}
+				}
+				return fakeProviderResult{Structured: wire}
+			})
+			f.app.Provider.HTTP = &http.Client{Transport: router}
+			if _, err := f.app.HandleTurn(f.ctx, f.ownerID, f.conversationID, map[string]any{"fluctlight_id": f.fluctlightID, "text": "请告诉我你的心意。", "idempotency_key": "ghost-stage-turn-" + f.suffix}); err != nil {
+				t.Fatal(err)
+			}
+			_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f))
+			if err == nil || !strings.Contains(err.Error(), "adk_final_contract_invalid") {
+				t.Fatalf("ghost stage error=%v", err)
+			}
+			var status string
+			var evaluations, resolutions int
+			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&status); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_evaluations WHERE goal_id=$1`, goalID).Scan(&evaluations); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_resolutions WHERE goal_id=$1`, goalID).Scan(&resolutions); err != nil {
+				t.Fatal(err)
+			}
+			if status != "active" || evaluations != 0 || resolutions != 0 {
+				t.Fatalf("ghost stage mutated domain: status=%s evaluations=%d resolutions=%d", status, evaluations, resolutions)
+			}
+		})
 	}
 }
 

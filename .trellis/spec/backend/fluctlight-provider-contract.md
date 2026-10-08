@@ -952,13 +952,23 @@ fields are `goal_ref`, `criterion_ref`, `object_ref`, `target_actor_ref`,
   output. Unknown/wrong-kind/duplicate/cross-Goal refs fail closed. No permissive
   legacy raw-ID/version Provider fallback. Existing domain CAS, real source
   validity, profile and relationship guards remain mandatory.
+- Build the Provider response schema from the same frozen typed binding used
+  for hydration. Reference enums contain only offered short refs, sorted for
+  deterministic serialization; empty refs are not enum members. Omit Stage and
+  Commitment evaluation properties when no corresponding objects were served;
+  omit review.stage_ref and plan object_ref where no existing objects apply.
+  New Stage/Commitment plans remain available without an object_ref. No-source
+  evidence arrays permit zero items only. Keep binder ownership/source/CAS checks
+  after formal Task schema validation; never drop a non-null invalid object.
 - Every claimed Goal requires exactly one evaluation, regardless of plans.
+  Completed Goals should not receive a same-Goal plan; existing terminal plan
+  handling is a no-op and cannot create further Stage/Commitment or reopen them.
   One judgment per criterion combines applicable evidence; quotation, hypothesis,
   plan and report cannot be positive event proof. Completed policy requires
   impact=completed; prose must agree and cannot add thresholds to standards.
   Omit absent Stage/Commitment evaluation objects; new plan objects omit
   object_ref, existing operations select only offered same-kind refs. A review
-  without a Stage uses empty stage_ref, never descriptive prose in ref fields.
+  without a Stage omits stage_ref, never descriptive prose in ref fields.
 - Persisted GoalAuthority omits EntityID/TargetActorID; restore only from the
   claim entry's explicit GoalID/TargetActorID on a private copy. JSON replay
   and in-memory inputs produce identical bindings without snapshot mutation.
