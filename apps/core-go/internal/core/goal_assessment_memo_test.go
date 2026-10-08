@@ -173,3 +173,18 @@ func TestGoalAssessmentNoProgressDetectsMandatoryOnlyAdmission(t *testing.T) {
 		t.Fatal("offered new proof must be allowed to make finite progress")
 	}
 }
+
+func TestGoalAssessmentMemoRejectsPriorEvaluationPolicy(t *testing.T) {
+	entry, sources, projection := assessmentMemoFixture()
+	current := goalAssessmentMemoFor(entry, sources, projection, time.Now())
+	for _, priorPolicy := range []string{"", "goal.evaluation.v1"} {
+		prior := current
+		prior.EvaluationPolicyVersion = priorPolicy
+		if goalAssessmentMemoMatches(prior, current) {
+			t.Fatalf("obsolete policy reused: %q", priorPolicy)
+		}
+	}
+	if !goalAssessmentMemoMatches(current, current) {
+		t.Fatal("current policy memo did not match")
+	}
+}

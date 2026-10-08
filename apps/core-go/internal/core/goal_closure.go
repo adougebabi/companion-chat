@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const goalEvaluationPolicyVersion = "goal.evaluation.v1"
+const goalEvaluationPolicyVersion = "goal.evaluation.v2"
 
 type GoalCriterion struct {
 	ID   string `json:"id"`
@@ -359,6 +359,11 @@ func ApplyGoalEvaluation(goal GoalAuthority, candidate GoalEvaluationCandidate, 
 	}
 	if candidate.Impact == "completed" && !complete {
 		return GoalAuthority{}, GoalGovernanceRecord{}, nil, errors.New("goal_completion_criteria_incomplete")
+	}
+	// A fully satisfied assessment must request settlement explicitly. Reject
+	// contradictory candidates rather than memoizing an active Goal at 100%.
+	if complete && candidate.Impact != "completed" {
+		return GoalAuthority{}, GoalGovernanceRecord{}, nil, errors.New("goal_evaluation_completion_impact_mismatch")
 	}
 	next := goal
 	operation := GoalUpdate

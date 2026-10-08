@@ -398,3 +398,34 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 		})
 	}
 }
+
+func TestGoalEvaluationRequiresConsistentCompletionImpact(t *testing.T) {
+	at := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
+	goal := GoalAuthority{EntityID: "recommendation", SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", FluctlightID: "self", Scope: "general", DesiredOutcome: "根据阅读偏好推荐小说", SuccessCriteria: []string{"具体推荐并说明理由", "可选补充"}, CriterionIDs: []string{"criterion_required", "criterion_optional"}, CriteriaVersion: 1, Motivation: "分享兴趣", Status: GoalActive, Revision: 1, EvidenceRefs: []string{"owner:goal"}}
+	source := GoalSource{Ref: "source:1", EventID: 1, Kind: "message", ID: "recommendation", Version: "v1", FluctlightID: "self", SubjectActorID: "self", Valid: true, CanSupportSuccess: true, Data: map[string]any{"text": "你喜欢科幻，推荐特德姜，语言与时间的设定很精彩。", "message_kind": "assistant"}}
+	sources := map[string]GoalSource{source.Ref: source}
+	for _, mode := range []string{"all", "any"} {
+		goal.CriteriaPolicy = map[string]any{"mode": mode, "optional_ids": []any{"criterion_optional"}}
+		for _, impact := range []string{"progressed", "no_change", "blocked", "regressed", "needs_evidence", "completed"} {
+			t.Run(mode+"/"+impact, func(t *testing.T) {
+				candidate := GoalEvaluationCandidate{GoalID: goal.EntityID, ExpectedRevision: 1, CriteriaVersion: 1, Impact: impact, Judgments: []GoalCriterionJudgment{{CriterionID: "criterion_required", Verdict: "satisfied", Kind: "communication", Subject: "actor_self", Discourse: "assertion", EvidenceRefs: []string{source.Ref}, Reason: "正式推荐"}}}
+				next, _, _, err := ApplyGoalEvaluation(goal, candidate, sources, at)
+				if impact != "completed" {
+					if err == nil || err.Error() != "goal_evaluation_completion_impact_mismatch" {
+						t.Fatalf("contradictory completion accepted: %v", err)
+					}
+					return
+				}
+				if err != nil || next.Status != GoalCompleted || next.Progress != 1 {
+					t.Fatalf("valid completion failed: %#v %v", next, err)
+				}
+				paused := goal
+				paused.Status = GoalPaused
+				next, _, _, err = ApplyGoalEvaluation(paused, candidate, sources, at)
+				if err != nil || next.Status != GoalPaused {
+					t.Fatalf("paused lifecycle overridden: %#v %v", next, err)
+				}
+			})
+		}
+	}
+}

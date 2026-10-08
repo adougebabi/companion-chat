@@ -16,20 +16,22 @@ import (
 // It deliberately contains no model output and can only suppress another model
 // call after the normal claim and authority/source checks have succeeded.
 type goalAssessmentMemo struct {
-	GoalID              string   `json:"goal_id"`
-	AuthoritySignature  string   `json:"authority_signature"`
-	ConstraintSignature string   `json:"constraint_signature"`
-	SourceFingerprints  []string `json:"source_fingerprints"`
-	SucceededAt         string   `json:"succeeded_at"`
+	EvaluationPolicyVersion string   `json:"evaluation_policy_version"`
+	GoalID                  string   `json:"goal_id"`
+	AuthoritySignature      string   `json:"authority_signature"`
+	ConstraintSignature     string   `json:"constraint_signature"`
+	SourceFingerprints      []string `json:"source_fingerprints"`
+	SucceededAt             string   `json:"succeeded_at"`
 }
 
 func goalAssessmentMemoFor(entry goalEvaluationGoal, sources []GoalSource, projection ContextProjection, at time.Time) goalAssessmentMemo {
 	return goalAssessmentMemo{
-		GoalID:              entry.GoalID,
-		AuthoritySignature:  goalAssessmentAuthoritySignature(entry, at),
-		ConstraintSignature: goalAssessmentConstraintSignature(projection),
-		SourceFingerprints:  goalAssessmentSourceFingerprints(entry.Goal, sources),
-		SucceededAt:         formatInstant(at.UTC()),
+		EvaluationPolicyVersion: goalEvaluationPolicyVersion,
+		GoalID:                  entry.GoalID,
+		AuthoritySignature:      goalAssessmentAuthoritySignature(entry, at),
+		ConstraintSignature:     goalAssessmentConstraintSignature(projection),
+		SourceFingerprints:      goalAssessmentSourceFingerprints(entry.Goal, sources),
+		SucceededAt:             formatInstant(at.UTC()),
 	}
 }
 
@@ -216,7 +218,7 @@ func goalAssessmentSourceFingerprint(source GoalSource) string {
 }
 
 func goalAssessmentMemoMatches(memo goalAssessmentMemo, current goalAssessmentMemo) bool {
-	if memo.GoalID != current.GoalID || memo.AuthoritySignature != current.AuthoritySignature || memo.ConstraintSignature != current.ConstraintSignature {
+	if memo.EvaluationPolicyVersion != goalEvaluationPolicyVersion || current.EvaluationPolicyVersion != goalEvaluationPolicyVersion || memo.GoalID != current.GoalID || memo.AuthoritySignature != current.AuthoritySignature || memo.ConstraintSignature != current.ConstraintSignature {
 		return false
 	}
 	prior := map[string]bool{}

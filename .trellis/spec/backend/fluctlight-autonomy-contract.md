@@ -725,3 +725,47 @@ source revocation, real query completion, evidence batching and CAS regressions.
 Wrong: hash the full Projection including instant or mark an unsuccessful run as
 assessed. Correct: persist validated semantic-success stamps and recheck current
 authority before a model-free settlement.
+
+
+## Scenario: Completion Impact Consistency (2026-10-08)
+
+### 1. Scope / Trigger
+A model declares success in prose or satisfies every mandatory criterion while
+returning `impact=progressed`. Do not persist or memoize an active Goal at 100%.
+
+### 2. Signatures
+`ApplyGoalEvaluation(goal,candidate,sources,at)` validates actual sources and
+all/any/optional policy before checking `candidate.Impact`.
+
+### 3. Contracts
+Completion requires validated completion criteria and `impact=completed`.
+Both directions are checked. No prose keyword parsing or automatic field repair.
+Paused Goals retain lifecycle state and existing ready-for-settlement handling;
+relationship confirmation and CAS checks remain mandatory. Core policy is
+`goal.evaluation.v2`; memo `evaluation_policy_version` must match current policy
+(older or missing policy misses cache). This version stays out of model prompts.
+A failed candidate
+uses bounded retry and cannot produce a successful assessment memo.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| complete criteria + non-completed impact | goal_evaluation_completion_impact_mismatch |
+| incomplete criteria + completed impact | goal_completion_criteria_incomplete |
+| duplicate criterion_ref | goal_evaluation_wire_criterion_ref_invalid |
+| missing any claimed Goal evaluation, even with a plan | goal_assessment_coverage_missing |
+
+### 5. Good / Base / Bad Cases
+Good: valid sci-fi recommendation proof satisfies the supplied standard and
+returns completed. Base: incomplete standards return progressed/needs_evidence.
+Bad: invent a book text-percentage threshold or declare completion only in prose.
+
+### 6. Tests Required
+Unit all/any/optional-policy consistency and paused lifecycle; real PG malformed
+output, duplicate judgments and partial coverage preserve Goal revision, source,
+Evaluation and Resolution counts with request retry. Keep relationship guards.
+
+### 7. Wrong vs Correct
+Wrong: cache all-satisfied progressed as a successful assessment.
+Correct: reject the contradiction before any domain write; only commit valid
+completed candidates through the existing sole writer.

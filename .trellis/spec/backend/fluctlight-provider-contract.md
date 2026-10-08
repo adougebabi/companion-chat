@@ -952,6 +952,13 @@ fields are `goal_ref`, `criterion_ref`, `object_ref`, `target_actor_ref`,
   output. Unknown/wrong-kind/duplicate/cross-Goal refs fail closed. No permissive
   legacy raw-ID/version Provider fallback. Existing domain CAS, real source
   validity, profile and relationship guards remain mandatory.
+- Every claimed Goal requires exactly one evaluation, regardless of plans.
+  One judgment per criterion combines applicable evidence; quotation, hypothesis,
+  plan and report cannot be positive event proof. Completed policy requires
+  impact=completed; prose must agree and cannot add thresholds to standards.
+  Omit absent Stage/Commitment evaluation objects; new plan objects omit
+  object_ref, existing operations select only offered same-kind refs. A review
+  without a Stage uses empty stage_ref, never descriptive prose in ref fields.
 - Persisted GoalAuthority omits EntityID/TargetActorID; restore only from the
   claim entry's explicit GoalID/TargetActorID on a private copy. JSON replay
   and in-memory inputs produce identical bindings without snapshot mutation.

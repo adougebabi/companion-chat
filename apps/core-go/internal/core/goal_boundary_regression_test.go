@@ -26,6 +26,9 @@ func insertGoalBoundaryMessage(t *testing.T, f independentToolE2EFixture) string
 func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testing.T) {
 	for _, tc := range []struct{ name, code string }{
 		{"plan_only", "goal_assessment_coverage_missing"},
+		{"partial_coverage", "goal_assessment_coverage_missing"},
+		{"satisfied_progressed", "goal_evaluation_completion_impact_mismatch"},
+		{"duplicate_criterion", "goal_evaluation_wire_criterion_ref_invalid"},
 		{"unknown_no_change", "goal_evaluation_unknown_requires_evidence"},
 		{"invalid_impact", "adk_final_contract_invalid"},
 		{"assistant_self_report", "goal_judgment_self_report_not_business_fact"},
@@ -41,6 +44,11 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 		t.Run(tc.name, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
 			goalID := createDialogueGoalForClosure(t, f, []string{"actual expression"})
+			if tc.name == "partial_coverage" {
+				second := f
+				second.suffix += "_second"
+				createDialogueGoalForClosure(t, second, []string{"another actual expression"})
+			}
 			if tc.name == "general_goal_relationship_confirmation" {
 				if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_goals SET scope='general' WHERE id=$1`, goalID); err != nil {
 					t.Fatal(err)
@@ -66,6 +74,11 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 			f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
 				snapshot := readProcessingGoalSnapshot(t, f)
 				entry := snapshot.Goals[0]
+				for _, offered := range snapshot.Goals {
+					if offered.GoalID == goalID {
+						entry = offered
+					}
+				}
 				proof := ""
 				for _, source := range snapshot.Sources {
 					if source.ID == messageID {
@@ -81,6 +94,10 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 				case "plan_only":
 					output.Evaluations = []GoalEvaluationCandidate{}
 					output.Plans = []GoalPlanCandidate{{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Reason: "only plan", WaitCondition: "wait for evidence"}}
+				case "satisfied_progressed":
+					output.Evaluations[0].Impact = "progressed"
+				case "duplicate_criterion":
+					output.Evaluations[0].Judgments = append(output.Evaluations[0].Judgments, candidate.Judgments[0])
 				case "unknown_no_change":
 					output.Evaluations[0].Impact = "no_change"
 					output.Evaluations[0].Judgments[0].Verdict = "unknown"

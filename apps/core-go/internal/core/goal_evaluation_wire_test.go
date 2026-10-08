@@ -179,6 +179,12 @@ func TestGoalEvaluationWireRejectsUnknownWrongKindDuplicateAndLegacyAuthority(t 
 	snapshot := richGoalEvaluationWireSnapshot()
 	binding, _ := newGoalEvaluationWireBinding(snapshot)
 	valid := goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{{GoalID: "goal-secret", ExpectedRevision: 7, CriteriaVersion: 3, Judgments: []GoalCriterionJudgment{{CriterionID: "criterion-required", Verdict: "unknown", Kind: "communication", Subject: "actor_self", Discourse: "uncertain", EvidenceRefs: []string{}, Reason: "等待"}}, Impact: "needs_evidence", WaitCondition: "等待"}}, Plans: []GoalPlanCandidate{}})
+	duplicateJudgment := decodeObject(jsonBytes(valid))
+	evaluation := mapValue(arrayValue(duplicateJudgment["evaluations"])[0])
+	evaluation["judgments"] = append(arrayValue(evaluation["judgments"]), arrayValue(evaluation["judgments"])[0])
+	if _, err := binding.hydrateOutput(duplicateJudgment); err == nil || err.Error() != "goal_evaluation_wire_criterion_ref_invalid" {
+		t.Fatalf("duplicate criterion accepted: %v", err)
+	}
 	badCases := []map[string]any{
 		{"evaluations": []any{map[string]any{"goal_ref": "goal:404", "judgments": []any{}, "impact": "needs_evidence", "blocker": "", "wait_condition": "等待", "next_step": "", "residual_motivation": ""}}, "plans": []any{}},
 		{"evaluations": []any{map[string]any{"goal_ref": "goal:1", "judgments": []any{map[string]any{"criterion_ref": "stage:1.1", "verdict": "unknown", "kind": "semantic", "subject": "domain", "discourse": "uncertain", "evidence_refs": []any{}, "reason": "wrong kind"}}, "impact": "needs_evidence", "blocker": "", "wait_condition": "等待", "next_step": "", "residual_motivation": ""}}, "plans": []any{}},
