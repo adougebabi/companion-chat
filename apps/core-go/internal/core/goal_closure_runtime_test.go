@@ -94,7 +94,8 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 			t.Fatalf("actual published expression source missing: %#v", snapshot.Sources)
 		}
 		goal := snapshot.Goals[0]
-		return fakeProviderResult{Structured: map[string]any{"evaluations": []any{map[string]any{"goal_id": goal.GoalID, "expected_revision": goal.Goal.Revision, "criteria_version": goal.Goal.CriteriaVersion, "judgments": []any{map[string]any{"criterion_id": goal.Goal.CriterionIDs[0], "verdict": "satisfied", "kind": "communication", "subject": "actor_self", "discourse": "assertion", "evidence_refs": []string{expression.Ref}, "reason": "正式落库的实际表达满足原标准，不要求对方接受"}}, "impact": "completed", "blocker": "", "wait_condition": "", "next_step": "", "residual_motivation": ""}}, "plans": []any{}}}
+		output := GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{{GoalID: goal.GoalID, ExpectedRevision: goal.Goal.Revision, CriteriaVersion: goal.Goal.CriteriaVersion, Judgments: []GoalCriterionJudgment{{CriterionID: goal.Goal.CriterionIDs[0], Verdict: "satisfied", Kind: "communication", Subject: "actor_self", Discourse: "assertion", EvidenceRefs: []string{expression.Ref}, Reason: "正式落库的实际表达满足原标准，不要求对方接受"}}, Impact: "completed"}}, Plans: []GoalPlanCandidate{}}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, output)}
 	})
 	f.app.Provider.HTTP = &http.Client{Transport: router}
 	turn, err := f.app.HandleTurn(f.ctx, f.ownerID, f.conversationID, map[string]any{"fluctlight_id": f.fluctlightID, "text": "现在请告诉我你的心意。", "idempotency_key": "expression-turn-" + f.suffix})
@@ -175,7 +176,7 @@ func runGoalAssessmentFixture(t *testing.T, f independentToolE2EFixture, kind st
 			return original.RoundTrip(request)
 		}
 		snapshot := readProcessingGoalSnapshot(t, f)
-		evaluations := []any{}
+		evaluations := []GoalEvaluationCandidate{}
 		for _, entry := range snapshot.Goals {
 			proof := ""
 			for _, s := range snapshot.Sources {
@@ -188,7 +189,7 @@ func runGoalAssessmentFixture(t *testing.T, f independentToolE2EFixture, kind st
 				t.Error("assessment fixture lacks actual successful source")
 				return embeddingHTTPResponse(request, 500, "{}"), nil
 			}
-			judgments := []any{}
+			judgments := []GoalCriterionJudgment{}
 			for i, id := range entry.Goal.CriterionIDs {
 				verdict := "unknown"
 				refs := []string{}
@@ -198,21 +199,22 @@ func runGoalAssessmentFixture(t *testing.T, f independentToolE2EFixture, kind st
 					refs = []string{proof}
 					discourse = "domain_fact"
 				}
-				judgments = append(judgments, map[string]any{"criterion_id": id, "verdict": verdict, "kind": kind, "subject": "domain", "discourse": discourse, "evidence_refs": refs, "reason": "controlled assessment of real source"})
+				judgments = append(judgments, GoalCriterionJudgment{CriterionID: id, Verdict: verdict, Kind: kind, Subject: "domain", Discourse: discourse, EvidenceRefs: refs, Reason: "controlled assessment of real source"})
 			}
 			impact, wait := "progressed", "await missing evidence"
 			if completed {
 				impact, wait = "completed", ""
 			}
-			candidate := map[string]any{"goal_id": entry.GoalID, "expected_revision": entry.Goal.Revision, "criteria_version": entry.Goal.CriteriaVersion, "judgments": judgments, "impact": impact, "blocker": "", "wait_condition": wait, "next_step": "", "residual_motivation": ""}
+			candidate := GoalEvaluationCandidate{GoalID: entry.GoalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: judgments, Impact: impact, WaitCondition: wait}
 			for _, review := range snapshot.Reviews {
 				if review.GoalID == entry.GoalID {
-					candidate["review"] = map[string]any{"reason_category": "progressed", "decision": "continue", "explanation": "本周期已有真实结果，按原标准继续", "evidence_refs": []string{proof}, "stage_id": "", "feasible_alternative": ""}
+					candidate.Review = &GoalReviewDecision{ReasonCategory: "progressed", Decision: "continue", Explanation: "本周期已有真实结果，按原标准继续", EvidenceRefs: []string{proof}}
 				}
 			}
 			evaluations = append(evaluations, candidate)
 		}
-		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(map[string]any{"evaluations": evaluations, "plans": []any{}})}}}}
+		wire := goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: evaluations, Plans: []GoalPlanCandidate{}})
+		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(wire)}}}}
 		return embeddingHTTPResponse(request, 200, jsonString(response)), nil
 	})}
 	id := latestPendingGoalRequest(t, f)
@@ -281,24 +283,24 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 					t.Error("actual expression absent")
 				}
 				accepted := assessments > 1 && tc.accepts
-				judgments := []any{map[string]any{"criterion_id": entry.Goal.CriterionIDs[0], "verdict": "satisfied", "kind": "communication", "subject": "actor_self", "discourse": "assertion", "evidence_refs": []string{selfRef}, "reason": "正式发出的表达"}}
+				judgments := []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "satisfied", Kind: "communication", Subject: "actor_self", Discourse: "assertion", EvidenceRefs: []string{selfRef}, Reason: "正式发出的表达"}}
 				verdict, discourse, impact, wait := "unknown", "uncertain", "progressed", "等待对方明确确认，尊重拒绝"
 				refs := []string{}
 				if accepted {
 					verdict, discourse, impact, wait = "satisfied", "assertion", "completed", ""
 					refs = []string{selfRef, targetRef}
 				}
-				judgments = append(judgments, map[string]any{"criterion_id": entry.Goal.CriterionIDs[1], "verdict": verdict, "kind": "relationship", "subject": "both", "discourse": discourse, "evidence_refs": refs, "reason": "双方确认与单方表达分别判断"})
-				candidate := map[string]any{"goal_id": goalID, "expected_revision": entry.Goal.Revision, "criteria_version": entry.Goal.CriteriaVersion, "judgments": judgments, "impact": impact, "wait_condition": wait, "blocker": "", "next_step": "", "residual_motivation": ""}
+				judgments = append(judgments, GoalCriterionJudgment{CriterionID: entry.Goal.CriterionIDs[1], Verdict: verdict, Kind: "relationship", Subject: "both", Discourse: discourse, EvidenceRefs: refs, Reason: "双方确认与单方表达分别判断"})
+				candidate := GoalEvaluationCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: judgments, Impact: impact, WaitCondition: wait}
 				if accepted {
-					candidate["relationship_confirmation"] = map[string]any{"target_actor_id": f.ownerID, "evidence_refs": refs, "label": "恋人"}
+					candidate.RelationshipConfirmation = &GoalRelationshipConfirmation{TargetActorID: f.ownerID, EvidenceRefs: refs, Label: "恋人"}
 					if tc.editDuringAssessment {
 						if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.relationships SET revision=revision+1,role='{"label":"owner revised"}' WHERE id=$1`, relationshipID); err != nil {
 							t.Fatal(err)
 						}
 					}
 				}
-				return fakeProviderResult{Structured: map[string]any{"evaluations": []any{candidate}, "plans": []any{}}}
+				return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 			})}
 			for i, text := range []string{"请告诉我你的心意", tc.response} {
 				turn, err := f.app.HandleTurn(f.ctx, f.ownerID, f.conversationID, map[string]any{"fluctlight_id": f.fluctlightID, "text": text, "idempotency_key": fmt.Sprintf("mutual-turn-%s-%d", f.suffix, i)})

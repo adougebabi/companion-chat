@@ -120,7 +120,7 @@ func TestAssemblePromptMessagesFormatsRuntimeTimesOnWire(t *testing.T) {
 			"timezone": "Asia/Shanghai", "effective_at": "2026-09-29T09:13:44.667612Z",
 		}}}},
 	}}}
-	messages := assemblePromptMessages(map[string]any{"role": "system", "content": "test"}, map[string]any{"role": "user", "content": "hi"}, selected)
+	messages := assemblePromptMessages(map[string]any{"role": "system", "content": "test"}, nil, map[string]any{"role": "user", "content": "hi"}, selected)
 	wire := stringValue(messages[1]["content"])
 	if !strings.Contains(wire, "2026-09-29T17:13:44.667+08:00") || strings.Contains(wire, "2026-09-29T09:13:44.667612Z") {
 		t.Fatalf("runtime wire time was not formatted: %s", wire)

@@ -925,3 +925,97 @@ prompt := jsonString(map[string]any{"goals": agencyProfileGoals, "schedule": ful
 // Correct: each task owns a semantic projection; Core keeps authoritative IDs.
 prompt := jsonString(scheduleReplanModelInput(frozenPlanInput))
 ```
+
+## Scenario: Goal Assessment Semantic Protocol And Stable Task Prefix (2026-10-08)
+
+### 1. Scope / Trigger
+
+Goal Evaluation was sending full Core authority in actual assembled HTTP user
+content. The assembled path bypasses generic formatting, so diagnostics JSON
+was the real request. All Goal model inputs/schemas must obey semantic egress;
+Core snapshots, audits and domain commands keep their complete identifiers.
+
+### 2. Signatures
+
+`goalEvaluationWireInput(snapshot) -> (binding,stableDefinitions,current,error)`.
+`binding.hydrateOutput(refOnlyJSON) -> GoalEvaluationTaskOutput`.
+`withProviderStableTaskContext(ctx,map)`;
+`PromptAssemblyInput.StableTaskContext map[string]any`.
+Existing schema transport name remains `goal_evaluation_v1`; the closed output
+fields are `goal_ref`, `criterion_ref`, `object_ref`, `target_actor_ref`,
+`dependency_refs` and `evidence_refs`, never expected_revision/criteria_version.
+
+### 3. Contracts
+
+- Build one immutable typed short-ref binding per admitted claim. Core injects
+  entity IDs/revisions/criterion versions from that exact snapshot after model
+  output. Unknown/wrong-kind/duplicate/cross-Goal refs fail closed. No permissive
+  legacy raw-ID/version Provider fallback. Existing domain CAS, real source
+  validity, profile and relationship guards remain mandatory.
+- Persisted GoalAuthority omits EntityID/TargetActorID; restore only from the
+  claim entry's explicit GoalID/TargetActorID on a private copy. JSON replay
+  and in-memory inputs produce identical bindings without snapshot mutation.
+- Shared Goal evidence retains actual Actor messages across publishing profiles;
+  private Goal/Stage/Commitment binding keeps current-profile isolation. Actor
+  participants and business objects use typed local refs. Source refs use eN,
+  distinct from the journal's source:N namespace.
+- Keep full criteria, actual message text, semantic facts/domain query results,
+  booleans/zero, business times/windows/deadline policy. Convert actual all/any
+  policy optional_ids to optional_refs; do not leak criterion storage IDs.
+- Inspect the whole HTTP payload, including common Runtime Goals and compiled
+  portrait wrappers, not only the new current-input packet. Goal-only portrait
+  projection omits profile/storage metadata but preserves semantic prose and
+  legacy JSON-shaped portrait facts. Native persona switching keeps its own
+  existing authorized selector protocol.
+- Physical order: one protocol/persona system, optional required
+  [STABLE TASK CONTEXT] user facts, optional [RUNTIME CONTEXT] user facts,
+  original chronological recent role messages, current input once as final
+  user. This optional stable task message extends the former B-layout without
+  moving user facts into system policy. Slow runtime facts precede volatile
+  clock/state/evidence; selection priority remains independent of presentation.
+- Canonicalize nested typed policy objects before shared JSON copying. Stable
+  facts are never pruned, are retained without optional runtime facts, and count
+  in physical wire admission/bytes/characters/tokens and diagnostic sections.
+- Compare encoding on identical semantic data; format and budget the actual
+  chosen representation before model I/O. Sparse nested Goal data currently
+  uses compact JSON; retain the existing TOON/YAML renderer for comparison and
+  suitable rectangular data. Structured output remains closed JSON. No global
+  token-cap increase or proof/criteria truncation.
+- Byte-prefix equality and conservative EstimatePromptTokens are measurements
+  of this implementation, not proof of actual tokenizer count, KV-cache hits
+  or Provider latency. Those require the user's real local server metrics.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Raw IDs/revisions in model output | goal_evaluation_wire_output_invalid |
+| Unknown/wrong kind/foreign object ref | typed wire-ref rejection; no business commit |
+| Source changed after claim | existing source/CAS rejection |
+| Required stable context too large | prompt_required_budget_exceeded; no pruning |
+| Same Agent/definitions, clock/evidence changes | identical system+stable message prefix |
+| Different stable definitions | appropriate later prefix changes |
+
+### 5. Good / Base / Bad Cases
+
+Good: criterion:1.1 and e1 select frozen proof; Core fills actual criterion ID and
+version. Base: semantic JSON is smaller than TOON on a nested fixture, so choose
+JSON. Bad: echo random UUIDs/revisions, promote evidence to system authority,
+reuse an alias against a different snapshot, or call estimated savings KV hits.
+
+### 6. Tests Required
+
+Capture actual HTTP messages/schema for metadata omission; shared and private
+scope, frozen hydration, unknown refs, optional policy, source validity, full
+proof preservation and persisted-claim replay. Prefix tests preserve chronology,
+required-data budget and copy-on-write/read. Real disposable PG tests cover
+successful Goal completion and rejection with the strict protocol. Encoding
+benchmarks report same-data byte and conservative-token comparisons separately
+from actual model semantics. SKIP is not positive acceptance.
+
+### 7. Wrong vs Correct
+
+Wrong: model returns goal_id/revision, or drop top-level IDs while Runtime Context
+and portrait JSON still leak the same authority.
+Correct: model returns typed per-call refs, Core binds authority and validates
+frozen provenance; capture the complete final HTTP payload in regression tests.

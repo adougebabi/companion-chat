@@ -66,7 +66,7 @@ func queueGoalReviewsTx(ctx context.Context, tx pgx.Tx, owner, profile, reason s
 		return "", err
 	}
 	var watermark int64
-	if err := tx.QueryRow(ctx, `SELECT COALESCE(max(id),0) FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND occurred_at >= $3 AND occurred_at < $4`, owner, profile, start, end).Scan(&watermark); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(max(id),0) FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND source_kind<>'goal_revision' AND occurred_at >= $3 AND occurred_at < $4`, owner, profile, start, end).Scan(&watermark); err != nil {
 		return "", err
 	}
 	rows, err := tx.Query(ctx, `SELECT id FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (profile_id IS NULL OR profile_id=$2) AND status IN ('active','paused') ORDER BY updated_at DESC,id DESC`, owner, profile)

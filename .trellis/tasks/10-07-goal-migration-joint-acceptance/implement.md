@@ -17,3 +17,7 @@ migrations/runner.go / isolatedCoreTestRepository / infra/acceptance / core与wo
 ## 2026-10-08 实际后台队列持续占用修复
 
 最新用户规则与最小修改边界见 `research/background-trigger-contract.md`。唤醒为实际最后聊天后10分钟及后续每10分钟，启动无Redis key才补一次；反思为最后聊天后30分钟且仅新未处理证据；新认知入队取消同实例排队/执行中的唤醒与反思并阻止晚到提交；检查/静默回执不驱动Goal来源水位自循环。保留真实结果、独立Goal标准writer、已有Agent/Tool/短事务/outbox/Temporal。用户运行环境只读，本地修复不等于已部署/真实验收完成。
+
+## 2026-10-08 Provider语义边界、稳定前缀和Goal重复评估
+
+新增用户要求见 `research/goal-provider-semantic-cache-contract.md`：去掉模型输入/输出的内部ID与版本，改冻结短引用及Core绑定；同数据评估JSON/TOON，选择实测适合的编码；同Agent稳定协议/人格/定义置前，动态事实后置；成功判断的相同证据持久去重，新证据/约束/标准/复核或显式Owner重评仍触发。完整CAS/作用域/证据/续批门禁保留。真实KV命中和模型语义需实际环境指标，不将脚本估算当验收。

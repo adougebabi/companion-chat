@@ -1,0 +1,8 @@
+=== RUN   TestGoalEvaluationTOONHybridPreservesSemanticsAndMeasuresSameData
+    goal_evaluation_wire_test.go:256: goal fixture old durable baseline bytes=2569 estimated_tokens=2977; semantic JSON bytes=1874 estimated_tokens=2108; semantic TOON/YAML bytes=2277 estimated_tokens=2612
+--- PASS: TestGoalEvaluationTOONHybridPreservesSemanticsAndMeasuresSameData (0.00s)
+=== RUN   TestGoalEvaluationAssemblyKeepsStablePhysicalPrefix
+    provider_prompt_cache_prefix_test.go:102: goal assembled wire bytes=13650 estimated_tokens=13571 stable_bytes=1308 stable_estimated_tokens=1449
+--- PASS: TestGoalEvaluationAssemblyKeepsStablePhysicalPrefix (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.443s

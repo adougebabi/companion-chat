@@ -9,6 +9,18 @@ import (
 // the provider view; the complete source/CAS snapshot remains durable.
 const goalEvaluationSourceInputBudget = 12000
 
+func renderedGoalEvaluationProviderInput(snapshot goalEvaluationSnapshot) (string, error) {
+	_, stable, current, err := goalEvaluationWireInput(snapshot)
+	if err != nil {
+		return "", err
+	}
+	return renderGoalEvaluationProviderInput(stable, current), nil
+}
+
+func renderGoalEvaluationProviderInput(stable, current map[string]any) string {
+	return jsonString(goalEvaluationProviderPacket{StableDefinitions: stable, Current: current})
+}
+
 func goalEvaluationFactInput(fact map[string]any) map[string]any {
 	result := map[string]any{}
 	for _, key := range []string{"subject_actor_id", "actor_id", "attribute", "value_json", "value", "epistemic_kind", "status", "valid_from", "effective_at", "valid_until", "transition_kind"} {
@@ -37,7 +49,7 @@ func compactGoalEvaluationSourceData(source GoalSource) map[string]any {
 		// Tool receipts use actor_id/value/effective_at; database sources use
 		// subject_actor_id/value_json/valid_from. Preserve both semantic shapes.
 		view := goalEvaluationFactInput(observed)
-		for _, key := range []string{"history", "timezone_semantics", "current_facts_revision", "operation"} {
+		for _, key := range []string{"history", "timezone_semantics", "operation"} {
 			if v, ok := observed[key]; ok {
 				view[key] = v
 			}
@@ -111,12 +123,20 @@ func admitGoalEvaluationSourceInput(snapshot goalEvaluationSnapshot) (goalEvalua
 		return 0
 	})
 	snapshot.ProviderSourceIDs = []int64{}
-	if EstimatePromptTokens(jsonString(compactGoalEvaluationInput(snapshot))) > goalEvaluationSourceInputBudget {
+	rendered, err := renderedGoalEvaluationProviderInput(snapshot)
+	if err != nil {
+		return snapshot, err
+	}
+	if EstimatePromptTokens(rendered) > goalEvaluationSourceInputBudget {
 		return snapshot, errors.New("goal_evaluation_goal_input_budget_exceeded")
 	}
 	for _, source := range sources {
 		snapshot.ProviderSourceIDs = append(snapshot.ProviderSourceIDs, source.EventID)
-		if EstimatePromptTokens(jsonString(compactGoalEvaluationInput(snapshot))) > goalEvaluationSourceInputBudget {
+		rendered, err = renderedGoalEvaluationProviderInput(snapshot)
+		if err != nil {
+			return snapshot, err
+		}
+		if EstimatePromptTokens(rendered) > goalEvaluationSourceInputBudget {
 			snapshot.ProviderSourceIDs = snapshot.ProviderSourceIDs[:len(snapshot.ProviderSourceIDs)-1]
 			if mandatory[source.Ref] {
 				return snapshot, errors.New("goal_evaluation_required_evidence_budget_exceeded")

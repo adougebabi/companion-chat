@@ -659,3 +659,69 @@ queries must still admit a recent preference/recommendation, close once without
 fabricated Attempts, preserve a specific unoffered source and consume it in the
 next batch. Actor Tool projection tests use the actual output field names and
 unique subject/value/time assertions, rather than database-shaped mock receipts.
+
+## Scenario: Durable Automatic Assessment Memo (2026-10-08)
+
+### 1. Scope / Trigger
+
+An automatic Goal request is queued despite unchanged already-assessed evidence.
+
+### 2. Signatures
+
+`goalAssessmentMemo` persists in successful goal_evaluation_requests.result;
+`goalAssessmentEligible` removes only covered targets; owner_reassess retains
+forced_goal_ids through pending coalescing. No schema migration/local cache.
+
+### 3. Contracts
+
+- Memo only after complete successful domain transaction; use post-commit Goal,
+  Stage/Commitment authority. Never memo failed/truncated/partial results, apply
+  old output again, or fabricate Evaluation/Attempt/Resolution on a cache hit.
+- Signature includes actual standards/optional policy, target/profile, deadlines,
+  admitted source identity/version/validity, slow relevant persona/permission/
+  Life/schedule/relationship/Actor constraints and effective working profile.
+  Exclude own Goal revision/judgment/Plan IDs, clock instant/as_of/current_time,
+  and mood/drive decay. Coarse deadline/window phases still invalidate on real
+  boundary crossing. A legitimate Foundation revision0 remains valid by CAS.
+- Query persisted stamps by instance/Goal, then match effective profile and
+  constraints; a shared request's empty profile and the same effective profile
+  must not cause repeat calls. Source subsets may reuse a prior stamp, but new
+  proof, withdrawal, standards/constraints changes, due review and Owner force
+  remain eligible. goal_revision is not a meaningful review source watermark.
+- Parenthesize JSONB force-array extraction during coalescing; preserve Owner
+  reason/targets when an automatic request already exists. Never lose force.
+- Both model-backed and skipped settlement revalidate claim, Goal/source and
+  Foundation/effective-Life stamps under lifecycle locks. Preserve finite
+  omitted-source and six-Goal remainder. Mandatory historical proof filling the
+  entire budget without admitting a new pending source fails visibly/boundedly;
+  do not create an infinite skip/remainder loop or consume unseen proof.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Same successful proof after restart | assessment_memo_match; zero model calls |
+| Explicit Owner force merged into pending | fresh model assessment |
+| New/revoked source or changed criteria/window | memo miss |
+| Failed assessment | no stamp; bounded real retry |
+| Authority changes before settlement | conflict; no stale skip/commit |
+| No new proof fits beside mandatory proof | goal_evaluation_new_source_budget_blocked |
+
+### 5. Good / Base / Bad Cases
+
+Good: completed sibling disappears, unchanged remaining Goal uses its persisted
+stamp. Base: ordinary seconds pass with no fact/window change, no new model call.
+Bad: own evaluation increments revision and becomes another assessment reason.
+
+### 6. Tests Required
+
+Real PG repeat/restart, merged Owner force, new proof, criteria revision, failed
+retry, goal_revision review-watermark stability and Stage replay model-call count.
+Unit temporal boundary/clock/mood/no-progress/source-subset tests. Retain all
+source revocation, real query completion, evidence batching and CAS regressions.
+
+### 7. Wrong vs Correct
+
+Wrong: hash the full Projection including instant or mark an unsuccessful run as
+assessed. Correct: persist validated semantic-success stamps and recheck current
+authority before a model-free settlement.

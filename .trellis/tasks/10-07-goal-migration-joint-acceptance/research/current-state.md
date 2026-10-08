@@ -39,3 +39,7 @@ Schema head 0053_goal_reconciliation。仅任务自有 PG fluctlight-goal-test-7
 ## 2026-10-08 后台持续占队列的最新修复
 
 唤醒改为实际最后聊天后10m及后续10m，启动只在无key且无待处理认知时放行一次；反思改为聊天后30m、有新未处理证据才一次，按实例合并/独立epoch；新认知入队取消同实例WakeUp/Reflection并拒绝晚到提交。静默/检查回执不驱动Reflection或Goal水位，真实结果及Goal writer保留。最终全Go race1866 PASS events，0 FAIL，36 SKIP；vet/build与Web68/68/type/build通过。详细证据见 `research/d-background-trigger-closure.md`。未部署，真实验收仍进行中。
+
+## 2026-10-08 模型语义输入、稳定前缀与Goal去重
+
+修复实际wire的内部ID/版本泄漏（含Runtime Goal及人格wrapper），closed短引用输出由Core恢复冻结authority；稳定定义置于required user前缀、动态证据末尾一次；同数据fixture JSON1874B/~2108估算tokens，TOON/YAML2277B/~2612，因此采用精简JSON，未测实际KV命中。per-Goal成功memo持久去重，force/newproof/standards/constraints/window仍评估，自己修订/clock秒级变化不触发。最终全Go race1891 PASS events，0 FAIL，36 SKIP；实际PG目标门禁130 PASS，0 FAIL/SKIP；vet/build通过。详细 `research/d-goal-semantic-cache-closure.md`；未部署/真实验收仍进行中。

@@ -1,0 +1,34 @@
+{
+  "fixture": {
+    "old_durable_baseline": {
+      "bytes": 2569,
+      "estimated_tokens": 2977
+    },
+    "semantic_json": {
+      "bytes": 1874,
+      "estimated_tokens": 2108
+    },
+    "semantic_toon_yaml": {
+      "bytes": 2277,
+      "estimated_tokens": 2612
+    }
+  },
+  "assembled_wire": {
+    "bytes": 13650,
+    "estimated_tokens": 13571,
+    "stable_context_bytes": 1308,
+    "stable_context_estimated_tokens": 1449
+  },
+  "method": "conservative EstimatePromptTokens, not actual tokenizer/KV-cache measurements",
+  "final_go_race": {
+    "pass_events": 1891,
+    "leaf_pass": 1745,
+    "fail_events": 0,
+    "skip_events": 36
+  },
+  "targeted_goal_race": {
+    "pass_events": 130,
+    "fail_events": 0,
+    "skip_events": 0
+  }
+}

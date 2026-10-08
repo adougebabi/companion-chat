@@ -49,7 +49,7 @@ func TestGoalStageCompletionReplayDoesNotRepeatNextStage(t *testing.T) {
 				t.Fatalf("completed stage leaked into snapshot: %#v", entry.Stages)
 			}
 		}
-		return fakeProviderResult{Structured: decodeObject(jsonBytes(GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: plans}))}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: plans})}
 	})}
 	firstRequest := latestPendingGoalRequest(t, f)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, firstRequest); err != nil {
@@ -96,7 +96,7 @@ func TestGoalStageCompletionReplayDoesNotRepeatNextStage(t *testing.T) {
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_resolutions WHERE goal_id=$1`, goalID).Scan(&resolutions); err != nil {
 		t.Fatal(err)
 	}
-	if status != "active" || progress != 0 || objectEvaluations != 1 || resolutions != 0 || assessments != 2 {
+	if status != "active" || progress != 0 || objectEvaluations != 1 || resolutions != 0 || assessments != 1 {
 		t.Fatalf("stage replay polluted goal: %s progress=%f evaluations=%d resolutions=%d calls=%d", status, progress, objectEvaluations, resolutions, assessments)
 	}
 }

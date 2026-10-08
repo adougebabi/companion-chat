@@ -91,7 +91,7 @@ func runShortExpressionScopeScenario(t *testing.T, contactAfterDue bool) {
 			t.Fatalf("actual short expression missing: %d", selfMessages)
 		}
 		candidate := GoalEvaluationCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Impact: "needs_evidence", WaitCondition: "await voluntary counterpart confirmation", Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "unknown", Kind: "relationship", Subject: "both", Discourse: "uncertain", EvidenceRefs: []string{}, Reason: "one expression is not mutual acceptance"}}}
-		return fakeProviderResult{Structured: decodeObject(jsonBytes(GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}}))}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 	})}
 	if _, err := f.app.ProcessCognitionInbox(f.ctx, stringValue(due["inbox_id"])); err != nil {
 		t.Fatal(err)

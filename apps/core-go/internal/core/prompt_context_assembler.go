@@ -242,11 +242,14 @@ type PromptAssemblyInput struct {
 	Role           string
 	OperationRules []string
 	CorePersona    map[string]any
-	WorkingMemory  WorkingMemory
-	CurrentInput   string
-	Tools          []map[string]any
-	ResponseFormat map[string]any
-	Policy         PromptBudgetPolicy
+	// StableTaskContext is required whenever it is supplied. It is rendered as
+	// a user message after System persona and before volatile Runtime Context.
+	StableTaskContext map[string]any
+	WorkingMemory     WorkingMemory
+	CurrentInput      string
+	Tools             []map[string]any
+	ResponseFormat    map[string]any
+	Policy            PromptBudgetPolicy
 }
 
 type PromptAssemblyDecision struct {
@@ -299,12 +302,17 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		return PromptAssemblyResult{}, errors.New("prompt_current_input_required")
 	}
 	system := map[string]any{"role": "system", "content": renderProviderSystem(input.OperationRules, filterCorePersona(input.CorePersona), nil, input.Role)}
+	stable := stableTaskContextMessage(input.StableTaskContext)
 	current := map[string]any{"role": "user", "content": input.CurrentInput}
 	candidates, err := promptOptionalCandidates(input.WorkingMemory, input.CurrentInput)
 	if err != nil {
 		return PromptAssemblyResult{}, err
 	}
 	systemTokens := estimateProviderMessageTokens(system)
+	stableTokens := 0
+	if stable != nil {
+		stableTokens = estimateProviderMessageTokens(stable)
+	}
 	currentTokens := estimateProviderMessageTokens(current)
 	toolsTokens := EstimatePromptTokens(input.Tools)
 	schemaTokens := EstimatePromptTokens(input.ResponseFormat)
@@ -312,7 +320,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		return PromptAssemblyResult{}, fmt.Errorf("%w: %w: current=%d cap=%d", ErrPromptRequiredBudgetExceeded, ErrPromptCurrentInputBudgetExceeded, currentTokens, input.Policy.CurrentInputTokensCap)
 	}
 	if systemTokens > input.Policy.SystemTokensCap || toolsTokens+schemaTokens > input.Policy.ToolsSchemaTokensCap {
-		return PromptAssemblyResult{}, fmt.Errorf("%w: required section cap exceeded system=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, systemTokens, currentTokens, toolsTokens, schemaTokens)
+		return PromptAssemblyResult{}, fmt.Errorf("%w: required section cap exceeded system=%d stable_task_context=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, systemTokens, stableTokens, currentTokens, toolsTokens, schemaTokens)
 	}
 	selected := make([]promptOptionalCandidate, 0, len(candidates))
 	optional := make([]promptOptionalCandidate, 0, len(candidates))
@@ -334,9 +342,9 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		}
 	}
 	orderedSelected := orderedPromptCandidates(selected)
-	requiredTotal := estimatePromptWireInput(assemblePromptMessages(system, current, orderedSelected), input.Tools, input.ResponseFormat)
+	requiredTotal := estimatePromptWireInput(assemblePromptMessages(system, stable, current, orderedSelected), input.Tools, input.ResponseFormat)
 	if requiredTotal > input.Policy.MaxInputTokens {
-		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d system=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens, systemTokens, currentTokens, toolsTokens, schemaTokens)
+		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d system=%d stable_task_context=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens, systemTokens, stableTokens, currentTokens, toolsTokens, schemaTokens)
 	}
 	selectionLimit := input.Policy.MaxInputTokens
 	if target := input.Policy.OptionalInputTargetTokens; target > 0 && target < selectionLimit {
@@ -414,7 +422,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 			reason = "recent_contiguity_excluded"
 		} else {
 			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
-			if estimatePromptWireInput(assemblePromptMessages(system, current, trial), input.Tools, input.ResponseFormat) <= selectionLimit {
+			if estimatePromptWireInput(assemblePromptMessages(system, stable, current, trial), input.Tools, input.ResponseFormat) <= selectionLimit {
 				selected = append(selected, unit.items...)
 				if unit.kind == PromptFragmentSummary || unit.kind == PromptFragmentRetrievedMemory || unit.kind == PromptFragmentResidentMemory {
 					for _, candidate := range unit.items {
@@ -437,11 +445,11 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	for _, candidate := range selected {
 		trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
 	}
-	messages := assemblePromptMessages(system, current, selected)
+	messages := assemblePromptMessages(system, stable, current, selected)
 	total := estimatePromptWireInput(messages, input.Tools, input.ResponseFormat)
 	trace.EstimatedInputTokens = total
-	trace.SectionTokens = promptAssemblySectionTokens(system, current, selected, input.Tools, input.ResponseFormat)
-	trace.SectionBytes, trace.SectionChars = promptAssemblySectionSizes(system, current, selected, input.Tools, input.ResponseFormat)
+	trace.SectionTokens = promptAssemblySectionTokens(system, stable, current, selected, input.Tools, input.ResponseFormat)
+	trace.SectionBytes, trace.SectionChars = promptAssemblySectionSizes(system, stable, current, selected, input.Tools, input.ResponseFormat)
 	if wire, err := json.Marshal(map[string]any{"messages": messages, "tools": input.Tools, "response_format": input.ResponseFormat}); err == nil {
 		trace.WireBytes, trace.WireChars = len(wire), len([]rune(string(wire)))
 	}
@@ -510,7 +518,14 @@ func currentInputRecentFragmentIndex(recent []PromptFragment, currentInput strin
 	return -1
 }
 
-func assemblePromptMessages(system, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
+func stableTaskContextMessage(value map[string]any) map[string]any {
+	if len(value) == 0 {
+		return nil
+	}
+	return map[string]any{"role": "user", "content": "[STABLE TASK CONTEXT]\n" + jsonString(value) + "\n[/STABLE TASK CONTEXT]"}
+}
+
+func assemblePromptMessages(system, stable, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
 	runtimeContext := map[string]any{}
 	recent := make([]map[string]any, 0)
 	for _, candidate := range selected {
@@ -537,13 +552,55 @@ func assemblePromptMessages(system, current map[string]any, selected []promptOpt
 		}
 	}
 	messages := []map[string]any{cloneMap(system)}
+	if stable != nil {
+		messages = append(messages, cloneMap(stable))
+	}
 	if len(runtimeContext) > 0 {
 		formatted := formatRuntimeContextTimes(runtimeContext)
-		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + renderProviderYAMLWithMode(formatted, true) + "\n[/RUNTIME CONTEXT]"})
+		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + renderProviderRuntimeContext(formatted) + "\n[/RUNTIME CONTEXT]"})
 	}
 	messages = append(messages, recent...)
 	messages = append(messages, cloneMap(current))
 	return messages
+}
+
+// renderProviderRuntimeContext keeps slow-changing facts ahead of the clock,
+// transient state, and evidence collections. This order is presentation-only;
+// selection priority and the authoritative projection remain unchanged.
+func renderProviderRuntimeContext(value map[string]any) string {
+	priority := []string{
+		"actor_background", "self_actor", "current_speaker", "communication_state",
+		"relationships", "goals", "intentions", "schedule", "presence",
+	}
+	volatile := []string{"time_view", "current_state", "active_memory", "resident_memory", "retrieved_memory", "conversation_summaries"}
+	reserved := map[string]bool{}
+	for _, key := range append(append([]string(nil), priority...), volatile...) {
+		reserved[key] = true
+	}
+	ordered := make([]string, 0, len(value))
+	for _, key := range priority {
+		if _, ok := value[key]; ok {
+			ordered = append(ordered, key)
+		}
+	}
+	other := make([]string, 0, len(value))
+	for key := range value {
+		if !reserved[key] {
+			other = append(other, key)
+		}
+	}
+	sort.Strings(other)
+	ordered = append(ordered, other...)
+	for _, key := range volatile {
+		if _, ok := value[key]; ok {
+			ordered = append(ordered, key)
+		}
+	}
+	var builder strings.Builder
+	for _, key := range ordered {
+		builder.WriteString(renderProviderYAMLWithMode(map[string]any{key: value[key]}, true))
+	}
+	return strings.TrimRight(builder.String(), "\n")
 }
 
 // formatRuntimeContextTimes changes only the Provider-facing copy. The
@@ -595,11 +652,14 @@ func estimatePromptWireInput(messages, tools []map[string]any, responseFormat ma
 	return EstimatePromptTokens(messages) + EstimatePromptTokens(tools) + EstimatePromptTokens(responseFormat) + 16
 }
 
-func promptAssemblySectionTokens(system, current map[string]any, selected []promptOptionalCandidate, tools []map[string]any, responseFormat map[string]any) map[string]int {
+func promptAssemblySectionTokens(system, stable, current map[string]any, selected []promptOptionalCandidate, tools []map[string]any, responseFormat map[string]any) map[string]int {
 	result := map[string]int{
 		"system": estimateProviderMessageTokens(system), "current_input": estimateProviderMessageTokens(current),
 		"tools": EstimatePromptTokens(tools), "response_schema": EstimatePromptTokens(responseFormat),
 		"runtime_facts": 0, "active_memory": 0, "recent": 0, "retrieved_memory": 0, "conversation_summary": 0,
+	}
+	if stable != nil {
+		result["stable_task_context"] = estimateProviderMessageTokens(stable)
 	}
 	if content := stringValue(system["content"]); content != "" {
 		if index := strings.Index(content, "\n# 人格设定\n"); index >= 0 {
@@ -638,7 +698,7 @@ func promptFragmentSection(kind PromptFragmentKind) string {
 	}
 }
 
-func promptAssemblySectionSizes(system, current map[string]any, selected []promptOptionalCandidate, tools []map[string]any, responseFormat map[string]any) (map[string]int, map[string]int) {
+func promptAssemblySectionSizes(system, stable, current map[string]any, selected []promptOptionalCandidate, tools []map[string]any, responseFormat map[string]any) (map[string]int, map[string]int) {
 	bytesBySection := map[string]int{}
 	charsBySection := map[string]int{}
 	add := func(section string, value any) {
@@ -650,6 +710,9 @@ func promptAssemblySectionSizes(system, current map[string]any, selected []promp
 		charsBySection[section] += len([]rune(string(encoded)))
 	}
 	add("system", system)
+	if stable != nil {
+		add("stable_task_context", stable)
+	}
 	add("current_input", current)
 	add("tools", tools)
 	add("response_schema", responseFormat)

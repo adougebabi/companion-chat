@@ -1,0 +1,2233 @@
+[
+  {
+    "attempt": "initial-goal-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T18:34:33.329727+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "=== RUN   TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:33.708322+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "    goal_assessment_memo_integration_test.go:53: durable replay=map[string]interface {}{\"assessment_memos\":[]interface {}{core.goalAssessmentMemo{GoalID:\"goal-dialogue-wardrobe_1791455673496683000\", AuthoritySignature:\"2dfd6886cd4939fa5a45a3719b1e5dbd\", ConstraintSignature:\"34fb70d28d5c179eb57c1e7aa0cee1d9\", SourceFingerprints:[]string{}, SucceededAt:\"2026-10-08T10:34:33.704+00:00\"}}, \"evaluated_goals\":[]string{\"goal-dialogue-wardrobe_1791455673496683000\"}, \"request_id\":\"goal_evaluation_b3b75b8f67707ee5216cfbdf61e1a724\", \"skipped_goals\":[]string{}, \"source_ids\":[]int64(nil), \"status\":\"succeeded\"} calls=2 err=<nil>\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:33.818886+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "--- FAIL: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (0.49s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:33.818926+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Elapsed": 0.49
+      },
+      {
+        "Time": "2026-10-08T18:34:34.61285+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:34.612951+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:34.820254+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_assessment_coverage_missing, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:34.925174+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only (0.31s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:34.925278+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Elapsed": 0.31
+      },
+      {
+        "Time": "2026-10-08T18:34:34.925488+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.136291+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_evaluation_unknown_requires_evidence, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.245515+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change (0.32s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.245579+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Elapsed": 0.32
+      },
+      {
+        "Time": "2026-10-08T18:34:35.245661+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_impact",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_impact\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.444967+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_impact",
+        "Output": "    goal_boundary_regression_test.go:118: expected adk_final_contract_invalid, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.554448+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_impact",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_impact (0.31s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.554571+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_impact",
+        "Elapsed": 0.31
+      },
+      {
+        "Time": "2026-10-08T18:34:35.554673+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.761513+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_self_report_not_business_fact, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.871033+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report (0.32s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:35.871124+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Elapsed": 0.32
+      },
+      {
+        "Time": "2026-10-08T18:34:35.871286+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.078322+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.08207+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation (0.21s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.082094+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Elapsed": 0.21
+      },
+      {
+        "Time": "2026-10-08T18:34:36.082119+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.258652+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.262404+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis (0.18s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.262426+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Elapsed": 0.18
+      },
+      {
+        "Time": "2026-10-08T18:34:36.262454+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.435016+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.438943+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan (0.18s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.438967+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Elapsed": 0.18
+      },
+      {
+        "Time": "2026-10-08T18:34:36.438995+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.61578+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.619365+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action (0.18s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.619389+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Elapsed": 0.18
+      },
+      {
+        "Time": "2026-10-08T18:34:36.619425+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.796174+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_source_invalid, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.799891+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft (0.18s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.79991+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Elapsed": 0.18
+      },
+      {
+        "Time": "2026-10-08T18:34:36.799941+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:36.974973+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_source_invalid, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.084556+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item (0.28s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.084651+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Elapsed": 0.28
+      },
+      {
+        "Time": "2026-10-08T18:34:37.084773+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.291095+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_relationship_resolution_scope_invalid, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.400507+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation (0.32s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.400568+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Elapsed": 0.32
+      },
+      {
+        "Time": "2026-10-08T18:34:37.40059+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unserved_stage",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unserved_stage\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.595153+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unserved_stage",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_evaluation_wire_object_ref_invalid, got goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.704872+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unserved_stage",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unserved_stage (0.30s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.704985+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unserved_stage",
+        "Elapsed": 0.3
+      },
+      {
+        "Time": "2026-10-08T18:34:37.705034+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource (3.09s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:37.705064+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource",
+        "Elapsed": 3.09
+      },
+      {
+        "Time": "2026-10-08T18:34:38.858667+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution",
+        "Output": "=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:38.858737+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Output": "=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:39.028941+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Output": "    goal_boundary_regression_test.go:437: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:39.138308+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Output": "--- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active (0.28s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:39.138351+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Elapsed": 0.28
+      },
+      {
+        "Time": "2026-10-08T18:34:39.138392+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Output": "=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:39.337588+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Output": "    goal_boundary_regression_test.go:437: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:39.44616+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Output": "--- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed (0.31s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:39.44621+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Elapsed": 0.31
+      },
+      {
+        "Time": "2026-10-08T18:34:39.446226+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution",
+        "Output": "--- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution (0.59s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:39.446236+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution",
+        "Elapsed": 0.59
+      },
+      {
+        "Time": "2026-10-08T18:34:42.00519+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Output": "=== RUN   TestGoalEvaluationBatchRemainderRetainsActualSource\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:42.213802+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Output": "    goal_closure_recovery_test.go:340: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:42.220086+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Output": "--- FAIL: TestGoalEvaluationBatchRemainderRetainsActualSource (0.21s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:42.220116+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Elapsed": 0.21
+      },
+      {
+        "Time": "2026-10-08T18:34:42.524336+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Output": "=== RUN   TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:42.887287+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Output": "    goal_closure_runtime_test.go:108: assessment=map[string]interface {}(nil) goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:42.891267+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Output": "--- FAIL: TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal (0.37s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:42.891296+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Elapsed": 0.37
+      },
+      {
+        "Time": "2026-10-08T18:34:42.891598+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:42.891637+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:43.212292+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Output": "    goal_closure_runtime_test.go:333: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:43.216424+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal (0.32s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:43.216449+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Elapsed": 0.32
+      },
+      {
+        "Time": "2026-10-08T18:34:43.216471+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:43.537416+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Output": "    goal_closure_runtime_test.go:333: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:43.647257+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation (0.43s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:43.647298+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Elapsed": 0.43
+      },
+      {
+        "Time": "2026-10-08T18:34:43.647338+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.000708+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Output": "    goal_closure_runtime_test.go:333: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.003931+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal (0.36s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.00395+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Elapsed": 0.36
+      },
+      {
+        "Time": "2026-10-08T18:34:44.003981+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.326524+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Output": "    goal_closure_runtime_test.go:333: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.330543+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance (0.33s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.330564+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Elapsed": 0.33
+      },
+      {
+        "Time": "2026-10-08T18:34:44.330594+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.649535+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Output": "    goal_closure_runtime_test.go:333: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.653671+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit (0.32s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.653714+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Elapsed": 0.32
+      },
+      {
+        "Time": "2026-10-08T18:34:44.65373+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (1.76s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:44.653735+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision",
+        "Elapsed": 1.76
+      },
+      {
+        "Time": "2026-10-08T18:34:49.943855+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:50.225093+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:151: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:50.33971+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (0.40s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:50.339745+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 0.4
+      },
+      {
+        "Time": "2026-10-08T18:34:52.888405+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Output": "=== RUN   TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:53.392615+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Output": "    goal_short_attempt_test.go:116: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:53.500465+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Output": "--- FAIL: TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply (0.61s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:53.500499+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Elapsed": 0.61
+      },
+      {
+        "Time": "2026-10-08T18:34:53.500755+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "=== RUN   TestGoalStageCompletionReplayDoesNotRepeatNextStage\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:53.705259+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "    goal_stage_replay_test.go:56: goal_evaluation_wire_source_profile_invalid\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:53.814717+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "--- FAIL: TestGoalStageCompletionReplayDoesNotRepeatNextStage (0.31s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:34:53.814803+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Elapsed": 0.31
+      }
+    ]
+  },
+  {
+    "attempt": "fixed-goal-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T18:43:17.152412+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "=== RUN   TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:17.445283+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "    goal_assessment_memo_integration_test.go:33: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:17.449848+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "--- FAIL: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (0.30s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:17.449878+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Elapsed": 0.3
+      },
+      {
+        "Time": "2026-10-08T18:43:17.449894+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Output": "=== RUN   TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:17.778308+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Output": "    goal_assessment_memo_integration_test.go:148: retry calls=2 err=goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:17.889451+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Output": "--- FAIL: TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel (0.44s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:17.889494+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Elapsed": 0.44
+      },
+      {
+        "Time": "2026-10-08T18:43:18.100273+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:18.100342+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:18.368145+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_assessment_coverage_missing, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:18.478599+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only (0.38s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:18.478658+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/plan_only",
+        "Elapsed": 0.38
+      },
+      {
+        "Time": "2026-10-08T18:43:18.478701+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:18.778032+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_evaluation_unknown_requires_evidence, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:18.782463+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change (0.30s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:18.782497+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unknown_no_change",
+        "Elapsed": 0.3
+      },
+      {
+        "Time": "2026-10-08T18:43:19.17072+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:19.466681+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_self_report_not_business_fact, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:19.577368+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report (0.41s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:19.577417+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/assistant_self_report",
+        "Elapsed": 0.41
+      },
+      {
+        "Time": "2026-10-08T18:43:19.577483+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:19.872491+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:19.983048+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation (0.41s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:19.983086+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/quotation",
+        "Elapsed": 0.41
+      },
+      {
+        "Time": "2026-10-08T18:43:19.983126+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:20.268766+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:20.378301+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis (0.40s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:20.378333+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/hypothesis",
+        "Elapsed": 0.4
+      },
+      {
+        "Time": "2026-10-08T18:43:20.3784+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:20.671009+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:20.781318+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan (0.40s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:20.781359+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/future_plan",
+        "Elapsed": 0.4
+      },
+      {
+        "Time": "2026-10-08T18:43:20.781403+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.071028+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_not_actual_event, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.181113+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action (0.40s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.181156+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/reported_action",
+        "Elapsed": 0.4
+      },
+      {
+        "Time": "2026-10-08T18:43:21.181172+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.459334+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_source_invalid, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.575372+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft (0.39s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.575419+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/unpublished_draft",
+        "Elapsed": 0.39
+      },
+      {
+        "Time": "2026-10-08T18:43:21.575468+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.873097+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_judgment_source_invalid, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.986854+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item (0.41s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:21.986892+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/invalid_item",
+        "Elapsed": 0.41
+      },
+      {
+        "Time": "2026-10-08T18:43:21.986906+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Output": "=== RUN   TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:22.283012+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Output": "    goal_boundary_regression_test.go:118: expected goal_relationship_resolution_scope_invalid, got goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:22.396471+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation (0.41s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:22.396514+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource/general_goal_relationship_confirmation",
+        "Elapsed": 0.41
+      },
+      {
+        "Time": "2026-10-08T18:43:22.672013+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource",
+        "Output": "--- FAIL: TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource (4.57s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:22.672018+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource",
+        "Elapsed": 4.57
+      },
+      {
+        "Time": "2026-10-08T18:43:23.756439+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution",
+        "Output": "=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:23.75648+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Output": "=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:24.01228+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Output": "    goal_boundary_regression_test.go:437: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:24.12304+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Output": "--- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active (0.37s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:24.123076+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active",
+        "Elapsed": 0.37
+      },
+      {
+        "Time": "2026-10-08T18:43:24.12311+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Output": "=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:24.420131+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Output": "    goal_boundary_regression_test.go:437: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:24.530732+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Output": "--- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed (0.41s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:24.530779+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed",
+        "Elapsed": 0.41
+      },
+      {
+        "Time": "2026-10-08T18:43:24.530796+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution",
+        "Output": "--- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution (0.77s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:24.530807+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution",
+        "Elapsed": 0.77
+      },
+      {
+        "Time": "2026-10-08T18:43:24.806281+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestActualQueryCanCompleteInformationGoalWithoutBusinessAction",
+        "Output": "=== RUN   TestActualQueryCanCompleteInformationGoalWithoutBusinessAction\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:25.150156+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestActualQueryCanCompleteInformationGoalWithoutBusinessAction",
+        "Output": "2026/10/08 18:43:25 INFO capability lifecycle capability=wardrobe.inspect call_id=actual-query type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:25.30904+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestActualQueryCanCompleteInformationGoalWithoutBusinessAction",
+        "Output": "    goal_boundary_regression_test.go:645: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:25.314498+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestActualQueryCanCompleteInformationGoalWithoutBusinessAction",
+        "Output": "--- FAIL: TestActualQueryCanCompleteInformationGoalWithoutBusinessAction (0.51s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:25.314523+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestActualQueryCanCompleteInformationGoalWithoutBusinessAction",
+        "Elapsed": 0.51
+      },
+      {
+        "Time": "2026-10-08T18:43:26.99826+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Output": "=== RUN   TestGoalEvaluationBatchRemainderRetainsActualSource\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:27.337894+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Output": "    goal_closure_recovery_test.go:340: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:27.34273+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Output": "--- FAIL: TestGoalEvaluationBatchRemainderRetainsActualSource (0.34s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:27.342757+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalEvaluationBatchRemainderRetainsActualSource",
+        "Elapsed": 0.34
+      },
+      {
+        "Time": "2026-10-08T18:43:27.542389+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Output": "=== RUN   TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:27.930485+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Output": "    goal_closure_runtime_test.go:108: assessment=map[string]interface {}(nil) goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:28.040913+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Output": "--- FAIL: TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal (0.50s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:28.040964+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+        "Elapsed": 0.5
+      },
+      {
+        "Time": "2026-10-08T18:43:28.041376+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:28.041468+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:28.476956+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Output": "    goal_closure_runtime_test.go:333: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:28.58824+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal (0.55s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:28.588285+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal",
+        "Elapsed": 0.55
+      },
+      {
+        "Time": "2026-10-08T18:43:28.588317+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:29.023863+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Output": "    goal_closure_runtime_test.go:333: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:29.135361+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation (0.55s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:29.135434+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation",
+        "Elapsed": 0.55
+      },
+      {
+        "Time": "2026-10-08T18:43:29.13547+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:29.571396+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Output": "    goal_closure_runtime_test.go:333: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:29.685498+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal (0.55s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:29.68557+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal",
+        "Elapsed": 0.55
+      },
+      {
+        "Time": "2026-10-08T18:43:29.68561+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:30.124216+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Output": "    goal_closure_runtime_test.go:333: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:30.238796+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance (0.55s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:30.238843+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+        "Elapsed": 0.55
+      },
+      {
+        "Time": "2026-10-08T18:43:30.238885+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Output": "=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:30.672204+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Output": "    goal_closure_runtime_test.go:333: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:30.782863+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit (0.54s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:30.782907+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit",
+        "Elapsed": 0.54
+      },
+      {
+        "Time": "2026-10-08T18:43:30.782931+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision",
+        "Output": "--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (2.74s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:30.78296+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision",
+        "Elapsed": 2.74
+      },
+      {
+        "Time": "2026-10-08T18:43:32.883902+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow",
+        "Output": "=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:32.883962+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots",
+        "Output": "=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.063156+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots",
+        "Output": "2026/10/08 18:43:33 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_d46304d3521f86845b404bfdda21f229 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.301238+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots",
+        "Output": "    goal_life_chain_test.go:117: formal Goal assessment=map[string]interface {}(nil) err=goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.305709+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots",
+        "Output": "--- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots (0.42s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.305738+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots",
+        "Elapsed": 0.42
+      },
+      {
+        "Time": "2026-10-08T18:43:33.30577+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush",
+        "Output": "=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.467011+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush",
+        "Output": "2026/10/08 18:43:33 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_f3a3467af7130da27d640832e4c62018 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.696243+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush",
+        "Output": "    goal_life_chain_test.go:117: formal Goal assessment=map[string]interface {}(nil) err=goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.803828+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush",
+        "Output": "--- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush (0.50s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.803867+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush",
+        "Elapsed": 0.5
+      },
+      {
+        "Time": "2026-10-08T18:43:33.803881+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow",
+        "Output": "--- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow (0.92s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:33.803892+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow",
+        "Elapsed": 0.92
+      },
+      {
+        "Time": "2026-10-08T18:43:35.512837+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestInitializedLongGoalQueuesOneFocusedPlanWithoutMechanicalSchedules",
+        "Output": "=== RUN   TestInitializedLongGoalQueuesOneFocusedPlanWithoutMechanicalSchedules\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:35.792893+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestInitializedLongGoalQueuesOneFocusedPlanWithoutMechanicalSchedules",
+        "Output": "    goal_planning_wait_test.go:36: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:35.903647+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestInitializedLongGoalQueuesOneFocusedPlanWithoutMechanicalSchedules",
+        "Output": "--- FAIL: TestInitializedLongGoalQueuesOneFocusedPlanWithoutMechanicalSchedules (0.39s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:35.903695+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestInitializedLongGoalQueuesOneFocusedPlanWithoutMechanicalSchedules",
+        "Elapsed": 0.39
+      },
+      {
+        "Time": "2026-10-08T18:43:36.711228+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:37.13478+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:89: raw criterion escaped actual HTTP payload: criterion_fb5c48950ff455bd5ef417e492cbc90e\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.144205+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:151: adk_run: [NodeRunError] context deadline exceeded\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.144319+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        ------------------------\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.14434+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        node path: [node_1]\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.154232+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (10.44s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.154295+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 10.44
+      },
+      {
+        "Time": "2026-10-08T18:43:47.574866+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalReviewCycleReplayAndLateEvidenceRevision",
+        "Output": "=== RUN   TestGoalReviewCycleReplayAndLateEvidenceRevision\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.831594+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalReviewCycleReplayAndLateEvidenceRevision",
+        "Output": "    goal_review_test.go:65: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.942545+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalReviewCycleReplayAndLateEvidenceRevision",
+        "Output": "--- FAIL: TestGoalReviewCycleReplayAndLateEvidenceRevision (0.37s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:47.942592+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalReviewCycleReplayAndLateEvidenceRevision",
+        "Elapsed": 0.37
+      },
+      {
+        "Time": "2026-10-08T18:43:49.071577+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions",
+        "Output": "=== RUN   TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:49.370433+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions",
+        "Output": "    goal_review_test.go:314: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:49.479055+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions",
+        "Output": "--- FAIL: TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions (0.41s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:49.479095+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions",
+        "Elapsed": 0.41
+      },
+      {
+        "Time": "2026-10-08T18:43:49.479117+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Output": "=== RUN   TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:50.077158+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Output": "    goal_short_attempt_test.go:116: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:50.19186+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Output": "--- FAIL: TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply (0.71s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:50.191922+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestCompletedShortExpressionDoesNotAdvanceMutualGoalWithoutReply",
+        "Elapsed": 0.71
+      },
+      {
+        "Time": "2026-10-08T18:43:50.192109+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "=== RUN   TestGoalStageCompletionReplayDoesNotRepeatNextStage\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:50.482306+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "    goal_stage_replay_test.go:56: goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:50.588626+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "--- FAIL: TestGoalStageCompletionReplayDoesNotRepeatNextStage (0.40s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:50.588683+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Elapsed": 0.4
+      },
+      {
+        "Time": "2026-10-08T18:43:51.152159+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Output": "=== RUN   TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:51.542815+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Output": "    reflection_goal_progress_v2_test.go:102: formal Goal assessment=map[string]interface {}(nil) err=goal_assessment_projection_authority_required\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:51.656294+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Output": "--- FAIL: TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome (0.50s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:43:51.656328+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome",
+        "Elapsed": 0.5
+      }
+    ]
+  },
+  {
+    "attempt": "goal-third-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T18:46:33.06348+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "=== RUN   TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses\n"
+      },
+      {
+        "Time": "2026-10-08T18:46:33.401275+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "    goal_assessment_memo_integration_test.go:78: merged owner force reason=\"owner_reassess\" snapshot=core.goalEvaluationSnapshot{ProviderSourceIDs:[]int64(nil), UnprocessedSourceIDs:[]int64(nil), Reviews:[]core.GoalReviewContext(nil), ClaimRevision:0, DeferredGoalIDs:[]string(nil), ForcedGoalIDs:[]string{}, RequestID:\"\", FluctlightID:\"\", OwnerActorID:\"\", ProfileID:\"\", Reason:\"\", Goals:[]core.goalEvaluationGoal(nil), Sources:[]core.GoalSource(nil), SourceIDs:[]int64(nil)} err=<nil>\n"
+      },
+      {
+        "Time": "2026-10-08T18:46:33.514754+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Output": "--- FAIL: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (0.45s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:46:33.514798+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses",
+        "Elapsed": 0.45
+      },
+      {
+        "Time": "2026-10-08T18:46:54.503425+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T18:46:54.928621+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:103: raw source authority escaped actual HTTP payload: default\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:04.910057+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:151: adk_run: [NodeRunError] context deadline exceeded\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:04.910246+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        ------------------------\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:04.910301+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        node path: [node_1]\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:04.929212+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (10.43s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:04.929351+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 10.43
+      },
+      {
+        "Time": "2026-10-08T18:47:07.882271+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "=== RUN   TestGoalStageCompletionReplayDoesNotRepeatNextStage\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:08.24336+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "    goal_stage_replay_test.go:100: stage replay polluted goal: active progress=0.000000 evaluations=1 resolutions=0 calls=2\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:08.24782+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Output": "--- FAIL: TestGoalStageCompletionReplayDoesNotRepeatNextStage (0.37s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:47:08.247852+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalStageCompletionReplayDoesNotRepeatNextStage",
+        "Elapsed": 0.37
+      }
+    ]
+  },
+  {
+    "attempt": "goal-fourth-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T18:56:26.497+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924346+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:124: Goal current input did not use measured stable-first compact JSON representation: {\"goal_states\":[{\"commitment_states\":[],\"current_judgments\":[],\"deadline\":null,\"execution_hint\":{\"state\":\"needs_planning\"},\"goal_ref\":\"goal:1\",\"stage_states\":[],\"status\":\"active\"},{\"commitment_states\":[],\"current_judgments\":[],\"deadline\":null,\"execution_hint\":{\"state\":\"needs_planning\"},\"goal_ref\":\"goal:2\",\"stage_states\":[],\"status\":\"active\"}],\"reviews\":[],\"sources\":[{\"can_support_success\":true,\"data\":{\"author_actor_ref\":\"actor_self\",\"message_kind\":\"assistant\",\"participants\":[\"independent_fluctlight_wardrobe_1791456986631465000\",\"independent_owner_wardrobe_1791456986631465000\"],\"text\":\"我推荐特德·姜的《你一生的故事》，它以语言与时间为科幻设定，适合你的科幻阅读偏好。\"},\"goal_refs\":[],\"kind\":\"message\",\"occurred_at\":\"2026-10-08T18:56:26.757071+08:00\",\"ref\":\"source:1\",\"subject_actor_ref\":\"actor_self\",\"valid\":true},{\"can_support_success\":tr"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924388+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "ue,\"data\":{\"author_actor_ref\":\"actor_user\",\"message_kind\":\"user\",\"participants\":[\"independent_fluctlight_wardrobe_1791456986631465000\",\"independent_owner_wardrobe_1791456986631465000\"],\"text\":\"平时喜欢看科幻类型的，有啥推荐\"},\"goal_refs\":[],\"kind\":\"message\",\"occurred_at\":\"2026-10-08T18:56:26.757071+08:00\",\"ref\":\"source:2\",\"subject_actor_ref\":\"actor_user\",\"valid\":true},{\"can_support_success\":true,\"data\":{\"capability\":\"wardrobe.inspect\",\"completion_boundary\":\"\",\"expected\":{\"action_type\":\"capability\"},\"observed\":{\"notes\":\"domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain in"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924395+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "formation domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain "
+      },
+      {
+        "Time": "2026-10-08T18:56:26.9244+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domai"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924407+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "n information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information \"},\"status\":\"completed\",\"success_boundary\":\"query_result_available\",\"verified_item_refs\":[]},\"goal_refs\":[],\"kind\":\"outcome\",\"occurred_at\":\"2026-10-08T18:56:26.752049+08:00\",\"ref\":\"source:4\",\"subject_actor_ref\":\"actor_self\",\"valid\":true},{\"can_support_success\":true,\"data\":{\"capability\":\"\",\"completion_boundary\":\"\",\"expected\":{\"action_type\":\"capability\",\"capability_names\":[\"wardrobe.inspect\"]},\"observed\":{\"status\":\"completed\"},\"status\":\"completed\",\"success_boundary\":\"action_settled\",\"verified_item_refs\":[]},\"goal"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924411+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "_refs\":[],\"kind\":\"outcome\",\"occurred_at\":\"2026-10-08T18:56:26.752049+08:00\",\"ref\":\"source:5\",\"subject_actor_ref\":\"actor_self\",\"valid\":true},{\"can_support_success\":true,\"data\":{\"capability\":\"wardrobe.inspect\",\"completion_boundary\":\"\",\"expected\":{\"action_type\":\"capability\"},\"observed\":{\"notes\":\"domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain i"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924415+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "nformation domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924421+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": " information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information doma"
+      },
+      {
+        "Time": "2026-10-08T18:56:26.924425+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "in information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information domain information \"},\"status\":\"completed\",\"success_boundary\":\"query_result_available\",\"verified_item_refs\":[]},\"goal_refs\":[],\"kind\":\"outcome\",\"occurred_at\":\"2026-10-08T18:56:26.750496+08:00\",\"ref\":\"source:6\",\"subject_actor_ref\":\"actor_self\",\"valid\":true}]}\n"
+      },
+      {
+        "Time": "2026-10-08T18:56:36.906807+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:165: adk_run: [NodeRunError] context deadline exceeded\n"
+      },
+      {
+        "Time": "2026-10-08T18:56:36.906983+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        ------------------------\n"
+      },
+      {
+        "Time": "2026-10-08T18:56:36.907036+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        node path: [node_1]\n"
+      },
+      {
+        "Time": "2026-10-08T18:56:36.919927+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (10.42s)\n"
+      },
+      {
+        "Time": "2026-10-08T18:56:36.920032+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 10.42
+      }
+    ]
+  },
+  {
+    "attempt": "goal-fifth-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T19:01:30.241285+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T19:01:30.699037+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:128: actual request did not send stable definitions once before final current facts\n"
+      },
+      {
+        "Time": "2026-10-08T19:01:40.671271+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:169: adk_run: [NodeRunError] context deadline exceeded\n"
+      },
+      {
+        "Time": "2026-10-08T19:01:40.671329+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        ------------------------\n"
+      },
+      {
+        "Time": "2026-10-08T19:01:40.671343+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        node path: [node_1]\n"
+      },
+      {
+        "Time": "2026-10-08T19:01:40.78415+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (10.54s)\n"
+      },
+      {
+        "Time": "2026-10-08T19:01:40.784231+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 10.54
+      }
+    ]
+  },
+  {
+    "attempt": "goal-sixth-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T19:05:39.677943+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Output": "=== RUN   TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel\n"
+      },
+      {
+        "Time": "2026-10-08T19:05:39.960932+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Output": "    goal_assessment_memo_integration_test.go:148: retry calls=1 err=<nil>\n"
+      },
+      {
+        "Time": "2026-10-08T19:05:40.068786+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Output": "--- FAIL: TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel (0.39s)\n"
+      },
+      {
+        "Time": "2026-10-08T19:05:40.068822+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel",
+        "Elapsed": 0.39
+      },
+      {
+        "Time": "2026-10-08T19:06:01.217113+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T19:06:01.648922+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:133: split mismatch: stable_match=false current lengths=8400/8400 diff=8400 actual=\"elf\\\",\\\"valid\\\":true}]}\" expected=\"elf\\\",\\\"valid\\\":true}]}\"\n"
+      },
+      {
+        "Time": "2026-10-08T19:06:11.630831+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:174: adk_run: [NodeRunError] context deadline exceeded\n"
+      },
+      {
+        "Time": "2026-10-08T19:06:11.631005+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        ------------------------\n"
+      },
+      {
+        "Time": "2026-10-08T19:06:11.631044+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        node path: [node_1]\n"
+      },
+      {
+        "Time": "2026-10-08T19:06:11.645882+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (10.43s)\n"
+      },
+      {
+        "Time": "2026-10-08T19:06:11.646047+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 10.43
+      }
+    ]
+  },
+  {
+    "attempt": "goal-seventh-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T19:10:41.698384+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T19:10:42.436602+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:117: raw source authority escaped actual HTTP payload: source:5 near \",\\\"occurred_at\\\":\\\"2026-10-08T19:10:41.973457+08:00\\\",\\\"ref\\\":\\\"source:5\\\",\\\"subject_actor_ref\\\":\\\"actor_self\\\",\\\"valid\\\":true},{\\\"can_support_success\\\":true,\\\"data\n"
+      },
+      {
+        "Time": "2026-10-08T19:10:52.405901+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:201: adk_run: [NodeRunError] context deadline exceeded\n"
+      },
+      {
+        "Time": "2026-10-08T19:10:52.405954+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        ------------------------\n"
+      },
+      {
+        "Time": "2026-10-08T19:10:52.405961+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        node path: [node_1]\n"
+      },
+      {
+        "Time": "2026-10-08T19:10:52.426996+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (10.73s)\n"
+      },
+      {
+        "Time": "2026-10-08T19:10:52.42702+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 10.73
+      }
+    ]
+  },
+  {
+    "attempt": "whole-first-race.jsonl",
+    "failures": [
+      {
+        "Time": "2026-10-08T19:13:21.173752+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "=== RUN   TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog\n"
+      },
+      {
+        "Time": "2026-10-08T19:13:21.880982+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:117: raw source authority escaped actual HTTP payload: source:5 near \",\\\"occurred_at\\\":\\\"2026-10-08T19:13:21.442204+08:00\\\",\\\"ref\\\":\\\"source:5\\\",\\\"subject_actor_ref\\\":\\\"actor_self\\\",\\\"valid\\\":true},{\\\"can_support_success\\\":true,\\\"data\n"
+      },
+      {
+        "Time": "2026-10-08T19:13:31.858459+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "    goal_recommendation_input_integration_test.go:201: adk_run: [NodeRunError] context deadline exceeded\n"
+      },
+      {
+        "Time": "2026-10-08T19:13:31.858599+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        ------------------------\n"
+      },
+      {
+        "Time": "2026-10-08T19:13:31.858648+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "        node path: [node_1]\n"
+      },
+      {
+        "Time": "2026-10-08T19:13:31.87641+08:00",
+        "Action": "output",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Output": "--- FAIL: TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog (10.70s)\n"
+      },
+      {
+        "Time": "2026-10-08T19:13:31.876504+08:00",
+        "Action": "fail",
+        "Package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "Test": "TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog",
+        "Elapsed": 10.7
+      }
+    ]
+  }
+]

@@ -26,8 +26,12 @@ func queueGoalEvaluationTx(ctx context.Context, tx pgx.Tx, owner, profile, reaso
 		return "", nil
 	}
 	requestID := "goal_evaluation_" + stableDigest(owner+"\x1f"+profile+"\x1f"+identity)
+	forcedGoalIDs := []string{}
+	if reason == "owner_reassess" {
+		forcedGoalIDs = append(forcedGoalIDs, goalIDs...)
+	}
 	var actualID string
-	err := tx.QueryRow(ctx, `INSERT INTO public.goal_evaluation_requests(id,fluctlight_id,profile_id,goal_ids,reason,status,available_at) VALUES($1,$2,$3,$4,$5,'pending',now()+interval '2 seconds') ON CONFLICT(fluctlight_id,profile_id) WHERE status='pending' DO UPDATE SET goal_ids=(SELECT COALESCE(jsonb_agg(v ORDER BY v),'[]'::jsonb) FROM (SELECT DISTINCT value v FROM jsonb_array_elements(goal_evaluation_requests.goal_ids || EXCLUDED.goal_ids)) ids),updated_at=now() RETURNING id`, requestID, owner, profile, jsonBytes(goalIDs), reason).Scan(&actualID)
+	err := tx.QueryRow(ctx, `INSERT INTO public.goal_evaluation_requests(id,fluctlight_id,profile_id,goal_ids,reason,status,available_at,snapshot) VALUES($1,$2,$3,$4,$5,'pending',now()+interval '2 seconds',jsonb_build_object('forced_goal_ids',$6::jsonb)) ON CONFLICT(fluctlight_id,profile_id) WHERE status='pending' DO UPDATE SET goal_ids=(SELECT COALESCE(jsonb_agg(v ORDER BY v),'[]'::jsonb) FROM (SELECT DISTINCT value v FROM jsonb_array_elements(goal_evaluation_requests.goal_ids || EXCLUDED.goal_ids)) ids),reason=CASE WHEN EXCLUDED.reason='owner_reassess' THEN EXCLUDED.reason ELSE goal_evaluation_requests.reason END,snapshot=jsonb_set(goal_evaluation_requests.snapshot,'{forced_goal_ids}',(SELECT COALESCE(jsonb_agg(v ORDER BY v),'[]'::jsonb) FROM (SELECT DISTINCT value v FROM jsonb_array_elements(COALESCE(goal_evaluation_requests.snapshot->'forced_goal_ids','[]'::jsonb) || (EXCLUDED.snapshot->'forced_goal_ids'))) ids),true),updated_at=now() RETURNING id`, requestID, owner, profile, jsonBytes(goalIDs), reason, jsonBytes(forcedGoalIDs)).Scan(&actualID)
 	if err != nil {
 		return "", err
 	}

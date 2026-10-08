@@ -58,3 +58,25 @@ key，只有缺key且没有同实例待处理认知才补一轮。
 本轮没有部署或清理用户实际队列。验收应查看实际last-chat时间、下一次
 到期、model-run queued/running/cancelled状态及来源水位；ADK多轮和有限
 失败重试可能让一个触发产生多个模型调用，不能把调用次数当触发频率。
+
+## 2026-10-08 Goal语义输入、前缀缓存与重复判断
+
+新版本Goal评估的模型输入只保留语义及本次短引用，Core在冻结快照中
+恢复真实ID/版本并执行提交校验。完整metadata仍在内部审计，不应将审计
+快照误作模型协议。实际HTTP prompt测试覆盖system、stable任务事实、
+runtime事实及最后current input，避免只看一个局部packet。
+
+同Agent的固定协议/人格在首个system；稳定目标定义在required user
+上下文前缀，动态时钟/状态/证据随后，current input末尾一次。可以用本地
+模型服务的cached-token/prefill指标验证收益；仓库的byte/token估算不证明
+实际KV命中。实测稀疏嵌套Goal fixture精简JSON比TOON/YAML小，因此当前
+仍用精简JSON，结构化输出也保持closed JSON。
+
+自动Goal请求遇到已成功评估的相同标准/证据/约束时返回
+assessment_memo_match，skipped_goals列出目标，不产生新模型调用或虚假
+Evaluation。成功stamp在数据库request.result中，重启仍有效。新证据、
+失效、标准/相关约束或复核窗口变化仍评估；Owner重新评估始终保留强制
+语义，即使并入已有pending请求。失败/未覆盖证据不视为成功stamp。
+
+发布需更新API/Worker。本轮没有部署或清理用户线上队列；真实模型对
+短引用的语义判断及实际缓存收益仍须在运行环境验收。

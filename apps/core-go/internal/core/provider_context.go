@@ -30,6 +30,27 @@ const (
 	ProviderContextSurfaceReflection       ProviderContextSurface = "reflection"
 )
 
+type providerStableTaskContextKey struct{}
+
+// withProviderStableTaskContext attaches operation-owned facts that change
+// more slowly than the request's clock, transient state, and evidence. The
+// value remains user-level task context; the prompt assembler never promotes
+// it into System policy.
+func withProviderStableTaskContext(ctx context.Context, value map[string]any) context.Context {
+	if ctx == nil || len(value) == 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, providerStableTaskContextKey{}, cloneMap(value))
+}
+
+func providerStableTaskContext(ctx context.Context) map[string]any {
+	if ctx == nil {
+		return nil
+	}
+	value, _ := ctx.Value(providerStableTaskContextKey{}).(map[string]any)
+	return cloneMap(value)
+}
+
 func providerContextSurfaceForSchema(schemaName string) ProviderContextSurface {
 	switch strings.TrimSpace(schemaName) {
 	case "conversation_turn_response":
@@ -128,9 +149,15 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		return PromptAssemblyResult{}, projection, err
 	}
 	workingPersona := renderCompiledWorkingPersona(compiled)
+	systemPersona := systemPersonaForProjectionWithWorking(projection, schemaName, workingPersona)
+	if schemaName == "goal_evaluation_v1" {
+		// This read-only evaluator selects actors/objects through its frozen
+		// short-ref binding; persona switching identifiers are not its inputs.
+		systemPersona = mapValue(goalEvaluationPersonaSemantics(systemPersona))
+	}
 	result, err := composer.ComposeAssembly(PromptAssemblyInput{
-		Role: role, OperationRules: operationRules, CorePersona: systemPersonaForProjectionWithWorking(projection, schemaName, workingPersona),
-		WorkingMemory: workingMemory, CurrentInput: currentInput, Tools: RenderCapabilityTools(definitions),
+		Role: role, OperationRules: operationRules, CorePersona: systemPersona,
+		StableTaskContext: providerStableTaskContext(ctx), WorkingMemory: workingMemory, CurrentInput: currentInput, Tools: RenderCapabilityTools(definitions),
 		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,
 	})
 	if err == nil {
@@ -889,9 +916,9 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 	result := make([]map[string]any, 0, len(base))
 	for _, value := range base {
 		item := map[string]any{}
-		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "criteria_version", "criterion_ids", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "deadline", "state"} {
+		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "deadline", "state"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
-				item[key] = raw
+				item[key] = goalRuntimeSemantics(raw)
 			}
 		}
 		if surfaceAllowsEntityRef(surface, ContextReferenceGoal) {

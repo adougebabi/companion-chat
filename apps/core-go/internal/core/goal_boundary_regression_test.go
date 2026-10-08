@@ -36,7 +36,7 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 		{"unpublished_draft", "goal_judgment_source_invalid"},
 		{"invalid_item", "goal_judgment_source_invalid"},
 		{"general_goal_relationship_confirmation", "goal_relationship_resolution_scope_invalid"},
-		{"unserved_stage", "goal_stage_evaluation_scope_invalid"},
+		{"unserved_stage", "goal_evaluation_wire_object_ref_invalid"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
@@ -110,7 +110,7 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 				case "unserved_stage":
 					output.Evaluations[0].StageEvaluation = &GoalObjectEvaluation{ID: "unserved-stage", ExpectedRevision: 1, CriteriaVersion: 1, Judgments: []GoalCriterionJudgment{}, Completed: true}
 				}
-				return fakeProviderResult{Structured: decodeObject(jsonBytes(output))}
+				return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, output)}
 			})}
 			requestID := latestPendingGoalRequest(t, f)
 			_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
@@ -430,7 +430,7 @@ func TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution(t *test
 				} else if ended {
 					impact, wait = "completed", ""
 				}
-				return fakeProviderResult{Structured: decodeObject(jsonBytes(GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: judgments, Impact: impact, WaitCondition: wait}}, Plans: []GoalPlanCandidate{}}))}
+				return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: judgments, Impact: impact, WaitCondition: wait}}, Plans: []GoalPlanCandidate{}})}
 			})}
 			requestID := latestPendingGoalRequest(t, f)
 			if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err != nil {
@@ -559,7 +559,7 @@ func TestExpiredCommitmentIncludesTimelyProofInFrozenAssessment(t *testing.T) {
 			t.Fatal("actual timely proof missing")
 		}
 		candidate := GoalEvaluationCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: []GoalCriterionJudgment{}, Impact: "needs_evidence", WaitCondition: "await parent result", CommitmentEvaluations: []GoalObjectEvaluation{{ID: c.ID, ExpectedRevision: c.Revision, CriteriaVersion: c.CriteriaVersion, Completed: true, Reason: "timely message, late assessment", Judgments: []GoalCriterionJudgment{{CriterionID: c.Criteria[0].ID, Verdict: "satisfied", Kind: "communication", Subject: "actor_self", Discourse: "assertion", EvidenceRefs: []string{proof}, Reason: "actual sent message within window"}}}}}
-		return fakeProviderResult{Structured: decodeObject(jsonBytes(GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}}))}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 	})}
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f)); err != nil {
 		t.Fatal(err)
@@ -632,7 +632,7 @@ func TestActualQueryCanCompleteInformationGoalWithoutBusinessAction(t *testing.T
 			t.Fatal("actual query receipt absent from authoritative sources")
 		}
 		candidate := GoalEvaluationCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Impact: "completed", Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "satisfied", Kind: "information", Subject: "domain", Discourse: "domain_fact", EvidenceRefs: []string{proof}, Reason: "actual query returned current inventory"}}}
-		return fakeProviderResult{Structured: decodeObject(jsonBytes(GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}}))}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 	})}
 	if _, err := f.app.ProcessCognitionInbox(f.ctx, stringValue(due["inbox_id"])); err != nil {
 		t.Fatal(err)

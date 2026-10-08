@@ -328,11 +328,11 @@ func TestGoalEvaluationBatchRemainderRetainsActualSource(t *testing.T) {
 		if proof == "" {
 			t.Fatal("deferred batch lost real source")
 		}
-		candidates := []any{}
+		candidates := []GoalEvaluationCandidate{}
 		for _, entry := range snapshot.Goals {
-			candidates = append(candidates, map[string]any{"goal_id": entry.GoalID, "expected_revision": entry.Goal.Revision, "criteria_version": entry.Goal.CriteriaVersion, "impact": "completed", "blocker": "", "wait_condition": "", "next_step": "", "residual_motivation": "", "judgments": []any{map[string]any{"criterion_id": entry.Goal.CriterionIDs[0], "verdict": "satisfied", "kind": "communication", "subject": "actor_self", "discourse": "assertion", "evidence_refs": []string{proof}, "reason": "real source remains available across batches"}}})
+			candidates = append(candidates, GoalEvaluationCandidate{GoalID: entry.GoalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Impact: "completed", Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "satisfied", Kind: "communication", Subject: "actor_self", Discourse: "assertion", EvidenceRefs: []string{proof}, Reason: "real source remains available across batches"}}})
 		}
-		return fakeProviderResult{Structured: map[string]any{"evaluations": candidates, "plans": []any{}}}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: candidates, Plans: []GoalPlanCandidate{}})}
 	})}
 	for i := 0; i < 2; i++ {
 		id := latestPendingGoalRequest(t, f)

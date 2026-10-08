@@ -22,18 +22,20 @@ type goalEvaluationGoal struct {
 }
 
 type goalEvaluationSnapshot struct {
-	ProviderSourceIDs []int64              `json:"provider_source_ids,omitempty"`
-	Reviews           []GoalReviewContext  `json:"reviews"`
-	ClaimRevision     int                  `json:"claim_revision"`
-	DeferredGoalIDs   []string             `json:"deferred_goal_ids"`
-	RequestID         string               `json:"request_id"`
-	FluctlightID      string               `json:"fluctlight_id"`
-	OwnerActorID      string               `json:"owner_actor_id"`
-	ProfileID         string               `json:"profile_id"`
-	Reason            string               `json:"reason"`
-	Goals             []goalEvaluationGoal `json:"goals"`
-	Sources           []GoalSource         `json:"sources"`
-	SourceIDs         []int64              `json:"source_ids"`
+	ProviderSourceIDs    []int64              `json:"provider_source_ids,omitempty"`
+	UnprocessedSourceIDs []int64              `json:"unprocessed_source_ids,omitempty"`
+	Reviews              []GoalReviewContext  `json:"reviews"`
+	ClaimRevision        int                  `json:"claim_revision"`
+	DeferredGoalIDs      []string             `json:"deferred_goal_ids"`
+	ForcedGoalIDs        []string             `json:"forced_goal_ids,omitempty"`
+	RequestID            string               `json:"request_id"`
+	FluctlightID         string               `json:"fluctlight_id"`
+	OwnerActorID         string               `json:"owner_actor_id"`
+	ProfileID            string               `json:"profile_id"`
+	Reason               string               `json:"reason"`
+	Goals                []goalEvaluationGoal `json:"goals"`
+	Sources              []GoalSource         `json:"sources"`
+	SourceIDs            []int64              `json:"source_ids"`
 }
 
 func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluationSnapshot, map[string]any, error) {
@@ -49,10 +51,13 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 		var status string
 		var attempts, claimRevision int
 		var available time.Time
-		var goalRaw, resultRaw []byte
+		var goalRaw, resultRaw, pendingSnapshotRaw []byte
 		var claimed *time.Time
-		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,profile_id,reason,status,attempt_count,goal_ids,result,claimed_at,claim_revision,available_at FROM public.goal_evaluation_requests WHERE id=$1 FOR UPDATE`, id).Scan(&snapshot.FluctlightID, &snapshot.ProfileID, &snapshot.Reason, &status, &attempts, &goalRaw, &resultRaw, &claimed, &claimRevision, &available); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,profile_id,reason,status,attempt_count,goal_ids,result,snapshot,claimed_at,claim_revision,available_at FROM public.goal_evaluation_requests WHERE id=$1 FOR UPDATE`, id).Scan(&snapshot.FluctlightID, &snapshot.ProfileID, &snapshot.Reason, &status, &attempts, &goalRaw, &resultRaw, &pendingSnapshotRaw, &claimed, &claimRevision, &available); err != nil {
 			return err
+		}
+		if pendingSnapshot := decodeObject(pendingSnapshotRaw); pendingSnapshot != nil {
+			snapshot.ForcedGoalIDs = decisionServiceRefValues(arrayValue(pendingSnapshot["forced_goal_ids"]))
 		}
 		if status == "succeeded" {
 			prior = decodeObject(resultRaw)
@@ -221,6 +226,7 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 				return err
 			}
 			snapshot.SourceIDs = append(snapshot.SourceIDs, eventID)
+			snapshot.UnprocessedSourceIDs = append(snapshot.UnprocessedSourceIDs, eventID)
 			seenSources[eventID] = true
 		}
 		rows.Close()
@@ -304,6 +310,30 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	if err != nil {
 		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
 	}
+	if goalAssessmentHasUnofferedNewSource(snapshot) {
+		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, errors.New("goal_evaluation_new_source_budget_blocked"))
+	}
+	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: snapshot.OwnerActorID, TargetActorID: snapshot.OwnerActorID, FluctlightID: snapshot.FluctlightID, WorkingProfileID: snapshot.ProfileID, SourceFactID: id, TriggerSource: "goal_evaluation", MemoryOperation: MemoryForReflection, MemoryConversationMode: MemoryConversationGlobalOnly})
+	if err != nil {
+		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
+	}
+	goalIDs := make([]string, 0, len(snapshot.Goals))
+	for _, entry := range snapshot.Goals {
+		goalIDs = append(goalIDs, entry.GoalID)
+	}
+	priorMemos, err := readGoalAssessmentMemos(ctx, a.DB.Pool(), snapshot.FluctlightID, snapshot.ProfileID, goalIDs)
+	if err != nil {
+		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
+	}
+	claimedSnapshot := snapshot
+	snapshot, skippedGoals := goalAssessmentEligible(snapshot, projection, priorMemos, a.now())
+	if len(snapshot.Goals) == 0 {
+		result, settleErr := settleSkippedGoalAssessment(ctx, a, claimedSnapshot, projection, skippedGoals)
+		if settleErr != nil {
+			return nil, a.failGoalEvaluation(ctx, id, claimedSnapshot.ClaimRevision, settleErr)
+		}
+		return result, nil
+	}
 	// Record the exact offered source subset without dropping the full CAS snapshot.
 	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.goal_evaluation_requests SET snapshot=$3 WHERE id=$1 AND status='processing' AND claim_revision=$2`, id, snapshot.ClaimRevision, jsonBytes(snapshot))
 	if err != nil {
@@ -311,10 +341,6 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	}
 	if command.RowsAffected() != 1 {
 		return nil, ErrConflict
-	}
-	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: snapshot.OwnerActorID, TargetActorID: snapshot.OwnerActorID, FluctlightID: snapshot.FluctlightID, WorkingProfileID: snapshot.ProfileID, SourceFactID: id, TriggerSource: "goal_evaluation", MemoryOperation: MemoryForReflection, MemoryConversationMode: MemoryConversationGlobalOnly})
-	if err != nil {
-		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
 	}
 	task, err := a.RunGoalEvaluationTask(ctx, snapshot, projection)
 	if err != nil {
@@ -324,9 +350,12 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	if err := decodeStructuredValue(task.Completion.Structured, &output); err != nil {
 		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
 	}
-	result := map[string]any{"status": "succeeded", "request_id": id, "evaluated_goals": []string{}, "source_ids": snapshot.SourceIDs}
+	result := map[string]any{"status": "succeeded", "request_id": id, "evaluated_goals": []string{}, "skipped_goals": skippedGoals, "source_ids": snapshot.SourceIDs}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if err := lockLifeContextTx(ctx, tx, snapshot.FluctlightID); err != nil {
+			return err
+		}
+		if err := verifyGoalAssessmentProjectionAuthorityTx(ctx, tx, a, projection); err != nil {
 			return err
 		}
 		var state string
@@ -346,6 +375,9 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		for _, entry := range snapshot.Goals {
 			goals[entry.Goal.EntityID] = entry.Goal
 			original[entry.Goal.EntityID] = entry.Goal
+		}
+		if err := verifySkippedGoalAssessmentTx(ctx, tx, claimedSnapshot, projection, skippedGoals, a.now()); err != nil {
+			return err
 		}
 		covered := map[string]bool{}
 		for _, c := range output.Evaluations {
@@ -459,6 +491,14 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 				}
 			}
 		}
+		memos := make([]goalAssessmentMemo, 0, len(evaluated))
+		for _, goalID := range evaluated {
+			entry, err := refreshGoalAssessmentEntryTx(ctx, tx, goals[goalID], admittedGoalEvaluationSources(snapshot))
+			if err != nil {
+				return err
+			}
+			memos = append(memos, goalAssessmentMemoFor(entry, admittedGoalEvaluationSources(snapshot), task.Projection, a.now()))
+		}
 		if err := invalidateGoalSourceLinksTx(ctx, tx, snapshot.Sources); err != nil {
 			return err
 		}
@@ -496,6 +536,7 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 			}
 		}
 		result["evaluated_goals"] = evaluated
+		result["assessment_memos"] = goalAssessmentMemoValues(memos)
 		_, err = tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='succeeded',result=$2,claimed_at=NULL,error_code=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(result))
 		return err
 	})

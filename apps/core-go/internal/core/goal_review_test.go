@@ -54,7 +54,8 @@ func TestGoalReviewCycleReplayAndLateEvidenceRevision(t *testing.T) {
 		if len(snapshot.Reviews) != 1 {
 			t.Fatalf("review context absent %#v", snapshot.Reviews)
 		}
-		return fakeProviderResult{Structured: map[string]any{"evaluations": []any{map[string]any{"goal_id": goalID, "expected_revision": entry.Goal.Revision, "criteria_version": entry.Goal.CriteriaVersion, "judgments": []any{map[string]any{"criterion_id": entry.Goal.CriterionIDs[0], "verdict": "unknown", "kind": "communication", "subject": "actor_self", "discourse": "uncertain", "evidence_refs": []any{}, "reason": "没有表达证据"}}, "impact": "needs_evidence", "blocker": "", "wait_condition": "等待双方愿意讨论的时机", "next_step": "", "residual_motivation": "", "review": map[string]any{"reason_category": "no_opportunity", "decision": "wait", "explanation": "本周期无已知适当机会，继续等待，不计努力不足", "evidence_refs": []any{}, "stage_id": "", "feasible_alternative": ""}}}, "plans": []any{}}}
+		candidate := GoalEvaluationCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "unknown", Kind: "communication", Subject: "actor_self", Discourse: "uncertain", EvidenceRefs: []string{}, Reason: "没有表达证据"}}, Impact: "needs_evidence", WaitCondition: "等待双方愿意讨论的时机", Review: &GoalReviewDecision{ReasonCategory: "no_opportunity", Decision: "wait", Explanation: "本周期无已知适当机会，继续等待，不计努力不足", EvidenceRefs: []string{}}}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 	})}
 	id := queue()
 	if id == "" {
@@ -298,7 +299,8 @@ func TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions(t *testing.T
 	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		g := snapshot.Goals[0].Goal
-		return fakeProviderResult{Structured: map[string]any{"evaluations": []any{map[string]any{"goal_id": id, "expected_revision": g.Revision, "criteria_version": g.CriteriaVersion, "judgments": []any{}, "impact": "needs_evidence", "blocker": "目标与当前明确边界不再相容", "wait_condition": "", "next_step": "", "residual_motivation": "", "review": map[string]any{"reason_category": "blocked", "decision": "abandon", "explanation": "明确结束该目标，不恢复或生成进一步行动", "evidence_refs": []any{}, "stage_id": "", "feasible_alternative": ""}}}, "plans": []any{}}}
+		candidate := GoalEvaluationCandidate{GoalID: id, ExpectedRevision: g.Revision, CriteriaVersion: g.CriteriaVersion, Judgments: []GoalCriterionJudgment{}, Impact: "needs_evidence", Blocker: "目标与当前明确边界不再相容", Review: &GoalReviewDecision{ReasonCategory: "blocked", Decision: "abandon", Explanation: "明确结束该目标，不恢复或生成进一步行动", EvidenceRefs: []string{}}}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 	})}
 	var requestID string
 	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {

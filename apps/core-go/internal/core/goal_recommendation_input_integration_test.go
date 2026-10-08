@@ -62,11 +62,14 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 	}
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "recommendation-input-"+f.suffix)
 	calls := 0
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
 		calls++
 		snapshot := readProcessingGoalSnapshot(t, f)
-		input := compactGoalEvaluationInput(snapshot)
-		if EstimatePromptTokens(jsonString(input)) > goalEvaluationSourceInputBudget {
+		input, err := renderedGoalEvaluationProviderInput(snapshot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if EstimatePromptTokens(input) > goalEvaluationSourceInputBudget {
 			t.Fatal("provider offered an oversized current input")
 		}
 		entry := goalEvaluationGoal{}
@@ -74,6 +77,66 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 			if candidate.GoalID == goalID {
 				entry = candidate
 			}
+		}
+		wire := jsonString(payload)
+		for _, key := range []string{"expected_revision", "criteria_version", "criterion_ids", "conversation_id", "source_version"} {
+			if strings.Contains(wire, "\""+key+"\"") {
+				t.Fatalf("raw metadata key escaped HTTP payload: %s", key)
+			}
+		}
+		for _, forbidden := range []string{entry.GoalID, entry.Goal.EntityID, entry.Goal.ProfileID} {
+			if forbidden != "" && strings.Contains(wire, forbidden) {
+				t.Fatalf("raw Goal authority escaped actual HTTP payload: %s", forbidden)
+			}
+		}
+		for _, criterionID := range entry.Goal.CriterionIDs {
+			if strings.Contains(wire, criterionID) {
+				t.Fatalf("raw criterion escaped actual HTTP payload: %s", criterionID)
+			}
+		}
+		binding, bindErr := newGoalEvaluationWireBinding(snapshot)
+		if bindErr != nil {
+			t.Fatal(bindErr)
+		}
+		for _, source := range admittedGoalEvaluationSources(snapshot) {
+			forbiddenValues := []string{source.ID, source.ConversationID, snapshot.FluctlightID, snapshot.OwnerActorID}
+			// Short integers/profile labels also occur in legitimate content and
+			// local references. Assert their metadata keys separately.
+			if len(source.Version) > 8 {
+				forbiddenValues = append(forbiddenValues, source.Version)
+			}
+			if len(source.ProfileID) > 8 {
+				forbiddenValues = append(forbiddenValues, source.ProfileID)
+			}
+			if binding.sourceRefs[source.Ref] != source.Ref {
+				forbiddenValues = append(forbiddenValues, source.Ref)
+			}
+			for _, forbidden := range forbiddenValues {
+				if forbidden != "" && strings.Contains(wire, forbidden) {
+					at := strings.Index(wire, forbidden)
+					t.Fatalf("raw source authority escaped actual HTTP payload: %s near %s", forbidden, wire[max(0, at-65):min(len(wire), at+100)])
+				}
+			}
+		}
+		messages := arrayValue(payload["messages"])
+		lastContent := stringValue(mapValue(messages[len(messages)-1])["content"])
+		_, stable, current, splitErr := goalEvaluationWireInput(snapshot)
+		if splitErr != nil {
+			t.Fatal(splitErr)
+		}
+		if stringValue(mapValue(messages[1])["content"]) != stringValue(stableTaskContextMessage(stable)["content"]) || lastContent != jsonString(current) {
+			expected := jsonString(current)
+			at := 0
+			for at < min(len(expected), len(lastContent)) && expected[at] == lastContent[at] {
+				at++
+			}
+			actualStable := stringValue(mapValue(messages[1])["content"])
+			expectedStable := stringValue(stableTaskContextMessage(stable)["content"])
+			sat := 0
+			for sat < min(len(actualStable), len(expectedStable)) && actualStable[sat] == expectedStable[sat] {
+				sat++
+			}
+			t.Fatalf("split mismatch: current_equal=%v stable diff=%d actual=%q expected=%q currentdiff=%d", lastContent == expected, sat, actualStable[max(0, sat-20):min(len(actualStable), sat+100)], expectedStable[max(0, sat-20):min(len(expectedStable), sat+100)], at)
 		}
 		if calls == 1 {
 			for _, source := range snapshot.Sources {
@@ -110,7 +173,7 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 			}
 			candidates = append(candidates, candidate)
 		}
-		return fakeProviderResult{Structured: decodeObject(jsonBytes(GoalEvaluationTaskOutput{Evaluations: candidates, Plans: []GoalPlanCandidate{}}))}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: candidates, Plans: []GoalPlanCandidate{}})}
 	})}
 	request := latestPendingGoalRequest(t, f)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err != nil {
