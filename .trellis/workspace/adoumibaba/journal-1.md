@@ -1624,3 +1624,29 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 50: 真实推荐目标评估输入超限修复
+<!-- trellis-session: v=2 fp=03dc45b3b975d594 -->
+
+**Date**: 2026-10-08
+**Task**: 真实推荐目标评估输入超限修复
+**Branch**: `codex/fluctlight-goal-closed-loop`
+
+### Summary
+
+线上只读确认推荐目标评估输入53609超出16384；修复来源投影、预算准入与续批，保留语义证据和CAS。Goal race 104 PASS events / 91 leaf PASS，0 FAIL/SKIP；vet/build通过。未部署或重评线上目标，真实验收仍进行中。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3b64a54` | fix(goal): bound evaluation source input and preserve deferred evidence |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 更新实际环境Worker后通过正式重新评估入口验证推荐目标闭环
