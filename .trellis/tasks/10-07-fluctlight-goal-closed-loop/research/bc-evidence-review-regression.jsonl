@@ -1,0 +1,14 @@
+{"ImportPath":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Action":"build-output","Output":"# github.com/fluctlight/local-ai-companion/apps/core-go/internal/core\n"}
+{"ImportPath":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Action":"build-output","Output":"internal/core/goal_capabilities.go:84: undefined: boolValue\n"}
+{"ImportPath":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Action":"build-fail"}
+{"Time":"2026-10-07T18:54:10.934042+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-10-07T18:54:10.93409+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"FAIL\tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]\n"}
+{"Time":"2026-10-07T18:54:10.934093+08:00","Action":"fail","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":0,"FailedBuild":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-10-07T18:54:11.478178+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations"}
+{"Time":"2026-10-07T18:54:11.478244+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"}
+{"Time":"2026-10-07T18:54:11.478287+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Output":"FAIL\tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow [build failed]\n"}
+{"Time":"2026-10-07T18:54:11.478295+08:00","Action":"fail","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Elapsed":0,"FailedBuild":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-10-07T18:54:14.37866+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-07T18:54:14.378719+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations","Output":"PASS\n"}
+{"Time":"2026-10-07T18:54:15.385768+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations\t3.907s [no tests to run]\n"}
+{"Time":"2026-10-07T18:54:15.385828+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations","Elapsed":3.908}

@@ -1,0 +1,18 @@
+[
+  {
+    "test": "TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal",
+    "record": "goal_closure_runtime_test.go:130: GOAL_CLOSURE_EVIDENCE scenario=conversation_without_intention goal=goal-dialogue-wardrobe_1791424099959602000 criteria_version=1 revision=2 status=completed request=goal_evaluation_f938c75e988db9a7bbe9200b7d5138f7 evaluation=goal_evaluated_a3553cce35c6045bddebf6bc984f1333 evidence_refs=[\"source:7\"]"
+  },
+  {
+    "test": "TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance",
+    "record": "goal_closure_runtime_test.go:366: GOAL_CLOSURE_EVIDENCE scenario=mutual_relationship_confirmation goal=goal-dialogue-wardrobe_1791424102701020000 criteria_version=1 revision=3 status=completed request=goal_evaluation_8fcad78187d46b9e3d67590d701e2e6b evaluation=goal_evaluated_c67a6afd49c29dd332facb8cff61d059 evidence_refs=[\"source:7\", \"source:8\"]"
+  },
+  {
+    "test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots",
+    "record": "goal_life_chain_test.go:118: GOAL_CLOSURE_EVIDENCE scenario=actual_acquisition_separate_from_wearing goal=goal_tool_fe38460463a92b80a4e86a9169141930 criteria_version=1 revision=2 status=completed request=goal_evaluation_cdb7500e2de9d78b8952d159f953cc23 evaluation=goal_evaluated_d03035f837d8003b5c7a91297f87e298 evidence_refs=[\"source:1\"]"
+  },
+  {
+    "test": "TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush",
+    "record": "goal_life_chain_test.go:118: GOAL_CLOSURE_EVIDENCE scenario=actual_acquisition_separate_from_wearing goal=goal_tool_cb2190ff139d87c4e71e704187395c85 criteria_version=1 revision=2 status=completed request=goal_evaluation_2588a1baf5b2aadb7ba3ce9ed2a2b03d evaluation=goal_evaluated_36207f6862719566f17860ad9accd3ba evidence_refs=[\"source:1\"]"
+  }
+]

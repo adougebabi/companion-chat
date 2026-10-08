@@ -1,0 +1,8 @@
+{"Time":"2026-10-07T20:17:43.918295+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-10-07T20:17:45.313907+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalStockReconciliationPreviewsReplaysAndPreservesEndedHistory"}
+{"Time":"2026-10-07T20:17:45.313965+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalStockReconciliationPreviewsReplaysAndPreservesEndedHistory","Output":"=== RUN   TestGoalStockReconciliationPreviewsReplaysAndPreservesEndedHistory\n"}
+{"Time":"2026-10-07T20:17:45.553634+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalStockReconciliationPreviewsReplaysAndPreservesEndedHistory","Output":"--- PASS: TestGoalStockReconciliationPreviewsReplaysAndPreservesEndedHistory (0.24s)\n"}
+{"Time":"2026-10-07T20:17:45.553651+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalStockReconciliationPreviewsReplaysAndPreservesEndedHistory","Elapsed":0.24}
+{"Time":"2026-10-07T20:17:45.554156+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
+{"Time":"2026-10-07T20:17:46.562031+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t2.643s\n"}
+{"Time":"2026-10-07T20:17:46.562058+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":2.644}

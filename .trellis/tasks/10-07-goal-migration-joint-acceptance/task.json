@@ -3,7 +3,7 @@
   "name": "goal-migration-joint-acceptance",
   "title": "Goal 存量迁移与联合验收",
   "description": "G11–G13：可重入修复、分层测试、三条 E2E 与交付报告",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

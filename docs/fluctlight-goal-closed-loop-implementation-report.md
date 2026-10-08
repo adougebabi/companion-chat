@@ -12,7 +12,7 @@
 | G08–G10 | Actor 时区 Review、原因与阈值、动态上下文、四个原生 Goal Tools、Owner Core／HTTP／BFF／客户端／GoalPanel 已实现；实际界面体验待用户 |
 | G11 | 增量迁移至 0053、只读预览／reviewed digest 应用、分批中断恢复及对账已实现；无生产数据变更 |
 | G12 | 领域、真实隔离 PostgreSQL、原生 Agent／脚本 Provider、实际 PG／Redis／Temporal／生产 Worker 分层验证；live/media SKIP 不计通过 |
-| G13 | 源码、迁移、契约、操作说明及证据齐备；最后交付整理和用户真实验收未结束，整体保持进行中 |
+| G13 | 源码、迁移、契约、操作说明及技术证据齐备；用户真实验收未结束，整体保持进行中 |
 
 ## 执行与证据权威
 
@@ -62,3 +62,5 @@ race 联合验收暴露了显式 Stop 与 context shutdown 重复停止 SDK Work
 待用户验收：C04 普通无关聊天、C05 阶段机会识别、C11 国外／异地事实一致性、C12 人格表达风格、D08 实际浏览器治理体验。C12 的私有作用域与共享连续性、D08 的领域／HTTP／客户端／异步 UI 技术边界已有验证。验收步骤在父任务 research/user-live-acceptance.md。真实媒体质量亦由实际环境验证，脚本输出不作为像素质量证据。
 
 B／C／D 和整体仍保持 in_progress。只有最终门禁和对应用户真实验收均符合要求，才归档完成任务；当前不会将未反馈项、SKIP 或缺少配置记为通过。
+
+技术源码、生成契约与规格提交为 f80a7b2。任务自有 PostgreSQL／Redis／Temporal 测试容器及网络已清理；其它运行环境未修改。后续自动化重跑需重新准备隔离设施，原始测试证据保留。

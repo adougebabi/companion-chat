@@ -1,0 +1,8 @@
+{"Time":"2026-10-08T08:59:12.280315+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-10-08T08:59:13.0286+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestOwnerEndedGoalHistoryPagesStableForAllStatuses"}
+{"Time":"2026-10-08T08:59:13.028646+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestOwnerEndedGoalHistoryPagesStableForAllStatuses","Output":"=== RUN   TestOwnerEndedGoalHistoryPagesStableForAllStatuses\n"}
+{"Time":"2026-10-08T08:59:13.418687+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestOwnerEndedGoalHistoryPagesStableForAllStatuses","Output":"--- PASS: TestOwnerEndedGoalHistoryPagesStableForAllStatuses (0.39s)\n"}
+{"Time":"2026-10-08T08:59:13.418703+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestOwnerEndedGoalHistoryPagesStableForAllStatuses","Elapsed":0.39}
+{"Time":"2026-10-08T08:59:13.421197+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
+{"Time":"2026-10-08T08:59:14.428581+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t2.148s\n"}
+{"Time":"2026-10-08T08:59:14.428603+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":2.148}

@@ -1,0 +1,2 @@
+2026/10/07 17:12:32 apply Goal closure schema: ERROR: there is no unique constraint matching given keys for referenced table "fluctlight_goals" (SQLSTATE 42830)
+exit status 1

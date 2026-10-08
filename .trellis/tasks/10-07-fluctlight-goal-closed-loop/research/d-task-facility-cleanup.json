@@ -1,0 +1,18 @@
+[
+  {
+    "container": "fluctlight-goal-redis-7ef70c25",
+    "removed": true
+  },
+  {
+    "container": "fluctlight-goal-temporal-7ef70c25",
+    "removed": true
+  },
+  {
+    "container": "fluctlight-goal-test-7ef70c25",
+    "removed": true
+  },
+  {
+    "network": "fluctlight-goal-joint-7ef70c25",
+    "removed": true
+  }
+]

@@ -1,0 +1,8 @@
+{"Time":"2026-10-08T09:44:53.354362+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"}
+{"Time":"2026-10-08T09:44:53.898545+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Test":"TestWorkerExplicitAndContextShutdownStopSDKOnce"}
+{"Time":"2026-10-08T09:44:53.898625+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Test":"TestWorkerExplicitAndContextShutdownStopSDKOnce","Output":"=== RUN   TestWorkerExplicitAndContextShutdownStopSDKOnce\n"}
+{"Time":"2026-10-08T09:44:53.898727+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Test":"TestWorkerExplicitAndContextShutdownStopSDKOnce","Output":"--- PASS: TestWorkerExplicitAndContextShutdownStopSDKOnce (0.00s)\n"}
+{"Time":"2026-10-08T09:44:53.89874+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Test":"TestWorkerExplicitAndContextShutdownStopSDKOnce","Elapsed":0}
+{"Time":"2026-10-08T09:44:53.89893+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Output":"PASS\n"}
+{"Time":"2026-10-08T09:44:54.903873+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow\t1.549s\n"}
+{"Time":"2026-10-08T09:44:54.90389+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow","Elapsed":1.55}

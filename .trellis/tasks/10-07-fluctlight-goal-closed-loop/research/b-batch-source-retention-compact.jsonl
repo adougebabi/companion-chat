@@ -1,0 +1,8 @@
+{"Time":"2026-10-07T18:24:38.814389+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-10-07T18:24:39.196225+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalEvaluationBatchRemainderRetainsActualSource"}
+{"Time":"2026-10-07T18:24:39.196271+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalEvaluationBatchRemainderRetainsActualSource","Output":"=== RUN   TestGoalEvaluationBatchRemainderRetainsActualSource\n"}
+{"Time":"2026-10-07T18:24:39.680318+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalEvaluationBatchRemainderRetainsActualSource","Output":"--- PASS: TestGoalEvaluationBatchRemainderRetainsActualSource (0.48s)\n"}
+{"Time":"2026-10-07T18:24:39.680333+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestGoalEvaluationBatchRemainderRetainsActualSource","Elapsed":0.48}
+{"Time":"2026-10-07T18:24:39.68035+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
+{"Time":"2026-10-07T18:24:39.681535+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t0.867s\n"}
+{"Time":"2026-10-07T18:24:39.681557+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":0.867}
