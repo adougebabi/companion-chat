@@ -114,6 +114,8 @@ func TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow(t *testing
 			if jsonString(before["worn_items"]) != jsonString(after["worn_items"]) || len(arrayValue(after["used_items"])) != 0 {
 				t.Fatal("acquisition changed actual wear/use")
 			}
+			runGoalAssessmentFixture(t, f, "acquisition", true, nil)
+			logGoalClosureEvidence(t, f, goalID, "actual_acquisition_separate_from_wearing")
 			var goalStatus string
 			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&goalStatus); err != nil || goalStatus != "completed" {
 				t.Fatalf("goal %s %v", goalStatus, err)

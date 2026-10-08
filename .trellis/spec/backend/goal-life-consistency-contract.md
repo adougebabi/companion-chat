@@ -274,3 +274,63 @@ Real PostgreSQL integration must be marked unverified if the service is unavaila
 
 Wrong: place user location inside Fluctlight identity and hope chat remembers it.
 Correct: actor_user.background → owner-approved actor_facts → same runtime projection.
+
+## Goal closure evidence and governance (0050–0053)
+
+- A claimed due Intention has a durable Attempt before Provider I/O. Sync ACTION, QUERY/no_op, async wait and unknown-operation reconciliation have distinct settlement boundaries. Unknown external effects retain the original identity and cannot be blindly reissued.
+- Stage/Commitment are typed Goal-owned records; stable criteria IDs/version apply at every level. Pause/cancel/completion cascades preserve links/audit without requiring the now-closed parent stage to remain active. Admission still requires active parents and valid windows. Shared parents allow a scoped current-persona Intention; private parents require matching scope.
+- Only `ApplyGoalEvaluation` with re-read actual sources completes a Goal. Main message candidates link real persisted messages, including without a prebound Intention/Attempt. Candidate/confirmed/rejected/withdrawn links and per-criterion judgments remain distinguishable. Plan/governance acknowledgements do not prove business completion. Real item ownership additionally uses existing inventory-source verification.
+- Evaluation claim revision fences Provider completion/failure/empty settlements. Life lock precedes request row lock. Six-goal batches carry deferred IDs and preserve source waterlines until the remainder completes. Full CAS snapshots remain in PostgreSQL; Provider input is compact decision authority, never truncated proof/JSON.
+- Mutual relationship resolution requires actual same-context authors/participants and relationship evidence kind. The chosen relationship ID/revision is frozen before model work and CAS checked by the shared relationship writer. Expression, openness, silence and acceptance remain distinct. Optional invalid follow-up candidates are audited rejections and cannot roll back a valid original completion.
+- Review uses Actor IANA local dates and UTC date-derived windows (23/25 hours across DST). DailyReview and Reflection queue the same evidence evaluation authority. Source arrival requeues existing cycles in the source transaction and increments Review revision, including pending processing races; old decisions cannot overwrite new evidence. Ended-before-claim reviews become superseded.
+- No-opportunity, not-yet-due, waiting external, sleeping, refusal, blocked, missed opportunity, ineffective attempt and incomplete evaluation are separate reasons. Missed/ineffective counters are consecutive cycles, with configurable 1..30 thresholds and audited resets. Period evidence, stage and feasible alternatives guard opportunity claims; thresholds demand concrete next steps or strategy changes, never emotion/frequency increases. Soft expiry is a visible review flag, not completion/cancellation.
+- Owner commands carry authenticated actor/source, expected revision, reason and idempotency. Browser 409 preserves a draft's frozen Goal ID/version. Backend rejects actor/source/progress/actionPlan injection and forced completion. Current and ended history have bounded stable paging; full Goal details include evidence/evaluation/review/resolution and recent retry/attempt projections.
+- The stock CLI defaults to read-only bounded previews. Apply requires the reviewed digest, records/replays one batch, flags unverified legacy completions without reopening them, and queues only planning/evidence work. Unknown operations remain observable reconciliation needs. No SQL model calls, fabricated stages/proof or production auto-migration.
+- Native Tool catalogs remain canonical. Compact instructions preserve authority/safety, avoid duplicated root response-plan judgment fields, and omit only empty read-model placeholders/default zero counters. Keep physical budget limits and current-run ToolCall/ToolResult protocol. Scripted tests do not prove live Provider semantics or pixel quality.
+
+
+## Scenario: Goal assessment authority and evidence continuation
+
+### 1. Scope / Trigger
+Goal due settlement, structured evidence assessment, subobject completion and Owner evidence/history browsing.
+
+### 2. Signatures
+- `ProcessGoalEvaluationIntent(ctx, requestID)` requires one evaluation per frozen Goal; optional plans supplement it.
+- `GoalEvidence(ctx, actorID, fluctlightID, goalID, limit, cursor) -> GoalPage`.
+- `GET /internal/fluctlights/{fluctlightID}/goals/{goalID}/evidence` and `GET /api/fluctlights/{fluctlightId}/goals/{goalId}/evidence`; query `limit=1..50`, `cursor` opaque.
+- `BrowserClient.goalEvidence(fluctlightId, goalId, cursor)` returns `{items,next_cursor?}`; Goal detail includes first 20 `evidence` and `evidence_next_cursor`.
+- Core OpenAPI owns the same list/detail/history/evidence/command routes; CoreClient Goal types derive from those components and mutations preserve independent service-key/human-session headers.
+
+### 3. Contracts
+A plan cannot consume source events without an evaluation. All-unknown judgments cannot masquerade as `no_change`; return `needs_evidence` with a next/wait state. Invalid structured output retains retry and unprocessed sources. Every referenced source, including counter-evidence, respects instance/persona/Goal binding; a withdrawn source may explain regression but cannot support success. Assistant speech proves communication, never self-reported acquisition or completed business action.
+Relationship confirmation requires a relationship-scoped Goal and satisfied relationship judgments; confirmation refs must belong to those judgments, and actual mutual participants plus frozen relationship CAS still apply. Stage/Commitment IDs and versions are restricted to the claimed snapshot. Expired commitments with actual in-window proof can be included within the eight-object bound; cancelled/history-only objects cannot be selected by guessed ID. Persist subobject evidence links before consuming sources, without increasing parent criterion progress.
+Duplicate suppression does not complete an Attempt. Pending side effects settle before a terminal aggregate; successful siblings do not hide failures. Carry child failure codes into primary outcomes and eventual async aggregation, prioritizing retry-stopping authority failures over transient sibling errors independent of Tool order, so policy/permission failures stop retries. Due admission retains typed reasons (`goal_not_active`, `intention_due_stale`) across replay. `conversation.reply` is served to the NativeCognition Agent as well as Conversation/WakeUp/Autonomy; actual effects still use the same authorization, Goal admission, policy budget and duplicate-delivery transaction. Native final cognition contains state summaries, not a second visible message. Trigger and native execution resolve the same existing Owner private-contact mapping before building the projection; absence does not create a hidden conversation. Rebind queued context tokens by persisted Intention/Goal/Attempt identity plus live revision/state and scoped projected parent linkage, rather than requiring an obsolete conversation-scoped token to remain byte-identical.
+Evidence cursors bind Owner instance, Goal and evidence collection; order is `(source.recorded_at, link.id) DESC`. Do not interchange them with revision cursors. API calls authenticate the Owner and join source/link instance scope. UI uses scope and selection epochs for both history and evidence continuation, resets pending flags on navigation, deduplicates stable IDs and retains editing drafts on CAS failure.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| plan-only output | `goal_assessment_coverage_missing`; no source consumption |
+| unknown judgments with no_change | `goal_evaluation_unknown_requires_evidence` |
+| assistant self-report as business proof | `goal_judgment_self_report_not_business_fact` |
+| counter-evidence from another instance/profile/binding | source/profile/binding validation error |
+| non-relationship Goal attaches confirmation | `goal_relationship_resolution_scope_invalid` |
+| unserved Stage/Commitment ID or stale version | object scope validation error |
+| policy failure beside successful ACTION | failed Attempt, retained policy code, paused Intention |
+| evidence cursor reused for revision history | invalid arguments |
+| late UI page after navigation/refresh | discard without clearing the new request's busy flag |
+
+### 5. Good / Base / Bad Cases
+Good: a timely sent message settles an expired commitment while the parent waits for its own remaining criteria. Base: an Owner reads the latest 20 evidence associations then pages older ones. Bad: plan-only output consumes proof, a suppressed reply succeeds, or subobject proof disappears after journal consumption.
+
+### 6. Tests Required
+`goal_boundary_regression_test.go` covers malformed output rollback, self-report rejection, counter-evidence scope, durable mixed/suppressed/policy settlement, Goal-terminal callbacks, hard deadlines, withdrawal through actual evaluation and timely expired commitments. `goal_stage_replay_test.go` covers distinct redelivery identity, stage dependency, one next stage and unchanged parent progress. Mutual relationship tests assert distinct post-terminal delivery does not duplicate relationship/resolution/outbox. Owner evidence test pages 23 actual records including equal timestamps and rejects foreign/collection scope. Browser route/client and executable GoalPanel async tests cover session forwarding, encoded cursors, stale selection responses and retained CAS drafts.
+
+### 7. Wrong vs Correct
+Wrong: `covered[plan.GoalID]=true`, or only check source scope for `satisfied`.
+Correct: require a frozen Goal evaluation independently of its plan; validate every source association before committing any judgment, then strengthen success-authority checks for `satisfied`.
+
+
+## Worker stop ownership during Goal restart acceptance
+
+Production `StartWorkers` retains Run(nil), queues, deployment version and registrations. Returned workers wrap the SDK stop boundary with `sync.Once`; explicit restart and context cancellation may race, but each physical SDK Worker is stopped once. Verify `TestWorkerExplicitAndContextShutdownStopSDKOnce` under race and the actual PG/Redis/Temporal `TestGoalJointPostgresRedisTemporalWorkerRestart` with race, including cleanup. A successful Goal assertion followed by a cleanup panic is a failed test, never positive acceptance evidence.

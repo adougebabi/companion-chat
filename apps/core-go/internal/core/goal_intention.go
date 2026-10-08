@@ -41,6 +41,10 @@ const (
 )
 
 type GoalAuthority struct {
+	ReviewPolicy    *GoalReviewPolicy   `json:"review_policy,omitempty"`
+	CurrentStageID  string              `json:"current_stage_id,omitempty"`
+	ExecutionHint   map[string]any      `json:"execution_hint,omitempty"`
+	CriteriaPolicy  map[string]any      `json:"criteria_policy,omitempty"`
 	EntityID        string              `json:"-"`
 	SchemaVersion   string              `json:"schema_version"`
 	Ref             string              `json:"ref"`
@@ -85,6 +89,8 @@ func CreateGoalAuthority(goal GoalAuthority, evidenceRefs []string, occurredAt t
 }
 
 type GoalPatch struct {
+	ReviewPolicy    *GoalReviewPolicy
+	DeadlinePolicy  *string
 	DesiredOutcome  *string
 	SuccessCriteria []string
 	Motivation      *string
@@ -106,6 +112,8 @@ type GoalCommand struct {
 }
 
 type GoalGovernanceRecord struct {
+	ActorID       string                 `json:"actor_id,omitempty"`
+	Source        string                 `json:"source,omitempty"`
 	GoalRef       string                 `json:"goal_ref"`
 	Operation     GoalLifecycleOperation `json:"operation"`
 	FromStatus    GoalLifecycleStatus    `json:"from_status"`
@@ -119,6 +127,10 @@ type GoalGovernanceRecord struct {
 }
 
 func (goal GoalAuthority) Validate() error {
+	policy := effectiveGoalReviewPolicy(goal.ReviewPolicy)
+	if policy.MissedOpportunityThreshold < 1 || policy.MissedOpportunityThreshold > 30 || policy.IneffectiveAttemptThreshold < 1 || policy.IneffectiveAttemptThreshold > 30 {
+		return errors.New("goal_review_policy_invalid")
+	}
 	// An empty ProfileID is the shared scope, persisted as SQL NULL and visible
 	// from every profile (filterActiveProfileRows). It is a legitimate scope, not
 	// a missing identity.
@@ -209,10 +221,7 @@ func ApplyGoalCommand(current *GoalAuthority, command GoalCommand) (GoalAuthorit
 		}
 		next.Status = GoalActive
 	case GoalComplete:
-		if next.Progress < 1 {
-			return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_success_criteria_unsatisfied")
-		}
-		next.Status = GoalCompleted
+		return GoalAuthority{}, GoalGovernanceRecord{}, errors.New("goal_evaluation_required")
 	case GoalAbandon:
 		next.Status = GoalAbandoned
 	case GoalCancel:
@@ -233,6 +242,13 @@ func ApplyGoalCommand(current *GoalAuthority, command GoalCommand) (GoalAuthorit
 }
 
 func applyGoalPatch(goal *GoalAuthority, patch GoalPatch) {
+	if patch.ReviewPolicy != nil {
+		policy := *patch.ReviewPolicy
+		goal.ReviewPolicy = &policy
+	}
+	if patch.DeadlinePolicy != nil {
+		goal.DeadlinePolicy = *patch.DeadlinePolicy
+	}
 	if patch.DesiredOutcome != nil {
 		goal.DesiredOutcome = strings.TrimSpace(*patch.DesiredOutcome)
 	}
@@ -396,6 +412,8 @@ func (trigger TypedIntentionTrigger) Validate() error {
 }
 
 type IntentionAuthority struct {
+	StageID               string                   `json:"stage_id,omitempty"`
+	CommitmentID          string                   `json:"commitment_id,omitempty"`
 	EntityID              string                   `json:"-"`
 	GoalEntityID          string                   `json:"-"`
 	SchemaVersion         string                   `json:"schema_version"`

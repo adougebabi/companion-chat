@@ -270,7 +270,7 @@ func TestWithContextAuthorityInstructionKeepsUserMessageLast(t *testing.T) {
 	if len(messages) != 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
 		t.Fatalf("messages = %#v", messages)
 	}
-	if !strings.Contains(stringValue(messages[0]["content"]), "context.current_state") || !strings.Contains(stringValue(messages[0]["content"]), "current_time/timezone") || !strings.Contains(stringValue(messages[0]["content"]), "actor_self") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
+	if !strings.Contains(stringValue(messages[0]["content"]), "current_state") || !strings.Contains(stringValue(messages[0]["content"]), "current_time/timezone") || !strings.Contains(stringValue(messages[0]["content"]), "actor_self") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
 		t.Fatalf("authority instruction = %#v", messages[0])
 	}
 }
@@ -322,7 +322,7 @@ func TestSystemInstructionMergesToExactlyOneSystemMessage(t *testing.T) {
 	if systemCount != 1 || stringValue(localized[0]["role"]) != "system" {
 		t.Fatalf("system messages = %#v", localized)
 	}
-	for _, expected := range []string{"operation rules", "late rules", "context.current_state", "自然语言内容使用中文"} {
+	for _, expected := range []string{"operation rules", "late rules", "current_state", "自然语言内容使用中文"} {
 		if !strings.Contains(stringValue(localized[0]["content"]), expected) {
 			t.Fatalf("merged system content missing %q: %s", expected, localized[0]["content"])
 		}

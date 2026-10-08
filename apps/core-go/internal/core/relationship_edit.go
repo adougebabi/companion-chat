@@ -136,6 +136,25 @@ func (a *App) EditRelationship(ctx context.Context, actorID, fluctlightID, targe
 
 	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var err error
+		result, err = a.editRelationshipTx(ctx, tx, actorID, fluctlightID, targetActorID, profileID, expected, payload, "manual")
+		return err
+	})
+	return result, err
+}
+
+// The existing Owner service and evidence-backed Goal resolution share the
+// same dynamic relationship writer; neither changes Core Persona.
+func (a *App) editRelationshipTx(ctx context.Context, tx pgx.Tx, actorID, fluctlightID, targetActorID, profileID string, expected int, payload map[string]any, source string) (map[string]any, error) {
+	evidence := arrayValue(payload["evidence_refs"])
+	if len(evidence) == 0 {
+		return nil, errors.New("relationship_evidence_required")
+	}
+	if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	err := func() error {
 		var id, trend string
 		var revision int
 		var role, metrics, emotional, provenance []byte
@@ -147,7 +166,7 @@ func (a *App) EditRelationship(ctx context.Context, actorID, fluctlightID, targe
 			}
 			return err
 		}
-		if revision != expected {
+		if revision != expected || (source == "goal_evaluation" && stringValue(payload["expected_relationship_id"]) != id) {
 			return ErrConflict
 		}
 
@@ -189,7 +208,7 @@ func (a *App) EditRelationship(ctx context.Context, actorID, fluctlightID, targe
 			}
 		}
 		newRevision := revision + 1
-		provenanceValue := map[string]any{"source": "manual", "actor_id": actorID, "evidence_refs": evidence}
+		provenanceValue := map[string]any{"source": source, "actor_id": actorID, "evidence_refs": evidence}
 		if _, err := tx.Exec(ctx, `UPDATE public.relationships SET role=$2,metrics=$3,trend=$4,summary=$5,emotional_association=$6,provenance=$7,revision=$8,updated_at=now() WHERE id=$1 AND revision=$9`, id, jsonBytes(roleValue), jsonBytes(metricsValue), trend, summary, jsonBytes(emotionalValue), jsonBytes(provenanceValue), newRevision, expected); err != nil {
 			return err
 		}
@@ -208,6 +227,6 @@ func (a *App) EditRelationship(ctx context.Context, actorID, fluctlightID, targe
 		}
 		_ = provenance
 		return nil
-	})
+	}()
 	return result, err
 }

@@ -3,41 +3,26 @@ package core
 // These policies describe decisions and evidence. Registry schemas carry exact
 // Tool arguments; the composer preserves sections instead of flattening them.
 const (
-	capabilityLifeConsistencyInstruction = `### 行动前：实际状态与目标分开
-- 先读当前 life_context、appearance.worn_items 和 active_activities，区分“现在实际是什么”与“希望变成什么”。历史台词、摘要、人格里的习惯或上次 Tool 结果不能覆盖刷新后的事实。
-- 聊天说已经换装但属性仍是旧穿着时，承认动作尚未确认；必要时 wardrobe.inspect(operation=wearing) 查实际穿着。不编造“发错图、缓存、换过又换回”等解释，不反复重拍旧穿着来兑现新款承诺。
+	capabilityLifeConsistencyInstruction = `### 生活权威与执行
+读刷新后的 life_context、appearance.worn_items、active_activities；愿望、历史、人格习惯和旧 Tool 结果不覆盖现状。台词与穿着矛盾则承认未确认，必要时 wardrobe.inspect(wearing)；不编造缓存/发错图，不重拍旧装兑现新装承诺。
 
 ### 执行顺序：地点 → 获取或借用 → 穿着 → 拍照
-1. 在家不能仅凭试穿愿望或旧聊天假定已经进店。需要外出时，先依据当前日程和授权安排/执行自身移动，调用 scene_event 切换实际到达的场景；消费 Tool result 和刷新后的 life_context，再做店内动作。未到期、未获准或未完成移动时保留当前地点，只表达打算。
-2. 核对目标衣物是否已有可用记录；缺少 ID 时先 wardrobe.inspect。店内实际获准借到的未登记衣物用 wardrobe.borrow，记录具体款式、出借方和原因，消费返回的真实 item IDs。不要在家为兑现旧台词凭空登记店内借用，也不用另一件自有衣物替代目标款式；确需改款时先明确说明。
-3. 用 wardrobe.wear 穿上目标 ID。partial 自动替换选中槽位，不同时 remove_slots；full 需列出所有要保留的衣物。只有 completed 且刷新后的 worn_items 确认目标穿着，才描述已经换好；已匹配时不重复换装。
-4. 穿着和场景确认后再 media.image.generate，照片使用受理时冻结的状态。accepted 只表示生成已受理，未完成不说照片已生成；旧照片按冻结穿着描述，不套用后来换装。
-5. 试穿结束用 wardrobe.wear 恢复自有穿着，再 wardrobe.return 归还；借用不是购买，归还不自动恢复衣服。
+1. 未获准、未到期或未完成移动，保留当前地点。按日程和授权执行自身移动，scene_event 与刷新 life_context 确認到达后才做店内动作。
+2. 缺 ID 先 wardrobe.inspect。实际获准借到衣物才 wardrobe.borrow，说明款式、出借方、原因并消费真实 item IDs；不凭空借用，不拿自有旧款冒充目标款，改款须说明。
+3. wardrobe.wear partial 自动替换所选槽位，不再 remove_slots；full 列全保留衣物。completed 且 worn_items 确認才说换好；已匹配不重复。
+4. 场景/穿着确认后 media.image.generate 冻结当时状态；accepted 不等于成片，旧照片不套后来换装。
+5. 试穿结束先 wardrobe.wear 恢复自有衣物，再 wardrobe.return；借用非购买，归还不恢复穿着。
 
-### 场景与日程不一致
-- 核对 current_time 和有效状态。有效 Event 优先于计划；活动结束/返回计划时用获准活动 Tool 结算及 scene_event end/switch。继续原活动则 schedule.inspect 后用获准 schedule.edit/replan 调整当前剩余或未来段，保留已完成历史及可中断限制。消费刷新状态后再描述进展。
-
-### 失败与结束本轮
-- 依据具体 Tool 反馈修正参数；没有新信息时不重复同一失败调用。查询后仍无可用衣物、合法移动或执行条件时，说明尚未完成及实际阻碍，结束本轮；不继续编剧情、重拍或虚构借用。
-- 已决定且获准的必要动作在本轮通过 Tool 执行，不能只承诺稍后更新。缺能力用 capability.request；对用户自然说明实际进展，不发送内部诊断。`
+有效 Event 优先于计划；结束/返回用获准活动 Tool 和 scene_event end/switch。继续活动先 schedule.inspect 再 schedule.edit/replan，只改可中断剩余/未来段，保留历史。消费结果与刷新状态再描述。
+按具体失败反馈改参数；无新信息不重复失败、重拍或虚构借用。仍无衣物/移动/执行条件则说明实际阻碍并结束。已决定且获准的必要动作本轮执行，不能只承诺以后更新；缺能力用 capability.request，诊断不发给用户。`
 
 	capabilityConversationPolicyInstruction = `### 聊天任务
-正式 Agent 处理当前 Actor 消息，依据真实 Tool result 继续决策。
-
-### 用户事实与查询
-- 明确自述/纠正用 actor.fact.record；assertion_type 区分 explicit_statement 与 inference，愿望、引述和推断不是自述；已有事实查 actor.inspect。
-- 外部事实查询 Tool，精确人格查 persona.detail，无资料不编造；缺能力用 capability.request，不假装执行。普通物品实际使用须 item.use。
-
-### 表达与关系
-- 回复调用 conversation.reply；神态、微动作或感官细节与言语交织，置于中文全角括号（...）。visible_text 仅作记录，与已发送内容一致。
-- 关系目标允许克制探索，不按强制恋爱剧本推进；送达只说明尝试，合理等待/明确拒绝不是待突破的失败。
-
-### 计划与执行
-- 状态改变/发布须对应 Tool，区分 completed、accepted、rejected、failed。未来购物/剪染发先 intention.schedule，completed 仅代表计划已提交；日程到期才 life.activity.start。
-- 虚拟活动只有 active_activities 为 in_progress 且符合有效场景与获准事项，才称正在执行。染发不用 appearance.style；发色依活动完成后的 body_fields.hair_color。
-
-### 最终结构
-不复制 tool_calls 或 hidden reasoning。claims 仅保留有 evidence_refs 的 kind/content/confidence；response_plan.profile_id 与 output_preference_decision 按 schema 返回。`
+正式 Agent 处理当前 Actor 消息，消费真实 Tool result 再决策。
+- 自述/纠正用 actor.fact.record；assertion_type 区分 explicit_statement/inference，愿望、引用和推断不是自述；查 actor.inspect。查精确人格用 persona.detail，外部事实查询 Tool；缺能力用 capability.request，不编造。使用普通物品须 item.use。
+- 发消息用 conversation.reply，言语交织神态/感官描写，动作置中文全角括号（...）；visible_text 与已发送内容一致。关系探索尊重人格、等待和拒绝；送达不等于接受。
+- 真实相关互动在 goal_event_candidates 写 Goal ref/理由，无事件不填、无需 Intention。表达不同双方确认；草稿、引用、自述不证明发生。
+- 发布/改状态须 Tool。completed、accepted、rejected、failed 分清；未来购物/剪染发先 intention.schedule（只完成计划），到期才 life.activity.start。仅 active_activities=in_progress 且场景/授权允许才称正在做；染发结果以 body_fields.hair_color 为准，不用 appearance.style。
+- 最终不复制 tool_calls/hidden reasoning。判断和自评在根；claims 须有 evidence_refs 及 kind/content/confidence。response_plan 仅表达计划；profile_id/output_preference_decision 按 schema。`
 
 	capabilityWakeUpPolicyInstruction = `### 周期任务
 正式 Agent 根据人格、驱动、当前日程与近期状态决定是否行动，依据真实 Tool result 继续。

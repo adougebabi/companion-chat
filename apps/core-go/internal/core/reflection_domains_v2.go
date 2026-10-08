@@ -60,23 +60,28 @@ func applyReflectionGoalCandidatesV2Tx(ctx context.Context, tx pgx.Tx, fluctligh
 		}
 		var next GoalAuthority
 		var record GoalGovernanceRecord
-		if err := validateGoalCandidateSeparation(candidate); err != nil {
-			return err
-		}
-		if len(candidate.OutcomeRefs) > 0 {
-			if operation != GoalUpdate && operation != GoalComplete {
-				return errors.New("reflection_goal_progress_operation_invalid")
+		if len(candidate.OutcomeRefs) > 0 || operation == GoalComplete || candidate.Complete {
+			if err := validateGoalCandidateSeparation(candidate); err != nil {
+				return err
 			}
-			outcomes, outcomeErr := reflectionGoalOutcomes(candidate.OutcomeRefs, evolution)
-			if outcomeErr != nil {
-				return outcomeErr
+			if len(candidate.OutcomeRefs) > 0 {
+				outcomes, err := reflectionGoalOutcomes(candidate.OutcomeRefs, evolution)
+				if err != nil {
+					return err
+				}
+				for _, outcome := range outcomes {
+					if err := recordGoalOutcomeSourceTx(ctx, tx, outcome); err != nil {
+						return err
+					}
+				}
 			}
-			next, record, err = ApplyGoalProgress(current, GoalProgressProposal{
-				ExpectedRevision: current.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(current), GoalRef: candidate.TargetRef, OutcomeRefs: candidate.OutcomeRefs, CriterionIDs: goalCriteriaAtIndexes(current, candidate.CriterionIndexes),
-				Strength: candidate.Strength, Confidence: candidate.Confidence,
-				Complete: candidate.Complete || operation == GoalComplete, EvidenceRefs: candidate.EvidenceRefs, OccurredAt: occurredAt,
-			}, outcomes)
-
+			if _, err := queueGoalEvaluationTx(ctx, tx, fluctlightID, current.ProfileID, "reflection_candidate", commandKey, []string{current.EntityID}); err != nil {
+				return err
+			}
+			next = current
+			next.Revision++
+			next.ExecutionHint = map[string]any{"state": "evaluation_pending", "reason": "reflection requested authoritative evaluation"}
+			record = GoalGovernanceRecord{GoalRef: current.Ref, Operation: GoalUpdate, FromStatus: current.Status, ToStatus: current.Status, BaseRevision: current.Revision, Revision: next.Revision, EvidenceRefs: candidate.EvidenceRefs, Reason: "Goal evaluation requested by Reflection", PolicyVersion: goalEvaluationPolicyVersion, OccurredAt: occurredAt}
 		} else {
 			command := GoalCommand{Operation: operation, ExpectedRevision: current.Revision, Patch: patch, EvidenceRefs: candidate.EvidenceRefs, Reason: candidate.SemanticReason, OccurredAt: occurredAt}
 			next, record, err = ApplyGoalCommand(&current, command)
@@ -88,7 +93,8 @@ func applyReflectionGoalCandidatesV2Tx(ctx context.Context, tx pgx.Tx, fluctligh
 			return err
 		}
 	}
-	return nil
+	_, err := queueGoalReviewsTx(ctx, tx, fluctlightID, activeEvolutionProfile(index), "reflection", occurredAt)
+	return err
 }
 
 func reflectionGoalOutcomes(refs []string, evolution EvolutionContext) (map[string]ActionOutcome, error) {
@@ -283,9 +289,9 @@ func loadGoalAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref strin
 	var goal GoalAuthority
 	var profileID *string
 	var targetActorID *string
-	var criteria, criterionIDs, importance, urgency, progress, evidence []byte
+	var criteria, criterionIDs, hintRaw, policyRaw, reviewPolicyRaw, importance, urgency, progress, evidence []byte
 	var deadline *time.Time
-	err := tx.QueryRow(ctx, `SELECT id,profile_id,scope,target_actor_id,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,deadline,status,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&goal.EntityID, &profileID, &goal.Scope, &targetActorID, &goal.DesiredOutcome, &criteria, &goal.Motivation, &goal.NeedsReflection, &importance, &urgency, &progress, &deadline, &goal.Status, &evidence, &goal.Revision, &goal.CriteriaVersion, &goal.DeadlinePolicy, &criterionIDs)
+	err := tx.QueryRow(ctx, `SELECT id,profile_id,scope,target_actor_id,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,deadline,status,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids,COALESCE(current_stage_id,''),execution_hint,criteria_policy,review_policy FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&goal.EntityID, &profileID, &goal.Scope, &targetActorID, &goal.DesiredOutcome, &criteria, &goal.Motivation, &goal.NeedsReflection, &importance, &urgency, &progress, &deadline, &goal.Status, &evidence, &goal.Revision, &goal.CriteriaVersion, &goal.DeadlinePolicy, &criterionIDs, &goal.CurrentStageID, &hintRaw, &policyRaw, &reviewPolicyRaw)
 	if err != nil {
 		return GoalAuthority{}, err
 	}
@@ -299,7 +305,11 @@ func loadGoalAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref strin
 	if targetActorID != nil {
 		goal.TargetActorID = *targetActorID
 	}
+	if err := json.Unmarshal(reviewPolicyRaw, &goal.ReviewPolicy); err != nil {
+		return goal, err
+	}
 	goal.CriterionIDs = decisionServiceRefValues(decodeArray(criterionIDs))
+	goal.ExecutionHint, goal.CriteriaPolicy = decodeObject(hintRaw), decodeObject(policyRaw)
 	goal.SuccessCriteria, goal.Importance, goal.Urgency, goal.Progress, goal.Deadline, goal.EvidenceRefs = decisionServiceRefValues(decodeArray(criteria)), numberOrZero(jsonNumber(importance)), numberOrZero(jsonNumber(urgency)), numberOrZero(jsonNumber(progress)), deadline, decisionServiceRefValues(decodeArray(evidence))
 	return goal, goal.Validate()
 }
@@ -312,7 +322,7 @@ func loadIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, fluctlightID, ref,
 	var profileID, goalID *string
 	var constraints, triggerRaw, confidenceRaw, evidence []byte
 	var preferred *time.Time
-	err := tx.QueryRow(ctx, `SELECT id,profile_id,goal_id,action_intent,expected_outcome,capability_constraints,preferred_time,trigger,confidence,expiration,status,revision,evidence_refs,COALESCE(current_attempt_id,'') FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&intention.EntityID, &profileID, &goalID, &intention.ActionIntent, &intention.ExpectedOutcome, &constraints, &preferred, &triggerRaw, &confidenceRaw, &intention.Expiration, &intention.Status, &intention.Revision, &evidence, &intention.LastAttemptID)
+	err := tx.QueryRow(ctx, `SELECT id,profile_id,goal_id,action_intent,expected_outcome,capability_constraints,preferred_time,trigger,confidence,expiration,status,revision,evidence_refs,COALESCE(current_attempt_id,''),COALESCE(stage_id,''),COALESCE(commitment_id,'') FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, entry.EntityID, fluctlightID).Scan(&intention.EntityID, &profileID, &goalID, &intention.ActionIntent, &intention.ExpectedOutcome, &constraints, &preferred, &triggerRaw, &confidenceRaw, &intention.Expiration, &intention.Status, &intention.Revision, &evidence, &intention.LastAttemptID, &intention.StageID, &intention.CommitmentID)
 	if err != nil {
 		return IntentionAuthority{}, err
 	}

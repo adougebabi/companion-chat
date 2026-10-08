@@ -136,6 +136,7 @@ func builtinCapabilities(app *App) []Capability {
 		appearanceRepository = app.DB
 	}
 	capabilities := []Capability{
+		goalCapability{service: newGoalCapabilityService(app), name: "goal.inspect"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.decide"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.evaluate"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.review"},
 		conversationReplyCapability{publication: publication}, momentPublishCapability{publication: publication}, imageGenerateCapability{service: image, publication: publication},
 		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
 		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},
@@ -244,6 +245,7 @@ func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
 	resource, err := c.publication.PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
+		WorkingProfileID:        invocation.Metadata.WorkingProfileID,
 		SuppressRecentDuplicate: target.AuthorizationPolicy == "autonomy",
 		TopicKey:                stringValue(args["topic_key"]), Purpose: stringValue(args["purpose"]),
 		AuthorizationActorID:        target.AuthorizationActorID,

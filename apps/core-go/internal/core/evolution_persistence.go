@@ -14,12 +14,17 @@ func persistGoalAuthorityTx(ctx context.Context, tx pgx.Tx, before *GoalAuthorit
 		return false, errors.New("goal_persistence_identity_invalid")
 	}
 	after.CriterionIDs = goalCriterionIDs(after)
+	if after.CriterionIDs == nil {
+		after.CriterionIDs = []string{}
+	}
 	if err := lockLifeContextTx(ctx, tx, after.FluctlightID); err != nil {
 		return false, err
 	}
 	if err := after.Validate(); err != nil {
 		return false, err
 	}
+	policy := effectiveGoalReviewPolicy(after.ReviewPolicy)
+	after.ReviewPolicy = &policy
 	digest := stableDigest(jsonString(after))
 	var storedDigest string
 	if err := tx.QueryRow(ctx, `SELECT request_digest FROM public.fluctlight_goal_revisions WHERE idempotency_key=$1`, commandKey).Scan(&storedDigest); err == nil {
@@ -63,8 +68,20 @@ func persistGoalAuthorityTx(ctx context.Context, tx pgx.Tx, before *GoalAuthorit
 	if err := cascadeGoalLifecycleTx(ctx, tx, before, after, commandKey, record.OccurredAt); err != nil {
 		return false, err
 	}
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET current_stage_id=$3,execution_hint=$4,criteria_policy=$5,review_policy=$6 WHERE id=$1 AND fluctlight_id=$2`, after.EntityID, after.FluctlightID, nullableString(after.CurrentStageID), jsonBytes(nonNilGoalHint(after.ExecutionHint)), jsonBytes(nonNilGoalCriteriaPolicy(after.CriteriaPolicy)), jsonBytes(after.ReviewPolicy)); err != nil {
+		return false, err
+	}
+	if after.Status == GoalActive && (before == nil || before.Status != GoalActive || effectiveGoalCriteriaVersion(*before) != effectiveGoalCriteriaVersion(after)) {
+		eventID, err := recordGoalSourceEventTx(ctx, tx, after.FluctlightID, after.ProfileID, "goal_revision", after.EntityID, fmt.Sprint(after.Revision), "", after.FluctlightID, "committed", record.OccurredAt)
+		if err != nil {
+			return false, err
+		}
+		if _, err := queueGoalEvaluationTx(ctx, tx, after.FluctlightID, after.ProfileID, "goal_activated_or_revised", fmt.Sprint(eventID), []string{after.EntityID}); err != nil {
+			return false, err
+		}
+	}
 	revisionID := "goal_revision_" + stableDigest(commandKey)
-	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goal_revisions(id,goal_id,fluctlight_id,from_status,to_status,actor_id,reason,operation,base_revision,snapshot,evidence_refs,idempotency_key,policy_version,request_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, revisionID, after.EntityID, after.FluctlightID, record.FromStatus, record.ToStatus, after.FluctlightID, nullableString(record.Reason), record.Operation, record.BaseRevision, jsonBytes(after), jsonBytes(record.EvidenceRefs), commandKey, record.PolicyVersion, digest)
+	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goal_revisions(id,goal_id,fluctlight_id,from_status,to_status,actor_id,reason,operation,base_revision,snapshot,evidence_refs,idempotency_key,policy_version,request_digest,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`, revisionID, after.EntityID, after.FluctlightID, record.FromStatus, record.ToStatus, firstString(record.ActorID, after.FluctlightID), nullableString(record.Reason), record.Operation, record.BaseRevision, jsonBytes(after), jsonBytes(record.EvidenceRefs), commandKey, record.PolicyVersion, digest, firstString(record.Source, "runtime"))
 	return false, err
 }
 
@@ -127,6 +144,12 @@ func persistIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, before *Intenti
 		if command.RowsAffected() != 1 {
 			return false, errors.New("intention_revision_conflict")
 		}
+	}
+	if err := validateIntentionGoalObjectsTx(ctx, tx, after); err != nil {
+		return false, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_intentions SET stage_id=$3,commitment_id=$4 WHERE id=$1 AND fluctlight_id=$2`, after.EntityID, after.FluctlightID, nullableString(after.StageID), nullableString(after.CommitmentID)); err != nil {
+		return false, err
 	}
 	revisionID := "intention_revision_" + stableDigest(commandKey)
 	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intention_revisions(id,intention_id,fluctlight_id,from_status,to_status,actor_id,reason,operation,base_revision,snapshot,evidence_refs,idempotency_key,policy_version,request_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, revisionID, after.EntityID, after.FluctlightID, record.FromStatus, record.ToStatus, after.FluctlightID, nullableString(record.Reason), record.Operation, record.BaseRevision, jsonBytes(after), jsonBytes(record.EvidenceRefs), commandKey, record.PolicyVersion, digest)

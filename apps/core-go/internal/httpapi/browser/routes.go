@@ -228,6 +228,9 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
+	if s.routeGoals(response, request) {
+		return
+	}
 	path := request.URL.Path
 	methodName := request.Method
 

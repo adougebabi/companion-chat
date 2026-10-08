@@ -221,32 +221,11 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 }
 
 func completeScheduledGoalTx(ctx context.Context, tx pgx.Tx, fluctlightID, goalID, activityID string, outcome ActionOutcome, at time.Time) error {
-	var revision, openIntentions int
-	if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, goalID, fluctlightID).Scan(&revision); err != nil {
+	var profile string
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(profile_id,'') FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2`, goalID, fluctlightID).Scan(&profile); err != nil {
 		return err
 	}
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.fluctlight_intentions WHERE goal_id=$1 AND fluctlight_id=$2 AND status NOT IN ('completed','cancelled','expired')`, goalID, fluctlightID).Scan(&openIntentions); err != nil {
-		return err
-	}
-	if openIntentions != 0 {
-		return nil
-	}
-	goalRef := "goal:ctx_" + stableDigest(goalID)
-	goal, err := loadGoalAuthorityTx(ctx, tx, fluctlightID, goalRef, ContextReference{EntityID: goalID, Revision: revision})
-	if err != nil {
-		return err
-	}
-	if goal.Status != GoalActive || goal.Scope == "relationship" || len(goal.SuccessCriteria) != 1 {
-		return nil
-	}
-	next, record, err := ApplyGoalProgress(goal, GoalProgressProposal{
-		ExpectedRevision: goal.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(goal), GoalRef: goal.Ref, OutcomeRefs: []string{outcome.ID}, CriterionIDs: goalCriteriaAtIndexes(goal, []int{0}),
-		Strength: 1, Confidence: 1, Complete: true, EvidenceRefs: []string{"activity:" + activityID}, OccurredAt: at,
-	}, map[string]ActionOutcome{outcome.ID: outcome})
-	if err != nil {
-		return err
-	}
-	_, err = persistGoalAuthorityTx(ctx, tx, &goal, next, record, "activity-goal:"+activityID)
+	_, err := queueGoalEvaluationTx(ctx, tx, fluctlightID, profile, "actual_activity_result", "activity:"+activityID, []string{goalID})
 	return err
 }
 

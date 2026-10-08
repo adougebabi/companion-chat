@@ -39,7 +39,13 @@ func TestNativePersonaLoopUsesGenericIterationGuardInsteadOfLegacyStageBudget(t 
 		t.Fatal(err)
 	}
 	if step != 5 || router.requestCount(takeoverJudgeSchemaName) != 0 || router.requestCount(takeoverReplySchemaName) != 0 {
-		t.Fatalf("native loop requests=%d judge=%d reply-agent=%d", step, router.requestCount(takeoverJudgeSchemaName), router.requestCount(takeoverReplySchemaName))
+		var cause *string
+		_ = repository.Pool().QueryRow(ctx, `SELECT payload->>'safe_cause' FROM public.diagnostic_events WHERE fluctlight_id=$1 AND event_type='agent.run.termination' ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&cause)
+		reason := ""
+		if cause != nil {
+			reason = *cause
+		}
+		t.Fatalf("native loop requests=%d judge=%d reply-agent=%d cause=%s", step, router.requestCount(takeoverJudgeSchemaName), router.requestCount(takeoverReplySchemaName), reason)
 	}
 	if stringValue(result.Assistant["text"]) != "四轮工具后完成" {
 		t.Fatalf("assistant=%#v", result.Assistant)

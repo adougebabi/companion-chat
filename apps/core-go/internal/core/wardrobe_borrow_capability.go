@@ -28,7 +28,7 @@ func wardrobeBorrowDefinition(returning bool) CapabilityDefinition {
 		return map[string]any{"type": "string", "minLength": 1, "maxLength": max}
 	}
 	name := wardrobeBorrowCapabilityName
-	description := "Register clothing actually received on loan, including authorized shop try-on, as available borrowed inventory. Supply lender and concrete items; returns real item IDs for a separate wardrobe.wear call. A wish or browsing alone is not receipt. This does not buy or wear clothing. Inspect first and reuse IDs for items already registered."
+	description := "Record actual authorized loans/try-ons: lender/items. Inspect/reuse IDs. Buying/wearing are separate; browsing is not receipt."
 	properties := map[string]any{
 		"lender": text(256), "reason": text(512),
 		"items": map[string]any{"type": "array", "minItems": 1, "maxItems": 8, "items": objectSchema(map[string]any{
@@ -38,7 +38,7 @@ func wardrobeBorrowDefinition(returning bool) CapabilityDefinition {
 	required := []string{"lender", "reason", "items"}
 	if returning {
 		name = wardrobeReturnCapabilityName
-		description = "Return recorded borrowed clothing by item IDs. Marks it unavailable and removes its current wearing links, retaining borrowed ownership and history. Restore your own clothes separately with wardrobe.wear. This never marks owned clothing lost or changes it to borrowed."
+		description = "Return borrowed IDs: unavailable, unworn, history kept. Never owned clothes; restore outfit separately via wardrobe.wear."
 		properties = map[string]any{"reason": text(512), "item_ids": map[string]any{
 			"type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": text(128),
 		}}

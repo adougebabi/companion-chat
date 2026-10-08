@@ -31,7 +31,7 @@ type appearanceStyleCapability struct {
 func appearanceStyleDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: appearanceStyleCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Actually set or clear a temporary hairstyle on the shared body. This cannot change hair length, color, injury, or clothing and does not rewrite a style habit.",
+		Description:   "Set/clear shared-body temporary hairstyle. No length/color/injury/clothing change or habit edit.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{

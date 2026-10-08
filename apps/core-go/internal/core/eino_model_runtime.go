@@ -24,6 +24,8 @@ import (
 	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
+var errADKFinalContractInvalid = errors.New("adk_final_contract_invalid")
+
 // EinoModelConfig is the transport-neutral configuration needed to construct
 // an official Eino model component.
 type EinoModelConfig = aimodel.EinoModelConfig
@@ -784,7 +786,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				runErr = errors.New("adk_final_repair_tool_call_invalid")
 			}
 			if runErr != nil {
-				return einoModelResponse{}, fmt.Errorf("%w: %w", validationErr, runErr)
+				return einoModelResponse{}, fmt.Errorf("%w: %w: %w", errADKFinalContractInvalid, validationErr, runErr)
 			}
 		}
 	}

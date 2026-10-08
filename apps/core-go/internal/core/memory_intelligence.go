@@ -20,7 +20,7 @@ var validMemoryVisibility = map[string]struct{}{"private": {}, "owner": {}, "par
 func memoryCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: "memory_event", Version: "v2", Type: CapabilityTypeAction,
-		Description:     "Record or correct one evidence-backed Fluctlight memory. For revise, use an exact opaque memory ref already present in context or returned by memory.recall. If no such ref is available, call memory.recall first; never invent target_ref.",
+		Description:     "Record/correct sourced memory. Revise needs context/recall opaque ref; recall if absent, never invent.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCorePersona, SlotMemoryScope},

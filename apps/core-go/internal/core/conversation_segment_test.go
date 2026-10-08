@@ -115,7 +115,7 @@ func TestConversationSegmentToDailyMemoryAndRawCorrection(t *testing.T) {
 		t.Fatalf("source-bounded prompt summary=%#v err=%v", retrieved, err)
 	}
 	compact := compactSummaryForSurface(retrieved.Items[0], ProviderContextSurfaceConversationMain)
-	if compact["started_at"] == nil || compact["ended_at"] == nil || compact["ending_state"] == nil || compact["completed_at"] != nil || compact["to_sequence"] != nil || compact["time_semantics"] != nil {
+	if compact["started_at"] == nil || compact["ended_at"] == nil || compact["ending_state"] == nil || compact["completed_at"] != nil || compact["to_sequence"] != nil || compact["time_semantics"] != "historical_conversation" {
 		t.Fatalf("summary prompt repeated storage metadata: %#v", compact)
 	}
 	if err := repository.Pool().QueryRow(ctx, `SELECT intent_id FROM public.platform_workflow_intents WHERE intent_type='conversation.daily_memory'`).Scan(&dailyIntentID); err != nil {

@@ -26,6 +26,10 @@ var independentToolProductInventory = []string{
 	"appearance.style",
 	"capability.request",
 	"conversation.reply",
+	"goal.decide",
+	"goal.evaluate",
+	"goal.inspect",
+	"goal.review",
 	"habit.decide",
 	"habit.inspect",
 	"intention.decide",
@@ -51,8 +55,10 @@ var independentToolProductInventory = []string{
 	"visual_identity.finalize",
 	"visual_identity.generate_candidate",
 	"visual_identity.initialize",
+	"wardrobe.borrow",
 	"wardrobe.inspect",
 	"wardrobe.outfit.save",
+	"wardrobe.return",
 	"wardrobe.wear",
 }
 

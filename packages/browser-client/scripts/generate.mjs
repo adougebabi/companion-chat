@@ -5,6 +5,7 @@ const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
 const paths = Object.keys(schema.paths).sort();
 const requestTypeNames = [
+ "BrowserGoal", "BrowserGoalPage", "BrowserGoalHistoryPage", "BrowserGoalCommand", "BrowserGoalCommandResult",
   "BrowserActorUserSettings",
  "BrowserActorUserBackgroundUpdate",
  "BrowserActorUserState",
@@ -145,6 +146,12 @@ export class BrowserClient {
   async removeActorGroupMember(groupId: string, actorId: string): Promise<void> { await this.json(\`/api/actor-groups/\${encodeURIComponent(groupId)}/members/\${encodeURIComponent(actorId)}\`, { method: "DELETE", body: {} }); }
   async getFluctlight(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}\`) as Promise<Record<string, unknown>>; }
   async updateActorUserBackground(fluctlightId: string, body: BrowserActorUserBackgroundUpdate): Promise<BrowserActorUserState> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/actor-user-background\`, {method:"PUT",body}) as Promise<BrowserActorUserState>; }
+  async goals(fluctlightId: string, options: {history?: boolean; limit?: number; cursor?: string} = {}): Promise<BrowserGoalPage> { const query = new URLSearchParams({history:String(options.history??false),limit:String(options.limit??20)}); if(options.cursor) query.set("cursor",options.cursor); return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/goals?\${query}\`) as Promise<BrowserGoalPage>; }
+  async goalDetail(fluctlightId: string, goalId: string): Promise<BrowserGoal> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}\`) as Promise<BrowserGoal>; }
+  async goalHistory(fluctlightId: string, goalId: string, cursor = ""): Promise<BrowserGoalHistoryPage> { const query = new URLSearchParams({limit:"20"}); if(cursor) query.set("cursor",cursor); return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}/history?\${query}\`) as Promise<BrowserGoalHistoryPage>; }
+  async goalEvidence(fluctlightId: string, goalId: string, cursor = ""): Promise<BrowserGoalHistoryPage> { const query = new URLSearchParams({limit:"20"}); if(cursor) query.set("cursor",cursor); return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}/evidence?\${query}\`) as Promise<BrowserGoalHistoryPage>; }
+  async createGoal(fluctlightId: string, body: BrowserGoalCommand): Promise<BrowserGoalCommandResult> {return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/goals\`,{method:"POST",body}) as Promise<BrowserGoalCommandResult>;}
+  async goalCommand(fluctlightId: string, goalId: string, operation: "update"|"pause"|"resume"|"cancel"|"abandon"|"reassess", body: BrowserGoalCommand): Promise<BrowserGoalCommandResult> {const suffix = operation === "update" ? "" : "/"+operation;return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}\${suffix}\`,{method:operation === "update" ? "PUT" : "POST",body}) as Promise<BrowserGoalCommandResult>;}
   async detail(fluctlightId: string): Promise<BrowserFluctlightDetail> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/detail\`) as Promise<BrowserFluctlightDetail>; }
   async wardrobe(fluctlightId: string, cursor = ""): Promise<BrowserWardrobePage> { const query = cursor ? \`?cursor=\${encodeURIComponent(cursor)}\` : ""; return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/wardrobe\${query}\`) as Promise<BrowserWardrobePage>; }
   async addWardrobeItems(fluctlightId: string, body: Record<string, unknown>): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/wardrobe/items\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }

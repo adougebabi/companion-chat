@@ -37,7 +37,7 @@ func lifeActivityOutputSchema() map[string]any {
 func lifeActivityStartDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: lifeActivityStartCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Start one timed virtual activity and its current scene Event. Supply scene, activity and location for a change of place. Shopping needs category, slot and description; haircut needs desired_hair_length; hair_dye needs desired_hair_color and a due intention/schedule item. Accepted means started, not purchased.",
+		Description:   "Start timed virtual activity. Moving needs scene/activity/location. Shopping: category/slot/description; haircut: desired_hair_length; dye: desired_hair_color+due intention. Accepted is started, not acquired.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: map[string]any{
@@ -316,7 +316,7 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 func lifeActivityAdvanceDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: lifeActivityAdvanceCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Advance one already started virtual activity. Omit activity_id only when exactly one activity is current. Supply extend_minutes with a reason only for an explicit decision to continue past its current boundary; otherwise resolve the elapsed result. Ending an activity does not imply a purchase or body change.",
+		Description:   "Advance started activity; ID optional if sole current. Extend with minutes/reason, else resolve. End proves no purchase/body change.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceConversation},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema:   objectSchema(map[string]any{"activity_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "extend_minutes": map[string]any{"type": "integer", "minimum": 15, "maximum": 240}, "reason": map[string]any{"type": "string", "minLength": 1, "maxLength": 500}}, nil, false),

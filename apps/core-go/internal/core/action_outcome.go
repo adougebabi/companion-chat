@@ -201,13 +201,37 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 		}
 		outcomes = append(outcomes, outcome)
 	}
+	// Pending side effects must be reconciled before terminal settlement. A
+	// successful sibling never hides a failed action; suppressed deliveries are
+	// not successful actions. Query results cannot turn a suppressed action into success.
+	pending, failed, cancelled, completedAction, suppressed := false, false, false, false, false
+	failureCode := ""
 	for _, outcome := range outcomes[1:] {
-		if outcome.Status == ActionOutcomePending || outcome.Status == ActionOutcomeUnknown {
-			outcomes[0].Status = ActionOutcomePending
-			outcomes[0].SuccessBoundary = "action_in_progress"
-			outcomes[0].Observed["status"] = "in_progress"
-			break
+		def, _ := registry.Definition(outcome.CapabilityName)
+		pending = pending || outcome.Status == ActionOutcomePending || outcome.Status == ActionOutcomeUnknown
+		failed = failed || outcome.Status == ActionOutcomeFailed
+		if outcome.Status == ActionOutcomeFailed {
+			failureCode = preferredActionFailureCode(failureCode, outcome.ErrorCode)
 		}
+		cancelled = cancelled || outcome.Status == ActionOutcomeCancelled
+		suppressed = suppressed || outcome.Status == ActionOutcomeSuppressed
+		completedAction = completedAction || (def.Type == CapabilityTypeAction && outcome.Status == ActionOutcomeCompleted)
+	}
+	switch {
+	case pending:
+		outcomes[0].Status = ActionOutcomePending
+		outcomes[0].SuccessBoundary = "action_in_progress"
+		outcomes[0].Observed["status"] = "in_progress"
+	case failed && outcomes[0].Status != ActionOutcomeCancelled:
+		outcomes[0].Status = ActionOutcomeFailed
+		outcomes[0].ErrorCode = preferredActionFailureCode(failureCode, firstString(outcomes[0].ErrorCode, stringValue(settlement["reason_code"])))
+	case cancelled:
+		outcomes[0].Status = ActionOutcomeCancelled
+	case suppressed && !completedAction && outcomes[0].Status == ActionOutcomeCompleted:
+		outcomes[0].Status = ActionOutcomeSuppressed
+	}
+	if outcomes[0].Status != ActionOutcomePending {
+		outcomes[0].Observed["status"] = string(outcomes[0].Status)
 	}
 	if err := outcomes[0].Validate(); err != nil {
 		return nil, err
@@ -287,6 +311,9 @@ func persistActionOutcomesTx(ctx context.Context, tx pgx.Tx, outcomes []ActionOu
 			if err := ensureLinkedActivityResultIntentTx(ctx, tx, outcome); err != nil {
 				return err
 			}
+		}
+		if err := recordGoalOutcomeSourceTx(ctx, tx, outcome); err != nil {
+			return err
 		}
 		if outcome.CallID == actionPrimaryCallID {
 			if err := settleOutcomeIntentionAttemptsTx(ctx, tx, outcome); err != nil {
@@ -550,6 +577,9 @@ func (a *App) settleActionOutcomeByExternalRefTx(ctx context.Context, tx pgx.Tx,
 	if _, err := settleAggregateActionOutcomeTx(ctx, tx, outcome.ActionID, a.now().UTC()); err != nil {
 		return false, err
 	}
+	if err := recordGoalOutcomeSourceTx(ctx, tx, outcome); err != nil {
+		return false, err
+	}
 	revisionKey := outcome.ID + ":" + strconv.Itoa(outcome.Revision)
 	factPayload := map[string]any{"action_id": outcome.ActionID, "call_id": outcome.CallID, "outcome": outcome}
 	factID, err := appendProcessedCognitionFactTx(ctx, tx, outcome.FluctlightID, "autonomy.result", factPayload, "action-outcome:"+revisionKey)
@@ -598,7 +628,25 @@ func settleAggregateActionOutcomeTx(ctx context.Context, tx pgx.Tx, actionID str
 	}
 	aggregate.Status, aggregate.SuccessBoundary, aggregate.ErrorCode = ActionOutcomeCompleted, "action_settled", ""
 	if failed > 0 {
-		aggregate.Status, aggregate.ErrorCode = ActionOutcomeFailed, "async_capability_failed"
+		aggregate.Status = ActionOutcomeFailed
+		rows, err := tx.Query(ctx, `SELECT COALESCE(error_code,'') FROM public.cognition_action_outcomes WHERE action_id=$1 AND call_id<>$2 AND status='failed'`, actionID, actionPrimaryCallID)
+		if err != nil {
+			return nil, err
+		}
+		aggregate.ErrorCode = ""
+		for rows.Next() {
+			var code string
+			if err := rows.Scan(&code); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			aggregate.ErrorCode = preferredActionFailureCode(aggregate.ErrorCode, code)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+		aggregate.ErrorCode = firstString(aggregate.ErrorCode, "async_capability_failed")
 	} else if cancelled > 0 {
 		aggregate.Status, aggregate.ErrorCode = ActionOutcomeCancelled, "async_capability_cancelled"
 	} else if suppressed > 0 {

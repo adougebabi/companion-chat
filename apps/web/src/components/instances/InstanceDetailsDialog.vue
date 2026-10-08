@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GoalPanel from "./GoalPanel.vue";
 import { actorUserBackgroundFields } from "../../lib/actor-user-background";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { BrowserClient, type BrowserWardrobeItem } from "@fluctlight/browser-client";
@@ -494,6 +495,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               </div>
             </details>
             <h3>目标与意图</h3>
+            <GoalPanel :fluctlight-id="store.selectedFluctlight.id" read-only />
             <p v-if="!goals.length && !intentions.length" class="field-note">当前没有目标或待执行意图。</p>
             <ul v-else class="modal-detail-list">
               <li v-for="goal in goals" :key="String(goal.id)"><strong>{{ formatDisplayValue(goal.description) }}</strong><small>{{ enumLabel(goal.status) }} · {{ formatDisplayValue(goal.progress) }}</small></li>

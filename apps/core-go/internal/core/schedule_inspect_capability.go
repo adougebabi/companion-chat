@@ -19,7 +19,7 @@ type scheduleInspectCapability struct{ service scheduleInspectService }
 func scheduleInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: scheduleInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "Read today's accepted Schedule on demand. List returns at most twelve items; use next_cursor for more or detail with an item_id before changing one item.",
+		Description:   "Read accepted Schedule: list 12, page via next_cursor; detail item_id before editing.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{

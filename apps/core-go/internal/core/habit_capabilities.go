@@ -22,7 +22,7 @@ type habitDecideCapability struct{ service *habitService }
 func habitInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: habitInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "Read the current speaking profile's effective ordinary life habits with stable indexes and revision; these can be changed by an explicit decision.",
+		Description:   "Read speaking-profile effective habits, stable indexes and revision; changes require explicit decisions.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema:   objectSchema(map[string]any{}, nil, false), OutputSchema: openObjectSchema(),
@@ -56,7 +56,7 @@ func (c habitInspectCapability) Execute(ctx context.Context, invocation Capabili
 func habitDecideDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: habitDecideCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Commit one explicit decision to append, replace, or remove an ordinary life habit for the current speaking profile. A one-time outfit choice does not call this and this does not change current clothing.",
+		Description:   "Edit speaking-profile ordinary habits by explicit decision. One-time outfit choices are not habits; this does not change clothing.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{

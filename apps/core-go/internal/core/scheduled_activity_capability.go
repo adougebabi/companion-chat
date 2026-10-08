@@ -33,13 +33,14 @@ func scheduledActivityDefinition() CapabilityDefinition {
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCurrentLife, SlotAgency},
 		InputSchema: objectSchema(map[string]any{
+			"goal_ref": stringSchema(), "stage_id": stringSchema(), "commitment_id": stringSchema(),
 			"goal":               map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
 			"action":             map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
 			"expected_outcome":   map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
 			"action_plan":        map[string]any{"type": "object", "additionalProperties": true},
 			"preferred_start_at": map[string]any{"type": "string"},
 			"reason":             map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
-		}, []string{"goal", "action", "expected_outcome", "action_plan", "reason"}, false),
+		}, []string{"action", "expected_outcome", "action_plan", "reason"}, false),
 		OutputSchema: objectSchema(map[string]any{
 			"goal_id": stringSchema(), "intention_id": stringSchema(), "schedule_id": stringSchema(),
 			"schedule_item_id": stringSchema(), "start_at": stringSchema(), "status": enumStringSchema("scheduled"),

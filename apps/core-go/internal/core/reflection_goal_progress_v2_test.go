@@ -97,12 +97,15 @@ func TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome(t *testing
 	if err != nil || stringValue(result["status"]) != "applied" {
 		t.Fatalf("Reflection result=%#v err=%v", result, err)
 	}
+	seedCognitiveProviderRole(t, ctx, repository, "reflection-goal-assessment-endpoint")
+	fixture := independentToolE2EFixture{ctx: ctx, repository: repository, app: app, ownerID: ownerID, fluctlightID: fluctlightID}
+	runGoalAssessmentFixture(t, fixture, "semantic", false, []int{0})
 	var progress float64
 	var revision int
 	if err := repository.Pool().QueryRow(ctx, `SELECT progress,revision FROM public.fluctlight_goals WHERE id=$1`, goal.EntityID).Scan(&progress, &revision); err != nil {
 		t.Fatal(err)
 	}
-	if progress < 0.5 || revision != 2 {
+	if progress < 0.5 || revision != 3 {
 		t.Fatalf("Goal progress=%v revision=%d", progress, revision)
 	}
 }

@@ -96,7 +96,12 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 	if scheduled, handled, err := a.processScheduledIntentionTrigger(ctx, intentionID, fluctlightID, ownerActorID); handled || err != nil {
 		return scheduled, err
 	}
+	contactID, contactErr := a.DB.DirectConversationID(ctx, ownerActorID, fluctlightID)
+	if contactErr != nil && !errors.Is(contactErr, ErrNotFound) {
+		return nil, contactErr
+	}
 	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+		ConversationID:       contactID,
 		AuthorizationActorID: ownerActorID, TargetActorID: ownerActorID, TriggerSource: "intention_trigger", FluctlightID: fluctlightID,
 		SourceFactID: "intention-trigger:" + intentionID, MemoryOperation: MemoryForNativeCognition,
 		MemoryConversationMode: MemoryConversationGlobalOnly,
@@ -201,11 +206,7 @@ func loadIntentionAuthorityByIDTx(ctx context.Context, tx pgx.Tx, intentionID st
 		return IntentionAuthority{}, errors.New("intention_revision_snapshot_invalid")
 	}
 	current.EntityID, current.GoalEntityID, current.FluctlightID, current.Status, current.Revision, current.Expiration = intentionID, goalID, fluctlightID, IntentionLifecycleStatus(status), revision, expiration.UTC()
-	current.LastAttemptID = liveAttempt
-	if err := current.Validate(); err != nil {
-		return IntentionAuthority{}, err
-	}
-	return current, nil
+	return loadIntentionAuthorityTx(ctx, tx, fluctlightID, current.Ref, current.GoalRef, ContextReference{EntityID: intentionID, Revision: revision})
 }
 
 func syncIntentionTriggerWorkflowTx(ctx context.Context, tx pgx.Tx, intention IntentionAuthority) error {

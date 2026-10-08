@@ -121,7 +121,7 @@ func finalAgentVisibleText(completion ProviderCompletion) string {
 // finishes without conversation.reply. It uses the same publication service
 // as the formal Tool and therefore shares ownership, idempotency and sequence
 // rules without manufacturing a ToolCall.
-func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightID, conversationID, operationID, correlationID, expectedLifeRevision, text string) (map[string]any, error) {
+func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightID, conversationID, operationID, correlationID, expectedLifeRevision, text string, profileIDs ...string) (map[string]any, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, errors.New("cognition_visible_text_missing")
@@ -130,7 +130,7 @@ func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightI
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var err error
 		resource, err = NewToolPublicationService(a).PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
-			AuthorizationActorID: actorID, FluctlightID: fluctlightID, ConversationID: conversationID,
+			WorkingProfileID: firstStringFromSlice(profileIDs), AuthorizationActorID: actorID, FluctlightID: fluctlightID, ConversationID: conversationID,
 			OperationID: operationID, CorrelationID: correlationID, Text: text, ExpectedLifeContextRevision: expectedLifeRevision,
 		})
 		return err
@@ -184,6 +184,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// one lifecycle lock. The new idle epoch becomes visible atomically
 		// with the accepted message, before post-commit cancellation hints.
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
 		}
 		var existingID, existingText, existingAuthor, existingTurnID, existingSourceFactID, existingCorrelationID string
@@ -245,6 +248,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		var createdAt time.Time
 		if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at`, messageID, conversationID, sequence, actorID, text, jsonBytes(attachments), idempotency, turnID, inboxID, correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt).Scan(&createdAt); err != nil {
+			return err
+		}
+		if err := a.recordGoalMessageTx(ctx, tx, fluctlightID, messageID, ""); err != nil {
 			return err
 		}
 		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": sequence, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments, "created_at": createdAt.UTC().Format(instantLayout)}
@@ -335,7 +341,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 
 	if err != nil {
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_run_failed", err)
+		code := "agent_run_failed"
+		if errors.Is(err, errADKFinalContractInvalid) {
+			code = "agent_final_contract_invalid"
+			err = fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
+		}
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, code, err)
 		if len(assistantMessages) > 0 {
 			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_run_failed_after_reply", "safe_cause": boundedLifecycleCause(err.Error())})
 			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
@@ -382,7 +393,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 
 	if len(assistantMessages) == 0 {
 		if visible := finalAgentVisibleText(run.Completion); visible != "" {
-			assistant, err = a.publishNaturalAgentReply(ctx, authorizationActorID, fluctlightID, conversationID, "agent-final:"+turnID, "turn:"+turnID, projection.LifeContextRevision, visible)
+			assistant, err = a.publishNaturalAgentReply(ctx, authorizationActorID, fluctlightID, conversationID, "agent-final:"+turnID, "turn:"+turnID, projection.LifeContextRevision, visible, replyProfileFromOutcome(outcome, projection))
 			if err == nil {
 				assistantMessages = append(assistantMessages, assistant)
 			}
@@ -611,9 +622,17 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 				messageIDs = append(messageIDs, id)
 			}
 		}
+		if err := a.enqueueTurnGoalCandidatesTx(ctx, tx, fluctlightID, inboxID, projection, decision); err != nil {
+			return err
+		}
+		causality, err := frozenDecisionCausality(decision)
+		if err != nil {
+			return err
+		}
 		resultPayload := map[string]any{
 			"message_id": stringValue(assistant["id"]), "message_ids": messageIDs, "media_intent_id": mediaIntentID,
 			"capability_invocations": outcome.Invocations, "capability_results": outcome.Results,
+			"goal_refs": decision["goal_refs"], "intention_refs": decision["intention_refs"], "context_references": causality["context_references"],
 		}
 		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=NULL,payload=jsonb_set(payload,'{agent_result}',$2::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, jsonBytes(resultPayload))
 		if err != nil {
@@ -1020,7 +1039,7 @@ func (a *App) bindIntentionDueFact(ctx context.Context, fluctlightID string, pay
 			intentionRef = ref
 		}
 	}
-	if goalRef == "" || intentionRef == "" || goalRef != stringValue(candidate["goal_ref"]) || stringValue(decodeObject(projection.ReferenceIndex.ByRef[intentionRef].Snapshot)["goal_ref"]) != goalRef {
+	if goalRef == "" || intentionRef == "" || stringValue(decodeObject(projection.ReferenceIndex.ByRef[intentionRef].Snapshot)["goal_ref"]) != goalRef {
 		return nil, nil, errors.New("intention_due_fact_reference_stale")
 	}
 	candidate["goal_ref"], candidate["intention_ref"] = goalRef, intentionRef
@@ -1060,7 +1079,15 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
 		return err
 	}
+	// Bind an existing private-contact authority before building the snapshot,
+	// so any selected message Tool and refreshed continuation share one scope.
+	contactID, contactErr := a.DB.DirectConversationID(ctx, ownerID, fluctlightID)
+	if contactErr != nil && !errors.Is(contactErr, ErrNotFound) {
+		_ = a.failAgentTurnAfterRun(ctx, inboxID, agentCommittedOutcome{}, "native_cognition_projection_failed", contactErr)
+		return contactErr
+	}
 	projectionRequest := ContextProjectionRequest{
+		ConversationID:       contactID,
 		AuthorizationActorID: ownerID, TargetActorID: ownerID, TriggerSource: eventType, FluctlightID: fluctlightID,
 		SourceFactID: inboxID, MemoryOperation: MemoryForNativeCognition,
 		MemoryConversationMode: MemoryConversationGlobalOnly,
@@ -1125,6 +1152,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_influences_invalid", err)
 		return err
 	}
+	stages["goal_event_candidates"] = taskResult.Completion.Structured["goal_event_candidates"]
 	causality, err := frozenDecisionCausality(stages)
 	if err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_causality_invalid", err)
@@ -1160,6 +1188,9 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 			if err := a.requireCurrentFactsRevisionTx(ctx, tx, fluctlightID, currentFacts); err != nil {
 				return err
 			}
+		}
+		if err := a.enqueueTurnGoalCandidatesTx(ctx, tx, fluctlightID, inboxID, projection, stages); err != nil {
+			return err
 		}
 		actionID := "agent_native_" + stableDigest(inboxID)
 		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, stages, "no_op", actionID, currentRevision); err != nil {
@@ -1235,6 +1266,10 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	if localDate == "" {
 		localDate = a.now().In(location).Format("2006-01-02")
+	}
+	reviewAt, err := time.ParseInLocation("2006-01-02", localDate, location)
+	if err != nil {
+		return nil, errors.New("daily_review_date_invalid")
 	}
 	release, acquired, err := a.tryDailyReviewExecutionLock(ctx, fluctlightID, localDate)
 	if err != nil {
@@ -1343,6 +1378,9 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if err := insertReflectionIntentTx(ctx, tx, "reflection_intent:daily:"+actionID, "reflection:daily:"+actionID, map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID}); err != nil {
 			return err
 		}
+		if _, err := queueGoalReviewsTx(ctx, tx, fluctlightID, taskResult.Projection.ReferenceIndex.ActiveProfileID, "daily_review", reviewAt); err != nil {
+			return err
+		}
 		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "daily-review-result:"+actionID, "daily-review-result:"+actionID, payload)
 	})
 	if err != nil {
@@ -1352,4 +1390,11 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		return nil, runErr
 	}
 	return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": status, "owner_actor_id": ownerID, "capability_results": outcome.Results}, nil
+}
+
+func firstStringFromSlice(values []string) string {
+	if len(values) > 0 {
+		return values[0]
+	}
+	return ""
 }

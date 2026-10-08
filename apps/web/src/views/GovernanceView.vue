@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GoalPanel from "../components/instances/GoalPanel.vue";
 import { actorUserBackgroundFields } from "../lib/actor-user-background";
 import { computed, ref, watch } from "vue";
 
@@ -105,6 +106,7 @@ function onWardrobeToggle(event: Event) {
     <p v-if="controlCenter.governanceNotice" class="notice-banner" role="status">{{ controlCenter.governanceNotice }}</p>
 
     <template v-if="controlCenter.fluctlightDetail">
+      <GoalPanel :fluctlight-id="store.fluctlightId ?? ''" />
       <details class="governance-section" open>
         <summary class="section-heading"><div><p class="eyebrow">ABOUT YOU</p><h2>用户背景</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p class="field-note">这是关于你本人的资料，供当前摇光了解；不修改摇光的人格。留空表示未知，时区不会从设备或摇光推断。</p>

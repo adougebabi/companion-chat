@@ -4,8 +4,31 @@ import { fileURLToPath } from "node:url";
 const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
 const operations = Object.keys(schema.paths).sort();
+const goalSchemaType = (value) => {
+  if (value?.$ref) return value.$ref.split("/").pop();
+  if (value?.anyOf) return value.anyOf.map(goalSchemaType).join(" | ");
+  if (value?.enum) return value.enum.map(JSON.stringify).join(" | ");
+  if (value?.type === "string") return "string";
+  if (value?.type === "integer" || value?.type === "number") return "number";
+  if (value?.type === "boolean") return "boolean";
+  if (value?.type === "null") return "null";
+  if (value?.type === "array") return `Array<${goalSchemaType(value.items)}>`;
+  if (value?.type === "object" || value?.properties) {
+    const required = new Set(value.required ?? []);
+    const fields = Object.entries(value.properties ?? {}).map(([key, child]) => `${key}${required.has(key) ? "" : "?"}: ${goalSchemaType(child)}`);
+    if (!fields.length && value.additionalProperties) return "Record<string, unknown>";
+    const object = `{ ${fields.join("; ")} }`;
+    return value.additionalProperties ? `(${object} & Record<string, unknown>)` : object;
+  }
+  return "unknown";
+};
+const goalTypes = ["CoreGoal", "CoreGoalPage", "CoreGoalRecordPage", "CoreGoalOwnerCommand", "CoreGoalCommandResult"].map(name => {
+  if (!schema.components.schemas[name]) throw new Error(`Missing Goal schema ${name}`);
+  return `export type ${name} = ${goalSchemaType(schema.components.schemas[name])};`;
+}).join("\n");
 const source = `// Generated from packages/core-client/openapi.json. Do not edit by hand.
 export const coreOperations = ${JSON.stringify(operations)} as const;
+${goalTypes}
 
 export type CoreHealth = { status: string; role: string };
 export type CoreSession = { authenticated: boolean; actorId?: string };
@@ -124,6 +147,13 @@ export class CoreClient {
   async assignActorGroupMember(humanSession: string, groupId: string, actorId: string): Promise<void> { await this.json(\`/internal/actor-groups/\${encodeURIComponent(groupId)}/members\`, humanSession, "POST", { actor_id: actorId }); }
   async removeActorGroupMember(humanSession: string, groupId: string, actorId: string): Promise<void> { await this.delete(\`/internal/actor-groups/\${encodeURIComponent(groupId)}/members/\${encodeURIComponent(actorId)}\`, humanSession); }
   async getFluctlight(humanSession: string, fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}\`, humanSession, "GET") as Promise<Record<string, unknown>>; }
+  async goals(humanSession: string, fluctlightId: string, options: {history?: boolean; limit?: number; cursor?: string} = {}): Promise<CoreGoalPage> { const query = new URLSearchParams({history:String(options.history??false),limit:String(options.limit??20)}); if(options.cursor) query.set("cursor",options.cursor); return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals?\${query}\`,humanSession,"GET") as Promise<CoreGoalPage>; }
+  async goalDetail(humanSession: string, fluctlightId: string, goalId: string): Promise<CoreGoal> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}\`,humanSession,"GET") as Promise<CoreGoal>; }
+  async goalHistory(humanSession: string, fluctlightId: string, goalId: string, cursor = ""): Promise<CoreGoalRecordPage> { const query = new URLSearchParams({limit:"20"}); if(cursor) query.set("cursor",cursor); return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}/history?\${query}\`,humanSession,"GET") as Promise<CoreGoalRecordPage>; }
+  async goalEvidence(humanSession: string, fluctlightId: string, goalId: string, cursor = ""): Promise<CoreGoalRecordPage> { const query = new URLSearchParams({limit:"20"}); if(cursor) query.set("cursor",cursor); return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}/evidence?\${query}\`,humanSession,"GET") as Promise<CoreGoalRecordPage>; }
+  async createGoal(humanSession: string, fluctlightId: string, body: CoreGoalOwnerCommand): Promise<CoreGoalCommandResult> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals\`,humanSession,"POST",body) as Promise<CoreGoalCommandResult>; }
+  async goalCommand(humanSession: string, fluctlightId: string, goalId: string, operation: "update"|"pause"|"resume"|"cancel"|"abandon"|"reassess", body: CoreGoalOwnerCommand & {expected_revision: number}): Promise<CoreGoalCommandResult> { const suffix=operation==="update"?"":"/"+operation;return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}\${suffix}\`,humanSession,operation==="update"?"PUT":"POST",body) as Promise<CoreGoalCommandResult>; }
+
   async fluctlightDetail(humanSession: string, fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/detail\`, humanSession, "GET") as Promise<Record<string, unknown>>; }
   async fluctlightWardrobe(humanSession: string, fluctlightId: string, cursor = ""): Promise<Record<string, unknown>> { const query = cursor ? \`?cursor=\${encodeURIComponent(cursor)}\` : ""; return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/wardrobe\${query}\`, humanSession, "GET") as Promise<Record<string, unknown>>; }
   async triggerWakeUp(humanSession: string, fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/wake-up\`, humanSession, "POST", {}) as Promise<Record<string, unknown>>; }

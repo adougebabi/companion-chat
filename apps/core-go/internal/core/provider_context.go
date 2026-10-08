@@ -462,7 +462,7 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 
 func surfaceAllowsEntityRef(surface ProviderContextSurface, kind ContextReferenceKind) bool {
 	if surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceTakeoverReply {
-		return kind == ContextReferenceMemory || kind == ContextReferenceActiveMemory || kind == ContextReferenceLifeContext
+		return kind == ContextReferenceGoal || kind == ContextReferenceMemory || kind == ContextReferenceActiveMemory || kind == ContextReferenceLifeContext
 	}
 	return true
 }
@@ -889,7 +889,7 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 	result := make([]map[string]any, 0, len(base))
 	for _, value := range base {
 		item := map[string]any{}
-		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "execution", "importance", "urgency", "progress", "scope", "deadline", "state"} {
+		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "criteria_version", "criterion_ids", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "deadline", "state"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
 				item[key] = raw
 			}
@@ -1264,9 +1264,26 @@ func compactProviderGoalsForActors(goals []map[string]any, actors []map[string]a
 	result := make([]map[string]any, 0, len(goals))
 	for _, goal := range goals {
 		item := map[string]any{}
-		for _, key := range []string{"ref", "description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "execution", "importance", "urgency", "progress", "scope", "target_actor_id", "deadline"} {
+		for _, key := range []string{"ref", "description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "criteria_version", "criterion_ids", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "target_actor_id", "deadline"} {
 			if value, ok := goal[key]; ok && value != nil {
-				item[key] = value
+				if key == "execution" {
+					compact := map[string]any{}
+					for field, data := range mapValue(value) {
+						if field == "intention_id" {
+							continue
+						}
+						if data == nil {
+							continue
+						}
+						if text, ok := data.(string); ok && text == "" {
+							continue
+						}
+						compact[field] = data
+					}
+					item[key] = compact
+				} else {
+					item[key] = value
+				}
 			}
 		}
 		if status := stringValue(goal["status"]); status != "" {

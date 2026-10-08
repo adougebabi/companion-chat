@@ -54,6 +54,7 @@ var formalToolAdapterInventory = []string{
 	"intention.schedule",
 	"schedule.inspect",
 	"schedule.edit",
+	"goal.decide", "goal.inspect", "goal.evaluate", "goal.review", "wardrobe.borrow", "wardrobe.return",
 }
 
 type formalToolAdapterCase struct {
@@ -246,7 +247,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				t.Fatalf("model-facing adapter result drifted: expected=%#v actual=%#v", expectedVisible, visibleResult)
 			}
 			adapterReceipt := ToolExecutionReceipt{OperationID: request.OperationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: results[0]}
-			if testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName && testCase.name != actorInspectCapabilityName && testCase.name != scheduleInspectCapabilityName {
+			if testCase.name != "goal.inspect" && testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName && testCase.name != actorInspectCapabilityName && testCase.name != scheduleInspectCapabilityName {
 				requireFormalAdapterSQLCountArgs(t, fixture, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND operation_id=$3`, 1, fixture.fluctlightID, testCase.name, request.OperationID)
 			}
 			testCase.verify(t, fixture, adapterReceipt)
@@ -255,7 +256,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 }
 
 func formalToolAdapterCases() []formalToolAdapterCase {
-	return []formalToolAdapterCase{
+	return append([]formalToolAdapterCase{
 		{
 			name: "active_memory_event", surface: CapabilitySurfaceNativeCognition, wantStatus: "completed",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
@@ -728,7 +729,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.life_schedule_items i JOIN public.life_schedules s ON s.id=i.schedule_id WHERE s.fluctlight_id=$1 AND s.status='accepted' AND i.activity='挑选瓷茶杯' AND i.intention_id IS NOT NULL`, 1, f.fluctlightID)
 			},
 		},
-	}
+	}, goalFormalAdapterCases()...)
 }
 
 func newFormalToolAdapterFixture(t *testing.T) *formalToolAdapterFixture {

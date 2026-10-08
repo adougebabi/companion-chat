@@ -25,30 +25,33 @@ import (
 )
 
 const (
-	LifecycleQueue               = "lifecycle"
-	CriticalLifecycleQueue       = "lifecycle-critical"
-	MediaQueue                   = "media"
-	InteractionQueue             = "interaction"
-	VisualIdentityQueue          = "visual-identity"
-	WorkerDeploymentName         = "fluctlight"
-	DefaultWorkerBuildID         = "platform-v1"
-	mediaActivityMaximumAttempts = 3
-	visualIdentityRetryDelay     = 5 * time.Second
-	visualIdentityHeartbeatEvery = 10 * time.Second
-	reflectionRetryDelay         = 5 * time.Minute
-	reflectionMaximumAttempts    = 5
-	wakeUpMaximumAttempts        = 5
-	cognitionMaximumAttempts     = 3
-	actionMaximumAttempts        = 5
-	defaultWakeUpIntervalSeconds = 30 * 60
-	minWakeUpIntervalSeconds     = 5 * 60
-	maxWakeUpIntervalSeconds     = 24 * 60 * 60
-	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	LifecycleQueue                = "lifecycle"
+	CriticalLifecycleQueue        = "lifecycle-critical"
+	MediaQueue                    = "media"
+	InteractionQueue              = "interaction"
+	VisualIdentityQueue           = "visual-identity"
+	WorkerDeploymentName          = "fluctlight"
+	DefaultWorkerBuildID          = "platform-v1"
+	mediaActivityMaximumAttempts  = 3
+	visualIdentityRetryDelay      = 5 * time.Second
+	visualIdentityHeartbeatEvery  = 10 * time.Second
+	reflectionRetryDelay          = 5 * time.Minute
+	reflectionMaximumAttempts     = 5
+	goalEvaluationMaximumAttempts = 5
+	wakeUpMaximumAttempts         = 5
+	cognitionMaximumAttempts      = 3
+	actionMaximumAttempts         = 5
+	defaultWakeUpIntervalSeconds  = 30 * 60
+	minWakeUpIntervalSeconds      = 5 * 60
+	maxWakeUpIntervalSeconds      = 24 * 60 * 60
+	dispatcherIntentOrder         = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
+	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
 	switch strings.TrimSpace(intentType) {
+	case "goal.evaluate":
+		return goalEvaluationMaximumAttempts
 	case "reflection.run":
 		return reflectionMaximumAttempts
 	case "cognition.processing":
@@ -92,6 +95,7 @@ type ApplicationService interface {
 	ProcessMemoryEmbeddingIntentAt(ctx context.Context, intentID, memoryID string, revision int, providerEndpointID, modelID string) (map[string]any, error)
 	ProcessConversationSummaryIntent(ctx context.Context, intentID, fluctlightID, conversationID, sourceMessageID string, sourceSequence, fromSequence, toSequence int, sourceDigest string, sourceMessageRefs []string) (map[string]any, error)
 	ProcessConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error)
+	ProcessGoalEvaluationIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessConversationDailyMemoryIntent(ctx context.Context, intentID string) (map[string]any, error)
 	EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string) (map[string]any, error)
 	ProcessVisualIdentity(ctx context.Context, sessionID string) (map[string]any, error)
@@ -638,6 +642,37 @@ func ReflectionWorkflow(ctx workflow.Context, input Input) (map[string]any, erro
 	return result, nil
 }
 
+// Goal evaluation owns a bounded assessment, not a second execution runtime.
+func GoalEvaluationWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessGoalEvaluationActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if stringValue(result["status"]) == "deferred" {
+		if err := workflow.Sleep(ctx, 30*time.Second); err != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, GoalEvaluationWorkflow, input)
+	}
+	return result, nil
+}
+
+func ProcessGoalEvaluationActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessGoalEvaluationIntent(ctx, input.IntentID)
+}
+
 func MemoryEmbeddingWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
 	control, err := registerWorkflowControl(ctx)
@@ -1051,6 +1086,15 @@ func startVisualIdentityHeartbeat(ctx context.Context, sessionID string) func() 
 // must terminate the process when the fatal-error channel receives an error;
 // otherwise a live-but-not-polling Worker would silently leave durable intents
 // stuck in PostgreSQL.
+// Explicit restart and context shutdown share one physical SDK stop. The SDK
+// worker's Stop method may close channels and is not safe to call twice.
+type managedWorker struct {
+	worker.Worker
+	stopOnce sync.Once
+}
+
+func (w *managedWorker) Stop() { w.stopOnce.Do(w.Worker.Stop) }
+
 func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slog.Logger) ([]worker.Worker, <-chan error, error) {
 	if logger == nil {
 		logger = slog.Default()
@@ -1105,6 +1149,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
 			w.RegisterWorkflow(ConversationSummaryWorkflow)
 			w.RegisterWorkflow(ConversationSegmentWorkflow)
+			w.RegisterWorkflow(GoalEvaluationWorkflow)
 			w.RegisterWorkflow(ConversationDailyMemoryWorkflow)
 			w.RegisterWorkflow(PlatformControlWorkflow)
 			w.RegisterWorkflow(VisualIdentityWorkflow)
@@ -1117,6 +1162,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
 			w.RegisterActivity(ProcessConversationSummaryActivity)
 			w.RegisterActivity(ProcessConversationSegmentActivity)
+			w.RegisterActivity(ProcessGoalEvaluationActivity)
 			w.RegisterActivity(ProcessConversationDailyMemoryActivity)
 			w.RegisterActivity(PlatformControlActivity)
 			w.RegisterActivity(ProcessVisualIdentityActivity)
@@ -1142,7 +1188,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessCapabilityActionActivity)
 			w.RegisterActivity(ProcessCognitionActivity)
 		}
-		workers = append(workers, w)
+		workers = append(workers, &managedWorker{Worker: w})
 	}
 	for _, current := range workers {
 		go func(current worker.Worker) {
@@ -1351,6 +1397,19 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				delete(d.Started, intentID)
 			}
 			count++
+			continue
+		}
+		if intentType == "goal.evaluate" && intentStatus == "failed" {
+			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '1 minute',started_at=NULL,completed_at=NULL,last_error=$2 WHERE intent_id=$1 AND status IN ('pending','started','failed')`, intentID, terminalFailure)
+			if err != nil {
+				return count, err
+			}
+			if command.RowsAffected() > 0 {
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+			}
 			continue
 		}
 		if intentType == "visual_identity.initialize" && intentStatus == "failed" {
@@ -1847,7 +1906,7 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 		// must not reopen a successfully completed identity workflow.
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
-	if intentType == "reflection.run" {
+	if intentType == "reflection.run" || intentType == "goal.evaluate" {
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if intentType == "cognition.processing" || intentType == "intention.trigger" || intentType == "autonomy.action" || intentType == "capability.action" {
@@ -2029,6 +2088,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "conversation.summary":
 			workflowFn = ConversationSummaryWorkflow
+			taskQueue = LifecycleQueue
+		case "goal.evaluate":
+			workflowFn = GoalEvaluationWorkflow
 			taskQueue = LifecycleQueue
 		case "conversation.segment":
 			workflowFn = ConversationSegmentWorkflow
@@ -2244,6 +2306,8 @@ func lifecycleSurfaceForIntent(intentType string) string {
 	switch intentType {
 	case "wake_up.current":
 		return "wake_up"
+	case "goal.evaluate":
+		return "goal"
 	case "reflection.run":
 		return "reflection"
 	case "visual_identity.initialize":

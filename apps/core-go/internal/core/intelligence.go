@@ -753,6 +753,9 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 			plan["profile_id"] = active
 		}
 	}
+	if self := mapValue(decision["self_evaluation"]); len(self) > 0 {
+		plan["self_evaluation"] = self
+	}
 	if len(mapValue(plan["core_alignment"])) == 0 {
 		plan["core_alignment"] = mapValue(decision["core_alignment"])
 	}
@@ -778,7 +781,10 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 	if text := firstString(base["visible_text"], firstString(base["draft"], "")); text != "" {
 		plan["visible_text"] = text
 	}
-	claims := arrayValue(base["claims"])
+	claims := arrayValue(decision["claims"])
+	if len(claims) == 0 {
+		claims = arrayValue(base["claims"])
+	}
 	if len(claims) == 0 {
 		claims = append(arrayValue(base["approved_claims"]), arrayValue(base["uncertain_claims"])...)
 	}

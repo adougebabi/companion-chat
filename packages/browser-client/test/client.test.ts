@@ -285,3 +285,32 @@ test("actor user initialization and owner background update keep unknown values 
  assert.equal((calls[1].body.background as Record<string,unknown>).meeting_confirmed,false);
  assert.equal(calls[1].body.expectedCurrentFactsRevision,"facts_gen_1");
 });
+
+test("Goal client preserves scope, cursor, revision and replay key across governance operations", async () => {
+  const requests: Array<{ url: string; method: string; body: unknown }> = [];
+  const client = new BrowserClient("http://fluctlight.local", async (input, init) => {
+    requests.push({ url: String(input), method: init?.method ?? "GET", body: init?.body ? JSON.parse(String(init.body)) : null });
+    return Response.json({ items: [], goal_id: "goal/1", revision: 2, status: "paused" });
+  });
+  await client.goals("fl/1", { history: true, cursor: "opaque+/cursor" });
+  await client.goalDetail("fl/1", "goal/1");
+  await client.goalHistory("fl/1", "goal/1", "revision+cursor");
+  const command = { expectedRevision: 1, reason: "wait for counterpart", idempotencyKey: "stable-attempt" };
+  await client.goalCommand("fl/1", "goal/1", "pause", command);
+  await client.goalCommand("fl/1", "goal/1", "pause", command);
+  assert.match(requests[0].url, /fl%2F1\/goals\?history=true&limit=20&cursor=opaque%2B%2Fcursor/);
+  assert.match(requests[1].url, /fl%2F1\/goals\/goal%2F1$/);
+  assert.match(requests[2].url, /history\?limit=20&cursor=revision%2Bcursor$/);
+  assert.deepEqual(requests[3], requests[4]);
+  assert.equal(requests[3].method, "POST");
+  assert.deepEqual(requests[3].body, command);
+});
+
+
+test("Goal evidence cursor uses its scoped read endpoint", async () => {
+ let requested = "";
+ const page = {items:[{id:"proof",source:{source_kind:"message",source_id:"real-message"}}],next_cursor:"older"};
+ const client = new BrowserClient("http://fluctlight.local",async input=>{requested=String(input);return Response.json(page)});
+ assert.deepEqual(await client.goalEvidence("fl/1","goal/1","evidence+/cursor"),page);
+ assert.match(requested,/fl%2F1\/goals\/goal%2F1\/evidence\?limit=20&cursor=evidence%2B%2Fcursor$/);
+});

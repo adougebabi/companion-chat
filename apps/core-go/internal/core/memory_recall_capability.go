@@ -34,7 +34,7 @@ func memoryRecallCapabilityDefinition() CapabilityDefinition {
 	}
 	return CapabilityDefinition{
 		Name: "memory.recall", Version: "v1", Type: CapabilityTypeQuery,
-		Description: "Search deeper authorized Active, long-term, conversation, and summary memory when the answer depends on information not already present in context, or when a memory correction needs an exact target_ref. Use the returned ref for memory_event revise; never invent one.",
+		Description: "Recall authorized absent memory/correction refs. Revise via returned memory_event refs; never invent.",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceConversation}, FailurePolicy: FailurePolicyOptionalInternal,
 		RequiredContext: []ContextSlot{SlotMemoryScope},
 		InputSchema:     map[string]any{"type": "object", "additionalProperties": false, "required": []any{"intent"}, "properties": map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 1000}}},

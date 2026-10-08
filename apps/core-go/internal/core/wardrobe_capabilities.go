@@ -265,7 +265,7 @@ func readCurrentWornItems(ctx context.Context, query DBTX, fluctlightID string) 
 func wardrobeWearDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: wardrobeWearCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Actually change what you are wearing using available recorded item IDs. Full replaces the entire outfit, so include every item you intend to keep. Partial automatically replaces the selected items' slots and preserves all other slots; do not also put those slots in remove_slots. remove_slots only undresses slots without a replacement. This never buys or creates clothing.",
+		Description:   "Wear available IDs. Full: include retained items. Partial replaces selected slots. remove_slots only undresses unreplaced slots. No acquisition.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		InputSchema: objectSchema(map[string]any{
@@ -402,7 +402,7 @@ type wardrobeOutfitSaveCapability struct{ service *WardrobeService }
 func wardrobeOutfitSaveDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: wardrobeOutfitSaveCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Save a named combination of existing wardrobe item IDs for the current speaking profile. This does not change current clothing or create inventory.",
+		Description:   "Save existing item IDs as a speaking-profile outfit; no wearing or acquisition.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{

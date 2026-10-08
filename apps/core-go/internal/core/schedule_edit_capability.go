@@ -26,7 +26,7 @@ type scheduleEditService interface {
 func scheduleEditDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: scheduleEditCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Edit a future item or the interruptible remainder of a current Schedule item. Inspect first for item_id and revision. Set changes.start_at/end_at for move, changes.activity/scene/location for revise; cancel needs no changes.",
+		Description:     "Inspect ID/revision, then edit future/interruptible current remainder. Move: changes.start_at/end_at; revise: activity/scene/location; cancel: no changes.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotSchedule, SlotCurrentLife, SlotAgency},

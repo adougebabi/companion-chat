@@ -186,6 +186,7 @@ func TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody(t *te
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT status FROM public.fluctlight_intentions WHERE id=$1`, intentionID).Scan(&intentionStatus); err != nil || intentionStatus != "completed" {
 		t.Fatalf("completed dye left intention=%q err=%v", intentionStatus, err)
 	}
+	runGoalAssessmentFixture(t, fixture, "semantic", true, nil)
 	var goalStatus string
 	var goalProgress []byte
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT status,progress FROM public.fluctlight_goals WHERE id=$1`, stringValue(output["goal_id"])).Scan(&goalStatus, &goalProgress); err != nil || goalStatus != "completed" || numberOrZero(jsonNumber(goalProgress)) != 1 {

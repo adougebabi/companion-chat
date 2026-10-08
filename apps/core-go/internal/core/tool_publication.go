@@ -28,6 +28,7 @@ func NewToolPublicationService(app *App) *ToolPublicationService {
 }
 
 type ConversationReplyPublication struct {
+	WorkingProfileID            string
 	SuppressRecentDuplicate     bool
 	TopicKey                    string
 	Purpose                     string
@@ -80,6 +81,9 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		return publishedResource{}, newCapabilityError("reply_control_value_invalid", false, fmt.Errorf("%w: control values cannot be sent as a private message; for a silent WakeUp finish with action_type=no_op and put the diagnostic reason in final response_intent without calling conversation.reply", ErrInvalidArguments))
 	}
 	if err := requireConversationPublicationOwnershipTx(ctx, tx, command.AuthorizationActorID, command.FluctlightID, command.ConversationID); err != nil {
+		return publishedResource{}, err
+	}
+	if err := lockLifeContextTx(ctx, tx, command.FluctlightID); err != nil {
 		return publishedResource{}, err
 	}
 	identity := stableDigest(strings.Join([]string{command.FluctlightID, "conversation.reply", command.OperationID}, "\x1f"))
@@ -190,6 +194,17 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	}
 	if inserted.RowsAffected() == 0 {
 		return publishedResource{}, ErrReplyAlreadyPublished
+	}
+	profile := command.WorkingProfileID
+	if profile == "" {
+		var err error
+		profile, err = (&intentionService{}).resolveProfile(ctx, tx, command.FluctlightID, "")
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return publishedResource{}, err
+		}
+	}
+	if err := service.app.recordGoalMessageTx(ctx, tx, command.FluctlightID, messageID, profile); err != nil {
+		return publishedResource{}, err
 	}
 	if command.SuppressRecentDuplicate {
 		if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_proactive_deliveries(message_id,fluctlight_id,conversation_id,topic_key,purpose,inbound_sequence,occurred_at) VALUES($1,$2,$3,$4,$5,$6,$7)`, messageID, command.FluctlightID, command.ConversationID, command.TopicKey, command.Purpose, inboundSequence, service.app.now().UTC()); err != nil {

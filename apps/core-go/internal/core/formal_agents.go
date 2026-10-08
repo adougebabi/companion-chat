@@ -33,6 +33,7 @@ const (
 	FormalAgentPersistentSwitch      FormalAgentID = "persistent_switch"
 	FormalAgentReflection            FormalAgentID = "reflection"
 	FormalAgentScheduleReplan        FormalAgentID = "schedule_replan"
+	FormalAgentGoalEvaluation        FormalAgentID = "goal_evaluation"
 	FormalAgentVirtualActivityResult FormalAgentID = "virtual_activity_result"
 )
 
@@ -59,6 +60,7 @@ type FormalAgentDefinition struct {
 }
 
 var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
+	FormalAgentGoalEvaluation:        {ID: FormalAgentGoalEvaluation, Name: "fluctlight-goal-evaluation", Description: "Assess authoritative Goal evidence and propose bounded current-stage progression without tools.", Role: "cognitive_assessment", Scenario: "goal_evaluation", OutputKind: FormalAgentOutputStructured},
 	FormalAgentConversationCognition: {ID: FormalAgentConversationCognition, Name: "fluctlight-conversation-cognition", Description: "Assess one conversation turn and use authorized capabilities before returning the final turn contract.", Role: "cognitive_assessment", Scenario: "cognitive_assessment", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceConversation},
 	FormalAgentWakeUp:                {ID: FormalAgentWakeUp, Name: "fluctlight-wake-up", Description: "Assess one durable wake-up fact and use authorized background capabilities before returning the final wake-up contract.", Role: "cognitive_assessment", Scenario: "wake_up", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceWakeUp},
 	FormalAgentTakeoverJudge:         {ID: FormalAgentTakeoverJudge, Name: "fluctlight-takeover-judge", Description: "Judge the bounded takeover rule without tools and return the verdict contract.", Role: takeoverJudgeRole, Scenario: "takeover_judge", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceConversation},
@@ -132,6 +134,8 @@ func formalAgentForSchema(schemaName string) (FormalAgentID, bool) {
 		return FormalAgentReflection, true
 	case "schedule_replan_plan":
 		return FormalAgentScheduleReplan, true
+	case "goal_evaluation_v1":
+		return FormalAgentGoalEvaluation, true
 	case "virtual_activity_result":
 		return FormalAgentVirtualActivityResult, true
 	default:

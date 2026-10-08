@@ -38,7 +38,7 @@ func (a *App) tryDailyReviewExecutionLock(ctx context.Context, fluctlightID, loc
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
 	goals := make([]map[string]any, 0)
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status IN ('candidate','active','paused') ORDER BY created_at`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (status IN ('candidate','active','paused') OR id IN (SELECT id FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='completed' ORDER BY updated_at DESC,id DESC LIMIT 3)) ORDER BY updated_at DESC,id DESC`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}

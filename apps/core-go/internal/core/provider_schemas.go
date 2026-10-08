@@ -169,7 +169,6 @@ func selfEvaluationSchema() map[string]any {
 		"reason_codes": arraySchema(stringSchema()),
 		"confidence":   unitNumberSchema(),
 		"note":         stringSchema(),
-		"extensions":   openObjectSchema(),
 	}, nil, false)
 }
 
@@ -183,27 +182,20 @@ func responsePlanSchema() map[string]any {
 		"tone":             stringSchema(),
 		"strategy":         stringSchema(),
 		"length":           stringSchema(),
-		"self_evaluation":  selfEvaluationSchema(),
-		"core_alignment":   openObjectSchema(),
-		"state_expression": openObjectSchema(),
-		"claims":           arraySchema(claimSchema()),
-		"extensions":       openObjectSchema(),
 	}, nil, false)
 }
 
 func coreAlignmentSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"aligned":    booleanSchema(),
-		"note":       stringSchema(),
-		"extensions": openObjectSchema(),
+		"aligned": booleanSchema(),
+		"note":    stringSchema(),
 	}, nil, false)
 }
 
 func stateExpressionSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"body":       stringSchema(),
-		"mood":       stringSchema(),
-		"extensions": openObjectSchema(),
+		"body": stringSchema(),
+		"mood": stringSchema(),
 	}, nil, false)
 }
 
@@ -239,6 +231,7 @@ func cognitiveTurnResponseProperties() map[string]any {
 		"evidence_refs":     arraySchema(stringSchema()),
 	}, []string{"decision", "from_profile_id", "target_profile_id", "trigger_id", "reason", "confidence", "evidence_refs"}, false)
 	return map[string]any{
+		"goal_event_candidates":      goalEventCandidatesSchema(),
 		"action_type":                enumStringSchema("reply"),
 		"response_intent":            stringSchema(),
 		"internal_intent":            map[string]any{"type": "string", "maxLength": 120},
@@ -303,12 +296,13 @@ func mediaQualityAcceptanceResponseSchema() map[string]any {
 
 func nativeCognitionResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"appraisal":  appraisalResponseSchema(),
-		"attention":  cognitiveStageSchema(),
-		"thought":    cognitiveStageSchema(),
-		"desire":     cognitiveStageSchema(),
-		"agency":     cognitiveStageSchema(),
-		"influences": decisionInfluencesSchema(),
+		"goal_event_candidates": goalEventCandidatesSchema(),
+		"appraisal":             appraisalResponseSchema(),
+		"attention":             cognitiveStageSchema(),
+		"thought":               cognitiveStageSchema(),
+		"desire":                cognitiveStageSchema(),
+		"agency":                cognitiveStageSchema(),
+		"influences":            decisionInfluencesSchema(),
 	}, []string{"appraisal", "attention", "thought", "desire", "agency", "influences"}, false)
 }
 

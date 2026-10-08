@@ -17,17 +17,17 @@ import (
 func TestRequiredWorkingMemoryBorrowsCapacityWithoutRaisingWireLimit(t *testing.T) {
 	input := WorkingMemoryInput{RuntimeFacts: []PromptFragment{
 		{Kind: PromptFragmentRuntimeFact, Priority: 999, EstimatedTokens: 1000, Content: "optional", SourceRefs: []string{"optional"}},
-		{Kind: PromptFragmentRuntimeFact, Priority: 1, Required: true, EstimatedTokens: 7000, Content: "actual current state", SourceRefs: []string{"required"}},
+		{Kind: PromptFragmentRuntimeFact, Priority: 1, Required: true, EstimatedTokens: 9000, Content: "actual current state", SourceRefs: []string{"required"}},
 	}}
-	policy, err := reserveRequiredWorkingMemory(input, DefaultWorkingMemoryPolicy(), 8000)
-	if err != nil || policy.RuntimeFactTokens != 7000 {
+	policy, err := reserveRequiredWorkingMemory(input, DefaultWorkingMemoryPolicy(), 9000)
+	if err != nil || policy.RuntimeFactTokens != 9000 {
 		t.Fatalf("required state cannot use available wire capacity: %#v err=%v", policy, err)
 	}
 	selected, err := ResolveWorkingMemory(input, policy)
 	if err != nil || len(selected.RuntimeFacts) != 1 || !selected.RuntimeFacts[0].Required {
 		t.Fatalf("optional priority crowded out mandatory current state: %#v err=%v", selected, err)
 	}
-	if _, err := reserveRequiredWorkingMemory(input, DefaultWorkingMemoryPolicy(), 6000); !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+	if _, err := reserveRequiredWorkingMemory(input, DefaultWorkingMemoryPolicy(), 8000); !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
 		t.Fatalf("required state bypassed total limit: %v", err)
 	}
 }

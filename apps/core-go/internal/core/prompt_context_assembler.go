@@ -336,7 +336,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	orderedSelected := orderedPromptCandidates(selected)
 	requiredTotal := estimatePromptWireInput(assemblePromptMessages(system, current, orderedSelected), input.Tools, input.ResponseFormat)
 	if requiredTotal > input.Policy.MaxInputTokens {
-		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens)
+		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d system=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens, systemTokens, currentTokens, toolsTokens, schemaTokens)
 	}
 	selectionLimit := input.Policy.MaxInputTokens
 	if target := input.Policy.OptionalInputTargetTokens; target > 0 && target < selectionLimit {

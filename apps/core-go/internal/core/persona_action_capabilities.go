@@ -53,9 +53,13 @@ func (c personaActionCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoc
 }
 
 func personaActionCapabilityDefinition(name string) CapabilityDefinition {
+	description := "Switch declared profile with source_profile_id, target_profile_id, trigger_id. Reject stale targets; await receipt."
+	if name == personaTakeoverCapabilityName {
+		description = "Take over with rule_id/target_profile_id unless skipped. Reject stale targets; await receipt."
+	}
 	return CapabilityDefinition{
 		Name: name, Version: "v1", Type: CapabilityTypeAction,
-		Description: "Apply a declared persona rule. For switch, provide source_profile_id, target_profile_id and trigger_id; for takeover, provide rule_id and target_profile_id unless skipped/not applicable. Core rejects missing or stale targets; never claim a switch before it commits.",
+		Description: description,
 		InputSchema: objectSchema(map[string]any{
 			"decision":          map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"rule_id":           map[string]any{"type": "string", "maxLength": 256},

@@ -33,7 +33,7 @@ type intentionDecideCapability struct{ service *intentionService }
 func intentionInspectDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: intentionInspectCapabilityName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:   "List or read intentions. List returns at most ten rows; when has_more is true, pass next_cursor with the same include_closed filter. Detail auto-selects the sole open one; otherwise pass intention_id from list.",
+		Description:   "Read intentions. List 10; reuse next_cursor/include_closed. Detail auto-selects only a sole open intention, otherwise needs intention_id.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceAutonomy},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
@@ -143,12 +143,12 @@ func (c intentionInspectCapability) Execute(ctx context.Context, invocation Capa
 func intentionDecideDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: intentionDecideCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Create or change an intention. Create uses goal or an existing goal_ref, plus action/expected_outcome; shared intentions remain accessible from any profile; update needs action or expected_outcome. Non-create auto-selects the sole open one; otherwise pass intention_id from inspect(list).",
+		Description:     "Create with goal/goal_ref+action+expected_outcome; shared scope stays shared. Update needs action or expected_outcome. Other operations need ID if not sole open intention.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceAutonomy},
 		FailurePolicy:   FailurePolicyOptionalInternal,
 		RequiredContext: []ContextSlot{SlotAgency},
 		InputSchema: objectSchema(map[string]any{
-			"goal_ref":         stringSchema(),
+			"goal_ref": stringSchema(), "stage_id": stringSchema(), "commitment_id": stringSchema(),
 			"operation":        enumStringSchema("create", "qualify", "update", "pause", "resume", "cancel"),
 			"intention_id":     map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"goal":             map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
@@ -322,6 +322,21 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 		profileID = goal.ProfileID
 		linkedGoal = &goal
 	}
+	if linkedGoal == nil && goalText != "" {
+		var id string
+		var revision int
+		err := tx.QueryRow(ctx, `SELECT id,revision FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (profile_id IS NULL OR profile_id=$2) AND desired_outcome=$3 AND status='active' ORDER BY updated_at DESC,id DESC LIMIT 1`, fluctlightID, profileID, goalText).Scan(&id, &revision)
+		if err == nil {
+			goal, err := loadGoalAuthorityTx(ctx, tx, fluctlightID, "goal:ctx_"+stableDigest(id), ContextReference{EntityID: id, Revision: revision})
+			if err != nil {
+				return failedCapabilityResult(invocation, "intention_goal_stale", false), err
+			}
+			linkedGoal = &goal
+			profileID = goal.ProfileID
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return failedCapabilityResult(invocation, "intention_goal_read_failed", true), err
+		}
+	}
 	if goalText == "" || action == "" || expected == "" {
 		return failedCapabilityResult(invocation, "intention_create_fields_required", false), ErrInvalidArguments
 	}
@@ -361,6 +376,7 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 		createdGoal = newGoal
 	}
 	intention := IntentionAuthority{
+		StageID: stringValue(args["stage_id"]), CommitmentID: stringValue(args["commitment_id"]),
 		EntityID: intentionID, GoalEntityID: goalID, SchemaVersion: intentionAuthoritySchemaVersion,
 		Ref: "intention:ctx_" + stableDigest(intentionID), FluctlightID: fluctlightID, ProfileID: profileID, GoalRef: createdGoal.Ref,
 		ActionIntent: action, ExpectedOutcome: expected, Trigger: TypedIntentionTrigger{Type: IntentionTriggerSemantic},

@@ -23,6 +23,15 @@ const schema = {
   info: { title: "Fluctlight Browser Platform API", version: "0.1.0" },
   components: {
     schemas: {
+      BrowserGoal: {
+        type:"object", additionalProperties:true,
+        properties:{id:{type:"string"},desired_outcome:{type:"string"},motivation:{type:"string"},success_criteria:{type:"array",items:{type:"string"}},criterion_ids:{type:"array",items:{type:"string"}},criteria_version:{type:"integer"},revision:{type:"integer"},status:{type:"string",enum:["candidate","active","paused","completed","cancelled","abandoned"]},profile_id:nullableString,scope:{type:"string"},deadline:nullableString,deadline_policy:{type:"string",enum:["soft","hard"]},execution:jsonObject,stages:jsonObjectArray,commitments:jsonObjectArray,evaluations:jsonObjectArray,evidence:jsonObjectArray,evidence_next_cursor:{type:"string"},reviews:jsonObjectArray,resolutions:jsonObjectArray},
+        required:["id","desired_outcome","motivation","success_criteria","criterion_ids","criteria_version","revision","status","scope","deadline_policy"]
+      },
+      BrowserGoalPage:{type:"object",additionalProperties:false,properties:{items:{type:"array",items:{$ref:"#/components/schemas/BrowserGoal"}},next_cursor:{type:"string"}},required:["items"]},
+      BrowserGoalHistoryPage:{type:"object",additionalProperties:false,properties:{items:jsonObjectArray,next_cursor:{type:"string"}},required:["items"]},
+      BrowserGoalCommand:{type:"object",additionalProperties:false,properties:{reviewPolicy:{type:"object",additionalProperties:false,properties:{missed_opportunity_threshold:{type:"integer",minimum:1,maximum:30},ineffective_attempt_threshold:{type:"integer",minimum:1,maximum:30}},required:["missed_opportunity_threshold","ineffective_attempt_threshold"]},resetReviewCounters:{type:"boolean"},expectedRevision:{type:"integer",minimum:0},idempotencyKey:{type:"string",minLength:1,maxLength:128},reason:{type:"string",minLength:1,maxLength:1000},profileId:{type:"string"},desiredOutcome:{type:"string",minLength:1,maxLength:2000},successCriteria:{type:"array",minItems:1,maxItems:16,items:{type:"string"}},motivation:{type:"string"},scope:{type:"string"},deadline:{type:"string",format:"date-time"},clearDeadline:{type:"boolean"},deadlinePolicy:{type:"string",enum:["soft","hard"]}},required:["idempotencyKey","reason"]},
+      BrowserGoalCommandResult:{type:"object",additionalProperties:false,properties:{goal_id:{type:"string"},revision:{type:"integer"},status:{type:"string"},criteria_version:{type:"integer"},evaluation_request_id:{type:"string"}},required:["goal_id","revision","status"]},
       BrowserConversationTurnRequest: {
         type: "object", additionalProperties: false,
         properties: {
@@ -289,6 +298,15 @@ const schema = {
     "/api/actor-groups/{groupId}/members": { post: { operationId: "assignActorGroupMember" } },
     "/api/actor-groups/{groupId}/members/{actorId}": { delete: { operationId: "removeActorGroupMember" } },
     "/api/fluctlights/{fluctlightId}": { get: { operationId: "getFluctlight" } },
+    "/api/fluctlights/{fluctlightId}/goals":{get:{operationId:"listGoals",...jsonResponse("BrowserGoalPage")},post:{operationId:"createGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}":{get:{operationId:"goalDetail",...jsonResponse("BrowserGoal")},put:{operationId:"updateGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}/history":{get:{operationId:"goalHistory",...jsonResponse("BrowserGoalHistoryPage")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}/evidence":{get:{operationId:"goalEvidence",...jsonResponse("BrowserGoalHistoryPage")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}/pause":{post:{operationId:"pauseGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}/resume":{post:{operationId:"resumeGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}/cancel":{post:{operationId:"cancelGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}/abandon":{post:{operationId:"abandonGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
+    "/api/fluctlights/{fluctlightId}/goals/{goalId}/reassess":{post:{operationId:"reassessGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
     "/api/fluctlights/{fluctlightId}/conversation": { get: { operationId: "fluctlightDirectConversation" } },
     "/api/fluctlights/{fluctlightId}/moments": { get: { operationId: "fluctlightMoments" } },
     "/api/fluctlights/{fluctlightId}/moments/read": { post: { operationId: "markFluctlightMomentsRead" } },

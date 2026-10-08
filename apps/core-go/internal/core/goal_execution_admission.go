@@ -43,7 +43,7 @@ func requireIntentionGoalActiveTx(ctx context.Context, tx pgx.Tx, intention Inte
 	if next != nil && at.Before(*next) {
 		return newCapabilityError("intention_retry_not_due", true, ErrConflict)
 	}
-	return nil
+	return requireGoalCommitmentWindowTx(ctx, tx, intention, at)
 }
 
 func (a *App) admitGoalLinkedToolTx(ctx context.Context, tx pgx.Tx, request ToolExecutionRequest) error {
@@ -195,7 +195,7 @@ func configureIntentionRetryTx(ctx context.Context, tx pgx.Tx, current Intention
 	if reason == "suppressed" {
 		increment = 0
 	}
-	stoppedByPolicy := strings.HasPrefix(reason, "policy_") || strings.HasPrefix(reason, "goal_") || strings.HasPrefix(reason, "intention_permission") || reason == "permission_denied" || reason == "user_refused"
+	stoppedByPolicy := intentionFailureStopsRetry(reason)
 	if (increment > 0 && count+1 >= maximum) || !next.Before(current.Expiration) || stoppedByPolicy {
 		status = "paused"
 		reason = "retry_stopped:" + reason
@@ -234,22 +234,25 @@ func (a *App) settleDueAgentFailureTx(ctx context.Context, tx pgx.Tx, inboxID, f
 func dueActionSettlement(results []CapabilityResult, registry *CapabilityRegistry) (string, string) {
 	for _, r := range results {
 		def, ok := registry.Definition(r.CapabilityName)
-		if !ok {
-			continue
-		}
-		if r.Status == "accepted" && def.CompletionBoundary != "" && def.OutcomeReferenceField != "" && stringValue(mapValue(r.Output)[def.OutcomeReferenceField]) != "" {
+		if ok && (r.Status == "accepted" || r.Status == "completed") && def.CompletionBoundary != "" && def.OutcomeReferenceField != "" && stringValue(mapValue(r.Output)[def.OutcomeReferenceField]) != "" {
 			return "pending", "intention_awaits_verified_result"
 		}
 	}
-	for _, r := range results {
-		def, ok := registry.Definition(r.CapabilityName)
-		if ok && def.Type == CapabilityTypeAction && r.Status == "completed" && def.SuccessBoundary != "schedule_version_committed" && def.SuccessBoundary != "scheduled_intention_committed" && def.SuccessBoundary != "intention_revision_committed" {
-			return "completed", "synchronous_action_committed"
-		}
-	}
+	failed, failureCode := false, ""
 	for _, r := range results {
 		if r.Status == "failed" || r.Status == "rejected" {
-			return "failed", r.ErrorCode
+			failed = true
+			failureCode = preferredActionFailureCode(failureCode, r.ErrorCode)
+		}
+	}
+	if failed {
+		return "failed", failureCode
+	}
+
+	for _, r := range results {
+		def, ok := registry.Definition(r.CapabilityName)
+		if ok && def.Type == CapabilityTypeAction && r.Status == "completed" && stringValue(mapValue(r.Output)["delivery_status"]) != "duplicate_suppressed" && def.SuccessBoundary != "schedule_version_committed" && def.SuccessBoundary != "scheduled_intention_committed" && def.SuccessBoundary != "intention_revision_committed" {
+			return "completed", "synchronous_action_committed"
 		}
 	}
 	return "suppressed", "intention_no_action"
@@ -260,6 +263,9 @@ func dueActionSettlement(results []CapabilityResult, registry *CapabilityRegistr
 func cascadeGoalLifecycleTx(ctx context.Context, tx pgx.Tx, before *GoalAuthority, after GoalAuthority, key string, at time.Time) error {
 	if before == nil {
 		return nil
+	}
+	if err := cascadeGoalObjectsTx(ctx, tx, before, after, at); err != nil {
+		return err
 	}
 	standardsChanged := effectiveGoalCriteriaVersion(*before) != effectiveGoalCriteriaVersion(after)
 	if before.Status == after.Status && !standardsChanged {
@@ -399,8 +405,8 @@ func (a *App) prepareNativeDueAttempt(ctx context.Context, inboxID, fluctlightID
 			return ErrUnauthorized
 		}
 		gateErr := requireIntentionGoalActiveTx(ctx, tx, current, a.now().UTC())
-		if current.Status != IntentionDue || current.LastAttemptID != stringValue(candidate["attempt_id"]) || current.Revision != intValue(candidate["intention_revision"]) {
-			gateErr = errors.New("intention_due_stale")
+		if gateErr == nil && (current.Status != IntentionDue || current.LastAttemptID != stringValue(candidate["attempt_id"]) || current.Revision != intValue(candidate["intention_revision"])) {
+			gateErr = newCapabilityError("intention_due_stale", false, ErrConflict)
 		}
 		if gateErr != nil {
 			stopped = true
@@ -443,4 +449,31 @@ func (a *App) prepareNativeDueAttempt(ctx context.Context, inboxID, fluctlightID
 		return err
 	})
 	return stopped, err
+}
+
+func intentionFailureStopsRetry(reason string) bool {
+	return strings.HasPrefix(reason, "policy_") || strings.HasPrefix(reason, "goal_") || strings.HasPrefix(reason, "intention_permission") || reason == "permission_denied" || reason == "user_refused"
+}
+
+// Error priority is independent of Tool order and delivery order. An authority
+// denial must never be hidden by a transient sibling failure.
+func preferredActionFailureCode(current, candidate string) string {
+	current, candidate = strings.TrimSpace(current), strings.TrimSpace(candidate)
+	if candidate == "" {
+		return current
+	}
+	if current == "" {
+		return candidate
+	}
+	currentStops, candidateStops := intentionFailureStopsRetry(current), intentionFailureStopsRetry(candidate)
+	if currentStops != candidateStops {
+		if candidateStops {
+			return candidate
+		}
+		return current
+	}
+	if candidate < current {
+		return candidate
+	}
+	return current
 }

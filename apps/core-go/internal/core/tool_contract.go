@@ -196,14 +196,14 @@ func CapabilityToolSchemaStats(definitions []CapabilityDefinition) (bytes int, c
 func conversationReplyCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: conversationReplyCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Send an actual user-visible private message, only when you intend to contact the recipient. Never use this Tool for internal diagnostics, silence decisions, or control values such as no_op. During WakeUp, finish with action_type=no_op and put the private diagnostic reason in final response_intent instead. For autonomous messages, topic_key and purpose describe the real communication topic and purpose.",
-		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
+		Description:     "Send a real private message to contact the recipient; never internal diagnostics, silence or no_op. WakeUp silence uses final action_type=no_op/response_intent. Autonomous topic_key/purpose describe actual communication.",
+		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCurrentLife},
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required":   []any{"text"},
-			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "Actual natural message delivered to the recipient; never no_op, noop, no-op or an internal cycle diagnostic."}, "topic_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "purpose": map[string]any{"type": "string", "minLength": 1, "maxLength": 256, "description": "Purpose of contacting the recipient, not the reason for staying silent. Put a silence reason in WakeUp final response_intent."}},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "Actual natural message delivered to the recipient; never no_op, noop, no-op or an internal cycle diagnostic."}, "topic_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "purpose": map[string]any{"type": "string", "minLength": 1, "maxLength": 256, "description": "Contact purpose, not silence reason; silence belongs in WakeUp final response_intent."}},
 		},
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,

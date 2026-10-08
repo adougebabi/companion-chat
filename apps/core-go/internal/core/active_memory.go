@@ -42,16 +42,16 @@ func activeMemoryEventCapabilityDefinition() CapabilityDefinition {
 		"content":                  map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
 		"confidence":               map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
 		"importance":               map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
-		"original_time_expression": map[string]any{"type": "string", "maxLength": 512, "description": "Copy the source time phrase exactly; use an empty string only when the source has no time expression."},
-		"valid_from":               map[string]any{"type": "string", "minLength": 1, "maxLength": 64, "description": "Optional relevance-start boundary. For a future event, omit it or use the current/source time so the event remains visible before it starts."},
-		"valid_until":              map[string]any{"type": "string", "minLength": 1, "maxLength": 64, "description": "Expiry boundary after which the fact no longer affects behavior; required for future events."},
+		"original_time_expression": map[string]any{"type": "string", "maxLength": 512, "description": "Exact source time phrase; empty only if absent."},
+		"valid_from":               map[string]any{"type": "string", "minLength": 1, "maxLength": 64, "description": "Future events: omit or use current/source time; keep visible beforehand."},
+		"valid_until":              map[string]any{"type": "string", "minLength": 1, "maxLength": 64, "description": "Behavior relevance expires here; required for future events."},
 		"time_precision":           map[string]any{"type": "string", "enum": []any{"exact", "part_of_day", "date", "range", "unknown"}},
 	}
 	semanticRequired := []any{"operation", "kind", "content", "confidence", "original_time_expression", "time_precision"}
 	futureEventRequired := append(append([]any{}, semanticRequired...), "valid_until")
 	return CapabilityDefinition{
 		Name: "active_memory_event", Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Record or close a short-lived fact that remains behaviorally relevant. For future_event create, preserve the exact source time phrase, set valid_until after the event, and omit valid_from or use current/source time so the fact is visible beforehand. Use opaque target_ref for non-create operations; never invent database identifiers or revisions.",
+		Description:     "Record/close temporary facts. Future events keep source time, expire after occurrence, and remain relevant beforehand. Non-create uses returned target_ref; never invent IDs.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyOptionalInternal,
 		RequiredContext: []ContextSlot{SlotMemoryScope, SlotCurrentLife},

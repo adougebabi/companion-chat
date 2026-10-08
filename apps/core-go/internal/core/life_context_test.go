@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -342,7 +341,7 @@ func TestCognitionSurfacesBindFrozenProjectionBeforeCapabilityPrepare(t *testing
 	}
 }
 
-func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *testing.T) {
+func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthority(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "life-turn-owner", "life-turn-fluctlight", "life-turn-conversation"
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
@@ -394,6 +393,9 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 			"attention": "listen", "thought": "hold", "desire": "wait", "agency": "no action",
 			"influences": []any{map[string]any{"ref": lifeRef, "role": "constrains", "confidence": 0.9, "note": "决策基于当时尚未发生新事件的生活上下文"}},
 		}
+		if call > 1 {
+			structured["visible_text"] = "我已读取最新场景，再回应。"
+		}
 		toolCalls := []any{}
 		if call == 1 {
 			toolCalls = []any{
@@ -417,24 +419,38 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 	_, err = app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
 		"fluctlight_id": fluctlightID, "text": "先等一下", "idempotency_key": "life-turn-user", "turn_id": "life-turn-1", "attachment_refs": []any{},
 	})
-	if err == nil || !errors.Is(err, ErrLifeContextStale) {
-		t.Fatalf("stale conversation err=%v", err)
+	if err != nil {
+		t.Fatalf("refreshed native continuation failed: %v", err)
 	}
-	if providerCalls.Load() != 1 {
+	if providerCalls.Load() != 2 {
 		t.Fatalf("Provider calls=%d", providerCalls.Load())
 	}
 	var assistantCount int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND turn_id='life-turn-1' AND source_fact_id IS NOT NULL`, conversationID).Scan(&assistantCount); err != nil || assistantCount != 0 {
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND turn_id='life-turn-1' AND source_fact_id IS NOT NULL AND text='我已读取最新场景，再回应。'`, conversationID).Scan(&assistantCount); err != nil || assistantCount != 1 {
 		t.Fatalf("stale turn published an assistant count=%d err=%v", assistantCount, err)
 	}
 	var inboxStatus, inboxError string
 	var inboxPayload []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn'`).Scan(&inboxStatus, &inboxError, &inboxPayload); err != nil || inboxStatus != "failed" || inboxError != "agent_run_failed" {
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn'`).Scan(&inboxStatus, &inboxError, &inboxPayload); err != nil || inboxStatus != "failed" || inboxError != "agent_cognition_settlement_failed" {
 		t.Fatalf("stale inbox status=%q error=%q err=%v", inboxStatus, inboxError, err)
 	}
 	invocations, err := capabilityInvocationsFromValue(mapValue(decodeObject(inboxPayload)["agent_partial"])["capability_invocations"])
 	if err != nil || len(invocations) != 2 {
 		t.Fatalf("frozen invocations=%#v err=%v", invocations, err)
+	}
+	results := arrayValue(mapValue(decodeObject(inboxPayload)["agent_partial"])["capability_results"])
+	if len(results) != 2 {
+		t.Fatalf("stale Tool results lost: %#v", results)
+	}
+	for _, raw := range results {
+		result := mapValue(raw)
+		if result["status"] == "completed" || result["status"] == "accepted" {
+			t.Fatalf("stale original Tool committed: %#v", result)
+		}
+	}
+	var staleReplyCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND text='我会按刚才看到的场景处理。'`, conversationID).Scan(&staleReplyCount); err != nil || staleReplyCount != 0 {
+		t.Fatalf("stale reply escaped: %d %v", staleReplyCount, err)
 	}
 	var sceneInvocation CapabilityInvocation
 	for _, invocation := range invocations {

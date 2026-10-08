@@ -6,6 +6,7 @@ package httpapi
 // converted into a second HTTP request and no internal handler is invoked.
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -34,6 +35,9 @@ func (b *browserBackend) Health(ctx context.Context) error {
 func (b *browserBackend) DoJSON(ctx context.Context, method, endpoint, session string, body any) (map[string]any, error) {
 	value, err := b.dispatch(ctx, method, endpoint, session, body)
 	if err != nil {
+		if strings.Contains(endpoint, "/goals") {
+			return nil, browserBackendError(err, "goal_operation_failed")
+		}
 		return nil, err
 	}
 	if value == nil {
@@ -185,6 +189,51 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.Contains(path, "/members/") && method == http.MethodDelete:
 		parts := splitInternalPath(path)
 		err = b.server.app.SetActorGroupMember(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), false)
+	case strings.HasPrefix(path, "/internal/fluctlights/") && pathPart(splitInternalPath(path), 3) == "goals":
+		parts := splitInternalPath(path)
+		owner, goalID := pathPart(parts, 2), pathPart(parts, 4)
+		limit := 20
+		if v := parsed.Query().Get("limit"); v != "" {
+			limit, err = strconv.Atoi(v)
+			if err != nil {
+				return nil, core.ErrInvalidArguments
+			}
+		}
+		if method == http.MethodGet {
+			if goalID == "" {
+				return b.server.app.ListGoals(ctx, actorID, owner, parsed.Query().Get("history") == "true", limit, parsed.Query().Get("cursor"))
+			}
+			if pathPart(parts, 5) == "evidence" {
+				return b.server.app.GoalEvidence(ctx, actorID, owner, goalID, limit, parsed.Query().Get("cursor"))
+			}
+			if pathPart(parts, 5) == "history" {
+				return b.server.app.GoalHistory(ctx, actorID, owner, goalID, limit, parsed.Query().Get("cursor"))
+			}
+			if len(parts) == 5 {
+				return b.server.app.GoalDetail(ctx, actorID, owner, goalID)
+			}
+			return nil, core.ErrInvalidArguments
+		}
+		var command core.GoalOwnerCommand
+		decoder := json.NewDecoder(bytes.NewReader(jsonValue(values)))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&command); err != nil {
+			return nil, core.ErrInvalidArguments
+		}
+		operation := pathPart(parts, 5)
+		if operation == "" {
+			if method == http.MethodPost && goalID == "" {
+				operation = "create"
+			} else if method == http.MethodPut && goalID != "" {
+				operation = "update"
+			} else {
+				return nil, core.ErrInvalidArguments
+			}
+		}
+		if command.Operation != operation {
+			return nil, core.ErrInvalidArguments
+		}
+		return b.server.app.ApplyOwnerGoalCommand(ctx, actorID, owner, goalID, command)
 	case path == "/internal/fluctlights" && method == http.MethodGet:
 		return b.server.repository.ListFluctlights(ctx, actorID)
 	case path == "/internal/fluctlights" && method == http.MethodPost:
