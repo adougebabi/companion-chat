@@ -1676,3 +1676,29 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ### Next Steps
 
 - 更新实际环境API/Worker/Web后验证10m唤醒、30m反思、认知入队取消以及背景队列不自循环
+
+
+## Session 52: Goal语义协议、稳定前缀与成功评估去重
+<!-- trellis-session: v=2 fp=c66b1fecea785b6f -->
+
+**Date**: 2026-10-08
+**Task**: Goal语义协议、稳定前缀与成功评估去重
+**Branch**: `codex/fluctlight-goal-closed-loop`
+
+### Summary
+
+清理实际HTTP Goal输入/输出的内部ID与版本，冻结typed短引用由Core回填；stable user定义置前、动态current一次。实测JSON1874B/~2108估算tokens，TOON2277B/~2612，因此保留精简JSON；未测实际KV命中。per-goal成功memo跨重启去重，force/newproof/standards/constraints/window及失败retry保留。最终全Go race1891 PASS events/1745 leaf PASS/0 FAIL/36 SKIP；PG目标门禁130 PASS无FAIL/SKIP；vet/build通过。未部署，隔离设施清理，真实验收仍进行中。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `34b13d3` | fix(goal): isolate semantic prompts and memoize unchanged assessments |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 更新实际API/Worker，验证真实Goal语义、自动去重、短引用协议及本地Provider cached-token/prefill收益
