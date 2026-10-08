@@ -1650,3 +1650,29 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ### Next Steps
 
 - 更新实际环境Worker后通过正式重新评估入口验证推荐目标闭环
+
+
+## Session 51: 后台安静期、证据去循环与认知优先取消
+<!-- trellis-session: v=2 fp=aeded40a76b0e2c5 -->
+
+**Date**: 2026-10-08
+**Task**: 后台安静期、证据去循环与认知优先取消
+**Branch**: `codex/fluctlight-goal-closed-loop`
+
+### Summary
+
+只读确认线上5m唤醒及背景92/100调用占比；实现last-chat10m唤醒、30m单次有新证据反思、启动去重/认知门禁、同实例入队取消与晚到CAS。检查和静默回执不驱动Goal水位，真实唤醒发布结果保留。最终全Go race1866 PASS events/1721 leaf PASS/0 FAIL/36 SKIP，vet/build、Web68/type/build通过。未部署、实际验收仍进行中，自有PG/Redis及诊断session已清理。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d002a68` | fix(cognition): debounce background work and preempt it on new input |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 更新实际环境API/Worker/Web后验证10m唤醒、30m反思、认知入队取消以及背景队列不自循环
