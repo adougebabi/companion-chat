@@ -1737,3 +1737,37 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ### Next Steps
 
 - 配置真实Provider运行goal_planner E2E并审查语义去重与候选质量；补齐60矩阵中的25 PARTIAL和1完整改组场景；生产备份及逐批迁移尚未执行
+
+
+## Session 54: Goal规划频率与无效评估重试修复
+<!-- trellis-session: v=2 fp=b69d770181de5a60 -->
+
+**Date**: 2026-10-09
+**Task**: Goal规划频率与无效评估重试修复
+**Branch**: `master`
+
+### Summary
+
+只读线上确认满五Planner仍反复、Goal缺覆盖失败，以及另条WakeUp507内存不足。前向0055、自动容量/提示门禁、每日日程一次、覆盖一次反馈修正和固定合同终止已实现；未部署线上。
+
+### Main Changes
+
+- 保持Owner请求、Actor复核、私有/晚到恢复、原证据链；repair直接恢复满额背景复核，禁止造新启动事件
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bc90e52` | fix(goal): gate planner cadence and stop invalid assessment retries |
+
+### Testing
+
+- [OK] 真实基线3项回归红；扩大核心167叶PASS、迁移81叶PASS；最终race47叶PASS，0FAIL/0SKIP；Go vet/build/workflow/diff通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 部署前备份并应用0055，再针对实际Provider验证降频和有效评估；GoalEvaluation那条Provider失败原始HTTP原因仍未取得；原GP完整验收缺口保持
