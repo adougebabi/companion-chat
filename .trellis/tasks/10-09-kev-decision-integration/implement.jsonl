@@ -1,0 +1,13 @@
+{"file": ".trellis/spec/backend/structured-turn-contract.md", "reason": "原生 Eino loop、独立 Tool、提交事实和 streaming 权威"}
+{"file": ".trellis/spec/backend/fluctlight-cognitive-runtime.md", "reason": "语义判定与确定性权限边界"}
+{"file": ".trellis/spec/backend/fluctlight-configuration-contract.md", "reason": "动态设置、Owner 权限与 AEAD secrets"}
+{"file": ".trellis/spec/backend/fluctlight-diagnostics-contract.md", "reason": "诊断查询和原有 best-effort 契约；Kev 专用可靠记录边界"}
+{"file": ".trellis/spec/backend/fluctlight-persistence-contract.md", "reason": "短事务、迁移、CAS、外部 IO 分离"}
+{"file": ".trellis/tasks/10-09-kev-decision-integration/research/autonomy-contract-part-1.md", "reason": "完整自治契约分片，避免自动注入截断；来源 .trellis/spec/backend/fluctlight-autonomy-contract.md"}
+{"file": ".trellis/tasks/10-09-kev-decision-integration/research/autonomy-contract-part-2.md", "reason": "完整自治契约分片，避免自动注入截断；来源 .trellis/spec/backend/fluctlight-autonomy-contract.md"}
+{"file": ".trellis/spec/backend/goal-planner-contract.md", "reason": "既有规划门禁、容量和 evidence/event 保留"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "API/browser 安全与必要验证"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "server state、独立 cursor/epoch"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "production/mobile/timezone验证"}
+{"file": ".trellis/tasks/10-09-kev-decision-integration/research/entry-mapping.md", "reason": "七点真实代码定位与框架 compatibility 证据"}
+{"file": ".trellis/spec/backend/kev-decision-contract.md", "reason": "本次七点实现、可靠记录、原生 loop 接管与部署契约"}

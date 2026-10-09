@@ -191,6 +191,7 @@ func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDepl
 }
 
 type Input struct {
+	KevOriginal        bool     `json:"kev_original,omitempty"`
 	IntentID           string   `json:"intent_id"`
 	CorrelationID      string   `json:"correlation_id"`
 	CausationID        string   `json:"causation_id"`
@@ -271,6 +272,23 @@ func WakeUpWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 		// A failed cycle is reconciled as a retryable intent. Do not schedule a
 		// next quiet-period key when no wake-up fact was committed.
 		return nil, err
+	}
+	version := workflow.GetVersion(ctx, "kev-wakeup-deferral", workflow.DefaultVersion, 1)
+	if stringValue(result["status"]) == "deferred" && version == workflow.DefaultVersion {
+		input.KevOriginal = true
+		if err := workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result); err != nil {
+			return nil, err
+		}
+	}
+	if version != workflow.DefaultVersion && stringValue(result["status"]) == "deferred" {
+		manual, err := kevWakeUpWait(ctx, kevWorkflowDelay(ctx, result))
+		if err != nil {
+			return nil, err
+		}
+		if manual {
+			input.KevOriginal = true
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, WakeUpWorkflow, input)
 	}
 	if stringValue(result["status"]) == "inactive" {
 		return result, nil
@@ -642,6 +660,19 @@ func ReflectionWorkflow(ctx workflow.Context, input Input) (map[string]any, erro
 	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
+	version := workflow.GetVersion(ctx, "kev-reflection-deferral", workflow.DefaultVersion, 1)
+	if stringValue(result["status"]) == "deferred" && version == workflow.DefaultVersion {
+		input.KevOriginal = true
+		if err := workflow.ExecuteActivity(ctx, ProcessReflectionActivity, input).Get(ctx, &result); err != nil {
+			return nil, err
+		}
+	}
+	if version != workflow.DefaultVersion && stringValue(result["status"]) == "deferred" {
+		if err := workflow.Sleep(ctx, kevWorkflowDelay(ctx, result)); err != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, ReflectionWorkflow, input)
+	}
 	return result, nil
 }
 
@@ -660,7 +691,7 @@ func GoalEvaluationWorkflow(ctx workflow.Context, input Input) (map[string]any, 
 		return nil, err
 	}
 	if stringValue(result["status"]) == "deferred" {
-		if err := workflow.Sleep(ctx, 30*time.Second); err != nil {
+		if err := workflow.Sleep(ctx, kevVersionedDelay(ctx, result, "kev-GoalEvaluationWorkflow-timer")); err != nil {
 			return nil, err
 		}
 		return nil, workflow.NewContinueAsNewError(ctx, GoalEvaluationWorkflow, input)
@@ -690,7 +721,7 @@ func GoalPlanningWorkflow(ctx workflow.Context, input Input) (map[string]any, er
 		return nil, err
 	}
 	if stringValue(result["status"]) == "deferred" {
-		if err := workflow.Sleep(ctx, 30*time.Second); err != nil {
+		if err := workflow.Sleep(ctx, kevVersionedDelay(ctx, result, "kev-GoalPlanningWorkflow-timer")); err != nil {
 			return nil, err
 		}
 		return nil, workflow.NewContinueAsNewError(ctx, GoalPlanningWorkflow, input)
@@ -796,6 +827,9 @@ func ProcessWakeUpActivity(ctx context.Context, input Input) (map[string]any, er
 	application := app()
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	if input.KevOriginal {
+		ctx = core.WithKevOriginal(ctx)
 	}
 	ctx, input = prepareActivityLifecycleContext(ctx, input, "wake_up")
 	ctx = core.WithLifecycleIntentID(ctx, input.IntentID)
@@ -917,6 +951,9 @@ func ProcessReflectionActivity(ctx context.Context, input Input) (map[string]any
 	application := app()
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	if input.KevOriginal {
+		ctx = core.WithKevOriginal(ctx)
 	}
 	ctx, input = prepareActivityLifecycleContext(ctx, input, "reflection")
 	ctx = core.WithLifecycleIntentID(ctx, input.IntentID)
@@ -2445,4 +2482,41 @@ func shouldRecordWorkflowDiagnostic(key string, now time.Time) bool {
 	}
 	workflowDiagnosticSampleState.last[key] = now
 	return true
+}
+
+func kevWorkflowDelay(ctx workflow.Context, result map[string]any) time.Duration {
+	if at, err := time.Parse(time.RFC3339Nano, stringValue(result["not_before"])); err == nil {
+		delta := at.Sub(workflow.Now(ctx))
+		if delta > 0 && delta <= 24*time.Hour {
+			return delta
+		}
+	}
+	return 30 * time.Second
+}
+func kevVersionedDelay(ctx workflow.Context, result map[string]any, change string) time.Duration {
+	if workflow.GetVersion(ctx, change, workflow.DefaultVersion, 1) == workflow.DefaultVersion {
+		return 30 * time.Second
+	}
+	return kevWorkflowDelay(ctx, result)
+}
+
+// Manual execution interrupts only a Kev deferral; normal model cancellation
+// and lifecycle controls retain their original ownership.
+func kevWakeUpWait(ctx workflow.Context, delay time.Duration) (bool, error) {
+	timerCtx, cancel := workflow.WithCancel(ctx)
+	defer cancel()
+	timer := workflow.NewTimer(timerCtx, delay)
+	manual := false
+	selector := workflow.NewSelector(ctx)
+	selector.AddFuture(timer, func(workflow.Future) {})
+	selector.AddReceive(workflow.GetSignalChannel(ctx, "kev.force_original"), func(channel workflow.ReceiveChannel, more bool) {
+		var ignored any
+		channel.Receive(ctx, &ignored)
+		manual = true
+	})
+	selector.Select(ctx)
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+	return manual, nil
 }

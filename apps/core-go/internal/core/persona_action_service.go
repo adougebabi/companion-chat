@@ -67,6 +67,10 @@ func (service *personaActionBusinessService) preparePersonaAction(ctx context.Co
 			"trigger_id":        strings.TrimSpace(stringValue(args["trigger_id"])), "reason": strings.TrimSpace(stringValue(args["reason"])),
 		}
 		switchPlan, prepareErr := service.app.preparePersonalityDecision(ctx, plan.FluctlightID, decisionInput)
+		if expected, ok := ctx.Value(kevPersonaExpectedRevisionKey{}).(int); ok && prepareErr == nil && switchPlan != nil && switchPlan.ExpectedRevision != expected {
+			plan.RejectionCode = "personality_runtime_revision_conflict"
+			return withCapabilityPreparedData(invocation, "persona_action_plan", plan)
+		}
 		if prepareErr != nil {
 			if code, ok := personaActionBusinessRejection(prepareErr); ok {
 				plan.RejectionCode = code

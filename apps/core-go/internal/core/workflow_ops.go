@@ -657,6 +657,16 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "no_op", "reason": "no_real_evidence", "watermark": toSequence}, nil
 	}
 	var ownerActorID string
+	if a.kevService().Enabled(ctx, "runtime.reflection") {
+		allowed, until, gateErr := a.kevAutomaticGate(ctx, "runtime.reflection", fluctlightID, fmt.Sprintf("%s:%d:%d", fluctlightID, watermark, toSequence), reflectionKevEvidence(evidence))
+		if gateErr != nil || !allowed {
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+			if gateErr != nil {
+				return nil, gateErr
+			}
+			return map[string]any{"status": "deferred", "reason": "kev_deferred", "not_before": until.Format(time.RFC3339Nano)}, nil
+		}
+	}
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerActorID); err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err

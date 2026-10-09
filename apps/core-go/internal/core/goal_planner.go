@@ -344,6 +344,7 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 	var leaseSeconds, maxAttempts, retrySeconds int
 	var fence int
 	var watermark int64
+	var manual bool
 	var prior map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.goal_planning_runs WHERE id=$1`, id).Scan(&owner); err != nil {
@@ -418,7 +419,7 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 			_, err := tx.Exec(ctx, `UPDATE public.goal_planning_runs SET status='awaiting_profile',result=$2,claimed_at=NULL WHERE id=$1`, id, jsonBytes(prior))
 			return err
 		}
-		var manual, reviewTrigger, primaryTrigger bool
+		var reviewTrigger, primaryTrigger bool
 		var activeCount, capacity int
 		if err := tx.QueryRow(ctx, `SELECT
 			EXISTS(SELECT 1 FROM public.goal_planning_events WHERE fluctlight_id=$1 AND processed_run_id IS NULL AND seq<=$3 AND reason='owner_request' AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$2)),
@@ -458,6 +459,26 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 	}
 	if prior != nil {
 		return prior, nil
+	}
+	if !manual && a.kevService().Enabled(ctx, "goal.replenish_plan") {
+		snapshot, snapshotErr := readGoalSetWith(ctx, a.DB.Pool(), owner, profile)
+		if snapshotErr != nil {
+			return nil, snapshotErr
+		}
+		allowed, until, gateErr := a.kevAutomaticGate(ctx, "goal.replenish_plan", owner, id, map[string]any{"profile": profile, "mode": mode, "event_watermark": watermark, "goal_set": compactGoalPlannerSnapshot(snapshot)})
+		if gateErr != nil {
+			return nil, gateErr
+		}
+		if !allowed {
+			tag, err := a.DB.Pool().Exec(ctx, `UPDATE public.goal_planning_runs SET status='retry',claimed_at=NULL,attempt_count=GREATEST(attempt_count-1,0),available_at=$3,updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$2`, id, fence, until)
+			if err != nil {
+				return nil, err
+			}
+			if tag.RowsAffected() != 1 {
+				return nil, ErrConflict
+			}
+			return map[string]any{"status": "deferred", "reason": "kev_deferred", "not_before": until.Format(time.RFC3339Nano)}, nil
+		}
 	}
 	result, runErr := a.RunGoalPlannerAgent(ctx, owner, actor, profile, id+"@"+strconv.Itoa(fence), mode)
 	if runErr == nil && stringValue(result["decision"]) == "failed" {

@@ -30,6 +30,7 @@ func runtimeContextRefreshPlan(ctx context.Context) func(context.Context) (model
 }
 
 type runtimeContextRefresh struct {
+	kevVersion       int64
 	mu               sync.Mutex
 	target           *schema.Message
 	system           *schema.Message

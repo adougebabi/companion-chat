@@ -39,7 +39,7 @@ func capabilityCatalog(registry *CapabilityRegistry, surface CapabilitySurface) 
 	if registry == nil {
 		return nil
 	}
-	return registry.Catalog(surface)
+	return withoutKevDiscovery(registry.Catalog(surface))
 }
 
 // candidateValidationContext carries the frozen identity of the candidate being

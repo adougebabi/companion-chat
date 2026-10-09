@@ -12,7 +12,7 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0055_goal_planner_cadence"
+const Head = "0056_kev_decisions"
 const GoalPlannerCadencePreviousHead = "0054_goal_planner"
 const GoalPlannerPreviousHead = "0053_goal_reconciliation"
 const GoalReconciliationPreviousHead = "0052_goal_governance"
@@ -105,7 +105,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead && current != ActorUserBackgroundPreviousHead && current != GoalExecutionPreviousHead && current != GoalClosurePreviousHead && current != GoalGovernancePreviousHead && current != GoalReconciliationPreviousHead && current != GoalPlannerPreviousHead && current != GoalPlannerCadencePreviousHead {
+		if current != KevDecisionsPreviousHead && current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead && current != ActorUserBackgroundPreviousHead && current != GoalExecutionPreviousHead && current != GoalClosurePreviousHead && current != GoalGovernancePreviousHead && current != GoalReconciliationPreviousHead && current != GoalPlannerPreviousHead && current != GoalPlannerCadencePreviousHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -231,6 +231,9 @@ func (r *Runner) Apply(ctx context.Context) error {
 	}
 	if _, err := tx.Exec(ctx, goalPlannerCadenceSchemaSQL); err != nil {
 		return fmt.Errorf("apply Goal planner cadence schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, kevDecisionsSchemaSQL); err != nil {
+		return fmt.Errorf("apply Kev decision schema: %w", err)
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {

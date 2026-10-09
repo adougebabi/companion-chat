@@ -45,6 +45,8 @@ func browserRouteCases() []browserRouteCase {
 		{name: "password", method: http.MethodPost, path: "/auth/password", body: `{"password":"long-enough-password"}`},
 		{name: "setup", method: http.MethodPost, path: "/auth/setup", body: `{"setupToken":"setup-token-123456","password":"long-enough-password"}`},
 		{name: "login", method: http.MethodPost, path: "/auth/login", body: `{"password":"long-enough-password"}`},
+		{name: "Kev diagnostics", method: http.MethodGet, path: "/api/diagnostics/kev-decisions"},
+		{name: "Kev connection", method: http.MethodPost, path: "/api/settings/kev/test-connection", body: `{}`},
 		{name: "settings get", method: http.MethodGet, path: "/api/settings"},
 		{name: "settings put", method: http.MethodPut, path: "/api/settings", body: `{"values":{},"secrets":{},"clearSecrets":[]}`},
 		{name: "capability request list", method: http.MethodGet, path: "/api/capability-requests"},

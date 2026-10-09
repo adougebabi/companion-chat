@@ -158,6 +158,9 @@ func main() {
 				return
 			}
 		case <-retentionTicker.C:
+			if err := application.MaintainKevDiagnostics(ctx); err != nil {
+				logger.Warn("Kev diagnostics maintenance failed")
+			}
 			if recovered, err := application.RecoverStaleModelRuns(ctx, 15*time.Minute); err != nil {
 				logger.Warn("Go Worker stale model-run recovery retry", "error", err)
 			} else if recovered > 0 {

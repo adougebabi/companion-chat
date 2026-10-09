@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, watch } from "vue";
+import KevDiagnostics from "../components/KevDiagnostics.vue";
 
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import AccordionContent from "@/components/ui/accordion/AccordionContent.vue";
@@ -186,6 +187,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
       <div v-else class="diagnostics-groups">
       <label>显示时区 <select v-model="controlCenter.diagnosticDisplayTimezone"><option v-for="zone in displayTimezones" :key="zone" :value="zone">{{ zone }}</option></select></label>
       <p v-if="controlCenter.diagnosticModelRuns.length > 20 || controlCenter.diagnosticAgentRuns.length > 20" class="field-note">已加载历史分页；点击刷新查看最新记录。</p>
+      <KevDiagnostics v-if="currentSection==='kev-decisions'" />
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="diagnostics-accordion">
         <AccordionItem v-if="currentSection === 'lifecycle'" value="lifecycle" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">LIFECYCLE</p><h2>生命周期时间线</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.lifecycleDiagnostics.length }}</Badge></AccordionTrigger>

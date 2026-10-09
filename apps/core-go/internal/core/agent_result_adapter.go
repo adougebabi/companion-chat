@@ -811,6 +811,34 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
 		return nil, err
 	}
+	manualKevCycle := false
+	if a.kevService().Enabled(ctx, "runtime.wakeup") {
+		var manualCycle *int
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT (payload->>'kev_manual_cycle')::integer FROM public.platform_workflow_intents WHERE intent_id=$1`, "wake_up_intent:"+fluctlightID).Scan(&manualCycle); err != nil {
+			return nil, err
+		}
+		manualKevCycle = manualCycle != nil && *manualCycle == cycle
+	}
+	if a.kevService().Enabled(ctx, "runtime.wakeup") && !manualKevCycle {
+		_, life, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, a.now().UTC())
+		if err != nil {
+			return nil, err
+		}
+		if stringValue(life["behavior_state"]) == "sleep" {
+			return a.persistSleepingCycle(ctx, wakeID, fluctlightID, cycle, settings.IntervalSeconds)
+		}
+		state, stateErr := a.kevWakeUpState(ctx, fluctlightID, cycle, life)
+		if stateErr != nil {
+			return nil, stateErr
+		}
+		allowed, until, err := a.kevAutomaticGate(ctx, "runtime.wakeup", fluctlightID, wakeID, state)
+		if err != nil {
+			return nil, err
+		}
+		if !allowed {
+			return map[string]any{"status": "deferred", "reason": "kev_deferred", "not_before": until.Format(time.RFC3339Nano), "cycle": cycle}, nil
+		}
+	}
 	conversationID, err := a.EnsureDirectConversation(ctx, ownerID, fluctlightID)
 	if err != nil {
 		return nil, err

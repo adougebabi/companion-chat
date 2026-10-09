@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cloudwego/eino/callbacks"
 	"io"
 	"net/http"
 	"strings"
@@ -77,6 +78,11 @@ type queuedToolCallingChatModel struct {
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
 	var err error
+	originalInput := input
+	m, opts, err = m.kevModelOptions(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
 	input, err = m.preparePhysicalInput(ctx, input)
 	if err != nil {
 		return nil, err
@@ -104,11 +110,34 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	}
 	started := time.Now()
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
+		if gate := kevPersona(ctx); gate != nil && gate.needsCheck(ctx) {
+			// The inner component's raw proposal must not be published as an
+			// Agent event. The outer node will emit only the admitted response;
+			// physical input/output diagnostics remain owned by this adapter.
+			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+		}
 		return m.inner.Generate(runCtx, input, opts...)
 	})
 	err = wrapPhysicalProviderRequestError(err)
 	if callDiagnosticID != "" && result != nil {
 		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(result))
+	}
+	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, result, err)
+	m.recordUsageComparison(callCtx, result)
+	if callDiagnosticID != "" {
+		m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
+	}
+	if err == nil && result != nil {
+		if gate := kevPersona(ctx); gate != nil {
+			candidate, regenerate, gateErr := gate.inspect(ctx, result)
+			if gateErr != nil {
+				return nil, gateErr
+			}
+			if regenerate {
+				return m.Generate(ctx, originalInput, opts...)
+			}
+			result = candidate
+		}
 	}
 	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
 		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
@@ -116,16 +145,17 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, result.ToolCalls)
 		}
 	}
-	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, result, err)
-	m.recordUsageComparison(callCtx, result)
-	if callDiagnosticID != "" {
-		m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
-	}
+
 	return result, err
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
 	var err error
+	originalInput := input
+	m, opts, err = m.kevModelOptions(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
 	input, err = m.preparePhysicalInput(ctx, input)
 	if err != nil {
 		return nil, err
@@ -149,10 +179,39 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, m.correlationID, m.scenario, m.priority, einoDiagnosticMessages(input))
 	}
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
+		if gate := kevPersona(ctx); gate != nil && gate.needsCheck(ctx) {
+			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+		}
 		return m.inner.Stream(runCtx, input, opts...)
 	})
 	if err != nil || stream == nil {
 		return stream, err
+	}
+	if gate := kevPersona(ctx); gate != nil && gate.needsCheck(ctx) {
+		full, err := consumeKevCandidateStream(ctx, stream)
+		if err != nil {
+			return nil, err
+		}
+		if callDiagnosticID != "" {
+			m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(full))
+		}
+		recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, full, nil)
+		m.recordUsageComparison(callCtx, full)
+		candidate, regenerate, err := gate.inspect(ctx, full)
+		if err != nil {
+			return nil, err
+		}
+		if regenerate {
+			return m.Stream(ctx, originalInput, opts...)
+		}
+		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
+			bridge.Refresh.noteModelToolCalls(sequence, candidate.ToolCalls)
+			bridge.Trace.RecordModelToolCalls(callRequestID, sequence, candidate.ToolCalls)
+		}
+		reader, writer := schema.Pipe[*schema.Message](1)
+		writer.Send(candidate, nil)
+		writer.Close()
+		return reader, nil
 	}
 	adkContext, traceEnabled := adkCapabilityContext(ctx)
 	var usageRecorded atomic.Bool
@@ -179,6 +238,15 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 
 func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
 	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh != nil {
+		if bridge, ok := adkContext.Invoker.(*appADKCapabilityInvoker); ok && adkContext.Refresh.base.KevContextSelected {
+			_, version, _, err := bridge.app.kevService().Settings.Read(ctx)
+			adkContext.Refresh.mu.Lock()
+			if err == nil && version != adkContext.Refresh.kevVersion {
+				adkContext.Refresh.dirty = true
+				adkContext.Refresh.kevVersion = version
+			}
+			adkContext.Refresh.mu.Unlock()
+		}
 		refreshed, err := adkContext.Refresh.prepare(ctx, input)
 		if err != nil {
 			return nil, err

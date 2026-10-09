@@ -6,6 +6,58 @@
   },
   "components": {
     "schemas": {
+      "BrowserKevDecisionPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "next_cursor": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "snapshot"
+        ]
+      },
+      "BrowserKevConnectionTest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "call_status": {
+            "type": "string"
+          },
+          "policy_outcome": {
+            "type": "string"
+          },
+          "decision_id": {
+            "type": "string"
+          },
+          "config_version": {
+            "type": "integer"
+          },
+          "error_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_status",
+          "policy_outcome",
+          "decision_id",
+          "config_version",
+          "error_code"
+        ]
+      },
       "BrowserGoal": {
         "type": "object",
         "additionalProperties": true,
@@ -3252,6 +3304,158 @@
       },
       "delete": {
         "operationId": "clearDiagnostics"
+      }
+    },
+    "/api/diagnostics/kev-decisions": {
+      "get": {
+        "operationId": "kevDecisions",
+        "parameters": [
+          {
+            "name": "actor_self",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actor_user",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decision_point",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "policy_outcome",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "call_status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "application_status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "correlation_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserKevDecisionPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/kev/test-connection": {
+      "post": {
+        "operationId": "testKevConnection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserKevConnectionTest"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/diagnostics/lifecycle": {

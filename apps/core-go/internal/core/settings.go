@@ -22,20 +22,23 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT human_actor_id FROM public.owner_accounts LIMIT 1`).Scan(&owner); err != nil || owner != actorID {
 		return nil, errors.New("forbidden")
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT key,value_json FROM public.runtime_settings ORDER BY key`)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT key,value_json,revision FROM public.runtime_settings ORDER BY key`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	values := map[string]any{}
+	versions := map[string]any{}
 	for rows.Next() {
 		var key, raw string
-		if err := rows.Scan(&key, &raw); err != nil {
+		var revision int64
+		if err := rows.Scan(&key, &raw, &revision); err != nil {
 			return nil, err
 		}
 		var value any
 		if json.Unmarshal([]byte(raw), &value) == nil {
 			values[key] = value
+			versions[key] = revision
 		}
 	}
 	wake := normalizeWakeUpSettings(mapValue(values["product.wakeup"]))
@@ -53,7 +56,7 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 		}
 		secrets = append(secrets, purpose)
 	}
-	return map[string]any{"values": values, "configured_secrets": secrets}, nil
+	return map[string]any{"values": values, "configured_secrets": secrets, "versions": versions}, nil
 }
 
 func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[string]any) (map[string]any, error) {
@@ -62,6 +65,13 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 		return nil, err
 	}
 	values := mapValue(payload["values"])
+	if raw, exists := values["kev"]; exists {
+		config, err := decodeKevConfig(jsonBytes(raw))
+		if err != nil {
+			return nil, err
+		}
+		values["kev"] = config
+	}
 	if raw, exists := values["product.summary"]; exists {
 		setting := mapValue(raw)
 		seconds, ok := intValueExact(setting["interval_seconds"])
@@ -105,7 +115,7 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	clear := arrayValue(payload["clear_secrets"])
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		for key, value := range values {
-			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
+			if key != "kev" && key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
 				return fmt.Errorf("unknown setting %s", key)
 			}
 			if key == "product.goal_retry" {
@@ -120,7 +130,7 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 					return errors.New("llm_queue_invalid")
 				}
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.runtime_settings (key,value_json,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at`, key, jsonString(value), time.Now().UTC()); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.runtime_settings (key,value_json,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at,revision=runtime_settings.revision+1`, key, jsonString(value), time.Now().UTC()); err != nil {
 				return err
 			}
 			if key == "product.summary" {

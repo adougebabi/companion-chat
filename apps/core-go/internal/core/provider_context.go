@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 	"math"
 	"regexp"
 	"sort"
@@ -80,6 +81,27 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	if a == nil || a.DB == nil || a.Provider == nil {
 		return PromptAssemblyResult{}, projection, errors.New("prompt_assembler_dependencies_missing")
 	}
+	if config, version, _, readErr := a.kevService().Settings.Read(ctx); readErr == nil && config.Enabled {
+		ctx = decision.WithStageBudget(ctx, time.Duration(config.BudgetMS)*time.Millisecond)
+		if surface != ProviderContextSurfaceDefault && config.Allows("tools.select") && len(definitions) > 0 {
+			selectedCtx, _, selectionErr := a.prepareKevTools(context.WithValue(ctx, kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: FormalAgentID(schemaName), Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": currentInput}}}, Capability: &ADKCapabilityRequest{Projection: projection, Surface: capabilitySurfaceForProviderSurface(surface)}})
+			if selectionErr != nil {
+				return PromptAssemblyResult{}, projection, selectionErr
+			}
+			ctx = selectedCtx
+			if selection := kevSelection(ctx); selection != nil {
+				projection.KevTools = selection
+				definitions, selectionErr = selection.definitions(ctx)
+				if selectionErr != nil {
+					return PromptAssemblyResult{}, projection, selectionErr
+				}
+			}
+		}
+		if config.Allows("context.select") {
+			projection.KevContextSelected = true
+			projection.KevContextVersion = version
+		}
+	}
 	assignment, err := a.Provider.assignment(ctx, role)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
@@ -118,6 +140,10 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		summaryTrace = summaryResult.Trace
 	}
 	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
+	workingInput, err = a.selectKevContext(ctx, projection, surface, currentInput, workingInput)
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
 	policy, err := promptBudgetPolicyForAssignment(assignment)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
@@ -213,7 +239,7 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		if key == "schedule" || key == "presence" || key == "relationships" {
 			priority = 100
 		}
-		critical := surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceWakeUp
+		critical := surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceWakeUp || surface == ProviderContextSurfaceNativeCognition || surface == ProviderContextSurfaceDailyReview
 		switch key {
 		case "actor_background", "time_view":
 			priority = 135

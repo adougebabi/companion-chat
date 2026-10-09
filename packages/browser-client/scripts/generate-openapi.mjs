@@ -23,6 +23,8 @@ const schema = {
   info: { title: "Fluctlight Browser Platform API", version: "0.1.0" },
   components: {
     schemas: {
+      BrowserKevDecisionPage: { type:"object", additionalProperties:false, properties:{items:jsonObjectArray,next_cursor:{type:"string"},snapshot:{type:"string"}}, required:["items","next_cursor","snapshot"] },
+      BrowserKevConnectionTest: { type:"object", additionalProperties:false, properties:{call_status:{type:"string"},policy_outcome:{type:"string"},decision_id:{type:"string"},config_version:{type:"integer"},error_code:{type:"string"}}, required:["call_status","policy_outcome","decision_id","config_version","error_code"] },
       BrowserGoal: {
         type:"object", additionalProperties:true,
         properties:{id:{type:"string"},desired_outcome:{type:"string"},motivation:{type:"string"},success_criteria:{type:"array",items:{type:"string"}},criterion_ids:{type:"array",items:{type:"string"}},criteria_version:{type:"integer"},revision:{type:"integer"},status:{type:"string",enum:["candidate","active","paused","completed","cancelled","abandoned"]},profile_id:nullableString,scope:{type:"string"},deadline:nullableString,deadline_policy:{type:"string",enum:["soft","hard"]},execution:jsonObject,stages:jsonObjectArray,commitments:jsonObjectArray,evaluations:jsonObjectArray,evidence:jsonObjectArray,evidence_next_cursor:{type:"string"},reviews:jsonObjectArray,resolutions:jsonObjectArray},
@@ -363,6 +365,12 @@ const schema = {
     "/api/conversations/{conversationId}/turn": { post: { operationId: "conversationTurn", ...requestBody("BrowserConversationTurnRequest") } },
     "/api/conversations/{conversationId}/turn/{turnId}/cancel": { post: { operationId: "cancelConversationTurn" } },
     "/api/diagnostics": { get: { operationId: "readDiagnostics" }, delete: { operationId: "clearDiagnostics" } },
+    "/api/diagnostics/kev-decisions": {
+      get: { operationId:"kevDecisions", parameters:["actor_self","actor_user","agent","decision_point","id","request_id","policy_outcome","call_status","application_status","correlation_id","run_id","from","to","limit","cursor"].map(name=>({name,in:"query",schema:{type:"string"}})), ...jsonResponse("BrowserKevDecisionPage") }
+    },
+    "/api/settings/kev/test-connection": {
+      post: { operationId:"testKevConnection", requestBody:{required:true,content:{"application/json":{schema:{type:"object",additionalProperties:false}}}}, ...jsonResponse("BrowserKevConnectionTest") }
+    },
     "/api/diagnostics/lifecycle": { get: { operationId: "readLifecycleDiagnostics" } },
     "/api/diagnostics/model-runs": { get: { operationId: "readDiagnosticModelRuns", parameters:[{in:"query",name:"cursor",schema:{type:"string",maxLength:8192}},{in:"query",name:"limit",schema:{type:"integer",minimum:1,maximum:500}},{in:"query",name:"correlationId",schema:{type:"string",maxLength:128}}], ...jsonResponse("BrowserDiagnosticModelRuns") } },
     "/api/diagnostics/agent-runs": { get: { operationId: "readDiagnosticAgentRuns", parameters: [

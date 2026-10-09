@@ -27,6 +27,8 @@ const relationshipKey = (relationship: Record<string, unknown>): string => `${St
 export const useControlCenterStore = defineStore("control-center", {
   state: () => ({
     diagnostics: [] as BrowserDiagnosticEvent[],
+    kevDecisionRows:[] as Array<Record<string,unknown>>,kevDecisionCursor:"",kevDecisionEpoch:0,kevDecisionFilter:"",kevDecisionLoading:false,kevDecisionError:"",
+
     diagnosticModelRuns: [] as BrowserDiagnosticModelRun[],
     diagnosticModelCursor:"",diagnosticAgentCursor:"",diagnosticPagesLoading:false,diagnosticOlderPagesLoaded:false,diagnosticDisplayTimezone:Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 		diagnosticAgentRuns: [] as BrowserDiagnosticAgentRun[],
@@ -109,6 +111,20 @@ export const useControlCenterStore = defineStore("control-center", {
     error: "",
   }),
   actions: {
+    async testKevConnection(){this.error="";try{return await client.testKevConnection();}catch(error){this.error=diagnosticsFailureMessage(error);return {call_status:"unavailable",error_code:"connection_test_failed"};}},
+    async readKevDecisions(filter:Record<string,string>){return client.kevDecisions(filter);},
+    async loadKevDecisions(filter:Record<string,string>,reset=true){
+      if(this.kevDecisionLoading)return;
+      if(reset){this.kevDecisionEpoch++;this.kevDecisionFilter=JSON.stringify(filter);}
+      const epoch=this.kevDecisionEpoch;const identity=this.kevDecisionFilter;const cursor=reset?"":this.kevDecisionCursor;
+      this.kevDecisionLoading=true;this.kevDecisionError="";
+      try{const page=await client.kevDecisions({...filter,cursor,limit:"20"});if(epoch!==this.kevDecisionEpoch||identity!==this.kevDecisionFilter)return;
+        if(reset)this.kevDecisionRows=page.items;else{const ids=new Set(this.kevDecisionRows.map(row=>row.id));this.kevDecisionRows.push(...page.items.filter(row=>!ids.has(row.id)));}
+        this.kevDecisionCursor=page.next_cursor;
+      }catch{this.kevDecisionError="无法读取 Kev 决策记录。";}finally{this.kevDecisionLoading=false;}
+    },
+
+
     lifeCommandKey(identity: string): string {
 		if (!this.lifeCommandKeys[identity]) this.lifeCommandKeys[identity] = `owner-ui:${crypto.randomUUID()}`;
 		return this.lifeCommandKeys[identity];

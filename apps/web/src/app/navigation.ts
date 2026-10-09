@@ -1,9 +1,10 @@
 export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings";
-export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "owner";
-export type DiagnosticsSection = "lifecycle" | "agent-runs" | "model-runs" | "media-prompts" | "events" | "workflows";
+export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "kev" | "owner";
+export type DiagnosticsSection = "lifecycle" | "agent-runs" | "model-runs" | "media-prompts" | "events" | "kev-decisions" | "workflows";
 export type WorkspaceSection = SettingsSection | DiagnosticsSection;
 
 export const settingsSections = [
+  { id:"kev",label:"Kev 决策",description:"开关、服务地址和判定策略" },
   { id: "model-role", label: "模型角色绑定", description: "为通用 LLM 或 Embedding 选择模型和预算" },
   { id: "endpoint", label: "模型 Endpoint", description: "管理模型服务地址和协议" },
   { id: "binding", label: "当前角色绑定", description: "查看两个绑定目标当前使用的模型" },
@@ -13,6 +14,7 @@ export const settingsSections = [
 ] as const satisfies ReadonlyArray<{ id: SettingsSection; label: string; description: string }>;
 
 export const diagnosticsSections = [
+  { id:"kev-decisions",label:"Kev 决策",description:"模型结论、实际应用与原始响应" },
   { id: "lifecycle", label: "生命周期", description: "按关联标识追踪触发、工作流、模型调用与下个周期" },
   { id: "agent-runs", label: "Agent 运行", description: "按发起时间查看逻辑 Agent 与终止记录" },
   { id: "model-runs", label: "模型运行", description: "查看逻辑 Agent、Tool 与各次模型调用的状态及失败原因" },

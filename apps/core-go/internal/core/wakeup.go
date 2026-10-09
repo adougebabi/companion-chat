@@ -485,6 +485,11 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 		switch intentStatus {
 		case "started", "running", "cancel_requested":
 			if startedAt != nil && time.Since(*startedAt) < 2*time.Minute {
+				payload["kev_manual_cycle"] = cycle
+				if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET payload=$2 WHERE intent_id=$1`, intentID, jsonBytes(payload)); err != nil {
+					return err
+				}
+				result["manual_override"] = true
 				result["status"] = "running"
 				result["cycle"] = cycle
 				return nil
@@ -498,8 +503,10 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 			payloadRaw = jsonBytes(payload)
 		}
 
+		payload["kev_manual_cycle"] = cycle
+		payloadRaw = jsonBytes(payload)
 		if intentStatus == "pending" || intentStatus == "retry" {
-			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now(),last_error=NULL WHERE intent_id=$1`, intentID); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now(),last_error=NULL,payload=$2 WHERE intent_id=$1`, intentID, payloadRaw); err != nil {
 				return err
 			}
 		} else {
@@ -515,6 +522,11 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 	})
 	if err != nil {
 		return nil, err
+	}
+	if result["manual_override"] == true && a.Workflows != nil {
+		if err := a.Workflows.Signal(ctx, release.WorkflowID, "", "kev.force_original", fmt.Sprintf("owner-wake:%s:%d", fluctlightID, release.Cycle)); err != nil {
+			return nil, fmt.Errorf("wake_up_force_signal_failed: %w", err)
+		}
 	}
 	if stringValue(result["status"]) == "queued" {
 		a.recordWakeUpReleaseDiagnostics(ctx, release, "manual_wake_up")

@@ -329,6 +329,29 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.diagnostics(response, request)
 		return
 	}
+	if path == "/api/diagnostics/kev-decisions" && methodName == http.MethodGet {
+		query := url.Values{}
+		for _, key := range []string{"actor_self", "actor_user", "agent", "decision_point", "id", "request_id", "policy_outcome", "call_status", "application_status", "correlation_id", "run_id", "from", "to", "limit", "cursor"} {
+			value := request.URL.Query().Get(key)
+			if len(value) > 8192 {
+				writeError(response, http.StatusBadRequest, "diagnostics_filter_invalid", "Invalid filter")
+				return
+			}
+			if value != "" {
+				query.Set(key, value)
+			}
+		}
+		s.callAny(response, request, "/internal/diagnostics/kev-decisions?"+query.Encode(), http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "kev_diagnostics_unavailable", "Kev diagnostics are unavailable"), nil)
+		return
+	}
+	if path == "/api/settings/kev/test-connection" && methodName == http.MethodPost {
+		_, ok := s.mutationBody(response, request, func(value map[string]any) bool { return len(value) == 0 })
+		if !ok {
+			return
+		}
+		s.callAny(response, request, "/internal/settings/kev/test-connection", http.MethodPost, map[string]any{}, s.readOnlyError(http.StatusForbidden, "kev_connection_failed", "Kev connection test failed"), nil)
+		return
+	}
 	if path == "/api/diagnostics/lifecycle" && methodName == http.MethodGet {
 		s.diagnosticLifecycle(response, request)
 		return
@@ -2048,7 +2071,7 @@ func mapSettings(value map[string]any) map[string]any {
 	if _, exists := value["configured_secrets"]; !exists {
 		configuredSecrets = stringArray(value["configuredSecrets"])
 	}
-	return map[string]any{"values": objectValue(value["values"]), "configuredSecrets": configuredSecrets}
+	return map[string]any{"values": objectValue(value["values"]), "configuredSecrets": configuredSecrets, "versions": objectValue(value["versions"])}
 }
 
 func validateActorUserInput(value map[string]any) bool {

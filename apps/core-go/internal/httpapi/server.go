@@ -134,6 +134,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/conversations/{conversationID}/history", s.history)
 	mux.HandleFunc("POST /internal/conversations/{conversationID}/turn", s.turn)
 	mux.HandleFunc("GET /internal/media/{assetID}", s.media)
+	mux.HandleFunc("GET /internal/diagnostics/kev-decisions", s.kevDecisions)
+	mux.HandleFunc("POST /internal/settings/kev/test-connection", s.kevConnection)
 	mux.HandleFunc("GET /internal/diagnostics", s.diagnostics)
 	mux.HandleFunc("GET /internal/diagnostics/lifecycle", s.lifecycleDiagnostics)
 	mux.HandleFunc("DELETE /internal/diagnostics", s.clearDiagnostics)

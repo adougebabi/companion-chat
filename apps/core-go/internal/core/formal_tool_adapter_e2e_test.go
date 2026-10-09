@@ -22,6 +22,7 @@ var formalToolAdapterInventory = []string{
 	"active_memory_event",
 	"affect_event",
 	"appearance.style",
+	"capability.discover",
 	"capability.request",
 	"conversation.reply",
 	"habit.decide",
@@ -288,6 +289,17 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 				var state []byte
 				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT state_json FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&state); err != nil || !strings.Contains(string(state), "扎起头发") {
 					t.Fatalf("temporary hair style not durable: %s err=%v", state, err)
+				}
+			},
+		},
+		{
+			name: capabilityDiscoverName, surface: CapabilitySurfaceNativeCognition, wantStatus: "completed",
+			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				return f.request(capabilityDiscoverName, "adapter-discover", map[string]any{"names": []string{"wardrobe.inspect"}})
+			},
+			verify: func(t *testing.T, _ *formalToolAdapterFixture, r ToolExecutionReceipt) {
+				if len(arrayValue(mapValue(r.Result.Output)["available"])) == 0 {
+					t.Fatal("no authorized catalog returned")
 				}
 			},
 		},

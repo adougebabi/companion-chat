@@ -68,6 +68,7 @@ affect_event
 appearance.style
 memory.recall
 relationship.lookup
+capability.discover
 capability.request
 persona.detail
 persona.takeover
@@ -196,6 +197,7 @@ tool_test_regex() {
     schedule.inspect|schedule.edit|intention.schedule) printf '%s\n' '^(TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody|TestCancelledScheduledIntentionCannotStartDyeOrChangeColor|TestIntentionScheduleCreatesCurrentDayWhenNoScheduleExists|TestCancellingAcceptedScheduleClosesLinkedIntentionAndGoal|TestStartedScheduledDyeBlocksReplanAndStaleVersionCannotSettle)$' ;;
     persona.detail) printf '%s\n' '^TestPersonaDetailIndependentToolReadsCanonicalSource$' ;;
     relationship.lookup) printf '%s\n' '^TestIndependentToolE2ERelationshipLookup$' ;;
+    capability.discover) printf '%s\n' '^TestIndependentToolE2ECapabilityDiscover$' ;;
     capability.request) printf '%s\n' '^TestIndependentToolE2ECapabilityRequest$' ;;
     persona.takeover|persona.switch) printf '%s\n' '^(TestPersonaToolsAreAvailableToAgentsAndCommitThroughDomainService|TestPostgresDirectPersonaToolsCommitRejectReplayConflictAndAudit)$' ;;
     *) return 1 ;;
@@ -229,6 +231,7 @@ tool_expected_tests() {
     schedule.inspect|schedule.edit|intention.schedule) printf '%s\n' TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody TestCancelledScheduledIntentionCannotStartDyeOrChangeColor TestIntentionScheduleCreatesCurrentDayWhenNoScheduleExists TestCancellingAcceptedScheduleClosesLinkedIntentionAndGoal TestStartedScheduledDyeBlocksReplanAndStaleVersionCannotSettle ;;
     persona.detail) printf '%s\n' TestPersonaDetailIndependentToolReadsCanonicalSource ;;
     relationship.lookup) printf '%s\n' TestIndependentToolE2ERelationshipLookup ;;
+    capability.discover) printf '%s\n' TestIndependentToolE2ECapabilityDiscover ;;
     capability.request) printf '%s\n' TestIndependentToolE2ECapabilityRequest ;;
     persona.takeover|persona.switch)
       printf '%s\n' TestPersonaToolsAreAvailableToAgentsAndCommitThroughDomainService TestPostgresDirectPersonaToolsCommitRejectReplayConflictAndAudit ;;

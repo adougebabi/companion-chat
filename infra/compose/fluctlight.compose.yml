@@ -149,6 +149,7 @@ services:
       FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:?set FLUCTLIGHT_SETTINGS_KEY in private env}
       FLUCTLIGHT_TRUSTED_ORIGIN: ${FLUCTLIGHT_TRUSTED_ORIGIN:?set FLUCTLIGHT_TRUSTED_ORIGIN in private env}
       CORE_GO_LISTEN_ADDRESS: :8080
+      FLUCTLIGHT_KEV_SPOOL_DIR: /var/lib/fluctlight/kev
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
       S3_BUCKET: ${S3_BUCKET:-fluctlight-media}
@@ -174,6 +175,7 @@ services:
       timeout: 3s
       retries: 20
     mem_limit: ${CORE_MEMORY_LIMIT:-256m}
+    volumes: [fluctlight_kev_core:/var/lib/fluctlight/kev]
     networks: [platform]
 
   worker:
@@ -206,6 +208,7 @@ services:
       timeout: 3s
       retries: 6
     mem_limit: ${WORKER_MEMORY_LIMIT:-768m}
+    volumes: [fluctlight_kev_worker:/var/lib/fluctlight/kev]
     networks: [platform]
 
   web:
@@ -234,3 +237,6 @@ volumes:
   fluctlight_postgres:
   fluctlight_redis:
   fluctlight_minio:
+
+  fluctlight_kev_core:
+  fluctlight_kev_worker:

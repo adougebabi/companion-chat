@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import KevSettings from "../components/KevSettings.vue";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -212,6 +213,10 @@ onMounted(() => void load());
         </AccordionContent>
       </AccordionItem>
 
+      <AccordionItem v-if="currentSection === 'kev'" value="kev" class="settings-section settings-drawer">
+        <AccordionTrigger class="settings-drawer-summary section-heading"><h2>Kev 决策</h2></AccordionTrigger>
+        <AccordionContent><div class="settings-drawer-body"><KevSettings /></div></AccordionContent>
+      </AccordionItem>
       <AccordionItem v-if="currentSection === 'operations'" value="operations" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">AUTONOMY / DIAGNOSTICS</p><h2 id="operations-title">运行策略</h2><small>自治行为与诊断保留</small></div>

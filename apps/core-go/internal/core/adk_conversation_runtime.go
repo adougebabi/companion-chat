@@ -178,6 +178,11 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		invocation.ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, i.request.ActionID)
 	}
 	i.trace.AppendInvocation(invocation)
+	if rejection := kevRejectNativeTool(ctx, capabilityName, arguments); rejection != "" {
+		result := failedCapabilityResultDetail(invocation, rejection, false, "The capability was not admitted for this request")
+		i.trace.AppendResult(result)
+		return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
+	}
 	if capabilityName == conversationReplyCapabilityName {
 		if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh.replyNeedsFreshSchedule(modelIdentity.ModelCallSequence, callID) {
 			result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "rejected",
@@ -189,6 +194,12 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
+	if gate := kevPersona(ctx); gate != nil && capabilityName == personaSwitchCapabilityName {
+		if revision, adopted := gate.adoptedRevision(ctx); adopted {
+			ctx = context.WithValue(ctx, kevPersonaExpectedRevisionKey{}, revision)
+		}
+	}
+
 	agentDefinition, _ := formalAgentDefinitionFromContext(ctx)
 	receipt, execErr := i.app.ExecuteTool(ctx, ToolExecutionRequest{
 		AgentID: agentDefinition.ID, RunID: operationRoot,
@@ -219,6 +230,14 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		receipt = ToolExecutionReceipt{OperationID: operationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: result}
 	}
 	i.trace.AppendResult(result)
+	if gate := kevPersona(ctx); gate != nil && capabilityName == personaSwitchCapabilityName {
+		gate.nativeResult(ctx, result)
+	}
+	if gate := kevPersona(ctx); gate != nil && capabilityName == personaSwitchCapabilityName && result.Status == "completed" && stringValue(mapValue(result.Output)["disposition"]) == "applied" {
+		gate.mu.Lock()
+		gate.switched = true
+		gate.mu.Unlock()
+	}
 	if errors.Is(execErr, ErrLifeContextStale) || (execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted")) {
 		if adkContext, ok := adkCapabilityContext(ctx); ok {
 			if capabilityName == conversationReplyCapabilityName && errors.Is(execErr, ErrLifeContextStale) {
@@ -480,6 +499,11 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if err := validateADKCapabilityDefinitions(a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
 		return ADKStructuredTaskResult{}, err
 	}
+	var selectionErr error
+	ctx, input.Definitions, selectionErr = a.prepareKevTools(ctx, input)
+	if selectionErr != nil {
+		return ADKStructuredTaskResult{}, selectionErr
+	}
 	trace := &ADKCapabilityTrace{}
 	request := ADKCapabilityRequest{Surface: definition.DefaultSurface}
 	if input.Capability != nil {
@@ -496,9 +520,12 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	}
 	var refresh *runtimeContextRefresh
 	if plan := runtimeContextRefreshPlan(ctx); plan != nil {
-		refresh = &runtimeContextRefresh{refresh: plan, base: request.Projection}
+		refresh = &runtimeContextRefresh{refresh: plan, base: request.Projection, kevVersion: request.Projection.KevContextVersion}
 	}
 	ctx = withADKCapabilityContextRefs(ctx, invoker, trace, refresh, refs)
+	if input.Capability != nil && refresh != nil && kevPersonaInstalled(input.Definitions) && a.kevService().Enabled(ctx, "persona.switch") {
+		ctx = context.WithValue(ctx, kevPersonaKey{}, &kevPersonaAdmission{app: a, request: request, denied: map[string]bool{}})
+	}
 	if strings.TrimSpace(input.Scenario) != "" {
 		ctx = WithProviderScenario(ctx, input.Scenario)
 	}

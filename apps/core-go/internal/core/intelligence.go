@@ -30,6 +30,9 @@ var validClaimKinds = map[string]struct{}{
 // Reflection, and native capability slots. It deliberately carries provenance
 // alongside semantic values so model output cannot become an unowned fact.
 type ContextProjection struct {
+	KevTools               *kevRunSelection              `json:"-"`
+	KevContextVersion      int64                         `json:"-"`
+	KevContextSelected     bool                          `json:"-"`
 	AsOf                   string                        `json:"as_of,omitempty"`
 	ReferenceTimezone      string                        `json:"reference_timezone,omitempty"`
 	SchemaVersion          string                        `json:"schema_version"`

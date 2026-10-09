@@ -55,7 +55,7 @@ ${requestTypes}
 export type BrowserHealth = { status: string; role: string };
 export type BrowserSession = { authenticated: boolean; actorId?: string };
 export type BrowserSetupStatus = { setupAvailable: boolean };
-export type BrowserSafeSettings = { values: Record<string, unknown>; configuredSecrets: string[] };
+export type BrowserSafeSettings = { values: Record<string, unknown>; configuredSecrets: string[]; versions?: Record<string,number> };
 export type BrowserDiagnosticEvent = { id: string; eventType: string; severity: string; fluctlightId?: string | null; causationId?: string | null; correlationId: string; payload: Record<string, unknown>; createdAt?: string | null };
 export type BrowserLifecycleDiagnosticsFilter = { limit?: number; fluctlightId?: string; correlationId?: string; intentId?: string; workflowId?: string; runId?: string; surface?: string; status?: string };
 export type BrowserLifecycleDiagnosticEvent = { id: string; eventType: string; surface: string; transition: string; severity: string; fluctlightId?: string | null; correlationId: string; causationId?: string | null; intentId?: string; workflowId?: string; runId?: string; activityType?: string; activityId?: string; providerAttemptId?: string; providerRequestId?: string; modelRunId?: string; stage: string; status: string; reasonCode: string; errorCategory?: string; errorCode?: string; safeCause?: string; retryable: boolean; attempt?: number; maxAttempts?: number; nextDueAt?: string; occurredAt?: string; occurrenceCount?: number; metadata?: Record<string, unknown>; createdAt: string };
@@ -250,6 +250,11 @@ export class BrowserClient {
     if (options.cursor) query.set("cursor", options.cursor);
     return this.json(\`/api/diagnostics/agent-runs?\${query}\`) as Promise<BrowserDiagnosticRunPage<BrowserDiagnosticAgentRun>>;
   }
+  async kevDecisions(options: Record<string,string> = {}): Promise<{items: Array<Record<string,unknown>>; next_cursor: string; snapshot: string}> {
+    const query = new URLSearchParams(options);
+    return this.json(\`/api/diagnostics/kev-decisions?\${query}\`) as Promise<{items: Array<Record<string,unknown>>; next_cursor:string; snapshot:string}>;
+  }
+  async testKevConnection(): Promise<Record<string,unknown>> { return this.json("/api/settings/kev/test-connection",{method:"POST",body:{}}) as Promise<Record<string,unknown>>; }
   async diagnosticMediaPrompts(options: { limit?: number } = {}): Promise<BrowserDiagnosticMediaPrompt[]> {
     const limit = Math.min(Math.max(options.limit ?? 20, 1), 20);
     return this.json(\`/api/diagnostics/media-prompts?limit=\${limit}\`) as Promise<BrowserDiagnosticMediaPrompt[]>;

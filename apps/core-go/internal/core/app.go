@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/minio/minio-go/v7"
@@ -24,6 +26,7 @@ import (
 // App serves as the Composition Root and Application Module Container for Go Core.
 // Domain services receive narrow interfaces rather than holding the entire *App.
 type App struct {
+	Kev *decision.Service
 	// --- Persistence & Storage Infrastructure ---
 	DB          *PostgresRepository
 	Storage     *minio.Client

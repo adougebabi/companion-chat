@@ -436,3 +436,14 @@ setInterval(() => loadDiagnostics(), 2000);
 setInterval(() => loadDiagnostics(), 2000); // database-backed sources only
 if (section === "workflows") void loadWorkflows(); // entry or manual refresh
 ```
+
+## Scenario: Kev diagnostic server pages
+
+Kev rows/cursor/filter epoch belong to the control-center Pinia store. The Kev
+component keeps filter drafts and delegates reads to generated BrowserClient via
+store actions. Its cursor and epoch are independent of Agent/model pages. Export
+uses the same server filters/cursor snapshot, preserves raw question/request IDs,
+and explicitly includes complete=false/next_cursor if capped at 10000 records.
+Render raw diagnostics through text bindings/pre; never v-html. Show the selected
+IANA timezone. New filters reset only Kev pages; another diagnostic loader must
+not overwrite this source's server snapshot.

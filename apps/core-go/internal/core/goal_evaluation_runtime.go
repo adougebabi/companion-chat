@@ -343,6 +343,51 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		}
 		return result, nil
 	}
+	if a.kevService().Enabled(ctx, "goal.completion_check") {
+		selected := make([]goalEvaluationGoal, 0, len(snapshot.Goals))
+		var notBefore time.Time
+		for _, entry := range snapshot.Goals {
+			forced := false
+			for _, goalID := range snapshot.ForcedGoalIDs {
+				if goalID == entry.GoalID {
+					forced = true
+				}
+			}
+			for _, review := range snapshot.Reviews {
+				if review.GoalID == entry.GoalID {
+					forced = true
+				}
+			}
+			if forced {
+				selected = append(selected, entry)
+				continue
+			}
+			candidate := entry.GoalID + ":" + stableDigest(jsonString(map[string]any{"goal": entry.Goal, "sources": snapshot.SourceIDs}))
+			allowed, until, gateErr := a.kevAutomaticGate(ctx, "goal.completion_check", snapshot.FluctlightID, candidate, map[string]any{"goal": entry.Goal, "new_sources": admittedGoalEvaluationSources(snapshot)})
+			if gateErr != nil {
+				return nil, gateErr
+			}
+			if allowed {
+				selected = append(selected, entry)
+			} else {
+				snapshot.DeferredGoalIDs = append(snapshot.DeferredGoalIDs, entry.GoalID)
+				if until.After(notBefore) {
+					notBefore = until
+				}
+			}
+		}
+		if len(selected) == 0 {
+			tag, err := a.DB.Pool().Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='retry',claimed_at=NULL,attempt_count=GREATEST(attempt_count-1,0),available_at=$3,updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$2`, id, snapshot.ClaimRevision, notBefore)
+			if err != nil {
+				return nil, err
+			}
+			if tag.RowsAffected() != 1 {
+				return nil, ErrConflict
+			}
+			return map[string]any{"status": "deferred", "reason": "kev_deferred", "not_before": notBefore.Format(time.RFC3339Nano)}, nil
+		}
+		snapshot.Goals = selected
+	}
 	// Record the exact offered source subset without dropping the full CAS snapshot.
 	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.goal_evaluation_requests SET snapshot=$3 WHERE id=$1 AND status='processing' AND claim_revision=$2`, id, snapshot.ClaimRevision, jsonBytes(snapshot))
 	if err != nil {

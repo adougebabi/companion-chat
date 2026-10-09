@@ -82,6 +82,7 @@ func main() {
 	if redisClient != nil {
 		defer redisClient.Close()
 	}
+	go application.RunKevMaintenance(ctx)
 	apiServer := httpapi.NewApp(application, settings.ServiceKey, logger)
 	apiServer.SetBrowserBoundary(settings.TrustedOrigin, settings.SecureCookies)
 	server := &http.Server{
