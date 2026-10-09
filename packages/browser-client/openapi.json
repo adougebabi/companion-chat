@@ -1141,6 +1141,10 @@
               "$ref": "#/components/schemas/BrowserDiagnosticToolSummary"
             }
           },
+          "goalEvaluation": {
+            "type": "object",
+            "additionalProperties": true
+          },
           "prompt": {},
           "response": {},
           "orderingKey": {

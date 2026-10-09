@@ -127,6 +127,9 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	if value, exists := row["endpoint_id"]; exists {
 		result["endpointId"] = value
 	}
+	if value, exists := row["goal_evaluation"]; exists {
+		result["goalEvaluation"] = jsonValue(value)
+	}
 	if value, exists := row["response"]; exists && jsonPayloadPresent(value) {
 		result["response"] = jsonValue(value)
 	}

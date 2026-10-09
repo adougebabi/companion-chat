@@ -136,6 +136,7 @@ func (a *App) modelRunsQuery(ctx context.Context, actorID string, limit int, cor
 	if err := a.decorateModelRunRounds(ctx, out); err != nil {
 		return nil, err
 	}
+	a.decorateGoalEvaluationSettlement(ctx, out)
 	return out, nil
 }
 

@@ -232,6 +232,11 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
                   <Badge v-if="isMetadataOnlyPrompt(run.prompt)" variant="outline" class="meta-only-pill">历史元数据</Badge>
                   <small>绑定：{{ bindingLabel(run.bindingRole || run.role) }} · {{ run.modelId }}<template v-if="run.priority"> · 优先级 {{ run.priority }}</template><template v-if="run.queuePosition"> · 队列第 {{ run.queuePosition }}</template> · <time class="diagnostic-time" :datetime="run.createdAt">{{ formatRunTime(run.createdAt) }}</time><template v-if="run.queuedAt && run.queuedAt !== run.createdAt"> · 排队 {{ formatRunTime(run.queuedAt) }}</template><template v-if="run.startedAt"> · 开始 {{ formatRunTime(run.startedAt) }}</template><template v-if="run.completedAt"> · 结束 {{ formatRunTime(run.completedAt) }}</template></small>
                 </div>
+                <div v-if="run.goalEvaluation" class="goal-evaluation-settlement">
+                  <p><strong>目标评估提交：</strong>{{run.goalEvaluation.status}}<span v-if="run.goalEvaluation.error_code"> · {{run.goalEvaluation.error_code}}</span></p>
+                  <p class="field-note">模型 Response 是候选；目标是否完成以领域提交结果为准。暂停目标可能保留为待结算。</p>
+                  <details><summary>查看实际目标结算结果</summary><pre>{{pretty(run.goalEvaluation)}}</pre></details>
+                </div>
                 <p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p>
                 <details><summary>查看本次 Prompt <small v-if="isMetadataOnlyPrompt(run.prompt)" class="prompt-meta-note">（历史元数据记录）</small></summary><p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此历史记录只保存了元数据，原始提示词无法恢复。</p><pre>{{ diagnosticText(run.prompt) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.prompt) }}</pre></details></details>
                 <details v-if="run.response != null"><summary>查看本次 Response</summary><pre>{{ diagnosticText(run.response) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.response) }}</pre></details></details>

@@ -642,6 +642,10 @@ func (binding *goalEvaluationWireBinding) hydrateOutput(value map[string]any) (G
 		goalID := entry.Goal.EntityID
 		hydrated := GoalPlanCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(entry.Goal), Reason: plan.Reason, NextStep: plan.NextStep, WaitCondition: plan.WaitCondition, NextReviewAt: plan.NextReviewAt}
 		if plan.Stage != nil {
+			operation := firstString(plan.Stage.Operation, "create")
+			if (operation != "create" && operation != "adjust" && operation != "skip") || (operation == "create" && plan.Stage.ObjectRef != "") || (operation != "create" && plan.Stage.ObjectRef == "") {
+				return GoalEvaluationTaskOutput{}, errors.New("goal_evaluation_wire_stage_operation_invalid")
+			}
 			stage := &GoalStagePlan{Operation: plan.Stage.Operation, Purpose: plan.Stage.Purpose, Strategy: plan.Stage.Strategy, EntryBasis: plan.Stage.EntryBasis, ExitBasis: plan.Stage.ExitBasis, Criteria: plan.Stage.Criteria, Reason: plan.Stage.Reason}
 			if plan.Stage.ObjectRef != "" {
 				object, ok := binding.stagesByRef[plan.Stage.ObjectRef]
@@ -668,6 +672,10 @@ func (binding *goalEvaluationWireBinding) hydrateOutput(value map[string]any) (G
 			hydrated.Stage = stage
 		}
 		if plan.Commitment != nil {
+			operation := firstString(plan.Commitment.Operation, "create")
+			if (operation != "create" && operation != "adjust" && operation != "abandon") || (operation == "create" && plan.Commitment.ObjectRef != "") || (operation != "create" && plan.Commitment.ObjectRef == "") {
+				return GoalEvaluationTaskOutput{}, errors.New("goal_evaluation_wire_commitment_operation_invalid")
+			}
 			commitment := &GoalCommitmentPlan{Operation: plan.Commitment.Operation, Reason: plan.Commitment.Reason, ExpectedResult: plan.Commitment.ExpectedResult, Criteria: plan.Commitment.Criteria, WindowStart: plan.Commitment.WindowStart, WindowEnd: plan.Commitment.WindowEnd, OpportunityCondition: plan.Commitment.OpportunityCondition, Blocker: plan.Commitment.Blocker}
 			if plan.Commitment.ObjectRef != "" {
 				object, ok := binding.commitmentsByRef[plan.Commitment.ObjectRef]

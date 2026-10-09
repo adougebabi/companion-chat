@@ -198,7 +198,7 @@ func TestGoalEvaluationResponseSchemaUsesOnlyFrozenOfferedRefs(t *testing.T) {
 	}
 	assertSchemaEnum("goal", mapValue(evaluationProperties["goal_ref"]), "goal:1")
 	judgment := mapValue(mapValue(evaluationProperties["judgments"])["items"])
-	assertSchemaEnum("criterion", mapValue(mapValue(judgment["properties"])["criterion_ref"]), "criterion:1.1", "criterion:1.2", "criterion:1.c1.1", "criterion:1.s1.1")
+	assertSchemaEnum("criterion", mapValue(mapValue(judgment["properties"])["criterion_ref"]), "criterion:1.1", "criterion:1.2")
 	assertSchemaEnum("evidence", mapValue(mapValue(mapValue(mapValue(judgment["properties"])["evidence_refs"])["items"])), "e1")
 	assertSchemaEnum("stage", mapValue(mapValue(mapValue(evaluationProperties["stage_evaluation"])["properties"])["object_ref"]), "stage:1.1")
 	assertSchemaEnum("commitment", mapValue(mapValue(mapValue(mapValue(evaluationProperties["commitment_evaluations"])["items"])["properties"])["object_ref"]), "commitment:1.1")

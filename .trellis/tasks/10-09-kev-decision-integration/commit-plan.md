@@ -1,35 +1,33 @@
-# Proposed feedback-fix commit
+# Proposed Goal Evaluation feedback-fix commit
 
-`fix(runtime): serialize cognitive runs and gate goal evaluation on new evidence`
+`fix(goals): scope evaluation output and expose settlement failures`
 
-Only this feedback round: navigation guards/regressions, 0057 logical leases and entry/commit fences, Goal source queue conditions/backoff, corresponding tests/spec/report/task updates. Initial checkout was clean at c4cd44e; all dirty paths below were edited this round. No push is proposed.
+One coherent commit covering per-goal output schema, operation/ref guards, complete replacement correction, terminal invalid-output handling, independent settlement diagnostics, regenerated clients, regression tests and matching spec/task/report. No new migration. All listed paths belong to this round; no unrecognized dirty files. No push proposed.
 
 ## Files
 
-- `.trellis/spec/backend/fluctlight-provider-queue-contract.md`
-- `.trellis/spec/backend/goal-planner-contract.md`
-- `.trellis/spec/backend/kev-decision-contract.md`
-- `.trellis/spec/frontend/state-management.md`
+- `.trellis/spec/backend/fluctlight-provider-contract.md`
 - `.trellis/tasks/10-09-kev-decision-integration/design.md`
 - `.trellis/tasks/10-09-kev-decision-integration/implement.md`
 - `.trellis/tasks/10-09-kev-decision-integration/prd.md`
 - `.trellis/tasks/10-09-kev-decision-integration/task.json`
-- `apps/core-go/internal/core/agent_result_adapter.go`
-- `apps/core-go/internal/core/app.go`
-- `apps/core-go/internal/core/cognition.go`
-- `apps/core-go/internal/core/goal_assessment_memo.go`
-- `apps/core-go/internal/core/goal_capabilities.go`
+- `apps/core-go/internal/core/diagnostic_model_runs_filter.go`
+- `apps/core-go/internal/core/goal_evaluation_diagnostics.go`
 - `apps/core-go/internal/core/goal_evaluation_runtime.go`
-- `apps/core-go/internal/core/goal_planner.go`
-- `apps/core-go/internal/core/goal_sources.go`
-- `apps/core-go/internal/core/workflow_ops.go`
-- `apps/core-go/internal/migrations/runner.go`
-- `apps/core-go/internal/migrations/runner_test.go`
-- `apps/web/src/App.vue`
-- `apps/web/src/app/navigation.ts`
+- `apps/core-go/internal/core/goal_evaluation_scope_test.go`
+- `apps/core-go/internal/core/goal_evaluation_task.go`
+- `apps/core-go/internal/core/goal_evaluation_wire.go`
+- `apps/core-go/internal/core/goal_evaluation_wire_test.go`
+- `apps/core-go/internal/httpapi/browser/dto.go`
+- `apps/web/src/views/DiagnosticsView.vue`
 - `docs/kev-integration-report.md`
-- `apps/core-go/internal/core/goal_candidate_queue_test.go`
-- `apps/core-go/internal/core/logical_agent_run.go`
-- `apps/core-go/internal/core/logical_agent_run_test.go`
-- `apps/core-go/internal/migrations/logical_agent_leases.go`
-- `apps/web/test/kev-routing.test.mjs`
+- `packages/browser-client/openapi.json`
+- `packages/browser-client/scripts/generate-openapi.mjs`
+- `packages/browser-client/scripts/generate.mjs`
+- `packages/browser-client/src/index.ts`
+- `packages/core-client/scripts/generate.mjs`
+- `packages/core-client/src/index.ts`
+
+## Validation
+
+Go race: 1374 PASS / 490 SKIP / 0 FAIL (including subtests). Web/client: 98 PASS. Go vet/build and pnpm generate/typecheck/test/build passed. Database and real Provider opt-in checks remain SKIP/NOT_RUN under the user acceptance agreement.

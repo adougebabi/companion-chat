@@ -30,9 +30,97 @@ func goalObjectEvaluationSchema(objectRefs, criterionRefs, evidenceRefs []string
 	return objectSchema(map[string]any{"object_ref": enumStringSchema(objectRefs...), "judgments": arraySchema(goalCriterionJudgmentSchema(criterionRefs, evidenceRefs)), "completed": booleanSchema(), "reason": stringSchema()}, []string{"object_ref", "judgments", "completed", "reason"}, false)
 }
 
+// Selectors are a per-Goal contract, never a union shared by unrelated Goals.
 func goalEvaluationResponseSchema(binding *goalEvaluationWireBinding) map[string]any {
+	evaluations := []any{}
+	plans := []any{}
+	for _, ref := range sortedGoalBindingRefs(binding.goalsByRef) {
+		entry := binding.goalsByRef[ref]
+		scoped := *binding
+		scoped.goalsByRef = map[string]goalEvaluationGoal{ref: entry}
+		scoped.criteriaByRef = map[string]goalWireCriterionBinding{}
+		for key, value := range binding.criteriaByRef {
+			if value.GoalID == entry.GoalID {
+				scoped.criteriaByRef[key] = value
+			}
+		}
+		scoped.stagesByRef = map[string]goalWireObjectBinding{}
+		for key, value := range binding.stagesByRef {
+			if value.GoalID == entry.GoalID {
+				scoped.stagesByRef[key] = value
+			}
+		}
+		scoped.commitmentsByRef = map[string]goalWireObjectBinding{}
+		for key, value := range binding.commitmentsByRef {
+			if value.GoalID == entry.GoalID {
+				scoped.commitmentsByRef[key] = value
+			}
+		}
+		scoped.dependenciesByRef = map[string]goalWireObjectBinding{}
+		for key, value := range binding.dependenciesByRef {
+			if value.GoalID == entry.GoalID {
+				scoped.dependenciesByRef[key] = value
+			}
+		}
+		schema := goalEvaluationScopedResponseSchema(&scoped)
+		properties := mapValue(schema["properties"])
+		evaluation := mapValue(mapValue(properties["evaluations"])["items"])
+		for _, review := range binding.snapshot.Reviews {
+			if review.GoalID == entry.GoalID {
+				evaluation["required"] = append(arrayValue(evaluation["required"]), "review")
+				break
+			}
+		}
+		evaluations = append(evaluations, evaluation)
+		plans = append(plans, mapValue(mapValue(properties["plans"])["items"]))
+	}
+	return objectSchema(map[string]any{"evaluations": arraySchema(goalSchemaAlternatives(evaluations)), "plans": arraySchema(goalSchemaAlternatives(plans))}, []string{"evaluations", "plans"}, false)
+}
+func goalSchemaAlternatives(variants []any) map[string]any {
+	if len(variants) == 1 {
+		return mapValue(variants[0])
+	}
+	return map[string]any{"anyOf": variants}
+}
+func goalObjectScopedEvaluationSchema(binding *goalEvaluationWireBinding, objects map[string]goalWireObjectBinding, kind string, evidence []string) map[string]any {
+	variants := []any{}
+	for _, ref := range sortedGoalBindingRefs(objects) {
+		object := objects[ref]
+		criteria := []string{}
+		for key, c := range binding.criteriaByRef {
+			if c.ObjectKind == kind && c.ObjectID == object.ID {
+				criteria = append(criteria, key)
+			}
+		}
+		sort.Strings(criteria)
+		variants = append(variants, goalObjectEvaluationSchema([]string{ref}, criteria, evidence))
+	}
+	return goalSchemaAlternatives(variants)
+}
+func goalOperationPlanSchema(properties map[string]any, required []string, refs []string, operations []string) map[string]any {
+	create := cloneMap(properties)
+	delete(create, "object_ref")
+	create["operation"] = enumStringSchema("create")
+	required = append(append([]string(nil), required...), "operation")
+	variants := []any{objectSchema(create, required, false)}
+	if len(refs) > 0 {
+		mutate := cloneMap(properties)
+		mutate["operation"] = enumStringSchema(operations...)
+		mutate["object_ref"] = enumStringSchema(refs...)
+		variants = append(variants, objectSchema(mutate, append(append([]string(nil), required...), "object_ref"), false))
+	}
+	return goalSchemaAlternatives(variants)
+}
+
+func goalEvaluationScopedResponseSchema(binding *goalEvaluationWireBinding) map[string]any {
 	goalRefs := sortedGoalBindingRefs(binding.goalsByRef)
-	criterionRefs := sortedGoalBindingRefs(binding.criteriaByRef)
+	criterionRefs := []string{}
+	for ref, c := range binding.criteriaByRef {
+		if c.ObjectKind == "goal" {
+			criterionRefs = append(criterionRefs, ref)
+		}
+	}
+	sort.Strings(criterionRefs)
 	evidenceRefs := sortedGoalBindingRefs(binding.sourcesByRef)
 	stageRefs := sortedGoalBindingRefs(binding.stagesByRef)
 	commitmentRefs := sortedGoalBindingRefs(binding.commitmentsByRef)
@@ -57,10 +145,10 @@ func goalEvaluationResponseSchema(binding *goalEvaluationWireBinding) map[string
 		"residual_motivation": stringSchema(), "followup": objectSchema(map[string]any{"desired_outcome": stringSchema(), "success_criteria": arraySchema(stringSchema()), "motivation": stringSchema()}, []string{"desired_outcome", "success_criteria", "motivation"}, false),
 	}
 	if len(stageRefs) > 0 {
-		evaluationProperties["stage_evaluation"] = goalObjectEvaluationSchema(stageRefs, criterionRefs, evidenceRefs)
+		evaluationProperties["stage_evaluation"] = goalObjectScopedEvaluationSchema(binding, binding.stagesByRef, "stage", evidenceRefs)
 	}
 	if len(commitmentRefs) > 0 {
-		evaluationProperties["commitment_evaluations"] = arraySchema(goalObjectEvaluationSchema(commitmentRefs, criterionRefs, evidenceRefs))
+		evaluationProperties["commitment_evaluations"] = arraySchema(goalObjectScopedEvaluationSchema(binding, binding.commitmentsByRef, "commitment", evidenceRefs))
 	}
 	if len(actorRefs) > 0 {
 		evaluationProperties["relationship_confirmation"] = objectSchema(map[string]any{"target_actor_ref": enumStringSchema(actorRefs...), "evidence_refs": boundedGoalRefArraySchema(evidenceRefs), "label": stringSchema()}, []string{"target_actor_ref", "evidence_refs", "label"}, false)
@@ -70,12 +158,12 @@ func goalEvaluationResponseSchema(binding *goalEvaluationWireBinding) map[string
 	if len(stageRefs) > 0 {
 		stageProperties["object_ref"] = enumStringSchema(stageRefs...)
 	}
-	stage := objectSchema(stageProperties, []string{"operation", "purpose", "strategy", "entry_basis", "exit_basis", "criteria", "reason"}, false)
+	stage := goalOperationPlanSchema(stageProperties, []string{"purpose", "strategy", "entry_basis", "exit_basis", "criteria", "reason"}, stageRefs, []string{"adjust", "skip"})
 	commitmentProperties := map[string]any{"operation": enumStringSchema("create", "adjust", "abandon"), "reason": stringSchema(), "expected_result": stringSchema(), "criteria": arraySchema(stringSchema()), "window_start": stringSchema(), "window_end": stringSchema(), "opportunity_condition": stringSchema(), "blocker": stringSchema()}
 	if len(commitmentRefs) > 0 {
 		commitmentProperties["object_ref"] = enumStringSchema(commitmentRefs...)
 	}
-	commitment := objectSchema(commitmentProperties, []string{"expected_result", "criteria", "opportunity_condition", "blocker"}, false)
+	commitment := goalOperationPlanSchema(commitmentProperties, []string{"expected_result", "criteria", "opportunity_condition", "blocker"}, commitmentRefs, []string{"adjust", "abandon"})
 	plan := objectSchema(map[string]any{"goal_ref": enumStringSchema(goalRefs...), "reason": stringSchema(), "next_step": stringSchema(), "wait_condition": stringSchema(), "next_review_at": stringSchema(), "stage": stage, "commitment": commitment}, []string{"goal_ref", "reason", "next_step", "wait_condition"}, false)
 	return objectSchema(map[string]any{"evaluations": arraySchema(evaluation), "plans": arraySchema(plan)}, []string{"evaluations", "plans"}, false)
 }
@@ -130,36 +218,42 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 		return ProjectionTaskResult{}, err
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderCorrelation(WithProviderScenario(ctx, "goal_evaluation"), input.RequestID), assembly.Diagnostics)
-	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, assembly.Messages, nil, "goal_evaluation_v1", schema, true, nil)
-	if err == nil {
-		var output GoalEvaluationTaskOutput
-		output, err = binding.hydrateOutput(run.Completion.Structured)
-		if err == nil {
-			missing := missingGoalEvaluationCoverage(input, output)
-			if len(missing) > 0 {
-				missingRefs := make([]string, 0, len(missing))
-				for _, goalID := range missing {
-					missingRefs = append(missingRefs, binding.goalRefsByID[goalID])
-				}
-				correctionMessages := append([]map[string]any(nil), assembly.Messages...)
-				correctionMessages = append(correctionMessages,
-					map[string]any{"role": "assistant", "content": jsonString(run.Completion.Structured)},
-					map[string]any{"role": "user", "content": "goal_assessment_coverage_missing: return one complete replacement object. evaluations must contain exactly one entry for every offered goal_ref, including: " + strings.Join(missingRefs, ", ") + ". Keep the same response schema and use only offered refs."},
-				)
-				run, err = a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, correctionMessages, nil, "goal_evaluation_v1", schema, true, nil)
-				if err == nil {
-					output, err = binding.hydrateOutput(run.Completion.Structured)
-					if err == nil && len(missingGoalEvaluationCoverage(input, output)) > 0 {
-						err = errors.New("goal_assessment_coverage_missing")
-					}
-				}
-			}
-			if err == nil {
-				run.Completion.Structured = decodeObject(jsonBytes(output))
-			}
-		}
-	}
+	run, err := runGoalEvaluationWithCorrection(input, binding, assembly.Messages, func(messages []map[string]any) (ADKStructuredTaskResult, error) {
+		return a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, messages, nil, "goal_evaluation_v1", schema, true, nil)
+	})
+
 	return ProjectionTaskResult{Completion: run.Completion, Projection: refreshed, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
+}
+
+func goalEvaluationCandidateOutput(input goalEvaluationSnapshot, binding *goalEvaluationWireBinding, raw map[string]any) (GoalEvaluationTaskOutput, error) {
+	output, err := binding.hydrateOutput(raw)
+	if err != nil {
+		return output, err
+	}
+	if len(missingGoalEvaluationCoverage(input, output)) > 0 {
+		return output, errors.New("goal_assessment_coverage_missing")
+	}
+	return output, nil
+}
+func runGoalEvaluationWithCorrection(input goalEvaluationSnapshot, binding *goalEvaluationWireBinding, messages []map[string]any, run func([]map[string]any) (ADKStructuredTaskResult, error)) (ADKStructuredTaskResult, error) {
+	result, err := run(messages)
+	if err != nil {
+		return result, err
+	}
+	output, err := goalEvaluationCandidateOutput(input, binding, result.Completion.Structured)
+	if err != nil && (err.Error() == "goal_assessment_coverage_missing" || strings.HasPrefix(err.Error(), "goal_evaluation_wire_")) {
+		correction := append([]map[string]any(nil), messages...)
+		correction = append(correction, map[string]any{"role": "assistant", "content": jsonString(result.Completion.Structured)}, map[string]any{"role": "user", "content": err.Error() + ": return one complete replacement object for all offered goals. Each criterion, stage, commitment and dependency must belong to its goal_ref. Do not copy stage:1.1 into other goals. A goal without an existing stage uses operation=create and omits object_ref; adjust/skip/abandon requires that goal's existing object_ref. Include requested reviews and exactly one evaluation per goal. Use only the frozen response schema and offered refs."})
+		result, err = run(correction)
+		if err != nil {
+			return result, err
+		}
+		output, err = goalEvaluationCandidateOutput(input, binding, result.Completion.Structured)
+	}
+	if err == nil {
+		result.Completion.Structured = decodeObject(jsonBytes(output))
+	}
+	return result, err
 }
 
 func missingGoalEvaluationCoverage(input goalEvaluationSnapshot, output GoalEvaluationTaskOutput) []string {

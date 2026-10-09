@@ -112,3 +112,14 @@ Go SKIP 来自未配置隔离 PostgreSQL/真实 Provider 等 opt-in 环境，不
 最新本地结果：Go test -race ./... 1370 PASS、490 SKIP、0 FAIL（含子用例）；Web/client 98 PASS；typecheck、vet、build、production build 和 diff check 全通过。TestPostgresLogicalAgentRunCoordinatesIndependentApps 使用任务隔离数据库验收，当前因未配置 GO_CORE_TEST_DATABASE_URL 跳过，不能算真实数据库验证通过。
 
 上线须先执行包含本次代码的 migrate 服务，确认 0057_logical_agent_leases，再同时升级 Core 与 Worker；仅更新 Web 无法修复跨进程逻辑协调。操作命令沿用上文既有 Compose 方式。人工/外部事实在运行期间发生真实变化，原 CAS 仍会拒绝过期结果；本次消除的是这几类同一摇光逻辑运行相互交错造成的冲突。
+
+
+## Goal Evaluation 完成未落库反馈修复（2026-10-09）
+
+用户提供的 response 中 goal:2/3/4 的 review 均引用 stage:1.1；goal:2 在描述无现有阶段时还使用 adjust/object_ref。引用按目标编号绑定，旧全局 enum 会放行跨目标选择，hydration 随后拒绝整批，导致 goal:1 的 completed 也未提交。用户看到物理 response，没有领域提交错误展示；未查询正式数据库，不将推断错误码当作生产实测。
+
+本轮 schema 改为按 Goal 判别并限制对象/标准所有权及 create/adjust 操作；wire/coverage 可纠正一次完整输出，替换仍校验；wire 与耗尽 final-contract 错误 terminal。诊断独立展示目标评估提交状态/error/result，成功结果包含实际 goal_outcomes。原批次原子性、CAS、证据与 paused settlement 规则保留；无新 migration，head 仍 0057_logical_agent_leases。
+
+本地最终验证：Go race 1374 PASS、490 SKIP、0 FAIL（含子用例）；Go vet/build、pnpm generate/typecheck/test/build、git diff --check 通过；Web/client 共 98 PASS。独立只读核验无 findings。SKIP/真实数据库/真实模型/正式部署仍由用户验收。当前 codex/goal-evaluation-output-recovery 未提交。
+
+正式验收：升级 Core/Worker/Web 后，在诊断打开 Goal Evaluation，分别核对模型 response 与“目标评估提交”。合法输出成功提交时，在 result.goal_outcomes 查看实际 status；引用错误经纠正仍无效时应显示明确失败/error_code。使用新的相关证据或 Owner 明确复核重新触发历史失败目标；本轮未手工改写正式目标状态。

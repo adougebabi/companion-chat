@@ -60,3 +60,12 @@
 ## 正式验收反馈：设置入口、模型交错和评估噪声
 
 2026-10-09 用户报告 Kev 设置无法进入；WakeUp/cognition 与 Goal Evaluation 的多轮调用交错导致 current_facts_stale；Goal Evaluation 近乎持续触发。本轮在现有任务中直接修复：导航声明成为 URL/computed 唯一来源；同一 Fluctlight 逻辑运行从快照前到提交后互斥；证据 candidate 只有新增 committed link 才入队；续排限定关联目标来源；保留人工/真实结果/review 和原 CAS。不放宽过期事实校验、不把物理模型队列占有到整个 Agent、不引入固定轮数限制。本地验收继续执行；生产数据库跨进程检查由用户自行运行。
+
+
+## Goal Evaluation 完成未落库反馈修复（2026-10-09）
+
+用户提供的 response 中 goal:2/3/4 的 review 均引用 stage:1.1；goal:2 在描述无现有阶段时还使用 adjust/object_ref。引用按目标编号绑定，旧全局 enum 会放行跨目标选择，hydration 随后拒绝整批，导致 goal:1 的 completed 也未提交。用户看到物理 response，没有领域提交错误展示；未查询正式数据库，不将推断错误码当作生产实测。
+
+本轮 schema 改为按 Goal 判别并限制对象/标准所有权及 create/adjust 操作；wire/coverage 可纠正一次完整输出，替换仍校验；wire 与耗尽 final-contract 错误 terminal。诊断独立展示目标评估提交状态/error/result，成功结果包含实际 goal_outcomes。原批次原子性、CAS、证据与 paused settlement 规则保留；无新 migration，head 仍 0057_logical_agent_leases。
+
+本地最终验证：Go race 1374 PASS、490 SKIP、0 FAIL（含子用例）；Go vet/build、pnpm generate/typecheck/test/build、git diff --check 通过；Web/client 共 98 PASS。独立只读核验无 findings。SKIP/真实数据库/真实模型/正式部署仍由用户验收。当前 codex/goal-evaluation-output-recovery 未提交。

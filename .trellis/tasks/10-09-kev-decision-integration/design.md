@@ -86,3 +86,12 @@ Temporal workflow 添加 deferred 分支用项目既有 history/version 规则�
 旧 physical queue 契约不变。增加 PostgreSQL logical_agent_leases（Fluctlight PK，owner token，kind，expires_at）：3 分钟有效，15 秒心跳，获取前不建立语义快照；同 actor 嵌套继承 token；withTransaction 提交前短事务锁及 token/expiry fence；释放不得清理继任者。覆盖 conversation/native cognition、WakeUp/Reflection、GoalEvaluation/Planner。Goal Evaluation 等待发生在 claim 前，原 attempt budget 保持。不同 Fluctlight 可并行，独立事实更新仍必须通过 CAS 校验。
 
 新增证据 link 的 RowsAffected 是 conversation_candidate 入队依据，重复/无来源不建请求；真实 outcome 为明确关联 Goal 建 candidate link；source-remainder 只看 active/paused 关联 link/goal revision，保留源存储，不用任意 owner/profile 待处理 source 无条件重排。retry 返回实际 not_before，避免 30 秒无效轮询。goal.evaluate 描述声明后台评估等待当前 Agent 结束，不能在当前 run 内轮询等待自己的任务。
+
+
+## Goal Evaluation 完成未落库反馈修复（2026-10-09）
+
+用户提供的 response 中 goal:2/3/4 的 review 均引用 stage:1.1；goal:2 在描述无现有阶段时还使用 adjust/object_ref。引用按目标编号绑定，旧全局 enum 会放行跨目标选择，hydration 随后拒绝整批，导致 goal:1 的 completed 也未提交。用户看到物理 response，没有领域提交错误展示；未查询正式数据库，不将推断错误码当作生产实测。
+
+本轮 schema 改为按 Goal 判别并限制对象/标准所有权及 create/adjust 操作；wire/coverage 可纠正一次完整输出，替换仍校验；wire 与耗尽 final-contract 错误 terminal。诊断独立展示目标评估提交状态/error/result，成功结果包含实际 goal_outcomes。原批次原子性、CAS、证据与 paused settlement 规则保留；无新 migration，head 仍 0057_logical_agent_leases。
+
+本地最终验证：Go race 1374 PASS、490 SKIP、0 FAIL（含子用例）；Go vet/build、pnpm generate/typecheck/test/build、git diff --check 通过；Web/client 共 98 PASS。独立只读核验无 findings。SKIP/真实数据库/真实模型/正式部署仍由用户验收。当前 codex/goal-evaluation-output-recovery 未提交。

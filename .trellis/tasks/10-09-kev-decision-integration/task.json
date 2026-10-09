@@ -12,7 +12,7 @@
   "assignee": "adoumibaba",
   "createdAt": "2026-10-09",
   "completedAt": null,
-  "branch": "codex/kev-runtime-recovery",
+  "branch": "codex/goal-evaluation-output-recovery",
   "base_branch": "master",
   "worktree_path": null,
   "commit": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "正式反馈修复完成；设置/诊断路由、逻辑运行互斥和无新证据评估入队修复。本地 gate 通过，真实数据库验收用户执行，当前修复未提交。",
+  "notes": "Goal Evaluation 输出所有权/schema、完整替换纠正、terminal 分类与提交诊断修复完成。本地 Go race 1374 PASS/490 SKIP/0 FAIL，Web/client 98 PASS；真实环境用户验收，本轮未提交。",
   "meta": {}
 }

@@ -103,3 +103,12 @@ I1 是 schema/人格关键风险点；I2 是可靠记录与 config race；I3 是
 ## 正式反馈修复交付
 
 App URL/computed 路由回归 4 RED→GREEN；无新证据 candidate 入队回归 RED→GREEN。0057 PostgreSQL 逻辑运行租约在 6 个入口快照前接入，withTransaction 提交 fence；重入、跨 owner、取消、过期释放回归通过。独立只读核验未发现确定的新 lease/deadlock/时序问题。Go race 1370 PASS/490 SKIP/0 FAIL，Web/client 98 PASS，类型/vet/build 通过。真实数据库验收仍由用户执行。当前分支 codex/kev-runtime-recovery，产品改动未提交。
+
+
+## Goal Evaluation 完成未落库反馈修复（2026-10-09）
+
+用户提供的 response 中 goal:2/3/4 的 review 均引用 stage:1.1；goal:2 在描述无现有阶段时还使用 adjust/object_ref。引用按目标编号绑定，旧全局 enum 会放行跨目标选择，hydration 随后拒绝整批，导致 goal:1 的 completed 也未提交。用户看到物理 response，没有领域提交错误展示；未查询正式数据库，不将推断错误码当作生产实测。
+
+本轮 schema 改为按 Goal 判别并限制对象/标准所有权及 create/adjust 操作；wire/coverage 可纠正一次完整输出，替换仍校验；wire 与耗尽 final-contract 错误 terminal。诊断独立展示目标评估提交状态/error/result，成功结果包含实际 goal_outcomes。原批次原子性、CAS、证据与 paused settlement 规则保留；无新 migration，head 仍 0057_logical_agent_leases。
+
+本地最终验证：Go race 1374 PASS、490 SKIP、0 FAIL（含子用例）；Go vet/build、pnpm generate/typecheck/test/build、git diff --check 通过；Web/client 共 98 PASS。独立只读核验无 findings。SKIP/真实数据库/真实模型/正式部署仍由用户验收。当前 codex/goal-evaluation-output-recovery 未提交。

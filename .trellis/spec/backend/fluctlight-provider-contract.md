@@ -1036,3 +1036,41 @@ Wrong: model returns goal_id/revision, or drop top-level IDs while Runtime Conte
 and portrait JSON still leak the same authority.
 Correct: model returns typed per-call refs, Core binds authority and validates
 frozen provenance; capture the complete final HTTP payload in regression tests.
+
+
+## Scenario: Goal Evaluation scoped output and visible settlement (2026-10-09)
+
+### 1. Scope / Trigger
+A physical model response can succeed while cross-goal references prevent the atomic domain transaction. A completed impact in one evaluation must not hide rejection elsewhere in its batch.
+
+### 2. Signatures
+`goalEvaluationResponseSchema(snapshot, binding)` scopes alternatives by goal_ref.
+`runGoalEvaluationWithCorrection(input, binding, messages, run)` validates a candidate and permits one complete replacement for wire/coverage errors.
+`decorateGoalEvaluationSettlement(ctx, runs)` enriches diagnostic model runs from goal_evaluation_requests. Core field `goal_evaluation` maps to Browser `goalEvaluation`.
+
+### 3. Contracts
+- Each goal alternative offers only its own criteria, stages, commitments, dependencies and relationship target. Object judgments offer only that object's criteria; root judgments offer Goal criteria. Reviews are required for Goals in snapshot.Reviews.
+- Stage/Commitment create omits object_ref. Stage adjust/skip and Commitment adjust/abandon require an offered reference owned by that goal. Frozen hydration remains authoritative after schema validation.
+- Wire/coverage failure requests one complete replacement, then rehydrates and checks coverage. A failed replacement is terminal. Framework final-contract repair is separate; this does not promise a global limit of two physical calls for every mixed failure.
+- All goal_evaluation_wire_* and exhausted ADK final-contract errors are terminal, avoiding the ordinary one-minute/five-attempt retry cycle for invalid output.
+- Diagnostic enrichment preserves physical status and adds request_id/status/error_code/result for domain settlement. Lookup failures use unavailable/settlement_status_unavailable; missing rows use unknown/settlement_status_unknown. Successful result.goal_outcomes includes goal_id/status/progress/ready_for_settlement.
+- Atomic submission, evidence ownership, CAS and pause governance remain required. Active eligible Goals can complete; paused Goals stay paused with ready_for_settlement=true when satisfied. No new migration.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| goal:2 review selects stage:1.1 | goal_evaluation_wire_review_stage_ref_invalid |
+| Foreign stage plan reference | goal_evaluation_wire_stage_ref_invalid |
+| Unsupported operation or create with object_ref | goal_evaluation_wire_stage_operation_invalid / goal_evaluation_wire_commitment_operation_invalid |
+| Replacement still fails hydration/coverage | Terminal failure; no partial batch commit |
+| Physical completed, request failed | Both statuses visible; physical status preserved |
+
+### 5. Good / Base / Bad Cases
+Good: goal:2 creates a Stage without object_ref, alongside a satisfied goal:1 evaluation. Base: a valid single-Goal schema remains flat. Bad: every review copies stage:1.1 or an absent Stage uses adjust.
+
+### 6. Tests Required
+TestGoalEvaluationSchemaCannotAdvertiseOtherGoalsStage proves cross-goal alternatives cannot advertise foreign refs (RED→GREEN). TestGoalEvaluationCrossGoalReviewGetsOneReplacement checks replacement validation and bounded recovery. TestGoalEvaluationOutputFailuresAreTerminalAfterCorrection checks terminal classification. TestGoalEvaluationModelSuccessDoesNotHideSettlementFailure checks independent diagnostic statuses.
+
+### 7. Wrong vs Correct
+Wrong: show completed model status as proof of Goal completion; expose a global union of Stage refs to every Goal.
+Correct: show the domain request outcome separately, and offer only references owned by each selected goal_ref.

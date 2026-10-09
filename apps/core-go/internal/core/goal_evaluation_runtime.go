@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -600,6 +601,13 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 			}
 		}
 		result["evaluated_goals"] = evaluated
+		outcomes := []map[string]any{}
+		for _, entry := range snapshot.Goals {
+			if goal, ok := goals[entry.GoalID]; ok {
+				outcomes = append(outcomes, map[string]any{"goal_id": entry.GoalID, "status": goal.Status, "progress": goal.Progress, "ready_for_settlement": goal.ExecutionHint["ready_for_settlement"] == true})
+			}
+		}
+		result["goal_outcomes"] = outcomes
 		result["assessment_memos"] = goalAssessmentMemoValues(memos)
 		_, err = tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='succeeded',result=$2,claimed_at=NULL,error_code=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(result))
 		return err
@@ -630,6 +638,9 @@ func terminalGoalEvaluationContractError(cause error) bool {
 		return false
 	}
 	code := cause.Error()
+	if strings.HasPrefix(code, "goal_evaluation_wire_") || errors.Is(cause, errADKFinalContractInvalid) {
+		return true
+	}
 	for _, fixed := range []string{
 		"goal_assessment_coverage_missing",
 		"goal_evaluation_scope_invalid",
