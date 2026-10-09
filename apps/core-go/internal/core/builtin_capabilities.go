@@ -155,6 +155,7 @@ func builtinCapabilities(app *App) []Capability {
 		personaActionCapability{name: personaTakeoverCapabilityName, service: personaActions},
 		personaActionCapability{name: personaSwitchCapabilityName, service: personaActions},
 	}
+	capabilities = append(capabilities, goalPlannerCapabilities(app)...)
 	return append(capabilities, visualIdentityAgentCapabilities(app)...)
 }
 

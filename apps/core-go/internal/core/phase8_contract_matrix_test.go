@@ -19,7 +19,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectedAll := []string{
-		"active_memory_event", "actor.fact.record", "actor.inspect", "affect_event", "appearance.style", "capability.request", "conversation.reply", "goal.decide", "goal.evaluate", "goal.inspect", "goal.review", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "item.use",
+		"active_memory_event", "actor.fact.record", "actor.inspect", "affect_event", "appearance.style", "capability.request", "conversation.reply", "goal_planner.query", "goal_planner.commit", "goal.decide", "goal.evaluate", "goal.inspect", "goal.review", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "item.use",
 		"life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "moment.publish",
 		"persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup",
 		"scene_event", "schedule.edit", "schedule.inspect", "schedule.replan", "visual_identity.commit_review", "visual_identity.finalize",
@@ -35,6 +35,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 		CapabilitySurfaceAutonomy:        {"active_memory_event", "actor.inspect", "affect_event", "capability.request", "conversation.reply", "goal.decide", "goal.evaluate", "goal.inspect", "goal.review", "intention.decide", "intention.inspect", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.inspect", "schedule.replan"},
 		CapabilitySurfaceNativeCognition: {"active_memory_event", "actor.fact.record", "actor.inspect", "appearance.style", "capability.request", "conversation.reply", "goal.decide", "goal.evaluate", "goal.inspect", "goal.review", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "item.use", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.edit", "schedule.inspect", "schedule.replan", "visual_identity.initialize", "wardrobe.borrow", "wardrobe.inspect", "wardrobe.return", "wardrobe.wear"},
 		CapabilitySurfaceReflection:      {},
+		CapabilitySurfaceGoalPlanner:     {"goal_planner.query", "goal_planner.commit"},
 		CapabilitySurfaceVisualIdentity:  {"visual_identity.commit_review", "visual_identity.finalize", "visual_identity.generate_candidate"},
 	}
 	for surface, expected := range expectedBySurface {
@@ -45,7 +46,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 
 	for _, definition := range registry.Definitions() {
 		if definition.InternalOnly {
-			for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition, CapabilitySurfaceReflection, CapabilitySurfaceVisualIdentity} {
+			for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition, CapabilitySurfaceReflection, CapabilitySurfaceVisualIdentity, CapabilitySurfaceGoalPlanner} {
 				for _, visible := range registry.Catalog(surface) {
 					if visible.Name == definition.Name {
 						t.Fatalf("internal-only capability %q leaked into %s catalog", definition.Name, surface)
@@ -61,7 +62,7 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition, CapabilitySurfaceVisualIdentity} {
+	for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition, CapabilitySurfaceVisualIdentity, CapabilitySurfaceGoalPlanner} {
 		definitions := registry.Catalog(surface)
 		tools, err := aiagent.NewADKCapabilityTools(definitions, adkFailingInvoker{})
 		if err != nil {
@@ -89,8 +90,8 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 
 func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 	definitions := FormalAgentDefinitions()
-	if len(definitions) != 20 {
-		t.Fatalf("formal Agent count=%d, want 20: %#v", len(definitions), definitions)
+	if len(definitions) != 21 {
+		t.Fatalf("formal Agent count=%d, want 21: %#v", len(definitions), definitions)
 	}
 	seen := make(map[FormalAgentID]struct{}, len(definitions))
 	for _, definition := range definitions {

@@ -51,7 +51,7 @@ func (c goalCapability) Definition() CapabilityDefinition {
 		fields["success_criteria"] = arraySchema(stringSchema())
 		fields["motivation"] = stringSchema()
 		required = []string{"operation", "reason"}
-		description = "Govern original Goal; non-create needs inspect ID/revision. Edit then evaluate; no forced completion."
+		description = "Create/resume request Planner, not activation. Other commands need inspect ID/revision; no forced completion."
 		boundary = "goal_revision_committed"
 	}
 	if c.name == "goal.review" {
@@ -180,6 +180,12 @@ func (c goalCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv Capability
 	var next GoalAuthority
 	var record GoalGovernanceRecord
 	if c.name == "goal.decide" && operation == "create" {
+		if inv.Metadata.Source != "direct" {
+			if err := requestGoalPlanningTx(ctx, tx, owner, key, "cognition_wish", args); err != nil {
+				return failedCapabilityResult(inv, "planner_request_failed", true), err
+			}
+			return goalToolResult(inv, map[string]any{"status": "planning_requested", "activated": false, "reason": "Independent GoalPlanner owns autonomous creation"}), nil
+		}
 		id = "goal_tool_" + stableDigest(key)
 		next, record, err = CreateGoalAuthority(GoalAuthority{EntityID: id, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(id), FluctlightID: owner, ProfileID: profile, DesiredOutcome: stringValue(args["desired_outcome"]), SuccessCriteria: decisionServiceRefValues(arrayValue(args["success_criteria"])), Motivation: stringValue(args["motivation"]), Scope: "general", Status: GoalActive, Revision: 1}, refs, c.service.now())
 	} else {
@@ -190,6 +196,12 @@ func (c goalCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv Capability
 		}
 		if goal.ProfileID != "" && goal.ProfileID != profile {
 			return failedCapabilityResult(inv, "goal_scope_invalid", false), ErrUnauthorized
+		}
+		if operation == "resume" && inv.Metadata.Source != "direct" {
+			if err := requestGoalPlanningTx(ctx, tx, owner, key, "goal_activation_suggested", args); err != nil {
+				return failedCapabilityResult(inv, "planner_request_failed", true), err
+			}
+			return goalToolResult(inv, map[string]any{"status": "planning_requested", "activated": false, "goal_id": id}), nil
 		}
 		current = &goal
 		if c.name == "goal.evaluate" {

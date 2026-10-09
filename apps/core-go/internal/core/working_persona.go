@@ -40,7 +40,7 @@ const (
 // workingPersonaExcludedKeys are semantic assets that reach the Provider
 // through a dedicated projection instead of the System Persona.
 var workingPersonaExcludedKeys = map[string]struct{}{
-	"visual_identity": {},
+	"desires": {}, "goals": {}, "visual_identity": {}, "initial_goals": {}, "current_goals": {}, "action_wishes": {},
 }
 
 // workingPersonaLifeProfileKeys are the life_profile top-level keys the
@@ -184,7 +184,7 @@ func projectWorkingPersona(projection ContextProjection, subjectProfileID string
 	}
 	// The subject profile's remaining declared keys (voice, body_language,
 	// behavior_loops, scenario_behavior, intimacy_progression, output
-	// preferences, fears, desires, ...) are decision inputs the Main call
+	// preferences, fears, stable_motivations, ...) are decision inputs the Main call
 	// already requires. Every other profile's keys are dropped instead.
 	for _, key := range workingPersonaSortedKeys(profile) {
 		if personaSwitchKeyMatched(key, []string{"id", "profile_id", "name"}) {

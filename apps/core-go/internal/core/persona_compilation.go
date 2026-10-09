@@ -175,6 +175,7 @@ func sharedPersonalitySystemSource(system map[string]any) map[string]any {
 }
 
 var transientPersonaSourceKeys = map[string]struct{}{
+	"desires": {}, "goals": {}, "initial_goals": {}, "current_goals": {}, "action_wishes": {},
 	"current_mood": {}, "current_emotion": {}, "current_outfit": {}, "current_clothing": {},
 	"current_scene": {}, "current_activity": {}, "current_schedule": {}, "current_plan": {},
 	"temporary_intent": {}, "today_schedule": {}, "initial_state": {}, "relationship_progress": {},

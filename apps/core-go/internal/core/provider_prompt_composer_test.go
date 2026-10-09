@@ -214,7 +214,7 @@ func TestComposeProviderMessagesPreservesMultiPersonalityDecisionInputs(t *testi
 					"secrets":              map[string]any{"information_asymmetry": map[string]any{"owner": "隐藏"}},
 					"intimacy_progression": map[string]any{"stage": "升温"},
 					"output_preferences":   map[string]any{"channels": []any{"text", "image"}},
-					"fears":                []any{"失去信任"}, "desires": []any{"持续靠近"},
+					"fears":                []any{"失去信任"}, "stable_motivations": []any{"重视持续的信任"},
 					"extensions": map[string]any{"future_field": "保留"},
 				}},
 				"switching":              map[string]any{"rules": []any{map[string]any{"id": "stress", "condition": "高压", "target_profile_id": "guarded"}}},
@@ -227,7 +227,7 @@ func TestComposeProviderMessagesPreservesMultiPersonalityDecisionInputs(t *testi
 	})}}
 	formatted := composeProviderMessages("cognitive_assessment", messages)
 	system := stringValue(formatted[0]["content"])
-	for _, fragment := range []string{"speed: 0.8", "volume: 0.4", "posture: 开放", "先安抚再行动", "隐藏", "升温", "持续靠近", "stress", "target_profile_id: guarded", "fusion_progress: 0.35", "dominant_profile_id: warm"} {
+	for _, fragment := range []string{"speed: 0.8", "volume: 0.4", "posture: 开放", "先安抚再行动", "隐藏", "升温", "重视持续的信任", "stress", "target_profile_id: guarded", "fusion_progress: 0.35", "dominant_profile_id: warm"} {
 		if !strings.Contains(system, fragment) {
 			t.Fatalf("multi-personality decision input %q missing: %s", fragment, system)
 		}

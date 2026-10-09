@@ -225,6 +225,12 @@ func (a *App) editRelationshipTx(ctx context.Context, tx pgx.Tx, actorID, fluctl
 		if storedProfileID != nil && strings.TrimSpace(*storedProfileID) != "" {
 			result["profile_id"] = *storedProfileID
 		}
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET context_review_required=true WHERE fluctlight_id=$1 AND target_actor_id=$2 AND status IN ('active','candidate','paused')`, fluctlightID, targetActorID); err != nil {
+			return err
+		}
+		if err := requestGoalPlanningTx(ctx, tx, fluctlightID, "relationship:"+id+":"+fmt.Sprint(newRevision), "actor_context_changed", map[string]any{"actor_id": targetActorID, "relationship_id": id, "version": newRevision, "source": source}); err != nil {
+			return err
+		}
 		_ = provenance
 		return nil
 	}()

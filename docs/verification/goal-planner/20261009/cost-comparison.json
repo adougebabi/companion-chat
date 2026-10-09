@@ -1,0 +1,241 @@
+{
+  "measurement": "Captured physical scripted Provider HTTP requests; input tokens estimated, no live billing or latency measurement",
+  "baseline_head": "71f6066febe068e8eae028e97e4fe409747bf149",
+  "ordinary_paths": [
+    {
+      "path": "natural_final",
+      "before": {
+        "path": "natural_final",
+        "physical_requests": 1,
+        "schema_sequence": [
+          "conversation_turn_response"
+        ],
+        "calls": [
+          {
+            "request_index": 1,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 39833,
+            "chars": 31866,
+            "bytes": 33998
+          }
+        ],
+        "total_estimated_input_tokens": 39833,
+        "scripted_output_estimated_tokens": 160,
+        "total_chars": 31866,
+        "total_bytes": 33998,
+        "notes": [
+          "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+          "output side: scripted native ToolCalls/final DTOs, not real model output",
+          "repeated conversation_turn_response entries are distinct model decisions and are never collapsed",
+          "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+          "latency and cache hits are not measurable against a fake provider"
+        ]
+      },
+      "after": {
+        "path": "natural_final",
+        "physical_requests": 1,
+        "schema_sequence": [
+          "conversation_turn_response"
+        ],
+        "calls": [
+          {
+            "request_index": 1,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 42668,
+            "chars": 34134,
+            "bytes": 37350
+          }
+        ],
+        "total_estimated_input_tokens": 42668,
+        "scripted_output_estimated_tokens": 160,
+        "total_chars": 34134,
+        "total_bytes": 37350,
+        "notes": [
+          "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+          "output side: scripted native ToolCalls/final DTOs, not real model output",
+          "repeated conversation_turn_response entries are distinct model decisions and are never collapsed",
+          "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+          "latency and cache hits are not measurable against a fake provider"
+        ]
+      },
+      "input_estimate_change_percent": 7.117
+    },
+    {
+      "path": "reply_tool_then_final",
+      "before": {
+        "path": "reply_tool_then_final",
+        "physical_requests": 2,
+        "schema_sequence": [
+          "conversation_turn_response",
+          "conversation_turn_response"
+        ],
+        "calls": [
+          {
+            "request_index": 1,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 39833,
+            "chars": 31866,
+            "bytes": 33998
+          },
+          {
+            "request_index": 2,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 40227,
+            "chars": 32181,
+            "bytes": 34323
+          }
+        ],
+        "total_estimated_input_tokens": 80060,
+        "scripted_output_estimated_tokens": 680,
+        "total_chars": 64047,
+        "total_bytes": 68321,
+        "notes": [
+          "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+          "output side: scripted native ToolCalls/final DTOs, not real model output",
+          "repeated conversation_turn_response entries are distinct model decisions and are never collapsed",
+          "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+          "latency and cache hits are not measurable against a fake provider"
+        ]
+      },
+      "after": {
+        "path": "reply_tool_then_final",
+        "physical_requests": 2,
+        "schema_sequence": [
+          "conversation_turn_response",
+          "conversation_turn_response"
+        ],
+        "calls": [
+          {
+            "request_index": 1,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 42668,
+            "chars": 34134,
+            "bytes": 37350
+          },
+          {
+            "request_index": 2,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 43062,
+            "chars": 34449,
+            "bytes": 37675
+          }
+        ],
+        "total_estimated_input_tokens": 85730,
+        "scripted_output_estimated_tokens": 680,
+        "total_chars": 68583,
+        "total_bytes": 75025,
+        "notes": [
+          "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+          "output side: scripted native ToolCalls/final DTOs, not real model output",
+          "repeated conversation_turn_response entries are distinct model decisions and are never collapsed",
+          "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+          "latency and cache hits are not measurable against a fake provider"
+        ]
+      },
+      "input_estimate_change_percent": 7.082
+    },
+    {
+      "path": "takeover_reply_then_final",
+      "before": {
+        "path": "takeover_reply_then_final",
+        "physical_requests": 3,
+        "schema_sequence": [
+          "conversation_turn_response",
+          "conversation_turn_response",
+          "conversation_turn_response"
+        ],
+        "calls": [
+          {
+            "request_index": 1,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 39833,
+            "chars": 31866,
+            "bytes": 33998
+          },
+          {
+            "request_index": 2,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 41352,
+            "chars": 33081,
+            "bytes": 35221
+          },
+          {
+            "request_index": 3,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 41772,
+            "chars": 33417,
+            "bytes": 35573
+          }
+        ],
+        "total_estimated_input_tokens": 122957,
+        "scripted_output_estimated_tokens": 1044,
+        "total_chars": 98364,
+        "total_bytes": 104792,
+        "notes": [
+          "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+          "output side: scripted native ToolCalls/final DTOs, not real model output",
+          "repeated conversation_turn_response entries are distinct model decisions and are never collapsed",
+          "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+          "latency and cache hits are not measurable against a fake provider"
+        ]
+      },
+      "after": {
+        "path": "takeover_reply_then_final",
+        "physical_requests": 3,
+        "schema_sequence": [
+          "conversation_turn_response",
+          "conversation_turn_response",
+          "conversation_turn_response"
+        ],
+        "calls": [
+          {
+            "request_index": 1,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 42668,
+            "chars": 34134,
+            "bytes": 37350
+          },
+          {
+            "request_index": 2,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 44187,
+            "chars": 35349,
+            "bytes": 38573
+          },
+          {
+            "request_index": 3,
+            "schema": "conversation_turn_response",
+            "estimated_input_tokens": 44607,
+            "chars": 35685,
+            "bytes": 38925
+          }
+        ],
+        "total_estimated_input_tokens": 131462,
+        "scripted_output_estimated_tokens": 1044,
+        "total_chars": 105168,
+        "total_bytes": 114848,
+        "notes": [
+          "input side: estimated independently for every captured physical wire request (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+          "output side: scripted native ToolCalls/final DTOs, not real model output",
+          "repeated conversation_turn_response entries are distinct model decisions and are never collapsed",
+          "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+          "latency and cache hits are not measurable against a fake provider"
+        ]
+      },
+      "input_estimate_change_percent": 6.917
+    }
+  ],
+  "planner_example": {
+    "physical_calls": 8,
+    "estimated_input_tokens": 102777,
+    "peak_estimated_input_tokens": 19279,
+    "total_wire_chars": 82219
+  },
+  "existing_five_cycle_budget": {
+    "physical_calls": 5,
+    "peak_estimated_input_tokens": 49124,
+    "limit": 49152,
+    "headroom": 28
+  },
+  "real_provider": "not configured; not verified"
+}

@@ -72,7 +72,7 @@ func (c actorInspectCapability) Execute(ctx context.Context, i CapabilityInvocat
 }
 func requireActorFactScope(ctx context.Context, q lifeContextQuerier, fluctlightID, ownerID, subject string) error {
 	var allowed bool
-	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlights f WHERE f.id=$1 AND f.created_by_actor_id=$2 AND ($3=$2 OR $3=$1 OR EXISTS(SELECT 1 FROM public.conversation_participants a JOIN public.conversation_participants b ON b.conversation_id=a.conversation_id WHERE a.actor_id=$1 AND b.actor_id=$3 AND a.status='active' AND b.status='active')))`, fluctlightID, ownerID, subject).Scan(&allowed)
+	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlights f WHERE f.id=$1 AND f.created_by_actor_id=$2 AND ($3=$2 OR $3=$1 OR EXISTS(SELECT 1 FROM public.conversation_participants a JOIN public.conversation_participants b ON b.conversation_id=a.conversation_id WHERE a.actor_id=$1 AND b.actor_id=$3 AND a.status='active' AND b.status='active') OR EXISTS(SELECT 1 FROM public.relationships r WHERE r.owner_fluctlight_id=$1 AND r.target_actor_id=$3)))`, fluctlightID, ownerID, subject).Scan(&allowed)
 	if err != nil {
 		return err
 	}
@@ -93,6 +93,9 @@ func (c actorFactCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Capabil
 	owner := i.Metadata.FluctlightID
 	if err := requireActorFactScope(ctx, tx, owner, i.Metadata.AuthorizationActorID, subject); err != nil {
 		return failedCapabilityResult(i, "actor_scope_invalid", false), err
+	}
+	if err := lockLifeContextTx(ctx, tx, owner); err != nil {
+		return failedCapabilityResult(i, "actor_lock_failed", true), err
 	}
 	attribute := stringValue(args["attribute"])
 	if !actorAttributePattern.MatchString(attribute) || len([]rune(stringValue(args["value"]))) > 1024 {
@@ -244,6 +247,14 @@ func (c actorFactCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Capabil
 	}
 	if err := appendOutboxTx(ctx, tx, "actor.fact.recorded", "actor_fact", id, owner, i.SourceFactID, i.Metadata.CorrelationID, "actor-fact:"+id, map[string]any{"fact_id": id, "subject_actor_id": subject, "attribute": attribute, "operation": operation, "status": status}); err != nil {
 		return failedCapabilityResult(i, "actor_fact_outbox_failed", true), err
+	}
+	if status == "active" {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET context_review_required=true WHERE fluctlight_id=$1 AND (target_actor_id=$2 OR ($3 AND target_actor_id IS NULL)) AND status IN ('active','candidate','paused')`, owner, subject, subject == i.Metadata.AuthorizationActorID && (attribute == "timezone" || attribute == "location" || attribute == "location_scope")); err != nil {
+			return failedCapabilityResult(i, "goal_context_invalidation_failed", true), err
+		}
+		if err := requestGoalPlanningTx(ctx, tx, owner, "actor-fact:"+id, "actor_context_changed", map[string]any{"actor_id": subject, "fields": []string{attribute}, "fact_id": id}); err != nil {
+			return failedCapabilityResult(i, "planner_request_failed", true), err
+		}
 	}
 	return CapabilityResult{CallID: i.CallID, CapabilityName: i.CapabilityName, Status: "completed", Output: map[string]any{"fact_id": id, "actor_id": subject, "attribute": attribute, "value": args["value"], "epistemic_kind": kind, "status": status, "effective_at": formatInstant(effective)}}, nil
 }

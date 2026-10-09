@@ -22,7 +22,7 @@ const goalSchemaType = (value) => {
   }
   return "unknown";
 };
-const goalTypes = ["CoreGoal", "CoreGoalPage", "CoreGoalRecordPage", "CoreGoalOwnerCommand", "CoreGoalCommandResult"].map(name => {
+const goalTypes = ["CoreGoalSet","CoreGoalSetCommand","CoreActorContext","CoreActorContextUpdate","CoreGoal", "CoreGoalPage", "CoreGoalRecordPage", "CoreGoalOwnerCommand", "CoreGoalCommandResult"].map(name => {
   if (!schema.components.schemas[name]) throw new Error(`Missing Goal schema ${name}`);
   return `export type ${name} = ${goalSchemaType(schema.components.schemas[name])};`;
 }).join("\n");
@@ -148,6 +148,12 @@ export class CoreClient {
   async removeActorGroupMember(humanSession: string, groupId: string, actorId: string): Promise<void> { await this.delete(\`/internal/actor-groups/\${encodeURIComponent(groupId)}/members/\${encodeURIComponent(actorId)}\`, humanSession); }
   async getFluctlight(humanSession: string, fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}\`, humanSession, "GET") as Promise<Record<string, unknown>>; }
   async goals(humanSession: string, fluctlightId: string, options: {history?: boolean; limit?: number; cursor?: string} = {}): Promise<CoreGoalPage> { const query = new URLSearchParams({history:String(options.history??false),limit:String(options.limit??20)}); if(options.cursor) query.set("cursor",options.cursor); return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals?\${query}\`,humanSession,"GET") as Promise<CoreGoalPage>; }
+  async goalSet(humanSession:string,fluctlightId:string):Promise<CoreGoalSet>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goal-set\`,humanSession,"GET") as Promise<CoreGoalSet>;}
+  async updateGoalSet(humanSession:string,fluctlightId:string,body:CoreGoalSetCommand):Promise<CoreGoalSet>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goal-set\`,humanSession,"PUT",body) as Promise<CoreGoalSet>;}
+  async actorContext(humanSession:string,fluctlightId:string,actorId:string):Promise<CoreActorContext>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/actor-context/\${encodeURIComponent(actorId)}\`,humanSession,"GET") as Promise<CoreActorContext>;}
+  async updateActorContext(humanSession:string,fluctlightId:string,actorId:string,body:CoreActorContextUpdate):Promise<CoreActorContext>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/actor-context/\${encodeURIComponent(actorId)}\`,humanSession,"PUT",body) as Promise<CoreActorContext>;}
+  async goalPlanningHistory(humanSession:string,fluctlightId:string):Promise<Record<string,unknown>[]>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goal-planning\`,humanSession,"GET") as Promise<Record<string,unknown>[]>;}
+  async requestGoalPlanning(humanSession:string,fluctlightId:string,idempotencyKey:string){return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goal-planning\`,humanSession,"POST",{idempotency_key:idempotencyKey});}
   async goalDetail(humanSession: string, fluctlightId: string, goalId: string): Promise<CoreGoal> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}\`,humanSession,"GET") as Promise<CoreGoal>; }
   async goalHistory(humanSession: string, fluctlightId: string, goalId: string, cursor = ""): Promise<CoreGoalRecordPage> { const query = new URLSearchParams({limit:"20"}); if(cursor) query.set("cursor",cursor); return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}/history?\${query}\`,humanSession,"GET") as Promise<CoreGoalRecordPage>; }
   async goalEvidence(humanSession: string, fluctlightId: string, goalId: string, cursor = ""): Promise<CoreGoalRecordPage> { const query = new URLSearchParams({limit:"20"}); if(cursor) query.set("cursor",cursor); return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/goals/\${encodeURIComponent(goalId)}/evidence?\${query}\`,humanSession,"GET") as Promise<CoreGoalRecordPage>; }

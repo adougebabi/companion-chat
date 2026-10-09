@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import GoalPlanningPanel from "../components/instances/GoalPlanningPanel.vue";
+import ActorContextEditor from "../components/instances/ActorContextEditor.vue";
 import GoalPanel from "../components/instances/GoalPanel.vue";
 import { actorUserBackgroundFields } from "../lib/actor-user-background";
 import { computed, ref, watch } from "vue";
@@ -15,6 +17,14 @@ import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 const emit = defineEmits<{ close: []; retired: [] }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
+const goalProfiles=computed(()=>{const detail=controlCenter.fluctlightDetail;const core=detail?.core_persona;const system=core&&typeof core==='object'&&'personality_system' in core?core.personality_system:detail?.personality_system;const profiles=system&&typeof system==='object'&&'profiles' in system?system.profiles:[];return Array.isArray(profiles)?profiles.filter(v=>v&&typeof v==='object'&&'id' in v).map(v=>({id:String(v.id),label:String(v.name??v.id)})):[];});
+const editableActors=computed(()=>{
+ const detail=controlCenter.fluctlightDetail;if(!detail)return [];
+ const ids=Array.isArray(detail.editable_actor_ids)?detail.editable_actor_ids.map(String):[];
+ const relations=Array.isArray(detail.relationships)?detail.relationships:[];
+ for(const relation of relations){if(relation && typeof relation==='object' && 'target_actor_id' in relation)ids.push(String(relation.target_actor_id));}
+ return [...new Set(ids)].map(id=>({id,label:id===ids[0]?'你（Owner）':id}));
+});
 const wardrobeDraft = ref(newWardrobeItemDraft());
 const wardrobeCategoryChoices = computed(()=>wardrobeCategoryOptions(wardrobeDraft.value.itemKind));
 const wardrobeSlotChoices = computed(()=>wardrobeSlotOptions(wardrobeDraft.value.itemKind,wardrobeDraft.value.category));
@@ -106,7 +116,9 @@ function onWardrobeToggle(event: Event) {
     <p v-if="controlCenter.governanceNotice" class="notice-banner" role="status">{{ controlCenter.governanceNotice }}</p>
 
     <template v-if="controlCenter.fluctlightDetail">
-      <GoalPanel :fluctlight-id="store.fluctlightId ?? ''" />
+      <GoalPlanningPanel :fluctlight-id="store.fluctlightId ?? ''" />
+      <GoalPanel :fluctlight-id="store.fluctlightId ?? ''" :actors="editableActors" :profile-options="goalProfiles" />
+      <ActorContextEditor :fluctlight-id="store.fluctlightId ?? ''" :actors="editableActors" />
       <details class="governance-section" open>
         <summary class="section-heading"><div><p class="eyebrow">ABOUT YOU</p><h2>用户背景</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p class="field-note">这是关于你本人的资料，供当前摇光了解；不修改摇光的人格。留空表示未知，时区不会从设备或摇光推断。</p>

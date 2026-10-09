@@ -35,7 +35,17 @@ func goalEvaluationResponseSchema(binding *goalEvaluationWireBinding) map[string
 	evidenceRefs := sortedGoalBindingRefs(binding.sourcesByRef)
 	stageRefs := sortedGoalBindingRefs(binding.stagesByRef)
 	commitmentRefs := sortedGoalBindingRefs(binding.commitmentsByRef)
-	actorRefs := sortedTargetActorRefs(binding.actorsByRef)
+	actorRefs := []string{}
+	seenActorRefs := map[string]bool{}
+	for _, entry := range binding.goalsByRef {
+		if entry.Goal.Scope == "relationship" && entry.Goal.TargetActorID != "" {
+			if ref := binding.actorRefs[entry.Goal.TargetActorID]; ref != "" && !seenActorRefs[ref] {
+				seenActorRefs[ref] = true
+				actorRefs = append(actorRefs, ref)
+			}
+		}
+	}
+	sort.Strings(actorRefs)
 	dependencyRefs := append(append([]string{}, stageRefs...), sortedGoalBindingRefs(binding.dependenciesByRef)...)
 
 	evaluationProperties := map[string]any{

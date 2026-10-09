@@ -217,7 +217,7 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		switch key {
 		case "actor_background", "time_view":
 			priority = 135
-		case "goals", "intentions":
+		case "goals", "intentions", "goal_policy":
 			priority = 128
 		case "current_state":
 			priority = 130
@@ -597,6 +597,10 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 		compact["visual_identity"] = visual
 	} else {
 		delete(compact, "visual_identity")
+	}
+	if len(projection.GoalPolicy) > 0 {
+		compact["goal_policy"] = compactStateMap(projection.GoalPolicy, []string{"active_count", "max_active_goals", "auto_planning_enabled", "ordering_mode"})
+		compact["goal_policy"].(map[string]any)["execution_rule"] = "planning_requested is not execution; active goal_ref uses eligibility then effective_order; preserve manual order and terminal history."
 	}
 	activeProfileID := stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])
 	if goals := compactProviderGoalsForSurface(filterActiveProfileRows(projection.Goals, activeProfileID), projection.Actors, projection.ReferenceIndex, surface); len(goals) > 0 {
@@ -1291,7 +1295,7 @@ func compactProviderGoalsForActors(goals []map[string]any, actors []map[string]a
 	result := make([]map[string]any, 0, len(goals))
 	for _, goal := range goals {
 		item := map[string]any{}
-		for _, key := range []string{"ref", "description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "criteria_version", "criterion_ids", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "target_actor_id", "deadline"} {
+		for _, key := range []string{"ref", "description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "effective_order", "context_review_required", "criteria_version", "criterion_ids", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "target_actor_id", "deadline"} {
 			if value, ok := goal[key]; ok && value != nil {
 				if key == "execution" {
 					compact := map[string]any{}

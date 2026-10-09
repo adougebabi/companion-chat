@@ -1,0 +1,14 @@
+                     id                      |   desired_outcome    | status | revision 
+---------------------------------------------+----------------------+--------+----------
+ goal_owner_fe860ba7b38d7032f52d54f1dfabf423 | 验证目标1            | active |        1
+ goal_owner_9cc7896764a98444f5e57a41fc284961 | 验证目标2            | active |        1
+ goal_owner_67e9967148803e1f50c7db22f582daf8 | 页面生命周期验收目标 | active |        3
+ goal_owner_569667eaaa8bc497faf020a2e4497d52 | 页面候选激活验收     | active |        2
+ goal_owner_7883e70a2a223c7e92e5dad73e991442 | 页面第五目标         | active |        1
+(5 rows)
+
+ active_count 
+--------------
+            5
+(1 row)
+

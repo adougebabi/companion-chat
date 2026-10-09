@@ -12,7 +12,7 @@ import (
 // Controlled Provider protocol evidence: the real conversation Agent queries
 // PostgreSQL inventory, consumes the native ToolResult, then persists a pending
 // Intention. Behavioral reliability still requires separate live model samples.
-func TestFormalMainWardrobeQueryResultCanLeadToPendingIntention(t *testing.T) {
+func TestFormalMainWardrobeQueryResultRequestsIndependentGoalPlanning(t *testing.T) {
 	fixture := seedWardrobeToolFixture(t)
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_wardrobe_items SET availability='lost',revision=revision+1 WHERE fluctlight_id=$1 AND category='boots'`, fixture.fluctlightID); err != nil {
 		t.Fatal(err)
@@ -38,7 +38,7 @@ func TestFormalMainWardrobeQueryResultCanLeadToPendingIntention(t *testing.T) {
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("form-boots-intention", intentionDecideCapabilityName,
 				map[string]any{"operation": "create", "goal": "拥有可穿的短靴", "action": "安排虚拟购物购买短靴", "expected_outcome": "短靴实际入柜", "reason": "查询确认已记录的靴子不可用"})}}
 		default:
-			if !payloadHasToolResult(payload) || !strings.Contains(nativePersonaToolMessages(payload), "candidate") {
+			if !payloadHasToolResult(payload) || !strings.Contains(nativePersonaToolMessages(payload), "planning_requested") {
 				t.Fatalf("final model request did not consume committed intention receipt: %#v", payload["messages"])
 			}
 			return nativePersonaFinal()
@@ -66,7 +66,11 @@ func TestFormalMainWardrobeQueryResultCanLeadToPendingIntention(t *testing.T) {
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND slot='shoes'`, fixture.fluctlightID).Scan(&worn); err != nil {
 		t.Fatal(err)
 	}
-	if pending != 1 || purchased != 0 || worn != 0 {
+	var requests int
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.goal_planning_events WHERE fluctlight_id=$1 AND reason='cognition_wish'`, fixture.fluctlightID).Scan(&requests); err != nil || requests != 1 {
+		t.Fatal("wish did not reach durable planner", requests, err)
+	}
+	if pending != 0 || purchased != 0 || worn != 0 {
 		t.Fatalf("query/intention path fabricated purchase or wearing: pending=%d purchased=%d worn=%d", pending, purchased, worn)
 	}
 }

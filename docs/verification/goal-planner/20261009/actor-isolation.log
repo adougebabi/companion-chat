@@ -1,0 +1,4 @@
+=== RUN   TestGoalPlannerActorABEditsDoNotCrossContextOrGoalReview
+--- PASS: TestGoalPlannerActorABEditsDoNotCrossContextOrGoalReview (1.41s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.034s

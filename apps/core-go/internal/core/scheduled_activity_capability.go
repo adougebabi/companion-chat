@@ -28,7 +28,7 @@ type scheduleActivityWriter interface {
 func scheduledActivityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: scheduleActivityCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Plan a future virtual activity in today's Schedule and create its Goal and timed Intention. No current body effect. action_plan needs kind, duration_minutes and kind-specific target fields.",
+		Description:     "Active goal_ref: schedule action_plan. No goal_ref: request Planner, no action.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCurrentLife, SlotAgency},
@@ -41,11 +41,11 @@ func scheduledActivityDefinition() CapabilityDefinition {
 			"preferred_start_at": map[string]any{"type": "string"},
 			"reason":             map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
 		}, []string{"action", "expected_outcome", "action_plan", "reason"}, false),
-		OutputSchema: objectSchema(map[string]any{
+		OutputSchema: map[string]any{"anyOf": []any{objectSchema(map[string]any{
 			"goal_id": stringSchema(), "intention_id": stringSchema(), "schedule_id": stringSchema(),
 			"schedule_item_id": stringSchema(), "start_at": stringSchema(), "status": enumStringSchema("scheduled"),
-		}, []string{"goal_id", "intention_id", "schedule_id", "schedule_item_id", "start_at", "status"}, false),
-		SideEffectClass: "native_projection", SuccessBoundary: "scheduled_intention_committed", ConcurrencyClass: "exclusive", SupportsRetry: true,
+		}, []string{"goal_id", "intention_id", "schedule_id", "schedule_item_id", "start_at", "status"}, false), objectSchema(map[string]any{"status": enumStringSchema("planning_requested"), "scheduled": booleanSchema(), "activated": booleanSchema(), "intention_created": booleanSchema()}, []string{"status", "scheduled", "activated", "intention_created"}, false)}},
+		SideEffectClass: "native_projection", SuccessBoundary: "scheduled_intention_or_planning_request_committed", ConcurrencyClass: "exclusive", SupportsRetry: true,
 		ModelResultOmitFields: []string{"goal_id", "schedule_id"},
 	}
 }
@@ -77,6 +77,12 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 	args, err := capabilityExecutionArguments(invocation, scheduledActivityDefinition())
 	if err != nil {
 		return invocation, err
+	}
+	if invocation.Metadata.Source != "direct" && stringValue(args["goal_ref"]) == "" {
+		if strings.TrimSpace(stringValue(args["goal"])) == "" {
+			return invocation, ErrInvalidArguments
+		}
+		return withCapabilityPreparedData(invocation, "goal_planning_only", true)
 	}
 	actionPlan, err := scheduledActionPlanFromArguments(args)
 	if err != nil {
@@ -178,6 +184,18 @@ func scheduledAppointmentItem(plan, actionPlan, args map[string]any, at time.Tim
 func (c scheduleActivityCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
 	if c.service == nil || c.intents == nil {
 		return failedCapabilityResult(invocation, "schedule_activity_unavailable", true), errors.New("schedule activity unavailable")
+	}
+	if raw, found, err := capabilityPreparedData(invocation, "goal_planning_only"); err != nil {
+		return failedCapabilityResult(invocation, "invalid_prepared_data", false), err
+	} else if found && raw == true {
+		args, err := capabilityExecutionArguments(invocation, scheduledActivityDefinition())
+		if err != nil {
+			return failedCapabilityResult(invocation, "invalid_arguments", false), err
+		}
+		if err := requestGoalPlanningTx(ctx, tx, invocation.Metadata.FluctlightID, "scheduled-wish:"+capabilityOperationID(invocation), "cognition_wish", args); err != nil {
+			return failedCapabilityResult(invocation, "planner_request_failed", true), err
+		}
+		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"status": "planning_requested", "scheduled": false, "activated": false, "intention_created": false}, ProviderRequestID: invocation.ProviderRequestID}, nil
 	}
 	raw, found, err := capabilityPreparedData(invocation, "scheduled_activity_plan")
 	if err != nil || !found {

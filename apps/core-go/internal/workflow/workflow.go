@@ -45,11 +45,13 @@ const (
 	minWakeUpIntervalSeconds      = 10 * 60
 	maxWakeUpIntervalSeconds      = 10 * 60
 	dispatcherIntentOrder         = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
 	switch strings.TrimSpace(intentType) {
+	case "goal.plan":
+		return goalEvaluationMaximumAttempts
 	case "goal.evaluate":
 		return goalEvaluationMaximumAttempts
 	case "reflection.run":
@@ -96,6 +98,7 @@ type ApplicationService interface {
 	ProcessConversationSummaryIntent(ctx context.Context, intentID, fluctlightID, conversationID, sourceMessageID string, sourceSequence, fromSequence, toSequence int, sourceDigest string, sourceMessageRefs []string) (map[string]any, error)
 	ProcessConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessGoalEvaluationIntent(ctx context.Context, intentID string) (map[string]any, error)
+	ProcessGoalPlanningIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessConversationDailyMemoryIntent(ctx context.Context, intentID string) (map[string]any, error)
 	EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string) (map[string]any, error)
 	ProcessVisualIdentity(ctx context.Context, sessionID string) (map[string]any, error)
@@ -673,6 +676,36 @@ func ProcessGoalEvaluationActivity(ctx context.Context, input Input) (map[string
 	return application.ProcessGoalEvaluationIntent(ctx, input.IntentID)
 }
 
+func GoalPlanningWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessGoalPlanningActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if stringValue(result["status"]) == "deferred" {
+		if err := workflow.Sleep(ctx, 30*time.Second); err != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, GoalPlanningWorkflow, input)
+	}
+	return result, nil
+}
+
+func ProcessGoalPlanningActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessGoalPlanningIntent(ctx, input.IntentID)
+}
+
 func MemoryEmbeddingWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
 	control, err := registerWorkflowControl(ctx)
@@ -1150,6 +1183,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(ConversationSummaryWorkflow)
 			w.RegisterWorkflow(ConversationSegmentWorkflow)
 			w.RegisterWorkflow(GoalEvaluationWorkflow)
+			w.RegisterWorkflow(GoalPlanningWorkflow)
 			w.RegisterWorkflow(ConversationDailyMemoryWorkflow)
 			w.RegisterWorkflow(PlatformControlWorkflow)
 			w.RegisterWorkflow(VisualIdentityWorkflow)
@@ -1163,6 +1197,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessConversationSummaryActivity)
 			w.RegisterActivity(ProcessConversationSegmentActivity)
 			w.RegisterActivity(ProcessGoalEvaluationActivity)
+			w.RegisterActivity(ProcessGoalPlanningActivity)
 			w.RegisterActivity(ProcessConversationDailyMemoryActivity)
 			w.RegisterActivity(PlatformControlActivity)
 			w.RegisterActivity(ProcessVisualIdentityActivity)
@@ -2091,6 +2126,8 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "goal.evaluate":
 			workflowFn = GoalEvaluationWorkflow
+		case "goal.plan":
+			workflowFn = GoalPlanningWorkflow
 			taskQueue = LifecycleQueue
 		case "conversation.segment":
 			workflowFn = ConversationSegmentWorkflow

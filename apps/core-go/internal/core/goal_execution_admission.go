@@ -30,6 +30,9 @@ func requireIntentionGoalActiveTx(ctx context.Context, tx pgx.Tx, intention Inte
 	if profile != "" && profile != intention.ProfileID {
 		return newCapabilityError("intention_goal_scope_invalid", false, ErrUnauthorized)
 	}
+	if err := requireGoalDependenciesTx(ctx, tx, intention.FluctlightID, intention.GoalEntityID); err != nil {
+		return err
+	}
 	if policy == "hard" && deadline != nil && !at.Before(*deadline) {
 		return newCapabilityError("goal_hard_deadline_elapsed", false, ErrConflict)
 	}

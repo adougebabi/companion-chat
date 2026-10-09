@@ -6,7 +6,7 @@ import (
 )
 
 func validateGoalCommand(value map[string]any) bool {
-	allowed := map[string]bool{"expectedRevision": true, "idempotencyKey": true, "reason": true, "profileId": true, "desiredOutcome": true, "successCriteria": true, "motivation": true, "scope": true, "deadline": true, "clearDeadline": true, "deadlinePolicy": true, "reviewPolicy": true, "resetReviewCounters": true}
+	allowed := map[string]bool{"targetActorId": true, "ownerProtected": true, "candidateOnly": true, "expectedRevision": true, "idempotencyKey": true, "reason": true, "profileId": true, "desiredOutcome": true, "successCriteria": true, "motivation": true, "scope": true, "deadline": true, "clearDeadline": true, "deadlinePolicy": true, "reviewPolicy": true, "resetReviewCounters": true}
 	for key := range value {
 		if !allowed[key] {
 			return false
@@ -60,7 +60,7 @@ func (s *Server) routeGoals(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 	mapped := map[string]any{"operation": operation}
-	fields := map[string]string{"expectedRevision": "expected_revision", "idempotencyKey": "idempotency_key", "reason": "reason", "profileId": "profile_id", "desiredOutcome": "desired_outcome", "successCriteria": "success_criteria", "motivation": "motivation", "scope": "scope", "deadline": "deadline", "clearDeadline": "clear_deadline", "deadlinePolicy": "deadline_policy", "reviewPolicy": "review_policy", "resetReviewCounters": "reset_review_counters"}
+	fields := map[string]string{"targetActorId": "target_actor_id", "ownerProtected": "owner_protected", "candidateOnly": "candidate_only", "expectedRevision": "expected_revision", "idempotencyKey": "idempotency_key", "reason": "reason", "profileId": "profile_id", "desiredOutcome": "desired_outcome", "successCriteria": "success_criteria", "motivation": "motivation", "scope": "scope", "deadline": "deadline", "clearDeadline": "clear_deadline", "deadlinePolicy": "deadline_policy", "reviewPolicy": "review_policy", "resetReviewCounters": "reset_review_counters"}
 	for key, target := range fields {
 		if v, present := body[key]; present {
 			mapped[target] = v
@@ -88,4 +88,17 @@ func goalRouteError(w http.ResponseWriter, err error) {
 		return
 	}
 	writeError(w, 422, "goal_operation_failed", "Goal operation failed")
+}
+
+func actorContextRouteError(w http.ResponseWriter, err error) {
+	var backend *CoreError
+	if errors.As(err, &backend) {
+		status := backend.Status
+		if status >= 500 {
+			status = http.StatusBadGateway
+		}
+		writeErrorWithDetails(w, status, backend.Code, "Actor背景未保存，请检查版本与权限", backend.Details)
+		return
+	}
+	writeError(w, 422, "actor_context_failed", "Actor背景未保存")
 }

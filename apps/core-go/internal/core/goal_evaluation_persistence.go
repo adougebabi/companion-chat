@@ -150,24 +150,10 @@ func (a *App) commitGoalEvaluationTx(ctx context.Context, tx pgx.Tx, current Goa
 		}
 		followupID := ""
 		if candidate.Followup != nil {
-			f := candidate.Followup
-			proposedID := "goal_followup_" + stableDigest(evaluationID)
-			proposed := GoalAuthority{EntityID: proposedID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(proposedID), FluctlightID: current.FluctlightID, ProfileID: current.ProfileID, DesiredOutcome: f.DesiredOutcome, SuccessCriteria: f.SuccessCriteria, Motivation: f.Motivation, Scope: current.Scope, TargetActorID: current.TargetActorID, Status: GoalCandidate, Revision: 1, EvidenceRefs: refs}
-			proposed, governance, validationErr := CreateGoalAuthority(proposed, refs, a.now())
-			switch {
-			case strings.TrimSpace(candidate.ResidualMotivation) == "":
-				disposition = "followup_rejected:no_residual_motivation"
-			case strings.TrimSpace(f.DesiredOutcome) == strings.TrimSpace(current.DesiredOutcome):
-				disposition = "followup_rejected:duplicates_resolution"
-			case validationErr != nil:
-				disposition = "followup_rejected:invalid_candidate"
-			default:
-				if _, err := persistGoalAuthorityTx(ctx, tx, nil, proposed, governance, "goal-followup:"+evaluationID); err != nil {
-					return GoalAuthority{}, err
-				}
-				followupID = proposedID
-				disposition = "followup_candidate"
-			}
+			disposition = "planner_review_requested"
+		}
+		if err := requestGoalPlanningTx(ctx, tx, current.FluctlightID, "resolution:"+evaluationID, "goal_resolved", map[string]any{"goal_id": current.EntityID, "residual_motivation": candidate.ResidualMotivation, "followup_hint": candidate.Followup}); err != nil {
+			return GoalAuthority{}, err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.goal_resolutions(goal_id,fluctlight_id,status,criteria_version,evidence_refs,residual_motivation,disposition,followup_goal_id) VALUES($1,$2,'completed',$3,$4,$5,$6,$7) ON CONFLICT(goal_id) DO NOTHING`, current.EntityID, current.FluctlightID, effectiveGoalCriteriaVersion(current), jsonBytes(refs), candidate.ResidualMotivation, disposition, nullableString(followupID)); err != nil {
 			return GoalAuthority{}, err

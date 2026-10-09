@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ func TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder(t *testing
 	f := seedWardrobeToolFixture(t)
 	for i := 0; i < 8; i++ {
 		id := randomID("batch-goal-")
-		goal, record, err := CreateGoalAuthority(GoalAuthority{EntityID: id, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(id), FluctlightID: f.fluctlightID, DesiredOutcome: "distinct result " + id, SuccessCriteria: []string{"verified result"}, Motivation: "owner request", Scope: "general", Status: GoalActive, Revision: 1}, []string{"owner:goal"}, f.app.now())
+		goal, record, err := CreateGoalAuthority(GoalAuthority{EntityID: id, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(id), FluctlightID: f.fluctlightID, DesiredOutcome: "distinct result " + id, SuccessCriteria: []string{"verified result"}, Motivation: "owner request", Scope: "general", Status: GoalCandidate, Revision: 1}, []string{"owner:goal"}, f.app.now())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -22,6 +21,7 @@ func TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder(t *testing
 			t.Fatal(err)
 		}
 	}
+	seedLegacyGoalActivityForTest(t, f)
 	id := latestPendingGoalRequest(t, f)
 	snapshot, prior, err := f.app.claimGoalEvaluation(f.ctx, id)
 	if err != nil || prior != nil || len(snapshot.Goals) != 6 || len(snapshot.DeferredGoalIDs) != 2 {
@@ -286,7 +286,7 @@ func TestInvalidOptionalFollowupDoesNotRollbackOriginalCompletion(t *testing.T) 
 			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT g.status,r.disposition,r.followup_goal_id FROM public.fluctlight_goals g JOIN public.goal_resolutions r ON r.goal_id=g.id WHERE g.id=$1`, goalID).Scan(&state, &disposition, &followupID); err != nil {
 				t.Fatal(err)
 			}
-			if state != "completed" || !strings.HasPrefix(disposition, "followup_rejected:") || followupID != nil {
+			if state != "completed" || disposition != "planner_review_requested" || followupID != nil {
 				t.Fatalf("optional candidate blocked completion: %s %s %v", state, disposition, followupID)
 			}
 		})
@@ -297,7 +297,7 @@ func TestGoalEvaluationBatchRemainderRetainsActualSource(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
 	for i := 0; i < 8; i++ {
 		id := randomID("source-batch-goal-")
-		goal, record, err := CreateGoalAuthority(GoalAuthority{EntityID: id, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(id), FluctlightID: f.fluctlightID, DesiredOutcome: "record actual expression " + id, SuccessCriteria: []string{"actual expression"}, Motivation: "owner request", Scope: "general", Status: GoalActive, Revision: 1}, []string{"owner:goal"}, f.app.now())
+		goal, record, err := CreateGoalAuthority(GoalAuthority{EntityID: id, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(id), FluctlightID: f.fluctlightID, DesiredOutcome: "record actual expression " + id, SuccessCriteria: []string{"actual expression"}, Motivation: "owner request", Scope: "general", Status: GoalCandidate, Revision: 1}, []string{"owner:goal"}, f.app.now())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -305,6 +305,7 @@ func TestGoalEvaluationBatchRemainderRetainsActualSource(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	seedLegacyGoalActivityForTest(t, f)
 	messageID := "batch-expression-" + f.suffix
 	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
 		if _, err := tx.Exec(f.ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES($1,$2,50,$3,'assistant','实际表达','[]',$1)`, messageID, f.conversationID, f.fluctlightID); err != nil {
@@ -434,3 +435,39 @@ func TestDirectParentEvidenceCompletesGoalAndClosesRedundantPlans(t *testing.T) 
 	}
 }
 func ptrGoalTime(at time.Time) *time.Time { return &at }
+
+// Explicitly models pre-0054 excess stock inside a random isolated test DB.
+// No production command bypasses capacity. Historical IDs/evidence stay intact.
+func seedLegacyGoalActivityForTest(t *testing.T, f independentToolE2EFixture) {
+	t.Helper()
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(f.ctx, `ALTER TABLE public.fluctlight_goals DISABLE TRIGGER goal_set_guard`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(f.ctx, `UPDATE public.fluctlight_goals SET status='active' WHERE fluctlight_id=$1 AND status='candidate'`, f.fluctlightID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(f.ctx, `ALTER TABLE public.fluctlight_goals ENABLE TRIGGER goal_set_guard`); err != nil {
+			return err
+		}
+		_, err := queueGoalEvaluationTx(f.ctx, tx, f.fluctlightID, "", "legacy_test_snapshot", "legacy-stock", []string{})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+func createCandidateDialogueGoalForClosure(t *testing.T, f independentToolE2EFixture, criteria []string) string {
+	t.Helper()
+	id := "goal-dialogue-" + f.suffix
+	goal, record, err := CreateGoalAuthority(GoalAuthority{EntityID: id, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(id), FluctlightID: f.fluctlightID, TargetActorID: f.ownerID, DesiredOutcome: "向对方表达 " + id, SuccessCriteria: criteria, Motivation: "历史需求", Scope: "relationship", Status: GoalCandidate, Revision: 1}, []string{"owner:goal"}, f.app.now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		_, err := persistGoalAuthorityTx(f.ctx, tx, nil, goal, record, "candidate:"+id)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}

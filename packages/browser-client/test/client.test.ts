@@ -314,3 +314,12 @@ test("Goal evidence cursor uses its scoped read endpoint", async () => {
  assert.deepEqual(await client.goalEvidence("fl/1","goal/1","evidence+/cursor"),page);
  assert.match(requested,/fl%2F1\/goals\/goal%2F1\/evidence\?limit=20&cursor=evidence%2B%2Fcursor$/);
 });
+
+test("goal set and Actor context commands preserve versions, idempotency and scoped URLs", async () => {
+ const calls:Array<{url:string;body:any}>=[];
+ const client=new BrowserClient("http://fluctlight.local",async(input,init)=>{calls.push({url:String(input),body:init?.body?JSON.parse(String(init.body)):null});return new Response(JSON.stringify({revision:2,context_version:"v2"}),{headers:{"Content-Type":"application/json"}});});
+ await client.updateGoalSet("instance/a",{expectedVersion:1,expectedFactsRevision:"facts",idempotencyKey:"key",reason:"Owner",autoPlanningEnabled:false,orderingMode:"manual",order:["B","A"],dependencies:{B:["A"]}});
+ await client.updateActorContext("instance/a","actor/b",{expectedContextVersion:"v1",idempotencyKey:"actor-key",operation:"change",reason:"Owner",background:{timezone:null,location:"国外"}});
+ assert.match(calls[0]!.url,/instance%2Fa\/goal-set$/);assert.equal(calls[0]!.body.autoPlanningEnabled,false);assert.deepEqual(calls[0]!.body.dependencies,{B:["A"]});
+ assert.match(calls[1]!.url,/actor%2Fb$/);assert.equal(calls[1]!.body.expectedContextVersion,"v1");assert.equal(calls[1]!.body.background.timezone,null);
+});

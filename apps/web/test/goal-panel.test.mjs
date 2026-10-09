@@ -7,7 +7,7 @@ import { computed, ref, reactive, watch, nextTick } from "vue";
 const component = await readFile(new URL("../src/components/instances/GoalPanel.vue", import.meta.url), "utf8");
 const script = component.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1].replace(/^import .*;\n/gm, "");
 const js = ts.transpileModule(script, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
-class ApiError extends Error { constructor(status) { super("conflict"); this.status = status; } }
+class ApiError extends Error { constructor(status, code = "revision_conflict") { super("conflict"); this.status = status; this.code = code; } }
 const goal = (id, revision = 1) => ({ id, revision, status: "active", desired_outcome: id, motivation: "original", scope: "general", success_criteria: ["actual result"], execution: {} });
 const deferred = () => { let resolve, reject; const promise = new Promise((ok, fail) => { resolve = ok; reject = fail; }); return { promise, resolve, reject }; };
 async function harness(overrides = {}) {
@@ -72,6 +72,17 @@ test("CAS conflict preserves the draft, frozen revision and retry identity until
   assert.notEqual(calls[2][3].idempotencyKey, calls[0][3].idempotencyKey);
 });
 
+
+test("capacity errors preserve a create draft and explain the available governance actions", async () => {
+ const {state} = await harness({createGoal:async()=>{throw new ApiError(409,"goal_capacity_exceeded");}});
+ state.edit(true);state.desired.value="retained sixth goal";state.reason.value="create";
+ await state.command("create");
+ assert.equal(state.editing.value,true);
+ assert.equal(state.desired.value,"retained sixth goal");
+ assert.match(state.error.value,/名额已满/);
+ assert.match(state.error.value,/候选/);
+ assert.doesNotMatch(state.error.value,/目标已发生变化/);
+});
 
 test("evidence continuation deduplicates stable IDs and rejects a stale selection", async () => {
  const pending = deferred();

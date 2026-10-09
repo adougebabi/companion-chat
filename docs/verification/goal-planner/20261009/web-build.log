@@ -1,0 +1,16 @@
+Scope: 3 of 4 workspace projects
+apps/web build$ vite build
+apps/web build: vite v7.1.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 2536 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                   0.44 kB │ gzip:   0.29 kB
+apps/web build: dist/assets/index-BvJbK08I.css  129.57 kB │ gzip:  22.75 kB
+apps/web build: dist/assets/index-DIOHN0WP.js   528.80 kB │ gzip: 159.38 kB
+apps/web build: ✓ built in 2.17s
+apps/web build: (!) Some chunks are larger than 500 kB after minification. Consider:
+apps/web build: - Using dynamic import() to code-split the application
+apps/web build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+apps/web build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+apps/web build: Done

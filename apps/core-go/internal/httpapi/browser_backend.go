@@ -35,7 +35,7 @@ func (b *browserBackend) Health(ctx context.Context) error {
 func (b *browserBackend) DoJSON(ctx context.Context, method, endpoint, session string, body any) (map[string]any, error) {
 	value, err := b.dispatch(ctx, method, endpoint, session, body)
 	if err != nil {
-		if strings.Contains(endpoint, "/goals") {
+		if strings.Contains(endpoint, "/goals") || strings.Contains(endpoint, "/goal-set") || strings.Contains(endpoint, "/actor-context/") {
 			return nil, browserBackendError(err, "goal_operation_failed")
 		}
 		return nil, err
@@ -289,6 +289,29 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 			return nil, pageErr
 		}
 		return jsonMap(page)
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/goal-set"):
+		parts := splitInternalPath(path)
+		if method == http.MethodGet {
+			return b.server.app.GoalSetSnapshot(ctx, actorID, pathPart(parts, 2), "*")
+		}
+		var cmd core.GoalSetCommand
+		raw, _ := json.Marshal(values)
+		if json.Unmarshal(raw, &cmd) != nil {
+			return nil, core.ErrInvalidArguments
+		}
+		return b.server.app.ApplyGoalSetCommand(ctx, actorID, pathPart(parts, 2), cmd)
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/goal-planning"):
+		parts := splitInternalPath(path)
+		if method == http.MethodGet {
+			return b.server.app.GoalPlanningHistory(ctx, actorID, pathPart(parts, 2))
+		}
+		return b.server.app.RequestGoalPlanning(ctx, actorID, pathPart(parts, 2), stringValue(values["idempotency_key"]))
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.Contains(path, "/actor-context/"):
+		parts := splitInternalPath(path)
+		if method == http.MethodGet {
+			return b.server.app.ActorContext(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4))
+		}
+		return b.server.app.UpdateActorContext(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), values)
 	case strings.HasSuffix(path, "/actor-user-background") && strings.HasPrefix(path, "/internal/fluctlights/") && method == http.MethodPut:
 		parts := splitInternalPath(path)
 		value, err := b.server.app.UpdateActorUserBackground(ctx, actorID, pathPart(parts, 2), values)
@@ -530,6 +553,10 @@ func browserBackendError(err error, fallback string) error {
 		case errors.Is(err, context.DeadlineExceeded):
 			status, code = http.StatusGatewayTimeout, "request_timeout"
 		}
+	}
+	var capability *core.CapabilityError
+	if errors.As(err, &capability) && (capability.Code == "goal_capacity_exceeded" || capability.Code == "goal_candidate_capacity_exceeded") {
+		status, code = http.StatusConflict, capability.Code
 	}
 	if details == nil {
 		details = map[string]any{}

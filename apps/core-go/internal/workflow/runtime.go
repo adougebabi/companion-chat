@@ -282,6 +282,10 @@ func workflowFunction(intentType string) (any, error) {
 		return CapabilityActionWorkflow, nil
 	case "media.generation":
 		return MediaWorkflow, nil
+	case "goal.plan":
+		return GoalPlanningWorkflow, nil
+	case "goal.evaluate":
+		return GoalEvaluationWorkflow, nil
 	case "reflection.run":
 		return ReflectionWorkflow, nil
 	case "intention.trigger":

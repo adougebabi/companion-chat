@@ -15,6 +15,7 @@ as a compatibility entry point.
 | [Directory Structure](./directory-structure.md) | Adding UI features or assets |
 | [Component Guidelines](./component-guidelines.md) | DOM rendering, events, and accessibility |
 | [State Management](./state-management.md) | Local/server state and refresh behavior |
+| [Goal / Actor Governance](./goal-planner-governance-contract.md) | Authoritative sorting, dependencies, Actor CAS, source review and responsive verification |
 | [Quality Guidelines](./quality-guidelines.md) | Browser verification and safe DOM updates |
 
 ## Pre-Development Checklist

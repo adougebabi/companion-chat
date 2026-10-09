@@ -35,6 +35,12 @@ func persistGoalAuthorityTx(ctx context.Context, tx pgx.Tx, before *GoalAuthorit
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return false, err
 	}
+	if after.Status == GoalActive && (before == nil || before.Status != GoalActive) && after.DeadlinePolicy == "hard" && after.Deadline != nil && !record.OccurredAt.Before(*after.Deadline) {
+		return false, newCapabilityError("goal_hard_deadline_elapsed", false, ErrConflict)
+	}
+	if err := checkGoalCapacityTx(ctx, tx, before, after); err != nil {
+		return false, err
+	}
 	if record.GoalRef != after.Ref || record.Revision != after.Revision || record.EvidenceRefs == nil {
 		return false, errors.New("goal_governance_record_invalid")
 	}
@@ -78,6 +84,30 @@ func persistGoalAuthorityTx(ctx context.Context, tx pgx.Tx, before *GoalAuthorit
 		}
 		if _, err := queueGoalEvaluationTx(ctx, tx, after.FluctlightID, after.ProfileID, "goal_activated_or_revised", fmt.Sprint(eventID), []string{after.EntityID}); err != nil {
 			return false, err
+		}
+	}
+	if before != nil && before.Status != after.Status && (after.Status == GoalCompleted || after.Status == GoalCancelled || after.Status == GoalAbandoned) {
+		rows, err := tx.Query(ctx, `SELECT g.id,COALESCE(g.profile_id,'') FROM public.goal_dependencies d JOIN public.fluctlight_goals g ON g.id=d.goal_id WHERE d.fluctlight_id=$1 AND d.prerequisite_id=$2 AND g.status IN ('active','paused') ORDER BY g.id`, after.FluctlightID, after.EntityID)
+		if err != nil {
+			return false, err
+		}
+		byProfile := map[string][]string{}
+		for rows.Next() {
+			var id, profile string
+			if err := rows.Scan(&id, &profile); err != nil {
+				rows.Close()
+				return false, err
+			}
+			byProfile[profile] = append(byProfile[profile], id)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return false, err
+		}
+		for profile, ids := range byProfile {
+			if _, err := queueGoalEvaluationTx(ctx, tx, after.FluctlightID, profile, "goal_dependency_changed", commandKey+":"+profile, ids); err != nil {
+				return false, err
+			}
 		}
 	}
 	revisionID := "goal_revision_" + stableDigest(commandKey)

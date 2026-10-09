@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -100,7 +101,12 @@ func (s *Server) goalCommand(w http.ResponseWriter, r *http.Request) {
 	command.Operation = operation
 	result, err := s.app.ApplyOwnerGoalCommand(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("goalID"), command)
 	if err != nil {
-		s.opError(w, err, "goal_command_failed")
+		code := "goal_command_failed"
+		var capability *core.CapabilityError
+		if errors.As(err, &capability) && (capability.Code == "goal_capacity_exceeded" || capability.Code == "goal_candidate_capacity_exceeded") {
+			code = capability.Code
+		}
+		s.opError(w, err, code)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)

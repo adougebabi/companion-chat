@@ -26,6 +26,8 @@ var independentToolProductInventory = []string{
 	"appearance.style",
 	"capability.request",
 	"conversation.reply",
+	"goal_planner.query",
+	"goal_planner.commit",
 	"goal.decide",
 	"goal.evaluate",
 	"goal.inspect",

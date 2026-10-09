@@ -19,6 +19,7 @@ func TestFormalAgentE2E(t *testing.T) {
 
 	t.Run(string(FormalAgentConversationCognition), testFormalAgentE2EConversationCognition)
 	t.Run("conversation_persona_detail", testFormalAgentE2EPersonaDetail)
+	t.Run(string(FormalAgentGoalPlanner), testFormalAgentE2EGoalPlanner)
 	t.Run(string(FormalAgentWakeUp), testFormalAgentE2EWakeUp)
 	t.Run(string(FormalAgentTakeoverJudge), testFormalAgentE2ETakeoverJudge)
 	t.Run(string(FormalAgentTakeoverReply), testFormalAgentE2ETakeoverReply)
@@ -505,4 +506,31 @@ func testFormalAgentE2EScheduleReplan(t *testing.T) {
 	if len(arrayValue(result["items"])) == 0 {
 		t.Fatal("schedule replan final DTO contains no replacement items")
 	}
+}
+
+func testFormalAgentE2EGoalPlanner(t *testing.T) {
+	f := newFormalAgentE2EFixture(t)
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlights SET core_persona=jsonb_set(core_persona,'{personality}', '{"interests":["摄影构图","阅读科幻","写短文"],"stable_motivations":["完成有限的创作并分享想法"],"values":["尊重拒绝","不编造实际作品"]}'::jsonb) WHERE id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.app.RequestGoalPlanning(f.ctx, f.ownerID, f.fluctlightID, "real-provider"); err != nil {
+		t.Fatal(err)
+	}
+	var run string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.goal_planning_runs WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&run); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_planning_runs SET available_at=now() WHERE id=$1`, run); err != nil {
+		t.Fatal(err)
+	}
+	result, err := f.app.ProcessGoalPlanningIntent(f.ctx, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := mapValue(result["snapshot"])
+	count := intValue(snapshot["active_count"])
+	if result["decision"] != "applied" || count < 1 || count > 5 || intValue(result["tool_calls"]) < 3 {
+		t.Fatalf("real Provider did not produce grounded goals despite multiple feasible interests; inspect reasons, not an automatic empty PASS: %s", jsonString(result))
+	}
+	t.Logf("REAL_PROVIDER_GOAL_PLANNER run=%s active=%d tool_calls=%v result=%s", run, count, result["tool_calls"], jsonString(result))
 }

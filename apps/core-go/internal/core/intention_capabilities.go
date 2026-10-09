@@ -325,8 +325,12 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 	if linkedGoal == nil && goalText != "" {
 		var id string
 		var revision int
-		err := tx.QueryRow(ctx, `SELECT id,revision FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (profile_id IS NULL OR profile_id=$2) AND desired_outcome=$3 AND status='active' ORDER BY updated_at DESC,id DESC LIMIT 1`, fluctlightID, profileID, goalText).Scan(&id, &revision)
+		var matches int
+		err := tx.QueryRow(ctx, `SELECT id,revision,count(*) OVER() FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (profile_id IS NULL OR profile_id=$2) AND desired_outcome=$3 AND status='active' ORDER BY updated_at DESC,id DESC LIMIT 1`, fluctlightID, profileID, goalText).Scan(&id, &revision, &matches)
 		if err == nil {
+			if matches > 1 {
+				return failedCapabilityResult(invocation, "intention_goal_reference_required", false), ErrInvalidArguments
+			}
 			goal, err := loadGoalAuthorityTx(ctx, tx, fluctlightID, "goal:ctx_"+stableDigest(id), ContextReference{EntityID: id, Revision: revision})
 			if err != nil {
 				return failedCapabilityResult(invocation, "intention_goal_stale", false), err
@@ -360,6 +364,12 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 		goalID = linkedGoal.EntityID
 		createdGoal = *linkedGoal
 	} else {
+		if invocation.Metadata.Source != "direct" {
+			if err := requestGoalPlanningTx(ctx, tx, fluctlightID, "intention-wish:"+identity, "cognition_wish", map[string]any{"desired_outcome": goalText, "success_criteria": []string{expected}, "motivation": reason}); err != nil {
+				return failedCapabilityResult(invocation, "planner_request_failed", true), err
+			}
+			return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"status": "planning_requested", "activated": false, "intention_created": false}, ProviderRequestID: invocation.ProviderRequestID}, nil
+		}
 		goal := GoalAuthority{
 			EntityID: goalID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(goalID),
 			FluctlightID: fluctlightID, ProfileID: profileID, DesiredOutcome: goalText, SuccessCriteria: []string{expected},

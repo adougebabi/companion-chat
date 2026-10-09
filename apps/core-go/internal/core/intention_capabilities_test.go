@@ -43,9 +43,10 @@ func TestIntentionToolSchemasAllowUniqueTargetInference(t *testing.T) {
 
 func TestIntentionInspectListCanReadEveryPageByCursor(t *testing.T) {
 	fixture := seedWardrobeToolFixture(t)
+	_ = plannerOwnerGoal(t, fixture, "pagination-goal", false)
 	for index := 0; index < 12; index++ {
 		created, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionDecideCapabilityName, fmt.Sprintf("page-create-%02d", index), map[string]any{
-			"operation": "create", "goal": fmt.Sprintf("目标 %02d", index), "action": fmt.Sprintf("行动 %02d", index),
+			"operation": "create", "goal": "pagination-goal", "action": fmt.Sprintf("行动 %02d", index),
 			"expected_outcome": fmt.Sprintf("结果 %02d", index), "reason": "分页验证",
 		}))
 		if err != nil || created.Result.Status != "completed" {

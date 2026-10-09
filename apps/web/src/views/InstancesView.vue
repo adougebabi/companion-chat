@@ -219,6 +219,11 @@ async function activatePreview() {
   }
 }
 
+const initialGoalsDraft=ref('[]');
+function saveInitialGoalDraft(){
+ try{const value=JSON.parse(initialGoalsDraft.value);if(!Array.isArray(value))throw new Error('初始目标必须是数组');const preview=JSON.parse(creationPreviewJson.value);preview.initial_goals=value;creationPreviewJson.value=JSON.stringify(preview,null,2);}catch(c){controlCenter.error=c instanceof Error?c.message:String(c);}
+}
+watch(creationFoundation,(value)=>{initialGoalsDraft.value=JSON.stringify(value?.initial_goals??[],null,2);});
 function asCreationRecords(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
 }
@@ -351,6 +356,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
           <form v-if="(creationMode === 'llm_defined' || creationMode === 'json_import') && creationPreviewJson" id="activate-preview-form" class="stack-form preview-form" @submit.prevent="activatePreview">
             <details class="field-note"><summary>设置用户背景（actor_user）</summary><p>在初始化 JSON 顶层添加 actor_user。只填写你本人的明确资料；未知所在地与时区保持 null，不沿用摇光的时区。</p><pre>{{ JSON.stringify(actorUserInitializationExample, null, 2) }}</pre></details>
             <label for="fluctlight-preview">可编辑的 Persona 分层预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label>
+            <label for="initial-goals-input">一次性初始目标（独立于稳定人格）<Textarea id="initial-goals-input" v-model="initialGoalsDraft" rows="5" spellcheck="false" /></label><Button type="button" variant="outline" @click="saveInitialGoalDraft">应用初始目标输入</Button><p class="field-note">只导入一次。最多五个活动目标，超额或未授权的输入保存为候选。完成、暂停和取消后不会因人格重编译重新激活。</p>
             <div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary">
               <strong>创建后会带入</strong>
               <span v-for="goal in creationInitialGoals" :key="String(goal.description)">目标：{{ String(goal.description) }}</span>

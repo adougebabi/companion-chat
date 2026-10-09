@@ -97,6 +97,12 @@ func (s personaDetailService) read(ctx context.Context, fluctlightID, owner, pro
 	delete(sections, "profile.emotional_state")
 	// Current detail uses the same mutable-field filter as the portrait
 	// source; unclassified Foundation wording remains available via history.
+	for key := range sections {
+		parts := strings.Split(key, ".")
+		if _, retired := transientPersonaSourceKeys[parts[len(parts)-1]]; retired && key != "current_appearance" {
+			delete(sections, key)
+		}
+	}
 	for key, value := range sections {
 		if key == "current_appearance" {
 			continue

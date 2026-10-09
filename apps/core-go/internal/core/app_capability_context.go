@@ -238,7 +238,11 @@ func (resolver *AppContextResolver) load(ctx context.Context, request ContextReq
 		}, nil
 	case SlotAgency:
 		goals, intentions, err := app.agencyProfile(ctx, request.FluctlightID)
-		return map[string]any{"goals": goals, "intentions": intentions}, err
+		if err != nil {
+			return nil, err
+		}
+		policy, err := readGoalPolicyWith(ctx, app.DB.Pool(), request.FluctlightID)
+		return map[string]any{"goals": goals, "intentions": intentions, "goal_policy": policy}, err
 	case SlotRecentOutcomes:
 		outcomes, err := app.readRecentActionOutcomes(ctx, request.FluctlightID, 12)
 		return map[string]any{"outcomes": outcomes}, err

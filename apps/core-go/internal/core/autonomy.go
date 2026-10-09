@@ -38,7 +38,7 @@ func (a *App) tryDailyReviewExecutionLock(ctx context.Context, fluctlightID, loc
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
 	goals := make([]map[string]any, 0)
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (status IN ('candidate','active','paused') OR id IN (SELECT id FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='completed' ORDER BY updated_at DESC,id DESC LIMIT 3)) ORDER BY updated_at DESC,id DESC`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision,criteria_version,deadline_policy,criterion_ids,effective_order,context_review_required FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (status IN ('candidate','active','paused') OR id IN (SELECT id FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='completed' ORDER BY updated_at DESC,id DESC LIMIT 3)) ORDER BY CASE WHEN status='active' THEN 0 ELSE 1 END,effective_order,created_at,id`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -51,12 +51,16 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 		var deadline *time.Time
 		var evidenceRefs []byte
 		var revision, criteriaVersion int
+		var effectiveOrder int64
+		var contextReview bool
 		var deadlinePolicy string
-		if err := rows.Scan(&id, &profileID, &scope, &targetActorID, &description, &desiredOutcome, &successCriteria, &motivation, &needsReflection, &status, &importance, &urgency, &progress, &deadline, &evidenceRefs, &revision, &criteriaVersion, &deadlinePolicy, &criterionIDs); err != nil {
+		if err := rows.Scan(&id, &profileID, &scope, &targetActorID, &description, &desiredOutcome, &successCriteria, &motivation, &needsReflection, &status, &importance, &urgency, &progress, &deadline, &evidenceRefs, &revision, &criteriaVersion, &deadlinePolicy, &criterionIDs, &effectiveOrder, &contextReview); err != nil {
 			rows.Close()
 			return nil, nil, err
 		}
 		item := map[string]any{"id": id, "scope": scope, "description": description, "desired_outcome": desiredOutcome, "success_criteria": decodeArray(successCriteria), "motivation": motivation, "needs_reflection": needsReflection, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress), "evidence_refs": decodeArray(evidenceRefs), "revision": revision, "criteria_version": criteriaVersion, "deadline_policy": deadlinePolicy}
+		item["effective_order"] = effectiveOrder
+		item["context_review_required"] = contextReview
 		item["criterion_ids"] = decodeArray(criterionIDs)
 		if deadline != nil {
 			item["deadline"] = formatInstant(*deadline)
@@ -75,7 +79,7 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 	}
 	rows.Close()
 	intentions := make([]map[string]any, 0)
-	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.profile_id,i.goal_id,COALESCE(g.desired_outcome,''),i.action_intent,i.expected_outcome,i.capability_constraints,i.status,i.confidence,i.preferred_time,i.expiration,i.trigger,i.evidence_refs,i.revision,COALESCE(i.current_attempt_id,'') FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > $2 ORDER BY i.created_at`, fluctlightID, a.now().UTC())
+	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.profile_id,i.goal_id,COALESCE(g.desired_outcome,''),i.action_intent,i.expected_outcome,i.capability_constraints,i.status,i.confidence,i.preferred_time,i.expiration,i.trigger,i.evidence_refs,i.revision,COALESCE(i.current_attempt_id,'') FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > $2 ORDER BY g.effective_order,i.created_at,i.id`, fluctlightID, a.now().UTC())
 	if err != nil {
 		return nil, nil, err
 	}

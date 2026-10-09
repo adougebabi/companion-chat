@@ -13,8 +13,11 @@ import (
 )
 
 type GoalOwnerCommand struct {
+	TargetActorID       string            `json:"target_actor_id,omitempty"`
 	ReviewPolicy        *GoalReviewPolicy `json:"review_policy,omitempty"`
 	ResetReviewCounters bool              `json:"reset_review_counters"`
+	OwnerProtected      *bool             `json:"owner_protected,omitempty"`
+	CandidateOnly       bool              `json:"candidate_only"`
 	Operation           string            `json:"operation"`
 	ExpectedRevision    int               `json:"expected_revision"`
 	IdempotencyKey      string            `json:"idempotency_key"`
@@ -105,6 +108,7 @@ func (a *App) GoalDetail(ctx context.Context, actorID, owner, goalID string) (ma
 	result["execution"] = execution
 	// Details are bounded. Older records are requested via the history endpoint.
 	for key, query := range map[string]string{
+		"dependencies":           `SELECT jsonb_build_object('prerequisite_id',p.id,'desired_outcome',p.desired_outcome,'status',p.status,'satisfied',p.status='completed') FROM public.goal_dependencies d JOIN public.fluctlight_goals p ON p.id=d.prerequisite_id WHERE d.fluctlight_id=$1 AND d.goal_id=$2 ORDER BY p.id`,
 		"stages":                 `SELECT to_jsonb(s) FROM public.goal_stages s WHERE fluctlight_id=$1 AND goal_id=$2 ORDER BY updated_at DESC,id DESC LIMIT 20`,
 		"commitments":            `SELECT to_jsonb(c) FROM public.goal_commitments c WHERE fluctlight_id=$1 AND goal_id=$2 ORDER BY updated_at DESC,id DESC LIMIT 20`,
 		"evaluations":            `SELECT to_jsonb(e) FROM public.goal_evaluations e WHERE fluctlight_id=$1 AND goal_id=$2 ORDER BY created_at DESC,id DESC LIMIT 20`,
@@ -193,11 +197,20 @@ func (a *App) ApplyOwnerGoalCommand(ctx context.Context, actorID, owner, goalID 
 			if command.DeadlinePolicy != nil {
 				deadlinePolicy = *command.DeadlinePolicy
 			}
-			target := ""
-			if scope == "relationship" {
+			target := command.TargetActorID
+			if scope == "relationship" && target == "" {
 				target = actorID
 			}
-			goal, record, err = CreateGoalAuthority(GoalAuthority{EntityID: goalID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(goalID), FluctlightID: owner, ProfileID: command.ProfileID, DesiredOutcome: *command.DesiredOutcome, SuccessCriteria: command.SuccessCriteria, Motivation: *command.Motivation, Scope: scope, TargetActorID: target, Deadline: command.Deadline, DeadlinePolicy: deadlinePolicy, ReviewPolicy: command.ReviewPolicy, Status: GoalActive, Revision: 1}, refs, a.now())
+			if target != "" {
+				if err := a.requireVisibleActorWith(ctx, tx, owner, actorID, command.ProfileID, target); err != nil {
+					return err
+				}
+			}
+			status := GoalActive
+			if command.CandidateOnly {
+				status = GoalCandidate
+			}
+			goal, record, err = CreateGoalAuthority(GoalAuthority{EntityID: goalID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(goalID), FluctlightID: owner, ProfileID: command.ProfileID, DesiredOutcome: *command.DesiredOutcome, SuccessCriteria: command.SuccessCriteria, Motivation: *command.Motivation, Scope: scope, TargetActorID: target, Deadline: command.Deadline, DeadlinePolicy: deadlinePolicy, ReviewPolicy: command.ReviewPolicy, Status: status, Revision: 1}, refs, a.now())
 		} else {
 			var revision int
 			if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND id=$2`, owner, goalID).Scan(&revision); err != nil {
@@ -212,6 +225,9 @@ func (a *App) ApplyOwnerGoalCommand(ctx context.Context, actorID, owner, goalID 
 			goal, err = loadGoalAuthorityTx(ctx, tx, owner, "goal:ctx_"+stableDigest(goalID), ContextReference{EntityID: goalID, Revision: revision})
 			if err != nil {
 				return err
+			}
+			if command.TargetActorID != "" && command.TargetActorID != goal.TargetActorID {
+				return ErrInvalidArguments
 			}
 			if command.ProfileID != "" && command.ProfileID != goal.ProfileID {
 				return ErrInvalidArguments
@@ -251,6 +267,16 @@ func (a *App) ApplyOwnerGoalCommand(ctx context.Context, actorID, owner, goalID 
 			record.ActorID, record.Source, record.Reason = actorID, "owner", command.Reason
 			if _, err := persistGoalAuthorityTx(ctx, tx, before, goal, record, key); err != nil {
 				return err
+			}
+			if command.OwnerProtected != nil {
+				if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET owner_protected=$3 WHERE id=$1 AND fluctlight_id=$2`, goal.EntityID, owner, *command.OwnerProtected); err != nil {
+					return err
+				}
+			}
+			if command.Operation == "pause" || command.Operation == "cancel" {
+				if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET owner_protected=true WHERE id=$1 AND fluctlight_id=$2`, goal.EntityID, owner); err != nil {
+					return err
+				}
 			}
 			result = map[string]any{"goal_id": goal.EntityID, "revision": goal.Revision, "status": goal.Status, "criteria_version": goal.CriteriaVersion}
 		}

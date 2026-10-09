@@ -1,0 +1,6 @@
+=== RUN   TestGoalPlannerRecoveryPolicyIsOperationalAndModelCannotExpandIt
+--- PASS: TestGoalPlannerRecoveryPolicyIsOperationalAndModelCannotExpandIt (1.79s)
+=== RUN   TestGoalPlannerPolicyBlockRetainsEventsAndRecoveryWaitsForPermission
+--- PASS: TestGoalPlannerPolicyBlockRetainsEventsAndRecoveryWaitsForPermission (1.26s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.661s

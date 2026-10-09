@@ -52,7 +52,7 @@ func TestValidResidualFollowupDoesNotDuplicateAcrossCompletionReplay(t *testing.
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.platform_outbox_events WHERE aggregate_id=$1 AND kind='goal.evaluated'`, goalID).Scan(&events); err != nil {
 		t.Fatal(err)
 	}
-	if goals != 2 || resolutions != 1 || evaluations != 1 || events != 1 || disposition != "followup_candidate" {
+	if goals != 1 || resolutions != 1 || evaluations != 1 || events != 1 || disposition != "planner_review_requested" {
 		t.Fatalf("completion replay duplicated followup: goals=%d resolutions=%d evaluations=%d events=%d %s", goals, resolutions, evaluations, events, disposition)
 	}
 }

@@ -591,6 +591,47 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callAny(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/moments?include_hidden="+strconv.FormatBool(includeHidden), http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "fluctlight_moments_unavailable", "Fluctlight Moments are unavailable"), nil)
 		return
 	}
+	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/goal-set"); ok && (methodName == http.MethodGet || methodName == http.MethodPut) {
+		var mapped map[string]any
+		if methodName == http.MethodPut {
+			body, valid := readBody(response, request)
+			if !valid {
+				return
+			}
+			mapped = map[string]any{"expected_version": body["expectedVersion"], "expected_facts_revision": body["expectedFactsRevision"], "idempotency_key": body["idempotencyKey"], "reason": body["reason"]}
+			for browserKey, coreKey := range map[string]string{"autoPlanningEnabled": "auto_planning_enabled", "orderingMode": "ordering_mode", "maxActiveGoals": "max_active_goals", "order": "order", "changes": "changes", "dependencies": "dependencies", "recoveryPolicy": "recovery_policy", "sourceReviews": "source_reviews", "reviewedGoalIds": "reviewed_goal_ids"} {
+				if v, exists := body[browserKey]; exists {
+					mapped[coreKey] = v
+				}
+			}
+		}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/goal-set", methodName, mapped, goalRouteError, nil)
+		return
+	}
+	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/goal-planning"); ok && (methodName == http.MethodGet || methodName == http.MethodPost) {
+		var body map[string]any
+		if methodName == http.MethodPost {
+			v, valid := readBody(response, request)
+			if !valid {
+				return
+			}
+			body = map[string]any{"idempotency_key": v["idempotencyKey"]}
+		}
+		s.callAny(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/goal-planning", methodName, body, s.readOnlyError(422, "goal_planning_failed", "规划请求未提交"), nil)
+		return
+	}
+	if fluctlightID, actorID, ok := match2(path, "/api/fluctlights/:fluctlightId/actor-context/:actorId"); ok && (methodName == http.MethodGet || methodName == http.MethodPut) {
+		var mapped map[string]any
+		if methodName == http.MethodPut {
+			v, valid := readBody(response, request)
+			if !valid {
+				return
+			}
+			mapped = map[string]any{"background": v["background"], "expected_context_version": v["expectedContextVersion"], "idempotency_key": v["idempotencyKey"], "reason": v["reason"], "operation": v["operation"]}
+		}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/actor-context/"+escape(actorID), methodName, mapped, actorContextRouteError, nil)
+		return
+	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/actor-user-background"); ok && methodName == http.MethodPut {
 		body, valid := s.mutationBody(response, request, validateActorUserBackgroundUpdate)
 		if !valid {

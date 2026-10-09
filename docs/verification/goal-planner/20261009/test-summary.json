@@ -1,0 +1,168 @@
+{
+  "full_go": {
+    "test_events": {
+      "pass": 1939,
+      "skip": 25
+    },
+    "leaf_test_events": {
+      "pass": 1804,
+      "skip": 25
+    },
+    "package_events": {
+      "skip": 13,
+      "pass": 15
+    },
+    "skips": [
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/test/integration",
+        "test": "TestGoalJointPostgresRedisTemporalWorkerRestart"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestFormalAgentE2E"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestIndependentToolE2EScheduleReplan"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveStreamTurnFormalAgentNDJSON"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveHandleTurnOrdinaryChatHasNoFixedPlanningOrMemoryPass"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveHandleTurnReadsCompletedHaircutAfterReload"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveHandleTurnReadsChangedWearingAfterReload"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveHandleTurnDoesNotTreatUnexecutedWishAsPurchase"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveWakeUpRealToolCallsReachDurableActionAndReflection"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveRegressionMultiPersonalityDayNightContract"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveRegressionConversationImageAndReplySameTurn"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveRegressionWakeUpProactiveImageAndReplyBundle"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderDenseSingleInitialization"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderDenseMultiInitialization"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderDenseExternalInitialization"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderRecognizesImageGenerationIntent"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderRoleOrganization"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderActiveMemory"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderComplexMultiPersonalityInitialization"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestLiveProviderPersonalityDecision"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestVisualIdentityLiveE2EPreflight"
+      },
+      {
+        "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+        "test": "TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical"
+      }
+    ],
+    "first_event": "2026-10-09T13:22:27.816506+08:00",
+    "last_event": "2026-10-09T13:31:11.754623+08:00"
+  },
+  "planner_race": {
+    "test_events": {
+      "pass": 32
+    },
+    "leaf_test_events": {
+      "pass": 30
+    },
+    "package_events": {
+      "pass": 1
+    },
+    "skips": [],
+    "first_event": "2026-10-09T13:22:44.009672+08:00",
+    "last_event": "2026-10-09T13:23:18.665723+08:00"
+  },
+  "http_final": {
+    "test_events": {
+      "pass": 188
+    },
+    "leaf_test_events": {
+      "pass": 179
+    },
+    "package_events": {
+      "pass": 2
+    },
+    "skips": [],
+    "first_event": "2026-10-09T13:28:32.680964+08:00",
+    "last_event": "2026-10-09T13:28:35.653243+08:00"
+  },
+  "web_and_clients": {
+    "passed": 92,
+    "failed": 0,
+    "skipped": 0,
+    "packages": {
+      "web": 72,
+      "browser-client": 18,
+      "core-client": 2
+    }
+  },
+  "other_checks": {
+    "generate": "PASS",
+    "typecheck": "PASS",
+    "build": "PASS",
+    "core_openapi": "PASS",
+    "go_vet": "PASS",
+    "go_build": "PASS",
+    "diff_check": "PASS"
+  },
+  "real_provider": "NOT_VERIFIED: environment unconfigured; not counted as pass"
+}

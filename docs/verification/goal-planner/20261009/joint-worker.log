@@ -1,0 +1,46 @@
+=== RUN   TestGoalJointPostgresRedisTemporalWorkerRestart
+2026/10/09 12:06:23 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:23 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:23 INFO  Started Worker Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:23 INFO  Started Worker Namespace default TaskQueue media WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:23 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:23 INFO  Started Worker Namespace default TaskQueue visual-identity WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:23 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:23 INFO  Started Worker Namespace default TaskQueue lifecycle-critical WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:23 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:23 INFO  Started Worker Namespace default TaskQueue interaction WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:25 INFO Go Worker workflow dispatched intent_id=goal_evaluation_4300da31c2d165a098afdd99c095afab workflow_id=go:goal-evaluation:goal_evaluation_4300da31c2d165a098afdd99c095afab workflow_type=goal.evaluate
+2026/10/09 12:06:25 DEBUG ExecuteActivity Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1 WorkflowType GoalEvaluationWorkflow WorkflowID go:goal-evaluation:goal_evaluation_4300da31c2d165a098afdd99c095afab RunID 01a11ed7-4128-739b-b05b-1dea6ef3c671 Attempt 1 ActivityID 7 ActivityType ProcessGoalEvaluationActivity
+2026/10/09 12:06:25 ERROR Activity error. Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1 WorkflowID go:goal-evaluation:goal_evaluation_4300da31c2d165a098afdd99c095afab RunID 01a11ed7-4128-739b-b05b-1dea6ef3c671 ActivityType ProcessGoalEvaluationActivity Attempt 1 Error adk_run: [NodeRunError] provider request failed: error, status code: 503, status: 503 Service Unavailable, message: controlled temporary assessment failure
+------------------------
+node path: [node_1]
+2026/10/09 12:06:26 INFO  Stopped Worker Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 INFO  Stopped Worker Namespace default TaskQueue lifecycle-critical WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 INFO  Stopped Worker Namespace default TaskQueue media WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 INFO  Stopped Worker Namespace default TaskQueue interaction WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 INFO  Stopped Worker Namespace default TaskQueue visual-identity WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:26 INFO  Started Worker Namespace default TaskQueue media WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:26 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:26 INFO  Started Worker Namespace default TaskQueue interaction WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 INFO  Started Worker Namespace default TaskQueue visual-identity WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:26 INFO  Started Worker Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:26 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/10/09 12:06:26 INFO  Started Worker Namespace default TaskQueue lifecycle-critical WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:27 DEBUG Cached state staled, new task has unexpected events Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1 WorkflowID go:goal-evaluation:goal_evaluation_4300da31c2d165a098afdd99c095afab RunID 01a11ed7-4128-739b-b05b-1dea6ef3c671 Attempt 1 CachedPreviousStartedEventID 3 TaskFirstEventID 1 TaskStartedEventID 11 PreviousStartedEventID 3
+2026/10/09 12:06:27 INFO Go Worker workflow dispatched intent_id=goal_planner_94f8217d61b5190212484873ea2cefcb workflow_id=go:goal-planner:goal_planner_94f8217d61b5190212484873ea2cefcb workflow_type=goal.plan
+2026/10/09 12:06:27 DEBUG ExecuteActivity Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1 WorkflowType GoalPlanningWorkflow WorkflowID go:goal-planner:goal_planner_94f8217d61b5190212484873ea2cefcb RunID 01a11ed7-467b-7256-9805-695ef72f2d76 Attempt 1 ActivityID 7 ActivityType ProcessGoalPlanningActivity
+2026/10/09 12:06:27 INFO capability lifecycle capability=goal_planner.query call_id=joint-planner-1 type=query surface=goal_planner required_context=[] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/10/09 12:06:27 INFO capability lifecycle capability=goal_planner.query call_id=joint-planner-2 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_joint_test.go:369: JOINT_PLANNER_EVIDENCE actual_Temporal_Worker=true Redis=true planner_calls=3 empty_reason_persisted=true
+    goal_joint_test.go:370: JOINT_EVIDENCE goal=goal_owner_c72cd9bdd8a9ecaadac0d22a4db3a5e9 request=goal_evaluation_4300da31c2d165a098afdd99c095afab Redis_stream=goal-joint-events:goal_joint_1791518782742428000 assessments=2 resolutions=1
+2026/10/09 12:06:27 INFO  Stopped Worker Namespace default TaskQueue lifecycle WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:27 INFO  Stopped Worker Namespace default TaskQueue lifecycle-critical WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:27 INFO  Stopped Worker Namespace default TaskQueue media WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:27 INFO  Stopped Worker Namespace default TaskQueue interaction WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+2026/10/09 12:06:27 INFO  Stopped Worker Namespace default TaskQueue visual-identity WorkerID 87176@MacBook-Pro-16.local@ BuildID platform-v1
+--- PASS: TestGoalJointPostgresRedisTemporalWorkerRestart (5.04s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/test/integration	5.403s

@@ -80,6 +80,7 @@ type ContextProjection struct {
 	TriggerPreferences     []map[string]any              `json:"trigger_preferences"`
 	VisualIdentity         map[string]any                `json:"visual_identity"`
 	EffectiveAppearance    map[string]any                `json:"effective_appearance,omitempty"`
+	GoalPolicy             map[string]any                `json:"goal_policy,omitempty"`
 	Goals                  []map[string]any              `json:"goals,omitempty"`
 	Intentions             []map[string]any              `json:"intentions,omitempty"`
 	RecentOutcomes         []map[string]any              `json:"recent_outcomes,omitempty"`
@@ -375,6 +376,10 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	goalPolicy, err := readGoalPolicyWith(ctx, a.DB.Pool(), fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
 	projection := ContextProjection{
 		SchemaVersion: "fluctlight.context.v2", AsOf: formatInstant(projectionAt), ReferenceTimezone: stringValue(lifeContext["timezone"]),
 		FluctlightID: fluctlightID, OwnerActorID: actorID, ConversationID: conversationID, SourceFactID: sourceFactID,
@@ -394,7 +399,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		Hypotheses:   hypotheses,
 		Capabilities: capabilityDefinitionMaps(a.capabilityRegistry().Definitions()),
 		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity, EffectiveAppearance: effectiveAppearance,
-		Goals: goals, Intentions: intentions, RecentOutcomes: recentOutcomes, ActiveActivities: activeActivities,
+		GoalPolicy: goalPolicy, Goals: goals, Intentions: intentions, RecentOutcomes: recentOutcomes, ActiveActivities: activeActivities,
 	}
 	if presence, ok := lifeContext["presence"].(map[string]any); ok {
 		projection.Presence = presence

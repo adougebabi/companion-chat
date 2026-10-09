@@ -178,10 +178,512 @@
           "items"
         ]
       },
+      "BrowserGoalSet": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "revision": {
+            "type": "integer"
+          },
+          "facts_revision": {
+            "type": "string"
+          },
+          "active_count": {
+            "type": "integer"
+          },
+          "max_active_goals": {
+            "type": "integer"
+          },
+          "auto_planning_enabled": {
+            "type": "boolean"
+          },
+          "ordering_mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ]
+          },
+          "capacity_violation": {
+            "type": "boolean"
+          },
+          "goals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrowserGoal"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "revision",
+          "facts_revision",
+          "active_count",
+          "max_active_goals",
+          "auto_planning_enabled",
+          "ordering_mode",
+          "capacity_violation",
+          "goals",
+          "dependencies"
+        ]
+      },
+      "BrowserGoalSetCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "type": "integer"
+          },
+          "expectedFactsRevision": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "autoPlanningEnabled": {
+            "type": "boolean"
+          },
+          "orderingMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ]
+          },
+          "maxActiveGoals": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "order": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "recoveryPolicy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "merge_window_seconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 60
+              },
+              "retry_backoff_seconds": {
+                "type": "integer",
+                "minimum": 5,
+                "maximum": 3600
+              },
+              "max_attempts": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "lease_seconds": {
+                "type": "integer",
+                "minimum": 60,
+                "maximum": 600
+              },
+              "candidate_limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20
+              }
+            },
+            "required": [
+              "merge_window_seconds",
+              "retry_backoff_seconds",
+              "max_attempts",
+              "lease_seconds",
+              "candidate_limit"
+            ]
+          },
+          "sourceReviews": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "reviewedGoalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "expectedFactsRevision",
+          "idempotencyKey",
+          "reason"
+        ]
+      },
+      "BrowserActorContext": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "actor_id": {
+            "type": "string"
+          },
+          "context_version": {
+            "type": "string"
+          },
+          "background": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "occupation": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "background": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "location_scope": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "location": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "timezone": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "relationship_distance": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "meeting_confirmed": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "interests": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "preferences": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "facts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "relationship_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "actor_id",
+          "context_version",
+          "background",
+          "facts",
+          "history",
+          "relationships",
+          "relationship_history"
+        ]
+      },
+      "BrowserActorContextUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedContextVersion": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "correct",
+              "change"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "background": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "occupation": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "background": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "location_scope": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "location": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "timezone": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "relationship_distance": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "meeting_confirmed": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "interests": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "preferences": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "expectedContextVersion",
+          "idempotencyKey",
+          "operation",
+          "reason",
+          "background"
+        ]
+      },
       "BrowserGoalCommand": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "targetActorId": {
+            "type": "string"
+          },
+          "ownerProtected": {
+            "type": "boolean"
+          },
+          "candidateOnly": {
+            "type": "boolean"
+          },
           "reviewPolicy": {
             "type": "object",
             "additionalProperties": false,
@@ -867,6 +1369,30 @@
                     "type": "null"
                   }
                 ]
+              },
+              "interests": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "preferences": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             }
           }
@@ -971,6 +1497,30 @@
                 "anyOf": [
                   {
                     "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "interests": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "preferences": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
                   },
                   {
                     "type": "null"
@@ -1106,6 +1656,30 @@
                 "anyOf": [
                   {
                     "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "interests": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "preferences": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
                   },
                   {
                     "type": "null"
@@ -2303,6 +2877,145 @@
     "/api/diagnostics/workflows/{workflowId}/restart": {
       "post": {
         "operationId": "restartWorkflow"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/goal-set": {
+      "get": {
+        "operationId": "goalSet",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserGoalSet"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateGoalSet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserGoalSetCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserGoalSet"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/goal-planning": {
+      "get": {
+        "operationId": "goalPlanningHistory",
+        "responses": {
+          "200": {
+            "description": "Recent planning runs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "requestGoalPlanning",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "idempotencyKey"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Planning requested",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/actor-context/{actorId}": {
+      "get": {
+        "operationId": "actorContext",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserActorContext"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateActorContext",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserActorContextUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserActorContext"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/fluctlights/{fluctlightId}/actor-user-background": {

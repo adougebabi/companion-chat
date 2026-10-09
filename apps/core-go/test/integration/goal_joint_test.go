@@ -153,20 +153,51 @@ func TestGoalJointPostgresRedisTemporalWorkerRestart(t *testing.T) {
 	if _, err := repo.Pool().Exec(ctx, `DELETE FROM public.platform_workflow_intents WHERE intent_type<>'goal.evaluate'`); err != nil {
 		t.Fatal(err)
 	}
+	var plannerCalls atomic.Int32
 	var calls atomic.Int32
 	firstFailure := make(chan struct{}, 1)
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
-		if calls.Add(1) == 1 {
-			firstFailure <- struct{}{}
-			w.WriteHeader(503)
-			_, _ = w.Write([]byte(`{"error":{"message":"controlled temporary assessment failure"}}`))
-			return
-		}
 		var wire map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&wire); err != nil {
 			t.Error(err)
 			w.WriteHeader(500)
+			return
+		}
+		format, _ := wire["response_format"].(map[string]any)
+		schema, _ := format["json_schema"].(map[string]any)
+		if schema["name"] == "goal_planner_v1" {
+			n := plannerCalls.Add(1)
+			message := map[string]any{"role": "assistant"}
+			if n <= 2 {
+				section := "snapshot"
+				if n == 2 {
+					section = "history"
+				}
+				args, _ := json.Marshal(map[string]any{"section": section})
+				message["tool_calls"] = []any{map[string]any{"id": fmt.Sprint("joint-planner-", n), "type": "function", "function": map[string]any{"name": "goal_planner.query", "arguments": string(args)}}}
+			} else {
+				actualResults := 0
+				for _, raw := range wire["messages"].([]any) {
+					m, _ := raw.(map[string]any)
+					if m["role"] == "tool" {
+						actualResults++
+					}
+				}
+				if actualResults < 2 {
+					t.Error("Planner did not consume query results after Worker recovery")
+				}
+				output, _ := json.Marshal(map[string]any{"decision": "no_viable_candidate", "reason": "空白实例没有新方向，表达已完成且未收到关系接受", "review_condition": "新的真实兴趣或关系事实", "suggestions": []any{}})
+				message["content"] = string(output)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": message}}})
+			return
+		}
+		if calls.Add(1) == 1 {
+			firstFailure <- struct{}{}
+			w.WriteHeader(503)
+			_, _ = w.Write([]byte(`{"error":{"message":"controlled temporary assessment failure"}}`))
 			return
 		}
 		messages, _ := wire["messages"].([]any)
@@ -179,7 +210,7 @@ func TestGoalJointPostgresRedisTemporalWorkerRestart(t *testing.T) {
 				break
 			}
 		}
-		goals, _ := input["goals"].([]any)
+		goals, _ := input["goal_states"].([]any)
 		sources, _ := input["sources"].([]any)
 		if len(goals) != 1 {
 			t.Errorf("assessment omitted original Goal: %#v", input)
@@ -187,12 +218,14 @@ func TestGoalJointPostgresRedisTemporalWorkerRestart(t *testing.T) {
 			return
 		}
 		g := goals[0].(map[string]any)
-		criteria := g["criteria"].([]any)
-		criterion := criteria[0].(map[string]any)
+		properties := schema["schema"].(map[string]any)["properties"].(map[string]any)
+		evalProps := properties["evaluations"].(map[string]any)["items"].(map[string]any)["properties"].(map[string]any)
+		judgmentProps := evalProps["judgments"].(map[string]any)["items"].(map[string]any)["properties"].(map[string]any)
+		criterionRef := judgmentProps["criterion_ref"].(map[string]any)["enum"].([]any)[0]
 		proof := ""
 		for _, value := range sources {
 			s := value.(map[string]any)
-			if s["kind"] == "message" && s["subject_actor_id"] == fluctlightID {
+			if s["kind"] == "message" && s["subject_actor_ref"] == "actor_self" {
 				proof, _ = s["ref"].(string)
 			}
 		}
@@ -201,7 +234,7 @@ func TestGoalJointPostgresRedisTemporalWorkerRestart(t *testing.T) {
 			w.WriteHeader(500)
 			return
 		}
-		output := map[string]any{"evaluations": []any{map[string]any{"goal_id": g["goal_id"], "expected_revision": g["revision"], "criteria_version": g["criteria_version"], "judgments": []any{map[string]any{"criterion_id": criterion["id"], "verdict": "satisfied", "kind": "communication", "subject": "actor_self", "discourse": "assertion", "evidence_refs": []string{proof}, "reason": "真实已落库表达"}}, "impact": "completed", "blocker": "", "wait_condition": "", "next_step": "", "residual_motivation": ""}}, "plans": []any{}}
+		output := map[string]any{"evaluations": []any{map[string]any{"goal_ref": g["goal_ref"], "judgments": []any{map[string]any{"criterion_ref": criterionRef, "verdict": "satisfied", "kind": "communication", "subject": "actor_self", "discourse": "assertion", "evidence_refs": []string{proof}, "reason": "真实已落库表达"}}, "impact": "completed", "blocker": "", "wait_condition": "", "next_step": "", "residual_motivation": ""}}, "plans": []any{}}
 		encoded, _ := json.Marshal(output)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"role": "assistant", "content": string(encoded)}}}})
@@ -210,7 +243,7 @@ func TestGoalJointPostgresRedisTemporalWorkerRestart(t *testing.T) {
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status) VALUES('joint-provider','openai_compatible',$1,'fixture-unused','ready')`, provider.URL); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment','joint-provider','scripted','structured_output',4096,15,'{}')`); err != nil {
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment','joint-provider','scripted','structured_output,tool_calling',4096,15,'{}')`); err != nil {
 		t.Fatal(err)
 	}
 	temporalClient, err := client.Dial(client.Options{HostPort: temporalAddr, Namespace: "default"})
@@ -319,6 +352,21 @@ func TestGoalJointPostgresRedisTemporalWorkerRestart(t *testing.T) {
 	if err := repo.Pool().QueryRow(ctx, `SELECT status FROM public.goal_evaluation_requests WHERE id=$1`, requestID).Scan(&requestStatus); err != nil || requestStatus != "succeeded" {
 		t.Fatalf("assessment not settled %s %v", requestStatus, err)
 	}
+	if _, err := app.RepairGoalPlanning(ctx, 20); err != nil {
+		t.Fatal(err)
+	}
+	awaitGoalJoint(t, ctx, func() bool {
+		if _, err := dispatcher.DispatchOnce(ctx, 10); err != nil {
+			t.Fatal(err)
+		}
+		var count int
+		_ = repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status='succeeded' AND result->>'decision'='no_viable_candidate'`, fluctlightID).Scan(&count)
+		return count == 1
+	})
+	if plannerCalls.Load() != 3 {
+		t.Fatalf("Planner Worker loop physical calls=%d want3", plannerCalls.Load())
+	}
+	t.Logf("JOINT_PLANNER_EVIDENCE actual_Temporal_Worker=true Redis=true planner_calls=%d empty_reason_persisted=true", plannerCalls.Load())
 	t.Logf("JOINT_EVIDENCE goal=%s request=%s Redis_stream=%s assessments=%d resolutions=%d", goalID, requestID, publisher.Stream, calls.Load(), resolutions)
 }
 func awaitGoalJoint(t *testing.T, ctx context.Context, predicate func() bool) {

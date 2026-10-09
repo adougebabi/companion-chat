@@ -12,6 +12,7 @@ boundaries described below.
 | Guide | Use it for |
 | --- | --- |
 | [Directory Structure](./directory-structure.md) | Adding routes, helpers, or runtime assets |
+| [Independent Goal Planner](./goal-planner-contract.md) | Set capacity, native Planner, Actor edits, policy/fact fences, scope-safe events, migration and acceptance |
 | [Goal/Life Consistency](./goal-life-consistency-contract.md) | Actor facts, business time, acquisition/use, cumulative summary, repair and diagnostic paging |
 | [Quality Guidelines](./quality-guidelines.md) | Safe changes and verification |
 | [Fluctlight API Contract](./fluctlight-api-contract.md) | Go HTTP/OpenAPI boundary, generated/reference clients, NDJSON streaming, cancellation, errors, health, and framework isolation |

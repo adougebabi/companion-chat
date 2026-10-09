@@ -99,6 +99,9 @@ func TestEvolutionAuthorityMigrationEnforcesClosedRows(t *testing.T) {
 	if err := New(pool).Apply(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES('fl-owner','human','active'),('fl','fluctlight','active'); INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES('fl','fl-owner','blank_slate','active','{}','{}','{}','{}','{}','{}')`); err != nil {
+		t.Fatal(err)
+	}
 	digest := strings.Repeat("a", 32)
 	if _, err := pool.Exec(ctx, `INSERT INTO public.fluctlight_goals(id,fluctlight_id,profile_id,source,scope,description,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,status,evidence_refs,revision,idempotency_key,request_digest) VALUES('goal-v2','fl','default','reflection','general','finish','finish','["done"]','motivation',false,'0.8','0.6','0','active','["fact"]',1,'goal-v2',$1)`, digest); err != nil {
 		t.Fatalf("valid Goal rejected: %v", err)

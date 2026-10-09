@@ -20,20 +20,8 @@ func applyReflectionGoalCandidatesV2Tx(ctx context.Context, tx pgx.Tx, fluctligh
 		candidate := proposal.GoalCandidates[candidatePlan.Index]
 		operation := GoalLifecycleOperation(candidate.Operation)
 		commandKey := fmt.Sprintf("reflection:%s:goal:%d", plan.ProposalID, candidatePlan.Index)
-		if operation == GoalCreate {
-			entityID := "goal_reflection_" + stableDigest(commandKey)
-			goal := GoalAuthority{
-				EntityID: entityID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(entityID),
-				FluctlightID: fluctlightID, ProfileID: activeEvolutionProfile(index), DesiredOutcome: candidate.DesiredOutcome,
-				SuccessCriteria: append([]string(nil), candidate.SuccessCriteria...), Motivation: candidate.Motivation, Scope: "general",
-				Importance: clampUnit(candidate.Strength), Urgency: clampUnit(candidate.Strength), Progress: 0,
-				NeedsReflection: len(candidate.SuccessCriteria) == 0, Status: GoalActive, Revision: 1, EvidenceRefs: candidate.EvidenceRefs,
-			}
-			created, record, err := CreateGoalAuthority(goal, candidate.EvidenceRefs, occurredAt)
-			if err != nil {
-				return err
-			}
-			if _, err := persistGoalAuthorityTx(ctx, tx, nil, created, record, commandKey); err != nil {
+		if operation == GoalCreate || operation == GoalResume {
+			if err := requestGoalPlanningTx(ctx, tx, fluctlightID, commandKey, "reflection_wish", map[string]any{"proposal": candidate}); err != nil {
 				return err
 			}
 			continue

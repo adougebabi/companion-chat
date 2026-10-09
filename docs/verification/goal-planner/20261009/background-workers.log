@@ -1,0 +1,12 @@
+=== RUN   TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce
+--- PASS: TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce (1.42s)
+=== RUN   TestBackgroundReflectionLastChatThirtyMinutesAndReplayDoesNotReopen
+--- PASS: TestBackgroundReflectionLastChatThirtyMinutesAndReplayDoesNotReopen (1.19s)
+=== RUN   TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending
+--- PASS: TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending (1.31s)
+=== RUN   TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark
+--- PASS: TestBackgroundSilentHistoryDoesNotCallModelOrAdvanceGoalWatermark (1.39s)
+=== RUN   TestBackgroundNewCognitionCancelsRunningProviderAndRejectsLateWatermark
+--- PASS: TestBackgroundNewCognitionCancelsRunningProviderAndRejectsLateWatermark (0.90s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.872s

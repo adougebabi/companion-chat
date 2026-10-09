@@ -87,6 +87,7 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["editable_actor_ids"] = []string{actorID}
 	detail["goals"] = goals
 	detail["intentions"] = intentions
 	detail["relationships"], err = a.readRelationships(ctx, fluctlightID, actorID)
