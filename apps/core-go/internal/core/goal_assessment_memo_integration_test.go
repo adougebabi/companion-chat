@@ -15,8 +15,11 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 	goalID := createDialogueGoalForClosure(t, f, []string{"receive one actual relevant response"})
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-memo-provider-"+f.suffix)
 	modelCalls := 0
-	router := newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
 		modelCalls++
+		if value, present := payload["enable_thinking"]; !present || value != false {
+			t.Fatal("production Goal Evaluation entry must explicitly disable thinking", value)
+		}
 		snapshot := readProcessingGoalSnapshot(t, f)
 		evaluations := make([]GoalEvaluationCandidate, 0, len(snapshot.Goals))
 		for _, entry := range snapshot.Goals {

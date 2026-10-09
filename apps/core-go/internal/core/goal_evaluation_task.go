@@ -74,7 +74,14 @@ func goalEvaluationResponseSchema(binding *goalEvaluationWireBinding) map[string
 		evaluations = append(evaluations, evaluation)
 		plans = append(plans, mapValue(mapValue(properties["plans"])["items"]))
 	}
-	return objectSchema(map[string]any{"evaluations": arraySchema(goalSchemaAlternatives(evaluations)), "plans": arraySchema(goalSchemaAlternatives(plans))}, []string{"evaluations", "plans"}, false)
+	// Cardinality belongs in the physical response contract as well as hydration:
+	// a syntactically valid result for only the first Goal is not a final answer.
+	evaluationArray := arraySchema(goalSchemaAlternatives(evaluations))
+	evaluationArray["minItems"] = len(evaluations)
+	evaluationArray["maxItems"] = len(evaluations)
+	planArray := arraySchema(goalSchemaAlternatives(plans))
+	planArray["maxItems"] = len(plans)
+	return objectSchema(map[string]any{"evaluations": evaluationArray, "plans": planArray}, []string{"evaluations", "plans"}, false)
 }
 func goalSchemaAlternatives(variants []any) map[string]any {
 	if len(variants) == 1 {
@@ -219,7 +226,9 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderCorrelation(WithProviderScenario(ctx, "goal_evaluation"), input.RequestID), assembly.Diagnostics)
 	run, err := runGoalEvaluationWithCorrection(input, binding, assembly.Messages, func(messages []map[string]any) (ADKStructuredTaskResult, error) {
-		return a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, messages, nil, "goal_evaluation_v1", schema, true, nil)
+		// Keep the bounded completion reserve available for all Goals' final JSON.
+		// Reasoning sidecars are diagnostic only and cannot settle omitted Goals.
+		return a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, messages, nil, "goal_evaluation_v1", schema, false, nil)
 	})
 
 	return ProjectionTaskResult{Completion: run.Completion, Projection: refreshed, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err

@@ -123,3 +123,14 @@ Go SKIP 来自未配置隔离 PostgreSQL/真实 Provider 等 opt-in 环境，不
 本地最终验证：Go race 1374 PASS、490 SKIP、0 FAIL（含子用例）；Go vet/build、pnpm generate/typecheck/test/build、git diff --check 通过；Web/client 共 98 PASS。独立只读核验无 findings。SKIP/真实数据库/真实模型/正式部署仍由用户验收。当前 codex/goal-evaluation-output-recovery 未提交。
 
 正式验收：升级 Core/Worker/Web 后，在诊断打开 Goal Evaluation，分别核对模型 response 与“目标评估提交”。合法输出成功提交时，在 result.goal_outcomes 查看实际 status；引用错误经纠正仍无效时应显示明确失败/error_code。使用新的相关证据或 Owner 明确复核重新触发历史失败目标；本轮未手工改写正式目标状态。
+
+
+## 部署环境继续失败：覆盖数量与 thinking（2026-10-09）
+
+用户授权浏览器检查环境。实际诊断中 goal_review_event_120 和 goal_review_event_122 提交 failed/goal_assessment_coverage_missing；四目标输入只返回 goal:1，纠正后仍缺其余目标。确认已上线提交诊断，并非仅显示未刷新。Reasoning sidecar较长且中断，但没有 finish_reason/usage，不宣称已证实 token 耗尽。
+
+补修：evaluations minItems/maxItems 等于 offered count，plans 最大数量同 count；Goal Evaluation 关闭 thinking，实际 direct/ADK HTTP 明确发送 enable_thinking=false，避免省略字段导致服务器默认启用。保留总 output reserve、其他 Agent策略、所有权/CAS/批次事务；无 migration。Schema 数量回归 RED→GREEN，HTTP/ADK 修复回归通过。生产入口 thinking 断言补入数据库集成测试，未配置隔离数据库时仍 SKIP。
+
+本地 Go race 1378 PASS/490 SKIP/0 FAIL（含子用例），vet/build/typecheck 通过；正式状态仅只读检查，未部署、未写业务数据。最新补修未提交。
+
+补修最终检查：Web/client 98 PASS，production build 通过；git diff --check 通过。独立核验未发现产品正确性缺陷，提出 production call-site 测试缺口，已在现有 PostgreSQL 集成测试补断言（本机 SKIP）。

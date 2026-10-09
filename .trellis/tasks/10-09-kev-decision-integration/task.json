@@ -12,7 +12,7 @@
   "assignee": "adoumibaba",
   "createdAt": "2026-10-09",
   "completedAt": null,
-  "branch": "codex/goal-evaluation-output-recovery",
+  "branch": "master",
   "base_branch": "master",
   "worktree_path": null,
   "commit": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "Goal Evaluation 输出所有权/schema、完整替换纠正、terminal 分类与提交诊断修复完成。本地 Go race 1374 PASS/490 SKIP/0 FAIL，Web/client 98 PASS；真实环境用户验收，本轮未提交。",
+  "notes": "继续反馈：浏览器实查覆盖缺失 failed；补齐 Goal 评估数量 schema 和显式关闭 thinking。本地 Go race 1378 PASS/490 SKIP/0 FAIL，Web/client 98 PASS；生产只读检查，修复未部署未提交。",
   "meta": {}
 }

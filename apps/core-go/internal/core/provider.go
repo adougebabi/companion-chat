@@ -849,6 +849,8 @@ func providerChatPayloadWithSchema(model string, messages []map[string]any, toke
 	}
 	if enableThinking {
 		payload["enable_thinking"] = true
+	} else if schemaName == "goal_evaluation_v1" {
+		payload["enable_thinking"] = false
 	}
 	return payload
 }

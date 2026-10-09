@@ -1074,3 +1074,33 @@ TestGoalEvaluationSchemaCannotAdvertiseOtherGoalsStage proves cross-goal alterna
 ### 7. Wrong vs Correct
 Wrong: show completed model status as proof of Goal completion; expose a global union of Stage refs to every Goal.
 Correct: show the domain request outcome separately, and offer only references owned by each selected goal_ref.
+
+
+## Scenario: Incomplete Goal batch under bounded thinking output (2026-10-09)
+
+### 1. Scope / Trigger
+Deployed response inspection showed four offered Goals but only goal:1 in both initial and replacement evaluations; domain request failed goal_assessment_coverage_missing. Reasoning sidecar discussed remaining Goals but is not authoritative DTO content. The UI did not expose finish_reason/usage, so token exhaustion is a hypothesis, not a verified production cause.
+
+### 2. Signatures
+`goalEvaluationResponseSchema(binding)` sets evaluations.minItems/maxItems to offered Goal count and plans.maxItems to that count. `RunGoalEvaluationTask` passes enableThinking=false. Direct/ADK Eino ExtraFields and providerChatPayloadWithSchema explicitly send enable_thinking=false for goal_evaluation_v1 when not enabled.
+
+### 3. Contracts
+Missing evaluations fail formal schema validation before hydration, allowing existing ADK final-contract repair to request a complete result. Hydration still rejects duplicate/foreign refs; exact array length alone does not prove uniqueness. Goal Evaluation explicitly disables server-default thinking so reasoning does not compete for the bounded final JSON reserve. No global token budget increase or changes to other Agent thinking policies. No salvage of a valid sibling from an invalid atomic batch.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| evaluations shorter/longer than offered count | minItems/maxItems rejection at formal schema boundary |
+| Correct length but repeated goal_ref | existing wire duplicate/scope rejection |
+| Server defaults thinking on | Goal Evaluation explicitly sends false |
+| Complete replacement after ADK repair | Revalidate, then hydrate and settle atomically |
+
+### 5. Good / Base / Bad Cases
+Good: four offered Goals produce four evaluations, including waiting Goals. Base: one offered Goal produces exactly one. Bad: one completed Goal evaluation plus a plan for another Goal; plans do not satisfy coverage.
+
+### 6. Tests Required
+TestGoalEvaluationSchemaRejectsMissingGoalBeforeHydration covers full/missing/excess arrays (RED→GREEN). TestGoalEvaluationPhysicalContractDisablesThinkingAndRepairsMissingGoal captures actual direct/ADK HTTP schema and thinking false; ADK receives an incomplete result then a complete repair. Existing PostgreSQL memo integration asserts thinking false through the production Goal Evaluation entry (opt-in; SKIP without database).
+
+### 7. Wrong vs Correct
+Wrong: rely only on prompt prose to require all Goals, or omit enable_thinking and assume the server disables it.
+Correct: enforce count in the transmitted schema, explicitly disable Goal Evaluation thinking, and retain full semantic ownership/coverage validation before commit.

@@ -1,9 +1,16 @@
 package core
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func twoGoalWireSnapshot() goalEvaluationSnapshot {
@@ -113,5 +120,85 @@ func TestGoalEvaluationSchemaCannotAdvertiseOtherGoalsStage(t *testing.T) {
 	criteria := arrayValue(mapValue(mapValue(mapValue(mapValue(properties["judgments"])["items"])["properties"])["criterion_ref"])["enum"])
 	if len(criteria) != 1 || criteria[0] != "criterion:2.1" {
 		t.Fatal("cross-Goal criterion selection", criteria)
+	}
+}
+
+func TestGoalEvaluationSchemaRejectsMissingGoalBeforeHydration(t *testing.T) {
+	input := twoGoalWireSnapshot()
+	binding, err := newGoalEvaluationWireBinding(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evaluations := []GoalEvaluationCandidate{}
+	for _, entry := range input.Goals {
+		evaluations = append(evaluations, GoalEvaluationCandidate{GoalID: entry.GoalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: effectiveGoalCriteriaVersion(entry.Goal), Impact: "needs_evidence", Judgments: []GoalCriterionJudgment{}})
+	}
+	valid := goalEvaluationProviderFixture(input, GoalEvaluationTaskOutput{Evaluations: evaluations, Plans: []GoalPlanCandidate{}})
+	schema := goalEvaluationResponseSchema(binding)
+	if err := capabilitycontract.ValidateCapabilitySchemaValue(valid, schema); err != nil {
+		t.Fatal("complete batch rejected", err)
+	}
+	incomplete := decodeObject(jsonBytes(valid))
+	incomplete["evaluations"] = arrayValue(incomplete["evaluations"])[:1]
+	if err := capabilitycontract.ValidateCapabilitySchemaValue(incomplete, schema); err == nil {
+		t.Fatal("one-goal response accepted for a two-goal input")
+	}
+	excess := decodeObject(jsonBytes(valid))
+	excess["evaluations"] = append(arrayValue(excess["evaluations"]), arrayValue(valid["evaluations"])[0])
+	if err := capabilitycontract.ValidateCapabilitySchemaValue(excess, schema); err == nil {
+		t.Fatal("excess evaluations accepted")
+	}
+}
+
+func TestGoalEvaluationPhysicalContractDisablesThinkingAndRepairsMissingGoal(t *testing.T) {
+	input := twoGoalWireSnapshot()
+	binding, _ := newGoalEvaluationWireBinding(input)
+	schema := goalEvaluationResponseSchema(binding)
+	items := []any{}
+	for _, ref := range sortedGoalBindingRefs(binding.goalsByRef) {
+		items = append(items, map[string]any{"goal_ref": ref, "judgments": []any{}, "impact": "needs_evidence", "blocker": "", "wait_condition": "wait", "next_step": "wait", "residual_motivation": ""})
+	}
+	for _, adk := range []bool{false, true} {
+		t.Run(map[bool]string{false: "direct", true: "adk"}[adk], func(t *testing.T) {
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				var payload map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+					t.Error(err)
+				}
+				if value, present := payload["enable_thinking"]; !present || value != false {
+					t.Error("Goal evaluation must explicitly disable server-default thinking", value)
+				}
+				physicalSchema := mapValue(mapValue(mapValue(payload["response_format"])["json_schema"])["schema"])
+				if intValue(mapValue(mapValue(physicalSchema["properties"])["evaluations"])["minItems"]) != 2 {
+					t.Error("physical schema lost complete-Goal cardinality")
+				}
+				output := map[string]any{"evaluations": items, "plans": []any{}}
+				if adk && calls == 1 {
+					output["evaluations"] = items[:1]
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(output)}}}})
+			}))
+			defer server.Close()
+			ctx := context.Background()
+			if adk {
+				trace := &ADKCapabilityTrace{}
+				ctx = WithADKCapabilityInvoker(ctx, adkTraceInvoker{trace: trace}, trace)
+			}
+			p := &ProviderClient{HTTP: server.Client()}
+			response, err := p.generateWithEino(ctx, EinoModelCall{Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 4096}, Role: "cognitive_assessment", Scenario: "goal_evaluation", Messages: []map[string]any{{"role": "user", "content": "Evaluate every offered goal"}}, JSONMode: true, SchemaName: "goal_evaluation_v1", ResponseSchema: schema, ProviderRequestID: "provider-goal", CorrelationID: "goal-request"})
+			if err != nil || response.Message == nil {
+				t.Fatal("complete replacement failed", err)
+			}
+			wantCalls := 1
+			if adk {
+				wantCalls = 2
+			}
+			if calls != wantCalls {
+				t.Fatal("unexpected repair count", calls)
+			}
+		})
 	}
 }
