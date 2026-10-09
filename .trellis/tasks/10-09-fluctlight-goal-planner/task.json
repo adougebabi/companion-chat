@@ -15,12 +15,12 @@
   "branch": "codex/fluctlight-goal-planner-20261009",
   "base_branch": "master",
   "worktree_path": null,
-  "commit": null,
+  "commit": "9feec97",
   "pr_url": null,
   "subtasks": [],
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "实现已提交；全仓/并发/HTTP/Web及真实Worker验证见交付报告。真实Provider未配置及矩阵未完成组合保留，任务不归档。",
   "meta": {}
 }

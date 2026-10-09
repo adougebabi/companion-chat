@@ -4,6 +4,7 @@
 
 ## 1. 基线与工作区
 
+- 实现提交：`9feec97`（`feat(goal): integrate independent planner and governed goal sets`），分支 `codex/fluctlight-goal-planner-20261009`；仅本地提交。
 - 实际初始 HEAD：`71f6066febe068e8eae028e97e4fe409747bf149`，原分支 master；初始工作区干净。
 - 没有切换/回退历史定位 `ee1e468`。没有清空生产库、读取生产私聊或删除用户容器/卷。
 - 用户的“上一轮能完成”是需求背景，不是自动化通过证据。实际基线使用随机隔离 PG，逐子场景运行：
