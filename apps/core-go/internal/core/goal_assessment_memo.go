@@ -428,7 +428,7 @@ func settleSkippedGoalAssessment(ctx context.Context, app *App, snapshot goalEva
 		}
 		if len(snapshot.DeferredGoalIDs) == 0 {
 			var remaining bool
-			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND processed_at IS NULL)`, snapshot.FluctlightID, snapshot.ProfileID).Scan(&remaining); err != nil {
+			if err := tx.QueryRow(ctx, pendingLinkedGoalSourceSQL, snapshot.FluctlightID, snapshot.ProfileID).Scan(&remaining); err != nil {
 				return err
 			}
 			if remaining {

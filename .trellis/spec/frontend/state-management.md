@@ -447,3 +447,11 @@ and explicitly includes complete=false/next_cursor if capped at 10000 records.
 Render raw diagnostics through text bindings/pre; never v-html. Show the selected
 IANA timezone. New filters reset only Kev pages; another diagnostic loader must
 not overwrite this source's server snapshot.
+
+## Navigation declaration is the section authority
+
+App URL parsing and active-section selection use isSettingsSection/isDiagnosticsSection,
+which derive directly from settingsSections/diagnosticsSections. Never maintain a
+second list of string IDs in App.vue: a new sidebar item can otherwise disappear
+on click or refresh. kev-routing.test.mjs executes the actual App parser/computed
+expressions for both Kev sections; adding a section must preserve both paths.

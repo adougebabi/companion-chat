@@ -99,3 +99,7 @@ I1 是 schema/人格关键风险点；I2 是可靠记录与 config race；I3 是
 ## 本轮交付状态
 
 七点实现、设置/诊断/配置命令已交付。两轮只读核验提出的取消、spool、权限/批次问题由主线程修复；新增原生 Generate/Stream 回归发现并修复丢弃提案的内层 callback 泄漏。最终本地 race/vet/build/generate/typecheck/test/build 均通过；证据与正式操作见 docs/kev-integration-report.md。正式数据库/模型/部署验收按用户要求留待其执行。产品代码尚未提交，等待 Phase 3.4 的一次提交确认；未运行 archive/finish，不改变其他任务。
+
+## 正式反馈修复交付
+
+App URL/computed 路由回归 4 RED→GREEN；无新证据 candidate 入队回归 RED→GREEN。0057 PostgreSQL 逻辑运行租约在 6 个入口快照前接入，withTransaction 提交 fence；重入、跨 owner、取消、过期释放回归通过。独立只读核验未发现确定的新 lease/deadlock/时序问题。Go race 1370 PASS/490 SKIP/0 FAIL，Web/client 98 PASS，类型/vet/build 通过。真实数据库验收仍由用户执行。当前分支 codex/kev-runtime-recovery，产品改动未提交。

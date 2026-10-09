@@ -340,6 +340,16 @@ func (a *App) RequestGoalPlanning(ctx context.Context, actor, owner, key string)
 	return map[string]any{"status": "requested", "idempotency_key": key}, err
 }
 func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[string]any, error) {
+	var logicalOwner string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id FROM public.goal_planning_runs WHERE id=$1`, id).Scan(&logicalOwner); err != nil {
+		return nil, err
+	}
+	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, logicalOwner, "goal_planner")
+	if logicalErr != nil {
+		return nil, logicalErr
+	}
+	defer releaseLogical()
+
 	var owner, actor, profile, mode string
 	var leaseSeconds, maxAttempts, retrySeconds int
 	var fence int

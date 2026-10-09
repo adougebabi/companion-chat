@@ -519,6 +519,12 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 }
 
 func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID string) (map[string]any, error) {
+	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, fluctlightID, "reflection")
+	if logicalErr != nil {
+		return nil, logicalErr
+	}
+	defer releaseLogical()
+
 	// Reflection is the evidence-windowed learning pass over processed
 	// cognition facts. Silent periodic audit is skipped; an unchanged window
 	// never calls the model or substitutes for the periodic wake-up trigger.

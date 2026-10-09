@@ -35,7 +35,7 @@ type goalCapability struct {
 func (c goalCapability) Definition() CapabilityDefinition {
 	fields := map[string]any{"goal_id": stringSchema(), "expected_revision": integerSchema(), "reason": stringSchema()}
 	required := []string{"goal_id", "expected_revision", "reason"}
-	description := "Queue evidence evaluation; receipt is not Goal completion."
+	description := "Queue evaluation for new relevant evidence or changed standards, not every ordinary action. Receipt is not Goal completion. Evaluation runs after this Agent ends; do not poll it within this run."
 	sideEffect, boundary := "native_projection", "goal_evaluation_queued"
 	capabilityType := CapabilityTypeAction
 	if c.name == "goal.inspect" {

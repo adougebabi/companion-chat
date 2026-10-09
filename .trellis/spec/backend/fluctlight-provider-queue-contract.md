@@ -329,3 +329,23 @@ runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent})
   independent queue lifecycles and no lease held across tool execution.
 - Assert cancellation/failure of one physical call releases the slot and does
   not become a successful no-op or block a later request.
+
+## Scenario: Logical runs coordinate mutable Fluctlight facts (0057)
+
+Physical Provider permits remain per-call. Independently, logical_agent_leases
+serializes conversation/native cognition, WakeUp, Reflection, Goal Evaluation and
+Goal Planner for the same Fluctlight from before snapshot/claim to final settlement.
+TryAcquire is atomic in PostgreSQL, leases expire after 3 minutes, renew every 15
+seconds, and token mismatch/renew failure cancels the owner. No transaction or
+physical model permit spans Tool execution. A same-owner nested Agent inherits the
+context token rather than reacquiring. Every application-owned withTransaction
+commit checks the unexpired token with a short FOR SHARE fence; expired takeover
+and old release cannot modify a successor's ownership. Different Fluctlights retain
+concurrency. Existing facts/source/CAS and user lifecycle preemption still apply.
+
+Waiting Goal Evaluation has not claimed its request or consumed attempts. Schema
+0057_logical_agent_leases is additive from 0056_kev_decisions; both Core and Worker
+must be upgraded together. TestLogicalAgentRun* covers multi-round snapshot ordering,
+nesting, cancellation and stale fencing; TestPostgresLogicalAgentRunCoordinatesIndependentApps
+is opt-in actual database acceptance. A per-call queue alone does not prevent one
+logical run's writes from invalidating another run's snapshot.

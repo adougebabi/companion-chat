@@ -18,7 +18,7 @@ Preserve the Eino Runner, GoalEvaluation, Stage/Commitment/Intention and Schedul
 - Native Tools: `goal_planner.query` and `goal_planner.commit`, private surface
   `goal_planner`; FormalAgent `goal_planner`, schema `goal_planner_v1`, 12 cycles.
 - Internal/browser resources: `goal-set`, `goal-planning`, `actor-context/:actorId`.
-- Schema head `0056_kev_decisions` includes the additive Kev adapter. Planner cadence remains `0055_goal_planner_cadence`, additive from released `0054_goal_planner`; the original Planner bundle remains additive from `0053_goal_reconciliation`.
+- Schema head `0057_logical_agent_leases` includes the additive Kev adapter and logical-run coordination. Planner cadence remains `0055_goal_planner_cadence`, additive from released `0054_goal_planner`; the original Planner bundle remains additive from `0053_goal_reconciliation`.
 
 ## 3. Contracts
 

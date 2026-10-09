@@ -280,6 +280,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		user["turn_status"] = "pending"
 		return TurnResult{UserMessage: user, TurnID: turnID, InboxID: inboxID, CorrelationID: "turn:" + turnID}, nil
 	}
+
 	ctx = WithProviderCancellationKey(ctx, inboxID)
 	if claimStream {
 		defer func() {
@@ -288,6 +289,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}()
 	}
+	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, fluctlightID, "conversation")
+	if logicalErr != nil {
+		return TurnResult{}, logicalErr
+	}
+	defer releaseLogical()
 	if callbacks.onActionResult != nil {
 		if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
 			return TurnResult{}, err
@@ -744,6 +750,12 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if cycle < 0 {
 		return nil, errors.New("wake_up_cycle_invalid")
 	}
+	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, fluctlightID, "wakeup")
+	if logicalErr != nil {
+		return nil, logicalErr
+	}
+	defer releaseLogical()
+
 	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
 	cancelled := func() map[string]any {
 		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}
@@ -1082,6 +1094,16 @@ func (a *App) bindIntentionDueFact(ctx context.Context, fluctlightID string, pay
 }
 
 func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) error {
+	logicalOwner, logicalErr := a.logicalRunOwner(ctx, inboxID)
+	if logicalErr != nil {
+		return logicalErr
+	}
+	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, logicalOwner, "native_cognition")
+	if logicalErr != nil {
+		return logicalErr
+	}
+	defer releaseLogical()
+
 	var fluctlightID, eventType, status, errorCode string
 	var payload []byte
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,event_type,payload,status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&fluctlightID, &eventType, &payload, &status, &errorCode); err != nil {

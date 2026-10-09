@@ -36,6 +36,15 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if inboxID == "" {
 		return nil, errors.New("cognition_inbox_id_required")
 	}
+	logicalOwner, logicalErr := a.logicalRunOwner(ctx, inboxID)
+	if logicalErr != nil {
+		return nil, logicalErr
+	}
+	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, logicalOwner, "cognition")
+	if logicalErr != nil {
+		return nil, logicalErr
+	}
+	defer releaseLogical()
 	claimOwner := "go-cognition:" + randomID("worker_")
 	payload, status, err := a.claimCognitionInbox(ctx, inboxID, claimOwner)
 	if err != nil {

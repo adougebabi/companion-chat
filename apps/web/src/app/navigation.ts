@@ -36,3 +36,6 @@ export const primaryNavigation = [
   { id: "settings", label: "设置", icon: "⌘" },
   { id: "diagnostics", label: "诊断中心", icon: "⌁" },
 ] as const satisfies ReadonlyArray<{ id: WorkspaceView; label: string; icon: string }>;
+
+export function isSettingsSection(value: unknown): value is SettingsSection { return settingsSections.some(section=>section.id===value); }
+export function isDiagnosticsSection(value: unknown): value is DiagnosticsSection { return diagnosticsSections.some(section=>section.id===value); }

@@ -84,7 +84,7 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 			return nil
 		}
 		if status == "retry" && time.Now().Before(available) {
-			prior = map[string]any{"status": "deferred"}
+			prior = map[string]any{"status": "deferred", "not_before": available.UTC().Format(time.RFC3339Nano)}
 			return nil
 		}
 		var otherID string
@@ -223,7 +223,7 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		rows, err = tx.Query(ctx, `SELECT id FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND processed_at IS NULL ORDER BY CASE WHEN source_kind='message' THEN 0 ELSE 1 END,recorded_at DESC,id DESC LIMIT 32`, snapshot.FluctlightID, snapshot.ProfileID)
+		rows, err = tx.Query(ctx, `SELECT e.id FROM public.goal_source_events e WHERE e.fluctlight_id=$1 AND ($2='' OR e.profile_id IS NULL OR e.profile_id=$2) AND e.processed_at IS NULL ORDER BY CASE WHEN EXISTS(SELECT 1 FROM public.goal_evidence_links l WHERE l.source_event_id=e.id AND l.goal_id=ANY($3::text[])) THEN 0 ELSE 1 END,CASE WHEN e.source_kind='message' THEN 0 ELSE 1 END,e.recorded_at DESC,e.id DESC LIMIT 32`, snapshot.FluctlightID, snapshot.ProfileID, selectedIDs)
 		if err != nil {
 			return err
 		}
@@ -302,6 +302,16 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 }
 
 func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[string]any, error) {
+	var logicalOwner string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id FROM public.goal_evaluation_requests WHERE id=$1`, id).Scan(&logicalOwner); err != nil {
+		return nil, err
+	}
+	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, logicalOwner, "goal_evaluation")
+	if logicalErr != nil {
+		return nil, logicalErr
+	}
+	defer releaseLogical()
+
 	if err := a.reconcileGoalEvaluationSources(ctx, id); err != nil {
 		return nil, err
 	}
@@ -572,7 +582,7 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		}
 		if len(snapshot.DeferredGoalIDs) == 0 {
 			var remaining bool
-			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.goal_source_events WHERE fluctlight_id=$1 AND ($2='' OR profile_id IS NULL OR profile_id=$2) AND processed_at IS NULL)`, snapshot.FluctlightID, snapshot.ProfileID).Scan(&remaining); err != nil {
+			if err := tx.QueryRow(ctx, pendingLinkedGoalSourceSQL, snapshot.FluctlightID, snapshot.ProfileID).Scan(&remaining); err != nil {
 				return err
 			}
 			if remaining {

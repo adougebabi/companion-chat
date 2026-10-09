@@ -5,7 +5,7 @@
 Kev gates eligible WakeUp, Reflection, Goal assessment/replenishment, permitted
 Tool disclosure, declared persistent persona conditions and optional context.
 This is a selection adapter over existing execution, not an Agent/loop replacement.
-Migration head is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`.
+Kev migration is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`. Current head `0057_logical_agent_leases` serializes mutable logical decisions while retaining physical per-call queue permits.
 
 ## 2. Signatures
 

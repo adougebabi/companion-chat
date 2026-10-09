@@ -80,3 +80,9 @@ Owner-only typed settings section 显示全局/七点、endpoint、版本/生效
 ## 10. 兼容与恢复
 
 Temporal workflow 添加 deferred 分支用项目既有 history/version 规则隔离旧历史；原 completed/noop 结果保持兼容。新 schema 仅显式 migrate 升级，API/Worker readiness 不自动迁移。回滚先全局关闭并验证零调用，保留新增审计/迁移和既有 Tool facts，不数据库降级或重放业务。若技术验收不能满足附件范围，更新计划并报告具体冲突，不用空实现通过。
+
+## 反馈修复：0057 逻辑运行协调
+
+旧 physical queue 契约不变。增加 PostgreSQL logical_agent_leases（Fluctlight PK，owner token，kind，expires_at）：3 分钟有效，15 秒心跳，获取前不建立语义快照；同 actor 嵌套继承 token；withTransaction 提交前短事务锁及 token/expiry fence；释放不得清理继任者。覆盖 conversation/native cognition、WakeUp/Reflection、GoalEvaluation/Planner。Goal Evaluation 等待发生在 claim 前，原 attempt budget 保持。不同 Fluctlight 可并行，独立事实更新仍必须通过 CAS 校验。
+
+新增证据 link 的 RowsAffected 是 conversation_candidate 入队依据，重复/无来源不建请求；真实 outcome 为明确关联 Goal 建 candidate link；source-remainder 只看 active/paused 关联 link/goal revision，保留源存储，不用任意 owner/profile 待处理 source 无条件重排。retry 返回实际 not_before，避免 30 秒无效轮询。goal.evaluate 描述声明后台评估等待当前 Agent 结束，不能在当前 run 内轮询等待自己的任务。

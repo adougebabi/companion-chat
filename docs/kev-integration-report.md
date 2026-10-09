@@ -1,3 +1,5 @@
+> 2026-10-09 正式反馈修复已追加：当前 schema head 为 `0057_logical_agent_leases`。部署请先迁移并同时升级 Core/Worker；设置和诊断路由已修复。下面首次交付证据保留，最新结果见文末。
+
 # Kev 主动接入交付报告
 
 日期：2026-10-09。开发分支：`codex/kev-decision-integration`。基线：`63be0df`。
@@ -96,3 +98,17 @@ Go SKIP 来自未配置隔离 PostgreSQL/真实 Provider 等 opt-in 环境，不
 - 并发配置限制同一个 DecisionService 的在途调用，不宣称它是多个进程/实例的 Kev 服务总并发限额。
 
 以上由用户按本轮验收约定在正式环境检查。当前交付结论是代码实现和本地检查通过；真实模型行为与业务效果仍待正式验收。
+
+## 正式反馈修复：设置入口、调用顺序和 Goal Evaluation 频率
+
+基线 c4cd44e，分支 codex/kev-runtime-recovery。
+
+1. Kev 设置/诊断不能进入：App.vue 两组手写白名单未包含 kev/kev-decisions。已改为从导航声明派生 guard，URL、刷新、侧栏选择共用。4 个实际 App parser/computed 回归先失败、修复后通过。
+2. 多轮调用交错：物理请求队列原本每次 Generate/Stream 释放，因此 Goal Evaluation 能在同一摇光的 WakeUp/cognition 轮次间进入。新增 PostgreSQL logical_agent_leases，从快照/claim 前保护到最终提交。租约 3 分钟、15 秒心跳、失效取消、token 提交 fence 和拥有者限定释放；同一摇光的嵌套 Agent 继承租约。不同摇光仍可并行，物理队列仍逐次释放，避免 Tool 内部调用模型自锁。current_facts_stale 的真实事实校验保留。
+3. 高频：enqueueTurnGoalCandidatesTx 原本即使没有插入任何新 evidence link 也创建评估。现仅新增 committed link 的 Goal 入队；真实 outcome 显式关联 Goal，source remainder 只查看 active/paused 关联来源/目标版本，避免无关待处理来源驱动无限续排。重复 link/no message 不再入队。goal.evaluate 的模型说明明确只因新相关证据/标准变化请求，并禁止在当前 Agent 内轮询等待自己的后台评估。
+
+当前节奏仍为事件驱动：pending 合并窗口 2 秒，非 terminal 失败 1 分钟退避，最多 5 次评估尝试。没有一个“每 N 分钟检查所有目标”的固定频率。原 deferred 缺 not_before 时工作流每 30 秒查看；现在 retry 返回实际 available_at，不在 1 分钟退避期间无效轮询。因忙碌逻辑运行等待时还未 claim，不消耗评估尝试。保留真实新证据、Owner 强制复核、到期 review、目标标准/权威变化。
+
+最新本地结果：Go test -race ./... 1370 PASS、490 SKIP、0 FAIL（含子用例）；Web/client 98 PASS；typecheck、vet、build、production build 和 diff check 全通过。TestPostgresLogicalAgentRunCoordinatesIndependentApps 使用任务隔离数据库验收，当前因未配置 GO_CORE_TEST_DATABASE_URL 跳过，不能算真实数据库验证通过。
+
+上线须先执行包含本次代码的 migrate 服务，确认 0057_logical_agent_leases，再同时升级 Core 与 Worker；仅更新 Web 无法修复跨进程逻辑协调。操作命令沿用上文既有 Compose 方式。人工/外部事实在运行期间发生真实变化，原 CAS 仍会拒绝过期结果；本次消除的是这几类同一摇光逻辑运行相互交错造成的冲突。

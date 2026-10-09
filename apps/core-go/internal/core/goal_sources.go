@@ -70,6 +70,9 @@ func recordGoalOutcomeSourceTx(ctx context.Context, tx pgx.Tx, outcome ActionOut
 		return err
 	}
 	if len(goalIDs) > 0 {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) SELECT 'goal_outcome_'||md5(g.id||':'||$3::text),$1,g.id,$3,'candidate','actual outcome explicitly bound to Goal' FROM public.fluctlight_goals g WHERE g.fluctlight_id=$1 AND g.id=ANY($2::text[]) ON CONFLICT(goal_id,source_event_id) DO NOTHING`, outcome.FluctlightID, goalIDs, eventID); err != nil {
+			return err
+		}
 		_, err = queueGoalEvaluationTx(ctx, tx, outcome.FluctlightID, profile, "actual_outcome", fmt.Sprint(eventID), goalIDs)
 	}
 	return err
@@ -82,7 +85,7 @@ func goalOutcomeCarriesEvidence(outcome ActionOutcome) bool {
 	switch strings.TrimSpace(outcome.CapabilityName) {
 	case "goal.inspect", "goal.decide", "goal.evaluate", "goal.review",
 		"actor.inspect", "habit.inspect", "intention.inspect", "schedule.inspect",
-		"persona.detail", "relationship.lookup", "memory.recall":
+		"persona.detail", "relationship.lookup", "memory.recall", "capability.discover":
 		return false
 	}
 	if strings.TrimSpace(outcome.CapabilityName) != "" {
@@ -296,11 +299,28 @@ func (a *App) enqueueTurnGoalCandidatesTx(ctx context.Context, tx pgx.Tx, owner,
 			return err
 		}
 	}
+	linked := []string{}
 	for _, goalID := range goalIDs {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) SELECT 'goal_candidate_'||md5($3::text||':'||e.id::text),$1::text,$3::text,e.id,'candidate','current cognition proposed related actual conversation' FROM public.goal_source_events e JOIN public.conversation_messages m ON m.id=e.source_id WHERE e.fluctlight_id=$1 AND e.source_kind='message' AND m.source_fact_id=$2 AND e.source_status='committed' AND (e.profile_id IS NULL OR e.profile_id=$4) ON CONFLICT(goal_id,source_event_id) DO NOTHING`, owner, inboxID, goalID, profile); err != nil {
+		command, err := tx.Exec(ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) SELECT 'goal_candidate_'||md5($3::text||':'||e.id::text),$1::text,$3::text,e.id,'candidate','current cognition proposed related actual conversation' FROM public.goal_source_events e JOIN public.conversation_messages m ON m.id=e.source_id WHERE e.fluctlight_id=$1 AND e.source_kind='message' AND m.source_fact_id=$2 AND e.source_status='committed' AND (e.profile_id IS NULL OR e.profile_id=$4) ON CONFLICT(goal_id,source_event_id) DO NOTHING`, owner, inboxID, goalID, profile)
+		if err != nil {
 			return err
 		}
+		if command.RowsAffected() > 0 {
+			linked = append(linked, goalID)
+		}
 	}
-	_, err := queueGoalEvaluationTx(ctx, tx, owner, profile, "conversation_candidate", inboxID, goalIDs)
+	if len(linked) == 0 {
+		return nil
+	}
+	_, err := queueGoalEvaluationTx(ctx, tx, owner, profile, "conversation_candidate", inboxID, linked)
 	return err
 }
+
+const pendingLinkedGoalSourceSQL = `SELECT EXISTS(
+ SELECT 1 FROM public.goal_source_events e
+ WHERE e.fluctlight_id=$1 AND ($2='' OR e.profile_id IS NULL OR e.profile_id=$2) AND e.processed_at IS NULL
+ AND EXISTS(SELECT 1 FROM public.fluctlight_goals g
+  WHERE g.fluctlight_id=e.fluctlight_id AND (g.profile_id IS NULL OR g.profile_id=$2) AND g.status IN ('active','paused')
+  AND ((e.source_kind='goal_revision' AND e.source_id=g.id)
+   OR EXISTS(SELECT 1 FROM public.goal_evidence_links l WHERE l.goal_id=g.id AND l.source_event_id=e.id AND l.status IN ('candidate','confirmed','withdrawn'))))
+)`

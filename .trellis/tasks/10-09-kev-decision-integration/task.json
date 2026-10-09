@@ -12,7 +12,7 @@
   "assignee": "adoumibaba",
   "createdAt": "2026-10-09",
   "completedAt": null,
-  "branch": "codex/kev-decision-integration",
+  "branch": "codex/kev-runtime-recovery",
   "base_branch": "master",
   "worktree_path": null,
   "commit": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "已批准实施并完成代码与本地门禁；正式验收用户自行执行。待 Phase 3.4 一次提交确认。报告 docs/kev-integration-report.md。",
+  "notes": "正式反馈修复完成；设置/诊断路由、逻辑运行互斥和无新证据评估入队修复。本地 gate 通过，真实数据库验收用户执行，当前修复未提交。",
   "meta": {}
 }
