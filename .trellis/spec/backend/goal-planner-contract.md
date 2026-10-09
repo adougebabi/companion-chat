@@ -18,7 +18,7 @@ Preserve the Eino Runner, GoalEvaluation, Stage/Commitment/Intention and Schedul
 - Native Tools: `goal_planner.query` and `goal_planner.commit`, private surface
   `goal_planner`; FormalAgent `goal_planner`, schema `goal_planner_v1`, 12 cycles.
 - Internal/browser resources: `goal-set`, `goal-planning`, `actor-context/:actorId`.
-- Schema head `0054_goal_planner`, additive from `0053_goal_reconciliation`.
+- Schema head `0055_goal_planner_cadence`, additive from released `0054_goal_planner`; the original Planner bundle remains additive from `0053_goal_reconciliation`.
 
 ## 3. Contracts
 
@@ -98,3 +98,47 @@ clock with a database timestamp introduces millisecond/VM-drift flakes.
 Model scheduled wishes without active goal_ref return planning_requested and do
 not call Schedule generation. Ordinary cognition reads a compact goal_policy
 capacity summary, retaining the same physical model-call count.
+
+### Automatic cadence and evaluation failures (0055)
+
+`request_goal_planning(owner_id, source_id, why, payload)` persists hints but only
+Owner requests, real Actor/profile review, or primary triggers enqueue work.
+Primary triggers are lifecycle capacity release, accepted daily Schedule, initial
+startup and authorized re-enable/recovery; they require instance active count
+below capacity. Claim repeats the same gate for old queued work. Full Owner
+requests use suggestions; real Actor/profile changes may review an existing full
+set. Ordinary cognition/reflection wishes do not dispatch an independent run.
+
+`acceptScheduleWithTx` requests `schedule_accepted_daily` with source identity
+`schedule:<IANA timezone>:<local date>` after formal acceptance, in the same
+transaction. Replay/replan uses the same daily event. Do not use schedule revision
+or random ID as the daily planning identity. Recovery retains late/private events
+and recovers stranded review events directly; do not convert a full-set Actor
+review into a capacity-blocked startup event or generate new events every minute.
+
+| State/error | Durable behavior |
+|---|---|
+| Full automatic supplementation | No model request; old queued run becomes capacity_full, trigger remains durable |
+| Ordinary wish only | Retain hint; no automatic dispatch, old queued run awaits a primary trigger |
+| Missing assessment goal coverage | One explicit replacement-object correction via the existing formal task |
+| Correction still lacks coverage or enumerated fixed wire/scope error | failed with original cause; no success memo or evidence consumption |
+| Planner final without consumed query / unbacked commit claim | failed with precise contract error; replay makes no new model call |
+| Transient Provider failure / stale authoritative facts | Existing bounded retry and backoff; never write success memo |
+| Successful memo with same semantic authority/sources/conditions | succeeded / assessment_memo_match; no physical model call |
+
+Required tests: `TestGoalPlannerCadenceFullAutomaticAndWishAreQuietButOwnerCanSuggest`
+(full repair twice creates no events; stranded full Actor review recovers),
+`TestGoalPlannerFinalWithoutQueryStopsInsteadOfRetryingSameRun`,
+`TestGoalAssessmentMissingCoverageGetsOneTypedCorrection`,
+`TestGoalAssessmentRepeatedMissingCoverageFailsTerminally`,
+`TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel`,
+`TestAcceptScheduleUsesDatabaseIdempotencyBoundary`, and true 0054 function restore
+then 0055 migration upgrade/reentry. Keep original authority/source rollback
+assertions in malformed-output tests even when request status changes to failed.
+
+Wrong: full set + every wish/replan -> new model call; bad coverage -> five blind
+identical attempts -> retry_exhausted.
+Correct: durable trigger + capacity/semantic admission -> bounded formal task ->
+coverage correction or precise failure; new facts/Owner action may start new work.
+`provider_request_failed` is a physical request error, not duplicate skip. An Agent
+final_message/completed diagnostic is not proof of accepted Goal authority.

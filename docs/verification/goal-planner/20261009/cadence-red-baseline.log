@@ -1,0 +1,12 @@
+=== RUN   TestGoalAssessmentMissingCoverageGetsOneTypedCorrection
+    goal_assessment_memo_integration_test.go:187: coverage correction result=map[string]interface {}(nil) calls=1 err=goal_assessment_coverage_missing
+--- FAIL: TestGoalAssessmentMissingCoverageGetsOneTypedCorrection (1.65s)
+=== RUN   TestGoalAssessmentRepeatedMissingCoverageFailsTerminally
+    goal_assessment_memo_integration_test.go:213: fixed contract failure status=retry code=goal_assessment_coverage_missing calls=1
+--- FAIL: TestGoalAssessmentRepeatedMissingCoverageFailsTerminally (1.03s)
+=== RUN   TestGoalPlannerFinalWithoutQueryStopsInsteadOfRetryingSameRun
+    goal_planner_test.go:485: contract replay=0 result=map[string]interface {}{"decision":"failed", "reason":"goal_planner_query_results_missing", "status":"deferred"} calls=1 err=<nil>
+--- FAIL: TestGoalPlannerFinalWithoutQueryStopsInsteadOfRetryingSameRun (0.93s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.263s
+FAIL

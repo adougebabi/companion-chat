@@ -461,6 +461,146 @@ func TestGoalPlannerProviderFailureAndQuietDisabledRequests(t *testing.T) {
 	}
 }
 
+func TestGoalPlannerFinalWithoutQueryStopsInsteadOfRetryingSameRun(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "planner-contract-"+f.suffix)
+	if _, err := f.app.RequestGoalPlanning(f.ctx, f.ownerID, f.fluctlightID, "missing-query"); err != nil {
+		t.Fatal(err)
+	}
+	var runID string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status='pending'`, f.fluctlightID).Scan(&runID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_planning_runs SET available_at=now() WHERE id=$1`, runID); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_planner_v1", func(_ map[string]any) fakeProviderResult {
+		calls++
+		return fakeProviderResult{Structured: map[string]any{"decision": "no_viable_candidate", "reason": "No current opportunity", "review_condition": "Await new facts", "suggestions": []any{}}}
+	})}
+	for i := 0; i < 3; i++ {
+		result, err := f.app.ProcessGoalPlanningIntent(f.ctx, runID)
+		if err != nil || result["status"] != "failed" || result["reason"] != "goal_planner_query_results_missing" || calls != 1 {
+			t.Fatalf("contract replay=%d result=%#v calls=%d err=%v", i, result, calls, err)
+		}
+	}
+	var status string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.goal_planning_runs WHERE id=$1`, runID).Scan(&status); err != nil || status != "failed" {
+		t.Fatalf("durable failure status=%s err=%v", status, err)
+	}
+}
+
+func TestGoalPlannerCadenceFullAutomaticAndWishAreQuietButOwnerCanSuggest(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	for i := 0; i < 5; i++ {
+		plannerOwnerGoal(t, f, fmt.Sprintf("cadence-full-%d", i), false)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.platform_workflow_intents WHERE intent_type='goal.plan' AND payload->>'fluctlight_id'=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.goal_planning_runs WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.goal_planning_events WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		if err := requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "wish-1", "cognition_wish", map[string]any{"desired_outcome": "a future lead"}); err != nil {
+			return err
+		}
+		if err := requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "wish-2", "reflection_wish", map[string]any{"desired_outcome": "another lead"}); err != nil {
+			return err
+		}
+		return requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "daily-full", "schedule_accepted_daily", nil)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var events, runs int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT (SELECT count(*) FROM public.goal_planning_events WHERE fluctlight_id=$1),(SELECT count(*) FROM public.goal_planning_runs WHERE fluctlight_id=$1)`, f.fluctlightID).Scan(&events, &runs); err != nil || events != 3 || runs != 0 {
+		t.Fatalf("full/wish enqueue events=%d runs=%d err=%v", events, runs, err)
+	}
+	for i := 0; i < 2; i++ {
+		if repaired, err := f.app.RepairGoalPlanning(f.ctx, 10); err != nil || repaired != 0 {
+			t.Fatalf("full repair should remain quiet: repaired=%d err=%v", repaired, err)
+		}
+	}
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_planning_events WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&events); err != nil || events != 3 {
+		t.Fatalf("repair manufactured repeated trigger events: events=%d err=%v", events, err)
+	}
+
+	// A review event stranded without a run (for example after an older worker
+	// crashed) remains eligible even at capacity. Repair must recover that event
+	// directly instead of manufacturing a capacity-blocked startup event forever.
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.goal_planning_events(fluctlight_id,source_key,reason,payload) VALUES($1,'actor-review-stranded','actor_context_changed',jsonb_build_object('profile_id','default'))`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if repaired, err := f.app.RepairGoalPlanning(f.ctx, 10); err != nil || repaired != 2 {
+		t.Fatalf("full review repair=%d err=%v", repaired, err)
+	}
+	var startupEvents, pendingRuns int
+	var recoveredRun string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT
+		(SELECT count(*) FROM public.goal_planning_events WHERE fluctlight_id=$1 AND reason='startup_recovery'),
+		(SELECT count(*) FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status='pending'),
+		(SELECT id FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status='pending' LIMIT 1)`, f.fluctlightID).Scan(&startupEvents, &pendingRuns, &recoveredRun); err != nil || startupEvents != 0 || pendingRuns != 1 {
+		t.Fatalf("full review recovery startup=%d pending=%d err=%v", startupEvents, pendingRuns, err)
+	}
+	if repaired, err := f.app.RepairGoalPlanning(f.ctx, 10); err != nil || repaired != 0 {
+		t.Fatalf("live recovered review duplicated: repaired=%d err=%v", repaired, err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.platform_workflow_intents WHERE intent_type='goal.plan' AND payload->>'fluctlight_id'=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_planning_events SET processed_run_id=$2 WHERE fluctlight_id=$1 AND source_key='actor-review-stranded'`, f.fluctlightID, recoveredRun); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.goal_planning_runs WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+
+	// A run queued by an older binary must still be fenced at claim time.
+	legacyRun := "goal-planner-old-full-" + f.suffix
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.goal_planning_runs(id,fluctlight_id,watermark,available_at) VALUES($1,$2,1,now())`, legacyRun, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-cadence-"+f.suffix)
+	modelCalls := 0
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_planner_v1", func(payload map[string]any) fakeProviderResult {
+		modelCalls++
+		if modelCalls <= 2 {
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(fmt.Sprintf("owner-full-%d", modelCalls), goalPlannerQuery, map[string]any{"section": map[int]string{1: "snapshot", 2: "history"}[modelCalls]})}}
+		}
+		if !payloadHasToolResult(payload) {
+			t.Fatal("Owner suggestion did not consume query results")
+		}
+		return fakeProviderResult{Structured: map[string]any{"decision": "suggestions", "reason": "容量已满，仅返回Owner可审阅建议", "review_condition": "Owner释放名额或明确治理", "suggestions": []any{map[string]any{"desired_outcome": "future suggestion"}}}}
+	})}
+	quiet, err := f.app.ProcessGoalPlanningIntent(f.ctx, legacyRun)
+	if err != nil || stringValue(quiet["status"]) != "capacity_full" || modelCalls != 0 {
+		t.Fatalf("legacy full run=%#v calls=%d err=%v", quiet, modelCalls, err)
+	}
+
+	if _, err := f.app.RequestGoalPlanning(f.ctx, f.ownerID, f.fluctlightID, "owner-full-suggest"); err != nil {
+		t.Fatal(err)
+	}
+	var ownerRun string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status='pending'`, f.fluctlightID).Scan(&ownerRun); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_planning_runs SET available_at=now() WHERE id=$1`, ownerRun); err != nil {
+		t.Fatal(err)
+	}
+	result, err := f.app.ProcessGoalPlanningIntent(f.ctx, ownerRun)
+	var mode string
+	if queryErr := f.repository.Pool().QueryRow(f.ctx, `SELECT mode FROM public.goal_planning_runs WHERE id=$1`, ownerRun).Scan(&mode); queryErr != nil {
+		t.Fatal(queryErr)
+	}
+	if err != nil || stringValue(result["decision"]) != "suggestions" || mode != "suggestions" || modelCalls != 3 {
+		t.Fatalf("Owner full result=%#v mode=%s calls=%d err=%v", result, mode, modelCalls, err)
+	}
+}
+
 func TestGoalPlannerCommitToolStandaloneReplayConflictAndProtection(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
 	id := plannerOwnerGoal(t, f, "protected", false)

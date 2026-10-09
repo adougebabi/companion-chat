@@ -53,7 +53,8 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 		var available time.Time
 		var goalRaw, resultRaw, pendingSnapshotRaw []byte
 		var claimed *time.Time
-		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,profile_id,reason,status,attempt_count,goal_ids,result,snapshot,claimed_at,claim_revision,available_at FROM public.goal_evaluation_requests WHERE id=$1 FOR UPDATE`, id).Scan(&snapshot.FluctlightID, &snapshot.ProfileID, &snapshot.Reason, &status, &attempts, &goalRaw, &resultRaw, &pendingSnapshotRaw, &claimed, &claimRevision, &available); err != nil {
+		var errorCode *string
+		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,profile_id,reason,status,attempt_count,goal_ids,result,snapshot,claimed_at,claim_revision,available_at,error_code FROM public.goal_evaluation_requests WHERE id=$1 FOR UPDATE`, id).Scan(&snapshot.FluctlightID, &snapshot.ProfileID, &snapshot.Reason, &status, &attempts, &goalRaw, &resultRaw, &pendingSnapshotRaw, &claimed, &claimRevision, &available, &errorCode); err != nil {
 			return err
 		}
 		if pendingSnapshot := decodeObject(pendingSnapshotRaw); pendingSnapshot != nil {
@@ -61,6 +62,14 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 		}
 		if status == "succeeded" {
 			prior = decodeObject(resultRaw)
+			return nil
+		}
+		if status == "failed" {
+			reason := "evaluation_failed"
+			if errorCode != nil && *errorCode != "" {
+				reason = *errorCode
+			}
+			prior = map[string]any{"status": "failed", "reason": reason}
 			return nil
 		}
 		if status == "processing" && claimed != nil && time.Since(*claimed) < 5*time.Minute {
@@ -554,10 +563,41 @@ func (a *App) failGoalEvaluation(ctx context.Context, id string, claimRevision i
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	code := boundedLifecycleCause(cause.Error())
-	if _, err := a.DB.Pool().Exec(recordCtx, `UPDATE public.goal_evaluation_requests SET status=CASE WHEN attempt_count>=5 THEN 'failed' ELSE 'retry' END,claimed_at=NULL,error_code=$2,available_at=now()+interval '1 minute',updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$3`, id, code, claimRevision); err != nil {
+	terminal := terminalGoalEvaluationContractError(cause)
+	if _, err := a.DB.Pool().Exec(recordCtx, `UPDATE public.goal_evaluation_requests SET status=CASE WHEN $4 OR attempt_count>=5 THEN 'failed' ELSE 'retry' END,claimed_at=NULL,error_code=$2,available_at=now()+interval '1 minute',updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$3`, id, code, claimRevision, terminal); err != nil {
 		return fmt.Errorf("record goal evaluation failure: %w (assessment: %v)", err, cause)
 	}
 	return cause
+}
+
+func terminalGoalEvaluationContractError(cause error) bool {
+	if cause == nil {
+		return false
+	}
+	code := cause.Error()
+	for _, fixed := range []string{
+		"goal_assessment_coverage_missing",
+		"goal_evaluation_scope_invalid",
+		"goal_review_adjust_plan_required",
+		"goal_assessment_next_step_missing",
+		"goal_review_evaluation_required",
+		"goal_stage_evaluation_scope_invalid",
+		"goal_commitment_evaluation_scope_invalid",
+		"goal_plan_scope_invalid",
+		"goal_evaluation_wire_output_invalid",
+		"goal_evaluation_wire_goal_ref_invalid",
+		"goal_evaluation_wire_goal_duplicate",
+		"goal_evaluation_wire_criterion_ref_invalid",
+		"goal_evaluation_wire_commitment_evaluation_duplicate",
+		"goal_evaluation_wire_source_ref_invalid",
+		"goal_evaluation_wire_actor_ref_invalid",
+		"goal_evaluation_wire_plan_ref_invalid",
+	} {
+		if code == fixed {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *App) settleEmptyGoalEvaluation(ctx context.Context, snapshot goalEvaluationSnapshot) (map[string]any, error) {

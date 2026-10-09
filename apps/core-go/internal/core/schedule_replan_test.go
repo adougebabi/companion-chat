@@ -27,6 +27,8 @@ func TestAcceptScheduleUsesDatabaseIdempotencyBoundary(t *testing.T) {
 		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.life_schedule_items WHERE schedule_id IN (SELECT id FROM public.life_schedules WHERE fluctlight_id=$1)`, fluctlightID)
 		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.platform_workflow_intents WHERE payload->>'fluctlight_id'=$1`, fluctlightID)
 		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.platform_outbox_events WHERE fluctlight_id=$1`, fluctlightID)
+		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.goal_planning_runs WHERE fluctlight_id=$1`, fluctlightID)
+		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.goal_planning_events WHERE fluctlight_id=$1`, fluctlightID)
 		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.life_context_commands WHERE fluctlight_id=$1`, fluctlightID)
 		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.life_schedules WHERE fluctlight_id=$1`, fluctlightID)
 		_, _ = repository.Pool().Exec(cleanupCtx, `DELETE FROM public.fluctlights WHERE id=$1`, fluctlightID)
@@ -69,6 +71,19 @@ func TestAcceptScheduleUsesDatabaseIdempotencyBoundary(t *testing.T) {
 	var versions int
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.life_schedules WHERE fluctlight_id=$1`, fluctlightID).Scan(&versions); err != nil || versions != 1 {
 		t.Fatalf("idempotent schedule created %d versions: %v", versions, err)
+	}
+	replacement := cloneMap(payload)
+	replacement["idempotency_key"] = "tool:replan-" + suffix
+	replacement["expected_revision"] = 1
+	replacement["expected_life_context_revision"] = first["resulting_context_revision"]
+	replacement["generated_from"] = "model_replan"
+	mapValue(arrayValue(replacement["items"])[0])["activity"] = "walking"
+	if _, err := app.AcceptSchedule(ctx, ownerID, fluctlightID, replacement); err != nil {
+		t.Fatal(err)
+	}
+	var planningEvents int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.goal_planning_events WHERE fluctlight_id=$1 AND reason='schedule_accepted_daily'`, fluctlightID).Scan(&planningEvents); err != nil || planningEvents != 1 {
+		t.Fatalf("accepted local day planning events=%d err=%v", planningEvents, err)
 	}
 }
 

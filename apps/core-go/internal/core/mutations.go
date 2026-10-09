@@ -315,10 +315,15 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 		}
 		causationID := firstString(payload["source_fact_id"], scheduleID)
 		correlationID := firstString(payload["correlation_id"], "schedule:"+scheduleID)
-		return appendOutboxTx(ctx, tx, outboxKind, "fluctlight", fluctlightID, causationID, scheduleID, correlationID, "schedule-outbox:"+scheduleID, map[string]any{
+		if err := appendOutboxTx(ctx, tx, outboxKind, "fluctlight", fluctlightID, causationID, scheduleID, correlationID, "schedule-outbox:"+scheduleID, map[string]any{
 			"schedule_id": scheduleID, "local_date": localDate.Format("2006-01-02"), "revision": revision,
 			"generated_from": generatedFrom, "source_fact_id": payload["source_fact_id"], "conversation_id": payload["conversation_id"],
 			"trigger": payload["trigger"], "reason": payload["reason"], "completed_before": payload["completed_before"], "evidence_refs": evidence,
+		}); err != nil {
+			return err
+		}
+		return requestGoalPlanningTx(ctx, tx, fluctlightID, "schedule:"+timezone+":"+localDate.Format("2006-01-02"), "schedule_accepted_daily", map[string]any{
+			"schedule_id": scheduleID, "timezone": timezone, "local_date": localDate.Format("2006-01-02"),
 		})
 	}
 	if callerTx != nil {

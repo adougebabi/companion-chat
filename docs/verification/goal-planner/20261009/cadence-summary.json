@@ -1,0 +1,85 @@
+{
+  "cadence-core.jsonl": {
+    "events": {
+      "pass": 183
+    },
+    "leaf_tests": {
+      "pass": 167
+    },
+    "started": "2026-10-09T14:44:06.295948+08:00",
+    "finished": "2026-10-09T14:46:02.003572+08:00"
+  },
+  "cadence-migrations.jsonl": {
+    "events": {
+      "pass": 87
+    },
+    "leaf_tests": {
+      "pass": 81
+    },
+    "started": "2026-10-09T14:41:29.226447+08:00",
+    "finished": "2026-10-09T14:42:15.30708+08:00"
+  },
+  "cadence-race.jsonl": {
+    "events": {
+      "pass": 50
+    },
+    "leaf_tests": {
+      "pass": 47
+    },
+    "started": "2026-10-09T14:55:50.71097+08:00",
+    "finished": "2026-10-09T14:56:31.346184+08:00"
+  },
+  "cadence-last-targets.jsonl": {
+    "events": {
+      "pass": 8
+    },
+    "leaf_tests": {
+      "pass": 8
+    },
+    "started": "2026-10-09T14:46:41.685197+08:00",
+    "finished": "2026-10-09T14:46:53.715792+08:00"
+  },
+  "cadence-review.jsonl": {
+    "events": {
+      "pass": 26
+    },
+    "leaf_tests": {
+      "pass": 25
+    },
+    "started": "2026-10-09T14:50:20.080148+08:00",
+    "finished": "2026-10-09T14:50:45.391424+08:00"
+  },
+  "cadence-review-fix.jsonl": {
+    "events": {
+      "pass": 4
+    },
+    "leaf_tests": {
+      "pass": 4
+    },
+    "started": "2026-10-09T14:52:23.864171+08:00",
+    "finished": "2026-10-09T14:52:30.875764+08:00"
+  },
+  "cadence-review-final-fix.jsonl": {
+    "events": {
+      "pass": 1
+    },
+    "leaf_tests": {
+      "pass": 1
+    },
+    "started": "2026-10-09T14:53:39.885823+08:00",
+    "finished": "2026-10-09T14:53:41.922911+08:00"
+  },
+  "baseline_red": {
+    "head": "45afa7a",
+    "result": "3 regression tests FAIL as expected before the fix"
+  },
+  "checks": {
+    "vet": "PASS",
+    "build": "PASS",
+    "workflow_tests": "PASS",
+    "diff": "PASS",
+    "live_provider_after_fix": "NOT_RUN",
+    "online_deploy": "NOT_RUN",
+    "independent_full_review": "partial; focused source review/tests/fix completed, no final overall signoff received"
+  }
+}

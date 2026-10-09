@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -152,6 +153,67 @@ func TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel(t *testing.T) {
 	}
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT jsonb_array_length(result->'assessment_memos') FROM public.goal_evaluation_requests WHERE id=$1`, requestID).Scan(&memoCount); err != nil || memoCount != 1 {
 		t.Fatalf("successful retry memo count = %d err=%v", memoCount, err)
+	}
+}
+
+func TestGoalAssessmentMissingCoverageGetsOneTypedCorrection(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	createDialogueGoalForClosure(t, f, []string{"receive one actual relevant response"})
+	plannerOwnerGoal(t, f, "coverage-correction-second", false)
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-coverage-correction-"+f.suffix)
+	modelCalls := 0
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+		modelCalls++
+		snapshot := readProcessingGoalSnapshot(t, f)
+		limit := len(snapshot.Goals)
+		if modelCalls == 1 {
+			limit = 1
+		} else if !strings.Contains(jsonString(payload), "goal_assessment_coverage_missing") {
+			t.Fatal("coverage correction did not include explicit feedback")
+		}
+		evaluations := make([]GoalEvaluationCandidate, 0, limit)
+		for _, entry := range snapshot.Goals[:limit] {
+			evaluations = append(evaluations, GoalEvaluationCandidate{
+				GoalID: entry.GoalID, ExpectedRevision: entry.Goal.Revision,
+				CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: []GoalCriterionJudgment{},
+				Impact: "needs_evidence", WaitCondition: "await actual relevant response",
+			})
+		}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: evaluations, Plans: []GoalPlanCandidate{}})}
+	})}
+	requestID := latestPendingGoalRequest(t, f)
+	result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
+	if err != nil || modelCalls != 2 || stringValue(result["status"]) != "succeeded" {
+		t.Fatalf("coverage correction result=%#v calls=%d err=%v", result, modelCalls, err)
+	}
+}
+
+func TestGoalAssessmentRepeatedMissingCoverageFailsTerminally(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	createDialogueGoalForClosure(t, f, []string{"receive one actual relevant response"})
+	plannerOwnerGoal(t, f, "coverage-terminal-second", false)
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-coverage-terminal-"+f.suffix)
+	modelCalls := 0
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+		modelCalls++
+		snapshot := readProcessingGoalSnapshot(t, f)
+		entry := snapshot.Goals[0]
+		candidate := GoalEvaluationCandidate{GoalID: entry.GoalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: []GoalCriterionJudgment{}, Impact: "needs_evidence", WaitCondition: "await actual relevant response"}
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
+	})}
+	requestID := latestPendingGoalRequest(t, f)
+	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err == nil || !strings.Contains(err.Error(), "goal_assessment_coverage_missing") {
+		t.Fatalf("repeated bad coverage error=%v", err)
+	}
+	var status, code string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status,error_code FROM public.goal_evaluation_requests WHERE id=$1`, requestID).Scan(&status, &code); err != nil {
+		t.Fatal(err)
+	}
+	if status != "failed" || code != "goal_assessment_coverage_missing" || modelCalls != 2 {
+		t.Fatalf("fixed contract failure status=%s code=%s calls=%d", status, code, modelCalls)
+	}
+	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err != nil || stringValue(result["status"]) != "failed" || modelCalls != 2 {
+		t.Fatalf("terminal replay result=%#v calls=%d err=%v", result, modelCalls, err)
 	}
 }
 

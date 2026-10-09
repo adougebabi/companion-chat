@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"strings"
 )
@@ -134,10 +135,45 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 		var output GoalEvaluationTaskOutput
 		output, err = binding.hydrateOutput(run.Completion.Structured)
 		if err == nil {
-			run.Completion.Structured = decodeObject(jsonBytes(output))
+			missing := missingGoalEvaluationCoverage(input, output)
+			if len(missing) > 0 {
+				missingRefs := make([]string, 0, len(missing))
+				for _, goalID := range missing {
+					missingRefs = append(missingRefs, binding.goalRefsByID[goalID])
+				}
+				correctionMessages := append([]map[string]any(nil), assembly.Messages...)
+				correctionMessages = append(correctionMessages,
+					map[string]any{"role": "assistant", "content": jsonString(run.Completion.Structured)},
+					map[string]any{"role": "user", "content": "goal_assessment_coverage_missing: return one complete replacement object. evaluations must contain exactly one entry for every offered goal_ref, including: " + strings.Join(missingRefs, ", ") + ". Keep the same response schema and use only offered refs."},
+				)
+				run, err = a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, correctionMessages, nil, "goal_evaluation_v1", schema, true, nil)
+				if err == nil {
+					output, err = binding.hydrateOutput(run.Completion.Structured)
+					if err == nil && len(missingGoalEvaluationCoverage(input, output)) > 0 {
+						err = errors.New("goal_assessment_coverage_missing")
+					}
+				}
+			}
+			if err == nil {
+				run.Completion.Structured = decodeObject(jsonBytes(output))
+			}
 		}
 	}
 	return ProjectionTaskResult{Completion: run.Completion, Projection: refreshed, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
+}
+
+func missingGoalEvaluationCoverage(input goalEvaluationSnapshot, output GoalEvaluationTaskOutput) []string {
+	covered := make(map[string]bool, len(output.Evaluations))
+	for _, evaluation := range output.Evaluations {
+		covered[evaluation.GoalID] = true
+	}
+	missing := make([]string, 0)
+	for _, entry := range input.Goals {
+		if !covered[entry.GoalID] {
+			missing = append(missing, entry.GoalID)
+		}
+	}
+	return missing
 }
 
 func goalEventCandidatesSchema() map[string]any {

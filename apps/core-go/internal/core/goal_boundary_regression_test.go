@@ -158,7 +158,13 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 					t.Fatal(err)
 				}
 			}
-			if status != "active" || revision != 1 || requestState != "retry" || consumed != 0 || evaluations != 0 || resolutions != 0 {
+			// A correction-exhausted coverage or malformed wire contract is terminal;
+			// no successful memo, source consumption or business mutation is allowed.
+			wantRequestState := "retry"
+			if tc.name == "plan_only" || tc.name == "partial_coverage" || tc.name == "duplicate_criterion" {
+				wantRequestState = "failed"
+			}
+			if status != "active" || revision != 1 || requestState != wantRequestState || consumed != 0 || evaluations != 0 || resolutions != 0 {
 				t.Fatalf("invalid output mutated authority: %s rev=%d request=%s consumed=%d evaluations=%d resolutions=%d", status, revision, requestState, consumed, evaluations, resolutions)
 			}
 			if tc.name == "general_goal_relationship_confirmation" {
