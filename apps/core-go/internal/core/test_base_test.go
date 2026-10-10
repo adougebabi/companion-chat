@@ -290,6 +290,18 @@ func providerWireSchemaName(payload map[string]any) string {
 	if name := stringValue(mapValue(responseFormat["json_schema"])["name"]); name != "" {
 		return name
 	}
+	// The Goal execution phase deliberately has no final JSON grammar. Its
+	// exclusive native catalog still identifies the controlled test route.
+	goalTools := map[string]bool{}
+	for _, value := range arrayValue(payload["tools"]) {
+		name := stringValue(mapValue(mapValue(value)["function"])["name"])
+		if isGoalEvaluationTool(name) {
+			goalTools[name] = true
+		}
+	}
+	if len(goalTools) == 3 && stringValue(payload["tool_choice"]) == "required" {
+		return "goal_evaluation_v1"
+	}
 	if stringValue(responseFormat["type"]) == "json_object" {
 		for _, raw := range arrayValue(payload["messages"]) {
 			message := mapValue(raw)

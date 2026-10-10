@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -23,6 +24,53 @@ type goalEvaluationSession struct {
 	binding    *goalEvaluationWireBinding
 	projection ContextProjection
 	runID      string
+}
+
+type goalEvaluationPhysicalRequestPolicy struct {
+	app     *App
+	session *goalEvaluationSession
+}
+
+func (p goalEvaluationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
+	if p.app == nil || p.app.DB == nil || p.app.DB.Pool() == nil || p.session == nil || p.session.binding == nil {
+		return physicalModelRequestDecision{}, errors.New("goal_evaluation_unavailable")
+	}
+	snapshot := p.session.binding.snapshot
+	var state string
+	var claim int
+	var raw []byte
+	if err := p.app.DB.Pool().QueryRow(ctx, `SELECT status,claim_revision,result FROM public.goal_evaluation_requests WHERE id=$1 AND fluctlight_id=$2 AND profile_id=$3`, snapshot.RequestID, snapshot.FluctlightID, snapshot.ProfileID).Scan(&state, &claim, &raw); err != nil {
+		return physicalModelRequestDecision{}, err
+	}
+	if state != "processing" || claim != snapshot.ClaimRevision {
+		return physicalModelRequestDecision{}, newCapabilityError("goal_evaluation_claim_stale", false, ErrConflict)
+	}
+	// Frozen source/authority conflicts cannot be corrected inside this run. Let
+	// the Agent produce its final summary so the existing finalizer can persist
+	// the trace error and replace the stale request with a fresh snapshot. Root
+	// coverage itself remains determined only by the durable submission journal.
+	if goalEvaluationTraceNeedsFreshSnapshot(ctx) {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+	}
+	_, missing := goalEvaluationSubmissionCoverage(snapshot, goalSubmissionRecords(decodeObject(raw)))
+	if len(missing) > 0 {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+	}
+	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+}
+
+func goalEvaluationTraceNeedsFreshSnapshot(ctx context.Context) bool {
+	adkContext, ok := adkCapabilityContext(ctx)
+	if !ok || adkContext.Trace == nil {
+		return false
+	}
+	_, results := adkContext.Trace.Snapshot()
+	for _, result := range results {
+		if isGoalEvaluationTool(result.CapabilityName) && goalEvaluationStaleSubmissionError(result.ErrorCode) {
+			return true
+		}
+	}
+	return false
 }
 
 func isGoalEvaluationTool(name string) bool {

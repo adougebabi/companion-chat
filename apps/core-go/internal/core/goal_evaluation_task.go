@@ -232,7 +232,9 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 		return ProjectionTaskResult{}, err
 	}
 	runID := fmt.Sprintf("%s:claim:%d", input.RequestID, input.ClaimRevision)
-	ctx = context.WithValue(ctx, goalEvaluationSessionKey{}, &goalEvaluationSession{binding: binding, projection: refreshed, runID: runID})
+	session := &goalEvaluationSession{binding: binding, projection: refreshed, runID: runID}
+	ctx = context.WithValue(ctx, goalEvaluationSessionKey{}, session)
+	ctx = withPhysicalModelRequestPolicy(ctx, goalEvaluationPhysicalRequestPolicy{app: a, session: session})
 	providerCtx := WithPromptDiagnostics(WithProviderCorrelation(WithProviderScenario(ctx, "goal_evaluation"), input.RequestID), assembly.Diagnostics)
 	// The private task uses its own frozen refs; ordinary runtime catalog/alias
 	// selection is not installed in this trusted internal evaluation session.

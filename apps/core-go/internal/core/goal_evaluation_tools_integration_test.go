@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -8,6 +9,91 @@ import (
 
 	"github.com/jackc/pgx/v5"
 )
+
+func assertGoalEvaluationRequestPhase(t *testing.T, payload map[string]any, submissionsRequired bool) {
+	t.Helper()
+	_, hasFormat := payload["response_format"]
+	if submissionsRequired {
+		if payload["tool_choice"] != "required" || hasFormat {
+			t.Fatalf("uncovered production request allowed summary: tool_choice=%#v response_format=%t", payload["tool_choice"], hasFormat)
+		}
+		return
+	}
+	if payload["tool_choice"] != "auto" || !hasFormat {
+		t.Fatalf("covered production request did not restore summary: tool_choice=%#v response_format=%t", payload["tool_choice"], hasFormat)
+	}
+}
+
+func TestGoalEvaluationProductionRequestPolicyReadsDurableRootCoverage(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	createDialogueGoalForClosure(t, f, []string{"actual expression"})
+	requestID := latestPendingGoalRequest(t, f)
+	snapshot, prior, err := f.app.claimGoalEvaluation(f.ctx, requestID)
+	if err != nil || prior != nil {
+		t.Fatal(prior, err)
+	}
+	binding, err := newGoalEvaluationWireBinding(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := goalEvaluationPhysicalRequestPolicy{app: f.app, session: &goalEvaluationSession{binding: binding, runID: requestID}}
+	decision, err := policy.DecidePhysicalModelRequest(f.ctx)
+	if err != nil || string(decision.ToolChoice) != "forced" || !decision.OmitResponseFormat {
+		t.Fatalf("uncovered roots were not forced: decision=%#v err=%v", decision, err)
+	}
+
+	var raw []byte
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT result FROM public.goal_evaluation_requests WHERE id=$1`, requestID).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	result := decodeObject(raw)
+	records := goalSubmissionRecords(result)
+	goalID := snapshot.Goals[0].GoalID
+	records[goalSubmissionKey(goalObjectSubmit, goalID, "stage:any")] = goalSubmissionRecord{Digest: "object-only"}
+	result["submissions"] = records
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET result=$2 WHERE id=$1`, requestID, jsonBytes(result)); err != nil {
+		t.Fatal(err)
+	}
+	decision, err = policy.DecidePhysicalModelRequest(f.ctx)
+	if err != nil || string(decision.ToolChoice) != "forced" {
+		t.Fatalf("object submission incorrectly covered root: decision=%#v err=%v", decision, err)
+	}
+	trace := &ADKCapabilityTrace{}
+	trace.AppendResult(CapabilityResult{CapabilityName: goalEvaluationSubmit, Status: "failed", ErrorCode: "goal_submission_authority_stale"})
+	staleCtx := WithADKCapabilityInvoker(f.ctx, &goalRequestPolicyInvoker{}, trace)
+	decision, err = policy.DecidePhysicalModelRequest(staleCtx)
+	if err != nil || string(decision.ToolChoice) != "allowed" || decision.OmitResponseFormat {
+		t.Fatalf("frozen stale rejection could not exit for replacement: decision=%#v err=%v", decision, err)
+	}
+
+	for _, entry := range snapshot.Goals {
+		records[goalSubmissionKey(goalEvaluationSubmit, entry.GoalID, "")] = goalSubmissionRecord{Digest: "durable-root-" + entry.GoalID, Output: map[string]any{"status": "completed"}}
+	}
+	result["submissions"] = records
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET result=$2 WHERE id=$1`, requestID, jsonBytes(result)); err != nil {
+		t.Fatal(err)
+	}
+	decision, err = policy.DecidePhysicalModelRequest(f.ctx)
+	if err != nil || string(decision.ToolChoice) != "allowed" || decision.OmitResponseFormat {
+		t.Fatalf("durable root coverage did not restore final schema: decision=%#v err=%v", decision, err)
+	}
+
+	canceled, cancel := context.WithCancel(f.ctx)
+	cancel()
+	if _, err := policy.DecidePhysicalModelRequest(canceled); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancellation was normalized: %v", err)
+	}
+	staleSnapshot := snapshot
+	staleSnapshot.ClaimRevision++
+	staleBinding, err := newGoalEvaluationWireBinding(staleSnapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stale := goalEvaluationPhysicalRequestPolicy{app: f.app, session: &goalEvaluationSession{binding: staleBinding}}
+	if _, err := stale.DecidePhysicalModelRequest(f.ctx); err == nil || !strings.Contains(err.Error(), "goal_evaluation_claim_stale") {
+		t.Fatalf("stale claim read durable coverage: %v", err)
+	}
+}
 
 func nativeGoalRootFixture(t *testing.T, snapshot goalEvaluationSnapshot, goalID, messageID string) map[string]any {
 	t.Helper()
@@ -52,6 +138,7 @@ func TestGoalEvaluationNativePersistenceSurvivesRejectedStageAndReplaysOnce(t *t
 	physical := 0
 	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
 		physical++
+		assertGoalEvaluationRequestPhase(t, payload, physical <= 3)
 		if physical == 1 {
 			snapshot := readProcessingGoalSnapshot(t, f)
 			roots = []map[string]any{nativeGoalRootFixture(t, snapshot, first, message), nativeGoalRootFixture(t, snapshot, second, message)}
@@ -118,6 +205,7 @@ func TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo(t 
 	var frozenSecondRef string
 	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
 		physical++
+		assertGoalEvaluationRequestPhase(t, payload, physical <= 3)
 		if !retry && physical == 2 {
 			return fakeProviderResult{Err: errors.New("controlled failure after accepted root")}
 		}
@@ -166,7 +254,8 @@ func TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete(t *testing.T
 	goal := createDialogueGoalForClosure(t, f, []string{"实际表达"})
 	insertGoalBoundaryMessage(t, f)
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "summary-only-"+f.suffix)
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+		assertGoalEvaluationRequestPhase(t, payload, true)
 		return fakeProviderResult{Structured: map[string]any{"summary": "目标完成，等待对方主动反馈读后感"}}
 	})}
 	_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f))

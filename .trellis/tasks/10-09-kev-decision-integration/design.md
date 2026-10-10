@@ -146,3 +146,8 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 同请求重试维持 refs 和已接受结果；RunID 包含 claim_revision，未处理根目标才继续提交。部分成功 memo 可从 retry/failed 请求读取，不把更新旧请求的时间冒充新评估时间。只有全部根目标已覆盖且无 deferred 目标才消费相应源版本；未处理证据保留。过期快照保留成功兄弟并为未处理目标另排新快照。评估 Tool acknowledgement 不成为完成证据。policy=goal.evaluation.v4。权限、来源/CAS、暂停 ready_for_settlement 和已有业务完成条件不放宽。
 
 本轮不部署、不操作正式业务数据、不安装数据库，不重写 Planner/普通聊天/WakeUp 提示词，不引入第二 Agent loop 或 DTO 伪 Tool。验证覆盖原生 HTTP rejection→后续根完成、私有权限/封闭参数、摘要无权限、持久化兄弟隔离/重放/partial retry/memo/冻结 refs（无隔离 DB 时 SKIP）；原 Goal fixture 仅在测试 Provider 中改为真实 native ToolCall 脚本，生产无兼容 fallback。
+
+
+## 2026-10-10 原生评估提前返回 summary 修复
+
+现场 goal_review_event_146 在13:07 返回 summary-only/tool_calls=[]；见 research/goal-native-premature-final.md。实施仅调整专用 GoalEvaluation 的逐物理请求 Tool选择/输出格式：缺持久化root提交时 required native Tool 且不启用最终summary grammar，全覆盖才恢复final格式。普通Agent保持原行为；仍单Eino Runner，Source/CAS/paused/独立提交不变。须受控真实HTTP测试先RED再GREEN，不重放正式写入，不新增迁移。

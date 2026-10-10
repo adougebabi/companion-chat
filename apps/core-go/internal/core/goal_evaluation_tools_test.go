@@ -7,9 +7,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/cloudwego/eino/schema"
 )
 
 func TestGoalEvaluationPrivateToolCatalogAndClosedArguments(t *testing.T) {
@@ -234,5 +238,202 @@ func TestGoalEvaluationNativeHTTPRejectsStageAndCompletesBothRoots(t *testing.T)
 		if g.Status != GoalCompleted || g.Progress != 1 {
 			t.Fatal("root remained incomplete after separate stage rejection", g.Status, g.Progress)
 		}
+	}
+}
+
+type goalRequestPolicyInvoker struct {
+	mu       sync.Mutex
+	accepted int
+	rejected bool
+}
+
+func (i *goalRequestPolicyInvoker) Execute(ctx context.Context, name, args string) (string, error) {
+	return i.ExecuteWithID(ctx, "", name, args)
+}
+
+func (i *goalRequestPolicyInvoker) ExecuteWithID(_ context.Context, id, name, _ string) (string, error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if id == "" || name != goalEvaluationSubmit {
+		return "", errors.New("unexpected native call")
+	}
+	if !i.rejected {
+		i.rejected = true
+		return jsonString(map[string]any{"status": "failed", "error_code": "controlled_rejection"}), nil
+	}
+	i.accepted++
+	return jsonString(map[string]any{"status": "completed", "output": map[string]any{"accepted": true}}), nil
+}
+
+func (i *goalRequestPolicyInvoker) coverage() int {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.accepted
+}
+
+func TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary(t *testing.T) {
+	for _, streaming := range []bool{false, true} {
+		for _, initialCoverage := range []int{0, 1} {
+			name := fmt.Sprintf("stream=%t/accepted=%d", streaming, initialCoverage)
+			t.Run(name, func(t *testing.T) {
+				invoker := &goalRequestPolicyInvoker{accepted: initialCoverage}
+				defs := capabilityCatalog(mustCapabilityRegistry(builtinCapabilities(&App{})...), CapabilitySurfaceGoalEvaluation)
+				trace := &ADKCapabilityTrace{}
+				ctx := WithADKCapabilityInvoker(context.Background(), invoker, trace)
+				ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+					if invoker.coverage() < 2 {
+						return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+					}
+					return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+				}))
+				var mu sync.Mutex
+				requests := []map[string]any{}
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					idempotencyID := r.Header.Get("Idempotency-Key")
+					if idempotencyID == "" || r.Header.Get("X-Fluctlight-Provider-Request-Id") != idempotencyID {
+						t.Error("physical request identity headers missing or inconsistent")
+					}
+					var payload map[string]any
+					if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+						t.Error(err)
+						return
+					}
+					mu.Lock()
+					requests = append(requests, payload)
+					mu.Unlock()
+					toolNames := []string{}
+					for _, raw := range arrayValue(payload["tools"]) {
+						function := mapValue(mapValue(raw)["function"])
+						toolNames = append(toolNames, stringValue(function["name"]))
+						parameters := mapValue(function["parameters"])
+						if parameters["additionalProperties"] != false || len(arrayValue(parameters["required"])) == 0 {
+							t.Error("canonical closed Tool schema lost required fields", function["name"])
+						}
+					}
+					sort.Strings(toolNames)
+					wantNames := []string{goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit}
+					sort.Strings(wantNames)
+					canonicalTools := strings.Join(toolNames, ",") == strings.Join(wantNames, ",")
+					coverage := invoker.coverage()
+					if payload["enable_thinking"] != false {
+						t.Error("Goal Evaluation thinking policy changed", payload["enable_thinking"])
+					}
+					if boolValue(payload["stream"]) != streaming {
+						t.Errorf("physical streaming wire mismatch: stream=%#v want=%t", payload["stream"], streaming)
+					}
+					if len(requests) > 1 && coverage == initialCoverage && !strings.Contains(jsonString(payload["messages"]), "controlled_rejection") {
+						t.Error("rejected root feedback missing before retry")
+					}
+					required := payload["tool_choice"] == "required"
+					_, hasFormat := payload["response_format"]
+					message := map[string]any{"role": "assistant", "content": jsonString(map[string]any{"summary": "premature"})}
+					finish := "stop"
+					if coverage < 2 && canonicalTools && required && !hasFormat {
+						callID := fmt.Sprintf("root-%d-%d", coverage, len(requests))
+						message = map[string]any{"role": "assistant", "content": "", "tool_calls": fakeProviderNativeToolCalls([]map[string]any{{"call_id": callID, "capability_name": goalEvaluationSubmit, "arguments": map[string]any{"goal_ref": fmt.Sprintf("goal:%d", coverage+1), "judgments": []any{}, "impact": "needs_evidence", "blocker": "", "wait_condition": "wait", "next_step": "wait", "residual_motivation": ""}}})}
+						finish = "tool_calls"
+					}
+					if streaming {
+						w.Header().Set("Content-Type", "text/event-stream")
+						delta := cloneMap(message)
+						delete(delta, "role")
+						if calls := arrayValue(delta["tool_calls"]); len(calls) > 0 {
+							for index := range calls {
+								mapValue(calls[index])["index"] = index
+							}
+						}
+						chunk := map[string]any{"id": "goal-policy", "model": "fake", "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": finish}}}
+						_, _ = fmt.Fprintf(w, "data: %s\n\ndata: [DONE]\n\n", jsonString(chunk))
+						return
+					}
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": message, "finish_reason": finish}}})
+				}))
+				defer server.Close()
+				definition, _ := FormalAgentDefinitionByID(FormalAgentGoalEvaluation)
+				response, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{
+					Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 4096},
+					Role:       "cognitive_assessment", Scenario: "goal_evaluation", Messages: []map[string]any{{"role": "user", "content": "submit both roots"}},
+					Definitions: defs, JSONMode: true, SchemaName: "goal_evaluation_v1", ResponseSchema: objectSchema(map[string]any{"summary": stringSchema()}, []string{"summary"}, false),
+					ProviderRequestID: "goal-policy", CorrelationID: "goal-policy-run", Agent: definition, EnableStreaming: streaming,
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if response.Message == nil || invoker.coverage() != 2 {
+					t.Fatalf("premature final: coverage=%d response=%#v requests=%#v", invoker.coverage(), response.Message, requests)
+				}
+				for index, payload := range requests {
+					isFinal := index == len(requests)-1
+					_, hasFormat := payload["response_format"]
+					if isFinal {
+						if payload["tool_choice"] != "auto" || !hasFormat {
+							t.Fatalf("final request did not restore summary contract: %#v", payload)
+						}
+					} else if payload["tool_choice"] != "required" || hasFormat {
+						t.Fatalf("submission request allowed premature final: %#v", payload)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestPhysicalModelRequestPolicyIsSuppressedForFinalRepair(t *testing.T) {
+	called := false
+	ctx := withPhysicalModelRequestPolicy(context.Background(), physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+		called = true
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+	}))
+	format := map[string]any{"type": "json_schema"}
+	opts, effective, err := applyPhysicalModelRequestPolicy(withoutPhysicalModelRequestPolicy(ctx), nil, format)
+	if err != nil || called || len(opts) != 0 || effective["type"] != "json_schema" {
+		t.Fatalf("tool-free repair inherited business request policy: called=%t opts=%d effective=%#v err=%v", called, len(opts), effective, err)
+	}
+}
+
+func TestGoalEvaluationFixtureRoutesExecutionWithoutFinalFormat(t *testing.T) {
+	called := 0
+	router := newFakeProviderRouter().onGoalEvaluation(func(map[string]any) fakeProviderResult {
+		called++
+		return fakeProviderResult{Structured: map[string]any{"evaluations": []any{map[string]any{"goal_ref": "goal:1", "judgments": []any{}, "impact": "needs_evidence", "blocker": "", "wait_condition": "wait", "next_step": "", "residual_motivation": ""}}, "plans": []any{}}}
+	})
+	defs := capabilityCatalog(mustCapabilityRegistry(builtinCapabilities(&App{})...), CapabilitySurfaceGoalEvaluation)
+	payload := map[string]any{"messages": []any{map[string]any{"role": "user", "content": "evaluate frozen goals"}}, "tools": RenderCapabilityTools(defs), "tool_choice": "required"}
+	request := httptest.NewRequest(http.MethodPost, "http://fake/chat/completions", strings.NewReader(jsonString(payload)))
+	response, err := router.RoundTrip(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var body map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	message := mapValue(mapValue(arrayValue(body["choices"])[0])["message"])
+	if called != 1 || len(arrayValue(message["tool_calls"])) != 1 {
+		t.Fatalf("execution phase reached wrong fixture route: called=%d message=%#v", called, message)
+	}
+}
+
+func TestGoalEvaluationFrozenConflictCanExitButJudgmentRejectionCannot(t *testing.T) {
+	for _, tc := range []struct {
+		code  string
+		fresh bool
+	}{
+		{"goal_evaluation_source_stale", true},
+		{"goal_submission_authority_stale", true},
+		{"life_context_stale", true},
+		{"goal_judgment_self_report_not_business_fact", false},
+		{"invalid_arguments", false},
+	} {
+		t.Run(tc.code, func(t *testing.T) {
+			trace := &ADKCapabilityTrace{}
+			trace.AppendResult(CapabilityResult{CallID: "failed-native", CapabilityName: goalEvaluationSubmit, Status: "failed", ErrorCode: tc.code})
+			ctx := WithADKCapabilityInvoker(context.Background(), adkFailingInvoker{}, trace)
+			if actual := goalEvaluationTraceNeedsFreshSnapshot(ctx); actual != tc.fresh {
+				t.Fatalf("frozen recovery=%t want=%t", actual, tc.fresh)
+			}
+		})
 	}
 }

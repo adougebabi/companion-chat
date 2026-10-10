@@ -83,11 +83,17 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	if err != nil {
 		return nil, err
 	}
+	opts, effectiveResponseFormat, err := applyPhysicalModelRequestPolicy(ctx, opts, m.responseFormat)
+	if err != nil {
+		return nil, err
+	}
 	input, err = m.preparePhysicalInput(ctx, input)
 	if err != nil {
 		return nil, err
 	}
-	if err := m.enforcePhysicalInputBudget(ctx, input); err != nil {
+	budgetModel := *m
+	budgetModel.responseFormat = effectiveResponseFormat
+	if err := budgetModel.enforcePhysicalInputBudget(ctx, input); err != nil {
 		return nil, err
 	}
 	sequence := uint64(1)
@@ -156,11 +162,17 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	if err != nil {
 		return nil, err
 	}
+	opts, effectiveResponseFormat, err := applyPhysicalModelRequestPolicy(ctx, opts, m.responseFormat)
+	if err != nil {
+		return nil, err
+	}
 	input, err = m.preparePhysicalInput(ctx, input)
 	if err != nil {
 		return nil, err
 	}
-	if err := m.enforcePhysicalInputBudget(ctx, input); err != nil {
+	budgetModel := *m
+	budgetModel.responseFormat = effectiveResponseFormat
+	if err := budgetModel.enforcePhysicalInputBudget(ctx, input); err != nil {
 		return nil, err
 	}
 	sequence := uint64(1)
@@ -853,7 +865,11 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				copyModel.definitions = nil // The unbound inner model sends no Tools.
 				repairModel = &copyModel
 			}
-			correction, correctionErr := RunADKLoop(ctx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: repairModel, MaxIterations: 1}, correctionInput)
+			// Final repair is deliberately tool-free. A task-owned request policy
+			// governs the native business loop only; carrying it into this unbound
+			// model could emit tool_choice without a Tool catalog.
+			repairCtx := withoutPhysicalModelRequestPolicy(ctx)
+			correction, correctionErr := RunADKLoop(repairCtx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: repairModel, MaxIterations: 1}, correctionInput)
 			if correctionErr == nil && correction.FinalMessage != nil && len(correction.ToolCalls) == 0 {
 				if err := validateADKFinalContract(correction.FinalMessage, call.Role, validationSchema, adkContext.Refs); err == nil {
 					final = correction.FinalMessage

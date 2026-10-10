@@ -120,3 +120,14 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 同请求重试维持 refs 和已接受结果；RunID 包含 claim_revision，未处理根目标才继续提交。部分成功 memo 可从 retry/failed 请求读取，不把更新旧请求的时间冒充新评估时间。只有全部根目标已覆盖且无 deferred 目标才消费相应源版本；未处理证据保留。过期快照保留成功兄弟并为未处理目标另排新快照。评估 Tool acknowledgement 不成为完成证据。policy=goal.evaluation.v4。权限、来源/CAS、暂停 ready_for_settlement 和已有业务完成条件不放宽。
 
 本轮不部署、不操作正式业务数据、不安装数据库，不重写 Planner/普通聊天/WakeUp 提示词，不引入第二 Agent loop 或 DTO 伪 Tool。验证覆盖原生 HTTP rejection→后续根完成、私有权限/封闭参数、摘要无权限、持久化兄弟隔离/重放/partial retry/memo/冻结 refs（无隔离 DB 时 SKIP）；原 Goal fixture 仅在测试 Provider 中改为真实 native ToolCall 脚本，生产无兼容 fallback。
+
+
+## 2026-10-10 Goal Evaluation 仍不完成：原生调用提前结束
+
+只读正式诊断确认新版已上线：13:07 request goal_review_event_146_533c5ba8368075db8f6ef201546bd71a 的 response 是 {"summary":"正在评估 4 个目标。"}，tool_calls=[]；领域 retry/goal_evaluation_native_submission_missing，evaluated_goals=[]、submission_errors=[]，四个目标未提交。此次没有进入任何 Tool，不能归因于上轮 Stage 证据回滚。
+
+代码缺口：执行请求仍带最终 summary JSON grammar，ToolChoice 默认 auto，所以 summary-only 是合法的原生 Runner 终态。修复只在 typed GoalEvaluation 安装逐物理请求策略：DB 中冻结根目标未全部提交时，required native Tool + 去最终response_format；覆盖后 auto + 原summaryschema；保持可选object/plan。Generate/Stream同一Runner、每轮真实身份/header/思考关闭、有效预算同步。独立核验补工具自由的 final repair隔离和不可原快照修正的stale错误退出，保留fresh-request恢复。测试夹具改为能按三种私有Tool目录识别无final格式的执行阶段，不在生产解释final DTO为Tool。
+
+真实HTTP/Eino首个RED：TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary exit1，Generate/Stream×0/partial coverage四组均观察auto+summarygrammar并提前结束；GREEN四组PASS，实际断言canonical闭合Tool schema、tool_choice required、无response_format、实际stream=true、拒绝反馈不推进覆盖、最终auto/schema恢复以及headers真实一致。另一个fixture路由RED观察called=0/content={}，修复后GREEN。生产数据库policy与typedTask阶段断言已补，无隔离数据库时明确SKIP。正式部署和真实模型语义仍由用户验收，未写正式业务数据。
+
+升级Core/Worker后对卡住目标手动发起一次复核，诊断应先出现 goal.evaluation.submit 的原生ToolCall，再出现实际ToolResult；最终summary不会再作为状态依据。原先已耗尽重试的failed请求不由代码伪装成功或自动改状态。本轮无新migration，head仍0058_semantic_fact_generation。

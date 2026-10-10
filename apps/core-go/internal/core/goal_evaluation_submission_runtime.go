@@ -63,12 +63,20 @@ func goalEvaluationSubmissionCoverage(snapshot goalEvaluationSnapshot, records m
 
 func goalEvaluationNeedsFreshSnapshot(result map[string]any) bool {
 	for _, value := range arrayValue(result["submission_errors"]) {
-		switch stringValue(mapValue(value)["error_code"]) {
-		case "conflict", "goal_evaluation_source_stale", "goal_submission_authority_stale", "goal_object_evaluation_version_conflict", "goal_stage_revision_conflict", "foundation_revision_stale", "life_context_stale":
+		if goalEvaluationStaleSubmissionError(stringValue(mapValue(value)["error_code"])) {
 			return true
 		}
 	}
 	return false
+}
+
+func goalEvaluationStaleSubmissionError(code string) bool {
+	switch code {
+	case "conflict", "goal_evaluation_source_stale", "goal_submission_authority_stale", "goal_object_evaluation_version_conflict", "goal_stage_revision_conflict", "foundation_revision_stale", "life_context_stale":
+		return true
+	default:
+		return false
+	}
 }
 
 func goalEvaluationReplacementTargets(snapshot goalEvaluationSnapshot, result map[string]any) []string {

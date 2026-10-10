@@ -170,3 +170,22 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 
 
 本轮最终本地验收（2026-10-10）：全仓 Go race 完整执行，并在最后恢复路径修改后重跑受影响 Core race；合并当前结果 1427 PASS / 495 SKIP / 0 FAIL（含子用例）。pnpm generate/typecheck/test/build 通过，Web 76 + browser-client20 + core-client2 = 98 PASS。Go vet/build 和 diff 检查通过。测试所需本机 httptest/tsx IPC 监听在沙箱外运行；未连接正式数据。新 PostgreSQL 原生持久化、partial retry、重复提交、摘要无提交、deferred review 迁移等用例因未配置隔离 DB 而 SKIP，真实模型/部署仍由用户验收。独立权限核验未发现绕过；提交核验发现 stale replacement 遗失 deferred reviews，已修正目标合并、活动目标筛选及限定 ended review supersede，并补回归。最后增加“全部根已提交后只恢复结算、零新模型调用”的恢复路径。代码未提交、未部署。
+
+
+## 2026-10-10 原生评估提前返回 summary 修复
+
+现场 goal_review_event_146 在13:07 返回 summary-only/tool_calls=[]；见 research/goal-native-premature-final.md。实施仅调整专用 GoalEvaluation 的逐物理请求 Tool选择/输出格式：缺持久化root提交时 required native Tool 且不启用最终summary grammar，全覆盖才恢复final格式。普通Agent保持原行为；仍单Eino Runner，Source/CAS/paused/独立提交不变。须受控真实HTTP测试先RED再GREEN，不重放正式写入，不新增迁移。
+
+
+## 2026-10-10 Goal Evaluation 仍不完成：原生调用提前结束
+
+只读正式诊断确认新版已上线：13:07 request goal_review_event_146_533c5ba8368075db8f6ef201546bd71a 的 response 是 {"summary":"正在评估 4 个目标。"}，tool_calls=[]；领域 retry/goal_evaluation_native_submission_missing，evaluated_goals=[]、submission_errors=[]，四个目标未提交。此次没有进入任何 Tool，不能归因于上轮 Stage 证据回滚。
+
+代码缺口：执行请求仍带最终 summary JSON grammar，ToolChoice 默认 auto，所以 summary-only 是合法的原生 Runner 终态。修复只在 typed GoalEvaluation 安装逐物理请求策略：DB 中冻结根目标未全部提交时，required native Tool + 去最终response_format；覆盖后 auto + 原summaryschema；保持可选object/plan。Generate/Stream同一Runner、每轮真实身份/header/思考关闭、有效预算同步。独立核验补工具自由的 final repair隔离和不可原快照修正的stale错误退出，保留fresh-request恢复。测试夹具改为能按三种私有Tool目录识别无final格式的执行阶段，不在生产解释final DTO为Tool。
+
+真实HTTP/Eino首个RED：TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary exit1，Generate/Stream×0/partial coverage四组均观察auto+summarygrammar并提前结束；GREEN四组PASS，实际断言canonical闭合Tool schema、tool_choice required、无response_format、实际stream=true、拒绝反馈不推进覆盖、最终auto/schema恢复以及headers真实一致。另一个fixture路由RED观察called=0/content={}，修复后GREEN。生产数据库policy与typedTask阶段断言已补，无隔离数据库时明确SKIP。正式部署和真实模型语义仍由用户验收，未写正式业务数据。
+
+升级Core/Worker后对卡住目标手动发起一次复核，诊断应先出现 goal.evaluation.submit 的原生ToolCall，再出现实际ToolResult；最终summary不会再作为状态依据。原先已耗尽重试的failed请求不由代码伪装成功或自动改状态。本轮无新migration，head仍0058_semantic_fact_generation。
+
+
+本轮最终本地门禁：Go race 全仓 1440 PASS / 496 SKIP / 0 FAIL（含子用例），Go vet/build、pnpm generate/typecheck/test/build、git diff --check 全部 exit0；Web/client仍98 PASS。新增的实际HTTP/Eino Generate/Stream请求阶段测试已运行，PG production policy/Task用例因无隔离DB跳过；真实模型行为/部署由用户验收。check阶段局部修复了stale退出和tool-free repair隔离，但代理核验未完成完整终态，主线程收敛后完成夹具路由RED→GREEN、补针对性回归并执行最终全仓门禁；不记录成完整独立审计。当前改动未提交、未部署，无新migration。

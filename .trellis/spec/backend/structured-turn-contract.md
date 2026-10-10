@@ -425,3 +425,41 @@ actual scoped refs before the existing no-Tool final repair; respect the wire li
 
 
 Task-private capabilities may implement Core's `toolExecutionAuthorizer`. The generic ExecuteTool boundary invokes that interface before any mutation receipt replay; business-name dispatch remains forbidden. Private Goal Evaluation sessions must validate actual native/model/task identity and active claim before replay as well as during their mutation transaction. Owner-only governance also uses capability-owned authorization. Catalog visibility does not substitute for this guard.
+
+
+## Scenario: Goal Evaluation native execution and final output phases
+
+### 1. Scope / Trigger
+The typed Goal Evaluation task enters the existing Eino Runner with frozen root targets. A valid final summary must not terminate a run before native submissions; a summary grammar on every physical request can suppress native calls on an OpenAI-compatible server.
+
+### 2. Signatures
+`withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicy)` installs a private task callback. `DecidePhysicalModelRequest(ctx) -> {ToolChoice, OmitResponseFormat}, error` is evaluated by queued Generate/Stream for each physical request. `goalEvaluationPhysicalRequestPolicy` reads `(status, claim_revision, result)` from the owning `goal_evaluation_requests` row using frozen request/Fluctlight/profile identity. No public arguments or settings are added.
+
+### 3. Contracts
+- While durable `goal.evaluation.submit` records do not cover all frozen roots, send canonical native Tools with `tool_choice="required"` and omit `response_format` from the serialized body. The original registry schemas, thinking flag, headers and physical call IDs remain intact. Object/plan receipts and summary prose cannot cover a root.
+- When root submissions are accepted, restore `tool_choice="auto"` and the original summary schema. Optional object/plan calls remain allowed; no second Runner or manual continuation is introduced.
+- A real frozen source/authority conflict permits an error summary so the existing finalizer can queue unresolved/deferred targets with a fresh snapshot. This escape never counts as root coverage or success. Ordinary correctable judgment/argument rejections keep required native execution.
+- Apply options using locked Eino APIs: `model.WithToolChoice` and `openaiext.WithRequestPayloadModifier`. Do not replace ExtraFields to remove one format field. Budget and diagnostics use the effective format of this physical request.
+- Final DTO repair is tool-free and explicitly suppresses the task request policy; it cannot issue required ToolCalls without a catalog or replay mutations. Ordinary Chat/Wake/Planner tasks do not install this policy and retain their original request behavior.
+- DB/claim/cancellation failures remain errors. Native state, evidence/CAS, ownership, paused settlement and independent Tool transactions remain the sole business authority.
+
+### 4. Validation & Error Matrix
+| Condition | Required behavior |
+| --- | --- |
+| Uncovered roots, fresh run or partial retry | required native Tools; no summary grammar |
+| Root rejected for wrong judgment/arguments | required remains; actual failure feedback reaches next decision |
+| Frozen source/authority stale | allow error summary; missing roots remain unresolved; existing fresh-request path runs |
+| All durable roots accepted | auto + summary schema; optional Tools allowed |
+| Claim no longer processing or revision changed | goal_evaluation_claim_stale; no new physical request |
+| Policy DB read/cancellation fails | propagate cause; no fabricated coverage |
+| Final schema repair | no inherited request policy, no native Tool catalog |
+
+### 5. Good / Base / Bad Cases
+Good: rejected native root -> feedback -> corrected real root -> other roots -> final summary. Base: a retry starts with one accepted root and submits the remainder. Bad: return “正在评估4个目标” under summary grammar while all root submissions remain absent, or force ToolCalls against an irreparably stale snapshot until timeout.
+
+### 6. Tests Required
+`TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary` uses the actual OpenAI adapter and Eino Runner with HTTP/SSE, checking Generate/Stream × empty/partial coverage, three closed canonical Tool schemas, actual stream=true, rejection feedback, required/no-format execution requests, auto/schema final request and consistent nonempty physical identity headers. The controlled service must return premature summary on auto/summary grammar so the old implementation demonstrably fails. `TestGoalEvaluationFrozenConflictCanExitButJudgmentRejectionCannot` distinguishes stale exit from correctable evidence rejection. `TestPhysicalModelRequestPolicyIsSuppressedForFinalRepair` preserves the tool-free repair boundary. Production DB policy/Task cases require the isolated PG fixture and are explicitly SKIP without it. The test router identifies the private native catalog when the final schema is absent; production has no fixture or DTO fallback.
+
+### 7. Wrong vs Correct
+Wrong: install the summary JSON schema for every physical decision and rely only on prompt wording to require submissions.
+Correct: before each physical request, read durable root coverage, select required native execution without final grammar, and restore the final contract only after accepted coverage or an explicit stale-snapshot error exit.
