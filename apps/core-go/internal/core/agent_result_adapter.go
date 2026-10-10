@@ -897,7 +897,10 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	_ = policy // Effect authorization is rechecked atomically by each Tool; internal cognition can continue.
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
 	schema := wakeUpResponseSchema()
-	operationRules := []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction, capabilityLifeConsistencyInstruction}
+	// WakeUp has one surface-owned fixed protocol. The dedicated rule remains
+	// here for legacy formal-Agent callers, while surface rendering deduplicates
+	// it instead of stacking the shared conversation/life protocols.
+	operationRules := []string{capabilityWakeUpPolicyInstruction}
 	currentInput := jsonString(map[string]any{"cycle": cycle, "trigger_source": "periodic_check", "target_actor": "actor_user", "has_new_inbound_message": false, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
 	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema)
 	if err != nil {
@@ -940,7 +943,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	status, reason := "no_op", "no_action_selected"
-	if wakeUpHasSuccessfulToolResult(outcome) {
+	if wakeUpCommittedActionType(outcome) != "no_op" {
 		status, reason = "completed", "agent_tools_committed"
 	}
 	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
@@ -949,32 +952,51 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	return a.persistCommittedWakeUp(ctx, wakeID, fluctlightID, cycle, settings.IntervalSeconds, projection, assessment, outcome, conversationID, status, reason)
 }
 
-func wakeUpHasSuccessfulToolResult(outcome agentCommittedOutcome) bool {
-	for _, result := range outcome.Results {
-		if result.Status == "completed" || result.Status == "accepted" {
-			return true
+// wakeUpCommittedActionType derives the public action classification only from
+// authoritative native Tool receipts. The final model field remains useful as
+// a diagnostic intent, but cannot claim an effect that did not commit.
+func wakeUpPublishedReplyResults(results []CapabilityResult) []CapabilityResult {
+	replies := []CapabilityResult{}
+	for _, result := range committedConversationReplyResults(results) {
+		if stringValue(mapValue(result.Output)["delivery_status"]) != "duplicate_suppressed" {
+			replies = append(replies, result)
 		}
 	}
-	return false
+	return replies
+}
+
+func wakeUpCommittedActionType(outcome agentCommittedOutcome) string {
+	hasReply, hasMoment, hasCapability := false, false, false
+	for _, result := range outcome.Results {
+		if result.Status != "completed" && result.Status != "accepted" {
+			continue
+		}
+		output := mapValue(result.Output)
+		switch result.CapabilityName {
+		case conversationReplyCapabilityName:
+			hasReply = hasReply || (result.Status == "completed" && stringValue(output["target_kind"]) == "conversation_message" && strings.TrimSpace(stringValue(output["target_ref"])) != "" && stringValue(output["delivery_status"]) != "duplicate_suppressed")
+			continue
+		case "moment.publish":
+			hasMoment = hasMoment || (result.Status == "completed" && stringValue(output["target_kind"]) == "moment" && strings.TrimSpace(stringValue(output["target_ref"])) != "")
+			continue
+		}
+		hasCapability = true
+	}
+	switch {
+	case hasReply:
+		return "proactive_message"
+	case hasMoment:
+		return "moment"
+	case hasCapability:
+		return "capability"
+	default:
+		return "no_op"
+	}
 }
 
 func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle, intervalSeconds int, projection ContextProjection, assessment map[string]any, outcome agentCommittedOutcome, conversationID, status, reason string) (map[string]any, error) {
 	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
-	actionType := normalizeConversationActionType(stringValue(assessment["action_type"]))
-	if wakeUpHasSuccessfulToolResult(outcome) {
-		actionType = "capability"
-		for _, result := range outcome.Results {
-			if result.CapabilityName == "conversation.reply" && result.Status == "completed" {
-				actionType = "proactive_message"
-			}
-			if result.CapabilityName == "moment.publish" && result.Status == "completed" {
-				actionType = "moment"
-			}
-		}
-	}
-	if actionType == "reply" || actionType == "" {
-		actionType = "no_op"
-	}
+	actionType := wakeUpCommittedActionType(outcome)
 	factID := "wake_fact_" + stableDigest(wakeID)
 	result := map[string]any{"status": status, "reason": reason, "response_intent": stringValue(assessment["response_intent"]), "conversation_id": conversationID, "capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
 	var nextDue time.Time
@@ -1037,7 +1059,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		if err != nil {
 			return err
 		}
-		for _, reply := range committedConversationReplyResults(outcome.Results) {
+		for _, reply := range wakeUpPublishedReplyResults(outcome.Results) {
 			messageID := stringValue(mapValue(reply.Output)["target_ref"])
 			var messageAt time.Time
 			if err := tx.QueryRow(ctx, `SELECT created_at FROM public.conversation_messages WHERE id=$1 AND author_actor_id=$2 AND kind='assistant'`, messageID, fluctlightID).Scan(&messageAt); err != nil {

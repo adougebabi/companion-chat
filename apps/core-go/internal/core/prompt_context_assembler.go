@@ -239,6 +239,7 @@ func estimateProviderMessageTokens(message map[string]any) int {
 }
 
 type PromptAssemblyInput struct {
+	Surface        ProviderContextSurface
 	Role           string
 	OperationRules []string
 	CorePersona    map[string]any
@@ -301,7 +302,11 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	if input.CurrentInput == "" {
 		return PromptAssemblyResult{}, errors.New("prompt_current_input_required")
 	}
-	system := map[string]any{"role": "system", "content": renderProviderSystem(input.OperationRules, filterCorePersona(input.CorePersona), nil, input.Role)}
+	surface := input.Surface
+	if surface == "" {
+		surface = ProviderContextSurfaceDefault
+	}
+	system := map[string]any{"role": "system", "content": renderProviderSystemForSurface(surface, input.OperationRules, filterCorePersona(input.CorePersona), nil, input.Role)}
 	stable := stableTaskContextMessage(input.StableTaskContext)
 	current := map[string]any{"role": "user", "content": input.CurrentInput}
 	candidates, err := promptOptionalCandidates(input.WorkingMemory, input.CurrentInput)
@@ -342,7 +347,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		}
 	}
 	orderedSelected := orderedPromptCandidates(selected)
-	requiredTotal := estimatePromptWireInput(assemblePromptMessages(system, stable, current, orderedSelected), input.Tools, input.ResponseFormat)
+	requiredTotal := estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, orderedSelected), input.Tools, input.ResponseFormat)
 	if requiredTotal > input.Policy.MaxInputTokens {
 		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d system=%d stable_task_context=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens, systemTokens, stableTokens, currentTokens, toolsTokens, schemaTokens)
 	}
@@ -422,7 +427,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 			reason = "recent_contiguity_excluded"
 		} else {
 			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
-			if estimatePromptWireInput(assemblePromptMessages(system, stable, current, trial), input.Tools, input.ResponseFormat) <= selectionLimit {
+			if estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, trial), input.Tools, input.ResponseFormat) <= selectionLimit {
 				selected = append(selected, unit.items...)
 				if unit.kind == PromptFragmentSummary || unit.kind == PromptFragmentRetrievedMemory || unit.kind == PromptFragmentResidentMemory {
 					for _, candidate := range unit.items {
@@ -445,7 +450,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	for _, candidate := range selected {
 		trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
 	}
-	messages := assemblePromptMessages(system, stable, current, selected)
+	messages := assemblePromptMessagesForSurface(surface, system, stable, current, selected)
 	total := estimatePromptWireInput(messages, input.Tools, input.ResponseFormat)
 	trace.EstimatedInputTokens = total
 	trace.SectionTokens = promptAssemblySectionTokens(system, stable, current, selected, input.Tools, input.ResponseFormat)
@@ -526,13 +531,26 @@ func stableTaskContextMessage(value map[string]any) map[string]any {
 }
 
 func assemblePromptMessages(system, stable, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
+	return assemblePromptMessagesForSurface(ProviderContextSurfaceDefault, system, stable, current, selected)
+}
+
+func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, stable, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
 	runtimeContext := map[string]any{}
 	recent := make([]map[string]any, 0)
 	for _, candidate := range selected {
 		fragment := candidate.fragment
 		switch fragment.Kind {
 		case PromptFragmentRecentMessage:
-			recent = append(recent, cloneMap(mapValue(fragment.Content)))
+			if surface == ProviderContextSurfaceWakeUp {
+				item := cloneMap(mapValue(fragment.Content))
+				item["source_refs"] = append([]string(nil), fragment.SourceRefs...)
+				if groupKey := strings.TrimSpace(fragment.GroupKey); groupKey != "" {
+					item["conversation_group"] = groupKey
+				}
+				recent = append(recent, item)
+			} else {
+				recent = append(recent, cloneMap(mapValue(fragment.Content)))
+			}
 		case PromptFragmentRuntimeFact:
 			fact := mapValue(fragment.Content)
 			kind := stringValue(fact["kind"])
@@ -550,6 +568,14 @@ func assemblePromptMessages(system, stable, current map[string]any, selected []p
 		case PromptFragmentSummary:
 			runtimeContext["conversation_summaries"] = append(arrayValue(runtimeContext["conversation_summaries"]), boundedSnapshotValue(fragment.Content))
 		}
+	}
+	if surface == ProviderContextSurfaceWakeUp && len(recent) > 0 {
+		runtimeContext["historical_conversation"] = map[string]any{
+			"evidence_semantics": "historical_only_not_current_user_input",
+			"current_authority":  "unknown_unless_explicit_in_runtime_facts",
+			"messages":           cloneMapSlice(recent),
+		}
+		recent = recent[:0]
 	}
 	messages := []map[string]any{cloneMap(system)}
 	if stable != nil {
@@ -596,11 +622,14 @@ func renderProviderRuntimeContext(value map[string]any) string {
 			ordered = append(ordered, key)
 		}
 	}
-	var builder strings.Builder
+	sections := make([]string, 0, len(ordered))
 	for _, key := range ordered {
-		builder.WriteString(renderProviderYAMLWithMode(map[string]any{key: value[key]}, true))
+		section := strings.Trim(renderProviderYAMLWithMode(map[string]any{key: value[key]}, true), "\n")
+		if section != "" {
+			sections = append(sections, section)
+		}
 	}
-	return strings.TrimRight(builder.String(), "\n")
+	return strings.Join(sections, "\n")
 }
 
 // formatRuntimeContextTimes changes only the Provider-facing copy. The

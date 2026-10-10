@@ -708,6 +708,59 @@ func TestRecentPromptFragmentsUseRealRolesAndSkipCurrentInput(t *testing.T) {
 	}
 }
 
+func TestWakeRecentFragmentsPreserveEvidenceWithoutCreatingPhysicalCurrentUser(t *testing.T) {
+	projection := ContextProjection{
+		Actors: []map[string]any{{"actor_id": "human-1", "ref": "actor_user", "type": "human", "display_name": "用户"}},
+		RecentMessages: []map[string]any{{
+			"id": "dangling-user", "sequence": 9, "turn_id": "failed-turn", "author_actor_id": "human-1", "kind": "user", "text": "09:47 旧请求", "created_at": "2026-10-10T01:47:00Z",
+		}},
+	}
+	fragments := recentPromptFragmentsForSurface(projection, ProviderContextSurfaceWakeUp)
+	if len(fragments) != 1 {
+		t.Fatalf("Wake fragments = %#v", fragments)
+	}
+	content := mapValue(fragments[0].Content)
+	if content["role"] != "user" || content["content"] != "09:47 旧请求" || content["sender"] != "actor_user" || content["source_kind"] != "conversation_message" || content["occurred_at"] != "2026-10-10T09:47:00.000+08:00" || len(fragments[0].SourceRefs) != 1 || fragments[0].SourceRefs[0] != "message:dangling-user" {
+		t.Fatalf("Wake historical provenance was changed or lost: %#v", fragments[0])
+	}
+	if strings.Contains(stringValue(content["content"]), "[sender=") {
+		t.Fatalf("Wake history kept physical-chat header encoding: %#v", content)
+	}
+}
+
+func TestWakeGoalProjectionDropsPriorAssessmentNoiseWithoutMutatingSource(t *testing.T) {
+	goalRef := "goal:ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	goal := map[string]any{
+		"ref": goalRef, "description": "完成读书目标", "success_criteria": []any{"read", "summarize"}, "status": "active", "target_actor_id": "human-1",
+		"execution": map[string]any{
+			"stage": "waiting", "current_stage": map[string]any{"purpose": "阅读", "status": "active", "revision": 4}, "next_step": "继续阅读", "wait_condition": "等待新证据",
+			"last_result":        map[string]any{"kind": "message", "status": "completed", "reason": "已交付"},
+			"last_evaluation":    map[string]any{"impact": "progressed", "judgments": []any{map[string]any{"reason": "很长的旧判断"}}},
+			"evaluation_request": map[string]any{"request_id": "secret", "status": "pending", "attempt_count": 2, "available_at": "2026-10-10T10:00:00Z", "error_code": "old_failure"},
+		},
+	}
+	before := jsonString(goal)
+	index := ContextReferenceIndex{ByRef: map[string]ContextReference{goalRef: {Ref: goalRef, Kind: ContextReferenceGoal}}}
+	got := compactProviderGoalsForSurface([]map[string]any{goal}, []map[string]any{{"actor_id": "human-1", "ref": "actor_user", "type": "human", "display_name": "用户"}}, index, ProviderContextSurfaceWakeUp)
+	if len(got) != 1 {
+		t.Fatalf("Wake goals = %#v", got)
+	}
+	wire := jsonString(got[0])
+	for _, required := range []string{goalRef, "完成读书目标", "success_criteria", "用户", "active", "current_stage", "last_result", "继续阅读", "等待新证据", "pending", "attempt_count"} {
+		if !strings.Contains(wire, required) {
+			t.Fatalf("Wake goal projection lost %q: %s", required, wire)
+		}
+	}
+	for _, forbidden := range []string{"last_evaluation", "judgments", "很长的旧判断", "error_code", "old_failure", "request_id", "secret"} {
+		if strings.Contains(wire, forbidden) {
+			t.Fatalf("Wake goal projection retained %q: %s", forbidden, wire)
+		}
+	}
+	if jsonString(goal) != before {
+		t.Fatalf("Wake goal projection mutated source: before=%s after=%s", before, jsonString(goal))
+	}
+}
+
 func TestRecentHistoryBridgesSummaryCoverageBeforeTokenBudget(t *testing.T) {
 	messages := make([]map[string]any, 0, 65)
 	for sequence := 1; sequence <= 64; sequence++ {

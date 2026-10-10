@@ -182,7 +182,7 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		systemPersona = mapValue(goalEvaluationPersonaSemantics(systemPersona))
 	}
 	result, err := composer.ComposeAssembly(PromptAssemblyInput{
-		Role: role, OperationRules: operationRules, CorePersona: systemPersona,
+		Surface: surface, Role: role, OperationRules: operationRules, CorePersona: systemPersona,
 		StableTaskContext: providerStableTaskContext(ctx), WorkingMemory: workingMemory, CurrentInput: currentInput, Tools: RenderCapabilityTools(definitions),
 		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,
 	})
@@ -290,7 +290,7 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		}
 	}
 	if providerContextSurfaceAllowsRecentHistory(surface) {
-		input.RecentMessages = recentPromptFragments(projection)
+		input.RecentMessages = recentPromptFragmentsForSurface(projection, surface)
 	}
 	return input
 }
@@ -321,6 +321,10 @@ func promptItemSourceRefs(item map[string]any, fallback string) []string {
 }
 
 func recentPromptFragments(projection ContextProjection) []PromptFragment {
+	return recentPromptFragmentsForSurface(projection, ProviderContextSurfaceDefault)
+}
+
+func recentPromptFragmentsForSurface(projection ContextProjection, surface ProviderContextSurface) []PromptFragment {
 	skipIndex := currentInputRecentMessageIndex(projection.RecentMessages, projection.CurrentUserText)
 	defaultTz := canonicalTimezone(stringValue(projection.LifeContext["timezone"]))
 	if defaultTz == "" {
@@ -352,7 +356,7 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 				sender = display
 			}
 		}
-		if stamp != "" || sender != "" {
+		if surface != ProviderContextSurfaceWakeUp && (stamp != "" || sender != "") {
 			content = fmt.Sprintf("[sender=%s time=%s]\n%s", sender, stamp, content)
 		}
 		ref := "message:" + stringValue(message["id"])
@@ -363,7 +367,15 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 		if groupKey == "" {
 			groupKey = "sequence-pair:" + fmt.Sprint((intValue(message["sequence"])+1)/2)
 		}
-		result = append(result, PromptFragment{Kind: PromptFragmentRecentMessage, Priority: index, Content: map[string]any{"role": role, "content": content}, SourceRefs: []string{ref}, GroupKey: groupKey})
+		providerMessage := map[string]any{"role": role, "content": content}
+		if surface == ProviderContextSurfaceWakeUp {
+			providerMessage["sender"] = sender
+			providerMessage["source_kind"] = "conversation_message"
+			if stamp != "" {
+				providerMessage["occurred_at"] = stamp
+			}
+		}
+		result = append(result, PromptFragment{Kind: PromptFragmentRecentMessage, Priority: index, Content: providerMessage, SourceRefs: []string{ref}, GroupKey: groupKey})
 	}
 	return result
 }
@@ -948,7 +960,11 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 		item := map[string]any{}
 		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "deadline", "state"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
-				item[key] = goalRuntimeSemantics(raw)
+				if key == "execution" && surface == ProviderContextSurfaceWakeUp {
+					item[key] = compactWakeGoalExecution(raw)
+				} else {
+					item[key] = goalRuntimeSemantics(raw)
+				}
 			}
 		}
 		if surfaceAllowsEntityRef(surface, ContextReferenceGoal) {
@@ -961,6 +977,28 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 		}
 		if len(item) > 0 {
 			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// compactWakeGoalExecution keeps the current execution signal needed for an
+// autonomous decision while removing prior model assessment prose. The source
+// projection remains untouched and available to its owning Goal services.
+func compactWakeGoalExecution(value any) any {
+	result := mapValue(goalRuntimeSemantics(value))
+	delete(result, "last_evaluation")
+	if rawRequest := mapValue(mapValue(value)["evaluation_request"]); len(rawRequest) > 0 {
+		request := map[string]any{}
+		for _, key := range []string{"status", "attempt_count", "available_at"} {
+			if child, ok := rawRequest[key]; ok && child != nil && child != "" {
+				request[key] = child
+			}
+		}
+		if len(request) > 0 {
+			result["evaluation_request"] = request
+		} else {
+			delete(result, "evaluation_request")
 		}
 	}
 	return result
@@ -1167,11 +1205,15 @@ func compactVisualIdentityForSurface(value map[string]any) map[string]any {
 	return result
 }
 
-func compactSummaryForSurface(value map[string]any, _ ProviderContextSurface) map[string]any {
+func compactSummaryForSurface(value map[string]any, surface ProviderContextSurface) map[string]any {
 	result := map[string]any{}
 	if summary := strings.TrimSpace(stringValue(value["summary"])); summary != "" {
 		result["summary"] = summary
 		result["time_semantics"] = "historical_conversation"
+		if surface == ProviderContextSurfaceWakeUp {
+			result["evidence_semantics"] = "historical_evidence_not_current_authority"
+			result["current_authority"] = "unknown_unless_explicit_in_runtime_facts"
+		}
 		for _, key := range []string{"started_at", "ended_at", "local_date", "timezone", "ending_state", "open_threads"} {
 			if field, exists := value[key]; exists {
 				result[key] = field

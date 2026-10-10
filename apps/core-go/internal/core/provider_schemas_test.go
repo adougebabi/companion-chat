@@ -3,7 +3,28 @@ package core
 import (
 	"strings"
 	"testing"
+
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
+
+func TestWakeUpResponseSchemaUsesClosedReceiptTruthActionEnum(t *testing.T) {
+	schema := wakeUpResponseSchema()
+	base := map[string]any{"response_intent": "quiet", "evidence_refs": []any{}, "influences": []any{}}
+	for _, actionType := range []string{"no_op", "proactive_message", "moment", "capability"} {
+		candidate := cloneMap(base)
+		candidate["action_type"] = actionType
+		if err := capabilitycontract.ValidateCapabilitySchemaValue(candidate, schema); err != nil {
+			t.Fatalf("WakeUp schema rejected canonical action_type %q: %v", actionType, err)
+		}
+	}
+	for _, actionType := range []string{"message", "reply", "moment_publish"} {
+		candidate := cloneMap(base)
+		candidate["action_type"] = actionType
+		if err := capabilitycontract.ValidateCapabilitySchemaValue(candidate, schema); err == nil {
+			t.Fatalf("WakeUp schema accepted non-canonical action_type %q", actionType)
+		}
+	}
+}
 
 func TestReflectionProviderSchemaClosesActiveMemoryCandidates(t *testing.T) {
 	schema := reflectionProposalV2ProviderSchema()

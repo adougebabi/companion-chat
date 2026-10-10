@@ -76,6 +76,51 @@ func TestNormalizeWakeUpAssessmentRejectsInvalidAction(t *testing.T) {
 	}
 }
 
+func TestNormalizeWakeUpAssessmentRejectsMessageAliases(t *testing.T) {
+	for _, actionType := range []string{"message", "reply", "respond", "send_message", "publish_moment"} {
+		if _, err := normalizeWakeUpAssessment(map[string]any{"action_type": actionType}); err == nil {
+			t.Fatalf("WakeUp accepted non-canonical action_type %q", actionType)
+		}
+	}
+}
+
+func TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts(t *testing.T) {
+	tests := []struct {
+		name    string
+		results []CapabilityResult
+		want    string
+	}{
+		{name: "declared proactive without receipt", want: "no_op"},
+		{name: "failed reply", results: []CapabilityResult{{CapabilityName: conversationReplyCapabilityName, Status: "failed"}}, want: "no_op"},
+		{name: "completed reply missing target", results: []CapabilityResult{{CapabilityName: conversationReplyCapabilityName, Status: "completed", Output: map[string]any{"target_kind": "conversation_message"}}}, want: "no_op"},
+		{name: "completed reply", results: []CapabilityResult{{CapabilityName: conversationReplyCapabilityName, Status: "completed", Output: map[string]any{"target_kind": "conversation_message", "target_ref": "message-1"}}}, want: "proactive_message"},
+		{name: "suppressed duplicate is not a publication", results: []CapabilityResult{{CapabilityName: conversationReplyCapabilityName, Status: "completed", Output: map[string]any{"target_kind": "conversation_message", "target_ref": "old-message", "delivery_status": "duplicate_suppressed"}}}, want: "no_op"},
+		{name: "accepted moment is not published", results: []CapabilityResult{{CapabilityName: "moment.publish", Status: "accepted", Output: map[string]any{"target_kind": "moment", "target_ref": "moment-1"}}}, want: "no_op"},
+		{name: "completed moment", results: []CapabilityResult{{CapabilityName: "moment.publish", Status: "completed", Output: map[string]any{"target_kind": "moment", "target_ref": "moment-1"}}}, want: "moment"},
+		{name: "query only is capability not message", results: []CapabilityResult{{CapabilityName: "wardrobe.inspect", Status: "completed", Output: map[string]any{"items": []any{}}}}, want: "capability"},
+		{name: "accepted durable capability", results: []CapabilityResult{{CapabilityName: "media.image.generate", Status: "accepted", Output: map[string]any{"media_intent_id": "media-1"}}}, want: "capability"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := wakeUpCommittedActionType(agentCommittedOutcome{Results: test.results}); got != test.want {
+				t.Fatalf("wakeUpCommittedActionType() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestWakeUpSuppressedReplyCannotResetIdleEpoch(t *testing.T) {
+	suppressed := CapabilityResult{CapabilityName: conversationReplyCapabilityName, Status: "completed", Output: map[string]any{"target_kind": "conversation_message", "target_ref": "old-message", "delivery_status": "duplicate_suppressed"}}
+	if replies := wakeUpPublishedReplyResults([]CapabilityResult{suppressed}); len(replies) != 0 {
+		t.Fatal("old suppressed message admitted to idle-clock update", replies)
+	}
+	actual := CapabilityResult{CapabilityName: conversationReplyCapabilityName, Status: "completed", Output: map[string]any{"target_kind": "conversation_message", "target_ref": "new-message"}}
+	replies := wakeUpPublishedReplyResults([]CapabilityResult{suppressed, actual})
+	if len(replies) != 1 || stringValue(mapValue(replies[0].Output)["target_ref"]) != "new-message" {
+		t.Fatal("real publication lost or suppressed publication retained", replies)
+	}
+}
+
 func TestNormalizeWakeUpSettingsUsesFixedTenMinuteInterval(t *testing.T) {
 	settings := normalizeWakeUpSettings(map[string]any{"enabled": false, "interval_seconds": 1})
 	if settings.Enabled || settings.IntervalSeconds != minWakeUpIntervalSeconds {

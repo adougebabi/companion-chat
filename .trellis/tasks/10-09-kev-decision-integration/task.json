@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "Conversation无输出reply用现有一次repair纠正；post-run诊断保留业务码；facts冲突附expected/actual/boundary，原因未完全定位。Go race1403 PASS/491 SKIP/0 FAIL，Web/client98 PASS；无migration，未部署未提交。",
+  "notes": "Wake专用固定协议/历史数据/LF/receipt truth已实现，重复抑制不重置idle；0058移除embedding cache facts trigger，persona相同upsert不推进。Go race1422PASS/494SKIP/0FAIL，Web/client98PASS；PG/live用户验收，未提交未部署。",
   "meta": {}
 }

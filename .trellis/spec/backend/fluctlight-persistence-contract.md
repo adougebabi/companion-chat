@@ -440,3 +440,36 @@ WakeUp release uses that lifecycle lock and refuses to enqueue while the same
 instance has pending/running cognition. Model/Redis/Temporal calls stay outside
 these transactions. Unique chat-epoch reflection IDs prevent old cancellation
 markers or callbacks from applying to a newer pending epoch.
+
+
+## Scenario: Semantic facts exclude derived embedding-cache churn (0058)
+
+### 1. Scope / Trigger
+Conversation settlement observed facts_gen_23339→facts_gen_23378. Async vector-cache writes were tracked as authoritative changes although memory content/provenance were unchanged. Exact historical attribution of all 39 increments remains unproven.
+
+### 2. Signatures
+Schema head 0058_semantic_fact_generation, previous head0057_logical_agent_leases. semanticFactGenerationSchemaSQL drops only memory_embeddings.context_generation_bump and runs after historical installers on every Apply/rerun. Released migration SQL remains immutable.
+
+### 3. Contracts
+Embedding pending/ready/failed/stale/retry and index deletion affect derived retrieval availability, not memory fact authority. memories, memory_source_links, actual state, claims, summaries and all other semantic authorities remain tracked. Current-facts CAS is unchanged. Working Persona UPSERT executes only when its semantic tuple (source revision/hash, overlay/rules/budget/status/compiled JSON) differs; identical recompilation does not update compiled_at or generation.
+
+The migration must be explicitly applied before updated Core/Worker readiness. No cache rows, source rows or old generation values are deleted/recomputed. Summary content may change prompt meaning and remains tracked; no blanket suppression of background semantic changes.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Embedding cache insert/update/delete | generation unchanged |
+| Memory body/source-link revision | generation advances; stale CAS rejects |
+| Identical Working Persona write | no UPDATE, generation unchanged |
+| Different compiled portrait/source semantics | UPDATE and generation advance |
+| Migration head rerun reinstalls historical trigger | final0058 correction drops cache trigger again |
+
+### 5. Good / Base / Bad Cases
+Good: embedding retry runs during conversation without invalidating frozen source facts. Base: an actual source correction still rejects the obsolete decision. Bad: ignore all generation mismatch or rewrite released migration identifiers.
+
+### 6. Tests Required
+TestSemanticFactGenerationUpgradeAndRerun covers fresh install,0057 upgrade and head rerun. TestEmbeddingCacheChangesDoNotInvalidateFacts covers cache status/retry/delete plus real body/source mutations. TestIdenticalWorkingPersonaWriteDoesNotInvalidateFacts checks same/different portraits. These PostgreSQL opt-in tests are SKIP when no isolated database exists, not positive acceptance.
+
+### 7. Wrong vs Correct
+Wrong: treat vector readiness/provider errors as new actor facts or reset facts_gen to accept a decision.
+Correct: track semantic sources and revisions, exclude derived index maintenance, and preserve version-fenced settlement.

@@ -1171,3 +1171,39 @@ TestConversationFinalWithoutOutputGetsOneToolFreeRepair captures HTTP omitted/em
 ### 7. Wrong vs Correct
 Wrong: repair only malformed JSON while a schema-valid reply plan has no output.
 Correct: validate the existence of an actual output channel before returning a completed conversation model result; preserve committed effects and use the existing tool-free repair.
+
+
+## Scenario: Surface-owned WakeUp protocol and historical evidence (2026-10-10)
+
+### 1. Scope / Trigger
+Periodic WakeUp previously inherited stacked chat/life instructions, physical historical chat roles, glued Runtime Context sections and unconstrained message intents. It could mistake an old unanswered user question for the current request.
+
+### 2. Signatures
+`PromptAssemblyInput.Surface`; `renderProviderSystemForSurface(surface,operationRules,persona,actorContext,role)`; `assemblePromptMessagesForSurface(surface,...)`. Wake fixed source is wakeUpProviderFixedProtocol; review copy docs/wake-up-fixed-prompt.md. Native current-run ToolCall/ToolResult processing is unchanged.
+
+### 3. Contracts
+- Wake uses explicit ProviderContextSurfaceWakeUp. One coherent fixed protocol covers task, authority/unknown/history, declared persona, action/no-op, native Tool execution and result truth. Do not stack the shared runtime/authority/life fragments onto it. Persona remains dynamic and separate. Other surfaces retain their prior fixed protocols.
+- Only Wake recent messages become historical_conversation data: preserve role/content/sender/time/source and group, do not emit them as physical current user/assistant messages. The final user message remains the periodic trigger. Summaries are historical evidence, not current state. A past failed reply is historical unmet need requiring a fresh proactive justification, not a current command.
+- Wake Goal projection omits last_evaluation prose and internal evaluation errors while retaining original criteria, refs, state, current stage, actual last result, next/wait state and pending status. Operate on copies.
+- Runtime top-level sections on ALL surfaces are joined by one LF; renderer-trimmed sections must never concatenate keys. Required/optional admission estimates and final wire use the same surface assembler. No evidence truncation or native protocol wrapping.
+- Wake action enum is no_op/proactive_message/moment/capability. Persisted action derives from real receipts: completed concrete message/Moment, other completed/accepted capabilities, else no_op. duplicate_suppressed reply is not new publication and must not reset the idle epoch from the old target message. Preserve real effects even if the final model says no_op or fails.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Adjacent top-level runtime keys | one LF separator, valid boundaries |
+| Historical trailing user under Wake | historical evidence block, not current chat turn |
+| Arbitrary action_type message/reply/send_message | schema/normalization rejection; existing contract repair |
+| Claimed proactive/Moment without actual receipt | persisted no_op |
+| Suppressed duplicate with old target | no proactive effect or idle-clock reset |
+| Real committed output with model no_op | real receipt remains authoritative |
+
+### 5. Good / Base / Bad Cases
+Good: periodic check uses current facts to justify action or silence. Base: ordinary chat keeps physical chronology. Bad: replay an old question automatically, trust summary to fill unknown user facts, or count suppressed duplicate as a new message.
+
+### 6. Tests Required
+Runtime newline tests, surface-aware budget/wire equality, dangling-history preservation/source immutability, Wake-only Goal compaction, explicit surface/deduplicated fixed rules, enum rejection and receipt truth. TestWakeUpSuppressedReplyCannotResetIdleEpoch rejects old-message clock input. Real model compliance remains distinct from scripted engineering tests.
+
+### 7. Wrong vs Correct
+Wrong: append yet another rule to generic chat instructions and concatenate trimmed context sections.
+Correct: a dedicated compact Wake protocol, labeled historical evidence, honest result classification and actual physical-budget accounting.

@@ -500,3 +500,47 @@ func TestMergedLegacyAuthorityRetainsTaskSectionsWithoutDuplicateFactsRule(t *te
 		t.Fatalf("merged system lost task sections or duplicated fact authority: %s", rendered)
 	}
 }
+
+func TestWakeUpSurfaceUsesOneCoherentFixedProtocol(t *testing.T) {
+	persona := map[string]any{"shared_identity": map[string]any{"identity": map[string]any{"name": "摇光"}}}
+	rendered := renderProviderSystemForSurface(
+		ProviderContextSurfaceWakeUp,
+		[]string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction, capabilityLifeConsistencyInstruction},
+		persona,
+		nil,
+		"cognitive_assessment",
+	)
+	for _, required := range []string{
+		"系统触发的周期 WakeUp，不是当前用户请求",
+		"actor_background 是已声明背景，缺失表示未知",
+		"只使用已声明且获授权的 persona profile/switching rule",
+		"旧失败回复最多说明一个历史未满足需要",
+		"获准的本人场景变化并确认到达 → 实际获取/借用已有记录物品 → wardrobe.wear",
+		"accepted 只证明存在真实异步任务",
+		"action_type 只能是 no_op、proactive_message、moment、capability",
+		"# 人格设定",
+	} {
+		if !strings.Contains(rendered, required) {
+			t.Fatalf("WakeUp fixed protocol missing %q: %s", required, rendered)
+		}
+	}
+	if strings.Count(rendered, "# 任务边界") != 1 || strings.Count(rendered, "# 人格设定") != 1 {
+		t.Fatalf("WakeUp fixed sections were duplicated: %s", rendered)
+	}
+	for _, duplicated := range []string{providerRuntimeProtocol, providerSingleRuntimeProtocol, capabilityWakeUpPolicyInstruction, capabilityLifeConsistencyInstruction} {
+		if strings.Contains(rendered, duplicated) {
+			t.Fatalf("WakeUp retained a stacked shared protocol fragment: %s", rendered)
+		}
+	}
+	priorFixed := renderProviderRuntimeProtocol(nil) + "\n" + capabilityWakeUpPolicyInstruction + "\n" + capabilityLifeConsistencyInstruction
+	if len([]rune(wakeUpProviderFixedProtocol)) >= len([]rune(priorFixed)) {
+		t.Fatalf("WakeUp fixed protocol did not shrink: new=%d prior=%d", len([]rune(wakeUpProviderFixedProtocol)), len([]rune(priorFixed)))
+	}
+}
+
+func TestWakeUpSurfaceSelectionIsExplicitAndDoesNotTrustUserText(t *testing.T) {
+	rendered := renderProviderSystemForSurface(ProviderContextSurfaceConversationMain, []string{"wake_up_response 周期 WakeUp"}, nil, nil, "cognitive_assessment")
+	if strings.Contains(rendered, "# 任务边界") || !strings.Contains(rendered, "# 运行协议") {
+		t.Fatalf("ordinary surface was switched by arbitrary text: %s", rendered)
+	}
+}

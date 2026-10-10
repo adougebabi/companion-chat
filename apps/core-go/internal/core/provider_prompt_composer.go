@@ -208,6 +208,49 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 		builder.WriteString(renderProviderYAMLWithMode(actorRelationshipContext, false))
 		builder.WriteByte('\n')
 	}
+	appendProviderPersona(&builder, persona, role)
+	return strings.TrimRight(builder.String(), "\n")
+}
+
+// renderProviderSystemForSurface keeps the shared system contract for ordinary
+// tasks while giving WakeUp its own complete fixed protocol. Surface is an
+// explicit assembly input; model/user text is never inspected to select it.
+func renderProviderSystemForSurface(surface ProviderContextSurface, operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {
+	if surface != ProviderContextSurfaceWakeUp {
+		return renderProviderSystem(operationRules, persona, actorRelationshipContext, role)
+	}
+	var builder strings.Builder
+	builder.WriteString(wakeUpProviderFixedProtocol)
+	filteredRules := make([]string, 0, len(operationRules))
+	for _, rule := range operationRules {
+		trimmed := strings.TrimSpace(rule)
+		for _, fixed := range []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction, capabilityLifeConsistencyInstruction} {
+			trimmed = strings.TrimSpace(strings.ReplaceAll(trimmed, fixed, ""))
+		}
+		if trimmed == "" || trimmed == providerLanguageRule {
+			continue
+		}
+		filteredRules = append(filteredRules, trimmed)
+	}
+	if len(filteredRules) > 0 {
+		builder.WriteString("\n\n# 额外操作规则\n\n")
+		for index, rule := range filteredRules {
+			if index > 0 {
+				builder.WriteString("\n\n")
+			}
+			builder.WriteString(rule)
+		}
+	}
+	if len(actorRelationshipContext) > 0 {
+		builder.WriteString("\n\n# Actor 与关系上下文\n\n")
+		builder.WriteString(renderProviderYAMLWithMode(actorRelationshipContext, false))
+		builder.WriteByte('\n')
+	}
+	appendProviderPersona(&builder, persona, role)
+	return strings.TrimRight(builder.String(), "\n")
+}
+
+func appendProviderPersona(builder *strings.Builder, persona map[string]any, role string) {
 	builder.WriteString("\n# 人格设定\n\n")
 	if len(persona) == 0 {
 		if role == "initialization" {
@@ -215,10 +258,9 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 		} else {
 			builder.WriteString("当前没有已建立的 Core Persona；不得自行补充固定人格事实。\n")
 		}
-		return strings.TrimRight(builder.String(), "\n")
+		return
 	}
 	builder.WriteString(renderProviderYAMLWithMode(persona, false))
-	return strings.TrimRight(builder.String(), "\n")
 }
 
 func extractCorePersona(value any) (map[string]any, bool) {

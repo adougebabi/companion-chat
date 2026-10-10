@@ -127,6 +127,55 @@ func TestAssemblePromptMessagesFormatsRuntimeTimesOnWire(t *testing.T) {
 	}
 }
 
+func TestRenderProviderRuntimeContextSeparatesEveryNonEmptySectionWithOneLF(t *testing.T) {
+	wire := renderProviderRuntimeContext(map[string]any{
+		"self_actor": map[string]any{"type": "fluctlight"},
+		"goals":      []any{map[string]any{"state": "active"}},
+		"time_view":  map[string]any{"current_time": "2026-10-10T10:00:00+08:00"},
+	})
+	if strings.Contains(wire, "fluctlightgoals:") || !strings.Contains(wire, "type: fluctlight\ngoals:") {
+		t.Fatalf("runtime sections were not separated by exactly one LF: %q", wire)
+	}
+	if strings.Contains(wire, "\n\ngoals:") || strings.Contains(wire, "\n\ntime_view:") {
+		t.Fatalf("runtime sections contain an extra blank line: %q", wire)
+	}
+}
+
+func TestWakePromptTreatsRecentConversationAsHistoricalRuntimeEvidence(t *testing.T) {
+	recent := []PromptFragment{
+		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "old dangling request", "sender": "actor_user", "occurred_at": "2026-10-10T09:47:00.000+08:00", "source_kind": "conversation_message"}, SourceRefs: []string{"message:old-user"}, GroupKey: "turn:old"},
+		{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "assistant", "content": "failed reply evidence", "sender": "actor_self", "occurred_at": "2026-10-10T09:48:00.000+08:00", "source_kind": "conversation_message"}, SourceRefs: []string{"message:failed-reply"}, GroupKey: "turn:old"},
+	}
+	memory := WorkingMemory{
+		RuntimeFacts: []PromptFragment{{Kind: PromptFragmentRuntimeFact, Required: true, Content: map[string]any{"kind": "time_view", "value": map[string]any{"reference_timezone": "Asia/Shanghai"}}, SourceRefs: []string{"runtime:time_view"}}},
+		Recent:       recent,
+	}
+	current := `{"periodic_wake":true,"current_user_request":false}`
+	result, err := AssemblePromptContext(PromptAssemblyInput{Surface: ProviderContextSurfaceWakeUp, Role: "cognitive_assessment", WorkingMemory: memory, CurrentInput: current, Policy: DefaultPromptBudgetPolicy(4096)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Messages) != 3 || stringValue(result.Messages[0]["role"]) != "system" || stringValue(result.Messages[1]["role"]) != "user" || stringValue(result.Messages[2]["role"]) != "user" {
+		t.Fatalf("Wake history escaped into physical user/assistant chronology: %#v", result.Messages)
+	}
+	wire := stringValue(result.Messages[1]["content"])
+	for _, required := range []string{"historical_conversation:", "historical_only_not_current_user_input", "messages[2]{content,conversation_group,occurred_at,role,sender,source_kind,source_refs}", "old dangling request", "failed reply evidence", "actor_user", "actor_self", "message:old-user", "message:failed-reply", "2026-10-10T09:47:00.000+08:00"} {
+		if !strings.Contains(wire, required) {
+			t.Fatalf("Wake historical evidence lost %q: %s", required, wire)
+		}
+	}
+	if stringValue(result.Messages[2]["content"]) != current {
+		t.Fatalf("Wake current input was not the sole final request: %#v", result.Messages)
+	}
+	actualEstimate := estimatePromptWireInput(result.Messages, result.Tools, result.ResponseFormat)
+	if result.Trace.EstimatedInputTokens != actualEstimate {
+		t.Fatalf("Wake admission estimate=%d actual-wire estimate=%d", result.Trace.EstimatedInputTokens, actualEstimate)
+	}
+	if jsonString(memory.Recent) != jsonString(recent) {
+		t.Fatalf("Wake assembly mutated selected source fragments: before=%#v after=%#v", recent, memory.Recent)
+	}
+}
+
 func TestPromptAssemblerFailsWhenRequiredWireSectionsExceedCaps(t *testing.T) {
 	policy := DefaultPromptBudgetPolicy(4096)
 	policy.CurrentInputTokensCap = 8

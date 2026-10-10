@@ -264,7 +264,7 @@ func dailyReviewResponseSchema() map[string]any {
 
 func wakeUpResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"action_type":                map[string]any{"type": "string", "description": "Use no_op when no external action is selected. This is a control field, never message text."},
+		"action_type":                map[string]any{"type": "string", "enum": []any{"no_op", "proactive_message", "moment", "capability"}, "description": "Receipt-truth summary: no_op without an authoritative effect; proactive_message for a completed conversation message; moment for a completed Moment; capability for another completed or durably accepted capability. Never message text."},
 		"response_intent":            map[string]any{"type": "string", "maxLength": 4000, "description": "Internal decision or silence reason retained in WakeUp diagnostics only. For no_op, explain why no contact/action is needed; do not call conversation.reply to report this."},
 		"evidence_refs":              arraySchema(stringSchema()),
 		"output_preference_decision": outputPreferenceDecisionSchema(),

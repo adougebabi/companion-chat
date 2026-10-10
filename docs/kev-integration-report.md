@@ -1,3 +1,5 @@
+> 2026-10-10 最新交付：schema head 为 `0058_semantic_fact_generation`，须先迁移再升级 Core/Worker。WakeUp 固定协议、历史输入和真实动作已重写；embedding 缓存不再推进事实版本。最新证据见文末。
+
 > 2026-10-09 正式反馈修复已追加：当前 schema head 为 `0057_logical_agent_leases`。部署请先迁移并同时升级 Core/Worker；设置和诊断路由已修复。下面首次交付证据保留，最新结果见文末。
 
 # Kev 主动接入交付报告
@@ -156,3 +158,16 @@ Kev context/tool 每个 batch 只带当前候选内容，保留当前任务输�
 本轮无新migration/API/正式设置改动，无部署或生产数据写入。最终测试结果另附；数据库验证按用户本地验收约定明确SKIP。当前代码未提交。
 
 本轮最终验证：Go race 1403 PASS / 491 SKIP / 0 FAIL（含子用例），vet/build通过；pnpm generate/typecheck/test/build通过，Web/client98 PASS，diff check通过。HTTP回复纠正测试实际运行；新增数据库诊断测试因未配置隔离PG跳过。
+
+
+## 2026-10-10 WakeUp 全量重写与事实版本缓存修复
+
+用户要求修复WakePrompt并整体优化固定部分，不追加堆叠；随后追加facts_gen23339→23378。实现显式Surface专用固定协议，统一任务/权威/决策/Tool/结果；动态人格独立。修Runtime段落LF（所有surface）；Wake历史消息移入historical_conversation数据而非物理chatrole，Goal去旧评估reason/内部错误，摘要非权威，原来源不变。普通chat/其他任务保留原协议与顺序。新增固定全文review文件docs/wake-up-fixed-prompt.md。按旧多人格规则组合口径3316runes→1676（约49.5%减少），单人格2384→1676（约29.7%），排除动态人格，不把字数称token或实测延迟。
+
+Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。独立review发现duplicate_suppressed仍可能被计新消息和重置idle到旧时间，主线程已同时排除动作分类和clock输入并补回归。
+
+事实版本核查未发现投影/准备阶段ensure-on-read写入。已证明memory_embeddings异步缓存更新会推进facts，WorkingPersona相同upsert也会推进。新增0058_semantic_fact_generation（从0057升级），移除缓存trigger，真实memory/source/summary/state变化仍追踪，CAS不放宽；旧迁移不改，新纠正SQL在installer之后执行防headrerun装回。相同人格写入变为无UPDATE。无法追溯39次全部来源，后台summary或真实写入仍会合法冲突。
+
+最终本地Go race1422 PASS/494 SKIP/0 FAIL（含子用例），Web/client98 PASS；generate/typecheck/vet/build/diff通过。新增PG empty→head/0057→head/headrerun及cache-fact边界test因无隔离DB跳过，真实模型/部署由用户验收。没有安装DB或写正式数据；本轮未提交。
+
+上线验收：按既有部署迁移服务执行至0058，确认ledger后升级Core/Worker。Wake模型Prompt应只有一份专用固定协议、清晰LF边界和historical_conversation记录；周期false不得自动重放旧问题。查真实Tool receipts与action一致，duplicate_suppressed不算新发送。Embedding重试期间的新settlement冲突不应仅由cache状态引起；真实用户/记忆/状态变更仍允许current_facts_stale。发生新冲突保留expected/actual、边界和correlation，继续定位其他实际写入。无需手工改目标/事实generation。

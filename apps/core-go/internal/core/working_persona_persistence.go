@@ -276,7 +276,9 @@ func insertCompiledWorkingPersonasTx(ctx context.Context, tx pgx.Tx, fluctlightI
 		_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_working_personas(fluctlight_id,profile_id,source_revision,source_hash,overlay_revision,rules_version,budget_runes,status,compiled_json)
 			VALUES($1,$2,$3,$4,$5,$6,$7,'completed',$8)
 			ON CONFLICT(fluctlight_id,profile_id) DO UPDATE SET source_revision=EXCLUDED.source_revision,source_hash=EXCLUDED.source_hash,
-			overlay_revision=EXCLUDED.overlay_revision,rules_version=EXCLUDED.rules_version,budget_runes=EXCLUDED.budget_runes,status='completed',compiled_json=EXCLUDED.compiled_json,compiled_at=now()`,
+			overlay_revision=EXCLUDED.overlay_revision,rules_version=EXCLUDED.rules_version,budget_runes=EXCLUDED.budget_runes,status='completed',compiled_json=EXCLUDED.compiled_json,compiled_at=now()
+			WHERE (fluctlight_working_personas.source_revision,fluctlight_working_personas.source_hash,fluctlight_working_personas.overlay_revision,fluctlight_working_personas.rules_version,fluctlight_working_personas.budget_runes,fluctlight_working_personas.status,fluctlight_working_personas.compiled_json)
+			IS DISTINCT FROM (EXCLUDED.source_revision,EXCLUDED.source_hash,EXCLUDED.overlay_revision,EXCLUDED.rules_version,EXCLUDED.budget_runes,EXCLUDED.status,EXCLUDED.compiled_json)`,
 			fluctlightID, item.ProfileID, item.SourceRevision, item.SourceHash, item.OverlayRevision, item.RulesVersion, item.BudgetRunes, jsonBytes(item))
 		if err != nil {
 			return err
