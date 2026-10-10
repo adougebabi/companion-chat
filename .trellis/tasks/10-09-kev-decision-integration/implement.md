@@ -189,3 +189,12 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 
 
 本轮最终本地门禁：Go race 全仓 1440 PASS / 496 SKIP / 0 FAIL（含子用例），Go vet/build、pnpm generate/typecheck/test/build、git diff --check 全部 exit0；Web/client仍98 PASS。新增的实际HTTP/Eino Generate/Stream请求阶段测试已运行，PG production policy/Task用例因无隔离DB跳过；真实模型行为/部署由用户验收。check阶段局部修复了stale退出和tool-free repair隔离，但代理核验未完成完整终态，主线程收敛后完成夹具路由RED→GREEN、补针对性回归并执行最终全仓门禁；不记录成完整独立审计。当前改动未提交、未部署，无新migration。
+
+
+## 2026-10-10 Goal 首次原生提交 nil map panic
+
+正式反馈：App.executeGoalEvaluationSubmissionTx 报 assignment to entry in nil map。本轮确认首次请求 result={}，goalSubmissionRecords 将缺失 submissions 序列化为 JSON null 再解码；encoding/json 会把已 make 的 map 重置 nil。随后成功领域 apply/savepoint 后 records[key]=... panic，外层 Tool 事务回滚，无法完成任何首提。属于本轮专用 Tool 改造遗漏的初始化契约，不是模型判断或提示词问题。
+
+修复只有 helper 解码后的三行 nil map 初始化；缺失、null 和 nil result 返回可写空 journal，已存 digest/output 保留；不全局改 JSON 工具、证据/CAS、暂停、事务或 Tool 选择，不新增迁移。新 TestGoalSubmissionRecordsAlwaysReturnsWritableJournal 对真实 helper 结果执行与提交路径相同的 map 写入：未修复时 nil result/missing submissions/JSON null 三组确切 panic RED exit1，stored record通过；修复后四组GREEN exit0。真实 PostgreSQL首提+重放既有用例继续保留，无隔离DB时SKIP，未写正式数据或部署。主线程接续并完成最终验证；没有把中断的实现代理过程计为完整独立审计。
+
+本轮最终本地验证：Go全仓race 1445 PASS / 496 SKIP / 0 FAIL（含子用例），Go vet/build与diff check通过；新增首提journal回归四组实际GREEN，原始缺失/null/nil三组RED已确认。未修改前端/API，无需重新生成合同或前端回归；真实PG/模型/部署仍用户验收，未安装DB、未写正式数据、未提交。

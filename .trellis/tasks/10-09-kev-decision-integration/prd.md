@@ -131,3 +131,10 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 真实HTTP/Eino首个RED：TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary exit1，Generate/Stream×0/partial coverage四组均观察auto+summarygrammar并提前结束；GREEN四组PASS，实际断言canonical闭合Tool schema、tool_choice required、无response_format、实际stream=true、拒绝反馈不推进覆盖、最终auto/schema恢复以及headers真实一致。另一个fixture路由RED观察called=0/content={}，修复后GREEN。生产数据库policy与typedTask阶段断言已补，无隔离数据库时明确SKIP。正式部署和真实模型语义仍由用户验收，未写正式业务数据。
 
 升级Core/Worker后对卡住目标手动发起一次复核，诊断应先出现 goal.evaluation.submit 的原生ToolCall，再出现实际ToolResult；最终summary不会再作为状态依据。原先已耗尽重试的failed请求不由代码伪装成功或自动改状态。本轮无新migration，head仍0058_semantic_fact_generation。
+
+
+## 2026-10-10 Goal 首次原生提交 nil map panic
+
+正式反馈：App.executeGoalEvaluationSubmissionTx 报 assignment to entry in nil map。本轮确认首次请求 result={}，goalSubmissionRecords 将缺失 submissions 序列化为 JSON null 再解码；encoding/json 会把已 make 的 map 重置 nil。随后成功领域 apply/savepoint 后 records[key]=... panic，外层 Tool 事务回滚，无法完成任何首提。属于本轮专用 Tool 改造遗漏的初始化契约，不是模型判断或提示词问题。
+
+修复只有 helper 解码后的三行 nil map 初始化；缺失、null 和 nil result 返回可写空 journal，已存 digest/output 保留；不全局改 JSON 工具、证据/CAS、暂停、事务或 Tool 选择，不新增迁移。新 TestGoalSubmissionRecordsAlwaysReturnsWritableJournal 对真实 helper 结果执行与提交路径相同的 map 写入：未修复时 nil result/missing submissions/JSON null 三组确切 panic RED exit1，stored record通过；修复后四组GREEN exit0。真实 PostgreSQL首提+重放既有用例继续保留，无隔离DB时SKIP，未写正式数据或部署。主线程接续并完成最终验证；没有把中断的实现代理过程计为完整独立审计。

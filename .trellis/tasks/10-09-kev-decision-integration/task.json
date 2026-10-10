@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "Goal native新版现场仍summary-only/tool_calls=[]。已加逐物理请求DB root coverage policy：required/no summary grammar→auto/final schema；stale错误可退出重排、final repair不继承policy；真实HTTP/Eino Generate/Stream RED→GREEN，fixture路由亦RED→GREEN。Go race1440PASS/496SKIP/0FAIL，Web/client98PASS，vet/build/generate/typecheck/diff通过。PG/live用户验收，无新migration，未提交未部署。",
+  "notes": "Goal首提panic已定位：json.Unmarshal(null)将初始化的submissions map重置nil。helper解码后重建空map，缺失/null/nil实际写入RED→GREEN，保留已有digest/output。Go race1445PASS/496SKIP/0FAIL，vet/build/diff通过。无迁移/API/frontend变化，PG/live用户验收；未提交未部署。",
   "meta": {}
 }

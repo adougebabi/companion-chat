@@ -349,3 +349,10 @@ Production `StartWorkers` retains Run(nil), queues, deployment version and regis
 
 
 Goal Evaluation's native request stages follow structured-turn-contract.md: uncovered durable roots require ToolCalls without summary response_format; root coverage restores auto + final schema. Frozen-version failures may exit for fresh snapshot recovery, but never count as covered. Tool-free final repair suppresses the request policy. This rule is task-private and does not alter Chat/WakeUp or Goal completion criteria.
+
+
+### Goal submission journal must remain writable after JSON decode
+
+`goalSubmissionRecords(result)` returns a non-nil map for nil/empty request results and missing/null submissions, retaining stored records. `encoding/json.Unmarshal` of null resets even an initialized map to nil; reinitialize after decoding before returning to `executeGoalEvaluationSubmissionTx`, which writes records after its savepoint. Do not treat initialization before decode as a sufficient invariant or catch the panic as success. The outer Tool transaction must still own domain state/journal/receipt atomicity.
+
+`TestGoalSubmissionRecordsAlwaysReturnsWritableJournal` must actually assign a new record in nil-result/missing/null/existing-record cases and assert existing digest/output retention. Its original-bug RED is assignment to entry in nil map. Real-PG first-native-success/replay tests remain separately required when the isolated database is available; a skipped DB test is not persistence evidence.
