@@ -104,43 +104,6 @@ func (a *App) loadCommittedAssistantMessage(ctx context.Context, conversationID,
 	return message, nil
 }
 
-func finalAgentVisibleText(completion ProviderCompletion) string {
-	if text := normalizeVisibleReply(stringValue(completion.Structured["visible_text"])); text != "" {
-		return text
-	}
-	if text := normalizeVisibleReply(stringValue(mapValue(completion.Structured["response_plan"])["visible_text"])); text != "" {
-		return text
-	}
-	if completion.Structured != nil {
-		return ""
-	}
-	return normalizeVisibleReply(completion.Text)
-}
-
-// publishNaturalAgentReply is the output adapter for an Agent that naturally
-// finishes without conversation.reply. It uses the same publication service
-// as the formal Tool and therefore shares ownership, idempotency and sequence
-// rules without manufacturing a ToolCall.
-func (a *App) publishNaturalAgentReply(ctx context.Context, actorID, fluctlightID, conversationID, operationID, correlationID, expectedLifeRevision, text string, profileIDs ...string) (map[string]any, error) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil, errors.New("cognition_visible_text_missing")
-	}
-	var resource publishedResource
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var err error
-		resource, err = NewToolPublicationService(a).PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
-			WorkingProfileID: firstStringFromSlice(profileIDs), AuthorizationActorID: actorID, FluctlightID: fluctlightID, ConversationID: conversationID,
-			OperationID: operationID, CorrelationID: correlationID, Text: text, ExpectedLifeContextRevision: expectedLifeRevision,
-		})
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-	return a.loadCommittedAssistantMessage(ctx, conversationID, fluctlightID, CapabilityResult{Output: map[string]any{"target_ref": resource.ID}})
-}
-
 // handleTurn is the production conversation caller for the unified Agent
 // runtime. It owns input acceptance and final product projection only. Tool
 // execution happens inside the Eino loop and the trace is consumed strictly as
@@ -398,16 +361,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 
 	if len(assistantMessages) == 0 {
-		if visible := finalAgentVisibleText(run.Completion); visible != "" {
-			assistant, err = a.publishNaturalAgentReply(ctx, authorizationActorID, fluctlightID, conversationID, "agent-final:"+turnID, "turn:"+turnID, projection.LifeContextRevision, visible, replyProfileFromOutcome(outcome, projection))
-			if err == nil {
-				assistantMessages = append(assistantMessages, assistant)
-			}
-		} else if len(outcome.Results) > 0 {
-			assistant = map[string]any{}
-		} else {
-			err = errors.New("cognition_visible_text_missing")
-		}
+		err = errors.New("conversation_native_output_missing")
 	}
 	if err != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "agent_output_publication_failed", err)

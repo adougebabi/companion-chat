@@ -38,8 +38,8 @@ type ConversationCognitionAgentResult struct {
 // RunConversationCognitionAgent runs the formal conversation cognition Agent
 // independently of Main and chat settlement. It uses the same prompt/context,
 // capability registry, Eino loop and output schema as production conversation
-// cognition. Natural final publication belongs to the caller; native reply
-// Tools commit through the same publication service during the loop.
+// cognition. Only native reply Tools publish during the loop; callers project
+// committed receipts and never publish the final cognition text.
 func (a *App) RunConversationCognitionAgent(ctx context.Context, input ConversationCognitionAgentInput) (ConversationCognitionAgentResult, error) {
 	if a == nil || a.DB == nil || a.Provider == nil {
 		return ConversationCognitionAgentResult{}, errors.New("conversation_cognition_agent_dependencies_missing")
@@ -104,6 +104,9 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
 	providerCtx = WithProviderCorrelation(providerCtx, firstString(providerCorrelation(ctx), "conversation-cognition-agent:"+runID))
 	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceConversationMain, "cognitive_assessment", operationRules, currentInput, definitions, "conversation_turn_response", schema, nil)
+	if conversationID != "" {
+		providerCtx = withPhysicalModelRequestPolicy(providerCtx, conversationPublicationPhysicalRequestPolicy{})
+	}
 	runInput := FormalAgentRunInput{
 		Prompt:          PromptAssemblyResult{Messages: assembly.Messages, ResponseFormat: schema},
 		Definitions:     definitions,

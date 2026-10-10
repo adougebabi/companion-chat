@@ -89,9 +89,10 @@ really occurred. Direct commands use an explicit local execution identity.
 - Conversation/API/background callers provide input and consume final output
   plus committed receipts. They do not prepare/execute an action list, assemble
   Tool results, select continuation, or publish a reply that a Tool published.
-  Natural final text uses the same publication service as `conversation.reply`
-  without fabricating a model ToolCall. Empty structured final text must never
-  expose raw JSON; a valid Tool-only completion needs no invented assistant text.
+  Private conversation messages require a real native `conversation.reply`
+  ToolCall and committed receipt. Final text, `visible_text`, response plans and
+  reasoning never publish a message. Accepted media alone does not satisfy the
+  private reply boundary; final structured output is cognition/settlement data.
 - Browser transport remains POST/NDJSON with committed message/media resources,
   bounded errors, cancellation and one terminal event. Production streaming uses
   the same streaming Eino Runner. Prove Provider streaming with actual
@@ -440,7 +441,7 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 - When root submissions are accepted, restore `tool_choice="auto"` and the original summary schema. Optional object/plan calls remain allowed; no second Runner or manual continuation is introduced.
 - A real frozen source/authority conflict permits an error summary so the existing finalizer can queue unresolved/deferred targets with a fresh snapshot. This escape never counts as root coverage or success. Ordinary correctable judgment/argument rejections keep required native execution.
 - Apply options using locked Eino APIs: `model.WithToolChoice` and `openaiext.WithRequestPayloadModifier`. Do not replace ExtraFields to remove one format field. Budget and diagnostics use the effective format of this physical request.
-- Final DTO repair is tool-free and explicitly suppresses the task request policy; it cannot issue required ToolCalls without a catalog or replay mutations. Ordinary Chat/Wake/Planner tasks do not install this policy and retain their original request behavior.
+- Final DTO repair is tool-free and explicitly suppresses the task request policy; it cannot issue required ToolCalls without a catalog or replay mutations. Conversation and Visual Identity install their own request policies; WakeUp and Planner retain their original request behavior.
 - DB/claim/cancellation failures remain errors. Native state, evidence/CAS, ownership, paused settlement and independent Tool transactions remain the sole business authority.
 
 ### 4. Validation & Error Matrix
@@ -507,3 +508,32 @@ Background entry-work seam tests check snapshot/Provider/commit waiting, release
 ### 7. Wrong vs Correct
 Wrong: serialize only chat/Wake/Goal entries, assume dispatcher priority prevents an already running summary Activity, or count cursor progress as a changed world fact.
 Correct: every protected background work entry uses the same durable Fluctlight lease across snapshot→LLM→commit; generation changes reflect semantic authority and carry bounded source provenance.
+
+
+## Scenario: Private chat requires native publication (2026-10-10)
+
+### 1. Scope / Trigger
+Conversation final text previously bypassed the Tool protocol. Private chat must publish only through native conversation.reply.
+
+### 2. Signatures
+`conversationPublicationPhysicalRequestPolicy.DecidePhysicalModelRequest(ctx)` reads the current native trace. `conversationHasAuthoritativeOutput(trace)` accepts only committed conversation.reply receipts.
+
+### 3. Contracts
+Until a real reply commits, physical Generate/Stream requests use required Tool choice and omit final response_format. Other Tool results, accepted media and prose do not release the boundary. After the reply commits, restore auto and the cognition final schema. Remove visible_text from the turn/response_plan schemas and remove natural-final publication. handleTurn loads committed message resources only. Final JSON describes cognition and settlement; it never creates a message. Keep the existing single Eino Runner and independently committed Tool transactions.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Provider returns final-only without reply despite required | conversation_native_output_missing under final-contract failure; no text publication/DTO repair |
+| Only media accepted | reply still required |
+| Reply already committed, later final malformed | existing tool-free final repair may correct DTO; no duplicate send |
+| No committed message at caller projection | agent_output_publication_failed with conversation_native_output_missing |
+
+### 5. Good / Base / Bad Cases
+Good: actual native reply → committed receipt → final cognition. Base: optional read Tool precedes reply. Bad: publish visible_text or infer message/image from thought.
+
+### 6. Tests Required
+`TestConversationPhysicalRequestsForceNativePublicationGenerateAndStream`, `TestConversationFinalOnlyResponseNeverPublishesOrRepairs` and `TestConversationPublicationPolicyRespectsCommittedOutputs` check wire phases, actual native results, accepted-media boundary and no final-only publication. PG caller/receipt behavior remains opt-in.
+
+### 7. Wrong vs Correct
+Wrong: decode a final field and call publication service. Correct: the model calls conversation.reply, its receipt proves publication, and the caller projects the stored message.

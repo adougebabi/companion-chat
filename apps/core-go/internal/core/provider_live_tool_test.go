@@ -279,13 +279,10 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 		t.Fatalf("live conversation.reply invocation must carry non-empty text: calls=%s response=%s", fmt.Sprint(calls), boundedLiveProviderBody(responseBody))
 	}
 
-	// A native ToolCall response is an intermediate Agent step. The current
-	// production contract publishes the committed conversation.reply result and
-	// only reads visible text from the final assistant completion. If this
-	// response also carries final structured text, it must agree with the reply
-	// Tool instead of introducing a second visible-output protocol.
-	if finalText := finalAgentVisibleText(ProviderCompletion{Structured: structured}); finalText != "" && finalText != replyText {
-		t.Fatalf("live Provider returned conflicting Tool and final text: final=%q reply=%q structured=%s", finalText, replyText, jsonString(structured))
+	// The native ToolCall is the only private-message publication protocol.
+	// Final structured output must not carry a second visible-text channel.
+	if _, exists := structured["visible_text"]; exists {
+		t.Fatalf("live Provider returned forbidden final visible_text: %s", jsonString(structured))
 	}
 }
 

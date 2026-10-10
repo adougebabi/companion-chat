@@ -93,6 +93,17 @@ type fakeProviderResult struct {
 // fakeProviderScript decides what the Provider returns for one request.
 type fakeProviderScript func(payload map[string]any) fakeProviderResult
 
+// nativeConversationReplyFixture explicitly separates the text published by
+// conversation.reply from the final cognition DTO. Tests opt into this shape
+// one handler at a time; the generic router never infers a ToolCall from final
+// structured content.
+type nativeConversationReplyFixture struct {
+	ReplyText string
+	Final     fakeProviderResult
+}
+
+type nativeConversationReplyScript func(payload map[string]any) nativeConversationReplyFixture
+
 // fakeProviderRouter routes by the response schema name on the wire, so a test
 // can script the Main turn (conversation_turn_response) and the takeover Judge
 // (takeover_judgement_response) independently.
@@ -112,6 +123,34 @@ func newFakeProviderRouter() *fakeProviderRouter {
 func (router *fakeProviderRouter) on(schemaName string, script fakeProviderScript) *fakeProviderRouter {
 	router.routes[schemaName] = script
 	return router
+}
+
+// onNativeConversationReply scripts a real native reply round followed by the
+// final cognition decision after Eino has returned the Tool result. ReplyText
+// is mandatory fixture input so an obsolete final field can never become an
+// implicit publication protocol.
+func (router *fakeProviderRouter) onNativeConversationReply(script nativeConversationReplyScript) *fakeProviderRouter {
+	var pending *nativeConversationReplyFixture
+	callSequence := 0
+	return router.on(workingPersonaMainTurnSchema, func(payload map[string]any) fakeProviderResult {
+		if payloadHasToolResult(payload) {
+			if pending == nil {
+				return fakeProviderResult{Status: http.StatusInternalServerError}
+			}
+			final := pending.Final
+			pending = nil
+			return final
+		}
+		fixture := script(payload)
+		if strings.TrimSpace(fixture.ReplyText) == "" {
+			return fakeProviderResult{Status: http.StatusInternalServerError}
+		}
+		callSequence++
+		pending = &fixture
+		return fakeProviderResult{ToolCalls: []map[string]any{
+			nativePersonaToolCall(fmt.Sprintf("native-conversation-reply-%d", callSequence), conversationReplyCapabilityName, map[string]any{"text": fixture.ReplyText}),
+		}}
+	})
 }
 
 // otherwise scripts the response for any schema without an exact route.
@@ -293,14 +332,23 @@ func providerWireSchemaName(payload map[string]any) string {
 	// The Goal execution phase deliberately has no final JSON grammar. Its
 	// exclusive native catalog still identifies the controlled test route.
 	goalTools := map[string]bool{}
+	hasConversationReply := false
 	for _, value := range arrayValue(payload["tools"]) {
 		name := stringValue(mapValue(mapValue(value)["function"])["name"])
 		if isGoalEvaluationTool(name) {
 			goalTools[name] = true
 		}
+		hasConversationReply = hasConversationReply || name == conversationReplyCapabilityName
 	}
 	if len(goalTools) == 3 && stringValue(payload["tool_choice"]) == "required" {
 		return "goal_evaluation_v1"
+	}
+	// A private conversation that has not yet published intentionally omits the
+	// final response grammar and forces its real conversation.reply catalog.
+	// Route that execution phase back to the same explicitly registered test
+	// script; this is test transport recognition, not a production fallback.
+	if hasConversationReply && conversationWireForcesReply(payload) {
+		return workingPersonaMainTurnSchema
 	}
 	if stringValue(responseFormat["type"]) == "json_object" {
 		for _, raw := range arrayValue(payload["messages"]) {

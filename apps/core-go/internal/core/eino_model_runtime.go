@@ -833,17 +833,14 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		return einoModelResponse{}, errors.New("adk_final_message_missing")
 	}
 	final := loopResult.FinalMessage
+	if conversationPublicationPolicyEnabled(ctx) && !conversationHasAuthoritativeOutput(adkContext.Trace) {
+		// A Provider may ignore tool_choice=required and return a final answer.
+		// Final text is never converted into a private message, and the tool-free
+		// DTO repair path cannot manufacture a publication ToolCall.
+		return einoModelResponse{}, fmt.Errorf("%w: conversation_native_output_missing", errADKFinalContractInvalid)
+	}
 	if call.JSONMode {
 		validationSchema := call.ResponseSchema
-		if conversationNeedsVisibleFinal(call, adkContext.Trace) {
-			validationSchema = decodeObject(jsonBytes(call.ResponseSchema))
-			properties := mapValue(validationSchema["properties"])
-			properties["visible_text"] = map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "pattern": "\\S"}
-			validationSchema["properties"] = properties
-			if !containsString(decisionServiceRefValues(validationSchema["required"]), "visible_text") {
-				validationSchema["required"] = append(arrayValue(validationSchema["required"]), "visible_text")
-			}
-		}
 		if validationErr := validateADKFinalContract(final, call.Role, validationSchema, adkContext.Refs); validationErr != nil {
 			// A second, tool-free model call can correct a malformed final DTO.
 			// The original Tool effects are already committed, so the repair loop
@@ -856,9 +853,6 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				correctionInput = append(correctionInput, message)
 			}
 			correctionInput = append(correctionInput, schema.UserMessage("Correct the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."))
-			if conversationNeedsVisibleFinal(call, adkContext.Trace) {
-				correctionInput = append(correctionInput, schema.UserMessage("No conversation message or media output has been committed in this run. Include nonempty visible_text containing the actual reply for publication; describing a response plan does not send a reply."))
-			}
 			repairModel := unboundChat
 			if queued, ok := unboundChat.(*queuedToolCallingChatModel); ok {
 				copyModel := *queued
@@ -898,24 +892,6 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		Message: final, ExecutedToolCalls: append([]schema.ToolCall(nil), loopResult.ToolCalls...),
 		Usage: einoUsage(final), FinishReason: finishReason,
 	}, nil
-}
-
-func conversationNeedsVisibleFinal(call EinoModelCall, trace *ADKCapabilityTrace) bool {
-	if call.SchemaName != "conversation_turn_response" {
-		return false
-	}
-	// Only the actual conversation contract requires a visible channel. Other
-	// structured tasks and tests may use the same transport with a custom DTO.
-	if _, offered := mapValue(call.ResponseSchema["properties"])["visible_text"]; !offered {
-		return false
-	}
-	if trace != nil {
-		_, results := trace.Snapshot()
-		if _, committed := committedConversationReplyResult(results); committed || mediaIntentFromCommittedResults(results) != "" {
-			return false
-		}
-	}
-	return true
 }
 
 func validateADKFinalContract(message *schema.Message, role string, outputSchema map[string]any, refs *providerContextRefCodec) error {

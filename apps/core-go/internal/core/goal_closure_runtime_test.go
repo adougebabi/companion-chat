@@ -74,14 +74,17 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 	goalID := createDialogueGoalForClosure(t, f, []string{"已实际清楚向对方表达自己的心意"})
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "dialogue-goal-model-"+f.suffix)
 	assessments := 0
-	router := newFakeProviderRouter().on("conversation_turn_response", func(payload map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().onNativeConversationReply(func(payload map[string]any) nativeConversationReplyFixture {
 		refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(jsonString(payload), -1)
 		if len(refs) == 0 {
 			t.Error("formal conversation omitted served Goal ref")
-			return fakeProviderResult{Status: 500}
+			return nativeConversationReplyFixture{ReplyText: "fixture error", Final: fakeProviderResult{Status: 500}}
 		}
 		ref := refs[0]
-		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "认真表达自己的心意", "visible_text": "我喜欢你，这是我现在想清楚告诉你的心意。", "influences": []any{map[string]any{"ref": ref, "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": ref, "reason": "本轮正式表达可能满足原成功标准"}}}}
+		return nativeConversationReplyFixture{
+			ReplyText: "我喜欢你，这是我现在想清楚告诉你的心意。",
+			Final:     fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "认真表达自己的心意", "influences": []any{map[string]any{"ref": ref, "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": ref, "reason": "本轮正式表达可能满足原成功标准"}}}},
+		}
 	}).onGoalEvaluation(func(payload map[string]any) fakeProviderResult {
 		assessments++
 		schema := mapValue(mapValue(payload["response_format"])["json_schema"])
@@ -158,12 +161,15 @@ func TestGoalEvaluationGhostStageFailsBeforeDomainCommit(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
 			goalID := createDialogueGoalForClosure(t, f, []string{"已实际清楚向对方表达自己的心意"})
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "ghost-stage-model-"+f.suffix)
-			router := newFakeProviderRouter().on("conversation_turn_response", func(payload map[string]any) fakeProviderResult {
+			router := newFakeProviderRouter().onNativeConversationReply(func(payload map[string]any) nativeConversationReplyFixture {
 				refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(jsonString(payload), -1)
 				if len(refs) == 0 {
-					return fakeProviderResult{Status: 500}
+					return nativeConversationReplyFixture{ReplyText: "fixture error", Final: fakeProviderResult{Status: 500}}
 				}
-				return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "完成真实表达", "visible_text": "我认真地告诉你，我很在意你。", "influences": []any{map[string]any{"ref": refs[0], "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": refs[0], "reason": "实际表达可能满足目标"}}}}
+				return nativeConversationReplyFixture{
+					ReplyText: "我认真地告诉你，我很在意你。",
+					Final:     fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "完成真实表达", "influences": []any{map[string]any{"ref": refs[0], "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": refs[0], "reason": "实际表达可能满足目标"}}}},
+				}
 			}).onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 				snapshot := readProcessingGoalSnapshot(t, f)
 				var proof GoalSource
@@ -325,7 +331,7 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 			}
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "mutual-model-"+f.suffix)
 			turns, assessments := 0, 0
-			f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("conversation_turn_response", func(payload map[string]any) fakeProviderResult {
+			f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onNativeConversationReply(func(payload map[string]any) nativeConversationReplyFixture {
 				turns++
 				ref := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindString(jsonString(payload))
 				if ref == "" {
@@ -335,7 +341,10 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 				if turns > 1 {
 					text = "我听到了你的回应，尊重你的选择。"
 				}
-				return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "回应实际关系话题", "visible_text": text, "influences": []any{}, "goal_event_candidates": []any{map[string]any{"goal_ref": ref, "reason": "相关真实对话"}}}}
+				return nativeConversationReplyFixture{
+					ReplyText: text,
+					Final:     fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "回应实际关系话题", "influences": []any{}, "goal_event_candidates": []any{map[string]any{"goal_ref": ref, "reason": "相关真实对话"}}}},
+				}
 			}).onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 				assessments++
 				snapshot := readProcessingGoalSnapshot(t, f)

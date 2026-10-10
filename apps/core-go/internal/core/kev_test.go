@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -129,7 +130,7 @@ func TestKevContextAndToolBatchesSendOnlyTheirCandidateState(t *testing.T) {
 		originalNames[index] = definitions[index].Name
 	}
 	_, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: FormalAgentConversationCognition, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": "current task"}}}, Capability: &ADKCapabilityRequest{Projection: ContextProjection{FluctlightID: "actor"}, Surface: CapabilitySurfaceConversation}})
-	if err != nil || len(prepared) != 12 {
+	if err != nil || len(prepared) != 13 {
 		t.Fatal("tool selection failed", err)
 	}
 	for index := range definitions {
@@ -141,6 +142,199 @@ func TestKevContextAndToolBatchesSendOnlyTheirCandidateState(t *testing.T) {
 		t.Fatalf("expected context 8+3 and tools 8+3, got %d requests", len(requests))
 	}
 	assertBatches(2, "capabilities")
+}
+
+func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptionalTool(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request decision.Request
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		answers := map[string]any{}
+		for id := range request.Questions {
+			answers[id] = map[string]any{"type": "choice", "choice": "no", "confidence": 0.8, "probabilities": map[string]float64{"yes": 0.1, "no": 0.8, "unclear": 0.1}}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"answers": answers})
+	}))
+	defer server.Close()
+	config := decision.DefaultConfig()
+	config.Enabled = true
+	config.Endpoint = server.URL
+	store := &kevMemoryStore{}
+	ids := 0
+	app := &App{Kev: &decision.Service{Settings: &kevFixedSettings{config}, Store: store, HTTP: server.Client(), ID: func() string { ids++; return fmt.Sprint(ids) }}}
+	definitions := []CapabilityDefinition{
+		{Name: conversationReplyCapabilityName, Description: "reply", OutputRole: "conversation_message"},
+		{Name: "moment.publish", Description: "moment", OutputRole: "moment"},
+		{Name: "media.image.generate", Description: "image", OutputRole: "media"},
+		{Name: "visual_identity.initialize", Description: "initialize visual identity"},
+		{Name: "reply.like.optional", Description: "another message output", OutputRole: "conversation_message"},
+		{Name: "memory.recall", Description: "recall"},
+	}
+	definitions = appendCapabilityUtilities(app.capabilityRegistry(), CapabilitySurfaceConversation, definitions)
+	ctx, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{
+		AgentID: FormalAgentConversationCognition, Definitions: definitions,
+		Prompt:     PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": "current task"}}},
+		Capability: &ADKCapabilityRequest{Projection: ContextProjection{FluctlightID: "actor"}, Surface: CapabilitySurfaceConversation},
+	})
+	if err != nil || len(prepared) != len(definitions) {
+		t.Fatalf("prepare tools: count=%d err=%v", len(prepared), err)
+	}
+	selection := kevSelection(ctx)
+	visible, err := selection.definitions(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	visibleNames := map[string]bool{}
+	for _, definition := range visible {
+		visibleNames[definition.Name] = true
+	}
+	mandatory := formalAgentMandatoryTools(FormalAgentConversationCognition)
+	for name := range mandatory {
+		if !visibleNames[name] {
+			t.Fatalf("mandatory Tool %q was hidden: %#v", name, visibleNames)
+		}
+	}
+	for _, name := range []string{"visual_identity.initialize", "reply.like.optional", "memory.recall"} {
+		if visibleNames[name] {
+			t.Fatalf("Kev no did not hide optional Tool %q: %#v records=%#v", name, visibleNames, store.records)
+		}
+	}
+	candidates := map[string]bool{}
+	for _, record := range store.records {
+		candidates[record.CandidateID] = true
+	}
+	if len(candidates) != 3 || !candidates["visual_identity.initialize"] || !candidates["reply.like.optional"] || !candidates["memory.recall"] {
+		t.Fatalf("optional Tool candidates=%#v", candidates)
+	}
+	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+		if !visibleNames[name] {
+			t.Fatalf("catalog utility %q was hidden: %#v", name, visibleNames)
+		}
+	}
+	for name := range mandatory {
+		if candidates[name] {
+			t.Fatalf("mandatory Tool %q became a Kev candidate", name)
+		}
+	}
+	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+		if candidates[name] {
+			t.Fatalf("recovery utility %q became a Kev candidate", name)
+		}
+	}
+}
+
+type kevReadSequenceSettings struct {
+	config decision.Config
+	reads  int
+}
+
+func (s *kevReadSequenceSettings) Read(context.Context) (decision.Config, int64, string, error) {
+	s.reads++
+	if s.reads > 1 {
+		return decision.Config{}, 0, "", errors.New("settings temporarily unavailable")
+	}
+	return s.config, 1, "", nil
+}
+
+func TestKevToolSelectionFallbackKeepsRecoveryUtilitiesAndToolFreeAgentsStayEmpty(t *testing.T) {
+	config := decision.DefaultConfig()
+	config.Enabled = true
+	settings := &kevReadSequenceSettings{config: config}
+	app := &App{Kev: &decision.Service{Settings: settings, Store: &kevMemoryStore{}}}
+	input := ADKStructuredTaskInput{
+		AgentID:     FormalAgentConversationCognition,
+		Definitions: []CapabilityDefinition{{Name: "memory.recall", Description: "recall"}},
+		Capability:  &ADKCapabilityRequest{Surface: CapabilitySurfaceConversation},
+	}
+	_, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := map[string]bool{}
+	for _, definition := range prepared {
+		names[definition.Name] = true
+	}
+	for _, name := range []string{"memory.recall", capabilityCatalogName, capabilityDiscoverName} {
+		if !names[name] {
+			t.Fatalf("fallback removed %q: %#v", name, names)
+		}
+	}
+
+	_, prepared, err = app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: FormalAgentInitialization})
+	if err != nil || len(prepared) != 0 {
+		t.Fatalf("tool-free Agent received recovery utilities: prepared=%#v err=%v", prepared, err)
+	}
+}
+
+func TestKevPhysicalRequestFallbackKeepsRecoveryUtilities(t *testing.T) {
+	for _, cause := range []string{"disabled", "version_changed", "settings_error"} {
+		t.Run(cause, func(t *testing.T) {
+			config := decision.DefaultConfig()
+			config.Enabled = cause != "disabled"
+			service := &decision.Service{Settings: &kevFixedSettings{config}}
+			version := int64(1)
+			if cause == "version_changed" {
+				version = 2
+			}
+			if cause == "settings_error" {
+				service.Settings = &kevReadSequenceSettings{config: config, reads: 1}
+			}
+			selection := &kevRunSelection{service: service, original: []CapabilityDefinition{{Name: "memory.recall"}}, visible: map[string]bool{}, loaded: map[string]bool{}, version: version}
+			definitions, err := selection.definitions(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			names := map[string]bool{}
+			for _, definition := range definitions {
+				names[definition.Name] = true
+			}
+			for _, name := range []string{"memory.recall", capabilityCatalogName, capabilityDiscoverName} {
+				if !names[name] || !selection.permits(context.Background(), name) {
+					t.Fatalf("fallback removed %s: %#v", name, names)
+				}
+			}
+		})
+	}
+}
+
+func TestCapabilityCatalogReturnsRunScopedPurposesAndParametersWithoutLoading(t *testing.T) {
+	definition := CapabilityDefinition{Name: "allowed", Description: "Read the allowed fact.", InputSchema: objectSchema(map[string]any{"id": stringSchema()}, []string{"id"}, false)}
+	state := &kevRunSelection{original: []CapabilityDefinition{definition}, loaded: map[string]bool{}}
+	ctx := context.WithValue(context.Background(), kevRunSelectionKey{}, state)
+	capability := capabilityCatalogCapability{catalog: func(CapabilitySurface) []CapabilityDefinition {
+		t.Fatal("run-scoped catalog read ambient surface catalog")
+		return nil
+	}}
+	result, err := capability.Execute(ctx, CapabilityInvocation{CallID: "catalog", CapabilityName: capabilityCatalogName}, CapabilityContext{})
+	items := arrayValue(mapValue(result.Output)["items"])
+	if err != nil || len(items) != 1 || stringValue(mapValue(items[0])["name"]) != "allowed" || stringValue(mapValue(items[0])["purpose"]) != definition.Description || len(mapValue(mapValue(items[0])["parameters"])) == 0 {
+		t.Fatalf("catalog result=%#v err=%v", result, err)
+	}
+	if len(state.loaded) != 0 {
+		t.Fatalf("catalog query loaded schemas: %#v", state.loaded)
+	}
+}
+
+func TestKevDedicatedAgentCatalogsBypassSelection(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { requests++ }))
+	defer server.Close()
+	config := decision.DefaultConfig()
+	config.Enabled = true
+	config.Endpoint = server.URL
+	app := &App{Kev: &decision.Service{Settings: &kevFixedSettings{config}, Store: &kevMemoryStore{}, HTTP: server.Client()}}
+	definitions := []CapabilityDefinition{{Name: "dedicated.tool", Description: "dedicated"}}
+	for _, agentID := range []FormalAgentID{FormalAgentGoalPlanner, FormalAgentGoalEvaluation, FormalAgentVisualIdentity, FormalAgentVisualIdentityVision, FormalAgentVisualIdentityPatch} {
+		ctx, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: agentID, Definitions: definitions})
+		if err != nil || kevSelection(ctx) != nil || len(prepared) != 1 || prepared[0].Name != "dedicated.tool" {
+			t.Fatalf("agent %s catalog passed through Kev: prepared=%#v err=%v", agentID, prepared, err)
+		}
+	}
+	if requests != 0 {
+		t.Fatalf("dedicated catalogs made %d Kev requests", requests)
+	}
 }
 
 func TestKevSpoolIsDurableBoundedAndContainsRaw(t *testing.T) {
@@ -386,7 +580,7 @@ func TestKevNativeLoopDiscoversAndExecutesHiddenTool(t *testing.T) {
 				t.Fatal(err)
 			}
 			invoker := &kevDiscoveryInvoker{state: state}
-			defs := append(append([]CapabilityDefinition(nil), state.original...), (capabilityDiscoverCapability{}).Definition())
+			defs := append(append([]CapabilityDefinition(nil), state.original...), (capabilityCatalogCapability{}).Definition(), (capabilityDiscoverCapability{}).Definition())
 			tools, err := NewADKCapabilityTools(defs, invoker)
 			if err != nil {
 				t.Fatal(err)
@@ -396,7 +590,7 @@ func TestKevNativeLoopDiscoversAndExecutesHiddenTool(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if invoker.executions != 1 || len(result.ToolResults) != 2 || len(requests) != 3 || len(requests[0]) != 1 || requests[0][0] != capabilityDiscoverName || len(requests[1]) != 2 {
+			if invoker.executions != 1 || len(result.ToolResults) != 2 || len(requests) != 3 || !phase8EqualStrings(requests[0], []string{capabilityCatalogName, capabilityDiscoverName}) || !phase8EqualStrings(requests[1], []string{"hidden", capabilityCatalogName, capabilityDiscoverName}) {
 				t.Fatalf("no actual growth/feedback: wire=%v executions=%d results=%d", requests, invoker.executions, len(result.ToolResults))
 			}
 		})
@@ -404,10 +598,11 @@ func TestKevNativeLoopDiscoversAndExecutesHiddenTool(t *testing.T) {
 }
 
 func TestKevDiscoveryUsesIndependentPureQueryBoundary(t *testing.T) {
-	implementation := capabilityDiscoverCapability{}
-	class, err := classifyCapabilityExecution(implementation, implementation.Definition())
-	if err != nil || class != CapabilityExecutionPureQuery {
-		t.Fatal("discovery cannot execute through actual Tool boundary", class, err)
+	for _, implementation := range []Capability{capabilityCatalogCapability{}, capabilityDiscoverCapability{}} {
+		class, err := classifyCapabilityExecution(implementation, implementation.Definition())
+		if err != nil || class != CapabilityExecutionPureQuery {
+			t.Fatal("catalog utility cannot execute through actual Tool boundary", implementation.Definition().Name, class, err)
+		}
 	}
 }
 

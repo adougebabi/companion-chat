@@ -432,23 +432,23 @@ func TestAffectEventCapabilityOwnsSemanticEmotionInput(t *testing.T) {
 	}
 }
 
-func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
+func TestConversationCapabilityCatalogIncludesMandatoryPublicationOutputs(t *testing.T) {
 	registry, err := NewCapabilityRegistry(conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	definitions := registry.Catalog(CapabilitySurfaceConversation)
-	foundImage := false
+	foundImage, foundMoment := false, false
 	for _, definition := range definitions {
 		if definition.Name == "moment.publish" {
-			t.Fatalf("moment.publish leaked into conversation catalog: %#v", definitions)
+			foundMoment = true
 		}
 		if definition.Name == "media.image.generate" {
 			foundImage = true
 		}
 	}
-	if !foundImage {
-		t.Fatal("media.image.generate missing from conversation catalog")
+	if !foundImage || !foundMoment {
+		t.Fatal("mandatory conversation publication capability missing", definitions)
 	}
 }
 

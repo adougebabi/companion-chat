@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/jackc/pgx/v5"
 )
+
+const visualIdentityAgentProtocolVersion = "native_tools_v2"
 
 // VisualIdentityAgentInput is the typed production input for the complete
 // Visual Identity task. The durable session is the sole resume coordinate;
@@ -61,6 +64,31 @@ type visualIdentityAgentState struct {
 	WaitingStage           string
 }
 
+// visualIdentityPhysicalRequestPolicy keeps the final JSON grammar out of the
+// request until this durable checkpoint has made progress. The Tool catalog is
+// already narrowed to expectedAction by RunVisualIdentityAgent, so forcing a
+// native call cannot select another Visual Identity stage.
+type visualIdentityPhysicalRequestPolicy struct {
+	app            *App
+	sessionID      string
+	attempt        int
+	expectedAction string
+}
+
+func (p visualIdentityPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
+	if p.app == nil || p.app.DB == nil || p.app.DB.Pool() == nil || strings.TrimSpace(p.sessionID) == "" || strings.TrimSpace(p.expectedAction) == "" {
+		return physicalModelRequestDecision{}, errors.New("visual_identity_agent_policy_unavailable")
+	}
+	state, err := p.app.loadVisualIdentityAgentState(ctx, p.sessionID)
+	if err != nil {
+		return physicalModelRequestDecision{}, err
+	}
+	if state.Attempt == p.attempt && state.ActionRequired == p.expectedAction {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+	}
+	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+}
+
 const visualIdentityAgentInstruction = `You own one complete durable Visual Identity task. Use only the supplied session state and the dedicated tools.
 
 The application sets action_required from authoritative persisted state:
@@ -107,6 +135,10 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	if len(definitions) != 3 {
 		return VisualIdentityAgentOutput{}, fmt.Errorf("visual_identity_agent_tool_catalog_invalid: got %d", len(definitions))
 	}
+	stageDefinitions := visualIdentityStageDefinitions(definitions, state.ActionRequired)
+	if len(stageDefinitions) != 1 {
+		return VisualIdentityAgentOutput{}, fmt.Errorf("visual_identity_agent_stage_tool_invalid: action=%s matched=%d", state.ActionRequired, len(stageDefinitions))
+	}
 	prompt := PromptAssemblyResult{
 		Messages:       visualIdentityAgentMessages(state, imageContent),
 		ResponseFormat: visualIdentityAgentResponseSchema(),
@@ -116,8 +148,12 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 		actionID = state.SessionID + ":finalize"
 	}
 	operationID := visualIdentityAgentCheckpointOperationID(state)
-	run, err := a.RunFormalAgent(WithProviderCorrelation(ctx, "visual_identity:"+state.SessionID), FormalAgentVisualIdentity, FormalAgentRunInput{
-		Prompt: prompt, Definitions: definitions, SchemaName: "visual_identity_agent_response",
+	runCtx := WithProviderCorrelation(ctx, "visual_identity:"+state.SessionID)
+	runCtx = withPhysicalModelRequestPolicy(runCtx, visualIdentityPhysicalRequestPolicy{
+		app: a, sessionID: state.SessionID, attempt: state.Attempt, expectedAction: state.ActionRequired,
+	})
+	run, err := a.RunFormalAgent(runCtx, FormalAgentVisualIdentity, FormalAgentRunInput{
+		Prompt: prompt, Definitions: stageDefinitions, SchemaName: "visual_identity_agent_response",
 		Capability: &ADKCapabilityRequest{
 			TargetKind: "visual_identity_session", TargetRef: state.SessionID,
 			AuthorizationActorID: state.OwnerActorID, FluctlightID: state.FluctlightID,
@@ -145,8 +181,18 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	return result, nil
 }
 
+func visualIdentityStageDefinitions(definitions []CapabilityDefinition, action string) []CapabilityDefinition {
+	stageDefinitions := make([]CapabilityDefinition, 0, 1)
+	for _, definition := range definitions {
+		if definition.Name == action {
+			stageDefinitions = append(stageDefinitions, definition)
+		}
+	}
+	return stageDefinitions
+}
+
 func visualIdentityAgentCheckpointOperationID(state visualIdentityAgentState) string {
-	return strings.Join([]string{"visual_identity_agent", state.SessionID, fmt.Sprintf("attempt-%d", state.Attempt), state.ActionRequired}, ":")
+	return strings.Join([]string{"visual_identity_agent", visualIdentityAgentProtocolVersion, state.SessionID, fmt.Sprintf("attempt-%d", state.Attempt), state.ActionRequired}, ":")
 }
 
 func visualIdentityAgentMessages(state visualIdentityAgentState, imageContent map[string]any) []map[string]any {

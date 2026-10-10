@@ -202,29 +202,28 @@ func TestFormalAgentE2EBrokenToolResultFeedbackProbe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("formal independent cognition Agent failed before final assertion: %v", err)
 	}
-	visible := stringValue(result.Completion.Structured["visible_text"])
-	if !strings.Contains(visible, secret) {
-		t.Fatalf("formal Agent final answer did not use the database-only Tool result: visible=%q", visible)
-	}
 	requests, requestIDs := provider.snapshot()
 	if provider.seedError() != nil {
 		t.Fatalf("controlled provider could not seed the database-only memory after initial prompt capture: %v", provider.seedError())
 	}
-	if len(requests) != 2 || len(requestIDs) != 2 || requestIDs[0] == "" || requestIDs[0] == requestIDs[1] {
+	if len(requests) != 3 || len(requestIDs) != 3 || requestIDs[0] == "" || requestIDs[0] == requestIDs[1] || requestIDs[1] == requestIDs[2] {
 		t.Fatalf("controlled provider physical calls=%d request_ids=%v", len(requests), requestIDs)
 	}
 	if formalAgentRequestContains(requests[0], secret) || formalAgentRequestContains(requests[0], secretCategory) {
 		t.Fatal("database-only answer leaked into the initial formal Agent request")
 	}
-	if !payloadHasToolResult(requests[1]) || !formalAgentRequestContains(requests[1], secret) {
-		t.Fatal("restored control refill did not carry the database-only Tool result")
-	}
 	if result.Trace == nil {
 		t.Fatal("formal Agent omitted its native Tool trace")
 	}
 	invocations, results := result.Trace.Snapshot()
-	if len(invocations) != 1 || len(results) != 1 || results[0].Status != "completed" || invocations[0].ProviderRequestID != requestIDs[0] {
+	if len(invocations) != 2 || len(results) != 2 || results[0].Status != "completed" || results[1].Status != "completed" || invocations[0].ProviderRequestID != requestIDs[0] || invocations[1].CapabilityName != conversationReplyCapabilityName {
 		t.Fatalf("formal Agent identity/result trace is incomplete: invocations=%#v results=%#v", invocations, results)
+	}
+	if !strings.Contains(string(invocations[1].Arguments), secret) {
+		t.Fatalf("formal Agent final answer did not use the database-only Tool result: reply_arguments=%s", invocations[1].Arguments)
+	}
+	if !payloadHasToolResult(requests[1]) || !formalAgentRequestContains(requests[1], secret) {
+		t.Fatal("restored control refill did not carry the database-only Tool result")
 	}
 }
 
@@ -274,13 +273,23 @@ func (provider *controlledFeedbackProvider) ServeHTTP(w http.ResponseWriter, req
 		_, _ = w.Write(jsonBytes(response))
 		return
 	}
-	answer := "controlled-provider-missing-tool-result"
-	if payloadHasToolResult(payload) && formalAgentRequestContains(payload, provider.secret) {
-		answer = provider.secret
+	if sequence == 2 {
+		answer := "controlled-provider-missing-tool-result"
+		if payloadHasToolResult(payload) && formalAgentRequestContains(payload, provider.secret) {
+			answer = provider.secret
+		}
+		response := map[string]any{"choices": []any{map[string]any{
+			"finish_reason": "tool_calls",
+			"message": map[string]any{"role": "assistant", "content": "", "tool_calls": []any{map[string]any{
+				"id": "controlled-feedback-reply", "type": "function",
+				"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": answer})},
+			}}},
+		}}}
+		_, _ = w.Write(jsonBytes(response))
+		return
 	}
 	final := map[string]any{
-		"action_type": "reply", "response_intent": "answer",
-		"visible_text": answer, "influences": []any{},
+		"action_type": "reply", "response_intent": "answer after committed reply", "influences": []any{},
 	}
 	response := map[string]any{"choices": []any{map[string]any{
 		"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(final), "tool_calls": []any{}},

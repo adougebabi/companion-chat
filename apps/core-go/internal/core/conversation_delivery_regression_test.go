@@ -145,19 +145,25 @@ func TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCo
 		t.Fatal(err)
 	}
 	providerReceived := make(chan struct{})
+	var providerReceivedOnce sync.Once
 	releaseProvider := make(chan struct{})
+	providerRequests := 0
 	app := &App{DB: repository}
 	app.Provider = &ProviderClient{DB: repository, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		requestBody, _ := io.ReadAll(request.Body)
 		requestPayload := decodeObject(requestBody)
-		close(providerReceived)
-		select {
-		case <-releaseProvider:
-		case <-request.Context().Done():
-			return nil, request.Context().Err()
+		providerRequests++
+		requestIndex := providerRequests
+		if requestIndex == 1 {
+			providerReceivedOnce.Do(func() { close(providerReceived) })
+			select {
+			case <-releaseProvider:
+			case <-request.Context().Done():
+				return nil, request.Context().Err()
+			}
 		}
 		structured := map[string]any{
-			"action_type": "reply", "response_intent": "acknowledge", "visible_text": "我收到了。",
+			"action_type": "reply", "response_intent": "acknowledge",
 			"influences": []any{},
 			"appraisal": map[string]any{
 				"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.5, "social_threat": 0.0,
@@ -167,6 +173,18 @@ func TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCo
 		}
 		if !boolValue(requestPayload["stream"]) {
 			return nil, errors.New("production stream used non-stream Provider request")
+		}
+		if requestIndex == 1 {
+			toolDelta := map[string]any{
+				"role": "assistant",
+				"tool_calls": []any{map[string]any{
+					"index": 0, "id": "stream-delivery-reply", "type": "function",
+					"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": `{"text":"我收到了。"}`},
+				}},
+			}
+			wire := "data: " + jsonString(map[string]any{"choices": []any{map[string]any{"index": 0, "delta": toolDelta, "finish_reason": "tool_calls"}}}) + "\n\n"
+			wire += "data: [DONE]\n\n"
+			return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader(wire)), Request: request}, nil
 		}
 		encoded := []rune(jsonString(structured))
 		parts := []string{string(encoded[:len(encoded)/2]), string(encoded[len(encoded)/2:])}

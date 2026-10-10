@@ -80,13 +80,12 @@ func TestAgentFailureCodeRejectsUnboundedOrSecretBearingValues(t *testing.T) {
 	}
 }
 
-func TestStructuredAgentOutputDoesNotPublishProtocolAsVisibleText(t *testing.T) {
-	for _, structured := range []map[string]any{{"visible_text": ""}, {"action_type": "no_op"}} {
-		if text := finalAgentVisibleText(ProviderCompletion{Structured: structured, Text: jsonString(structured)}); text != "" {
-			t.Fatalf("protocol leaked as text: %q", text)
-		}
+func TestConversationFinalSchemaHasNoPublicationTextProtocol(t *testing.T) {
+	properties := mapValue(cognitiveTurnResponseSchema()["properties"])
+	if _, exists := properties["visible_text"]; exists {
+		t.Fatalf("conversation final schema still exposes visible_text: %#v", properties)
 	}
-	if text := finalAgentVisibleText(ProviderCompletion{Text: "ordinary text"}); text != "ordinary text" {
-		t.Fatalf("plain text contract lost: %q", text)
+	if _, exists := mapValue(mapValue(properties["response_plan"])["properties"])["visible_text"]; exists {
+		t.Fatalf("conversation response_plan still exposes visible_text: %#v", properties["response_plan"])
 	}
 }

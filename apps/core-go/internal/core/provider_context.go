@@ -84,7 +84,8 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	if config, version, _, readErr := a.kevService().Settings.Read(ctx); readErr == nil && config.Enabled {
 		ctx = decision.WithStageBudget(ctx, time.Duration(config.BudgetMS)*time.Millisecond)
 		if surface != ProviderContextSurfaceDefault && config.Allows("tools.select") && len(definitions) > 0 {
-			selectedCtx, _, selectionErr := a.prepareKevTools(context.WithValue(ctx, kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: FormalAgentID(schemaName), Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": currentInput}}}, Capability: &ADKCapabilityRequest{Projection: projection, Surface: capabilitySurfaceForProviderSurface(surface)}})
+			agentID, _ := formalAgentForSchema(schemaName)
+			selectedCtx, _, selectionErr := a.prepareKevTools(context.WithValue(ctx, kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: agentID, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": currentInput}}}, Capability: &ADKCapabilityRequest{Projection: projection, Surface: capabilitySurfaceForProviderSurface(surface)}})
 			if selectionErr != nil {
 				return PromptAssemblyResult{}, projection, selectionErr
 			}

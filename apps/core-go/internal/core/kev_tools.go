@@ -12,7 +12,10 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 )
 
-const capabilityDiscoverName = "capability.discover"
+const (
+	capabilityCatalogName  = "capability.catalog"
+	capabilityDiscoverName = "capability.discover"
+)
 
 type kevRunSelectionKey struct{}
 type kevRunSelection struct {
@@ -35,8 +38,43 @@ type capabilityDiscoverCapability struct {
 	catalog func(CapabilitySurface) []CapabilityDefinition
 }
 
+// capabilityCatalogCapability exposes the complete authorized installation on
+// demand. Its own small schema is always visible on Kev-selected Agents; the
+// potentially large business schemas remain outside the prompt until queried
+// or explicitly loaded through capability.discover.
+type capabilityCatalogCapability struct {
+	catalog func(CapabilitySurface) []CapabilityDefinition
+}
+
+func capabilityUtilitySurfaces() []CapabilitySurface {
+	return []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition}
+}
+
+func (c capabilityCatalogCapability) Definition() CapabilityDefinition {
+	return CapabilityDefinition{Name: capabilityCatalogName, Version: "v1", Type: CapabilityTypeQuery, Description: "List every capability authorized for this Agent, including each purpose and input parameters; use capability.discover to load selected schemas.", InputSchema: objectSchema(nil, nil, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
+}
+func (c capabilityCatalogCapability) RequiredContext() []ContextSlot { return nil }
+func (c capabilityCatalogCapability) Execute(ctx context.Context, inv CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
+	if err := ctx.Err(); err != nil {
+		return CapabilityResult{}, err
+	}
+	if c.catalog == nil {
+		return CapabilityResult{}, errors.New("capability_catalog_unavailable")
+	}
+	definitions := authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, c.catalog)
+	items := make([]map[string]any, 0, len(definitions))
+	for _, definition := range definitions {
+		parameters := definition.InputSchema
+		if parameters == nil {
+			parameters = objectSchema(nil, nil, false)
+		}
+		items = append(items, map[string]any{"name": definition.Name, "purpose": definition.Description, "parameters": parameters})
+	}
+	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"items": items, "count": len(items), "run_scoped": kevSelection(ctx) != nil}}, nil
+}
+
 func (c capabilityDiscoverCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{Name: capabilityDiscoverName, Version: "v1", Type: CapabilityTypeQuery, Description: "Discover permitted capabilities; provide names to load them for the next model request.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "maxItems": 8, "items": stringSchema()}}, nil, false), OutputSchema: openObjectSchema(), Surfaces: []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition}, SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
+	return CapabilityDefinition{Name: capabilityDiscoverName, Version: "v1", Type: CapabilityTypeQuery, Description: "Load selected authorized capability schemas for the next model request; use capability.catalog first when names or parameters are unknown.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "minItems": 1, "maxItems": 8, "items": stringSchema()}}, []string{"names"}, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
 }
 func (c capabilityDiscoverCapability) RequiredContext() []ContextSlot { return nil }
 func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
@@ -52,15 +90,8 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 	if err := json.Unmarshal(inv.Arguments, &args); err != nil {
 		return CapabilityResult{}, err
 	}
-	var definitions []CapabilityDefinition
+	definitions := authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, c.catalog)
 	selection := kevSelection(ctx)
-	if selection != nil {
-		selection.mu.Lock()
-		definitions = append([]CapabilityDefinition(nil), selection.original...)
-		selection.mu.Unlock()
-	} else {
-		definitions = c.catalog(inv.Metadata.Surface)
-	}
 	available := map[string]CapabilityDefinition{}
 	items := []map[string]any{}
 	for _, d := range definitions {
@@ -100,29 +131,49 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"available": items, "loaded": loaded, "run_scoped": selection != nil}}, nil
 }
 
+func authorizedDiscoveryDefinitions(ctx context.Context, surface CapabilitySurface, catalog func(CapabilitySurface) []CapabilityDefinition) []CapabilityDefinition {
+	selection := kevSelection(ctx)
+	if selection != nil {
+		selection.mu.Lock()
+		defer selection.mu.Unlock()
+		return append([]CapabilityDefinition(nil), selection.original...)
+	}
+	return catalog(surface)
+}
+
 func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput) (context.Context, []CapabilityDefinition, error) {
+	if kevToolSelectionBypassed(input.AgentID) {
+		return ctx, input.Definitions, ctx.Err()
+	}
+	// A naturally tool-free typed task has no capability surface to recover.
+	// firstCapabilitySurface intentionally defaults nil requests to conversation
+	// for legacy validation, so handle this boundary before adding utilities.
+	if len(input.Definitions) == 0 {
+		return ctx, nil, ctx.Err()
+	}
 	if input.Capability != nil && input.Capability.Projection.KevTools != nil {
 		state := input.Capability.Projection.KevTools
-		discovery, _ := a.capabilityRegistry().Definition(capabilityDiscoverName)
-		return context.WithValue(ctx, kevRunSelectionKey{}, state), append(append([]CapabilityDefinition(nil), state.original...), discovery), nil
+		return context.WithValue(ctx, kevRunSelectionKey{}, state), appendCapabilityUtilities(a.capabilityRegistry(), input.Capability.Surface, state.original), nil
 	}
+	surface := firstCapabilitySurface(input.Capability)
+	withUtilities := appendCapabilityUtilities(a.capabilityRegistry(), surface, input.Definitions)
+	businessDefinitions := withoutKevDiscovery(input.Definitions)
 	if !kevAssemblySelection(ctx) {
-		return ctx, input.Definitions, ctx.Err()
+		return ctx, withUtilities, ctx.Err()
 	}
 	service := a.kevService()
-	if len(input.Definitions) == 0 || !service.Enabled(ctx, "tools.select") {
-		return ctx, input.Definitions, ctx.Err()
+	if len(businessDefinitions) == 0 || !service.Enabled(ctx, "tools.select") {
+		return ctx, withUtilities, ctx.Err()
 	}
-	discovery, ok := a.capabilityRegistry().Definition(capabilityDiscoverName)
-	if !ok || !discovery.SupportsSurface(firstCapabilitySurface(input.Capability)) {
+	if !capabilityUtilitiesInstalled(a.capabilityRegistry(), surface) {
 		return ctx, input.Definitions, nil
 	}
 	config, version, _, err := service.Settings.Read(ctx)
 	if err != nil {
-		return ctx, input.Definitions, nil
+		return ctx, withUtilities, nil
 	}
 	_ = config
-	state := &kevRunSelection{service: service, original: append([]CapabilityDefinition(nil), input.Definitions...), visible: map[string]bool{}, loaded: map[string]bool{}, version: version}
+	state := &kevRunSelection{service: service, original: append([]CapabilityDefinition(nil), businessDefinitions...), visible: map[string]bool{}, loaded: map[string]bool{}, version: version}
 	current := ""
 	for _, m := range input.Prompt.Messages {
 		if stringValue(m["role"]) == "user" {
@@ -131,11 +182,13 @@ func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput)
 	}
 	candidates := []decision.Candidate{}
 	summaries := map[string]string{}
-	for _, d := range input.Definitions {
-		// Visible publication exits remain available. Dependency data continues
-		// to be resolved by the existing ContextResolver at actual execution.
+	mandatory := formalAgentMandatoryTools(input.AgentID)
+	for _, d := range businessDefinitions {
+		// Every installed Tool starts from the original visible set so fallback is
+		// exactly the pre-Kev catalog. Each Agent owns its mandatory intersection;
+		// every remaining installed Tool is its own independent Kev candidate.
 		state.visible[d.Name] = true
-		if d.OutputRole == "conversation_message" || d.Name == conversationReplyCapabilityName {
+		if mandatory[d.Name] {
 			continue
 		}
 		candidates = append(candidates, decision.Candidate{ID: d.Name, Question: decision.Choice("Should capability " + d.Name + " be disclosed for the current task? Multiple capabilities may be needed.")})
@@ -165,8 +218,55 @@ func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput)
 		}
 		_ = r.Finish(ctx, status, "", "")
 	}
-	definitions := append(append([]CapabilityDefinition(nil), input.Definitions...), discovery)
+	definitions := appendCapabilityUtilities(a.capabilityRegistry(), surface, input.Definitions)
 	return context.WithValue(ctx, kevRunSelectionKey{}, state), definitions, nil
+}
+
+func formalAgentMandatoryTools(agentID FormalAgentID) map[string]bool {
+	definition, ok := FormalAgentDefinitionByID(agentID)
+	if !ok {
+		return map[string]bool{}
+	}
+	result := make(map[string]bool, len(definition.MandatoryTools))
+	for _, name := range definition.MandatoryTools {
+		result[name] = true
+	}
+	return result
+}
+
+func capabilityUtilitiesInstalled(registry *CapabilityRegistry, surface CapabilitySurface) bool {
+	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+		definition, ok := registry.Definition(name)
+		if !ok || !definition.SupportsSurface(surface) {
+			return false
+		}
+	}
+	return true
+}
+
+func appendCapabilityUtilities(registry *CapabilityRegistry, surface CapabilitySurface, definitions []CapabilityDefinition) []CapabilityDefinition {
+	result := append([]CapabilityDefinition(nil), definitions...)
+	seen := make(map[string]bool, len(result))
+	for _, definition := range result {
+		seen[definition.Name] = true
+	}
+	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+		definition, ok := registry.Definition(name)
+		if ok && definition.SupportsSurface(surface) && !seen[name] {
+			result = append(result, definition)
+		}
+	}
+	return result
+}
+
+func kevToolSelectionBypassed(agentID FormalAgentID) bool {
+	switch agentID {
+	case FormalAgentGoalPlanner, FormalAgentGoalEvaluation,
+		FormalAgentVisualIdentity, FormalAgentVisualIdentityVision, FormalAgentVisualIdentityPatch:
+		return true
+	default:
+		return false
+	}
 }
 
 func capabilitySurfaceForProviderSurface(surface ProviderContextSurface) CapabilitySurface {
@@ -189,7 +289,8 @@ func (s *kevRunSelection) definitions(ctx context.Context) ([]CapabilityDefiniti
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err != nil || version != s.version || !c.Allows("tools.select") {
-		return append([]CapabilityDefinition(nil), s.original...), nil
+		out := append([]CapabilityDefinition(nil), s.original...)
+		return append(out, (capabilityCatalogCapability{}).Definition(), (capabilityDiscoverCapability{}).Definition()), nil
 	}
 	out := []CapabilityDefinition{}
 	for _, d := range s.original {
@@ -197,7 +298,7 @@ func (s *kevRunSelection) definitions(ctx context.Context) ([]CapabilityDefiniti
 			out = append(out, d)
 		}
 	}
-	out = append(out, (capabilityDiscoverCapability{}).Definition())
+	out = append(out, (capabilityCatalogCapability{}).Definition(), (capabilityDiscoverCapability{}).Definition())
 	return out, nil
 }
 func (s *kevRunSelection) permits(ctx context.Context, name string) bool {
@@ -236,7 +337,8 @@ func (m *queuedToolCallingChatModel) kevModelOptions(ctx context.Context, opts [
 func withoutKevDiscovery(definitions []CapabilityDefinition) []CapabilityDefinition {
 	out := make([]CapabilityDefinition, 0, len(definitions))
 	for _, d := range definitions {
-		if strings.TrimSpace(d.Name) != capabilityDiscoverName {
+		name := strings.TrimSpace(d.Name)
+		if name != capabilityDiscoverName && name != capabilityCatalogName {
 			out = append(out, d)
 		}
 	}

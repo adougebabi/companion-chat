@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 )
 
-// This report measures the real wire payload of three native conversation
+// This report measures the real wire payload of two native conversation
 // Agent paths. Repeated calls to the same schema stay as separate physical
 // requests: a Tool result round is model work and must never be collapsed.
 // Provider output is scripted, so output tokens remain an estimate and no
@@ -101,9 +101,6 @@ func turnPathRunTurn(t *testing.T, name string, router *fakeProviderRouter, expe
 }
 
 func TestTurnPathCostMeasurement(t *testing.T) {
-	naturalFinal := fakeProviderResult{Structured: map[string]any{
-		"action_type": "reply", "response_intent": "natural final", "visible_text": "自然回复", "influences": []any{},
-	}}
 	replyCall := fakeProviderResult{ToolCalls: []map[string]any{
 		nativePersonaToolCall("cost-reply", "conversation.reply", map[string]any{"text": "已提交回复"}),
 	}}
@@ -119,12 +116,6 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 	finalAfterTool := nativePersonaFinal()
 
 	reports := []turnPathReport{
-		func() turnPathReport {
-			router := newFakeProviderRouter().on(workingPersonaMainTurnSchema, func(map[string]any) fakeProviderResult { return naturalFinal })
-			report := turnPathRunTurn(t, "natural_final", router)
-			report.ScriptedOutputTokens = turnPathScriptedOutputTokens(naturalFinal)
-			return report
-		}(),
 		func() turnPathReport {
 			step := 0
 			results := []fakeProviderResult{replyCall, finalAfterTool}
@@ -151,7 +142,7 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 		}(),
 	}
 
-	for index, want := range []int{1, 2, 3} {
+	for index, want := range []int{2, 3} {
 		report := reports[index]
 		if report.PhysicalRequests != want || len(report.Calls) != want || len(report.SchemaSequence) != want {
 			t.Fatalf("%s physical requests=%d calls=%d schemas=%d, want %d each", report.Path, report.PhysicalRequests, len(report.Calls), len(report.SchemaSequence), want)

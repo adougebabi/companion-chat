@@ -225,7 +225,7 @@ func momentPublishCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: "moment.publish", Version: "v1", Type: CapabilityTypeAction,
 		Description:   "Publish the final text of one Fluctlight Moment to the shared feed.",
-		Surfaces:      []CapabilitySurface{CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
+		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
 		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,

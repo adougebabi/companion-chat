@@ -28,7 +28,7 @@
 - A rejected review is copied into the next attempt as `previous_review`. Renderer-constraint refresh must preserve that review and its previous-asset coordinate in the durable snapshot. The next Agent input and deterministic seed prompt use bounded summary/feedback/missing-section guidance so regeneration can correct the observed failure; the asset ID itself remains Core-only.
 - The deterministic seed and character-sheet prompt renders confirmed `currently_worn` descriptions from the effective Life snapshot as current clothing. When current wear is known, historical Foundation appearance prose, `outfit`/`clothing`, `daily_outfit_preferences`, and prewritten `visible_text` cannot override it or restore clothing into a known-empty state. Foundation fields cannot supply `currently_worn`; wardrobe inventory alone never proves current wear. An unknown wearing state has no current-clothing assertion.
 - `commit_review.observations` prefers 1–24 bounded nonempty strings. A single string or a flat object whose sorted keys map to text or text arrays is also accepted, then normalized to the same array before writing `vision_result`/`patch_result`. Empty, nested, non-text, overlong or over-count values are rejected; Core never invents visual observations. A shape error is a non-retryable Tool result that the same Agent may correct within its request lifetime, not an Activity/Agent infrastructure failure. The checkpoint succeeds only after exactly one non-replayed `completed|accepted` review result; failed attempts and idempotent replay do not count as another commit.
-- Run identity is `visual_identity_agent:<session_id>:attempt-<n>:<action_required>`. Pending media does not trigger new model requests. Failed runs retain committed Tool receipts and do not replay the whole decision loop.
+- Run identity is `visual_identity_agent:native_tools_v2:<session_id>:attempt-<n>:<action_required>`. The protocol suffix leaves legacy failed checkpoints untouched; it does not change durable media operation IDs or resubmit already accepted media. Pending media does not trigger new model requests. Failed runs retain committed Tool receipts and do not replay the whole decision loop.
 - Automatic regeneration is bounded to three attempts. `accepted` promotes canonical and queues a separate character-sheet media intent; rejected attempts and assets remain immutable history.
 - Renderer constraints preserve `chest_cup`, resolved `chest_lora_weight`, and `adapter_version`. Mapping is explicit code (`A=-5`, `B=-3`, `C=-1`, `D=1` in adapter v1) and must be bumped when tuning changes.
 - `media.comfyui.visual_identity_workflow` is an optional structured workflow map. Its `seed`/`character_sheet` variants are selected only from explicit concept fields; the legacy `workflow` remains the Scene Image fallback. `{{prompt}}` injects text, while `{{chest_lora_weight}}` (or `{{renderer_constraints.chest_lora_weight}}`) injects a validated numeric weight when it occupies a whole JSON value; missing weight is an error. For an image-to-image LoadImage node, use the canonical `{{visual_identity_reference_image}}` placeholder in its `inputs.image` value. Core resolves the active character-sheet asset (falling back to canonical reference), uploads it to ComfyUI `/upload/image`, and replaces the placeholder with the returned input filename before `/prompt`; missing/unauthorized assets fail without submitting a job. Provider/job persistence uses the existing MediaWorkflow.
@@ -119,3 +119,32 @@ observations, err := normalizeVisualIdentityObservations(review["observations"])
 if err != nil { return failedCapabilityResult(invocation, "visual_identity_review_invalid", false), err }
 review["observations"] = observations // one bounded persisted shape
 ```
+
+
+## Scenario: Native checkpoint execution and semantic no-op refresh (2026-10-10)
+
+### 1. Scope / Trigger
+A visual checkpoint returned summary without Tool execution; waiting refreshes also repeatedly updated the same aggregate and advanced facts.
+
+### 2. Signatures
+`visualIdentityPhysicalRequestPolicy` reads durable session state before each physical request. `visualIdentityStageDefinitions` filters the validated three-Tool private catalog to action_required. Existing ensure/refresh aggregate SQL gains NULL-safe row-wise IS DISTINCT FROM.
+
+### 3. Contracts
+Only the current canonical stage Tool is exposed; unchanged required action/attempt means forced native execution and no final grammar. Durable progress restores auto/final schema. Pending media returns without a model request or another job. The native_tools_v2 checkpoint namespace preserves old failed history and accepted media operation IDs. Aggregate ensure/refresh UPDATE only when status, identity_snapshot, renderer_constraints or adapter_version differ; canonical promotion and real changes still advance facts. No new migration or CAS exemption.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| No matching canonical stage Tool | visual_identity_agent_stage_tool_invalid |
+| Policy DB read/cancellation failure | propagate; no invented progress |
+| Same aggregate repair fields | no physical UPDATE/facts bump |
+| Genuine renderer/identity change | UPDATE/facts bump remains |
+
+### 5. Good / Base / Bad Cases
+Good: generate_candidate native receipt → pending media → review native receipt → finalize. Base: waiting poll is read-only for identical aggregate inputs. Bad: final grammar suppresses required native execution, or disable the whole visual facts fence.
+
+### 6. Tests Required
+`TestVisualIdentity*` covers HTTP Generate/Stream phases, canonical stage inventory, versioned checkpoint IDs and no-op SQL. PG tests verify old failed checkpoint recovery, repeated ensure/refresh generation stability and actual renderer change; SKIP without isolated DB.
+
+### 7. Wrong vs Correct
+Wrong: update updated_at on every poll. Correct: compare semantic business fields before UPDATE and preserve real invalidation.

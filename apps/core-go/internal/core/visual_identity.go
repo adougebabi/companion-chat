@@ -498,7 +498,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 		// cup label because the model placed it under identity.body_type/build.
 		// Repair only the pre-canonical, missing profile and queued attempts; a
 		// canonical revision or an attempt with a frozen media intent is immutable.
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='missing',identity_snapshot=$2,renderer_constraints=$3,adapter_version=$4,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='missing',identity_snapshot=$2,renderer_constraints=$3,adapter_version=$4,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0 AND (status,identity_snapshot,renderer_constraints,adapter_version) IS DISTINCT FROM ('missing',$2::jsonb,$3::jsonb,$4)`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 			return "", err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status='queued'`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
@@ -1174,7 +1174,7 @@ func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluc
 		if stringValue(constraints["error"]) != "" {
 			profileStatus = visualIdentityStatusRendererPending
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,identity_snapshot=$3,renderer_constraints=$4,adapter_version=$5,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0`, profileID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,identity_snapshot=$3,renderer_constraints=$4,adapter_version=$5,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0 AND (status,identity_snapshot,renderer_constraints,adapter_version) IS DISTINCT FROM ($2,$3::jsonb,$4::jsonb,$5)`, profileID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2::jsonb || jsonb_strip_nulls(jsonb_build_object('previous_review',input_snapshot->'previous_review','previous_asset_id',input_snapshot->'previous_asset_id')),renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status IN ('queued','image_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {

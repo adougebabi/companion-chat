@@ -255,8 +255,11 @@ func TestGoalPlannerNativeLoopConsumesQueryCommitAndReread(t *testing.T) {
 			return fakeProviderResult{Structured: map[string]any{"decision": "applied", "reason": "正式提交并回读 " + committedID, "review_condition": "新的实际结果", "suggestions": []any{}}}
 		}
 	})
-	router.on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
-		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "分享一个可行的摄影想法", "visible_text": "我想尝试以窗边光影为主题拍摄街景，这只是拍摄想法，还没有拍出作品。", "influences": []any{}, "goal_event_candidates": []any{map[string]any{"goal_ref": "goal:ctx_" + stableDigest(committedID), "reason": "实际分享摄影想法"}}}}
+	router.onNativeConversationReply(func(_ map[string]any) nativeConversationReplyFixture {
+		return nativeConversationReplyFixture{
+			ReplyText: "我想尝试以窗边光影为主题拍摄街景，这只是拍摄想法，还没有拍出作品。",
+			Final:     fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "分享一个可行的摄影想法", "influences": []any{}, "goal_event_candidates": []any{map[string]any{"goal_ref": "goal:ctx_" + stableDigest(committedID), "reason": "实际分享摄影想法"}}}},
+		}
 	})
 	router.onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
@@ -702,7 +705,7 @@ func TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain(t *testing
 	plannerCalls, turns := 0, 0
 	var snapshot map[string]any
 	var newID string
-	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().onNativeConversationReply(func(_ map[string]any) nativeConversationReplyFixture {
 		turns++
 		text := "我喜欢摄影构图和阅读科幻，也重视尊重双方的互动边界。"
 		if turns > 1 {
@@ -718,7 +721,10 @@ func TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain(t *testing
 				events = append(events, map[string]any{"goal_ref": "goal:ctx_" + stableDigest(stringValue(g["id"])), "reason": "实际发送表达，复核真实标准"})
 			}
 		}
-		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "表达当前真实想法", "visible_text": text, "influences": []any{}, "goal_event_candidates": events}}
+		return nativeConversationReplyFixture{
+			ReplyText: text,
+			Final:     fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "表达当前真实想法", "influences": []any{}, "goal_event_candidates": events}},
+		}
 	})
 	router.onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		s := readProcessingGoalSnapshot(t, f)

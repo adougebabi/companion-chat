@@ -24,6 +24,7 @@ var independentToolProductInventory = []string{
 	"actor.inspect",
 	"affect_event",
 	"appearance.style",
+	"capability.catalog",
 	"capability.discover",
 	"capability.request",
 	"conversation.reply",
@@ -64,6 +65,16 @@ var independentToolProductInventory = []string{
 	"wardrobe.outfit.save",
 	"wardrobe.return",
 	"wardrobe.wear",
+}
+
+func TestIndependentToolE2ECapabilityCatalog(t *testing.T) {
+	fixture := newIndependentToolE2EFixture(t, "catalog")
+	request := fixture.request(capabilityCatalogName, "catalog-permitted", map[string]any{})
+	receipt, err := fixture.app.ExecuteTool(fixture.ctx, request)
+	items := arrayValue(mapValue(receipt.Result.Output)["items"])
+	if err != nil || receipt.Result.Status != "completed" || len(items) == 0 || mapValue(items[0])["parameters"] == nil {
+		t.Fatalf("catalog receipt=%#v err=%v", receipt, err)
+	}
 }
 
 type independentToolE2EFixture struct {

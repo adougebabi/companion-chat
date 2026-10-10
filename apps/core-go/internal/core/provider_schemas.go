@@ -175,7 +175,6 @@ func selfEvaluationSchema() map[string]any {
 func responsePlanSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"profile_id":       stringSchema(),
-		"visible_text":     stringSchema(),
 		"action_type":      enumStringSchema("reply"),
 		"answer_mode":      stringSchema(),
 		"response_outline": arraySchema(stringSchema()),
@@ -235,7 +234,6 @@ func cognitiveTurnResponseProperties() map[string]any {
 		"action_type":                enumStringSchema("reply"),
 		"response_intent":            stringSchema(),
 		"internal_intent":            map[string]any{"type": "string", "maxLength": 120},
-		"visible_text":               stringSchema(),
 		"response_plan":              responsePlanSchema(),
 		"personality_decision":       personalityDecision,
 		"output_preference_decision": outputPreferenceDecisionSchema(),

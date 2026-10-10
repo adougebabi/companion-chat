@@ -22,7 +22,7 @@
 
 `internal/ai/decision` 使用 `POST /v1/systemone`。合法 choice 默认直接采用；unclear/异常/预算耗尽回原路径，父请求取消不启动 fallback。旧模型不为 fallback 提前执行。配置撤销后仍保存原始 yes/no 和概率，将实际应用记录为 original/discarded。
 
-新增独立 Tool `capability.discover`：当前 Agent 内只公开其原安装集合，先校验整次 load 再扩张；独立调用报告授权 catalog，不声称修改不存在的 Agent。补载后的 Tool schema 在下轮真实 HTTP 请求增长，保留 Eino v0.7.37 与原生 Runner。
+新增始终可见的只读 Tool `capability.catalog`，只在调用时返回当前 Agent 原安装集合的名称、用途和参数；`capability.discover` 保留为显式补载入口，先校验整次 load 再扩张。补载后的 Tool schema 在下一轮真实 HTTP 请求增长且不再经过 Kev 否决，保留 Eino v0.7.37 与原生 Runner。两者不向普通 prompt 展开全量业务 schema，也不跨 Agent 泄露私有 Tool。
 
 人格接管的内层模型回调曾让丢弃 A 的调用进入运行结果。现已只对 gated proposal 的内层 callback 做隔离；外层原生 loop 收到 B，A 的原输出仍保留在 Owner 模型诊断中。Generate/Stream 回归均断言 A 不执行且不进入结果 ToolCalls。
 
@@ -227,3 +227,14 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 正式更新需要先应用0059_fact_generation_provenance，再同时更新Core和Worker。沿用本报告原有显式Compose migrate命令，不运行API/Worker自动升级。运行后的同Fluc后台摘要/每日记忆应在聊天快照到结算期间等待；metadata cursor推进不再制造facts_stale。若仍出现真正冲突，在Owner系统事件的agent.run.termination详情读取current_facts_generation_sources按实际writer继续核对。另现场14:10的507明确为模型服务可用内存不足，EOF是Provider传输失败；本轮没有把这两者冒充乐观锁根因或修改模型服务配置。
 
 本轮最终本地验证：Go全仓race 1453 PASS / 499 SKIP / 0 FAIL（含子用例），Go vet/build/diff通过。后台入口work并发/重入/不同Owner/取消/fence纯回归、版本区间分类和SQL契约已实际运行。真实PG迁移/trigger/journal/跨进程与诊断聚合用例按用户约定SKIP；无安装/正式数据写入/部署。原公共API/前端无改动，未重跑前端；独立核验无确定findings。必须先应用0059再更新Core/Worker。未提交。
+
+
+## 2026-10-10 Agent 白名单、工具目录、私聊与视觉身份修复
+
+用户明确：私聊仅 conversation.reply 原生 Tool 发送，禁止 final xxx_text/分析代发；每个 Agent 独立必备白名单，只有其余可选工具参与 Kev；新增查询全部授权 Tool 的兜底。FormalAgentDefinition.MandatoryTools 已显式定义21个Agent；conversation_cognition/wake_up的reply/moment/image常驻，其余Agent按职责定义，tool-free保持空。新 capability.catalog 返回当前Agent原安装目录name/purpose/parameters，discover补载下一物理轮真实schema，二者不入Kev候选、关闭/版本变化/设置错误时仍可用。总注册48个Tool，普通Agent无法查询或调用目标评估私有提交工具。
+
+移除 natural final 发布旁路和 visible_text schema；私聊在真实reply提交前 required Tool/no final grammar，media alone不解锁，final-only拒绝而不代发。VisualIdentity不是Kev漏选；按stage只暴露对应私有Tool，durable progress前forced/no final grammar，pending媒体零LLM，native_tools_v2 checkpoint保留旧失败历史与真实媒体IDs。现场0059 provenance已证实29783→29804的21次变化全部为视觉聚合UPDATE；ensure/refresh两处四业务字段同值guard停止无意义写入，真实变化仍推进facts。本轮无新迁移，head仍0059。
+
+独立check修正恢复工具误入候选、settings-read fallback丢工具、tool-free Agent泄露utilities；主线程补物理请求disabled/version/settings-error三组同类回退回归。完整Go race/vet/build/gofmt/diff通过；最终全仓race JSON计数1468PASS/501SKIP/0FAIL（包括主线程追加的物理请求回退三组回归）。实际HTTP/Eino Generate/Stream测试已跑；PG/Redis/Temporal/真实Provider opt-in未配置跳过，不称生产验收。未改Web/API合同，无前端重跑；没有部署、安装DB、写正式数据或提交。服务507内存不足独立于本修复，不能称已解决。
+
+本轮收尾同步了旧PG正向私聊夹具：显式ReplyText脚本产生原生reply与真实结果后final，SSE发送ToolCall后final，Goal closure/planner与fault sensitivity保留产品断言；移除成本报告中obsolete natural_final成功路径。夹具相关PG执行仍SKIP，历史剩余成本数字需隔离DB重生成，不能作为当前版本实测。

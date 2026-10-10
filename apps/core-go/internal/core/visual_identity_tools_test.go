@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -25,6 +26,39 @@ type visualIdentityToolFixture struct {
 	ownerID      string
 	fluctlightID string
 	sessionID    string
+}
+
+type visualIdentityRequestPolicyInvoker struct {
+	mu         sync.Mutex
+	progressed bool
+}
+
+func (i *visualIdentityRequestPolicyInvoker) Execute(ctx context.Context, name, args string) (string, error) {
+	return i.ExecuteWithID(ctx, "", name, args)
+}
+
+func (i *visualIdentityRequestPolicyInvoker) ExecuteWithID(_ context.Context, id, name, _ string) (string, error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if id == "" || name != visualIdentityGenerateCandidateCapabilityName {
+		return "", errors.New("unexpected Visual Identity native call")
+	}
+	i.progressed = true
+	return jsonString(map[string]any{"status": "accepted", "output": map[string]any{"status": "pending"}}), nil
+}
+
+func (i *visualIdentityRequestPolicyInvoker) durableProgress() bool {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.progressed
+}
+
+func visualIdentityRequestForcesTool(payload map[string]any, name string) bool {
+	choice := payload["tool_choice"]
+	if choice == "required" {
+		return true
+	}
+	return stringValue(mapValue(mapValue(choice)["function"])["name"]) == name
 }
 
 func seedUnknownEffectiveLifeForTest(t *testing.T, ctx context.Context, repository *PostgresRepository, fluctlightID string) {
@@ -412,6 +446,10 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 	if err != nil {
 		t.Fatal(err)
 	}
+	legacyRunID := strings.Join([]string{"visual_identity_agent", sessionID, "attempt-1", visualIdentityGenerateCandidateCapabilityName}, ":")
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.agent_runs(fluctlight_id,agent_id,run_id,input_digest,correlation_id,status,error_detail,finished_at) VALUES($1,$2,$3,'legacy-summary-only','visual_identity:legacy','failed','visual_identity_agent_required_tool_mismatch',now())`, fluctlightID, FormalAgentVisualIdentity, legacyRunID); err != nil {
+		t.Fatal(err)
+	}
 	result, err := app.RunVisualIdentityAgent(ctx, VisualIdentityAgentInput{SessionID: sessionID})
 	if err != nil {
 		t.Fatal(err)
@@ -424,6 +462,10 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 	var linkedExecutions int
 	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.agent_runs WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3`, fluctlightID, FormalAgentVisualIdentity, expectedRunID).Scan(&runStatus); err != nil || runStatus != "completed" {
 		t.Fatalf("durable visual Agent run status=%q err=%v", runStatus, err)
+	}
+	var legacyRunStatus string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.agent_runs WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3`, fluctlightID, FormalAgentVisualIdentity, legacyRunID).Scan(&legacyRunStatus); err != nil || legacyRunStatus != "failed" {
+		t.Fatalf("legacy failed checkpoint was mutated during protocol recovery: status=%q err=%v", legacyRunStatus, err)
 	}
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3 AND capability_name=$4`, fluctlightID, FormalAgentVisualIdentity, expectedRunID, visualIdentityGenerateCandidateCapabilityName).Scan(&linkedExecutions); err != nil || linkedExecutions != 1 {
 		t.Fatalf("durable visual Tool linkage count=%d err=%v", linkedExecutions, err)
@@ -442,9 +484,141 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 	if err := json.Unmarshal([]byte(requests[1]), &second); err != nil {
 		t.Fatal(err)
 	}
+	var first map[string]any
+	if err := json.Unmarshal([]byte(requests[0]), &first); err != nil {
+		t.Fatal(err)
+	}
+	firstTools := arrayValue(first["tools"])
+	if !visualIdentityRequestForcesTool(first, visualIdentityGenerateCandidateCapabilityName) || first["response_format"] != nil || len(firstTools) != 1 || stringValue(mapValue(mapValue(firstTools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
+		t.Fatalf("first request did not enforce the stage Tool without final grammar: %#v", first)
+	}
+	secondTools := arrayValue(second["tools"])
+	if second["tool_choice"] != "auto" || second["response_format"] == nil || len(secondTools) != 1 || stringValue(mapValue(mapValue(secondTools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
+		t.Fatalf("final request did not restore auto/final grammar with the bounded stage catalog: %#v", second)
+	}
 	receipt, found := formalAdapterResultFromPayload(second, "visual-generate-call")
 	if !found || stringValue(mapValue(receipt["output"])["status"]) != "pending" {
 		t.Fatalf("second request lost model-facing pending receipt: %#v", receipt)
+	}
+}
+
+func TestVisualIdentityPhysicalRequestStagesGenerateAndStream(t *testing.T) {
+	for _, streaming := range []bool{false, true} {
+		t.Run(fmt.Sprintf("stream=%t", streaming), func(t *testing.T) {
+			invoker := &visualIdentityRequestPolicyInvoker{}
+			full := capabilityCatalog(mustCapabilityRegistry(builtinCapabilities(&App{})...), CapabilitySurfaceVisualIdentity)
+			definitions := visualIdentityStageDefinitions(full, visualIdentityGenerateCandidateCapabilityName)
+			trace := &ADKCapabilityTrace{}
+			ctx := WithADKCapabilityInvoker(context.Background(), invoker, trace)
+			ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+				if !invoker.durableProgress() {
+					return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+				}
+				return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+			}))
+			requests := make([]map[string]any, 0, 2)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+				var payload map[string]any
+				if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+					t.Error(err)
+					return
+				}
+				requests = append(requests, payload)
+				if boolValue(payload["stream"]) != streaming {
+					t.Errorf("stream wire=%#v want=%t", payload["stream"], streaming)
+				}
+				tools := arrayValue(payload["tools"])
+				if len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
+					t.Errorf("stage catalog=%#v", tools)
+				}
+				message := map[string]any{"role": "assistant", "content": jsonString(map[string]any{"status": "waiting", "stage": "image_pending", "summary": "accepted"})}
+				finish := "stop"
+				if !invoker.durableProgress() {
+					message = map[string]any{"role": "assistant", "content": "", "tool_calls": fakeProviderNativeToolCalls([]map[string]any{{"call_id": "visual-stage-call", "capability_name": visualIdentityGenerateCandidateCapabilityName, "arguments": map[string]any{"reason": "initial"}}})}
+					finish = "tool_calls"
+				}
+				if streaming {
+					w.Header().Set("Content-Type", "text/event-stream")
+					delta := cloneMap(message)
+					delete(delta, "role")
+					for index, call := range arrayValue(delta["tool_calls"]) {
+						mapValue(call)["index"] = index
+					}
+					_, _ = fmt.Fprintf(w, "data: %s\n\ndata: [DONE]\n\n", jsonString(map[string]any{"id": "visual-stage", "model": "fake", "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": finish}}}))
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": message, "finish_reason": finish}}})
+			}))
+			defer server.Close()
+			definition, _ := FormalAgentDefinitionByID(FormalAgentVisualIdentity)
+			response, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{
+				Assignment: providerAssignment{Role: "generic_llm", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 4096},
+				Role:       "generic_llm", Scenario: "visual_identity", Messages: []map[string]any{{"role": "user", "content": "generate"}},
+				Definitions: definitions, JSONMode: true, SchemaName: "visual_identity_agent_response", ResponseSchema: visualIdentityAgentResponseSchema(),
+				ProviderRequestID: "visual-stage", CorrelationID: "visual-stage", Agent: definition, EnableStreaming: streaming,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if response.Message == nil || len(requests) != 2 {
+				t.Fatalf("response=%#v requests=%#v", response, requests)
+			}
+			if !visualIdentityRequestForcesTool(requests[0], visualIdentityGenerateCandidateCapabilityName) || requests[0]["response_format"] != nil {
+				t.Fatalf("execution request=%#v", requests[0])
+			}
+			if requests[1]["tool_choice"] != "auto" || requests[1]["response_format"] == nil {
+				t.Fatalf("final request=%#v", requests[1])
+			}
+		})
+	}
+}
+
+func TestVisualIdentityNoopAggregateRepairsDoNotAdvanceFacts(t *testing.T) {
+	fixture := newVisualIdentityToolFixture(t)
+	persona := map[string]any{
+		"identity":     map[string]any{"name": "澄光", "gender": "male", "age": 24, "appearance": map[string]any{"hair": "black short hair", "face_shape": "oval"}},
+		"life_profile": map[string]any{"appearance": map[string]any{"body_type": "slim"}},
+	}
+	if err := fixture.app.refreshVisualIdentityRendererConstraints(fixture.ctx, fixture.fluctlightID, visualIdentityProfileID(fixture.fluctlightID)); err != nil {
+		t.Fatal(err)
+	}
+	beforeRefresh, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.app.refreshVisualIdentityRendererConstraints(fixture.ctx, fixture.fluctlightID, visualIdentityProfileID(fixture.fluctlightID)); err != nil {
+		t.Fatal(err)
+	}
+	if after, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID); err != nil || after != beforeRefresh {
+		t.Fatalf("identical renderer refresh advanced facts: before=%s after=%s err=%v", beforeRefresh, after, err)
+	}
+	if _, err := fixture.app.EnsureVisualIdentityInitializationWithPersona(fixture.ctx, fixture.fluctlightID, "initialization", "repeat-source", persona); err != nil {
+		t.Fatal(err)
+	}
+	beforeEnsure, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.app.EnsureVisualIdentityInitializationWithPersona(fixture.ctx, fixture.fluctlightID, "initialization", "repeat-source", persona); err != nil {
+		t.Fatal(err)
+	}
+	if after, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID); err != nil || after != beforeEnsure {
+		t.Fatalf("identical initialization repair advanced facts: before=%s after=%s err=%v", beforeEnsure, after, err)
+	}
+
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlights SET core_persona=jsonb_set(core_persona,'{identity,name}','"澄光-新"'::jsonb,true) WHERE id=$1`, fixture.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	beforeSemanticRefresh, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.app.refreshVisualIdentityRendererConstraints(fixture.ctx, fixture.fluctlightID, visualIdentityProfileID(fixture.fluctlightID)); err != nil {
+		t.Fatal(err)
+	}
+	if after, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID); err != nil || after == beforeSemanticRefresh {
+		t.Fatalf("semantic renderer refresh did not advance facts: before=%s after=%s err=%v", beforeSemanticRefresh, after, err)
 	}
 }
 

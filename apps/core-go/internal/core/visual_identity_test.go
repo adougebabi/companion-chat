@@ -194,6 +194,9 @@ func TestVisualIdentityAgentCheckpointIdentityIsStableAndAdvancesWithDurableStat
 	if first, replay := visualIdentityAgentCheckpointOperationID(generate), visualIdentityAgentCheckpointOperationID(generate); first == "" || first != replay {
 		t.Fatalf("same durable checkpoint is not stable: first=%q replay=%q", first, replay)
 	}
+	if got := visualIdentityAgentCheckpointOperationID(generate); !strings.Contains(got, ":"+visualIdentityAgentProtocolVersion+":") || got == "visual_identity_agent:session-1:attempt-1:"+visualIdentityGenerateCandidateCapabilityName {
+		t.Fatalf("checkpoint does not provide deterministic protocol recovery from the legacy identity: %q", got)
+	}
 	review := generate
 	review.ActionRequired = visualIdentityCommitReviewCapabilityName
 	if visualIdentityAgentCheckpointOperationID(review) == visualIdentityAgentCheckpointOperationID(generate) {
@@ -208,6 +211,38 @@ func TestVisualIdentityAgentCheckpointIdentityIsStableAndAdvancesWithDurableStat
 	finalize.ActionRequired = visualIdentityFinalizeCapabilityName
 	if visualIdentityAgentCheckpointOperationID(finalize) == visualIdentityAgentCheckpointOperationID(review) {
 		t.Fatal("character-sheet-ready checkpoint reused the review run identity")
+	}
+}
+
+func TestVisualIdentityStageCatalogExposesOnlyExpectedCanonicalTool(t *testing.T) {
+	registry := (&App{}).capabilityRegistry()
+	full := capabilityCatalog(registry, CapabilitySurfaceVisualIdentity)
+	if len(full) != 3 {
+		t.Fatalf("canonical Visual Identity catalog size=%d", len(full))
+	}
+	for _, action := range []string{
+		visualIdentityGenerateCandidateCapabilityName,
+		visualIdentityCommitReviewCapabilityName,
+		visualIdentityFinalizeCapabilityName,
+	} {
+		stage := visualIdentityStageDefinitions(full, action)
+		if len(stage) != 1 || stage[0].Name != action {
+			t.Fatalf("stage catalog for %q = %#v", action, stage)
+		}
+	}
+	if stage := visualIdentityStageDefinitions(full, "kev.decide"); len(stage) != 0 {
+		t.Fatalf("foreign Tool entered Visual Identity stage catalog: %#v", stage)
+	}
+}
+
+func TestVisualIdentityAggregateRepairSQLUsesNullSafeBusinessFieldGuard(t *testing.T) {
+	source := string(readSourceFile(t, "visual_identity.go"))
+	ensure := sourceBetween(t, source, "func (a *App) ensureVisualIdentityInitializationTx", "func appendVisualIdentityTimelineTx")
+	refresh := sourceBetween(t, source, "func (a *App) refreshVisualIdentityRendererConstraints", "func (a *App) promoteVisualIdentityCanonical")
+	for name, body := range map[string]string{"ensure": ensure, "refresh": refresh} {
+		if !strings.Contains(body, "(status,identity_snapshot,renderer_constraints,adapter_version) IS DISTINCT FROM") {
+			t.Fatalf("%s aggregate repair lacks a NULL-safe business-field no-op guard", name)
+		}
 	}
 }
 

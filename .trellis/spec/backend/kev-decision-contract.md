@@ -5,7 +5,7 @@
 Kev gates eligible WakeUp, Reflection, Goal assessment/replenishment, permitted
 Tool disclosure, declared persistent persona conditions and optional context.
 This is a selection adapter over existing execution, not an Agent/loop replacement.
-Kev migration is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`. Current head `0057_logical_agent_leases` serializes mutable logical decisions while retaining physical per-call queue permits.
+Kev migration is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`. Current head is `0059_fact_generation_provenance`; `0057_logical_agent_leases` serializes mutable logical decisions while retaining physical per-call queue permits.
 
 ## 2. Signatures
 
@@ -147,3 +147,32 @@ TestKevBatchStateProjectionAndGenericStateCompatibility captures 8/3 requests an
 ### 7. Wrong vs Correct
 Wrong: only split questions, resend unrelated candidate content, extend the timeout to hide input cost.
 Correct: explicit typed per-batch projection and actual deadline-cause diagnostics; measure external inference separately.
+
+
+## Scenario: Agent-owned mandatory tools and recovery directory (2026-10-10)
+
+### 1. Scope / Trigger
+Kev narrows an Agent's authorized Tool installation. Mandatory tools and discovery utilities must remain available without Kev questions.
+
+### 2. Signatures
+`FormalAgentDefinition.MandatoryTools []string` declares each Agent's whitelist. `capability.catalog({})` returns `{items:[{name,purpose,parameters}],count,run_scoped}`. `capability.discover({names:[...]})` loads 1–8 installed names for subsequent physical requests.
+
+### 3. Contracts
+Intersect the Agent whitelist with its actual authorized installation; it grants no new permission. Conversation Cognition/WakeUp own reply, moment.publish and media.image.generate; TakeoverReply owns reply; NativeCognition owns reply/image; DailyReview owns reply/moment/image. Private GoalPlanner/Evaluation/VisualIdentity keep their dedicated catalogs and bypass Kev. Tool-free Agents stay tool-free. Both recovery utilities are always visible on supported tool-bearing surfaces, excluded from business candidates and preserved during disabled/version-changed/settings-error fallback. Every remaining business Tool is one independent candidate. Catalog is read-only and does not load anything; its run-scoped set is the original installed business catalog. Discovery validates all names before changing run-local loaded state. Loaded schemas reach the next actual Generate/Stream request and are never vetoed by the prior selection. No full business-schema directory is put in every prompt.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Kev says no to every optional Tool | whitelist plus recovery utilities remain |
+| Discover includes foreign/private name | capability_not_authorized; no partial load |
+| Settings read fails or version changes before physical call | original business installation plus recovery utilities |
+| Empty typed installation | zero tools, including utilities |
+
+### 5. Good / Base / Bad Cases
+Good: catalog → discover installed hidden Tool → next physical request exposes it → native execution. Base: a mandatory reply is available without selection. Bad: ask Kev whether catalog itself is needed, or query Goal Evaluation private tools from ordinary chat.
+
+### 6. Tests Required
+`TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptionalTool`, `TestKevPhysicalRequestFallbackKeepsRecoveryUtilities`, `TestCapabilityCatalogReturnsRunScopedPurposesAndParametersWithoutLoading` and `TestKevNativeLoopDiscoversAndExecutesHiddenTool` assert candidate exclusion, fallback preservation, permission scope and actual Generate/Stream schema growth. Fixed inventories include 48 registered tools.
+
+### 7. Wrong vs Correct
+Wrong: one global whitelist based on output role, or a catalog dump granting hidden private tools. Correct: explicit Agent whitelist intersected with installation, read-only scoped directory, then additive native schema loading.

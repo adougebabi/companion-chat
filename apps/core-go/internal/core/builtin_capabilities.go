@@ -139,6 +139,9 @@ func builtinCapabilities(app *App) []Capability {
 		capabilityDiscoverCapability{catalog: func(surface CapabilitySurface) []CapabilityDefinition {
 			return capabilityCatalog(app.capabilityRegistry(), surface)
 		}},
+		capabilityCatalogCapability{catalog: func(surface CapabilitySurface) []CapabilityDefinition {
+			return capabilityCatalog(app.capabilityRegistry(), surface)
+		}},
 		goalCapability{service: newGoalCapabilityService(app), name: "goal.inspect"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.decide"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.evaluate"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.review"},
 		conversationReplyCapability{publication: publication}, momentPublishCapability{publication: publication}, imageGenerateCapability{service: image, publication: publication},
 		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,

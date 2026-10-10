@@ -151,3 +151,14 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 新增下一additive migration（0059，前head0058）在历史installer和0058之后执行：cursor-only排除、generation每次实际bump的有界来源journal（Fluc/generation/table/op/entityId可选/txid/time，禁止存业务payload；每Fluc最多256或512行），同事务记录并裁剪。现有one-arg bump API兼容，direct/owner/child/message/fact/schedule/fluctlight trigger准确记录来源；保持0058 embedding trigger移除及head-rerun不恢复旧过滤。发生currentFactsMismatch时把expected→actual区间来源按table/op/count放现有Owner诊断payload，bounded read，日志失败不覆盖原CAS错误，窗口不完整要明确不可全归因。没有第二Agent loop、自动忽略锁冲突或盲目重跑已提交业务。
 
 验证：真实入口受控并发测试先RED：chat持同Fluc lease时后台summary/daily不得执行snapshot/Provider/commit；释放后执行；同owner重入与不同owner不阻塞；取消/lost lease保留fence。PG真实generation tests验证cursor-only及同值consolidation不推进、真实语义/来源更改推进、原CAS仍拒绝真实变化；empty→0059、0058→0059、head-rerun；journal同事务rollback/owner scope/retention与诊断区间。无隔离DB按用户约定SKIP，不安装DB、不写正式数据。纯入口与SQL契约/有界诊断解析测试应本地可运行。真实生产来源未追溯之处如实报告，升级须应用新migration。
+
+
+## 2026-10-10 Agent 白名单、工具目录、私聊与视觉身份修复
+
+用户明确：私聊仅 conversation.reply 原生 Tool 发送，禁止 final xxx_text/分析代发；每个 Agent 独立必备白名单，只有其余可选工具参与 Kev；新增查询全部授权 Tool 的兜底。FormalAgentDefinition.MandatoryTools 已显式定义21个Agent；conversation_cognition/wake_up的reply/moment/image常驻，其余Agent按职责定义，tool-free保持空。新 capability.catalog 返回当前Agent原安装目录name/purpose/parameters，discover补载下一物理轮真实schema，二者不入Kev候选、关闭/版本变化/设置错误时仍可用。总注册48个Tool，普通Agent无法查询或调用目标评估私有提交工具。
+
+移除 natural final 发布旁路和 visible_text schema；私聊在真实reply提交前 required Tool/no final grammar，media alone不解锁，final-only拒绝而不代发。VisualIdentity不是Kev漏选；按stage只暴露对应私有Tool，durable progress前forced/no final grammar，pending媒体零LLM，native_tools_v2 checkpoint保留旧失败历史与真实媒体IDs。现场0059 provenance已证实29783→29804的21次变化全部为视觉聚合UPDATE；ensure/refresh两处四业务字段同值guard停止无意义写入，真实变化仍推进facts。本轮无新迁移，head仍0059。
+
+独立check修正恢复工具误入候选、settings-read fallback丢工具、tool-free Agent泄露utilities；主线程补物理请求disabled/version/settings-error三组同类回退回归。完整Go race/vet/build/gofmt/diff通过；最终全仓race JSON计数1468PASS/501SKIP/0FAIL（包括主线程追加的物理请求回退三组回归）。实际HTTP/Eino Generate/Stream测试已跑；PG/Redis/Temporal/真实Provider opt-in未配置跳过，不称生产验收。未改Web/API合同，无前端重跑；没有部署、安装DB、写正式数据或提交。服务507内存不足独立于本修复，不能称已解决。
+
+本轮收尾同步了旧PG正向私聊夹具：显式ReplyText脚本产生原生reply与真实结果后final，SSE发送ToolCall后final，Goal closure/planner与fault sensitivity保留产品断言；移除成本报告中obsolete natural_final成功路径。夹具相关PG执行仍SKIP，历史剩余成本数字需隔离DB重生成，不能作为当前版本实测。
