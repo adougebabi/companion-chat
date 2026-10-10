@@ -35,17 +35,24 @@ func TestEmbeddingCacheChangesDoNotInvalidateFacts(t *testing.T) {
 			t.Fatal("derived embedding cache changed fact authority", before, after, err)
 		}
 	}
-	for _, query := range []string{
-		`UPDATE public.memories SET content='修订后的记忆事实',revision=1 WHERE id='cache-memory'`,
-		`INSERT INTO public.memory_source_links(memory_id,memory_revision,source_ref,source_kind,source_id,status) VALUES('cache-memory',0,'owner:cache-memory','owner_confirmation','embedding-facts-owner','valid')`,
-		`UPDATE public.memory_source_links SET status='invalid' WHERE memory_id='cache-memory'`,
+	for _, mutation := range []struct {
+		query, sourceTable, operation string
+	}{
+		{`UPDATE public.memories SET content='修订后的记忆事实',revision=1 WHERE id='cache-memory'`, "memories", "update"},
+		{`INSERT INTO public.memory_source_links(memory_id,memory_revision,source_ref,source_kind,source_id,status) VALUES('cache-memory',0,'owner:cache-memory','owner_confirmation','embedding-facts-owner','valid')`, "memory_source_links", "insert"},
+		{`UPDATE public.memory_source_links SET status='invalid' WHERE memory_id='cache-memory'`, "memory_source_links", "update"},
+		{`DELETE FROM public.memory_source_links WHERE memory_id='cache-memory'`, "memory_source_links", "delete"},
 	} {
-		if _, err := repo.Pool().Exec(ctx, query); err != nil {
+		if _, err := repo.Pool().Exec(ctx, mutation.query); err != nil {
 			t.Fatal(err)
 		}
 		after, err := app.readCurrentFactsRevision(ctx, actor)
 		if err != nil || after == before {
 			t.Fatal("real memory/provenance change no longer advances authority", before, after, err)
+		}
+		var sourceTable, operation string
+		if err := repo.Pool().QueryRow(ctx, `SELECT source_table,source_operation FROM public.fluctlight_context_generation_journal WHERE fluctlight_id=$1 ORDER BY generation DESC LIMIT 1`, actor).Scan(&sourceTable, &operation); err != nil || sourceTable != mutation.sourceTable || operation != mutation.operation {
+			t.Fatalf("memory provenance=(%q,%q), want (%q,%q): %v", sourceTable, operation, mutation.sourceTable, mutation.operation, err)
 		}
 		before = after
 	}

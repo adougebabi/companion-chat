@@ -113,6 +113,30 @@ func (a *App) ProcessConversationDailyMemoryIntent(ctx context.Context, intentID
 	if status == "completed" {
 		return map[string]any{"status": "completed", "replayed": true}, nil
 	}
+	return a.runConversationDailyMemoryIntentWork(ctx, fluctlightID, func(runCtx context.Context) (map[string]any, error) {
+		return a.processConversationDailyMemoryIntent(runCtx, intentID, fluctlightID)
+	})
+}
+
+func (a *App) runConversationDailyMemoryIntentWork(ctx context.Context, owner string, work func(context.Context) (map[string]any, error)) (map[string]any, error) {
+	return a.runBackgroundLogicalWork(ctx, owner, "conversation_daily_memory", work)
+}
+
+func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID, expectedFluctlightID string) (map[string]any, error) {
+	var status string
+	var raw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&status, &raw); err != nil {
+		return nil, err
+	}
+	payload := decodeObject(raw)
+	fluctlightID, conversationID := stringValue(payload["fluctlight_id"]), stringValue(payload["conversation_id"])
+	localDate, timezone := stringValue(payload["local_date"]), stringValue(payload["timezone"])
+	if fluctlightID == "" || fluctlightID != expectedFluctlightID || conversationID == "" || localDate == "" || timezone == "" {
+		return nil, errors.New("conversation_daily_memory_intent_invalid")
+	}
+	if status == "completed" {
+		return map[string]any{"status": "completed", "replayed": true}, nil
+	}
 	dayEnd, err := time.Parse(time.RFC3339Nano, stringValue(payload["day_end_utc"]))
 	if err != nil {
 		return nil, err
@@ -230,7 +254,7 @@ func (a *App) ProcessConversationDailyMemoryIntent(ctx context.Context, intentID
 			return err
 		}
 		for _, source := range sources {
-			if _, err := tx.Exec(ctx, `UPDATE public.conversation_summaries SET status='consolidated',consolidated_into_memory_id=$2 WHERE id=$1 AND status IN ('active','consolidated')`, source.ID, applied.MemoryID); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE public.conversation_summaries SET status='consolidated',consolidated_into_memory_id=$2 WHERE id=$1 AND status IN ('active','consolidated') AND (status IS DISTINCT FROM 'consolidated' OR consolidated_into_memory_id IS DISTINCT FROM $2)`, source.ID, applied.MemoryID); err != nil {
 				return err
 			}
 		}

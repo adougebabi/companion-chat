@@ -212,3 +212,18 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 修复只有 helper 解码后的三行 nil map 初始化；缺失、null 和 nil result 返回可写空 journal，已存 digest/output 保留；不全局改 JSON 工具、证据/CAS、暂停、事务或 Tool 选择，不新增迁移。新 TestGoalSubmissionRecordsAlwaysReturnsWritableJournal 对真实 helper 结果执行与提交路径相同的 map 写入：未修复时 nil result/missing submissions/JSON null 三组确切 panic RED exit1，stored record通过；修复后四组GREEN exit0。真实 PostgreSQL首提+重放既有用例继续保留，无隔离DB时SKIP，未写正式数据或部署。主线程接续并完成最终验证；没有把中断的实现代理过程计为完整独立审计。
 
 本轮最终本地验证：Go全仓race 1445 PASS / 496 SKIP / 0 FAIL（含子用例），Go vet/build与diff check通过；新增首提journal回归四组实际GREEN，原始缺失/null/nil三组RED已确认。未修改前端/API，无需重新生成合同或前端回归；真实PG/模型/部署仍用户验收，未安装DB、未写正式数据、未提交。
+
+
+## 2026-10-10 current_facts_stale：后台插队与版本来源
+
+只读现场：chat turn_dcd23c98-5a81-47f0-b994-c1a1e4cab636 在14:12:22.567—14:13:52.994单轮无Tool，27724→27752 settlement失败；14:13:53 Goal评估在失败之后，不作为因果。natural assistant INSERT已豁免，输入在快照前，自身receipt链未见漏衔接。旧generation记录不足以追溯28个版本的具体来源。
+
+已确认并修复：后台runtime summary/daily-memory独立Activity没有logical lease，可能在chat保护窗口中提交；两个Core入口补上快照→模型→最终事务的完整互斥和fence，等待后重读身份/payload，同Owner可重入，不同Fluc独立，新输入即时supersede不变。背景Intention只移动trigger_cursor_sequence却推进facts的漏洞通过0059修正；同值consolidated/memoryID更新不再物理UPDATE。真实事实/来源/状态变化与inner-state保护不放宽。
+
+0059新增per-Fluc最近512代的来源journal，counter/journal/prune同事务，精确记录table/op/entityId/txid/time而不保存业务payload。Owner终止事件新增current_facts_generation_sources（available/complete、from/to、observed_count、sources table/operation/count）。区间按原mismatch值限定，后续失败记录自身写入不混入；历史无日志或截断不假称完整。legacy单参bump兼容，unknown来源明确unknown。原消息/事实invalidations、resident刷新与0058 embedding exclusion保留，head rerun不装回旧规则。
+
+独立核验没有发现P1/P2或其它确定新缺陷。主线程补实际行为RED：临时绕过production background-work lease，两条entry-work seam均失败“background entry reached snapshot while chat held the logical lease”，不是只把编译失败当旧bug复现。恢复后执行最终race门禁。真实PG/migration/跨进程/来源聚合用例因无隔离DB跳过；不安装DB，不写正式数据，不把代码缺口等同于此历史事件已被逐项归因。
+
+正式更新需要先应用0059_fact_generation_provenance，再同时更新Core和Worker。沿用本报告原有显式Compose migrate命令，不运行API/Worker自动升级。运行后的同Fluc后台摘要/每日记忆应在聊天快照到结算期间等待；metadata cursor推进不再制造facts_stale。若仍出现真正冲突，在Owner系统事件的agent.run.termination详情读取current_facts_generation_sources按实际writer继续核对。另现场14:10的507明确为模型服务可用内存不足，EOF是Provider传输失败；本轮没有把这两者冒充乐观锁根因或修改模型服务配置。
+
+本轮最终本地验证：Go全仓race 1453 PASS / 499 SKIP / 0 FAIL（含子用例），Go vet/build/diff通过。后台入口work并发/重入/不同Owner/取消/fence纯回归、版本区间分类和SQL契约已实际运行。真实PG迁移/trigger/journal/跨进程与诊断聚合用例按用户约定SKIP；无安装/正式数据写入/部署。原公共API/前端无改动，未重跑前端；独立核验无确定findings。必须先应用0059再更新Core/Worker。未提交。

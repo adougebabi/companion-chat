@@ -307,6 +307,52 @@ func TestPublicationFailureDiagnosticRetainsBusinessCode(t *testing.T) {
 	}
 }
 
+func TestCurrentFactsFailureDiagnosticIncludesBoundedGenerationSources(t *testing.T) {
+	ctx, repo, app, owner, fluctlight, conversation := durableReplyFixture(t, "facts-source-diagnostic")
+	accepted, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fluctlight, "text": "事实冲突来源", "idempotency_key": "facts-source-diagnostic", "turn_id": "facts-source-diagnostic", "attachment_refs": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, err := app.readCurrentFactsRevision(ctx, fluctlight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `SELECT public.bump_fluctlight_context_generation_with_source($1,'memories','update','diagnostic-memory')`, fluctlight); err != nil {
+		t.Fatal(err)
+	}
+	actual, err := app.readCurrentFactsRevision(ctx, fluctlight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mismatch := &currentFactsMismatch{Expected: expected, Actual: actual, Boundary: "settlement"}
+	if err := app.failAgentTurnAfterRun(ctx, accepted.InboxID, agentCommittedOutcome{}, "agent_cognition_settlement_failed", mismatch); err != nil {
+		t.Fatal(err)
+	}
+	var encoded []byte
+	if err := repo.Pool().QueryRow(ctx, `SELECT payload FROM public.diagnostic_events WHERE event_type='agent.run.termination' AND correlation_id=$1 ORDER BY created_at DESC LIMIT 1`, accepted.CorrelationID).Scan(&encoded); err != nil {
+		t.Fatal(err)
+	}
+	payload := decodeObject(encoded)
+	provenance, ok := payload["current_facts_generation_sources"].(map[string]any)
+	if !ok {
+		t.Fatalf("generation provenance payload=%#v", payload["current_facts_generation_sources"])
+	}
+	if boolValue(provenance["available"]) != true || boolValue(provenance["complete"]) != true || intValue(provenance["observed_count"]) != 1 {
+		t.Fatalf("generation provenance coverage missing: %#v", provenance)
+	}
+	sources := arrayValue(provenance["sources"])
+	if len(sources) != 1 {
+		t.Fatalf("generation provenance groups=%#v", sources)
+	}
+	source, ok := sources[0].(map[string]any)
+	if !ok {
+		t.Fatalf("generation provenance source type=%#v", sources[0])
+	}
+	if source["table"] != "memories" || source["operation"] != "update" || intValue(source["count"]) != 1 {
+		t.Fatalf("generation provenance source=%#v", source)
+	}
+}
+
 func TestCommittedReplyDegradationRearmsWakeUp(t *testing.T) {
 	ctx, repository, app, ownerID, fluctlightID, conversationID := durableReplyFixture(t, "degraded-followup")
 	payload := map[string]any{"fluctlight_id": fluctlightID, "text": "提交后结算失败", "idempotency_key": "durable-degraded", "turn_id": "durable-degraded-turn", "attachment_refs": []any{}}

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,107 @@ type currentFactsMismatch struct {
 
 func (e *currentFactsMismatch) Error() string { return ErrCurrentFactsStale.Error() }
 func (e *currentFactsMismatch) Unwrap() error { return ErrCurrentFactsStale }
+
+const currentFactsGenerationSourceLimit = int64(512)
+
+type currentFactsGenerationSource struct {
+	Table     string
+	Operation string
+	Count     int64
+}
+
+func currentFactsGenerationNumber(revision string) (int64, error) {
+	const prefix = "facts_gen_"
+	revision = strings.TrimSpace(revision)
+	if !strings.HasPrefix(revision, prefix) {
+		return 0, fmt.Errorf("current facts revision %q has invalid prefix", revision)
+	}
+	generation, err := strconv.ParseInt(strings.TrimPrefix(revision, prefix), 10, 64)
+	if err != nil || generation < 0 {
+		return 0, fmt.Errorf("current facts revision %q has invalid generation", revision)
+	}
+	return generation, nil
+}
+
+func currentFactsGenerationIntervalBounds(expected, actual string) (int64, int64, error) {
+	expectedGeneration, err := currentFactsGenerationNumber(expected)
+	if err != nil {
+		return 0, 0, err
+	}
+	actualGeneration, err := currentFactsGenerationNumber(actual)
+	if err != nil {
+		return 0, 0, err
+	}
+	if expectedGeneration > actualGeneration {
+		expectedGeneration, actualGeneration = actualGeneration, expectedGeneration
+	}
+	return expectedGeneration, actualGeneration, nil
+}
+
+func currentFactsGenerationCoverageComplete(lower, upper, observed, minimum, maximum int64) bool {
+	if lower == upper {
+		return observed == 0
+	}
+	return observed == upper-lower && minimum == lower+1 && maximum == upper
+}
+
+// currentFactsGenerationProvenance reads only the bounded journal interval
+// that existed at the mismatch boundary. A later failure-recording mutation
+// may advance the generation again, but can never enter this closed upper
+// bound. Query failure is diagnostic-only and must not replace the stale CAS.
+func (a *App) currentFactsGenerationProvenance(ctx context.Context, fluctlightID, expected, actual string) (map[string]any, error) {
+	lower, upper, err := currentFactsGenerationIntervalBounds(expected, actual)
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]any{
+		"available": false, "complete": false,
+		"from_generation": lower, "to_generation": upper,
+		"observed_count": int64(0), "sources": []any{},
+	}
+	if upper == lower {
+		result["available"] = true
+		result["complete"] = true
+		return result, nil
+	}
+	rows, err := a.DB.Pool().Query(ctx, `
+		WITH bounded AS (
+		 SELECT generation,source_table,source_operation
+		 FROM public.fluctlight_context_generation_journal
+		 WHERE fluctlight_id=$1 AND generation>$2 AND generation<=$3
+		 ORDER BY generation DESC LIMIT $4
+		), grouped AS (
+		 SELECT source_table,source_operation,count(*)::bigint AS source_count,
+		        min(generation) AS min_generation,max(generation) AS max_generation
+		 FROM bounded GROUP BY source_table,source_operation
+		)
+		SELECT source_table,source_operation,source_count,
+		       (sum(source_count) OVER ())::bigint,min(min_generation) OVER (),max(max_generation) OVER ()
+		FROM grouped ORDER BY source_table,source_operation`, fluctlightID, lower, upper, currentFactsGenerationSourceLimit)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+	result["available"] = true
+	sources := make([]any, 0)
+	var observed, minimum, maximum int64
+	for rows.Next() {
+		var source currentFactsGenerationSource
+		if err := rows.Scan(&source.Table, &source.Operation, &source.Count, &observed, &minimum, &maximum); err != nil {
+			return result, err
+		}
+		sources = append(sources, map[string]any{
+			"table": source.Table, "operation": source.Operation, "count": source.Count,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return result, err
+	}
+	result["sources"] = sources
+	result["observed_count"] = observed
+	result["complete"] = currentFactsGenerationCoverageComplete(lower, upper, observed, minimum, maximum)
+	return result, nil
+}
 
 type currentAuthorityReader interface {
 	QueryRow(context.Context, string, ...any) pgx.Row

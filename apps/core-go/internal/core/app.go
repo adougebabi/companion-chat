@@ -27,6 +27,9 @@ import (
 // Domain services receive narrow interfaces rather than holding the entire *App.
 type App struct {
 	Kev *decision.Service
+	// logicalAgentLeases is an optional test seam for the same durable logical
+	// run policy used by production entries. Production uses PostgreSQL.
+	logicalAgentLeases logicalAgentLeaseStore
 	// --- Persistence & Storage Infrastructure ---
 	DB          *PostgresRepository
 	Storage     *minio.Client

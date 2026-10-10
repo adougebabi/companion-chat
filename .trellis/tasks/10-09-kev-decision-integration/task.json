@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "Goal首提panic已定位：json.Unmarshal(null)将初始化的submissions map重置nil。helper解码后重建空map，缺失/null/nil实际写入RED→GREEN，保留已有digest/output。Go race1445PASS/496SKIP/0FAIL，vet/build/diff通过。无迁移/API/frontend变化，PG/live用户验收；未提交未部署。",
+  "notes": "反复facts_stale：后台summary/daily-memory补同Fluc durable logical lease覆盖snapshot→LLM→commit；cursor-only fact bump过滤+同值summary no-op；0059来源journal512代和bounded termination诊断，CAS/inner-state保护不放宽。行为绕过lease RED，两路纯并发GREEN；Go race1453PASS/499SKIP/0FAIL，vet/build/diff通过；PG/live用户验收，需0059；未提交部署。",
   "meta": {}
 }

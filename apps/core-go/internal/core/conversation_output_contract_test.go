@@ -94,3 +94,36 @@ func TestCurrentFactsMismatchPreservesStaleContract(t *testing.T) {
 		t.Fatal("fact mismatch lost settlement boundary", stage, code)
 	}
 }
+
+func TestCurrentFactsGenerationIntervalBoundsBothDirections(t *testing.T) {
+	for _, test := range []struct {
+		expected, actual string
+		lower, upper     int64
+	}{
+		{expected: "facts_gen_12", actual: "facts_gen_19", lower: 12, upper: 19},
+		{expected: "facts_gen_19", actual: "facts_gen_12", lower: 12, upper: 19},
+		{expected: " facts_gen_4 ", actual: "facts_gen_4", lower: 4, upper: 4},
+	} {
+		lower, upper, err := currentFactsGenerationIntervalBounds(test.expected, test.actual)
+		if err != nil || lower != test.lower || upper != test.upper {
+			t.Fatalf("bounds(%q,%q)=(%d,%d,%v), want (%d,%d)", test.expected, test.actual, lower, upper, err, test.lower, test.upper)
+		}
+	}
+	for _, revision := range []string{"", "facts_1", "facts_gen_-1", "facts_gen_bad"} {
+		if _, err := currentFactsGenerationNumber(revision); err == nil {
+			t.Fatalf("invalid revision %q was accepted", revision)
+		}
+	}
+	for _, test := range []struct {
+		lower, upper, observed, minimum, maximum int64
+		want                                     bool
+	}{
+		{lower: 12, upper: 19, observed: 7, minimum: 13, maximum: 19, want: true},
+		{lower: 12, upper: 19, observed: 6, minimum: 14, maximum: 19, want: false},
+		{lower: 19, upper: 19, observed: 0, minimum: 0, maximum: 0, want: true},
+	} {
+		if got := currentFactsGenerationCoverageComplete(test.lower, test.upper, test.observed, test.minimum, test.maximum); got != test.want {
+			t.Fatalf("coverage(%d,%d,%d,%d,%d)=%v, want %v", test.lower, test.upper, test.observed, test.minimum, test.maximum, got, test.want)
+		}
+	}
+}

@@ -187,7 +187,19 @@ func decodeConversationSummaryProviderResponse(value map[string]any) (conversati
 
 func (a *App) ProcessConversationSummaryIntent(ctx context.Context, intentID, fluctlightID, conversationID, sourceMessageID string, sourceSequence, fromSequence, toSequence int, sourceDigest string, sourceMessageRefs []string) (map[string]any, error) {
 	work := conversationSummaryWork{IntentID: strings.TrimSpace(intentID), FluctlightID: strings.TrimSpace(fluctlightID), ConversationID: strings.TrimSpace(conversationID), SourceMessageID: strings.TrimSpace(sourceMessageID), SourceSequence: sourceSequence, FromSequence: fromSequence, ToSequence: toSequence, SourceDigest: strings.TrimSpace(sourceDigest), SourceMessageRefs: append([]string(nil), sourceMessageRefs...)}
-	return a.processRuntimeSummary(ctx, work)
+	// Resolve and authorize the durable owner before waiting. The work body
+	// validates the identity again after admission and takes every semantic
+	// snapshot under the logical lease.
+	if err := a.validateConversationSummaryWorkIdentity(ctx, work); err != nil {
+		return nil, err
+	}
+	return a.runConversationSummaryIntentWork(ctx, work.FluctlightID, func(runCtx context.Context) (map[string]any, error) {
+		return a.processRuntimeSummary(runCtx, work)
+	})
+}
+
+func (a *App) runConversationSummaryIntentWork(ctx context.Context, owner string, work func(context.Context) (map[string]any, error)) (map[string]any, error) {
+	return a.runBackgroundLogicalWork(ctx, owner, "conversation_summary", work)
 }
 
 func conversationSummaryProviderMessages(messages []ConversationSummarySourceMessage) []map[string]any {

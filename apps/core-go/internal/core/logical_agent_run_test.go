@@ -136,6 +136,165 @@ func TestLogicalAgentExpiredOwnerCannotCommitOrReleaseSuccessor(t *testing.T) {
 	}
 }
 
+func TestBackgroundLogicalEntriesWaitForActiveConversationLease(t *testing.T) {
+	entries := []struct {
+		name string
+		run  func(*App, context.Context, string, func(context.Context) (map[string]any, error)) (map[string]any, error)
+	}{
+		{name: "conversation_summary", run: func(app *App, ctx context.Context, owner string, body func(context.Context) (map[string]any, error)) (map[string]any, error) {
+			return app.runConversationSummaryIntentWork(ctx, owner, body)
+		}},
+		{name: "conversation_daily_memory", run: func(app *App, ctx context.Context, owner string, body func(context.Context) (map[string]any, error)) (map[string]any, error) {
+			return app.runConversationDailyMemoryIntentWork(ctx, owner, body)
+		}},
+	}
+	for _, entry := range entries {
+		t.Run(entry.name, func(t *testing.T) {
+			store := newMemoryLogicalLeases()
+			app := &App{logicalAgentLeases: store}
+			_, releaseChat, err := enterLogicalAgentRun(context.Background(), store, "actor", "cognition")
+			if err != nil {
+				t.Fatal(err)
+			}
+			events := make(chan string, 3)
+			errs := make(chan error, 1)
+			go func() {
+				_, err := entry.run(app, context.Background(), "actor", func(ctx context.Context) (map[string]any, error) {
+					events <- "snapshot"
+					if err := ctx.Err(); err != nil {
+						return nil, context.Cause(ctx)
+					}
+					events <- "provider"
+					events <- "commit"
+					return map[string]any{"status": "completed"}, nil
+				})
+				errs <- err
+			}()
+			select {
+			case event := <-events:
+				t.Fatalf("background entry reached %s while chat held the logical lease", event)
+			case err := <-errs:
+				t.Fatalf("background entry returned before chat release: %v", err)
+			case <-time.After(30 * time.Millisecond):
+			}
+			releaseChat()
+			for _, expected := range []string{"snapshot", "provider", "commit"} {
+				select {
+				case actual := <-events:
+					if actual != expected {
+						t.Fatalf("event=%s want %s", actual, expected)
+					}
+				case <-time.After(time.Second):
+					t.Fatalf("background entry did not reach %s after lease release", expected)
+				}
+			}
+			if err := <-errs; err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestBackgroundLogicalEntriesReenterAndKeepOwnersIndependent(t *testing.T) {
+	store := newMemoryLogicalLeases()
+	app := &App{logicalAgentLeases: store}
+	ownerCtx, releaseOwner, err := enterLogicalAgentRun(context.Background(), store, "actor-a", "cognition")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseOwner()
+	called := false
+	if _, err := app.runConversationSummaryIntentWork(ownerCtx, "actor-a", func(context.Context) (map[string]any, error) {
+		called = true
+		return map[string]any{"status": "completed"}, nil
+	}); err != nil || !called {
+		t.Fatalf("same-owner background work did not reenter: called=%v err=%v", called, err)
+	}
+	if err := fenceLogicalAgentRun(ownerCtx, nil); err != nil {
+		t.Fatal("nested background release erased the parent lease", err)
+	}
+	otherDone := make(chan error, 1)
+	go func() {
+		_, err := app.runConversationDailyMemoryIntentWork(context.Background(), "actor-b", func(context.Context) (map[string]any, error) {
+			return map[string]any{"status": "completed"}, nil
+		})
+		otherDone <- err
+	}()
+	select {
+	case err := <-otherDone:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("different owner was blocked by another Fluctlight's lease")
+	}
+}
+
+func TestBackgroundLogicalEntryCancellationPreservesCause(t *testing.T) {
+	store := newMemoryLogicalLeases()
+	app := &App{logicalAgentLeases: store}
+	_, release, err := enterLogicalAgentRun(context.Background(), store, "actor", "cognition")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	cause := errors.New("summary_workflow_superseded")
+	ctx, cancel := context.WithCancelCause(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := app.runConversationSummaryIntentWork(ctx, "actor", func(context.Context) (map[string]any, error) {
+			return nil, errors.New("background body must not run while the lease is held")
+		})
+		done <- err
+	}()
+	time.Sleep(20 * time.Millisecond)
+	cancel(cause)
+	select {
+	case err := <-done:
+		if !errors.Is(err, cause) {
+			t.Fatalf("cancellation cause=%v want %v", err, cause)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("cancelled background lease waiter did not stop")
+	}
+
+	activeCtx, cancelActive := context.WithCancelCause(context.Background())
+	started := make(chan struct{})
+	activeDone := make(chan error, 1)
+	go func() {
+		_, err := app.runConversationDailyMemoryIntentWork(activeCtx, "other-actor", func(runCtx context.Context) (map[string]any, error) {
+			close(started)
+			<-runCtx.Done()
+			return nil, runCtx.Err()
+		})
+		activeDone <- err
+	}()
+	<-started
+	cancelActive(cause)
+	select {
+	case err := <-activeDone:
+		if !errors.Is(err, cause) {
+			t.Fatalf("active work cancellation cause=%v want %v", err, cause)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("cancelled active background work did not stop")
+	}
+}
+
+func TestBackgroundLogicalEntryPassesLeaseFenceToCommit(t *testing.T) {
+	store := newMemoryLogicalLeases()
+	app := &App{logicalAgentLeases: store}
+	_, err := app.runConversationDailyMemoryIntentWork(context.Background(), "actor", func(ctx context.Context) (map[string]any, error) {
+		store.mu.Lock()
+		store.expired["actor"] = true
+		store.mu.Unlock()
+		return nil, fenceLogicalAgentRun(ctx, nil)
+	})
+	if !errors.Is(err, errLogicalAgentLeaseLost) {
+		t.Fatalf("expired background lease reached commit fence: %v", err)
+	}
+}
+
 func TestPostgresLogicalAgentRunCoordinatesIndependentApps(t *testing.T) {
 	f := newIndependentToolE2EFixture(t, "logical-run")
 	first, releaseFirst, err := f.app.enterLogicalRun(f.ctx, f.fluctlightID, "wakeup")

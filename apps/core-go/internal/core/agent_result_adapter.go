@@ -572,6 +572,11 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 			payload["actual_current_facts_revision"] = mismatch.Actual
 			payload["authority_boundary"] = mismatch.Boundary
 			payload["safe_cause"] = boundedLifecycleCause(fmt.Sprintf("%s: expected %s, actual %s (%s)", mismatch.Error(), mismatch.Expected, mismatch.Actual, mismatch.Boundary))
+			provenance, provenanceErr := a.currentFactsGenerationProvenance(ctx, fluctlightID, mismatch.Expected, mismatch.Actual)
+			if provenanceErr != nil {
+				provenance = map[string]any{"available": false, "complete": false, "sources": []any{}}
+			}
+			payload["current_facts_generation_sources"] = provenance
 		}
 	}
 	a.recordDiagnosticEvent(ctx, "agent.run.termination", "error", fluctlightID, inboxID, correlationID, payload)

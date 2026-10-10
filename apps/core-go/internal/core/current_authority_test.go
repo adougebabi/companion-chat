@@ -103,4 +103,18 @@ func TestCurrentFactsRevisionTracksNewClaimsAndConversationMessages(t *testing.T
 	if current, err := app.readCurrentFactsRevision(ctx, fluctlightID); err != nil || current == previous {
 		t.Fatalf("assistant source revision did not advance current facts: before=%q after=%q err=%v", previous, current, err)
 	}
+	var sourceTable, sourceOperation, entityID string
+	if err := repository.Pool().QueryRow(ctx, `SELECT source_table,source_operation,COALESCE(entity_id,'') FROM public.fluctlight_context_generation_journal WHERE fluctlight_id=$1 ORDER BY generation DESC LIMIT 1`, fluctlightID).Scan(&sourceTable, &sourceOperation, &entityID); err != nil || sourceTable != "conversation_messages" || sourceOperation != "update" || entityID != "facts-history-assistant" {
+		t.Fatalf("message update provenance=(%q,%q,%q): %v", sourceTable, sourceOperation, entityID, err)
+	}
+	previous, _ = app.readCurrentFactsRevision(ctx, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `DELETE FROM public.conversation_messages WHERE id='facts-history-assistant'`); err != nil {
+		t.Fatal(err)
+	}
+	if current, err := app.readCurrentFactsRevision(ctx, fluctlightID); err != nil || current == previous {
+		t.Fatalf("assistant source deletion did not advance current facts: before=%q after=%q err=%v", previous, current, err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT source_table,source_operation,COALESCE(entity_id,'') FROM public.fluctlight_context_generation_journal WHERE fluctlight_id=$1 ORDER BY generation DESC LIMIT 1`, fluctlightID).Scan(&sourceTable, &sourceOperation, &entityID); err != nil || sourceTable != "conversation_messages" || sourceOperation != "delete" || entityID != "facts-history-assistant" {
+		t.Fatalf("message delete provenance=(%q,%q,%q): %v", sourceTable, sourceOperation, entityID, err)
+	}
 }

@@ -463,3 +463,47 @@ Good: rejected native root -> feedback -> corrected real root -> other roots -> 
 ### 7. Wrong vs Correct
 Wrong: install the summary JSON schema for every physical decision and rely only on prompt wording to require submissions.
 Correct: before each physical request, read durable root coverage, select required native execution without final grammar, and restore the final contract only after accepted coverage or an explicit stale-snapshot error exit.
+
+
+## Scenario: Background Agent logical ownership and generation provenance (0059)
+
+### 1. Scope / Trigger
+Runtime summary and daily-memory consolidation previously ran in independent Activities without the same Fluctlight lease held by chat. Cursor-only Intention processing also advanced the facts fence. Apply this contract to these background entries and every context-generation trigger, preserving genuine source/state changes.
+
+### 2. Signatures
+- `ProcessConversationSummaryIntent` / `ProcessConversationDailyMemoryIntent` enter `runBackgroundLogicalWork` with kinds `conversation_summary` / `conversation_daily_memory`.
+- Migration head: `0059_fact_generation_provenance`, previous `0058_semantic_fact_generation`.
+- `bump_fluctlight_context_generation_with_source(owner, table, operation, entity_id?)` increments and journals in the same transaction; legacy one-argument bump remains supported with unknown source.
+- `fluctlight_context_generation_journal`: scoped generation PK, source table/operation, optional entity ID, transaction ID and timestamp; latest 512 generations per Fluctlight.
+- Existing Owner `agent.run.termination` payload adds `current_facts_generation_sources` with available/complete, bounded interval, observed count and table/operation/count groups.
+
+### 3. Contracts
+- Identity/replay reads may occur before lease acquisition; no authority snapshot may escape that boundary. Summary revalidates identity within the lease; daily-memory re-reads payload/owner after admission. Source reads, LLM and final commits share the child context and existing transaction fence. Same-owner reentry retains the parent lease; different Fluctlights remain independent.
+- Keep chat input acceptance/supersede outside the waiting lease so new user input immediately cancels an older turn. Do not hold an SQL transaction or physical model queue slot across an entire Agent.
+- Intention UPDATE skips generation only when all fields excluding trigger_cursor_sequence/updated_at are unchanged. Real status, trigger/action/body, revision, scope and ownership changes still advance. Identical consolidated summary status/memory ID performs no UPDATE; active→consolidated and actual changes remain fenced.
+- Preserve inner-state, real Memory/source/message/Actor/Goal/Life changes and all existing CAS. Preserve assistant INSERT exemption, message/fact invalidation and resident-memory refresh side effects in rewritten trigger functions.
+- 0059 is applied after historical installers and 0058; head rerun keeps both embedding-cache exclusion and cursor filtering. Journal stores no business payload or credentials and prunes in the same commit, so rollback restores counter and journal together.
+- Diagnostics query only `(min(expected,actual), max(expected,actual)]` for the affected Fluctlight, at most 512 rows. Failure recording's later writes are outside that interval. Missing historical rows or retention truncation means complete=false. Query failure cannot replace the original current_facts_stale cause or turn it into success.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Background summary/daily starts while same Fluctlight chat owns lease | wait before semantic snapshot, Provider and commit |
+| Same-owner nested work | reenter, no second lease or parent release |
+| Other Fluctlight | independent work |
+| Cancellation or lost lease | real cause/fence error, no stale commit |
+| Cursor-only or identical summary consolidation | no facts generation change |
+| True source/body/status change | generation + source journal; old CAS rejects |
+| Conflict before 0059 or beyond retained window | diagnostic complete=false |
+| Journal query fails | available=false; original CAS error retained |
+
+### 5. Good / Base / Bad Cases
+Good: summary waits for chat settlement, then takes its own fresh snapshot. Base: a cursor consumes an irrelevant processed fact without changing factual authority. Bad: a running independent Activity commits Memory during another Agent's protected snapshot, or a counter difference is attributed to a writer without evidence.
+
+### 6. Tests Required
+Background entry-work seam tests check snapshot/Provider/commit waiting, release, same-owner reentry, separate owners, cancellation and lost-lease fence under race. Bypassing the real work wrapper must produce the behavior RED “background entry reached snapshot while chat held the logical lease”; restore for GREEN. Public entry placement is separately reviewed and real cross-process/DB paths require the isolated PG fixture.
+0059 real-PG tests cover empty/0058/head-rerun, unchanged cursor versus true status/trigger, source corrections, journal owner isolation/rollback/512 retention and bounded diagnostics. Pure SQL contract and interval parser tests are not PostgreSQL execution. Unconfigured DB cases are explicitly SKIP.
+
+### 7. Wrong vs Correct
+Wrong: serialize only chat/Wake/Goal entries, assume dispatcher priority prevents an already running summary Activity, or count cursor progress as a changed world fact.
+Correct: every protected background work entry uses the same durable Fluctlight lease across snapshot→LLM→commit; generation changes reflect semantic authority and carry bounded source provenance.

@@ -57,7 +57,7 @@ type logicalAgentLease struct {
 // released between calls, so nested Agents can use it without self-deadlock.
 func enterLogicalAgentRun(ctx context.Context, store logicalAgentLeaseStore, owner, kind string) (context.Context, func(), error) {
 	if err := ctx.Err(); err != nil {
-		return ctx, nil, err
+		return ctx, nil, context.Cause(ctx)
 	}
 	if current, ok := ctx.Value(logicalAgentLeaseKey{}).(logicalAgentLease); ok && current.owner == owner {
 		return ctx, func() {}, nil
@@ -75,7 +75,7 @@ func enterLogicalAgentRun(ctx context.Context, store logicalAgentLeaseStore, own
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return ctx, nil, ctx.Err()
+			return ctx, nil, context.Cause(ctx)
 		case <-timer.C:
 		}
 	}
@@ -120,10 +120,28 @@ func enterLogicalAgentRun(ctx context.Context, store logicalAgentLeaseStore, own
 	return child, release, nil
 }
 func (a *App) enterLogicalRun(ctx context.Context, owner, kind string) (context.Context, func(), error) {
+	if a != nil && a.logicalAgentLeases != nil {
+		return enterLogicalAgentRun(ctx, a.logicalAgentLeases, owner, kind)
+	}
 	if a == nil || a.DB == nil || a.DB.Pool() == nil {
 		return ctx, func() {}, ctx.Err()
 	}
 	return enterLogicalAgentRun(ctx, postgresLogicalAgentLeases{a.DB.Pool()}, owner, kind)
+}
+
+func (a *App) runBackgroundLogicalWork(ctx context.Context, owner, kind string, work func(context.Context) (map[string]any, error)) (map[string]any, error) {
+	runCtx, release, err := a.enterLogicalRun(ctx, owner, kind)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	result, err := work(runCtx)
+	if err != nil {
+		if cause := context.Cause(runCtx); cause != nil {
+			return result, cause
+		}
+	}
+	return result, err
 }
 func (a *App) logicalRunOwner(ctx context.Context, inbox string) (string, error) {
 	var owner string
