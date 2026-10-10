@@ -108,6 +108,51 @@ func TestGoalEvaluationCoverageRequiresDurableRootSubmissions(t *testing.T) {
 	}
 }
 
+func TestGoalSubmissionRecordsAlwaysReturnsWritableJournal(t *testing.T) {
+	existingKey := goalSubmissionKey(goalEvaluationSubmit, "goal-existing", "")
+	cases := []struct {
+		name           string
+		result         map[string]any
+		wantExisting   bool
+		wantDigest     string
+		wantOutputCode string
+	}{
+		{name: "nil result", result: nil},
+		{name: "missing submissions", result: map[string]any{}},
+		{name: "null submissions from JSON", result: decodeObject([]byte(`{"submissions":null}`))},
+		{
+			name: "stored record",
+			result: decodeObject(jsonBytes(map[string]any{"submissions": map[string]goalSubmissionRecord{
+				existingKey: {Digest: "stored-digest", Output: map[string]any{"status": "completed", "code": "stored-output"}},
+			}})),
+			wantExisting:   true,
+			wantDigest:     "stored-digest",
+			wantOutputCode: "stored-output",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					t.Fatalf("journal returned an unwritable map: %v", recovered)
+				}
+			}()
+			records := goalSubmissionRecords(tc.result)
+			writtenKey := goalSubmissionKey(goalPlanSubmit, "goal-new", "")
+			records[writtenKey] = goalSubmissionRecord{Digest: "new-digest", Output: map[string]any{"status": "completed"}}
+			if got := records[writtenKey]; got.Digest != "new-digest" || stringValue(got.Output["status"]) != "completed" {
+				t.Fatalf("journal write was not retained: %#v", got)
+			}
+			if tc.wantExisting {
+				got := records[existingKey]
+				if got.Digest != tc.wantDigest || stringValue(got.Output["code"]) != tc.wantOutputCode {
+					t.Fatalf("stored record changed while restoring journal: %#v", got)
+				}
+			}
+		})
+	}
+}
+
 func TestGoalEvaluationStaleReplacementRetainsDeferredTargets(t *testing.T) {
 	snapshot := goalEvaluationSnapshot{DeferredGoalIDs: []string{"deferred", "unresolved"}}
 	targets := goalEvaluationReplacementTargets(snapshot, map[string]any{"evaluated_goals": []string{"completed"}, "unresolved_goals": []string{"unresolved"}})

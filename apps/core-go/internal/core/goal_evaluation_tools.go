@@ -196,6 +196,9 @@ type goalSubmissionRecord struct {
 func goalSubmissionRecords(result map[string]any) map[string]goalSubmissionRecord {
 	values := map[string]goalSubmissionRecord{}
 	_ = json.Unmarshal(jsonBytes(result["submissions"]), &values)
+	if values == nil {
+		values = map[string]goalSubmissionRecord{}
+	}
 	return values
 }
 func goalSubmissionKey(name, goalID, objectRef string) string {
