@@ -556,3 +556,33 @@ runProviderQueued(ctx, callID, generateOneModelCall)
 - Assert two ADK generations retain distinct request/attempt identities while
   sharing one logical correlation, and that failed/cancelled generations have
   terminal diagnostics without fabricated success.
+
+
+## Scenario: Post-run business failure and current-facts mismatch
+
+### 1. Scope / Trigger
+A finished formal model run may fail later at publication or cognition settlement. Classifying only its inner cause previously collapsed known business boundaries to agent_run_failed.
+
+### 2. Signatures
+`classifyAgentPostRunFailure(stage,code,cause)` enriches generic cause classification with caller-owned boundaries. `currentFactsMismatch{Expected,Actual,Boundary}` unwraps ErrCurrentFactsStale and retains Error()=current_facts_stale.
+
+### 3. Contracts
+Replace only generic agent_run_failed/agent classification; typed tool/provider/cancellation/timeout classifications remain specific. Keep the inner safe_cause. Publication uses agent_output_publication_failed/output_publication, settlement uses agent_cognition_settlement_failed/settlement. Facts conflicts add expected_current_facts_revision, actual_current_facts_revision and authority_boundary=settlement|tool_receipt to the Owner diagnostic and readable safe_cause. This does not loosen source/version checks or replay effects. Model/formal-run success is distinct from post-run business outcome.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| missing reply under publication boundary | business failure code + inner cognition_visible_text_missing |
+| facts mismatch under settlement boundary | business settlement code + actual/expected facts revisions |
+| typed provider/tool failure | preserve specific classified code |
+| parent cancelled | preserve request_cancelled |
+
+### 5. Good / Base / Bad Cases
+Good: diagnose phase and cause independently. Base: normal run remains completed. Bad: label a publication failure as generic agent_run_failed, or suppress current_facts_stale to hide conflicts.
+
+### 6. Tests Required
+TestPostRunFailureRetainsOuterBoundaryAndSpecificCauses covers publication/settlement/provider/cancel. TestCurrentFactsMismatchPreservesStaleContract checks sentinel/label compatibility. PostgreSQL TestPublicationFailureDiagnosticRetainsBusinessCode validates persisted payload (SKIP without isolated DB).
+
+### 7. Wrong vs Correct
+Wrong: classify only causes[0] and discard the code already known to the caller.
+Correct: preserve the business boundary on generic fallback and retain the specific cause with bounded diagnostics.

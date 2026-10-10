@@ -562,10 +562,17 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		"agent_id": agentID, "committed_tool_count": len(outcome.Results),
 	}
 	if len(causes) > 0 && causes[0] != nil {
-		failureStage, failureCode := classifyAgentRunFailure(causes[0])
+		failureStage, failureCode := classifyAgentPostRunFailure(stage, code, causes[0])
 		payload["failure_stage"] = failureStage
 		payload["failure_code"] = failureCode
 		payload["safe_cause"] = boundedLifecycleCause(causes[0].Error())
+		var mismatch *currentFactsMismatch
+		if errors.As(causes[0], &mismatch) {
+			payload["expected_current_facts_revision"] = mismatch.Expected
+			payload["actual_current_facts_revision"] = mismatch.Actual
+			payload["authority_boundary"] = mismatch.Boundary
+			payload["safe_cause"] = boundedLifecycleCause(fmt.Sprintf("%s: expected %s, actual %s (%s)", mismatch.Error(), mismatch.Expected, mismatch.Actual, mismatch.Boundary))
+		}
 	}
 	a.recordDiagnosticEvent(ctx, "agent.run.termination", "error", fluctlightID, inboxID, correlationID, payload)
 	if err := a.scheduleCognitionFollowups(ctx, fluctlightID); err != nil {
@@ -730,7 +737,7 @@ func (a *App) agentSettlementAuthorityRevisionsTx(ctx context.Context, tx pgx.Tx
 			return 0, 0, "", "", err
 		}
 		if currentFacts != "" && currentFacts != authority.Before.CurrentFacts {
-			return 0, 0, "", "", ErrCurrentFactsStale
+			return 0, 0, "", "", &currentFactsMismatch{Expected: currentFacts, Actual: authority.Before.CurrentFacts, Boundary: "tool_receipt"}
 		}
 		foundation, currentState, lifeContext = authority.Foundation, authority.CurrentState, authority.LifeContext
 		if currentFacts != "" {

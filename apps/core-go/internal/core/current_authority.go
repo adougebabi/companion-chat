@@ -14,6 +14,13 @@ import (
 // corrections without scanning or locking all historical authority rows.
 var ErrCurrentFactsStale = errors.New("current_facts_stale")
 
+type currentFactsMismatch struct {
+	Expected, Actual, Boundary string
+}
+
+func (e *currentFactsMismatch) Error() string { return ErrCurrentFactsStale.Error() }
+func (e *currentFactsMismatch) Unwrap() error { return ErrCurrentFactsStale }
+
 type currentAuthorityReader interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
@@ -54,7 +61,7 @@ func (a *App) requireCurrentFactsRevisionTx(ctx context.Context, tx pgx.Tx, fluc
 		return err
 	}
 	if "facts_gen_"+strconv.FormatInt(generation, 10) != expected {
-		return ErrCurrentFactsStale
+		return &currentFactsMismatch{Expected: expected, Actual: "facts_gen_" + strconv.FormatInt(generation, 10), Boundary: "settlement"}
 	}
 	return nil
 }

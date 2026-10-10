@@ -32,6 +32,17 @@ func safeAgentFailureCode(value, fallback string) string {
 	return value
 }
 
+func classifyAgentPostRunFailure(stage, code string, cause error) (string, string) {
+	failureStage, failureCode := classifyAgentRunFailure(cause)
+	if failureCode == "agent_run_failed" {
+		failureCode = safeAgentFailureCode(code, "agent_run_failed")
+		if failureStage == "agent" {
+			failureStage = stage
+		}
+	}
+	return failureStage, failureCode
+}
+
 func classifyAgentRunFailure(err error) (string, string) {
 	if err == nil {
 		return "", ""

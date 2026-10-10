@@ -1141,3 +1141,33 @@ TestGoalObjectCompletionMustMatchSatisfiedCriteria covers Stage and Commitment r
 ### 7. Wrong vs Correct
 Wrong: reuse a v2 negative assessment indefinitely or interpret a desire for a better recommendation as an unmet original requirement.
 Correct: anchor the claimed missing clause to frozen standards, isolate optional improvements, validate before transaction, and re-read live evidence before final settlement.
+
+
+## Scenario: Conversation reply requires an actual output channel (2026-10-10)
+
+### 1. Scope / Trigger
+Live direct conversation returned action_type=reply without conversation.reply or visible_text. Optional visible_text passed the formal schema, then publication failed. The same schema existed before Kev integration.
+
+### 2. Signatures
+`conversationNeedsVisibleFinal(call,trace)` scopes the extra guard to conversation_turn_response exposing visible_text. generateWithADK clones its final validation schema when no committed message or accepted media exists.
+
+### 3. Contracts
+Without actual output receipts, require visible_text with minLength=1, maxLength=32000 and nonwhitespace pattern at final validation. Missing/empty/whitespace enters the existing one tool-free final repair with explicit output instruction; repair validates the strengthened schema. A concrete completed conversation.reply receipt or accepted/completed media intent preserves the already committed output path. Failed/query-only results cannot satisfy this requirement. Other task/custom DTO contracts stay unchanged. Do not force tool_choice=required or fabricate ToolCalls.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| reply sidecar with no visible channel | existing single final repair |
+| repair still lacks output | final-contract failure; no publication |
+| committed message or accepted media | no extra output required; no duplicate reply |
+| failed/query-only tool | visible final remains required |
+
+### 5. Good / Base / Bad Cases
+Good: no ToolCall final contains actual natural reply. Base: Tool published reply and final sidecar only settles cognition. Bad: action_type reply and plan prose silently treated as a sent message.
+
+### 6. Tests Required
+TestConversationFinalWithoutOutputGetsOneToolFreeRepair captures HTTP omitted/empty/whitespace and verifies exactly one repair with no tools. TestConversationVisibleFinalRequirementRespectsCommittedOutputs checks committed message/media and failed/query outcomes. Legacy no-reply integration allows two HTTP requests and expects final-contract failure without a message.
+
+### 7. Wrong vs Correct
+Wrong: repair only malformed JSON while a schema-valid reply plan has no output.
+Correct: validate the existence of an actual output channel before returning a completed conversation model result; preserve committed effects and use the existing tool-free repair.

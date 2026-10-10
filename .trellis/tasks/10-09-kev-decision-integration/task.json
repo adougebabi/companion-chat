@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "2026-10-10 两项反馈修复：Goal 原文缺口/纯语义预校验/一次纠正/policy v3；Kev batch-local state 和 deadline原因。Go race1396 PASS/490 SKIP/0 FAIL，Web/client98 PASS；无新迁移，未部署未提交。",
+  "notes": "Conversation无输出reply用现有一次repair纠正；post-run诊断保留业务码；facts冲突附expected/actual/boundary，原因未完全定位。Go race1403 PASS/491 SKIP/0 FAIL，Web/client98 PASS；无migration，未部署未提交。",
   "meta": {}
 }

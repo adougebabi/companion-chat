@@ -35,11 +35,12 @@ func TestDirectConversationMessageIsDurableDuringCognitionAndNoReplyCannotComple
 		t.Fatal(err)
 	}
 	providerReceived := make(chan struct{})
+	var providerReceivedOnce sync.Once
 	releaseProvider := make(chan struct{})
 	app := &App{DB: repository}
 	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		_, _ = io.ReadAll(request.Body)
-		close(providerReceived)
+		providerReceivedOnce.Do(func() { close(providerReceived) })
 		select {
 		case <-releaseProvider:
 		case <-request.Context().Done():
@@ -118,7 +119,7 @@ func TestDirectConversationMessageIsDurableDuringCognitionAndNoReplyCannotComple
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_frozen_actions WHERE fluctlight_id=$1 AND status='completed'`, fluctlightID).Scan(&completedFrozenCount); err != nil {
 		t.Fatal(err)
 	}
-	if outcome.err == nil || !strings.Contains(outcome.err.Error(), "cognition_visible_text_missing") || assistantCount != 0 || inboxStatus != "failed" || completedFrozenCount != 0 {
+	if outcome.err == nil || !errors.Is(outcome.err, errADKFinalContractInvalid) || assistantCount != 0 || inboxStatus != "failed" || completedFrozenCount != 0 {
 		t.Fatalf("no-reply cognition was silently completed: result=%#v err=%v assistant=%d inbox=%s completed_frozen=%d", outcome.result, outcome.err, assistantCount, inboxStatus, completedFrozenCount)
 	}
 }

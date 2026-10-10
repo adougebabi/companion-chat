@@ -288,6 +288,25 @@ func TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions(t *testing.T) {
 	}
 }
 
+func TestPublicationFailureDiagnosticRetainsBusinessCode(t *testing.T) {
+	ctx, repo, app, owner, fluctlight, conversation := durableReplyFixture(t, "failure-code")
+	accepted, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fluctlight, "text": "回复失败诊断", "idempotency_key": "failure-code", "turn_id": "failure-code", "attachment_refs": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := app.failAgentTurnAfterRun(ctx, accepted.InboxID, agentCommittedOutcome{}, "agent_output_publication_failed", errors.New("cognition_visible_text_missing")); err != nil {
+		t.Fatal(err)
+	}
+	var encoded []byte
+	if err := repo.Pool().QueryRow(ctx, `SELECT payload FROM public.diagnostic_events WHERE event_type='agent.run.termination' AND correlation_id=$1 ORDER BY created_at DESC LIMIT 1`, accepted.CorrelationID).Scan(&encoded); err != nil {
+		t.Fatal(err)
+	}
+	payload := decodeObject(encoded)
+	if payload["failure_code"] != "agent_output_publication_failed" || payload["failure_stage"] != "output_publication" || payload["safe_cause"] != "cognition_visible_text_missing" {
+		t.Fatal("post-run error boundary lost", payload)
+	}
+}
+
 func TestCommittedReplyDegradationRearmsWakeUp(t *testing.T) {
 	ctx, repository, app, ownerID, fluctlightID, conversationID := durableReplyFixture(t, "degraded-followup")
 	payload := map[string]any{"fluctlight_id": fluctlightID, "text": "提交后结算失败", "idempotency_key": "durable-degraded", "turn_id": "durable-degraded-turn", "attachment_refs": []any{}}
