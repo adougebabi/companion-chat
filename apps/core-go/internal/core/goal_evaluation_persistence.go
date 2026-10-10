@@ -170,32 +170,24 @@ func applyGoalObjectEvaluationTx(ctx context.Context, tx pgx.Tx, parent GoalAuth
 	if err != nil {
 		return err
 	}
-	criteria := []GoalCriterion{}
 	revision, version := 0, 0
 	state := ""
 	if kind == "stage" {
 		for _, stage := range stages {
 			if stage.ID == candidate.ID {
-				criteria, revision, version, state = stage.Criteria, stage.Revision, stage.CriteriaVersion, stage.Status
+				revision, version, state = stage.Revision, stage.CriteriaVersion, stage.Status
 			}
 		}
 	} else {
 		for _, c := range commitments {
 			if c.ID == candidate.ID {
-				criteria, revision, version, state = c.Criteria, c.Revision, c.CriteriaVersion, c.Status
+				revision, version, state = c.Revision, c.CriteriaVersion, c.Status
 			}
 		}
 	}
-	if revision == 0 || revision != candidate.ExpectedRevision || version != candidate.CriteriaVersion {
-		return errors.New("goal_object_evaluation_version_conflict")
-	}
-	scoped := parent
-	scoped.CriterionIDs = nil
-	scoped.SuccessCriteria = nil
-	scoped.CriteriaPolicy = nonNilGoalCriteriaPolicy(nil)
-	for _, c := range criteria {
-		scoped.CriterionIDs = append(scoped.CriterionIDs, c.ID)
-		scoped.SuccessCriteria = append(scoped.SuccessCriteria, c.Text)
+	judgments, err := validateGoalObjectEvaluation(parent, candidate, kind, stages, commitments, sources)
+	if err != nil {
+		return err
 	}
 	if kind == "commitment" && candidate.Completed {
 		for _, c := range commitments {
@@ -212,13 +204,6 @@ func applyGoalObjectEvaluationTx(ctx context.Context, tx pgx.Tx, parent GoalAuth
 				}
 			}
 		}
-	}
-	judgments, complete, _, err := validatedGoalJudgments(scoped, candidate.Judgments, sources)
-	if err != nil {
-		return err
-	}
-	if candidate.Completed && !complete {
-		return errors.New("goal_object_completion_criteria_incomplete")
 	}
 	if candidate.Completed && parent.Status == GoalActive && (state == "active" || state == "blocked" || (kind == "commitment" && state == "expired")) {
 		table := "public.goal_stages"

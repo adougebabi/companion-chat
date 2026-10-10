@@ -214,24 +214,190 @@ func TestKevChoiceArgmaxAndGuardedAreDistinct(t *testing.T) {
 		t.Fatal(out, err)
 	}
 }
-func TestKevTimeoutAndSharedStageBudget(t *testing.T) {
-	s, cfg, _ := testService(t, func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-		case <-time.After(200 * time.Millisecond):
+func TestKevTimeoutReasonsDistinguishRequestStageBudgetAndParentCancellation(t *testing.T) {
+	t.Run("request", func(t *testing.T) {
+		s, cfg, _ := testService(t, func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+			case <-time.After(200 * time.Millisecond):
+			}
+		})
+		cfg.config.TimeoutMS = 50
+		cfg.config.BudgetMS = 100
+		rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+		if err != nil || rs[0].Record.CallStatus != "timeout" || rs[0].Record.Reason != "request_timeout" {
+			t.Fatal(rs, err)
 		}
-		fmt.Fprint(w, `{}`)
 	})
-	cfg.config.TimeoutMS = 50
-	cfg.config.BudgetMS = 100
-	ctx := WithStageBudget(context.Background(), 20*time.Millisecond)
-	rs, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
-	if err != nil || rs[0].Record.Outcome != Original || rs[0].Record.CallStatus != "timeout" {
-		t.Fatal(rs, err)
+
+	t.Run("stage", func(t *testing.T) {
+		s, cfg, _ := testService(t, func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+			case <-time.After(200 * time.Millisecond):
+			}
+			fmt.Fprint(w, `{}`)
+		})
+		cfg.config.TimeoutMS = 50
+		cfg.config.BudgetMS = 100
+		ctx := WithStageBudget(context.Background(), 20*time.Millisecond)
+		rs, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+		if err != nil || rs[0].Record.Outcome != Original || rs[0].Record.CallStatus != "timeout" || rs[0].Record.Reason != "stage_budget_exhausted" {
+			t.Fatal(rs, err)
+		}
+		if ctx.Err() != nil {
+			t.Fatal("stage budget cancelled business request")
+		}
+	})
+
+	t.Run("service budget", func(t *testing.T) {
+		var calls atomic.Int32
+		s, cfg, _ := testService(t, func(w http.ResponseWriter, r *http.Request) {
+			call := calls.Add(1)
+			if call == 1 {
+				time.Sleep(70 * time.Millisecond)
+				_ = json.NewEncoder(w).Encode(map[string]any{"answers": map[string]any{"q_0001": validAnswer("yes")}})
+				return
+			}
+			select {
+			case <-r.Context().Done():
+			case <-time.After(200 * time.Millisecond):
+			}
+		})
+		cfg.config.BatchSize = 1
+		cfg.config.TimeoutMS = 100
+		cfg.config.BudgetMS = 100
+		rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}, {"b", Choice("question")}})
+		if err != nil || len(rs) != 2 || rs[1].Record.CallStatus != "timeout" || rs[1].Record.Reason != "budget_exhausted" {
+			t.Fatal(rs, err)
+		}
+	})
+
+	t.Run("parent", func(t *testing.T) {
+		started := make(chan struct{})
+		s, cfg, _ := testService(t, func(_ http.ResponseWriter, r *http.Request) {
+			close(started)
+			select {
+			case <-r.Context().Done():
+			case <-time.After(200 * time.Millisecond):
+			}
+		})
+		cfg.config.TimeoutMS = 100
+		cfg.config.BudgetMS = 200
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			<-started
+			cancel()
+		}()
+		rs, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+		if !errors.Is(err, context.Canceled) || len(rs) != 1 || rs[0].Record.CallStatus != "cancelled" || rs[0].Record.Reason != "request_cancelled" {
+			t.Fatal(rs, err)
+		}
+	})
+}
+
+func TestKevResponseBodyTimeoutKeepsDeadlineCause(t *testing.T) {
+	for _, stage := range []bool{false, true} {
+		t.Run(fmt.Sprint(stage), func(t *testing.T) {
+			s, cfg, _ := testService(t, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, `{"answers":`)
+				w.(http.Flusher).Flush()
+				select {
+				case <-r.Context().Done():
+				case <-time.After(time.Second):
+				}
+			})
+			cfg.config.TimeoutMS = 100
+			cfg.config.BudgetMS = 300
+			ctx := context.Background()
+			want := "request_timeout"
+			if stage {
+				ctx = WithStageBudget(ctx, 30*time.Millisecond)
+				want = "stage_budget_exhausted"
+			}
+			results, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+			if err != nil || len(results) != 1 || results[0].Record.Reason != want || results[0].Record.CallStatus != "timeout" {
+				t.Fatal("body read timeout lost cause", results, err)
+			}
+		})
 	}
-	if ctx.Err() != nil {
-		t.Fatal("stage budget cancelled business request")
+}
+
+func TestKevBatchStateProjectionAndGenericStateCompatibility(t *testing.T) {
+	var mu sync.Mutex
+	captured := []Request{}
+	s, cfg, _ := testService(t, func(w http.ResponseWriter, r *http.Request) {
+		var request Request
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		mu.Lock()
+		captured = append(captured, request)
+		mu.Unlock()
+		answers := map[string]any{}
+		for id := range request.Questions {
+			answers[id] = validAnswer("yes")
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"answers": answers})
+	})
+	cfg.config.BatchSize = 8
+	candidates := make([]Candidate, 11)
+	states := make(map[string]string, 11)
+	for index := range candidates {
+		id := fmt.Sprintf("candidate-%02d", index)
+		candidates[index] = Candidate{id, Choice("question")}
+		states[id] = "state-" + id
 	}
+	_, err := s.DecideWithBatchState(context.Background(), "context.select", Scope{}, candidates, func(batch []Candidate) string {
+		subset := make(map[string]string, len(batch))
+		for _, candidate := range batch {
+			subset[candidate.ID] = states[candidate.ID]
+		}
+		return string(mustJSON(t, map[string]any{"input": "current", "candidates": subset}))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(captured) != 2 || len(captured[0].Questions) != 8 || len(captured[1].Questions) != 3 {
+		t.Fatalf("unexpected physical batches: %+v", captured)
+	}
+	seen := map[string]bool{}
+	for batchIndex, request := range captured {
+		var state struct {
+			Input      string            `json:"input"`
+			Candidates map[string]string `json:"candidates"`
+		}
+		if err := json.Unmarshal([]byte(request.State), &state); err != nil || state.Input != "current" || len(state.Candidates) != len(request.Questions) {
+			t.Fatalf("batch %d state mismatch: %+v err=%v", batchIndex, state, err)
+		}
+		for id := range state.Candidates {
+			if seen[id] {
+				t.Fatalf("candidate repeated across batches: %s", id)
+			}
+			seen[id] = true
+		}
+	}
+	if len(seen) != len(candidates) || len(states) != 11 {
+		t.Fatalf("projection mutated source or lost candidates: seen=%d source=%d", len(seen), len(states))
+	}
+
+	captured = nil
+	cfg.config.BatchSize = 1
+	_, err = s.Decide(context.Background(), "tools.select", Scope{}, "unchanged-generic-state", candidates[:2])
+	if err != nil || len(captured) != 2 || captured[0].State != "unchanged-generic-state" || captured[1].State != "unchanged-generic-state" {
+		t.Fatalf("generic Decide state changed: %+v err=%v", captured, err)
+	}
+}
+
+func mustJSON(t *testing.T, value any) []byte {
+	t.Helper()
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return encoded
 }
 func TestKevRequestAndResponseLimits(t *testing.T) {
 	s, cfg, _ := testService(t, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, strings.Repeat("x", 2000)) })

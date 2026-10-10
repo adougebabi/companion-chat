@@ -142,7 +142,13 @@ func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput)
 		summaries[d.Name] = d.Description
 	}
 	projection := input.Capability.Projection
-	results, err := service.Decide(ctx, "tools.select", a.kevScope(ctx, projection, string(input.AgentID)), jsonString(map[string]any{"input": current, "capabilities": summaries}), candidates)
+	results, err := service.DecideWithBatchState(ctx, "tools.select", a.kevScope(ctx, projection, string(input.AgentID)), candidates, func(batch []decision.Candidate) string {
+		batchSummaries := make(map[string]string, len(batch))
+		for _, candidate := range batch {
+			batchSummaries[candidate.ID] = summaries[candidate.ID]
+		}
+		return jsonString(map[string]any{"input": current, "capabilities": batchSummaries})
+	})
 	if err != nil {
 		return ctx, nil, err
 	}

@@ -301,7 +301,13 @@ func (a *App) selectKevContext(ctx context.Context, projection ContextProjection
 			candidates = append(candidates, decision.Candidate{ID: id, Question: decision.Choice("Is optional context " + id + " relevant to the current task? Keep unresolved commitments and necessary task evidence.")})
 			states[id] = f.Content
 		}
-		results, err := s.Decide(ctx, "context.select", a.kevScope(ctx, projection, string(surface)), jsonString(map[string]any{"input": currentInput, "candidates": states}), candidates)
+		results, err := s.DecideWithBatchState(ctx, "context.select", a.kevScope(ctx, projection, string(surface)), candidates, func(batch []decision.Candidate) string {
+			batchStates := make(map[string]any, len(batch))
+			for _, candidate := range batch {
+				batchStates[candidate.ID] = states[candidate.ID]
+			}
+			return jsonString(map[string]any{"input": currentInput, "candidates": batchStates})
+		})
 		if err != nil {
 			return input, err
 		}

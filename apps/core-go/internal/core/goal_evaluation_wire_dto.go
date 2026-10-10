@@ -13,13 +13,15 @@ type goalEvaluationWireOutput struct {
 }
 
 type goalEvaluationWireJudgment struct {
-	CriterionRef string   `json:"criterion_ref"`
-	Verdict      string   `json:"verdict"`
-	Kind         string   `json:"kind"`
-	Subject      string   `json:"subject"`
-	Discourse    string   `json:"discourse"`
-	EvidenceRefs []string `json:"evidence_refs"`
-	Reason       string   `json:"reason"`
+	CriterionRef        string   `json:"criterion_ref"`
+	CriterionQuote      string   `json:"criterion_quote"`
+	OptionalImprovement string   `json:"optional_improvement"`
+	Verdict             string   `json:"verdict"`
+	Kind                string   `json:"kind"`
+	Subject             string   `json:"subject"`
+	Discourse           string   `json:"discourse"`
+	EvidenceRefs        []string `json:"evidence_refs"`
+	Reason              string   `json:"reason"`
 }
 
 type goalEvaluationWireCandidate struct {

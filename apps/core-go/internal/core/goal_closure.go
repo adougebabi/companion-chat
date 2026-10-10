@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const goalEvaluationPolicyVersion = "goal.evaluation.v2"
+const goalEvaluationPolicyVersion = "goal.evaluation.v3"
 
 type GoalCriterion struct {
 	ID   string `json:"id"`
@@ -74,6 +74,10 @@ type GoalCriterionJudgment struct {
 	Discourse    string   `json:"discourse"`
 	Subject      string   `json:"subject"`
 	Reason       string   `json:"reason"`
+	// Wire-only semantic guards. They are hydrated from the frozen criterion
+	// text and intentionally stay out of the public/persisted judgment shape.
+	criterionQuote      string
+	optionalImprovement string
 }
 
 type GoalEvaluationCandidate struct {
@@ -333,20 +337,18 @@ func validatedGoalJudgments(goal GoalAuthority, proposed []GoalCriterionJudgment
 	return result, requiredSatisfied == required, float64(requiredSatisfied) / float64(required), nil
 }
 
-// This is the sole semantic completion rule. Sources are Core-read records;
-// structured judgments are candidates, never a substitute for provenance.
-func ApplyGoalEvaluation(goal GoalAuthority, candidate GoalEvaluationCandidate, sources map[string]GoalSource, at time.Time) (GoalAuthority, GoalGovernanceRecord, []GoalCriterionJudgment, error) {
+func validateGoalCompletionSemantics(goal GoalAuthority, candidate GoalEvaluationCandidate, sources map[string]GoalSource) ([]GoalCriterionJudgment, bool, float64, error) {
 	if candidate.GoalID != goal.EntityID || candidate.ExpectedRevision != goal.Revision || candidate.CriteriaVersion != effectiveGoalCriteriaVersion(goal) {
-		return GoalAuthority{}, GoalGovernanceRecord{}, nil, errors.New("goal_evaluation_version_conflict")
+		return nil, false, 0, errors.New("goal_evaluation_version_conflict")
 	}
 	judgments, complete, progress, err := validatedGoalJudgments(goal, candidate.Judgments, sources)
 	if err != nil {
-		return GoalAuthority{}, GoalGovernanceRecord{}, nil, err
+		return nil, false, 0, err
 	}
 	switch candidate.Impact {
 	case "progressed", "no_change", "blocked", "regressed", "needs_evidence", "completed":
 	default:
-		return GoalAuthority{}, GoalGovernanceRecord{}, nil, errors.New("goal_evaluation_impact_invalid")
+		return nil, false, 0, errors.New("goal_evaluation_impact_invalid")
 	}
 	if candidate.Impact == "no_change" {
 		known := false
@@ -354,16 +356,26 @@ func ApplyGoalEvaluation(goal GoalAuthority, candidate GoalEvaluationCandidate, 
 			known = known || judgment.Verdict != "unknown"
 		}
 		if !known {
-			return GoalAuthority{}, GoalGovernanceRecord{}, nil, errors.New("goal_evaluation_unknown_requires_evidence")
+			return nil, false, 0, errors.New("goal_evaluation_unknown_requires_evidence")
 		}
 	}
 	if candidate.Impact == "completed" && !complete {
-		return GoalAuthority{}, GoalGovernanceRecord{}, nil, errors.New("goal_completion_criteria_incomplete")
+		return nil, false, 0, errors.New("goal_completion_criteria_incomplete")
 	}
 	// A fully satisfied assessment must request settlement explicitly. Reject
 	// contradictory candidates rather than memoizing an active Goal at 100%.
 	if complete && candidate.Impact != "completed" {
-		return GoalAuthority{}, GoalGovernanceRecord{}, nil, errors.New("goal_evaluation_completion_impact_mismatch")
+		return nil, false, 0, errors.New("goal_evaluation_completion_impact_mismatch")
+	}
+	return judgments, complete, progress, nil
+}
+
+// This is the sole semantic completion rule. Sources are Core-read records;
+// structured judgments are candidates, never a substitute for provenance.
+func ApplyGoalEvaluation(goal GoalAuthority, candidate GoalEvaluationCandidate, sources map[string]GoalSource, at time.Time) (GoalAuthority, GoalGovernanceRecord, []GoalCriterionJudgment, error) {
+	judgments, _, progress, err := validateGoalCompletionSemantics(goal, candidate, sources)
+	if err != nil {
+		return GoalAuthority{}, GoalGovernanceRecord{}, nil, err
 	}
 	next := goal
 	operation := GoalUpdate

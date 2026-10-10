@@ -161,7 +161,7 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 			// A correction-exhausted coverage or malformed wire contract is terminal;
 			// no successful memo, source consumption or business mutation is allowed.
 			wantRequestState := "retry"
-			if tc.name == "plan_only" || tc.name == "partial_coverage" || tc.name == "duplicate_criterion" {
+			if tc.name == "plan_only" || tc.name == "partial_coverage" || tc.name == "duplicate_criterion" || tc.name == "satisfied_progressed" {
 				wantRequestState = "failed"
 			}
 			if status != "active" || revision != 1 || requestState != wantRequestState || consumed != 0 || evaluations != 0 || resolutions != 0 {

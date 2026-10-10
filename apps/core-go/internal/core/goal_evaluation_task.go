@@ -10,7 +10,7 @@ import (
 const goalEvaluationInstruction = `你正在评估有限范围内的目标真实证据并提出当前下一步，不是在编写剧情。
 保留原始目标目的与每项成功定义。表达心意只要求实际明确发送表达；建立双方确认关系必须双方在同一相关语境明确确认。用户一般想恋爱不等于选择摇光。单方表达、沉默、引用、假设、未发送草稿、模型自述、未来计划均不证明双方确认。
 只能引用输入source的ref。message已实际落库，可以证明author当前说出的话；转述/报告他人行为不等于行为发生。输入valid=false或can_support_success=false只能做反证/阻碍，不能作为成功。获取必须有输入中真实object ref及入库证据；接受异步任务不等于结果已经生成；获取不等于穿着。QUERY只支持真实信息，不能证明执行了业务动作。
-逐标准返回satisfied/not_satisfied/unknown、kind、subject、discourse、真实证据ref与理由。同一criterion_ref只能有一条judgment；多个相关证据合并到该条evidence_refs和reason中，不得按消息重复判定同一标准。quotation/hypothesis/plan/report/uncertain不能用于satisfied。criterion_ref、goal_ref、object_ref、stage_ref、dependency_refs和actor ref只能从输入选择，不得返回任何原始标识或版本。kind为communication/relationship/acquisition/information/semantic；可验证的获取/双方关系不能弱化为泛泛semantic。subject为actor_self/target_actor/both/domain；双方关系只能both且使用双方实际消息，不允许用一个人的说法伪造另一人的确认。discourse支持assertion/domain_fact/quotation/hypothesis/plan/refusal/report/uncertain；不确定必须unknown。
+逐标准返回satisfied/not_satisfied/unknown、kind、subject、discourse、真实证据ref与理由。同一criterion_ref只能有一条judgment；多个相关证据合并到该条evidence_refs和reason中，不得按消息重复判定同一标准。not_satisfied必须在criterion_quote逐字引用该criterion原文中的非空未满足要求；更细的类型、风格、数量、阅读反馈等建议只能放optional_improvement，不能冒充原标准或阻止原标准完成。satisfied/unknown的criterion_quote可以为空。quotation/hypothesis/plan/report/uncertain不能用于satisfied。直接由消息author本人说出的真实普通陈述按assertion判断；只有消息正文是在引用小说/他人原话、虚构内容或转述报告时才用quotation/report，不能因为一句话谈到小说就把用户本人的偏好陈述标成quotation。criterion_ref、goal_ref、object_ref、stage_ref、dependency_refs和actor ref只能从输入选择，不得返回任何原始标识或版本。kind为communication/relationship/acquisition/information/semantic；可验证的获取/双方关系不能弱化为泛泛semantic。subject为actor_self/target_actor/both/domain；双方关系只能both且使用双方实际消息，不允许用一个人的说法伪造另一人的确认。discourse支持assertion/domain_fact/quotation/hypothesis/plan/refusal/report/uncertain；不确定必须unknown。
 Goal、Stage、Commitment分别评估。承诺或一次试探完成不增加长期关系进度。严格按输入criteria_policy（all/any及optional_refs）判断：完成条件满足时impact必须为completed；未满足时不得completed。reason、next_step、wait_condition与impact必须一致，不能在文字中宣布已达成而结构化字段仍为progressed。不得新增篇幅比例、数量或其他输入标准没有规定的阈值。父Goal直接满足时即可结束，不强制重演尚未执行的Stage/Commitment；当evaluation impact=completed时，不得再为同一Goal返回plan。自然发生的后续聊天不会重新打开已完成Goal或成为续建理由。仅有仍未解决且符合人格、尊重拒绝的上层动机时提出followup候选，并说明residual_motivation。
 双方明确确认关系后，relationship_confirmation引用双方真实证据、对应target_actor_ref和简短准确label；只修改动态关系，不改人格或现实用户生活状态。
 对活动长期/复杂Goal给一个当前Stage和适当短期Commitment；简单获取目标可直接等待/安排Intention。阶段不铺未来剧情，承诺跨日仍可继续，不按每日配额创建。已有有效阶段/承诺不要重复创建；skip记录理由不当完成。下一步应有可观察结果，或明确等待/解除条件/下次复核时间。普通聊天无相关机会时正常等待，不制造错失机会；拒绝、睡眠、异地、权限和未知外部结果均约束计划。不要提高亲密度、焦虑或频率假装推进。
@@ -19,11 +19,12 @@ Goal、Stage、Commitment分别评估。承诺或一次试探完成不增加长�
 func goalCriterionJudgmentSchema(criterionRefs, evidenceRefs []string) map[string]any {
 	return objectSchema(map[string]any{
 		"criterion_ref": enumStringSchema(criterionRefs...), "verdict": enumStringSchema("satisfied", "not_satisfied", "unknown"),
+		"criterion_quote": stringSchema(), "optional_improvement": stringSchema(),
 		"kind":          enumStringSchema("communication", "relationship", "acquisition", "information", "semantic"),
 		"subject":       enumStringSchema("actor_self", "target_actor", "both", "domain"),
 		"discourse":     enumStringSchema("assertion", "domain_fact", "quotation", "hypothesis", "plan", "refusal", "report", "uncertain"),
 		"evidence_refs": boundedGoalRefArraySchema(evidenceRefs), "reason": stringSchema(),
-	}, []string{"criterion_ref", "verdict", "kind", "subject", "discourse", "evidence_refs", "reason"}, false)
+	}, []string{"criterion_ref", "criterion_quote", "optional_improvement", "verdict", "kind", "subject", "discourse", "evidence_refs", "reason"}, false)
 }
 
 func goalObjectEvaluationSchema(objectRefs, criterionRefs, evidenceRefs []string) map[string]any {
@@ -242,22 +243,47 @@ func goalEvaluationCandidateOutput(input goalEvaluationSnapshot, binding *goalEv
 	if len(missingGoalEvaluationCoverage(input, output)) > 0 {
 		return output, errors.New("goal_assessment_coverage_missing")
 	}
+	if err := validateGoalEvaluationOutput(binding.snapshot, output); err != nil {
+		return output, err
+	}
 	return output, nil
 }
+
+type terminalGoalEvaluationOutputError struct{ cause error }
+
+func (e terminalGoalEvaluationOutputError) Error() string { return e.cause.Error() }
+func (e terminalGoalEvaluationOutputError) Unwrap() error { return errADKFinalContractInvalid }
+
+func correctableGoalEvaluationOutputError(err error) bool {
+	if err == nil {
+		return false
+	}
+	code := err.Error()
+	return code == "goal_assessment_coverage_missing" || strings.HasPrefix(code, "goal_evaluation_wire_") ||
+		code == "goal_evaluation_unknown_requires_evidence" || code == "goal_evaluation_impact_invalid" || strings.HasPrefix(code, "goal_judgment_") ||
+		strings.HasPrefix(code, "goal_evaluation_completion_") || strings.HasPrefix(code, "goal_completion_") ||
+		strings.HasPrefix(code, "goal_object_")
+}
+
 func runGoalEvaluationWithCorrection(input goalEvaluationSnapshot, binding *goalEvaluationWireBinding, messages []map[string]any, run func([]map[string]any) (ADKStructuredTaskResult, error)) (ADKStructuredTaskResult, error) {
 	result, err := run(messages)
 	if err != nil {
 		return result, err
 	}
 	output, err := goalEvaluationCandidateOutput(input, binding, result.Completion.Structured)
-	if err != nil && (err.Error() == "goal_assessment_coverage_missing" || strings.HasPrefix(err.Error(), "goal_evaluation_wire_")) {
+	corrected := false
+	if correctableGoalEvaluationOutputError(err) {
+		corrected = true
 		correction := append([]map[string]any(nil), messages...)
-		correction = append(correction, map[string]any{"role": "assistant", "content": jsonString(result.Completion.Structured)}, map[string]any{"role": "user", "content": err.Error() + ": return one complete replacement object for all offered goals. Each criterion, stage, commitment and dependency must belong to its goal_ref. Do not copy stage:1.1 into other goals. A goal without an existing stage uses operation=create and omits object_ref; adjust/skip/abandon requires that goal's existing object_ref. Include requested reviews and exactly one evaluation per goal. Use only the frozen response schema and offered refs."})
+		correction = append(correction, map[string]any{"role": "assistant", "content": jsonString(result.Completion.Structured)}, map[string]any{"role": "user", "content": err.Error() + ": return one complete replacement object for all offered goals. Each criterion, stage, commitment and dependency must belong to its goal_ref. Completion must be reciprocal: all mandatory criteria satisfied requires completed, and completed requires all mandatory criteria satisfied. Every not_satisfied judgment must quote a literal nonempty substring of its frozen criterion in criterion_quote; put optional refinements only in optional_improvement. Do not copy stage:1.1 into other goals. A goal without an existing stage uses operation=create and omits object_ref; adjust/skip/abandon requires that goal's existing object_ref. Include requested reviews and exactly one evaluation per goal. Use only the frozen response schema and offered refs."})
 		result, err = run(correction)
 		if err != nil {
 			return result, err
 		}
 		output, err = goalEvaluationCandidateOutput(input, binding, result.Completion.Structured)
+	}
+	if corrected && err != nil && correctableGoalEvaluationOutputError(err) && !errors.Is(err, errADKFinalContractInvalid) {
+		err = terminalGoalEvaluationOutputError{cause: err}
 	}
 	if err == nil {
 		result.Completion.Structured = decodeObject(jsonBytes(output))

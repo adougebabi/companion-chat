@@ -114,3 +114,36 @@ wrapper discards A; the loop still reports its calls as executed.
 Correct: isolate callbacks only for the gated inner proposal, save original output
 through Core diagnostics, return the admitted response through the unchanged outer
 Runner callback contract.
+
+
+## Scenario: Batch-local state and deadline cause (2026-10-10)
+
+### 1. Scope / Trigger
+Context/tool selection split questions at eight but repeated all candidate contents. A shared stage deadline expiring during HTTP was labelled request_timeout.
+
+### 2. Signatures
+`DecideWithBatchState(ctx,point,scope,candidates,stateForBatch func([]Candidate) string)` constructs the physical state after batching. Existing Decide sends its supplied state unchanged. Core context/tools callers use typed batch builders.
+
+### 3. Contracts
+Each context batch contains only that batch's candidate map; each tool batch only that batch's capability descriptions. Current task input, IDs/order, required context, authorization and Admit/Finish semantics remain unchanged. No generic JSON-key inference, proof truncation, parallel chunk execution or raised timeout default. Parent cancellation still terminates business work.
+
+Shared stage and per-Decide deadlines stay bounded. When budget is exhausted, distinguish stage_budget_exhausted from budget_exhausted; an earlier request-only deadline remains request_timeout. Apply classification both during HTTP Do and response-body reads. duration_ms remains local queue+HTTP/body time, not server inference. External latency and actual throughput are not verified by mock HTTP.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Stage deadline during request/body | timeout / stage_budget_exhausted |
+| Per-Decide deadline | timeout / budget_exhausted |
+| Earlier single request deadline | timeout / request_timeout |
+| Parent cancelled | cancelled / request_cancelled and propagated error |
+| Generic Decide caller | state unchanged across batches |
+
+### 5. Good / Base / Bad Cases
+Good: eleven optional candidates produce disjoint 8/3 candidate states and preserve current input. Base: one batch retains all its candidates. Bad: three questions still carry eleven candidate bodies or report stage expiry as a configured request timer.
+
+### 6. Tests Required
+TestKevBatchStateProjectionAndGenericStateCompatibility captures 8/3 requests and caller immutability. TestKevContextAndToolBatchesSendOnlyTheirCandidateState checks real Core call sites. TestKevTimeoutReasonsDistinguishRequestStageBudgetAndParentCancellation and TestKevResponseBodyTimeoutKeepsDeadlineCause verify fallback and cancellation classification.
+
+### 7. Wrong vs Correct
+Wrong: only split questions, resend unrelated candidate content, extend the timeout to hide input cost.
+Correct: explicit typed per-batch projection and actual deadline-cause diagnostics; measure external inference separately.

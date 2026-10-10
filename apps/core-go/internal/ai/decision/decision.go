@@ -236,6 +236,20 @@ func (s *Service) Enabled(ctx context.Context, point string) bool {
 	return e == nil && c.Allows(point)
 }
 func (s *Service) Decide(ctx context.Context, point string, scope Scope, state string, candidates []Candidate) ([]Result, error) {
+	return s.decide(ctx, point, scope, candidates, func([]Candidate) string { return state })
+}
+
+// DecideWithBatchState lets a typed caller project only the state owned by the
+// candidates in each physical request. Decide remains the generic protocol
+// entry and sends its state unchanged for every batch.
+func (s *Service) DecideWithBatchState(ctx context.Context, point string, scope Scope, candidates []Candidate, stateForBatch func([]Candidate) string) ([]Result, error) {
+	if stateForBatch == nil {
+		return nil, errors.New("kev_batch_state_builder_missing")
+	}
+	return s.decide(ctx, point, scope, candidates, stateForBatch)
+}
+
+func (s *Service) decide(ctx context.Context, point string, scope Scope, candidates []Candidate, stateForBatch func([]Candidate) string) ([]Result, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -255,13 +269,15 @@ func (s *Service) Decide(ctx context.Context, point string, scope Scope, state s
 	if err = config.Validate(); err != nil {
 		return originalResults(candidates, "config_invalid"), nil
 	}
-	budgetCtx, cancel := context.WithTimeout(ctx, time.Duration(config.BudgetMS)*time.Millisecond)
-	defer cancel()
-	if deadline, ok := ctx.Value(stageDeadlineKey{}).(time.Time); ok {
-		shared, stop := context.WithDeadline(budgetCtx, deadline)
-		defer stop()
-		budgetCtx = shared
+	serviceDeadline := time.Now().Add(time.Duration(config.BudgetMS) * time.Millisecond)
+	budgetDeadline := serviceDeadline
+	budgetReason := "budget_exhausted"
+	if deadline, ok := ctx.Value(stageDeadlineKey{}).(time.Time); ok && !deadline.After(budgetDeadline) {
+		budgetDeadline = deadline
+		budgetReason = "stage_budget_exhausted"
 	}
+	budgetCtx, cancel := context.WithDeadline(ctx, budgetDeadline)
+	defer cancel()
 	results := make([]Result, 0, len(candidates))
 	for start := 0; start < len(candidates); start += config.BatchSize {
 		end := min(start+config.BatchSize, len(candidates))
@@ -269,7 +285,7 @@ func (s *Service) Decide(ctx context.Context, point string, scope Scope, state s
 		if e := ctx.Err(); e != nil {
 			return results, e
 		}
-		rs, e := s.batch(budgetCtx, ctx, config, version, secret, point, scope, state, batch)
+		rs, e := s.batch(budgetCtx, ctx, config, version, secret, point, scope, stateForBatch(batch), batch, budgetReason)
 		results = append(results, rs...)
 		if e != nil {
 			return results, e
@@ -315,7 +331,7 @@ func (s *Service) acquire(ctx context.Context, limit int) error {
 		}
 	}
 }
-func (s *Service) batch(budget, parent context.Context, c Config, version int64, secret, point string, scope Scope, state string, candidates []Candidate) ([]Result, error) {
+func (s *Service) batch(budget, parent context.Context, c Config, version int64, secret, point string, scope Scope, state string, candidates []Candidate, budgetReason string) ([]Result, error) {
 	if s.ID == nil || s.Store == nil {
 		return originalResults(candidates, "audit_unavailable"), nil
 	}
@@ -338,7 +354,7 @@ func (s *Service) batch(budget, parent context.Context, c Config, version int64,
 	var raw []byte
 	if e = s.acquire(budget, c.Concurrency); e != nil {
 		status = "timeout"
-		reason = "budget_exhausted"
+		reason = budgetReason
 	} else {
 		func() {
 			defer func() { s.mu.Lock(); s.active--; s.mu.Unlock() }()
@@ -362,7 +378,10 @@ func (s *Service) batch(budget, parent context.Context, c Config, version int64,
 			if err != nil {
 				status = "unavailable"
 				reason = "request_failed"
-				if child.Err() != nil {
+				if budget.Err() != nil {
+					status = "timeout"
+					reason = budgetReason
+				} else if child.Err() != nil {
 					status = "timeout"
 					reason = "request_timeout"
 				}
@@ -375,6 +394,11 @@ func (s *Service) batch(budget, parent context.Context, c Config, version int64,
 			if err != nil {
 				status = "invalid_response"
 				reason = "response_read_failed"
+				if budget.Err() != nil {
+					status, reason = "timeout", budgetReason
+				} else if child.Err() != nil {
+					status, reason = "timeout", "request_timeout"
+				}
 				return
 			}
 			if len(raw) > c.ResponseBytes {

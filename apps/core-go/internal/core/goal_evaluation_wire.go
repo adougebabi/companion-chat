@@ -704,9 +704,57 @@ func (binding *goalEvaluationWireBinding) hydrateJudgments(goalID, objectKind, o
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, GoalCriterionJudgment{CriterionID: criterion.CriterionID, Verdict: value.Verdict, Kind: value.Kind, Subject: value.Subject, Discourse: value.Discourse, EvidenceRefs: refs, Reason: value.Reason})
+		quote := strings.TrimSpace(value.CriterionQuote)
+		improvement := strings.TrimSpace(value.OptionalImprovement)
+		criterionText := binding.criterionText(criterion)
+		if len([]rune(quote)) > 500 || len([]rune(improvement)) > 1000 || value.Verdict == "not_satisfied" && (quote == "" || !strings.Contains(criterionText, quote)) {
+			return nil, errors.New("goal_evaluation_wire_criterion_quote_invalid")
+		}
+		result = append(result, GoalCriterionJudgment{CriterionID: criterion.CriterionID, Verdict: value.Verdict, Kind: value.Kind, Subject: value.Subject, Discourse: value.Discourse, EvidenceRefs: refs, Reason: value.Reason, criterionQuote: quote, optionalImprovement: improvement})
 	}
 	return result, nil
+}
+
+func (binding *goalEvaluationWireBinding) criterionText(criterion goalWireCriterionBinding) string {
+	for _, entry := range binding.snapshot.Goals {
+		if entry.Goal.EntityID != criterion.GoalID {
+			continue
+		}
+		if criterion.ObjectKind == "goal" {
+			for index, id := range entry.Goal.CriterionIDs {
+				if id == criterion.CriterionID && index < len(entry.Goal.SuccessCriteria) {
+					return entry.Goal.SuccessCriteria[index]
+				}
+			}
+		}
+		objects := []struct {
+			kind string
+			id   string
+			list []GoalCriterion
+		}{}
+		for _, stage := range entry.Stages {
+			objects = append(objects, struct {
+				kind, id string
+				list     []GoalCriterion
+			}{"stage", stage.ID, stage.Criteria})
+		}
+		for _, commitment := range entry.Commitments {
+			objects = append(objects, struct {
+				kind, id string
+				list     []GoalCriterion
+			}{"commitment", commitment.ID, commitment.Criteria})
+		}
+		for _, object := range objects {
+			if object.kind == criterion.ObjectKind && object.id == criterion.ObjectID {
+				for _, child := range object.list {
+					if child.ID == criterion.CriterionID {
+						return child.Text
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func (binding *goalEvaluationWireBinding) hydrateObjectEvaluation(goalID, kind string, value goalEvaluationWireObjectEvaluation) (*GoalObjectEvaluation, error) {

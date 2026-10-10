@@ -117,7 +117,12 @@ func goalEvaluationWireSourceRefFixtures(binding *goalEvaluationWireBinding, val
 func goalEvaluationWireJudgmentFixtures(binding *goalEvaluationWireBinding, goalID, kind, objectID string, values []GoalCriterionJudgment) []goalEvaluationWireJudgment {
 	result := make([]goalEvaluationWireJudgment, 0, len(values))
 	for _, value := range values {
-		result = append(result, goalEvaluationWireJudgment{CriterionRef: fixtureRef(binding.criterionRefs[kind+"\x1f"+objectID+"\x1f"+value.CriterionID], "criterion:invalid"), Verdict: value.Verdict, Kind: value.Kind, Subject: value.Subject, Discourse: value.Discourse, EvidenceRefs: goalEvaluationWireSourceRefFixtures(binding, value.EvidenceRefs), Reason: value.Reason})
+		criterionRef := fixtureRef(binding.criterionRefs[kind+"\x1f"+objectID+"\x1f"+value.CriterionID], "criterion:invalid")
+		quote := value.criterionQuote
+		if value.Verdict == "not_satisfied" && quote == "" {
+			quote = binding.criterionText(binding.criteriaByRef[criterionRef])
+		}
+		result = append(result, goalEvaluationWireJudgment{CriterionRef: criterionRef, CriterionQuote: quote, OptionalImprovement: value.optionalImprovement, Verdict: value.Verdict, Kind: value.Kind, Subject: value.Subject, Discourse: value.Discourse, EvidenceRefs: goalEvaluationWireSourceRefFixtures(binding, value.EvidenceRefs), Reason: value.Reason})
 	}
 	return result
 }

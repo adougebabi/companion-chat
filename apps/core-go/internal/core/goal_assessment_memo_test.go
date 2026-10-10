@@ -177,7 +177,7 @@ func TestGoalAssessmentNoProgressDetectsMandatoryOnlyAdmission(t *testing.T) {
 func TestGoalAssessmentMemoRejectsPriorEvaluationPolicy(t *testing.T) {
 	entry, sources, projection := assessmentMemoFixture()
 	current := goalAssessmentMemoFor(entry, sources, projection, time.Now())
-	for _, priorPolicy := range []string{"", "goal.evaluation.v1"} {
+	for _, priorPolicy := range []string{"", "goal.evaluation.v1", "goal.evaluation.v2"} {
 		prior := current
 		prior.EvaluationPolicyVersion = priorPolicy
 		if goalAssessmentMemoMatches(prior, current) {

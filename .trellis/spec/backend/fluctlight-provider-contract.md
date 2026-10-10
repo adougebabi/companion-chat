@@ -1104,3 +1104,40 @@ TestGoalEvaluationSchemaRejectsMissingGoalBeforeHydration covers full/missing/ex
 ### 7. Wrong vs Correct
 Wrong: rely only on prompt prose to require all Goals, or omit enable_thinking and assume the server disables it.
 Correct: enforce count in the transmitted schema, explicitly disable Goal Evaluation thinking, and retain full semantic ownership/coverage validation before commit.
+
+
+## Scenario: Frozen completion requirements and semantic preflight (2026-10-10)
+
+### 1. Scope / Trigger
+A valid four-Goal batch may commit a wrong negative verdict because the model invents finer preference or later-feedback requirements. Stage/Commitment previously permitted all criteria satisfied with completed=false.
+
+### 2. Signatures
+`validateGoalCompletionSemantics(goal,candidate,sources)` is shared by pure preflight and ApplyGoalEvaluation. `validateGoalEvaluationOutput(snapshot,output)` runs after hydration/coverage. `validateGoalObjectEvaluation(parent,candidate,kind,stages,commitments,sources)` runs both in preflight and transaction. Policy is goal.evaluation.v3.
+
+### 3. Contracts
+- Physical judgment fields criterion_quote and optional_improvement are required strings. For not_satisfied, criterion_quote must be a nonempty literal substring of that exact frozen Goal/Stage/Commitment criterion; quote <=500 runes, improvement <=1000. satisfied/unknown may use an empty quote. These are wire-only fields; public/persisted judgment JSON is unchanged.
+- Original criteria remain authoritative. Refinements belong in optional_improvement and cannot become completion gates. Direct actual author statements can be assertion; discussing a novel does not make a statement quotation. Fiction, third-party quotes and reports remain non-event evidence.
+- Preflight checks frozen evidence authority and reciprocal parent/object completion. It performs no writes and does not replace final live-source/revision/CAS checks. Objects with all criteria satisfied must have completed=true; incomplete objects cannot have completed=true. Active and paused governance remain distinct.
+- Wire, coverage, completion/object and judgment contract errors receive the existing one complete replacement. A repeated correctable error is terminal; there is no new outer retry/correction loop. Source/CAS changes during live commit remain authoritative failures.
+- v3 invalidates v1/v2 assessment memo reuse on the next eligible evaluation; no automatic historical goal completion or migration. A missing/null output field cannot be treated as a semantic positive.
+- Literal quote membership does not prove arbitrary semantic reasoning. A model can still incorrectly interpret a genuine criterion phrase; scripted completion is engineering validation, not live model acceptance.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Negative quote absent from frozen criterion / empty | goal_evaluation_wire_criterion_quote_invalid |
+| Complete parent criteria + non-completed impact | goal_evaluation_completion_impact_mismatch |
+| Complete object criteria + completed=false | goal_object_evaluation_completion_mismatch |
+| Positive quotation or unauthorized evidence | existing goal_judgment_* rejection, bounded correction |
+| Repeated correctable invalid replacement | terminal contract error, no domain commit |
+| Prior policy memo | no memo reuse under v3 |
+
+### 5. Good / Base / Bad Cases
+Good: actual preference + sent specific recommendation/reason can settle active Goal at progress=1; later feedback is optional. Base: an actually absent original requirement remains not_satisfied. Bad: require reading feedback absent from criterion, or retain an incomplete object flag after all its standards are satisfied.
+
+### 6. Tests Required
+TestGoalObjectCompletionMustMatchSatisfiedCriteria covers Stage and Commitment reciprocity. TestGoalCompletionMismatchGetsOneCompleteReplacement and TestGoalObjectInvalidReplacementIsTerminal cover bounded repair. TestGoalEvaluationRejectsInventedUnmetClauseAndCorrectsCompleteRecommendation checks literal extra-gate rejection and actual ApplyGoalEvaluation active/paused outcomes. TestGoalEvaluationDirectUtteranceDiscourseGetsCorrection covers evidence classification. Prior-policy memo test rejects v2.
+
+### 7. Wrong vs Correct
+Wrong: reuse a v2 negative assessment indefinitely or interpret a desire for a better recommendation as an unmet original requirement.
+Correct: anchor the claimed missing clause to frozen standards, isolate optional improvements, validate before transaction, and re-read live evidence before final settlement.

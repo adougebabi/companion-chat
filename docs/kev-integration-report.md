@@ -134,3 +134,14 @@ Go SKIP 来自未配置隔离 PostgreSQL/真实 Provider 等 opt-in 环境，不
 本地 Go race 1378 PASS/490 SKIP/0 FAIL（含子用例），vet/build/typecheck 通过；正式状态仅只读检查，未部署、未写业务数据。最新补修未提交。
 
 补修最终检查：Web/client 98 PASS，production build 通过；git diff --check 通过。独立核验未发现产品正确性缺陷，提出 production call-site 测试缺口，已在现有 PostgreSQL 集成测试补断言（本机 SKIP）。
+
+
+## 2026-10-10 Goal 完成判定与 Kev 请求负载修复
+
+用户授权两项一起处理。Goal wire 增加 criterion_quote/optional_improvement，负面缺口须来自冻结原标准；父 Goal/Stage/Commitment 纯 preflight 与事务复用语义校验，完成标志双向一致，判断错误使用既有一次完整替换纠正。policy 升为 goal.evaluation.v3，旧 memo 在下次评估不再复用。实际作者陈述与 quotation 区分；active 与 paused 规则保留。字面引用校验不能证明任意模型语义正确，不把 mock 说成真实模型验收。
+
+Kev context/tool 每个 batch 只带当前候选内容，保留当前任务输入和协议；新增明确批次 state builder，原 Decide 兼容。共享 stage、Service budget、单请求和父取消有不同原因，覆盖 HTTP headers/response body 等待。没有改 timeout 默认值、正式配置、全局 token 预算或推理服务；逐 Goal completion gate 仍为原逐项请求。无法承诺所有请求<1秒，剩余大 currentInput/服务排队须实际测量。
+
+最终产品代码无公共API/迁移变更，head仍0057_logical_agent_leases。本地 Go race 1396 PASS/490 SKIP/0 FAIL（含子用例），Web/client98 PASS，generate/typecheck/vet/build/diff通过。独立核验指出主线程新增测试身份缺失，已补完整身份并实际断言active completed/progress1及paused保持。未操作正式业务数据、未部署、未提交。
+
+正式验收：升级 Core/Worker 后对原推书目标发起一次 Owner 复核，检查 goal.evaluation.v3、提交 succeeded、goal_outcomes 实际状态。负面判断的 criterion_quote 与可选改进可在物理模型 response 查看。Kev 对超过8题请求检查每批 state候选数与题数一致，按唯一request_id比较实际usage/duration；同一请求逐题诊断行不是多次HTTP。若只剩真实原标准却仍被误判，保留该实测错例继续语义验收；本轮不能承诺字面quote就能消除全部误判。

@@ -63,6 +63,86 @@ func TestKevContextFiltersOnlyOptionalAndRetainsSource(t *testing.T) {
 	}
 }
 
+func TestKevContextAndToolBatchesSendOnlyTheirCandidateState(t *testing.T) {
+	requests := []decision.Request{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request decision.Request
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests = append(requests, request)
+		answers := map[string]any{}
+		for id := range request.Questions {
+			answers[id] = map[string]any{"type": "choice", "choice": "yes", "confidence": 0.5, "probabilities": map[string]float64{"yes": 0.8, "no": 0.1, "unclear": 0.1}}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"answers": answers})
+	}))
+	defer server.Close()
+	config := decision.DefaultConfig()
+	config.Enabled = true
+	config.Endpoint = server.URL
+	store := &kevMemoryStore{}
+	ids := 0
+	app := &App{Kev: &decision.Service{Settings: &kevFixedSettings{config}, Store: store, HTTP: server.Client(), ID: func() string { ids++; return fmt.Sprint(ids) }}}
+
+	input := WorkingMemoryInput{}
+	for index := 0; index < 11; index++ {
+		input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Content: fmt.Sprintf("memory-%02d", index), SourceRefs: []string{fmt.Sprintf("source-%02d", index)}})
+	}
+	selected, err := app.selectKevContext(context.Background(), ContextProjection{FluctlightID: "actor"}, ProviderContextSurfaceConversationMain, "current task", input)
+	if err != nil || len(selected.RetrievedMemories) != 11 || len(input.RetrievedMemories) != 11 {
+		t.Fatal("context selection changed caller state", err)
+	}
+	assertBatches := func(offset int, stateKey string) {
+		t.Helper()
+		seen := map[string]bool{}
+		for batch, want := range []int{8, 3} {
+			request := requests[offset+batch]
+			var state map[string]json.RawMessage
+			if err := json.Unmarshal([]byte(request.State), &state); err != nil {
+				t.Fatal(err)
+			}
+			var subset map[string]json.RawMessage
+			if err := json.Unmarshal(state[stateKey], &subset); err != nil || len(request.Questions) != want || len(subset) != want {
+				t.Fatalf("%s batch %d mismatch: questions=%d state=%d err=%v", stateKey, batch, len(request.Questions), len(subset), err)
+			}
+			for id := range subset {
+				if seen[id] {
+					t.Fatalf("%s repeated across physical requests: %s", stateKey, id)
+				}
+				seen[id] = true
+			}
+		}
+		if len(seen) != 11 {
+			t.Fatalf("%s lost batch state: %d", stateKey, len(seen))
+		}
+	}
+	assertBatches(0, "candidates")
+
+	definitions := make([]CapabilityDefinition, 11)
+	for index := range definitions {
+		definitions[index] = CapabilityDefinition{Name: fmt.Sprintf("test.capability.%02d", index), Version: "v1", Type: CapabilityTypeQuery, Description: fmt.Sprintf("capability-%02d", index), Surfaces: []CapabilitySurface{CapabilitySurfaceConversation}}
+	}
+	originalNames := make([]string, len(definitions))
+	for index := range definitions {
+		originalNames[index] = definitions[index].Name
+	}
+	_, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: FormalAgentConversationCognition, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": "current task"}}}, Capability: &ADKCapabilityRequest{Projection: ContextProjection{FluctlightID: "actor"}, Surface: CapabilitySurfaceConversation}})
+	if err != nil || len(prepared) != 12 {
+		t.Fatal("tool selection failed", err)
+	}
+	for index := range definitions {
+		if definitions[index].Name != originalNames[index] {
+			t.Fatal("tool caller definitions mutated")
+		}
+	}
+	if len(requests) != 4 {
+		t.Fatalf("expected context 8+3 and tools 8+3, got %d requests", len(requests))
+	}
+	assertBatches(2, "capabilities")
+}
+
 func TestKevSpoolIsDurableBoundedAndContainsRaw(t *testing.T) {
 	store := &kevStore{directory: t.TempDir()}
 	at := time.Now().UTC()

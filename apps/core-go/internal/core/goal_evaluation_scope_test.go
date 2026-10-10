@@ -22,6 +22,7 @@ func twoGoalWireSnapshot() goalEvaluationSnapshot {
 	second.Goal.TargetActorID = ""
 	second.Goal.CriterionIDs = []string{"criterion-two"}
 	second.Goal.SuccessCriteria = []string{"second condition"}
+	second.Goal.CriteriaPolicy = map[string]any{"mode": "all"}
 	second.Goal.CurrentStageID = ""
 	second.Stages = nil
 	second.Commitments = nil
