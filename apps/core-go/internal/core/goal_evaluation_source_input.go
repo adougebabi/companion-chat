@@ -42,7 +42,7 @@ func compactGoalEvaluationSourceData(source GoalSource) map[string]any {
 	capability := stringValue(source.Data["capability"])
 	observed := mapValue(source.Data["observed"])
 	switch capability {
-	case "goal.inspect", "goal.decide", "goal.evaluate", "goal.review":
+	case goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit, "goal.inspect", "goal.decide", "goal.evaluate", "goal.review":
 		// The current selected Goal/criteria are already present separately.
 		result["observed"] = map[string]any{"status": source.Data["status"]}
 	case "actor.inspect", "actor.fact.record":

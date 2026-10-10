@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const goalEvaluationPolicyVersion = "goal.evaluation.v3"
+const goalEvaluationPolicyVersion = "goal.evaluation.v4"
 
 type GoalCriterion struct {
 	ID   string `json:"id"`

@@ -23,7 +23,7 @@ func TestInitializedLongGoalQueuesOneFocusedPlanWithoutMechanicalSchedules(t *te
 	}
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "initial-plan-"+f.suffix)
 	end := f.app.now().Add(48 * time.Hour)
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		entry := snapshot.Goals[0]
 		if len(entry.Stages) != 0 || len(entry.Commitments) != 0 {

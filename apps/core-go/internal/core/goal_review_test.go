@@ -47,7 +47,7 @@ func TestGoalReviewCycleReplayAndLateEvidenceRevision(t *testing.T) {
 		return id
 	}
 	calls := 0
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		calls++
 		snapshot := readProcessingGoalSnapshot(t, f)
 		entry := snapshot.Goals[0]
@@ -296,7 +296,7 @@ func TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions(t *testing.T
 		t.Fatal(err)
 	}
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "abandon-review-"+f.suffix)
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		g := snapshot.Goals[0].Goal
 		candidate := GoalEvaluationCandidate{GoalID: id, ExpectedRevision: g.Revision, CriteriaVersion: g.CriteriaVersion, Judgments: []GoalCriterionJudgment{}, Impact: "needs_evidence", Blocker: "目标与当前明确边界不再相容", Review: &GoalReviewDecision{ReasonCategory: "blocked", Decision: "abandon", Explanation: "明确结束该目标，不恢复或生成进一步行动", EvidenceRefs: []string{}}}

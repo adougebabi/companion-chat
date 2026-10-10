@@ -83,7 +83,7 @@ func goalOutcomeCarriesEvidence(outcome ActionOutcome) bool {
 		return false
 	}
 	switch strings.TrimSpace(outcome.CapabilityName) {
-	case "goal.inspect", "goal.decide", "goal.evaluate", "goal.review",
+	case goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit, "goal.inspect", "goal.decide", "goal.evaluate", "goal.review",
 		"actor.inspect", "habit.inspect", "intention.inspect", "schedule.inspect",
 		"persona.detail", "relationship.lookup", "memory.recall", "capability.discover":
 		return false
@@ -195,7 +195,7 @@ func readGoalSourceWith(ctx context.Context, q lifeContextQuerier, eventID int64
 		}
 		source.CanSupportSuccess = source.Valid && outcome.Status == ActionOutcomeCompleted
 		switch outcome.CapabilityName {
-		case "goal.decide", "goal.evaluate", "goal.review", intentionDecideCapabilityName, scheduleActivityCapabilityName, scheduleEditCapabilityName, "schedule.replan":
+		case goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit, "goal.decide", "goal.evaluate", "goal.review", intentionDecideCapabilityName, scheduleActivityCapabilityName, scheduleEditCapabilityName, "schedule.replan":
 			source.CanSupportSuccess = false // plan/governance acknowledgement is not a business result
 		}
 

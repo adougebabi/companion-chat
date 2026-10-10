@@ -32,6 +32,13 @@ type goalCapability struct {
 	name    string
 }
 
+func (c goalCapability) AuthorizeToolExecution(_ context.Context, request ToolExecutionRequest) error {
+	if c.name == "goal.decide" && request.NativeToolCallID != "" {
+		return newCapabilityError("goal_owner_command_required", false, ErrUnauthorized)
+	}
+	return nil
+}
+
 func (c goalCapability) Definition() CapabilityDefinition {
 	fields := map[string]any{"goal_id": stringSchema(), "expected_revision": integerSchema(), "reason": stringSchema()}
 	required := []string{"goal_id", "expected_revision", "reason"}
@@ -60,7 +67,12 @@ func (c goalCapability) Definition() CapabilityDefinition {
 		required = []string{"reason"}
 		boundary = "goal_review_queued"
 	}
-	return CapabilityDefinition{Name: c.name, Version: "v1", Type: capabilityType, Description: description, Surfaces: []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceAutonomy}, FailurePolicy: FailurePolicyOptionalInternal, InputSchema: objectSchema(fields, required, false), OutputSchema: openObjectSchema(), SideEffectClass: sideEffect, SuccessBoundary: boundary, ConcurrencyClass: map[bool]string{true: "parallel", false: "exclusive"}[capabilityType == CapabilityTypeQuery], SupportsRetry: true}
+	surfaces := []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceAutonomy}
+	if c.name == "goal.decide" {
+		surfaces = []CapabilitySurface{CapabilitySurface("goal_owner")}
+	}
+
+	return CapabilityDefinition{Name: c.name, Version: "v1", Type: capabilityType, Description: description, Surfaces: surfaces, FailurePolicy: FailurePolicyOptionalInternal, InputSchema: objectSchema(fields, required, false), OutputSchema: openObjectSchema(), SideEffectClass: sideEffect, SuccessBoundary: boundary, ConcurrencyClass: map[bool]string{true: "parallel", false: "exclusive"}[capabilityType == CapabilityTypeQuery], SupportsRetry: true}
 }
 func (c goalCapability) RequiredContext() []ContextSlot { return nil }
 func goalToolResult(inv CapabilityInvocation, output map[string]any) CapabilityResult {
@@ -145,6 +157,9 @@ func (c goalCapability) Execute(ctx context.Context, inv CapabilityInvocation, _
 func (c goalCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv CapabilityInvocation, capCtx CapabilityContext) (CapabilityResult, error) {
 	if c.name == "goal.inspect" {
 		return c.Execute(ctx, inv, capCtx)
+	}
+	if c.name == "goal.decide" && inv.Metadata.Source != "direct" {
+		return failedCapabilityResult(inv, "goal_owner_command_required", false), ErrUnauthorized
 	}
 	if c.service == nil || c.service.repository == nil {
 		return failedCapabilityResult(inv, "goal_unavailable", true), errors.New("goal service unavailable")

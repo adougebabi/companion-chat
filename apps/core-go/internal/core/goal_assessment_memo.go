@@ -198,6 +198,9 @@ func verifyGoalAssessmentProjectionAuthorityTx(ctx context.Context, tx pgx.Tx, a
 func goalAssessmentSourceFingerprints(goal GoalAuthority, sources []GoalSource) []string {
 	result := []string{}
 	for _, source := range sources {
+		if source.Kind == "goal_revision" {
+			continue
+		}
 		if validateGoalSourceScope(goal, source.Ref, map[string]GoalSource{source.Ref: source}) != nil {
 			continue
 		}
@@ -238,7 +241,7 @@ func readGoalAssessmentMemos(ctx context.Context, q lifeContextQuerier, owner, p
 	if len(goalIDs) == 0 {
 		return result, nil
 	}
-	rows, err := q.Query(ctx, `SELECT DISTINCT ON (memo->>'goal_id') memo FROM public.goal_evaluation_requests r CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(r.result->'assessment_memos')='array' THEN r.result->'assessment_memos' ELSE '[]'::jsonb END) memo WHERE r.fluctlight_id=$1 AND r.status='succeeded' AND memo->>'goal_id'=ANY($2::text[]) ORDER BY memo->>'goal_id',r.updated_at DESC,r.id DESC`, owner, goalIDs)
+	rows, err := q.Query(ctx, `SELECT DISTINCT ON (memo->>'goal_id') memo FROM public.goal_evaluation_requests r CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(r.result->'assessment_memos')='array' THEN r.result->'assessment_memos' ELSE '[]'::jsonb END) memo WHERE r.fluctlight_id=$1 AND memo->>'goal_id'=ANY($2::text[]) ORDER BY memo->>'goal_id',memo->>'succeeded_at' DESC,r.updated_at DESC,r.id DESC`, owner, goalIDs)
 	if err != nil {
 		return nil, err
 	}

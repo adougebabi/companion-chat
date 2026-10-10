@@ -31,6 +31,7 @@ var independentToolProductInventory = []string{
 	"goal_planner.commit",
 	"goal.decide",
 	"goal.evaluate",
+	goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit,
 	"goal.inspect",
 	"goal.review",
 	"habit.decide",

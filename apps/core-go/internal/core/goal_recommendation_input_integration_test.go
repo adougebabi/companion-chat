@@ -62,7 +62,7 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 	}
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "recommendation-input-"+f.suffix)
 	calls := 0
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(payload map[string]any) fakeProviderResult {
 		calls++
 		snapshot := readProcessingGoalSnapshot(t, f)
 		input, err := renderedGoalEvaluationProviderInput(snapshot)

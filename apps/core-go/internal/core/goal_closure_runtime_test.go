@@ -82,7 +82,7 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 		}
 		ref := refs[0]
 		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "认真表达自己的心意", "visible_text": "我喜欢你，这是我现在想清楚告诉你的心意。", "influences": []any{map[string]any{"ref": ref, "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": ref, "reason": "本轮正式表达可能满足原成功标准"}}}}
-	}).on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+	}).onGoalEvaluation(func(payload map[string]any) fakeProviderResult {
 		assessments++
 		schema := mapValue(mapValue(payload["response_format"])["json_schema"])
 		evaluation := mapValue(mapValue(mapValue(mapValue(schema["schema"])["properties"])["evaluations"])["items"])
@@ -164,7 +164,7 @@ func TestGoalEvaluationGhostStageFailsBeforeDomainCommit(t *testing.T) {
 					return fakeProviderResult{Status: 500}
 				}
 				return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "完成真实表达", "visible_text": "我认真地告诉你，我很在意你。", "influences": []any{map[string]any{"ref": refs[0], "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": refs[0], "reason": "实际表达可能满足目标"}}}}
-			}).on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+			}).onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 				snapshot := readProcessingGoalSnapshot(t, f)
 				var proof GoalSource
 				for _, source := range snapshot.Sources {
@@ -240,13 +240,7 @@ func TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation(t *tes
 func runGoalAssessmentFixture(t *testing.T, f independentToolE2EFixture, kind string, completed bool, indexes []int) {
 	t.Helper()
 	original := f.app.Provider.HTTP.Transport
-	f.app.Provider.HTTP = &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
-		raw, _ := io.ReadAll(request.Body)
-		request.Body = io.NopCloser(bytes.NewReader(raw))
-		payload := decodeObject(raw)
-		if stringValue(mapValue(mapValue(payload["response_format"])["json_schema"])["name"]) != "goal_evaluation_v1" {
-			return original.RoundTrip(request)
-		}
+	goalRouter := newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		evaluations := []GoalEvaluationCandidate{}
 		for _, entry := range snapshot.Goals {
@@ -259,7 +253,7 @@ func runGoalAssessmentFixture(t *testing.T, f independentToolE2EFixture, kind st
 			}
 			if proof == "" {
 				t.Error("assessment fixture lacks actual successful source")
-				return embeddingHTTPResponse(request, 500, "{}"), nil
+				return fakeProviderResult{Status: 500}
 			}
 			judgments := []GoalCriterionJudgment{}
 			for i, id := range entry.Goal.CriterionIDs {
@@ -285,9 +279,16 @@ func runGoalAssessmentFixture(t *testing.T, f independentToolE2EFixture, kind st
 			}
 			evaluations = append(evaluations, candidate)
 		}
-		wire := goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: evaluations, Plans: []GoalPlanCandidate{}})
-		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(wire)}}}}
-		return embeddingHTTPResponse(request, 200, jsonString(response)), nil
+		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: evaluations, Plans: []GoalPlanCandidate{}})}
+	})
+	f.app.Provider.HTTP = &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		raw, _ := io.ReadAll(request.Body)
+		request.Body = io.NopCloser(bytes.NewReader(raw))
+		payload := decodeObject(raw)
+		if providerWireSchemaName(payload) == "goal_evaluation_v1" {
+			return goalRouter.RoundTrip(request)
+		}
+		return original.RoundTrip(request)
 	})}
 	id := latestPendingGoalRequest(t, f)
 	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, id); err != nil || stringValue(result["status"]) != "succeeded" {
@@ -335,7 +336,7 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 					text = "我听到了你的回应，尊重你的选择。"
 				}
 				return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "回应实际关系话题", "visible_text": text, "influences": []any{}, "goal_event_candidates": []any{map[string]any{"goal_ref": ref, "reason": "相关真实对话"}}}}
-			}).on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+			}).onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 				assessments++
 				snapshot := readProcessingGoalSnapshot(t, f)
 				entry := snapshot.Goals[0]

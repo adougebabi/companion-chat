@@ -258,7 +258,7 @@ func TestGoalPlannerNativeLoopConsumesQueryCommitAndReread(t *testing.T) {
 	router.on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
 		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "分享一个可行的摄影想法", "visible_text": "我想尝试以窗边光影为主题拍摄街景，这只是拍摄想法，还没有拍出作品。", "influences": []any{}, "goal_event_candidates": []any{map[string]any{"goal_ref": "goal:ctx_" + stableDigest(committedID), "reason": "实际分享摄影想法"}}}}
 	})
-	router.on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	router.onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		var proof string
 		for _, source := range snapshot.Sources {
@@ -720,7 +720,7 @@ func TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain(t *testing
 		}
 		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "表达当前真实想法", "visible_text": text, "influences": []any{}, "goal_event_candidates": events}}
 	})
-	router.on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	router.onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		s := readProcessingGoalSnapshot(t, f)
 		proof := ""
 		for _, source := range s.Sources {
@@ -1030,7 +1030,7 @@ func TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion(t *test
 		t.Fatal(receipt, err)
 	}
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "dependency-eval-"+f.suffix)
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		s := readProcessingGoalSnapshot(t, f)
 		proof := ""
 		for _, source := range s.Sources {

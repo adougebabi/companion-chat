@@ -15,7 +15,7 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 	goalID := createDialogueGoalForClosure(t, f, []string{"receive one actual relevant response"})
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-memo-provider-"+f.suffix)
 	modelCalls := 0
-	router := newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().onGoalEvaluation(func(payload map[string]any) fakeProviderResult {
 		modelCalls++
 		if value, present := payload["enable_thinking"]; !present || value != false {
 			t.Fatal("production Goal Evaluation entry must explicitly disable thinking", value)
@@ -128,7 +128,7 @@ func TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel(t *testing.T) {
 	createDialogueGoalForClosure(t, f, []string{"receive one actual relevant response"})
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-memo-retry-provider-"+f.suffix)
 	modelCalls := 0
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		modelCalls++
 		if modelCalls == 1 {
 			return fakeProviderResult{Status: http.StatusBadGateway}
@@ -165,7 +165,7 @@ func TestGoalAssessmentMissingCoverageGetsOneTypedCorrection(t *testing.T) {
 	plannerOwnerGoal(t, f, "coverage-correction-second", false)
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-coverage-correction-"+f.suffix)
 	modelCalls := 0
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(payload map[string]any) fakeProviderResult {
 		modelCalls++
 		snapshot := readProcessingGoalSnapshot(t, f)
 		limit := len(snapshot.Goals)
@@ -197,7 +197,7 @@ func TestGoalAssessmentRepeatedMissingCoverageFailsTerminally(t *testing.T) {
 	plannerOwnerGoal(t, f, "coverage-terminal-second", false)
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "goal-coverage-terminal-"+f.suffix)
 	modelCalls := 0
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		modelCalls++
 		snapshot := readProcessingGoalSnapshot(t, f)
 		entry := snapshot.Goals[0]

@@ -24,7 +24,7 @@ func TestGoalStageCompletionReplayDoesNotRepeatNextStage(t *testing.T) {
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "stage-replay-provider-"+f.suffix)
 	assessments := 0
 	firstStage := ""
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		assessments++
 		snapshot := readProcessingGoalSnapshot(t, f)
 		entry := snapshot.Goals[0]

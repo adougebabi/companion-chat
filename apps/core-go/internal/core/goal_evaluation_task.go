@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -218,19 +219,25 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
-	schema := goalEvaluationResponseSchema(binding)
+	schema := objectSchema(map[string]any{"summary": stringSchema()}, []string{"summary"}, false)
 	ctx = withProviderStableTaskContext(ctx, stable)
+	var priorRaw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT result FROM public.goal_evaluation_requests WHERE id=$1`, input.RequestID).Scan(&priorRaw); err != nil {
+		return ProjectionTaskResult{}, err
+	}
+	current["accepted_submissions"] = goalEvaluationAcceptedWireResults(binding, decodeObject(priorRaw))
 	providerInput := jsonString(current)
-	assembly, refreshed, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, projection, "cognitive_assessment", []string{providerContextAuthorityRule, goalEvaluationInstruction}, providerInput, nil, "goal_evaluation_v1", schema)
+	assembly, refreshed, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, projection, "cognitive_assessment", []string{providerContextAuthorityRule, goalEvaluationNativeInstruction}, providerInput, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalEvaluation), "goal_evaluation_v1", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	runID := fmt.Sprintf("%s:claim:%d", input.RequestID, input.ClaimRevision)
+	ctx = context.WithValue(ctx, goalEvaluationSessionKey{}, &goalEvaluationSession{binding: binding, projection: refreshed, runID: runID})
 	providerCtx := WithPromptDiagnostics(WithProviderCorrelation(WithProviderScenario(ctx, "goal_evaluation"), input.RequestID), assembly.Diagnostics)
-	run, err := runGoalEvaluationWithCorrection(input, binding, assembly.Messages, func(messages []map[string]any) (ADKStructuredTaskResult, error) {
-		// Keep the bounded completion reserve available for all Goals' final JSON.
-		// Reasoning sidecars are diagnostic only and cannot settle omitted Goals.
-		return a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, messages, nil, "goal_evaluation_v1", schema, false, nil)
-	})
+	// The private task uses its own frozen refs; ordinary runtime catalog/alias
+	// selection is not installed in this trusted internal evaluation session.
+	capabilityProjection := ContextProjection{OwnerActorID: input.OwnerActorID, FluctlightID: input.FluctlightID, SourceFactID: input.RequestID, PersonalityRuntime: map[string]any{"active_profile_id": input.ProfileID}}
+	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, assembly.Messages, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalEvaluation), "goal_evaluation_v1", schema, false, &ADKCapabilityRequest{TargetKind: "goal_evaluation_run", TargetRef: input.RequestID, AuthorizationActorID: input.OwnerActorID, FluctlightID: input.FluctlightID, SourceFactID: input.RequestID, OperationID: runID, Surface: CapabilitySurfaceGoalEvaluation, Projection: capabilityProjection})
 
 	return ProjectionTaskResult{Completion: run.Completion, Projection: refreshed, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }

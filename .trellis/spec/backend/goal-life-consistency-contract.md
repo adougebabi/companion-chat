@@ -295,7 +295,7 @@ Correct: actor_user.background → owner-approved actor_facts → same runtime p
 Goal due settlement, structured evidence assessment, subobject completion and Owner evidence/history browsing.
 
 ### 2. Signatures
-- `ProcessGoalEvaluationIntent(ctx, requestID)` requires one evaluation per frozen Goal; optional plans supplement it.
+- `ProcessGoalEvaluationIntent(ctx, requestID)` requires one durable native root submission per frozen Goal; independent object/plan submissions supplement it.
 - `GoalEvidence(ctx, actorID, fluctlightID, goalID, limit, cursor) -> GoalPage`.
 - `GET /internal/fluctlights/{fluctlightID}/goals/{goalID}/evidence` and `GET /api/fluctlights/{fluctlightId}/goals/{goalId}/evidence`; query `limit=1..50`, `cursor` opaque.
 - `BrowserClient.goalEvidence(fluctlightId, goalId, cursor)` returns `{items,next_cursor?}`; Goal detail includes first 20 `evidence` and `evidence_next_cursor`.
@@ -310,7 +310,7 @@ Evidence cursors bind Owner instance, Goal and evidence collection; order is `(s
 ### 4. Validation & Error Matrix
 | Condition | Behavior |
 | --- | --- |
-| plan-only output | `goal_assessment_coverage_missing`; no source consumption |
+| no root native submission (summary/plan/object only) | `goal_evaluation_native_submission_missing`; no shared source consumption; independently accepted submissions survive |
 | unknown judgments with no_change | `goal_evaluation_unknown_requires_evidence` |
 | assistant self-report as business proof | `goal_judgment_self_report_not_business_fact` |
 | counter-evidence from another instance/profile/binding | source/profile/binding validation error |
@@ -324,7 +324,7 @@ Evidence cursors bind Owner instance, Goal and evidence collection; order is `(s
 Good: a timely sent message settles an expired commitment while the parent waits for its own remaining criteria. Base: an Owner reads the latest 20 evidence associations then pages older ones. Bad: plan-only output consumes proof, a suppressed reply succeeds, or subobject proof disappears after journal consumption.
 
 ### 6. Tests Required
-`goal_boundary_regression_test.go` covers malformed output rollback, self-report rejection, counter-evidence scope, durable mixed/suppressed/policy settlement, Goal-terminal callbacks, hard deadlines, withdrawal through actual evaluation and timely expired commitments. `goal_stage_replay_test.go` covers distinct redelivery identity, stage dependency, one next stage and unchanged parent progress. Mutual relationship tests assert distinct post-terminal delivery does not duplicate relationship/resolution/outbox. Owner evidence test pages 23 actual records including equal timestamps and rejects foreign/collection scope. Browser route/client and executable GoalPanel async tests cover session forwarding, encoded cursors, stale selection responses and retained CAS drafts.
+`goal_boundary_regression_test.go` covers rejected root isolation, self-report rejection, counter-evidence scope, durable mixed/suppressed/policy settlement, Goal-terminal callbacks, hard deadlines, withdrawal through actual evaluation and timely expired commitments. `goal_stage_replay_test.go` covers distinct redelivery identity, stage dependency, one next stage and unchanged parent progress. Mutual relationship tests assert distinct post-terminal delivery does not duplicate relationship/resolution/outbox. Owner evidence test pages 23 actual records including equal timestamps and rejects foreign/collection scope. Browser route/client and executable GoalPanel async tests cover session forwarding, encoded cursors, stale selection responses and retained CAS drafts.
 
 ### 7. Wrong vs Correct
 Wrong: `covered[plan.GoalID]=true`, or only check source scope for `satisfied`.
@@ -334,3 +334,15 @@ Correct: require a frozen Goal evaluation independently of its plan; validate ev
 ## Worker stop ownership during Goal restart acceptance
 
 Production `StartWorkers` retains Run(nil), queues, deployment version and registrations. Returned workers wrap the SDK stop boundary with `sync.Once`; explicit restart and context cancellation may race, but each physical SDK Worker is stopped once. Verify `TestWorkerExplicitAndContextShutdownStopSDKOnce` under race and the actual PG/Redis/Temporal `TestGoalJointPostgresRedisTemporalWorkerRestart` with race, including cleanup. A successful Goal assertion followed by a cleanup panic is a failed test, never positive acceptance evidence.
+
+
+## Goal Evaluation private native submissions (policy v4)
+
+- Only the typed `RunGoalEvaluationTask` installs an unexported session. Its native catalog exposes `goal.evaluation.submit`, `goal.object.submit`, `goal.plan.submit`. Ordinary Conversation/WakeUp/NativeCognition/Autonomy and Planner catalogs expose none of these; `goal.decide` is Owner direct governance only. `goal.inspect/evaluate/review` retain their read/queue meanings. Tool surface visibility alone is never authorization.
+- `toolExecutionAuthorizer` is capability-owned and checked before preparation and both receipt replay paths. Evaluation checks formal Agent ID, actual native/provider identity, private run including claim revision, surface, Owner/Fluctlight/profile/request, and active DB claim. Public metadata cannot create private authority.
+- Canonical closed Tool schemas carry short refs only. Immutable wire hydration binds real IDs/versions and enforces ownership. Root payload excludes subordinate evaluations; a root and its frozen due review/relationship confirmation share one transaction. Review adjust requires an already accepted independent plan. Core tracks only its own resulting Goal revision chain; external changes still fail CAS.
+- Each submission commits independently through the existing Tool boundary. A domain rejection rolls its savepoint back before producing a durable failed Tool receipt and normal native feedback. Infrastructure/cancellation errors retain their cause. Root completion cascades normally and does not require positive subordinate judgments. A later malformed Stage, plan, summary or model failure cannot undo completed roots. Paused completion retains paused/ready_for_settlement.
+- Frozen snapshot protocol and request result store accepted per-target digest/result, revision chain, outcome/error diagnostics and successful memos. Same accepted digest replays without revision/outbox changes; changed digest conflicts. Same-request retries preserve ref numbers and accepted state; fresh claim RunID avoids replaying failed agent_runs. Truly changed authority supersedes the frozen request and queues only unresolved roots with fresh authority, preserving pending review links.
+- Final assistant JSON is summary-only. Finalization reads the durable journal, never fabricates native calls or applies final prose. Plan/object success cannot cover root evaluation. Unresolved/deferred goals keep shared source events pending; only matching offered source versions are consumed after complete root coverage. Derived goal_revision events are triggers, not proof. Partial successful memos remain reusable and order by actual assessment timestamp; subobject proof links persist independently.
+- Evaluation submissions are excluded from actual business outcome evidence. No new persistence authority, database or LLM orchestration is introduced; snapshot/result and existing tool_executions provide the transaction journal.
+- Local pure/native HTTP tests demonstrate protocol/semantic boundaries. Isolated PostgreSQL tests demonstrate durable completion/rejection/replay/partial-retry/review/source fences only when GO_CORE_TEST_DATABASE_URL is supplied. A skipped database case is not persistence acceptance or live-model evidence.

@@ -130,15 +130,8 @@ func (a *App) commitGoalEvaluationTx(ctx context.Context, tx pgx.Tx, current Goa
 	if _, err := tx.Exec(ctx, `INSERT INTO public.goal_evaluations(id,fluctlight_id,goal_id,request_id,goal_revision,criteria_version,strategy_version,impact,judgments,evidence_refs,blocker,wait_condition,next_step,occurred_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, evaluationID, current.FluctlightID, current.EntityID, nullableString(requestID), current.Revision, effectiveGoalCriteriaVersion(current), goalEvaluationPolicyVersion, candidate.Impact, jsonBytes(judgments), jsonBytes(refs), candidate.Blocker, candidate.WaitCondition, candidate.NextStep, a.now().UTC()); err != nil {
 		return GoalAuthority{}, err
 	}
-	for _, ref := range refs {
-		source := sources[ref]
-		status := "confirmed"
-		if !source.Valid {
-			status = "withdrawn"
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(goal_id,source_event_id) DO UPDATE SET status=EXCLUDED.status,reason=EXCLUDED.reason,updated_at=now()`, "goal_evidence_"+stableDigest(current.EntityID+"\x1f"+ref), current.FluctlightID, current.EntityID, source.EventID, status, "versioned semantic assessment"); err != nil {
-			return GoalAuthority{}, err
-		}
+	if err := persistGoalEvaluationEvidenceLinksTx(ctx, tx, current, refs, sources); err != nil {
+		return GoalAuthority{}, err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.goal_evidence_links SET status='rejected',reason='candidate association not supported by this versioned assessment',updated_at=now() WHERE fluctlight_id=$1 AND goal_id=$2 AND status='candidate' AND source_event_id<>ALL($3::bigint[])`, current.FluctlightID, current.EntityID, goalSourceEventIDsForRefs(refs, sources)); err != nil {
 		return GoalAuthority{}, err
@@ -163,6 +156,22 @@ func (a *App) commitGoalEvaluationTx(ctx context.Context, tx pgx.Tx, current Goa
 		return GoalAuthority{}, err
 	}
 	return next, nil
+}
+
+// Parent and subordinate proofs establish independent durable associations.
+// Later root-only assessments must not lose real Stage/Commitment evidence.
+func persistGoalEvaluationEvidenceLinksTx(ctx context.Context, tx pgx.Tx, current GoalAuthority, refs []string, sources map[string]GoalSource) error {
+	for _, ref := range refs {
+		source := sources[ref]
+		status := "confirmed"
+		if !source.Valid {
+			status = "withdrawn"
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(goal_id,source_event_id) DO UPDATE SET status=EXCLUDED.status,reason=EXCLUDED.reason,updated_at=now()`, "goal_evidence_"+stableDigest(current.EntityID+"\x1f"+ref), current.FluctlightID, current.EntityID, source.EventID, status, "versioned semantic assessment"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func applyGoalObjectEvaluationTx(ctx context.Context, tx pgx.Tx, parent GoalAuthority, candidate GoalObjectEvaluation, kind string, sources map[string]GoalSource, key string) error {

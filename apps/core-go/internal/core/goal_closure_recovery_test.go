@@ -317,7 +317,7 @@ func TestGoalEvaluationBatchRemainderRetainsActualSource(t *testing.T) {
 	}
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "batch-provider-"+f.suffix)
 	calls := 0
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		calls++
 		snapshot := readProcessingGoalSnapshot(t, f)
 		proof := ""

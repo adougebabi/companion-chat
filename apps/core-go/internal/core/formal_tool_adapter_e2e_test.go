@@ -152,6 +152,14 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				t.Fatal("independent product verifier is missing")
 			}
 			testCase.verify(t, fixture, direct)
+			if testCase.name == "goal.decide" {
+				denied := request
+				denied.NativeToolCallID, denied.ProviderRequestID = "owner-native-denied", "controlled-owner-provider"
+				if _, err := fixture.app.ExecuteTool(fixture.ctx, denied); err == nil {
+					t.Fatal("model recovered an Owner governance receipt")
+				}
+				return
+			}
 
 			callID := "controlled-native-" + strings.ReplaceAll(testCase.name, ".", "-")
 			fixture.provider.begin(testCase.name, callID, request.Arguments)

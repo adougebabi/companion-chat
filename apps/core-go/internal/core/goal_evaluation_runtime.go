@@ -23,6 +23,9 @@ type goalEvaluationGoal struct {
 }
 
 type goalEvaluationSnapshot struct {
+	Protocol             string               `json:"protocol,omitempty"`
+	SkippedGoalIDs       []string             `json:"skipped_goal_ids,omitempty"`
+	SkippedGoals         []goalEvaluationGoal `json:"skipped_goals,omitempty"`
 	ProviderSourceIDs    []int64              `json:"provider_source_ids,omitempty"`
 	UnprocessedSourceIDs []int64              `json:"unprocessed_source_ids,omitempty"`
 	Reviews              []GoalReviewContext  `json:"reviews"`
@@ -103,6 +106,13 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 			return err
 		}
 		snapshot.ClaimRevision = claimRevision + 1
+		var frozen goalEvaluationSnapshot
+		if json.Unmarshal(pendingSnapshotRaw, &frozen) == nil && frozen.Protocol == goalEvaluationToolProtocol {
+			frozen.ClaimRevision = snapshot.ClaimRevision
+			snapshot = frozen
+			_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='processing',attempt_count=attempt_count+1,claim_revision=$2,claimed_at=now(),snapshot=$3,error_code=NULL,updated_at=now() WHERE id=$1`, id, snapshot.ClaimRevision, jsonBytes(snapshot))
+			return err
+		}
 		if err := lockLifeContextTx(ctx, tx, snapshot.FluctlightID); err != nil {
 			return err
 		}
@@ -346,7 +356,10 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
 	}
 	claimedSnapshot := snapshot
-	snapshot, skippedGoals := goalAssessmentEligible(snapshot, projection, priorMemos, a.now())
+	skippedGoals := snapshot.SkippedGoalIDs
+	if snapshot.Protocol != goalEvaluationToolProtocol {
+		snapshot, skippedGoals = goalAssessmentEligible(snapshot, projection, priorMemos, a.now())
+	}
 	if len(snapshot.Goals) == 0 {
 		result, settleErr := settleSkippedGoalAssessment(ctx, a, claimedSnapshot, projection, skippedGoals)
 		if settleErr != nil {
@@ -354,7 +367,7 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		}
 		return result, nil
 	}
-	if a.kevService().Enabled(ctx, "goal.completion_check") {
+	if snapshot.Protocol != goalEvaluationToolProtocol && a.kevService().Enabled(ctx, "goal.completion_check") {
 		selected := make([]goalEvaluationGoal, 0, len(snapshot.Goals))
 		var notBefore time.Time
 		for _, entry := range snapshot.Goals {
@@ -399,6 +412,16 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		}
 		snapshot.Goals = selected
 	}
+	// Freeze the offered refs once; retries preserve already committed submissions.
+	snapshot.Protocol = goalEvaluationToolProtocol
+	snapshot.SkippedGoalIDs = skippedGoals
+	if len(snapshot.SkippedGoals) == 0 {
+		for _, entry := range claimedSnapshot.Goals {
+			if containsString(skippedGoals, entry.GoalID) {
+				snapshot.SkippedGoals = append(snapshot.SkippedGoals, entry)
+			}
+		}
+	}
 	// Record the exact offered source subset without dropping the full CAS snapshot.
 	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.goal_evaluation_requests SET snapshot=$3 WHERE id=$1 AND status='processing' AND claim_revision=$2`, id, snapshot.ClaimRevision, jsonBytes(snapshot))
 	if err != nil {
@@ -407,213 +430,31 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	if command.RowsAffected() != 1 {
 		return nil, ErrConflict
 	}
-	task, err := a.RunGoalEvaluationTask(ctx, snapshot, projection)
+	priorResult, err := a.goalEvaluationSubmissionResult(ctx, snapshot)
 	if err != nil {
 		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
 	}
-	var output GoalEvaluationTaskOutput
-	if err := decodeStructuredValue(task.Completion.Structured, &output); err != nil {
-		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
+	_, missing := goalEvaluationSubmissionCoverage(snapshot, goalSubmissionRecords(priorResult))
+	var task ProjectionTaskResult
+	var runErr error
+	if len(missing) > 0 {
+		task, runErr = a.RunGoalEvaluationTask(ctx, snapshot, projection)
+		if err := a.recordGoalEvaluationSubmissionErrors(ctx, snapshot, task.Trace); err != nil {
+			return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, errors.Join(runErr, err))
+		}
 	}
-	result := map[string]any{"status": "succeeded", "request_id": id, "evaluated_goals": []string{}, "skipped_goals": skippedGoals, "source_ids": snapshot.SourceIDs}
-	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := lockLifeContextTx(ctx, tx, snapshot.FluctlightID); err != nil {
-			return err
-		}
-		if err := verifyGoalAssessmentProjectionAuthorityTx(ctx, tx, a, projection); err != nil {
-			return err
-		}
-		var state string
-		var claimRevision int
-		if err := tx.QueryRow(ctx, `SELECT status,claim_revision FROM public.goal_evaluation_requests WHERE id=$1 FOR UPDATE`, id).Scan(&state, &claimRevision); err != nil {
-			return err
-		}
-		if state != "processing" || claimRevision != snapshot.ClaimRevision {
-			return ErrConflict
-		}
-		sources := map[string]GoalSource{}
-		for _, source := range admittedGoalEvaluationSources(snapshot) {
-			sources[source.Ref] = source
-		}
-		goals := map[string]GoalAuthority{}
-		original := map[string]GoalAuthority{}
-		for _, entry := range snapshot.Goals {
-			goals[entry.Goal.EntityID] = entry.Goal
-			original[entry.Goal.EntityID] = entry.Goal
-		}
-		if err := verifySkippedGoalAssessmentTx(ctx, tx, claimedSnapshot, projection, skippedGoals, a.now()); err != nil {
-			return err
-		}
-		covered := map[string]bool{}
-		for _, c := range output.Evaluations {
-			covered[c.GoalID] = true
-		}
-		for id := range goals {
-			if !covered[id] {
-				return errors.New("goal_assessment_coverage_missing")
-			}
-		}
-		seen := map[string]bool{}
-		evaluated := []string{}
-		for _, candidate := range output.Evaluations {
-			goal, ok := goals[candidate.GoalID]
-			if !ok || seen[candidate.GoalID] {
-				return errors.New("goal_evaluation_scope_invalid")
-			}
-			seen[candidate.GoalID] = true
-			for _, entry := range snapshot.Goals {
-				if entry.GoalID == candidate.GoalID {
-					if err := validateGoalObjectEvaluationScope(entry, candidate); err != nil {
-						return err
-					}
-				}
-			}
-			live, err := loadGoalAuthorityTx(ctx, tx, goal.FluctlightID, goal.Ref, ContextReference{EntityID: goal.EntityID, Revision: goal.Revision})
-			if err != nil {
-				return err
-			}
-			if live.TargetActorID == "" {
-				live.TargetActorID = goal.TargetActorID
-			}
-			if candidate.RelationshipConfirmation != nil {
-				for _, entry := range snapshot.Goals {
-					if entry.GoalID == candidate.GoalID {
-						candidate.RelationshipConfirmation.relationshipID = entry.RelationshipID
-						candidate.RelationshipConfirmation.relationshipRevision = entry.RelationshipRevision
-					}
-				}
-			}
-			if candidate.Review != nil && candidate.Review.Decision == "adjust" {
-				planned := false
-				for _, plan := range output.Plans {
-					if plan.GoalID == candidate.GoalID {
-						planned = true
-					}
-				}
-				if !planned {
-					return errors.New("goal_review_adjust_plan_required")
-				}
-			}
-			next, err := a.commitGoalEvaluationTx(ctx, tx, live, candidate, sources, id)
-			if err != nil {
-				return err
-			}
-			for _, review := range snapshot.Reviews {
-				if review.GoalID != candidate.GoalID {
-					continue
-				}
-				if err := commitGoalReviewTx(ctx, tx, live, review, candidate.Review, sources, candidate.NextStep, candidate.NextReviewAt); err != nil {
-					return err
-				}
-				if candidate.Review != nil && ((next.Status == GoalActive && candidate.Review.Decision == "pause") || ((next.Status == GoalActive || next.Status == GoalPaused) && candidate.Review.Decision == "abandon")) {
-					operation := GoalPause
-					if candidate.Review.Decision == "abandon" {
-						operation = GoalAbandon
-					}
-					updated, record, err := ApplyGoalCommand(&next, GoalCommand{Operation: operation, ExpectedRevision: next.Revision, EvidenceRefs: []string{"goal-review:" + review.ID}, Reason: candidate.Review.Explanation, OccurredAt: a.now()})
-					if err != nil {
-						return err
-					}
-					if _, err := persistGoalAuthorityTx(ctx, tx, &next, updated, record, "review-decision:"+review.ID+fmt.Sprint(review.Revision)); err != nil {
-						return err
-					}
-					next = updated
-				}
-			}
-			goals[candidate.GoalID] = next
-			evaluated = append(evaluated, candidate.GoalID)
-		}
-		for _, review := range snapshot.Reviews {
-			if !seen[review.GoalID] {
-				return errors.New("goal_review_evaluation_required")
-			}
-		}
-		seen = map[string]bool{}
-		for _, plan := range output.Plans {
-			goal, ok := goals[plan.GoalID]
-			if !ok || seen[plan.GoalID] {
-				return errors.New("goal_plan_scope_invalid")
-			}
-			seen[plan.GoalID] = true
-			if plan.ExpectedRevision != original[plan.GoalID].Revision {
-				return errors.New("goal_plan_version_conflict")
-			}
-			plan.ExpectedRevision = goal.Revision
-			next, err := applyGoalPlanTx(ctx, tx, goal, plan, id, a.now().UTC())
-			if err != nil {
-				return err
-			}
-			goals[plan.GoalID] = next
-		}
-		for _, goal := range goals {
-			if goal.Status == GoalActive && !goalHasNextState(goal) {
-				var scheduled bool
-				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_intentions WHERE fluctlight_id=$1 AND goal_id=$2 AND status IN ('qualified','due','in_progress') AND expiration>$3)`, goal.FluctlightID, goal.EntityID, a.now()).Scan(&scheduled); err != nil {
-					return err
-				}
-				if !scheduled {
-					return errors.New("goal_assessment_next_step_missing")
-				}
-			}
-		}
-		memos := make([]goalAssessmentMemo, 0, len(evaluated))
-		for _, goalID := range evaluated {
-			entry, err := refreshGoalAssessmentEntryTx(ctx, tx, goals[goalID], admittedGoalEvaluationSources(snapshot))
-			if err != nil {
-				return err
-			}
-			memos = append(memos, goalAssessmentMemoFor(entry, admittedGoalEvaluationSources(snapshot), task.Projection, a.now()))
-		}
-		if err := invalidateGoalSourceLinksTx(ctx, tx, snapshot.Sources); err != nil {
-			return err
-		}
-		if len(snapshot.SourceIDs) > 0 && len(snapshot.DeferredGoalIDs) == 0 {
-			if _, err := tx.Exec(ctx, `UPDATE public.goal_source_events SET processed_at=now() WHERE id=ANY($1::bigint[]) AND fluctlight_id=$2`, snapshot.ProviderSourceIDs, snapshot.FluctlightID); err != nil {
-				return err
-			}
-		}
-		if len(snapshot.DeferredGoalIDs) > 0 {
-			remainderID, err := queueGoalEvaluationTx(ctx, tx, snapshot.FluctlightID, snapshot.ProfileID, "assessment_batch_remainder", id+":remainder", snapshot.DeferredGoalIDs)
-			if err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `UPDATE public.goal_reviews SET evaluation_request_id=$1 WHERE evaluation_request_id=$2 AND status='pending' AND goal_id=ANY($3::text[])`, remainderID, id, snapshot.DeferredGoalIDs); err != nil {
-				return err
-			}
-		}
-		if len(snapshot.DeferredGoalIDs) == 0 {
-			var remaining bool
-			if err := tx.QueryRow(ctx, pendingLinkedGoalSourceSQL, snapshot.FluctlightID, snapshot.ProfileID).Scan(&remaining); err != nil {
-				return err
-			}
-			if remaining {
-				active := []string{}
-				for _, goal := range goals {
-					if goal.Status == GoalActive || goal.Status == GoalPaused {
-						active = append(active, goal.EntityID)
-					}
-				}
-				if len(active) > 0 {
-					if _, err := queueGoalEvaluationTx(ctx, tx, snapshot.FluctlightID, snapshot.ProfileID, "assessment_source_remainder", id+":source-remainder", active); err != nil {
-						return err
-					}
-				}
-			}
-		}
-		result["evaluated_goals"] = evaluated
-		outcomes := []map[string]any{}
-		for _, entry := range snapshot.Goals {
-			if goal, ok := goals[entry.GoalID]; ok {
-				outcomes = append(outcomes, map[string]any{"goal_id": entry.GoalID, "status": goal.Status, "progress": goal.Progress, "ready_for_settlement": goal.ExecutionHint["ready_for_settlement"] == true})
-			}
-		}
-		result["goal_outcomes"] = outcomes
-		result["assessment_memos"] = goalAssessmentMemoValues(memos)
-		_, err = tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='succeeded',result=$2,claimed_at=NULL,error_code=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(result))
-		return err
-	})
+	// Even a later model failure cannot erase accepted Tool results. Persist
+	// coverage/outcomes before recording that failure; do not consume sources yet.
+	if runErr != nil {
+		result, readErr := a.goalEvaluationSubmissionResult(ctx, snapshot)
+		return result, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, errors.Join(runErr, readErr))
+	}
+	result, err := a.finalizeGoalEvaluationSubmissions(ctx, snapshot, claimedSnapshot, projection)
 	if err != nil {
-		return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
+		if err.Error() == "goal_evaluation_native_submission_missing" && goalEvaluationNeedsFreshSnapshot(result) {
+			return a.replaceStaleGoalEvaluation(ctx, snapshot, result)
+		}
+		return result, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, err)
 	}
 	return result, nil
 }

@@ -25,8 +25,6 @@ func insertGoalBoundaryMessage(t *testing.T, f independentToolE2EFixture) string
 
 func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testing.T) {
 	for _, tc := range []struct{ name, code string }{
-		{"plan_only", "goal_assessment_coverage_missing"},
-		{"partial_coverage", "goal_assessment_coverage_missing"},
 		{"satisfied_progressed", "goal_evaluation_completion_impact_mismatch"},
 		{"duplicate_criterion", "goal_evaluation_wire_criterion_ref_invalid"},
 		{"unknown_no_change", "goal_evaluation_unknown_requires_evidence"},
@@ -39,7 +37,6 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 		{"unpublished_draft", "goal_judgment_source_invalid"},
 		{"invalid_item", "goal_judgment_source_invalid"},
 		{"general_goal_relationship_confirmation", "adk_final_contract_invalid"},
-		{"unserved_stage", "adk_final_contract_invalid"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
@@ -71,7 +68,7 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 				}
 			}
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "boundary-provider-"+f.suffix)
-			f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+			f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 				snapshot := readProcessingGoalSnapshot(t, f)
 				entry := snapshot.Goals[0]
 				for _, offered := range snapshot.Goals {
@@ -131,8 +128,23 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 			})}
 			requestID := latestPendingGoalRequest(t, f)
 			_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
-			if err == nil || !strings.Contains(err.Error(), tc.code) {
-				t.Fatalf("expected %s, got %v", tc.code, err)
+			if err == nil || !strings.Contains(err.Error(), "goal_evaluation_native_submission_missing") {
+				t.Fatalf("rejected root was treated as covered: %v", err)
+			}
+			var resultRaw []byte
+			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT result FROM public.goal_evaluation_requests WHERE id=$1`, requestID).Scan(&resultRaw); err != nil {
+				t.Fatal(err)
+			}
+			errorsWire := jsonString(decodeObject(resultRaw)["submission_errors"])
+			expected := tc.code
+			if tc.name == "invalid_impact" {
+				expected = "invalid_arguments"
+			}
+			if tc.name == "general_goal_relationship_confirmation" {
+				expected = "goal_relationship_resolution_scope_invalid"
+			}
+			if !strings.Contains(errorsWire, expected) {
+				t.Fatalf("missing per-call rejection %s: %s", expected, errorsWire)
 			}
 			var status, requestState string
 			var revision, consumed, evaluations, resolutions int
@@ -158,12 +170,9 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 					t.Fatal(err)
 				}
 			}
-			// A correction-exhausted coverage or malformed wire contract is terminal;
-			// no successful memo, source consumption or business mutation is allowed.
+			// Failed root submission keeps its sources pending; native errors are
+			// per-call feedback rather than a discarded aggregate response.
 			wantRequestState := "retry"
-			if tc.name == "plan_only" || tc.name == "partial_coverage" || tc.name == "duplicate_criterion" || tc.name == "satisfied_progressed" {
-				wantRequestState = "failed"
-			}
 			if status != "active" || revision != 1 || requestState != wantRequestState || consumed != 0 || evaluations != 0 || resolutions != 0 {
 				t.Fatalf("invalid output mutated authority: %s rev=%d request=%s consumed=%d evaluations=%d resolutions=%d", status, revision, requestState, consumed, evaluations, resolutions)
 			}
@@ -421,7 +430,7 @@ func TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution(t *test
 			goalID := createDialogueGoalForClosure(t, f, criteria)
 			messageID := insertGoalBoundaryMessage(t, f)
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "withdrawal-boundary-"+f.suffix)
-			f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+			f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 				snapshot := readProcessingGoalSnapshot(t, f)
 				entry := snapshot.Goals[0]
 				var proof GoalSource
@@ -565,7 +574,7 @@ func TestExpiredCommitmentIncludesTimelyProofInFrozenAssessment(t *testing.T) {
 	messageID := insertGoalBoundaryMessage(t, f)
 	f.app.Clock = fixedClock(end.Add(time.Minute))
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "timely-commitment-provider-"+f.suffix)
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		entry := snapshot.Goals[0]
 		if len(entry.Commitments) != 1 || entry.Commitments[0].Status != "expired" {
@@ -642,7 +651,7 @@ func TestActualQueryCanCompleteInformationGoalWithoutBusinessAction(t *testing.T
 		}
 		final.Structured["influences"] = []any{map[string]any{"ref": due["goal_ref"], "role": "motivates", "confidence": 1.0, "note": "information goal"}, map[string]any{"ref": due["intention_ref"], "role": "grounds", "confidence": 1.0, "note": "actual query"}}
 		return final
-	}).on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	}).onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		entry := snapshot.Goals[0]
 		proof := ""

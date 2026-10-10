@@ -75,7 +75,7 @@ func runShortExpressionScopeScenario(t *testing.T, contactAfterDue bool) {
 		}
 		final.Structured["influences"] = []any{map[string]any{"ref": due["goal_ref"], "role": "motivates", "confidence": 1.0, "note": "long mutual goal"}, map[string]any{"ref": due["intention_ref"], "role": "grounds", "confidence": 1.0, "note": "one real expression"}}
 		return final
-	}).on("goal_evaluation_v1", func(_ map[string]any) fakeProviderResult {
+	}).onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 		snapshot := readProcessingGoalSnapshot(t, f)
 		entry := snapshot.Goals[0]
 		selfMessages := 0

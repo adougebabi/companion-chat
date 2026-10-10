@@ -87,12 +87,31 @@ func (request ToolExecutionRequest) validate() error {
 	return nil
 }
 
+// toolExecutionAuthorizer lets a capability fence private task/session
+// authority without adding business dispatch to the generic execution boundary.
+type toolExecutionAuthorizer interface {
+	AuthorizeToolExecution(context.Context, ToolExecutionRequest) error
+}
+
 // ExecuteTool executes one business Tool without Main, an Agent run, or a
 // caller-owned transaction. Provider/planner preparation is completed before
 // the short mutation transaction is opened.
 func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (ToolExecutionReceipt, error) {
 	if err := request.validate(); err != nil {
 		return ToolExecutionReceipt{}, err
+	}
+	// Capability-owned task authorization precedes preparation and both receipt
+	// replay paths; public request fields alone cannot create private authority.
+	if a != nil {
+		if registry := a.capabilityRegistry(); registry != nil {
+			if implementation, ok := registry.LookupCapability(request.CapabilityName); ok {
+				if authorizer, ok := implementation.(toolExecutionAuthorizer); ok {
+					if err := authorizer.AuthorizeToolExecution(ctx, request); err != nil {
+						return ToolExecutionReceipt{}, err
+					}
+				}
+			}
+		}
 	}
 	if a == nil || a.DB == nil || a.DB.Pool() == nil {
 		return ToolExecutionReceipt{}, errors.New("tool execution database unavailable")

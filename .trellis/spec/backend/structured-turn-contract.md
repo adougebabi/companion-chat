@@ -422,3 +422,6 @@ Wrong: use an untyped $4 - interval expression, create a replay-incomplete Event
 retry stale prose, or allow syntactically valid but nonexistent refs to reach commit.
 Correct: typed time and replay-ready Events; consume refreshed context; validate
 actual scoped refs before the existing no-Tool final repair; respect the wire limit.
+
+
+Task-private capabilities may implement Core's `toolExecutionAuthorizer`. The generic ExecuteTool boundary invokes that interface before any mutation receipt replay; business-name dispatch remains forbidden. Private Goal Evaluation sessions must validate actual native/model/task identity and active claim before replay as well as during their mutation transaction. Owner-only governance also uses capability-owned authorization. Catalog visibility does not substitute for this guard.
