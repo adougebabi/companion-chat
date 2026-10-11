@@ -1,0 +1,466 @@
+[
+  {
+    "id": "M01",
+    "intent": "窗外雨后的街道，路面反光，没有人。",
+    "paraphrase": "雨后街景只呈现道路和灯光。",
+    "plan": {
+      "primary_subject": "landscape",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M02",
+    "intent": "我想拍一张傍晚海面的落日。",
+    "paraphrase": "傍晚想用相机记录海上落日。",
+    "plan": {
+      "primary_subject": "landscape",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M03",
+    "intent": "窗台上蜷着一只橘猫，近景。",
+    "paraphrase": "给窗台的橘猫拍个特写。",
+    "plan": {
+      "primary_subject": "animal",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "close_up",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M04",
+    "intent": "我的猫趴在沙发上睡觉。",
+    "paraphrase": "沙发上睡着我的宠物猫，拍下来。",
+    "plan": {
+      "primary_subject": "animal",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M05",
+    "intent": "书桌上的咖啡与设计稿，俯拍。",
+    "paraphrase": "从上往下拍咖啡杯和设计稿。",
+    "plan": {
+      "primary_subject": "mixed",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "top_down"
+    },
+    "error": ""
+  },
+  {
+    "id": "M06",
+    "intent": "衣架上那条连衣裙的商品照。",
+    "paraphrase": "拍挂在衣架上的裙子，不用模特。",
+    "plan": {
+      "primary_subject": "object",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M07",
+    "intent": "拍一下那双靴子放在门边的样子。",
+    "paraphrase": "拍门边摆放的一双靴子。",
+    "plan": {
+      "primary_subject": "object",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M08",
+    "intent": "从我的视角看窗外的雪，不拍到我。",
+    "paraphrase": "镜头向窗外雪景，自己不要出现。",
+    "plan": {
+      "primary_subject": "landscape",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "pov_outward",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M09",
+    "intent": "我手里拿着咖啡，画面只保留手和杯子。",
+    "paraphrase": "只拍我握杯子的手。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "partial",
+      "self_in_frame": "yes",
+      "visible_scope": "hands",
+      "capture_method": "unspecified",
+      "viewpoint": "pov_outward",
+      "framing": "detail",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M10",
+    "intent": "低头拍我脚上的靴子，只拍鞋和一点裤脚。",
+    "paraphrase": "照片只有脚上靴子和裤脚。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "partial",
+      "self_in_frame": "yes",
+      "visible_scope": "feet",
+      "capture_method": "unspecified",
+      "viewpoint": "pov_outward",
+      "framing": "detail",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M11",
+    "intent": "给自己拍一张手持前置自拍，平视近景。",
+    "paraphrase": "拍我自己面对前置镜头的平视特写。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "face",
+      "capture_method": "handheld_selfie",
+      "viewpoint": "subject_facing",
+      "framing": "close_up",
+      "camera_angle": "eye_level"
+    },
+    "error": ""
+  },
+  {
+    "id": "M12",
+    "intent": "在穿衣镜前拍今天穿搭，从头顶到鞋底。",
+    "paraphrase": "对镜拍自己，从头到脚展示穿搭。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "full",
+      "capture_method": "mirror_selfie",
+      "viewpoint": "reflection",
+      "framing": "full_body",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M13",
+    "intent": "对着镜子拍半身照。",
+    "paraphrase": "拍镜子里我的上半身。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "full",
+      "capture_method": "mirror_selfie",
+      "viewpoint": "reflection",
+      "framing": "half_body",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M14",
+    "intent": "朋友帮我拍一张公园里的全身照。",
+    "paraphrase": "由朋友在公园从外部拍我全身。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "full",
+      "capture_method": "external_photo",
+      "viewpoint": "unspecified",
+      "framing": "full_body",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M15",
+    "intent": "相机定时，我站在树下拍全身照。",
+    "paraphrase": "我在树下用定时相机拍全身。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "full",
+      "capture_method": "self_timer",
+      "viewpoint": "unspecified",
+      "framing": "full_body",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M16",
+    "intent": "拍街对面弹吉他的路人，不要拍我。",
+    "paraphrase": "画面中只有对街弹吉他的陌生人。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M17",
+    "intent": "拍我和朋友的合影。",
+    "paraphrase": "我与朋友一起入镜合照。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "full",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M18",
+    "intent": "拍一张我抱着猫的照片。",
+    "paraphrase": "照片中我怀里抱着猫。",
+    "plan": {
+      "primary_subject": "mixed",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "full",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M19",
+    "intent": "猫在前景，远处有个路人。",
+    "paraphrase": "前景拍猫，背景有陌生行人。",
+    "plan": {
+      "primary_subject": "animal",
+      "human_presence": "present",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M20",
+    "intent": "桌上是一只穿裙子的玩偶。",
+    "paraphrase": "桌面玩偶身上穿着裙子。",
+    "plan": {
+      "primary_subject": "object",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M21",
+    "intent": "拍房间，墙上挂着人物海报。",
+    "paraphrase": "房间墙上有一幅人物印刷海报。",
+    "plan": {
+      "primary_subject": "landscape",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M22",
+    "intent": "湖面和山的倒影，不要任何人物。",
+    "paraphrase": "只拍群山倒映在湖中的景色。",
+    "plan": {
+      "primary_subject": "landscape",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M23",
+    "intent": "拍我的背影，脸不要出镜。",
+    "paraphrase": "拍我背对镜头的样子，不拍脸。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "back",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M24",
+    "intent": "我在读一本讲自拍技巧的书，只拍书封。",
+    "paraphrase": "拍书的封面，书名是自拍技巧。",
+    "plan": {
+      "primary_subject": "object",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M25",
+    "intent": "不要自拍，拍窗外的猫。",
+    "paraphrase": "别拍自拍，镜头对着窗外的猫。",
+    "plan": {
+      "primary_subject": "animal",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M26",
+    "intent": "今天只拍风景；明天也许再自拍。",
+    "paraphrase": "本次拍风景，自拍是明天的事。",
+    "plan": {
+      "primary_subject": "landscape",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M27",
+    "intent": "拍张照片吧。",
+    "paraphrase": "来一张照片。",
+    "plan": {
+      "primary_subject": "unknown",
+      "human_presence": "unknown",
+      "self_in_frame": "unknown",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": "media_subject_unresolved"
+  },
+  {
+    "id": "M28",
+    "intent": "拍一座想象中的漂浮城市。",
+    "paraphrase": "用图像表现虚构的空中城市。",
+    "plan": {
+      "primary_subject": "landscape",
+      "human_presence": "none",
+      "self_in_frame": "no",
+      "visible_scope": "unknown",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "unspecified",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  },
+  {
+    "id": "M29",
+    "intent": "拍一张全身照。",
+    "paraphrase": "把我从头到脚拍下来。",
+    "plan": {
+      "primary_subject": "person",
+      "human_presence": "present",
+      "self_in_frame": "yes",
+      "visible_scope": "full",
+      "capture_method": "unspecified",
+      "viewpoint": "unspecified",
+      "framing": "full_body",
+      "camera_angle": "unspecified"
+    },
+    "error": ""
+  }
+]

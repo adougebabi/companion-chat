@@ -13,11 +13,14 @@ func TestImageCapabilityPrepareConsumesResolvedContext(t *testing.T) {
 	capability := imageGenerateCapability{}
 	invocation := CapabilityInvocation{CallID: "image-1", CapabilityName: "media.image.generate", Arguments: []byte(`{"intent":"portrait","capture":{"mode":"mirror_selfie","framing":"full body","mirror":true,"device_visibility":"visible"}}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
 	resolved := CapabilityContext{
-		Visual: &VisualIdentityContext{Data: map[string]any{"asset_id": "visual-1"}},
+		Visual: &VisualIdentityContext{Data: map[string]any{"status": "active", "asset_id": "visual-1"}},
 		Life:   &CurrentLifeContext{Data: map[string]any{"scene": "studio"}},
 		Outfit: &AppearanceContext{Data: map[string]any{"hair": "long"}},
 		State:  &CurrentStateContext{Data: map[string]any{"mood": map[string]any{"label": "calm"}}},
 	}
+	args := decodeObject(invocation.Arguments)
+	args["media_plan"] = mediaTestPlan("person", "present", "yes", "full")
+	invocation.Arguments = jsonBytes(args)
 	prepared, err := capability.Prepare(nil, invocation, resolved)
 	if err != nil {
 		t.Fatal(err)
@@ -59,6 +62,9 @@ func TestImageIntentAndCanonicalContextReachMediaPromptInput(t *testing.T) {
 		Outfit: &AppearanceContext{Data: map[string]any{"outfit": "针织衫"}},
 		State:  &CurrentStateContext{Data: map[string]any{"mood": map[string]any{"label": "平静", "intensity": 0.4}, "pad": map[string]any{"pleasure": 0.3, "arousal": 0.1, "dominance": 0.2}}},
 	}
+	args := decodeObject(invocation.Arguments)
+	args["media_plan"] = mediaTestPlan("person", "present", "yes", "full")
+	invocation.Arguments = jsonBytes(args)
 	prepared, err := capability.Prepare(context.Background(), invocation, resolved)
 	if err != nil {
 		t.Fatal(err)
@@ -72,12 +78,13 @@ func TestImageIntentAndCanonicalContextReachMediaPromptInput(t *testing.T) {
 	if err := json.Unmarshal([]byte(promptInput), &providerConcept); err != nil {
 		t.Fatalf("media prompt input is not JSON: %v: %s", err, promptInput)
 	}
-	binding := mapValue(providerConcept["context_binding"])
+	data := mapValue(providerConcept["allowed_subject_data"])
+	binding := map[string]any{"current_life": data["self_current_environment"], "appearance": data["self_appearance"], "visual_identity": data["self_visual_identity"]}
 	if stringValue(providerConcept["intent"]) != "在窗边读书" ||
 		stringValue(mapValue(binding["current_life"])["scene"]) != "窗边" ||
-		stringValue(mapValue(binding["current_state"])["mood"]) != "平静" ||
+		strings.Contains(promptInput, "平静") ||
 		stringValue(mapValue(binding["appearance"])["outfit"]) != "针织衫" ||
-		stringValue(mapValue(mapValue(binding["visual_identity"])["renderer_constraints"])["chest_cup"]) != "B" {
+		strings.Contains(promptInput, "chest_cup") {
 		t.Fatalf("canonical media intent/context was lost: %s", promptInput)
 	}
 	for _, legacy := range []string{"life_context", "inner_state"} {

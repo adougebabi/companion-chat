@@ -895,7 +895,9 @@ func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, err
 		// the execution failure separately; this row is what product reads. Save
 		// the bounded application error before reconciliation can replace it with
 		// the generic workflow_terminal_failure fallback.
-		terminal := !activity.IsActivity(ctx) || activity.GetInfo(ctx).Attempt >= mediaActivityMaximumAttempts
+		activityErr := mediaActivityFailure(err)
+		var nonretryable *temporal.ApplicationError
+		terminal := !activity.IsActivity(ctx) || activity.GetInfo(ctx).Attempt >= mediaActivityMaximumAttempts || errors.As(activityErr, &nonretryable) && nonretryable.NonRetryable()
 		if terminal {
 			message := boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()})
 			if message != "" {
@@ -904,7 +906,7 @@ func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, err
 				}
 			}
 		}
-		return nil, err
+		return nil, activityErr
 	}
 	return result, nil
 }
@@ -2519,4 +2521,15 @@ func kevWakeUpWait(ctx workflow.Context, delay time.Duration) (bool, error) {
 		return false, ctx.Err()
 	}
 	return manual, nil
+}
+
+func mediaActivityFailure(err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	var failure *core.CapabilityError
+	if errors.As(err, &failure) && !failure.Retryable {
+		return temporal.NewNonRetryableApplicationError(err.Error(), failure.Code, err)
+	}
+	return err
 }

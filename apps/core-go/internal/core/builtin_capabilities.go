@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 	"strings"
 	"time"
 
@@ -53,8 +54,9 @@ type affectCapabilityService interface {
 type conversationReplyCapability struct{ publication *ToolPublicationService }
 type momentPublishCapability struct{ publication *ToolPublicationService }
 type imageGenerateCapability struct {
-	service     imageCapabilityService
-	publication *ToolPublicationService
+	contextResolver ContextResolver
+	service         imageCapabilityService
+	publication     *ToolPublicationService
 }
 type visualIdentityInitializeCapability struct {
 	service visualIdentityCapabilityService
@@ -312,51 +314,143 @@ func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 func (c imageGenerateCapability) Definition() CapabilityDefinition {
 	d := imageCapabilityDefinition()
 	d.InputSchema = imageCapabilityInputSchema()
-	d.RequiredContext = []ContextSlot{SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState}
+	d.RequiredContext = nil
 	return d
 }
 func (c imageGenerateCapability) RequiredContext() []ContextSlot {
 	return c.Definition().RequiredContext
 }
-func (c imageGenerateCapability) Prepare(_ context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
-	if err := requireCapabilityContext(resolved, SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState); err != nil {
-		return invocation, err
+func (c imageGenerateCapability) Prepare(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	var args map[string]any
 	if err := json.Unmarshal(invocation.Arguments, &args); err != nil {
 		return invocation, err
 	}
-	intent := strings.TrimSpace(stringValue(args["intent"]))
-	if intent == "" {
+	intent := stringValue(args["intent"])
+	if strings.TrimSpace(intent) == "" {
 		return invocation, errors.New("media intent is required")
 	}
-	if rawConcept, found, err := capabilityPreparedData(invocation, "media_concept"); err != nil {
+	if raw, found, err := capabilityPreparedData(invocation, "media_concept"); err != nil {
 		return invocation, err
 	} else if found {
-		if err := validatePreparedMediaConcept(mapValue(rawConcept), intent, mapValue(args["capture"])); err != nil {
+		if isBranchedMedia(mapValue(raw)) && stringValue(mapValue(raw)["input_digest"]) != stableDigest(jsonString(args)) {
+			return invocation, errors.New("media_prepared_arguments_conflict")
+		}
+		if err := validatePreparedMediaConcept(mapValue(raw), intent, mapValue(args["capture"])); err != nil {
 			return invocation, err
 		}
 		return invocation, nil
 	}
-	prepared := map[string]any{"intent": intent, "context_binding": map[string]any{}}
+	var app *App
+	if c.publication != nil {
+		app = c.publication.app
+	}
+	explicit := explicitMediaPlan(args)
+	if count, known := args["human_count"]; known && intValue(count) == 0 {
+		if explicit["human_presence"] != nil && explicit["human_presence"] != "none" {
+			return invocation, errors.New("media_human_count_conflict")
+		}
+		explicit["human_presence"] = "none"
+		if explicit["self_in_frame"] == "yes" {
+			return invocation, errors.New("media_human_count_conflict")
+		}
+		explicit["self_in_frame"] = "no"
+	}
+	if err := explicitMediaSubjects(args, invocation.Metadata.FluctlightID, explicit); err != nil {
+		return invocation, err
+	}
+	var service *decision.Service
+	var original func(context.Context, map[string]any) (map[string]any, error)
+	if app != nil {
+		service = app.kevService()
+		original = app.parseMediaPlan
+	}
+	bindings := cloneMap(mapValue(args["referent_bindings"]))
+	if len(bindings) == 0 {
+		firstPerson := "unknown"
+		if invocation.Metadata.Source == "model_tool" {
+			firstPerson = "task_actor"
+		}
+		bindings = map[string]any{"first_person": firstPerson}
+	}
+	ctx = withMediaReferents(ctx, bindings)
+	mediaID, _, _ := mediaInvocationIdentity(invocation)
+	mediaCorrelation := "media:" + mediaID
+	plan, sources, err := ResolveMediaCapturePlan(withMediaCaptureHints(WithProviderCorrelation(ctx, mediaCorrelation), mapValue(args["capture"])), service, decision.Scope{ActorSelf: invocation.Metadata.FluctlightID, ActorUser: invocation.Metadata.AuthorizationActorID, Agent: "media_prompt", RunID: mediaID, CorrelationID: mediaCorrelation, EventID: invocation.SourceFactID}, intent, explicit, original)
+	if err != nil {
+		return invocation, err
+	}
+	slots := []ContextSlot{}
+	if mediaPlanNeedsAppearance(plan) {
+		slots = append(slots, SlotCurrentLife, SlotAppearance)
+	}
+	if mediaPlanHasSelfIdentity(plan) {
+		slots = append(slots, SlotVisualIdentity)
+	}
+	if (app != nil || c.contextResolver != nil) && len(slots) > 0 {
+		var resolver ContextResolver = c.contextResolver
+		if resolver == nil {
+			resolver = NewAppContextResolver(app)
+		}
+		snapshotComplete := true
+		for _, slot := range slots {
+			if len(mapValue(invocation.ContextSnapshot[string(slot)])) == 0 {
+				snapshotComplete = false
+			}
+		}
+		if snapshotComplete {
+			resolver = NewSnapshotContextResolver(invocation.ContextSnapshot)
+		}
+		resolved, err = resolver.Resolve(ctx, ContextRequest{FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, SourceFactID: invocation.SourceFactID, ActionID: invocation.ActionID}, slots)
+		if err != nil {
+			return invocation, err
+		}
+	}
+	concept := map[string]any{"intent": intent, "media_plan_version": mediaPlanVersion, "media_capture_plan": plan, "explicit_constraints": explicit, "field_sources": sources, "referent_bindings": bindings, "task_actor_id": invocation.Metadata.FluctlightID, "source_surface": string(invocation.Metadata.Surface), "input_digest": stableDigest(jsonString(args)), "source": invocation.Metadata.Source, "context_binding": mediaContextForPlan(plan, resolved)}
+	if count, known := args["human_count"]; known {
+		concept["human_count"] = count
+	}
+	if subjects := arrayValue(args["visible_subjects"]); len(subjects) > 0 {
+		if app == nil && len(subjects) > 1 {
+			return invocation, errors.New("media_subject_resolver_unavailable")
+		}
+		if app != nil {
+			contexts, err := app.readMediaSubjectContexts(ctx, invocation, subjects)
+			if err != nil {
+				return invocation, err
+			}
+			if len(contexts) > 0 {
+				concept["subject_contexts"] = contexts
+			}
+		}
+	}
+	if asset := mapValue(args["reference_asset"]); len(asset) > 0 {
+		concept["reference_asset"] = cloneMap(asset)
+	}
 	if capture := mapValue(args["capture"]); len(capture) > 0 {
-		prepared["capture"] = cloneMap(capture)
+		concept["capture"] = cloneMap(capture)
 	}
-	binding := mapValue(prepared["context_binding"])
-	if resolved.Visual != nil {
-		binding["visual_identity"] = resolved.Visual.Data
+	if mediaPlanNeedsAppearance(plan) && resolved.Outfit != nil {
+		concept["appearance_snapshot_digest"] = stableDigest(appearanceSnapshotIdentity(resolved.Outfit.Data))
 	}
-	if resolved.Life != nil {
-		binding["current_life"] = resolved.Life.Data
+	if err := validateBranchedMediaConcept(concept); err != nil {
+		return invocation, err
 	}
-	if resolved.Outfit != nil {
-		binding["appearance"] = resolved.Outfit.Data
+	// Keep only this request's allowed snapshot, even if the caller carried a
+	// chat projection containing all Slot types.
+	projectedContext := CapabilityContext{Identity: resolved.Identity}
+	for key, value := range mapValue(concept["context_binding"]) {
+		if err := projectedContext.set(ContextSlot(key), value); err != nil {
+			return invocation, err
+		}
 	}
-	if resolved.State != nil {
-		binding["current_state"] = resolved.State.Data
+	invocation.ContextSnapshot = capabilityContextSnapshotForSlots(projectedContext, slots)
+	if app != nil && app.DB != nil {
+		app.recordDiagnosticEvent(ctx, "media.capture.prepared", "info", invocation.Metadata.FluctlightID, mediaID, mediaCorrelation, map[string]any{"parent_correlation_id": invocation.Metadata.CorrelationID, "media_request_id": mediaID, "intent": intent, "plan": plan, "field_sources": sources, "allowed_slots": slots, "excluded_sources": []string{"core_persona", "history", "goals", "current_state"}, "version": mediaPlanVersion})
 	}
-	prepared["context_binding"] = binding
-	return withCapabilityPreparedData(invocation, "media_concept", prepared)
+	return withCapabilityPreparedData(invocation, "media_concept", concept)
 }
 
 func validatePreparedMediaConcept(concept map[string]any, intent string, capture ...map[string]any) error {
@@ -366,14 +460,19 @@ func validatePreparedMediaConcept(concept map[string]any, intent string, capture
 	if len(capture) > 0 && jsonString(mapValue(concept["capture"])) != jsonString(capture[0]) {
 		return errors.New("prepared media capture does not match provider arguments")
 	}
-	binding := mapValue(concept["context_binding"])
+	if isBranchedMedia(concept) {
+		return validateBranchedMediaConcept(concept)
+	}
+	// Historical payloads remain readable by migration tooling; execution
+	// validates the versioned branch before any new Provider submission.
 	for _, key := range []string{"visual_identity", "current_life", "appearance", "current_state"} {
-		if len(mapValue(binding[key])) == 0 {
+		if len(mapValue(mapValue(concept["context_binding"])[key])) == 0 {
 			return fmt.Errorf("prepared media context %q is missing", key)
 		}
 	}
 	return nil
 }
+
 func (c imageGenerateCapability) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
 	return executeToolRequired(invocation)
 }
@@ -381,9 +480,6 @@ func (c imageGenerateCapability) Execute(_ context.Context, invocation Capabilit
 func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
 	if c.service == nil || c.publication == nil || c.publication.app == nil {
 		return failedCapabilityResultDetail(invocation, "media_capability_unavailable", true, "media capability is unavailable"), errors.New("media capability unavailable")
-	}
-	if err := requireCapabilityContext(resolved, SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState); err != nil {
-		return failedCapabilityResult(invocation, "context_resolve_failed", true), err
 	}
 	preparedConcept, found, err := capabilityPreparedData(invocation, "media_concept")
 	if err != nil || !found || len(mapValue(preparedConcept)) == 0 {
@@ -396,36 +492,25 @@ func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 	if stringValue(concept["purpose"]) != "" {
 		return failedCapabilityResult(invocation, "media_prepared_purpose_invalid", false), ErrInvalidArguments
 	}
-	contextBinding := mapValue(concept["context_binding"])
-	expectedLifeContextRevision := stringValue(mapValue(contextBinding["current_life"])["context_revision"])
-	frozenLifeContextRevision := stringValue(resolved.Life.Data["context_revision"])
-	if frozenLifeContextRevision == "" || expectedLifeContextRevision != frozenLifeContextRevision {
-		err := newCapabilityError("media_prepared_context_mismatch", false, ErrConflict)
-		return failedCapabilityResult(invocation, "media_prepared_context_mismatch", false), err
+	if err := validateBranchedMediaConcept(concept); err != nil {
+		return failedCapabilityResult(invocation, "media_context_invalid", false), err
 	}
-	if _, err := c.service.requireLifeContextRevisionTx(ctx, tx, invocation.Metadata.FluctlightID, frozenLifeContextRevision, c.publication.app.now().UTC()); err != nil {
-		if errors.Is(err, ErrLifeContextStale) {
-			return failedCapabilityResult(invocation, "media_context_stale", false), newCapabilityError("media_context_stale", false, err)
+	if err := lockMediaSubjectSnapshots(ctx, tx, invocation.Metadata.FluctlightID, concept, c.publication.app.now().UTC()); err != nil {
+		return failedCapabilityResult(invocation, "media_snapshot_stale", false), err
+	}
+	if mediaPlanNeedsAppearance(mapValue(concept["media_capture_plan"])) {
+		binding := mapValue(concept["context_binding"])
+		revision := stringValue(mapValue(binding["current_life"])["context_revision"])
+		if _, err := c.service.requireLifeContextRevisionTx(ctx, tx, invocation.Metadata.FluctlightID, revision, c.publication.app.now().UTC()); err != nil {
+			return failedCapabilityResult(invocation, "media_context_stale", false), err
 		}
-		return failedCapabilityResult(invocation, "media_intent_failed", true), err
-	}
-	if err := validateCurrentCaptureSnapshot(concept); err != nil {
-		return failedCapabilityResult(invocation, "current_capture_snapshot_invalid", false), err
-	}
-	if err := lockEffectiveLifeSnapshotTx(ctx, tx, invocation.Metadata.FluctlightID); err != nil {
-		return failedCapabilityResult(invocation, "media_snapshot_lock_failed", true), err
-	}
-	frozenAppearance := mapValue(contextBinding["appearance"])
-	var currentBody, currentWardrobe int
-	if err := tx.QueryRow(ctx, `SELECT (SELECT revision FROM public.fluctlight_appearance_states WHERE fluctlight_id=$1),(SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1)`, invocation.Metadata.FluctlightID).Scan(&currentBody, &currentWardrobe); err != nil {
-		return failedCapabilityResult(invocation, "media_snapshot_missing", true), err
-	}
-	liveAppearance, _, _, err := readEffectiveLifeSnapshotWith(ctx, tx, invocation.Metadata.FluctlightID, c.publication.app.now().UTC())
-	if err != nil {
-		return failedCapabilityResult(invocation, "media_snapshot_missing", true), err
-	}
-	if currentBody != intValue(frozenAppearance["body_revision"]) || currentWardrobe != intValue(frozenAppearance["wardrobe_revision"]) || appearanceSnapshotIdentity(liveAppearance) != appearanceSnapshotIdentity(frozenAppearance) {
-		return failedCapabilityResult(invocation, "media_snapshot_stale", false), ErrConflict
+		live, _, _, err := readEffectiveLifeSnapshotWith(ctx, tx, invocation.Metadata.FluctlightID, c.publication.app.now().UTC())
+		if err != nil {
+			return failedCapabilityResult(invocation, "media_snapshot_missing", true), err
+		}
+		if stableDigest(appearanceSnapshotIdentity(live)) != stringValue(concept["appearance_snapshot_digest"]) {
+			return failedCapabilityResult(invocation, "media_snapshot_stale", false), ErrConflict
+		}
 	}
 	conversationID, messageID, momentID, err := c.publication.ValidateMediaTargetTx(ctx, tx, MediaPublicationTarget{
 		AuthorizationActorID: target.AuthorizationActorID, FluctlightID: target.FluctlightID,

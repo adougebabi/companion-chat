@@ -46,7 +46,7 @@ func TestKevCancellationDuringSettingsReadIsNotFallback(t *testing.T) {
 	c := DefaultConfig()
 	c.Enabled = true
 	s := &Service{Settings: cancellingSettings{cancel, c}}
-	_, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+	_, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatal("cancelled settings read became original", err)
 	}
@@ -110,7 +110,7 @@ func TestKevSevenPointsChoicesAndDisabled(t *testing.T) {
 			t.Run(point+"/"+choice, func(t *testing.T) {
 				var calls atomic.Int32
 				s, _, store := testService(t, answerHandler(choice, &calls))
-				rs, err := s.Decide(context.Background(), point, Scope{ActorSelf: "actor"}, "bounded-state", []Candidate{{"item", Choice("question")}})
+				rs, err := s.Decide(context.Background(), point, Scope{ActorSelf: "actor"}, "bounded-state", []Candidate{{ID: "item", Question: Choice("question")}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -128,7 +128,7 @@ func TestKevSevenPointsChoicesAndDisabled(t *testing.T) {
 			var calls atomic.Int32
 			s, cfg, _ := testService(t, answerHandler("yes", &calls))
 			cfg.config.Points[point] = false
-			rs, err := s.Decide(context.Background(), point, Scope{}, "", []Candidate{{"item", Choice("question")}})
+			rs, err := s.Decide(context.Background(), point, Scope{}, "", []Candidate{{ID: "item", Question: Choice("question")}})
 			if err != nil || rs[0].Record.Outcome != Original || calls.Load() != 0 {
 				t.Fatalf("disabled called HTTP: %v", err)
 			}
@@ -139,14 +139,14 @@ func TestKevGlobalDisableAndParentCancellationNeverCall(t *testing.T) {
 	var calls atomic.Int32
 	s, cfg, _ := testService(t, answerHandler("yes", &calls))
 	cfg.config.Enabled = false
-	_, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"item", Choice("question")}})
+	_, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{ID: "item", Question: Choice("question")}})
 	if err != nil || calls.Load() != 0 {
 		t.Fatal(err)
 	}
 	cfg.config.Enabled = true
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err = s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"item", Choice("question")}})
+	_, err = s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{ID: "item", Question: Choice("question")}})
 	if !errors.Is(err, context.Canceled) || calls.Load() != 0 {
 		t.Fatal("parent cancellation started a call")
 	}
@@ -154,7 +154,7 @@ func TestKevGlobalDisableAndParentCancellationNeverCall(t *testing.T) {
 func TestKevRawChoiceSurvivesDisableBeforeApplication(t *testing.T) {
 	var calls atomic.Int32
 	s, cfg, store := testService(t, answerHandler("yes", &calls))
-	rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"item", Choice("question")}})
+	rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{ID: "item", Question: Choice("question")}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestKevPersistenceFailureCannotAdopt(t *testing.T) {
 	var calls atomic.Int32
 	s, _, store := testService(t, answerHandler("yes", &calls))
 	store.fail = true
-	rs, err := s.Decide(context.Background(), "context.select", Scope{}, "", []Candidate{{"item", Choice("question")}})
+	rs, err := s.Decide(context.Background(), "context.select", Scope{}, "", []Candidate{{ID: "item", Question: Choice("question")}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestKevPartialQuestionAndMalformedResponses(t *testing.T) {
 	for _, body := range []string{`{}`, `null`, `{"answers":[]}`, `{"answers":{"q_0001":{"type":"choice","choice":"maybe"}}}`, `{"answers":{"q_0001":{"type":"choice","choice":"yes","confidence":0.7,"probabilities":{"yes":-1,"no":1,"unclear":1}}}}`} {
 		t.Run(body, func(t *testing.T) {
 			s, _, _ := testService(t, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, body) })
-			rs, err := s.Decide(context.Background(), "context.select", Scope{}, "", []Candidate{{"item", Choice("question")}})
+			rs, err := s.Decide(context.Background(), "context.select", Scope{}, "", []Candidate{{ID: "item", Question: Choice("question")}})
 			if err != nil || rs[0].Record.Outcome != Original || rs[0].Record.CallStatus != "invalid_response" {
 				t.Fatal(rs, err)
 			}
@@ -195,7 +195,7 @@ func TestKevPartialQuestionAndMalformedResponses(t *testing.T) {
 	s, _, _ := testService(t, func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"answers": map[string]any{"q_0001": validAnswer("no")}})
 	})
-	rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}, {"b", Choice("question")}})
+	rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}, {ID: "b", Question: Choice("question")}})
 	if err != nil || rs[0].Record.Outcome != No || rs[1].Record.Outcome != Original || rs[0].Record.RequestID != rs[1].Record.RequestID {
 		t.Fatal(rs, err)
 	}
@@ -224,7 +224,7 @@ func TestKevTimeoutReasonsDistinguishRequestStageBudgetAndParentCancellation(t *
 		})
 		cfg.config.TimeoutMS = 50
 		cfg.config.BudgetMS = 100
-		rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+		rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}})
 		if err != nil || rs[0].Record.CallStatus != "timeout" || rs[0].Record.Reason != "request_timeout" {
 			t.Fatal(rs, err)
 		}
@@ -241,7 +241,7 @@ func TestKevTimeoutReasonsDistinguishRequestStageBudgetAndParentCancellation(t *
 		cfg.config.TimeoutMS = 50
 		cfg.config.BudgetMS = 100
 		ctx := WithStageBudget(context.Background(), 20*time.Millisecond)
-		rs, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+		rs, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}})
 		if err != nil || rs[0].Record.Outcome != Original || rs[0].Record.CallStatus != "timeout" || rs[0].Record.Reason != "stage_budget_exhausted" {
 			t.Fatal(rs, err)
 		}
@@ -267,7 +267,7 @@ func TestKevTimeoutReasonsDistinguishRequestStageBudgetAndParentCancellation(t *
 		cfg.config.BatchSize = 1
 		cfg.config.TimeoutMS = 100
 		cfg.config.BudgetMS = 100
-		rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}, {"b", Choice("question")}})
+		rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}, {ID: "b", Question: Choice("question")}})
 		if err != nil || len(rs) != 2 || rs[1].Record.CallStatus != "timeout" || rs[1].Record.Reason != "budget_exhausted" {
 			t.Fatal(rs, err)
 		}
@@ -289,7 +289,7 @@ func TestKevTimeoutReasonsDistinguishRequestStageBudgetAndParentCancellation(t *
 			<-started
 			cancel()
 		}()
-		rs, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+		rs, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}})
 		if !errors.Is(err, context.Canceled) || len(rs) != 1 || rs[0].Record.CallStatus != "cancelled" || rs[0].Record.Reason != "request_cancelled" {
 			t.Fatal(rs, err)
 		}
@@ -316,7 +316,7 @@ func TestKevResponseBodyTimeoutKeepsDeadlineCause(t *testing.T) {
 				ctx = WithStageBudget(ctx, 30*time.Millisecond)
 				want = "stage_budget_exhausted"
 			}
-			results, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+			results, err := s.Decide(ctx, "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}})
 			if err != nil || len(results) != 1 || results[0].Record.Reason != want || results[0].Record.CallStatus != "timeout" {
 				t.Fatal("body read timeout lost cause", results, err)
 			}
@@ -347,7 +347,7 @@ func TestKevBatchStateProjectionAndGenericStateCompatibility(t *testing.T) {
 	states := make(map[string]string, 11)
 	for index := range candidates {
 		id := fmt.Sprintf("candidate-%02d", index)
-		candidates[index] = Candidate{id, Choice("question")}
+		candidates[index] = Candidate{ID: id, Question: Choice("question")}
 		states[id] = "state-" + id
 	}
 	_, err := s.DecideWithBatchState(context.Background(), "context.select", Scope{}, candidates, func(batch []Candidate) string {
@@ -402,13 +402,36 @@ func mustJSON(t *testing.T, value any) []byte {
 func TestKevRequestAndResponseLimits(t *testing.T) {
 	s, cfg, _ := testService(t, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, strings.Repeat("x", 2000)) })
 	cfg.config.ResponseBytes = 1024
-	rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{"a", Choice("question")}})
+	rs, err := s.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}})
 	if err != nil || rs[0].Record.Reason != "response_too_large" {
 		t.Fatal(rs, err)
 	}
 	cfg.config.RequestBytes = 1024
-	rs, err = s.Decide(context.Background(), "tools.select", Scope{}, strings.Repeat("x", 2000), []Candidate{{"a", Choice("question")}})
+	rs, err = s.Decide(context.Background(), "tools.select", Scope{}, strings.Repeat("x", 2000), []Candidate{{ID: "a", Question: Choice("question")}})
 	if err != nil || rs[0].Record.Outcome != Original || rs[0].Record.Reason != "request_too_large" {
 		t.Fatal(rs, err)
+	}
+}
+
+func TestMixedMediaBatchFiltersDisabledQuestionsAndRetainsOrder(t *testing.T) {
+	service, settings, _ := testService(t, func(w http.ResponseWriter, r *http.Request) {
+		var request Request
+		_ = json.NewDecoder(r.Body).Decode(&request)
+		if len(request.Questions) != 1 {
+			t.Errorf("sent disabled question: %v", request.Questions)
+		}
+		answers := map[string]any{}
+		for id := range request.Questions {
+			answers[id] = validAnswer("yes")
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"answers": answers})
+	})
+	settings.config.Points["media.capture_plan"] = false
+	results, err := service.Decide(context.Background(), "media.capture_plan", Scope{}, "neutral", []Candidate{{Point: "media.capture_plan", ID: "capture", Question: Choice("capture?")}, {Point: "media.view_plan", ID: "view", Question: Choice("view?")}})
+	if err != nil || len(results) != 2 {
+		t.Fatalf("results=%v err=%v", results, err)
+	}
+	if results[0].Record.CandidateID != "capture" || results[0].Record.CallStatus != "not_called" || results[1].Record.CandidateID != "view" || results[1].Record.Point != "media.view_plan" {
+		t.Fatalf("ordering/filter=%v", results)
 	}
 }

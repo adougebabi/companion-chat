@@ -54,12 +54,12 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 }
 
 func TestMediaPromptInstructionRestoresCaptureFirstAndIdentityAuthority(t *testing.T) {
-	for _, required := range []string{"先确定画面取景", "手持自拍", "镜前自拍", "first_person", "operator_pov", "external_capture", "默认本人前置相机自拍", "视觉身份和当下已知身体"} {
+	for _, required := range []string{"先确定画面取景", "手持自拍", "镜前自拍", "first_person", "operator_pov", "external_capture", "不套用公共自拍模板", "视觉身份和当下已知身体"} {
 		if !strings.Contains(mediaPromptInstruction, required) {
 			t.Fatalf("media instruction lost capture/identity rule %q", required)
 		}
 	}
-	for _, forbidden := range []string{"画面不是普通自拍", "视觉年龄约 20–26", "胸部饱满", "默认生成年轻成年东方女性"} {
+	for _, forbidden := range []string{"默认本人前置相机自拍", "画面不是普通自拍", "视觉年龄约 20–26", "胸部饱满", "默认生成年轻成年东方女性"} {
 		if strings.Contains(mediaPromptInstruction, forbidden) {
 			t.Fatalf("media instruction kept conflicting template %q", forbidden)
 		}

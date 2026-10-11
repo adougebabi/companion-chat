@@ -17,9 +17,10 @@ import (
 	"time"
 )
 
-var Points = []string{"runtime.wakeup", "runtime.reflection", "goal.completion_check", "goal.replenish_plan", "tools.select", "persona.switch", "context.select"}
+var Points = []string{"runtime.wakeup", "runtime.reflection", "goal.completion_check", "goal.replenish_plan", "tools.select", "persona.switch", "context.select", "media.subject_route", "media.capture_plan", "media.view_plan"}
 
 type Config struct {
+	MediaEnabled    bool            `json:"media_enabled"`
 	Enabled         bool            `json:"enabled"`
 	Points          map[string]bool `json:"points"`
 	Endpoint        string          `json:"endpoint"`
@@ -44,10 +45,19 @@ func DefaultConfig() Config {
 	for _, point := range Points {
 		points[point] = true
 	}
-	return Config{Points: points, Endpoint: "http://127.0.0.1:8010/v1/systemone", TimeoutMS: 1500, BudgetMS: 3000, Concurrency: 1, BatchSize: 8, ResponseBytes: 1048576, RequestBytes: 262144, Strategy: "choice_argmax", MaxDeferrals: 3, DeferralSeconds: 60, RetentionDays: 7, Model: "Jakevin/kev-4b-ternary-mlx", ModelRevision: "unknown"}
+	return Config{MediaEnabled: true, Points: points, Endpoint: "http://127.0.0.1:8010/v1/systemone", TimeoutMS: 1500, BudgetMS: 3000, Concurrency: 1, BatchSize: 8, ResponseBytes: 1048576, RequestBytes: 262144, Strategy: "choice_argmax", MaxDeferrals: 3, DeferralSeconds: 60, RetentionDays: 7, Model: "Jakevin/kev-4b-ternary-mlx", ModelRevision: "unknown"}
 }
 
-func (c Config) Allows(point string) bool { return c.Enabled && c.Points[point] }
+func (c Config) Allows(point string) bool {
+	if len(point) > 6 && point[:6] == "media." && !c.MediaEnabled {
+		return false
+	}
+	enabled, present := c.Points[point]
+	if !present && (point == "media.subject_route" || point == "media.capture_plan" || point == "media.view_plan") {
+		enabled = true
+	}
+	return c.Enabled && enabled
+}
 func (c Config) Validate() error {
 	u, err := url.Parse(c.Endpoint)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
@@ -62,11 +72,22 @@ func (c Config) Validate() error {
 	if !unit(c.MinProbability) || !unit(c.MinMargin) {
 		return errors.New("kev_threshold_invalid")
 	}
-	if len(c.Points) != len(Points) {
+	if len(c.Points) < 7 || len(c.Points) > len(Points) {
 		return errors.New("kev_points_invalid")
 	}
-	for _, p := range Points {
+	for _, p := range Points[:7] {
 		if _, ok := c.Points[p]; !ok {
+			return errors.New("kev_points_invalid")
+		}
+	}
+	for p := range c.Points {
+		known := false
+		for _, valid := range Points {
+			if p == valid {
+				known = true
+			}
+		}
+		if !known {
 			return errors.New("kev_points_invalid")
 		}
 	}
@@ -91,6 +112,7 @@ type Request struct {
 	Questions map[string]Question `json:"questions"`
 }
 type Candidate struct {
+	Point    string // Optional per-question point for one mixed media batch.
 	ID       string
 	Question Question
 }
@@ -193,16 +215,21 @@ type Result struct {
 
 func unit(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) && v >= 0 && v <= 1 }
 func ParseAnswer(raw json.RawMessage, config Config) (*Answer, Outcome, float64, float64, error) {
+	return ParseChoiceAnswer(raw, config, Choice("").Criteria)
+}
+
+// ParseChoiceAnswer validates against the exact question options, preserving the binary gates.
+func ParseChoiceAnswer(raw json.RawMessage, config Config, criteria map[string]string) (*Answer, Outcome, float64, float64, error) {
 	var a Answer
 	if err := json.Unmarshal(raw, &a); err != nil {
 		return nil, Original, 0, 0, errors.New("invalid_answer")
 	}
-	if a.Type != "choice" || (a.Choice != "yes" && a.Choice != "no" && a.Choice != "unclear") || a.Confidence == nil || !unit(*a.Confidence) || len(a.Probabilities) != 3 {
+	if a.Type != "choice" || (criteria[a.Choice] == "") || a.Confidence == nil || !unit(*a.Confidence) || len(criteria) < 2 || len(a.Probabilities) != len(criteria) {
 		return nil, Original, 0, 0, errors.New("invalid_answer")
 	}
 	sum := 0.0
 	values := []float64{}
-	for _, key := range []string{"yes", "no", "unclear"} {
+	for key := range criteria {
 		v, ok := a.Probabilities[key]
 		if !ok || !unit(v) {
 			return nil, Original, 0, 0, errors.New("invalid_probabilities")
@@ -212,12 +239,12 @@ func ParseAnswer(raw json.RawMessage, config Config) (*Answer, Outcome, float64,
 	}
 	sort.Float64s(values)
 	p := a.Probabilities[a.Choice]
-	margin := values[2] - values[1]
-	if math.Abs(sum-1) > 0.005 || values[2]-p > 0.0005 {
+	margin := values[len(values)-1] - values[len(values)-2]
+	if math.Abs(sum-1) > 0.005 || values[len(values)-1]-p > 0.0005 {
 		return nil, Original, 0, 0, errors.New("inconsistent_choice")
 	}
 	out := Outcome(a.Choice)
-	if a.Choice == "unclear" || (config.Strategy == "choice_guarded" && (p < config.MinProbability || margin < config.MinMargin)) {
+	if a.Choice == "unclear" || a.Choice == "unknown" || (config.Strategy == "choice_guarded" && (p < config.MinProbability || margin < config.MinMargin)) {
 		out = Original
 	}
 	return &a, out, p, margin, nil
@@ -263,7 +290,16 @@ func (s *Service) decide(ctx context.Context, point string, scope Scope, candida
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if err != nil || !config.Allows(point) {
+	batchPoint := point
+	if !config.Allows(batchPoint) {
+		for _, candidate := range candidates {
+			if candidate.Point != "" && config.Allows(candidate.Point) {
+				batchPoint = candidate.Point
+				break
+			}
+		}
+	}
+	if err != nil || !config.Allows(batchPoint) {
 		return originalResults(candidates, "disabled"), nil
 	}
 	if err = config.Validate(); err != nil {
@@ -278,15 +314,26 @@ func (s *Service) decide(ctx context.Context, point string, scope Scope, candida
 	}
 	budgetCtx, cancel := context.WithDeadline(ctx, budgetDeadline)
 	defer cancel()
-	results := make([]Result, 0, len(candidates))
-	for start := 0; start < len(candidates); start += config.BatchSize {
-		end := min(start+config.BatchSize, len(candidates))
-		batch := candidates[start:end]
+	results := originalResults(candidates, "disabled")
+	eligible := []Candidate{}
+	indices := []int{}
+	for index, candidate := range candidates {
+		if candidate.Point != "" && !config.Allows(candidate.Point) {
+			continue
+		}
+		eligible = append(eligible, candidate)
+		indices = append(indices, index)
+	}
+	for start := 0; start < len(eligible); start += config.BatchSize {
+		end := min(start+config.BatchSize, len(eligible))
+		batch := eligible[start:end]
 		if e := ctx.Err(); e != nil {
 			return results, e
 		}
-		rs, e := s.batch(budgetCtx, ctx, config, version, secret, point, scope, stateForBatch(batch), batch, budgetReason)
-		results = append(results, rs...)
+		rs, e := s.batch(budgetCtx, ctx, config, version, secret, batchPoint, scope, stateForBatch(batch), batch, budgetReason)
+		for offset, result := range rs {
+			results[indices[start+offset]] = result
+		}
 		if e != nil {
 			return results, e
 		}
@@ -439,13 +486,17 @@ func (s *Service) batch(budget, parent context.Context, c Config, version int64,
 	out := make([]Result, len(candidates))
 	for i, candidate := range candidates {
 		r := Record{ID: s.ID(), RequestID: requestID, QuestionID: ids[i], Point: point, CandidateID: candidate.ID, Scope: scope, ConfigVersion: version, SpecVersion: "kev." + point + ".v1", Strategy: c.Strategy, Model: c.Model, ModelRevision: c.ModelRevision, Request: req, RawResponse: string(raw), RawAnswer: envelope.Answers[ids[i]], HTTPStatus: httpStatus, ResponseBytes: len(raw), CallStatus: status, Outcome: Original, ApplicationStatus: "not_applied", Reason: reason, StartedAt: start, CompletedAt: end, RecordedAt: end, DurationMS: end.Sub(start).Milliseconds()}
+		if candidate.Point != "" {
+			r.Point = candidate.Point
+			r.SpecVersion = "kev." + candidate.Point + ".v1"
+		}
 		r.ReturnedModel = envelope.Model
 		r.Usage = envelope.Usage
 		r.ServiceLatency = envelope.Latency
 		r.ResponseBytes = responseBytes
 		r.ResponseLimitExceeded = reason == "response_too_large"
 		if status == "ok" {
-			a, outcome, p, margin, err := ParseAnswer(r.RawAnswer, c)
+			a, outcome, p, margin, err := ParseChoiceAnswer(r.RawAnswer, c, candidate.Question.Criteria)
 			if err != nil {
 				r.CallStatus = "invalid_response"
 				r.Reason = err.Error()

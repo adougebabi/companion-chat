@@ -5,7 +5,7 @@
 Kev gates eligible WakeUp, Reflection, Goal assessment/replenishment, permitted
 Tool disclosure, declared persistent persona conditions and optional context.
 This is a selection adapter over existing execution, not an Agent/loop replacement.
-Kev migration is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`. Current head is `0059_fact_generation_provenance`; `0057_logical_agent_leases` serializes mutable logical decisions while retaining physical per-call queue permits.
+Kev migration is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`. Current head is `0060_media_kev` (additive media audit-point constraint); `0057_logical_agent_leases` serializes mutable logical decisions while retaining physical per-call queue permits.
 
 ## 2. Signatures
 
@@ -34,7 +34,7 @@ A stored model yes stays yes after later disable or audit rejection.
 Defaults: choice_argmax, 1500ms request, 3000ms shared selection stage, 1 concurrent
 request per service instance, 8 questions/batch, zero retries, 3 deferrals, 60s
 backoff and 7-day retention. Missing installed settings leave the original path;
-the explicit local/operator configuration command enables all seven points.
+the explicit local/operator configuration command configures ten points (seven original plus three media).
 Do not write production endpoint or silently overwrite Owner settings in migration.
 
 Complete raw response and each question's raw answer must be durably stored before
@@ -176,3 +176,32 @@ Good: catalog → discover installed hidden Tool → next physical request expos
 
 ### 7. Wrong vs Correct
 Wrong: one global whitelist based on output role, or a catalog dump granting hidden private tools. Correct: explicit Agent whitelist intersected with installation, read-only scoped directory, then additive native schema loading.
+
+## Scenario: Media multi-choice and compatible settings (2026-10-11)
+
+### 1. Scope / Trigger
+Media subject, capture and view supplementation through the existing System One client.
+
+### 2. Signatures
+`Config.MediaEnabled` JSON media_enabled; points media.subject_route/media.capture_plan/media.view_plan.
+`ParseChoiceAnswer(raw,config,criteria)`; binary `ParseAnswer` delegates with yes/no/unclear.
+`Candidate.Point` may name a per-question media point in a mixed second batch; Admit rechecks that point.
+`kev-config --media-only --backup <new-private-file> [--endpoint <reachable URL>] [--disable]`.
+
+### 3. Contracts
+Every probability key must match the actual question criteria, be finite [0,1], sum to one and agree with selected argmax. unknown/unclear fall back; unspecified is a real accepted neutral choice. Existing binary behavior and audit-before-adopt stay intact.
+Default media_enabled=true, global enabled=false. Old complete seven-point maps remain readable; missing media flags use defaults, unknown keys fail. UI restores new default points before merging saved values. Global/media/per-point disable means no media HTTP or prewarm.
+CLI media-only saves a new 0600 fsync backup before updating Owner settings and preserves effective seven-point behavior: when enabling a previously globally disabled Kev, its seven old points stay disabled; media-only disable keeps the existing global setting. Endpoint/settings/strategy/model revisions are retained unless explicitly changed. No migration overwrites settings or credentials. No service environment was activated in this task; user runs the command in their target environment.
+
+### 4. Validation & Error Matrix
+Unknown probability/choice → invalid_response/original; off media switch → zero HTTP; config revoked before freeze → original_used with original raw answer; backup absent/existing path/write failure → no settings update.
+
+### 5. Good/Base/Bad Cases
+Good: one physical capture/view batch retains each logical point's audit and switch. Base: old seven-point JSON works. Bad: media disable changes Goal behavior or an original yes/no question accepts a new arbitrary option.
+
+### 6. Tests Required
+Existing TestKev* plus TestMediaBranchKevTwoStagesAndMixedPointAudit, M34/M40 regressions and criteria-bound multi-choice parsing; independent real probe reports raw answers/errors rather than treating prior binary scores as media accuracy.
+
+### 7. Wrong vs Correct
+Wrong: hard-code three answer labels for every new media question or overwrite all settings to enable only media.
+Correct: bind parsing to the question's allowed choices, preserve raw audit and merge media settings after private backup.

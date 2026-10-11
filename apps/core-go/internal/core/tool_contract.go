@@ -252,7 +252,7 @@ func imageCapabilityDefinition() CapabilityDefinition {
 		Name:          "media.image.generate",
 		Version:       "v1",
 		Type:          CapabilityTypeAction,
-		Description:   "Generate one image; capture specifies its camera relationship and framing.",
+		Description:   "Generate one image from the requested subject. Task ownership does not mean self is visible. Declare media_plan when subjects and capture are known; preserve explicit requirements.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		InputSchema:   imageCapabilityInputSchema(),
@@ -278,7 +278,7 @@ func imageCapabilityDefinition() CapabilityDefinition {
 		SupportsCancel:        true,
 		SupportsRetry:         true,
 		RequiresPreflight:     true,
-		RequiredContext:       []ContextSlot{SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState},
+		RequiredContext:       nil, // Media preparation reads only plan-approved slots.
 		ModelResultOmitFields: []string{"media_intent_id", "task_id", "target_ref", "replayed"},
 	}
 }
@@ -287,12 +287,17 @@ func imageCapabilityInputSchema() map[string]any {
 	return map[string]any{
 		"type": "object", "additionalProperties": false, "required": []any{"intent"},
 		"properties": map[string]any{
-			"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+			"intent":            map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+			"media_plan":        mediaCapturePlanSchema(),
+			"visible_subjects":  mediaVisibleSubjectsSchema(),
+			"referent_bindings": objectSchema(map[string]any{"first_person": enumStringSchema("task_actor", "actor_user", "unknown")}, []string{"first_person"}, false),
+			"human_count":       map[string]any{"type": "integer", "minimum": 0, "maximum": 8, "description": "Explicit in-frame human count, including partial bodies; omit when unspecified."},
+			"reference_asset":   objectSchema(map[string]any{"asset_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "purpose": enumStringSchema("scene", "animal", "object", "subject"), "subject_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}}, []string{"asset_id", "purpose"}, false),
 			"capture": map[string]any{
 				"type": "object", "additionalProperties": false,
 				"properties": map[string]any{
-					"mode":              map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person"}},
-					"framing":           map[string]any{"type": "string", "maxLength": 256, "description": "Photo framing intent for MediaPrompt to normalize. Prefer closeup, upper_body, full_body, body_detail or scene; natural descriptions are accepted as hints, not immutable renderer constraints."},
+					"mode":              map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person", "self_timer"}},
+					"framing":           map[string]any{"type": "string", "maxLength": 256, "description": "Explicit requested framing. Prefer closeup, upper_body, full_body, body_detail or scene; preserve its meaning during normalization."},
 					"angle":             map[string]any{"type": "string", "maxLength": 256},
 					"camera":            map[string]any{"type": "string", "enum": []any{"front", "rear", "external"}},
 					"mirror":            map[string]any{"type": "boolean"},

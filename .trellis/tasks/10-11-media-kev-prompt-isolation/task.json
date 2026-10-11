@@ -1,0 +1,32 @@
+{
+  "id": "media-kev-prompt-isolation",
+  "name": "media-kev-prompt-isolation",
+  "title": "摇光媒体 Kev 拍摄方案与上下文隔离",
+  "description": "依据决策借鉴分析，核实并修复媒体自拍污染，复用 Kev 补充拍摄方案，完成分支隔离与验证",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-10-11",
+  "completedAt": null,
+  "branch": "codex/media-kev-prompt-isolation",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "apps/core-go/internal/core/media_capture_plan.go",
+    "apps/core-go/internal/core/media_prompt_branches.go",
+    "apps/core-go/internal/core/media_workflow_policy.go",
+    "apps/core-go/internal/migrations/media_kev.go",
+    "apps/web/src/components/KevSettings.vue"
+  ],
+  "notes": "Implementation and automated checks ready. User owns real Kev/LLM/ComfyUI/DB/browser acceptance and runtime activation. Await commit confirmation; no deployment/push performed.",
+  "meta": {}
+}

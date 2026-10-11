@@ -67,7 +67,7 @@
 | Reconciliation sees a failed Run while the session remains recoverable | Back off and create a new failed-only Run; never reinterpret the old Run handle as a successful dispatch. |
 | Provider/media result exists but authoritative Visual Identity settlement fails | Return Activity failure, keep bounded retry/reconcile state, and record the exact persistence stage. |
 | Visual Identity backlog coexists with due WakeUp/Reflection | Reserved/aged lifecycle capacity admits the due cognition within the configured bound. |
-| Scene Image without active canonical | Return explicit `identity_pending`; never infer appearance from role/scene text. |
+| Scene Image requiring self identity without active canonical | Return explicit `identity_pending`; never infer appearance from role/scene text. |
 
 ### 5. Good / Base / Bad Cases
 
@@ -148,3 +148,5 @@ Good: generate_candidate native receipt → pending media → review native rece
 
 ### 7. Wrong vs Correct
 Wrong: update updated_at on every poll. Correct: compare semantic business fields before UPDATE and preserve real invalidation.
+
+Ordinary media branch-first v1 owns whether VisualIdentity is queried or used at all; scene/animal/object and nonself branches must not require the task actor canonical image. VisualIdentity seed/character-sheet lifecycle and its exact templates are unchanged. See media-prompt-contract.md for partial/face projection, current body adapter and separate reference channels.

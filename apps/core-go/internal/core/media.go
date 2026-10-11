@@ -69,9 +69,31 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 	if err != nil {
 		return nil, err
 	}
-	workflow = selectComfyWorkflow(config, intent.Prompt, workflow)
 	var concept map[string]any
 	_ = json.Unmarshal([]byte(intent.Prompt), &concept)
+	if stringValue(concept["purpose"]) != "visual_identity" && !isBranchedMedia(concept) && intent.ProviderJobID == "" {
+		upgraded, err := a.upgradeLegacyMediaConcept(ctx, intent, concept)
+		if err != nil {
+			return nil, err
+		}
+		command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET prompt=$2,provider_prompt='',revision=revision+1 WHERE id=$1 AND status IN ('pending','running') AND provider_job_id IS NULL`, intent.ID, jsonString(upgraded))
+		if err != nil {
+			return nil, err
+		}
+		if command.RowsAffected() != 1 {
+			return nil, ErrConflict
+		}
+		a.recordDiagnosticEvent(ctx, "media.contract.upgraded", "info", intent.Owner, intent.ID, "media:"+intent.ID, map[string]any{"from": "legacy", "to": mediaPlanVersion, "previous_concept_digest": stableDigest(intent.Prompt)})
+		concept = upgraded
+		intent.Prompt = jsonString(concept)
+		intent.ProviderPrompt = ""
+	}
+	if isBranchedMedia(concept) {
+		if err := validateBranchedMediaConcept(concept); err != nil {
+			return nil, err
+		}
+	}
+	workflow = selectComfyWorkflow(config, intent.Prompt, workflow)
 	providerJobID := intent.ProviderJobID
 	if providerJobID == "" {
 		prompt := strings.TrimSpace(intent.ProviderPrompt)
@@ -85,7 +107,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 					return nil, err
 				}
 			}
-		} else if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry || (hasCurrentCapture(concept) && len(mapValue(concept["capture_plan"])) == 0) {
+		} else if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry || (hasCurrentCapture(concept) && len(mapValue(concept["capture_plan"])) == 0) || (isBranchedMedia(concept) && len(mapValue(concept["normalized_output"])) == 0) {
 			recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
 			providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "media_prompt"), "media:"+intent.ID)
 			taskResult, providerErr := a.runMediaPromptTaskResult(providerCtx, MediaPromptTaskInput{Intent: intent})
@@ -97,6 +119,13 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 				return nil, errors.New("media prompt generation returned empty text")
 			}
 			prompt = strings.TrimSpace(value)
+			if len(taskResult.Normalized) > 0 {
+				concept["normalized_output"] = taskResult.Normalized
+				intent.Prompt = jsonString(concept)
+				if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET prompt=$2 WHERE id=$1 AND status IN ('pending','running') AND provider_job_id IS NULL`, intent.ID, intent.Prompt); err != nil {
+					return nil, err
+				}
+			}
 			if len(taskResult.CapturePlan) > 0 {
 				concept["capture_plan"] = taskResult.CapturePlan
 				if len(taskResult.CaptureFallback) > 0 {
@@ -116,6 +145,14 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			intent.QualityVerdict = ""
 			intent.QualityCandidateSHA = ""
 		}
+		if isBranchedMedia(concept) {
+			if err := validateMediaWorkflowPolicy(config, concept, workflow); err != nil {
+				return nil, err
+			}
+			if err := validateMediaNormalization(concept, mapValue(concept["normalized_output"])); err != nil {
+				return nil, err
+			}
+		}
 		if hasCurrentCapture(concept) {
 			if err := validateCurrentCaptureWorkflow(workflow); err != nil {
 				return nil, err
@@ -134,6 +171,40 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			constraints = mediaRendererConstraints(concept)
 		}
 		referenceImageFilename := ""
+		if isBranchedMedia(concept) && len(mapValue(concept["reference_asset"])) > 0 {
+			referenceAssetID := stringValue(mapValue(concept["reference_asset"])["asset_id"])
+			if err := a.validateMediaReferenceAsset(ctx, intent.Owner, mapValue(concept["reference_asset"]), concept); err != nil {
+				return nil, err
+			}
+			referenceOwner, ownerErr := mediaReferenceOwner(intent.Owner, mapValue(concept["reference_asset"]), concept)
+			if ownerErr != nil {
+				return nil, ownerErr
+			}
+			if mapValue(concept["reference_asset"])["purpose"] == "subject" && mediaWorkflowReferenceIsLatent(workflow, "{{media_reference_image}}") {
+				appearance := mapValue(mapValue(concept["context_binding"])["appearance"])
+				if referenceOwner != intent.Owner {
+					for _, raw := range arrayValue(concept["subject_contexts"]) {
+						entry := mapValue(raw)
+						if entry["actor_id"] == referenceOwner {
+							appearance = mapValue(entry["appearance"])
+						}
+					}
+				}
+				if err := a.validateLatentIdentityReference(ctx, referenceOwner, referenceAssetID, appearance); err != nil {
+					return nil, err
+				}
+			}
+			mime, content, readErr := a.readMediaAssetContent(ctx, referenceOwner, referenceAssetID)
+			if readErr != nil {
+				return nil, readErr
+			}
+			ordinaryReferenceFilename, uploadErr := a.uploadComfyReferenceImage(ctx, baseURL, referenceAssetID, mime, content)
+			err = uploadErr
+			if err != nil {
+				return nil, err
+			}
+			workflow = replaceMediaReferenceAlias(workflow, ordinaryReferenceFilename)
+		}
 		if mediaWorkflowNeedsVisualIdentityReference(workflow) {
 			if hasCurrentCapture(concept) && !currentCaptureReferenceCompatible(concept) {
 				return nil, errors.New("current_capture_reference_unverified")
@@ -141,6 +212,11 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			referenceAssetID := visualIdentityReferenceAssetID(concept)
 			if referenceAssetID == "" {
 				return nil, errors.New("visual_identity_reference_image_missing")
+			}
+			if isBranchedMedia(concept) && mediaWorkflowReferenceIsLatent(workflow, "{{visual_identity_reference_image}}") {
+				if err := a.validateLatentIdentityReference(ctx, intent.Owner, referenceAssetID, mapValue(mapValue(concept["context_binding"])["appearance"])); err != nil {
+					return nil, err
+				}
 			}
 			mimeType, content, contentErr := a.readMediaAssetContent(ctx, intent.Owner, referenceAssetID)
 			if contentErr != nil {
@@ -158,6 +234,12 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		}
 		workflow, err = replaceMediaPlaceholdersWithReference(workflow, prompt, constraints, referenceImageFilename)
 		if err != nil {
+			return nil, err
+		}
+		if err := validateFinalMediaWorkflow(concept, workflow, prompt); err != nil {
+			return nil, err
+		}
+		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 		payload, _ := json.Marshal(map[string]any{"prompt": workflow})
@@ -318,6 +400,21 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 // persist the same constraints at the concept root. Merge them so both the
 // ordinary and Visual Identity ComfyUI workflows receive the LoRA weight.
 func mediaRendererConstraints(concept map[string]any) map[string]any {
+	if isBranchedMedia(concept) {
+		plan := mapValue(concept["media_capture_plan"])
+		if !mediaPlanHasSelfIdentity(plan) || plan["visible_scope"] != "full" {
+			return map[string]any{}
+		}
+		cup := mapValue(mapValue(mapValue(mapValue(concept["context_binding"])["appearance"])["body_fields"])["chest_cup"])
+		if cup["status"] != "known" {
+			return map[string]any{}
+		}
+		weight, version, err := chestCupToLoRAWeight(stringValue(cup["value"]))
+		if err != nil {
+			return map[string]any{}
+		}
+		return map[string]any{"chest_cup": cup["value"], "chest_lora_weight": weight, "adapter_version": version}
+	}
 	result := cloneMap(mapValue(concept["renderer_constraints"]))
 	if len(result) == 0 {
 		result = make(map[string]any)
@@ -500,6 +597,18 @@ func selectComfyWorkflow(config map[string]any, prompt string, fallback map[stri
 	var concept map[string]any
 	if json.Unmarshal([]byte(prompt), &concept) != nil {
 		return fallback
+	}
+	if isBranchedMedia(concept) {
+		branch := mediaWorkflowBranch(mapValue(concept["media_capture_plan"]))
+		if selected := mapValue(mapValue(config["media_workflows"])[branch]); len(selected) > 0 {
+			return cloneMap(selected)
+		}
+		if branch == "face" || branch == "back" {
+			if selected := mapValue(mapValue(config["media_workflows"])["self"]); len(selected) > 0 {
+				return cloneMap(selected)
+			}
+		}
+		return cloneMap(fallback)
 	}
 	if stringValue(concept["purpose"]) != "visual_identity" {
 		return fallback

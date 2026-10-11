@@ -25,7 +25,7 @@ func currentCapturePlanSchema() map[string]any {
 	}, []string{"framing", "pose", "expression", "lighting", "style"}, false)
 }
 func hasCurrentCapture(concept map[string]any) bool {
-	return stringValue(concept["purpose"]) != "visual_identity" && len(mapValue(mapValue(concept["context_binding"])["appearance"])) > 0
+	return !isBranchedMedia(concept) && stringValue(concept["purpose"]) != "visual_identity" && len(mapValue(mapValue(concept["context_binding"])["appearance"])) > 0
 }
 
 func normalizeCurrentCapturePlan(concept, raw map[string]any) map[string]any {

@@ -539,35 +539,24 @@ func TestCapabilityContextSnapshotRoundTripPreservesRequestedDataAndIdentity(t *
 
 func TestImagePreparePersistsPreparedPayloadWithContextSnapshot(t *testing.T) {
 	image := imageGenerateCapability{}
-	resolver := NewStaticContextResolver(map[ContextSlot]ContextLoader{
-		SlotVisualIdentity: func(context.Context, ContextRequest) (any, error) { return map[string]any{"asset_id": "asset-1"}, nil },
-		SlotCurrentLife:    func(context.Context, ContextRequest) (any, error) { return map[string]any{"scene": "studio"}, nil },
-		SlotAppearance:     func(context.Context, ContextRequest) (any, error) { return map[string]any{"hair": "long"}, nil },
-		SlotCurrentState:   func(context.Context, ContextRequest) (any, error) { return map[string]any{"mood": "calm"}, nil },
-	})
-	invocation := CapabilityInvocation{CallID: "image-1", CapabilityName: "media.image.generate", Arguments: json.RawMessage(`{"intent":"portrait"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
-	resolved, err := resolver.Resolve(context.Background(), ContextRequest{FluctlightID: "fl-1", SourceFactID: "fact-1"}, image.RequiredContext())
+	if len(image.RequiredContext()) != 0 {
+		t.Fatal("image eagerly requires person context")
+	}
+	invocation := CapabilityInvocation{CallID: "image-1", CapabilityName: "media.image.generate", Arguments: jsonBytes(map[string]any{"intent": "静物猫", "media_plan": mediaTestPlan("animal", "none", "no", "unknown")}), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
+	original := string(invocation.Arguments)
+	prepared, err := image.Prepare(context.Background(), invocation, mediaTestContext("FORBIDDEN"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	prepared, err := image.Prepare(context.Background(), invocation, resolved)
-	if err != nil {
-		t.Fatal(err)
+	if string(prepared.Arguments) != original {
+		t.Fatal("arguments changed")
 	}
-	prepared.ContextSnapshot = capabilityContextSnapshotForSlots(resolved, image.RequiredContext())
-	if len(prepared.ContextSnapshot) != 5 {
-		t.Fatalf("prepared snapshot = %#v", prepared.ContextSnapshot)
-	}
-	if string(prepared.Arguments) != string(invocation.Arguments) {
-		t.Fatalf("provider arguments were mutated: before=%s after=%s", invocation.Arguments, prepared.Arguments)
-	}
-	rawConcept, found, err := capabilityPreparedData(prepared, "media_concept")
+	raw, found, err := capabilityPreparedData(prepared, "media_concept")
 	if err != nil || !found {
-		t.Fatalf("prepared media concept missing: found=%v err=%v payload=%s", found, err, prepared.PreparedPayload)
+		t.Fatal("missing prepared payload")
 	}
-	concept := mapValue(rawConcept)
-	if len(mapValue(concept["context_binding"])) != 4 {
-		t.Fatalf("prepared context binding = %#v", concept)
+	if len(mapValue(mapValue(raw)["context_binding"])) != 0 || strings.Contains(jsonString(prepared.ContextSnapshot), "FORBIDDEN") {
+		t.Fatal("person context survived")
 	}
 }
 

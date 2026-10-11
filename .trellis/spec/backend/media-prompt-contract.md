@@ -3,6 +3,8 @@
 > Active media ownership is Go Core + Go Worker. Any legacy SQLite/Node
 > examples in this contract are historical reference only.
 
+> Current ordinary image behavior is governed by **Branch-first media capture v1** below. Earlier selfie defaults, free rewriting of explicit framing and first-person/full-body recovery describe legacy contracts and must not be reintroduced into new media tasks.
+
 ## Scenario: AI-owned media concept, prompt-master template, and durable jobs
 
 ### 1. Scope / Trigger
@@ -396,3 +398,7 @@ and captured submission; snapshot/garment/workflow negatives remain covered.
 
 Wrong: raw capture.framing must equal the master's canonical framing string.
 Correct: interpret input hints, then render one consistent standard photo plan.
+
+## Current image branch contract
+
+See [Media Capture Plan Contract](./media-capture-plan-contract.md) for branch-first v1, scoped subject data, Kev supplementation, normalization and final graph checks.

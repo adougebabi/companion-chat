@@ -29,6 +29,7 @@ boundaries described below.
 | [Fluctlight Life World Contract](./fluctlight-life-world-contract.md) | Local-day versioned Schedule, replan, Event/Context authority, timezone, pending state, and no heuristic routine |
 | [Fluctlight Autonomy Contract](./fluctlight-autonomy-contract.md) | Goal/Intention lifecycle, typed triggers, pre-authorized actions, budgets, independent Tool authorization and receipts, pause/cancel, and governance |
 | [Fluctlight Media Contract](./fluctlight-media-contract.md) | S3-compatible private media, MinIO default deployment, API media authorization, checksums, lifecycle, recovery, and backup |
+| [Media Capture Plan Contract](./media-capture-plan-contract.md) | Branch-first v1, lazy scoped subjects, media Kev, separate references and final graph validation |
 | [Media Prompt Contract](./media-prompt-contract.md) | Typed image/video intent, direct chat requests, and prompt authority |
 | [Visual Identity Contract](./visual-identity-contract.md) | Durable visual self-creation, formal visual Agent and independent generation/review/finalize Tools, canonical assets, and renderer constraints |
 | [Fluctlight Event Contract](./fluctlight-event-contract.md) | PostgreSQL outbox/inbox authority, Redis Streams delivery, reclaim, poison handling, retention, replay, and progress |

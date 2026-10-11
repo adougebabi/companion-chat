@@ -72,6 +72,8 @@ type MediaPromptTaskInput struct {
 
 type MediaPromptTaskResult struct {
 	Prompt          string
+	Normalized      map[string]any
+	RepairCount     int
 	CapturePlan     map[string]any
 	CaptureFallback map[string]any
 }
@@ -81,6 +83,20 @@ func (a *App) RunMediaPromptTask(ctx context.Context, input MediaPromptTaskInput
 	return result.Prompt, err
 }
 func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTaskInput) (MediaPromptTaskResult, error) {
+	conceptInput := decodeObject([]byte(input.Intent.Prompt))
+	if isBranchedMedia(conceptInput) {
+		return a.runBranchedMediaPrompt(ctx, input, conceptInput)
+	}
+	if stringValue(conceptInput["purpose"]) != "visual_identity" && stringValue(conceptInput["intent"]) != "" {
+		upgraded, err := a.upgradeLegacyMediaConcept(ctx, input.Intent, conceptInput)
+		if err != nil {
+			return MediaPromptTaskResult{}, err
+		}
+		return a.runBranchedMediaPrompt(ctx, input, upgraded)
+	}
+	if hasCurrentCapture(conceptInput) {
+		return MediaPromptTaskResult{}, errors.New("media_legacy_intent_missing")
+	}
 	if _, ok := compactMediaConceptObjectForProvider(input.Intent.Prompt); !ok {
 		return MediaPromptTaskResult{}, errors.New("media_prompt_frozen_concept_invalid")
 	}

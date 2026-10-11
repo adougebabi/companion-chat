@@ -2232,6 +2232,10 @@ func compactMediaConceptObjectForProvider(raw string) (map[string]any, bool) {
 	if err := json.Unmarshal([]byte(raw), &value); err != nil || len(value) == 0 {
 		return nil, false
 	}
+	if isBranchedMedia(value) {
+		result, err := mediaNormalizationInput(value)
+		return result, err == nil
+	}
 	result := cloneMap(value)
 	if (len(mapValue(value["capture_plan_fallback"])) > 0 || len(mapValue(value["capture_plan"])) > 0) && hasCurrentCapture(value) {
 		capture, err := effectiveCurrentCaptureCamera(value)
