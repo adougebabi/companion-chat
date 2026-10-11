@@ -537,3 +537,6 @@ Good: actual native reply → committed receipt → final cognition. Base: optio
 
 ### 7. Wrong vs Correct
 Wrong: decode a final field and call publication service. Correct: the model calls conversation.reply, its receipt proves publication, and the caller projects the stored message.
+
+
+Physical request policies may set AllowedToolNames to a subset of the already installed catalog. The queued Generate/Stream adapter narrows actual model.WithTools and effective budget/diagnostics together, rejects unknown/empty requested catalogs with physical_request_tool_catalog_invalid, and never grants capabilities. Nil preserves the existing catalog. Planner query phases use this seam; Goal Evaluation, Visual Identity and conversation publication retain their existing policies and single Runner. Tool-free final repair suppresses the policy as before.

@@ -164,18 +164,21 @@ func readGoalClosureExecutionWith(ctx context.Context, q lifeContextQuerier, own
 	if err == nil {
 		result["evaluation_request"] = decodeObject(raw)
 	}
-	// Both linked outcomes and actual dialogue/domain evidence are visible.
-	// No Attempt is synthesized for an unbound conversation event.
-	err = q.QueryRow(ctx, `SELECT v FROM (
- SELECT jsonb_build_object('outcome_id',id,'kind','outcome','status',status,'capability',capability_name,'error_code',error_code,'occurred_at',occurred_at) v,occurred_at,id::text stable_id FROM public.cognition_action_outcomes WHERE fluctlight_id=$1 AND goal_refs ? $3
- UNION ALL
- SELECT jsonb_build_object('source_id',e.source_id,'source_ref','source:'||e.id,'kind',e.source_kind,'status',l.status,'reason',l.reason,'occurred_at',e.occurred_at),e.occurred_at,e.id::text FROM public.goal_evidence_links l JOIN public.goal_source_events e ON e.id=l.source_event_id WHERE l.fluctlight_id=$1 AND l.goal_id=$2
- ) r ORDER BY occurred_at DESC,stable_id DESC LIMIT 1`, owner, goalID, "goal:ctx_"+stableDigest(goalID)).Scan(&raw)
+	// Execution and assessment evidence have distinct provenance. A message
+	// linked by evaluation cannot claim that an execution attempt happened.
+	err = q.QueryRow(ctx, `SELECT jsonb_build_object('outcome_id',id,'kind','outcome','status',status,'capability',capability_name,'error_code',error_code,'occurred_at',occurred_at) FROM public.cognition_action_outcomes WHERE fluctlight_id=$1 AND goal_refs ? $2 ORDER BY occurred_at DESC,id DESC LIMIT 1`, owner, "goal:ctx_"+stableDigest(goalID)).Scan(&raw)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
 	if err == nil {
 		result["last_result"] = decodeObject(raw)
+	}
+	err = q.QueryRow(ctx, `SELECT jsonb_build_object('source_id',e.source_id,'source_ref','source:'||e.id,'kind',e.source_kind,'status',l.status,'reason',l.reason,'occurred_at',e.occurred_at) FROM public.goal_evidence_links l JOIN public.goal_source_events e ON e.id=l.source_event_id WHERE l.fluctlight_id=$1 AND l.goal_id=$2 ORDER BY e.occurred_at DESC,e.id DESC LIMIT 1`, owner, goalID).Scan(&raw)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if err == nil {
+		result["last_evidence"] = decodeObject(raw)
 	}
 	return nil
 }

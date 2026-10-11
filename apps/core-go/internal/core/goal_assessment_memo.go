@@ -216,6 +216,8 @@ func goalAssessmentSourceFingerprint(source GoalSource) string {
 		"profile_id": source.ProfileID, "conversation_id": source.ConversationID,
 		"subject_actor_id": source.SubjectActorID, "valid": source.Valid,
 		"can_support_success": source.CanSupportSuccess,
+		"context_authority":   source.Data["context_authority"],
+		"message_kind":        source.Data["message_kind"],
 	}
 	return stableDigest(string(jsonBytes(value)))
 }

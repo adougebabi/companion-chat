@@ -789,6 +789,14 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
 		return nil, err
 	}
+	if err := a.repairGoalExecutionHandoffs(ctx, fluctlightID); err != nil {
+		return nil, err
+	}
+	obligations, err := a.goalExecutionObligations(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	ctx = context.WithValue(ctx, goalExecutionObligationsKey{}, obligations)
 	manualKevCycle := false
 	if a.kevService().Enabled(ctx, "runtime.wakeup") {
 		var manualCycle *int
@@ -833,6 +841,8 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if stringValue(projection.LifeContext["behavior_state"]) == "sleep" {
 		return a.persistSleepingCycle(ctx, wakeID, fluctlightID, cycle, settings.IntervalSeconds)
 	}
+	obligations = bindGoalExecutionObligations(obligations, projection.ReferenceIndex)
+	ctx = context.WithValue(ctx, goalExecutionObligationsKey{}, obligations)
 	decorateProjection := func(decorateCtx context.Context, target *ContextProjection) error {
 		active, identityErr := a.hasActiveVisualIdentity(decorateCtx, fluctlightID)
 		if identityErr != nil {
@@ -860,7 +870,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	// here for legacy formal-Agent callers, while surface rendering deduplicates
 	// it instead of stacking the shared conversation/life protocols.
 	operationRules := []string{capabilityWakeUpPolicyInstruction}
-	currentInput := jsonString(map[string]any{"cycle": cycle, "trigger_source": "periodic_check", "target_actor": "actor_user", "has_new_inbound_message": false, "schedule_status": wakeUpScheduleStatus(projection.Schedule)})
+	currentInput := jsonString(map[string]any{"cycle": cycle, "trigger_source": "periodic_check", "target_actor": "actor_user", "has_new_inbound_message": false, "schedule_status": wakeUpScheduleStatus(projection.Schedule), "goal_execution_obligations": publicGoalExecutionObligations(obligations)})
 	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema)
 	if err != nil {
 		return nil, err
@@ -1013,6 +1023,12 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		}
 		if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-fact:"+wakeID, payload); err != nil {
 			return err
+		}
+		if goalExecutionHandoffSettlementEligible(status) {
+			obligations, _ := ctx.Value(goalExecutionObligationsKey{}).([]map[string]any)
+			if err := settleGoalExecutionHandoffsTx(ctx, tx, fluctlightID, wakeID, obligations, a.now().UTC()); err != nil {
+				return err
+			}
 		}
 		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, cycle, intervalSeconds, a.now().UTC())
 		if err != nil {

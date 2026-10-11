@@ -340,6 +340,13 @@ func providerWireSchemaName(payload map[string]any) string {
 		}
 		hasConversationReply = hasConversationReply || name == conversationReplyCapabilityName
 	}
+	// Planner's query phase omits final grammar and installs only its private
+	// query Tool. Recognize the native wire without synthesizing a ToolCall.
+	tools := arrayValue(payload["tools"])
+	if len(tools) == 1 && stringValue(mapValue(mapValue(tools[0])["function"])["name"]) == goalPlannerQuery &&
+		(stringValue(payload["tool_choice"]) == "required" || stringValue(mapValue(mapValue(payload["tool_choice"])["function"])["name"]) == goalPlannerQuery) {
+		return "goal_planner_v1"
+	}
 	if len(goalTools) == 3 && stringValue(payload["tool_choice"]) == "required" {
 		return "goal_evaluation_v1"
 	}

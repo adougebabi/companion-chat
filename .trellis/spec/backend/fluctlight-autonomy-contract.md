@@ -769,3 +769,39 @@ Evaluation and Resolution counts with request retry. Keep relationship guards.
 Wrong: cache all-satisfied progressed as a successful assessment.
 Correct: reject the contradiction before any domain write; only commit valid
 completed candidates through the existing sole writer.
+
+
+## Scenario: Evidence continuity and autonomous plan handoff (2026-10-11)
+
+### 1. Scope / Trigger
+An active Goal receives later complementary proof or an accepted plan without an executable Intention. This contract preserves original criteria and autonomous opportunity without interpreting prose as an action.
+
+### 2. Signatures
+`goalEvaluationSnapshot.RecoverySourceIDs` identifies historical source coverage. `goalHistoricalSourceRecoverySQL` reads two bounded 32-row lanes. `execution_hint.execution_handoff` stores plan_id/status/attempts/not_before/last_wake_id. `bindGoalExecutionObligations(values,ReferenceIndex)` binds actual current Goal refs.
+
+### 3. Contracts
+- Unreferenced candidates remain candidates, including sources never admitted to the model. Read processed/rejected historical sources through the original validity/scope fence; order by oldest actual offering and alternate linked/unlinked lanes with fresh proof. A partial accepted root counts as actual offering even if a sibling or final run later fails. Keep the 128-source snapshot and 12000 provider-input bounds.
+- Message sources carry actual same-conversation previous/next context as interpretation_only, with no independent evidence refs. Admit anchor+context atomically. Private neighbor identity/version/profile/time authority stays off the Provider wire and enters source fingerprint/CAS/memo validation. Current evaluation policy is goal.evaluation.v5; old memos miss. Never infer completion from novel/shopping keywords or raise original criteria via optional preferences.
+- A native accepted plan adds a durable reconsideration marker in the same transaction. Existing periodic WakeUp repairs at most five visible legacy plans, presents eligible obligations before Kev and to its own model, and binds them to the actual admitted reference index. Hidden Goals are neither offered nor consumed. No new Agent, manual continuation or synthetic user message.
+- Context review, completed prerequisite review, profile, pause, hard deadline and existing qualified/due/running/paused Intention ownership hold execution. Candidate Intentions remain eligible for real qualification. The LLM decides native Tool execution or an honest wait; Core never converts next_step text to an action.
+- Same plan retains at most three successful reconsiderations with ten-minute backoff; failed/cancelled/sleep/deferred cycles do not consume it. Same wake replay and changed plan IDs cannot consume twice. Exhausted unchanged plans remain exhausted until a genuinely changed accepted plan; root assessments preserve the marker/budget, terminal roots remove it.
+- Only outcomes actually associated with offered Goals enter GoalEvaluation recent outcomes. Execution last_result and linked last_evidence are separate; message evidence never fabricates an Attempt or acquisition failure.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| No complete proof yet | retain candidate; later complementary source may be admitted |
+| Neighbor/source changes | source stale; preserve existing fresh-request recovery |
+| Goal missing from current scoped index | omit obligation; do not consume its marker |
+| Own/prerequisite context review required | normal Planner review first, no bypass |
+| Failed/sleeping/deferred WakeUp | retain handoff budget |
+| Same plan already owns qualified Intention | do not duplicate dispatch |
+
+### 5. Good / Base / Bad Cases
+Good: genuine preference → later reasoned recommendation → original criterion evaluated with both sources. Good: plan → autonomous WakeUp → create+qualify Intention → actual virtual activity → inventory proof → evaluation. Base: external consent/time wait remains valid. Bad: reject unseen evidence, count all instance failures as this Goal failures, or call a text plan executed.
+
+### 6. Tests Required
+`goal_evidence_retention_test.go` covers fair admission, atomic neighbors, private authority isolation and fingerprint changes; PG covers40 candidates, processed/rejected recovery, original completion and terminal stability. `goal_execution_handoff_test.go` covers plan/replay budgets, typed wait, failed settlement, actual refs and Goal failure isolation. PG handoff test runs no-user-message create+qualify/trigger/native life acquisition/closure with current Goal/Intention refs. No isolated DB means SKIP, never business acceptance.
+
+### 7. Wrong vs Correct
+Wrong: reject every omitted source and repeatedly save “安排中”. Correct: preserve real evidence, send a durable bounded decision obligation into the existing native Tool flow, and settle only real effects.

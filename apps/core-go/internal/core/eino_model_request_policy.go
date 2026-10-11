@@ -3,10 +3,12 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	openaiext "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
+	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
 )
 
 // physicalModelRequestPolicy is a task-owned, request-scoped decision made
@@ -20,6 +22,47 @@ type physicalModelRequestPolicy interface {
 type physicalModelRequestDecision struct {
 	ToolChoice         schema.ToolChoice
 	OmitResponseFormat bool
+	// AllowedToolNames narrows this physical request's installed catalog only.
+	// Nil preserves the task's catalog; it never grants a new capability.
+	AllowedToolNames []string
+}
+
+func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context, opts []model.Option) (*queuedToolCallingChatModel, []model.Option, map[string]any, error) {
+	policy, ok := physicalModelRequestPolicyFromContext(ctx)
+	if !ok {
+		return m, opts, m.responseFormat, nil
+	}
+	decision, err := policy.DecidePhysicalModelRequest(ctx)
+	if err != nil {
+		return m, nil, nil, err
+	}
+	if decision.AllowedToolNames != nil {
+		allowed := map[string]bool{}
+		for _, name := range decision.AllowedToolNames {
+			allowed[name] = true
+		}
+		definitions := []CapabilityDefinition{}
+		for _, d := range m.definitions {
+			if allowed[d.Name] {
+				definitions = append(definitions, d)
+				delete(allowed, d.Name)
+			}
+		}
+		if len(allowed) != 0 || len(definitions) == 0 {
+			return m, nil, nil, fmt.Errorf("physical_request_tool_catalog_invalid")
+		}
+		infos, err := aiagent.CapabilityToolInfos(definitions)
+		if err != nil {
+			return m, nil, nil, err
+		}
+		copyModel := *m
+		copyModel.definitions = definitions
+		m = &copyModel
+		opts = append(opts, model.WithTools(infos))
+	}
+	ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) { return decision, nil }))
+	opts, format, err := applyPhysicalModelRequestPolicy(ctx, opts, m.responseFormat)
+	return m, opts, format, err
 }
 
 type physicalModelRequestPolicyFunc func(context.Context) (physicalModelRequestDecision, error)

@@ -36,7 +36,9 @@ func compactGoalEvaluationSourceData(source GoalSource) map[string]any {
 		return map[string]any{"fact": goalEvaluationFactInput(mapValue(source.Data["fact"]))}
 	}
 	if source.Kind != "outcome" {
-		return source.Data
+		result := cloneMap(source.Data)
+		delete(result, "context_authority")
+		return result
 	}
 	result := cloneMap(source.Data)
 	capability := stringValue(source.Data["capability"])
@@ -82,6 +84,19 @@ func admittedGoalEvaluationSources(snapshot goalEvaluationSnapshot) []GoalSource
 	return selected
 }
 
+func interleaveGoalRecoveryLanes(linked, unlinked []int64) []int64 {
+	result := make([]int64, 0, len(linked)+len(unlinked))
+	for i := 0; i < max(len(linked), len(unlinked)); i++ {
+		if i < len(linked) {
+			result = append(result, linked[i])
+		}
+		if i < len(unlinked) {
+			result = append(result, unlinked[i])
+		}
+	}
+	return result
+}
+
 func admitGoalEvaluationSourceInput(snapshot goalEvaluationSnapshot) (goalEvaluationSnapshot, error) {
 	mandatory := map[string]bool{}
 	for _, goal := range snapshot.Goals {
@@ -96,17 +111,26 @@ func admitGoalEvaluationSourceInput(snapshot goalEvaluationSnapshot) (goalEvalua
 		if mandatory[source.Ref] {
 			return 0
 		}
-		if source.Kind == "message" {
+		if slices.Contains(snapshot.UnprocessedSourceIDs, source.EventID) {
 			return 1
 		}
-		if source.Valid && source.CanSupportSuccess {
+		if slices.Contains(snapshot.RecoverySourceIDs, source.EventID) {
 			return 2
 		}
-		return 3
+		if source.Kind == "message" {
+			return 3
+		}
+		if source.Valid && source.CanSupportSuccess {
+			return 4
+		}
+		return 5
 	}
 	slices.SortStableFunc(sources, func(a, b GoalSource) int {
 		if priority(a) != priority(b) {
 			return priority(a) - priority(b)
+		}
+		if priority(a) == 2 {
+			return slices.Index(snapshot.RecoverySourceIDs, a.EventID) - slices.Index(snapshot.RecoverySourceIDs, b.EventID)
 		}
 		if !a.RecordedAt.Equal(b.RecordedAt) {
 			if a.RecordedAt.After(b.RecordedAt) {
@@ -122,6 +146,31 @@ func admitGoalEvaluationSourceInput(snapshot goalEvaluationSnapshot) (goalEvalua
 		}
 		return 0
 	})
+	// Interleave fresh and recovering evidence units so a steady stream of new
+	// messages cannot consume the whole budget before old complementary proof.
+	required, fresh, recovering, other := []GoalSource{}, []GoalSource{}, []GoalSource{}, []GoalSource{}
+	for _, source := range sources {
+		switch priority(source) {
+		case 0:
+			required = append(required, source)
+		case 1:
+			fresh = append(fresh, source)
+		case 2:
+			recovering = append(recovering, source)
+		default:
+			other = append(other, source)
+		}
+	}
+	sources = required
+	for i := 0; i < max(len(fresh), len(recovering)); i++ {
+		if i < len(fresh) {
+			sources = append(sources, fresh[i])
+		}
+		if i < len(recovering) {
+			sources = append(sources, recovering[i])
+		}
+	}
+	sources = append(sources, other...)
 	snapshot.ProviderSourceIDs = []int64{}
 	rendered, err := renderedGoalEvaluationProviderInput(snapshot)
 	if err != nil {

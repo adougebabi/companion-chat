@@ -219,6 +219,7 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	projection.RecentOutcomes = goalEvaluationScopedOutcomes(input, projection.RecentOutcomes)
 	schema := objectSchema(map[string]any{"summary": stringSchema()}, []string{"summary"}, false)
 	ctx = withProviderStableTaskContext(ctx, stable)
 	var priorRaw []byte
@@ -326,4 +327,23 @@ func compactGoalEvaluationInput(input goalEvaluationSnapshot) map[string]any {
 		return map[string]any{"wire_error": err.Error()}
 	}
 	return map[string]any{"stable_definitions": stable, "current": current}
+}
+
+// Unrelated instance failures are not execution history of an offered Goal.
+func goalEvaluationScopedOutcomes(input goalEvaluationSnapshot, outcomes []map[string]any) []map[string]any {
+	refs := map[string]bool{}
+	for _, entry := range input.Goals {
+		refs["goal:ctx_"+stableDigest(entry.GoalID)] = true
+		refs[entry.Goal.Ref] = true
+	}
+	result := []map[string]any{}
+	for _, outcome := range outcomes {
+		for _, ref := range decisionServiceRefValues(outcome["goal_refs"]) {
+			if refs[ref] {
+				result = append(result, outcome)
+				break
+			}
+		}
+	}
+	return result
 }

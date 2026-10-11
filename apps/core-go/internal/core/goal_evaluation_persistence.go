@@ -32,7 +32,7 @@ func (a *App) commitGoalEvaluationTx(ctx context.Context, tx pgx.Tx, current Goa
 		if err != nil {
 			return GoalAuthority{}, err
 		}
-		if live.Version != source.Version || live.Valid != source.Valid || live.FluctlightID != source.FluctlightID {
+		if goalAssessmentSourceFingerprint(live) != goalAssessmentSourceFingerprint(source) || live.FluctlightID != source.FluctlightID {
 			return GoalAuthority{}, errors.New("goal_evaluation_source_stale")
 		}
 		sources[ref] = live
@@ -55,6 +55,7 @@ func (a *App) commitGoalEvaluationTx(ctx context.Context, tx pgx.Tx, current Goa
 	} else {
 		next.ExecutionHint = map[string]any{"state": current.Status, "pending_evaluation_id": evaluationID, "ready_for_settlement": candidate.Impact == "completed"}
 	}
+	preserveGoalExecutionHandoff(&next, current.ExecutionHint)
 	if candidate.Impact == "completed" {
 		for _, j := range judgments {
 			if j.Verdict == "satisfied" && j.Kind == "relationship" && candidate.RelationshipConfirmation == nil {
@@ -133,9 +134,10 @@ func (a *App) commitGoalEvaluationTx(ctx context.Context, tx pgx.Tx, current Goa
 	if err := persistGoalEvaluationEvidenceLinksTx(ctx, tx, current, refs, sources); err != nil {
 		return GoalAuthority{}, err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE public.goal_evidence_links SET status='rejected',reason='candidate association not supported by this versioned assessment',updated_at=now() WHERE fluctlight_id=$1 AND goal_id=$2 AND status='candidate' AND source_event_id<>ALL($3::bigint[])`, current.FluctlightID, current.EntityID, goalSourceEventIDsForRefs(refs, sources)); err != nil {
-		return GoalAuthority{}, err
-	}
+	// Omission is not a semantic rejection. Complementary proof can become
+	// useful with a later source; unoffered candidates were never assessed.
+	// Keep candidate/confirmed associations until an explicit domain decision
+	// or source withdrawal changes them.
 	if next.Status == GoalCompleted {
 		disposition := "ended"
 		if candidate.ResidualMotivation != "" {

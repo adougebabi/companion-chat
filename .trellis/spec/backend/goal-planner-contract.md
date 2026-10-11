@@ -18,7 +18,7 @@ Preserve the Eino Runner, GoalEvaluation, Stage/Commitment/Intention and Schedul
 - Native Tools: `goal_planner.query` and `goal_planner.commit`, private surface
   `goal_planner`; FormalAgent `goal_planner`, schema `goal_planner_v1`, 12 cycles.
 - Internal/browser resources: `goal-set`, `goal-planning`, `actor-context/:actorId`.
-- Schema head `0057_logical_agent_leases` includes the additive Kev adapter and logical-run coordination. Planner cadence remains `0055_goal_planner_cadence`, additive from released `0054_goal_planner`; the original Planner bundle remains additive from `0053_goal_reconciliation`.
+- Schema head `0059_fact_generation_provenance` includes the additive Kev adapter and logical-run coordination. Planner cadence remains `0055_goal_planner_cadence`, additive from released `0054_goal_planner`; the original Planner bundle remains additive from `0053_goal_reconciliation`.
 
 ## 3. Contracts
 
@@ -142,3 +142,35 @@ Correct: durable trigger + capacity/semantic admission -> bounded formal task ->
 coverage correction or precise failure; new facts/Owner action may start new work.
 `provider_request_failed` is a physical request error, not duplicate skip. An Agent
 final_message/completed diagnostic is not proof of accepted Goal authority.
+
+
+## Scenario: Native query phases and bounded held-context recovery (2026-10-11)
+
+### 1. Scope / Trigger
+A Planner may return summary before consuming queries, leaving active Goals blocked by context_review_required. Only a legitimate Planner commit may clear reviewed_goal_ids.
+
+### 2. Signatures
+`goalPlannerPhysicalRequestPolicy` and `goalPlannerQueryCoverage(trace)` inspect distinct completed native query receipts and physical ModelCallSequence. `RepairGoalPlanning` invokes native_query_v2 held-review recovery through existing normal planning events/runs.
+
+### 3. Contracts
+Until two distinct successful queries exist, expose only installed goal_planner.query, force its actual native call and omit final grammar. Once query coverage exists, permit the full private catalog and final output; semantic no_change/awaiting_facts stay legal. An accepted commit requires a real snapshot query in a later physical call before final; a query in the commit batch is insufficient. No forced creation or commit, no fake query receipts and no second Runner.
+
+Recovery creates one stable versioned trigger per held semantic Goal/context signature, not evaluation revision. Signature includes genuine Actor/profile event sequence and excludes recovery's own event. Current auto-planning/permissions/profile/locks/backoff/max_attempts apply. Existing pending work, committed runs and unrelated failures remain untouched; old query_results_missing failure history is immutable. A semantically justified reviewed_goal_ids commit clears the hold through the original sole path.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Failed or duplicate native query | does not increase coverage |
+| Query beside commit | does not count as post-commit reread |
+| Current query coverage, no viable direction | normal semantic final allowed |
+| Only assessment revision changes | no new recovery budget |
+| Existing commit / different failure / permission off | no blind restart |
+
+### 5. Good / Base / Bad Cases
+Good: query actual constraints → commit reviewed IDs if valid → later snapshot → autonomous handoff becomes eligible. Base: unresolved changed context stays held. Bad: clear review from GoalEvaluation prose or reset the old failed run.
+
+### 6. Tests Required
+`goal_planner_request_policy_test.go` actual HTTP Generate/Stream covers rejected query, repeated IDs, same-batch rejection, later snapshot and identity headers. PG recovery tests assert stable semantic recovery, revision-only non-requeue, backoff/policy and immutable failed/committed history.
+
+### 7. Wrong vs Correct
+Wrong: always use summary grammar, then fail query_results_missing; restart after every Goal revision. Correct: require native query evidence and use one bounded recovery per real held context.

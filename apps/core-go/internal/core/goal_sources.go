@@ -171,6 +171,15 @@ func readGoalSourceWith(ctx context.Context, q lifeContextQuerier, eventID int64
 				return source, err
 			}
 			source.Data = map[string]any{"participants": participants, "text": text, "message_kind": kind, "author_actor_id": author, "conversation_id": conversationID}
+			contextData, authority, err := readGoalMessageSurroundingContext(ctx, q, source, lock)
+			if err != nil {
+				return source, err
+			}
+			if len(contextData) > 0 {
+				source.Data["surrounding_context"] = contextData
+				source.Data["context_authority"] = authority
+				source.Data["context_usage"] = "Interpret this source in its real conversation. Surrounding messages have no evidence refs and cannot independently establish criterion success; cite the actual source author and content."
+			}
 		}
 	case "outcome":
 		var outcome ActionOutcome
@@ -324,3 +333,60 @@ const pendingLinkedGoalSourceSQL = `SELECT EXISTS(
   AND ((e.source_kind='goal_revision' AND e.source_id=g.id)
    OR EXISTS(SELECT 1 FROM public.goal_evidence_links l WHERE l.goal_id=g.id AND l.source_event_id=e.id AND l.status IN ('candidate','confirmed','withdrawn'))))
 )`
+
+// Recovery includes old rejected associations: previous versions used omission
+// as rejection. The original source still has to pass the normal live validity
+// and Goal scope checks. No status/criterion is repaired by this read.
+const goalHistoricalSourceRecoverySQL = `WITH offered AS (
+ SELECT offered_id,max(r.updated_at) AS last_offered
+ FROM public.goal_evaluation_requests r
+ CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(r.snapshot->'provider_source_ids')='array' THEN r.snapshot->'provider_source_ids' ELSE '[]'::jsonb END) offered_id
+ WHERE r.fluctlight_id=$1
+  AND (r.result->'evaluated_goals' ?| $3::text[] OR r.result->'skipped_goals' ?| $3::text[])
+ GROUP BY offered_id
+), candidates AS (
+ SELECT e.id,e.recorded_at,o.last_offered,
+  EXISTS(SELECT 1 FROM public.goal_evidence_links l WHERE l.source_event_id=e.id AND l.goal_id=ANY($3::text[])) AS linked
+ FROM public.goal_source_events e LEFT JOIN offered o ON o.offered_id=to_jsonb(e.id)
+ WHERE e.fluctlight_id=$1 AND ($2='' OR e.profile_id IS NULL OR e.profile_id=$2)
+  AND (e.processed_at IS NOT NULL OR EXISTS(SELECT 1 FROM public.goal_evidence_links l WHERE l.source_event_id=e.id AND l.goal_id=ANY($3::text[])))
+  AND (e.source_kind<>'goal_revision' OR e.source_id=ANY($3::text[]))
+)
+SELECT id FROM candidates WHERE linked=$4
+ORDER BY last_offered ASC NULLS FIRST,recorded_at DESC,id DESC LIMIT 32`
+
+// Neighbors are interpretation-only, have no source/evidence ref, and travel
+// atomically with their anchor through token admission. Keep exact authority
+// privately so changing a question/answer invalidates the same source snapshot.
+func readGoalMessageSurroundingContext(ctx context.Context, q lifeContextQuerier, source GoalSource, lock bool) ([]any, []any, error) {
+	share := ""
+	if lock {
+		share = " FOR SHARE OF m"
+	}
+	rows, err := q.Query(ctx, `SELECT m.id,m.author_actor_id,m.kind,m.text,m.created_at,md5(m.text || m.attachment_refs::text),COALESCE(m.acting_profile_id,'')
+ FROM public.conversation_messages m
+ WHERE m.conversation_id=$1 AND m.id IN (
+  (SELECT prev_msg.id FROM public.conversation_messages prev_msg JOIN public.conversation_messages anchor ON anchor.id=$2
+   WHERE prev_msg.conversation_id=$1 AND prev_msg.sequence<anchor.sequence ORDER BY prev_msg.sequence DESC LIMIT 1)
+  UNION ALL
+  (SELECT next_msg.id FROM public.conversation_messages next_msg JOIN public.conversation_messages anchor ON anchor.id=$2
+   WHERE next_msg.conversation_id=$1 AND next_msg.sequence>anchor.sequence ORDER BY next_msg.sequence ASC LIMIT 1)
+ ) AND m.kind IN ('user','assistant') AND ($3='' OR m.acting_profile_id IS NULL OR m.acting_profile_id=$3)
+ AND EXISTS(SELECT 1 FROM public.conversation_participants p WHERE p.conversation_id=$1 AND p.actor_id=m.author_actor_id)
+ ORDER BY m.sequence`+share, source.ConversationID, source.ID, source.ProfileID)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+	contextData, authority := []any{}, []any{}
+	for rows.Next() {
+		var id, author, kind, text, version, profile string
+		var at time.Time
+		if err := rows.Scan(&id, &author, &kind, &text, &at, &version, &profile); err != nil {
+			return nil, nil, err
+		}
+		contextData = append(contextData, map[string]any{"author_actor_id": author, "message_kind": kind, "text": text, "occurred_at": at, "interpretation_only": true})
+		authority = append(authority, map[string]any{"id": id, "author": author, "kind": kind, "version": version, "profile": profile, "conversation": source.ConversationID, "occurred_at": at})
+	}
+	return contextData, authority, rows.Err()
+}

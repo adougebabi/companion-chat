@@ -524,5 +524,11 @@ func (a *App) kevWakeUpState(ctx context.Context, owner string, cycle int, life 
 		return nil, err
 	}
 	state["unprocessed_events"] = events
+	obligations, err := a.goalExecutionObligations(ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	state["goal_execution_obligations"] = publicGoalExecutionObligations(obligations)
+	state["has_actionable_goal_execution"] = len(obligations) > 0
 	return state, nil
 }

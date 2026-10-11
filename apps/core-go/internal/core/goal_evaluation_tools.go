@@ -440,6 +440,9 @@ func (a *App) applyGoalSubmissionTx(ctx context.Context, tx pgx.Tx, s *goalEvalu
 		if err != nil {
 			return nil, live, err
 		}
+		if err := persistGoalExecutionHandoffTx(ctx, tx, &next, live.ExecutionHint, a.now().UTC()); err != nil {
+			return nil, live, err
+		}
 	default:
 		return nil, live, ErrUnauthorized
 	}

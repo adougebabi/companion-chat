@@ -83,7 +83,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	if err != nil {
 		return nil, err
 	}
-	opts, effectiveResponseFormat, err := applyPhysicalModelRequestPolicy(ctx, opts, m.responseFormat)
+	m, opts, effectiveResponseFormat, err := m.physicalRequestOptions(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	if err != nil {
 		return nil, err
 	}
-	opts, effectiveResponseFormat, err := applyPhysicalModelRequestPolicy(ctx, opts, m.responseFormat)
+	m, opts, effectiveResponseFormat, err := m.physicalRequestOptions(ctx, opts)
 	if err != nil {
 		return nil, err
 	}

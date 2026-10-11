@@ -147,7 +147,7 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 		t.Fatalf("completed Goal lost dynamic authority: %#v %v", goals, err)
 	}
 	execution := mapValue(goals[0]["execution"])
-	if execution["stage"] != "completed" || mapValue(execution["last_result"])["kind"] != "message" || execution["last_attempt"] != nil || mapValue(execution["last_evaluation"])["impact"] != "completed" {
+	if execution["stage"] != "completed" || mapValue(execution["last_evidence"])["kind"] != "message" || execution["last_result"] != nil || execution["last_attempt"] != nil || mapValue(execution["last_evaluation"])["impact"] != "completed" {
 		t.Fatalf("dialogue result disappeared without life activity: %#v", execution)
 	}
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err != nil || assessments != 1 {

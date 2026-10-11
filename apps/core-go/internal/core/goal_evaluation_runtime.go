@@ -26,6 +26,7 @@ type goalEvaluationSnapshot struct {
 	Protocol             string               `json:"protocol,omitempty"`
 	SkippedGoalIDs       []string             `json:"skipped_goal_ids,omitempty"`
 	SkippedGoals         []goalEvaluationGoal `json:"skipped_goals,omitempty"`
+	RecoverySourceIDs    []int64              `json:"recovery_source_ids,omitempty"`
 	ProviderSourceIDs    []int64              `json:"provider_source_ids,omitempty"`
 	UnprocessedSourceIDs []int64              `json:"unprocessed_source_ids,omitempty"`
 	Reviews              []GoalReviewContext  `json:"reviews"`
@@ -259,25 +260,35 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 				seenSources[eventID] = true
 			}
 		}
-		rows, err = tx.Query(ctx, `SELECT DISTINCT source_event_id FROM public.goal_evidence_links WHERE goal_id=ANY($1::text[]) AND status IN ('candidate','confirmed','withdrawn') ORDER BY source_event_id DESC LIMIT 32`, selectedIDs)
-		if err != nil {
-			return err
-		}
-		for rows.Next() {
-			var eventID int64
-			if err := rows.Scan(&eventID); err != nil {
-				rows.Close()
+		// Two separate bounded lanes prevent linked backlog from starving
+		// previously processed, unlinked conversation evidence. Within each lane,
+		// least recently offered evidence rotates ahead of already covered rows.
+		recoveryLanes := [][]int64{}
+		for _, linked := range []bool{true, false} {
+			lane := []int64{}
+			rows, err = tx.Query(ctx, goalHistoricalSourceRecoverySQL, snapshot.FluctlightID, snapshot.ProfileID, selectedIDs, linked)
+			if err != nil {
 				return err
 			}
-			if !seenSources[eventID] {
-				snapshot.SourceIDs = append(snapshot.SourceIDs, eventID)
-				seenSources[eventID] = true
+			for rows.Next() {
+				var eventID int64
+				if err := rows.Scan(&eventID); err != nil {
+					rows.Close()
+					return err
+				}
+				if !seenSources[eventID] {
+					snapshot.SourceIDs = append(snapshot.SourceIDs, eventID)
+					lane = append(lane, eventID)
+					seenSources[eventID] = true
+				}
 			}
+			rows.Close()
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			recoveryLanes = append(recoveryLanes, lane)
 		}
-		rows.Close()
-		if err := rows.Err(); err != nil {
-			return err
-		}
+		snapshot.RecoverySourceIDs = interleaveGoalRecoveryLanes(recoveryLanes[0], recoveryLanes[1])
 		if len(snapshot.SourceIDs) > 128 {
 			return errors.New("goal_evidence_context_overflow")
 		}

@@ -238,3 +238,16 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 独立check修正恢复工具误入候选、settings-read fallback丢工具、tool-free Agent泄露utilities；主线程补物理请求disabled/version/settings-error三组同类回退回归。完整Go race/vet/build/gofmt/diff通过；最终全仓race JSON计数1468PASS/501SKIP/0FAIL（包括主线程追加的物理请求回退三组回归）。实际HTTP/Eino Generate/Stream测试已跑；PG/Redis/Temporal/真实Provider opt-in未配置跳过，不称生产验收。未改Web/API合同，无前端重跑；没有部署、安装DB、写正式数据或提交。服务507内存不足独立于本修复，不能称已解决。
 
 本轮收尾同步了旧PG正向私聊夹具：显式ReplyText脚本产生原生reply与真实结果后final，SSE发送ToolCall后final，Goal closure/planner与fault sensitivity保留产品断言；移除成本报告中obsolete natural_final成功路径。夹具相关PG执行仍SKIP，历史剩余成本数字需隔离DB重生成，不能作为当前版本实测。
+
+
+## 2026-10-11 目标完成观感、证据连续性与自治交接
+
+现场只读：林岚人格晴岚的“根据对方真实阅读偏好推荐一本小说”当前active、progress0、criteria_version1、revision27。完整27条根修订为create/progressed/no_change，未见根completed→active，不能确认用户此前看到完成是持久根状态。实际聊天10-10 09:41“人物本身？应该是”与10:20《灯塔》推荐及理由存在，但最新评估仍仅依据旧《斯通纳》/泛小说兴趣。短靴目标active revision24，没有关联Attempt，多次text plan，且真实context_review_required阻塞；最近Planner失败query_results_missing。
+
+确认并修复：移除所有未引用candidate整批rejected；有界历史恢复包括processed/rejected，关联/未关联各32并公平轮转，部分成功根提交保留实际offering历史；真实消息±1邻域原子准入/私有fingerprint+CAS，policyv5使旧memo失效。原标准与模型语义判断不变，不按关键词自动完成。
+
+已接受plan保存稳定execution_handoff，既有周期WakeUp修复旧plan并在Kev前提供执行义务，当前真实Goalref绑定、candidate资格确认、已有dispatch去重；成功周期最多3次重新考虑/10m，失败睡眠延期不耗次数，后续评估保留marker、终态清除。全局失败不冒充目标失败，execution.last_result与last_evidence分离。
+
+Planner新增实际query阶段：两条不同成功query前query-only forced/no final grammar；commit后必须后续物理轮snapshot。正常RepairGoalPlanning只为旧query_missing上下文复核提供版本化正常新请求，不重置旧失败/已提交记录，不把评估revision变化当新恢复机会，保留所有权限、budget、backoff、复核和CAS。
+
+最终独立核验：Go全仓race JSON1486PASS/508SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过；实际HTTP/Eino Generate/Stream已运行。PG源恢复、40候选保留、未主动用户消息的虚拟生活闭环、Planner恢复等因未配置隔离DB明确SKIP，SQL/参数只作静态核验。无新增migration，head仍0059；没有安装服务、写正式业务数据、提交或部署。未改Web/API结构，新增execution字段属既有open record，无前端回归。真实业务效果由用户验收，不能称正式Goal已完成或购物已执行。
