@@ -722,7 +722,11 @@ func (t einoHeaderRoundTripper) RoundTrip(request *http.Request) (*http.Response
 		clone.Header.Set("Idempotency-Key", requestID)
 		clone.Header.Set("X-Fluctlight-Provider-Request-Id", requestID)
 	}
-	return t.base.RoundTrip(clone)
+	response, err := t.base.RoundTrip(clone)
+	if err != nil || response == nil || response.StatusCode < 400 {
+		return response, err
+	}
+	return nil, preserveProviderHTTPError(clone, response)
 }
 
 func einoHTTPClientWithHeaders(base *http.Client, headers map[string]string) *http.Client {

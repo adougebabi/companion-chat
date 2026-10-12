@@ -316,3 +316,35 @@ vet/build/gofmt/diff检查通过；日志 /tmp/turn-reference-final-race.json、
 PG Actor当前来源、adapter持久化等因无GO_CORE_TEST_DATABASE_URL明确SKIP。
 本轮无Web/publicAPI变更，未重跑前端或API生成；未新增migration、安装数据库、
 修改正式配置、写正式业务数据、提交或部署。正式真实模型/数据库效果由用户验收。
+
+
+## 2026-10-12 最新私聊与 WakeUp 空 Provider 错误
+
+只读现场21:13:30 turn_ae1bd803-843e-40d4-9cc7-35dd225aae13使用
+LM Studio100.80.75.9:1234 cydonia-24b-v4.3-heretic-v2-i1，约70ms失败，
+无Response/Tools，cause仅provider request failed。用户21:19:04服务日志确认
+收到原生请求（max_completion_tokens40960）；用户加载32k，预算不匹配
+不能直接认定为这次拒绝原因。此前11234 refused/reset属于另一服务。
+
+研究固定版本源码并用内存RoundTripper复现：SDK遇到缺失/错误类型message
+的error对象，RequestError保存真实HTTP状态/body，但内层半成品APIError为空；
+Eino model/openai0.1.13 errors.As转换选择内层APIError，丢失外层全部详情。
+Generate/初始Stream均可精确生成空cause。正式原始响应已不可从旧诊断恢复，
+不将本地HTTP400当成真实LMStudio状态或拒绝原因。
+
+仅RoundTripper+新helper/tests修复：实际HTTP>=400在SDK之前变Core typed
+HTTP错误；最多读4097bytes、显示4096、关闭body一次，脱敏凭据与图片，
+保留readErr Unwrap。成功/重定向/原transport错误透明，无重试/配置变化。
+独立核验提出3xx重定向和truncated escaped credential两个缺口，主线程
+已修正并加回归。真正SDK/Eino→queued→ADK RED→GREEN，失败仅一次请求、
+无fake final，正常JSON/SSE透明。最终检查结果另附。
+
+Worker日志WakeUp431在13:20UTC失败后下一activity cancelled，源码可解释为
+failed周期保存并结束intent后，current-check将完成intent误标superseded_by_cognition；
+该顺序可独立产生cancelled，并不证明用户取消/新认知。未查真实DB/history，
+故这是源码支持路径，不将其写作生产已证实唯一原因。防effect重放原意保留，
+本轮未修改取消语义或失败周期重试策略。
+
+无生产模型调用/数据写入/预算配置改动/部署/数据库安装/迁移或提交。
+
+最终主线程验证：Go全仓race1629PASS/514SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过；日志/tmp/provider-http-final-race.jsonl、/tmp/provider-http-final-race.stderr、/tmp/provider-http-final-vet.log、/tmp/provider-http-final-build.log。PG与其他opt-in514项明确SKIP，无Web/API变更所以未重跑前端。最终实际HTTP错误保留与重定向/escaped-secret边界已测，正式拒绝原因仍未知，未提交或部署。

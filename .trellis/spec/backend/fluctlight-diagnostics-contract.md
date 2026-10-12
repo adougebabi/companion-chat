@@ -620,3 +620,58 @@ Good: finish-only+usage-only SSE preserves total/cache/reason alongside earlier 
 
 ### 7. Wrong vs Correct
 Wrong: assume193 completion tokens exhausted a40960 budget without finish reason. Correct: preserve reported termination metadata, label uncertainty and distinguish actual model service errors.
+
+
+## Scenario: Preserve malformed Provider HTTP errors before Eino conversion (2026-10-12)
+
+### 1. Scope / Trigger
+Pinned model/openai v0.1.13 converts an enclosing SDK RequestError by selecting
+its inner APIError. A malformed error object (missing message or object message)
+can leave that inner object empty, losing the actual HTTP status/body. This
+reproduces blank provider_request_failed for Generate and initial Stream.
+
+### 2. Signatures
+`einoHeaderRoundTripper.RoundTrip` normalizes HTTP status>=400 using
+`preserveProviderHTTPError(request,response) error`.
+`providerHTTPResponseError{StatusCode,Detail,Truncated,readErr}` retains actual
+status and a bounded sanitized error excerpt; Unwrap preserves body-read cause.
+
+### 3. Contracts
+Intercept HTTP failure before SDK conversion; return nil response and a Core
+error independent of SDK APIError. Read at most4097bytes, display at most4096,
+mark truncation and close the original error body once. Empty body still reports
+actual HTTP status. Redact configured credential header values, both raw and
+JSON-escaped full/partial echoes, recognized credential fields and image data.
+Do not inspect or persist request bodies/headers, infer status, fabricate content,
+retry or execute tools. Pass successful and 3xx responses unchanged so http.Client
+retains CheckRedirect behavior. Network/cancel errors remain original, timeout
+and request lifetime unchanged. The failure code stays provider_request_failed;
+HTTP/body belongs in bounded cause, never in error_code.
+
+### 4. Validation & Error Matrix
+| Condition | Outcome |
+| --- | --- |
+| HTTP400 {"error":{}} or invalid message type | real HTTP400 and bounded payload survive Eino/ADK |
+| HTTP400 empty body | actual HTTP400 plus empty-body explanation |
+| HTTP507 ordinary error | preserve actual status and sanitized reason |
+| oversized/error-body read failure | bounded excerpt/truncation; typed read cause |
+| successful JSON/SSE | original response/body/stream untouched |
+| redirect | existing following/CheckRedirect policy retained |
+| partial escaped secret at read bound | no credential fragment disclosed |
+
+### 5. Good/Base/Bad Cases
+Good: malformed error stays an explicit Provider failure with HTTP status.
+Base: existing success/native Tool path is unchanged. Bad: fill an empty error
+with guessed token/GPU cause or capture unbounded error body.
+
+### 6. Tests Required
+TestEinoProviderHTTPError* exercises pinned SDK/Eino/queued/ADK Generate/Stream,
+one physical request and no fabricated final; status/body/typed cause/sentinel,
+body bounds/close/read error, cancellation, successful JSON/SSE, redirect policy,
+raw/escaped/partial credential redaction. Production actual error remains unknown
+until captured; controlled HTTP400 is not evidence of production HTTP400.
+
+### 7. Wrong vs Correct
+Wrong: errors.As selects an empty nested APIError and discards RequestError.
+Correct: normalize the real failed HTTP response at the existing transport
+boundary, before the lossy dependency conversion, while preserving normal HTTP.
