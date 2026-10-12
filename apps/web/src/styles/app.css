@@ -717,17 +717,28 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
   display: inline-flex;
   min-height: 34px;
   align-items: center;
-  padding: 0;
+  gap: 6px;
+  padding: 6px 14px 6px 10px;
   border: 0;
-  border-radius: 8px;
-  background: transparent;
+  border-radius: 999px;
+  background: var(--surface-subtle);
   color: var(--accent-strong);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 5%);
   cursor: pointer;
-  font-size: .82rem;
-  font-weight: 700;
+  font-size: .84rem;
+  font-weight: 600;
+  transition: all .16s ease;
 }
 
-.back-link:hover { background: var(--accent-soft); }
+.back-link:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  transform: translateX(-1px);
+}
+
+.back-link:active {
+  transform: translateX(0);
+}
 
 .diagnostics-page .notice-banner {
   border-color: #c8def1;
@@ -1685,3 +1696,133 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
     padding-inline: 12px;
   }
 }
+
+/* Polished Streamlined Load-More and Pagination */
+.load-more-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px 0;
+  margin: 12px 0;
+  position: relative;
+}
+
+.load-more-container::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--surface-border);
+  z-index: 0;
+}
+
+.load-more-pill {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 18px;
+  border: 1px solid var(--surface-border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted-ink);
+  font-size: .78rem;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 4%);
+  cursor: pointer;
+  transition: all .16s ease;
+}
+
+.load-more-pill:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+  transform: translateY(-1px);
+}
+
+.load-more-pill:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.load-more-pill:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* Chat timeline load older button integration */
+.message-timeline .load-older {
+  align-self: center;
+  margin: 0 auto 16px;
+}
+
+/* Chat back button enhancement */
+.chat-header .chat-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--ink);
+  transition: all .16s ease;
+}
+
+.chat-header .chat-back:hover {
+  background: var(--surface-subtle);
+  color: var(--accent-strong);
+}
+
+/* Kev Diagnostics & Diagnostics filter container alignment */
+.kev-diagnostics-container {
+  display: grid;
+  gap: 16px;
+}
+
+.kev-diagnostics-card {
+  padding: 20px;
+  border: 1px solid var(--surface-border);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 70%);
+}
+
+.lifecycle-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.lifecycle-filters label {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: var(--muted-ink);
+  font-size: .78rem;
+}
+
+.lifecycle-filters .filter-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+@media (max-width: 760px) {
+  .lifecycle-filters {
+    grid-template-columns: 1fr;
+    margin-inline: 14px;
+  }
+}
+

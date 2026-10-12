@@ -4,6 +4,7 @@ import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import Button from "@/components/ui/button/Button.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
+import { ChevronLeft, MoreHorizontal } from "@lucide/vue";
 import { apiOrigin } from "../runtime-config";
 import { useConversationStore } from "../stores/conversations";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
@@ -118,7 +119,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
 <template>
   <section class="page chat-page" aria-labelledby="chat-title">
     <header class="chat-header">
-      <Button class="icon-button chat-back" variant="ghost" type="button" aria-label="返回聊天列表" @click="emit('back')">‹</Button>
+      <Button class="icon-button chat-back" variant="ghost" type="button" aria-label="返回聊天列表" @click="emit('back')"><ChevronLeft :size="20" aria-hidden="true" /></Button>
       <Button class="chat-profile" variant="ghost" type="button" :disabled="!store.selectedFluctlight" @click="emit('openDetails')">
         <span class="chat-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</span>
         <span class="chat-header-copy">
@@ -126,12 +127,14 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
           <small>{{ store.sending ? "正在思考" : store.selectedFluctlight ? fluctlightStatusLabel(store.selectedFluctlight.status) : "等待选择" }}</small>
         </span>
       </Button>
-      <Button class="icon-button chat-more" variant="ghost" type="button" aria-label="查看对话详情" @click="emit('openDetails')">⋯</Button>
+      <Button class="icon-button chat-more" variant="ghost" type="button" aria-label="查看对话详情" @click="emit('openDetails')"><MoreHorizontal :size="20" aria-hidden="true" /></Button>
     </header>
 
     <section ref="transcript" class="message-timeline" aria-live="polite" aria-label="对话记录">
       <div v-if="store.loading" class="empty-state">正在加载对话...</div>
-      <Button v-else-if="store.nextBeforeSequence" class="secondary-button load-older" variant="outline" type="button" @click="store.loadOlder">加载更早记录</Button>
+      <div v-else-if="store.nextBeforeSequence" class="load-more-container">
+        <Button class="secondary-button load-older load-more-pill" variant="outline" type="button" @click="store.loadOlder">加载更早记录</Button>
+      </div>
       <div v-else-if="!store.selectedFluctlight" class="empty-state">
         <span class="empty-mark" aria-hidden="true">＋</span>
         <h2>选择一个会话进行聊天</h2>

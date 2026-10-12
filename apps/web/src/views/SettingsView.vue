@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { ChevronLeft } from "@lucide/vue";
 import { settingsSections, type SettingsSection } from "../app/navigation";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
@@ -95,7 +96,7 @@ onMounted(() => void load());
 
     <template v-else>
       <header class="settings-detail-header">
-        <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)">‹ 返回设置</Button>
+        <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)"><ChevronLeft :size="16" aria-hidden="true" /><span>返回设置</span></Button>
         <div><p class="eyebrow">CONTROL CENTER</p><h2>{{ settingsSections.find((item) => item.id === currentSection)?.label }}</h2><p class="field-note">{{ settingsSections.find((item) => item.id === currentSection)?.description }}</p></div>
       </header>
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="settings-accordion">

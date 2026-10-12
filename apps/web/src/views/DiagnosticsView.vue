@@ -9,6 +9,7 @@ import AccordionTrigger from "@/components/ui/accordion/AccordionTrigger.vue";
 import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
+import { ChevronLeft } from "@lucide/vue";
 import { diagnosticsSections, type DiagnosticsSection } from "../app/navigation";
 import type { BrowserDiagnosticAgentRun, BrowserDiagnosticModelRun } from "@fluctlight/browser-client";
 import { formatInstantInZone } from "../lib/instant";
@@ -167,7 +168,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
 
     <template v-else>
       <header class="diagnostics-detail-header">
-        <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)">‹ 返回诊断中心</Button>
+        <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)"><ChevronLeft :size="16" aria-hidden="true" /><span>返回诊断中心</span></Button>
         <div><p class="eyebrow">OBSERVABILITY</p><h2>{{ diagnosticsSections.find((item) => item.id === currentSection)?.label }}</h2><p class="field-note">{{ diagnosticsSections.find((item) => item.id === currentSection)?.description }}</p></div>
       </header>
       <form v-if="currentSection === 'lifecycle'" class="lifecycle-filter-grid" aria-label="生命周期过滤" @submit.prevent="applyDiagnosticsFilters">
@@ -208,7 +209,11 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
               <p v-if="agent.status === 'failed'" class="diagnostic-error">{{ agentFailureStageLabels[agent.failureStage || 'unknown'] || agent.failureStage }} · {{ agent.failureCode }}<template v-if="agent.safeCause"> · {{ agent.safeCause }}</template></p>
               <Button variant="outline" @click="openModelRun(agent.correlationId)">查看运行步骤</Button>
             </article>
-            <Button v-if="controlCenter.diagnosticAgentCursor" variant="outline" :disabled="controlCenter.diagnosticPagesLoading" @click="controlCenter.loadMoreDiagnosticRuns('agent')">加载更多 Agent 记录</Button>
+            <div v-if="controlCenter.diagnosticAgentCursor" class="load-more-container">
+              <Button class="load-more-pill" variant="outline" :disabled="controlCenter.diagnosticPagesLoading" @click="controlCenter.loadMoreDiagnosticRuns('agent')">
+                {{ controlCenter.diagnosticPagesLoading ? "正在加载..." : "加载更多 Agent 记录" }}
+              </Button>
+            </div>
           </div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'model-runs' && modelRunGroups.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
@@ -242,7 +247,11 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
                 <ul v-if="run.toolSummaries?.length" class="detail-list" aria-label="Tool 往返摘要"><li v-for="tool in run.toolSummaries" :key="tool.callId"><strong>{{ tool.capability }}</strong> · {{ tool.status }}<template v-if="tool.errorCode"> · {{ tool.errorCode }}</template></li></ul>
               </article>
             </section>
-            <Button v-if="controlCenter.diagnosticModelCursor" variant="outline" :disabled="controlCenter.diagnosticPagesLoading" @click="controlCenter.loadMoreDiagnosticRuns('model')">加载更多模型记录</Button>
+            <div v-if="controlCenter.diagnosticModelCursor" class="load-more-container">
+              <Button class="load-more-pill" variant="outline" :disabled="controlCenter.diagnosticPagesLoading" @click="controlCenter.loadMoreDiagnosticRuns('model')">
+                {{ controlCenter.diagnosticPagesLoading ? "正在加载..." : "加载更多模型记录" }}
+              </Button>
+            </div>
           </div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'media-prompts' && controlCenter.diagnosticMediaPrompts.length" value="media-prompts" class="diagnostic-group diagnostics-drawer">

@@ -8,6 +8,7 @@ import { computed, ref, watch } from "vue";
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
+import { ChevronLeft } from "@lucide/vue";
 import { newWardrobeItemDraft, wardrobeCategoryOptions, wardrobeSlotOptions, wardrobeItemPayload, wardrobeOwnershipOptions, wardrobeAvailabilityOptions, wardrobeCategoryLabel, wardrobeSlotLabel, wardrobeOwnershipLabel, wardrobeAvailabilityLabel } from "../lib/wardrobe-form";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
@@ -102,7 +103,7 @@ function onWardrobeToggle(event: Event) {
   <section v-if="store.selectedFluctlight" class="page governance-page" aria-labelledby="governance-title">
     <header class="page-header governance-header">
       <div>
-        <Button class="back-link" variant="ghost" type="button" @click="emit('close')">← 返回实例</Button>
+        <Button class="back-link" variant="ghost" type="button" @click="emit('close')"><ChevronLeft :size="16" aria-hidden="true" /><span>返回实例</span></Button>
         <p class="eyebrow">编辑与治理</p>
         <h1 id="governance-title">{{ store.selectedFluctlightName }} 的编辑与治理</h1>
         <p class="page-lede">这里的修改会影响后续状态。身份、人格、生活脉络和私有动态请从对话标题栏打开详情。</p>
