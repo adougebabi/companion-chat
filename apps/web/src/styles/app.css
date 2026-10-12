@@ -18,6 +18,8 @@
   --danger-soft: #fff1f1;
   --success: #31a45f;
   --glass-blur: 22px;
+  --surface-glass: rgb(255 255 255 / 75%);
+  --surface-2: #eef2f5;
   --pc-backdrop: #ececf0;
   --pc-rail: #191919;
   --pc-rail-active: #2d2d2d;
@@ -117,8 +119,23 @@ button:disabled { cursor: not-allowed; opacity: .52; }
 .auth-panel h1 { margin: 8px 0 0; font-size: 1.8rem; letter-spacing: -.03em; }
 .auth-copy { margin: 10px 0 28px; color: var(--muted-ink); line-height: 1.6; }
 .auth-form, .stack-form, .governance-form { display: grid; gap: 14px; }
-label { display: grid; gap: 7px; color: var(--ink-soft); font-size: .84rem; font-weight: 650; }
-input, textarea, select { width: 100%; min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid var(--surface-border-strong); border-radius: 11px; background: rgb(255 255 255 / 82%); color: var(--ink); }
+input:not([type="checkbox"]):not([type="radio"]), textarea, select { width: 100%; min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid var(--surface-border-strong); border-radius: 11px; background: rgb(255 255 255 / 82%); color: var(--ink); }
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23437177' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+  padding-right: 36px;
+  cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgb(45 120 130 / 15%);
+}
+input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; min-height: 18px; accent-color: var(--accent); cursor: pointer; vertical-align: middle; }
 textarea { min-height: 112px; resize: vertical; line-height: 1.55; }
 input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .error-banner, .notice-banner { margin: 0 0 16px; padding: 12px 14px; border-radius: 12px; line-height: 1.5; }
@@ -221,10 +238,25 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .state-summary-grid, .detail-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .state-summary-grid > div, .detail-summary-grid > div { display: grid; gap: 5px; padding: 12px; border-radius: 12px; background: var(--surface-subtle); }
 .state-summary-grid span, .detail-summary-grid span { color: var(--muted-ink); font-size: .75rem; }
-.state-summary-grid strong, .detail-summary-grid strong { overflow-wrap: anywhere; font-size: .9rem; }
 .detail-list, .timeline-list, .workflow-list { display: grid; gap: 8px; padding: 0; list-style: none; }
-.detail-list li, .timeline-list li { display: grid; gap: 5px; padding: 12px; border-bottom: 1px solid var(--surface-border); }
-.detail-list li:last-child, .timeline-list li:last-child { border-bottom: 0; }
+.detail-list li, .timeline-list li {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.detail-list li:hover {
+  border-color: var(--surface-border-strong);
+  background: rgb(255 255 255 / 90%);
+}
+.relationship-governance-list li {
+  padding: 16px;
+  border-color: var(--surface-border-strong);
+  background: rgb(255 255 255 / 75%);
+}
 .detail-list li strong { font-size: .88rem; }
 .detail-list li small, .timeline-list li span { color: var(--muted-ink); font-size: .78rem; line-height: 1.45; }
 .timeline-list li { grid-template-columns: 58px minmax(0, 1fr); }
@@ -657,11 +689,21 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 
 .group-create-inline {
   display: grid;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--surface-border);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--surface-border-strong);
   border-radius: 14px;
   background: var(--surface-strong);
+  box-shadow: 0 4px 16px rgb(32 65 69 / 4%);
+  animation: slideDownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-identity > div,

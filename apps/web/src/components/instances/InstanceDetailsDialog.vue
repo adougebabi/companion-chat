@@ -14,6 +14,7 @@ import DialogDescription from "@/components/ui/dialog/DialogDescription.vue";
 import DialogFooter from "@/components/ui/dialog/DialogFooter.vue";
 import DialogHeader from "@/components/ui/dialog/DialogHeader.vue";
 import DialogTitle from "@/components/ui/dialog/DialogTitle.vue";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useConversationStore } from "../../stores/conversations";
 import { useControlCenterStore } from "../../stores/control-center";
@@ -303,227 +304,257 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
         </div>
 
 		<div v-if="controlCenter.loading && !hasCurrentFluctlightDetail" class="detail-loading">正在加载摇光详情...</div>
-        <template v-else>
-          <section class="detail-block">
-            <div class="detail-block-heading"><p class="eyebrow">身份与人格</p><h3>身份核心</h3></div>
-            <dl v-if="Object.keys(identity).length" class="identity-facts">
-              <template v-for="(value, key) in identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
-            </dl>
-            <p v-else class="field-note">尚未形成身份信息。</p>
-            <h3>人格特征</h3>
-            <dl v-if="Object.keys(personality).length" class="identity-facts">
-              <template v-for="(value, key) in personality" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
-            </dl>
-            <p v-else class="field-note">尚未配置人格特征。</p>
-            <h3>表达策略</h3>
-            <dl v-if="Object.keys(behavioralPolicy).length" class="identity-facts">
-              <template v-for="(value, key) in behavioralPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
-            </dl>
-            <p v-else class="field-note">尚未配置表达策略。</p>
-          </section>
+        <Tabs v-else default-value="identity" class="detail-tabs w-full">
+          <TabsList class="detail-tabs-list grid grid-cols-4 w-full mb-3">
+            <TabsTrigger value="identity">基础资料</TabsTrigger>
+            <TabsTrigger value="state">此刻状态</TabsTrigger>
+            <TabsTrigger value="world">生活脉络</TabsTrigger>
+            <TabsTrigger value="memory">关系记忆</TabsTrigger>
+          </TabsList>
 
-          <section class="detail-block visual-identity-block">
-            <div class="detail-block-heading"><p class="eyebrow">VISUAL IDENTITY</p><h3>视觉身份工作流</h3></div>
-            <div class="detail-status-strip visual-identity-status">
-              <Badge class="status-pill" variant="secondary">{{ visualIdentityStatusLabel(visualIdentity.status) }}</Badge>
-              <span>Revision {{ formatDisplayValue(visualIdentity.current_revision ?? 0) }}</span>
-              <span v-if="visualIdentity.active_session_id">Session {{ String(visualIdentity.active_session_id).slice(0, 12) }}</span>
-            </div>
-            <dl v-if="Object.keys(visualIdentityConstraints).length" class="identity-facts detail-facts-compact">
-              <dt>胸部罩杯</dt><dd>{{ rendererConstraintText(visualIdentityConstraints.chest_cup) }}</dd>
-              <dt>LoRA weight</dt><dd>{{ visualIdentityConstraints.chest_lora_applicable === false ? "不适用" : rendererConstraintText(visualIdentityConstraints.chest_lora_weight) }} · {{ formatDisplayValue(visualIdentityConstraints.adapter_version) }}</dd>
-            </dl>
-            <p v-if="!visualIdentityTimeline.length" class="field-note">初始化后，这里会显示“生成 → 视觉理解 → 评审 → 再生成/完成”的时间轴。</p>
-            <ol v-else class="timeline-list visual-identity-timeline" aria-label="视觉身份处理时间轴">
-              <li v-for="(event, index) in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: index === visualIdentityActiveEventIndex }">
-                <time :datetime="String(event.occurred_at ?? '')">{{ formatTimelineTime(event.occurred_at, scheduleTimezone) }}</time>
-                <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(visualIdentityEventStatus(event, index)) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>
-                  <div v-if="visualIdentityAssetIds(event).length" class="visual-identity-assets"><img v-for="assetId in visualIdentityAssetIds(event)" :key="assetId" :src="mediaUrl(assetId)" :alt="`${visualIdentityStageLabel(event.stage)}图片`" loading="lazy" /></div>
+          <TabsContent value="identity" class="detail-tab-pane mt-0 space-y-4">
+            <section class="detail-block">
+              <div class="detail-block-heading"><p class="eyebrow">身份与人格</p><h3>身份核心</h3></div>
+              <dl v-if="Object.keys(identity).length" class="identity-facts">
+                <template v-for="(value, key) in identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              </dl>
+              <p v-else class="field-note">尚未形成身份信息。</p>
+              <h3>人格特征</h3>
+              <dl v-if="Object.keys(personality).length" class="identity-facts">
+                <template v-for="(value, key) in personality" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              </dl>
+              <p v-else class="field-note">尚未配置人格特征。</p>
+              <h3>表达策略</h3>
+              <dl v-if="Object.keys(behavioralPolicy).length" class="identity-facts">
+                <template v-for="(value, key) in behavioralPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              </dl>
+              <p v-else class="field-note">尚未配置表达策略。</p>
+            </section>
+
+            <section class="detail-block visual-identity-block">
+              <div class="detail-block-heading"><p class="eyebrow">VISUAL IDENTITY</p><h3>视觉身份工作流</h3></div>
+              <div class="detail-status-strip visual-identity-status">
+                <Badge class="status-pill" variant="secondary">{{ visualIdentityStatusLabel(visualIdentity.status) }}</Badge>
+                <span>Revision {{ formatDisplayValue(visualIdentity.current_revision ?? 0) }}</span>
+                <span v-if="visualIdentity.active_session_id">Session {{ String(visualIdentity.active_session_id).slice(0, 12) }}</span>
+              </div>
+              <dl v-if="Object.keys(visualIdentityConstraints).length" class="identity-facts detail-facts-compact">
+                <dt>胸部罩杯</dt><dd>{{ rendererConstraintText(visualIdentityConstraints.chest_cup) }}</dd>
+                <dt>LoRA weight</dt><dd>{{ visualIdentityConstraints.chest_lora_applicable === false ? "不适用" : rendererConstraintText(visualIdentityConstraints.chest_lora_weight) }} · {{ formatDisplayValue(visualIdentityConstraints.adapter_version) }}</dd>
+              </dl>
+              <p v-if="!visualIdentityTimeline.length" class="field-note">初始化后，这里会显示“生成 → 视觉理解 → 评审 → 再生成/完成”的时间轴。</p>
+              <ol v-else class="timeline-list visual-identity-timeline" aria-label="视觉身份处理时间轴">
+                <li v-for="(event, index) in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: index === visualIdentityActiveEventIndex }">
+                  <time :datetime="String(event.occurred_at ?? '')">{{ formatTimelineTime(event.occurred_at, scheduleTimezone) }}</time>
+                  <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(visualIdentityEventStatus(event, index)) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>
+                    <div v-if="visualIdentityAssetIds(event).length" class="visual-identity-assets"><img v-for="assetId in visualIdentityAssetIds(event)" :key="assetId" :src="mediaUrl(assetId)" :alt="`${visualIdentityStageLabel(event.stage)}图片`" loading="lazy" /></div>
+                  </div>
+                </li>
+              </ol>
+              <div v-if="visualIdentity.canonical_asset_id || visualIdentity.character_sheet_asset_id" class="visual-identity-canonical">
+                <div v-if="visualIdentity.canonical_asset_id"><span>Canonical reference</span><img :src="mediaUrl(String(visualIdentity.canonical_asset_id))" alt="Canonical reference" loading="lazy" /></div>
+                <div v-if="visualIdentity.character_sheet_asset_id"><span>Character sheet</span><img :src="mediaUrl(String(visualIdentity.character_sheet_asset_id))" alt="Character sheet" loading="lazy" /></div>
+              </div>
+            </section>
+
+            <section class="detail-block">
+              <div class="detail-block-heading"><p class="eyebrow">ABOUT YOU</p><h3>用户背景</h3></div>
+              <p class="field-note">关于你本人的已确认资料。可在“进入编辑与治理”中设置；未提供的信息保持未知。</p>
+              <dl class="detail-list"><div v-for="field in actorUserBackgroundFields" :key="field.key"><dt>{{ field.label }}</dt><dd>{{ actorUserBackground[field.key] == null ? '未确认' : field.key === 'meeting_confirmed' ? (actorUserBackground[field.key] ? '已约定' : '未约定') : formatDisplayValue(actorUserBackground[field.key]) }}</dd></div></dl>
+            </section>
+
+            <section class="detail-block">
+              <details class="detail-state-drawer">
+                <summary>
+                  <span><strong>分层 Persona（系统架构）</strong><small>查看 Core Persona、Developing Self 与当前快照结构</small></span>
+                  <span class="disclosure-icon" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="detail-state-drawer-body">
+                  <div class="persona-json-grid">
+                    <div class="persona-json-card"><div class="detail-state-heading"><h4>Core Persona</h4><span>受保护</span></div><pre>{{ jsonDisplay(corePersona) }}</pre></div>
+                    <div class="persona-json-card"><div class="detail-state-heading"><h4>Developing Self</h4><span>证据化</span></div><pre>{{ jsonDisplay(developingSelf) }}</pre></div>
+                    <div class="persona-json-card"><div class="detail-state-heading"><h4>Current State</h4><span>当前快照</span></div><pre>{{ jsonDisplay(currentState) }}</pre></div>
+                  </div>
                 </div>
-              </li>
-            </ol>
-            <div v-if="visualIdentity.canonical_asset_id || visualIdentity.character_sheet_asset_id" class="visual-identity-canonical">
-              <div v-if="visualIdentity.canonical_asset_id"><span>Canonical reference</span><img :src="mediaUrl(String(visualIdentity.canonical_asset_id))" alt="Canonical reference" loading="lazy" /></div>
-              <div v-if="visualIdentity.character_sheet_asset_id"><span>Character sheet</span><img :src="mediaUrl(String(visualIdentity.character_sheet_asset_id))" alt="Character sheet" loading="lazy" /></div>
-            </div>
-          </section>
+              </details>
+            </section>
 
-          <section class="detail-block">
-            <div class="detail-block-heading"><p class="eyebrow">ABOUT YOU</p><h3>用户背景</h3></div>
-            <p class="field-note">关于你本人的已确认资料。可在“进入编辑与治理”中设置；未提供的信息保持未知。</p>
-            <dl class="detail-list"><div v-for="field in actorUserBackgroundFields" :key="field.key"><dt>{{ field.label }}</dt><dd>{{ actorUserBackground[field.key] == null ? '未确认' : field.key === 'meeting_confirmed' ? (actorUserBackground[field.key] ? '已约定' : '未约定') : formatDisplayValue(actorUserBackground[field.key]) }}</dd></div></dl>
-          </section>
-          <section class="detail-block">
-            <div class="detail-block-heading"><p class="eyebrow">PERSONA LAYERS</p><h3>分层 Persona</h3></div>
-            <div class="persona-json-grid">
-              <div class="persona-json-card"><div class="detail-state-heading"><h4>Core Persona</h4><span>受保护</span></div><pre>{{ jsonDisplay(corePersona) }}</pre></div>
-              <div class="persona-json-card"><div class="detail-state-heading"><h4>Developing Self</h4><span>证据化</span></div><pre>{{ jsonDisplay(developingSelf) }}</pre></div>
-              <div class="persona-json-card"><div class="detail-state-heading"><h4>Current State</h4><span>当前快照</span></div><pre>{{ jsonDisplay(currentState) }}</pre></div>
-            </div>
-          </section>
+            <section v-if="hasInitializationSource" class="detail-block initialization-source-block">
+              <details class="detail-state-drawer initialization-source-drawer">
+                <summary>
+                  <span><strong>初始化来源（仅所有者）</strong><small>查看原始角色卡、人格分类、提取覆盖与 Foundation 关联</small></span>
+                  <span class="disclosure-icon" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="detail-state-drawer-body">
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>分析与模型</h4><span>{{ formatDisplayValue(initializationSource.classification) }}</span></div>
+                    <dl class="detail-context-facts">
+                      <div><dt>分析 ID</dt><dd>{{ formatDisplayValue(initializationSource.id) }}</dd></div>
+                      <div><dt>诊断关联</dt><dd>{{ formatDisplayValue(initializationSource.correlation_id) }}</dd></div>
+                      <div><dt>Provider</dt><dd>{{ formatDisplayValue(initializationSource.provider_endpoint_id) }}</dd></div>
+                      <div><dt>模型</dt><dd>{{ formatDisplayValue(initializationSource.model_id) }}</dd></div>
+                      <div><dt>Prompt 版本</dt><dd>{{ formatDisplayValue(initializationSource.prompt_version) }}</dd></div>
+                      <div><dt>Schema 版本</dt><dd>{{ formatDisplayValue(initializationSource.schema_version) }}</dd></div>
+                      <div><dt>分析时间</dt><dd>{{ formatDisplayValue(initializationSource.created_at) }}</dd></div>
+                      <div><dt>Foundation 关联时间</dt><dd>{{ formatDisplayValue(initializationSource.linked_at) }}</dd></div>
+                      <div><dt>Foundation 修订</dt><dd>{{ formatDisplayValue(initializationFoundationRevision.id) }}</dd></div>
+                      <div><dt>Foundation revision</dt><dd>{{ formatDisplayValue(initializationFoundationRevision.revision) }}</dd></div>
+                      <div class="detail-context-wide"><dt>来源摘要</dt><dd>{{ formatDisplayValue(initializationSource.source_digest) }}</dd></div>
+                      <div class="detail-context-wide"><dt>投影摘要</dt><dd>{{ formatDisplayValue(initializationSource.projection_digest) }}</dd></div>
+                    </dl>
+                  </section>
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>人格分类与提取覆盖</h4><span>语义审计</span></div>
+                    <div class="persona-json-grid">
+                      <div class="persona-json-card"><div class="detail-state-heading"><h4>分类证据</h4><span>{{ formatDisplayValue(initializationSource.classification) }}</span></div><pre>{{ jsonDisplay(initializationSource.classification_evidence) }}</pre></div>
+                      <div class="persona-json-card"><div class="detail-state-heading"><h4>提取覆盖</h4><span>Coverage</span></div><pre>{{ jsonDisplay(initializationSource.coverage) }}</pre></div>
+                      <div class="persona-json-card"><div class="detail-state-heading"><h4>字段推导依据</h4><span>Derivations</span></div><pre>{{ jsonDisplay(initializationSource.field_derivations) }}</pre></div>
+                    </div>
+                  </section>
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>结构化投影与 Foundation</h4><span>激活前分析快照</span></div>
+                    <p class="field-note">该只读投影保留模型分析结果；关联时间标记它已绑定到创建时接受的 Foundation 初始修订，后续治理修订不会改写这份来源。</p>
+                    <pre>{{ jsonDisplay(initializationSource.structured_projection) }}</pre>
+                  </section>
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>原始角色卡</h4><span>Owner-only</span></div>
+                    <pre>{{ String(initializationSource.source_text ?? "") }}</pre>
+                  </section>
+                </div>
+              </details>
+            </section>
+          </TabsContent>
 
-		  <section v-if="hasInitializationSource" class="detail-block initialization-source-block">
-			<div class="detail-block-heading"><p class="eyebrow">FOUNDATION SOURCE</p><h3>初始化来源</h3></div>
-			<details class="detail-state-drawer initialization-source-drawer">
-			  <summary>
-				<span><strong>初始化来源（仅所有者）</strong><small>查看原始角色卡、人格分类、提取覆盖与 Foundation 关联</small></span>
-				<span class="disclosure-icon" aria-hidden="true">⌄</span>
-			  </summary>
-			  <div class="detail-state-drawer-body">
-				<section class="detail-state-section">
-				  <div class="detail-state-heading"><h4>分析与模型</h4><span>{{ formatDisplayValue(initializationSource.classification) }}</span></div>
-				  <dl class="detail-context-facts">
-					<div><dt>分析 ID</dt><dd>{{ formatDisplayValue(initializationSource.id) }}</dd></div>
-					<div><dt>诊断关联</dt><dd>{{ formatDisplayValue(initializationSource.correlation_id) }}</dd></div>
-					<div><dt>Provider</dt><dd>{{ formatDisplayValue(initializationSource.provider_endpoint_id) }}</dd></div>
-					<div><dt>模型</dt><dd>{{ formatDisplayValue(initializationSource.model_id) }}</dd></div>
-					<div><dt>Prompt 版本</dt><dd>{{ formatDisplayValue(initializationSource.prompt_version) }}</dd></div>
-					<div><dt>Schema 版本</dt><dd>{{ formatDisplayValue(initializationSource.schema_version) }}</dd></div>
-					<div><dt>分析时间</dt><dd>{{ formatDisplayValue(initializationSource.created_at) }}</dd></div>
-					<div><dt>Foundation 关联时间</dt><dd>{{ formatDisplayValue(initializationSource.linked_at) }}</dd></div>
-					<div><dt>Foundation 修订</dt><dd>{{ formatDisplayValue(initializationFoundationRevision.id) }}</dd></div>
-					<div><dt>Foundation revision</dt><dd>{{ formatDisplayValue(initializationFoundationRevision.revision) }}</dd></div>
-					<div class="detail-context-wide"><dt>来源摘要</dt><dd>{{ formatDisplayValue(initializationSource.source_digest) }}</dd></div>
-					<div class="detail-context-wide"><dt>投影摘要</dt><dd>{{ formatDisplayValue(initializationSource.projection_digest) }}</dd></div>
-				  </dl>
-				</section>
-				<section class="detail-state-section">
-				  <div class="detail-state-heading"><h4>人格分类与提取覆盖</h4><span>语义审计</span></div>
-				  <div class="persona-json-grid">
-					<div class="persona-json-card"><div class="detail-state-heading"><h4>分类证据</h4><span>{{ formatDisplayValue(initializationSource.classification) }}</span></div><pre>{{ jsonDisplay(initializationSource.classification_evidence) }}</pre></div>
-					<div class="persona-json-card"><div class="detail-state-heading"><h4>提取覆盖</h4><span>Coverage</span></div><pre>{{ jsonDisplay(initializationSource.coverage) }}</pre></div>
-					<div class="persona-json-card"><div class="detail-state-heading"><h4>字段推导依据</h4><span>Derivations</span></div><pre>{{ jsonDisplay(initializationSource.field_derivations) }}</pre></div>
-				  </div>
-				</section>
-				<section class="detail-state-section">
-				  <div class="detail-state-heading"><h4>结构化投影与 Foundation</h4><span>激活前分析快照</span></div>
-				  <p class="field-note">该只读投影保留模型分析结果；关联时间标记它已绑定到创建时接受的 Foundation 初始修订，后续治理修订不会改写这份来源。</p>
-				  <pre>{{ jsonDisplay(initializationSource.structured_projection) }}</pre>
-				</section>
-				<section class="detail-state-section">
-				  <div class="detail-state-heading"><h4>原始角色卡</h4><span>Owner-only</span></div>
-				  <pre>{{ String(initializationSource.source_text ?? "") }}</pre>
-				</section>
-			  </div>
-			</details>
-		  </section>
-
-          <section class="detail-block">
-            <div class="detail-block-heading"><p class="eyebrow">此刻</p><h3>当前状态</h3></div>
-            <div class="detail-stat-grid">
-              <div><span>情绪</span><strong>{{ formatDisplayValue(asRecord(innerState.mood).label) }}</strong></div>
-              <div><span>场景</span><strong>{{ formatDisplayValue(context.scene) }}</strong></div>
-              <div><span>活动</span><strong>{{ formatDisplayValue(context.activity) }}</strong></div>
-            </div>
-            <details class="detail-state-drawer">
-              <summary>
-                <span><strong>状态数值与当前氛围</strong><small>查看 PAD、动力、调节状态和场景描述</small></span>
-                <span class="disclosure-icon" aria-hidden="true">⌄</span>
-              </summary>
-              <div class="detail-state-drawer-body">
-                <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>当前情境</h4><span>{{ enumLabel(context.source) }}</span></div>
-                  <dl class="detail-context-facts">
-                    <div><dt>场景</dt><dd>{{ formatDisplayValue(context.scene) }}</dd></div>
-                    <div><dt>活动</dt><dd>{{ formatDisplayValue(context.activity) }}</dd></div>
-                    <div><dt>地点</dt><dd>{{ formatDisplayValue(context.location) }}</dd></div>
-                    <div class="detail-context-wide"><dt>氛围</dt><dd>{{ atmosphere }}</dd></div>
-                    <div v-if="contextPresence.current_task || contextPresence.user_presence" class="detail-context-wide"><dt>在场状态</dt><dd>{{ formatDisplayValue(contextPresence) }}</dd></div>
-                  </dl>
-                </section>
-
-                <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>情感数值</h4><span>0–1</span></div>
-                  <div class="state-metric-grid">
-                    <div class="state-metric"><div><span>愉悦度</span><strong>{{ metricText(pad.pleasure) }}</strong></div><div class="state-meter" role="progressbar" aria-label="愉悦度" :aria-valuenow="metricPercent(pad.pleasure)" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${metricPercent(pad.pleasure)}%` }" /></div></div>
-                    <div class="state-metric"><div><span>唤醒度</span><strong>{{ metricText(pad.arousal) }}</strong></div><div class="state-meter" role="progressbar" aria-label="唤醒度" :aria-valuenow="metricPercent(pad.arousal)" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${metricPercent(pad.arousal)}%` }" /></div></div>
-                    <div class="state-metric"><div><span>掌控感</span><strong>{{ metricText(pad.dominance) }}</strong></div><div class="state-meter" role="progressbar" aria-label="掌控感" :aria-valuenow="metricPercent(pad.dominance)" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${metricPercent(pad.dominance)}%` }" /></div></div>
-                  </div>
-                  <div class="detail-mini-grid">
-                    <div><span>当前情绪</span><strong>{{ formatDisplayValue(mood.label) }}</strong></div>
-                    <div><span>情绪强度</span><strong>{{ metricText(mood.intensity) }}</strong></div>
-                  </div>
-                </section>
-
-                <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>行动与调节</h4><span>当前状态</span></div>
-                  <div class="detail-mini-grid">
-                    <div><span>行动动能</span><strong>{{ metricText(momentum.value) }}</strong><small>{{ formatDisplayValue(momentum.trend) }}</small></div>
-                    <div><span>调节稳定性</span><strong>{{ metricText(regulation.stability) }}</strong><small>压力 {{ metricText(regulation.stress) }}</small></div>
-                    <div><span>状态修订</span><strong>{{ formatDisplayValue(innerState.revision) }}</strong><small>最近更新 {{ formatDisplayValue(innerState.last_updated_at) }}</small></div>
-                  </div>
-                  <p v-if="conflicts.length" class="detail-state-note">内部冲突：{{ formatDisplayValue(conflicts) }}</p>
-                </section>
-
-                <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>人格动力与偏好</h4><span>{{ growthSlots.length }} 项</span></div>
-                  <p v-if="!growthSlots.length" class="field-note">还没有形成可追踪的动力或偏好。</p>
-                  <ul v-else class="state-slot-list">
-                    <li v-for="slot in growthSlots" :key="String(slot.id ?? slot.key)"><div><strong>{{ slotName(slot) }}</strong><span>{{ slot.value_schema ? formatDisplayValue(slot.value_schema) : "动力" }}</span></div><p>{{ slotValue(slot) }}</p><small v-if="slot.revision !== undefined">修订 {{ formatDisplayValue(slot.revision) }}</small></li>
-                  </ul>
-                </section>
+          <TabsContent value="state" class="detail-tab-pane mt-0 space-y-4">
+            <section class="detail-block">
+              <div class="detail-block-heading"><p class="eyebrow">此刻</p><h3>当前状态</h3></div>
+              <div class="detail-stat-grid">
+                <div><span>情绪</span><strong>{{ formatDisplayValue(asRecord(innerState.mood).label) }}</strong></div>
+                <div><span>场景</span><strong>{{ formatDisplayValue(context.scene) }}</strong></div>
+                <div><span>活动</span><strong>{{ formatDisplayValue(context.activity) }}</strong></div>
               </div>
-            </details>
-          </section>
+              <details class="detail-state-drawer">
+                <summary>
+                  <span><strong>状态数值与当前氛围</strong><small>查看 PAD、动力、调节状态和场景描述</small></span>
+                  <span class="disclosure-icon" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="detail-state-drawer-body">
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>当前情境</h4><span>{{ enumLabel(context.source) }}</span></div>
+                    <dl class="detail-context-facts">
+                      <div><dt>场景</dt><dd>{{ formatDisplayValue(context.scene) }}</dd></div>
+                      <div><dt>活动</dt><dd>{{ formatDisplayValue(context.activity) }}</dd></div>
+                      <div><dt>地点</dt><dd>{{ formatDisplayValue(context.location) }}</dd></div>
+                      <div class="detail-context-wide"><dt>氛围</dt><dd>{{ atmosphere }}</dd></div>
+                      <div v-if="contextPresence.current_task || contextPresence.user_presence" class="detail-context-wide"><dt>在场状态</dt><dd>{{ formatDisplayValue(contextPresence) }}</dd></div>
+                    </dl>
+                  </section>
 
-          <section class="detail-block">
-            <div class="detail-block-heading"><p class="eyebrow">生活世界</p><h3>生活脉络</h3></div>
-            <dl v-if="Object.keys(lifeProfile).length" class="identity-facts detail-facts-compact">
-              <template v-for="(value, key) in lifeProfile" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
-            </dl>
-            <div class="detail-summary-grid">
-              <div><span>活跃目标</span><strong>{{ goals.length }}</strong></div>
-              <div><span>关系</span><strong>{{ relationships.length }}</strong></div>
-              <div><span>可展示记忆</span><strong>{{ memories.length }}</strong></div>
-            </div>
-            <details class="detail-state-drawer wardrobe-drawer" @toggle="onWardrobeToggle">
-              <summary><span><strong>衣柜与物品</strong><small>查看已记录物品与当前穿着</small></span><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
-              <div class="detail-state-drawer-body">
-                <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>当前穿着</h4><span>{{ (wornItems ?? []).length }} 件</span></div>
-                  <p v-if="!(wornItems ?? []).length" class="field-note">当前没有已确认的穿着记录。</p>
-                  <ul v-else class="modal-detail-list"><li v-for="item in wornItems" :key="String(item.id)"><strong>{{ formatDisplayValue(item.description) }}</strong><small>{{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.availability) }}</small></li></ul>
-                </section>
-                <section class="detail-state-section">
-                  <div class="detail-state-heading"><h4>已记录物品</h4><span>{{ (wardrobeItems ?? []).length }} 件{{ wardrobeHasMore ? "以上" : "" }}</span></div>
-                  <p v-if="wardrobeLoaded && !wardrobeInventoryComplete" class="field-note">这是已记录清单；未列出的物品不代表不存在。</p>
-                  <p v-if="wardrobeLoading && !wardrobeLoaded" class="field-note">正在读取衣柜...</p>
-                  <p v-if="wardrobeError" class="field-note" role="alert">{{ wardrobeError }}</p>
-                  <p v-if="wardrobeLoaded && !(wardrobeItems ?? []).length" class="field-note">尚无已记录的物品。</p>
-                  <ul v-if="(wardrobeItems ?? []).length" class="modal-detail-list"><li v-for="item in wardrobeItems" :key="item.id"><strong>{{ item.description }}</strong><small>{{ formatDisplayValue(item.category) }} · {{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.ownership) }} · {{ enumLabel(item.availability) }}</small></li></ul>
-                  <Button v-if="wardrobeError || wardrobeHasMore" variant="outline" type="button" :disabled="wardrobeLoading" @click="loadWardrobePage">{{ wardrobeLoading ? "读取中..." : wardrobeError ? "重试" : "查看更多物品" }}</Button>
-                </section>
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>情感数值</h4><span>0–1</span></div>
+                    <div class="state-metric-grid">
+                      <div class="state-metric"><div><span>愉悦度</span><strong>{{ metricText(pad.pleasure) }}</strong></div><div class="state-meter" role="progressbar" aria-label="愉悦度" :aria-valuenow="metricPercent(pad.pleasure)" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${metricPercent(pad.pleasure)}%` }" /></div></div>
+                      <div class="state-metric"><div><span>唤醒度</span><strong>{{ metricText(pad.arousal) }}</strong></div><div class="state-meter" role="progressbar" aria-label="唤醒度" :aria-valuenow="metricPercent(pad.arousal)" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${metricPercent(pad.arousal)}%` }" /></div></div>
+                      <div class="state-metric"><div><span>掌控感</span><strong>{{ metricText(pad.dominance) }}</strong></div><div class="state-meter" role="progressbar" aria-label="掌控感" :aria-valuenow="metricPercent(pad.dominance)" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${metricPercent(pad.dominance)}%` }" /></div></div>
+                    </div>
+                    <div class="detail-mini-grid">
+                      <div><span>当前情绪</span><strong>{{ formatDisplayValue(mood.label) }}</strong></div>
+                      <div><span>情绪强度</span><strong>{{ metricText(mood.intensity) }}</strong></div>
+                    </div>
+                  </section>
+
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>行动与调节</h4><span>当前状态</span></div>
+                    <div class="detail-mini-grid">
+                      <div><span>行动动能</span><strong>{{ metricText(momentum.value) }}</strong><small>{{ formatDisplayValue(momentum.trend) }}</small></div>
+                      <div><span>调节稳定性</span><strong>{{ metricText(regulation.stability) }}</strong><small>压力 {{ metricText(regulation.stress) }}</small></div>
+                      <div><span>状态修订</span><strong>{{ formatDisplayValue(innerState.revision) }}</strong><small>最近更新 {{ formatDisplayValue(innerState.last_updated_at) }}</small></div>
+                    </div>
+                    <p v-if="conflicts.length" class="detail-state-note">内部冲突：{{ formatDisplayValue(conflicts) }}</p>
+                  </section>
+
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>人格动力与偏好</h4><span>{{ growthSlots.length }} 项</span></div>
+                    <p v-if="!growthSlots.length" class="field-note">还没有形成可追踪的动力或偏好。</p>
+                    <ul v-else class="state-slot-list">
+                      <li v-for="slot in growthSlots" :key="String(slot.id ?? slot.key)"><div><strong>{{ slotName(slot) }}</strong><span>{{ slot.value_schema ? formatDisplayValue(slot.value_schema) : "动力" }}</span></div><p>{{ slotValue(slot) }}</p><small v-if="slot.revision !== undefined">修订 {{ formatDisplayValue(slot.revision) }}</small></li>
+                    </ul>
+                  </section>
+                </div>
+              </details>
+            </section>
+          </TabsContent>
+
+          <TabsContent value="world" class="detail-tab-pane mt-0 space-y-4">
+            <section class="detail-block">
+              <div class="detail-block-heading"><p class="eyebrow">生活世界</p><h3>生活脉络</h3></div>
+              <dl v-if="Object.keys(lifeProfile).length" class="identity-facts detail-facts-compact">
+                <template v-for="(value, key) in lifeProfile" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              </dl>
+              <div class="detail-summary-grid">
+                <div><span>活跃目标</span><strong>{{ goals.length }}</strong></div>
+                <div><span>关系</span><strong>{{ relationships.length }}</strong></div>
+                <div><span>可展示记忆</span><strong>{{ memories.length }}</strong></div>
               </div>
-            </details>
-            <h3>目标与意图</h3>
-            <GoalPlanningPanel :fluctlight-id="store.fluctlightId ?? ''" read-only />
-        <GoalPanel :fluctlight-id="store.selectedFluctlight.id" read-only />
-            <p v-if="!goals.length && !intentions.length" class="field-note">当前没有目标或待执行意图。</p>
-            <ul v-else class="modal-detail-list">
-              <li v-for="goal in goals" :key="String(goal.id)"><strong>{{ formatDisplayValue(goal.description) }}</strong><small>{{ enumLabel(goal.status) }} · {{ formatDisplayValue(goal.progress) }}</small></li>
-              <li v-for="intention in intentions" :key="String(intention.id)"><strong>{{ formatDisplayValue(intention.action) }}</strong><small>{{ enumLabel(intention.status) }}</small></li>
-            </ul>
-            <h3>当前上下文</h3>
-            <p class="field-note">{{ enumLabel(context.source) }}<template v-if="context.location"> · {{ formatDisplayValue(context.location) }}</template></p>
-            <h3>今日日程 <small class="timezone-note">{{ scheduleTimezone }}</small></h3>
-            <p v-if="!Object.keys(schedule).length || !scheduleItems.length" class="field-note">日程待生成，当前没有接受的本地日计划。</p>
-            <ol v-else class="timeline-list detail-timeline">
-                <li v-for="item in scheduleItems" :key="String(item.id)" :class="{ active: isCurrentScheduleItem(item) }" :aria-current="isCurrentScheduleItem(item) ? 'time' : undefined">
-                  <time :datetime="String(item.start_at ?? '')">{{ formatZonedRange(item.start_at, item.end_at, scheduleTimezone) }}</time>
-                <div><strong>{{ formatDisplayValue(item.activity) }}<span v-if="isCurrentScheduleItem(item)" class="timeline-now-badge">当前时段</span></strong><span>{{ formatDisplayValue(item.scene) }}<template v-if="item.status"> · {{ enumLabel(item.status) }}</template><template v-if="item.action_status"> · 意图 {{ enumLabel(item.action_status) }}</template></span></div>
-              </li>
-            </ol>
-          </section>
+              <details class="detail-state-drawer wardrobe-drawer" @toggle="onWardrobeToggle">
+                <summary><span><strong>衣柜与物品</strong><small>查看已记录物品与当前穿着</small></span><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+                <div class="detail-state-drawer-body">
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>当前穿着</h4><span>{{ (wornItems ?? []).length }} 件</span></div>
+                    <p v-if="!(wornItems ?? []).length" class="field-note">当前没有已确认的穿着记录。</p>
+                    <ul v-else class="modal-detail-list"><li v-for="item in wornItems" :key="String(item.id)"><strong>{{ formatDisplayValue(item.description) }}</strong><small>{{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.availability) }}</small></li></ul>
+                  </section>
+                  <section class="detail-state-section">
+                    <div class="detail-state-heading"><h4>已记录物品</h4><span>{{ (wardrobeItems ?? []).length }} 件{{ wardrobeHasMore ? "以上" : "" }}</span></div>
+                    <p v-if="wardrobeLoaded && !wardrobeInventoryComplete" class="field-note">这是已记录清单；未列出的物品不代表不存在。</p>
+                    <p v-if="wardrobeLoading && !wardrobeLoaded" class="field-note">正在读取衣柜...</p>
+                    <p v-if="wardrobeError" class="field-note" role="alert">{{ wardrobeError }}</p>
+                    <p v-if="wardrobeLoaded && !(wardrobeItems ?? []).length" class="field-note">尚无已记录的物品。</p>
+                    <ul v-if="(wardrobeItems ?? []).length" class="modal-detail-list"><li v-for="item in wardrobeItems" :key="item.id"><strong>{{ item.description }}</strong><small>{{ formatDisplayValue(item.category) }} · {{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.ownership) }} · {{ enumLabel(item.availability) }}</small></li></ul>
+                    <Button v-if="wardrobeError || wardrobeHasMore" variant="outline" type="button" :disabled="wardrobeLoading" @click="loadWardrobePage">{{ wardrobeLoading ? "读取中..." : wardrobeError ? "重试" : "查看更多物品" }}</Button>
+                  </section>
+                </div>
+              </details>
 
-          <section class="detail-block">
-            <div class="detail-block-heading"><p class="eyebrow">关系与记忆</p><h3>关系状态</h3></div>
-            <p v-if="!relationships.length" class="field-note">尚未形成关系状态。</p>
-            <ul v-else class="modal-detail-list"><li v-for="relationship in relationships" :key="relationshipKey(relationship)"><strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong><small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · profile {{ formatDisplayValue(relationship.profile_id ?? "shared") }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }}<template v-if="relationship.summary"> · {{ formatDisplayValue(relationship.summary) }}</template></small></li></ul>
-            <h3>可展示记忆</h3>
-            <p v-if="!memories.length" class="field-note">暂无可展示的记忆。</p>
-            <ul v-else class="modal-detail-list"><li v-for="memory in memories" :key="String(memory.id)"><strong>{{ formatDisplayValue(memory.content) }}</strong><small>{{ enumLabel(memory.type) }} · {{ enumLabel(memory.status) }}</small></li></ul>
-          </section>
-        </template>
+              <h3>目标与意图</h3>
+              <p v-if="!goals.length && !intentions.length" class="field-note">当前没有目标或待执行意图。</p>
+              <ul v-else class="modal-detail-list">
+                <li v-for="goal in goals" :key="String(goal.id)"><strong>{{ formatDisplayValue(goal.description) }}</strong><small>{{ enumLabel(goal.status) }} · {{ formatDisplayValue(goal.progress) }}</small></li>
+                <li v-for="intention in intentions" :key="String(intention.id)"><strong>{{ formatDisplayValue(intention.action) }}</strong><small>{{ enumLabel(intention.status) }}</small></li>
+              </ul>
+
+              <details class="detail-state-drawer">
+                <summary><span><strong>高级目标规划（完整监控视图）</strong><small>查看目标集合自动规划与生命周期详情</small></span><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+                <div class="detail-state-drawer-body">
+                  <GoalPlanningPanel :fluctlight-id="store.fluctlightId ?? ''" read-only />
+                  <GoalPanel :fluctlight-id="store.selectedFluctlight.id" read-only />
+                </div>
+              </details>
+
+              <h3>当前上下文</h3>
+              <p class="field-note">{{ enumLabel(context.source) }}<template v-if="context.location"> · {{ formatDisplayValue(context.location) }}</template></p>
+              <h3>今日日程 <small class="timezone-note">{{ scheduleTimezone }}</small></h3>
+              <p v-if="!Object.keys(schedule).length || !scheduleItems.length" class="field-note">日程待生成，当前没有接受的本地日计划。</p>
+              <ol v-else class="timeline-list detail-timeline">
+                  <li v-for="item in scheduleItems" :key="String(item.id)" :class="{ active: isCurrentScheduleItem(item) }" :aria-current="isCurrentScheduleItem(item) ? 'time' : undefined">
+                    <time :datetime="String(item.start_at ?? '')">{{ formatZonedRange(item.start_at, item.end_at, scheduleTimezone) }}</time>
+                  <div><strong>{{ formatDisplayValue(item.activity) }}<span v-if="isCurrentScheduleItem(item)" class="timeline-now-badge">当前时段</span></strong><span>{{ formatDisplayValue(item.scene) }}<template v-if="item.status"> · {{ enumLabel(item.status) }}</template><template v-if="item.action_status"> · 意图 {{ enumLabel(item.action_status) }}</template></span></div>
+                </li>
+              </ol>
+            </section>
+          </TabsContent>
+
+          <TabsContent value="memory" class="detail-tab-pane mt-0 space-y-4">
+            <section class="detail-block">
+              <div class="detail-block-heading"><p class="eyebrow">关系与记忆</p><h3>关系状态</h3></div>
+              <p v-if="!relationships.length" class="field-note">尚未形成关系状态。</p>
+              <ul v-else class="modal-detail-list"><li v-for="relationship in relationships" :key="relationshipKey(relationship)"><strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong><small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · profile {{ formatDisplayValue(relationship.profile_id ?? "shared") }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }}<template v-if="relationship.summary"> · {{ formatDisplayValue(relationship.summary) }}</template></small></li></ul>
+              <h3>可展示记忆</h3>
+              <p v-if="!memories.length" class="field-note">暂无可展示的记忆。</p>
+              <ul v-else class="modal-detail-list"><li v-for="memory in memories" :key="String(memory.id)"><strong>{{ formatDisplayValue(memory.content) }}</strong><small>{{ enumLabel(memory.type) }} · {{ enumLabel(memory.status) }}</small></li></ul>
+            </section>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <DialogFooter class="detail-dialog-footer m-0">
