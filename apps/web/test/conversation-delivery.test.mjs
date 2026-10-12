@@ -4,6 +4,8 @@ import test from "node:test";
 
 import { createPinia, setActivePinia } from "pinia";
 import { createServer } from "vite";
+import { createSSRApp } from "vue";
+import { renderToString } from "vue/server-renderer";
 
 test("a new submit remains visible while an older durable retry is being processed", async () => {
   const originalWindow = globalThis.window;
@@ -588,4 +590,131 @@ test("sending a new message when previous turn is stuck pending auto-cancels and
 		globalThis.fetch = originalFetch;
 		globalThis.localStorage = originalLocalStorage;
 	}
+});
+
+
+async function withRetryFixture(clock, run) {
+	const originals = { window: globalThis.window, fetch: globalThis.fetch, localStorage: globalThis.localStorage };
+	const values = new Map();
+	globalThis.window = { location: { origin: "http://fluctlight.test" } };
+	globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: (key) => values.delete(key) };
+	const conversation = { id: "conversation-retry-clock", createdByActorId: "owner", revision: 1, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:02Z" };
+	const user = { id: "persisted-retry-user", conversationId: conversation.id, sequence: 1, authorActorId: "participant", kind: "user", text: "原始消息", attachmentRefs: ["asset-original"], createdAt: "2026-09-11T00:00:01Z", turnId: "original-turn", idempotencyKey: "original-key", turnStatus: "failed", turnErrorCode: "conversation_native_output_missing", turnRetryable: true, ...clock };
+	const page = { conversation, participants: [], messages: [user], nextBeforeSequence: null };
+	const requests = [];
+	let turnResponse = async () => {
+		user.turnStatus = "completed";
+		return new Response(JSON.stringify({ type: "completed", turnId: user.turnId, sequence: 0, payload: {} }) + "\n", { headers: { "content-type": "application/x-ndjson" } });
+	};
+	globalThis.fetch = async (input, init = {}) => {
+		const url = String(input);
+		if (url.endsWith("/turn")) {
+			requests.push(JSON.parse(String(init.body)));
+			return turnResponse();
+		}
+		if (url.includes("/conversation") || url.includes("/messages")) return Response.json(page);
+		if (url.includes("/read")) return new Response(null, { status: 204 });
+		throw new Error(`unexpected request ${url}`);
+	};
+	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
+	try {
+		const pinia = createPinia();
+		setActivePinia(pinia);
+		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
+		const store = useConversationStore();
+		store.fluctlights = [{ id: "fluctlight-retry-clock", identity: { name: "摇光" }, status: "active" }];
+		await store.selectFluctlight("fluctlight-retry-clock");
+		await run({ store, server, pinia, user, requests, values, setTurnResponse: (response) => { turnResponse = response; } });
+	} finally {
+		await server.close();
+		Object.assign(globalThis, originals);
+	}
+}
+
+for (const [name, clock] of [
+	["frozen sender clock", { senderTimezone: "Asia/Shanghai", senderUtcOffsetMinutes: 480, senderSentAt: "2026-09-11T00:00:00.123Z" }],
+	["zero UTC offset", { senderTimezone: "UTC", senderUtcOffsetMinutes: 0, senderSentAt: "2026-09-11T00:00:00.123Z" }],
+	["unknown legacy clock", {}],
+	["null legacy clock", { senderTimezone: null, senderUtcOffsetMinutes: null, senderSentAt: null }],
+]) {
+	test(`server-restored retry preserves ${name} and the original durable identity`, async () => {
+		await withRetryFixture(clock, async ({ store, user, requests, values }) => {
+			assert.equal(store.canRetry, true);
+			for (const field of ["senderTimezone", "senderUtcOffsetMinutes", "senderSentAt"]) {
+				assert.equal(store.retryTurn[field], user[field] ?? undefined);
+				assert.equal(JSON.parse(values.get("fluctlight.retry-turn.v2"))[field], user[field] ?? undefined);
+			}
+			await store.retry();
+			assert.deepEqual(requests, [{ text: user.text, fluctlightId: "fluctlight-retry-clock", senderActorId: user.authorActorId, attachmentRefs: user.attachmentRefs, idempotencyKey: user.idempotencyKey, turnId: user.turnId, ...Object.fromEntries(Object.entries(clock).filter(([, value]) => value != null)) }]);
+			assert.equal(store.messages.filter((message) => message.kind === "user").length, 1);
+			assert.equal(store.messages[0].id, user.id);
+			assert.equal(store.retryTurn, null);
+		});
+	});
+}
+
+test("retry stays visibly disabled in flight and a 409 keeps identity, draft and useful failure", async () => {
+	await withRetryFixture({ senderTimezone: "UTC", senderUtcOffsetMinutes: 0, senderSentAt: "2026-09-11T00:00:00.123Z" }, async ({ store, server, pinia, user, requests, setTurnResponse }) => {
+		let releaseResponse;
+		setTurnResponse(() => new Promise((resolve) => { releaseResponse = resolve; }));
+		store.attachmentRef = "asset-unsent-draft";
+		const retry = store.retry();
+		try {
+			assert.equal(store.retrying, true);
+			assert.equal(store.canRetry, false);
+			assert.equal(store.hasPendingTurn, false, "a local request must not fabricate server acceptance");
+			const { default: ChatView } = await server.ssrLoadModule("/src/views/ChatView.vue");
+			const html = await renderToString(createSSRApp(ChatView).use(pinia));
+			assert.match(html, /正在提交重试请求并等待回复/);
+			assert.match(html, /<button[^>]* disabled[^>]*>(?:<!--[^>]*-->)*重试中\.\.\.(?:<!--[^>]*-->)*<\/button>/);
+		} finally {
+			releaseResponse(Response.json({ code: "conversation_turn_conflict", message: "Message identity conflict" }, { status: 409 }));
+			await retry;
+		}
+		assert.equal(requests.length, 1);
+		assert.equal(store.retrying, false);
+		assert.equal(store.canRetry, true);
+		assert.equal(store.retryTurn.turnId, user.turnId);
+		assert.equal(store.retryTurn.idempotencyKey, user.idempotencyKey);
+		assert.equal(store.retryTurn.messageId, user.id);
+		assert.equal(store.attachmentRef, "asset-unsent-draft");
+		assert.match(store.error, /重试请求未被接受：conversation_turn_conflict/);
+		assert.match(store.error, /conversation_native_output_missing/);
+		assert.equal(store.messages.filter((message) => message.kind === "user").length, 1);
+	});
+});
+
+test("restored local retry and queue bubbles preserve attachments, actor, clock and turn identity", async () => {
+	await withRetryFixture({}, async ({ store }) => {
+		const original = { ...store.retryTurn, senderActorId: "participant", senderTimezone: "UTC", senderUtcOffsetMinutes: 0, senderSentAt: "2026-09-11T00:00:00.123Z" };
+		store.messages = [];
+		store.retryTurn = original;
+		store.ensureRetryMessageVisible();
+		store.queuedTurn = { ...original, messageId: "local-queued-original", turnId: "queued-turn", idempotencyKey: "queued-key", createdAt: "2026-09-11T00:00:04Z" };
+		store.ensureQueuedMessageVisible();
+		for (const [message, request] of [[store.messages[0], original], [store.messages[1], store.queuedTurn]]) {
+			assert.equal(message.id, request.messageId);
+			assert.equal(message.authorActorId, request.senderActorId);
+			for (const field of ["attachmentRefs", "turnId", "idempotencyKey", "senderTimezone", "senderUtcOffsetMinutes", "senderSentAt"]) assert.deepEqual(message[field], request[field]);
+		}
+		assert.equal(store.messages[0].createdAt, original.senderSentAt);
+		assert.equal(store.messages[1].createdAt, store.queuedTurn.createdAt);
+	});
+});
+
+test("a partial committed failure stays non-retryable and does not claim it will settle into retry", async () => {
+	await withRetryFixture({}, async ({ store, user, server, pinia, requests }) => {
+		store.messages = [{ ...user, turnErrorCode: "agent_partial_committed", turnRetryable: false }];
+		store.syncServerTurnState();
+		assert.equal(store.canRetry, false);
+		assert.equal(store.hasSettlingTurn, false);
+		assert.match(store.error, /已执行部分操作，不能直接重试/);
+		assert.doesNotMatch(store.error, /完成后可以重试/);
+		await store.retry();
+		assert.equal(requests.length, 0);
+		const { default: ChatView } = await server.ssrLoadModule("/src/views/ChatView.vue");
+		const html = await renderToString(createSSRApp(ChatView).use(pinia));
+		assert.match(html, /部分操作已执行，不能直接重试/);
+		assert.doesNotMatch(html, /本次生成正在结束|重试回复/);
+	});
 });

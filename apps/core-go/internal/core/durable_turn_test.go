@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -502,5 +503,94 @@ func TestExplicitCancelStopsRunningProviderAndFencesLateReply(t *testing.T) {
 	page, err = repository.History(ctx, conversationID, ownerID, nil, 50)
 	if err != nil || !page.Messages[0].TurnRetryable {
 		t.Fatalf("retry readiness after terminal cancellation=%#v err=%v", page.Messages, err)
+	}
+}
+
+func TestNativeProseFailureDurableRetryPreservesSenderIdentity(t *testing.T) {
+	prose := newConversationToolLoopTransport(fakeProviderResult{Text: "This final prose does not publish a private message"})
+	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurnWithTransport(t, "native-prose-retry", prose)
+	if _, err := app.EnsureWakeUpIntents(ctx); err != nil {
+		t.Fatal(err)
+	}
+	payload := map[string]any{"fluctlight_id": fluctlightID, "text": "原生失败重试", "turn_id": "native-prose-retry-turn", "idempotency_key": "native-prose-retry-key", "attachment_refs": []any{}, "sender_timezone": "Asia/Shanghai", "sender_utc_offset_minutes": 480, "sender_sent_at": "2026-10-12T07:42:00.123Z"}
+	accepted, err := app.AcceptTurn(ctx, ownerID, conversationID, payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.ProcessCognitionInbox(ctx, accepted.InboxID); err == nil || !strings.Contains(err.Error(), "conversation_native_output_missing") {
+		t.Fatalf("prose failure=%v", err)
+	}
+	page, err := repository.History(ctx, conversationID, ownerID, nil, 10)
+	if err != nil || len(page.Messages) != 1 || !page.Messages[0].TurnRetryable || page.Messages[0].TurnStatus != "failed" {
+		t.Fatalf("failed history=%#v err=%v", page, err)
+	}
+	original := page.Messages[0]
+	var oldWorkflowID string
+	if err := repository.Pool().QueryRow(ctx, `SELECT workflow_id FROM public.platform_workflow_intents WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID).Scan(&oldWorkflowID); err != nil {
+		t.Fatal(err)
+	}
+	reply := []map[string]any{{"id": "native-prose-retry-reply", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": "真实重试回复"})}}}
+	app.Provider.HTTP = &http.Client{Transport: newConversationToolLoopTransport(fakeProviderResult{ToolCalls: reply})}
+	reopened, err := app.AcceptTurn(ctx, ownerID, conversationID, payload)
+	if err != nil || reopened.InboxID != accepted.InboxID || reopened.TurnID != accepted.TurnID || stringValue(reopened.UserMessage["id"]) != original.ID {
+		t.Fatalf("retry identity=%#v err=%v", reopened, err)
+	}
+	var workflowID string
+	if err := repository.Pool().QueryRow(ctx, `SELECT workflow_id FROM public.platform_workflow_intents WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID).Scan(&workflowID); err != nil || workflowID == oldWorkflowID {
+		t.Fatalf("retry did not create fresh attempt: %s %s %v", oldWorkflowID, workflowID, err)
+	}
+	if _, err := app.ProcessCognitionInbox(ctx, accepted.InboxID); err != nil {
+		t.Fatal(err)
+	}
+	page, err = repository.History(ctx, conversationID, ownerID, nil, 10)
+	if err != nil || len(page.Messages) != 2 || page.Messages[0].TurnStatus != "completed" || page.Messages[1].Text != "真实重试回复" {
+		t.Fatalf("retry history=%#v err=%v", page, err)
+	}
+	user := page.Messages[0]
+	if user.ID != original.ID || user.TurnID != original.TurnID || user.IdempotencyKey != original.IdempotencyKey || user.SenderTimezone == nil || original.SenderTimezone == nil || *user.SenderTimezone != *original.SenderTimezone || user.SenderUTCOffsetMinutes == nil || original.SenderUTCOffsetMinutes == nil || *user.SenderUTCOffsetMinutes != *original.SenderUTCOffsetMinutes || user.SenderSentAt == nil || original.SenderSentAt == nil || !user.SenderSentAt.Equal(*original.SenderSentAt) {
+		t.Fatalf("sender snapshot changed: before=%#v after=%#v", original, user)
+	}
+	var users, replies int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FILTER(WHERE kind='user'),count(*) FILTER(WHERE kind='assistant') FROM public.conversation_messages WHERE conversation_id=$1`, conversationID).Scan(&users, &replies); err != nil || users != 1 || replies != 1 {
+		t.Fatalf("message counts users=%d replies=%d err=%v", users, replies, err)
+	}
+}
+
+func TestFailedConversationHistoryRetainsCommittedMutationRetryFence(t *testing.T) {
+	ctx, repository, app, ownerID, fluctlightID, conversationID := durableReplyFixture(t, "partial-retry-history")
+	payload := map[string]any{"fluctlight_id": fluctlightID, "text": "提交后的失败不能重放", "turn_id": "partial-retry-history-turn", "idempotency_key": "partial-retry-history-key", "attachment_refs": []any{}}
+	accepted, err := app.AcceptTurn(ctx, ownerID, conversationID, payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name, status string
+		retryable    bool
+	}{
+		{"memory.recall", "completed", true}, {"memory_event", "failed", true}, {"memory_event", "completed", false}, {"media.image.generate", "accepted", false}, {"unknown_tool", "completed", false},
+	} {
+		partial := map[string]any{"capability_results": []any{map[string]any{"capability_name": test.name, "status": test.status}}}
+		if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',error_code='agent_final_contract_invalid',payload=jsonb_set(payload,'{agent_partial}',$2::jsonb,true),processed_at=now() WHERE id=$1`, accepted.InboxID, jsonBytes(partial)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repository.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',completed_at=now() WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID); err != nil {
+			t.Fatal(err)
+		}
+		page, err := repository.History(ctx, conversationID, ownerID, nil, 10)
+		if err != nil || len(page.Messages) != 1 || page.Messages[0].TurnRetryable != test.retryable {
+			t.Fatalf("%s/%s history=%#v err=%v", test.name, test.status, page, err)
+		}
+		if !test.retryable {
+			if page.Messages[0].TurnErrorCode != "agent_partial_committed" {
+				t.Fatalf("partial history=%#v", page.Messages[0])
+			}
+			if _, err := app.AcceptTurn(ctx, ownerID, conversationID, payload); err != nil {
+				t.Fatal(err)
+			}
+			var status string
+			if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE id=$1`, accepted.InboxID).Scan(&status); err != nil || status != "failed" {
+				t.Fatalf("committed turn reopened: %s %v", status, err)
+			}
+		}
 	}
 }

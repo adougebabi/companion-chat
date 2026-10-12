@@ -3,14 +3,16 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/cloudwego/eino/schema"
 )
 
 // conversationPublicationPhysicalRequestPolicy keeps private conversation
 // publication inside the native Eino loop. Until a real private reply is
-// committed, every physical request must choose a Tool and cannot terminate
-// through the final JSON grammar. Media may accompany a reply but cannot
+// committed, normal physical requests retain the selected Tool catalog and
+// cannot terminate through final JSON grammar. Media may accompany a reply but cannot
 // replace the private conversation message.
 type conversationPublicationPhysicalRequestPolicy struct{}
 
@@ -21,6 +23,10 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	}
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+	}
+	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
+			AllowedToolNames: []string{conversationReplyCapabilityName}, NamedTool: conversationReplyCapabilityName, DisableThinking: true}, nil
 	}
 	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
 }
@@ -41,4 +47,37 @@ func conversationPublicationPolicyEnabled(ctx context.Context) bool {
 	}
 	_, ok = policy.(conversationPublicationPhysicalRequestPolicy)
 	return ok
+}
+
+// This marker affects one physical request inside the same native Runner.
+type conversationPublicationCorrectionKey struct{}
+
+func conversationPublicationProposal(ctx context.Context) bool {
+	if !conversationPublicationPolicyEnabled(ctx) {
+		return false
+	}
+	bridge, ok := adkCapabilityContext(ctx)
+	return ok && !conversationHasAuthoritativeOutput(bridge.Trace)
+}
+
+func conversationPublicationOmission(message *schema.Message) bool {
+	if message == nil || len(message.ToolCalls) != 0 || strings.TrimSpace(message.Content) == "" {
+		return false
+	}
+	finish := ""
+	if message.ResponseMeta != nil {
+		finish = strings.TrimSpace(message.ResponseMeta.FinishReason)
+	}
+	return finish == "" || finish == "stop" || finish == "unknown"
+}
+
+func validateConversationPublicationCorrection(ctx context.Context, message *schema.Message) error {
+	correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool)
+	if !correcting {
+		return nil
+	}
+	if message == nil || len(message.ToolCalls) != 1 || message.ToolCalls[0].Function.Name != conversationReplyCapabilityName {
+		return fmt.Errorf("%w: conversation_native_output_missing", errADKFinalContractInvalid)
+	}
+	return nil
 }

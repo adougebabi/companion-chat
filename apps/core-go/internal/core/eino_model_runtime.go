@@ -61,26 +61,28 @@ type EinoModelCall struct {
 }
 
 type queuedToolCallingChatModel struct {
-	inner                model.ToolCallingChatModel
-	provider             *ProviderClient
-	agentName            string
-	role                 string
-	scenario             string
-	priority             int
-	diagnosticID         string
-	assignment           providerAssignment
-	correlationID        string
-	sequence             *atomic.Uint64
-	cumulativeInput      *atomic.Int64
-	lastInputEstimate    *atomic.Int64
-	lastPhysicalResponse *atomic.Pointer[schema.Message]
-	definitions          []CapabilityDefinition
-	responseFormat       map[string]any
+	inner                     model.ToolCallingChatModel
+	provider                  *ProviderClient
+	agentName                 string
+	role                      string
+	scenario                  string
+	priority                  int
+	diagnosticID              string
+	assignment                providerAssignment
+	correlationID             string
+	sequence                  *atomic.Uint64
+	cumulativeInput           *atomic.Int64
+	lastInputEstimate         *atomic.Int64
+	lastPhysicalResponse      *atomic.Pointer[schema.Message]
+	publicationCorrectionUsed *atomic.Bool
+	definitions               []CapabilityDefinition
+	responseFormat            map[string]any
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
 	var err error
 	originalInput := input
+	originalOpts := opts
 	m, opts, err = m.kevModelOptions(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -118,7 +120,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	}
 	started := time.Now()
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
-		if gate := kevPersona(ctx); gate != nil && gate.needsCheck(ctx) {
+		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
 			// The inner component's raw proposal must not be published as an
 			// Agent event. The outer node will emit only the admitted response;
 			// physical input/output diagnostics remain owned by this adapter.
@@ -139,17 +141,33 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
 	}
 	if err == nil && result != nil {
+		if correctionErr := validateConversationPublicationCorrection(ctx, result); correctionErr != nil {
+			return nil, correctionErr
+		}
 		if gate := kevPersona(ctx); gate != nil {
 			candidate, regenerate, gateErr := gate.inspect(ctx, result)
 			if gateErr != nil {
 				return nil, gateErr
 			}
 			if regenerate {
-				return m.Generate(ctx, originalInput, opts...)
+				if correctionErr := validateConversationPublicationCorrection(ctx, nil); correctionErr != nil {
+					return nil, correctionErr
+				}
+				return m.Generate(ctx, originalInput, originalOpts...)
 			}
 			result = candidate
 		}
 	}
+	if err == nil && conversationPublicationProposal(ctx) {
+		if correctionErr := validateConversationPublicationCorrection(ctx, result); correctionErr != nil {
+			return nil, correctionErr
+		}
+		if conversationPublicationOmission(result) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
+			correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
+			return m.Generate(correctionCtx, conversationPublicationCorrectionInput(originalInput), originalOpts...)
+		}
+	}
+
 	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
 		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
 		if adkContext.Trace != nil {
@@ -163,6 +181,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
 	var err error
 	originalInput := input
+	originalOpts := opts
 	m, opts, err = m.kevModelOptions(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -208,7 +227,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		m.recordUsageComparison(callCtx, full)
 	})
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
-		if gate := kevPersona(ctx); gate != nil && gate.needsCheck(ctx) {
+		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
 			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
 		}
 		return m.inner.Stream(runCtx, input, opts...)
@@ -216,17 +235,35 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	if err != nil || stream == nil {
 		return stream, err
 	}
-	if gate := kevPersona(ctx); gate != nil && gate.needsCheck(ctx) {
+	if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
 		full, err := consumeKevCandidateStream(ctx, stream)
 		if err != nil {
 			return nil, err
 		}
-		candidate, regenerate, err := gate.inspect(ctx, full)
-		if err != nil {
+		if err := validateConversationPublicationCorrection(ctx, full); err != nil {
 			return nil, err
 		}
-		if regenerate {
-			return m.Stream(ctx, originalInput, opts...)
+		candidate := full
+		if gate != nil {
+			var regenerate bool
+			candidate, regenerate, err = gate.inspect(ctx, full)
+			if err != nil {
+				return nil, err
+			}
+			if regenerate {
+				if correctionErr := validateConversationPublicationCorrection(ctx, nil); correctionErr != nil {
+					return nil, correctionErr
+				}
+				return m.Stream(ctx, originalInput, originalOpts...)
+			}
+		}
+		if conversationPublicationProposal(ctx) {
+			if err := validateConversationPublicationCorrection(ctx, candidate); err != nil {
+				return nil, err
+			}
+			if conversationPublicationOmission(candidate) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
+				return m.Stream(context.WithValue(ctx, conversationPublicationCorrectionKey{}, true), conversationPublicationCorrectionInput(originalInput), originalOpts...)
+			}
 		}
 		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
 			bridge.Refresh.noteModelToolCalls(sequence, candidate.ToolCalls)
@@ -631,7 +668,7 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if sequence == nil {
 		sequence = &atomic.Uint64{}
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, definitions: m.definitions, responseFormat: m.responseFormat}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, publicationCorrectionUsed: m.publicationCorrectionUsed, definitions: m.definitions, responseFormat: m.responseFormat}, nil
 }
 
 type einoModelResponse struct {
@@ -820,7 +857,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		inner: chat, provider: p, agentName: call.Agent.Name, role: call.Role, scenario: call.Scenario, priority: call.Priority,
 		diagnosticID: call.DiagnosticID, assignment: call.Assignment, correlationID: call.CorrelationID,
 		sequence: &atomic.Uint64{}, definitions: call.Definitions, responseFormat: budgetResponseFormat,
-		cumulativeInput: &atomic.Int64{}, lastInputEstimate: &atomic.Int64{}, lastPhysicalResponse: &atomic.Pointer[schema.Message]{},
+		cumulativeInput: &atomic.Int64{}, lastInputEstimate: &atomic.Int64{}, lastPhysicalResponse: &atomic.Pointer[schema.Message]{}, publicationCorrectionUsed: &atomic.Bool{},
 	}
 	unboundChat := chat
 	tools, err := NewADKCapabilityTools(call.Definitions, adkContext.Invoker)
@@ -1483,4 +1520,9 @@ func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {
 		}
 	}
 	return result, text.String(), nil
+}
+
+func conversationPublicationCorrectionInput(input []*schema.Message) []*schema.Message {
+	corrected := append([]*schema.Message(nil), input...)
+	return append(corrected, schema.UserMessage("The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."))
 }

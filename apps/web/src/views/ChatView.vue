@@ -94,6 +94,7 @@ function deliveryLabel(message: BrowserMessage): string {
 	const status = deliveryStatus(message);
 	if (status === "pending") return "已接收，处理中";
 	if (status === "failed") {
+		if (message.turnErrorCode === "agent_partial_committed") return "部分操作已执行，不能直接重试";
 		if (message.turnRetryable === false) return "本次生成正在结束";
 		return message.turnStatus === "cancelled" ? "回复已取消，可重试" : "回复失败，可重试";
 	}
@@ -166,9 +167,9 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
       </article>
     </section>
 
-    <div v-if="store.error || store.canRetry" class="error-banner" role="alert">
-      <span>{{ store.error }}</span>
-      <Button v-if="store.canRetry" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : store.retryIsModelFailure ? "重试回复" : "重新发送" }}</Button>
+    <div v-if="store.error || store.canRetry || store.retrying" class="error-banner" role="alert">
+      <span>{{ store.retrying ? "正在提交重试请求并等待回复…" : store.error }}</span>
+      <Button v-if="store.canRetry || store.retrying" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : store.retryIsModelFailure ? "重试回复" : "重新发送" }}</Button>
       <Button v-if="store.canRetry" class="secondary-button" variant="ghost" type="button" @click="store.dismissRetry">忽略这条</Button>
     </div>
 

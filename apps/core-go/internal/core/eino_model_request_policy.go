@@ -25,6 +25,8 @@ type physicalModelRequestDecision struct {
 	// AllowedToolNames narrows this physical request's installed catalog only.
 	// Nil preserves the task's catalog; it never grants a new capability.
 	AllowedToolNames []string
+	NamedTool        string
+	DisableThinking  bool
 }
 
 func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context, opts []model.Option) (*queuedToolCallingChatModel, []model.Option, map[string]any, error) {
@@ -103,20 +105,34 @@ func applyPhysicalModelRequestPolicy(ctx context.Context, opts []model.Option, r
 		return nil, nil, err
 	}
 	if decision.ToolChoice != "" {
-		opts = append(opts, model.WithToolChoice(decision.ToolChoice))
+		if decision.NamedTool != "" {
+			opts = append(opts, model.WithToolChoice(decision.ToolChoice, decision.NamedTool))
+		} else {
+			opts = append(opts, model.WithToolChoice(decision.ToolChoice))
+		}
 	}
-	if !decision.OmitResponseFormat {
+	if !decision.OmitResponseFormat && !decision.DisableThinking {
 		return opts, responseFormat, nil
 	}
-	opts = append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, rawBody []byte) ([]byte, error) {
-		var body map[string]any
-		if err := json.Unmarshal(rawBody, &body); err != nil {
-			return nil, err
-		}
-		delete(body, "response_format")
-		return json.Marshal(body)
-	}))
-	return opts, nil, nil
+	if decision.NamedTool != "" || decision.DisableThinking || decision.OmitResponseFormat {
+		opts = append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
+			var body map[string]any
+			if err := json.Unmarshal(raw, &body); err != nil {
+				return nil, err
+			}
+			if decision.DisableThinking {
+				body["enable_thinking"] = false
+			}
+			if decision.OmitResponseFormat {
+				delete(body, "response_format")
+			}
+			return json.Marshal(body)
+		}))
+	}
+	if decision.OmitResponseFormat {
+		return opts, nil, nil
+	}
+	return opts, responseFormat, nil
 }
 
 // Final correction has no business admission or context refresh. Keep correlation,

@@ -35,6 +35,7 @@ const turnErrorCodes = new Set([
   "capability_result_missing",
   "capability_result_status_invalid",
   "capability_settlement_failed",
+  "adk_final_message_empty",
   "adk_final_message_missing",
   "adk_final_output_invalid",
   "adk_final_output_missing",
@@ -43,8 +44,10 @@ const turnErrorCodes = new Set([
   "agent_cognition_settlement_failed",
   "agent_final_contract_invalid",
   "agent_output_publication_failed",
+  "agent_partial_committed",
   "agent_run_failed",
   "cognition_visible_text_missing",
+  "conversation_native_output_missing",
   "conversation_not_found",
   "conversation_settlement_failed",
   "conversation_turn_conflict",
@@ -260,7 +263,7 @@ function captureSenderTime(): Pick<RetryTurn, "senderTimezone" | "senderUtcOffse
 	return { senderTimezone: zone, senderUtcOffsetMinutes: -sentAt.getTimezoneOffset(), senderSentAt: sentAt.toISOString() };
 }
 
-function createLocalMessage(conversationId: string, text: string, sequence: number, authorActorId = "human", messageId?: string, createdAt?: string, senderTime?: Pick<RetryTurn, "senderTimezone" | "senderUtcOffsetMinutes" | "senderSentAt">) : BrowserMessage {
+function createLocalMessage(conversationId: string, text: string, sequence: number, authorActorId = "human", messageId?: string, createdAt?: string, senderTime?: Partial<Pick<RetryTurn, "senderTimezone" | "senderUtcOffsetMinutes" | "senderSentAt" | "attachmentRefs" | "turnId" | "idempotencyKey">>) : BrowserMessage {
   return {
 	id: messageId ?? `local-${randomId()}`,
     conversationId,
@@ -268,9 +271,13 @@ function createLocalMessage(conversationId: string, text: string, sequence: numb
     authorActorId,
     kind: "user",
     text,
-    attachmentRefs: [],
+    attachmentRefs: senderTime?.attachmentRefs ?? [],
 	createdAt: createdAt ?? new Date().toISOString(),
-	...senderTime,
+	senderTimezone: senderTime?.senderTimezone,
+	senderUtcOffsetMinutes: senderTime?.senderUtcOffsetMinutes,
+	senderSentAt: senderTime?.senderSentAt,
+	turnId: senderTime?.turnId,
+	idempotencyKey: senderTime?.idempotencyKey,
   };
 }
 
@@ -339,7 +346,7 @@ export const useConversationStore = defineStore("conversations", {
 	canRetry: (state) => Boolean(state.retryTurn) && state.retryTurn?.conversationId === state.conversation?.id && state.retryTurn?.fluctlightId === state.fluctlightId && !state.sending && !state.retrying && !state.messages.some((message) => message.kind === "user" && message.id === state.retryTurn?.messageId && message.turnRetryable === false),
 	retryIsModelFailure: (state) => Boolean(state.retryTurn && state.messages.some((message) => message.kind === "user" && message.id === state.retryTurn?.messageId && (message.turnStatus === "failed" || message.turnStatus === "cancelled"))),
 	hasPendingTurn: (state) => state.messages.some((message) => message.kind === "user" && (message.turnStatus === "pending" || message.turnStatus === "running")),
-	hasSettlingTurn: (state) => state.messages.some((message) => message.kind === "user" && (message.turnStatus === "failed" || message.turnStatus === "cancelled") && message.turnRetryable === false),
+	hasSettlingTurn: (state) => state.messages.some((message) => message.kind === "user" && (message.turnStatus === "failed" || message.turnStatus === "cancelled") && message.turnRetryable === false && message.turnErrorCode !== "agent_partial_committed"),
 	canCancel(): boolean { return this.hasPendingTurn; },
 	queuedMessageId: (state) => state.queuedTurn?.conversationId === state.conversation?.id && state.queuedTurn?.fluctlightId === state.fluctlightId ? state.queuedTurn.messageId : null,
   },
@@ -520,12 +527,17 @@ export const useConversationStore = defineStore("conversations", {
 				turnId: latest.turnId,
 				idempotencyKey: latest.idempotencyKey,
 				attachmentRefs: latest.attachmentRefs,
+				senderTimezone: latest.senderTimezone ?? undefined,
+				senderUtcOffsetMinutes: latest.senderUtcOffsetMinutes ?? undefined,
+				senderSentAt: latest.senderSentAt ?? undefined,
 				messageId: latest.id,
 				senderActorId: latest.authorActorId === this.conversation?.createdByActorId ? undefined : latest.authorActorId,
 			};
 			this.retryTurn = retry;
 			persistRetry(retry);
-			this.error = latest.turnRetryable === false
+			this.error = latest.turnErrorCode === "agent_partial_committed"
+				? "本次生成已执行部分操作，不能直接重试，以免重复执行。详情请查看诊断：agent_partial_committed"
+				: latest.turnRetryable === false
 				? "正在结束本次生成，完成后可以重试。"
 				: latest.turnStatus === "cancelled" ? "回复已取消，可以重试。" : `回复未完成：${latest.turnErrorCode ?? "模型处理失败"}`;
 			return;
@@ -591,7 +603,7 @@ export const useConversationStore = defineStore("conversations", {
 			};
 			this.queuedTurn = queuedTurn;
 			persistQueuedTurn(queuedTurn);
-			this.messages.push(queuedMessage);
+			this.messages.push({ ...queuedMessage, attachmentRefs: queuedTurn.attachmentRefs, turnId: queuedTurn.turnId, idempotencyKey: queuedTurn.idempotencyKey });
 			await this.retry();
 			if (this.retryTurn && this.queuedTurn?.conversationId === conversationId && this.queuedTurn?.fluctlightId === fluctlightId) {
 				this.dismissRetry();
@@ -763,6 +775,9 @@ export const useConversationStore = defineStore("conversations", {
 			if (confirmed) {
 				this.messages = this.messages.filter((message) => message.id !== optimisticMessageId || message.id === confirmed.id);
 				this.syncServerTurnState();
+				if (error instanceof BrowserApiError && (confirmed.turnStatus === "failed" || confirmed.turnStatus === "cancelled")) {
+					this.error = `${retry ? "重试" : "发送"}请求未被接受：${turnErrorCode({ code: error.code })}。${this.error}`;
+				}
 				return;
 			}
 		} catch {
@@ -920,7 +935,7 @@ export const useConversationStore = defineStore("conversations", {
 		    }
 		    return;
 		  }
-		  const local = createLocalMessage(conversationId, pending.text, 0, pending.senderActorId ?? "human", pending.messageId);
+		  const local = createLocalMessage(conversationId, pending.text, 0, pending.senderActorId ?? "human", pending.messageId, pending.senderSentAt, pending);
 		  pending.messageId = local.id;
 		  persistRetry(pending);
 		  this.messages.push(local);
@@ -931,7 +946,7 @@ export const useConversationStore = defineStore("conversations", {
 		if (!queued || !conversationId || queued.conversationId !== conversationId || queued.fluctlightId !== this.fluctlightId) return;
 		const exists = this.messages.some((message) => message.id === queued.messageId || (message.kind === "user" && message.turnId === queued.turnId));
 		if (!exists) {
-			this.messages.push(createLocalMessage(conversationId, queued.text, 0, queued.senderActorId ?? "human", queued.messageId, queued.createdAt));
+			this.messages.push(createLocalMessage(conversationId, queued.text, 0, queued.senderActorId ?? "human", queued.messageId, queued.createdAt, queued));
 		}
 	},
     async loadOlder() {

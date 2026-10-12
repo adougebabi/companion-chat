@@ -262,3 +262,14 @@ Planner新增实际query阶段：两条不同成功query前query-only forced/no 
 补ResponseMeta finish_reason/availableusage与typedempty model_output分类；bounded2MiB观察在既有queueRecv中，终态一次聚合不会覆盖正文，无新pump，取消/error原样保留；WithTools共享实际physical response metadata。termination事件仅counts/reason/usage，rawreasoning仍属Owner model-run。SDK独立usage帧前置聚合可能丢reasoning细分；无法获得时unknown/省略，不新增SSE parser或推断预算耗尽。
 
 最终独立检查Go race1570PASS/511SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过。实际HTTP/SSE工具隔离、stop/length/unknown、combined/split终态、nativeidentity和队列取消已运行。PG/其他service opt-in仍SKIP。无公共API/schema改动，无前端重跑，无migration，head0059。没有修改正式模型服务或设置、安装DB、写业务数据、提交/部署。507及真实模型提前停止的语义原因未被本修复证明解决；新诊断只能为后续真实失败提供终止依据。
+
+
+## 2026-10-12 32K后漏原生回复与重试无效
+
+现场只读15:42私聊turn_8d87ca4a-7069-418c-9a71-9666786f34c3 actualprompt15882/completion746/total16628、finishstop，正文47字、ToolCalls0，conversation_native_output_missing。15:36/15:19有完成记录；15:31GPU400（15666token需1570MB仅537MB+106MB可回收）另属资源错误。此最新失败不是16K length；应用仍预算131072/40960，未代改Owner设置。
+
+接受新协议：未publication且非空stop/unknown final，既有queued native boundary最多一次exact conversation.reply纠正，保留初始read/media顺序、模型自主Tool参数、真实Eino执行/Provider身份；不从正文代发，不修empty/length/filter，已回复不纠正，拒绝参数走既有native feedback，最后DTO repair仍无工具。实际HTTP/SSE RED→GREEN，模型忽略纠正/错误Tool均failclosed，已提交effect不重放。
+
+重试确定代码缺口：首次captureSenderTime冻结字段，failed-history重建漏3字段，后端同message snapshot.equal核验会409。修复preserve timezone/offset/sentAt（含0/null语义），原user/key/turn/actor/attachments不变；在途按钮持续禁用可见，409保留拒绝+旧失败。History与enqueue partialmutation挡板一致，已有effect显示agent_partial_committed/不可直接重试，不再永远显示正在结算；无新public字段、无移除防重放。
+
+最终独立核验：Go全仓race1593PASS/513SKIP/0FAIL（含子用例），Web83+browser-client20+core-client2=105PASS/0FAIL；generate/typecheck/test/build/vet/gofmt/diff通过。实际ChatView SSR和HTTP/SSE已跑，真实PGdurable retry/partialHistory因无隔离DB明确SKIP，真实Provider与生产点击重试未执行。无migration、head0059，未安装DB、写正式业务数据、提交或部署；生产GPU资源与预算同步不在本次写入。

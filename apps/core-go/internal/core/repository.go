@@ -191,7 +191,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	participantRows.Close()
 	query := `SELECT m.id, m.conversation_id, m.sequence, m.author_actor_id, m.kind, m.text, m.attachment_refs, m.created_at,
 		m.sender_timezone,m.sender_utc_offset_minutes,m.sender_sent_at,
-		COALESCE(m.turn_id,''), COALESCE(m.idempotency_key,''), COALESCE(i.status,''), COALESCE(i.error_code,''),COALESCE(w.status,''),
+		COALESCE(m.turn_id,''), COALESCE(m.idempotency_key,''), COALESCE(i.status,''), COALESCE(i.error_code,''),COALESCE(w.status,''),COALESCE(i.payload->'agent_partial','{}'::jsonb),
 		CASE WHEN m.kind='user' AND m.turn_id IS NOT NULL THEN EXISTS(
 			SELECT 1 FROM public.conversation_messages a
 			WHERE a.conversation_id=m.conversation_id AND a.kind='assistant' AND a.turn_id=m.turn_id
@@ -211,12 +211,16 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	}
 	defer messageRows.Close()
 	messages := make([]Message, 0, limit)
+	registry, err := NewCapabilityRegistry(builtinCapabilities(nil)...)
+	if err != nil {
+		return ConversationPage{}, fmt.Errorf("load retry capability metadata: %w", err)
+	}
 	for messageRows.Next() {
 		var item Message
-		var attachmentJSON []byte
+		var attachmentJSON, partialJSON []byte
 		var inboxStatus, inboxError, workflowStatus string
 		var assistantExists bool
-		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.SenderTimezone, &item.SenderUTCOffsetMinutes, &item.SenderSentAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &assistantExists); err != nil {
+		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.SenderTimezone, &item.SenderUTCOffsetMinutes, &item.SenderSentAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &partialJSON, &assistantExists); err != nil {
 			return ConversationPage{}, fmt.Errorf("scan Core message: %w", err)
 		}
 		if item.Kind == "user" && item.TurnID != "" {
@@ -238,6 +242,10 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 					item.TurnErrorCode = "conversation_turn_failed"
 				}
 				item.TurnRetryable = workflowStatus != "started" && workflowStatus != "running" && workflowStatus != "cancel_requested"
+			}
+			if (item.TurnStatus == "failed" || item.TurnStatus == "cancelled") && !assistantExists && partialHasCommittedMutation(decodeObject(partialJSON), registry) {
+				item.TurnErrorCode = "agent_partial_committed"
+				item.TurnRetryable = false
 			}
 		} else {
 			item.IdempotencyKey = ""

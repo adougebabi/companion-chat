@@ -15,7 +15,9 @@ import (
 )
 
 type conversationPublicationTestInvoker struct {
-	trace *ADKCapabilityTrace
+	trace            *ADKCapabilityTrace
+	rejectReply      bool
+	rejectFirstReply bool
 }
 
 func conversationWireForcesReply(payload map[string]any) bool {
@@ -33,6 +35,16 @@ func (i conversationPublicationTestInvoker) Execute(ctx context.Context, name, a
 
 func (i conversationPublicationTestInvoker) ExecuteWithID(ctx context.Context, callID, name, arguments string) (string, error) {
 	i.trace.Invocations = append(i.trace.Invocations, CapabilityInvocation{CallID: callID, CapabilityName: name, Arguments: json.RawMessage(arguments), SchemaVersion: CapabilityInvocationSchemaVersion, SourceFactID: "source", ProviderRequestID: "provider:" + callID})
+	hasPriorReply := false
+	for _, result := range i.trace.Results {
+		if result.CapabilityName == conversationReplyCapabilityName {
+			hasPriorReply = true
+		}
+	}
+	if name == conversationReplyCapabilityName && (i.rejectReply || (i.rejectFirstReply && !hasPriorReply)) {
+		i.trace.Results = append(i.trace.Results, CapabilityResult{CallID: callID, CapabilityName: name, Status: "failed", ErrorCode: "invalid_arguments"})
+		return `{"status":"failed","error_code":"invalid_arguments","retryable":false}`, nil
+	}
 	i.trace.Results = append(i.trace.Results, CapabilityResult{CallID: callID, CapabilityName: name, Status: "completed", Output: map[string]any{"target_kind": "conversation_message", "target_ref": "message-native"}})
 	return `{"status":"completed","output":{"target_kind":"conversation_message"}}`, nil
 }
@@ -111,7 +123,7 @@ func TestConversationPhysicalRequestsForceNativePublicationGenerateAndStream(t *
 	}
 }
 
-func TestConversationFinalOnlyResponseNeverPublishesOrRepairs(t *testing.T) {
+func TestConversationFinalOnlyResponseGetsOneNativeCorrectionWithoutPublication(t *testing.T) {
 	for _, streaming := range []bool{false, true} {
 		t.Run(fmt.Sprint(streaming), func(t *testing.T) {
 			calls := 0
@@ -136,7 +148,7 @@ func TestConversationFinalOnlyResponseNeverPublishesOrRepairs(t *testing.T) {
 			ctx = withPhysicalModelRequestPolicy(ctx, conversationPublicationPhysicalRequestPolicy{})
 			p := &ProviderClient{HTTP: server.Client()}
 			_, err := p.generateWithEino(ctx, EinoModelCall{Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: time.Second, TokenBudget: 4096, ContextWindowTokens: 131072, MaxInputTokens: 98304, PromptBudgetPolicyVersion: "prompt-budget.v1"}, Role: "cognitive_assessment", Messages: []map[string]any{{"role": "user", "content": "reply"}}, Definitions: []CapabilityDefinition{conversationReplyCapabilityDefinition()}, JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: cognitiveTurnResponseSchema(), EnableStreaming: streaming})
-			if err == nil || !strings.Contains(err.Error(), "conversation_native_output_missing") || calls != 1 || len(trace.Results) != 0 {
+			if err == nil || !strings.Contains(err.Error(), "conversation_native_output_missing") || calls != 2 || len(trace.Results) != 0 {
 				t.Fatalf("final-only response became output or repair: calls=%d results=%d err=%v", calls, len(trace.Results), err)
 			}
 		})

@@ -62,7 +62,7 @@ BrowserClient.cancelTurn(conversationId, turnId): Promise<void>
 | --- | --- |
 | Observer loses its connection after acceptance | Read history; show processing without a model retry. |
 | Refresh returns pending/running | Show pending status and resume bounded history reads. |
-| Refresh returns failed/cancelled with `turnRetryable=false` | Show settlement progress; wait before enabling retry. |
+| Refresh returns failed/cancelled with `turnRetryable=false` | Show settlement progress unless `turnErrorCode=agent_partial_committed`; that is a terminal blocked retry, not polling/settling. |
 | Refresh returns failed/cancelled with `turnRetryable=true` | Offer retry using the same durable identity. |
 | Equal text appears in another message | Do not match it to the pending turn. |
 
@@ -455,3 +455,36 @@ which derive directly from settingsSections/diagnosticsSections. Never maintain 
 second list of string IDs in App.vue: a new sidebar item can otherwise disappear
 on click or refresh. kev-routing.test.mjs executes the actual App parser/computed
 expressions for both Kev sections; adding a section must preserve both paths.
+
+
+## Scenario: Failed retry preserves the accepted sender snapshot (2026-10-12)
+
+### 1. Scope / Trigger
+A failed persisted message reconstructs RetryTurn after reload or error reconciliation. Missing original sender clock fields make same-key retry conflict with the accepted message.
+
+### 2. Signatures
+`syncServerTurnState()` copies BrowserMessage senderTimezone/senderUtcOffsetMinutes/senderSentAt into RetryTurn. Existing turnErrorCode adds agent_partial_committed without adding a public field.
+
+### 3. Contracts
+Reuse original message ID, turn, idempotency key, author, attachments and all three sender fields; do not recapture device time. Zero offset is preserved; legacy null/unknown remains omitted. Local retry/queued bubbles retain those identities and clock fields. In-flight retry remains visibly disabled with request progress even while canRetry is false; do not mark a stored message server-pending before acceptance. On409 retain identity/draft and show actual rejection plus original failure.
+
+History declares committed mutation retries nonretryable using actual capability SideEffectClass metadata and the existing partial receipt predicate. agent_partial_committed is terminal blocked, not settlement in progress: no endless poll or model retry. The existing mutation replay fence remains intact. Ordinary no-effect failures may reopen the same durable inbox with a fresh attempt.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Failed message with frozen sender clock | same three fields on retry POST |
+| UTC zero offset | send0, not omit |
+| Legacy null clock | omit unknown fields, do not fabricate |
+|409 retry rejection | keep original identity and failure explanation |
+| retrying=true | visible disabled progress button |
+| Partial mutation committed | blocked message, no retry/settlement polling |
+
+### 5. Good / Base / Bad Cases
+Good: reload failed message → same-clock POST → fresh backend attempt. Base: no clock provenance remains unknown. Bad: generate a new turn or timestamp merely to bypass409.
+
+### 6. Tests Required
+Conversation delivery tests exercise actual frozen-clock POST, zero/null fields, deferred409 and ChatView SSR, bubble identity and partial blocked state. PG durable tests assert one user message, new run attempt, single reply and History/acceptance retry fence agreement; absent DB means SKIP.
+
+### 7. Wrong vs Correct
+Wrong: restore text/key only and let the button disappear while retrying. Correct: restore the accepted identity snapshot and show accurate request progress.
