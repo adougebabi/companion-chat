@@ -151,9 +151,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
 
 <template>
   <section class="page diagnostics-page" aria-labelledby="diagnostics-title">
-    <header class="page-header">
-      <div><h1 id="diagnostics-title">诊断中心</h1></div>
-    </header>
+    <h1 id="diagnostics-title" class="sr-only">诊断中心</h1>
     <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
     <section v-if="!currentSection" class="diagnostics-overview" aria-labelledby="diagnostics-overview-title">
       <p class="eyebrow">OBSERVABILITY</p>

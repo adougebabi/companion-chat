@@ -18,7 +18,7 @@ const controlCenter = useControlCenterStore();
 function viewFromLocation(): WorkspaceView {
   if (window.location.pathname.startsWith("/chat")) return "chat";
   if (window.location.pathname.startsWith("/moments")) return "moments";
-  if (window.location.pathname.startsWith("/settings/diagnostics")) return "diagnostics";
+  if (window.location.pathname.startsWith("/diagnostics") || window.location.pathname.startsWith("/settings/diagnostics")) return "diagnostics";
   if (window.location.pathname.startsWith("/settings")) return "settings";
   return "instances";
 }
@@ -34,13 +34,13 @@ function sectionFromLocation(view: WorkspaceView): WorkspaceSection | null {
 }
 
 function syncDiagnosticsFilterFromLocation() {
-  if (window.location.pathname.startsWith("/settings/diagnostics")) {
+  if (window.location.pathname.startsWith("/diagnostics") || window.location.pathname.startsWith("/settings/diagnostics")) {
     controlCenter.diagnosticsCorrelationFilter = new URLSearchParams(window.location.search).get("correlation_id") ?? "";
   }
 }
 
 function pathForView(next: WorkspaceView, correlationId = "", section = "") {
-  const path = next === "chat" ? "/chat" : next === "moments" ? "/moments" : next === "diagnostics" ? "/settings/diagnostics" : next === "settings" ? "/settings" : "/instances";
+  const path = next === "chat" ? "/chat" : next === "moments" ? "/moments" : next === "diagnostics" ? "/diagnostics" : next === "settings" ? "/settings" : "/instances";
   const params = new URLSearchParams();
   if (next === "diagnostics" && correlationId.trim()) params.set("correlation_id", correlationId.trim());
   if ((next === "settings" || next === "diagnostics") && section.trim()) params.set("section", section.trim());
