@@ -365,3 +365,26 @@ vet/build/gofmt/diff通过。证据/tmp/no-arg-check-race-unsandboxed.jsonl、
 /tmp/no-arg-check-build.log；RED证据/tmp/no-arg-tool-red.log。
 服务/PG/真实Provider显式SKIP，不冒称正式已恢复。无公共API/Web变更，无前端重跑；
 未写正式数据、改设置/预算、部署、安装DB、增加migration或提交。
+
+
+## 2026-10-12 LM Studio HTTP400 object tool_choice 修复
+
+用户真实错误：Invalid tool_choice type:'object'，仅支持none/auto/required。
+原生publication omission纠正策略NamedTool生成对象，且固定ACL OpenAI0.1.17
+对Forced+单工具目录即使没有NamedTool也会自动转对象。真实HTTP/SSE严格服务
+夹具先RED复现10原有用例的同类HTTP400；最终payload显式映射内部Eino枚举
+Forced/Allowed/Forbidden为required/auto/none才GREEN。
+
+移除NamedTool和named branch；保留reply-only纠正目录、一次共享纠正预算、
+纠正轮thinkingfalse/无finalgrammar、真实nativecall/receipt/identity和单EinoRunner。
+validateConversationPublicationCorrection继续exactly-one reply，ignored/wrong/multiple
+调用都在执行前拒绝，正文不代发，已提交effect不重放，参数拒绝可正常续轮。
+Planner单工具查询HTTP断言收紧为required字符串，finalDTOrepair仍零tools/choice。
+
+独立只读检查无代码findings；旧spec NamedTool文字已由主线程更新。
+新鲜全仓Go race1644PASS/513SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过；
+证据/tmp/string-tool-choice-check-race-fresh.jsonl、
+/tmp/string-tool-choice-check-race-fresh.stderr、/tmp/string-tool-choice-check-vet.log、
+/tmp/string-tool-choice-check-build.log；RED日志/tmp/string-tool-choice-red.log。
+没有endpointheuristic、新400重试、配置/预算变化、正式调用、DB安装、迁移、
+部署或提交。真实模型验收仍由用户执行；无Web/publicAPI变更无需前端生成回归。

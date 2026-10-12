@@ -26,7 +26,7 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	}
 	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
-			AllowedToolNames: []string{conversationReplyCapabilityName}, NamedTool: conversationReplyCapabilityName, DisableThinking: true}, nil
+			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
 	}
 	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
 }

@@ -15,7 +15,7 @@ import (
 
 func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 	for _, streaming := range []bool{false, true} {
-		for _, outcome := range []string{"reply", "ignored", "wrong_tool", "rejected_receipt", "corrected_receipt"} {
+		for _, outcome := range []string{"reply", "ignored", "wrong_tool", "multiple_tools", "rejected_receipt", "corrected_receipt"} {
 			t.Run(fmt.Sprintf("stream=%v/%s", streaming, outcome), func(t *testing.T) {
 				var requests []map[string]any
 				var identities []string
@@ -31,6 +31,14 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 						t.Errorf("physical headers missing: %v", r.Header)
 					}
 					identities = append(identities, id)
+					// Match Providers which accept only string tool_choice values.
+					// Reject the physical request before emitting any model response.
+					choice, ok := payload["tool_choice"].(string)
+					if !ok || (choice != "none" && choice != "auto" && choice != "required") {
+						w.WriteHeader(http.StatusBadRequest)
+						_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "Invalid tool_choice type: 'object'. Supported values are 'none', 'auto', 'required'."}})
+						return
+					}
 					message := map[string]any{"role": "assistant", "content": "Rejected private prose candidate"}
 					finish := "stop"
 					tool := func(id, name, args string) map[string]any {
@@ -47,6 +55,14 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 						}
 						if outcome == "wrong_tool" {
 							message = tool("native-wrong-read", "memory.recall", `{"query":"wrong"}`)
+							finish = "tool_calls"
+						}
+						if outcome == "multiple_tools" {
+							message = tool("native-first-reply", conversationReplyCapabilityName, `{"text":"First reply"}`)
+							second := tool("native-second-reply", conversationReplyCapabilityName, `{"text":"Second reply"}`)
+							secondCall := second["tool_calls"].([]any)[0].(map[string]any)
+							secondCall["index"] = 1
+							message["tool_calls"] = append(message["tool_calls"].([]any), secondCall)
 							finish = "tool_calls"
 						}
 					case 4:
@@ -105,7 +121,8 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 					}
 				}
 				correction := requests[2]
-				if len(arrayValue(correction["tools"])) != 1 || stringValue(mapValue(mapValue(correction["tool_choice"])["function"])["name"]) != conversationReplyCapabilityName || correction["response_format"] != nil || correction["enable_thinking"] != false {
+				correctionTools := arrayValue(correction["tools"])
+				if len(correctionTools) != 1 || stringValue(mapValue(mapValue(correctionTools[0])["function"])["name"]) != conversationReplyCapabilityName || correction["tool_choice"] != "required" || correction["response_format"] != nil || correction["enable_thinking"] != false {
 					t.Fatalf("correction wire=%#v", correction)
 				}
 				if strings.Contains(jsonString(correction["messages"]), "Rejected private prose candidate") || !strings.Contains(jsonString(correction["messages"]), "target_kind") {

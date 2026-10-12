@@ -25,7 +25,6 @@ type physicalModelRequestDecision struct {
 	// AllowedToolNames narrows this physical request's installed catalog only.
 	// Nil preserves the task's catalog; it never grants a new capability.
 	AllowedToolNames []string
-	NamedTool        string
 	DisableThinking  bool
 }
 
@@ -105,20 +104,27 @@ func applyPhysicalModelRequestPolicy(ctx context.Context, opts []model.Option, r
 		return nil, nil, err
 	}
 	if decision.ToolChoice != "" {
-		if decision.NamedTool != "" {
-			opts = append(opts, model.WithToolChoice(decision.ToolChoice, decision.NamedTool))
-		} else {
-			opts = append(opts, model.WithToolChoice(decision.ToolChoice))
-		}
+		opts = append(opts, model.WithToolChoice(decision.ToolChoice))
 	}
-	if !decision.OmitResponseFormat && !decision.DisableThinking {
+	if decision.ToolChoice == "" && !decision.OmitResponseFormat && !decision.DisableThinking {
 		return opts, responseFormat, nil
 	}
-	if decision.NamedTool != "" || decision.DisableThinking || decision.OmitResponseFormat {
+	if decision.ToolChoice != "" || decision.DisableThinking || decision.OmitResponseFormat {
 		opts = append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
 			var body map[string]any
 			if err := json.Unmarshal(raw, &body); err != nil {
 				return nil, err
+			}
+			// The pinned OpenAI adapter turns forced choice with one Tool into
+			// an object. Task-owned policies use the string protocol; the
+			// physical catalog already expresses any allowed Tool restriction.
+			switch decision.ToolChoice {
+			case schema.ToolChoiceForced:
+				body["tool_choice"] = "required"
+			case schema.ToolChoiceAllowed:
+				body["tool_choice"] = "auto"
+			case schema.ToolChoiceForbidden:
+				body["tool_choice"] = "none"
 			}
 			if decision.DisableThinking {
 				body["enable_thinking"] = false

@@ -580,17 +580,17 @@ Wrong: clearing model.definitions alone while Kev context can rebind them. Corre
 A conversation Provider may ignore required native choice and return nonempty final prose before conversation.reply commits. This is distinct from correcting the final cognition JSON.
 
 ### 2. Signatures
-`conversationPublicationOmission(message)` accepts nonempty/no-tool attempted finals with stop or unknown finish. The queued model shares publicationCorrectionUsed across WithTools/model copies. A correction-only physical policy sets AllowedToolNames=[conversation.reply], NamedTool=conversation.reply and DisableThinking=true, using pinned model.WithToolChoice for exact function choice.
+`conversationPublicationOmission(message)` accepts nonempty/no-tool attempted finals with stop or unknown finish. The queued model shares publicationCorrectionUsed across WithTools/model copies. A correction-only physical policy sets AllowedToolNames=[conversation.reply], ToolChoiceForced and DisableThinking=true. The final payload modifier emits string tool_choice="required"; validateConversationPublicationCorrection accepts exactly one conversation.reply call.
 
 ### 3. Contracts
 Initial requests keep the entire authorized selected catalog and optional read/media/persona order. At most one eligible omission triggers another physical request inside the same existing native model boundary/Runner, with fresh real identity/sequence and original authorized context. The model generates its own native arguments; no prose extraction, DTO conversion, invented ToolCall, second Agent or manual Tool loop. Tentative candidate callbacks are isolated like existing persona proposals. Only the corrected real reply call reaches Eino execution.
 
-Correction uses reply-only native schema, no final grammar and thinking=false for that request; normal thinking/catalog return afterward. Actual rejected arguments remain native failure feedback and may be corrected in the ordinary loop. Already committed reply, length/filter stops and empty reasoning-only finals do not trigger this correction. Wrong tool or another prose final fails closed; the shared one-shot budget cannot reset. Tool-free final DTO repair is unchanged and cannot publish.
+Correction uses reply-only native schema, string required choice, no final grammar and thinking=false for that request; normal thinking/catalog return afterward. Actual rejected arguments remain native failure feedback and may be corrected in the ordinary loop. Already committed reply, length/filter stops and empty reasoning-only finals do not trigger this correction. Wrong tool, multiple calls or another prose final fails closed; the shared one-shot budget cannot reset. Tool-free final DTO repair is unchanged and cannot publish.
 
 ### 4. Validation & Error Matrix
 | Condition | Behavior |
 | --- | --- |
-| Prose stop without reply | one named native correction |
+| Prose stop without reply | one reply-only native correction with string required choice |
 | Ignore correction/wrong Tool | fail, no fake publication |
 | Correct Tool arguments rejected | real feedback through ordinary native continuation |
 | Reply committed | restore auto/final contract, no extra correction |
@@ -598,10 +598,10 @@ Correction uses reply-only native schema, no final grammar and thinking=false fo
 | Retry has committed mutation | History blocked; unchanged enqueue replay protection |
 
 ### 5. Good / Base / Bad Cases
-Good: read → premature prose → one named reply call → committed receipt → final cognition. Base: original native reply needs no correction. Bad: force reply before every possible read or publish candidate prose directly.
+Good: read → premature prose → one real reply call → committed receipt → final cognition. Base: original native reply needs no correction. Bad: force reply before every possible read or publish candidate prose directly.
 
 ### 6. Tests Required
-Actual HTTP/SSE Generate/Stream verifies one correction, exact choice and reply-only schema, unique physical headers, catalog/thinking/final-format restoration, single effect, argument rejection continuation and ignored/wrong choice failure. PG zero-effect failed-turn retry reuses sender identity and creates one fresh attempt; partial mutation history agrees with admission fence.
+Actual HTTP/SSE Generate/Stream verifies one correction, string required choice and reply-only schema, unique physical headers, catalog/thinking/final-format restoration, single effect, argument rejection continuation and ignored/wrong/multiple-call failure. PG zero-effect failed-turn retry reuses sender identity and creates one fresh attempt; partial mutation history agrees with admission fence.
 
 ### 7. Wrong vs Correct
 Wrong: convert the stopped text into a backend send. Correct: request one actual native ToolCall from the model and keep publication/receipt authority unchanged.
@@ -638,3 +638,49 @@ may fix invalid refs using explicit allowed-ref feedback; it cannot replay a
 committed reply/evaluation request or publish text. Queued evaluation is not
 Goal completion. Scope validation does not prove semantic evidence entailment:
 unrelated summaries cannot substantiate current interpretations.
+
+
+## Scenario: String Tool choice on the physical request (2026-10-12)
+
+### 1. Scope / Trigger
+LM Studio rejects object-valued tool_choice. The pinned ACL OpenAI component
+also automatically converts forced choice with one installed tool to an object,
+even without a named function option.
+
+### 2. Signatures
+physicalModelRequestDecision owns ToolChoice/AllowedToolNames/format/thinking.
+applyPhysicalModelRequestPolicy uses model.WithToolChoice plus the existing
+final payload modifier. NamedTool is removed.
+
+### 3. Contracts
+Map Eino Forced/Allowed/Forbidden to wire strings required/auto/none explicitly;
+the internal enum literals forced/allowed/forbidden are not wire values.
+Task-owned catalog narrowing still limits installation, never grants authority.
+Do not add endpoint heuristics, capability flags or HTTP400 retries. The existing
+reply correction checks exactly one authorized reply; text cannot publish.
+Final tool-free repair still deletes all tools/tool_choice/parallel hints.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Forced + one tool | wire string required, not SDK-generated named object |
+| Allowed | string auto |
+| Forbidden | string none |
+| Wrong tool/multiple calls in reply correction | reject before execution |
+| Final DTO repair | no tools or tool_choice |
+
+### 5. Good / Base / Bad Cases
+Good: sole reply schema + required + exactly-one native validation.
+Base: normal selected catalog uses task-owned choice. Bad: remove NamedTool and
+assume the SDK will preserve a string without checking actual serialized wire.
+
+### 6. Tests Required
+Actual HTTP/SSE fixture rejects nonstring or unsupported choice values;
+Generate/Stream read→prose→correction→reply→final verifies required-only schema,
+identity, one effect, receipt rejection continuation, ignored/wrong/multiple calls.
+Planner single-tool query tests accept required only. Final repair remains isolated.
+
+### 7. Wrong vs Correct
+Wrong: tool_choice={type:function,function:{name:conversation.reply}}.
+Correct: tool_choice="required" with exactly one installed reply schema and
+independent native response validation.

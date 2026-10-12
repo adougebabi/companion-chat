@@ -78,7 +78,7 @@ func TestGoalPlannerPhysicalPolicyHTTPQueryAndCommitContinuation(t *testing.T) {
 						}
 					}
 					if required {
-						if !(payload["tool_choice"] == "required" || stringValue(mapValue(mapValue(payload["tool_choice"])["function"])["name"]) == goalPlannerQuery) || hasFormat || strings.Join(names, ",") != goalPlannerQuery {
+						if payload["tool_choice"] != "required" || hasFormat || strings.Join(names, ",") != goalPlannerQuery {
 							t.Fatalf("premature final permitted: %#v", payload)
 						}
 					} else if payload["tool_choice"] != "auto" || !hasFormat || len(names) != 2 {
