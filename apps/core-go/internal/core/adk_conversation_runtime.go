@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
@@ -48,9 +49,15 @@ func adkCapabilityContext(ctx context.Context) (adkConversationContext, bool) {
 }
 
 type appADKCapabilityInvoker struct {
-	app     *App
-	request ADKCapabilityRequest
-	trace   *ADKCapabilityTrace
+	app             *App
+	request         ADKCapabilityRequest
+	trace           *ADKCapabilityTrace
+	nativeMu        sync.Mutex
+	nativeArguments map[string]nativeCallArguments
+}
+
+type nativeCallArguments struct {
+	name, arguments, profile string
 }
 
 // ADKCapabilityRequest is the request-scoped identity and projection supplied
@@ -105,42 +112,39 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "capability_not_found", argumentsJSON)
 		return "", fmt.Errorf("capability_not_found: %s", capabilityName)
 	}
-	arguments := json.RawMessage(strings.TrimSpace(argumentsJSON))
-	if len(arguments) == 0 {
-		arguments = json.RawMessage(`{}`)
-	}
-	if adkContext, ok := adkCapabilityContext(ctx); ok {
-		decoded, err := adkContext.Refs.decodeArguments(arguments)
-		if err != nil {
-			return "", err
-		}
-		arguments = decoded
-	}
 	callID = strings.TrimSpace(callID)
 	if callID == "" {
 		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_required", argumentsJSON)
 		return "", errors.New("adk_tool_call_id_required")
 	}
-	// Native call identity is diagnostic correlation only. The stable business
-	// operation below is derived from run coordinates and remains unchanged when
-	// a retried model emits another native call ID for the same operation.
-	if normalizedArguments, normalizeErr := normalizeToolArguments(arguments); normalizeErr == nil {
-		if previous, found := i.trace.FindInvocation(callID); found {
-			previousArguments, previousErr := normalizeToolArguments(previous.Arguments)
-			if previous.CapabilityName != capabilityName || previousErr != nil || string(previousArguments) != string(normalizedArguments) {
-				i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_reused", argumentsJSON)
-				return "", errors.New("adk_tool_call_id_reused")
-			}
-			if previousResult, resultFound := i.trace.FindResult(callID); resultFound {
-				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: previousResult}, definition)
-			}
-			return "", errors.New("adk_tool_result_missing")
-		}
-	}
 	modelIdentity, ok := i.trace.ModelIdentity(callID)
 	if !ok || strings.TrimSpace(modelIdentity.ProviderRequestID) == "" {
 		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_provider_request_identity_missing", argumentsJSON)
 		return "", errors.New("adk_tool_provider_request_identity_missing")
+	}
+	arguments := json.RawMessage(strings.TrimSpace(argumentsJSON))
+	if len(arguments) == 0 {
+		arguments = json.RawMessage(`{}`)
+	}
+	modelArguments := string(arguments)
+	if normalized, err := normalizeToolArguments(arguments); err == nil {
+		modelArguments = string(normalized)
+	}
+	original := nativeCallArguments{capabilityName, modelArguments, workingProfileForToolExecution(projection, i.trace)}
+	i.nativeMu.Lock()
+	previousNative, seen := i.nativeArguments[callID]
+	if !seen {
+		if i.nativeArguments == nil {
+			i.nativeArguments = make(map[string]nativeCallArguments)
+		}
+		i.nativeArguments[callID] = original
+	}
+	i.nativeMu.Unlock()
+	if seen {
+		if previousNative != original {
+			i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_reused", argumentsJSON)
+			return "", errors.New("adk_tool_call_id_reused")
+		}
 	}
 	authorizationActorID := strings.TrimSpace(i.request.AuthorizationActorID)
 	if authorizationActorID == "" {
@@ -163,7 +167,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	invocations, _ := i.trace.Snapshot()
 	invocation := normalizeCapabilityInvocationMetadata(CapabilityInvocation{
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
-		SourceFactID: i.request.SourceFactID, ActionID: i.request.ActionID,
+		SourceFactID: firstString(i.request.SourceFactID, projection.SourceFactID), ActionID: i.request.ActionID,
 		ProviderRequestID: modelIdentity.ProviderRequestID, Sequence: len(invocations),
 		Metadata: InvocationMetadata{WorkingProfileID: workingProfileID, AuthorizationActorID: authorizationActorID, SubjectActorID: subjectActorID, CorrelationID: firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID)), OperationID: operationID, FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, Surface: i.request.Surface, Source: "model_tool"},
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
@@ -176,6 +180,58 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	// attaches the full Core-owned snapshot to every persisted invocation.
 	if len(definition.RequiredContext) > 0 {
 		invocation.ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, i.request.ActionID)
+	}
+	capability, _ := i.app.capabilityRegistry().Lookup(capabilityName)
+	contract, nativeContract := capability.(nativeToolContract)
+	rejectArguments := func(err error) (string, error) {
+		if seen {
+			if result, found := i.trace.FindResult(callID); found && result.ErrorCode == "invalid_arguments" {
+				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
+			}
+			return "", errors.New("adk_tool_call_id_reused")
+		}
+		i.trace.AppendInvocation(invocation)
+		result := failedCapabilityResultDetail(invocation, "invalid_arguments", false, err.Error())
+		i.trace.AppendResult(result)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+		return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
+	}
+	if nativeContract {
+		if err := validateNativeArguments(arguments, contract.NativeDefinition()); err != nil {
+			return rejectArguments(err)
+		}
+	}
+	if adkContext, ok := adkCapabilityContext(ctx); ok {
+		decoded, err := adkContext.Refs.decodeArguments(arguments)
+		if err != nil {
+			return rejectArguments(err)
+		}
+		arguments = decoded
+	}
+	if nativeContract {
+		bound, err := contract.BindNativeArguments(arguments, projection)
+		if err != nil {
+			return rejectArguments(err)
+		}
+		arguments = bound
+	}
+	invocation.Arguments = arguments
+	// Native call identity is diagnostic correlation only. The stable business
+	// operation below is derived from run coordinates and remains unchanged when
+	// a retried model emits another native call ID for the same operation.
+	if normalizedArguments, normalizeErr := normalizeToolArguments(arguments); normalizeErr == nil {
+		if previous, found := i.trace.FindInvocation(callID); found {
+			previousArguments, previousErr := normalizeToolArguments(previous.Arguments)
+			if previous.Metadata.WorkingProfileID != workingProfileForToolExecution(projection, i.trace) || previous.CapabilityName != capabilityName || previousErr != nil || string(previousArguments) != string(normalizedArguments) {
+				i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_reused", argumentsJSON)
+				return "", errors.New("adk_tool_call_id_reused")
+			}
+			if previousResult, resultFound := i.trace.FindResult(callID); resultFound {
+				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: previousResult}, definition)
+			}
+			return "", errors.New("adk_tool_result_missing")
+		}
 	}
 	i.trace.AppendInvocation(invocation)
 	if rejection := kevRejectNativeTool(ctx, capabilityName, arguments); rejection != "" {
@@ -210,7 +266,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		NativeToolCallID: callID, ProviderRequestID: modelIdentity.ProviderRequestID,
 		AuthorizationActorID: authorizationActorID, FluctlightID: i.request.FluctlightID,
 		SubjectActorID: subjectActorID,
-		ConversationID: i.request.ConversationID, EvidenceID: i.request.SourceFactID,
+		ConversationID: i.request.ConversationID, EvidenceID: firstString(i.request.SourceFactID, projection.SourceFactID),
 		Surface: i.request.Surface, Arguments: arguments,
 		FrozenContextSnapshot:       invocation.ContextSnapshot,
 		ExpectedCorePersonaRevision: expectedPersonaRevision,
@@ -292,7 +348,7 @@ func (i *appADKCapabilityInvoker) recordMissingCapabilityRequest(ctx context.Con
 		ProviderRequestID:    identity.ProviderRequestID,
 		AuthorizationActorID: actorID, FluctlightID: i.request.FluctlightID,
 		SubjectActorID: firstString(i.request.SubjectActorID, actorID), ConversationID: i.request.ConversationID,
-		EvidenceID: i.request.SourceFactID, Surface: i.request.Surface, Arguments: arguments,
+		EvidenceID: firstString(i.request.SourceFactID, projection.SourceFactID), Surface: i.request.Surface, Arguments: arguments,
 		AuthorizationPolicy: i.request.AuthorizationPolicy,
 		TargetKind:          i.request.TargetKind, TargetRef: i.request.TargetRef,
 	})
@@ -300,6 +356,19 @@ func (i *appADKCapabilityInvoker) recordMissingCapabilityRequest(ctx context.Con
 
 func modelFacingToolResultForContext(ctx context.Context, receipt ToolExecutionReceipt, definition CapabilityDefinition) (string, error) {
 	visible := modelFacingToolResult(receipt, definition)
+	if state, ok := adkCapabilityContext(ctx); ok {
+		if invoker, yes := state.Invoker.(*appADKCapabilityInvoker); yes {
+			capability, _ := invoker.app.capabilityRegistry().Lookup(definition.Name)
+			if contract, native := capability.(nativeToolContract); native && visible["output"] != nil {
+				projection := invoker.request.Projection
+				if fresh := state.Refresh.latestProjection(); fresh != nil {
+					projection = *fresh
+				}
+				visible["output"] = contract.NativeOutput(visible["output"], projection)
+			}
+		}
+	}
+
 	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refs != nil {
 		encoded, err := adkContext.Refs.encodeResult(visible)
 		if err != nil {

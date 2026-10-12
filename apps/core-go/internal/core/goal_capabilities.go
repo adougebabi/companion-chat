@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -94,11 +95,27 @@ func (c goalCapability) Execute(ctx context.Context, inv CapabilityInvocation, _
 	if err != nil {
 		return failedCapabilityResult(inv, "goal_scope_unavailable", true), err
 	}
+	var offeredIDs []string
+	expectedRevision := 0
+	if inv.Metadata.Source != "direct" {
+		if projection, ok := nativeProjection(ctx); ok {
+			offeredIDs = []string{}
+			for _, entry := range projection.ReferenceIndex.ByRef {
+				if entry.Kind != ContextReferenceGoal {
+					continue
+				}
+				offeredIDs = append(offeredIDs, entry.EntityID)
+				if entry.EntityID == stringValue(args["goal_id"]) {
+					expectedRevision = entry.Revision
+				}
+			}
+		}
+	}
 	var output map[string]any
 	if stringValue(args["operation"]) == "detail" {
 		id := stringValue(args["goal_id"])
 		var raw []byte
-		if err := c.service.repository.Pool().QueryRow(ctx, `SELECT to_jsonb(g)-'request_digest'-'idempotency_key' FROM public.fluctlight_goals g WHERE fluctlight_id=$1 AND id=$2 AND (profile_id IS NULL OR profile_id=$3)`, owner, id, profile).Scan(&raw); err != nil {
+		if err := c.service.repository.Pool().QueryRow(ctx, `SELECT to_jsonb(g)-'request_digest'-'idempotency_key' FROM public.fluctlight_goals g WHERE fluctlight_id=$1 AND id=$2 AND (profile_id IS NULL OR profile_id=$3) AND ($4=0 OR revision=$4)`, owner, id, profile, expectedRevision).Scan(&raw); err != nil {
 			return failedCapabilityResult(inv, "goal_not_found", false), err
 		}
 		goal := decodeObject(raw)
@@ -126,7 +143,7 @@ func (c goalCapability) Execute(ctx context.Context, inv CapabilityInvocation, _
 		if offset < 0 || offset > 10000 {
 			return failedCapabilityResult(inv, "invalid_arguments", false), ErrInvalidArguments
 		}
-		rows, err := c.service.repository.Pool().Query(ctx, `SELECT to_jsonb(g)-'request_digest'-'idempotency_key' FROM public.fluctlight_goals g WHERE fluctlight_id=$1 AND (profile_id IS NULL OR profile_id=$2) AND ($3 OR status IN ('candidate','active','paused')) ORDER BY updated_at DESC,id DESC LIMIT 11 OFFSET $4`, owner, profile, includeClosed, offset)
+		rows, err := c.service.repository.Pool().Query(ctx, `SELECT to_jsonb(g)-'request_digest'-'idempotency_key' FROM public.fluctlight_goals g WHERE fluctlight_id=$1 AND (profile_id IS NULL OR profile_id=$2) AND ($3 OR status IN ('candidate','active','paused')) AND ($5::text[] IS NULL OR id=ANY($5)) ORDER BY updated_at DESC,id DESC LIMIT 11 OFFSET $4`, owner, profile, includeClosed, offset, offeredIDs)
 		if err != nil {
 			return failedCapabilityResult(inv, "goal_read_failed", true), err
 		}
@@ -251,4 +268,107 @@ func (c goalCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv Capability
 		return failedCapabilityResult(inv, "goal_persist_failed", true), err
 	}
 	return goalToolResult(inv, map[string]any{"goal_id": id, "status": next.Status, "revision": next.Revision, "criteria_version": next.CriteriaVersion, "ref": next.Ref, "command_id": fmt.Sprint(key)}), nil
+}
+
+func (c goalCapability) NativeDefinition() CapabilityDefinition {
+	d := c.Definition()
+	switch c.name {
+	case "goal.inspect":
+		d.InputSchema = objectSchema(map[string]any{"operation": enumStringSchema("list", "detail"), "goal_ref": stringSchema(), "include_closed": booleanSchema(), "cursor": integerSchema()}, []string{"operation"}, false)
+		d.Description = "Read currently offered Goals. List 10; reuse next_cursor and set include_closed for offered terminal Goals. Detail requires exact goal_ref; results do not expand scope."
+	case "goal.evaluate":
+		d.InputSchema = objectSchema(map[string]any{"goal_ref": stringSchema(), "reason": stringSchema()}, []string{"goal_ref", "reason"}, false)
+		d.Description = "Queue evaluation of an offered goal_ref for new relevant evidence. Core binds its frozen revision. Queued is not completed; do not poll this run."
+	}
+	return d
+}
+func (c goalCapability) BindNativeArguments(raw json.RawMessage, projection ContextProjection) (json.RawMessage, error) {
+	args := decodeObject(raw)
+	if c.name != "goal.evaluate" && (c.name != "goal.inspect" || stringValue(args["operation"]) != "detail") {
+		return raw, nil
+	}
+	ref := stringValue(args["goal_ref"])
+	entry, ok := projection.ReferenceIndex.ByRef[ref]
+	if !ok || entry.Kind != ContextReferenceGoal || entry.EntityID == "" || entry.Revision <= 0 {
+		return nil, fmt.Errorf("goal_ref must be a currently offered Goal reference; allowed_goal_refs=%s", jsonString(currentGoalRefs(projection.ReferenceIndex)))
+	}
+	delete(args, "goal_ref")
+	args["goal_id"] = entry.EntityID
+	if c.name == "goal.evaluate" {
+		args["expected_revision"] = entry.Revision
+	}
+	return jsonBytes(args), nil
+}
+func (c goalCapability) NativeOutput(value any, projection ContextProjection) any {
+	output := mapValue(value)
+	if c.name != "goal.inspect" {
+		result := map[string]any{}
+		for _, key := range []string{"status", "detail"} {
+			if v, ok := output[key]; ok {
+				result[key] = v
+			}
+		}
+		return result
+	}
+	if _, goal := output["goal"]; !goal && output["goals"] == nil {
+		return map[string]any{"detail": "Read a currently offered goal_ref; allowed_goal_refs=" + jsonString(currentGoalRefs(projection.ReferenceIndex))}
+	}
+	project := func(raw any) map[string]any {
+		row := mapValue(raw)
+		for ref, entry := range projection.ReferenceIndex.ByRef {
+			if entry.Kind != ContextReferenceGoal || entry.EntityID != stringValue(row["id"]) {
+				continue
+			}
+			// A fresh query cannot lend its newer semantics to an older offered token.
+			if intValue(row["revision"]) != entry.Revision {
+				continue
+			}
+			result := map[string]any{"goal_ref": ref, "expected_revision": entry.Revision}
+			for _, key := range []string{"desired_outcome", "success_criteria", "motivation", "status", "progress"} {
+				if value, exists := row[key]; exists {
+					result[key] = value
+				}
+			}
+			execution := mapValue(row["execution"])
+			bounded := map[string]any{}
+			for _, key := range []string{"stage", "next_step", "blocker", "next_retry_at", "due_at", "retry_count", "retry_reason"} {
+				if v, ok := execution[key]; ok {
+					bounded[key] = v
+				}
+			}
+			for _, key := range []string{"last_attempt", "last_result"} {
+				source := mapValue(execution[key])
+				item := map[string]any{}
+				for _, field := range []string{"status", "reason", "started_at", "occurred_at"} {
+					if v, ok := source[field]; ok {
+						item[field] = v
+					}
+				}
+				if len(item) > 0 {
+					bounded[key] = item
+				}
+			}
+			if len(bounded) > 0 {
+				result["execution"] = bounded
+			}
+			return result
+		}
+		return nil
+	}
+	if raw, ok := output["goal"]; ok {
+		return map[string]any{"goal": project(raw)}
+	}
+	goals := []any{}
+	for _, raw := range arrayValue(output["goals"]) {
+		if row := project(raw); row != nil {
+			goals = append(goals, row)
+		}
+	}
+	result := map[string]any{"goals": goals, "scope": "currently_offered"}
+	for _, key := range []string{"has_more", "next_cursor"} {
+		if value, ok := output[key]; ok {
+			result[key] = value
+		}
+	}
+	return result
 }

@@ -87,6 +87,10 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	if err != nil {
 		return nil, err
 	}
+	m, opts, err = m.nativeModelOptions(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
 	m, opts, effectiveResponseFormat, err := m.physicalRequestOptions(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -183,6 +187,10 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	originalInput := input
 	originalOpts := opts
 	m, opts, err = m.kevModelOptions(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	m, opts, err = m.nativeModelOptions(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -912,7 +920,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				}
 				correctionInput = append(correctionInput, message)
 			}
-			correctionInput = append(correctionInput, schema.UserMessage("Correct the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."))
+			correctionInput = append(correctionInput, schema.UserMessage("Validation: "+validationErr.Error()+"\nCorrect the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."))
 			repairModel := unboundChat
 			if queued, ok := unboundChat.(*queuedToolCallingChatModel); ok {
 				copyModel := *queued
@@ -975,6 +983,9 @@ func validateADKFinalContract(message *schema.Message, role string, outputSchema
 		if err := capabilitycontract.ValidateCapabilitySchemaValue(parsed, outputSchema); err != nil {
 			return fmt.Errorf("adk_final_output_invalid: %w", err)
 		}
+	}
+	if err := validateGoalEventCandidates(parsed, refs.currentIndex()); err != nil {
+		return err
 	}
 	for position, raw := range arrayValue(parsed["influences"]) {
 		ref := strings.TrimSpace(stringValue(mapValue(raw)["ref"]))

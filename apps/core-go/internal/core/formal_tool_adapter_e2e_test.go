@@ -163,7 +163,30 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 			}
 
 			callID := "controlled-native-" + strings.ReplaceAll(testCase.name, ".", "-")
-			fixture.provider.begin(testCase.name, callID, request.Arguments)
+			nativeArguments := request.Arguments
+			if testCase.name == "goal.inspect" || testCase.name == "goal.evaluate" {
+				args := decodeObject(request.Arguments)
+				id := stringValue(args["goal_id"])
+				for ref, entry := range projection.ReferenceIndex.ByRef {
+					if entry.Kind == ContextReferenceGoal && entry.EntityID == id {
+						args["goal_ref"] = ref
+					}
+				}
+				delete(args, "goal_id")
+				delete(args, "expected_revision")
+				nativeArguments = jsonBytes(args)
+			}
+			if testCase.name == actorFactCapabilityName {
+				// Native source binding is a distinct payload from an explicit Owner source
+				// selection, so it owns a distinct stable operation rather than replaying it.
+				operationRoot += "-native-current-source"
+				request.OperationID = formalAdapterOperationID(operationRoot, testCase.name)
+				args := decodeObject(request.Arguments)
+				delete(args, "source_message_id")
+				nativeArguments = jsonBytes(args)
+				request.Arguments = nativeArguments
+			}
+			fixture.provider.begin(testCase.name, callID, nativeArguments)
 			definition, ok := fixture.app.capabilityRegistry().Definition(testCase.name)
 			if !ok {
 				t.Fatalf("fixed product Tool %q is absent from the production registry", testCase.name)
@@ -245,6 +268,15 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				t.Fatalf("model-facing result leaked internal receipt identity: %#v", visibleResult)
 			}
 			var expectedVisible any = modelFacingToolResult(ToolExecutionReceipt{Result: results[0]}, definition)
+			if capability, ok := fixture.app.capabilityRegistry().Lookup(testCase.name); ok {
+				if contract, native := capability.(nativeToolContract); native {
+					visible := expectedVisible.(map[string]any)
+					if visible["output"] != nil {
+						visible["output"] = contract.NativeOutput(visible["output"], projection)
+					}
+				}
+			}
+
 			codec, err := newProviderContextRefCodec(projection.ReferenceIndex)
 			if err != nil {
 				t.Fatal(err)
@@ -656,6 +688,13 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
 				source := actorFactSourceMessage(t, f.independentToolE2EFixture, "adapter-abroad", f.ownerID, "我住在国外")
 				request := f.request(actorFactCapabilityName, "adapter-actor-fact", map[string]any{"operation": "assert", "attribute": "location_scope", "value": "abroad", "assertion_type": "explicit_statement", "source_message_id": source, "reason": "用户明确自述"})
+				if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) SELECT $1,$2,COALESCE(max(sequence),0)+1,'conversation.turn',$3,$1,$1,$1,now(),'processed' FROM public.cognition_inbox WHERE fluctlight_id=$2`, request.EvidenceID, f.fluctlightID, jsonBytes(map[string]any{"text": "我住在国外", "conversation_id": f.conversationID, "actor_id": f.ownerID})); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.conversation_messages SET source_fact_id=$2 WHERE id=$1`, source, request.EvidenceID); err != nil {
+					t.Fatal(err)
+				}
+
 				return request
 			},
 			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {

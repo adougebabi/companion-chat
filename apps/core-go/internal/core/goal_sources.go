@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -283,10 +284,10 @@ func readGoalSourceWith(ctx context.Context, q lifeContextQuerier, eventID int64
 }
 
 func (a *App) enqueueTurnGoalCandidatesTx(ctx context.Context, tx pgx.Tx, owner, inboxID string, projection ContextProjection, structured map[string]any) error {
-	candidates := arrayValue(structured["goal_event_candidates"])
-	if len(candidates) > 8 {
-		return errors.New("goal_event_candidates_limit")
+	if err := validateGoalEventCandidates(structured, projection.ReferenceIndex); err != nil {
+		return err
 	}
+	candidates := arrayValue(structured["goal_event_candidates"])
 	goalIDs := []string{}
 	for _, raw := range candidates {
 		candidate := mapValue(raw)
@@ -389,4 +390,29 @@ func readGoalMessageSurroundingContext(ctx context.Context, q lifeContextQuerier
 		authority = append(authority, map[string]any{"id": id, "author": author, "kind": kind, "version": version, "profile": profile, "conversation": source.ConversationID, "occurred_at": at})
 	}
 	return contextData, authority, rows.Err()
+}
+
+// Shared by final-output admission and durable settlement; never resolve raw IDs.
+func validateGoalEventCandidates(structured map[string]any, index ContextReferenceIndex) error {
+	candidates := arrayValue(structured["goal_event_candidates"])
+	if len(candidates) > 8 {
+		return errors.New("goal_event_candidates_limit")
+	}
+	for _, raw := range candidates {
+		entry, ok := index.ByRef[strings.TrimSpace(stringValue(mapValue(raw)["goal_ref"]))]
+		if !ok || entry.Kind != ContextReferenceGoal {
+			return fmt.Errorf("goal_event_candidate_scope_invalid: goal_event_candidates.goal_ref must be a currently offered Goal reference; allowed_goal_refs=%s", jsonString(currentGoalRefs(index)))
+		}
+	}
+	return nil
+}
+func currentGoalRefs(index ContextReferenceIndex) []string {
+	refs := []string{}
+	for ref, entry := range index.ByRef {
+		if entry.Kind == ContextReferenceGoal {
+			refs = append(refs, ref)
+		}
+	}
+	sort.Strings(refs)
+	return refs
 }

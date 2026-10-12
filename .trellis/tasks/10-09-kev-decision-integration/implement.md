@@ -286,3 +286,23 @@ Planner新增实际query阶段：两条不同成功query前query-only forced/no 
 重试确定代码缺口：首次captureSenderTime冻结字段，failed-history重建漏3字段，后端同message snapshot.equal核验会409。修复preserve timezone/offset/sentAt（含0/null语义），原user/key/turn/actor/attachments不变；在途按钮持续禁用可见，409保留拒绝+旧失败。History与enqueue partialmutation挡板一致，已有effect显示agent_partial_committed/不可直接重试，不再永远显示正在结算；无新public字段、无移除防重放。
 
 最终独立核验：Go全仓race1593PASS/513SKIP/0FAIL（含子用例），Web83+browser-client20+core-client2=105PASS/0FAIL；generate/typecheck/test/build/vet/gofmt/diff通过。实际ChatView SSR和HTTP/SSE已跑，真实PGdurable retry/partialHistory因无隔离DB明确SKIP，真实Provider与生产点击重试未执行。无migration、head0059，未安装DB、写正式业务数据、提交或部署；生产GPU资源与预算同步不在本次写入。
+
+
+## 2026-10-12 turn_1d71 审计与引用契约修复边界
+
+只读持久诊断：17:01:44.125→17:09:08.592八轮，reply第一轮completed，actor.fact.record两次fabricated source_message_id失败，goal.evaluate把ctxref当goal_id并猜revision0失败，goal.inspect同样ref失败，list完整DB行返回rawGoalID/revision，后evaluate真实ID25提交queued，final rawID填goal_event_candidates.goal_ref直到settlement才报scope_invalid。FormalAgent完成但结算失败，已发送回复和排队请求不可回滚/重放。约7分24秒主要模型轮次，不能把工具数据库处理称分钟级。
+
+已核实cr_226d1f25ffa9来自“2026-10-12上午问候/关心是否影响工作”旧summary，不能直接证明本轮退缩/间接承认；observed_fact/confirmed_fact语义标签混用。此为语义审计，不新增关键词判断或自动纠正关系事实。
+
+修复范围：native Goal inspect(detail)/evaluate用当前goal_ref，由typed bridge绑定真实ID+冻结revision，canonical/directOwner rawAPI保留且CAS不放宽；模型Tool result仅已提供scope的语义DTO+refs，完整receipt内部保留，不静默从rawfinalID查DB授权。Actor已有当前inbound自动source binding，native schema不再索要不可得source_message_id并强制assertion_type，继续当前source author/invalidation验证和inference uncertain，不添加新历史来源写权限或新ContextReferenceKind。catalog/discovery返回同样native schema，全部物理续轮有效schema一致。
+
+final goal_event_candidates共享scope/kind/count校验前移到final-contract，在单次无工具DTO repair中由模型改合法ref；invalid持续fail，已提交reply/evaluation一次且结算校验保留。提供明确字段/允许refs纠正反馈。必要提示词只改引用/推断说明，不堆叠强制情感/推进规则，不限制固定轮数或回复后自动结束。
+
+只改Core协议/adapter/source validator/相关回归和必要现有夹具；不操作user-owned docs/audit_screenshots，不写正式业务数据、不部署、不安装DB、不新增迁移。测试要覆盖真实HTTP/Eino ref→canonical frozenID、queryDTO不含rawIDs、错误Goalref进入repair、Actor省略sourceID真实绑定+assertion/inference、cross-profile/stale/unknown隔离、持久reply+queued effect保留。真实PG无隔离DB诚实SKIP。
+
+
+独立只读检查确认并由主线程补修两个缺口：参数提前拒绝缺少trace/result及原生ID冲突校验，现保留原模型参数身份、物理来源和非重试失败回执；同ID变参数拒绝，相同失败回执重放不增trace。native inspect保留cursor/include_closed和分页回传，避免当前offered超过10条时无法继续查询。绑定要求positive冻结revision，避免revision0查询绕过。旧重复Tool测试补真实物理模型身份和operationRoot，未放宽生产权限。
+
+引用语义问题仅作审计保留：未引入语义裁判，也未改动业务提示词；不能宣称“退缩/间接承认”的事实判断已由本轮修复保证正确。全量最终验证结果见报告。
+
+最终主线程全仓Go race1601PASS/514SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过；实际HTTP/SSE引用绑定与tool-free repair已执行，PG明确SKIP。没有Web/publicAPI变更，未重跑前端或生成；未安装DB、写正式数据、提交/部署。报告同步docs/kev-integration-report.md，规范同步structured-turn-contract。

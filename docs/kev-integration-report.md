@@ -273,3 +273,46 @@ Planner新增实际query阶段：两条不同成功query前query-only forced/no 
 重试确定代码缺口：首次captureSenderTime冻结字段，failed-history重建漏3字段，后端同message snapshot.equal核验会409。修复preserve timezone/offset/sentAt（含0/null语义），原user/key/turn/actor/attachments不变；在途按钮持续禁用可见，409保留拒绝+旧失败。History与enqueue partialmutation挡板一致，已有effect显示agent_partial_committed/不可直接重试，不再永远显示正在结算；无新public字段、无移除防重放。
 
 最终独立核验：Go全仓race1593PASS/513SKIP/0FAIL（含子用例），Web83+browser-client20+core-client2=105PASS/0FAIL；generate/typecheck/test/build/vet/gofmt/diff通过。实际ChatView SSR和HTTP/SSE已跑，真实PGdurable retry/partialHistory因无隔离DB明确SKIP，真实Provider与生产点击重试未执行。无migration、head0059，未安装DB、写正式业务数据、提交或部署；生产GPU资源与预算同步不在本次写入。
+
+
+## 2026-10-12 turn_1d71 八轮调用审计与 native 引用契约
+
+只读诊断 turn:turn_1d71bb69-e346-497e-98bb-04e0af710e1d：
+17:01:44.125开始，17:09:08.515 FormalAgent completed，17:09:08.592
+settlement失败 agent_cognition_settlement_failed / goal_event_candidate_scope_invalid。
+八次物理模型请求约7分24秒；不能以此认定数据库Tool执行耗时分钟级。
+
+| 轮次 | 实际请求 | 结果 |
+| --- | --- | --- |
+| 1 | conversation.reply | completed，私聊真实提交 |
+| 2–3 | actor.fact.record | fabricated source_message_id，actor_source_message_required |
+| 4 | goal.evaluate | ctxref填goal_id、revision0，goal_revision_conflict |
+| 5 | goal.inspect(detail) | ctxref填goal_id，goal_not_found |
+| 6 | goal.inspect(list) | 成功但返回完整内部Goal行和raw ID |
+| 7 | goal.evaluate | raw ID/revision25，真实evaluation request queued |
+| 8 | cognition final | raw ID填goal_event_candidates.goal_ref，结算拒绝 |
+
+queued不代表根Goal完成；已提交的reply/evaluation请求不得因末尾失败回滚或重放。
+final中的cr_226d1f25ffa9实际是更早“工作时段问候/是否影响工作”summary，
+不能直接证明本轮“用户退缩/间接承认”。引用合法不等于语义支持正确，
+本轮未引入关键词裁判或自动升级关系事实，未保证此模型语义问题已解决。
+
+本地修复由Capability拥有native契约：Goal inspect(detail)/evaluate使用当前
+goal_ref，Core绑定实体与positive冻结revision；canonical Owner/directAPI保留。
+Actor native省略source_message_id并必填assertion_type，复用当前入站可信来源，
+inference保持uncertain，无历史来源写权限扩展。Kev之后每次Generate/Stream与
+catalog/discovery使用同一native schema。Goal query仅offered scope并输出语义DTO，
+保留cursor/include_closed与has_more/next_cursor，完整内部receipt不外泄。
+final candidates共享scope/kind/count校验前移，既有一次tool-free repair可纠正引用；
+结算继续校验，原reply/evaluation effect保留。提前拒绝参数有trace+非重试result+
+真实physical身份；原生ID改变原参数冲突，同失败参数重放不重复记录。
+
+独立只读核验发现提前拒绝trace和分页两个缺口，主线程修复并新增回归。
+旧replay测试补真实RecordModelToolCalls和operationRoot，生产身份校验不放宽。
+最终主线程全量验证：Go race **1601 PASS / 514 SKIP / 0 FAIL**（含子用例），
+vet/build/gofmt/diff检查通过；日志 /tmp/turn-reference-final-race.json、
+/tmp/turn-reference-final-race.stderr、/tmp/turn-reference-final-vet.log、
+/tmp/turn-reference-final-build.log。真实HTTP/SSE Generate/Stream已执行；
+PG Actor当前来源、adapter持久化等因无GO_CORE_TEST_DATABASE_URL明确SKIP。
+本轮无Web/publicAPI变更，未重跑前端或API生成；未新增migration、安装数据库、
+修改正式配置、写正式业务数据、提交或部署。正式真实模型/数据库效果由用户验收。

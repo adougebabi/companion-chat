@@ -16,11 +16,11 @@ var providerShortRefPattern = regexp.MustCompile(`^cr_[a-f0-9]{12}$`)
 type providerContextRefCodec struct {
 	mu      sync.RWMutex
 	byShort map[string]string
-	known   map[string]struct{}
+	known   map[string]ContextReferenceKind
 }
 
 func newProviderContextRefCodec(index ContextReferenceIndex) (*providerContextRefCodec, error) {
-	codec := &providerContextRefCodec{byShort: map[string]string{}, known: map[string]struct{}{}}
+	codec := &providerContextRefCodec{byShort: map[string]string{}, known: map[string]ContextReferenceKind{}}
 	return codec, codec.registerIndex(index)
 }
 
@@ -56,9 +56,9 @@ func (codec *providerContextRefCodec) registerIndex(index ContextReferenceIndex)
 	if codec == nil {
 		return nil
 	}
-	known := make(map[string]struct{}, len(index.ByRef))
-	for ref := range index.ByRef {
-		known[ref] = struct{}{}
+	known := make(map[string]ContextReferenceKind, len(index.ByRef))
+	for ref, entry := range index.ByRef {
+		known[ref] = entry.Kind
 		if err := codec.register(ref); err != nil {
 			return err
 		}
@@ -181,4 +181,17 @@ func (codec *providerContextRefCodec) decodeArguments(raw json.RawMessage) (json
 		return nil, fmt.Errorf("provider_context_ref_decode: %w", err)
 	}
 	return encoded, nil
+}
+
+func (codec *providerContextRefCodec) currentIndex() ContextReferenceIndex {
+	index := ContextReferenceIndex{ByRef: map[string]ContextReference{}}
+	if codec == nil {
+		return index
+	}
+	codec.mu.RLock()
+	defer codec.mu.RUnlock()
+	for ref, kind := range codec.known {
+		index.ByRef[ref] = ContextReference{Kind: kind}
+	}
+	return index
 }

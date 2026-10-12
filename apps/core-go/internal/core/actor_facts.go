@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -430,3 +431,18 @@ func validateArtifactActorDependenciesTx(ctx context.Context, tx pgx.Tx, owner, 
 	}
 	return nil
 }
+
+func (c actorFactCapability) NativeDefinition() CapabilityDefinition {
+	d := c.Definition()
+	d.InputSchema = cloneMap(d.InputSchema)
+	properties := cloneMap(mapValue(d.InputSchema["properties"]))
+	delete(properties, "source_message_id")
+	d.InputSchema["properties"] = properties
+	d.InputSchema["required"] = []string{"operation", "attribute", "value", "reason", "assertion_type"}
+	d.Description = "Record an Actor attribute from the current inbound user message. assertion_type is explicit_statement or inference; inference stays uncertain. Core binds the source."
+	return d
+}
+func (c actorFactCapability) BindNativeArguments(raw json.RawMessage, _ ContextProjection) (json.RawMessage, error) {
+	return raw, nil
+}
+func (c actorFactCapability) NativeOutput(value any, _ ContextProjection) any { return value }

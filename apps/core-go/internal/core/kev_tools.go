@@ -61,7 +61,7 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 	if c.catalog == nil {
 		return CapabilityResult{}, errors.New("capability_catalog_unavailable")
 	}
-	definitions := authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, c.catalog)
+	definitions := nativeDefinitionsForContext(ctx, authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, c.catalog))
 	items := make([]map[string]any, 0, len(definitions))
 	for _, definition := range definitions {
 		parameters := definition.InputSchema
@@ -90,7 +90,7 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 	if err := json.Unmarshal(inv.Arguments, &args); err != nil {
 		return CapabilityResult{}, err
 	}
-	definitions := authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, c.catalog)
+	definitions := nativeDefinitionsForContext(ctx, authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, c.catalog))
 	selection := kevSelection(ctx)
 	available := map[string]CapabilityDefinition{}
 	items := []map[string]any{}

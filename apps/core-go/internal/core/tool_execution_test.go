@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
@@ -202,12 +203,13 @@ func TestRepeatedADKToolCallKeepsModelResultProjection(t *testing.T) {
 	arguments := jsonBytes(map[string]any{
 		"content": "remembered", "type": "semantic", "confidence": 1.0, "importance": 1.0,
 	})
+	trace.RecordModelToolCalls("physical-memory-request", 1, []schema.ToolCall{{ID: "memory-call"}})
 	trace.AppendInvocation(CapabilityInvocation{CallID: "memory-call", CapabilityName: "memory_event", Arguments: arguments})
 	trace.AppendResult(CapabilityResult{CallID: "memory-call", CapabilityName: "memory_event", Status: "completed", Output: map[string]any{
 		"operation": "create", "memory_id": "private-db-id", "target_ref": "memory:ctx_0123456789abcdef0123456789abcdef",
 		"status": "active", "revision": 4, "disposition": "applied", "replayed": false,
 	}})
-	invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{}, trace)
+	invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{OperationID: "memory-replay-run"}, trace)
 	result, err := invoker.(ADKCapabilityInvokerWithID).ExecuteWithID(context.Background(), "memory-call", "memory_event", string(arguments))
 	if err != nil {
 		t.Fatal(err)

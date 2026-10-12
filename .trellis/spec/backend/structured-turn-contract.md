@@ -605,3 +605,36 @@ Actual HTTP/SSE Generate/Stream verifies one correction, exact choice and reply-
 
 ### 7. Wrong vs Correct
 Wrong: convert the stopped text into a backend send. Correct: request one actual native ToolCall from the model and keep publication/receipt authority unchanged.
+
+
+## Scenario: Native Tool references and final Goal candidates (2026-10-12)
+
+Capabilities may own a `nativeToolContract` distinct from the canonical direct
+command schema. Apply its definition after Kev selection on every physical
+Generate/Stream request and in run-scoped catalog/discovery. The native bridge
+validates model parameters, resolves offered refs, and only then executes or
+replays canonical commands; direct Owner APIs retain their existing contracts.
+
+Native `goal.inspect(detail)` and `goal.evaluate` accept `goal_ref`. Core binds
+only current Goal-kind refs with a real entity and positive frozen revision;
+never resolve arbitrary raw model IDs or replace the offered revision with the
+latest database revision. Native inspect queries only the offered set and emits
+semantic fields with current refs/revisions, preserving list cursor/include_closed
+and has_more/next_cursor. Full internal rows and receipts remain private.
+Native Actor fact writes require assertion_type and omit source_message_id;
+the existing trusted inbound source binding and author/invalidation checks apply.
+Inference remains uncertain; this grants no historical-source write permission.
+
+Record rejected native parameters as an invocation plus nonretryable failed
+result with physical request identity and diagnostic rejection/result. Compare
+original normalized model arguments, tool name and working profile for native-ID
+reuse before canonical binding; changed payload conflicts, identical rejected
+payload replays its failure. Accepted payload replay still validates current
+binding and canonical identity. Rejected calls never execute domain writes.
+
+Validate final goal_event_candidates count/kind/current membership before final
+admission and again in settlement. The existing single tool-free DTO correction
+may fix invalid refs using explicit allowed-ref feedback; it cannot replay a
+committed reply/evaluation request or publish text. Queued evaluation is not
+Goal completion. Scope validation does not prove semantic evidence entailment:
+unrelated summaries cannot substantiate current interpretations.
