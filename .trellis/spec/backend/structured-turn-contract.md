@@ -540,3 +540,35 @@ Wrong: decode a final field and call publication service. Correct: the model cal
 
 
 Physical request policies may set AllowedToolNames to a subset of the already installed catalog. The queued Generate/Stream adapter narrows actual model.WithTools and effective budget/diagnostics together, rejects unknown/empty requested catalogs with physical_request_tool_catalog_invalid, and never grants capabilities. Nil preserves the existing catalog. Planner query phases use this seam; Goal Evaluation, Visual Identity and conversation publication retain their existing policies and single Runner. Tool-free final repair suppresses the policy as before.
+
+
+## Scenario: Final repair isolation and empty-output authority (2026-10-11)
+
+### 1. Scope / Trigger
+A final DTO correction inherited Kev selection and reinstalled business tools despite empty definitions. Reasoning-only empty finals also lost actual physical termination metadata.
+
+### 2. Signatures
+`finalRepairContext(ctx)` masks Kev selection/persona, physical business policy and projection refresh without mutating the original context. `finalRepairModelOptions` removes tools/tool_choice/parallel_tool_calls and sets enable_thinking=false on that correction request. `aiagent.EmptyFinalMessageError` retains the native final message and original adk_final_message_empty cause.
+
+### 3. Contracts
+Use one existing tool-free correction at most, retaining Generate/Stream mode, schema, refs, identity and cancellation. Ordinary thinking, Kev selection and required-native policies remain unchanged. No correction may replay committed effects, create Tool success from final fields, send reasoning, synthesize no_op or repair a private conversation that has not actually published through its Tool.
+
+The queued native stream has one existing reader/producer, with a bounded diagnostic observer and no additional pump. Preserve available physical finish/usage across WithTools and native graph aggregation; never invent missing details from budgets or text. Empty content with no native ToolCall remains failure, classified model_output/adk_final_message_empty. stop, length, content_filter and unknown remain the reported reason, not an inferred budget explanation.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Malformed final with Kev active | repair sends zero Tools, no tool_choice, thinking=false |
+| Reasoning-only empty final | fail with actual metadata; no publication/automatic retry |
+| Stream terminal-only metadata | preserve earlier content/calls and actual finish/usage |
+| Stream error/cancel | preserve available partial diagnostics and actual error; release existing queue lease |
+| Diagnostic output exceeds bound | mark truncated; native messages unchanged |
+
+### 5. Good / Base / Bad Cases
+Good: committed Tool → malformed final → isolated correction → valid DTO, effect once. Base: valid final requires no repair. Bad: Kev adds tools back during repair, or reasoning becomes user-visible text.
+
+### 6. Tests Required
+Actual HTTP Generate/Stream tests assert repair no-tools/no-choice/thinking=false/schema intact, original gates unchanged and one effect. Empty stop/length/unknown tests and queue EOF/error/cancel tests verify native identity, classification and actual terminal metadata. Tool binding shares the response pointer without mutating physical usage.
+
+### 7. Wrong vs Correct
+Wrong: clearing model.definitions alone while Kev context can rebind them. Correct: isolate correction context and physical wire options, then validate the final schema without executing capabilities.

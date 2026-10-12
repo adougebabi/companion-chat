@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
 )
 
 type formalRunRecord struct {
@@ -52,6 +54,10 @@ func classifyAgentRunFailure(err error) (string, string) {
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "model", "request_timeout"
+	}
+	var empty *aiagent.EmptyFinalMessageError
+	if errors.As(err, &empty) {
+		return "model_output", "adk_final_message_empty"
 	}
 	var typed *agentRunFailure
 	if errors.As(err, &typed) {

@@ -230,7 +230,7 @@ func consumeKevCandidateStream(ctx context.Context, stream *schema.StreamReader[
 	if len(messages) == 0 {
 		return nil, errors.New("kev_persona_proposal_empty")
 	}
-	return schema.ConcatMessages(messages)
+	return concatEinoObservedMessages(messages...)
 }
 
 func (g *kevPersonaAdmission) adoptedRevision(ctx context.Context) (int, bool) {

@@ -336,9 +336,34 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		return result, errors.New("adk_final_message_missing")
 	}
 	if strings.TrimSpace(result.FinalMessage.Content) == "" && len(result.FinalMessage.ToolCalls) == 0 {
-		return result, errors.New("adk_final_message_empty")
+		return result, &EmptyFinalMessageError{Message: result.FinalMessage}
 	}
 	return result, nil
+}
+
+// EmptyFinalMessageError preserves the native final response for diagnostics.
+// Reasoning is never a substitute for publishable content or a ToolCall.
+type EmptyFinalMessageError struct{ Message *schema.Message }
+
+func (e *EmptyFinalMessageError) Error() string {
+	finish := "unknown"
+	reasoningChars := 0
+	completionTokens, reasoningTokens := "unknown", "unknown"
+	if e.Message != nil {
+		reasoningChars = len([]rune(e.Message.ReasoningContent))
+		if meta := e.Message.ResponseMeta; meta != nil {
+			if meta.FinishReason != "" {
+				finish = meta.FinishReason
+			}
+			if meta.Usage != nil {
+				completionTokens = fmt.Sprint(meta.Usage.CompletionTokens)
+				if meta.Usage.CompletionTokensDetails.ReasoningTokens > 0 {
+					reasoningTokens = fmt.Sprint(meta.Usage.CompletionTokensDetails.ReasoningTokens)
+				}
+			}
+		}
+	}
+	return fmt.Sprintf("adk_final_message_empty: finish_reason=%s reasoning_chars=%d completion_tokens=%s reasoning_tokens=%s", finish, reasoningChars, completionTokens, reasoningTokens)
 }
 
 func unboundedIterations(requested int) int {

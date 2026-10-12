@@ -175,3 +175,14 @@ Wake action枚举收紧，持久化按实际receipts，不保留幽灵message。
 Planner新增实际query阶段：两条不同成功query前query-only forced/no final grammar；commit后必须后续物理轮snapshot。正常RepairGoalPlanning只为旧query_missing上下文复核提供版本化正常新请求，不重置旧失败/已提交记录，不把评估revision变化当新恢复机会，保留所有权限、budget、backoff、复核和CAS。
 
 最终独立核验：Go全仓race JSON1486PASS/508SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过；实际HTTP/Eino Generate/Stream已运行。PG源恢复、40候选保留、未主动用户消息的虚拟生活闭环、Planner恢复等因未配置隔离DB明确SKIP，SQL/参数只作静态核验。无新增migration，head仍0059；没有安装服务、写正式业务数据、提交或部署。未改Web/API结构，新增execution字段属既有open record，无前端回归。真实业务效果由用户验收，不能称正式Goal已完成或购物已执行。
+
+
+## 2026-10-11 深夜 Agent 空输出与 final repair 重新注入工具
+
+现场只读最新20条：23:05Wake成功，22:15conversation/22:45Wake adk_final_message_empty；22:55Wake315原final及一次repair均cut-mid-string JSON。私聊真实completion193、prompt16191、reserve40960；Wake两轮1403/1352、prompt14981/15032；旧日志缺finish_reason，不能断言额度耗尽。更早21:41等507明确Macprefill内存保护，与CAS独立。该批未见current_facts_stale。
+
+确定bug为repair继承Kev选择状态：definitions=nil在下一物理请求被kevModelOptions重新绑定tools；repair实际tool_count37。实际HTTP Generate/Stream RED→GREEN验证。修复隔离Kev tools/persona、business policy和refresh，wire无tools/tool_choice/parallel，repair-only thinking=false，流式repair保持stream；原始task thinking/gates与Tool-only私聊不变，effect仅一次。
+
+补ResponseMeta finish_reason/availableusage与typedempty model_output分类；bounded2MiB观察在既有queueRecv中，终态一次聚合不会覆盖正文，无新pump，取消/error原样保留；WithTools共享实际physical response metadata。termination事件仅counts/reason/usage，rawreasoning仍属Owner model-run。SDK独立usage帧前置聚合可能丢reasoning细分；无法获得时unknown/省略，不新增SSE parser或推断预算耗尽。
+
+最终独立检查Go race1570PASS/511SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过。实际HTTP/SSE工具隔离、stop/length/unknown、combined/split终态、nativeidentity和队列取消已运行。PG/其他service opt-in仍SKIP。无公共API/schema改动，无前端重跑，无migration，head0059。没有修改正式模型服务或设置、安装DB、写业务数据、提交/部署。507及真实模型提前停止的语义原因未被本修复证明解决；新诊断只能为后续真实失败提供终止依据。

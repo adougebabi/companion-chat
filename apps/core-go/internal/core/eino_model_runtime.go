@@ -21,6 +21,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	jsonschema "github.com/eino-contrib/jsonschema"
+	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
 	aimodel "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model"
 	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
@@ -60,20 +61,21 @@ type EinoModelCall struct {
 }
 
 type queuedToolCallingChatModel struct {
-	inner             model.ToolCallingChatModel
-	provider          *ProviderClient
-	agentName         string
-	role              string
-	scenario          string
-	priority          int
-	diagnosticID      string
-	assignment        providerAssignment
-	correlationID     string
-	sequence          *atomic.Uint64
-	cumulativeInput   *atomic.Int64
-	lastInputEstimate *atomic.Int64
-	definitions       []CapabilityDefinition
-	responseFormat    map[string]any
+	inner                model.ToolCallingChatModel
+	provider             *ProviderClient
+	agentName            string
+	role                 string
+	scenario             string
+	priority             int
+	diagnosticID         string
+	assignment           providerAssignment
+	correlationID        string
+	sequence             *atomic.Uint64
+	cumulativeInput      *atomic.Int64
+	lastInputEstimate    *atomic.Int64
+	lastPhysicalResponse *atomic.Pointer[schema.Message]
+	definitions          []CapabilityDefinition
+	responseFormat       map[string]any
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
@@ -125,6 +127,9 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		return m.inner.Generate(runCtx, input, opts...)
 	})
 	err = wrapPhysicalProviderRequestError(err)
+	if m.lastPhysicalResponse != nil {
+		m.lastPhysicalResponse.Store(result)
+	}
 	if callDiagnosticID != "" && result != nil {
 		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(result))
 	}
@@ -190,12 +195,24 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	if m.provider != nil && m.provider.DB != nil {
 		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, m.correlationID, m.scenario, m.priority, einoDiagnosticMessages(input))
 	}
+	started := time.Now()
+	observer := newEinoStreamObservation(func(full *schema.Message, streamErr error) {
+		if m.lastPhysicalResponse != nil {
+			m.lastPhysicalResponse.Store(full)
+		}
+		if callDiagnosticID != "" && full != nil {
+			m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(full))
+			m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(full), time.Since(started))
+		}
+		recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, full, streamErr)
+		m.recordUsageComparison(callCtx, full)
+	})
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
 		if gate := kevPersona(ctx); gate != nil && gate.needsCheck(ctx) {
 			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
 		}
 		return m.inner.Stream(runCtx, input, opts...)
-	})
+	}, observer.observe)
 	if err != nil || stream == nil {
 		return stream, err
 	}
@@ -204,11 +221,6 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		if err != nil {
 			return nil, err
 		}
-		if callDiagnosticID != "" {
-			m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(full))
-		}
-		recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, full, nil)
-		m.recordUsageComparison(callCtx, full)
 		candidate, regenerate, err := gate.inspect(ctx, full)
 		if err != nil {
 			return nil, err
@@ -226,7 +238,6 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		return reader, nil
 	}
 	adkContext, traceEnabled := adkCapabilityContext(ctx)
-	var usageRecorded atomic.Bool
 	if !traceEnabled || adkContext.Trace == nil {
 		return stream, nil
 	}
@@ -235,14 +246,8 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	// the trace map is an idempotent overwrite for the same physical request.
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
 		if message != nil {
-			if message.ResponseMeta != nil && message.ResponseMeta.Usage != nil && usageRecorded.CompareAndSwap(false, true) {
-				m.recordUsageComparison(callCtx, message)
-			}
 			adkContext.Refresh.noteModelToolCalls(sequence, message.ToolCalls)
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, message.ToolCalls)
-			if callDiagnosticID != "" && (message.Content != "" || len(message.ToolCalls) > 0 || message.ReasoningContent != "") {
-				m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(message))
-			}
 		}
 		return message, nil
 	}), nil
@@ -342,6 +347,9 @@ func (m *queuedToolCallingChatModel) recordUsageComparison(ctx context.Context, 
 
 func einoBudgetMessage(message *schema.Message) map[string]any {
 	value := einoMessageRaw(message)
+	delete(value, "finish_reason")
+	delete(value, "usage")
+	delete(value, "diagnostic_output_truncated")
 	if message == nil {
 		return value
 	}
@@ -486,7 +494,8 @@ func recordEinoModelOutputDiagnostic(ctx context.Context, provider *ProviderClie
 	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.output", "info", fluctlightID, "", correlationID, map[string]any{
 		"run_id": runID, "model_call_id": modelCallID, "stage": "model_output", "role": role, "sequence": sequence,
 		"status": status, "tool_call_ids": boundedDiagnosticStrings(callIDs, 32),
-		"error_code": providerRunErrorCode(runErr),
+		"error_code":        providerRunErrorCode(runErr),
+		"response_metadata": einoResponseMetadata(message),
 	})
 }
 
@@ -511,7 +520,7 @@ func boundedDiagnosticStrings(values []string, limit int) []string {
 // plain runProviderQueued call cannot be used here: it would release its
 // defer-cancel immediately after receiving the reader, before the provider has
 // emitted any bytes.
-func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scenario string, priority int, diagnosticID string, fn func(context.Context) (*schema.StreamReader[*schema.Message], error)) (*schema.StreamReader[*schema.Message], error) {
+func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scenario string, priority int, diagnosticID string, fn func(context.Context) (*schema.StreamReader[*schema.Message], error), observers ...func(*schema.Message, error)) (*schema.StreamReader[*schema.Message], error) {
 	if p == nil {
 		return nil, errors.New("provider_unavailable")
 	}
@@ -575,6 +584,12 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 			}()
 			for {
 				message, recvErr := inner.Recv()
+				if errors.Is(recvErr, io.EOF) && taskCtx.Err() != nil {
+					recvErr = taskCtx.Err()
+				}
+				for _, observe := range observers {
+					observe(message, recvErr)
+				}
 				if errors.Is(recvErr, io.EOF) {
 					return nil
 				}
@@ -592,6 +607,13 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 			}
 			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
 		})
+		for _, observe := range observers {
+			terminalErr := err
+			if terminalErr == nil {
+				terminalErr = io.EOF
+			}
+			observe(nil, terminalErr)
+		}
 		if err != nil && !errors.Is(err, context.Canceled) {
 			writer.Send(nil, wrapPhysicalProviderRequestError(err))
 		}
@@ -609,7 +631,7 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if sequence == nil {
 		sequence = &atomic.Uint64{}
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, definitions: m.definitions, responseFormat: m.responseFormat}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, definitions: m.definitions, responseFormat: m.responseFormat}, nil
 }
 
 type einoModelResponse struct {
@@ -798,7 +820,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		inner: chat, provider: p, agentName: call.Agent.Name, role: call.Role, scenario: call.Scenario, priority: call.Priority,
 		diagnosticID: call.DiagnosticID, assignment: call.Assignment, correlationID: call.CorrelationID,
 		sequence: &atomic.Uint64{}, definitions: call.Definitions, responseFormat: budgetResponseFormat,
-		cumulativeInput: &atomic.Int64{}, lastInputEstimate: &atomic.Int64{},
+		cumulativeInput: &atomic.Int64{}, lastInputEstimate: &atomic.Int64{}, lastPhysicalResponse: &atomic.Pointer[schema.Message]{},
 	}
 	unboundChat := chat
 	tools, err := NewADKCapabilityTools(call.Definitions, adkContext.Invoker)
@@ -826,6 +848,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations,
 		EnableStreaming: call.EnableStreaming,
 	}, input)
+	preservePhysicalResponseMetadata(loopResult.FinalMessage, unboundChat)
 	if runErr != nil {
 		return einoModelResponse{}, runErr
 	}
@@ -862,8 +885,9 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			// Final repair is deliberately tool-free. A task-owned request policy
 			// governs the native business loop only; carrying it into this unbound
 			// model could emit tool_choice without a Tool catalog.
-			repairCtx := withoutPhysicalModelRequestPolicy(ctx)
-			correction, correctionErr := RunADKLoop(repairCtx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: repairModel, MaxIterations: 1}, correctionInput)
+			repairCtx := finalRepairContext(ctx)
+			correction, correctionErr := RunADKLoop(repairCtx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: repairModel, MaxIterations: 1, EnableStreaming: call.EnableStreaming}, correctionInput)
+			preservePhysicalResponseMetadata(correction.FinalMessage, repairModel)
 			if correctionErr == nil && correction.FinalMessage != nil && len(correction.ToolCalls) == 0 {
 				if err := validateADKFinalContract(correction.FinalMessage, call.Role, validationSchema, adkContext.Refs); err == nil {
 					final = correction.FinalMessage
@@ -942,10 +966,15 @@ func recordADKTerminationDiagnostic(ctx context.Context, provider *ProviderClien
 	if runID == "" {
 		runID = call.CorrelationID
 	}
-	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", statusSeverity(status), stringValue(diagnostics["fluctlight_id"]), "", call.CorrelationID, map[string]any{
+	payload := map[string]any{
 		"run_id": runID, "stage": "termination", "status": status, "reason": reason,
 		"iterations": result.Iterations, "tool_call_count": len(result.ToolCalls), "tool_result_count": len(result.ToolResults),
-	})
+	}
+	var empty *aiagent.EmptyFinalMessageError
+	if errors.As(runErr, &empty) {
+		payload["response_metadata"] = einoResponseMetadata(empty.Message)
+	}
+	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", statusSeverity(status), stringValue(diagnostics["fluctlight_id"]), "", call.CorrelationID, payload)
 }
 
 func adkTerminationReason(err error) string {
@@ -966,6 +995,10 @@ func adkTerminationReason(err error) string {
 	}
 	if code := embeddedToolExecutionErrorCode(err); code != "" {
 		return code
+	}
+	var empty *aiagent.EmptyFinalMessageError
+	if errors.As(err, &empty) {
+		return "adk_final_message_empty"
 	}
 	errText := strings.TrimSpace(err.Error())
 	if colon := strings.Index(errText, ":"); colon > 0 {
@@ -1090,11 +1123,15 @@ func einoUsage(message *schema.Message) map[string]any {
 		return map[string]any{}
 	}
 	usage := message.ResponseMeta.Usage
-	return map[string]any{
-		"prompt_tokens":     usage.PromptTokens,
-		"completion_tokens": usage.CompletionTokens,
-		"total_tokens":      usage.TotalTokens,
+	result := map[string]any{"prompt_tokens": usage.PromptTokens, "completion_tokens": usage.CompletionTokens, "total_tokens": usage.TotalTokens}
+	// Zero-valued SDK detail structs cannot distinguish omitted breakdowns.
+	if usage.PromptTokenDetails.CachedTokens > 0 {
+		result["prompt_tokens_details"] = map[string]any{"cached_tokens": usage.PromptTokenDetails.CachedTokens}
 	}
+	if usage.CompletionTokensDetails.ReasoningTokens > 0 {
+		result["completion_tokens_details"] = map[string]any{"reasoning_tokens": usage.CompletionTokensDetails.ReasoningTokens}
+	}
+	return result
 }
 
 func einoMessageRaw(message *schema.Message) map[string]any {
@@ -1113,6 +1150,15 @@ func einoMessageRaw(message *schema.Message) map[string]any {
 		"content":           message.Content,
 		"tool_calls":        toolCalls,
 		"reasoning_content": message.ReasoningContent,
+	}
+	if message.ResponseMeta != nil {
+		result["finish_reason"] = message.ResponseMeta.FinishReason
+		if message.ResponseMeta.Usage != nil {
+			result["usage"] = einoUsage(message)
+		}
+	}
+	if message.Extra["diagnostic_output_truncated"] == true {
+		result["diagnostic_output_truncated"] = true
 	}
 	if len(message.UserInputMultiContent) > 0 {
 		parts := make([]any, 0, len(message.UserInputMultiContent))

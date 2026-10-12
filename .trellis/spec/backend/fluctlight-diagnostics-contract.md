@@ -586,3 +586,37 @@ TestPostRunFailureRetainsOuterBoundaryAndSpecificCauses covers publication/settl
 ### 7. Wrong vs Correct
 Wrong: classify only causes[0] and discard the code already known to the caller.
 Correct: preserve the business boundary on generic fallback and retain the specific cause with bounded diagnostics.
+
+
+## Scenario: Physical termination metadata and bounded SSE observation (2026-10-11)
+
+### 1. Scope / Trigger
+Reasoning-only replies and cut JSON require actual Provider termination evidence; per-delta updates previously ignored finish/usage-only frames.
+
+### 2. Signatures
+`einoMessageRaw` adds available finish_reason/usage to the owning model-run response. `adk.model.output.response_metadata` and empty `adk.run.termination.response_metadata` contain counts, finish reason and usage only. `einoStreamObservation` observes the existing queue reader and flushes exactly once at EOF/error/cancel.
+
+### 3. Contracts
+Retain prompt/completion/total tokens, and available cached/reasoning detail. Missing optional breakdowns remain absent/unknown; do not report invented zero or infer exhaustion. Termination events do not duplicate raw reasoning; raw responses remain with the Owner model-run diagnostic.
+
+Observation retains at most2MiB including chunk/Tool structure and terminal reserve; arbitrary ToolCall.Extra is omitted from the diagnostic projection, finish text capped256bytes, overflow marked diagnostic_output_truncated. It never changes native chunks, arguments, IDs or errors. Merge terminal metadata with accumulated content rather than replacing output with an empty terminal frame.
+
+Pinned ACL openai0.1.17 may drop reasoning detail before exposing a separate usage-only frame after a finish-only frame. Total/cache/finish remain available; combined terminal detail is preserved. Do not add a second SSE parser or claim that an absent detail was observed.
+
+### 4. Validation & Error Matrix
+| Condition | Diagnostic |
+| --- | --- |
+| Empty content/Tools plus reasoning | model_output/adk_final_message_empty with real reason/counts/usage |
+| finish_reason=length | record length; do not invent business success or auto-retry |
+| Missing reason | unknown, not inferred stop/length |
+| Metadata/content retention overflow | bounded output and explicit truncation flag |
+| Provider507 | preserve actual provider_request_failed cause, separate from CAS/output errors |
+
+### 5. Good / Base / Bad Cases
+Good: finish-only+usage-only SSE preserves total/cache/reason alongside earlier content. Base: Generate metadata is stored directly. Bad: overwrite full response with usage-only empty delta or duplicate reasoning in termination events.
+
+### 6. Tests Required
+`eino_stream_observation_test.go` covers combined/split HTTP SSE, bounds/overhead, terminal events and typed errors; `runtime_recovery_test.go` covers actual repair requests and effect replay isolation. Service-backed tests remain opt-in; local pass is not real model acceptance.
+
+### 7. Wrong vs Correct
+Wrong: assume193 completion tokens exhausted a40960 budget without finish reason. Correct: preserve reported termination metadata, label uncertainty and distinguish actual model service errors.

@@ -2,7 +2,9 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -211,5 +214,59 @@ func TestStaleReplyIsRecoverableFeedbackAndCancellationRemainsCancellation(t *te
 	stage, code := classifyAgentRunFailure(&agentRunFailure{stage: "tool", code: "dependency_failed", cause: context.Canceled})
 	if stage != "cancellation" || code != "request_cancelled" {
 		t.Fatalf("cancellation became tool failure: %s/%s", stage, code)
+	}
+}
+
+func TestADKFinalRepairIsolatesKevToolsAndPersona(t *testing.T) {
+	for _, streaming := range []bool{false, true} {
+		t.Run(fmt.Sprint(streaming), func(t *testing.T) {
+			var requests atomic.Int32
+			defs := []CapabilityDefinition{{Name: "hidden", Version: "v1", Description: "Commit actual effect", InputSchema: objectSchema(map[string]any{}, nil, false)}}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var body map[string]any
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				n := requests.Add(1)
+				if n == 3 {
+					if len(arrayValue(body["tools"])) != 0 || body["tool_choice"] != nil || body["enable_thinking"] != false || body["response_format"] == nil {
+						t.Errorf("repair wire leaked runtime policy: %s", jsonString(body))
+					}
+					if body["stream"] == true != streaming {
+						t.Errorf("repair stream = %v", body["stream"])
+					}
+				} else if len(arrayValue(body["tools"])) == 0 || body["enable_thinking"] != true || body["tool_choice"] != "required" {
+					t.Errorf("original tool/thinking policy changed: %s", jsonString(body))
+				}
+				message := map[string]any{"role": "assistant", "content": `{"influences":[]}`}
+				finish := "stop"
+				if n == 1 {
+					message = map[string]any{"role": "assistant", "tool_calls": []any{map[string]any{"index": 0, "id": "effect-once", "type": "function", "function": map[string]any{"name": "hidden", "arguments": "{}"}}}}
+					finish = "tool_calls"
+				}
+				if n == 2 {
+					message["content"] = `{"influences":`
+				}
+				if body["stream"] == true {
+					w.Header().Set("Content-Type", "text/event-stream")
+					fmt.Fprintf(w, "data: %s\n\ndata: [DONE]\n\n", jsonString(map[string]any{"choices": []any{map[string]any{"index": 0, "delta": message, "finish_reason": finish}}}))
+				} else {
+					_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"index": 0, "message": message, "finish_reason": finish}}})
+				}
+			}))
+			defer server.Close()
+			config := decision.DefaultConfig()
+			config.Enabled = true
+			state := &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config}}, original: defs, visible: map[string]bool{"hidden": true}, loaded: map[string]bool{}, version: 1}
+			invoker := &kevDiscoveryInvoker{state: state}
+			ctx := withADKCapabilityContext(context.Background(), invoker, &ADKCapabilityTrace{}, nil)
+			ctx = context.WithValue(ctx, kevRunSelectionKey{}, state)
+			ctx = context.WithValue(ctx, kevPersonaKey{}, &kevPersonaAdmission{evaluated: true, app: &App{Kev: &decision.Service{Settings: &kevFixedSettings{config}}}})
+			ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+				return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced}, nil
+			}))
+			response, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{Assignment: providerAssignment{BaseURL: server.URL, ModelID: "fixture", Timeout: 10 * time.Second, TokenBudget: 1000}, Role: "cognitive_assessment", Scenario: "conversation", Messages: []map[string]any{{"role": "user", "content": "only current refs"}}, Definitions: defs, JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: objectSchema(map[string]any{"influences": decisionInfluencesSchema()}, []string{"influences"}, false), EnableThinking: true, EnableStreaming: streaming, CorrelationID: "repair-isolation", ProviderRequestID: "repair-isolation"})
+			if err != nil || requests.Load() != 3 || invoker.executions != 1 || len(response.ExecutedToolCalls) != 1 {
+				t.Fatalf("repair/effects result: calls=%d effects=%d response=%+v err=%v", requests.Load(), invoker.executions, response, err)
+			}
+		})
 	}
 }

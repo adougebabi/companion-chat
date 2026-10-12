@@ -28,6 +28,9 @@ type physicalModelRequestDecision struct {
 }
 
 func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context, opts []model.Option) (*queuedToolCallingChatModel, []model.Option, map[string]any, error) {
+	if repair, _ := ctx.Value(finalRepairContextKey{}).(bool); repair {
+		return m, finalRepairModelOptions(opts), m.responseFormat, nil
+	}
 	policy, ok := physicalModelRequestPolicyFromContext(ctx)
 	if !ok {
 		return m, opts, m.responseFormat, nil
@@ -114,4 +117,35 @@ func applyPhysicalModelRequestPolicy(ctx context.Context, opts []model.Option, r
 		return json.Marshal(body)
 	}))
 	return opts, nil, nil
+}
+
+// Final correction has no business admission or context refresh. Keep correlation,
+// references and cancellation, but mask gates which can reinstall Tools or mutate
+// persona state before a physical request.
+type finalRepairContextKey struct{}
+
+func finalRepairContext(ctx context.Context) context.Context {
+	ctx = withoutPhysicalModelRequestPolicy(ctx)
+	ctx = context.WithValue(ctx, kevRunSelectionKey{}, (*kevRunSelection)(nil))
+	ctx = context.WithValue(ctx, kevPersonaKey{}, (*kevPersonaAdmission)(nil))
+	if bridge, ok := adkCapabilityContext(ctx); ok {
+		bridge.Refresh = nil
+		ctx = context.WithValue(ctx, adkConversationContextKey{}, bridge)
+	}
+	return context.WithValue(ctx, finalRepairContextKey{}, true)
+}
+
+func finalRepairModelOptions(opts []model.Option) []model.Option {
+	opts = append(append([]model.Option(nil), opts...), model.WithTools([]*schema.ToolInfo{}))
+	return append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
+		var body map[string]any
+		if err := json.Unmarshal(raw, &body); err != nil {
+			return nil, err
+		}
+		delete(body, "tools")
+		delete(body, "tool_choice")
+		delete(body, "parallel_tool_calls")
+		body["enable_thinking"] = false
+		return json.Marshal(body)
+	}))
 }
