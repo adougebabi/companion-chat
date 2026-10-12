@@ -348,3 +348,30 @@ failed周期保存并结束intent后，current-check将完成intent误标superse
 无生产模型调用/数据写入/预算配置改动/部署/数据库安装/迁移或提交。
 
 最终主线程验证：Go全仓race1629PASS/514SKIP/0FAIL（含子用例），vet/build/gofmt/diff通过；日志/tmp/provider-http-final-race.jsonl、/tmp/provider-http-final-race.stderr、/tmp/provider-http-final-vet.log、/tmp/provider-http-final-build.log。PG与其他opt-in514项明确SKIP，无Web/API变更所以未重跑前端。最终实际HTTP错误保留与重定向/escaped-secret边界已测，正式拒绝原因仍未知，未提交或部署。
+
+
+## 2026-10-12 LM Studio HTTP400 无参工具 parameters.properties 修复
+
+用户Worker日志13:44:18UTC（21:44:18CST）提供真实HTTP400：
+path=[36,function,parameters,properties]，expectedobject/receivedundefined。
+同轮请求tools[36]为capability.catalog。来源objectSchema(nil,nil,false)
+生成properties:null；Eino typedjsonschema.Properties指针omitempty随后省略字段。
+这次拒绝原因已确认是工具参数schema缺失，不能归因32k预算。
+
+最小产品补丁仅provider_schemas.go：nil properties归一化非nil空map，
+发送properties:{}，保持additionalProperties:false及required/权限/选择。
+新增no_arg_tool_schema_test.go，固定SDK/Eino queuedGenerate/Stream实际
+HTTP请求RED→GREEN：48注册roots、38安装目录fallback（disabled/version/settings）、
+2→3工具discovery后续轮次；catalog{}允许、额外参数拒绝、catalogschema一致、
+原定义无变异。没有移除catalog或修改Kev候选/白名单。
+
+正式只读Kev记录21:44:17–18配置version6显示33可选工具均unavailable/request_failed，
+use_original/original_used；33optional+3mandatory+2utility=38。用户决定Kev稍后自行测试，
+本轮不继续排查或调整服务。当前设置version7不能反推旧版本endpoint。
+
+独立只读检查无findings；完整Go race1642PASS/513SKIP/0FAIL（含子用例），
+vet/build/gofmt/diff通过。证据/tmp/no-arg-check-race-unsandboxed.jsonl、
+/tmp/no-arg-check-race-unsandboxed.stderr、/tmp/no-arg-check-vet.log、
+/tmp/no-arg-check-build.log；RED证据/tmp/no-arg-tool-red.log。
+服务/PG/真实Provider显式SKIP，不冒称正式已恢复。无公共API/Web变更，无前端重跑；
+未写正式数据、改设置/预算、部署、安装DB、增加migration或提交。

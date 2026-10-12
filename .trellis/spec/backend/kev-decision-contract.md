@@ -205,3 +205,47 @@ Existing TestKev* plus TestMediaBranchKevTwoStagesAndMixedPointAudit, M34/M40 re
 ### 7. Wrong vs Correct
 Wrong: hard-code three answer labels for every new media question or overwrite all settings to enable only media.
 Correct: bind parsing to the question's allowed choices, preserve raw audit and merge media settings after private backup.
+
+
+## Scenario: Explicit empty parameters for recovery tools (2026-10-12)
+
+### 1. Scope / Trigger
+LM Studio rejects a request when a no-argument tool omits the root
+function.parameters.properties object. The observed tools[36] was capability.catalog.
+
+### 2. Signatures
+`objectSchema(properties map[string]any, required []string, additionalProperties bool)`
+normalizes nil properties to a nonnil empty map before typed Eino conversion.
+
+### 3. Contracts
+No-argument closed objects must emit type=object, properties={},
+additionalProperties=false on the actual Provider wire. Nil serializes as null,
+then the pinned typed Schema.Properties pointer/omitempty drops the field.
+Retain required fields, closed validation, original definitions, tool installation,
+mandatory/discovery rules and Kev fallback. Never remove catalog to avoid a
+Provider schema rejection or weaken argument authorization.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| objectSchema receives nil properties | explicit nonnil empty object |
+| catalog arguments {} | valid |
+| catalog arguments contain extra field | reject |
+| Kev disabled/version/settings fallback | original schemas retain properties objects |
+| tool discovered for next request | subsequent actual schema retains properties object |
+
+### 5. Good/Base/Bad Cases
+Good: catalog remains available with explicit empty parameters.
+Base: existing nonempty object schemas are unchanged. Bad: delete the tool,
+relax additionalProperties or only check a map before SDK serialization.
+
+### 6. Tests Required
+TestNoArgToolPropertiesOnNativeProviderWire uses actual pinned SDK/Eino queued
+Generate/Stream serialization for all registered roots, Kev fallback and native
+discovery continuation. TestNoArgCatalogSchemaValidationAndCatalogParity asserts
+closed arguments, output schema parity and no original-definition mutation.
+Live LM Studio acceptance is separate from controlled HTTP regression.
+
+### 7. Wrong vs Correct
+Wrong: properties:nil becomes absent after typed schema conversion.
+Correct: properties:map[string]any{} stays a JSON object on the physical request.

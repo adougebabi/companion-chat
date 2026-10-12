@@ -30,6 +30,11 @@ func conversationDailyEpisodeProviderSchema() map[string]any {
 }
 
 func objectSchema(properties map[string]any, required []string, additionalProperties bool) map[string]any {
+	if properties == nil {
+		// Preserve an explicit empty object through Eino's typed schema
+		// conversion; nil becomes null and is omitted on the Provider wire.
+		properties = map[string]any{}
+	}
 	result := map[string]any{"type": "object", "properties": properties, "additionalProperties": additionalProperties}
 	if len(required) > 0 {
 		values := make([]any, len(required))
