@@ -2078,7 +2078,7 @@ func validateActorUserInput(value map[string]any) bool {
 	if len(value) != 1 || !isObject(value["background"]) {
 		return false
 	}
-	fields := map[string]bool{"name": true, "occupation": true, "background": true, "location_scope": true, "location": true, "timezone": true, "relationship_distance": true, "meeting_confirmed": true}
+	fields := map[string]bool{"name": true, "occupation": true, "background": true, "interests": true, "preferences": true, "location_scope": true, "location": true, "timezone": true, "relationship_distance": true, "meeting_confirmed": true}
 	for key, v := range object(value["background"]) {
 		if !fields[key] {
 			return false

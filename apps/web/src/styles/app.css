@@ -9,12 +9,12 @@
   --surface-shadow: 0 18px 50px rgb(38 42 54 / 10%);
   --ink: #1f1f23;
   --ink-soft: #3f4148;
-  --muted-ink: #777980;
-  --faint-ink: #92949b;
-  --accent: #2489d8;
-  --accent-strong: #176fb8;
+  --muted-ink: #676970;
+  --faint-ink: #70727a;
+  --accent: #176fb8;
+  --accent-strong: #125c9b;
   --accent-soft: #e7f3fd;
-  --danger: #d6474b;
+  --danger: #bd3942;
   --danger-soft: #fff1f1;
   --success: #31a45f;
   --glass-blur: 22px;
@@ -23,7 +23,7 @@
   --pc-backdrop: #ececf0;
   --pc-rail: #191919;
   --pc-rail-active: #2d2d2d;
-  --pc-accent: #2489d8;
+  --pc-accent: var(--accent);
   --pc-sidebar: #f7f7f9;
   font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
   color: var(--ink);

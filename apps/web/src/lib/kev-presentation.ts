@@ -1,0 +1,1 @@
+export const kevDecisionPoints: Record<string,string> = {"runtime.wakeup":"自动唤醒","runtime.reflection":"自动反思","goal.completion_check":"目标完成检查","goal.replenish_plan":"目标规划","tools.select":"工具预披露","persona.switch":"人格切换","context.select":"可选上下文","media.subject_route":"媒体入镜范围","media.capture_plan":"媒体拍摄方式","media.view_plan":"媒体视图构图"};

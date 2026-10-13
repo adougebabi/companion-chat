@@ -22,6 +22,7 @@ import { resolveTimezone } from "../lib/fluctlight-display";
 import { zonedLocalInputToISO } from "../lib/zoned-local-input";
 
 const client = new BrowserClient(apiOrigin);
+const settingsLoads = new WeakMap<object, Promise<void>>();
 const relationshipKey = (relationship: Record<string, unknown>): string => `${String(relationship.target_actor_id ?? "")}::${String(relationship.profile_id ?? "shared")}`;
 
 export const useControlCenterStore = defineStore("control-center", {
@@ -52,6 +53,7 @@ export const useControlCenterStore = defineStore("control-center", {
     diagnosticsWarning: "",
     diagnosticsNotice: "",
     diagnosticsLoaded: false,
+    diagnosticsLoading: false,
     diagnosticsLastLoadedAt: "",
     diagnosticsRequestId: 0,
     creationAnalysisRequestId: 0,
@@ -66,6 +68,7 @@ export const useControlCenterStore = defineStore("control-center", {
     providerModels: [] as string[],
     providerModelsEndpointId: "",
     providerModelsError: "",
+    providerModelsLoading: false,
     fluctlightDetail: null as BrowserFluctlightDetail | null,
 	fluctlightDetailRequestId: 0,
 	fluctlightDetailFluctlightId: "",
@@ -109,19 +112,24 @@ export const useControlCenterStore = defineStore("control-center", {
     loading: false,
     saving: false,
     error: "",
+    creationError: "", directoryError: "", settingsError: "", diagnosticError: "", momentsError: "",
+    settingsLoading: false, momentsLoading: false,
   }),
   actions: {
-    async testKevConnection(){this.error="";try{return await client.testKevConnection();}catch(error){this.error=diagnosticsFailureMessage(error);return {call_status:"unavailable",error_code:"connection_test_failed"};}},
+    dismissCreationError() { this.creationAnalysisRequestId++; this.creationError = ""; this.analysisFailureCorrelationId = ""; },
+    async testKevConnection(){this.settingsError="";try{return await client.testKevConnection();}catch(error){this.settingsError=diagnosticsFailureMessage(error);return {call_status:"unavailable",error_code:"connection_test_failed"};}},
     async readKevDecisions(filter:Record<string,string>){return client.kevDecisions(filter);},
     async loadKevDecisions(filter:Record<string,string>,reset=true){
-      if(this.kevDecisionLoading)return;
+      const requestedIdentity=JSON.stringify(filter);
+      if(this.kevDecisionLoading && (!reset || requestedIdentity===this.kevDecisionFilter))return;
       if(reset){this.kevDecisionEpoch++;this.kevDecisionFilter=JSON.stringify(filter);}
       const epoch=this.kevDecisionEpoch;const identity=this.kevDecisionFilter;const cursor=reset?"":this.kevDecisionCursor;
       this.kevDecisionLoading=true;this.kevDecisionError="";
+      if(reset){this.kevDecisionRows=[];this.kevDecisionCursor="";}
       try{const page=await client.kevDecisions({...filter,cursor,limit:"20"});if(epoch!==this.kevDecisionEpoch||identity!==this.kevDecisionFilter)return;
         if(reset)this.kevDecisionRows=page.items;else{const ids=new Set(this.kevDecisionRows.map(row=>row.id));this.kevDecisionRows.push(...page.items.filter(row=>!ids.has(row.id)));}
         this.kevDecisionCursor=page.next_cursor;
-      }catch{this.kevDecisionError="无法读取 Kev 决策记录。";}finally{this.kevDecisionLoading=false;}
+      }catch{if(epoch===this.kevDecisionEpoch)this.kevDecisionError="无法读取 Kev 决策记录。";}finally{if(epoch===this.kevDecisionEpoch)this.kevDecisionLoading=false;}
     },
 
 
@@ -135,7 +143,7 @@ export const useControlCenterStore = defineStore("control-center", {
     async analyzeFluctlight(description: string) {
 	  const requestId = this.creationAnalysisRequestId + 1;
 	  this.creationAnalysisRequestId = requestId;
-      this.error = "";
+      this.creationError = "";
       this.analysisFailureCorrelationId = "";
       try {
 		const result = await client.analyzeFluctlightCreation(description);
@@ -144,13 +152,14 @@ export const useControlCenterStore = defineStore("control-center", {
       } catch (error) {
 		if (requestId !== this.creationAnalysisRequestId) return null;
         if (error instanceof BrowserApiError && typeof error.details.correlation_id === "string") this.analysisFailureCorrelationId = error.details.correlation_id;
-        this.error = creationAnalysisFailureMessage(error);
+        this.creationError = creationAnalysisFailureMessage(error);
         return null;
       }
     },
     async loadActorGroups() {
+      this.directoryError = "";
       try { this.actorGroups = normalizeActorGroups(await client.listActorGroups()); }
-      catch { this.error = "无法加载实例分组。"; }
+      catch { this.directoryError = "无法加载实例分组。"; }
     },
     async ensureDefaultGroup(actorIds: string[]) {
       try {
@@ -169,7 +178,7 @@ export const useControlCenterStore = defineStore("control-center", {
         await this.loadActorGroups();
         this.selectedActorGroupId = defaultGroup.id;
       } catch {
-        this.error = "无法准备默认实例分组。";
+        this.directoryError = "无法准备默认实例分组。";
       }
     },
     async createActorGroup() {
@@ -181,26 +190,26 @@ export const useControlCenterStore = defineStore("control-center", {
         this.newActorGroupName = "";
         await this.loadActorGroups();
         return created;
-      } catch { this.error = "无法创建实例分组。"; return null; }
+      } catch { this.directoryError = "无法创建实例分组。"; return null; }
       finally { this.saving = false; }
     },
     async assignActorGroupMember(groupId: string, actorId: string) {
       this.saving = true;
       try { await client.assignActorGroupMember(groupId, actorId); await this.loadActorGroups(); }
-      catch { this.error = "无法加入实例分组。"; }
+      catch { this.directoryError = "无法加入实例分组。"; }
       finally { this.saving = false; }
     },
     async removeActorGroupMember(groupId: string, actorId: string) {
       this.saving = true;
       try { await client.removeActorGroupMember(groupId, actorId); await this.loadActorGroups(); }
-      catch { this.error = "无法移出实例分组。"; }
+      catch { this.directoryError = "无法移出实例分组。"; }
       finally { this.saving = false; }
     },
     async activateFluctlight(body: BrowserFluctlightActivationRequest) {
       this.saving = true;
-      this.error = "";
+      this.creationError = "";
       try { return await client.activateFluctlightCreation(body); }
-      catch (error) { this.error = creationActivationFailureMessage(error); return null; }
+      catch (error) { this.creationError = creationActivationFailureMessage(error); return null; }
       finally { this.saving = false; }
     },
     async loadMoreDiagnosticRuns(kind: "model" | "agent") {
@@ -227,19 +236,18 @@ export const useControlCenterStore = defineStore("control-center", {
           this.diagnosticAgentCursor = page.nextCursor;
           this.diagnosticOlderPagesLoaded = true;
         }
-      } catch (error) { this.error = diagnosticsFailureMessage(error); }
+      } catch (error) { this.diagnosticError = diagnosticsFailureMessage(error); }
       finally { this.diagnosticPagesLoading = false; }
     },
     async loadDiagnostics(background = false) {
-      if (background && this.diagnosticOlderPagesLoaded) return;
+      if (background && (this.diagnosticOlderPagesLoaded || this.diagnosticsLoading)) return;
       if (this.diagnosticPagesLoading) return;
       this.diagnosticOlderPagesLoaded = false;
       const requestId = this.diagnosticsRequestId + 1;
       this.diagnosticsRequestId = requestId;
-      const initialLoad = !this.diagnosticsLoaded;
-      if (initialLoad) this.loading = true;
-      this.error = "";
-      this.diagnosticsNotice = "";
+      const initialLoad = !background;
+      if (initialLoad) this.diagnosticsLoading = true;
+      if (!background) { this.diagnosticError = ""; this.diagnosticsNotice = ""; }
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
         const fluctlightId = this.diagnosticsFluctlightFilter.trim() || undefined;
@@ -300,12 +308,12 @@ export const useControlCenterStore = defineStore("control-center", {
 		if (agentRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.agentRuns === epochs.agentRuns) {this.diagnosticAgentRuns = agentRuns.value.items;this.diagnosticAgentCursor=agentRuns.value.nextCursor;}
         if (mediaPrompts.status === "fulfilled" && this.diagnosticsSourceEpochs.mediaPrompts === epochs.mediaPrompts) this.diagnosticMediaPrompts = mediaPrompts.value;
 		const readFailure = [lifecycle, events, modelRuns, agentRuns, mediaPrompts].find((result) => result.status === "rejected");
-        if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);
+        this.diagnosticError = readFailure?.status === "rejected" ? diagnosticsFailureMessage(readFailure.reason) : "";
         this.diagnosticsLoaded = true;
         this.diagnosticsLastLoadedAt = new Date().toISOString();
-        if (!this.error) this.diagnosticsNotice = correlationId ? `已刷新 ${correlationId} 的诊断记录。` : "诊断记录已刷新。";
+        if (!background && !this.diagnosticError) this.diagnosticsNotice = correlationId ? `已刷新 ${correlationId} 的诊断记录。` : "诊断记录已刷新。";
       } finally {
-        if (requestId === this.diagnosticsRequestId && initialLoad) this.loading = false;
+        if (requestId === this.diagnosticsRequestId && initialLoad) this.diagnosticsLoading = false;
       }
     },
     async loadWorkflows() {
@@ -323,7 +331,7 @@ export const useControlCenterStore = defineStore("control-center", {
     },
     async exportDiagnostics() {
       this.saving = true;
-      this.error = "";
+      this.diagnosticError = "";
       try {
         const payload = await client.exportDiagnostics({
           limit: 500,
@@ -342,37 +350,37 @@ export const useControlCenterStore = defineStore("control-center", {
         link.click();
         URL.revokeObjectURL(link.href);
         this.diagnosticsNotice = "诊断记录已导出。";
-      } catch { this.error = "无法导出诊断信息。"; }
+      } catch { this.diagnosticError = "无法导出诊断信息。"; }
       finally { this.saving = false; }
     },
     async queryWorkflowStatus() {
       const workflowId = this.workflowId.trim();
       if (!workflowId) return;
-      this.error = "";
+      this.diagnosticError = "";
       try { this.workflowStatus = await client.workflowStatus(workflowId); }
-      catch { this.error = "无法读取工作流状态。"; }
+      catch { this.diagnosticError = "无法读取工作流状态。"; }
     },
     async queryWorkflowHistory() {
       const workflowId = this.workflowId.trim();
       if (!workflowId) return;
       try { this.workflowHistory = await client.workflowHistory(workflowId); }
-      catch { this.error = "无法读取工作流历史。"; }
+      catch { this.diagnosticError = "无法读取工作流历史。"; }
     },
     async commandWorkflow(action: "pause" | "resume" | "cancel") {
       const workflowId = this.workflowId.trim();
       if (!workflowId) return;
       this.saving = true;
       try { await client.workflowCommand(workflowId, action); await this.queryWorkflowStatus(); }
-      catch { this.error = "工作流命令未被接受。"; }
+      catch { this.diagnosticError = "工作流命令未被接受。"; }
       finally { this.saving = false; }
     },
     async resetWorkflow() {
       const workflowId = this.workflowId.trim();
       const historyPoint = Number(this.workflowHistoryPoint);
-      if (!workflowId || !Number.isInteger(historyPoint) || historyPoint < 1) { this.error = "Reset 需要工作流 ID 和正的 history point。"; return; }
+      if (!workflowId || !Number.isInteger(historyPoint) || historyPoint < 1) { this.diagnosticError = "Reset 需要工作流 ID 和正的 history point。"; return; }
       this.saving = true;
       try { await client.resetWorkflow(workflowId, historyPoint); await this.queryWorkflowStatus(); }
-      catch { this.error = "工作流 Reset 未被接受。"; }
+      catch { this.diagnosticError = "工作流 Reset 未被接受。"; }
       finally { this.saving = false; }
     },
     async restartWorkflow() {
@@ -380,13 +388,13 @@ export const useControlCenterStore = defineStore("control-center", {
       if (!workflowId) return;
       this.saving = true;
       try { await client.restartWorkflow(workflowId); await this.queryWorkflowStatus(); }
-      catch { this.error = "工作流重启未被接受。"; }
+      catch { this.diagnosticError = "工作流重启未被接受。"; }
       finally { this.saving = false; }
     },
     async loadMoments(fluctlightId: string | null) {
       if (this.momentsScope === "fluctlight" && !fluctlightId) { this.moments = []; return; }
-      this.loading = true;
-      this.error = "";
+      this.momentsLoading = true;
+      this.momentsError = "";
       try {
         if (this.momentsScope === "global") {
           this.moments = await client.globalMoments(this.includeHiddenMoments);
@@ -395,8 +403,8 @@ export const useControlCenterStore = defineStore("control-center", {
           await client.markMomentsRead(fluctlightId);
         }
       }
-      catch { this.error = "无法加载 Fluctlight 动态。"; }
-      finally { this.loading = false; }
+      catch { this.momentsError = "无法加载 Fluctlight 动态。"; }
+      finally { this.momentsLoading = false; }
     },
     async loadFluctlightDetail(fluctlightId: string | null) {
 	  const requestId = this.fluctlightDetailRequestId + 1;
@@ -1000,41 +1008,40 @@ export const useControlCenterStore = defineStore("control-center", {
         wakeUp = JSON.parse(this.wakeUpSettingsJson) as Record<string, unknown>;
         retention = JSON.parse(this.diagnosticsRetentionJson) as Record<string, unknown>;
         if (!autonomy || Array.isArray(autonomy) || !wakeUp || Array.isArray(wakeUp) || !retention || Array.isArray(retention)) throw new Error("invalid_settings");
-      } catch { this.error = "自治、定期唤醒和诊断保留策略必须是 JSON 对象。"; return; }
+      } catch { this.settingsError = "自治、定期唤醒和诊断保留策略必须是 JSON 对象。"; return; }
       await this.saveSettings({ "product.autonomy": autonomy, "product.wakeup": wakeUp, "diagnostics.retention": retention });
     },
     async reactToMoment(momentId: string, fluctlightId: string | null) {
-      this.error = "";
+      this.momentsError = "";
       try {
         await client.reactToMoment(momentId);
         this.momentNotice = "已记录反应。";
         await this.loadMoments(fluctlightId);
       }
-      catch { this.error = "无法记录对动态的反应。"; }
+      catch { this.momentsError = "无法记录对动态的反应。"; }
     },
     async setMomentStatus(momentId: string, action: "hide" | "restore", fluctlightId: string | null) {
-      this.error = "";
+      this.momentsError = "";
       try {
         await client.setMomentStatus(momentId, action);
         this.momentNotice = action === "hide" ? "动态已隐藏。" : "动态已恢复。";
         await this.loadMoments(fluctlightId);
-      } catch { this.error = "无法更新动态状态。"; }
+      } catch { this.momentsError = "无法更新动态状态。"; }
     },
     async commentOnMoment(momentId: string, fluctlightId: string | null) {
       const text = this.momentDrafts[momentId]?.trim();
       if (!text) return;
-      this.error = "";
+      this.momentsError = "";
       try {
         await client.commentOnMoment(momentId, text);
         this.momentDrafts[momentId] = "";
         this.momentNotice = "评论已保存。";
         await this.loadMoments(fluctlightId);
-      } catch { this.error = "无法保存评论。"; }
+      } catch { this.momentsError = "无法保存评论。"; }
     },
     async clearDiagnostics() {
-      if (typeof window !== "undefined" && !window.confirm("确定清空所有诊断记录吗？此操作不可撤销。")) return;
       this.saving = true;
-      this.error = "";
+      this.diagnosticError = "";
       try {
         await client.clearDiagnostics();
         this.diagnostics = [];
@@ -1046,40 +1053,42 @@ export const useControlCenterStore = defineStore("control-center", {
 		this.diagnosticsSourceEpochs = { lifecycle: "", events: "", modelRuns: "", agentRuns: "", mediaPrompts: "" };
         this.diagnosticsNotice = "诊断记录已清空；Agent 业务运行记录仍保留。";
       } catch {
-        this.error = "无法清空诊断信息。";
+        this.diagnosticError = "无法清空诊断信息。";
       } finally { this.saving = false; }
     },
     async retryMediaPrompt(mediaIntentId: string) {
       const intentId = mediaIntentId.trim();
       if (!intentId) return;
       this.saving = true;
-      this.error = "";
+      this.diagnosticError = "";
       try {
         await client.retryDiagnosticMediaPrompt(intentId);
         this.diagnosticsNotice = "媒体生成已重新排队。";
         await this.loadDiagnostics();
       } catch (error) {
-        this.error = mediaRetryFailureMessage(error);
+        this.diagnosticError = mediaRetryFailureMessage(error);
       } finally { this.saving = false; }
     },
     async loadSettings() {
-      this.loading = true;
-      this.error = "";
-      try {
-        this.settings = await client.settings();
-        this.providerBindings = await client.providerBindings();
-        this.providerEndpoints = await client.providerEndpoints();
-      } catch {
-        this.error = "设置暂时不可用。";
-      } finally {
-        this.loading = false;
-      }
+      const existing = settingsLoads.get(this);
+      if (existing) return existing;
+      const request = (async () => {
+        this.settingsLoading = true; this.settingsError = '';
+        try {
+          const [settings, bindings, endpoints] = await Promise.all([client.settings(), client.providerBindings(), client.providerEndpoints()]);
+          this.settings = settings; this.providerBindings = bindings; this.providerEndpoints = endpoints;
+        } catch { this.settingsError = '设置暂时不可用，请重新读取。'; }
+        finally { this.settingsLoading = false; }
+      })();
+      settingsLoads.set(this, request);
+      try { await request; } finally { settingsLoads.delete(this); }
     },
     async loadProviderModels(endpointId: string) {
       this.providerModels = [];
       this.providerModelsEndpointId = endpointId;
       this.providerModelsError = "";
-      if (!endpointId) return;
+      if (!endpointId) { this.providerModelsLoading = false; return; }
+      this.providerModelsLoading = true;
       try {
         const result = await client.providerEndpointModels(endpointId);
         if (this.providerModelsEndpointId !== endpointId) return;
@@ -1088,18 +1097,18 @@ export const useControlCenterStore = defineStore("control-center", {
         if (this.providerModelsEndpointId === endpointId) {
           this.providerModelsError = "无法读取该 endpoint 的模型列表，可手动填写模型 ID。";
         }
-      }
+      } finally { if (this.providerModelsEndpointId === endpointId) this.providerModelsLoading = false; }
     },
     async saveSettings(values: Record<string, unknown>, secrets: Record<string, string> = {}) {
       this.saving = true;
-      this.error = "";
+      this.settingsError = "";
       try {
         this.settings = await client.updateSettings({
           values,
           secrets,
         });
       } catch {
-        this.error = "无法保存设置。";
+        this.settingsError = "无法保存设置。";
       } finally {
         this.saving = false;
       }
@@ -1111,7 +1120,7 @@ export const useControlCenterStore = defineStore("control-center", {
       secretPurpose: string;
     }) {
       this.saving = true;
-      this.error = "";
+      this.settingsError = "";
       try {
         await client.configureProviderEndpoint({
           endpointId: input.endpointId,
@@ -1122,7 +1131,7 @@ export const useControlCenterStore = defineStore("control-center", {
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
       } catch {
-        this.error = "无法保存模型 endpoint。请检查地址和协议类型。";
+        this.settingsError = "无法保存模型 endpoint。请检查地址和协议类型。";
       } finally {
         this.saving = false;
       }
@@ -1137,7 +1146,7 @@ export const useControlCenterStore = defineStore("control-center", {
       maxInputTokens?: number;
     }) {
       this.saving = true;
-      this.error = "";
+      this.settingsError = "";
       try {
         await client.configureModelRole({
           role: input.role,
@@ -1151,7 +1160,7 @@ export const useControlCenterStore = defineStore("control-center", {
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
       } catch (error) {
-        this.error = providerRoleFailureMessage(error);
+        this.settingsError = providerRoleFailureMessage(error);
       } finally {
         this.saving = false;
       }

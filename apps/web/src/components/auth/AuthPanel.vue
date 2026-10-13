@@ -3,8 +3,11 @@ import { ref } from "vue";
 
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
+import FormField from "../product/FormField.vue";
+import FeedbackNotice from "../product/FeedbackNotice.vue";
+import { useFormErrors } from "../../composables/use-form-errors";
 
-defineProps<{
+const props = defineProps<{
   setupAvailable: boolean;
   loading: boolean;
   error?: string | null;
@@ -18,16 +21,16 @@ const emit = defineEmits<{
 const authPassword = ref("");
 const setupToken = ref("");
 const newOwnerPassword = ref("");
+const {errors,validate}=useFormErrors();
 
-function submitSignIn() {
+async function submitSignIn() {
+  if(props.loading || !await validate([{id:'auth-password',label:'密码',value:authPassword.value,trim:false,required:true,minLength:6}]))return;
   emit("signIn", authPassword.value);
-  authPassword.value = "";
 }
 
-function submitSetup() {
+async function submitSetup() {
+  if(props.loading || !await validate([{id:'setup-token',label:'设置令牌',value:setupToken.value,required:true},{id:'setup-password',label:'所有者密码',value:newOwnerPassword.value,trim:false,required:true,minLength:6}]))return;
   emit("setup", setupToken.value, newOwnerPassword.value);
-  setupToken.value = "";
-  newOwnerPassword.value = "";
 }
 </script>
 
@@ -40,22 +43,19 @@ function submitSetup() {
       {{ setupAvailable ? "输入由本机管理员签发的一次性设置令牌。" : "登录后继续与 Fluctlight 实例对话。" }}
     </p>
 
-    <form v-if="setupAvailable" class="auth-form" @submit.prevent="submitSetup">
-      <label for="setup-token">设置令牌</label>
-      <Input id="setup-token" v-model="setupToken" type="password" autocomplete="one-time-code" required :disabled="loading" />
-      <label for="setup-password">所有者密码</label>
-      <Input id="setup-password" v-model="newOwnerPassword" type="password" autocomplete="new-password" minlength="6" required :disabled="loading" />
-      <p v-if="error" class="error-banner" role="alert">{{ error }}</p>
-      <Button class="primary-button" type="submit" :disabled="loading || !setupToken || newOwnerPassword.length < 6">
+    <form v-if="setupAvailable" class="auth-form" novalidate @submit.prevent="submitSetup">
+      <FormField id="setup-token" label="设置令牌" required v-model:error="errors['setup-token']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="setupToken" type="password" autocomplete="one-time-code" :disabled="loading" /></FormField>
+      <FormField id="setup-password" label="所有者密码" required v-model:error="errors['setup-password']" hint="至少 6 个字符。" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="newOwnerPassword" type="password" autocomplete="new-password" minlength="6" :disabled="loading" /></FormField>
+      <FeedbackNotice :message="error ?? ''" />
+      <Button class="primary-button" type="submit" :disabled="loading">
         {{ loading ? "正在创建..." : "创建所有者" }}
       </Button>
     </form>
 
-    <form v-else class="auth-form" @submit.prevent="submitSignIn">
-      <label for="auth-password">密码</label>
-      <Input id="auth-password" v-model="authPassword" type="password" autocomplete="current-password" minlength="6" required :disabled="loading" />
-      <p v-if="error" class="error-banner" role="alert">{{ error }}</p>
-      <Button class="primary-button" type="submit" :disabled="loading || authPassword.length < 6">
+    <form v-else class="auth-form" novalidate @submit.prevent="submitSignIn">
+      <FormField id="auth-password" label="密码" required v-model:error="errors['auth-password']" hint="输入所有者密码，至少 6 个字符。" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="authPassword" type="password" autocomplete="current-password" minlength="6" :disabled="loading" /></FormField>
+      <FeedbackNotice :message="error ?? ''" />
+      <Button class="primary-button" type="submit" :disabled="loading">
         {{ loading ? "正在登录..." : "登录" }}
       </Button>
     </form>

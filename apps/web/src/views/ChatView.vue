@@ -4,11 +4,14 @@ import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import Button from "@/components/ui/button/Button.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
-import { ChevronLeft, MoreHorizontal } from "@lucide/vue";
+import { ChevronLeft, MoreHorizontal, CircleAlert, Check, CheckCheck, Clock, Plus } from "@lucide/vue";
 import { apiOrigin } from "../runtime-config";
 import { useConversationStore } from "../stores/conversations";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 import { messageTimeLabel } from "../lib/message-time";
+import FeedbackNotice from "../components/product/FeedbackNotice.vue";
+import ChoiceSelect from "../components/product/ChoiceSelect.vue";
+import { userError } from "../lib/user-feedback";
 
 const emit = defineEmits<{
   back: [];
@@ -55,6 +58,7 @@ async function send() {
 }
 
 function scrollToLatest(behavior: ScrollBehavior = "auto") {
+  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) behavior = "auto";
   void nextTick().then(() => {
     requestAnimationFrame(() => {
       const element = transcript.value;
@@ -142,13 +146,13 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
         <Button class="secondary-button load-older load-more-pill" variant="outline" type="button" @click="store.loadOlder">加载更早记录</Button>
       </div>
       <div v-else-if="!store.selectedFluctlight" class="empty-state">
-        <span class="empty-mark" aria-hidden="true">＋</span>
+        <Plus class="empty-mark" :size="28" aria-hidden="true" />
         <h2>选择一个会话进行聊天</h2>
         <p>从左侧最近会话中选择一个摇光，继续你们之间的对话。</p>
         <Button class="secondary-button" variant="outline" type="button" @click="emit('openInstances')">管理摇光实例</Button>
       </div>
       <div v-else-if="!store.messages.length" class="empty-state">
-        <span class="empty-mark" aria-hidden="true">＋</span>
+        <Plus class="empty-mark" :size="28" aria-hidden="true" />
         <h2>开始与 {{ store.selectedFluctlightName }} 对话</h2>
         <p>分享一件事、一个问题，或此刻正在发生的事情。</p>
         <Button class="empty-cta" variant="ghost" type="button" @click="focusComposer">开始写下第一句话</Button>
@@ -169,18 +173,17 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
           <div class="message-meta">
 			<time :datetime="message.senderSentAt ?? message.createdAt">{{ messageTimeLabel(message) }}</time>
             <span v-if='deliveryStatus(message) !== "none"' class="delivery-status" :class="deliveryStatus(message)" :aria-label="deliveryLabel(message)">
-              <span v-if='deliveryStatus(message) === "failed"'>!</span><template v-else>✓<span v-if='deliveryStatus(message) === "sent"'>✓</span></template>
+              <CircleAlert v-if='deliveryStatus(message) === "failed"' :size="13" aria-hidden="true" /><Clock v-else-if='deliveryStatus(message) === "pending"' :size="13" aria-hidden="true" /><CheckCheck v-else-if='deliveryStatus(message) === "sent"' :size="15" aria-hidden="true" /><Check v-else :size="13" aria-hidden="true" />
             </span>
           </div>
         </div>
       </article>
     </section>
 
-    <div v-if="store.error || store.canRetry || store.retrying" class="error-banner" role="alert">
-      <span>{{ store.retrying ? "正在提交重试请求并等待回复…" : store.error }}</span>
+    <FeedbackNotice v-if="store.error || store.canRetry || store.retrying" :tone="store.retrying ? 'info' : 'error'" :message="store.retrying ? '正在提交重试请求并等待回复…' : userError(store.error, '回复未完成，可以重试。')" :detail="store.retrying ? '' : store.error">
       <Button v-if="store.canRetry || store.retrying" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : store.retryIsModelFailure ? "重试回复" : "重新发送" }}</Button>
       <Button v-if="store.canRetry" class="secondary-button" variant="ghost" type="button" @click="store.dismissRetry">忽略这条</Button>
-    </div>
+    </FeedbackNotice>
 
     <form class="message-composer" @submit.prevent="send">
       <label class="sr-only" for="message-composer">消息</label>
@@ -203,9 +206,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
       <div class="composer-footer">
         <span class="composer-hint">Enter 发送 · Shift + Enter 换行</span>
         <label v-if="senderOptions.length > 1" class="sender-picker" for="conversation-sender">发送身份
-          <select id="conversation-sender" v-model="store.senderActorId" :disabled="store.sending">
-            <option v-for="option in senderOptions" :key="option.id || 'actor_user'" :value="option.id">{{ option.label }}</option>
-          </select>
+          <ChoiceSelect id="conversation-sender" :model-value="store.senderActorId ?? ''" @update:model-value="value=>store.senderActorId=value || null" :disabled="store.sending" :options="senderOptions.map(option=>({value:option.id,label:option.label}))" />
         </label>
       </div>
     </form>

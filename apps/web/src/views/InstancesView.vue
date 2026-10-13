@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { parseActorUserSettings, actorUserInitializationExample } from "../lib/actor-user-background";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { Plus, X } from "@lucide/vue";
 import type { BrowserFluctlightCreationAnalysis } from "@fluctlight/browser-client";
 
@@ -25,13 +25,17 @@ import { useControlCenterStore } from "../stores/control-center";
 import { randomId } from "../random-id";
 import GovernanceView from "./GovernanceView.vue";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
+import FeedbackNotice from "../components/product/FeedbackNotice.vue";
+import { userError } from "../lib/user-feedback";
 
 const props = defineProps<{ openGovernance?: boolean; openCreate?: number }>();
-const emit = defineEmits<{ openChat: []; openDetails: []; openDiagnostics: [correlationId: string]; }>();
+const emit = defineEmits<{ openChat: []; openDetails: []; openDiagnostics: [correlationId: string]; creationConsumed: []; }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
 
 const showCreateForm = ref(false);
+watch(showCreateForm, (open) => { if (!open) controlCenter.dismissCreationError(); });
+onBeforeUnmount(()=>controlCenter.dismissCreationError());
 const showGroupForm = ref(false);
 const showGovernance = ref(false);
 const creationMode = ref<"blank_slate" | "llm_defined" | "json_import">("blank_slate");
@@ -56,7 +60,7 @@ watch(() => props.openGovernance, (open) => {
   if (open) showGovernance.value = true;
 }, { immediate: true });
 watch(() => props.openCreate, (request) => {
-  if (request) showCreateForm.value = true;
+  if (request) { showCreateForm.value = true; emit('creationConsumed'); }
 }, { immediate: true });
 
 const selectedGroupStorageKey = "fluctlight.selected-group-id";
@@ -139,7 +143,7 @@ function selectCreationMode(mode: "blank_slate" | "llm_defined" | "json_import")
   if (creationMode.value !== mode) {
     creationMode.value = mode;
     invalidateCreationPreview();
-    controlCenter.error = "";
+    controlCenter.creationError = "";
   }
 }
 
@@ -154,13 +158,13 @@ async function analyzeDescription() {
   if (!description) return;
   const descriptionBytes = new TextEncoder().encode(description).byteLength;
   if (descriptionBytes > 60_000) {
-    controlCenter.error = `描述不能超过 60000 个 UTF-8 字节（当前 ${descriptionBytes} 字节）。`;
+    controlCenter.creationError = `描述不能超过 60000 个 UTF-8 字节（当前 ${descriptionBytes} 字节）。`;
     return;
   }
   const result = await controlCenter.analyzeFluctlight(description);
   const foundation = parseCreationFoundation(result);
   if (!foundation) {
-    if (result) controlCenter.error = "初始化模型返回了不包含分层 Persona 的无效结果。";
+    if (result) controlCenter.creationError = "初始化模型返回了不包含分层 Persona 的无效结果。";
     return;
   }
   creationFoundation.value = foundation;
@@ -175,23 +179,23 @@ async function importJson() {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    controlCenter.error = "JSON 格式错误，请检查语法。";
+    controlCenter.creationError = "JSON 格式错误，请检查语法。";
     return;
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    controlCenter.error = "JSON 根节点必须是一个对象。";
+    controlCenter.creationError = "JSON 根节点必须是一个对象。";
     return;
   }
   const jsonPayload = JSON.stringify(parsed);
   const jsonBytes = new TextEncoder().encode(jsonPayload).byteLength;
   if (jsonBytes > 60_000) {
-    controlCenter.error = `JSON 大小不能超过 60000 个 UTF-8 字节（当前 ${jsonBytes} 字节）。`;
+    controlCenter.creationError = `JSON 大小不能超过 60000 个 UTF-8 字节（当前 ${jsonBytes} 字节）。`;
     return;
   }
   const result = await controlCenter.analyzeFluctlight(jsonPayload);
   const foundation = parseCreationFoundation(result);
   if (!foundation) {
-    if (result) controlCenter.error = "初始化返回了不包含分层 Persona 的无效结果。";
+    if (result) controlCenter.creationError = "初始化返回了不包含分层 Persona 的无效结果。";
     return;
   }
   creationFoundation.value = foundation;
@@ -215,13 +219,13 @@ async function activatePreview() {
       initialRelationships: foundation.initial_relationships,
     });
   } catch {
-    controlCenter.error = "预览必须包含 core_persona 和 developing_self 对象。";
+    controlCenter.creationError = "预览必须包含 core_persona 和 developing_self 对象。";
   }
 }
 
 const initialGoalsDraft=ref('[]');
 function saveInitialGoalDraft(){
- try{const value=JSON.parse(initialGoalsDraft.value);if(!Array.isArray(value))throw new Error('初始目标必须是数组');const preview=JSON.parse(creationPreviewJson.value);preview.initial_goals=value;creationPreviewJson.value=JSON.stringify(preview,null,2);}catch(c){controlCenter.error=c instanceof Error?c.message:String(c);}
+ try{const value=JSON.parse(initialGoalsDraft.value);if(!Array.isArray(value))throw new Error('初始目标必须是数组');const preview=JSON.parse(creationPreviewJson.value);preview.initial_goals=value;creationPreviewJson.value=JSON.stringify(preview,null,2);}catch(c){controlCenter.creationError=c instanceof Error?c.message:String(c);}
 }
 watch(creationFoundation,(value)=>{initialGoalsDraft.value=JSON.stringify(value?.initial_goals??[],null,2);});
 function asCreationRecords(value: unknown): Array<Record<string, unknown>> {
@@ -315,7 +319,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
       <Button class="secondary-button" variant="outline" type="button" :aria-expanded="showGroupForm" @click="showGroupForm = !showGroupForm"><Plus :size="16" :stroke-width="2" aria-hidden="true" />新建分组</Button>
     </div>
 
-    <form v-if="showGroupForm" class="group-create-inline" @submit.prevent="createGroup"><label for="actor-group-name">分组名称<Input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="例如：工作、朋友" required /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</Button></form>
+    <form v-if="showGroupForm" class="group-create-inline" novalidate @submit.prevent="createGroup"><label for="actor-group-name">分组名称<Input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="例如：工作、朋友" required /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</Button></form>
 
     <Dialog :open="showCreateForm" @update:open="showCreateForm = $event">
       <DialogContent id="instance-create" class="create-surface" :show-close-button="false" aria-modal="true" aria-labelledby="create-title" aria-describedby="create-description">
@@ -336,12 +340,11 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
             <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="selectCreationMode('llm_defined')">从描述创建</Button>
             <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'json_import' }" type="button" @click="selectCreationMode('json_import')">从 JSON 导入</Button>
           </div>
-          <p v-if="controlCenter.error" class="error-banner" role="alert">
-            {{ controlCenter.error }}
+          <FeedbackNotice v-if="controlCenter.creationError" :message="userError(controlCenter.creationError, '创建服务暂时不可用，请稍后重试。')" :detail="controlCenter.creationError">
             <Button v-if="controlCenter.analysisFailureCorrelationId" class="text-button" variant="link" type="button" @click="controlCenter.diagnosticsCorrelationFilter = controlCenter.analysisFailureCorrelationId; emit('openDiagnostics', controlCenter.analysisFailureCorrelationId)">查看本次失败诊断</Button>
-          </p>
+          </FeedbackNotice>
 
-          <form v-if="creationMode === 'blank_slate'" id="blank-create-form" class="stack-form" @submit.prevent="createBlank">
+          <form v-if="creationMode === 'blank_slate'" id="blank-create-form" class="stack-form" novalidate @submit.prevent="createBlank">
             <label for="fluctlight-name">实例名称<Input id="fluctlight-name" v-model="newFluctlightName" type="text" maxlength="256" required placeholder="例如：苏洛星" /></label>
           </form>
 
@@ -382,7 +385,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
       </DialogContent>
     </Dialog>
 
-    <p v-if="controlCenter.error && !showCreateForm" class="error-banner" role="alert">{{ controlCenter.error }}</p>
+    <FeedbackNotice :message="controlCenter.directoryError || store.directoryError" />
     <section v-if="store.fluctlights.length && filteredFluctlights.length" class="instance-list" aria-label="Fluctlight 实例列表">
       <article v-for="fluctlight in filteredFluctlights" :key="fluctlight.id" class="instance-list-item" :class="{ selected: fluctlight.id === store.fluctlightId }">
         <Button class="instance-main justify-start" variant="ghost" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar persona-avatar">{{ String(fluctlight.identity.name ?? "F").slice(0, 1) }}</span><span class="instance-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small><Badge class="status-pill" variant="secondary" :class="{ paused: fluctlight.status === 'paused', muted: fluctlight.status === 'retired' }">{{ fluctlightStatusLabel(fluctlight.status) }}</Badge><template v-if="fluctlight.unread_count"> · {{ fluctlight.unread_count }} 条未读</template></small></span></Button>

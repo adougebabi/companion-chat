@@ -1,0 +1,159 @@
+$ pnpm -r test
+Scope: 3 of 4 workspace projects
+packages/browser-client test$ tsx --test test/*.test.ts
+packages/core-client test$ node --test test/*.test.mjs
+packages/browser-client test: ✔ BrowserClient resolves an empty base URL against the browser origin (7.571666ms)
+packages/browser-client test: ✔ BrowserClient maps an unauthenticated session response without treating it as a platform failure (0.49125ms)
+packages/browser-client test: ✔ BrowserClient pages the recorded wardrobe using an encoded cursor (0.188ms)
+packages/browser-client test: ✔ BrowserClient requires an explicit base URL outside the browser (0.179416ms)
+packages/browser-client test: ✔ BrowserClient preserves safe API failure codes (0.185167ms)
+packages/browser-client test: ✔ BrowserClient preserves structured diagnostics details (0.140792ms)
+packages/browser-client test: ✔ BrowserClient preserves a non-2xx conversation turn error code (0.194125ms)
+packages/browser-client test: ✔ BrowserClient transports initialization analysis authority and typed detail source (3.847792ms)
+packages/browser-client test: ✔ BrowserClient requests the bounded media prompt diagnostics module (0.25025ms)
+packages/browser-client test: ✔ BrowserClient exposes media prompt retry (0.189084ms)
+packages/browser-client test: ✔ BrowserClient exposes immediate Fluctlight wake-up (0.112042ms)
+packages/browser-client test: ✔ BrowserClient serializes every lifecycle diagnostics filter for query and export (0.279375ms)
+packages/browser-client test: ✔ BrowserClient serializes the schema-derived Life Context command contracts (0.275125ms)
+packages/browser-client test: ✔ diagnostic pages preserve the envelope and encode cursor/filter for both sources (0.164958ms)
+packages/browser-client test: ✔ actor user initialization and owner background update keep unknown values and scope (0.114375ms)
+packages/browser-client test: ✔ Goal client preserves scope, cursor, revision and replay key across governance operations (0.252375ms)
+packages/browser-client test: ✔ Goal evidence cursor uses its scoped read endpoint (0.089125ms)
+packages/browser-client test: ✔ goal set and Actor context commands preserve versions, idempotency and scoped URLs (0.168792ms)
+packages/browser-client test: ✔ Kev client preserves filter/cursor identity and raw per-question response (7.691834ms)
+packages/browser-client test: ✔ Kev connection test uses an explicit mutation without business data (0.353292ms)
+packages/browser-client test: ℹ tests 20
+packages/browser-client test: ℹ suites 0
+packages/browser-client test: ℹ pass 20
+packages/browser-client test: ℹ fail 0
+packages/browser-client test: ℹ cancelled 0
+packages/browser-client test: ℹ skipped 0
+packages/browser-client test: ℹ todo 0
+packages/browser-client test: ℹ duration_ms 117.576583
+packages/browser-client test: Done
+packages/core-client test: ✔ Core Goal methods preserve encoded scope, independent session headers and replay identity (7.810292ms)
+packages/core-client test: ✔ Core Goal CAS conflicts retain their typed error and details (0.3065ms)
+packages/core-client test: ℹ tests 2
+packages/core-client test: ℹ suites 0
+packages/core-client test: ℹ pass 2
+packages/core-client test: ℹ fail 0
+packages/core-client test: ℹ cancelled 0
+packages/core-client test: ℹ skipped 0
+packages/core-client test: ℹ todo 0
+packages/core-client test: ℹ duration_ms 221.255458
+packages/core-client test: Done
+apps/web test$ node --test test/*.test.mjs
+apps/web test: ✔ control center keeps keyboard, live-region, and form boundaries explicit (0.664208ms)
+apps/web test: ✔ explicit user background preserves false, unknown and omitted attributes (0.668291ms)
+apps/web test: ✔ creation retains actor_user through edited preview and activation (2.20175ms)
+apps/web test: ✔ user background is viewed separately and edited only through owner governance (0.983958ms)
+apps/web test: ✔ governance exposes the owner capability request pool (0.33175ms)
+apps/web test: ✔ browser client keeps capability request endpoints at the API boundary (0.067791ms)
+apps/web test: ✔ a new submit remains visible while an older durable retry is being processed (171.372709ms)
+apps/web test: ✔ a stale post-stream history read cannot erase committed streamed messages (36.340083ms)
+apps/web test: ✔ a successful older retry cannot overwrite or lose the separately identified queued user turn (31.686958ms)
+apps/web test: ✔ a terminal cognition error keeps the authoritative user message visible and retry-bound (30.599791ms)
+apps/web test: ✔ a non-2xx turn response keeps the API error code instead of collapsing to turn_failed (28.09725ms)
+apps/web test: ✔ a retry from a discarded conversation is pruned when the server returns a new conversation (32.714834ms)
+apps/web test: ✔ a completed retry from another conversation no longer blocks the selected conversation (30.892792ms)
+apps/web test: ✔ reconcilePersistedRetry matches durable turn identity and clears completed turns without duplicates (29.582917ms)
+apps/web test: ✔ refresh restores a pending server turn and later shows its committed reply (27.731ms)
+apps/web test: ✔ explicit cancel calls the server and restores a retryable cancelled state (30.970208ms)
+apps/web test: ✔ transport loss after server acceptance keeps background cognition pending (61.115375ms)
+apps/web test: ✔ sending a new message when previous turn is stuck pending auto-cancels and sends (29.826166ms)
+apps/web test: ✔ server-restored retry preserves frozen sender clock and the original durable identity (30.403708ms)
+apps/web test: ✔ server-restored retry preserves zero UTC offset and the original durable identity (27.398791ms)
+apps/web test: ✔ server-restored retry preserves unknown legacy clock and the original durable identity (29.678666ms)
+apps/web test: ✔ server-restored retry preserves null legacy clock and the original durable identity (23.9655ms)
+apps/web test: ✔ retry stays visibly disabled in flight and a 409 keeps identity, draft and useful failure (631.765584ms)
+apps/web test: ✔ restored local retry and queue bubbles preserve attachments, actor, clock and turn identity (30.19675ms)
+apps/web test: ✔ a partial committed failure stays non-retryable and does not claim it will settle into retry (90.940708ms)
+apps/web test: ✔ detail display has safe object formatting and Chinese field labels (0.639584ms)
+apps/web test: ✔ provider role defaults preserve enough output budget for initialization (1.213875ms)
+apps/web test: ✔ detail owns read-only life-world sections and uses timezone-aware timeline formatting (0.204167ms)
+apps/web test: ✔ detail exposes the recorded wardrobe with a paged read-only view (0.145917ms)
+apps/web test: ✔ detail exposes a Chinese progressive state drawer (0.127708ms)
+apps/web test: ✔ read-only details keep Wake-up mutations in explicit governance (0.076209ms)
+apps/web test: ✔ detail exposes the owner-only initialization source as a collapsed safe panel (0.199833ms)
+apps/web test: ✔ settings accordion remounts when the selected section changes (0.055166ms)
+apps/web test: ✔ PC shell and role tabs do not scroll the outer frame (0.129166ms)
+apps/web test: ✔ schedule timeline highlights the item active at the current instant (0.09625ms)
+apps/web test: ✔ model run diagnostics show the server creation time (6.691542ms)
+apps/web test: ✔ Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots (0.370709ms)
+apps/web test: ✔ diagnostics sources use independent filter epochs (0.098208ms)
+apps/web test: ✔ background diagnostics refresh does not request the workflow runtime list (0.183916ms)
+apps/web test: ✔ workflow list loader coalesces pending requests and keeps its failure local (0.396417ms)
+apps/web test: ✔ Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens (0.213625ms)
+apps/web test: ✔ filtered export reuses every active lifecycle filter (0.059334ms)
+apps/web test: ✔ loading an older partial page pauses polling independently of row count (24.482709ms)
+apps/web test: ✔ instance switch releases pending revision pagination and discards its stale failure (2.061584ms)
+apps/web test: ✔ refreshing the same Goal fences an old revision page while a new page is pending (0.597458ms)
+apps/web test: ✔ CAS conflict preserves the draft, frozen revision and retry identity until explicit reread (0.940875ms)
+apps/web test: ✔ capacity errors preserve a create draft and explain the available governance actions (0.282958ms)
+apps/web test: ✔ evidence continuation deduplicates stable IDs and rejects a stale selection (0.936292ms)
+apps/web test: ✔ the Goal editor rejects empty and whitespace fields without issuing a command (0.357375ms)
+apps/web test: ✔ manual order and disabled planning are server commands carrying authoritative versions (28.71825ms)
+apps/web test: ✔ capacity/version failure keeps manual draft and late instance response is fenced (6.030333ms)
+apps/web test: ✔ Actor conflict retains draft and explicit re-read only advances version (6.139291ms)
+apps/web test: ✔ Owner background keeps the current-facts CAS and tri-state relationship fields (4.923417ms)
+apps/web test: ✔ Actor drafts use a new idempotency identity when the payload changes (4.252625ms)
+apps/web test: ✔ clearing an Actor target fences a late context response (3.65125ms)
+apps/web test: ✔ Owner revision reasons obey the 500-character boundary while Actor reasons obey the byte budget (7.369791ms)
+apps/web test: ✔ failed initial background read can be retried without changing the target (3.260959ms)
+apps/web test: ✔ default group reconciliation keeps only ungrouped actor IDs for assignment (0.360083ms)
+apps/web test: ✔ actor group payloads normalize the migrated members key before filtering (0.071167ms)
+apps/web test: ✔ diagnostic instant display keeps milliseconds and numeric offsets across DST (8.8835ms)
+apps/web test: ✔ kev survives direct URL and refresh (17.561ms)
+apps/web test: ✔ kev can be selected from sidebar (2.129167ms)
+apps/web test: ✔ kev-decisions survives direct URL and refresh (1.803542ms)
+apps/web test: ✔ kev-decisions can be selected from sidebar (1.150084ms)
+apps/web test: ✔ Telegram-style workspace keeps four primary tabs (0.528917ms)
+apps/web test: ✔ settings configuration is progressively disclosed by closed drawers (0.151834ms)
+apps/web test: ✔ web typography does not depend on a runtime Google Fonts stylesheet (0.128541ms)
+apps/web test: ✔ web controls are backed by the local shadcn-vue component layer (0.069584ms)
+apps/web test: ✔ diagnostics keeps existing modules and adds a filtered lifecycle disclosure (0.181583ms)
+apps/web test: ✔ desktop secondary navigation is page-addressable and chat groups stay flat (0.179084ms)
+apps/web test: ✔ chat owns a fixed-height work surface with an internal message scroller (0.111875ms)
+apps/web test: ✔ mobile surfaces keep diagnostics, navigation, and empty states shrink-safe (0.42175ms)
+apps/web test: ✔ runtime API configuration is emitted at container startup (0.705334ms)
+apps/web test: ✔ runtime API configuration rejects non-HTTP URLs (0.221666ms)
+apps/web test: ✔ web chat keeps the generated browser client at its boundary (2.335833ms)
+apps/web test: ✔ web keeps a failed turn retryable instead of allowing later messages to overtake it (1.16175ms)
+apps/web test: ✔ chat clears accepted drafts and keeps every streamed token reactive (0.673083ms)
+apps/web test: ✔ control center exposes the required product views (0.164291ms)
+apps/web test: ✔ owner password change explains its policy without trapping the submit button (0.477ms)
+apps/web test: ✔ web uses the secure random-ID compatibility helper instead of randomUUID directly (1.276291ms)
+apps/web test: ✔ creation dialog presents activation failures where the user can act on them (0.477833ms)
+apps/web test: ✔ persona details expose layered JSON without rendering object coercion (0.88525ms)
+apps/web test: ✔ diagnostics entry loads records and creation keeps a direct correlation link (0.206959ms)
+apps/web test: ✔ creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit (0.750958ms)
+apps/web test: ✔ message wall clock remains at the original sender offset (9.998083ms)
+apps/web test: ✔ datetime-local is interpreted in Fluctlight timezone with explicit DST policy (2.722292ms)
+apps/web test: ✔ field validation rejects whitespace, invalid numbers and timezone aliases while preserving false and zero (0.658792ms)
+apps/web test: ✔ workflow imports keep numeric placeholders compatible and reject invalid roots (0.257041ms)
+apps/web test: ✔ guided media saves preserve branched workflows, aliases and unknown fields without mutating the original (0.121833ms)
+apps/web test: ✔ guided autonomy updates preserve advanced values and configured custom actions (0.069ms)
+apps/web test: ✔ background round trips preserve all ten fields and the unknown/no meeting distinction (0.110084ms)
+apps/web test: ✔ workflow rows distinguish executions and do not fabricate missing metadata (0.16025ms)
+apps/web test: ✔ user-facing errors explain the action while technical codes remain separately available (0.277625ms)
+apps/web test: ✔ real SFC rendering and store actions honor loading, accessibility and error scope contracts (1233.540833ms)
+apps/web test: ✔ media import commits to the target chosen before the file read (25.33175ms)
+apps/web test: ✔ shared choices preserve empty domain values and only emit configured options (2.422917ms)
+apps/web test: ✔ cleared visual workflow cannot reappear from a stale successful-save draft (5.2485ms)
+apps/web test: ✔ Kev continuation uses the applied filter snapshot instead of unsubmitted edits (4.078625ms)
+apps/web test: ✔ Kev invalid date ranges focus the inline error and never request records (11.788583ms)
+apps/web test: ✔ authentication forms show inline policy errors before emitting requests and preserve exact credential text (1.667667ms)
+apps/web test: ✔ lifecycle filters remain a draft until applied and explicit reset clears the applied snapshot (3.080875ms)
+apps/web test: ✔ changing model roles clears old validation and fences late save feedback (4.7025ms)
+apps/web test: ✔ clear failure stays inside its open dialog and cancelling clears the action error (7.031917ms)
+apps/web test: ✔ Chinese wardrobe choices submit canonical states and compatible slots (0.742875ms)
+apps/web test: ✔ ordinary objects have no wearing slot and additions do not imply wearing (0.082334ms)
+apps/web test: ℹ tests 105
+apps/web test: ℹ suites 0
+apps/web test: ℹ pass 105
+apps/web test: ℹ fail 0
+apps/web test: ℹ cancelled 0
+apps/web test: ℹ skipped 0
+apps/web test: ℹ todo 0
+apps/web test: ℹ duration_ms 1631.735209
+apps/web test: Done

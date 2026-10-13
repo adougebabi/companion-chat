@@ -4,5 +4,6 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 import "./styles/globals.css";
 import "./styles/app.css";
+import "./styles/product.css";
 
 createApp(App).use(createPinia()).mount("#app");

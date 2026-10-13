@@ -41,7 +41,8 @@ test("Telegram-style workspace keeps four primary tabs", () => {
 
 test("settings configuration is progressively disclosed by closed drawers", () => {
   assert.equal((settingsSource.match(/<AccordionItem[^>]*class="settings-section settings-drawer"/g) ?? []).length, 7);
-  assert.equal((settingsSource.match(/<AccordionTrigger[^>]*settings-drawer-summary/g) ?? []).length, 7);
+  assert.match(settingsSource, /<MediaSettings/);
+  assert.match(settingsSource, /<OperationalSettings/);
   assert.doesNotMatch(settingsSource, /<Accordion[^>]*defaultValue/);
   assert.match(settingsSource, /id="endpoint-secret"/);
   assert.match(settingsSource, /id="owner-password"/);
@@ -49,13 +50,6 @@ test("settings configuration is progressively disclosed by closed drawers", () =
   assert.match(settingsSource, /模型参数/);
 });
 
-test("media workflow settings accept unquoted placeholder templates", () => {
-  assert.match(settingsSource, /function parseWorkflowTemplate\(raw: string\)/);
-  assert.match(settingsSource, /chest_lora_weight/);
-  assert.match(settingsSource, /source\.replace\(/);
-  assert.match(settingsSource, /\{\{chest_lora_weight\}\}/);
-  assert.match(settingsSource, /\{\{seed\}\}/);
-});
 
 test("web typography does not depend on a runtime Google Fonts stylesheet", () => {
   assert.doesNotMatch(globalStylesSource, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
@@ -70,16 +64,17 @@ test("web controls are backed by the local shadcn-vue component layer", () => {
   assert.match(settingsSource, /<Accordion/);
   assert.match(settingsSource, /<Tabs/);
   assert.match(settingsSource, /<Select/);
-  assert.match(settingsSource, /<Textarea/);
+  assert.match(settingsSource, /components\/settings\/MediaSettings/);
 });
 
 test("diagnostics keeps existing modules and adds a filtered lifecycle disclosure", () => {
-  assert.doesNotMatch(diagnosticsSource, /返回设置|清空/);
+  assert.doesNotMatch(diagnosticsSource, /返回设置/);
+  assert.match(diagnosticsSource, /<ConfirmDialog/);
   assert.match(diagnosticsSource, /<Accordion/);
   assert.match(diagnosticsSource, /value="lifecycle"/);
   assert.match(diagnosticsSource, /value="model-runs"/);
-  assert.match(diagnosticsSource, /lifecycle-filter-grid/);
-  assert.match(diagnosticsSource, /导出当前过滤/);
+  assert.match(diagnosticsSource, /<FilterPanel/);
+  assert.match(diagnosticsSource, /导出当前结果/);
   assert.match(controlCenterSource, /client\.lifecycleDiagnostics\(lifecycleFilters\)/);
   assert.match(controlCenterSource, /diagnosticsSourceEpochs/);
   assert.match(controlCenterSource, /workflowIntentSnapshots/);

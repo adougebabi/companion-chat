@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import ts from "typescript";
+import { validateFields } from "../src/lib/form-validation.ts";
 import { computed, ref, reactive, watch, nextTick } from "vue";
 
 const component = await readFile(new URL("../src/components/instances/GoalPanel.vue", import.meta.url), "utf8");
@@ -13,8 +14,8 @@ const deferred = () => { let resolve, reject; const promise = new Promise((ok, f
 async function harness(overrides = {}) {
   const props = reactive({ fluctlightId: "instance-a", readOnly: false });
   const client = { goals: async () => ({ items: [], next_cursor: "" }), goalDetail: async (_, id) => goal(id), goalHistory: async () => ({ items: [], next_cursor: "older" }), ...overrides };
-  const create = new Function("ref", "computed", "watch", "defineProps", "BrowserClient", "BrowserApiError", "apiOrigin", `${js}; return {load,inspect,edit,command,moreEvidence,evidenceCursor,evidenceBusy,moreRevisions,reloadDraftAuthority,selected,revisions,revisionCursor,revisionBusy,error,editing,desired,reason,frozenRevision,historyTab};`);
-  const state = create(ref, computed, watch, () => props, function () { return client; }, ApiError, "");
+  const create = new Function("ref", "computed", "watch", "defineProps", "BrowserClient", "BrowserApiError", "apiOrigin", "validateFields", "focusField", `${js}; return {submitEditor,fieldErrors,motivation,criteria,load,inspect,edit,command,moreEvidence,evidenceCursor,evidenceBusy,moreRevisions,reloadDraftAuthority,selected,revisions,revisionCursor,revisionBusy,error,editing,desired,reason,frozenRevision,historyTab};`);
+  const state = create(ref, computed, watch, () => props, function () { return client; }, ApiError, "", validateFields, async()=>{});
   await nextTick(); await state.load();
   return { props, client, state };
 }
@@ -95,4 +96,10 @@ test("evidence continuation deduplicates stable IDs and rejects a stale selectio
  assert.deepEqual(state.selected.value.evidence,[{id:"b-proof"}]);
  assert.equal(state.evidenceCursor.value,"older");
  assert.equal(state.evidenceBusy.value,false);
+});
+
+test('the Goal editor rejects empty and whitespace fields without issuing a command',async()=>{
+ let created=0;const {state}=await harness({createGoal:async()=>{created++;return {goal_id:'new'};}});
+ state.edit(true);state.desired.value='  ';state.reason.value=' ';await state.submitEditor();
+ assert.equal(created,0);assert.ok(state.fieldErrors.value['goal-desired']);assert.ok(state.fieldErrors.value['goal-reason']);assert.ok(state.fieldErrors.value['goal-motivation']);assert.ok(state.fieldErrors.value['goal-criteria']);
 });

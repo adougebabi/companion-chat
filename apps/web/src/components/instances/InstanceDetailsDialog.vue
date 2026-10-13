@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import GoalPlanningPanel from "./GoalPlanningPanel.vue";
 import GoalPanel from "./GoalPanel.vue";
+import { X, ChevronDown } from "@lucide/vue";
+import JsonViewer from "../product/JsonViewer.vue";
+import AsyncState from "../product/AsyncState.vue";
+import FeedbackNotice from "../product/FeedbackNotice.vue";
+import { summaryFields, humanValue } from "../../lib/profile-presentation";
+import { shortId, userError } from "../../lib/user-feedback";
+import { wardrobeCategoryLabel, wardrobeSlotLabel } from "../../lib/wardrobe-form";
 import { actorUserBackgroundFields } from "../../lib/actor-user-background";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { BrowserClient, type BrowserWardrobeItem } from "@fluctlight/browser-client";
@@ -131,6 +138,14 @@ const identity = computed(() => {
 const personality = computed(() => asRecord(detail.value.personality));
 const behavioralPolicy = computed(() => asRecord(detail.value.behavioral_policy));
 const lifeProfile = computed(() => asRecord(detail.value.life_profile));
+const primaryIdentity = computed(()=>summaryFields(identity.value,['name','age','gender','occupation','birthplace','location','timezone','background_story','background','core_values','worldview','birthday']));
+const primaryPersonality = computed(()=>summaryFields(personality.value));
+const primaryPolicy = computed(()=>summaryFields(behavioralPolicy.value));
+const primaryLife = computed(()=>summaryFields(lifeProfile.value));
+const appearance = computed(()=>asRecord(lifeProfile.value.appearance));
+const appearanceFeatures = computed(()=>summaryFields(asRecord(appearance.value.physical_features)));
+const visibleUserFields = computed(()=>actorUserBackgroundFields.filter(field=>actorUserBackground.value[field.key]!=null && actorUserBackground.value[field.key]!==''));
+function actorName(id:unknown,current=false){const text=String(id??'');if(current || text===store.authenticatedActorId)return '你';return String(store.fluctlights.find(item=>item.id===text)?.identity.name ?? shortId(text));}
 const innerState = computed(() => asRecord(detail.value.inner_state));
 const context = computed(() => asRecord(detail.value.context));
 const pad = computed(() => asRecord(innerState.value.pad));
@@ -272,7 +287,7 @@ onMounted(() => {
   visualIdentityTimer = window.setInterval(() => {
     const fluctlightId = store.selectedFluctlight?.id;
     const visualStatus = String(asRecord(detail.value.visual_identity).status ?? "");
-    if (props.open && fluctlightId && visualIdentityPollingStatuses.has(visualStatus)) {
+    if (props.open && document.visibilityState === "visible" && !store.sending && fluctlightId && visualIdentityPollingStatuses.has(visualStatus)) {
       void controlCenter.loadFluctlightDetail(fluctlightId);
     }
   }, 5_000);
@@ -294,7 +309,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
           <span class="modal-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</span>
           <div id="fluctlight-modal-title"><p class="eyebrow">摇光实例</p><DialogTitle>{{ store.selectedFluctlightName }}</DialogTitle><DialogDescription class="sr-only">查看当前摇光实例的只读详情。</DialogDescription></div>
         </div>
-        <DialogClose as-child><Button variant="ghost" class="icon-button modal-close" type="button" aria-label="关闭摇光详情">×</Button></DialogClose>
+        <DialogClose as-child><Button variant="ghost" class="icon-button modal-close" type="button" aria-label="关闭摇光详情"><X :size="20" aria-hidden="true" /></Button></DialogClose>
       </DialogHeader>
 
       <div class="detail-dialog-body">
@@ -303,7 +318,8 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
 		  <span>{{ hasCurrentFluctlightDetail ? "状态已同步" : "正在读取状态" }}</span>
         </div>
 
-		<div v-if="controlCenter.loading && !hasCurrentFluctlightDetail" class="detail-loading">正在加载摇光详情...</div>
+		<AsyncState v-if="controlCenter.loading && !hasCurrentFluctlightDetail" loading loading-label="正在加载摇光详情…" />
+        <FeedbackNotice v-else-if="controlCenter.error && !hasCurrentFluctlightDetail" :message="userError(controlCenter.error)"><Button variant="outline" type="button" @click="controlCenter.loadFluctlightDetail(store.selectedFluctlight.id)">重新读取</Button></FeedbackNotice>
         <Tabs v-else default-value="identity" class="detail-tabs w-full">
           <TabsList class="detail-tabs-list grid grid-cols-4 w-full mb-3">
             <TabsTrigger value="identity">基础资料</TabsTrigger>
@@ -315,20 +331,23 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
           <TabsContent value="identity" class="detail-tab-pane mt-0 space-y-4">
             <section class="detail-block">
               <div class="detail-block-heading"><p class="eyebrow">身份与人格</p><h3>身份核心</h3></div>
-              <dl v-if="Object.keys(identity).length" class="identity-facts">
-                <template v-for="(value, key) in identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              <dl v-if="Object.keys(primaryIdentity).length" class="identity-facts">
+                <template v-for="(value, key) in primaryIdentity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ humanValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
               </dl>
               <p v-else class="field-note">尚未形成身份信息。</p>
+              <JsonViewer :value="identity" label="完整身份属性（含未设定及扩展字段）" />
               <h3>人格特征</h3>
-              <dl v-if="Object.keys(personality).length" class="identity-facts">
-                <template v-for="(value, key) in personality" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              <dl v-if="Object.keys(primaryPersonality).length" class="identity-facts">
+                <template v-for="(value, key) in primaryPersonality" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ humanValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
               </dl>
               <p v-else class="field-note">尚未配置人格特征。</p>
+              <JsonViewer :value="personality" label="人格原始属性与更新策略" />
               <h3>表达策略</h3>
-              <dl v-if="Object.keys(behavioralPolicy).length" class="identity-facts">
-                <template v-for="(value, key) in behavioralPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              <dl v-if="Object.keys(primaryPolicy).length" class="identity-facts">
+                <template v-for="(value, key) in primaryPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ humanValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
               </dl>
               <p v-else class="field-note">尚未配置表达策略。</p>
+              <JsonViewer :value="behavioralPolicy" label="完整表达策略" />
             </section>
 
             <section class="detail-block visual-identity-block">
@@ -338,10 +357,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
                 <span>Revision {{ formatDisplayValue(visualIdentity.current_revision ?? 0) }}</span>
                 <span v-if="visualIdentity.active_session_id">Session {{ String(visualIdentity.active_session_id).slice(0, 12) }}</span>
               </div>
-              <dl v-if="Object.keys(visualIdentityConstraints).length" class="identity-facts detail-facts-compact">
-                <dt>胸部罩杯</dt><dd>{{ rendererConstraintText(visualIdentityConstraints.chest_cup) }}</dd>
-                <dt>LoRA weight</dt><dd>{{ visualIdentityConstraints.chest_lora_applicable === false ? "不适用" : rendererConstraintText(visualIdentityConstraints.chest_lora_weight) }} · {{ formatDisplayValue(visualIdentityConstraints.adapter_version) }}</dd>
-              </dl>
+              <JsonViewer v-if="Object.keys(visualIdentityConstraints).length" :value="visualIdentityConstraints" label="渲染参数（高级）" />
               <p v-if="!visualIdentityTimeline.length" class="field-note">初始化后，这里会显示“生成 → 视觉理解 → 评审 → 再生成/完成”的时间轴。</p>
               <ol v-else class="timeline-list visual-identity-timeline" aria-label="视觉身份处理时间轴">
                 <li v-for="(event, index) in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: index === visualIdentityActiveEventIndex }">
@@ -352,28 +368,29 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
                 </li>
               </ol>
               <div v-if="visualIdentity.canonical_asset_id || visualIdentity.character_sheet_asset_id" class="visual-identity-canonical">
-                <div v-if="visualIdentity.canonical_asset_id"><span>Canonical reference</span><img :src="mediaUrl(String(visualIdentity.canonical_asset_id))" alt="Canonical reference" loading="lazy" /></div>
-                <div v-if="visualIdentity.character_sheet_asset_id"><span>Character sheet</span><img :src="mediaUrl(String(visualIdentity.character_sheet_asset_id))" alt="Character sheet" loading="lazy" /></div>
+                <div v-if="visualIdentity.canonical_asset_id"><span>角色参考图</span><img :src="mediaUrl(String(visualIdentity.canonical_asset_id))" alt="角色参考图" loading="lazy" /></div>
+                <div v-if="visualIdentity.character_sheet_asset_id"><span>角色设定图</span><img :src="mediaUrl(String(visualIdentity.character_sheet_asset_id))" alt="角色设定图" loading="lazy" /></div>
               </div>
             </section>
 
             <section class="detail-block">
               <div class="detail-block-heading"><p class="eyebrow">ABOUT YOU</p><h3>用户背景</h3></div>
               <p class="field-note">关于你本人的已确认资料。可在“进入编辑与治理”中设置；未提供的信息保持未知。</p>
-              <dl class="detail-list"><div v-for="field in actorUserBackgroundFields" :key="field.key"><dt>{{ field.label }}</dt><dd>{{ actorUserBackground[field.key] == null ? '未确认' : field.key === 'meeting_confirmed' ? (actorUserBackground[field.key] ? '已约定' : '未约定') : formatDisplayValue(actorUserBackground[field.key]) }}</dd></div></dl>
+              <p v-if="!visibleUserFields.length" class="field-note">尚未提供背景资料，可在编辑与治理中补充。</p>
+              <dl v-else class="detail-list"><div v-for="field in visibleUserFields" :key="field.key"><dt>{{ field.label }}</dt><dd>{{ actorUserBackground[field.key] == null ? '未确认' : field.key === 'meeting_confirmed' ? (actorUserBackground[field.key] ? '已约定' : '未约定') : formatDisplayValue(actorUserBackground[field.key]) }}</dd></div></dl>
             </section>
 
             <section class="detail-block">
               <details class="detail-state-drawer">
                 <summary>
                   <span><strong>分层 Persona（系统架构）</strong><small>查看 Core Persona、Developing Self 与当前快照结构</small></span>
-                  <span class="disclosure-icon" aria-hidden="true">⌄</span>
+                  <ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" />
                 </summary>
                 <div class="detail-state-drawer-body">
                   <div class="persona-json-grid">
-                    <div class="persona-json-card"><div class="detail-state-heading"><h4>Core Persona</h4><span>受保护</span></div><pre>{{ jsonDisplay(corePersona) }}</pre></div>
-                    <div class="persona-json-card"><div class="detail-state-heading"><h4>Developing Self</h4><span>证据化</span></div><pre>{{ jsonDisplay(developingSelf) }}</pre></div>
-                    <div class="persona-json-card"><div class="detail-state-heading"><h4>Current State</h4><span>当前快照</span></div><pre>{{ jsonDisplay(currentState) }}</pre></div>
+                    <JsonViewer :value="corePersona" label="Core Persona · 受保护" />
+                    <JsonViewer :value="developingSelf" label="Developing Self · 证据化" />
+                    <JsonViewer :value="currentState" label="Current State · 当前快照" />
                   </div>
                 </div>
               </details>
@@ -383,7 +400,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <details class="detail-state-drawer initialization-source-drawer">
                 <summary>
                   <span><strong>初始化来源（仅所有者）</strong><small>查看原始角色卡、人格分类、提取覆盖与 Foundation 关联</small></span>
-                  <span class="disclosure-icon" aria-hidden="true">⌄</span>
+                  <ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" />
                 </summary>
                 <div class="detail-state-drawer-body">
                   <section class="detail-state-section">
@@ -436,7 +453,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <details class="detail-state-drawer">
                 <summary>
                   <span><strong>状态数值与当前氛围</strong><small>查看 PAD、动力、调节状态和场景描述</small></span>
-                  <span class="disclosure-icon" aria-hidden="true">⌄</span>
+                  <ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" />
                 </summary>
                 <div class="detail-state-drawer-body">
                   <section class="detail-state-section">
@@ -488,21 +505,25 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
           <TabsContent value="world" class="detail-tab-pane mt-0 space-y-4">
             <section class="detail-block">
               <div class="detail-block-heading"><p class="eyebrow">生活世界</p><h3>生活脉络</h3></div>
-              <dl v-if="Object.keys(lifeProfile).length" class="identity-facts detail-facts-compact">
-                <template v-for="(value, key) in lifeProfile" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
+              <dl v-if="Object.keys(primaryLife).length" class="identity-facts detail-facts-compact">
+                <template v-for="(value, key) in primaryLife" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ humanValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
               </dl>
+              <div v-if="appearance.description || Object.keys(appearanceFeatures).length || appearance.daily_outfit_preferences" class="appearance-summary">
+                <h4>外貌与穿衣偏好</h4><p v-if="appearance.description">{{humanValue(appearance.description)}}</p><dl v-if="Object.keys(appearanceFeatures).length" class="identity-facts"><template v-for="(value,key) in appearanceFeatures" :key="String(key)"><dt>{{labelFor(String(key))}}</dt><dd>{{humanValue(value)}}</dd></template></dl><p v-if="appearance.daily_outfit_preferences" class="field-note">衣物偏好：{{humanValue(appearance.daily_outfit_preferences)}}</p>
+              </div>
+              <JsonViewer :value="lifeProfile" label="完整生活属性与扩展字段" />
               <div class="detail-summary-grid">
-                <div><span>活跃目标</span><strong>{{ goals.length }}</strong></div>
+                <div><span>目标记录</span><strong>{{ goals.length }}</strong></div>
                 <div><span>关系</span><strong>{{ relationships.length }}</strong></div>
                 <div><span>可展示记忆</span><strong>{{ memories.length }}</strong></div>
               </div>
               <details class="detail-state-drawer wardrobe-drawer" @toggle="onWardrobeToggle">
-                <summary><span><strong>衣柜与物品</strong><small>查看已记录物品与当前穿着</small></span><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+                <summary><span><strong>衣柜与物品</strong><small>查看已记录物品与当前穿着</small></span><ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" /></summary>
                 <div class="detail-state-drawer-body">
                   <section class="detail-state-section">
                     <div class="detail-state-heading"><h4>当前穿着</h4><span>{{ (wornItems ?? []).length }} 件</span></div>
                     <p v-if="!(wornItems ?? []).length" class="field-note">当前没有已确认的穿着记录。</p>
-                    <ul v-else class="modal-detail-list"><li v-for="item in wornItems" :key="String(item.id)"><strong>{{ formatDisplayValue(item.description) }}</strong><small>{{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.availability) }}</small></li></ul>
+                    <ul v-else class="modal-detail-list"><li v-for="item in wornItems" :key="String(item.id)"><strong>{{ formatDisplayValue(item.description) }}</strong><small>{{ wardrobeSlotLabel(item.slot) }} · {{ enumLabel(item.availability) }}</small></li></ul>
                   </section>
                   <section class="detail-state-section">
                     <div class="detail-state-heading"><h4>已记录物品</h4><span>{{ (wardrobeItems ?? []).length }} 件{{ wardrobeHasMore ? "以上" : "" }}</span></div>
@@ -510,7 +531,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
                     <p v-if="wardrobeLoading && !wardrobeLoaded" class="field-note">正在读取衣柜...</p>
                     <p v-if="wardrobeError" class="field-note" role="alert">{{ wardrobeError }}</p>
                     <p v-if="wardrobeLoaded && !(wardrobeItems ?? []).length" class="field-note">尚无已记录的物品。</p>
-                    <ul v-if="(wardrobeItems ?? []).length" class="modal-detail-list"><li v-for="item in wardrobeItems" :key="item.id"><strong>{{ item.description }}</strong><small>{{ formatDisplayValue(item.category) }} · {{ formatDisplayValue(item.slot) }} · {{ enumLabel(item.ownership) }} · {{ enumLabel(item.availability) }}</small></li></ul>
+                    <ul v-if="(wardrobeItems ?? []).length" class="modal-detail-list"><li v-for="item in wardrobeItems" :key="item.id"><strong>{{ item.description }}</strong><small>{{ wardrobeCategoryLabel(item.category) }} · {{ wardrobeSlotLabel(item.slot) }} · {{ enumLabel(item.ownership) }} · {{ enumLabel(item.availability) }}</small></li></ul>
                     <Button v-if="wardrobeError || wardrobeHasMore" variant="outline" type="button" :disabled="wardrobeLoading" @click="loadWardrobePage">{{ wardrobeLoading ? "读取中..." : wardrobeError ? "重试" : "查看更多物品" }}</Button>
                   </section>
                 </div>
@@ -524,9 +545,9 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               </ul>
 
               <details class="detail-state-drawer">
-                <summary><span><strong>高级目标规划（完整监控视图）</strong><small>查看目标集合自动规划与生命周期详情</small></span><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+                <summary><span><strong>高级目标规划（完整监控视图）</strong><small>查看目标集合自动规划与生命周期详情</small></span><ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" /></summary>
                 <div class="detail-state-drawer-body">
-                  <GoalPlanningPanel :fluctlight-id="store.fluctlightId ?? ''" read-only />
+                  <GoalPlanningPanel :fluctlight-id="store.fluctlightId ?? ''" :timezone="controlCenter.diagnosticDisplayTimezone" read-only />
                   <GoalPanel :fluctlight-id="store.selectedFluctlight.id" read-only />
                 </div>
               </details>
@@ -548,7 +569,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
             <section class="detail-block">
               <div class="detail-block-heading"><p class="eyebrow">关系与记忆</p><h3>关系状态</h3></div>
               <p v-if="!relationships.length" class="field-note">尚未形成关系状态。</p>
-              <ul v-else class="modal-detail-list"><li v-for="relationship in relationships" :key="relationshipKey(relationship)"><strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong><small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · profile {{ formatDisplayValue(relationship.profile_id ?? "shared") }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }}<template v-if="relationship.summary"> · {{ formatDisplayValue(relationship.summary) }}</template></small></li></ul>
+              <ul v-else class="modal-detail-list"><li v-for="relationship in relationships" :key="relationshipKey(relationship)"><strong>{{ actorName(relationship.target_actor_id, Boolean(relationship.is_current_user)) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong><small>{{ relationship.target_actor_type === "human" ? "用户" : relationship.target_actor_type === "fluctlight" ? "摇光实例" : "交流对象" }} · profile {{ formatDisplayValue(relationship.profile_id ?? "shared") }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }}<template v-if="relationship.summary"> · {{ formatDisplayValue(relationship.summary) }}</template></small></li></ul>
               <h3>可展示记忆</h3>
               <p v-if="!memories.length" class="field-note">暂无可展示的记忆。</p>
               <ul v-else class="modal-detail-list"><li v-for="memory in memories" :key="String(memory.id)"><strong>{{ formatDisplayValue(memory.content) }}</strong><small>{{ enumLabel(memory.type) }} · {{ enumLabel(memory.status) }}</small></li></ul>
@@ -558,9 +579,6 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
       </div>
 
       <DialogFooter class="detail-dialog-footer m-0">
-        <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || store.selectedFluctlight.status !== 'active'" @click="controlCenter.triggerWakeUp(store.selectedFluctlight.id)">
-          {{ controlCenter.saving ? "唤醒中..." : "立即唤醒" }}
-        </Button>
         <Button class="secondary-button" variant="outline" type="button" @click="emit('manage')">进入编辑与治理</Button>
         <DialogClose as-child><Button class="primary-button" type="button">完成</Button></DialogClose>
       </DialogFooter>

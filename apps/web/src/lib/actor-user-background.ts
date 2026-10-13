@@ -4,12 +4,26 @@ export const actorUserBackgroundFields = [
   { key: "name", label: "称呼" },
   { key: "occupation", label: "职业" },
   { key: "background", label: "简单背景" },
+  { key: "interests", label: "稳定兴趣" },
+  { key: "preferences", label: "偏好" },
   { key: "location_scope", label: "所在地概况" },
   { key: "location", label: "具体所在地" },
   { key: "timezone", label: "时区（如 Asia/Shanghai）" },
   { key: "relationship_distance", label: "双方距离或交流方式" },
   { key: "meeting_confirmed", label: "是否已约定线下见面" },
 ] as const;
+
+export function backgroundFromDraft(draft: Record<string, string>): BrowserActorUserSettings["background"] {
+  return Object.fromEntries(actorUserBackgroundFields.map(({ key }) => [key,
+    key === "meeting_confirmed" ? draft[key] === "true" ? true : draft[key] === "false" ? false : null : draft[key]?.trim() || null,
+  ]));
+}
+
+export function backgroundDraft(value: BrowserActorUserSettings["background"]): Record<string, string> {
+  return Object.fromEntries(actorUserBackgroundFields.map(({ key }) => [key,
+    key === "meeting_confirmed" ? value[key] === true ? "true" : value[key] === false ? "false" : "unknown" : value[key] ?? "",
+  ]));
+}
 
 export function parseActorUserSettings(value: unknown): BrowserActorUserSettings | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;

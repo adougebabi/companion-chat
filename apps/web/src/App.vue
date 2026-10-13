@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, defineAsyncComponent } from "vue";
 
 import { isSettingsSection, isDiagnosticsSection, type DiagnosticsSection, type SettingsSection, type WorkspaceSection, type WorkspaceView } from "./app/navigation";
 import AuthPanel from "./components/auth/AuthPanel.vue";
 import AppShell from "./components/layout/AppShell.vue";
 import InstanceDetailsDialog from "./components/instances/InstanceDetailsDialog.vue";
 import ChatView from "./views/ChatView.vue";
-import DiagnosticsView from "./views/DiagnosticsView.vue";
 import InstancesView from "./views/InstancesView.vue";
 import MomentsView from "./views/MomentsView.vue";
-import SettingsView from "./views/SettingsView.vue";
+import WorkspaceState from "./components/product/WorkspaceState.vue";
 import { useConversationStore } from "./stores/conversations";
 import { useControlCenterStore } from "./stores/control-center";
+
+const DiagnosticsView = defineAsyncComponent({ loader: () => import("./views/DiagnosticsView.vue"), loadingComponent: WorkspaceState, errorComponent: WorkspaceState, delay: 100, timeout: 15000 });
+const SettingsView = defineAsyncComponent({ loader: () => import("./views/SettingsView.vue"), loadingComponent: WorkspaceState, errorComponent: WorkspaceState, delay: 100, timeout: 15000 });
 
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
@@ -145,7 +147,7 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
     <template v-else>
       <ChatView v-if="view === 'chat'" @back="navigate('instances')" @open-details="openDetails" @open-instances="navigate('instances')" />
       <MomentsView v-else-if="view === 'moments'" />
-      <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" :open-create="createRequest" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
+      <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" :open-create="createRequest" @creation-consumed="createRequest=0" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
       <DiagnosticsView v-else-if="view === 'diagnostics'" :section="activeDiagnosticsSection" @navigate-section="(section) => navigateSection('diagnostics', section)" />
       <SettingsView v-else :section="activeSettingsSection" @navigate-section="(section) => navigateSection('settings', section)" @logout="store.logout" />
     </template>

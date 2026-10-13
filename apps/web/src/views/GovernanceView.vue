@@ -2,29 +2,36 @@
 import GoalPlanningPanel from "../components/instances/GoalPlanningPanel.vue";
 import ActorContextEditor from "../components/instances/ActorContextEditor.vue";
 import GoalPanel from "../components/instances/GoalPanel.vue";
-import { actorUserBackgroundFields } from "../lib/actor-user-background";
 import { computed, ref, watch } from "vue";
 
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
-import { ChevronLeft } from "@lucide/vue";
+import { ChevronLeft, ChevronDown } from "@lucide/vue";
 import { newWardrobeItemDraft, wardrobeCategoryOptions, wardrobeSlotOptions, wardrobeItemPayload, wardrobeOwnershipOptions, wardrobeAvailabilityOptions, wardrobeCategoryLabel, wardrobeSlotLabel, wardrobeOwnershipLabel, wardrobeAvailabilityLabel } from "../lib/wardrobe-form";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
 import { enumLabel, formatDisplayValue, formatZonedRange, isCustomLabel, labelFor, resolveTimezone } from "../lib/fluctlight-display";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
+import FeedbackNotice from "../components/product/FeedbackNotice.vue";
+import FormField from "../components/product/FormField.vue";
+import ChoiceSelect from "../components/product/ChoiceSelect.vue";
+import { useFormErrors } from "../composables/use-form-errors";
+import { zonedLocalInputToISO } from "../lib/zoned-local-input";
+import AsyncState from "../components/product/AsyncState.vue";
+import { shortId, userError } from "../lib/user-feedback";
 
 const emit = defineEmits<{ close: []; retired: [] }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
+const {errors,validate,focus}=useFormErrors();
 const goalProfiles=computed(()=>{const detail=controlCenter.fluctlightDetail;const core=detail?.core_persona;const system=core&&typeof core==='object'&&'personality_system' in core?core.personality_system:detail?.personality_system;const profiles=system&&typeof system==='object'&&'profiles' in system?system.profiles:[];return Array.isArray(profiles)?profiles.filter(v=>v&&typeof v==='object'&&'id' in v).map(v=>({id:String(v.id),label:String(v.name??v.id)})):[];});
 const editableActors=computed(()=>{
  const detail=controlCenter.fluctlightDetail;if(!detail)return [];
  const ids=Array.isArray(detail.editable_actor_ids)?detail.editable_actor_ids.map(String):[];
  const relations=Array.isArray(detail.relationships)?detail.relationships:[];
  for(const relation of relations){if(relation && typeof relation==='object' && 'target_actor_id' in relation)ids.push(String(relation.target_actor_id));}
- return [...new Set(ids)].map(id=>({id,label:id===ids[0]?'你（Owner）':id}));
+ return [...new Set(ids)].map(id=>({id,label:id===store.authenticatedActorId?'你（Owner）':(store.fluctlights.find(item=>item.id===id)?.identity.name ? String(store.fluctlights.find(item=>item.id===id)?.identity.name) : shortId(id))}));
 });
 const wardrobeDraft = ref(newWardrobeItemDraft());
 const wardrobeCategoryChoices = computed(()=>wardrobeCategoryOptions(wardrobeDraft.value.itemKind));
@@ -33,6 +40,7 @@ watch(()=>wardrobeDraft.value.itemKind,()=>{wardrobeDraft.value.category=wardrob
 watch(()=>wardrobeDraft.value.category,()=>{if(!wardrobeSlotChoices.value.some(item=>item.value===wardrobeDraft.value.slot)) wardrobeDraft.value.slot=wardrobeSlotChoices.value[0]?.value??"";});
 watch(()=>store.fluctlightId,()=>{wardrobeDraft.value=newWardrobeItemDraft();});
 async function addWardrobeFromForm() {
+ if(controlCenter.saving || !await validate([{id:'wardrobe-description',label:'物品描述',value:wardrobeDraft.value.description,required:true,maxLength:512}]))return;
  const selectedId=store.fluctlightId;
  try {
   const payload=wardrobeItemPayload(wardrobeDraft.value);
@@ -72,7 +80,22 @@ function relationshipKey(relationship: Record<string, unknown>): string {
   return `${String(relationship.target_actor_id ?? "")}::${String(relationship.profile_id ?? "shared")}`;
 }
 
+async function submitLifeEvent() {
+ if(controlCenter.saving)return;
+ if(!await validate([
+  {id:'event-kind',label:'事件类型',value:controlCenter.lifeEvent.kind,required:true,maxLength:128},
+  {id:'event-start',label:'开始时间',value:controlCenter.lifeEvent.startAt,required:true},
+  {id:'event-end',label:'结束时间',value:controlCenter.lifeEvent.endAt,required:true},
+  {id:'event-evidence',label:'证据引用',value:controlCenter.governanceEvidence.split(',').map(value=>value.trim()).filter(Boolean).join(','),required:true}
+ ]))return;
+ try {
+  const start=zonedLocalInputToISO(controlCenter.lifeEvent.startAt,governanceTimezone.value),end=zonedLocalInputToISO(controlCenter.lifeEvent.endAt,governanceTimezone.value);
+  if(Date.parse(end)<=Date.parse(start)){errors.value['event-end']='结束时间必须晚于开始时间。';await focus('event-end');return;}
+ } catch {errors.value['event-start']='时间在当前时区内无效，请重新选择。';await focus('event-start');return;}
+ await controlCenter.createLifeEvent(store.fluctlightId);
+}
 async function retire() {
+  if(controlCenter.saving || !await validate([{id:'retirement-reason',label:'删除原因',value:retirementReason.value,required:true,maxLength:1024},{id:'retirement-confirmation',label:'确认名称',value:retirementConfirmation.value,required:true}]))return;
   const id = store.fluctlightId;
   const name = store.selectedFluctlightName;
   if (!id || !name) return;
@@ -113,30 +136,14 @@ function onWardrobeToggle(event: Event) {
       </span>
     </header>
 
-    <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
-    <p v-if="controlCenter.governanceNotice" class="notice-banner" role="status">{{ controlCenter.governanceNotice }}</p>
+    <FeedbackNotice :message="controlCenter.error ? userError(controlCenter.error) : ''" />
+    <FeedbackNotice :message="controlCenter.governanceNotice" tone="success" />
+    <AsyncState :loading="controlCenter.loading && !controlCenter.fluctlightDetail" loading-label="正在读取治理资料…" />
 
     <template v-if="controlCenter.fluctlightDetail">
-      <GoalPlanningPanel :fluctlight-id="store.fluctlightId ?? ''" />
+      <GoalPlanningPanel :fluctlight-id="store.fluctlightId ?? ''" :timezone="controlCenter.diagnosticDisplayTimezone" />
       <GoalPanel :fluctlight-id="store.fluctlightId ?? ''" :actors="editableActors" :profile-options="goalProfiles" />
-      <ActorContextEditor :fluctlight-id="store.fluctlightId ?? ''" :actors="editableActors" />
-      <details class="governance-section" open>
-        <summary class="section-heading"><div><p class="eyebrow">ABOUT YOU</p><h2>用户背景</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
-        <p class="field-note">这是关于你本人的资料，供当前摇光了解；不修改摇光的人格。留空表示未知，时区不会从设备或摇光推断。</p>
-        <form @submit.prevent="controlCenter.saveActorUserBackground(store.fluctlightId)">
-          <div class="form-grid">
-            <label v-for="field in actorUserBackgroundFields" :key="field.key" :for="`actor-user-${field.key}`">{{ field.label }}
-              <select v-if="field.key === 'meeting_confirmed'" :id="`actor-user-${field.key}`" v-model="controlCenter.actorUserBackgroundDraft[field.key]" @change="controlCenter.actorUserBackgroundDirty = true" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option value="unknown">未确认</option><option value="true">已约定</option><option value="false">未约定</option></select>
-              <Textarea v-else-if="field.key === 'background'" :id="`actor-user-${field.key}`" v-model="controlCenter.actorUserBackgroundDraft[field.key]" maxlength="1024" rows="3" placeholder="未填写" @input="controlCenter.actorUserBackgroundDirty = true" />
-              <Input v-else :id="`actor-user-${field.key}`" v-model="controlCenter.actorUserBackgroundDraft[field.key]" maxlength="1024" placeholder="未填写 / 未确认" @input="controlCenter.actorUserBackgroundDirty = true" />
-            </label>
-          </div>
-          <label for="actor-user-operation">这次修改的含义<select id="actor-user-operation" v-model="controlCenter.actorUserBackgroundOperation" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option value="correct">纠正原信息：之前的内容不正确</option><option value="change">情况发生变化：之前正确，现在改变了</option></select></label>
-          <label for="actor-user-reason">修改说明<Input id="actor-user-reason" v-model="controlCenter.actorUserBackgroundReason" maxlength="500" required placeholder="例如：补充初始化资料，或今天已回国" /></label>
-          <div class="inline-controls"><Button type="submit" :disabled="controlCenter.saving || !controlCenter.actorUserBackgroundReason.trim()">保存用户背景</Button><Button type="button" variant="outline" :disabled="controlCenter.saving" @click="controlCenter.reloadActorUserBackground(store.fluctlightId)">重新载入（放弃未保存修改）</Button></div>
-          <p v-if="controlCenter.actorUserBackgroundNotice" role="status">{{ controlCenter.actorUserBackgroundNotice }}</p>
-        </form>
-      </details>
+      <ActorContextEditor :fluctlight-id="store.fluctlightId ?? ''" :actors="editableActors" :owner-actor-id="store.authenticatedActorId" />
 
       <section class="governance-section governance-overview">
         <div class="section-heading"><span class="section-index">01</span><div><p class="eyebrow">概览</p><h2>当前状态</h2></div></div>
@@ -151,23 +158,23 @@ function onWardrobeToggle(event: Event) {
             {{ controlCenter.saving ? "唤醒中..." : "立即唤醒" }}
           </Button>
         </div>
-        <p class="field-note">立即唤醒只会释放一次 durable Wake-up 任务，由后台 Worker 异步执行。</p>
+        <p class="field-note">立即唤醒会提交一次后台任务；执行结果可在诊断中心查看。</p>
       </section>
 
       <details class="governance-section">
-        <summary class="section-heading"><span class="section-index">02</span><div><p class="eyebrow">生活世界操作</p><h2>日程与事件</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <summary class="section-heading"><span class="section-index">02</span><div><p class="eyebrow">生活世界操作</p><h2>日程与事件</h2></div><ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" /></summary>
         <p v-if="controlCenter.fluctlightDetail.schedule" class="field-note">当前已有接受的本地日程，可在详情页查看时间轴。</p>
         <p v-else class="field-note">日程待生成，当前没有接受的本地日计划。</p>
         <Button v-if="controlCenter.fluctlightDetail.schedule" class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving" @click="controlCenter.cancelSchedule(store.fluctlightId)">取消当前日程</Button>
         <form class="governance-form" @submit.prevent="controlCenter.acceptSchedule(store.fluctlightId)"><label for="schedule-draft">完整日程 JSON</label><Textarea id="schedule-draft" v-model="controlCenter.scheduleDraftJson" rows="6" spellcheck="false" placeholder='{"localDate":"2026-08-26","timezone":"Asia/Shanghai","items":[]}' /><Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving || !controlCenter.scheduleDraftJson.trim()">提交完整日程</Button></form>
         <h3>事件与状态覆盖</h3>
-        <form class="governance-form" @submit.prevent="controlCenter.createLifeEvent(store.fluctlightId)">
-          <label for="event-kind">事件类型<Input id="event-kind" v-model="controlCenter.lifeEvent.kind" maxlength="128" required /></label>
-          <div class="form-grid"><label for="event-start">开始时间<Input id="event-start" v-model="controlCenter.lifeEvent.startAt" type="datetime-local" required /></label><label for="event-end">结束时间<Input id="event-end" v-model="controlCenter.lifeEvent.endAt" type="datetime-local" required /></label></div>
+        <form class="governance-form" novalidate @submit.prevent="submitLifeEvent">
+          <FormField id="event-kind" label="事件类型" required v-model:error="errors['event-kind']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="controlCenter.lifeEvent.kind" maxlength="128" /></FormField>
+          <div class="form-grid"><FormField id="event-start" label="开始时间" required v-model:error="errors['event-start']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="controlCenter.lifeEvent.startAt" type="datetime-local" /></FormField><FormField id="event-end" label="结束时间" required v-model:error="errors['event-end']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="controlCenter.lifeEvent.endAt" type="datetime-local" /></FormField></div>
           <p class="field-note">以上时间按摇光时区 {{ governanceTimezone }} 输入。</p>
           <div class="form-grid"><label for="event-scene">场景（可选）<Input id="event-scene" v-model="controlCenter.lifeEvent.scene" maxlength="512" /></label><label for="event-activity">活动（可选）<Input id="event-activity" v-model="controlCenter.lifeEvent.activity" maxlength="512" /></label></div>
           <label for="event-location">地点（可选）<Input id="event-location" v-model="controlCenter.lifeEvent.location" maxlength="512" /></label>
-          <p class="field-note">事件创建需要在下方“证据引用”中填写至少一条可追溯引用。</p>
+          <FormField id="event-evidence" label="证据引用" required v-model:error="errors['event-evidence']" hint="至少一条可追溯引用，以逗号分隔。" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="controlCenter.governanceEvidence" placeholder="event_123, message_456" /></FormField>
           <Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving">创建确认事件</Button>
         </form>
         <ul v-if="(controlCenter.fluctlightDetail.events as unknown[])?.length" class="detail-list"><li v-for="event in controlCenter.fluctlightDetail.events as Array<Record<string, unknown>>" :key="String(event.id)"><strong>{{ formatDisplayValue(event.kind) }}</strong><small>{{ formatZonedRange(event.start_at, event.end_at, governanceTimezone) }} · {{ enumLabel(event.status) }}</small><Button v-if="event.status === 'confirmed'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.cancelLifeEvent(store.fluctlightId, String(event.id))">取消事件</Button></li></ul>
@@ -175,7 +182,7 @@ function onWardrobeToggle(event: Event) {
       </details>
 
       <details class="governance-section">
-        <summary class="section-heading"><span class="section-index">03</span><div><p class="eyebrow">关系与记忆操作</p><h2>关系与记忆</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <summary class="section-heading"><span class="section-index">03</span><div><p class="eyebrow">关系与记忆操作</p><h2>关系与记忆</h2></div><ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" /></summary>
         <p v-if="!(controlCenter.fluctlightDetail.relationships as unknown[])?.length" class="field-note">尚未形成关系状态。</p>
         <ul v-else class="detail-list relationship-governance-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="relationshipKey(relationship)">
           <strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong>
@@ -183,9 +190,7 @@ function onWardrobeToggle(event: Event) {
           <template v-if="controlCenter.relationshipEditDrafts[relationshipKey(relationship)]">
             <div class="form-grid">
               <label :for="'relationship-trend-' + relationshipKey(relationship)">趋势
-                <select :id="'relationship-trend-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].trend" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm">
-                  <option value="improving">升温</option><option value="stable">稳定</option><option value="declining">降温</option>
-                </select>
+                <ChoiceSelect :id="'relationship-trend-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].trend" :options="[{value:'improving',label:'升温'},{value:'stable',label:'稳定'},{value:'declining',label:'降温'}]" />
               </label>
               <label :for="'relationship-summary-' + relationshipKey(relationship)">关系摘要<Input :id="'relationship-summary-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].summary" maxlength="32000" /></label>
             </div>
@@ -210,7 +215,7 @@ function onWardrobeToggle(event: Event) {
       </details>
 
       <details class="governance-section">
-        <summary class="section-heading"><span class="section-index">04</span><div><p class="eyebrow">CAPABILITY REQUESTS</p><h2>能力需求池</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <summary class="section-heading"><span class="section-index">04</span><div><p class="eyebrow">CAPABILITY REQUESTS</p><h2>能力需求池</h2></div><ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" /></summary>
         <p class="field-note">摇光发现当前没有的能力时，会通过 tool call 提交需求。这里先评估，再手动接入插件；需求本身不会伪装成已执行的动作。</p>
         <p v-if="controlCenter.capabilityRequestsLoading" class="field-note">正在加载能力需求…</p>
         <p v-else-if="controlCenter.capabilityRequestsError" class="field-note" role="alert">{{ controlCenter.capabilityRequestsError }} <Button class="text-button" variant="ghost" type="button" @click="controlCenter.loadCapabilityRequests()">重试</Button></p>
@@ -220,7 +225,7 @@ function onWardrobeToggle(event: Event) {
       </details>
 
       <details class="governance-section">
-        <summary class="section-heading"><span class="section-index">05</span><div><p class="eyebrow">自治与修订</p><h2>自治与修订</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <summary class="section-heading"><span class="section-index">05</span><div><p class="eyebrow">自治与修订</p><h2>自治与修订</h2></div><ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" /></summary>
         <p v-if="!controlCenter.autonomyActions.length" class="field-note">当前没有待治理的自治动作。</p>
         <ul v-else class="detail-list"><li v-for="action in controlCenter.autonomyActions" :key="action.id"><strong>{{ enumLabel(action.action_type) }}</strong><small>{{ enumLabel(action.status) }}</small><div class="inline-controls"><Button v-if="action.status === 'frozen' || action.status === 'deferred'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'paused', store.fluctlightId)">暂停</Button><Button v-if="action.status === 'frozen' || action.status === 'deferred' || action.status === 'paused'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'cancelled', store.fluctlightId)">取消</Button></div></li></ul>
         <h3>Developing Self</h3>
@@ -246,7 +251,7 @@ function onWardrobeToggle(event: Event) {
       </details>
 
       <details class="governance-section" @toggle="onWardrobeToggle">
-        <summary class="section-heading"><span class="section-index">06</span><div><p class="eyebrow">WARDROBE & ITEMS</p><h2>衣柜与物品管理</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <summary class="section-heading"><span class="section-index">06</span><div><p class="eyebrow">WARDROBE & ITEMS</p><h2>衣柜与物品管理</h2></div><ChevronDown class="disclosure-icon" :size="18" aria-hidden="true" /></summary>
         <p class="field-note">管理摇光的衣物、装备与物品。通过中文选项登记新物品，也可以修改可用状态或删除；批量 JSON 导入保留在高级入口。</p>
         <p v-if="controlCenter.wardrobeLoading" class="field-note">正在加载衣柜与物品…</p>
         <p v-else-if="controlCenter.wardrobeError" class="field-note" role="alert">
@@ -289,15 +294,15 @@ function onWardrobeToggle(event: Event) {
 
         <h3>添加衣柜与物品</h3>
         <p class="field-note">选择分类与状态，填写描述即可登记。添加不会自动换装或开始使用。</p>
-        <form class="governance-form" @submit.prevent="addWardrobeFromForm">
+        <form class="governance-form" novalidate @submit.prevent="addWardrobeFromForm">
           <div class="form-grid">
-            <label for="wardrobe-item-kind">物品类型<select id="wardrobe-item-kind" v-model="wardrobeDraft.itemKind" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option value="wearable">服装与配饰</option><option value="object">普通物品</option></select></label>
-            <label for="wardrobe-category">分类<select id="wardrobe-category" v-model="wardrobeDraft.category" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeCategoryChoices" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
-            <label for="wardrobe-slot">穿着部位<select id="wardrobe-slot" v-model="wardrobeDraft.slot" :disabled="wardrobeDraft.itemKind === 'object'" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeSlotChoices" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
-            <label for="wardrobe-ownership">所有权<select id="wardrobe-ownership" v-model="wardrobeDraft.ownership" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeOwnershipOptions" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
-            <label for="wardrobe-availability">可用状态<select id="wardrobe-availability" v-model="wardrobeDraft.availability" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm"><option v-for="choice in wardrobeAvailabilityOptions" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label>
+            <label for="wardrobe-item-kind">物品类型<ChoiceSelect id="wardrobe-item-kind" v-model="wardrobeDraft.itemKind" :options="[{value:'wearable',label:'服装与配饰'},{value:'object',label:'普通物品'}]" /></label>
+            <label for="wardrobe-category">分类<ChoiceSelect id="wardrobe-category" v-model="wardrobeDraft.category" :options="wardrobeCategoryChoices" /></label>
+            <label for="wardrobe-slot">穿着部位<ChoiceSelect id="wardrobe-slot" v-model="wardrobeDraft.slot" :disabled="wardrobeDraft.itemKind === 'object'" :options="wardrobeSlotChoices" /></label>
+            <label for="wardrobe-ownership">所有权<ChoiceSelect id="wardrobe-ownership" v-model="wardrobeDraft.ownership" :options="wardrobeOwnershipOptions" /></label>
+            <label for="wardrobe-availability">可用状态<ChoiceSelect id="wardrobe-availability" v-model="wardrobeDraft.availability" :options="wardrobeAvailabilityOptions" /></label>
           </div>
-          <label for="wardrobe-description">物品描述<Textarea id="wardrobe-description" v-model="wardrobeDraft.description" rows="3" maxlength="512" required placeholder="例如：黑色低跟通勤短靴" /></label>
+          <FormField id="wardrobe-description" label="物品描述" required v-model:error="errors['wardrobe-description']" v-slot="{controlAttrs}"><Textarea v-bind="controlAttrs" v-model="wardrobeDraft.description" rows="3" maxlength="512" placeholder="例如：黑色低跟通勤短靴" /></FormField>
           <Button type="submit" :disabled="controlCenter.saving || !wardrobeDraft.description.trim()">添加物品</Button>
         </form>
         <details class="field-note"><summary>批量 JSON 导入（高级）</summary>
@@ -331,7 +336,7 @@ function onWardrobeToggle(event: Event) {
       <section class="danger-zone" aria-labelledby="retirement-title">
         <p class="eyebrow">危险操作</p><h2 id="retirement-title">删除摇光</h2>
         <p>删除会从实例目录中移除并停止活动；历史会话与治理记录会保留用于审计，不能恢复到活动状态。</p>
-        <form class="governance-form" @submit.prevent="retire"><label for="retirement-reason">删除原因<Input id="retirement-reason" v-model="retirementReason" maxlength="1024" required /></label><label for="retirement-confirmation">确认名称<Input id="retirement-confirmation" v-model="retirementConfirmation" :aria-label="'输入 ' + store.selectedFluctlightName + ' 确认删除'" maxlength="256" :placeholder="'输入 ' + store.selectedFluctlightName + ' 确认'" required /></label><p class="field-note">需要完整输入“{{ store.selectedFluctlightName }}”后才能启用删除。</p><Button class="danger-button" variant="destructive" type="submit" :disabled="controlCenter.saving || !retirementReason.trim() || retirementConfirmation.trim() !== store.selectedFluctlightName">{{ controlCenter.saving ? "正在删除..." : "删除摇光" }}</Button></form>
+        <form class="governance-form" novalidate @submit.prevent="retire"><FormField id="retirement-reason" label="删除原因" required v-model:error="errors['retirement-reason']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="retirementReason" maxlength="1024" /></FormField><FormField id="retirement-confirmation" label="确认名称" required v-model:error="errors['retirement-confirmation']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="retirementConfirmation" maxlength="256" :placeholder="'输入 ' + store.selectedFluctlightName + ' 确认'" /></FormField><p class="field-note">需要完整输入“{{ store.selectedFluctlightName }}”后才能启用删除。</p><Button class="danger-button" variant="destructive" type="submit" :disabled="controlCenter.saving || !retirementReason.trim() || retirementConfirmation.trim() !== store.selectedFluctlightName">{{ controlCenter.saving ? "正在删除..." : "删除摇光" }}</Button></form>
       </section>
     </template>
   </section>

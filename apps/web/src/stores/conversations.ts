@@ -319,6 +319,7 @@ export const useConversationStore = defineStore("conversations", {
     messages: [] as BrowserMessage[],
     nextBeforeSequence: null as number | null,
     authenticated: null as boolean | null,
+    authenticatedActorId: null as string | null,
     setupAvailable: false,
     authLoading: false,
     authError: "" as string,
@@ -326,6 +327,7 @@ export const useConversationStore = defineStore("conversations", {
     sending: false,
 	activeTurnId: null as string | null,
     error: "" as string,
+    directoryError: "" as string,
     attachmentRef: "",
     abortController: null as AbortController | null,
     retryTurn: persistedRetry(),
@@ -357,11 +359,13 @@ export const useConversationStore = defineStore("conversations", {
       try {
         const session = await client.session();
         this.authenticated = session.authenticated;
+        this.authenticatedActorId = session.authenticated ? session.actorId ?? null : null;
         if (this.authenticated) await this.bootstrap();
         else this.setupAvailable = (await client.setupStatus()).setupAvailable;
       } catch {
         if (this.authenticated !== true) {
           this.authenticated = false;
+          this.authenticatedActorId = null;
           this.authError = "Fluctlight 服务暂时不可用。";
         }
       } finally {
@@ -374,10 +378,12 @@ export const useConversationStore = defineStore("conversations", {
       try {
         const session = await client.login(password);
         this.authenticated = session.authenticated;
+        this.authenticatedActorId = session.authenticated ? session.actorId ?? null : null;
         if (this.authenticated) await this.bootstrap();
       } catch {
         if (this.authenticated !== true) {
           this.authenticated = false;
+          this.authenticatedActorId = null;
           this.authError = "密码未被接受。";
         } else {
           this.error = "无法加载 Fluctlight 对话。";
@@ -392,10 +398,12 @@ export const useConversationStore = defineStore("conversations", {
       try {
         const session = await client.setup(setupToken, password);
         this.authenticated = session.authenticated;
+        this.authenticatedActorId = session.authenticated ? session.actorId ?? null : null;
         this.setupAvailable = false;
         if (this.authenticated) await this.bootstrap();
       } catch {
         this.authenticated = false;
+        this.authenticatedActorId = null;
         this.authError = "设置令牌或密码未被接受。";
       } finally {
         this.authLoading = false;
@@ -408,6 +416,7 @@ export const useConversationStore = defineStore("conversations", {
       try {
         await client.changePassword(password);
         this.authenticated = false;
+        this.authenticatedActorId = null;
         this.conversation = null;
         this.messages = [];
         this.fluctlightId = null;
@@ -429,6 +438,7 @@ export const useConversationStore = defineStore("conversations", {
         await client.logout();
       } finally {
         this.authenticated = false;
+        this.authenticatedActorId = null;
         this.conversation = null;
         this.fluctlightId = null;
         this.fluctlights = [];
@@ -444,6 +454,7 @@ export const useConversationStore = defineStore("conversations", {
       if (this.authenticated === false) return;
       this.loading = true;
       this.error = "";
+      this.directoryError = "";
       try {
         this.fluctlights = await client.listFluctlights();
         this.pruneOrphanedLocalTurns();
@@ -456,6 +467,7 @@ export const useConversationStore = defineStore("conversations", {
         else this.clearActiveConversation();
       } catch {
         this.error = "无法加载 Fluctlight 实例目录。";
+        this.directoryError = this.error;
       } finally {
         this.loading = false;
       }

@@ -30,8 +30,10 @@ test("user background is viewed separately and edited only through owner governa
  assert.match(detail,/detail\.value\.actor_user/);
  assert.match(detail,/<h3>用户背景<\/h3>/);
  assert.doesNotMatch(detail,/saveActorUserBackground/);
- assert.match(governance,/saveActorUserBackground/);
- assert.match(governance,/纠正原信息/);assert.match(governance,/情况发生变化/);
+ const editor=await readFile(new URL('../src/components/instances/ActorContextEditor.vue',import.meta.url),'utf8');
+ assert.match(governance,/<ActorContextEditor/);assert.doesNotMatch(governance,/saveActorUserBackground/);
+ assert.match(editor,/updateActorUserBackground/);assert.match(editor,/expectedCurrentFactsRevision: version/);
+ assert.match(editor,/纠正原信息/);assert.match(editor,/情况发生变化/);
  assert.match(store,/idChanged \|\| !this\.actorUserBackgroundDirty/);
  assert.match(store,/expectedCurrentFactsRevision:this\.actorUserBackgroundRevision/);
  assert.match(store,/this\.fluctlightDetailFluctlightId !== fluctlightId/);

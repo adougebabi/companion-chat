@@ -41,7 +41,7 @@ export function wardrobeItemPayload(draft:WardrobeItemDraft):Record<string,unkno
  const description=draft.description.trim();if(!description || [...description].length>512) throw new Error("请填写物品描述（最多512字）。");
  return {item_kind:draft.itemKind,category:draft.category,slot:draft.slot,description,ownership:draft.ownership,availability:draft.availability};
 }
-export function wardrobeCategoryLabel(value:unknown):string {const aliases:Record<string,string>={clothing:"服装",shirt:"上装",blouse:"上装",sweater:"上装",pants:"下装",skirt:"下装",outerwear:"外套"};return wardrobeCategories.find(item=>item.value===value)?.label ?? aliases[String(value)] ?? String(value??"未分类");}
+export function wardrobeCategoryLabel(value:unknown):string {const aliases:Record<string,string>={clothing:"服装",shirt:"上装",blouse:"上装",sweater:"上装",pants:"下装",skirt:"下装",outerwear:"外套",sneakers:"运动鞋"};return wardrobeCategories.find(item=>item.value===value)?.label ?? aliases[String(value)] ?? String(value??"未分类");}
 export function wardrobeSlotLabel(value:unknown):string {const aliases:Record<string,string>={top:"上装",bottom:"下装",outerwear:"外套",feet:"鞋履",neck:"颈部配饰",wrist:"腕部配饰",hands:"手部配饰",waist:"腰部配饰"};return wardrobeSlots.find(item=>item.value===value)?.label ?? aliases[String(value)] ?? (value ? String(value) : "不适用");}
 export function wardrobeOwnershipLabel(value:unknown):string {return wardrobeOwnershipOptions.find(item=>item.value===value)?.label ?? "所有权未确认";}
 export function wardrobeAvailabilityLabel(value:unknown):string {return wardrobeAvailabilityOptions.find(item=>item.value===value)?.label ?? "状态未确认";}

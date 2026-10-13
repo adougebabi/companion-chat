@@ -1,6 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, watch, ref, reactive } from "vue";
 import KevDiagnostics from "../components/KevDiagnostics.vue";
+import FeedbackNotice from "../components/product/FeedbackNotice.vue";
+import AsyncState from "../components/product/AsyncState.vue";
+import JsonViewer from "../components/product/JsonViewer.vue";
+import FilterPanel from "../components/product/FilterPanel.vue";
+import FormField from "../components/product/FormField.vue";
+import ChoiceSelect from "../components/product/ChoiceSelect.vue";
+import ConfirmDialog from "../components/product/ConfirmDialog.vue";
+import { displayStatus, userError, shortId } from "../lib/user-feedback";
+import { workflowPresentation, eventTitle, eventSummary } from "../lib/diagnostic-presentation";
 
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import AccordionContent from "@/components/ui/accordion/AccordionContent.vue";
@@ -9,7 +18,7 @@ import AccordionTrigger from "@/components/ui/accordion/AccordionTrigger.vue";
 import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
-import { ChevronLeft } from "@lucide/vue";
+import { ChevronLeft, ChevronRight, ChevronDown, RefreshCw, Trash2 } from "@lucide/vue";
 import { diagnosticsSections, type DiagnosticsSection } from "../app/navigation";
 import type { BrowserDiagnosticAgentRun, BrowserDiagnosticModelRun } from "@fluctlight/browser-client";
 import { formatInstantInZone } from "../lib/instant";
@@ -19,6 +28,13 @@ const props = defineProps<{ section?: DiagnosticsSection | null }>();
 const emit = defineEmits<{ navigateSection: [section: DiagnosticsSection | null] }>();
 const controlCenter = useControlCenterStore();
 const currentSection = computed(() => props.section ?? null);
+const clearOpen=ref(false);
+const clearError=ref('');
+watch(clearOpen, () => { clearError.value=''; });
+const currentWorkflow=computed(()=>controlCenter.workflowStatus ? workflowPresentation(controlCenter.workflowStatus) : null);
+const workflowRows=computed(()=>controlCenter.workflows.map((value,index)=>({...workflowPresentation(value,index),raw:value})));
+async function confirmClear(){clearError.value='';await controlCenter.clearDiagnostics();clearError.value=controlCenter.diagnosticError;if(!clearError.value)clearOpen.value=false;else controlCenter.diagnosticError='';}
+function selectWorkflow(id:string){controlCenter.workflowId=id;void controlCenter.queryWorkflowStatus();}
 const scenarioLabels: Record<string, string> = { reply: "回复生成", autonomy_reply: "自治回复", cognitive_assessment: "认知判断", native_cognition: "原生事件认知", daily_review: "日评", schedule_generation: "计划生成", reflection: "反思", wake_up: "唤醒", initialization: "初始化", media_prompt: "媒体提示词", embedding: "Embedding" };
 const bindingLabels: Record<string, string> = { generic_llm: "通用 LLM", embedding: "Embedding" };
 const statusLabels: Record<string, string> = { queued: "排队中", running: "执行中", started: "已启动", scheduled: "已计划", retry: "待重试", completed: "已完成", no_op: "无操作", blocked: "已阻止", paused: "已暂停", inactive: "未激活", disabled: "已禁用", overdue: "已逾期", dead_letter: "已终止", failed: "失败", cancelled: "已取消", timeout: "超时" };
@@ -112,16 +128,30 @@ function workflowIdFor(value: Record<string, unknown>): string {
   for (const nested of Object.values(value)) if (nested && typeof nested === "object" && !Array.isArray(nested)) { const id: string = workflowIdFor(nested as Record<string, unknown>); if (id) return id; }
   return "";
 }
-function applyDiagnosticsFilters() { void controlCenter.loadDiagnostics(); }
-function clearLifecycleFilters() {
-  controlCenter.diagnosticsFluctlightFilter = "";
-  controlCenter.diagnosticsCorrelationFilter = "";
-  controlCenter.diagnosticsIntentFilter = "";
-  controlCenter.diagnosticsWorkflowFilter = "";
-  controlCenter.diagnosticsRunFilter = "";
-  controlCenter.diagnosticsSurfaceFilter = "";
-  controlCenter.diagnosticsStatusFilter = "";
+const lifecycleDraft = reactive({
+  fluctlightId: controlCenter.diagnosticsFluctlightFilter,
+  correlationId: controlCenter.diagnosticsCorrelationFilter,
+  intentId: controlCenter.diagnosticsIntentFilter,
+  workflowId: controlCenter.diagnosticsWorkflowFilter,
+  runId: controlCenter.diagnosticsRunFilter,
+  surface: controlCenter.diagnosticsSurfaceFilter,
+  status: controlCenter.diagnosticsStatusFilter,
+});
+watch(() => [controlCenter.diagnosticsFluctlightFilter, controlCenter.diagnosticsCorrelationFilter, controlCenter.diagnosticsIntentFilter, controlCenter.diagnosticsWorkflowFilter, controlCenter.diagnosticsRunFilter, controlCenter.diagnosticsSurfaceFilter, controlCenter.diagnosticsStatusFilter],
+  ([fluctlightId, correlationId, intentId, workflowId, runId, surface, status]) => Object.assign(lifecycleDraft, {fluctlightId, correlationId, intentId, workflowId, runId, surface, status}));
+function applyDiagnosticsFilters() {
+  controlCenter.diagnosticsFluctlightFilter = lifecycleDraft.fluctlightId;
+  controlCenter.diagnosticsCorrelationFilter = lifecycleDraft.correlationId;
+  controlCenter.diagnosticsIntentFilter = lifecycleDraft.intentId;
+  controlCenter.diagnosticsWorkflowFilter = lifecycleDraft.workflowId;
+  controlCenter.diagnosticsRunFilter = lifecycleDraft.runId;
+  controlCenter.diagnosticsSurfaceFilter = lifecycleDraft.surface;
+  controlCenter.diagnosticsStatusFilter = lifecycleDraft.status;
   void controlCenter.loadDiagnostics();
+}
+function clearLifecycleFilters() {
+  for (const key of Object.keys(lifecycleDraft) as (keyof typeof lifecycleDraft)[]) lifecycleDraft[key] = "";
+  applyDiagnosticsFilters();
 }
 function openWorkflow(workflowId?: string) {
   if (!workflowId) return;
@@ -153,7 +183,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
 <template>
   <section class="page diagnostics-page" aria-labelledby="diagnostics-title">
     <h1 id="diagnostics-title" class="sr-only">诊断中心</h1>
-    <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
+    <FeedbackNotice :message="controlCenter.diagnosticError ? userError(controlCenter.diagnosticError) : ''" />
     <section v-if="!currentSection" class="diagnostics-overview" aria-labelledby="diagnostics-overview-title">
       <p class="eyebrow">OBSERVABILITY</p>
       <h2 id="diagnostics-overview-title">选择一个诊断项</h2>
@@ -161,7 +191,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
       <nav class="diagnostics-mobile-section-list" aria-label="诊断选项">
         <Button v-for="section in diagnosticsSections" :key="section.id" class="diagnostics-mobile-section-link" variant="outline" type="button" @click="emit('navigateSection', section.id)">
           <span><strong>{{ section.label }}</strong><small>{{ section.description }}</small></span>
-          <span aria-hidden="true">›</span>
+          <ChevronRight :size="18" aria-hidden="true" />
         </Button>
       </nav>
     </section>
@@ -171,32 +201,37 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
         <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)"><ChevronLeft :size="16" aria-hidden="true" /><span>返回诊断中心</span></Button>
         <div><p class="eyebrow">OBSERVABILITY</p><h2>{{ diagnosticsSections.find((item) => item.id === currentSection)?.label }}</h2><p class="field-note">{{ diagnosticsSections.find((item) => item.id === currentSection)?.description }}</p></div>
       </header>
-      <form v-if="currentSection === 'lifecycle'" class="lifecycle-filter-grid" aria-label="生命周期过滤" @submit.prevent="applyDiagnosticsFilters">
-        <label>摇光 ID<Input v-model="controlCenter.diagnosticsFluctlightFilter" placeholder="fluctlight_id" /></label>
-        <label>关联 ID<Input v-model="controlCenter.diagnosticsCorrelationFilter" placeholder="correlation_id" /></label>
-        <label>Intent ID<Input v-model="controlCenter.diagnosticsIntentFilter" placeholder="intent_id" /></label>
-        <label>Workflow ID<Input v-model="controlCenter.diagnosticsWorkflowFilter" placeholder="workflow_id" /></label>
-        <label>Run ID<Input v-model="controlCenter.diagnosticsRunFilter" placeholder="run_id" /></label>
-        <label>生命周期<Input v-model="controlCenter.diagnosticsSurfaceFilter" placeholder="wake_up / reflection" /></label>
-        <label>状态<Input v-model="controlCenter.diagnosticsStatusFilter" placeholder="retry / failed / no_op" /></label>
-        <div class="lifecycle-filter-actions"><Button type="submit">应用过滤</Button><Button variant="outline" type="button" @click="clearLifecycleFilters">清除</Button><Button variant="outline" type="button" @click="controlCenter.exportDiagnostics">导出当前过滤</Button></div>
-      </form>
-      <div v-if="controlCenter.loading" class="empty-panel compact">正在加载诊断信息...</div>
-      <div v-else-if="(currentSection === 'lifecycle' && !controlCenter.lifecycleDiagnostics.length && !controlCenter.workflowIntentSnapshots.length) || (currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length && !controlCenter.diagnosticAgentRuns.length) || (currentSection === 'media-prompts' && !controlCenter.diagnosticMediaPrompts.length) || (currentSection === 'events' && !controlCenter.diagnostics.length)" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>{{ currentSection === 'lifecycle' ? '没有匹配的触发或工作流状态；可清除过滤查看全部。' : '该主题暂时没有可展示的诊断记录。' }}</p></div>
+      <div class="diagnostics-global-actions"><Button variant="outline" type="button" :disabled="controlCenter.diagnosticsLoading" @click="controlCenter.loadDiagnostics()"><RefreshCw :size="16" aria-hidden="true" />刷新记录</Button><ConfirmDialog v-model:open="clearOpen" title="清空诊断记录" description="这会清除可清理的诊断记录，不能撤销。历史资料、关系修订和 Agent 业务运行记录会保留。" confirm-label="确认清空" destructive :busy="controlCenter.saving" @confirm="confirmClear"><template #trigger><Button variant="ghost" type="button" :disabled="controlCenter.saving"><Trash2 :size="16" aria-hidden="true" />清空诊断记录</Button></template><FeedbackNotice :message="clearError ? userError(clearError) : ''" /></ConfirmDialog></div>
+      <FilterPanel v-if="currentSection === 'lifecycle'" :busy="controlCenter.diagnosticsLoading" label="生命周期过滤" @apply="applyDiagnosticsFilters" @clear="clearLifecycleFilters">
+        <FormField id="lifecycle-instance" label="摇光 ID" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="lifecycleDraft.fluctlightId" placeholder="fluctlight_id" /></FormField>
+        <FormField id="lifecycle-status" label="状态" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="lifecycleDraft.status" placeholder="retry / failed / no_op" /></FormField>
+        <template #advanced>
+          <FormField id="lifecycle-correlation" label="关联 ID" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="lifecycleDraft.correlationId" placeholder="correlation_id" /></FormField>
+          <FormField id="lifecycle-intent" label="Intent ID" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="lifecycleDraft.intentId" placeholder="intent_id" /></FormField>
+          <FormField id="lifecycle-workflow" label="Workflow ID" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="lifecycleDraft.workflowId" placeholder="workflow_id" /></FormField>
+          <FormField id="lifecycle-run" label="Run ID" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="lifecycleDraft.runId" placeholder="run_id" /></FormField>
+          <FormField id="lifecycle-surface" label="生命周期" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="lifecycleDraft.surface" placeholder="wake_up / reflection" /></FormField>
+        </template>
+        <template #actions><Button variant="ghost" type="button" :disabled="controlCenter.diagnosticsLoading" @click="controlCenter.exportDiagnostics">导出当前结果</Button></template>
+      </FilterPanel>
+      <div v-if="controlCenter.diagnosticsCorrelationFilter && currentSection !== 'kev-decisions'" class="active-filter"><span>关联筛选：{{shortId(controlCenter.diagnosticsCorrelationFilter)}}</span><Button variant="ghost" size="sm" type="button" @click="clearLifecycleFilters">清除关联筛选</Button></div>
+      <div v-if="controlCenter.diagnosticsLoading"><AsyncState loading loading-label="正在加载诊断信息…" /></div>
+      <div v-else-if="!controlCenter.diagnosticError && ((currentSection === 'lifecycle' && !controlCenter.lifecycleDiagnostics.length && !controlCenter.workflowIntentSnapshots.length) || (currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length && !controlCenter.diagnosticAgentRuns.length) || (currentSection === 'media-prompts' && !controlCenter.diagnosticMediaPrompts.length) || (currentSection === 'events' && !controlCenter.diagnostics.length))" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>{{ currentSection === 'lifecycle' ? '没有匹配的触发或工作流状态；可清除过滤查看全部。' : '该主题暂时没有可展示的诊断记录。' }}</p></div>
       <div v-else class="diagnostics-groups">
-      <label>显示时区 <select v-model="controlCenter.diagnosticDisplayTimezone"><option v-for="zone in displayTimezones" :key="zone" :value="zone">{{ zone }}</option></select></label>
-      <p v-if="controlCenter.diagnosticModelRuns.length > 20 || controlCenter.diagnosticAgentRuns.length > 20" class="field-note">已加载历史分页；点击刷新查看最新记录。</p>
+      <FormField id="diagnostic-timezone" class="diagnostic-timezone-field" label="显示时区" v-slot="{controlAttrs}"><ChoiceSelect v-bind="controlAttrs" v-model="controlCenter.diagnosticDisplayTimezone" :options="displayTimezones.map(zone=>({value:zone,label:zone}))" /></FormField>
+      <p v-if="controlCenter.diagnosticOlderPagesLoaded" class="field-note">已加载历史分页；点击刷新查看最新记录。</p>
       <KevDiagnostics v-if="currentSection==='kev-decisions'" />
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="diagnostics-accordion">
         <AccordionItem v-if="currentSection === 'lifecycle'" value="lifecycle" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">LIFECYCLE</p><h2>生命周期时间线</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.lifecycleDiagnostics.length }}</Badge></AccordionTrigger>
           <AccordionContent><div class="diagnostic-drawer-body lifecycle-timeline">
             <article v-for="event in controlCenter.lifecycleDiagnostics" :key="event.id" class="diagnostic-row lifecycle-row" :class="statusClass(event.status)">
-              <div class="diagnostic-meta"><strong>{{ event.surface }} · {{ event.transition }}</strong><Badge class="status-pill" :class="statusClass(event.status)" variant="secondary">{{ statusLabel(event.status) }}</Badge><small><time :datetime="event.occurredAt || event.createdAt">{{ formatRunTime(event.occurredAt || event.createdAt) }}</time> · {{ event.correlationId }}</small></div>
-              <p><strong>阶段：</strong>{{ event.stage || "unknown" }} <span v-if="event.reasonCode">· <strong>原因：</strong>{{ event.reasonCode }}</span></p>
+              <div class="diagnostic-meta"><strong>{{ eventTitle(event.surface) }} · {{ eventTitle(event.transition) }}</strong><Badge class="status-pill" :class="statusClass(event.status)" variant="secondary">{{ statusLabel(event.status) }}</Badge><small><time :datetime="event.occurredAt || event.createdAt">{{ formatRunTime(event.occurredAt || event.createdAt) }}</time> · {{ shortId(event.correlationId) }}</small></div>
+              <p><strong>阶段：</strong>{{ eventTitle(event.stage || "unknown") }} <span v-if="event.reasonCode">· <strong>原因：</strong>{{ eventTitle(event.reasonCode) }}</span></p>
               <p v-if="event.attempt || event.nextDueAt" class="diagnostic-meta-note"><template v-if="event.attempt">尝试 {{ event.attempt }}<template v-if="event.maxAttempts"> / {{ event.maxAttempts }}</template></template><template v-if="event.nextDueAt"> · 下次 {{ formatRunTime(event.nextDueAt) }}</template></p>
               <p v-if="event.safeCause || event.errorCode" class="diagnostic-error">{{ event.errorCode || event.reasonCode }}<template v-if="event.safeCause"> · {{ event.safeCause }}</template></p>
               <div class="diagnostic-actions"><Button v-if="event.workflowId" variant="outline" type="button" @click="openWorkflow(event.workflowId)">查看 Workflow</Button><Button v-if="event.modelRunId" variant="outline" type="button" @click="openModelRun(event.correlationId)">查看 Model Run</Button></div>
+              <JsonViewer :value="event" label="完整生命周期记录" />
             </article>
             <section v-if="controlCenter.workflowIntentSnapshots.length" class="intent-snapshot-list" aria-labelledby="intent-snapshot-title"><h3 id="intent-snapshot-title">PostgreSQL Intent 快照</h3><article v-for="intent in controlCenter.workflowIntentSnapshots" :key="intent.intentId" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ intent.intentType }}</strong><Badge class="status-pill" :class="statusClass(intent.status)" variant="secondary">{{ statusLabel(intent.status) }}</Badge><small>{{ intent.intentId }} · 尝试 {{ intent.attemptCount }}</small></div><p v-if="intent.nextAttemptAt">下次调度：{{ formatRunTime(intent.nextAttemptAt) }}</p><p v-if="intent.lastError" class="diagnostic-error">{{ intent.lastError }}</p><Button variant="outline" type="button" @click="openWorkflow(intent.runtimeWorkflowId || intent.workflowId)">查看 Workflow</Button></article></section>
           </div></AccordionContent>
@@ -205,8 +240,9 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><h2>Agent 运行</h2><Badge variant="secondary">{{ controlCenter.diagnosticAgentRuns.length }}</Badge></AccordionTrigger>
           <AccordionContent><div class="diagnostic-drawer-body">
             <article v-for="agent in controlCenter.diagnosticAgentRuns" :key="`${agent.fluctlightId}:${agent.agentId}:${agent.runId}`" class="diagnostic-row">
-              <div class="diagnostic-meta"><strong>{{ agent.agentId }}</strong><Badge variant="secondary">{{ statusLabel(agent.status) }}</Badge><time :datetime="agent.startedAt">{{ formatRunTime(agent.startedAt) }}</time></div>
-              <p v-if="agent.status === 'failed'" class="diagnostic-error">{{ agentFailureStageLabels[agent.failureStage || 'unknown'] || agent.failureStage }} · {{ agent.failureCode }}<template v-if="agent.safeCause"> · {{ agent.safeCause }}</template></p>
+              <div class="diagnostic-meta"><strong>{{ scenarioLabel(agent.agentId) }}</strong><Badge variant="secondary">{{ statusLabel(agent.status) }}</Badge><time :datetime="agent.startedAt">{{ formatRunTime(agent.startedAt) }}</time></div>
+              <FeedbackNotice v-if="agent.status === 'failed'" :message="userError(agent.failureCode)" :detail="[agent.failureStage,agent.failureCode,agent.safeCause].filter(Boolean).join(' · ')" />
+              <JsonViewer :value="agent" label="完整 Agent 记录" />
               <Button variant="outline" @click="openModelRun(agent.correlationId)">查看运行步骤</Button>
             </article>
             <div v-if="controlCenter.diagnosticAgentCursor" class="load-more-container">
@@ -220,11 +256,12 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">AGENT & MODEL RUNS</p><h2>运行诊断<small v-if="queueSummary" class="queue-summary"> · 队列 {{ queueSummary }}</small></h2></div><Badge class="count-pill" variant="secondary">{{ modelRunGroups.length }}</Badge></AccordionTrigger>
           <AccordionContent><div class="diagnostic-drawer-body">
             <section v-for="group in modelRunGroups" :key="group.id" class="model-run-group" :aria-label="`逻辑运行 ${group.id}`">
-              <h3>{{ scenarioLabel(group.runs[0]?.scenario || group.runs[0]?.role || group.agents[0]?.agentId || "agent") }} · {{ group.correlationId || group.id }}</h3>
+              <h3>{{ scenarioLabel(group.runs[0]?.scenario || group.runs[0]?.role || group.agents[0]?.agentId || "agent") }} · {{ shortId(group.correlationId || group.id) }}</h3>
               <article v-for="agent in group.agents" :key="agent.runId" class="diagnostic-row" :class="statusClass(agent.status)">
-                <div class="diagnostic-meta"><strong>{{ agent.source === 'termination_event' ? 'Agent 终止记录' : '逻辑 Agent' }} · {{ agent.agentId }}</strong><Badge class="status-pill" :class="statusClass(agent.status)" variant="secondary">{{ statusLabel(agent.status) }}</Badge><small>Run {{ agent.runId }} · {{ agent.source === 'termination_event' ? '记录' : '开始' }} {{ formatRunTime(agent.startedAt) }}<template v-if="agent.finishedAt && agent.source !== 'termination_event'"> · 结束 {{ formatRunTime(agent.finishedAt) }}</template></small></div>
+                <div class="diagnostic-meta"><strong>{{ agent.source === 'termination_event' ? 'Agent 终止记录' : '逻辑 Agent' }} · {{ scenarioLabel(agent.agentId) }}</strong><Badge class="status-pill" :class="statusClass(agent.status)" variant="secondary">{{ statusLabel(agent.status) }}</Badge><small>Run {{ agent.runId }} · {{ agent.source === 'termination_event' ? '记录' : '开始' }} {{ formatRunTime(agent.startedAt) }}<template v-if="agent.finishedAt && agent.source !== 'termination_event'"> · 结束 {{ formatRunTime(agent.finishedAt) }}</template></small></div>
                 <p v-if="agent.associationStatus === 'unknown'" class="field-note">与模型轮次的关联未知（旧记录）。</p>
-                <p v-if="agent.status === 'failed'" class="diagnostic-error"><strong>失败阶段：</strong>{{ agentFailureStageLabels[agent.failureStage || 'unknown'] || agent.failureStage }} · <strong>错误：</strong>{{ agent.failureCode || 'agent_run_failed' }}<template v-if="agent.safeCause"> · {{ agent.safeCause }}</template></p>
+                <FeedbackNotice v-if="agent.status === 'failed'" :message="userError(agent.failureCode)" :detail="[agentFailureStageLabels[agent.failureStage || 'unknown'],agent.failureCode,agent.safeCause].filter(Boolean).join(' · ')" />
+                <JsonViewer :value="agent" label="完整 Agent 记录" />
               </article>
               <p v-if="group.total > group.runs.length" class="field-note">当前筛选只显示 {{ group.runs.length }}/{{ group.total }} 次模型请求。</p>
               <p v-if="!group.runs.length" class="field-note">此运行没有可关联的物理模型记录。</p>
@@ -238,14 +275,16 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
                 <div v-if="run.goalEvaluation" class="goal-evaluation-settlement">
                   <p><strong>目标评估提交：</strong>{{run.goalEvaluation.status}}<span v-if="run.goalEvaluation.error_code"> · {{run.goalEvaluation.error_code}}</span></p>
                   <p class="field-note">模型 Response 是候选；目标是否完成以领域提交结果为准。暂停目标可能保留为待结算。</p>
-                  <details><summary>查看实际目标结算结果</summary><pre>{{pretty(run.goalEvaluation)}}</pre></details>
+                  <JsonViewer :value="run.goalEvaluation" label="查看实际目标结算结果" />
                 </div>
-                <p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p>
-                <details><summary>查看本次 Prompt <small v-if="isMetadataOnlyPrompt(run.prompt)" class="prompt-meta-note">（历史元数据记录）</small></summary><p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此历史记录只保存了元数据，原始提示词无法恢复。</p><pre>{{ diagnosticText(run.prompt) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.prompt) }}</pre></details></details>
-                <details v-if="run.response != null"><summary>查看本次 Response</summary><pre>{{ diagnosticText(run.response) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.response) }}</pre></details></details>
+                <FeedbackNotice v-if="run.errorCode" :message="userError(run.errorCode)" :detail="run.errorCode" />
+                <p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此历史记录只保存了元数据，原始提示词无法恢复。</p>
+                <JsonViewer :value="diagnosticText(run.prompt)" label="查看本次 Prompt" />
+                <JsonViewer :value="run.prompt" label="Prompt 消息结构" />
+                <template v-if="run.response != null"><JsonViewer :value="diagnosticText(run.response)" label="查看本次 Response" /><JsonViewer :value="run.response" label="Response 消息结构" /></template>
                 <p v-else class="field-note">本次请求尚无 Response。</p>
-                <details v-if="Array.isArray(run.tools) ? run.tools.length > 0 : run.tools != null"><summary>查看本次提供的 Tool<template v-if="Array.isArray(run.tools)"> ({{ run.tools.length }})</template></summary><pre>{{ pretty(run.tools) }}</pre></details>
-                <ul v-if="run.toolSummaries?.length" class="detail-list" aria-label="Tool 往返摘要"><li v-for="tool in run.toolSummaries" :key="tool.callId"><strong>{{ tool.capability }}</strong> · {{ tool.status }}<template v-if="tool.errorCode"> · {{ tool.errorCode }}</template></li></ul>
+                <JsonViewer v-if="Array.isArray(run.tools) ? run.tools.length > 0 : run.tools != null" :value="run.tools" :label="`查看本次提供的 Tool${Array.isArray(run.tools) ? ` (${run.tools.length})` : ''}`" />
+                <ul v-if="run.toolSummaries?.length" class="detail-list" aria-label="Tool 往返摘要"><li v-for="tool in run.toolSummaries" :key="tool.callId"><strong>{{ tool.capability }}</strong> · {{ displayStatus(tool.status) }}<template v-if="tool.errorCode"> · {{ tool.errorCode }}</template></li></ul>
               </article>
             </section>
             <div v-if="controlCenter.diagnosticModelCursor" class="load-more-container">
@@ -257,16 +296,27 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'media-prompts' && controlCenter.diagnosticMediaPrompts.length" value="media-prompts" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MEDIA PROMPTS</p><h2>媒体提示词</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticMediaPrompts.length }}</Badge></AccordionTrigger>
-          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="item in controlCenter.diagnosticMediaPrompts" :key="item.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ item.kind || "媒体生成" }}</strong><Badge class="status-pill" :class="statusClass(item.status)" variant="secondary">{{ statusLabel(item.status) }}</Badge><small><time class="diagnostic-time" :datetime="item.createdAt">{{ formatRunTime(item.createdAt) }}</time> · {{ item.correlationId }}</small></div><p v-if="item.providerPrompt" class="diagnostic-generated-prompt"><strong>媒体模型生成的 Prompt：</strong>{{ item.providerPrompt }}</p><p v-if="item.submittedPrompt && item.submittedPrompt !== item.providerPrompt" class="diagnostic-generated-prompt"><strong>ComfyUI 文本 Prompt：</strong>{{ item.submittedPrompt }}</p><p v-if="item.qualityVerdict" class="diagnostic-meta-note"><strong>质量检查：</strong>{{ item.qualityVerdict }}</p><p v-if="item.errorMessage" class="diagnostic-error"><strong>失败原因：</strong>{{ item.errorMessage }}<template v-if="item.failureStage">（阶段：{{ mediaFailureStageLabels[item.failureStage] || item.failureStage }}）</template><template v-if="item.attemptCount"> · 第 {{ item.attemptCount }} 次尝试</template></p><p v-if="item.modelRun?.status === 'failed' && !item.errorMessage" class="diagnostic-error"><strong>提示词模型失败：</strong>{{ item.modelRun.errorCode || "未知错误" }}</p><div v-if="item.status === 'failed'" class="diagnostic-actions"><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving" @click="controlCenter.retryMediaPrompt(item.mediaIntentId)">{{ controlCenter.saving ? "重试中..." : "重试" }}</Button></div><details v-if="item.requestPayload"><summary>实际发送给 ComfyUI 的 JSON</summary><pre>{{ pretty(item.requestPayload) }}</pre></details><details v-else><summary>查看媒体请求</summary><pre>{{ pretty(item.prompt) }}</pre></details><details v-if="item.modelRun"><summary>查看提示词模型运行</summary><pre>{{ pretty(item.modelRun) }}</pre></details></article></div></AccordionContent>
+          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="item in controlCenter.diagnosticMediaPrompts" :key="item.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ item.kind === "image" ? "图片生成" : item.kind || "媒体生成" }}</strong><Badge class="status-pill" :class="statusClass(item.status)" variant="secondary">{{ statusLabel(item.status) }}</Badge><small><time class="diagnostic-time" :datetime="item.createdAt">{{ formatRunTime(item.createdAt) }}</time> · {{ item.correlationId }}</small></div><p v-if="item.providerPrompt" class="diagnostic-generated-prompt"><strong>媒体模型生成的 Prompt：</strong>{{ item.providerPrompt }}</p><p v-if="item.submittedPrompt && item.submittedPrompt !== item.providerPrompt" class="diagnostic-generated-prompt"><strong>ComfyUI 文本 Prompt：</strong>{{ item.submittedPrompt }}</p><p v-if="item.qualityVerdict" class="diagnostic-meta-note"><strong>质量检查：</strong>{{ displayStatus(item.qualityVerdict) }}</p><p v-if="item.errorMessage" class="diagnostic-error"><strong>失败原因：</strong>{{ item.errorMessage }}<template v-if="item.failureStage">（阶段：{{ mediaFailureStageLabels[item.failureStage] || item.failureStage }}）</template><template v-if="item.attemptCount"> · 第 {{ item.attemptCount }} 次尝试</template></p><p v-if="item.modelRun?.status === 'failed' && !item.errorMessage" class="diagnostic-error"><strong>提示词模型失败：</strong>{{ userError(item.modelRun.errorCode) }}</p><div v-if="item.status === 'failed'" class="diagnostic-actions"><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving" @click="controlCenter.retryMediaPrompt(item.mediaIntentId)">{{ controlCenter.saving ? "重试中..." : "重试" }}</Button></div><JsonViewer :value="item.requestPayload ?? item.prompt" :label="item.requestPayload ? '实际发送给 ComfyUI 的 JSON' : '查看媒体请求'" /><JsonViewer v-if="item.modelRun" :value="item.modelRun" label="查看提示词模型运行" /></article></div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'events' && controlCenter.diagnostics.length" value="events" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">EVENTS</p><h2>系统事件</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnostics.length }}</Badge></AccordionTrigger>
-          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="event in controlCenter.diagnostics" :key="event.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ event.eventType }}</strong><Badge class="status-pill" variant="secondary">{{ event.severity }}</Badge><small>{{ event.correlationId }}</small></div><pre>{{ pretty(event.payload) }}</pre></article></div></AccordionContent>
+          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="event in controlCenter.diagnostics" :key="event.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ eventTitle(event.eventType) }}</strong><Badge class="status-pill" variant="secondary">{{ displayStatus(event.severity) }}</Badge><small>{{ shortId(event.correlationId) }}</small></div><p v-if="eventSummary(event.payload).time" class="field-hint"><time :datetime="eventSummary(event.payload).time">{{formatRunTime(eventSummary(event.payload).time)}}</time></p><p v-if="eventSummary(event.payload).reason" class="field-hint">{{eventSummary(event.payload).reason}}</p><JsonViewer :value="{eventType:event.eventType,correlationId:event.correlationId,payload:event.payload}" label="查看事件原始数据" /></article></div></AccordionContent>
         </AccordionItem>
       </Accordion>
       </div>
 
-      <details v-if="currentSection === 'workflows'" class="advanced-section" open><summary class="section-heading"><div><p class="eyebrow">ADVANCED</p><h2>工作流控制</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary><p class="field-note">仅在需要排查运行时问题时使用暂停、取消、重启或 Reset。</p><div class="action-grid"><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.workflowListLoading" @click="controlCenter.loadWorkflows()">刷新工作流列表</Button></div><p v-if="controlCenter.workflowListLoading" class="field-note" role="status">正在加载工作流列表...</p><p v-if="controlCenter.diagnosticsWarning" class="error-banner" role="alert">{{ controlCenter.diagnosticsWarning }}</p><form class="stack-form" @submit.prevent="controlCenter.queryWorkflowStatus"><label for="workflow-id">工作流 ID<Input id="workflow-id" v-model="controlCenter.workflowId" placeholder="输入工作流 ID" /></label><label for="workflow-history-point">Reset history point<Input id="workflow-history-point" v-model="controlCenter.workflowHistoryPoint" type="number" min="1" step="1" /></label><div class="action-grid"><Button class="secondary-button" variant="outline" type="submit" :disabled="!controlCenter.workflowId.trim()">查询状态</Button><Button class="secondary-button" variant="outline" type="button" :disabled="!controlCenter.workflowId.trim()" @click="controlCenter.queryWorkflowHistory">查看历史</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('pause')">暂停</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('resume')">恢复</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('cancel')">取消</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.restartWorkflow">重启</Button><Button class="danger-outline-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim() || !controlCenter.workflowHistoryPoint" @click="controlCenter.resetWorkflow">Reset</Button></div></form><pre v-if="controlCenter.workflowStatus">{{ pretty(controlCenter.workflowStatus) }}</pre><pre v-if="controlCenter.workflowHistory">{{ pretty(controlCenter.workflowHistory) }}</pre><ul v-if="controlCenter.workflows.length" class="workflow-list"><li v-for="workflow in controlCenter.workflows" :key="workflowIdFor(workflow)"><Button class="text-button" variant="ghost" type="button" @click="controlCenter.workflowId = workflowIdFor(workflow); controlCenter.queryWorkflowStatus()">{{ workflowIdFor(workflow) || "未知工作流" }}</Button></li></ul></details>
+      <section v-if="currentSection === 'workflows'" class="product-section workflow-control">
+        <div class="planning-actions"><h3>工作流控制</h3><Button variant="outline" type="button" :disabled="controlCenter.workflowListLoading" @click="controlCenter.loadWorkflows()"><RefreshCw :size="16" aria-hidden="true" />刷新工作流列表</Button></div>
+        <p class="section-intro">列表展示各次运行。查询和控制作用于工作流当前运行；历史 Run 可能与当前运行不同。</p>
+        <FeedbackNotice :message="controlCenter.diagnosticsWarning" />
+        <form class="stack-form" novalidate @submit.prevent="controlCenter.queryWorkflowStatus"><label for="workflow-id">工作流 ID<Input id="workflow-id" v-model="controlCenter.workflowId" placeholder="输入工作流 ID" /></label><div class="form-actions"><Button variant="outline" type="submit" :disabled="!controlCenter.workflowId.trim()">查询当前状态</Button><Button variant="outline" type="button" :disabled="!controlCenter.workflowId.trim()" @click="controlCenter.queryWorkflowHistory">查看历史</Button></div></form>
+        <section v-if="controlCenter.workflowStatus && currentWorkflow" class="workflow-current"><div class="diagnostic-meta"><strong>当前运行</strong><Badge variant="secondary">{{displayStatus(currentWorkflow.status)}}</Badge></div><p class="field-hint">Run {{currentWorkflow.runId ? shortId(currentWorkflow.runId) : '未知'}}</p><p v-if="currentWorkflow.startedAt" class="field-hint">{{formatRunTime(currentWorkflow.startedAt)}}</p><JsonViewer :value="controlCenter.workflowStatus" label="完整当前工作流状态" /></section>
+        <JsonViewer v-if="controlCenter.workflowHistory" :value="controlCenter.workflowHistory" label="工作流历史" />
+        <details class="product-disclosure"><summary><span>运行控制（高级）</span><ChevronDown :size="18" aria-hidden="true" /></summary><p class="field-hint">暂停、取消、重启和重置会改变运行状态，请先核对工作流 ID。</p><label for="workflow-history-point">重置到历史位置<Input id="workflow-history-point" v-model="controlCenter.workflowHistoryPoint" type="number" min="1" step="1" /></label><div class="form-actions"><Button variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('pause')">暂停</Button><Button variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('resume')">恢复</Button><Button variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('cancel')">取消</Button><Button variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.restartWorkflow">重启</Button><Button variant="destructive" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim() || !controlCenter.workflowHistoryPoint" @click="controlCenter.resetWorkflow">重置运行</Button></div></details>
+        <AsyncState :loading="controlCenter.workflowListLoading" :empty="!workflowRows.length && !controlCenter.diagnosticsWarning" loading-label="正在加载工作流列表…" empty-label="暂无工作流记录">
+          <ul class="workflow-rows"><li v-for="workflow in workflowRows" :key="workflow.key"><div class="diagnostic-meta"><strong>{{shortId(workflow.workflowId) || '未知工作流'}}</strong><Badge variant="secondary">{{displayStatus(workflow.status)}}</Badge></div><p class="field-hint">Run {{workflow.runId ? shortId(workflow.runId) : '未知'}}</p><p v-if="workflow.startedAt" class="field-hint"><time :datetime="workflow.startedAt">{{formatRunTime(workflow.startedAt)}}</time><template v-if="workflow.finishedAt"> · 结束 {{formatRunTime(workflow.finishedAt)}}</template></p><Button variant="outline" type="button" :disabled="!workflow.workflowId" @click="selectWorkflow(workflow.workflowId)">查询此工作流当前状态</Button><JsonViewer :value="workflow.raw" label="完整工作流与 Run 信息" /></li></ul>
+        </AsyncState>
+      </section>
     </template>
   </section>
 </template>

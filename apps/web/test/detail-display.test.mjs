@@ -74,8 +74,8 @@ test("detail exposes a Chinese progressive state drawer", () => {
   assert.match(stylesSource, /\.state-metric-grid/);
 });
 
-test("governance exposes an owner-triggered Wake-up action", () => {
-  assert.match(detailSource, /controlCenter\.triggerWakeUp\(store\.selectedFluctlight\.id\)/);
+test("read-only details keep Wake-up mutations in explicit governance", () => {
+  assert.doesNotMatch(detailSource, /triggerWakeUp/);
   assert.match(governanceSource, /立即唤醒/);
   assert.match(governanceSource, /controlCenter\.triggerWakeUp\(store\.fluctlightId\)/);
   assert.match(controlCenterSource, /async triggerWakeUp\(fluctlightId: string \| null\)/);

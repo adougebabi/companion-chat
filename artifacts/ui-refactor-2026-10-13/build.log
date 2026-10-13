@@ -1,0 +1,21 @@
+$ pnpm -r build
+Scope: 3 of 4 workspace projects
+apps/web build$ vite build
+apps/web build: vite v7.1.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 2570 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                                                                 0.54 kB │ gzip:   0.33 kB
+apps/web build: dist/assets/DiagnosticsView-CJi9Pldg.css                                        4.00 kB │ gzip:   1.11 kB
+apps/web build: dist/assets/index-CUlKn4Av.css                                                137.15 kB │ gzip:  24.43 kB
+apps/web build: dist/assets/AccordionTrigger.vue_vue_type_script_setup_true_lang-CP3mtEke.js   12.75 kB │ gzip:   4.20 kB
+apps/web build: dist/assets/SettingsView-I-xdafF0.js                                           42.05 kB │ gzip:  12.82 kB
+apps/web build: dist/assets/DiagnosticsView-CdJCb-5J.js                                        45.22 kB │ gzip:  13.84 kB
+apps/web build: dist/assets/index-CHsrqIax.js                                                 503.38 kB │ gzip: 153.64 kB
+apps/web build: ✓ built in 2.56s
+apps/web build: (!) Some chunks are larger than 500 kB after minification. Consider:
+apps/web build: - Using dynamic import() to code-split the application
+apps/web build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+apps/web build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+apps/web build: Done

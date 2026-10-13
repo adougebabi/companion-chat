@@ -187,7 +187,7 @@ func TestBrowserHandlerRejectsUnknownAPIRouteAndInvalidOrigin(t *testing.T) {
 }
 
 func TestActorUserSettingsBoundaryKeepsSubjectServerOwnedAndNullExplicit(t *testing.T) {
-	good := map[string]any{"background": map[string]any{"name": "Vinson", "timezone": nil, "meeting_confirmed": false}, "operation": "correct", "reason": "owner settings", "idempotencyKey": "user-1", "expectedCurrentFactsRevision": "facts_gen_1"}
+	good := map[string]any{"background": map[string]any{"name": "Fixture Owner", "occupation": "编辑", "background": "验收资料", "interests": "绘画", "preferences": nil, "location_scope": "同城", "location": "上海", "timezone": nil, "relationship_distance": "线上交流", "meeting_confirmed": false}, "operation": "correct", "reason": "owner settings", "idempotencyKey": "user-1", "expectedCurrentFactsRevision": "facts_gen_1"}
 	if !validateActorUserBackgroundUpdate(good) {
 		t.Fatal("explicit null/false rejected")
 	}
@@ -203,5 +203,26 @@ func TestActorUserSettingsBoundaryKeepsSubjectServerOwnedAndNullExplicit(t *test
 	}
 	if validateActorUserInput(map[string]any{"background": map[string]any{"meeting_confirmed": "false"}}) {
 		t.Fatal("string boolean accepted")
+	}
+	if validateActorUserInput(map[string]any{"background": map[string]any{"unsupported": nil}}) {
+		t.Fatal("unknown background field accepted")
+	}
+	for _, key := range []string{"interests", "preferences"} {
+		for _, value := range []any{nil, "阅读"} {
+			if !validateActorUserInput(map[string]any{"background": map[string]any{key: value}}) {
+				t.Fatalf("supported %s=%v rejected", key, value)
+			}
+		}
+		if validateActorUserInput(map[string]any{"background": map[string]any{key: []string{"阅读"}}}) {
+			t.Fatalf("non-string %s accepted", key)
+		}
+	}
+	good["reason"] = strings.Repeat("明", 500)
+	if !validateActorUserBackgroundUpdate(good) {
+		t.Fatal("500-character Owner reason rejected")
+	}
+	good["reason"] = strings.Repeat("明", 501)
+	if validateActorUserBackgroundUpdate(good) {
+		t.Fatal("501-character Owner reason accepted")
 	}
 }

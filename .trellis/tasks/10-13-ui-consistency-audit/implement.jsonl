@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端结构与规范索引"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "组件、安全文本、焦点和样式归属"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "草稿/时区/分页/轮询/导航状态契约"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "构建、详情与窄屏验证门禁"}
+{"file": ".trellis/spec/frontend/goal-planner-governance-contract.md", "reason": "Goal与Actor CAS、幂等和草稿保护"}
+{"file": ".trellis/spec/backend/fluctlight-configuration-contract.md", "reason": "设置存储与敏感字段边界"}
+{"file": ".trellis/spec/backend/fluctlight-diagnostics-contract.md", "reason": "原始Owner数据、独立诊断与有效保留规则"}
+{"file": ".trellis/tasks/10-13-ui-consistency-audit/research/implementation-evidence.md", "reason": "两期补充源码和验证设施证据"}
+{"file": ".trellis/spec/frontend/product-ui-contract.md", "reason": "共享控件、反馈、表单和无损配置契约"}
+{"file": ".trellis/spec/backend/fluctlight-bff-contract.md", "reason": "Owner十字段浏览器边界与真实路由验证"}

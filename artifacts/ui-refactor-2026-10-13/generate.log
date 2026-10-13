@@ -1,0 +1,4 @@
+$ pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/browser-client generate:openapi && pnpm --filter @fluctlight/browser-client generate
+$ node scripts/generate.mjs
+$ node scripts/generate-openapi.mjs
+$ node scripts/generate.mjs

@@ -1,19 +1,102 @@
 <script setup lang="ts">
-import {ref,watch} from 'vue';
-import {BrowserClient,BrowserApiError,type BrowserActorContext} from '@fluctlight/browser-client';
-import Button from '@/components/ui/button/Button.vue';
+import { ref, watch, computed } from 'vue';
+import { BrowserClient, BrowserApiError, type BrowserActorContext } from '@fluctlight/browser-client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronDown, RefreshCw } from '@lucide/vue';
+import FormField from '../product/FormField.vue';
+import FeedbackNotice from '../product/FeedbackNotice.vue';
+import AsyncState from '../product/AsyncState.vue';
+import JsonViewer from '../product/JsonViewer.vue';
+import { actorUserBackgroundFields, backgroundFromDraft, backgroundDraft } from '../../lib/actor-user-background';
+import { validateFields } from '../../lib/form-validation';
+import { focusField } from "../../composables/use-form-errors";
+import { userError, shortId } from '../../lib/user-feedback';
 import { randomId } from '../../random-id';
-import {apiOrigin} from '../../runtime-config';
-const props=defineProps<{fluctlightId:string;actors:{id:string;label:string}[]}>();
-const client=new BrowserClient(apiOrigin),target=ref(''),context=ref<BrowserActorContext|null>(null),busy=ref(false),error=ref(''),notice=ref(''),reason=ref('');
-const draft=ref<Record<string,string>>({});const fields=[['name','显示身份'],['occupation','职业'],['background','背景'],['interests','稳定兴趣'],['preferences','偏好'],['location','粗粒度所在地（可未知）'],['location_scope','地点背景'],['timezone','IANA时区（可未知）']] as const;
-let epoch=0;let pending:string|null=null;
-async function load(keepDraft=false){const e=++epoch;busy.value=true;try{const value=await client.actorContext(props.fluctlightId,target.value);if(e!==epoch)return;context.value=value;if(!keepDraft){draft.value=Object.fromEntries(fields.map(([key])=>[key,String(value.background[key]??'')]));pending=null;}error.value='';}catch(c){if(e===epoch)error.value=String(c);}finally{if(e===epoch)busy.value=false;}}
-async function save(){if(!context.value)return;const e=epoch;busy.value=true;pending??=randomId();try{const value=await client.updateActorContext(props.fluctlightId,target.value,{expectedContextVersion:context.value.context_version,idempotencyKey:pending!,operation:'change',reason:reason.value,background:Object.fromEntries(fields.map(([key])=>[key,draft.value[key]?.trim()||null]))});if(e!==epoch)return;context.value=value;pending=null;notice.value='背景已生效；相关目标与尚未启动的行动需要复核。配置修改不会被当作对方回应。';error.value='';}catch(c){if(e===epoch)error.value=c instanceof BrowserApiError&&c.status===409?'版本冲突，草稿已保留。请读取新版本后再保存。':String(c);}finally{if(e===epoch)busy.value=false;}}
-watch(()=>props.fluctlightId,()=>{epoch++;context.value=null;target.value=props.actors[0]?.id??'';draft.value={};pending=null;notice.value='';},{immediate:true});
-watch(()=>[props.fluctlightId,target.value],()=>{context.value=null;pending=null;notice.value='';if(target.value)void load();},{immediate:true});
-watch(()=>props.actors,()=>{if(!target.value&&props.actors.length)target.value=props.actors[0]!.id;});
+import { apiOrigin } from '../../runtime-config';
+
+const props = defineProps<{ fluctlightId: string; actors: { id: string; label: string }[]; ownerActorId?: string | null }>();
+const client = new BrowserClient(apiOrigin);
+const target = ref(''), context = ref<BrowserActorContext | null>(null), busy = ref(false), error = ref(''), notice = ref(''), reason = ref('');
+const operation = ref<'correct' | 'change'>('correct');
+const draft = ref<Record<string, string>>({}), fieldErrors = ref<Record<string, string>>({});
+const ownerRevision = ref(''), dirty = ref(false);
+const isOwner = computed(() => Boolean(props.ownerActorId) && target.value === props.ownerActorId);
+const fields = actorUserBackgroundFields;
+let epoch = 0, restoring = false;
+let pending: { fingerprint: string; key: string } | null = null;
+
+async function load(keepDraft = false) {
+  const e = ++epoch, instanceId = props.fluctlightId, actorId = target.value, owner = isOwner.value;
+  if (!actorId || !instanceId) { context.value = null; busy.value = false; return; }
+  busy.value = true; error.value = '';
+  try {
+    const [value, detail] = await Promise.all([client.actorContext(instanceId, actorId), owner ? client.detail(instanceId) : Promise.resolve(null)]);
+    if (e !== epoch || actorId !== target.value || instanceId !== props.fluctlightId) return;
+    context.value = value;
+    ownerRevision.value = owner ? String(detail?.current_facts_revision ?? '') : '';
+    if (owner && detail?.actor_user) context.value = { ...value, background: detail.actor_user.background };
+    if (!keepDraft) { restoring = true; draft.value = backgroundDraft(context.value.background); restoring = false; dirty.value = false; }
+    pending = null;
+  } catch (cause) { if (e === epoch) error.value = userError(cause, '无法读取背景资料，请重试。'); }
+  finally { if (e === epoch) busy.value = false; }
+}
+async function save() {
+  if (!context.value || busy.value) return;
+  fieldErrors.value = validateFields([
+    { id: 'actor-change-reason', label: '修改说明', value: reason.value, required: true, maxLength: isOwner.value ? 500 : undefined, maxBytes: isOwner.value ? undefined : 1000 },
+    ...fields.filter(field => field.key !== 'meeting_confirmed').map(field => ({ id: `actor-field-${field.key}`, label: field.label, value: draft.value[field.key], kind: field.key === 'timezone' ? 'timezone' as const : undefined, maxLength: 1024 })),
+  ]);
+  if (Object.keys(fieldErrors.value).length) { await focusField(Object.keys(fieldErrors.value)[0]); return; }
+  const e = epoch, instanceId = props.fluctlightId, actorId = target.value, owner = isOwner.value;
+  const background = backgroundFromDraft(draft.value);
+  const body = { background, operation: operation.value, reason: reason.value.trim() };
+  const version = owner ? ownerRevision.value : context.value.context_version;
+  if (!version) { error.value = '当前版本尚未读取，请重新读取后保存。'; return; }
+  const fingerprint = JSON.stringify({ instanceId, actorId, owner, version, ...body });
+  if (pending?.fingerprint !== fingerprint) pending = { fingerprint, key: randomId() };
+  busy.value = true; error.value = ''; notice.value = '';
+  try {
+    if (owner) await client.updateActorUserBackground(instanceId, { ...body, expectedCurrentFactsRevision: version, idempotencyKey: pending!.key });
+    else await client.updateActorContext(instanceId, actorId, { ...body, expectedContextVersion: version, idempotencyKey: pending!.key });
+    if (e !== epoch || instanceId !== props.fluctlightId || actorId !== target.value) return;
+    pending = null;
+    await load();
+    if (instanceId === props.fluctlightId && actorId === target.value) notice.value = '背景已保存。相关目标与尚未启动的行动需要复核；资料修改不会被当作对方回应。';
+  } catch (cause) {
+    if (e === epoch) error.value = cause instanceof BrowserApiError && cause.status === 409 ? '资料或当前状态已变化，草稿已保留。请读取新版本后核对再保存。' : userError(cause, '无法保存背景资料，草稿已保留。');
+  } finally { if (e === epoch) busy.value = false; }
+}
+function resetTarget() {
+  epoch++; context.value = null; draft.value = {}; reason.value = ''; fieldErrors.value = {}; pending = null; notice.value = ''; error.value = ''; dirty.value = false;
+}
+watch(() => props.fluctlightId, () => { resetTarget(); target.value = props.actors.find(actor => actor.id === props.ownerActorId)?.id ?? props.actors[0]?.id ?? ''; }, { immediate: true });
+watch(() => [props.fluctlightId, target.value], () => { resetTarget(); if (target.value) void load(); else busy.value = false; }, { immediate: true });
+watch(() => props.actors, () => { if (!target.value && props.actors.length) target.value = props.actors.find(actor => actor.id === props.ownerActorId)?.id ?? props.actors[0]!.id; });
+watch(draft, () => { if (!restoring) dirty.value = true; }, { deep: true, flush: 'sync' });
 </script>
-<template><section class="actor-context-editor" aria-label="Actor背景与配置修订"><h3>Actor背景与配置来源</h3><label>对象<select v-model="target"><option v-for="a in actors" :key="a.id" :value="a.id">{{a.label}}</option></select></label><p v-if="error" role="alert">{{error}}</p><p v-if="notice" role="status">{{notice}}</p><form v-if="context" @submit.prevent="save"><label v-for="[key,label] in fields" :key="key">{{label}}<input v-model="draft[key]" maxlength="1024" /></label><label>变更说明<input v-model="reason" required maxlength="1000" /></label><div><Button :disabled="busy||!reason.trim()">保存背景</Button><Button type="button" variant="outline" :disabled="busy" @click="load(true)">读取新版本并保留草稿</Button></div></form><details v-if="context"><summary>来源、版本与有效期</summary><p>配置版本 {{context.context_version}}</p><p v-for="f in context.history" :key="String(f.fact_id)">{{f.attribute}}：{{f.value}} · {{f.epistemic_kind}} · {{f.revision}} · {{f.effective_at}} – {{f.valid_until||'当前'}} · {{f.source_ref}}</p><h4>关系配置修订</h4><p v-for="r in context.relationship_history" :key="String(r.id)">{{r.created_at}} · 修订 {{r.revision}} · {{r.summary}}</p></details></section></template>
-<style scoped>.actor-context-editor{display:grid;gap:12px;padding:16px;border:1px solid var(--surface-border);border-radius:16px;background:var(--surface-glass);min-width:0}form{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}label{display:grid;gap:6px}input,select{width:100%;padding:8px;border:1px solid var(--surface-border);border-radius:8px;box-sizing:border-box}p{overflow-wrap:anywhere}form div{display:flex;flex-wrap:wrap;gap:8px}@media(max-width:640px){form{grid-template-columns:minmax(0,1fr)}}.actor-context-editor :deep(.bg-primary) { color: var(--primary-foreground); }
-</style>
+<template>
+  <section class="product-section actor-context-editor" aria-label="背景资料与修订">
+    <div class="planning-actions"><h3>背景资料</h3><span v-if="dirty" class="draft-indicator">有未保存修改</span></div>
+    <p class="section-intro">这里编辑交流对象的资料。留空表示未知，时区不从设备或人格推断。</p>
+    <FormField id="actor-target" label="编辑对象" v-slot="{controlAttrs}"><Select v-model="target"><SelectTrigger v-bind="controlAttrs" :disabled="busy"><SelectValue placeholder="选择对象" /></SelectTrigger><SelectContent><SelectItem v-for="actor in actors" :key="actor.id" :value="actor.id">{{actor.label}}</SelectItem></SelectContent></Select></FormField>
+    <FeedbackNotice :message="context ? error : ''" /><FeedbackNotice :message="notice" tone="success" />
+    <AsyncState :loading="busy && !context" :error="!context ? error : ''" retryable @retry="load()" :empty="!target" loading-label="正在读取背景资料…" empty-label="暂无可编辑对象">
+      <form v-if="context" class="stack-form actor-background-form" novalidate @submit.prevent="save">
+        <fieldset class="form-grid" :disabled="busy">
+          <FormField v-for="field in fields" :key="field.key" :id="`actor-field-${field.key}`" :label="field.label" v-model:error="fieldErrors[`actor-field-${field.key}`]" :class="{ 'full-width': ['background','interests','preferences'].includes(field.key) }" v-slot="{controlAttrs}">
+            <Select v-if="field.key === 'meeting_confirmed'" v-model="draft[field.key]"><SelectTrigger v-bind="controlAttrs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">未确认</SelectItem><SelectItem value="true">已约定</SelectItem><SelectItem value="false">未约定</SelectItem></SelectContent></Select>
+            <Textarea v-else-if="['background','interests','preferences'].includes(field.key)" v-bind="controlAttrs" v-model="draft[field.key]" maxlength="1024" rows="3" placeholder="未填写 / 未确认" />
+            <Input v-else v-bind="controlAttrs" v-model="draft[field.key]" maxlength="1024" :placeholder="field.key === 'timezone' ? 'Asia/Shanghai，可留空' : '未填写 / 未确认'" />
+          </FormField>
+          <FormField id="actor-operation" label="这次修改的含义" class="full-width" v-slot="{controlAttrs}"><Select v-model="operation"><SelectTrigger v-bind="controlAttrs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="correct">纠正原信息：之前的内容不正确</SelectItem><SelectItem value="change">情况发生变化：之前正确，现在改变了</SelectItem></SelectContent></Select></FormField>
+          <FormField id="actor-change-reason" label="修改说明" required v-model:error="fieldErrors['actor-change-reason']" class="full-width" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" v-model="reason" :maxlength="isOwner ? 500 : 1000" placeholder="例如：补充资料，或生活安排发生变化" /></FormField>
+        </fieldset>
+        <div class="form-actions"><Button type="submit" :disabled="busy">{{busy ? '正在保存…' : '保存背景资料'}}</Button><Button type="button" variant="outline" :disabled="busy" @click="load(true)"><RefreshCw :size="16" aria-hidden="true" />读取新版本并保留草稿</Button><Button type="button" variant="ghost" :disabled="busy" @click="load(false)">放弃草稿并重新读取</Button></div>
+      </form>
+      <details v-if="context" class="product-disclosure actor-provenance"><summary><span>来源、版本与修订历史</span><ChevronDown :size="18" aria-hidden="true" /></summary><p class="field-hint">对象 {{shortId(context.actor_id)}} · {{isOwner ? '当前事实版本' : '背景版本'}} {{shortId(isOwner ? ownerRevision : context.context_version)}}</p><JsonViewer :value="{facts:context.facts,history:context.history,relationships:context.relationships,relationship_history:context.relationship_history}" label="查看完整来源与历史" /></details>
+    </AsyncState>
+  </section>
+</template>

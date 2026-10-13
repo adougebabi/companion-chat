@@ -65,17 +65,18 @@ test("control center exposes the required product views", async () => {
   assert.match(source, /Fluctlight 实例/);
   assert.match(source, /创建 Fluctlight/);
   assert.match(source, /media\.comfyui/);
-  assert.match(source, /MEDIA PROVIDER/);
+  assert.match(source, /保存媒体设置/);
 });
 
 test("owner password change explains its policy without trapping the submit button", async () => {
   const source = vueSource;
   assert.match(source, /id="owner-password"/);
   assert.match(source, /新密码至少 6 个字符/);
-  assert.match(source, /id="setup-password"[^>]*minlength="6"/);
-  assert.match(source, /id="auth-password"[^>]*minlength="6"/);
+  assert.match(source, /id="setup-password"/);
+  assert.match(source, /id="auth-password"/);
   assert.match(source, /v-if="store\.authError"/);
-  assert.match(source, /:disabled="store\.authLoading \|\| !changedOwnerPassword"/);
+  assert.match(source, /minLength:6/);
+  assert.match(source, /:disabled="store\.authLoading"/);
   assert.doesNotMatch(source, /changedOwnerPassword\.length < 6/);
 });
 
@@ -94,7 +95,7 @@ test("web uses the secure random-ID compatibility helper instead of randomUUID d
 test("creation dialog presents activation failures where the user can act on them", async () => {
   const source = vueSource;
   assert.match(source, /<Dialog[\s\S]*<DialogContent[^>]*class="create-surface"/);
-  assert.match(source, /class="create-dialog-body"[\s\S]*controlCenter\.error/);
+  assert.match(source, /class="create-dialog-body"[\s\S]*controlCenter\.creationError/);
   assert.match(source, /class="create-dialog-footer"/);
   assert.match(source, /form="activate-preview-form"/);
   assert.match(source, /预览必须包含 core_persona/);
