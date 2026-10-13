@@ -19,7 +19,7 @@ type factOnlyReplyCapability struct {
 func (c factOnlyReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
 	d.Version = "fact_only.v1"
-	d.Description = "Generate the independent persona reply from authoritative context and publish it. Supply only offered facts/result references; never compose text or prescribe social strategy. Consume needs_action results through real media tools, then resume the same draft."
+	d.Description = "Generate the independent persona reply from authoritative context and publish it. evidence_refs is optional: use only offered actionable context ref fields, never historical message/source_refs. The Writer reads context and history itself. Never compose text or prescribe social strategy. Consume needs_action results through real media tools, then resume the same draft."
 	properties := map[string]any{
 		"evidence_refs": map[string]any{"type": "array", "maxItems": 24, "items": stringSchema()},
 		"draft_ref":     stringSchema(), "action_result_refs": map[string]any{"type": "array", "maxItems": 8, "items": stringSchema()},
@@ -206,6 +206,11 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	if run.AssignmentError != nil && run.Settings.FailurePolicy != "legacy_fallback" {
 		return ReplyDraft{}, ref, newCapabilityError(run.AssignmentError.Error(), false, run.AssignmentError)
 	}
+	// Reject correctable evidence input before acquiring a durable generation lease.
+	projection, evidenceFacts, err := s.resolveReplyEvidence(ctx, invocation, run, args.EvidenceRefs)
+	if err != nil {
+		return ReplyDraft{}, ref, err
+	}
 	owner := randomID("reply_generation_")
 	safeAssignment := run.Assignment
 	safeAssignment.Secret = ""
@@ -222,7 +227,7 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	if err != nil {
 		return ReplyDraft{}, ref, err
 	}
-	draft, generationErr := s.generate(ctx, invocation, run, ref, args.EvidenceRefs)
+	draft, generationErr := s.generateFromProjection(ctx, invocation, run, ref, projection, evidenceFacts)
 	if generationErr != nil {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cleanupCancel()
@@ -256,27 +261,19 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	return draft, ref, nil
 }
 
-func (s *factOnlyReplyService) generate(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, ref string, evidenceRefs []string) (ReplyDraft, error) {
+func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, evidenceRefs []string) (ContextProjection, []map[string]any, error) {
 	projection, err := s.app.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: invocation.Metadata.AuthorizationActorID,
 		SpeakerActorID: firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID), SourceFactID: invocation.SourceFactID,
 		FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, WorkingProfileID: invocation.Metadata.WorkingProfileID,
 		CurrentUserText: run.CurrentInput, MemoryOperation: MemoryForConversation, MemoryConversationMode: MemoryConversationExact})
 	if err != nil {
-		return ReplyDraft{}, err
+		return ContextProjection{}, nil, err
 	}
 	var toolFacts []map[string]any
-	run.mu.Lock()
-	for _, state := range run.ActionFacts {
-		toolFacts = append(toolFacts, map[string]any{"kind": "media_action_result", "value": map[string]any{"kind": state.Kind, "intent": state.Intent, "status": state.Status, "error_code": state.ErrorCode}, "observation": "仅证明工具实际状态；ready表示文件可用，不证明已视觉检验或已发送。不要新增媒体请求，只基于这些结果自主完成正文。"})
-	}
-	if run.ActionDraftText != "" {
-		toolFacts = append(toolFacts, map[string]any{"kind": "private_candidate_text", "value": run.ActionDraftText, "authority": "未发送草稿，按本次真实媒体结果局部调整；不能作为状态证据"})
-	}
-	run.mu.Unlock()
 	for _, ref := range evidenceRefs {
 		entry, exists := replyEvidenceEntry(invocation, projection, ref)
 		if !exists {
-			return ReplyDraft{}, newCapabilityError("reply_evidence_not_authorized", false, ErrInvalidArguments)
+			return ContextProjection{}, nil, newCapabilityError("reply_evidence_not_authorized", false, ErrInvalidArguments)
 		}
 		fact := decodeObject(entry.Snapshot)
 		// A matched piece of inferred text is not an authoritative restriction.
@@ -285,6 +282,27 @@ func (s *factOnlyReplyService) generate(ctx context.Context, invocation Capabili
 		}
 		toolFacts = append(toolFacts, map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(fact), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"})
 	}
+	return projection, toolFacts, nil
+}
+
+func (s *factOnlyReplyService) generate(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, ref string, evidenceRefs []string) (ReplyDraft, error) {
+	projection, facts, err := s.resolveReplyEvidence(ctx, invocation, run, evidenceRefs)
+	if err != nil {
+		return ReplyDraft{}, err
+	}
+	return s.generateFromProjection(ctx, invocation, run, ref, projection, facts)
+}
+
+func (s *factOnlyReplyService) generateFromProjection(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, ref string, projection ContextProjection, evidenceFacts []map[string]any) (ReplyDraft, error) {
+	toolFacts := append([]map[string]any(nil), evidenceFacts...)
+	run.mu.Lock()
+	for _, state := range run.ActionFacts {
+		toolFacts = append(toolFacts, map[string]any{"kind": "media_action_result", "value": map[string]any{"kind": state.Kind, "intent": state.Intent, "status": state.Status, "error_code": state.ErrorCode}, "observation": "仅证明工具实际状态；ready表示文件可用，不证明已视觉检验或已发送。不要新增媒体请求，只基于这些结果自主完成正文。"})
+	}
+	if run.ActionDraftText != "" {
+		toolFacts = append(toolFacts, map[string]any{"kind": "private_candidate_text", "value": run.ActionDraftText, "authority": "未发送草稿，按本次真实媒体结果局部调整；不能作为状态证据"})
+	}
+	run.mu.Unlock()
 	compiled, err := s.app.loadCompiledWorkingPersona(ctx, projection)
 	if err != nil {
 		return ReplyDraft{}, err
@@ -305,7 +323,11 @@ func (s *factOnlyReplyService) generate(ctx context.Context, invocation Capabili
 		visionState = "configured_separately_no_observation_yet"
 	}
 	_, imageRegistered := s.app.capabilityRegistryForContext(ctx).Definition("media.image.generate")
-	input := ConversationReplyTaskInput{Context: ReplyContextInput{Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts,
+	summaries, err := s.app.replyRuntimeSummaries(ctx, projection)
+	if err != nil {
+		return ReplyDraft{}, err
+	}
+	input := ConversationReplyTaskInput{Context: ReplyContextInput{Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts, Summaries: summaries,
 		CapabilityFacts: map[string]any{"image_generation_registered": imageRegistered, "media_requires_real_tool_result": true, "sticker_attachments": false, "vision_understanding": visionState}},
 		DraftRef: ref, Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency}
 	draft, err := s.app.runReplyWithFailurePolicy(ctx, input, run)

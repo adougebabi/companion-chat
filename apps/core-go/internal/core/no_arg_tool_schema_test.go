@@ -29,7 +29,7 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 				var state *kevRunSelection
 				if strings.HasPrefix(mode, "kev_") {
 					config.Enabled = mode != "kev_disabled_fallback"
-					state = &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config}}, original: capabilityCatalog(registry, CapabilitySurfaceConversation), visible: map[string]bool{}, loaded: map[string]bool{}, version: 1}
+					state = &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config}}, original: capabilityCatalog(registry, CapabilitySurfaceConversation), loaded: map[string]bool{}, version: 1}
 					if mode == "kev_version_fallback" {
 						state.version = 2
 					} else if mode == "kev_settings_fallback" {
@@ -41,11 +41,12 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 					if !ok {
 						t.Fatal("habit.inspect missing")
 					}
-					state = &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config}}, original: []CapabilityDefinition{habit}, visible: map[string]bool{}, loaded: map[string]bool{}, version: 1}
+					state = &kevRunSelection{service: controlledKevToolService(t, "yes"), original: []CapabilityDefinition{(capabilityCatalogCapability{}).Definition(), habit}, loaded: map[string]bool{}, version: 1}
 				}
 				if state != nil {
 					ctx = context.WithValue(ctx, kevRunSelectionKey{}, state)
 					definitions = appendCapabilityUtilities(registry, CapabilitySurfaceConversation, state.original)
+					state.original = definitions
 				}
 				original := jsonString(definitions)
 				requests := 0
@@ -61,7 +62,10 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 					tools := arrayValue(payload["tools"])
 					want := len(definitions)
 					if mode == "after_discovery" && requests == 1 {
-						want = 2
+						want = 1
+					}
+					if strings.HasPrefix(mode, "kev_") {
+						want = 3
 					}
 					if len(tools) != want {
 						t.Errorf("request %d tool count=%d, want %d", requests, len(tools), want)
@@ -78,7 +82,7 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 						}
 						if name == capabilityCatalogName {
 							catalogFound = true
-							if len(properties) != 0 || parameters["additionalProperties"] != false {
+							if properties["names"] == nil || parameters["additionalProperties"] != false {
 								t.Errorf("catalog no-argument contract changed: %#v", parameters)
 							}
 						}
@@ -89,7 +93,7 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 					message := map[string]any{"role": "assistant", "content": "done"}
 					finish := "stop"
 					if mode == "after_discovery" && requests < 3 {
-						name, args := capabilityDiscoverName, `{"names":["habit.inspect"]}`
+						name, args := capabilityCatalogName, `{"names":["habit.inspect"]}`
 						if requests == 2 {
 							name, args = "habit.inspect", "{}"
 						}

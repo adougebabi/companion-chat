@@ -531,6 +531,7 @@ type ADKStructuredTaskInput struct {
 	EnableStreaming bool
 	TextOutput      bool
 	Capability      *ADKCapabilityRequest
+	Invoker         ADKCapabilityInvoker
 }
 
 type ADKStructuredTaskResult struct {
@@ -573,7 +574,7 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if input.TextOutput != (definition.OutputKind == FormalAgentOutputText) {
 		return ADKStructuredTaskResult{}, errors.New("formal_agent_output_contract_mismatch")
 	}
-	if len(input.Definitions) > 0 && input.Capability == nil {
+	if len(input.Definitions) > 0 && input.Capability == nil && input.Invoker == nil {
 		return ADKStructuredTaskResult{}, errors.New("adk_structured_task_capability_context_required")
 	}
 	if err := validateADKCapabilityDefinitionsForContext(ctx, a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
@@ -589,7 +590,10 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if input.Capability != nil {
 		request = *input.Capability
 	}
-	invoker := newAppADKCapabilityInvokerForContext(ctx, a, request, trace)
+	var invoker ADKCapabilityInvoker = input.Invoker
+	if invoker == nil {
+		invoker = newAppADKCapabilityInvokerForContext(ctx, a, request, trace)
+	}
 	var refs *providerContextRefCodec
 	if input.Capability != nil {
 		var refErr error

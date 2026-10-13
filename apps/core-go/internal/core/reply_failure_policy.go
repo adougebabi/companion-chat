@@ -77,8 +77,8 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 			if err == nil {
 				return draft, nil
 			}
-			if err.Error() == "reply_envelope_invalid" || err.Error() == "reply_draft_invalid" || err.Error() == "reply_media_request_invalid" {
-				input.Context.CurrentInput += "\n[回复格式纠错]上一次输出不满足text/media_requests的最小格式。保留当前人格与实际事实，自行重新回复；不要输出原始无效JSON或推理。"
+			if err.Error() == "reply_envelope_invalid" || err.Error() == "reply_draft_invalid" || err.Error() == "reply_media_request_invalid" || err.Error() == "reply_media_placeholder_invalid" {
+				input.Context.OutputCorrection = "[回复格式纠错]上一次输出格式无效或用文字冒充图片。需要配图时真实调用已提供的 reply.image.request；没有工具或结果时不声称发送图片，不输出 path/SVG 占位。然后只输出正常段落正文，最多一个段间空行；不要输出无效JSON或推理。"
 				input.CorrelationID = "reply-correction:" + stableDigest(input.CorrelationID)
 				draft, err = a.RunConversationReplyTask(ctx, input)
 				break

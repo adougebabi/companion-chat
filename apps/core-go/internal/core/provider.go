@@ -294,12 +294,19 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}
 	}
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
-	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, definitions, role, schemaName, schema, enableThinking)
+	disclosed := definitions
+	if selection := kevSelection(ctx); selection != nil {
+		disclosed, err = selection.definitions(ctx)
+		if err != nil {
+			return ProviderCompletion{}, err
+		}
+	}
+	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, disclosed, role, schemaName, schema, enableThinking)
 	responseFormat := map[string]any{}
 	if jsonMode {
 		responseFormat = providerResponseFormatForSchema(role, schemaName, schema)
 	}
-	renderedTools := RenderCapabilityTools(definitions)
+	renderedTools := RenderCapabilityTools(disclosed)
 	wireEstimate := estimatePromptWireInput(messages, renderedTools, responseFormat)
 	diagnostics := providerPromptDiagnostics(ctx)
 	if strings.TrimSpace(stringValue(diagnostics["run_id"])) == "" {

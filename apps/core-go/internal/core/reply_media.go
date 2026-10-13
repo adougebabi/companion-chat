@@ -276,6 +276,16 @@ func (c replyImageCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, in
 // Resume only terminal real components. The original generated prose stays
 // private; one result-aware Writer adjustment is cached before publication.
 func (s *factOnlyReplyService) resumeMedia(ctx context.Context, inv CapabilityInvocation, run *privateReplyRun, stored ReplyDraft, ref string, refs []string) (ReplyDraft, error) {
+	// A named catalog request can truthfully reject the generator before there
+	// is any image Tool receipt. Only that actual decision terminalizes actions;
+	// an unqueried hidden schema is not evidence of unavailability.
+	if selection := kevSelection(ctx); selection != nil {
+		if availability, queried := selection.availabilityFor(ctx, "media.image.generate"); queried && availability.Status != "available" {
+			if _, err := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_actions SET status='unavailable',error_code=$2 WHERE draft_id=$1 AND kind='image' AND status='requested'`, ref, availability.ErrorCode); err != nil {
+				return stored, err
+			}
+		}
+	}
 	if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
 		invocations, results := bridge.Trace.Snapshot()
 		failed := map[string]bool{}

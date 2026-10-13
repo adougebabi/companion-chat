@@ -255,7 +255,7 @@ func TestADKFinalRepairIsolatesKevToolsAndPersona(t *testing.T) {
 			defer server.Close()
 			config := decision.DefaultConfig()
 			config.Enabled = true
-			state := &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config}}, original: defs, visible: map[string]bool{"hidden": true}, loaded: map[string]bool{}, version: 1}
+			state := &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config}}, original: defs, loaded: map[string]bool{"hidden": true}, version: 1}
 			invoker := &kevDiscoveryInvoker{state: state}
 			ctx := withADKCapabilityContext(context.Background(), invoker, &ADKCapabilityTrace{}, nil)
 			ctx = context.WithValue(ctx, kevRunSelectionKey{}, state)

@@ -142,6 +142,12 @@ func WithStageBudget(ctx context.Context, budget time.Duration) context.Context 
 	return context.WithValue(ctx, stageDeadlineKey{}, time.Now().Add(budget))
 }
 
+// WithFreshStageBudget starts a new explicit selection stage, e.g. a later
+// directory request after prompt assembly. The parent's deadline still applies.
+func WithFreshStageBudget(ctx context.Context, budget time.Duration) context.Context {
+	return context.WithValue(ctx, stageDeadlineKey{}, time.Now().Add(budget))
+}
+
 type Answer struct {
 	Type          string             `json:"type"`
 	Choice        string             `json:"choice"`

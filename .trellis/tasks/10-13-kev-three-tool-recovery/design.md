@@ -1,0 +1,10 @@
+# 设计
+
+行为缺口在kev_tools.go的assembly/physical fallback，当前disabled/error/version change重放original全安装表。用户新要求覆盖旧spec的full-original披露规则。保留已授权executor表，建立永久run-local disclosure状态；首轮只显示已安装的reply/catalog/moment。
+capability.catalog扩展可选names，{}列目录，点名请求经tools.select准入并返回loaded/denied/unavailable；legacy discover不再常驻。每次physical投影核对configuration，失效回基线，不能恢复original。专用内部Agent不适用公共目录模式。
+reply修复在能力本地参数/事实验证与生成缓存边界：先区分input validation与physical generation失败，失败恢复不删除published缓存或允许foreign/source绕过。协议明确两种ref，服务端构建历史无需模型引用。媒体消费真实目录准入失败用于同draft调整。
+修改范围：kev_tools/相关formal mandatory与prompt assembly/协议/test；fact_only_reply_capability/reply_media/ref recovery/test；对应spec与本地报告、CI定向PG门禁。无新迁移、模型role、Goal/Persona数值或发布系统重建。
+
+回复预算边界扩展到reply_context与已有History/Prompt budget机制。当前history整个required导致大输入；将其拆为当前消息/关键来源required与近期原角色history、已有有来源摘要的可裁剪片段。保留权威Goal/persona/state，不以Qwen自由文字决定删除目标。中文预算要保守并在Provider I/O前限制；metadata说明裁掉哪些范围。
+
+用户追加统一验收：Writer输出连续空行/字面转义换行归一化（代码区保留），提供固定私有原生 reply.image.request 入口，真实请求转现有draft-owned媒体执行，不用文字或SVG/path占位冒充图片。媒体结果调整阶段零工具，native请求最多2个，保持权限/Kev/source/异步结果与实际附件发布栅栏。此请求覆盖先前Writer始终零工具的约定；非图片Writer/调整仍零工具。

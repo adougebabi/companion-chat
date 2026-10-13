@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cloudwego/eino/components/model"
 	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
@@ -19,12 +20,15 @@ const (
 
 type kevRunSelectionKey struct{}
 type kevRunSelection struct {
-	mu       sync.Mutex
-	service  *decision.Service
-	original []CapabilityDefinition
-	visible  map[string]bool
-	loaded   map[string]bool
-	version  int64
+	mu           sync.Mutex
+	service      *decision.Service
+	original     []CapabilityDefinition
+	loaded       map[string]bool
+	version      int64
+	input        string
+	scope        decision.Scope
+	loadMu       sync.Mutex
+	availability map[string]toolDisclosureAvailability
 }
 
 func kevSelection(ctx context.Context) *kevRunSelection {
@@ -41,7 +45,7 @@ type capabilityDiscoverCapability struct {
 // capabilityCatalogCapability exposes the complete authorized installation on
 // demand. Its own small schema is always visible on Kev-selected Agents; the
 // potentially large business schemas remain outside the prompt until queried
-// or explicitly loaded through capability.discover.
+// and admitted by a named catalog request.
 type capabilityCatalogCapability struct {
 	catalog func(CapabilitySurface) []CapabilityDefinition
 }
@@ -51,7 +55,7 @@ func capabilityUtilitySurfaces() []CapabilitySurface {
 }
 
 func (c capabilityCatalogCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{Name: capabilityCatalogName, Version: "v1", Type: CapabilityTypeQuery, Description: "List every capability authorized for this Agent, including each purpose and input parameters; use capability.discover to load selected schemas.", InputSchema: objectSchema(nil, nil, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
+	return CapabilityDefinition{Name: capabilityCatalogName, Version: "v1", Type: CapabilityTypeQuery, Description: "List authorized capability purposes and parameters. Omit names to list only; supply up to 8 names to request Kev admission for the next native request. Named queries replace the optional schema window. Only loaded names can execute; unavailable/denied is not execution. Historical source_refs are not actionable evidence_refs.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "maxItems": 8, "uniqueItems": true, "items": stringSchema()}}, nil, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
 }
 func (c capabilityCatalogCapability) RequiredContext() []ContextSlot { return nil }
 func (c capabilityCatalogCapability) Execute(ctx context.Context, inv CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
@@ -66,15 +70,51 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 		catalog = registry.Catalog
 	}
 	definitions := nativeDefinitionsForContext(ctx, authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, catalog))
+	var args struct {
+		Names []string `json:"names"`
+	}
+	if err := json.Unmarshal(inv.Arguments, &args); err != nil && len(inv.Arguments) > 0 {
+		return CapabilityResult{}, err
+	}
+	available := map[string]bool{}
+	for _, d := range definitions {
+		available[d.Name] = true
+	}
+	if len(args.Names) > 8 {
+		return failedCapabilityResultDetail(inv, "invalid_arguments", false, "At most 8 names may be requested"), nil
+	}
+	for _, name := range args.Names {
+		if !available[name] {
+			return failedCapabilityResultDetail(inv, "capability_not_authorized", false, "Requested capability is outside this run's installation"), nil
+		}
+	}
+	loaded := []string{}
+	unavailable := []toolDisclosureAvailability{}
+	if len(args.Names) > 0 {
+		if selection := kevSelection(ctx); selection != nil {
+			var err error
+			loaded, unavailable, err = selection.load(ctx, args.Names)
+			if err != nil {
+				return CapabilityResult{}, err
+			}
+		} else {
+			for _, name := range args.Names {
+				unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "tool_run_context_required"})
+			}
+		}
+	}
 	items := make([]map[string]any, 0, len(definitions))
 	for _, definition := range definitions {
+		if len(args.Names) > 0 && !requestedToolName(args.Names, definition.Name) {
+			continue
+		}
 		parameters := definition.InputSchema
 		if parameters == nil {
 			parameters = objectSchema(nil, nil, false)
 		}
 		items = append(items, map[string]any{"name": definition.Name, "purpose": definition.Description, "parameters": parameters})
 	}
-	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"items": items, "count": len(items), "run_scoped": kevSelection(ctx) != nil}}, nil
+	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"items": items, "count": len(items), "run_scoped": kevSelection(ctx) != nil, "loaded": loaded, "unavailable": unavailable, "replaces_optional_window": len(args.Names) > 0}}, nil
 }
 
 func (c capabilityDiscoverCapability) Definition() CapabilityDefinition {
@@ -107,36 +147,21 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 		items = append(items, map[string]any{"name": d.Name, "description": d.Description})
 	}
 	loaded := []string{}
-	// Validate the whole request before mutating any run-local visible set.
 	for _, name := range args.Names {
 		if _, ok := available[name]; !ok {
-			return failedCapabilityResultDetail(inv, "capability_not_authorized", false, "Requested capability is not available in this scope"), nil
+			return failedCapabilityResultDetail(inv, "capability_not_authorized", false, "Requested capability is outside this run's installation"), nil
 		}
 	}
-	for _, name := range args.Names {
-		if _, ok := available[name]; !ok {
-			return failedCapabilityResultDetail(inv, "capability_not_authorized", false, "Requested capability is not available in this scope"), nil
-		}
-		if selection != nil {
-			selection.mu.Lock()
-			allowed := false
-			for _, d := range selection.original {
-				if d.Name == name {
-					allowed = true
-					break
-				}
-			}
-			if allowed {
-				selection.loaded[name] = true
-				loaded = append(loaded, name)
-			}
-			selection.mu.Unlock()
-			if !allowed {
-				return failedCapabilityResultDetail(inv, "capability_not_authorized", false, "Requested capability was not installed for this Agent"), nil
-			}
+	var unavailable []toolDisclosureAvailability
+	if selection != nil {
+		var err error
+		loaded, unavailable, err = selection.load(ctx, args.Names)
+		if err != nil {
+			return CapabilityResult{}, err
 		}
 	}
-	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"available": items, "loaded": loaded, "run_scoped": selection != nil}}, nil
+
+	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"available": items, "loaded": loaded, "unavailable": unavailable, "run_scoped": selection != nil}}, nil
 }
 
 func authorizedDiscoveryDefinitions(ctx context.Context, surface CapabilitySurface, catalog func(CapabilitySurface) []CapabilityDefinition) []CapabilityDefinition {
@@ -150,84 +175,190 @@ func authorizedDiscoveryDefinitions(ctx context.Context, surface CapabilitySurfa
 }
 
 func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput) (context.Context, []CapabilityDefinition, error) {
-	if kevToolSelectionBypassed(input.AgentID) {
-		return ctx, input.Definitions, ctx.Err()
-	}
-	// A naturally tool-free typed task has no capability surface to recover.
-	// firstCapabilitySurface intentionally defaults nil requests to conversation
-	// for legacy validation, so handle this boundary before adding utilities.
-	if len(input.Definitions) == 0 {
-		return ctx, nil, ctx.Err()
-	}
-	if input.Capability != nil && input.Capability.Projection.KevTools != nil {
-		state := input.Capability.Projection.KevTools
-		return context.WithValue(ctx, kevRunSelectionKey{}, state), appendCapabilityUtilities(a.capabilityRegistry(), input.Capability.Surface, state.original), nil
-	}
-	surface := firstCapabilitySurface(input.Capability)
-	withUtilities := appendCapabilityUtilities(a.capabilityRegistry(), surface, input.Definitions)
-	businessDefinitions := withoutKevDiscovery(input.Definitions)
-	if !kevAssemblySelection(ctx) {
-		return ctx, withUtilities, ctx.Err()
-	}
-	service := a.kevService()
-	if len(businessDefinitions) == 0 || !service.Enabled(ctx, "tools.select") {
-		return ctx, withUtilities, ctx.Err()
-	}
-	if !capabilityUtilitiesInstalled(a.capabilityRegistry(), surface) {
-		return ctx, input.Definitions, nil
-	}
-	config, version, _, err := service.Settings.Read(ctx)
-	if err != nil {
-		return ctx, withUtilities, nil
-	}
-	_ = config
-	state := &kevRunSelection{service: service, original: append([]CapabilityDefinition(nil), businessDefinitions...), visible: map[string]bool{}, loaded: map[string]bool{}, version: version}
-	current := ""
-	for _, m := range input.Prompt.Messages {
-		if stringValue(m["role"]) == "user" {
-			current = stringValue(m["content"])
-		}
-	}
-	candidates := []decision.Candidate{}
-	summaries := map[string]string{}
-	mandatory := formalAgentMandatoryTools(input.AgentID)
-	for _, d := range businessDefinitions {
-		// Every installed Tool starts from the original visible set so fallback is
-		// exactly the pre-Kev catalog. Each Agent owns its mandatory intersection;
-		// every remaining installed Tool is its own independent Kev candidate.
-		state.visible[d.Name] = true
-		if mandatory[d.Name] {
-			continue
-		}
-		candidates = append(candidates, decision.Candidate{ID: d.Name, Question: decision.Choice("Should capability " + d.Name + " be disclosed for the current task? Multiple capabilities may be needed.")})
-		summaries[d.Name] = d.Description
-	}
-	projection := input.Capability.Projection
-	results, err := service.DecideWithBatchState(ctx, "tools.select", a.kevScope(ctx, projection, string(input.AgentID)), candidates, func(batch []decision.Candidate) string {
-		batchSummaries := make(map[string]string, len(batch))
-		for _, candidate := range batch {
-			batchSummaries[candidate.ID] = summaries[candidate.ID]
-		}
-		return jsonString(map[string]any{"input": current, "capabilities": batchSummaries})
-	})
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return ctx, nil, err
 	}
-	for index := range results {
-		r := &results[index]
-		out, err := r.Admit(ctx)
-		if err != nil {
-			return ctx, nil, err
-		}
-		state.visible[r.Record.CandidateID] = out != decision.No
-		status := "applied"
-		if out == decision.Original {
-			status = "original_used"
-		}
-		_ = r.Finish(ctx, status, "", "")
+	if kevToolSelectionBypassed(input.AgentID) || len(input.Definitions) == 0 {
+		return context.WithValue(ctx, kevRunSelectionKey{}, (*kevRunSelection)(nil)), input.Definitions, nil
 	}
-	definitions := appendCapabilityUtilities(a.capabilityRegistry(), surface, input.Definitions)
-	return context.WithValue(ctx, kevRunSelectionKey{}, state), definitions, nil
+	registry := a.capabilityRegistryForContext(ctx)
+	full := appendCapabilityUtilities(registry, firstCapabilitySurface(input.Capability), input.Definitions)
+	if input.Capability != nil && input.Capability.Projection.KevTools != nil {
+		return context.WithValue(ctx, kevRunSelectionKey{}, input.Capability.Projection.KevTools), full, nil
+	}
+	if prior := kevSelection(ctx); prior != nil {
+		return ctx, full, nil
+	}
+	service := a.kevService()
+	_, version, _, _ := service.Settings.Read(ctx)
+	if err := ctx.Err(); err != nil {
+		return ctx, nil, err
+	}
+	state := &kevRunSelection{service: service, original: full, loaded: map[string]bool{}, availability: map[string]toolDisclosureAvailability{}, version: version}
+	for _, message := range input.Prompt.Messages {
+		if stringValue(message["role"]) == "user" {
+			state.input = stringValue(message["content"])
+		}
+	}
+	if input.Capability != nil {
+		state.scope = a.kevScope(ctx, input.Capability.Projection, string(input.AgentID))
+	}
+	// The executor remains complete. Disclosure is projected separately into
+	// prompt assembly, budgets, diagnostics and each actual model request.
+	return context.WithValue(ctx, kevRunSelectionKey{}, state), full, nil
+}
+
+func publicBaselineTool(name string) bool {
+	return name == conversationReplyCapabilityName || name == capabilityCatalogName || name == "moment.publish"
+}
+
+type toolDisclosureAvailability struct {
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	ErrorCode string `json:"error_code,omitempty"`
+}
+
+func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, []toolDisclosureAvailability, error) {
+	s.loadMu.Lock()
+	defer s.loadMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	if len(names) == 0 {
+		return []string{}, []toolDisclosureAvailability{}, nil
+	}
+	if len(names) > 8 {
+		return nil, nil, ErrInvalidArguments
+	}
+	s.mu.Lock()
+	allowed := map[string]CapabilityDefinition{}
+	for _, d := range s.original {
+		allowed[d.Name] = d
+	}
+	s.mu.Unlock()
+	for _, name := range names {
+		if _, ok := allowed[name]; !ok {
+			return nil, nil, ErrUnauthorized
+		}
+	}
+	loaded := []string{}
+	unavailable := []toolDisclosureAvailability{}
+	config, version, _, readErr := s.service.Settings.Read(ctx)
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	status := map[string]toolDisclosureAvailability{}
+	candidates := []decision.Candidate{}
+	descriptions := map[string]string{}
+	seen := map[string]bool{}
+	for _, name := range names {
+		if seen[name] {
+			continue
+		}
+		seen[name] = true
+		if publicBaselineTool(name) {
+			loaded = append(loaded, name)
+			continue
+		}
+		status[name] = toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "tool_selection_unavailable"}
+		candidates = append(candidates, decision.Candidate{ID: name, Question: decision.Choice("Should capability " + name + " be disclosed for this explicit catalog request?")})
+		descriptions[name] = allowed[name].Description
+	}
+	if readErr == nil && config.Allows("tools.select") && len(candidates) > 0 {
+		selectionCtx := decision.WithFreshStageBudget(ctx, time.Duration(config.BudgetMS)*time.Millisecond)
+		results, err := s.service.DecideWithBatchState(selectionCtx, "tools.select", s.scope, candidates, func(batch []decision.Candidate) string {
+			selected := map[string]string{}
+			for _, candidate := range batch {
+				selected[candidate.ID] = descriptions[candidate.ID]
+			}
+			return jsonString(map[string]any{"input": s.input, "capabilities": selected})
+		})
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, nil, ctx.Err()
+			}
+			results = nil // Optional service failure keeps requested tools unavailable.
+		}
+		for index := range results {
+			result := &results[index]
+			out, err := result.Admit(ctx)
+			if err != nil && ctx.Err() != nil {
+				return nil, nil, ctx.Err()
+			}
+			if err != nil {
+				out = decision.Original
+			}
+			item := status[result.Record.CandidateID]
+			applied := "original_used"
+			if out == decision.Yes {
+				item.Status = "available"
+				item.ErrorCode = ""
+				applied = "applied"
+			} else if out == decision.No {
+				item.Status = "denied"
+				item.ErrorCode = "tool_not_selected"
+				applied = "applied"
+			}
+			if err := result.Finish(ctx, applied, item.ErrorCode, ""); err != nil {
+				item.Status = "unavailable"
+				item.ErrorCode = "tool_selection_audit_unavailable"
+			}
+			status[item.Name] = item
+		}
+	}
+	latest, latestVersion, _, latestErr := s.service.Settings.Read(ctx)
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
+	if latestErr != nil || latestVersion != version || !latest.Allows("tools.select") {
+		for name, item := range status {
+			item.Status = "unavailable"
+			item.ErrorCode = "tool_selection_changed"
+			status[name] = item
+		}
+	}
+	// Revoke old schemas on every named request. The window stays bounded at
+	// three baseline entries plus at most eight explicitly requested tools.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.version = version
+	s.loaded = map[string]bool{}
+	if s.availability == nil {
+		s.availability = map[string]toolDisclosureAvailability{}
+	}
+	for name, item := range s.availability {
+		if !seen[name] && item.Status == "available" {
+			item.Status = "unavailable"
+			item.ErrorCode = "tool_selection_window_replaced"
+			s.availability[name] = item
+		}
+	}
+	for _, name := range sortedUniqueStrings(names) {
+		if publicBaselineTool(name) {
+			continue
+		}
+		item := status[name]
+		s.availability[name] = item
+		if item.Status == "available" {
+			s.loaded[name] = true
+			loaded = append(loaded, name)
+		} else {
+			unavailable = append(unavailable, item)
+		}
+	}
+	return loaded, unavailable, nil
+}
+
+func (s *kevRunSelection) availabilityFor(ctx context.Context, name string) (toolDisclosureAvailability, bool) {
+	config, version, _, err := s.service.Settings.Read(ctx)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	item, ok := s.availability[name]
+	if ok && (err != nil || version != s.version || !config.Allows("tools.select")) {
+		item.Status = "unavailable"
+		item.ErrorCode = "tool_selection_changed"
+	}
+	return item, ok
 }
 
 func formalAgentMandatoryTools(agentID FormalAgentID) map[string]bool {
@@ -243,7 +374,7 @@ func formalAgentMandatoryTools(agentID FormalAgentID) map[string]bool {
 }
 
 func capabilityUtilitiesInstalled(registry *CapabilityRegistry, surface CapabilitySurface) bool {
-	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+	for _, name := range []string{capabilityCatalogName} {
 		definition, ok := registry.Definition(name)
 		if !ok || !definition.SupportsSurface(surface) {
 			return false
@@ -253,12 +384,17 @@ func capabilityUtilitiesInstalled(registry *CapabilityRegistry, surface Capabili
 }
 
 func appendCapabilityUtilities(registry *CapabilityRegistry, surface CapabilitySurface, definitions []CapabilityDefinition) []CapabilityDefinition {
-	result := append([]CapabilityDefinition(nil), definitions...)
+	result := []CapabilityDefinition{}
+	for _, d := range definitions {
+		if d.Name != capabilityDiscoverName {
+			result = append(result, d)
+		}
+	}
 	seen := make(map[string]bool, len(result))
 	for _, definition := range result {
 		seen[definition.Name] = true
 	}
-	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+	for _, name := range []string{capabilityCatalogName} {
 		definition, ok := registry.Definition(name)
 		if ok && definition.SupportsSurface(surface) && !seen[name] {
 			result = append(result, definition)
@@ -269,7 +405,7 @@ func appendCapabilityUtilities(registry *CapabilityRegistry, surface CapabilityS
 
 func kevToolSelectionBypassed(agentID FormalAgentID) bool {
 	switch agentID {
-	case FormalAgentGoalPlanner, FormalAgentGoalEvaluation,
+	case FormalAgentConversationReply, FormalAgentGoalPlanner, FormalAgentGoalEvaluation,
 		FormalAgentVisualIdentity, FormalAgentVisualIdentityVision, FormalAgentVisualIdentityPatch:
 		return true
 	default:
@@ -293,22 +429,25 @@ func (s *kevRunSelection) definitions(ctx context.Context) ([]CapabilityDefiniti
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	c, version, _, err := s.service.Settings.Read(ctx)
+	config, version, _, err := s.service.Settings.Read(ctx)
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err != nil || version != s.version || !c.Allows("tools.select") {
-		out := append([]CapabilityDefinition(nil), s.original...)
-		return append(out, (capabilityCatalogCapability{}).Definition(), (capabilityDiscoverCapability{}).Definition()), nil
-	}
+	active := err == nil && version == s.version && config.Allows("tools.select")
 	out := []CapabilityDefinition{}
 	for _, d := range s.original {
-		if s.visible[d.Name] || s.loaded[d.Name] {
+		if d.Name == capabilityDiscoverName {
+			continue
+		}
+		if publicBaselineTool(d.Name) || active && s.loaded[d.Name] {
 			out = append(out, d)
 		}
 	}
-	out = append(out, (capabilityCatalogCapability{}).Definition(), (capabilityDiscoverCapability{}).Definition())
 	return out, nil
 }
+
 func (s *kevRunSelection) permits(ctx context.Context, name string) bool {
 	defs, err := s.definitions(ctx)
 	if err != nil {
@@ -337,6 +476,7 @@ func (m *queuedToolCallingChatModel) kevModelOptions(ctx context.Context, opts [
 	}
 	copyModel := *m
 	copyModel.definitions = definitions
+	copyModel.toolInfos = infos
 	return &copyModel, append(append([]model.Option(nil), opts...), model.WithTools(infos)), nil
 }
 
@@ -358,4 +498,13 @@ type kevAssemblySelectionKey struct{}
 func kevAssemblySelection(ctx context.Context) bool {
 	value, _ := ctx.Value(kevAssemblySelectionKey{}).(bool)
 	return value
+}
+
+func requestedToolName(names []string, name string) bool {
+	for _, candidate := range names {
+		if candidate == name {
+			return true
+		}
+	}
+	return false
 }

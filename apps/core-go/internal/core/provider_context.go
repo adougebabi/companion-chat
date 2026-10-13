@@ -83,24 +83,25 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	}
 	if config, version, _, readErr := a.kevService().Settings.Read(ctx); readErr == nil && config.Enabled {
 		ctx = decision.WithStageBudget(ctx, time.Duration(config.BudgetMS)*time.Millisecond)
-		if surface != ProviderContextSurfaceDefault && config.Allows("tools.select") && len(definitions) > 0 {
-			agentID, _ := formalAgentForSchema(schemaName)
-			selectedCtx, _, selectionErr := a.prepareKevTools(context.WithValue(ctx, kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: agentID, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": currentInput}}}, Capability: &ADKCapabilityRequest{Projection: projection, Surface: capabilitySurfaceForProviderSurface(surface)}})
-			if selectionErr != nil {
-				return PromptAssemblyResult{}, projection, selectionErr
-			}
-			ctx = selectedCtx
-			if selection := kevSelection(ctx); selection != nil {
-				projection.KevTools = selection
-				definitions, selectionErr = selection.definitions(ctx)
-				if selectionErr != nil {
-					return PromptAssemblyResult{}, projection, selectionErr
-				}
-			}
-		}
+
 		if config.Allows("context.select") {
 			projection.KevContextSelected = true
 			projection.KevContextVersion = version
+		}
+	}
+	if surface != ProviderContextSurfaceDefault && len(definitions) > 0 {
+		agentID, _ := formalAgentForSchema(schemaName)
+		selectedCtx, _, selectionErr := a.prepareKevTools(ctx, ADKStructuredTaskInput{AgentID: agentID, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": currentInput}}}, Capability: &ADKCapabilityRequest{Projection: projection, Surface: capabilitySurfaceForProviderSurface(surface)}})
+		if selectionErr != nil {
+			return PromptAssemblyResult{}, projection, selectionErr
+		}
+		ctx = selectedCtx
+		if selection := kevSelection(ctx); selection != nil {
+			projection.KevTools = selection
+			definitions, selectionErr = selection.definitions(ctx)
+			if selectionErr != nil {
+				return PromptAssemblyResult{}, projection, selectionErr
+			}
 		}
 	}
 	assignment, err := a.Provider.assignment(ctx, role)

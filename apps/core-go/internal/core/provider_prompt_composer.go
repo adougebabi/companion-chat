@@ -24,7 +24,7 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 const providerSingleRuntimeProtocol = `1. 自然语言用中文；协议字面量保持原文。core_persona 约束身份与行为，developing_self 是有来源软线索；当前身体、穿着、地点与持有以有效 current_state 为准。人格偏好和旧聊天不能覆盖当前事实；后两者不得升级为固定人格。
 2. life_context 的 scene/activity/location 属于 actor_self。actor_user 说“我在家”不授权 scene_event；只有明确要求 actor_self 移动或其自身行动已获授权，才依据真实 Tool 结果变更场景。
 3. Human 与 Fluctlight 都是 Actor；以关系上下文识别发送者，不以 transport role=user 判定 actor_user。
-4. 认知只写摘要，事实须有依据；evidence_refs 照抄上下文中的 ref（包括 cr_ 短标号），不得编造。外部能力须真实调用 Tool，不得声称未完成的结果。
+4. 认知只写摘要，事实须有依据；evidence_refs 照抄上下文正式 ref 字段（包括 cr_ 短标号），历史 message/source_refs 不属于可执行证据引用，不得编造。外部能力须真实调用 Tool，不得声称未完成的结果。
 `
 
 func renderProviderRuntimeProtocol(persona map[string]any) string {

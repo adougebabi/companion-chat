@@ -39,7 +39,7 @@ func TestReplyProviderUsesFrozenModelSamplingAndIsolatedMessages(t *testing.T) {
 			if received["model"] != "cydonia-frozen" || received["temperature"] != temp || received["top_p"] != top || received["max_completion_tokens"] != float64(333) {
 				t.Fatalf("frozen transport lost: %#v", received)
 			}
-			if len(arrayValue(received["tools"])) != 0 || received["tool_choice"] != nil || received["response_format"] != nil {
+			if len(arrayValue(received["tools"])) != 1 || stringValue(mapValue(mapValue(arrayValue(received["tools"])[0])["function"])["name"]) != replyImageRequestName || received["tool_choice"] != "auto" || received["response_format"] != nil {
 				t.Fatalf("parent tool/schema policy leaked: %#v", received)
 			}
 			if strings.Contains(jsonString(received["messages"]), "用户冷淡所以暂时不推进") {
@@ -63,6 +63,107 @@ func TestReplyDraftMediaParsingNeverPublishesBrokenEnvelopes(t *testing.T) {
 	draft, err := parseReplyDraft("这个设备型号是 e6，🙂。")
 	if err != nil || draft.Text != "这个设备型号是 e6，🙂。" {
 		t.Fatal("normal model/code/emoji erased")
+	}
+}
+
+func TestReplyTextNormalizesParagraphsAndPreservesCode(t *testing.T) {
+	for _, sample := range []struct{ input, want string }{
+		{"\n\n（看向你）\n\n\n\n第一段\n\n\n第二段\n", "（看向你）\n\n第一段\n\n第二段"},
+		{`\n\n第一段\n\n\n\n第二段\n`, "第一段\n\n第二段"},
+		{"第一段\r\n \r\n\r\n第二段", "第一段\n\n第二段"},
+		{"示例：`\\n`\n\n```go\n\n\nconst x = `\\n\\n`\n```", "示例：`\\n`\n\n```go\n\n\nconst x = `\\n\\n`\n```"},
+		{"第一段\\n第二段\n`\\n\\n`\n```text\n\\n\n```", "第一段\n第二段\n`\\n\\n`\n```text\n\\n\n```"},
+	} {
+		draft, err := parseReplyDraft(sample.input)
+		if err != nil || draft.Text != sample.want {
+			t.Fatalf("normalized %q, want %q: %v", draft.Text, sample.want, err)
+		}
+	}
+}
+
+func TestReplyCorrectionKeepsCurrentMessageAndProtectedTurns(t *testing.T) {
+	input := replyContextFixture()
+	input.Projection.RecentMessages = []map[string]any{
+		{"id": "a-u", "turn_id": "a", "kind": "user", "text": "第一完整轮的限制"}, {"id": "a-a", "turn_id": "a", "kind": "assistant", "text": "第一完整轮的确认"},
+		{"id": "b-u", "turn_id": "b", "kind": "user", "text": "第二完整轮的限制"}, {"id": "b-a", "turn_id": "b", "kind": "assistant", "text": "第二完整轮的确认"},
+		{"id": "current", "turn_id": "current", "kind": "user", "text": input.CurrentInput},
+	}
+	calls := 0
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		calls++
+		wire := jsonString(payload["messages"])
+		if strings.Count(wire, input.CurrentInput) != 1 || !strings.Contains(wire, "第一完整轮的限制") || !strings.Contains(wire, "第二完整轮的确认") {
+			t.Errorf("correction duplicated current message or lost whole turns: %s", wire)
+		}
+		if calls == 1 {
+			return fakeProviderResult{Text: `{"text":"","media_requests":[]}`}
+		}
+		if !strings.Contains(wire, "回复格式纠错") {
+			t.Error("output correction rule absent")
+		}
+		return fakeProviderResult{Text: "格式已按原始消息修正。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	settings := defaultConversationReplySettings()
+	settings.RetryLimit = 0
+	run := &privateReplyRun{Settings: settings}
+	draft, err := app.runReplyWithFailurePolicy(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "controlled-writer", Timeout: time.Second, TokenBudget: 1024}, CorrelationID: "correction", Concurrency: 1}, run)
+	if err != nil || calls != 2 || draft.Text != "格式已按原始消息修正。" {
+		t.Fatalf("bounded correction failed: calls=%d draft=%+v err=%v", calls, draft, err)
+	}
+}
+
+func TestReplyFreshJSONImageRequestRequiresNativeReceipt(t *testing.T) {
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		return fakeProviderResult{Text: `{"text":"稍等","media_requests":[{"kind":"image","intent":"夜景"}]}`}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: replyContextFixture(), Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "controlled-writer", Timeout: time.Second, TokenBudget: 1024}, CorrelationID: "no-native-image", Concurrency: 1})
+	if err == nil || err.Error() != "reply_media_request_invalid" {
+		t.Fatalf("JSON bypassed native image tool: %v", err)
+	}
+}
+
+func TestReplyWriterRejectsFabricatedImagePlaceholder(t *testing.T) {
+	for _, text := range []string{"[path data for a fabricated image]", "（发送图片）这是新画的。"} {
+		if err := validateReplyMediaProse(ReplyDraft{Text: text}, replyContextFixture()); err == nil {
+			t.Fatal("fabricated image accepted", text)
+		}
+	}
+	input := replyContextFixture()
+	input.ToolFacts = []map[string]any{{"kind": "media_action_result", "value": map[string]any{"status": "ready"}}}
+	if err := validateReplyMediaProse(ReplyDraft{Text: "（发送图片）"}, input); err != nil {
+		t.Fatal("real ready attachment rejected", err)
+	}
+}
+
+func TestReplyWriterNativeImageRequestOwnsPrivateHandoff(t *testing.T) {
+	calls := 0
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		calls++
+		tools := arrayValue(payload["tools"])
+		if len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != replyImageRequestName {
+			t.Errorf("Writer needs its sole private image tool: %v", tools)
+		}
+		if calls == 1 {
+			return fakeProviderResult{ToolCalls: []map[string]any{{"id": "writer-image-1", "type": "function", "function": map[string]any{"name": replyImageRequestName, "arguments": `{"intent":"当前地点的夜景素描"}`}}}}
+		}
+		if wire := jsonString(payload["messages"]); !strings.Contains(wire, "requested_not_generated") || !strings.Contains(wire, `\"sent\":false`) {
+			t.Errorf("missing truthful private receipt: %s", wire)
+		}
+		return fakeProviderResult{Text: "\n\n我想用夜景表达这个画面。\n\n\n\n等实际结果回来。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	input := ConversationReplyTaskInput{Context: replyContextFixture(), Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "controlled-writer", Timeout: time.Second, TokenBudget: 1024}, CorrelationID: "private-image", Concurrency: 1}
+	draft, err := app.RunConversationReplyTask(context.Background(), input)
+	if err != nil || calls != 2 || len(draft.MediaRequests) != 1 || draft.MediaRequests[0].Intent != "当前地点的夜景素描" || strings.Contains(draft.Text, "\n\n\n") {
+		t.Fatalf("native handoff failed: calls=%d draft=%+v err=%v", calls, draft, err)
+	}
+	// Adjustment is intentionally tool-free: terminal media results cannot start
+	// a fresh generation and exceed the one draft's action budget.
+	input.Context.ToolFacts = []map[string]any{{"kind": "media_action_result", "value": map[string]any{"status": "unavailable"}}}
+	if len(replyWriterDefinitions(input.Context)) != 0 {
+		t.Fatal("adjustment can request another image")
 	}
 }
 
@@ -116,7 +217,7 @@ func TestNestedReplyAtConcurrencyOneFeedsActualTextBack(t *testing.T) {
 					}
 				} else {
 					writerCalls++
-					if len(arrayValue(payload["tools"])) > 0 {
+					if tools := arrayValue(payload["tools"]); len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != replyImageRequestName {
 						t.Error("writer inherited parent tools")
 					}
 				}
