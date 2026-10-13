@@ -1,8 +1,0 @@
-$ pnpm -r typecheck
-Scope: 3 of 4 workspace projects
-packages/browser-client typecheck$ tsc --noEmit
-packages/core-client typecheck$ tsc --noEmit
-packages/browser-client typecheck: Done
-packages/core-client typecheck: Done
-apps/web typecheck$ vue-tsc --noEmit
-apps/web typecheck: Done

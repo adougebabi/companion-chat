@@ -1,0 +1,529 @@
+{
+  "scope": "Synthetic public provider requests only. Tool results are fixtures, no tools execute and no Core is called.",
+  "cases": {
+    "native_reply_receipt": {
+      "steps": [
+        {
+          "request": {
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "messages": [
+              {
+                "role": "system",
+                "content": "Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures."
+              },
+              {
+                "role": "user",
+                "content": "Call conversation.reply exactly once with text=\"PROBE_REPLY_7318\"."
+              }
+            ],
+            "temperature": 0,
+            "max_completion_tokens": 256,
+            "enable_thinking": false,
+            "stream": false,
+            "tools": [
+              {
+                "type": "function",
+                "function": {
+                  "name": "conversation.reply",
+                  "description": "Synthetic reply protocol probe. There is no implementation and no message is sent.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            ],
+            "tool_choice": "required"
+          },
+          "request_json": "{\"model\": \"cydonia-24b-v4.3-heretic-v2-i1\", \"messages\": [{\"role\": \"system\", \"content\": \"Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures.\"}, {\"role\": \"user\", \"content\": \"Call conversation.reply exactly once with text=\\\"PROBE_REPLY_7318\\\".\"}], \"temperature\": 0, \"max_completion_tokens\": 256, \"enable_thinking\": false, \"stream\": false, \"tools\": [{\"type\": \"function\", \"function\": {\"name\": \"conversation.reply\", \"description\": \"Synthetic reply protocol probe. There is no implementation and no message is sent.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"text\": {\"type\": \"string\"}}, \"required\": [\"text\"], \"additionalProperties\": false}}}], \"tool_choice\": \"required\"}",
+          "response": {
+            "id": "chatcmpl-gyfgle6nd5r29p6ex420xa",
+            "object": "chat.completion",
+            "created": 1791864627,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "",
+                  "reasoning_content": "",
+                  "tool_calls": [
+                    {
+                      "type": "function",
+                      "id": "222904856",
+                      "function": {
+                        "name": "conversation.reply",
+                        "arguments": "{\"text\":\"PROBE_REPLY_7318\"}"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": "tool_calls"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 388,
+              "completion_tokens": 39,
+              "total_tokens": 427,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              }
+            },
+            "stats": {},
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+          },
+          "http_status": 200,
+          "duration_ms": 1644.744
+        },
+        {
+          "request": {
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "messages": [
+              {
+                "role": "system",
+                "content": "Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures."
+              },
+              {
+                "role": "user",
+                "content": "Call conversation.reply exactly once with text=\"PROBE_REPLY_7318\"."
+              },
+              {
+                "role": "assistant",
+                "content": "",
+                "reasoning_content": "",
+                "tool_calls": [
+                  {
+                    "type": "function",
+                    "id": "222904856",
+                    "function": {
+                      "name": "conversation.reply",
+                      "arguments": "{\"text\":\"PROBE_REPLY_7318\"}"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "tool",
+                "tool_call_id": "222904856",
+                "content": "{\"receipt\": \"PROBE_RECEIPT_7318\", \"status\": \"synthetic_fixture\"}"
+              },
+              {
+                "role": "user",
+                "content": "Return only a JSON object with receipt equal to the previous tool result receipt. Do not call tools."
+              }
+            ],
+            "temperature": 0,
+            "max_completion_tokens": 256,
+            "enable_thinking": false,
+            "stream": false,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "synthetic_receipt",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "receipt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "receipt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "request_json": "{\"model\": \"cydonia-24b-v4.3-heretic-v2-i1\", \"messages\": [{\"role\": \"system\", \"content\": \"Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures.\"}, {\"role\": \"user\", \"content\": \"Call conversation.reply exactly once with text=\\\"PROBE_REPLY_7318\\\".\"}, {\"role\": \"assistant\", \"content\": \"\", \"reasoning_content\": \"\", \"tool_calls\": [{\"type\": \"function\", \"id\": \"222904856\", \"function\": {\"name\": \"conversation.reply\", \"arguments\": \"{\\\"text\\\":\\\"PROBE_REPLY_7318\\\"}\"}}]}, {\"role\": \"tool\", \"tool_call_id\": \"222904856\", \"content\": \"{\\\"receipt\\\": \\\"PROBE_RECEIPT_7318\\\", \\\"status\\\": \\\"synthetic_fixture\\\"}\"}, {\"role\": \"user\", \"content\": \"Return only a JSON object with receipt equal to the previous tool result receipt. Do not call tools.\"}], \"temperature\": 0, \"max_completion_tokens\": 256, \"enable_thinking\": false, \"stream\": false, \"response_format\": {\"type\": \"json_schema\", \"json_schema\": {\"name\": \"synthetic_receipt\", \"strict\": true, \"schema\": {\"type\": \"object\", \"properties\": {\"receipt\": {\"type\": \"string\"}}, \"required\": [\"receipt\"], \"additionalProperties\": false}}}}",
+          "response": {
+            "id": "chatcmpl-h6x55f5sk3qb62xjw1657j",
+            "object": "chat.completion",
+            "created": 1791864628,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "{\n  \"receipt\": \"PROBE_RECEIPT_7318\"\n}",
+                  "reasoning_content": "",
+                  "tool_calls": []
+                },
+                "logprobs": null,
+                "finish_reason": "stop"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 386,
+              "completion_tokens": 21,
+              "total_tokens": 407,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              }
+            },
+            "stats": {},
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+          },
+          "http_status": 200,
+          "duration_ms": 1159.743
+        }
+      ],
+      "classification": "PASS"
+    },
+    "dynamic_discovery_receipt": {
+      "steps": [
+        {
+          "request": {
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "messages": [
+              {
+                "role": "system",
+                "content": "Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures."
+              },
+              {
+                "role": "user",
+                "content": "Call capability.discover exactly once with names=[\"probe.read\"]."
+              }
+            ],
+            "temperature": 0,
+            "max_completion_tokens": 256,
+            "enable_thinking": false,
+            "stream": false,
+            "tools": [
+              {
+                "type": "function",
+                "function": {
+                  "name": "capability.discover",
+                  "description": "Synthetic schema discovery. There is no implementation.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "names": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "maxItems": 8
+                      }
+                    },
+                    "required": [
+                      "names"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            ],
+            "tool_choice": "required"
+          },
+          "request_json": "{\"model\": \"cydonia-24b-v4.3-heretic-v2-i1\", \"messages\": [{\"role\": \"system\", \"content\": \"Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures.\"}, {\"role\": \"user\", \"content\": \"Call capability.discover exactly once with names=[\\\"probe.read\\\"].\"}], \"temperature\": 0, \"max_completion_tokens\": 256, \"enable_thinking\": false, \"stream\": false, \"tools\": [{\"type\": \"function\", \"function\": {\"name\": \"capability.discover\", \"description\": \"Synthetic schema discovery. There is no implementation.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"names\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"minItems\": 1, \"maxItems\": 8}}, \"required\": [\"names\"], \"additionalProperties\": false}}}], \"tool_choice\": \"required\"}",
+          "response": {
+            "id": "chatcmpl-jr29ix8dspm75aiha1pj9l",
+            "object": "chat.completion",
+            "created": 1791864630,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "",
+                  "reasoning_content": "",
+                  "tool_calls": [
+                    {
+                      "type": "function",
+                      "id": "860129494",
+                      "function": {
+                        "name": "capability.discover",
+                        "arguments": "{\"names\":[\"probe.read\"]}"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": "tool_calls"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 405,
+              "completion_tokens": 32,
+              "total_tokens": 437,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              }
+            },
+            "stats": {},
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+          },
+          "http_status": 200,
+          "duration_ms": 1084.382
+        },
+        {
+          "request": {
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "messages": [
+              {
+                "role": "system",
+                "content": "Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures."
+              },
+              {
+                "role": "user",
+                "content": "Call capability.discover exactly once with names=[\"probe.read\"]."
+              },
+              {
+                "role": "assistant",
+                "content": "",
+                "reasoning_content": "",
+                "tool_calls": [
+                  {
+                    "type": "function",
+                    "id": "860129494",
+                    "function": {
+                      "name": "capability.discover",
+                      "arguments": "{\"names\":[\"probe.read\"]}"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "tool",
+                "tool_call_id": "860129494",
+                "content": "{\"available\": [{\"type\": \"function\", \"function\": {\"name\": \"probe.read\", \"description\": \"Read-only synthetic compatibility probe. No business side effects.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"value\": {\"type\": \"string\", \"enum\": [\"7318\"]}}, \"required\": [\"value\"], \"additionalProperties\": false}}}], \"synthetic\": true}"
+              },
+              {
+                "role": "user",
+                "content": "The discovered probe.read schema is now installed. Call probe.read exactly once with value=\"7318\"."
+              }
+            ],
+            "temperature": 0,
+            "max_completion_tokens": 256,
+            "enable_thinking": false,
+            "stream": false,
+            "tools": [
+              {
+                "type": "function",
+                "function": {
+                  "name": "capability.discover",
+                  "description": "Synthetic schema discovery. There is no implementation.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "names": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "maxItems": 8
+                      }
+                    },
+                    "required": [
+                      "names"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              {
+                "type": "function",
+                "function": {
+                  "name": "probe.read",
+                  "description": "Read-only synthetic compatibility probe. No business side effects.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "enum": [
+                          "7318"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            ],
+            "tool_choice": "required"
+          },
+          "request_json": "{\"model\": \"cydonia-24b-v4.3-heretic-v2-i1\", \"messages\": [{\"role\": \"system\", \"content\": \"Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures.\"}, {\"role\": \"user\", \"content\": \"Call capability.discover exactly once with names=[\\\"probe.read\\\"].\"}, {\"role\": \"assistant\", \"content\": \"\", \"reasoning_content\": \"\", \"tool_calls\": [{\"type\": \"function\", \"id\": \"860129494\", \"function\": {\"name\": \"capability.discover\", \"arguments\": \"{\\\"names\\\":[\\\"probe.read\\\"]}\"}}]}, {\"role\": \"tool\", \"tool_call_id\": \"860129494\", \"content\": \"{\\\"available\\\": [{\\\"type\\\": \\\"function\\\", \\\"function\\\": {\\\"name\\\": \\\"probe.read\\\", \\\"description\\\": \\\"Read-only synthetic compatibility probe. No business side effects.\\\", \\\"parameters\\\": {\\\"type\\\": \\\"object\\\", \\\"properties\\\": {\\\"value\\\": {\\\"type\\\": \\\"string\\\", \\\"enum\\\": [\\\"7318\\\"]}}, \\\"required\\\": [\\\"value\\\"], \\\"additionalProperties\\\": false}}}], \\\"synthetic\\\": true}\"}, {\"role\": \"user\", \"content\": \"The discovered probe.read schema is now installed. Call probe.read exactly once with value=\\\"7318\\\".\"}], \"temperature\": 0, \"max_completion_tokens\": 256, \"enable_thinking\": false, \"stream\": false, \"tools\": [{\"type\": \"function\", \"function\": {\"name\": \"capability.discover\", \"description\": \"Synthetic schema discovery. There is no implementation.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"names\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"minItems\": 1, \"maxItems\": 8}}, \"required\": [\"names\"], \"additionalProperties\": false}}}, {\"type\": \"function\", \"function\": {\"name\": \"probe.read\", \"description\": \"Read-only synthetic compatibility probe. No business side effects.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"value\": {\"type\": \"string\", \"enum\": [\"7318\"]}}, \"required\": [\"value\"], \"additionalProperties\": false}}}], \"tool_choice\": \"required\"}",
+          "response": {
+            "id": "chatcmpl-k1al0itdpn2n6hdpp9lic",
+            "object": "chat.completion",
+            "created": 1791864631,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "",
+                  "reasoning_content": "",
+                  "tool_calls": [
+                    {
+                      "type": "function",
+                      "id": "151760365",
+                      "function": {
+                        "name": "probe.read",
+                        "arguments": "{\"value\":\"7318\"}"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": "tool_calls"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 665,
+              "completion_tokens": 31,
+              "total_tokens": 696,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              }
+            },
+            "stats": {},
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+          },
+          "http_status": 200,
+          "duration_ms": 1070.498
+        },
+        {
+          "request": {
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "messages": [
+              {
+                "role": "system",
+                "content": "Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures."
+              },
+              {
+                "role": "user",
+                "content": "Call capability.discover exactly once with names=[\"probe.read\"]."
+              },
+              {
+                "role": "assistant",
+                "content": "",
+                "reasoning_content": "",
+                "tool_calls": [
+                  {
+                    "type": "function",
+                    "id": "860129494",
+                    "function": {
+                      "name": "capability.discover",
+                      "arguments": "{\"names\":[\"probe.read\"]}"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "tool",
+                "tool_call_id": "860129494",
+                "content": "{\"available\": [{\"type\": \"function\", \"function\": {\"name\": \"probe.read\", \"description\": \"Read-only synthetic compatibility probe. No business side effects.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"value\": {\"type\": \"string\", \"enum\": [\"7318\"]}}, \"required\": [\"value\"], \"additionalProperties\": false}}}], \"synthetic\": true}"
+              },
+              {
+                "role": "user",
+                "content": "The discovered probe.read schema is now installed. Call probe.read exactly once with value=\"7318\"."
+              },
+              {
+                "role": "assistant",
+                "content": "",
+                "reasoning_content": "",
+                "tool_calls": [
+                  {
+                    "type": "function",
+                    "id": "151760365",
+                    "function": {
+                      "name": "probe.read",
+                      "arguments": "{\"value\":\"7318\"}"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "tool",
+                "tool_call_id": "151760365",
+                "content": "{\"receipt\": \"PROBE_RECEIPT_7318\", \"status\": \"synthetic_fixture\"}"
+              },
+              {
+                "role": "user",
+                "content": "Return only a JSON object with receipt equal to the previous tool result receipt. Do not call tools."
+              }
+            ],
+            "temperature": 0,
+            "max_completion_tokens": 256,
+            "enable_thinking": false,
+            "stream": false,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "synthetic_receipt",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "receipt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "receipt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "request_json": "{\"model\": \"cydonia-24b-v4.3-heretic-v2-i1\", \"messages\": [{\"role\": \"system\", \"content\": \"Follow fixed synthetic compatibility instructions. All tool results will be synthetic fixtures.\"}, {\"role\": \"user\", \"content\": \"Call capability.discover exactly once with names=[\\\"probe.read\\\"].\"}, {\"role\": \"assistant\", \"content\": \"\", \"reasoning_content\": \"\", \"tool_calls\": [{\"type\": \"function\", \"id\": \"860129494\", \"function\": {\"name\": \"capability.discover\", \"arguments\": \"{\\\"names\\\":[\\\"probe.read\\\"]}\"}}]}, {\"role\": \"tool\", \"tool_call_id\": \"860129494\", \"content\": \"{\\\"available\\\": [{\\\"type\\\": \\\"function\\\", \\\"function\\\": {\\\"name\\\": \\\"probe.read\\\", \\\"description\\\": \\\"Read-only synthetic compatibility probe. No business side effects.\\\", \\\"parameters\\\": {\\\"type\\\": \\\"object\\\", \\\"properties\\\": {\\\"value\\\": {\\\"type\\\": \\\"string\\\", \\\"enum\\\": [\\\"7318\\\"]}}, \\\"required\\\": [\\\"value\\\"], \\\"additionalProperties\\\": false}}}], \\\"synthetic\\\": true}\"}, {\"role\": \"user\", \"content\": \"The discovered probe.read schema is now installed. Call probe.read exactly once with value=\\\"7318\\\".\"}, {\"role\": \"assistant\", \"content\": \"\", \"reasoning_content\": \"\", \"tool_calls\": [{\"type\": \"function\", \"id\": \"151760365\", \"function\": {\"name\": \"probe.read\", \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"}}]}, {\"role\": \"tool\", \"tool_call_id\": \"151760365\", \"content\": \"{\\\"receipt\\\": \\\"PROBE_RECEIPT_7318\\\", \\\"status\\\": \\\"synthetic_fixture\\\"}\"}, {\"role\": \"user\", \"content\": \"Return only a JSON object with receipt equal to the previous tool result receipt. Do not call tools.\"}], \"temperature\": 0, \"max_completion_tokens\": 256, \"enable_thinking\": false, \"stream\": false, \"response_format\": {\"type\": \"json_schema\", \"json_schema\": {\"name\": \"synthetic_receipt\", \"strict\": true, \"schema\": {\"type\": \"object\", \"properties\": {\"receipt\": {\"type\": \"string\"}}, \"required\": [\"receipt\"], \"additionalProperties\": false}}}}",
+          "response": {
+            "id": "chatcmpl-5zm1t5i9aaxa0j09rr811o",
+            "object": "chat.completion",
+            "created": 1791864632,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "{\n  \"receipt\": \"PROBE_RECEIPT_7318\"\n}",
+                  "reasoning_content": "",
+                  "tool_calls": []
+                },
+                "logprobs": null,
+                "finish_reason": "stop"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 522,
+              "completion_tokens": 21,
+              "total_tokens": 543,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              }
+            },
+            "stats": {},
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+          },
+          "http_status": 200,
+          "duration_ms": 1605.927
+        }
+      ],
+      "classification": "PASS"
+    }
+  }
+}

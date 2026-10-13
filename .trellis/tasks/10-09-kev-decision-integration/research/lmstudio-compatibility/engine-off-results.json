@@ -1,0 +1,1905 @@
+{
+  "version": "lmstudio-compatibility.v1",
+  "endpoint": "http://100.80.75.9:1234/v1/chat/completions",
+  "model": "cydonia-24b-v4.3-heretic-v2-i1",
+  "prerequisites_passed": true,
+  "cases": {
+    "text": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Reply with exactly PROBE_TEXT_7318."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-w2los4lenqjkdoivjuybk8",
+        "object": "chat.completion",
+        "created": 1791864298,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "PROBE_TEXT_7318",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 25,
+          "completion_tokens": 9,
+          "total_tokens": 34,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-w2los4lenqjkdoivjuybk8\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864298,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"PROBE_TEXT_7318\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 25,\n    \"completion_tokens\": 9,\n    \"total_tokens\": 34,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "PROBE_TEXT_7318",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 9,
+        "total_tokens": 34,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 862.335
+    },
+    "strict_json": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Return exactly {\"value\":\"7318\"}."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "compatibility_probe",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "7318"
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-x479sszfj9m56wevebbh04",
+        "object": "chat.completion",
+        "created": 1791864299,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"value\":\"7318\"}",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 24,
+          "completion_tokens": 9,
+          "total_tokens": 33,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-x479sszfj9m56wevebbh04\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864299,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"{\\\"value\\\":\\\"7318\\\"}\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 24,\n    \"completion_tokens\": 9,\n    \"total_tokens\": 33,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "{\"value\":\"7318\"}",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": true,
+      "final_json": {
+        "value": "7318"
+      },
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 24,
+        "completion_tokens": 9,
+        "total_tokens": 33,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 567.14
+    },
+    "nullable_anyof": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Return exactly {\"value\":null}."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "compatibility_probe",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-w9olar3a3kjby27y7dchbb",
+        "object": "chat.completion",
+        "created": 1791864299,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"value\": null}",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 20,
+          "completion_tokens": 6,
+          "total_tokens": 26,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-w9olar3a3kjby27y7dchbb\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864299,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"{\\\"value\\\": null}\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 20,\n    \"completion_tokens\": 6,\n    \"total_tokens\": 26,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "{\"value\": null}",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": true,
+      "final_json": {
+        "value": null
+      },
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 20,
+        "completion_tokens": 6,
+        "total_tokens": 26,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 296.882
+    },
+    "conditional_oneof": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Return exactly {\"kind\":\"number\",\"value\":7318}."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 256,
+        "enable_thinking": false,
+        "stream": false,
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "compatibility_probe",
+            "strict": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "text"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "number"
+                    },
+                    "value": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        }
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-xgmbartvaom6t79uq4zm",
+        "object": "chat.completion",
+        "created": 1791864300,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"kind\":\"number\",\"value\":7318}",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 27,
+          "completion_tokens": 13,
+          "total_tokens": 40,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-xgmbartvaom6t79uq4zm\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864300,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"{\\\"kind\\\":\\\"number\\\",\\\"value\\\":7318}\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 27,\n    \"completion_tokens\": 13,\n    \"total_tokens\": 40,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "{\"kind\":\"number\",\"value\":7318}",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": true,
+      "final_json": {
+        "kind": "number",
+        "value": 7318
+      },
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 27,
+        "completion_tokens": 13,
+        "total_tokens": 40,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 492.289
+    },
+    "required_empty": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call the provided read-only probe once with no arguments."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "required"
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-84btrfzvz0rlkb071v8zra",
+        "object": "chat.completion",
+        "created": 1791864300,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "reasoning_content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "id": "548798034",
+                  "function": {
+                    "name": "probe_read",
+                    "arguments": "{}"
+                  }
+                }
+              ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 345,
+          "completion_tokens": 24,
+          "total_tokens": 369,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-84btrfzvz0rlkb071v8zra\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864300,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": [\n          {\n            \"type\": \"function\",\n            \"id\": \"548798034\",\n            \"function\": {\n              \"name\": \"probe_read\",\n              \"arguments\": \"{}\"\n            }\n          }\n        ]\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 345,\n    \"completion_tokens\": 24,\n    \"total_tokens\": 369,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "",
+      "native_calls": [
+        {
+          "id": "548798034",
+          "name": "probe_read",
+          "arguments": "{}",
+          "arguments_parse_valid": true,
+          "arguments_object": {},
+          "valid": true
+        }
+      ],
+      "native_count": 1,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 345,
+        "completion_tokens": 24,
+        "total_tokens": 369,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 2009.646
+    },
+    "required_underscore": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call the provided read-only probe once with value=\"7318\"."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "required"
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-i2l9v80qhirm6sppab9qn",
+        "object": "chat.completion",
+        "created": 1791864302,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "reasoning_content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "id": "327454046",
+                  "function": {
+                    "name": "probe_read",
+                    "arguments": "{\"value\":\"7318\"}"
+                  }
+                }
+              ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 385,
+          "completion_tokens": 32,
+          "total_tokens": 417,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-i2l9v80qhirm6sppab9qn\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864302,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": [\n          {\n            \"type\": \"function\",\n            \"id\": \"327454046\",\n            \"function\": {\n              \"name\": \"probe_read\",\n              \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"\n            }\n          }\n        ]\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 385,\n    \"completion_tokens\": 32,\n    \"total_tokens\": 417,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "",
+      "native_calls": [
+        {
+          "id": "327454046",
+          "name": "probe_read",
+          "arguments": "{\"value\":\"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        }
+      ],
+      "native_count": 1,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 385,
+        "completion_tokens": 32,
+        "total_tokens": 417,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 2155.654
+    },
+    "required_dot": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call the provided read-only probe once with value=\"7318\"."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe.read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "required"
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-xv7a6f3ajgf6gs5n1ty7",
+        "object": "chat.completion",
+        "created": 1791864304,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "reasoning_content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "id": "653492179",
+                  "function": {
+                    "name": "probe.read",
+                    "arguments": "{\"value\":\"7318\"}"
+                  }
+                }
+              ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 385,
+          "completion_tokens": 32,
+          "total_tokens": 417,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-xv7a6f3ajgf6gs5n1ty7\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864304,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": [\n          {\n            \"type\": \"function\",\n            \"id\": \"653492179\",\n            \"function\": {\n              \"name\": \"probe.read\",\n              \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"\n            }\n          }\n        ]\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 385,\n    \"completion_tokens\": 32,\n    \"total_tokens\": 417,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "",
+      "native_calls": [
+        {
+          "id": "653492179",
+          "name": "probe.read",
+          "arguments": "{\"value\":\"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        }
+      ],
+      "native_count": 1,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 385,
+        "completion_tokens": 32,
+        "total_tokens": 417,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 1079.573
+    },
+    "auto": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call probe_read with value=\"7318\" to read the synthetic value."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "auto"
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-nl6oxxn5y6f73vprp8eos",
+        "object": "chat.completion",
+        "created": 1791864306,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "reasoning_content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "id": "773755736",
+                  "function": {
+                    "name": "probe_read",
+                    "arguments": "{\"value\":\"7318\"}"
+                  }
+                }
+              ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 387,
+          "completion_tokens": 31,
+          "total_tokens": 418,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-nl6oxxn5y6f73vprp8eos\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864306,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": [\n          {\n            \"type\": \"function\",\n            \"id\": \"773755736\",\n            \"function\": {\n              \"name\": \"probe_read\",\n              \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"\n            }\n          }\n        ]\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 387,\n    \"completion_tokens\": 31,\n    \"total_tokens\": 418,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "",
+      "native_calls": [
+        {
+          "id": "773755736",
+          "name": "probe_read",
+          "arguments": "{\"value\":\"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        }
+      ],
+      "native_count": 1,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 387,
+        "completion_tokens": 31,
+        "total_tokens": 418,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 1166.329
+    },
+    "none": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Reply with exactly PROBE_TEXT_7318. Do not call a tool."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "none"
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-pm1hgbe4puoqsfmf6kqtj",
+        "object": "chat.completion",
+        "created": 1791864307,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "PROBE_TEXT_7318",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 31,
+          "completion_tokens": 9,
+          "total_tokens": 40,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-pm1hgbe4puoqsfmf6kqtj\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864307,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"PROBE_TEXT_7318\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 31,\n    \"completion_tokens\": 9,\n    \"total_tokens\": 40,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "PROBE_TEXT_7318",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 9,
+        "total_tokens": 40,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 324.38
+    },
+    "required_sse": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call probe_read with value=\"7318\" once."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": true,
+        "stream_options": {
+          "include_usage": true
+        },
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "required"
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "content": "",
+              "tool_calls": [
+                {
+                  "id": "969694305",
+                  "type": "function",
+                  "function": {
+                    "name": "probe_read",
+                    "arguments": "{\"value\": \"7318\"}"
+                  }
+                }
+              ]
+            },
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 383,
+          "completion_tokens": 32,
+          "total_tokens": 415,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "data: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"tool_calls\":[{\"index\":0,\"id\":\"969694305\",\"type\":\"function\",\"function\":{\"name\":\"probe_read\",\"arguments\":\"\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"{\\\"\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"value\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"\\\":\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\" \\\"\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"7\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"3\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"1\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"8\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"\\\"\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"}\"}}]},\"logprobs\":null,\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[{\"index\":0,\"delta\":{},\"logprobs\":null,\"finish_reason\":\"tool_calls\"}]}\n\ndata: {\"id\":\"chatcmpl-ct4ehk1z05ue57rzsg9ld\",\"object\":\"chat.completion.chunk\",\"created\":1791864307,\"model\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"system_fingerprint\":\"cydonia-24b-v4.3-heretic-v2-i1\",\"choices\":[],\"usage\":{\"prompt_tokens\":383,\"completion_tokens\":32,\"total_tokens\":415,\"completion_tokens_details\":{\"reasoning_tokens\":0}}}\n\ndata: [DONE]\n\n",
+      "response_truncated": false,
+      "sse": {
+        "events": [
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "role": "assistant",
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "id": "969694305",
+                      "type": "function",
+                      "function": {
+                        "name": "probe_read",
+                        "arguments": ""
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "{\""
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "value"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "\":"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": " \""
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "7"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "3"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "1"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "8"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "\""
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {
+                  "tool_calls": [
+                    {
+                      "index": 0,
+                      "type": "function",
+                      "function": {
+                        "arguments": "}"
+                      }
+                    }
+                  ]
+                },
+                "logprobs": null,
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [
+              {
+                "index": 0,
+                "delta": {},
+                "logprobs": null,
+                "finish_reason": "tool_calls"
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-ct4ehk1z05ue57rzsg9ld",
+            "object": "chat.completion.chunk",
+            "created": 1791864307,
+            "model": "cydonia-24b-v4.3-heretic-v2-i1",
+            "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1",
+            "choices": [],
+            "usage": {
+              "prompt_tokens": 383,
+              "completion_tokens": 32,
+              "total_tokens": 415,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              }
+            }
+          }
+        ],
+        "done": true,
+        "tool_indices": [
+          0
+        ]
+      },
+      "content": "",
+      "native_calls": [
+        {
+          "id": "969694305",
+          "name": "probe_read",
+          "arguments": "{\"value\": \"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        }
+      ],
+      "native_count": 1,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 383,
+        "completion_tokens": 32,
+        "total_tokens": 415,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 1098.741
+    },
+    "two_tools": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call both probe_read and probe_other with value=\"7318\"."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_other",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "required",
+        "parallel_tool_calls": true
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-9plrb5fbfmjgnhx9824f4",
+        "object": "chat.completion",
+        "created": 1791864308,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "\n",
+              "reasoning_content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "id": "207571513",
+                  "function": {
+                    "name": "probe_read",
+                    "arguments": "{\"value\":\"7318\"}"
+                  }
+                },
+                {
+                  "type": "function",
+                  "id": "927456815",
+                  "function": {
+                    "name": "probe_other",
+                    "arguments": "{\"value\":\"7318\"}"
+                  }
+                }
+              ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 494,
+          "completion_tokens": 63,
+          "total_tokens": 557,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-9plrb5fbfmjgnhx9824f4\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864308,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"\\n\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": [\n          {\n            \"type\": \"function\",\n            \"id\": \"207571513\",\n            \"function\": {\n              \"name\": \"probe_read\",\n              \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"\n            }\n          },\n          {\n            \"type\": \"function\",\n            \"id\": \"927456815\",\n            \"function\": {\n              \"name\": \"probe_other\",\n              \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"\n            }\n          }\n        ]\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 494,\n    \"completion_tokens\": 63,\n    \"total_tokens\": 557,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "\n",
+      "native_calls": [
+        {
+          "id": "207571513",
+          "name": "probe_read",
+          "arguments": "{\"value\":\"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        },
+        {
+          "id": "927456815",
+          "name": "probe_other",
+          "arguments": "{\"value\":\"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        }
+      ],
+      "native_count": 2,
+      "multiple_native_calls_observed": true,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 494,
+        "completion_tokens": 63,
+        "total_tokens": 557,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 3459.099
+    },
+    "tools_strict_json": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call probe_read with value=\"7318\" first; do not return final JSON yet."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "required",
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "compatibility_probe",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "7318"
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-nltbv1pl00gqbpxi44pke",
+        "object": "chat.completion",
+        "created": 1791864312,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "reasoning_content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "id": "705993380",
+                  "function": {
+                    "name": "probe_read",
+                    "arguments": "{\"value\":\"7318\"}"
+                  }
+                }
+              ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 390,
+          "completion_tokens": 31,
+          "total_tokens": 421,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-nltbv1pl00gqbpxi44pke\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864312,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": [\n          {\n            \"type\": \"function\",\n            \"id\": \"705993380\",\n            \"function\": {\n              \"name\": \"probe_read\",\n              \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"\n            }\n          }\n        ]\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 390,\n    \"completion_tokens\": 31,\n    \"total_tokens\": 421,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "",
+      "native_calls": [
+        {
+          "id": "705993380",
+          "name": "probe_read",
+          "arguments": "{\"value\":\"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        }
+      ],
+      "native_count": 1,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 390,
+        "completion_tokens": 31,
+        "total_tokens": 421,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 1109.153
+    },
+    "continuation_empty": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Read a synthetic value using probe_read."
+          },
+          {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "probe0001",
+                "type": "function",
+                "function": {
+                  "name": "probe_read",
+                  "arguments": "{\"value\":\"7318\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "probe0001",
+            "content": "PROBE_RESULT_7318"
+          },
+          {
+            "role": "user",
+            "content": "Return the exact text from the previous tool result. Do not call a tool."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "none"
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-tsiyp2nwn2hj2w8uk441wi",
+        "object": "chat.completion",
+        "created": 1791864313,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "PROBE_RESULT_7318",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 339,
+          "completion_tokens": 9,
+          "total_tokens": 348,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-tsiyp2nwn2hj2w8uk441wi\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864313,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"PROBE_RESULT_7318\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 339,\n    \"completion_tokens\": 9,\n    \"total_tokens\": 348,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "PROBE_RESULT_7318",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 339,
+        "completion_tokens": 9,
+        "total_tokens": 348,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 1624.852
+    },
+    "continuation_null": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Read a synthetic value using probe_read."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "probe0001",
+                "type": "function",
+                "function": {
+                  "name": "probe_read",
+                  "arguments": "{\"value\":\"7318\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "probe0001",
+            "content": "PROBE_RESULT_7318"
+          },
+          {
+            "role": "user",
+            "content": "Return the exact text from the previous tool result. Do not call a tool."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "none"
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-vzxwrpxgmwwzvwofcbs3s",
+        "object": "chat.completion",
+        "created": 1791864314,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "PROBE_RESULT_7318",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 339,
+          "completion_tokens": 9,
+          "total_tokens": 348,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-vzxwrpxgmwwzvwofcbs3s\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791864314,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"PROBE_RESULT_7318\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 339,\n    \"completion_tokens\": 9,\n    \"total_tokens\": 348,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "PROBE_RESULT_7318",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 339,
+        "completion_tokens": 9,
+        "total_tokens": 348,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 314.471
+    }
+  },
+  "limits": {
+    "timeout_seconds": 30.0,
+    "response_bytes": 2097152,
+    "error_bytes": 16384
+  },
+  "scope": "Fixed synthetic provider requests only. No tool execution, Core calls, retries or model loading."
+}

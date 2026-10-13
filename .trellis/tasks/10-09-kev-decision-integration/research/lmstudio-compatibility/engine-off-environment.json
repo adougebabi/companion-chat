@@ -1,0 +1,47 @@
+{
+  "observed_date": "2026-10-13",
+  "engine_protocol": "off_reported_by_user",
+  "gui_confirmation": "unavailable_mac_locked",
+  "model": {
+    "type": "llm",
+    "publisher": "mradermacher",
+    "key": "cydonia-24b-v4.3-heretic-v2-i1",
+    "display_name": "Cydonia 24B v4.3 Heretic v2 I1",
+    "architecture": "llama",
+    "quantization": {
+      "name": "IQ3_M",
+      "bits_per_weight": 3
+    },
+    "size_bytes": 10650952147,
+    "params_string": "24B",
+    "loaded_instances": [
+      {
+        "id": "cydonia-24b-v4.3-heretic-v2-i1",
+        "config": {
+          "context_length": 8192,
+          "eval_batch_size": 2048,
+          "physical_batch_size": 512,
+          "parallel": 4,
+          "flash_attention": true,
+          "context_checkpoints": 32,
+          "reasoning_budget_message": "",
+          "speculative_draft_mtp": false,
+          "speculative_draft_simple": false,
+          "speculative_draft_model": "",
+          "speculative_draft_max_tokens": 3,
+          "speculative_draft_min_tokens": 0,
+          "speculative_draft_min_continue_probability": 0,
+          "offload_kv_cache_to_gpu": true
+        }
+      }
+    ],
+    "max_context_length": 131072,
+    "format": "gguf",
+    "capabilities": {
+      "vision": false,
+      "trained_for_tool_use": false
+    },
+    "description": null
+  },
+  "scope": "Public model API only; no credentials or private backend access."
+}
