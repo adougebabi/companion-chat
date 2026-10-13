@@ -74,5 +74,5 @@
 全工作区generate/typecheck/test/build及Go browser race/vet/build通过，共127项JS/TS测试。五项最后核验发现已修复；Owner浏览器allowlist同步既有十字段契约。24张虚构样本截图、78条尺寸记录和限制见artifacts/ui-refactor-2026-10-13。
 
 - [x] workflow3.4：用户一次性确认具体提交批次（“按计划提交”）。
-- [ ] 执行已批准工作提交。
-- [ ] 提交后finish-work归档与会话日志。
+- [x] 执行已批准工作提交：6b1d60e。
+提交后归档与会话日志由finish-work流程记录；结果以归档task.json及Git记录为准。
