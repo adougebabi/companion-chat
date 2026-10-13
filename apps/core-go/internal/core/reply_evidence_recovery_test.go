@@ -139,7 +139,7 @@ func TestReplyMediaCatalogDenialCompletesSameDraft(t *testing.T) {
 	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversation).Scan(&messages); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE fluctlight_id=$1`, self).Scan(&assets); err != nil {
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, self).Scan(&assets); err != nil {
 		t.Fatal(err)
 	}
 	if messages != 1 || assets != 0 {
