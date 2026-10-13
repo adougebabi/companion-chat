@@ -1,0 +1,17 @@
+{
+  "correlation_id": "turn:turn_03f5a472-5d1f-429f-a966-f381e94f6e2b",
+  "agent": "conversation_cognition",
+  "started_at": "2026-10-13T13:44:46.840+08:00",
+  "finished_at": "2026-10-13T13:52:47.501+08:00",
+  "physical_requests": 10,
+  "native_reply_request": 9,
+  "native_reply_call_id": "400669475",
+  "native_reply_result": "completed",
+  "last_request_started_at": "2026-10-13T13:52:47.276+08:00",
+  "last_request_finished_at": "2026-10-13T13:52:47.459+08:00",
+  "failure_stage": "model",
+  "error_code": "provider_request_failed",
+  "http_status": 400,
+  "provider_error": "Cannot combine structured output constraints with lazy grammar",
+  "scope": "Read-only diagnostic UI. Sanitized facts only; private message bodies and credentials omitted."
+}

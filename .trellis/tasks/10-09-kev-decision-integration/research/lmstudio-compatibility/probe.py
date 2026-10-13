@@ -67,6 +67,9 @@ def cases(model):
     add("tools_strict_json", 'Call probe_read with value="7318" first; do not return final JSON yet.',
         "native", False, tools=[tool("probe_read")], tool_choice="required",
         response_format=copy.deepcopy(result["strict_json"]["request"]["response_format"]))
+    add("auto_tools_strict_json", 'Call probe_read with value="7318" first; do not return final JSON yet.',
+        "native", False, tools=[tool("probe_read")], tool_choice="auto",
+        response_format=copy.deepcopy(result["strict_json"]["request"]["response_format"]))
     for variant in ("empty", "null"):
         add("continuation_" + variant, "Return the exact text from the previous tool result. Do not call a tool.",
             "continuation", variant == "empty", tools=[tool("probe_read")], tool_choice="none")
@@ -318,6 +321,11 @@ def self_test():
             for case in matrix.values():
                 self.assertFalse(case["request"]["enable_thinking"])
                 self.assertLessEqual(case["request"]["max_completion_tokens"], 256)
+            auto_schema = matrix["auto_tools_strict_json"]
+            self.assertFalse(auto_schema["required"])
+            self.assertEqual(auto_schema["request"]["tool_choice"], "auto")
+            self.assertEqual(auto_schema["request"]["response_format"], matrix["strict_json"]["request"]["response_format"])
+            self.assertIsNot(auto_schema["request"]["response_format"], matrix["strict_json"]["request"]["response_format"])
             history = matrix["continuation_empty"]["request"]["messages"]
             self.assertEqual(history[-2]["content"], RESULT)
             self.assertNotIn(RESULT, history[-1]["content"])

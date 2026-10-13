@@ -116,8 +116,8 @@ func TestConversationPhysicalRequestsForceNativePublicationGenerateAndStream(t *
 			if !conversationWireForcesReply(requests[0]) || requests[0]["response_format"] != nil {
 				t.Fatalf("first request was not forced native execution: %#v", requests[0])
 			}
-			if requests[1]["tool_choice"] != "auto" || requests[1]["response_format"] == nil {
-				t.Fatalf("final request did not restore final contract: %#v", requests[1])
+			if requests[1]["tool_choice"] != "auto" || requests[1]["response_format"] != nil {
+				t.Fatalf("optional request retained final grammar: %#v", requests[1])
 			}
 		})
 	}

@@ -19,8 +19,8 @@ func assertGoalEvaluationRequestPhase(t *testing.T, payload map[string]any, subm
 		}
 		return
 	}
-	if payload["tool_choice"] != "auto" || !hasFormat {
-		t.Fatalf("covered production request did not restore summary: tool_choice=%#v response_format=%t", payload["tool_choice"], hasFormat)
+	if payload["tool_choice"] != "auto" || hasFormat {
+		t.Fatalf("covered production request retained summary grammar: tool_choice=%#v response_format=%t", payload["tool_choice"], hasFormat)
 	}
 }
 

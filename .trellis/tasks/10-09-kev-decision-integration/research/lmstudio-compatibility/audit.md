@@ -4,7 +4,7 @@
 
 ## 当前结论
 
-用户关闭 Engine Protocol 后，同一 Cydonia IQ3_M 在公开 API 上通过全部14个协议用例，另通过真实返回调用 ID 的私聊协议往返与动态发现往返。当前模型具备这些合成用例所要求的原生工具能力，不能归因为“模型不支持”或“LM Studio 整体不支持”。此前失败与当前 Engine Protocol 运行路径/模板接入组合相关；内部具体失效环节尚未定位。本文保留修正前、模板修正后及关闭运行模式后的分阶段证据，不将短协议验收扩写为正式业务验收。
+用户关闭 Engine Protocol 后，同一 Cydonia IQ3_M 在公开 API 上通过全部14个当时定义的协议用例，另通过真实返回调用 ID 的私聊协议往返与动态发现往返。当前模型具备这些合成用例所要求的原生工具能力，不能归因为“模型不支持”或“LM Studio 整体不支持”。后续真实Agent暴露矩阵遗漏的auto工具+最终schema组合，服务明确HTTP400拒绝；Core共享请求层已本地修复为native阶段省略最终grammar，保留严格最终校验/隔离修正。此前Engine Protocol失败的内部具体环节仍未定位。本文保留各阶段证据，不将短协议验收扩写为正式业务验收。
 
 ## 修正前实测环境
 
@@ -92,6 +92,18 @@ Only user, system and assistant roles are supported!
 2. 仅提供capability.discover(names) → 真实nativecall → 合成schema结果 → 下一物理请求实际加入probe.read并收到真实调用 → 合成结果 → 零tools严格JSON读取receipt：PASS。没有执行Core工具或改Agent授权。
 
 当前短请求耗时0.30–3.46秒；这是极小合成请求的端到端时间，不是正式提示词或完整Agent的延迟上限。没有重试、正文转ToolCall、放宽合同或修改应用产品代码。保持用户关闭后的模式用于正式验收；后续若重开该模式或更换LM Studio/runtime/template，应再次跑同矩阵。此次不再把工具输出遗漏修成额外应用重试。
+
+## 真实 Agent 最后一轮的 auto + schema 缺口与 Core 修复
+
+用户指定turn_03f5a472-5d1f-429f-a966-f381e94f6e2b。只读诊断确认conversation_cognition共10次物理请求：前9轮native，最后一次在13:52:47.276→47.459（Asia/Shanghai）失败，failureStage=model、provider_request_failed、HTTP400 `Cannot combine structured output constraints with lazy grammar`。第9轮conversation.reply id=400669475已completed。此次没有进入最终DTO校验或settlement，页面“无法连接”文案不能替代真实技术详情。精简证据见production-final-phase-failure.json，没有保存私聊正文。
+
+完全合成的三请求复现见auto-schema-repro-results.json：required+schema PASS200；auto+schema为同一HTTP400；tool-free+schema PASS200。原14例只测required+schema，缺少auto组合。现probe增加optional auto_tools_strict_json第15例，保留实际服务拒绝，不能宣称服务已支持该混合协议。
+
+本地产品修复只在eino_model_request_policy.go：读取catalog narrowing及请求options之后的实际Tools，非空时统一省略response_format，同时effective format为nil供预算使用。包括没有task policy的工具Agent；required/auto、thinking和目录权限保留，不能在reply/root就绪时提前切断可选调用。原schema未修改；成功native停止后仍严格校验finalDTO，合法结果直接验收；非法结果沿用现有一次tool-free repair，原schema保留，tools/choice/parallel移除，thinkingfalse，原生历史/refs/取消保留。没有Provider400重试、正文转Tool、伪造ID/回执或新Agent框架。
+
+实际SDK/Eino HTTP/SSE新回归在修前12组均RED，确切复现lazy-grammar HTTP400；修后12组GREEN，覆盖Generate/Stream×taskpolicy/no-policy×valid/repair/invalid-repair，真实ID和结果配对、reply后可选read、一个replyeffect、独立physical身份、合法final无多余请求、单次无Tool纠正及无效纠正继续失败。原Planner可选commit/snapshot/repeatedID测试和Goal/VisualIdentity/Conversation请求断言保留效果检查；受控router按canonical私有catalog识别无format阶段，不在生产解析正文。
+
+最终主线程全Go race1662 PASS、514 SKIP、0 FAIL（含子用例），vet/build、gofmt及scoped diff通过。独立只读审阅无具体code/spec finding。DB和其它opt-in验证仍SKIP；首个沙箱全量跑因httptest监听被禁中断，随后相同测试在允许监听环境exit0。证据：/tmp/tool-final-schema-red.log、/tmp/tool-final-schema-green.log、/tmp/tool-final-schema-full-race-unsandboxed.jsonl及.stderr。真实混合请求拒绝已复现；本地修复的完整正式业务验收仍由用户升级Core/Worker后执行。
 
 ## 验收边界与安全边界
 
