@@ -249,3 +249,54 @@ Live LM Studio acceptance is separate from controlled HTTP regression.
 ### 7. Wrong vs Correct
 Wrong: properties:nil becomes absent after typed schema conversion.
 Correct: properties:map[string]any{} stays a JSON object on the physical request.
+
+## Scenario: Live provider native-tool prerequisite (2026-10-13)
+
+### 1. Scope / Trigger
+When a real Agent returns content-only under required tools, separate Core wire
+regressions from model/template/serving behavior using fixed synthetic public
+provider requests. Kev disclosure cannot repair an upstream native-tool failure.
+
+### 2. Signatures
+Run the task's `research/lmstudio-compatibility/probe.py --base-url <public /v1>
+--model <loaded model> --output <report.json> --timeout 30`. `--self-test` performs
+no inference. Exit0 requires all required cases PASS; NOT_RUN is not acceptance.
+
+### 3. Contracts
+Use native message.tool_calls or actual SSE delta.tool_calls, nonempty original
+IDs, offered names and parsed closed arguments. Never reinterpret content as
+ToolCalls. Continuation pairs an assistant call with a tool message by its ID;
+final JSON is a separate tool-free request. Fixed synthetic ToolResults have no
+implementation and prove no business effect. Record model, template, serving
+mode and load parameters alongside results; API trained_for_tool_use metadata
+alone is not a hard capability verdict.
+
+### 4. Validation & Error Matrix
+| Observation | Meaning / action |
+| --- | --- |
+| HTTP400 missing parameters.properties or object tool_choice | wire defect; use actual SDK serialization regressions |
+| HTTP200, content resembling a call, no native fields | fail native prerequisite; do not publish or execute it |
+| Template rejects tool role | serving/template defect; repair transport before judging model ability |
+| SSE events/DONE present but no native call | SSE transport works; native prerequisite fails |
+| Same weights pass after serving-mode change | reject weight-only unsupported conclusion; record usable combination |
+
+### 5. Good / Base / Bad Cases
+Good: same Cydonia IQ3_M passed14/14 after the user disabled Engine Protocol,
+while the preceding V7-template Engine Protocol run passed5/14. Base: controlled
+HTTP fixture proves Core serialization, not real provider behavior. Bad: blame
+weights from metadata or add content parsing to hide an upstream failure.
+
+### 6. Tests Required
+Require empty/dot/underscore tools, required/auto/none, native SSE, paired
+ToolResult consumption and strict JSON. Inspect actual two-call output separately
+from the case name. Add a real-returned-ID synthetic roundtrip and dynamic schema
+growth check when a provider initially fails these. Re-run after model/template/
+runtime/mode changes. Long prompts, semantic Goal success, publication, media and
+end-to-end Core acceptance remain separate checks.
+
+### 7. Wrong vs Correct
+Wrong: metadata says false, therefore model cannot call tools; or content-only
+output is parsed into a fabricated reply. Correct: verify the exact loaded
+combination through the public API, keep original native IDs/receipts, and retain
+the existing execution/authorization contract. Never extract private backend
+credentials as a compatibility workaround.

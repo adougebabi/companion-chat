@@ -411,3 +411,65 @@ parser必然配置错误，也不能泛化为LMStudio不适合作为上游。
 原生工具支持、模型模板与服务格式，必要时使用官方支持的工具Instruct模型做
 单工具+多轮真实tool_calls验收。没有新增应用纠正堆叠、正文转Tool兼容或生产写入；
 本轮未改产品代码，未将前次工程测试当作本次真实模型效果已恢复。
+
+
+## 2026-10-13 LM Studio 全面兼容性审计与模板控制实验准备
+
+用户明确扩大为整体审计，要求区分模型能力与LMStudio问题。新增research/lmstudio-compatibility
+合成协议探针、原模板备份、V7候选模板、离线验证与完整audit.md/baseline-results.json。
+主线程直接当前服务实测14例（无Core调用/业务Tool执行/真实聊天内容）：5PASS、7FAIL、2BLOCKED。
+文本/strictJSON/nullableanyOf/conditionaloneOf/none通过；原生empty/underscore/dot/auto/SSE/twoTools/
+tools+JSON全无native；SSE传输和DONE实际正常。两个历史ToolResult续轮HTTP400明确EngineProtocol
+parser generation触发发布模板Onlyuser/system/assistant异常。
+
+本机LMStudio0.4.20Build1，CydoniaIQ3_M、ctx32768，API标trained_for_tool_usefalse/visionfalse。
+当前模板与Cydonia发布者相同，完全无tools/tool_calls/toolrole；直接API短探针也失败，应用/Eino
+不在失败链路内。上游MistralSmall3.2原具native能力，不能将当前metafalse扩写成权重无能力。
+真实tokenizer控制token为V7（AVAILABLE_TOOLS、TOOL_CALLS、TOOL_RESULTS、TOOL_CONTENT），
+不含V11 CALL_ID/ARGS，故没有盲套最新llama.cpp3.2模板。
+
+native-tools-v7.jinja保持旧文本渲染/不交替role，增加目录、JSONarraynativecalls、pairedresults。
+独立检查发现相同user重复目录及畸形argsrawJSON，两项主线程已修正：位置索引只最后user放目录；
+args用tojson（服务需把合法APIJSONString先规范化为对象，真实后端行为仍待续轮验证）。
+最终独立检查无新findings；模板8/8、自检7/7、Pythoncompile/scopedwhitespace通过。
+未声称minja/EngineProtocol实际已接受候选，未声称Cydonia权重已验证工具能力。
+
+候选仍未应用/重载。下一步需要当前模型加载模板受控修改+reload，再同权重同矩阵对照；
+因为此前限定本地代码验收且服务正供正式环境使用，保留原模板/加载参数，待用户确认服务变更。
+不修改Kev/预算/业务记录、不换框架、不从正文构造nativecall、不新增重试或下载模型权重。
+本轮只研究验收资产/文档，无应用产品代码变更，未触碰其他UI任务未提交改动。
+
+
+## 2026-10-13 LM Studio Engine Protocol 关闭后兼容性恢复
+
+用户授权V7加载模板覆盖并重载，随后自行关闭Engine Protocol并要求复测。
+实际应用V7时软件已由用户更新至0.4.26Build4、ctx8192；模板reload前后加载参数相同。
+EngineON+V7同14例5PASS/9FAIL/0BLOCKED，ToolResult历史HTTP400消除但native仍缺失。
+用户关闭模式后，完全相同公开API矩阵14PASS/0FAIL/0BLOCKED，required/auto/none、
+空参数/点号工具名、实际SSEnative、双调用、tools+strictJSON、empty/null历史全部通过。
+另5个物理请求组成native conversation.reply→同真实ID合成receipt→零tools严格JSON、
+capability.discover→schema增长→probe.read→合成receipt→严格JSON，两条往返均PASS。
+不存在业务Tool实现，没有发布私聊、写目标/正式数据、生成图片或改Kev/预算。
+
+公开API证实同一CydoniaIQ3_M、ctx8192、batch2048/512、parallel4、flashattention。
+禁用draft选项的参数默认值不同；不称全配置完全相同。trained_for_tool_use仍false，
+不能推翻真实native结果。Mac锁屏，本轮DeveloperOFF由用户报告，未独立GUI确认；
+legacy路径实际采用哪个template尚未证实，故归因当前serving模式/模板接入组合，
+不宣称内部parser具体缺陷已定位。保持用户已关闭后的状态，没有助手再次切换模式。
+
+证据已保存research/lmstudio-compatibility/engine-on-native-v7-results.json、
+engine-off-results.json、engine-off-roundtrip-results.json、engine-off-environment.json；
+audit.md和Kevspec更新明确验收分层。14条短请求0.30–3.46秒不代表正式Agent延迟。
+结果否定“该模型没有原生工具能力”，也不说明长prompt/业务目标完成全部恢复。
+无产品代码修改、下载模型、部署或提交；未触碰并行UI任务改动。
+
+内部llama.cpp直连计划需提取进程API密钥，被自动审批拒绝且未执行；
+未读取凭据/绕过认证。最终比较走用户授权的公开API，无需内部访问。
+
+
+独立核验发现首版往返记录的messages引用可变，不能据其保存请求证明执行顺序；
+已保留engine-off-roundtrip-initial-recording-defect.json作为缺陷记录。
+主线程把记录改为实际encoded请求字符串+不可变反序列化快照，重新发5个合成请求，
+两条仍PASS；canonical engine-off-roundtrip-results.json为新鲜请求，非旧证据回填。
+主线程额外校验messages2→5 / 2→5→8、每轮真实ID衔接、schema增长和末轮零tools。
+14例固定矩阵不受首版补充记录缺陷影响。
