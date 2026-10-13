@@ -16,6 +16,7 @@ type FormalAgentID string
 
 const (
 	FormalAgentConversationCognition FormalAgentID = "conversation_cognition"
+	FormalAgentConversationReply     FormalAgentID = "conversation_reply"
 	FormalAgentWakeUp                FormalAgentID = "wake_up"
 	FormalAgentTakeoverJudge         FormalAgentID = "takeover_judge"
 	FormalAgentTakeoverReply         FormalAgentID = "takeover_reply"
@@ -65,6 +66,7 @@ type FormalAgentDefinition struct {
 }
 
 var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
+	FormalAgentConversationReply:     {ID: FormalAgentConversationReply, Name: "fluctlight-conversation-reply", Description: "Independently express the current persona using authoritative facts without tools or a parent social plan.", Role: conversationReplyModelRole, Scenario: "fact_only_reply", OutputKind: FormalAgentOutputText, MandatoryTools: []string{}},
 	FormalAgentGoalPlanner:           {ID: FormalAgentGoalPlanner, Name: "fluctlight-goal-planner", Description: "Maintain the independent authoritative Goal set through query and atomic commit tools.", Role: "cognitive_assessment", Scenario: "goal_planner", OutputKind: FormalAgentOutputStructured, MaxIterations: 12, DefaultSurface: CapabilitySurfaceGoalPlanner, MandatoryTools: []string{"goal_planner.query", "goal_planner.commit"}},
 	FormalAgentGoalEvaluation:        {ID: FormalAgentGoalEvaluation, Name: "fluctlight-goal-evaluation", Description: "Submit authoritative Goal evidence through private evaluation, object and plan tools.", Role: "cognitive_assessment", Scenario: "goal_evaluation", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceGoalEvaluation, MandatoryTools: []string{goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit}},
 	FormalAgentConversationCognition: {ID: FormalAgentConversationCognition, Name: "fluctlight-conversation-cognition", Description: "Assess one conversation turn and use authorized capabilities before returning the final turn contract.", Role: "cognitive_assessment", Scenario: "cognitive_assessment", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceConversation, MandatoryTools: []string{conversationReplyCapabilityName, "moment.publish", "media.image.generate"}},
@@ -104,6 +106,8 @@ func FormalAgentDefinitionByID(id FormalAgentID) (FormalAgentDefinition, bool) {
 
 func formalAgentForSchema(schemaName string) (FormalAgentID, bool) {
 	switch strings.TrimSpace(schemaName) {
+	case "conversation_reply_text":
+		return FormalAgentConversationReply, true
 	case "conversation_turn_response":
 		return FormalAgentConversationCognition, true
 	case "wake_up_response":

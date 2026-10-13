@@ -799,7 +799,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	if err := (&queuedToolCallingChatModel{assignment: call.Assignment, definitions: call.Definitions, responseFormat: budgetFormat}).enforcePhysicalInputBudget(ctx, input); err != nil {
 		return einoModelResponse{}, err
 	}
-	extra := map[string]any{}
+	extra := providerSamplingFields(call.Assignment)
 	if call.EnableThinking {
 		extra["enable_thinking"] = true
 	} else if call.SchemaName == "conversation_summary_v1" || call.SchemaName == "goal_evaluation_v1" {
@@ -875,7 +875,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	if formatErr != nil {
 		return einoModelResponse{}, formatErr
 	}
-	extra := map[string]any{}
+	extra := providerSamplingFields(call.Assignment)
 	if call.EnableThinking {
 		extra["enable_thinking"] = true
 	} else if call.SchemaName == "conversation_summary_v1" || call.SchemaName == "goal_evaluation_v1" {

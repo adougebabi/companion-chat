@@ -43,6 +43,13 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 	}
 	wake := normalizeWakeUpSettings(mapValue(values["product.wakeup"]))
 	values["product.wakeup"] = map[string]any{"enabled": wake.Enabled, "interval_seconds": wake.IntervalSeconds}
+	if _, exists := values[conversationReplySettingKey]; !exists {
+		values[conversationReplySettingKey] = defaultConversationReplySettings()
+	}
+	if _, exists := values[visionUnderstandingSettingKey]; !exists {
+		values[visionUnderstandingSettingKey] = defaultVisionUnderstandingSettings()
+	}
+	values["ai.capability_status"] = a.replyVisionCapabilityStatus(ctx, values)
 	secretRows, err := a.DB.Pool().Query(ctx, `SELECT purpose FROM public.setting_secrets ORDER BY purpose`)
 	if err != nil {
 		return nil, err
@@ -65,6 +72,20 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 		return nil, err
 	}
 	values := mapValue(payload["values"])
+	if raw, exists := values[conversationReplySettingKey]; exists {
+		config, decodeErr := decodeConversationReplySettings(jsonBytes(raw))
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		values[conversationReplySettingKey] = config
+	}
+	if raw, exists := values[visionUnderstandingSettingKey]; exists {
+		config, decodeErr := decodeVisionUnderstandingSettings(jsonBytes(raw))
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		values[visionUnderstandingSettingKey] = config
+	}
 	if raw, exists := values["kev"]; exists {
 		config, err := decodeKevConfig(jsonBytes(raw))
 		if err != nil {
@@ -115,7 +136,7 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	clear := arrayValue(payload["clear_secrets"])
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		for key, value := range values {
-			if key != "kev" && key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
+			if key != "kev" && key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" && key != conversationReplySettingKey && key != visionUnderstandingSettingKey {
 				return fmt.Errorf("unknown setting %s", key)
 			}
 			if key == "product.goal_retry" {
@@ -295,7 +316,7 @@ func (a *App) ProviderEndpoints(ctx context.Context, actorID string) ([]map[stri
 		var configured bool
 		_ = a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.setting_secrets WHERE purpose=$1)`, purpose).Scan(&configured)
 		out = append(out, map[string]any{"id": id, "kind": kind, "base_url": base, "secret_configured": configured, "capability_status": status})
-		rolesRows, roleErr := a.DB.Pool().Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 AND role IN ('generic_llm','embedding') ORDER BY role`, id)
+		rolesRows, roleErr := a.DB.Pool().Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 AND role IN ('generic_llm','embedding','conversation_reply','vision_understanding') ORDER BY role`, id)
 		if roleErr != nil {
 			return nil, roleErr
 		}
@@ -320,7 +341,7 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding') ORDER BY r.role`)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding') ORDER BY r.role`)
 	if err != nil {
 		return nil, err
 	}

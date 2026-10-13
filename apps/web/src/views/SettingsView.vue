@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import KevSettings from "../components/KevSettings.vue";
+import ReplyVisionSettings from "../components/settings/ReplyVisionSettings.vue";
 import OperationalSettings from "../components/settings/OperationalSettings.vue";
 import MediaSettings from "../components/settings/MediaSettings.vue";
 import AsyncState from "../components/product/AsyncState.vue";
@@ -35,6 +36,7 @@ watch(currentSection, resetFeedback, {flush:'sync'});
 
 const providerRoles = [
   { value: "generic_llm", label: "通用 LLM" }, { value: "embedding", label: "Embedding" },
+  { value: "conversation_reply", label: "私聊回复" }, { value: "vision_understanding", label: "视觉理解" },
 ] as const;
 const selectedProviderRole = ref<(typeof providerRoles)[number]["value"]>("generic_llm");
 const roleEndpointId = ref(""); const roleModelId = ref(""); const roleTokenBudget = ref(4096); const roleTimeoutSeconds = ref(60);
@@ -131,7 +133,7 @@ onMounted(() => void load());
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="settings-accordion">
       <AccordionItem v-if="currentSection === 'model-role'" value="model-role" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
-          <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为通用 LLM 或 Embedding 选择模型和预算</small></div>
+          <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为认知、私聊回复、视觉理解或 Embedding 选择模型和预算</small></div>
         </AccordionTrigger>
         <AccordionContent>
           <div class="settings-drawer-body model-role-config">
@@ -233,6 +235,9 @@ onMounted(() => void load());
       <AccordionItem v-if="currentSection === 'kev'" value="kev" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading"><h2>Kev 决策</h2></AccordionTrigger>
         <AccordionContent><div class="settings-drawer-body"><KevSettings /></div></AccordionContent>
+      </AccordionItem>
+      <AccordionItem v-if="currentSection === 'reply' || currentSection === 'vision'" :value="currentSection" class="settings-section settings-drawer">
+        <AccordionContent><div class="settings-drawer-body"><ReplyVisionSettings :key="currentSection" :kind="currentSection==='reply'?'reply':'vision'" @bind-model="selectRole($event);emit('navigateSection','model-role')"/></div></AccordionContent>
       </AccordionItem>
       <AccordionItem v-if="currentSection === 'operations'" value="operations" class="settings-section settings-drawer">
         <AccordionContent><div class="settings-drawer-body"><OperationalSettings /></div></AccordionContent>

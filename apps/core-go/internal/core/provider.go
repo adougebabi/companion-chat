@@ -75,6 +75,8 @@ type providerAssignment struct {
 	ContextWindowTokens       int
 	MaxInputTokens            int
 	PromptBudgetPolicyVersion string
+	Temperature               *float64
+	TopP                      *float64
 }
 
 const (
@@ -100,6 +102,9 @@ func providerAssignmentForScenario(assignment providerAssignment, scenario strin
 func (p *ProviderClient) assignment(ctx context.Context, role string) (providerAssignment, error) {
 	if !validProviderRole(role) {
 		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
+	}
+	if value, ok := providerAssignmentSnapshot(ctx, role); ok {
+		return value, nil
 	}
 	var endpointID, baseURL, modelID, purpose, capabilityStatus string
 	var timeoutSeconds, tokenBudget, contextWindowTokens, maxInputTokens int
@@ -139,7 +144,7 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 
 func validProviderRole(role string) bool {
 	switch role {
-	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole:
+	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole, conversationReplyModelRole, visionUnderstandingModelRole:
 		return true
 	default:
 		return false
@@ -463,7 +468,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "tool_call_unhandled")
 			return ProviderCompletion{}, err
 		}
-		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
+		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true, FinishReason: finishReason, Usage: response.Usage}
 		if adkEnabled {
 			// The Runner's last assistant message is the sole final-output
 			// authority. Intermediate ToolCalls/results live in completion.ToolCalls

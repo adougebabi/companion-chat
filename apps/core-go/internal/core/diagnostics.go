@@ -177,8 +177,8 @@ func (a *App) providerGuardForFluctlight(fluctlightID string) func(context.Conte
 }
 
 func providerBindingRole(role string) string {
-	if role == "embedding" {
-		return "embedding"
+	if role == "embedding" || role == conversationReplyModelRole || role == visionUnderstandingModelRole {
+		return role
 	}
 	return "generic_llm"
 }

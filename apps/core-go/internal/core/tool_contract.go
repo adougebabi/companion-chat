@@ -29,6 +29,8 @@ type ProviderCompletion struct {
 	ToolCalls          []CapabilityInvocation
 	DoneSeen           bool
 	StructuredFallback bool
+	FinishReason       string
+	Usage              map[string]any
 }
 
 type CapabilityRegistry struct {

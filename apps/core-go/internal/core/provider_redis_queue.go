@@ -222,7 +222,7 @@ func (p *ProviderClient) acquireProviderRedisSlot(ctx context.Context, role stri
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	binding := providerBindingRole(role)
+	binding := providerQueueBindingRole(role)
 	pendingKey, processingKey, sequenceKey := providerRedisKeys(binding)
 	sequence, err := p.redis.Incr(ctx, sequenceKey).Result()
 	if err != nil {
@@ -333,6 +333,6 @@ func (p *ProviderClient) ReconcileRedisQueue(ctx context.Context, role string) (
 	if p == nil || p.redis == nil {
 		return 0, nil
 	}
-	pendingKey, processingKey, _ := providerRedisKeys(providerBindingRole(role))
+	pendingKey, processingKey, _ := providerRedisKeys(providerQueueBindingRole(role))
 	return providerRedisRequeueExpiredScript.Run(ctx, p.redis, []string{pendingKey, processingKey}, strconv.FormatInt(time.Now().UnixMilli(), 10)).Int64()
 }

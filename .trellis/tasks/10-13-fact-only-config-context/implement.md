@@ -20,3 +20,7 @@
 ## 用户最新验收分工（2026-10-13）
 
 用户已确认开始实施，并补充“本地测试用例就行，不会回归，我真实环境回归”。本次代理负责本地新增/受影响测试、类型检查与构建；不执行真实模型长聊、真实环境回归或部署/回滚演练。提供用户可执行的配置与验收步骤，报告明确标记这些验证由用户执行。本条覆盖之前要求代理执行完整回归/真实模型/环境演练的执行安排；功能范围、权限、事实/发送边界与可回滚设计保留。无需再次请求规划确认。
+
+### 本地实现/验证记录
+
+已实现独立binding、strict配置reader/defaults、scope-safe assignment context、routing与Redis capacity解耦、ReplyContext专用surface与短协议、实际finish/usage传递、22项Formal Agent目录、回复/视觉设置页。定向Go配置/snapshot/目录/context用例通过，前端vue-tsc通过。run入口固定schema与provider的实际接线在FO-C完成；视觉显式测试与gate在FO-E完成。未执行用户负责的真实环境回归。

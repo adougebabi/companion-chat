@@ -24,7 +24,7 @@ idempotency, and side effects.
 
 ## 3. Contracts: binding and scenario boundary
 
-- Browser settings expose only `generic_llm` and `embedding` model bindings.
+- Browser settings expose `generic_llm`, `embedding`, and the opt-in independent `conversation_reply` / `vision_understanding` bindings. Missing reply settings defaults to legacy; vision defaults to disabled. Other existing generative roles retain generic_llm.
 - Domain call sites retain explicit scenarios (`reply`,
   `cognitive_assessment`, `native_cognition`, `media_prompt`, `reflection`,
   `wake_up`, `initialization`, `daily_review`, `schedule_generation`, and
@@ -33,14 +33,14 @@ idempotency, and side effects.
   precedence and remain readable as a compatibility fallback; embedding is
   never used as a generative fallback.
 - `diagnostic_model_runs.role` stores the semantic caller role while
-  `binding_role` stores `generic_llm` or `embedding`; a shared binding must not
+  `binding_role` stores the real selected binding; a shared binding must not
   erase the scenario's semantic role.
 
 ## 4. Validation & Error Matrix
 
 | Condition | Result |
 | --- | --- |
-| Binding role is not `generic_llm` or `embedding` | Reject configuration; legacy role-shaped clients are normalized to `generic_llm` only for compatibility. |
+| Binding role is unknown | Reject configuration; existing role-shaped clients are normalized to generic_llm, independent reply/vision roles retain their dedicated identity. |
 | Queue concurrency is missing | Use generated=1 and embedding=1. |
 | Queue concurrency is non-integer or outside 1–8 | Reject settings; keep previous values. |
 | Same-priority requests | FIFO by enqueue sequence. |
@@ -52,6 +52,7 @@ idempotency, and side effects.
 
 - Generated requests and embedding requests have separate queues and limits.
   Defaults are generated=1 and embedding=1; each setting is clamped to 1–8.
+- Queue class and routing identity are separate. `providerQueueBindingRole` maps all non-embedding physical requests, including independent reply/vision, to the existing generic_llm Redis capacity bucket. `providerBindingRole` retains dedicated model identity. A route addition cannot silently split shared capacity or claim a process-local fallback is a global ceiling.
 - Generated priority is interactive `reply` and conversation
   `cognitive_assessment` (100), native/daily-review/plan (90), media prompt
   (80), reflection/wake-up (70), initialization (60). Interactive cognition

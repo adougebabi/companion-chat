@@ -88,7 +88,7 @@ RunADKLoop(ctx, ADKLoopConfig, []*schema.Message)
 
 ### 6. Tests Required
 
-- Fixed 17-Agent and 18-Tool catalogs; every Tool direct and native adapter path.
+- Fixed Agent/Tool inventories in phase8_contract_matrix_test.go; the independent tool-free conversation_reply Agent brings the Agent set to 22. Every Tool direct and native adapter path remains required.
 - Multi-round, same-round multiple calls, write/read, business rejection, stream,
   cancellation, final-schema failure and committed-effect recovery.
 - Real Provider Agent evidence is separate from controlled HTTP regressions.
