@@ -675,3 +675,6 @@ until captured; controlled HTTP400 is not evidence of production HTTP400.
 Wrong: errors.As selects an empty nested APIError and discards RequestError.
 Correct: normalize the real failed HTTP response at the existing transport
 boundary, before the lossy dependency conversion, while preserving normal HTTP.
+
+## Successful Provider credential echoes (2026-10-13)
+Secret-key fields (api_key, Authorization, passwords, tokens, cookies and complete assignment objects) are redacted in all diagnostics. Physical and non-ADK model calls carry their known credential only in a private runtime context; prompts, responses, output events and JSON-encoded content scrub exact credential echoes before persistence. Successful responses require the same privacy boundary as failures. Raw Owner diagnostic content remains useful for ordinary text/tool results, while image payloads and credentials are removed. This scrub never mutates the Provider result used for domain parsing. A Writer response containing its actual credential is rejected before publication.

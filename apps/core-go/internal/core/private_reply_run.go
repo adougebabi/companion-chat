@@ -19,10 +19,12 @@ type privateReplyRun struct {
 	CurrentInput    string
 	// Only execution progress is mutable. The settings/model contract above
 	// is fixed before the first physical request and never re-read by a Tool.
-	mu              sync.Mutex
-	DraftRef        string
-	ActionFacts     []replyActionState
-	ActionDraftText string
+	mu                  sync.Mutex
+	DraftRef            string
+	ActionFacts         []replyActionState
+	ActionDraftText     string
+	EffectiveAssignment *providerAssignment
+	EffectiveMode       string
 }
 
 func replyRunFromContext(ctx context.Context) *privateReplyRun {

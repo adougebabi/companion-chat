@@ -56,7 +56,17 @@ func replyTransportRetryable(err error) bool {
 
 func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationReplyTaskInput, run *privateReplyRun) (ReplyDraft, error) {
 	var draft ReplyDraft
+	run.mu.Lock()
+	effectiveMode := run.EffectiveMode
+	if run.EffectiveAssignment != nil {
+		input.Assignment = *run.EffectiveAssignment
+		input.Mode = effectiveMode
+	}
+	run.mu.Unlock()
 	err := run.AssignmentError
+	if effectiveMode != "" {
+		err = nil
+	}
 	if err == nil {
 		for attempt := 0; attempt <= run.Settings.RetryLimit; attempt++ {
 			if ctx.Err() != nil {
@@ -87,7 +97,7 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 	if errors.Is(err, context.Canceled) {
 		return draft, context.Canceled
 	}
-	if run.Settings.FailurePolicy != "legacy_fallback" {
+	if run.Settings.FailurePolicy != "legacy_fallback" || effectiveMode == "legacy_fallback" {
 		return draft, newCapabilityError(replyErrorCode(err), false, errors.New(replyErrorCode(err)))
 	}
 	assignment, assignmentErr := a.Provider.assignment(isolatedReplyModelContext(ctx), "generic_llm")
@@ -102,5 +112,12 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 	input.Assignment = assignment
 	input.Mode = "legacy_fallback"
 	input.CorrelationID = "reply-fallback:" + stableDigest(input.CorrelationID)
-	return a.RunConversationReplyTask(ctx, input)
+	draft, err = a.RunConversationReplyTask(ctx, input)
+	if err == nil {
+		run.mu.Lock()
+		run.EffectiveAssignment = &assignment
+		run.EffectiveMode = "legacy_fallback"
+		run.mu.Unlock()
+	}
+	return draft, err
 }

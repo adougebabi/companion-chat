@@ -118,3 +118,15 @@ func TestVisionRawProviderEntryRejectsBeforeAssignmentOrSecretLookup(t *testing.
 		}
 	}
 }
+
+// Explicitly opt older controlled image tests into the independent binding;
+// the shared App fixture retains disabled defaults for all other tests.
+func enableControlledVision(t *testing.T, ctx context.Context, repo *PostgresRepository) {
+	t.Helper()
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy,context_window_tokens,max_input_tokens,prompt_budget_policy_version) SELECT 'vision_understanding',provider_endpoint_id,model_id,'structured_output,tool_calling,multimodal_input',token_budget,timeout_seconds,retry_policy,context_window_tokens,max_input_tokens,prompt_budget_policy_version FROM public.model_roles WHERE role IN ('generic_llm','cognitive_assessment') ORDER BY CASE WHEN role='generic_llm' THEN 0 ELSE 1 END LIMIT 1 ON CONFLICT(role) DO NOTHING`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.runtime_settings(key,value_json,revision) VALUES('vision.understanding','{"enabled":true,"model_ref":"vision_understanding"}',1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=runtime_settings.revision+1`); err != nil {
+		t.Fatal(err)
+	}
+}

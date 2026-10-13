@@ -40,8 +40,9 @@ test("Telegram-style workspace keeps four primary tabs", () => {
 });
 
 test("settings configuration is progressively disclosed by closed drawers", () => {
-  assert.equal((settingsSource.match(/<AccordionItem[^>]*class="settings-section settings-drawer"/g) ?? []).length, 7);
+  assert.equal((settingsSource.match(/<AccordionItem[^>]*class="settings-section settings-drawer"/g) ?? []).length, 8);
   assert.match(settingsSource, /<MediaSettings/);
+  assert.match(settingsSource, /<ReplyVisionSettings/);
   assert.match(settingsSource, /<OperationalSettings/);
   assert.doesNotMatch(settingsSource, /<Accordion[^>]*defaultValue/);
   assert.match(settingsSource, /id="endpoint-secret"/);

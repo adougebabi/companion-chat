@@ -272,6 +272,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
 		return ProviderCompletion{}, err
 	}
+	ctx = withProviderDiagnosticSecrets(ctx, assignment.Secret)
 	assignment, err = providerAssignmentForScenario(assignment, scenario)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "scenario_budget", messages, err)
@@ -918,7 +919,7 @@ func providerSchemaForRole(role string) map[string]any {
 }
 
 func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
-	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "completed", "")
+	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, redactProviderDiagnostic(withProviderDiagnosticSecrets(ctx, assignment.Secret), providerDiagnosticMessages(role, messages)), redactProviderDiagnostic(withProviderDiagnosticSecrets(ctx, assignment.Secret), providerDiagnosticResponse(role, response)), "completed", "")
 }
 
 func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
@@ -1066,6 +1067,7 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
 		return "", err
 	}
+	ctx = withProviderDiagnosticSecrets(ctx, assignment.Secret)
 	messages = (&PromptComposer{}).ComposeTaskMessages(role, messages)
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
 	payload := providerStreamingPayload(assignment.ModelID, messages, assignment.TokenBudget)

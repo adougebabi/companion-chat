@@ -149,6 +149,7 @@ func TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL(t *test
 func TestMediaQualityFinalProviderRequestKeepsImageAndReadableText(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	seedCognitiveProviderRole(t, ctx, repository, "media-quality-wire")
+	enableControlledVision(t, ctx, repository)
 	var modelText, imageURL string
 	router := newFakeProviderRouter().on("media_quality_acceptance_response", func(payload map[string]any) fakeProviderResult {
 		for _, raw := range arrayValue(payload["messages"]) {

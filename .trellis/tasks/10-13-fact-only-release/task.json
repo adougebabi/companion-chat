@@ -21,6 +21,6 @@
   "children": [],
   "parent": "10-13-fluctlight-fact-only",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Implementation and local verification complete. User owns real-environment regression; DB/live/deployment acceptance is not claimed. See docs/fact-only-implementation-report.md.",
   "meta": {}
 }

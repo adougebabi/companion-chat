@@ -17,6 +17,7 @@ import (
 func TestFormalAgentE2E(t *testing.T) {
 	requireFormalAgentE2E(t)
 
+	t.Run(string(FormalAgentConversationReply), testFormalAgentE2EIndependentReply)
 	t.Run(string(FormalAgentConversationCognition), testFormalAgentE2EConversationCognition)
 	t.Run("conversation_persona_detail", testFormalAgentE2EPersonaDetail)
 	t.Run(string(FormalAgentGoalPlanner), testFormalAgentE2EGoalPlanner)

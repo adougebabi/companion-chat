@@ -71,4 +71,16 @@ func TestReplyFallbackRequiresExplicitPolicyAndRecordsActualMode(t *testing.T) {
 	if err != nil || calls != 1 || draft.Mode != "legacy_fallback" || draft.ModelRef != "qwen-fallback" {
 		t.Fatalf("unmarked fallback: %#v %v", draft, err)
 	}
+	changed := assignment
+	changed.ModelID = "new-binding"
+	changedCtx := withFrozenProviderAssignment(context.Background(), "generic_llm", changed)
+	for _, resumeRun := range []*privateReplyRun{run, {Settings: run.Settings, Assignment: *run.EffectiveAssignment, EffectiveAssignment: run.EffectiveAssignment, EffectiveMode: run.EffectiveMode}} {
+		next, err := app.runReplyWithFailurePolicy(changedCtx, input, resumeRun)
+		if err != nil || next.ModelRef != "qwen-fallback" || next.Mode != "legacy_fallback" {
+			t.Fatalf("media adjustment changed captured fallback: %#v %v", next, err)
+		}
+	}
+	if calls != 3 {
+		t.Fatalf("unexpected fallback requests=%d", calls)
+	}
 }

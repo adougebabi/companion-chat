@@ -309,6 +309,12 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+	if run := replyRunFromContext(ctx); run != nil && capabilityName == conversationReplyCapabilityName {
+		run.mu.Lock()
+		draftRef := run.DraftRef
+		run.mu.Unlock()
+		i.app.recordDiagnosticEvent(withProviderDiagnosticSecrets(ctx, run.Assignment.Secret), "reply.tool.result", "info", i.request.FluctlightID, i.request.SourceFactID, i.request.CorrelationID, map[string]any{"run_id": i.request.OperationID, "draft_ref": draftRef, "stage": "reply_result", "status": result.Status, "result": result.Output, "committed": result.Status == "completed"})
+	}
 	serialized, encodeErr := modelFacingToolResultForContext(ctx, receipt, definition)
 	if encodeErr != nil {
 		return "", encodeErr

@@ -76,7 +76,7 @@ func decodeConversationReplySettings(raw []byte) (ConversationReplySettings, err
 		math.IsNaN(value.TopP) || math.IsInf(value.TopP, 0) || value.TopP <= 0 || value.TopP > 1 ||
 		value.MaxTokens < 1 || value.MaxTokens > 32768 || value.MaxInputTokens < 1024 || value.MaxInputTokens > 131072 ||
 		value.TimeoutSeconds < 1 || value.TimeoutSeconds > 3600 || value.Concurrency < 1 || value.Concurrency > 8 ||
-		value.RetryLimit < 0 || value.RetryLimit > 2 || value.MaxActionHandoffs < 1 || value.MaxActionHandoffs > 4 {
+		value.RetryLimit < 0 || value.RetryLimit > 2 || value.MaxActionHandoffs < 1 || value.MaxActionHandoffs > 2 {
 		return value, errors.New("conversation_reply_config_invalid")
 	}
 	return value, nil

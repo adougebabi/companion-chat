@@ -270,6 +270,10 @@ func redactDiagnostic(value any) any {
 		imagePart := stringValue(typed["type"]) == "image" || stringValue(typed["type"]) == "image_url"
 		for key, child := range typed {
 			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
+			if diagnosticSecretField(normalized) {
+				result[key] = "[REDACTED_SECRET]"
+				continue
+			}
 			if normalized == "imageurl" {
 				if image := mapValue(child); len(image) > 0 {
 					copyImage := make(map[string]any, len(image))
@@ -410,7 +414,7 @@ func (s providerRuntimeSupport) UpdateModelRunResponse(ctx context.Context, id s
 	if s.DB == nil || strings.TrimSpace(id) == "" || response == nil {
 		return
 	}
-	responseJSON, err := json.Marshal(redactDiagnostic(response))
+	responseJSON, err := json.Marshal(redactProviderDiagnostic(ctx, response))
 	if err != nil {
 		recordDiagnosticPersistenceFailure("model_run", "response", id, err)
 		return
@@ -526,13 +530,13 @@ func (s providerRuntimeSupport) PersistModelRunLifecycle(ctx context.Context, ro
 	if strings.TrimSpace(correlationID) == "" {
 		correlationID = "provider:" + stableDigest(role+":"+modelID+":"+time.Now().UTC().Format(time.RFC3339Nano))
 	}
-	promptJSON, err := json.Marshal(redactDiagnostic(prompt))
+	promptJSON, err := json.Marshal(redactProviderDiagnostic(ctx, prompt))
 	if err != nil {
 		return "", fmt.Errorf("marshal diagnostic model-run prompt: %w", err)
 	}
 	var responseJSON []byte
 	if response != nil {
-		responseJSON, err = json.Marshal(redactDiagnostic(response))
+		responseJSON, err = json.Marshal(redactProviderDiagnostic(ctx, response))
 		if err != nil {
 			return "", fmt.Errorf("marshal diagnostic model-run response: %w", err)
 		}
@@ -690,7 +694,7 @@ func (s providerRuntimeSupport) persistDiagnosticEvent(ctx context.Context, even
 	if correlationID == "" {
 		correlationID = eventType + ":" + stableDigest(time.Now().UTC().Format(time.RFC3339Nano))
 	}
-	encoded, err := json.Marshal(redactDiagnostic(payload))
+	encoded, err := json.Marshal(redactProviderDiagnostic(ctx, payload))
 	if err != nil {
 		return "", fmt.Errorf("marshal diagnostic event: %w", err)
 	}

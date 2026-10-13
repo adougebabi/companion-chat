@@ -3,7 +3,7 @@
   "name": "fact-only-acceptance",
   "title": "FO-F 诊断与联合验收交付",
   "description": "实际 Writer 输入诊断、隐私、T01–T20、真实模型及构建部署回滚证据",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": "10-13-fluctlight-fact-only",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Implementation and local verification complete. User owns real-environment regression; DB/live/deployment acceptance is not claimed. See docs/fact-only-implementation-report.md.",
   "meta": {}
 }

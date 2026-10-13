@@ -232,7 +232,18 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	if err := ctx.Err(); err != nil {
 		return ReplyDraft{}, ref, err
 	}
-	tag, err := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_drafts SET payload=$3,status='prepared',generation_owner=NULL,generation_until=NULL,updated_at=now() WHERE id=$1 AND generation_owner=$2 AND generation_until>now() AND status='generating'`, ref, owner, jsonBytes(draft))
+	run.mu.Lock()
+	if run.EffectiveAssignment != nil {
+		actual := *run.EffectiveAssignment
+		actual.Secret = ""
+		binding["assignment"] = actual
+		binding["reply_mode"] = run.EffectiveMode
+		binding["endpoint_id"] = actual.EndpointID
+		binding["model_id"] = actual.ModelID
+		binding["binding_role"] = actual.Role
+	}
+	run.mu.Unlock()
+	tag, err := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_drafts SET binding_snapshot=$4,payload=$3,status='prepared',generation_owner=NULL,generation_until=NULL,updated_at=now() WHERE id=$1 AND generation_owner=$2 AND generation_until>now() AND status='generating'`, ref, owner, jsonBytes(draft), jsonBytes(binding))
 	if err != nil {
 		return draft, ref, err
 	}
@@ -263,7 +274,7 @@ func (s *factOnlyReplyService) generate(ctx context.Context, invocation Capabili
 	}
 	run.mu.Unlock()
 	for _, ref := range evidenceRefs {
-		entry, exists := projection.ReferenceIndex.ByRef[ref]
+		entry, exists := replyEvidenceEntry(invocation, projection, ref)
 		if !exists {
 			return ReplyDraft{}, newCapabilityError("reply_evidence_not_authorized", false, ErrInvalidArguments)
 		}
@@ -296,7 +307,7 @@ func (s *factOnlyReplyService) generate(ctx context.Context, invocation Capabili
 	_, imageRegistered := s.app.capabilityRegistryForContext(ctx).Definition("media.image.generate")
 	input := ConversationReplyTaskInput{Context: ReplyContextInput{Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts,
 		CapabilityFacts: map[string]any{"image_generation_registered": imageRegistered, "media_requires_real_tool_result": true, "sticker_attachments": false, "vision_understanding": visionState}},
-		Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency}
+		DraftRef: ref, Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency}
 	draft, err := s.app.runReplyWithFailurePolicy(ctx, input, run)
 	if err != nil {
 		return draft, err
@@ -310,4 +321,23 @@ func (s *factOnlyReplyService) generate(ctx context.Context, invocation Capabili
 		return draft, errors.New("reply_text_missing")
 	}
 	return draft, nil
+}
+
+func replyEvidenceEntry(inv CapabilityInvocation, live ContextProjection, ref string) (ContextReference, bool) {
+	current, ok := live.ReferenceIndex.ByRef[ref]
+	if !ok {
+		return ContextReference{}, false
+	}
+	if inv.Metadata.Source != "model_tool" {
+		return current, true
+	}
+	var offered ContextReferenceIndex
+	if err := json.Unmarshal(jsonBytes(inv.ContextSnapshot["context_reference_index"]), &offered); err != nil {
+		return ContextReference{}, false
+	}
+	original, ok := offered.ByRef[ref]
+	if !ok || offered.FluctlightID != inv.Metadata.FluctlightID || offered.ConversationID != inv.Metadata.ConversationID || original.Kind != current.Kind || original.EntityID != current.EntityID || original.Revision != current.Revision || jsonString(decodeObject(original.Snapshot)) != jsonString(decodeObject(current.Snapshot)) {
+		return ContextReference{}, false
+	}
+	return original, true
 }

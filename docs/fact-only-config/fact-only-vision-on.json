@@ -1,0 +1,22 @@
+{
+  "values": {
+    "conversation.reply": {
+      "mode": "fact_only",
+      "model_ref": "conversation_reply",
+      "temperature": 0.8,
+      "top_p": 0.9,
+      "max_tokens": 1024,
+      "max_input_tokens": 8192,
+      "timeout_seconds": 300,
+      "concurrency": 1,
+      "retry_limit": 1,
+      "failure_policy": "error",
+      "max_action_handoffs": 2
+    },
+    "vision.understanding": {
+      "enabled": true,
+      "model_ref": "vision_understanding"
+    }
+  },
+  "secrets": {}
+}

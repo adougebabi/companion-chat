@@ -1,0 +1,79 @@
+{
+  "evidence_type": "synthetic_example_not_a_real_run",
+  "source": "original conversation.turn",
+  "events": [
+    {
+      "stage": "qwen_native_tool",
+      "capability": "conversation.reply",
+      "arguments": {
+        "evidence_refs": [
+          "offered opaque ref"
+        ]
+      }
+    },
+    {
+      "stage": "writer_request",
+      "role": "conversation_reply",
+      "reply_mode": "fact_only",
+      "config_version": 1,
+      "prompt_version": "fact-only-reply.v1",
+      "parent_run_id": "original turn",
+      "draft_ref": "server-issued opaque draft",
+      "credentials": "[REDACTED_SECRET]",
+      "images": "[REDACTED_IMAGE_DATA]"
+    },
+    {
+      "stage": "private_draft",
+      "visibility": "not_published",
+      "text": "候选角色正文🙂",
+      "media_requests": [
+        {
+          "kind": "image",
+          "intent": "当前真实状态的画面"
+        }
+      ]
+    },
+    {
+      "stage": "reply_result",
+      "status": "needs_action",
+      "committed": false
+    },
+    {
+      "stage": "image_tool",
+      "status": "accepted",
+      "generated": false,
+      "committed": false
+    },
+    {
+      "stage": "original_cognition",
+      "status": "waiting_reply",
+      "settled_once": true
+    },
+    {
+      "stage": "media_result",
+      "asset_status": "ready",
+      "inspection_status": "skipped",
+      "vision_reason": "vision_disabled"
+    },
+    {
+      "stage": "native_continuation",
+      "tools": [
+        "conversation.reply"
+      ],
+      "original_source_preserved": true
+    },
+    {
+      "stage": "writer_adjustment",
+      "reason": "actual media result",
+      "visibility": "not_published"
+    },
+    {
+      "stage": "reply_result",
+      "status": "completed",
+      "delivery_status": "visible_output_committed",
+      "text": "实际提交的角色正文🙂",
+      "attachment_count": 1,
+      "external_delivery_ack": null
+    }
+  ]
+}

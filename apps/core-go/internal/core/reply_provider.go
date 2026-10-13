@@ -61,6 +61,7 @@ type ConversationReplyTaskInput struct {
 	ConfigVersion int64
 	CorrelationID string
 	ParentRunID   string
+	DraftRef      string
 	Concurrency   int
 	Mode          string
 }
@@ -89,7 +90,7 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 		return ReplyDraft{}, err
 	}
 	ctx = WithPromptDiagnostics(ctx, map[string]any{"run_id": input.CorrelationID, "parent_run_id": input.ParentRunID,
-		"reply_mode": firstString(input.Mode, "fact_only"), "effective_binding_role": input.Assignment.Role, "config_version": input.ConfigVersion, "prompt_version": factOnlyReplyPromptVersion, "prompt_budget": prompt.Trace})
+		"draft_ref": input.DraftRef, "reply_mode": firstString(input.Mode, "fact_only"), "effective_binding_role": input.Assignment.Role, "config_version": input.ConfigVersion, "prompt_version": factOnlyReplyPromptVersion, "prompt_budget": prompt.Trace})
 	result, err := a.RunFormalAgent(ctx, FormalAgentConversationReply, FormalAgentRunInput{Prompt: prompt, SchemaName: "conversation_reply_text"})
 	if err != nil {
 		return ReplyDraft{}, err
@@ -104,6 +105,7 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	if err != nil {
 		return draft, err
 	}
+	a.recordDiagnosticEvent(withProviderDiagnosticSecrets(ctx, input.Assignment.Secret), "reply.draft.prepared", "info", input.Context.Projection.FluctlightID, input.DraftRef, input.CorrelationID, map[string]any{"parent_run_id": input.ParentRunID, "draft_ref": input.DraftRef, "stage": "private_draft", "visibility": "not_published", "text": draft.Text, "media_requests": draft.MediaRequests, "reply_mode": firstString(input.Mode, "fact_only"), "config_version": input.ConfigVersion})
 	draft.Mode = firstString(input.Mode, "fact_only")
 	draft.ModelRef = input.Assignment.ModelID
 	draft.ConfigVersion = input.ConfigVersion

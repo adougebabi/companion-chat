@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"testing"
 )
@@ -96,5 +97,15 @@ func TestReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation(t *t
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func TestReplyMediaExecutionFailureRemainsConsumableByNativeLoop(t *testing.T) {
+	result, err := replyMediaExecutionFailure(CapabilityResult{CallID: "component", CapabilityName: "media.image.generate", Status: "failed", ErrorCode: "media_capability_unavailable", Retryable: true}, errors.New("unavailable"))
+	if result.Status != "failed" || result.Retryable || result.ErrorCode != "media_capability_unavailable" || result.CallID != "component" {
+		t.Fatalf("failed media would abort Agent: %#v", result)
+	}
+	if _, retryable := capabilityErrorInfo(err, "", true); retryable {
+		t.Fatal("wrapped error remains retryable")
 	}
 }

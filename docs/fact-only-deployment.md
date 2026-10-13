@@ -32,7 +32,7 @@ python3 infra/release/switch_images.py --env-file /path/to/private.env \
 
 ## 回稳定
 
-先将私聊模式改为 legacy、关闭视觉，停止创建新草稿；排空、取消或隔离本分支协议的等待任务，恢复旧版本兼容 settings 私有备份。再明确切回两个稳定引用，省略 `--migrate`，避免旧迁移器面对新 additive schema 进行不必要的迁移：
+先将私聊模式改为 legacy、关闭视觉，停止创建新草稿；排空、取消或隔离本分支协议的等待任务，按 `fact-only-user-verification.md` 的回退事务关闭 waiting_reply/draft/continuation，再恢复旧版本兼容 settings 和模型绑定的私有备份。再明确切回两个稳定引用，省略 `--migrate`，避免旧迁移器面对新 additive schema 进行不必要的迁移：
 
 ```bash
 python3 infra/release/switch_images.py --env-file /path/to/private.env \

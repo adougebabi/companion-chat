@@ -81,6 +81,7 @@ type queuedToolCallingChatModel struct {
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
+	ctx = withProviderDiagnosticSecrets(ctx, m.assignment.Secret)
 	var err error
 	originalInput := input
 	originalOpts := opts
@@ -146,7 +147,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		m.lastPhysicalResponse.Store(result)
 	}
 	if callDiagnosticID != "" && result != nil {
-		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(result))
+		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, redactProviderDiagnostic(callCtx, einoMessageRaw(result)))
 	}
 	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, result, err)
 	m.recordUsageComparison(callCtx, result)
@@ -192,6 +193,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	ctx = withProviderDiagnosticSecrets(ctx, m.assignment.Secret)
 	var err error
 	originalInput := input
 	originalOpts := opts
@@ -242,7 +244,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			m.lastPhysicalResponse.Store(full)
 		}
 		if callDiagnosticID != "" && full != nil {
-			m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(full))
+			m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, redactProviderDiagnostic(callCtx, einoMessageRaw(full)))
 			m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(full), time.Since(started))
 		}
 		recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, full, streamErr)

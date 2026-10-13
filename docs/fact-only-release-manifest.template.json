@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "channel": "fact-only",
+  "status": "example_not_published",
+  "source_sha": "<ACTUAL_FULL_SOURCE_SHA>",
+  "source_ref": "refs/heads/codex/fact-only-reply-vision",
+  "run_id": "<ACTIONS_RUN_ID>",
+  "attempt": "<ACTIONS_ATTEMPT>",
+  "run_url": "<ACTUAL_ACTIONS_URL>",
+  "images": [
+    {
+      "component": "core",
+      "image": "<DOCKER_NAMESPACE>/fluctlight-core-go",
+      "digest": "<ACTUAL_SHA256_DIGEST>",
+      "source_sha": "<ACTUAL_FULL_SOURCE_SHA>",
+      "source_ref": "refs/heads/codex/fact-only-reply-vision",
+      "run_id": "<ACTIONS_RUN_ID>",
+      "attempt": "<ACTIONS_ATTEMPT>",
+      "run_url": "<ACTUAL_ACTIONS_URL>",
+      "tag": "fact-only-<SHA>-<RUN_ID>-<ATTEMPT>"
+    },
+    {
+      "component": "web",
+      "image": "<DOCKER_NAMESPACE>/fluctlight-web",
+      "digest": "<ACTUAL_SHA256_DIGEST>",
+      "source_sha": "<ACTUAL_FULL_SOURCE_SHA>",
+      "source_ref": "refs/heads/codex/fact-only-reply-vision",
+      "run_id": "<ACTIONS_RUN_ID>",
+      "attempt": "<ACTIONS_ATTEMPT>",
+      "run_url": "<ACTUAL_ACTIONS_URL>",
+      "tag": "fact-only-<SHA>-<RUN_ID>-<ATTEMPT>"
+    }
+  ],
+  "promoted": []
+}

@@ -35,7 +35,7 @@ const fields=[
   {key:"timeout_seconds",label:"回复总超时（秒）",min:1,max:3600,integer:true,step:1},
   {key:"concurrency",label:"回复生成并发",min:1,max:8,integer:true,step:1},
   {key:"retry_limit",label:"可恢复错误重试次数",min:0,max:2,integer:true,step:1},
-  {key:"max_action_handoffs",label:"媒体动作回交上限",min:1,max:4,integer:true,step:1},
+  {key:"max_action_handoffs",label:"媒体动作回交上限",min:1,max:2,integer:true,step:1},
 ] as const;
 
 function restore(){

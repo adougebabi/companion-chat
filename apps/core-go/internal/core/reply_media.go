@@ -131,7 +131,7 @@ func (c factOnlyReplyCapability) acceptMediaTx(ctx context.Context, tx pgx.Tx, i
 	}
 	execution["inbound_sequence"] = inboundSequence
 	execution["cancellation_marker"] = providerCancellationMarker(ctx)
-	if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_drafts SET resume_attempts=GREATEST(resume_attempts,1),status=CASE WHEN status IN ('prepared','needs_action') THEN 'needs_action' ELSE status END,execution_scope=$2,updated_at=now() WHERE id=$1 AND status IN ('prepared','needs_action','waiting_media')`, ref, jsonBytes(execution)); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_drafts SET resume_attempts=GREATEST(resume_attempts,1),status=CASE WHEN status IN ('prepared','needs_action') THEN 'needs_action' ELSE status END,execution_scope=CASE WHEN execution_scope='{}'::jsonb THEN $2::jsonb ELSE execution_scope END,updated_at=now() WHERE id=$1 AND status IN ('prepared','needs_action','waiting_media')`, ref, jsonBytes(execution)); err != nil {
 		return CapabilityResult{}, err
 	}
 	replyStatus := "waiting"
@@ -223,7 +223,7 @@ func (c replyImageCapability) Prepare(ctx context.Context, inv CapabilityInvocat
 		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		_, _ = c.app.DB.Pool().Exec(cleanup, `UPDATE public.conversation_reply_actions SET status='failed',error_code='media_prepare_failed' WHERE ref=$1 AND draft_id=$2 AND status='requested'`, actionRef, draftRef)
-		return inv, err
+		return inv, newCapabilityError("reply_media_prepare_failed", false, err)
 	}
 	return withCapabilityPreparedData(prepared, "reply_media_binding", map[string]any{"draft_ref": draftRef, "action_ref": actionRef})
 }
@@ -256,10 +256,15 @@ func (c replyImageCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, in
 	}
 	result, err := c.imageGenerateCapability.ExecuteDirectTx(ctx, tx, inv, resolved, target)
 	if err != nil {
-		return result, err
+		return replyMediaExecutionFailure(result, err)
 	}
 	intent := stringValue(mapValue(result.Output)["media_intent_id"])
 	if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_actions SET media_intent_id=$2,status='bound' WHERE ref=$1 AND media_intent_id IS NULL`, ref, intent); err != nil {
+		return result, err
+	}
+	// Old media workers also see an unattached intent and therefore cannot
+	// publish it through their legacy conversation publisher after rollback.
+	if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET conversation_id=NULL WHERE id=$1`, intent); err != nil {
 		return result, err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_drafts SET status='waiting_media',updated_at=now() WHERE id=$1`, draft); err != nil {
@@ -333,4 +338,9 @@ func (s *factOnlyReplyService) resumeMedia(ctx context.Context, inv CapabilityIn
 		err = errors.New("reply_adjustment_lease_lost")
 	}
 	return adjusted, err
+}
+
+func replyMediaExecutionFailure(result CapabilityResult, err error) (CapabilityResult, error) {
+	result.Retryable = false
+	return result, newCapabilityError("reply_media_execution_failed", false, err)
 }

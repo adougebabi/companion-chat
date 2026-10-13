@@ -763,6 +763,7 @@ func TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical(t *testing.T
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('generic_llm',$1,'visual-review-model','structured_output,tool_calling,multimodal_input',4096,30,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	enableControlledVision(t, ctx, repository)
 	app := newTestApp(t, repository, server.Client().Transport)
 	app.Storage = storage
 	sessionID, err := app.EnsureVisualIdentityInitializationWithPersona(ctx, fluctlightID, "initialization", "visual-review-source-"+suffix, persona)
