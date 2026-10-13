@@ -8,3 +8,5 @@ F：成功响应密钥回显及秘密键/image脱敏、冻结实际fallback assi
 定向race通过；Web 21+2+105用例、typecheck/build，Go vet/build通过。全Go本地发现旧privacy/head断言已更新后重新核验。PG/S3/真实Provider/环境回归未执行，不计pass。详见docs/fact-only-implementation-report.md与acceptance-matrix.md。
 
 完整Go本地race已通过（live关闭、DB空）。最终代码提交27a1bc8，任务与日志已记录。功能分支push被自动审批拒绝，等待用户对公开GitHub目标的明确授权；未执行远端CI/镜像发布，不能称测试镜像已就绪。
+
+用户明确授权推送/构建，首次SHA a53d983 的CI #38401908262 在Phase8隔离PG门禁发现两条旧fixture合同断言问题，Web/Go普通/race已过。修复fixture与错误cause后重建；新增正常inbox结算断言，未绕过门禁。

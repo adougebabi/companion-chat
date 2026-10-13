@@ -741,11 +741,8 @@ func TestHandleTurnProductionADKToolLoopSettlesOneAssistant(t *testing.T) {
 	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
 	seedCognitiveProviderRole(t, ctx, repository, "adk-e2e-endpoint")
 	callCount := 0
-	finalDecision := map[string]any{
-		"action_type": "reply", "visible_text": "ADK settled",
-		"response_intent": "answer", "influences": []any{},
-		"appraisal": map[string]any{"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.5, "social_threat": 0.0, "controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.5, "expected_effect": 0.5, "evidence_refs": []any{}, "event_kind": "conversation", "direction": "mixed", "drive_signals": []any{}},
-	}
+	finalDecision := nativePersonaFinal().Structured
+
 	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
 		callCount++
 		if callCount == 1 {
@@ -767,6 +764,13 @@ func TestHandleTurnProductionADKToolLoopSettlesOneAssistant(t *testing.T) {
 	}
 	if assistantCount != 1 {
 		t.Fatalf("assistant count = %d", assistantCount)
+	}
+	var inboxStatus, inboxError string
+	if err := repository.Pool().QueryRow(ctx, `SELECT i.status,COALESCE(i.error_code,'') FROM public.cognition_inbox i JOIN public.conversation_messages m ON m.source_fact_id=i.id WHERE m.conversation_id=$1 AND m.turn_id=$2 AND m.kind='user'`, conversationID, "adk-e2e-turn").Scan(&inboxStatus, &inboxError); err != nil {
+		t.Fatal(err)
+	}
+	if inboxStatus != "processed" || inboxError != "" {
+		t.Fatalf("native reply did not settle final cognition: status=%s error=%s", inboxStatus, inboxError)
 	}
 	second := router.payloads("conversation_turn_response")
 	if len(second) != 2 {

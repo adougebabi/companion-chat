@@ -35,4 +35,4 @@ PostgreSQL publication waiting/cancel 两个子用例、VisualIdentity candidate
 
 ## 远端发布状态
 
-功能分支已在本地提交，推送未执行：自动审批因未明确授权向公开 GitHub 仓库 `adougebabi/companion-chat` 导出源码与提交历史而拒绝该动作。已向用户请求对这个具体分支/目标的授权。没有远端Actions成功、镜像digest或真实发布manifest；模板不能充当构建证据。
+用户已明确授权推送到公开 GitHub 仓库 `adougebabi/companion-chat` 并构建测试镜像。首次 push 源 SHA 为 `a53d9838501c144d24ae9d5314bf88f911379cf4`，运行 https://github.com/adougebabi/companion-chat/actions/runs/38401908262。Web、Go普通与race通过；Phase 8隔离PG门禁检出两条旧fixture合同问题：pseudo tool_calls错误原因已改为原生输出缺失；真实reply fixture含已禁用visible_text导致额外final repair。已保留无伪造副作用、精确两次调用/一条assistant断言，并增加inbox正常processed断言。修复后重建；此处不把尚未构建的镜像或模板记为真实发布证据。

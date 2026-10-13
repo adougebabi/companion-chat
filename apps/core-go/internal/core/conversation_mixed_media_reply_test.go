@@ -72,7 +72,7 @@ func TestEinoADKStructuredContentToolCallsAreNotExecuted(t *testing.T) {
 	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
 		"fluctlight_id": fluctlightID, "text": "给我看看", "idempotency_key": "mixed-turn-structured", "turn_id": "mixed-turn-structured-1", "attachment_refs": []any{},
 	})
-	if err == nil || !strings.Contains(err.Error(), "adk_final_output_invalid") {
+	if err == nil || !errors.Is(err, errAgentFinalContractInvalid) || !strings.Contains(err.Error(), "conversation_native_output_missing") {
 		t.Fatalf("structured pseudo-tool turn did not fail clearly: result=%#v err=%v", result, err)
 	}
 	if len(result.Assistant) != 0 {
