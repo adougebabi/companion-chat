@@ -1839,3 +1839,30 @@ Implemented all six deliverables on isolated feature branch. Local Go race, vet/
 ### Next Steps
 
 - User runs real-model chat/media/vision and rollback acceptance using docs/fact-only-user-verification.md.
+
+
+## Session 57: Writer上下文、换行、图片入口与Kev披露修复
+<!-- trellis-session: v=2 fp=582b03d2a70e7689 -->
+
+**Date**: 2026-10-13
+**Task**: Writer上下文、换行、图片入口与Kev披露修复
+**Branch**: `codex/fact-only-reply-vision`
+
+### Summary
+
+完成Writer近期整轮预算与已存摘要复用、段落换行归一化、固定原生私有图片请求、Kev三工具基线及证据引用租约前验证。完整本地Go/race/vet/build和CI一次性PG/Phase8/Web门禁通过；两fact-only镜像发布并核对digest/源SHA。真实环境验收由用户负责。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `46bb413` | fix(core): bound reply context and require native image handoffs |
+| `b024f35` | test(core): query media owner in reply denial assertion |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 用户使用b024f35对应不可变Core/Web测试镜像统一验收。
