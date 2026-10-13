@@ -127,3 +127,29 @@ func TestBrowserDiagnosticMediaPromptMapsProviderAndSubmittedPrompts(t *testing.
 		t.Fatalf("nested model run = %#v", mapped["modelRun"])
 	}
 }
+
+func TestBrowserDiagnosticModelRunMapsTools(t *testing.T) {
+	row := map[string]any{
+		"id":             "run-tools",
+		"role":           "cognitive_assessment",
+		"model_id":       "model-tools",
+		"prompt":         []any{map[string]any{"role": "user", "content": "hi"}},
+		"status":         "completed",
+		"correlation_id": "corr-tools",
+		"created_at":     "2026-09-01T00:00:00Z",
+		"tools": []any{
+			map[string]any{
+				"type": "function",
+				"function": map[string]any{
+					"name":        "conversation.reply",
+					"description": "reply to user",
+				},
+			},
+		},
+	}
+	mapped := browserDiagnosticModelRun(row)
+	tools, ok := mapped["tools"].([]any)
+	if !ok || len(tools) != 1 {
+		t.Fatalf("tools = %#v, want 1 tool", mapped["tools"])
+	}
+}

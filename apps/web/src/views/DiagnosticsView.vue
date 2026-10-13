@@ -244,6 +244,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
                 <details><summary>查看本次 Prompt <small v-if="isMetadataOnlyPrompt(run.prompt)" class="prompt-meta-note">（历史元数据记录）</small></summary><p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此历史记录只保存了元数据，原始提示词无法恢复。</p><pre>{{ diagnosticText(run.prompt) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.prompt) }}</pre></details></details>
                 <details v-if="run.response != null"><summary>查看本次 Response</summary><pre>{{ diagnosticText(run.response) }}</pre><details><summary>查看消息结构</summary><pre>{{ pretty(run.response) }}</pre></details></details>
                 <p v-else class="field-note">本次请求尚无 Response。</p>
+                <details v-if="Array.isArray(run.tools) ? run.tools.length > 0 : run.tools != null"><summary>查看本次提供的 Tool<template v-if="Array.isArray(run.tools)"> ({{ run.tools.length }})</template></summary><pre>{{ pretty(run.tools) }}</pre></details>
                 <ul v-if="run.toolSummaries?.length" class="detail-list" aria-label="Tool 往返摘要"><li v-for="tool in run.toolSummaries" :key="tool.callId"><strong>{{ tool.capability }}</strong> · {{ tool.status }}<template v-if="tool.errorCode"> · {{ tool.errorCode }}</template></li></ul>
               </article>
             </section>

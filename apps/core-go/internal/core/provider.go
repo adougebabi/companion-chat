@@ -298,6 +298,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		diagnostics["run_id"] = correlationID
 	}
 	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(mapValue(diagnostics["prompt_budget"]), messages, renderedTools, responseFormat, assignment, wireEstimate)
+	if len(renderedTools) > 0 {
+		diagnostics["tools"] = renderedTools
+	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)
 	adkEnabled := false
 	agentDefinition, formalAgent := formalAgentDefinitionFromContext(ctx)

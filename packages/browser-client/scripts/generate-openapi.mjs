@@ -91,6 +91,7 @@ const schema = {
           sequence: { anyOf: [{ type: "integer" }, { type: "null" }] }, roundCount: { type: "integer" }, stage: { type: "string" },
           toolSummaries: { type: "array", maxItems: 32, items: { $ref: "#/components/schemas/BrowserDiagnosticToolSummary" } },
           goalEvaluation:jsonObject,
+          tools: {},
           prompt: {}, response: {}, orderingKey: {type:"string"}, createdAt: { type: "string", format: "date-time" },
           queuedAt: { type: "string", format: "date-time" }, startedAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] }, completedAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] },
         },

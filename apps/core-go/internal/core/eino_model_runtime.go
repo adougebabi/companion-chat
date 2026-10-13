@@ -76,6 +76,7 @@ type queuedToolCallingChatModel struct {
 	lastPhysicalResponse      *atomic.Pointer[schema.Message]
 	publicationCorrectionUsed *atomic.Bool
 	definitions               []CapabilityDefinition
+	toolInfos                 []*schema.ToolInfo
 	responseFormat            map[string]any
 }
 
@@ -118,6 +119,11 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	// Generate #1 from Generate #2 while both share one turn correlation.
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
 	callCtx = withProviderTimeout(callCtx, m.assignment.Timeout)
+	if tools := m.renderedTools(); len(tools) > 0 {
+		diag := providerPromptDiagnostics(callCtx)
+		diag["tools"] = tools
+		callCtx = WithPromptDiagnostics(callCtx, diag)
+	}
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
 		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, m.correlationID, m.scenario, m.priority, einoDiagnosticMessages(input))
@@ -217,6 +223,11 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
 	callCtx = withProviderTimeout(callCtx, m.assignment.Timeout)
 	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
+	if tools := m.renderedTools(); len(tools) > 0 {
+		diag := providerPromptDiagnostics(callCtx)
+		diag["tools"] = tools
+		callCtx = WithPromptDiagnostics(callCtx, diag)
+	}
 	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, input)
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
@@ -676,7 +687,31 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if sequence == nil {
 		sequence = &atomic.Uint64{}
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, publicationCorrectionUsed: m.publicationCorrectionUsed, definitions: m.definitions, responseFormat: m.responseFormat}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, publicationCorrectionUsed: m.publicationCorrectionUsed, definitions: m.definitions, toolInfos: tools, responseFormat: m.responseFormat}, nil
+}
+
+func (m *queuedToolCallingChatModel) renderedTools() []map[string]any {
+	if len(m.definitions) > 0 {
+		return RenderCapabilityTools(m.definitions)
+	}
+	if len(m.toolInfos) > 0 {
+		result := make([]map[string]any, 0, len(m.toolInfos))
+		for _, info := range m.toolInfos {
+			if info == nil {
+				continue
+			}
+			result = append(result, map[string]any{
+				"type": "function",
+				"function": map[string]any{
+					"name":        info.Name,
+					"description": info.Desc,
+					"parameters":  info.ParamsOneOf,
+				},
+			})
+		}
+		return result
+	}
+	return nil
 }
 
 type einoModelResponse struct {

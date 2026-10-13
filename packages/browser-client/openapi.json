@@ -1145,6 +1145,7 @@
             "type": "object",
             "additionalProperties": true
           },
+          "tools": {},
           "prompt": {},
           "response": {},
           "orderingKey": {

@@ -398,3 +398,26 @@ Planner单工具查询HTTP断言收紧为required字符串，finalDTOrepair仍�
 /tmp/string-tool-choice-check-build.log；RED日志/tmp/string-tool-choice-red.log。
 没有endpointheuristic、新400重试、配置/预算变化、正式调用、DB安装、迁移、
 部署或提交。真实模型验收仍由用户执行；无Web/publicAPI变更无需前端生成回归。
+
+
+## 2026-10-12 22:24 LM Studio 原生工具输出遗漏审计（只读）
+
+用户询问conversation_native_output_missing是否意味着LM Studio不可用。
+正式持久诊断turn_ae1bd803-843e-40d4-9cc7-35dd225aae13：
+22:24:01.001→22:24:37.281首轮cydonia-24b-v4.3-heretic-v2-i1返回普通正文；
+22:24:38.141→22:24:51.057纠正轮在content中写[tool_call:conversation.reply]块，
+消息结构明确tool_calls=[]，finish_reason=stop，prompt10291/completion317。
+伪块参数为conversation_ref/message/options，与真实reply的text合同不符。
+纠正Prompt明确要求nativeTool且不返回prose，应用拒绝没有真实reply的纠正输出。
+不能解析这段正文制造ToolCall或发布消息；当前失败非已展示的HTTP400或length。
+
+ctx7官方文档https://lmstudio.ai/docs/developer/openai-compat/tools明确：Native
+支持需要模型chattemplate支持tools且LMStudio支持该格式解析；不能解析正确工具格式
+时会保留在content，Defaultfallback效果因模型而异。本轮现象与该行为一致，但
+未取得实际LMStudio版本/loadedchattemplate，不能断言微调模型完全不支持或服务
+parser必然配置错误，也不能泛化为LMStudio不适合作为上游。
+
+结论：此前两项wire兼容缺口已区别于本次模型/模板/工具解析质量问题。先核验
+原生工具支持、模型模板与服务格式，必要时使用官方支持的工具Instruct模型做
+单工具+多轮真实tool_calls验收。没有新增应用纠正堆叠、正文转Tool兼容或生产写入；
+本轮未改产品代码，未将前次工程测试当作本次真实模型效果已恢复。

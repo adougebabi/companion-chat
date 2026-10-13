@@ -101,6 +101,9 @@ func (a *App) modelRunsQuery(ctx context.Context, actorID string, limit int, cor
 			_ = json.Unmarshal(response, &safeResponse)
 		}
 		row := map[string]any{"id": id, "role": role, "binding_role": bindingRole, "scenario": scenario, "priority": priority, "endpoint_id": endpoint, "model_id": model, "prompt": redactDiagnostic(safePrompt), "response": redactDiagnostic(safeResponse), "status": status, "error_code": code, "correlation_id": corr, "created_at": "", "queued_at": formatInstant(queued), "ordering_key": "0|" + id, "_cursor_key": id, "logical_run_id": logicalID, "model_call_id": stringValue(metricValues["model_call_id"]), "round_count": roundCount, "stage": "unknown", "tool_summaries": []any{}}
+		if tools, ok := metricValues["tools"]; ok && tools != nil {
+			row["tools"] = tools
+		}
 		if created != nil {
 			row["created_at"] = formatInstant(*created)
 			row["ordering_key"] = created.UTC().Format("2006-01-02T15:04:05.000000000") + "|" + id

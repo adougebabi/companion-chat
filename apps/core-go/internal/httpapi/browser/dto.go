@@ -133,6 +133,11 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	if value, exists := row["response"]; exists && jsonPayloadPresent(value) {
 		result["response"] = jsonValue(value)
 	}
+	if value, exists := row["tools"]; exists && value != nil {
+		result["tools"] = jsonValue(value)
+	} else if pMap, ok := row["prompt"].(map[string]any); ok && pMap["tools"] != nil {
+		result["tools"] = jsonValue(pMap["tools"])
+	}
 	if value, exists := row["error_code"]; exists {
 		result["errorCode"] = value
 	}

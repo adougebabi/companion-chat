@@ -102,6 +102,12 @@ function deliveryLabel(message: BrowserMessage): string {
 	return "已回复";
 }
 
+function formatMessageText(text?: string | null): string {
+	if (!text) return "";
+	return text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n");
+}
+
+
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
 	scrollToLatest();
@@ -156,7 +162,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
       >
         <div class="avatar" aria-hidden="true">{{ message.kind === "user" ? "我" : String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</div>
         <div class="message-bubble">
-          <p>{{ message.text }}</p>
+          <p>{{ formatMessageText(message.text) }}</p>
           <div v-if="message.attachmentRefs?.length" class="message-media">
             <img v-for="assetId in message.attachmentRefs" :key="assetId" :src="mediaUrl(assetId)" :alt='`${store.selectedFluctlightName ?? "Fluctlight"} 生成的图片`' loading="lazy" />
           </div>
