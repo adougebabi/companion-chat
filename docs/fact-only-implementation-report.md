@@ -32,3 +32,7 @@ PostgreSQL publication waiting/cancel 两个子用例、VisualIdentity candidate
 确定结构与 authority/revision fence 可以检查；无法机械证明任意人物文字没有事实幻觉。真实拒绝、人格和 Goal 连续性、长聊自然度及视觉模型支持要在用户模型上验证。当前私聊只有 visible_output_committed，没有外部逐组件 delivery ack；正文/附件存储同事务，不声称网络送达。独立 release 两仓 alias 晋升不是原子操作，部分失败必须使用完整 manifest 中的 digest。
 
 配置示例见 `fact-only-config/`，视觉调用点见 `fact-only-vision-call-sites.md`，用户检查步骤见 `fact-only-user-verification.md`，发布/回退见 `fact-only-deployment.md`。trace example 是明确标记的合成格式示例，manifest template 不是真实构建产物。
+
+## 远端发布状态
+
+功能分支已在本地提交，推送未执行：自动审批因未明确授权向公开 GitHub 仓库 `adougebabi/companion-chat` 导出源码与提交历史而拒绝该动作。已向用户请求对这个具体分支/目标的授权。没有远端Actions成功、镜像digest或真实发布manifest；模板不能充当构建证据。

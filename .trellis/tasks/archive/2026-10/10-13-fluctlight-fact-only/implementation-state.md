@@ -6,3 +6,5 @@ D：durable needs_action/waiting、真实media组件绑定、独立continuation�
 E：独立视觉默认关闭，domain/assignment前/physical执行时 gate，文字阶段保留、可选review awaiting_review/provenance、显式Owner测试UI/API。
 F：成功响应密钥回显及秘密键/image脱敏、冻结实际fallback assignment、精确offered证据、诊断draft/result与UI提示、配置/trace/manifest模板与用户验收手册。
 定向race通过；Web 21+2+105用例、typecheck/build，Go vet/build通过。全Go本地发现旧privacy/head断言已更新后重新核验。PG/S3/真实Provider/环境回归未执行，不计pass。详见docs/fact-only-implementation-report.md与acceptance-matrix.md。
+
+完整Go本地race已通过（live关闭、DB空）。最终代码提交27a1bc8，任务与日志已记录。功能分支push被自动审批拒绝，等待用户对公开GitHub目标的明确授权；未执行远端CI/镜像发布，不能称测试镜像已就绪。
