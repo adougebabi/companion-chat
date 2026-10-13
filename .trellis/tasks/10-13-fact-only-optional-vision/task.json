@@ -3,7 +3,7 @@
   "name": "fact-only-optional-vision",
   "title": "FO-E 可选视觉理解全入口治理",
   "description": "独立视觉 gate、全部图片输入入口、初始化降级与未校验资产状态",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

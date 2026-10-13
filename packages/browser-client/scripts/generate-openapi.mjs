@@ -370,6 +370,9 @@ const schema = {
     "/api/diagnostics/kev-decisions": {
       get: { operationId:"kevDecisions", parameters:["actor_self","actor_user","agent","decision_point","id","request_id","policy_outcome","call_status","application_status","correlation_id","run_id","from","to","limit","cursor"].map(name=>({name,in:"query",schema:{type:"string"}})), ...jsonResponse("BrowserKevDecisionPage") }
     },
+    "/api/settings/vision/test": {
+      post: {operationId:"testVisionUnderstanding",requestBody:{required:true,content:{"application/json":{schema:{type:"object",additionalProperties:false}}}},responses:{"200":{description:"Explicit image probe",content:{"application/json":{schema:{type:"object",additionalProperties:false,required:["state","config_version","image_input_verified","error_code"],properties:{state:{type:"string"},config_version:{type:"integer"},image_input_verified:{type:"boolean"},error_code:{type:"string"}}}}}}}}
+    },
     "/api/settings/kev/test-connection": {
       post: { operationId:"testKevConnection", requestBody:{required:true,content:{"application/json":{schema:{type:"object",additionalProperties:false}}}}, ...jsonResponse("BrowserKevConnectionTest") }
     },

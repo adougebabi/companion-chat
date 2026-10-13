@@ -344,6 +344,14 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callAny(response, request, "/internal/diagnostics/kev-decisions?"+query.Encode(), http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "kev_diagnostics_unavailable", "Kev diagnostics are unavailable"), nil)
 		return
 	}
+	if path == "/api/settings/vision/test" && methodName == http.MethodPost {
+		_, ok := s.mutationBody(response, request, func(value map[string]any) bool { return len(value) == 0 })
+		if !ok {
+			return
+		}
+		s.callAny(response, request, "/internal/settings/vision/test", http.MethodPost, map[string]any{}, s.readOnlyError(http.StatusForbidden, "vision_test_failed", "Vision test failed"), nil)
+		return
+	}
 	if path == "/api/settings/kev/test-connection" && methodName == http.MethodPost {
 		_, ok := s.mutationBody(response, request, func(value map[string]any) bool { return len(value) == 0 })
 		if !ok {

@@ -95,6 +95,10 @@ func newVisualIdentityToolFixture(t *testing.T) visualIdentityToolFixture {
 }
 
 func (fixture visualIdentityToolFixture) request(name, operation string, arguments map[string]any) ToolExecutionRequest {
+	if name == visualIdentityCommitReviewCapabilityName {
+		arguments = cloneMap(arguments)
+		arguments["review_source"] = "manual"
+	}
 	return ToolExecutionRequest{
 		CapabilityName: name, OperationID: operation,
 		AuthorizationActorID: fixture.ownerID, FluctlightID: fixture.fluctlightID,

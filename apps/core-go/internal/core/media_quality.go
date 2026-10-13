@@ -347,6 +347,12 @@ func mediaQualityInfrastructureReason(err error) string {
 	if err == nil {
 		return ""
 	}
+	if strings.Contains(err.Error(), "vision_disabled") {
+		return "vision_disabled"
+	}
+	if strings.Contains(err.Error(), "vision_unconfigured") {
+		return "vision_unconfigured"
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "quality_provider_timeout"
 	}

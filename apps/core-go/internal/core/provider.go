@@ -264,6 +264,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	scenario := providerScenario(ctx, role, schemaName)
 	ctx = WithProviderScenario(ctx, scenario)
 	ctx = ensureProviderAttemptIdentity(ctx)
+	if err := p.guardVisionBeforeAssignment(ctx, role, messages); err != nil {
+		return ProviderCompletion{}, err
+	}
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
@@ -1055,6 +1058,9 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		correlationID = diagnosticCorrelation(messages, "")
 	}
 	ctx = ensureProviderAttemptIdentity(ctx)
+	if err := p.guardVisionBeforeAssignment(ctx, role, messages); err != nil {
+		return "", err
+	}
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)

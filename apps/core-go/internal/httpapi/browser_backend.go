@@ -161,6 +161,8 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		err = b.server.app.RevokeCurrent(ctx, actorID, session)
 	case path == "/internal/auth/reset-password":
 		err = b.server.app.ResetPassword(ctx, actorID, stringValue(values["password"]))
+	case path == "/internal/settings/vision/test" && method == http.MethodPost:
+		return b.server.app.TestVisionUnderstanding(ctx, actorID)
 	case path == "/internal/settings/kev/test-connection" && method == http.MethodPost:
 		return b.server.app.TestKevConnection(ctx, actorID)
 	case path == "/internal/diagnostics/kev-decisions" && method == http.MethodGet:

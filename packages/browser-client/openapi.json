@@ -3435,6 +3435,55 @@
         }
       }
     },
+    "/api/settings/vision/test": {
+      "post": {
+        "operationId": "testVisionUnderstanding",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Explicit image probe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "state",
+                    "config_version",
+                    "image_input_verified",
+                    "error_code"
+                  ],
+                  "properties": {
+                    "state": {
+                      "type": "string"
+                    },
+                    "config_version": {
+                      "type": "integer"
+                    },
+                    "image_input_verified": {
+                      "type": "boolean"
+                    },
+                    "error_code": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/settings/kev/test-connection": {
       "post": {
         "operationId": "testKevConnection",

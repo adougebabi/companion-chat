@@ -136,6 +136,9 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 			// physical input/output diagnostics remain owned by this adapter.
 			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
 		}
+		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
+			return nil, err
+		}
 		return m.inner.Generate(runCtx, input, opts...)
 	})
 	err = wrapPhysicalProviderRequestError(err)
@@ -248,6 +251,9 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
 		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
 			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+		}
+		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
+			return nil, err
 		}
 		return m.inner.Stream(runCtx, input, opts...)
 	}, observer.observe)
@@ -778,6 +784,14 @@ func einoHTTPClientWithHeaders(base *http.Client, headers map[string]string) *ht
 }
 
 func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCall) (einoModelResponse, error) {
+	inputGuard, guardErr := providerMessagesToEino(call.Messages)
+	if guardErr != nil {
+		return einoModelResponse{}, guardErr
+	}
+	if err := p.guardVisionInput(ctx, call.Assignment, inputGuard); err != nil {
+		return einoModelResponse{}, err
+	}
+
 	if p == nil {
 		return einoModelResponse{}, errors.New("eino_provider_unavailable")
 	}
@@ -1164,6 +1178,9 @@ func (p *ProviderClient) streamWithEino(ctx context.Context, assignment provider
 	input, err := providerMessagesToEino(messages)
 	if err != nil {
 		return "", fmt.Errorf("eino_message_encode: %w", err)
+	}
+	if err := p.guardVisionInput(ctx, assignment, input); err != nil {
+		return "", err
 	}
 	if err := (&queuedToolCallingChatModel{assignment: assignment}).enforcePhysicalInputBudget(ctx, input); err != nil {
 		return "", err

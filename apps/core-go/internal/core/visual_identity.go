@@ -509,7 +509,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 		}
 	}
 	var existingSession string
-	err = tx.QueryRow(ctx, `SELECT id FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&existingSession)
+	err = tx.QueryRow(ctx, `SELECT id FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running','character_sheet_pending','awaiting_review') ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&existingSession)
 	if err == nil {
 		return existingSession, nil
 	}

@@ -14,7 +14,7 @@ const emit = defineEmits<{bindModel:[role:"conversation_reply"|"vision_understan
 const store=useControlCenterStore();
 const reply=reactive({mode:"legacy",model_ref:"conversation_reply",temperature:0.8,top_p:0.9,max_tokens:1024,max_input_tokens:8192,timeout_seconds:300,concurrency:1,retry_limit:1,failure_policy:"error",max_action_handoffs:2});
 const vision=reactive({enabled:false,model_ref:"vision_understanding"});
-const notice=ref(""),error=ref("");
+const notice=ref(""),error=ref(""),testingVision=ref(false);
 const {errors,validate}=useFormErrors();
 const bindingRole=computed(()=>props.kind==="reply"?"conversation_reply":"vision_understanding");
 const configKey=computed(()=>props.kind==="reply"?"conversation.reply":"vision.understanding");
@@ -54,6 +54,11 @@ async function save(){
   error.value=store.settingsError;
   if(!error.value){restore();notice.value="已保存。后续任务使用新配置，正在运行的私聊保持原配置。";}
 }
+async function testVision(){
+  if(testingVision.value)return;
+  testingVision.value=true;error.value="";notice.value="";
+  try{const result=await store.testVisionUnderstanding();if(result.image_input_verified){notice.value="图片输入测试通过。";}else{error.value=`视觉理解测试未通过：${String(result.error_code??result.state)}`;}await store.loadSettings();}finally{testingVision.value=false;}
+}
 onMounted(restore);
 </script>
 
@@ -68,12 +73,13 @@ onMounted(restore);
         <FormField id="reply-mode" label="私聊回复模式" v-slot="{controlAttrs}"><Select v-model="reply.mode"><SelectTrigger v-bind="controlAttrs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="legacy">旧回复模式</SelectItem><SelectItem value="fact_only">Fact-only · 独立回复模型</SelectItem></SelectContent></Select></FormField>
         <p class="field-hint">认知模型负责事实和工具，回复模型自行接话与推进当前目标。采样参数独立于认知模型；总超时包含排队等待。</p>
         <div class="form-grid"><FormField v-for="field in fields" :id="`reply-${field.key}`" :key="field.key" :label="field.label" v-model:error="errors[`reply-${field.key}`]" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" :model-value="reply[field.key]" type="number" :min="field.min" :max="field.max" :step="field.step" @update:model-value="reply[field.key]=Number($event)"/></FormField></div>
-        <FormField id="reply-failure-policy" label="回复模型失败时" v-slot="{controlAttrs}"><Select v-model="reply.failure_policy"><SelectTrigger v-bind="controlAttrs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="error">返回明确失败</SelectItem><SelectItem value="legacy_fallback">显式降级到旧回复模式</SelectItem></SelectContent></Select></FormField>
+        <FormField id="reply-failure-policy" label="回复模型失败时" v-slot="{controlAttrs}"><Select v-model="reply.failure_policy"><SelectTrigger v-bind="controlAttrs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="error">返回明确失败</SelectItem><SelectItem value="legacy_fallback">显式使用认知模型独立生成回复</SelectItem></SelectContent></Select></FormField>
       </template>
       <template v-else>
         <label class="checkbox-row"><input v-model="vision.enabled" type="checkbox"/><span>启用视觉理解</span></label>
         <p class="field-hint">用于看图、视觉身份及设定卡分析与校验，不控制图片或视频生成。关闭时保留已有有效参考图，新图片未检验不会自动标为验证通过。</p>
-        <p class="field-hint">只调用此处绑定的视觉模型，不会自动加载第三个模型。配置就绪与模型确实支持图片输入分别记录。</p>
+        <Button type="button" variant="outline" :disabled="store.saving||testingVision||!vision.enabled" @click="testVision">{{testingVision?'正在测试图片输入…':'测试视觉理解'}}</Button>
+        <p class="field-hint">测试使用已保存配置。只调用此处绑定的视觉模型，不会自动加载第三个模型。配置就绪与模型确实支持图片输入分别记录。</p>
       </template>
     </fieldset>
     <p class="field-hint">最近调用：{{displayStatus(String(status.last_call_status??'not_called'))}}<span v-if="status.last_error"> · 最近失败：{{String(status.last_error)}}</span></p>

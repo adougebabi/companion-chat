@@ -176,10 +176,9 @@ func (a *App) replyVisionCapabilityStatus(ctx context.Context, values map[string
 			status["last_error"] = item.configErr.Error()
 			continue
 		}
-		if !item.enabled {
-			continue
+		if item.enabled {
+			status["state"] = "unconfigured"
 		}
-		status["state"] = "unconfigured"
 		if item.ref == "" {
 			continue
 		}
@@ -195,8 +194,10 @@ func (a *App) replyVisionCapabilityStatus(ctx context.Context, values map[string
 		}
 		status["config_complete"] = true
 		status["model_id"] = model
-		status["state"] = "ready"
-		if endpointStatus == "failed" {
+		if item.enabled {
+			status["state"] = "ready"
+		}
+		if item.enabled && endpointStatus == "failed" {
 			status["state"] = "unavailable"
 		}
 		var last, lastError string
@@ -206,7 +207,7 @@ func (a *App) replyVisionCapabilityStatus(ctx context.Context, values map[string
 			status["last_call_status"] = last
 			status["last_error"] = lastError
 			status["last_call_at"] = at.UTC().Format(time.RFC3339Nano)
-			if last == "failed" || last == "timeout" {
+			if item.enabled && (last == "failed" || last == "timeout") {
 				status["state"] = "unavailable"
 			}
 		} else if !errors.Is(err, pgx.ErrNoRows) {
