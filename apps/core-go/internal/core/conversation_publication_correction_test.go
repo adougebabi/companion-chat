@@ -142,8 +142,8 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 				}
 				if outcome == "reply" || outcome == "corrected_receipt" {
 					final := requests[len(requests)-1]
-					if final["tool_choice"] != "auto" || final["response_format"] == nil || len(arrayValue(final["tools"])) != 2 || final["enable_thinking"] != true {
-						t.Fatalf("final contract not restored: %#v", final)
+					if final["tool_choice"] != "auto" || final["response_format"] != nil || len(arrayValue(final["tools"])) != 2 || final["enable_thinking"] != true {
+						t.Fatalf("optional catalog retained final grammar: %#v", final)
 					}
 				}
 			})

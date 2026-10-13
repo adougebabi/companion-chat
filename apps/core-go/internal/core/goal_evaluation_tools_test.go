@@ -412,8 +412,8 @@ func TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary(t *
 					isFinal := index == len(requests)-1
 					_, hasFormat := payload["response_format"]
 					if isFinal {
-						if payload["tool_choice"] != "auto" || !hasFormat {
-							t.Fatalf("final request did not restore summary contract: %#v", payload)
+						if payload["tool_choice"] != "auto" || hasFormat {
+							t.Fatalf("optional request retained summary grammar: %#v", payload)
 						}
 					} else if payload["tool_choice"] != "required" || hasFormat {
 						t.Fatalf("submission request allowed premature final: %#v", payload)

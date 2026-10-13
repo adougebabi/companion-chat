@@ -33,12 +33,13 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 		return m, finalRepairModelOptions(opts), m.responseFormat, nil
 	}
 	policy, ok := physicalModelRequestPolicyFromContext(ctx)
-	if !ok {
-		return m, opts, m.responseFormat, nil
-	}
-	decision, err := policy.DecidePhysicalModelRequest(ctx)
-	if err != nil {
-		return m, nil, nil, err
+	decision := physicalModelRequestDecision{}
+	if ok {
+		var err error
+		decision, err = policy.DecidePhysicalModelRequest(ctx)
+		if err != nil {
+			return m, nil, nil, err
+		}
 	}
 	if decision.AllowedToolNames != nil {
 		allowed := map[string]bool{}
@@ -63,6 +64,14 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 		copyModel.definitions = definitions
 		m = &copyModel
 		opts = append(opts, model.WithTools(infos))
+	}
+	// Native Tool selection and final DTO grammar are separate protocols. Keep
+	// every installed Tool available for optional continuation, but apply the
+	// final schema only to the existing isolated, tool-free repair request.
+	// Inspect effective options because disclosure and task policy can replace
+	// the bound catalog immediately before this physical request.
+	if len(model.GetCommonOptions(&model.Options{Tools: m.toolInfos}, opts...).Tools) > 0 {
+		decision.OmitResponseFormat = true
 	}
 	ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) { return decision, nil }))
 	opts, format, err := applyPhysicalModelRequestPolicy(ctx, opts, m.responseFormat)

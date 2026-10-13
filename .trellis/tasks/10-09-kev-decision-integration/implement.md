@@ -473,3 +473,50 @@ audit.md和Kevspec更新明确验收分层。14条短请求0.30–3.46秒不代�
 两条仍PASS；canonical engine-off-roundtrip-results.json为新鲜请求，非旧证据回填。
 主线程额外校验messages2→5 / 2→5→8、每轮真实ID衔接、schema增长和末轮零tools。
 14例固定矩阵不受首版补充记录缺陷影响。
+
+
+## 2026-10-13 最后收尾轮 lazy grammar HTTP400（实施边界）
+
+用户指定turn_03f5a472-5d1f-429f-a966-f381e94f6e2b只读诊断：9轮真实Tool调用，
+第9轮conversation.reply completed，第10轮13:52:47.276→47.459被HTTP400拒绝：
+Cannot combine structured output constraints with lazy grammar；stage=model。
+没有进入最终DTO校验/settlement，本次不是无native能力或普通网络断开。
+短合成复现 required+schema PASS、auto+schema同HTTP400、tool-free+schema PASS。
+此前14例矩阵缺少auto+schema；首要修共享出站组合，不做Provider400盲重试。
+
+选择最小共享修复：所有有实际工具目录的物理决策保持task-owned required/auto，
+统一省略response_format并按实际format预算；自然结束后仍严格验证finalDTO，
+合法输出直接验收，非法输出保留既有一次隔离tool-free final repair（schema开启、
+无tools/choice/parallel、thinkingfalse）。不在首个reply/root提交后提前移除可选工具，
+不改变主体prompt或Tool权限，不解析正文为消息，不重放effect/新框架/新migration。
+预计变更eino_model_request_policy.go、相关Generate/Stream物理测试、探针漏测用例，
+及相应spec/report；其它并行UI变更和正式环境数据不触碰。
+测试先加严格HTTP服务，按真实请求拒auto+schema，以ADK正常续轮+final repair达RED→GREEN；
+覆盖无taskpolicy、Conversation、GoalEvaluation、Planner、VisualIdentity、最后零tools纠正、
+原生真实ID/独立effect/optional续轮/相同IDreplay。最后主线程全Go检查，PG继续明确SKIP。
+
+
+## 2026-10-13 最终 native Tool 与 schema 请求隔离修复
+
+只读实际turn_03f5a472-5d1f-429f-a966-f381e94f6e2b确认第9轮conversation.reply
+completed、第10轮183ms HTTP400 Cannot combine structured output constraints with lazy grammar。
+phase=model，未进入DTO/settlement。三条合成公开API对照required+schemaPASS，
+auto+schema同400，tool-free+schemaPASS。此前14例缺auto+schema，现补为optional第15例。
+
+最小产品修改仅eino_model_request_policy.go：catalog narrowing及model options后读取
+有效Tools，所有tool-bearing物理请求省略response_format，effective预算format同步nil。
+taskpolicy及无policyAgent共用，required/auto和thinking保留，optional续轮保留；
+合法final仍严格校验且直接验收，非法final沿用原有一次隔离tool-free repair/schema，
+零tools/choice/parallel、thinkingfalse、原真实history/refs/取消。不重放effect、不改发送
+协议、CAS或权限，不新增Provider400重试/伪Tool/第二框架/迁移。
+
+新实际SDK/Eino HTTP/SSE回归12组修前相同HTTP400 RED、修后GREEN；旧各Agent wire
+断言更新到auto/no-format且保留receipt/效果；受控router按canonicalcatalog匹配可选阶段。
+修复后focused195PASS/54SKIP/0FAIL；最终主线程全Go race1662PASS/514SKIP/0FAIL
+（含子用例），vet/build/gofmt/scopeddiff通过，probe离线7/7PASS，独立只读review无finding。
+PG/其它opt-in514项明确SKIP，无Web/publicAPI变更，不拿前端其它并行任务作为本轮范围。
+默认沙箱首跑因httptest bind禁止中断，在允许监听环境重跑相同命令exit0。
+证据/tmp/tool-final-schema-red.log、/tmp/tool-final-schema-green.log、
+/tmp/tool-final-schema-full-race-unsandboxed.jsonl及.stderr；research/lmstudio-compatibility/
+auto-schema-repro-results.json、production-final-phase-failure.json和audit.md记录现场。
+没有正式业务数据写入、部署、模板/运行模式再切换；用户升级Core/Worker后以新轮验收。

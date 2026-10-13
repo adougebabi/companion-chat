@@ -483,3 +483,29 @@ audit.md和Kevspec更新明确验收分层。14条短请求0.30–3.46秒不代�
 两条仍PASS；canonical engine-off-roundtrip-results.json为新鲜请求，非旧证据回填。
 主线程额外校验messages2→5 / 2→5→8、每轮真实ID衔接、schema增长和末轮零tools。
 14例固定矩阵不受首版补充记录缺陷影响。
+
+
+## 2026-10-13 最终 native Tool 与 schema 请求隔离修复
+
+只读实际turn_03f5a472-5d1f-429f-a966-f381e94f6e2b确认第9轮conversation.reply
+completed、第10轮183ms HTTP400 Cannot combine structured output constraints with lazy grammar。
+phase=model，未进入DTO/settlement。三条合成公开API对照required+schemaPASS，
+auto+schema同400，tool-free+schemaPASS。此前14例缺auto+schema，现补为optional第15例。
+
+最小产品修改仅eino_model_request_policy.go：catalog narrowing及model options后读取
+有效Tools，所有tool-bearing物理请求省略response_format，effective预算format同步nil。
+taskpolicy及无policyAgent共用，required/auto和thinking保留，optional续轮保留；
+合法final仍严格校验且直接验收，非法final沿用原有一次隔离tool-free repair/schema，
+零tools/choice/parallel、thinkingfalse、原真实history/refs/取消。不重放effect、不改发送
+协议、CAS或权限，不新增Provider400重试/伪Tool/第二框架/迁移。
+
+新实际SDK/Eino HTTP/SSE回归12组修前相同HTTP400 RED、修后GREEN；旧各Agent wire
+断言更新到auto/no-format且保留receipt/效果；受控router按canonicalcatalog匹配可选阶段。
+修复后focused195PASS/54SKIP/0FAIL；最终主线程全Go race1662PASS/514SKIP/0FAIL
+（含子用例），vet/build/gofmt/scopeddiff通过，probe离线7/7PASS，独立只读review无finding。
+PG/其它opt-in514项明确SKIP，无Web/publicAPI变更，不拿前端其它并行任务作为本轮范围。
+默认沙箱首跑因httptest bind禁止中断，在允许监听环境重跑相同命令exit0。
+证据/tmp/tool-final-schema-red.log、/tmp/tool-final-schema-green.log、
+/tmp/tool-final-schema-full-race-unsandboxed.jsonl及.stderr；research/lmstudio-compatibility/
+auto-schema-repro-results.json、production-final-phase-failure.json和audit.md记录现场。
+没有正式业务数据写入、部署、模板/运行模式再切换；用户升级Core/Worker后以新轮验收。

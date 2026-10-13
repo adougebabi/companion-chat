@@ -81,8 +81,8 @@ func TestGoalPlannerPhysicalPolicyHTTPQueryAndCommitContinuation(t *testing.T) {
 						if payload["tool_choice"] != "required" || hasFormat || strings.Join(names, ",") != goalPlannerQuery {
 							t.Fatalf("premature final permitted: %#v", payload)
 						}
-					} else if payload["tool_choice"] != "auto" || !hasFormat || len(names) != 2 {
-						t.Fatalf("final catalog/schema not restored: %#v", payload)
+					} else if payload["tool_choice"] != "auto" || hasFormat || len(names) != 2 {
+						t.Fatalf("optional catalog/schema separation lost: %#v", payload)
 					}
 					if boolValue(payload["stream"]) != streaming {
 						t.Error("stream wire mismatch")

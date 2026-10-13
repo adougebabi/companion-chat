@@ -438,10 +438,10 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 
 ### 3. Contracts
 - While durable `goal.evaluation.submit` records do not cover all frozen roots, send canonical native Tools with `tool_choice="required"` and omit `response_format` from the serialized body. The original registry schemas, thinking flag, headers and physical call IDs remain intact. Object/plan receipts and summary prose cannot cover a root.
-- When root submissions are accepted, restore `tool_choice="auto"` and the original summary schema. Optional object/plan calls remain allowed; no second Runner or manual continuation is introduced.
+- When root submissions are accepted, restore `tool_choice="auto"` while keeping the native request free of final response grammar. Optional object/plan calls remain allowed; the successful stopping candidate is validated against the original final contract, with at most one existing tool-free repair if needed.
 - A real frozen source/authority conflict permits an error summary so the existing finalizer can queue unresolved/deferred targets with a fresh snapshot. This escape never counts as root coverage or success. Ordinary correctable judgment/argument rejections keep required native execution.
 - Apply options using locked Eino APIs: `model.WithToolChoice` and `openaiext.WithRequestPayloadModifier`. Do not replace ExtraFields to remove one format field. Budget and diagnostics use the effective format of this physical request.
-- Final DTO repair is tool-free and explicitly suppresses the task request policy; it cannot issue required ToolCalls without a catalog or replay mutations. Conversation and Visual Identity install their own request policies; WakeUp and Planner retain their original request behavior.
+- Final DTO repair is tool-free and explicitly suppresses the task request policy; it cannot issue required ToolCalls without a catalog or replay mutations. Task policies keep their own required/auto readiness rules; the shared adapter omits final grammar whenever the effective physical Tool catalog is nonempty, including WakeUp and requests without a task policy.
 - DB/claim/cancellation failures remain errors. Native state, evidence/CAS, ownership, paused settlement and independent Tool transactions remain the sole business authority.
 
 ### 4. Validation & Error Matrix
@@ -450,7 +450,7 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 | Uncovered roots, fresh run or partial retry | required native Tools; no summary grammar |
 | Root rejected for wrong judgment/arguments | required remains; actual failure feedback reaches next decision |
 | Frozen source/authority stale | allow error summary; missing roots remain unresolved; existing fresh-request path runs |
-| All durable roots accepted | auto + summary schema; optional Tools allowed |
+| All durable roots accepted | auto without final grammar; optional Tools allowed, strict final validation retained |
 | Claim no longer processing or revision changed | goal_evaluation_claim_stale; no new physical request |
 | Policy DB read/cancellation fails | propagate cause; no fabricated coverage |
 | Final schema repair | no inherited request policy, no native Tool catalog |
@@ -459,11 +459,11 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 Good: rejected native root -> feedback -> corrected real root -> other roots -> final summary. Base: a retry starts with one accepted root and submits the remainder. Bad: return “正在评估4个目标” under summary grammar while all root submissions remain absent, or force ToolCalls against an irreparably stale snapshot until timeout.
 
 ### 6. Tests Required
-`TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary` uses the actual OpenAI adapter and Eino Runner with HTTP/SSE, checking Generate/Stream × empty/partial coverage, three closed canonical Tool schemas, actual stream=true, rejection feedback, required/no-format execution requests, auto/schema final request and consistent nonempty physical identity headers. The controlled service must return premature summary on auto/summary grammar so the old implementation demonstrably fails. `TestGoalEvaluationFrozenConflictCanExitButJudgmentRejectionCannot` distinguishes stale exit from correctable evidence rejection. `TestPhysicalModelRequestPolicyIsSuppressedForFinalRepair` preserves the tool-free repair boundary. Production DB policy/Task cases require the isolated PG fixture and are explicitly SKIP without it. The test router identifies the private native catalog when the final schema is absent; production has no fixture or DTO fallback.
+`TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary` uses the actual OpenAI adapter and Eino Runner with HTTP/SSE, checking Generate/Stream × empty/partial coverage, three closed canonical Tool schemas, actual stream=true, rejection feedback, required/no-format execution requests, auto/no-format optional requests and consistent nonempty physical identity headers. `TestGoalEvaluationFrozenConflictCanExitButJudgmentRejectionCannot` distinguishes stale exit from correctable evidence rejection. `TestPhysicalModelRequestPolicyIsSuppressedForFinalRepair` preserves the tool-free repair boundary. Production DB policy/Task cases require the isolated PG fixture and are explicitly SKIP without it. The test router identifies the private native catalog in both required/auto phases when the final schema is absent; production has no fixture or DTO fallback.
 
 ### 7. Wrong vs Correct
 Wrong: install the summary JSON schema for every physical decision and rely only on prompt wording to require submissions.
-Correct: before each physical request, read durable root coverage, select required native execution without final grammar, and restore the final contract only after accepted coverage or an explicit stale-snapshot error exit.
+Correct: before each physical request, read durable root coverage and select required/auto native execution without final grammar; validate the stopping result against the final contract after accepted coverage or an explicit stale-snapshot error exit.
 
 
 ## Scenario: Background Agent logical ownership and generation provenance (0059)
@@ -519,7 +519,7 @@ Conversation final text previously bypassed the Tool protocol. Private chat must
 `conversationPublicationPhysicalRequestPolicy.DecidePhysicalModelRequest(ctx)` reads the current native trace. `conversationHasAuthoritativeOutput(trace)` accepts only committed conversation.reply receipts.
 
 ### 3. Contracts
-Until a real reply commits, physical Generate/Stream requests use required Tool choice and omit final response_format. Other Tool results, accepted media and prose do not release the boundary. After the reply commits, restore auto and the cognition final schema. Remove visible_text from the turn/response_plan schemas and remove natural-final publication. handleTurn loads committed message resources only. Final JSON describes cognition and settlement; it never creates a message. Keep the existing single Eino Runner and independently committed Tool transactions.
+Until a real reply commits, physical Generate/Stream requests use required Tool choice and omit final response_format. Other Tool results, accepted media and prose do not release the boundary. After the reply commits, restore auto with the optional catalog and keep final grammar omitted. Validate the stopping candidate against the cognition schema; the existing isolated tool-free repair retains that schema. Remove visible_text from the turn/response_plan schemas and remove natural-final publication. handleTurn loads committed message resources only. Final JSON describes cognition and settlement; it never creates a message. Keep the existing single Eino Runner and independently committed Tool transactions.
 
 ### 4. Validation & Error Matrix
 | Condition | Behavior |
@@ -593,7 +593,7 @@ Correction uses reply-only native schema, string required choice, no final gramm
 | Prose stop without reply | one reply-only native correction with string required choice |
 | Ignore correction/wrong Tool | fail, no fake publication |
 | Correct Tool arguments rejected | real feedback through ordinary native continuation |
-| Reply committed | restore auto/final contract, no extra correction |
+| Reply committed | auto/no final grammar with optional catalog; no native-publication correction |
 | length/content_filter/empty output | retain failure, no omission correction |
 | Retry has committed mutation | History blocked; unchanged enqueue replay protection |
 
@@ -601,7 +601,7 @@ Correction uses reply-only native schema, string required choice, no final gramm
 Good: read → premature prose → one real reply call → committed receipt → final cognition. Base: original native reply needs no correction. Bad: force reply before every possible read or publish candidate prose directly.
 
 ### 6. Tests Required
-Actual HTTP/SSE Generate/Stream verifies one correction, string required choice and reply-only schema, unique physical headers, catalog/thinking/final-format restoration, single effect, argument rejection continuation and ignored/wrong/multiple-call failure. PG zero-effect failed-turn retry reuses sender identity and creates one fresh attempt; partial mutation history agrees with admission fence.
+Actual HTTP/SSE Generate/Stream verifies one correction, string required choice and reply-only schema, unique physical headers, catalog/thinking restoration without final grammar, single effect, argument rejection continuation and ignored/wrong/multiple-call failure. PG zero-effect failed-turn retry reuses sender identity and creates one fresh attempt; partial mutation history agrees with admission fence.
 
 ### 7. Wrong vs Correct
 Wrong: convert the stopped text into a backend send. Correct: request one actual native ToolCall from the model and keep publication/receipt authority unchanged.
@@ -684,3 +684,62 @@ Planner single-tool query tests accept required only. Final repair remains isola
 Wrong: tool_choice={type:function,function:{name:conversation.reply}}.
 Correct: tool_choice="required" with exactly one installed reply schema and
 independent native response validation.
+
+## Scenario: Separate native Tool selection from final response grammar (2026-10-13)
+
+### 1. Scope / Trigger
+LM Studio rejected a post-publication request with HTTP400 `Cannot combine
+structured output constraints with lazy grammar`. Required Tool choice worked,
+but optional auto choice plus response_format did not. Apply this shared rule
+to all native Tool-bearing requests, including surfaces without task policies.
+
+### 2. Signatures
+`queuedToolCallingChatModel.physicalRequestOptions(ctx, opts)` reads effective
+Tools through `model.GetCommonOptions`, after native/Kev disclosure and task-owned
+catalog narrowing. It sets `physicalModelRequestDecision.OmitResponseFormat`
+when that actual catalog is nonempty. No endpoint switch or public API is added.
+
+### 3. Contracts
+Every native Tool-bearing physical request omits response_format and uses the
+same effective format for input budgeting. Required/auto, authorized catalogs,
+thinking and optional continuation retain their task-owned rules. A committed
+reply or accepted root does not itself end the run or remove optional Tools.
+When the native Runner stops successfully, a valid final DTO passes strict Core
+validation directly. An invalid DTO may use the existing single tool-free repair:
+original schema, zero tools/tool_choice/parallel hints, thinking=false, retained
+real Tool history/IDs, refs and cancellation; no business admission or refresh.
+Failed/empty/cancelled native runs retain their error, and private publication
+must already be proved by a committed native reply before DTO repair is allowed.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Required or auto with effective Tools | no final response_format; optional native calls still execute |
+| Tools installed only through model options | same omission; task policy presence is irrelevant |
+| Explicit empty effective Tool override | retain ordinary tool-free final format |
+| Successful stopping candidate satisfies schema | accept without another model call |
+| Malformed final candidate | at most one isolated schema repair; strict validation still applies |
+| Invalid repair, provider failure or cancellation | actual error; prior Tool commits preserved |
+| Reasoning-only empty/length/filter outcome | existing failure semantics, no added retry |
+
+### 5. Good / Base / Bad Cases
+Good: required reply → committed receipt → optional read under auto/no-format →
+valid final DTO, or one no-Tool schema correction. Base: a naturally tool-free
+Agent retains its original structured request. Bad: retry the rejected mixed
+request, drop optional Tools immediately after the reply, or publish final prose.
+
+### 6. Tests Required
+`TestToolFinalSchemaSeparationPhysicalRequests` uses the actual SDK/Eino HTTP/SSE
+path with a service rejecting auto+schema. Cover Generate/Stream, policy/no-policy,
+valid/repair/invalid repair, exactly one reply effect, optional read after reply,
+paired native results, unique physical identities and repair isolation.
+`TestToolFinalSchemaSeparationEffectiveFormat` covers bound/option/empty catalogs,
+format immutability and policy suppression. Planner optional commits/snapshot
+rereads/native-ID replay, Goal coverage, Visual Identity and omission-correction
+tests must retain their effect checks. Controlled fixtures recognize canonical
+catalogs in both required and auto phases; they never create calls from content.
+
+### 7. Wrong vs Correct
+Wrong: restore auto and final schema in the same request after required effects.
+Correct: keep native decisions free of final grammar, validate the eventual DTO,
+and request schema-constrained correction only through the isolated no-Tool path.

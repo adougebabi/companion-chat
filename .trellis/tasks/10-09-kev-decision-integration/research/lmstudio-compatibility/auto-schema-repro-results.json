@@ -1,0 +1,312 @@
+{
+  "scope": "Fixed synthetic public provider API requests; no tools execute.",
+  "cases": {
+    "tools_required_json_schema": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call probe_read with value=\"7318\" first; do not return final JSON yet."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "required",
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "compatibility_probe",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "7318"
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": false,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-ulbt6qx48wiwyixq169l",
+        "object": "chat.completion",
+        "created": 1791872364,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "reasoning_content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "id": "296248654",
+                  "function": {
+                    "name": "probe_read",
+                    "arguments": "{\"value\":\"7318\"}"
+                  }
+                }
+              ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 390,
+          "completion_tokens": 31,
+          "total_tokens": 421,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-ulbt6qx48wiwyixq169l\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791872364,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": [\n          {\n            \"type\": \"function\",\n            \"id\": \"296248654\",\n            \"function\": {\n              \"name\": \"probe_read\",\n              \"arguments\": \"{\\\"value\\\":\\\"7318\\\"}\"\n            }\n          }\n        ]\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 390,\n    \"completion_tokens\": 31,\n    \"total_tokens\": 421,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "",
+      "native_calls": [
+        {
+          "id": "296248654",
+          "name": "probe_read",
+          "arguments": "{\"value\":\"7318\"}",
+          "arguments_parse_valid": true,
+          "arguments_object": {
+            "value": "7318"
+          },
+          "valid": true
+        }
+      ],
+      "native_count": 1,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": false,
+      "final_json": null,
+      "return_shape": "native",
+      "finish_reason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 390,
+        "completion_tokens": 31,
+        "total_tokens": 421,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 3752.969
+    },
+    "tools_auto_json_schema": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Call probe_read with value=\"7318\" first; do not return final JSON yet."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "probe_read",
+              "description": "Read-only synthetic compatibility probe. No business side effects.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "7318"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": "auto",
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "compatibility_probe",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "7318"
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": false,
+      "http_status": 400,
+      "response": null,
+      "classification": "BLOCKED",
+      "failure_layer": "http",
+      "error_body": "{\"error\":\"Cannot combine structured output constraints with lazy grammar\"}",
+      "error_body_truncated": false,
+      "duration_ms": 24.407
+    },
+    "tool_free_json_schema": {
+      "request": {
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the synthetic compatibility test instructions exactly."
+          },
+          {
+            "role": "user",
+            "content": "Return exactly {\"value\":\"7318\"}."
+          }
+        ],
+        "temperature": 0,
+        "max_completion_tokens": 128,
+        "enable_thinking": false,
+        "stream": false,
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "compatibility_probe",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "7318"
+                  ]
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": true,
+      "http_status": 200,
+      "response": {
+        "id": "chatcmpl-ojjhkjcrc4od7zhjtdpnb",
+        "object": "chat.completion",
+        "created": 1791872368,
+        "model": "cydonia-24b-v4.3-heretic-v2-i1",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"value\":\"7318\"}",
+              "reasoning_content": "",
+              "tool_calls": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 24,
+          "completion_tokens": 9,
+          "total_tokens": 33,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        "stats": {},
+        "system_fingerprint": "cydonia-24b-v4.3-heretic-v2-i1"
+      },
+      "classification": "PASS",
+      "failure_layer": null,
+      "raw_response": "{\n  \"id\": \"chatcmpl-ojjhkjcrc4od7zhjtdpnb\",\n  \"object\": \"chat.completion\",\n  \"created\": 1791872368,\n  \"model\": \"cydonia-24b-v4.3-heretic-v2-i1\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"{\\\"value\\\":\\\"7318\\\"}\",\n        \"reasoning_content\": \"\",\n        \"tool_calls\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 24,\n    \"completion_tokens\": 9,\n    \"total_tokens\": 33,\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\": 0\n    }\n  },\n  \"stats\": {},\n  \"system_fingerprint\": \"cydonia-24b-v4.3-heretic-v2-i1\"\n}",
+      "response_truncated": false,
+      "content": "{\"value\":\"7318\"}",
+      "native_calls": [],
+      "native_count": 0,
+      "multiple_native_calls_observed": false,
+      "final_json_parse_valid": true,
+      "final_json": {
+        "value": "7318"
+      },
+      "return_shape": "final_content",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 24,
+        "completion_tokens": 9,
+        "total_tokens": 33,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "duration_ms": 466.64
+    }
+  }
+}

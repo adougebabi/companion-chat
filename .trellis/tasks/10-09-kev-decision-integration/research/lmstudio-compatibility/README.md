@@ -52,6 +52,7 @@ The matrix covers:
 | `required_sse` | Yes | Actual SSE deltas, valid native call, and `[DONE]` |
 | `two_tools` | No | At least one valid native call; multiple calls recorded separately |
 | `tools_strict_json` | No | Required native call while final JSON schema is supplied |
+| `auto_tools_strict_json` | No | Native call under auto while final JSON schema is supplied; known lazy-grammar rejection recorded separately |
 | `continuation_empty` | Yes | Exact previous synthetic ToolResult after assistant content `""` |
 | `continuation_null` | No | Same continuation with assistant content `null` |
 
@@ -90,7 +91,12 @@ The 2026-10-13 audit records the original-template baseline, the V7-template
 Engine Protocol ON matrix, and the matrix after the user disabled Engine
 Protocol in `baseline-results.json`, `engine-on-native-v7-results.json`, and
 `engine-off-results.json`. Requests are identical across these matrices.
-The OFF report passes all 14 cases. The effective legacy-mode template and GUI
+The original OFF report passes all 14 then-defined cases. A later real Agent
+failure exposed the omitted auto+JSON-schema combination. The current probe adds
+it as an optional 15th case: its rejection must remain visible, while Core avoids
+that combination by keeping all native Tool phases free of final response grammar.
+See `auto-schema-repro-results.json` and `production-final-phase-failure.json`.
+The effective legacy-mode template and GUI
 switch were not independently observed in that locked-screen phase; see
 `engine-off-environment.json` and `audit.md` for the attribution limits.
 

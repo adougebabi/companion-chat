@@ -493,8 +493,8 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 		t.Fatalf("first request did not enforce the stage Tool without final grammar: %#v", first)
 	}
 	secondTools := arrayValue(second["tools"])
-	if second["tool_choice"] != "auto" || second["response_format"] == nil || len(secondTools) != 1 || stringValue(mapValue(mapValue(secondTools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
-		t.Fatalf("final request did not restore auto/final grammar with the bounded stage catalog: %#v", second)
+	if second["tool_choice"] != "auto" || second["response_format"] != nil || len(secondTools) != 1 || stringValue(mapValue(mapValue(secondTools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
+		t.Fatalf("optional request lost auto/bounded stage catalog or retained final grammar: %#v", second)
 	}
 	receipt, found := formalAdapterResultFromPayload(second, "visual-generate-call")
 	if !found || stringValue(mapValue(receipt["output"])["status"]) != "pending" {
@@ -567,7 +567,7 @@ func TestVisualIdentityPhysicalRequestStagesGenerateAndStream(t *testing.T) {
 			if !visualIdentityRequestForcesTool(requests[0], visualIdentityGenerateCandidateCapabilityName) || requests[0]["response_format"] != nil {
 				t.Fatalf("execution request=%#v", requests[0])
 			}
-			if requests[1]["tool_choice"] != "auto" || requests[1]["response_format"] == nil {
+			if requests[1]["tool_choice"] != "auto" || requests[1]["response_format"] != nil {
 				t.Fatalf("final request=%#v", requests[1])
 			}
 		})

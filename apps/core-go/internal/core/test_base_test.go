@@ -329,32 +329,30 @@ func providerWireSchemaName(payload map[string]any) string {
 	if name := stringValue(mapValue(responseFormat["json_schema"])["name"]); name != "" {
 		return name
 	}
-	// The Goal execution phase deliberately has no final JSON grammar. Its
-	// exclusive native catalog still identifies the controlled test route.
+	// Every native Tool phase omits final JSON grammar, including optional
+	// continuation after required receipts. Private catalogs identify the same
+	// controlled test route without constructing calls from final content.
 	goalTools := map[string]bool{}
 	hasConversationReply := false
+	hasPlannerQuery := false
 	for _, value := range arrayValue(payload["tools"]) {
 		name := stringValue(mapValue(mapValue(value)["function"])["name"])
 		if isGoalEvaluationTool(name) {
 			goalTools[name] = true
 		}
 		hasConversationReply = hasConversationReply || name == conversationReplyCapabilityName
+		hasPlannerQuery = hasPlannerQuery || name == goalPlannerQuery
 	}
-	// Planner's query phase omits final grammar and installs only its private
-	// query Tool. Recognize the native wire without synthesizing a ToolCall.
-	tools := arrayValue(payload["tools"])
-	if len(tools) == 1 && stringValue(mapValue(mapValue(tools[0])["function"])["name"]) == goalPlannerQuery &&
-		(stringValue(payload["tool_choice"]) == "required" || stringValue(mapValue(mapValue(payload["tool_choice"])["function"])["name"]) == goalPlannerQuery) {
+	if hasPlannerQuery {
 		return "goal_planner_v1"
 	}
-	if len(goalTools) == 3 && stringValue(payload["tool_choice"]) == "required" {
+	if len(goalTools) == 3 {
 		return "goal_evaluation_v1"
 	}
-	// A private conversation that has not yet published intentionally omits the
-	// final response grammar and forces its real conversation.reply catalog.
-	// Route that execution phase back to the same explicitly registered test
+	// A private conversation retains its real reply catalog during optional
+	// continuation. Route it back to the same explicitly registered test
 	// script; this is test transport recognition, not a production fallback.
-	if hasConversationReply && conversationWireForcesReply(payload) {
+	if hasConversationReply {
 		return workingPersonaMainTurnSchema
 	}
 	if stringValue(responseFormat["type"]) == "json_object" {
