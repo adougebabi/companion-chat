@@ -80,15 +80,25 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		return ConversationCognitionAgentResult{}, err
 	}
 
-	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
+	ctx, err = a.withPrivateReplyRun(ctx, ToolExecutionRequest{AuthorizationActorID: actorID, SubjectActorID: firstString(input.SpeakerActorID, actorID),
+		FluctlightID: fluctlightID, ConversationID: conversationID, EvidenceID: input.SourceFactID, RunID: runID, OperationID: runID, Surface: CapabilitySurfaceConversation}, currentInput)
+	if err != nil {
+		return ConversationCognitionAgentResult{}, err
+	}
+	definitions := capabilityCatalog(a.capabilityRegistryForContext(ctx), CapabilitySurfaceConversation)
 	if !isMultiPersonalityProjection(projection) {
 		definitions = filterPersonaActionCapabilities(definitions)
 	}
 	schema := cognitiveTurnResponseSchema()
 	operationRules := []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction, capabilityLifeConsistencyInstruction}
+	surface := ProviderContextSurfaceConversationMain
+	if replyRun := replyRunFromContext(ctx); replyRun != nil && replyRun.Settings.Mode == "fact_only" {
+		surface = ProviderContextSurfaceFactOnlyCognition
+		operationRules = []string{factOnlyConversationPolicy, capabilityLifeConsistencyInstruction}
+	}
 	assembly, projection, err := a.assembleProjectionPromptForSurface(
 		ctx,
-		ProviderContextSurfaceConversationMain,
+		surface,
 		projection,
 		"cognitive_assessment",
 		operationRules,
@@ -101,9 +111,9 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		return ConversationCognitionAgentResult{}, err
 	}
 
-	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
+	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), replyRunDiagnostics(ctx, assembly.Diagnostics))
 	providerCtx = WithProviderCorrelation(providerCtx, firstString(providerCorrelation(ctx), "conversation-cognition-agent:"+runID))
-	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceConversationMain, "cognitive_assessment", operationRules, currentInput, definitions, "conversation_turn_response", schema, nil)
+	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, surface, "cognitive_assessment", operationRules, currentInput, definitions, "conversation_turn_response", schema, nil)
 	if conversationID != "" {
 		providerCtx = withPhysicalModelRequestPolicy(providerCtx, conversationPublicationPhysicalRequestPolicy{})
 	}

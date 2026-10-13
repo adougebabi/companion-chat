@@ -94,7 +94,7 @@ func (a *App) validateCandidateCapabilityInvocationsWithContext(ctx context.Cont
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("%w: candidate validation context: %v", ErrContextResolve, err)
 	}
-	registry := a.capabilityRegistry()
+	registry := a.capabilityRegistryForContext(ctx)
 	if registry == nil {
 		return ErrCapabilityNotFound
 	}

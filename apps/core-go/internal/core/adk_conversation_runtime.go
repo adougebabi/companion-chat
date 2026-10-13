@@ -52,6 +52,7 @@ type appADKCapabilityInvoker struct {
 	app             *App
 	request         ADKCapabilityRequest
 	trace           *ADKCapabilityTrace
+	scopeRegistry   *CapabilityRegistry
 	nativeMu        sync.Mutex
 	nativeArguments map[string]nativeCallArguments
 }
@@ -80,13 +81,17 @@ type ADKCapabilityRequest struct {
 }
 
 func newAppADKCapabilityInvoker(app *App, request ADKCapabilityRequest, trace *ADKCapabilityTrace) ADKCapabilityInvoker {
+	return newAppADKCapabilityInvokerForContext(context.Background(), app, request, trace)
+}
+
+func newAppADKCapabilityInvokerForContext(ctx context.Context, app *App, request ADKCapabilityRequest, trace *ADKCapabilityTrace) ADKCapabilityInvoker {
 	if request.Surface == "" {
 		request.Surface = CapabilitySurfaceConversation
 	}
 	if request.TargetKind == "" && request.TargetRef == "" && request.ConversationID != "" {
 		request.TargetKind, request.TargetRef = "conversation", request.ConversationID
 	}
-	return &appADKCapabilityInvoker{app: app, request: request, trace: trace}
+	return &appADKCapabilityInvoker{app: app, request: request, trace: trace, scopeRegistry: app.capabilityRegistryForContext(ctx)}
 }
 
 func (i *appADKCapabilityInvoker) Execute(ctx context.Context, capabilityName string, argumentsJSON string) (string, error) {
@@ -104,7 +109,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.requested", callID, capabilityName, "requested", "", argumentsJSON)
-	definition, ok := i.app.capabilityRegistry().Definition(capabilityName)
+	definition, ok := i.scopeRegistry.Definition(capabilityName)
 	if !ok {
 		// Unknown native calls cannot execute. Preserve an Owner-reviewable
 		// capability need when the run has an authenticated source fact.
@@ -181,7 +186,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if len(definition.RequiredContext) > 0 {
 		invocation.ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, i.request.ActionID)
 	}
-	capability, _ := i.app.capabilityRegistry().Lookup(capabilityName)
+	capability, _ := i.scopeRegistry.Lookup(capabilityName)
 	contract, nativeContract := capability.(nativeToolContract)
 	rejectArguments := func(err error) (string, error) {
 		if seen {
@@ -358,7 +363,7 @@ func modelFacingToolResultForContext(ctx context.Context, receipt ToolExecutionR
 	visible := modelFacingToolResult(receipt, definition)
 	if state, ok := adkCapabilityContext(ctx); ok {
 		if invoker, yes := state.Invoker.(*appADKCapabilityInvoker); yes {
-			capability, _ := invoker.app.capabilityRegistry().Lookup(definition.Name)
+			capability, _ := invoker.scopeRegistry.Lookup(definition.Name)
 			if contract, native := capability.(nativeToolContract); native && visible["output"] != nil {
 				projection := invoker.request.Projection
 				if fresh := state.Refresh.latestProjection(); fresh != nil {
@@ -565,7 +570,7 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if len(input.Definitions) > 0 && input.Capability == nil {
 		return ADKStructuredTaskResult{}, errors.New("adk_structured_task_capability_context_required")
 	}
-	if err := validateADKCapabilityDefinitions(a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
+	if err := validateADKCapabilityDefinitionsForContext(ctx, a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
 		return ADKStructuredTaskResult{}, err
 	}
 	var selectionErr error
@@ -578,7 +583,7 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if input.Capability != nil {
 		request = *input.Capability
 	}
-	invoker := newAppADKCapabilityInvoker(a, request, trace)
+	invoker := newAppADKCapabilityInvokerForContext(ctx, a, request, trace)
 	var refs *providerContextRefCodec
 	if input.Capability != nil {
 		var refErr error
@@ -628,13 +633,17 @@ func firstCapabilitySurface(request *ADKCapabilityRequest) CapabilitySurface {
 }
 
 func validateADKCapabilityDefinitions(app *App, definitions []CapabilityDefinition, surface CapabilitySurface) error {
+	return validateADKCapabilityDefinitionsForContext(context.Background(), app, definitions, surface)
+}
+
+func validateADKCapabilityDefinitionsForContext(ctx context.Context, app *App, definitions []CapabilityDefinition, surface CapabilitySurface) error {
 	if len(definitions) == 0 {
 		return nil
 	}
 	if app == nil {
 		return errors.New("adk_capability_registry_unavailable")
 	}
-	registry := app.capabilityRegistry()
+	registry := app.capabilityRegistryForContext(ctx)
 	if registry == nil {
 		return errors.New("adk_capability_registry_unavailable")
 	}

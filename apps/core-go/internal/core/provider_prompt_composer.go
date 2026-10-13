@@ -216,6 +216,12 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 // tasks while giving WakeUp its own complete fixed protocol. Surface is an
 // explicit assembly input; model/user text is never inspected to select it.
 func renderProviderSystemForSurface(surface ProviderContextSurface, operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {
+	if surface == ProviderContextSurfaceFactOnlyCognition {
+		var builder strings.Builder
+		builder.WriteString("# 运行协议\n\n" + factOnlyCognitionProtocol + "\n\n" + strings.Join(operationRules, "\n\n"))
+		appendProviderPersona(&builder, persona, role)
+		return strings.TrimSpace(builder.String())
+	}
 	if surface == ProviderContextSurfaceFactOnlyReply {
 		var builder strings.Builder
 		builder.WriteString("# 运行协议\n\n")

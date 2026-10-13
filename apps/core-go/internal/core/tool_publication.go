@@ -40,6 +40,7 @@ type ConversationReplyPublication struct {
 	CorrelationID               string
 	Text                        string
 	ExpectedLifeContextRevision string
+	ReplyMetadata               map[string]any
 }
 
 type MomentPublication struct {
@@ -190,7 +191,10 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		return publishedResource{}, err
 	}
 	var createdAt time.Time
-	err = tx.QueryRow(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (conversation_id,turn_id,kind) WHERE turn_id IS NOT NULL DO NOTHING RETURNING created_at`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt).Scan(&createdAt)
+	if command.ReplyMetadata == nil {
+		command.ReplyMetadata = map[string]any{}
+	}
+	err = tx.QueryRow(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at,reply_metadata) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (conversation_id,turn_id,kind) WHERE turn_id IS NOT NULL DO NOTHING RETURNING created_at`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt, jsonBytes(command.ReplyMetadata)).Scan(&createdAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return publishedResource{}, ErrReplyAlreadyPublished
 	}

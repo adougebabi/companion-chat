@@ -26,7 +26,10 @@ type nativeDefinitionProvider interface {
 func (i *appADKCapabilityInvoker) NativeDefinitions(definitions []CapabilityDefinition) []CapabilityDefinition {
 	result := append([]CapabilityDefinition(nil), definitions...)
 	for position, definition := range result {
-		capability, ok := i.app.capabilityRegistry().Lookup(definition.Name)
+		capability, ok := i.scopeRegistry.Lookup(definition.Name)
+		if scoped, exists := i.scopeRegistry.Definition(definition.Name); exists {
+			result[position] = scoped
+		}
 		if contract, yes := capability.(nativeToolContract); ok && yes {
 			result[position] = contract.NativeDefinition()
 		}

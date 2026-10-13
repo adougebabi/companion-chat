@@ -3,7 +3,7 @@
   "name": "fact-only-private-reply",
   "title": "FO-C Fact-only 原生私聊闭环",
   "description": "conversation.reply 独立生成、真实消息提交与认知回填、协议及幂等取消",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

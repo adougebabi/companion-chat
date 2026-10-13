@@ -864,19 +864,28 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	_ = policy // Effect authorization is rechecked atomically by each Tool; internal cognition can continue.
-	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
+	ctx, err = a.withPrivateReplyRun(ctx, ToolExecutionRequest{AuthorizationPolicy: "autonomy", AuthorizationActorID: ownerID,
+		FluctlightID: fluctlightID, ConversationID: conversationID, EvidenceID: wakeID, OperationID: "wake:" + wakeID, Surface: CapabilitySurfaceWakeUp},
+		"这是一次已获准的主动私聊，不是历史用户消息的重新触发。依据当前有效人格、目标和实际历史独立表达。")
+	if err != nil {
+		return nil, err
+	}
+	definitions := capabilityCatalog(a.capabilityRegistryForContext(ctx), CapabilitySurfaceWakeUp)
 	schema := wakeUpResponseSchema()
 	// WakeUp has one surface-owned fixed protocol. The dedicated rule remains
 	// here for legacy formal-Agent callers, while surface rendering deduplicates
 	// it instead of stacking the shared conversation/life protocols.
 	operationRules := []string{capabilityWakeUpPolicyInstruction}
+	if replyRun := replyRunFromContext(ctx); replyRun != nil && replyRun.Settings.Mode == "fact_only" {
+		operationRules = append(operationRules, factOnlyConversationPolicy)
+	}
 	currentInput := jsonString(map[string]any{"cycle": cycle, "trigger_source": "periodic_check", "target_actor": "actor_user", "has_new_inbound_message": false, "schedule_status": wakeUpScheduleStatus(projection.Schedule), "goal_execution_obligations": publicGoalExecutionObligations(obligations)})
 	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema)
 	if err != nil {
 		return nil, err
 	}
 	projection = assembledProjection
-	providerCtx := WithPromptDiagnostics(WithProviderCancellationKey(WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID), WakeUpProviderCancellationMarker(fluctlightID, cycle)), assembly.Diagnostics)
+	providerCtx := WithPromptDiagnostics(WithProviderCancellationKey(WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID), WakeUpProviderCancellationMarker(fluctlightID, cycle)), replyRunDiagnostics(ctx, assembly.Diagnostics))
 	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceWakeUp, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema, decorateProjection)
 	run, runErr := a.RunFormalAgent(providerCtx, FormalAgentWakeUp, FormalAgentRunInput{
 		Prompt: PromptAssemblyResult{Messages: assembly.Messages, ResponseFormat: schema}, Definitions: definitions,

@@ -183,6 +183,13 @@ func providerBindingRole(role string) string {
 	return "generic_llm"
 }
 
+func providerDiagnosticBindingRole(ctx context.Context, role string) string {
+	if assignment, ok := providerAssignmentSnapshot(ctx, role); ok && assignment.Role != "" {
+		return assignment.Role
+	}
+	return providerBindingRole(role)
+}
+
 func providerScenario(ctx context.Context, role, schemaName string) string {
 	if ctx != nil {
 		if value, ok := ctx.Value(providerScenarioContextKey{}).(string); ok && strings.TrimSpace(value) != "" {
@@ -224,7 +231,7 @@ func providerScenario(ctx context.Context, role, schemaName string) string {
 
 func providerPriority(scenario string) int {
 	switch scenario {
-	case "reply", "autonomy_reply", "cognitive_assessment", "takeover_judge":
+	case "reply", "autonomy_reply", "cognitive_assessment", "takeover_judge", "fact_only_reply":
 		return 100
 	case "native_cognition", "daily_review", "schedule_generation":
 		return 90
@@ -530,7 +537,7 @@ func (s providerRuntimeSupport) PersistModelRunLifecycle(ctx context.Context, ro
 			return "", fmt.Errorf("marshal diagnostic model-run response: %w", err)
 		}
 	}
-	bindingRole := providerBindingRole(role)
+	bindingRole := providerDiagnosticBindingRole(ctx, role)
 	if strings.TrimSpace(scenario) == "" {
 		scenario = providerScenario(ctx, role, "")
 	}

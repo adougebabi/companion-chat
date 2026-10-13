@@ -103,7 +103,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	// Capability-owned task authorization precedes preparation and both receipt
 	// replay paths; public request fields alone cannot create private authority.
 	if a != nil {
-		if registry := a.capabilityRegistry(); registry != nil {
+		if registry := a.capabilityRegistryForContext(ctx); registry != nil {
 			if implementation, ok := registry.LookupCapability(request.CapabilityName); ok {
 				if authorizer, ok := implementation.(toolExecutionAuthorizer); ok {
 					if err := authorizer.AuthorizeToolExecution(ctx, request); err != nil {
@@ -119,6 +119,11 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	resource, authorizationErr := a.DB.GetFluctlight(ctx, strings.TrimSpace(request.FluctlightID), strings.TrimSpace(request.AuthorizationActorID))
 	if authorizationErr != nil {
 		return ToolExecutionReceipt{}, fmt.Errorf("authorize tool resource: %w", authorizationErr)
+	}
+	var scopeErr error
+	ctx, scopeErr = a.withPrivateReplyRun(ctx, request, "")
+	if scopeErr != nil {
+		return ToolExecutionReceipt{}, scopeErr
 	}
 	if request.CapabilityName == personaDetailCapabilityName && request.ExpectedCorePersonaRevision != nil {
 		ctx = context.WithValue(ctx, personaDetailRevisionContextKey{}, *request.ExpectedCorePersonaRevision)
@@ -162,7 +167,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	if request.WorkingProfileID != "" {
 		resolver = toolProfileContextResolver{base: resolver, profile: request.WorkingProfileID}
 	}
-	runtime, runtimeErr := NewCapabilityRuntime(a.capabilityRegistry(), resolver)
+	runtime, runtimeErr := NewCapabilityRuntime(a.capabilityRegistryForContext(ctx), resolver)
 	if runtimeErr != nil {
 		return ToolExecutionReceipt{}, runtimeErr
 	}

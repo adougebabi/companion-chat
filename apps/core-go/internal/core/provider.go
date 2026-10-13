@@ -31,6 +31,7 @@ type ProviderClient struct {
 	queueMu     sync.Mutex
 	generated   *providerQueue
 	embedding   *providerQueue
+	capacities  map[string]*providerQueue
 	redis       redis.UniversalClient
 	redisID     string
 }

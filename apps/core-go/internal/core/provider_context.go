@@ -210,6 +210,9 @@ func workingMemoryInputFromProjection(projection ContextProjection, active, summ
 }
 
 func workingMemoryInputFromProjectionForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any) WorkingMemoryInput {
+	if surface == ProviderContextSurfaceFactOnlyCognition {
+		surface = ProviderContextSurfaceConversationMain
+	}
 	compact := compactCognitionContextForSurface(projection, surface)
 	compact["time_view"] = projectionTimeView(projection)
 	if len(projection.CommunicationState) > 0 {
