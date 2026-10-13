@@ -89,7 +89,7 @@ func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		return failedCapabilityResult(invocation, "reply_prepared_invalid", false), err
 	}
 	if len(draft.MediaRequests) > 0 {
-		return failedCapabilityResult(invocation, "reply_media_action_required", false), newCapabilityError("reply_media_action_required", false, errors.New("reply awaits real media execution"))
+		return c.acceptMediaTx(ctx, tx, invocation, target, draft, stringValue(data["draft_ref"]))
 	}
 	if draft.FactsRevision != "" {
 		if err := c.service.app.requireCurrentFactsRevisionTx(ctx, tx, target.FluctlightID, draft.FactsRevision); err != nil {
@@ -97,18 +97,38 @@ func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		}
 	}
 	args := decodeObject(invocation.Arguments)
+	if resumed, _ := ctx.Value(replyContinuationKey{}).(string); resumed != "" {
+		var scope []byte
+		if err := tx.QueryRow(ctx, `SELECT execution_scope FROM public.conversation_reply_drafts WHERE id=$1`, resumed).Scan(&scope); err != nil {
+			return CapabilityResult{}, err
+		}
+		for _, key := range []string{"topic_key", "purpose"} {
+			args[key] = decodeObject(scope)[key]
+		}
+		if c.run.Scope.Surface == CapabilitySurfaceWakeUp {
+			if err := authorizeWakeReplyContinuationTx(ctx, tx, resumed); err != nil {
+				return CapabilityResult{}, err
+			}
+		}
+	}
 	resource, err := c.publication.PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
 		WorkingProfileID: invocation.Metadata.WorkingProfileID, SuppressRecentDuplicate: target.AuthorizationPolicy == "autonomy",
 		TopicKey: stringValue(args["topic_key"]), Purpose: stringValue(args["purpose"]), AuthorizationActorID: target.AuthorizationActorID,
 		FluctlightID: target.FluctlightID, ConversationID: target.ConversationID, OperationID: privateReplyLogicalKey(ctx, invocation),
 		CorrelationID: invocation.Metadata.CorrelationID, Text: draft.Text, ExpectedLifeContextRevision: stringValue(data["life_revision"]),
-		ReplyMetadata: map[string]any{"reply_mode": draft.Mode, "reply_model_ref": draft.ModelRef, "config_version": draft.ConfigVersion, "prompt_version": factOnlyReplyPromptVersion}})
+		AttachmentRefs: draft.AttachmentRefs,
+		ReplyMetadata:  map[string]any{"reply_mode": draft.Mode, "reply_model_ref": draft.ModelRef, "config_version": draft.ConfigVersion, "prompt_version": factOnlyReplyPromptVersion}})
 	if err != nil {
 		code, retryable := publicationCapabilityError(err, "reply_publication_failed")
 		return failedCapabilityResultDetail(invocation, code, retryable, "reply publication did not commit"), newCapabilityError(code, retryable, err)
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_drafts SET status='published',result_message_id=$2,updated_at=now() WHERE id=$1 AND fluctlight_id=$3 AND conversation_id=$4`, stringValue(data["draft_ref"]), resource.ID, target.FluctlightID, target.ConversationID); err != nil {
 		return failedCapabilityResult(invocation, "reply_draft_commit_failed", true), err
+	}
+	if resumed, _ := ctx.Value(replyContinuationKey{}).(string); resumed != "" {
+		if err := completeReplyContinuationTx(ctx, tx, resumed); err != nil {
+			return failedCapabilityResult(invocation, "reply_continuation_settle_failed", true), err
+		}
 	}
 	delivery := "visible_output_committed"
 	if resource.DuplicateSuppressed {
@@ -130,8 +150,9 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	logicalKey := privateReplyLogicalKey(ctx, invocation)
 	ref := "reply_draft_" + stableDigest(logicalKey)
 	var args struct {
-		EvidenceRefs []string `json:"evidence_refs"`
-		DraftRef     string   `json:"draft_ref"`
+		EvidenceRefs     []string `json:"evidence_refs"`
+		DraftRef         string   `json:"draft_ref"`
+		ActionResultRefs []string `json:"action_result_refs"`
 	}
 	if err := json.Unmarshal(invocation.Arguments, &args); err != nil {
 		return ReplyDraft{}, "", err
@@ -143,15 +164,18 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	var status, profile string
 	var lastError string
 	err := s.app.DB.Pool().QueryRow(ctx, `SELECT payload,status,profile_id,binding_snapshot,COALESCE(last_error,'') FROM public.conversation_reply_drafts WHERE id=$1 AND logical_key=$2 AND fluctlight_id=$3 AND conversation_id=$4 AND authorization_actor_id=$5`, ref, logicalKey, invocation.Metadata.FluctlightID, invocation.Metadata.ConversationID, invocation.Metadata.AuthorizationActorID).Scan(&payload, &status, &profile, &bindingBytes, &lastError)
-	if err == nil && (status == "prepared" || status == "published") {
+	if err == nil && (status == "prepared" || status == "published" || status == "needs_action" || status == "waiting_media" || status == "ready") {
 		var stored ReplyDraft
 		if profile != invocation.Metadata.WorkingProfileID && status != "published" {
 			return stored, ref, newCapabilityError("reply_profile_changed", false, ErrLifeContextStale)
 		}
+		run.mu.Lock()
+		run.DraftRef = ref
+		run.mu.Unlock()
 		if err := json.Unmarshal(payload, &stored); err != nil {
 			return stored, ref, err
 		}
-		if status != "published" && stored.FactsRevision != "" {
+		if status != "published" && status != "needs_action" && status != "waiting_media" && stored.FactsRevision != "" {
 			live, readErr := s.app.readCurrentFactsRevision(ctx, invocation.Metadata.FluctlightID)
 			if readErr != nil {
 				return stored, ref, readErr
@@ -164,7 +188,10 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 				return stored, ref, newCapabilityError("reply_context_stale", false, ErrCurrentFactsStale)
 			}
 		}
-		return stored, ref, nil
+		if status == "needs_action" || status == "waiting_media" {
+			stored, err = s.resumeMedia(ctx, invocation, run, stored, ref, args.ActionResultRefs)
+		}
+		return stored, ref, err
 	}
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return ReplyDraft{}, ref, err
@@ -180,7 +207,9 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 		return ReplyDraft{}, ref, newCapabilityError(run.AssignmentError.Error(), false, run.AssignmentError)
 	}
 	owner := randomID("reply_generation_")
-	binding := map[string]any{"endpoint_id": run.Assignment.EndpointID, "model_id": run.Assignment.ModelID, "binding_role": run.Assignment.Role, "run_id": currentRunID}
+	safeAssignment := run.Assignment
+	safeAssignment.Secret = ""
+	binding := map[string]any{"assignment": safeAssignment, "endpoint_id": run.Assignment.EndpointID, "model_id": run.Assignment.ModelID, "binding_role": run.Assignment.Role, "run_id": currentRunID}
 	_, err = s.app.DB.Pool().Exec(ctx, `INSERT INTO public.conversation_reply_drafts(id,logical_key,fluctlight_id,conversation_id,authorization_actor_id,subject_actor_id,source_fact_id,profile_id,status,config_snapshot,config_version,binding_snapshot,generation_owner,generation_until) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'generating',$9,$10,$11,$12,now()+make_interval(secs=>$13)) ON CONFLICT(logical_key) DO NOTHING`, ref, logicalKey, invocation.Metadata.FluctlightID, invocation.Metadata.ConversationID, invocation.Metadata.AuthorizationActorID, firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID), invocation.SourceFactID, invocation.Metadata.WorkingProfileID, jsonBytes(run.Settings), run.ConfigVersion, jsonBytes(binding), owner, run.Settings.TimeoutSeconds)
 	if err != nil {
 		return ReplyDraft{}, ref, err
@@ -225,6 +254,14 @@ func (s *factOnlyReplyService) generate(ctx context.Context, invocation Capabili
 		return ReplyDraft{}, err
 	}
 	var toolFacts []map[string]any
+	run.mu.Lock()
+	for _, state := range run.ActionFacts {
+		toolFacts = append(toolFacts, map[string]any{"kind": "media_action_result", "value": map[string]any{"kind": state.Kind, "intent": state.Intent, "status": state.Status, "error_code": state.ErrorCode}, "observation": "仅证明工具实际状态；ready表示文件可用，不证明已视觉检验或已发送。不要新增媒体请求，只基于这些结果自主完成正文。"})
+	}
+	if run.ActionDraftText != "" {
+		toolFacts = append(toolFacts, map[string]any{"kind": "private_candidate_text", "value": run.ActionDraftText, "authority": "未发送草稿，按本次真实媒体结果局部调整；不能作为状态证据"})
+	}
+	run.mu.Unlock()
 	for _, ref := range evidenceRefs {
 		entry, exists := projection.ReferenceIndex.ByRef[ref]
 		if !exists {

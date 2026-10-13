@@ -41,6 +41,7 @@ type ConversationReplyPublication struct {
 	Text                        string
 	ExpectedLifeContextRevision string
 	ReplyMetadata               map[string]any
+	AttachmentRefs              []string
 }
 
 type MomentPublication struct {
@@ -73,6 +74,9 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	command.ConversationID = strings.TrimSpace(command.ConversationID)
 	command.OperationID = strings.TrimSpace(command.OperationID)
 	command.Text = strings.TrimSpace(command.Text)
+	if command.AttachmentRefs == nil {
+		command.AttachmentRefs = []string{}
+	}
 	if command.AuthorizationActorID == "" || command.FluctlightID == "" || command.ConversationID == "" || command.OperationID == "" {
 		return publishedResource{}, fmt.Errorf("%w: conversation publication scope is required", ErrInvalidArguments)
 	}
@@ -194,12 +198,24 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if command.ReplyMetadata == nil {
 		command.ReplyMetadata = map[string]any{}
 	}
-	err = tx.QueryRow(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at,reply_metadata) VALUES($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (conversation_id,turn_id,kind) WHERE turn_id IS NOT NULL DO NOTHING RETURNING created_at`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt, jsonBytes(command.ReplyMetadata)).Scan(&createdAt)
+	err = tx.QueryRow(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id,sender_timezone,sender_utc_offset_minutes,sender_sent_at,reply_metadata) VALUES($1,$2,$3,$4,'assistant',$5,$14,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (conversation_id,turn_id,kind) WHERE turn_id IS NOT NULL DO NOTHING RETURNING created_at`, messageID, command.ConversationID, sequence, command.FluctlightID, command.Text, idempotency, nullableString(turnID), nullableString(sourceFactID), correlationID, snapshot.zone, snapshot.offset, snapshot.sentAt, jsonBytes(command.ReplyMetadata), jsonBytes(command.AttachmentRefs)).Scan(&createdAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return publishedResource{}, ErrReplyAlreadyPublished
 	}
 	if err != nil {
 		return publishedResource{}, err
+	}
+	for _, asset := range command.AttachmentRefs {
+		var ready bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1 AND owner_fluctlight_id=$2 AND status='ready')`, asset, command.FluctlightID).Scan(&ready); err != nil {
+			return publishedResource{}, err
+		}
+		if !ready {
+			return publishedResource{}, ErrConflict
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.media_references(id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES($4,$1,$2,'conversation_message',$3) ON CONFLICT DO NOTHING`, asset, command.FluctlightID, messageID, "media_ref_"+stableDigest(asset+":conversation_message:"+messageID)); err != nil {
+			return publishedResource{}, err
+		}
 	}
 	profile := command.WorkingProfileID
 	if profile == "" {
@@ -273,7 +289,11 @@ func resolveConversationPublicationSourceTx(ctx context.Context, tx pgx.Tx, fluc
 	if err != nil {
 		return "", "", err
 	}
-	if status != "pending" && status != "claimed" {
+	if status == "waiting_reply" {
+		if err := authorizeReplyContinuationTx(ctx, tx, sourceFactID, fluctlightID, conversationID); err != nil {
+			return "", "", err
+		}
+	} else if status != "pending" && status != "claimed" {
 		return "", "", ErrConflict
 	}
 	return turnID, sourceFactID, nil

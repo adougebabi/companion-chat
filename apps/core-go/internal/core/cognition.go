@@ -50,6 +50,9 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if err != nil {
 		return nil, err
 	}
+	if status == "waiting_reply" {
+		return map[string]any{"inbox_id": inboxID, "status": status}, nil
+	}
 	if status == "processed" {
 		return map[string]any{"inbox_id": inboxID, "status": "processed"}, nil
 	}
@@ -114,7 +117,7 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 		return nil, err
 	}
 	claimSettled = true
-	return map[string]any{"inbox_id": inboxID, "status": "processed", "turn_id": result.TurnID, "assistant_message_id": stringValue(result.Assistant["id"]), "media_intent_id": result.MediaIntentID}, nil
+	return map[string]any{"inbox_id": inboxID, "status": firstString(result.ReplyStatus, "processed"), "turn_id": result.TurnID, "assistant_message_id": stringValue(result.Assistant["id"]), "media_intent_id": result.MediaIntentID}, nil
 }
 
 func (a *App) settleNativeCognitionCycleGuard(ctx context.Context, inboxID string, depth int) error {
@@ -159,7 +162,7 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 			}
 			return err
 		}
-		if status == "processed" || status == "failed" {
+		if status == "processed" || status == "failed" || status == "waiting_reply" {
 			return nil
 		}
 		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
@@ -345,7 +348,7 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 				}
 			}
 		}
-		if claimOwner != "" && existingStatus != "processed" {
+		if claimOwner != "" && existingStatus != "processed" && existingStatus != "waiting_reply" {
 			var assistantExists bool
 			var frozenStatus, frozenActionType string
 			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2),COALESCE((SELECT status FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),''),COALESCE((SELECT action_type FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),'')`, stringValue(existingData["conversation_id"]), "assistant:"+stringValue(existingData["turn_id"]), existing).Scan(&assistantExists, &frozenStatus, &frozenActionType); err != nil {
@@ -378,7 +381,7 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		UPDATE public.cognition_inbox
 		SET status='failed',error_code='superseded_by_newer_turn',processed_at=now(),claimed_by=NULL,claimed_at=NULL
 		WHERE fluctlight_id=$1 AND event_type='conversation.turn'
-		  AND payload->>'conversation_id'=$2 AND status IN ('pending','claimed')
+		  AND payload->>'conversation_id'=$2 AND status IN ('pending','claimed','waiting_reply')
 		RETURNING id`, fluctlightID, conversationID)
 	if err != nil {
 		return "", nil, err

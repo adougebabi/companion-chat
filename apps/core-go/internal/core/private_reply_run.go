@@ -19,8 +19,10 @@ type privateReplyRun struct {
 	CurrentInput    string
 	// Only execution progress is mutable. The settings/model contract above
 	// is fixed before the first physical request and never re-read by a Tool.
-	mu       sync.Mutex
-	DraftRef string
+	mu              sync.Mutex
+	DraftRef        string
+	ActionFacts     []replyActionState
+	ActionDraftText string
 }
 
 func replyRunFromContext(ctx context.Context) *privateReplyRun {
@@ -72,7 +74,7 @@ func (a *App) withPrivateReplyRun(ctx context.Context, scope ToolExecutionReques
 			run.AssignmentError = errors.New("reply_model_budget_invalid")
 		}
 	}
-	view, err := capabilityRegistryView(a.capabilityRegistry(), factOnlyReplyCapability{service: newFactOnlyReplyService(a), run: run, publication: NewToolPublicationService(a)})
+	view, err := a.privateReplyRegistry(run)
 	if err != nil {
 		return ctx, err
 	}
@@ -102,4 +104,14 @@ func replyRunDiagnostics(ctx context.Context, original map[string]any) map[strin
 		result["reply_model_ref"] = run.Settings.ModelRef
 	}
 	return result
+}
+
+func (a *App) privateReplyRegistry(run *privateReplyRun) (*CapabilityRegistry, error) {
+	replacements := []Capability{factOnlyReplyCapability{service: newFactOnlyReplyService(a), run: run, publication: NewToolPublicationService(a)}}
+	if entry, ok := a.capabilityRegistry().LookupCapability("media.image.generate"); ok {
+		if image, ok := entry.(imageGenerateCapability); ok {
+			replacements = append(replacements, replyImageCapability{imageGenerateCapability: image, app: a, run: run})
+		}
+	}
+	return capabilityRegistryView(a.capabilityRegistry(), replacements...)
 }

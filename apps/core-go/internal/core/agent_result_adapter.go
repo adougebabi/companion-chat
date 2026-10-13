@@ -360,7 +360,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
 	}
 
-	if len(assistantMessages) == 0 {
+	if len(assistantMessages) == 0 && pendingReplyDraft(outcome.Results) == "" {
 		err = errors.New("conversation_native_output_missing")
 	}
 	if err != nil {
@@ -387,7 +387,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, err
 	}
 	claimSettled = true
-	return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntentID, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+	replyStatus := "committed"
+	if len(assistantMessages) == 0 {
+		replyStatus = "waiting_reply"
+	}
+	return TurnResult{ReplyStatus: replyStatus, UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntentID, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 }
 
 func emitCommittedAssistantMessages(callbacks turnCallbacks, messages []map[string]any, correlationID string) error {
@@ -412,6 +416,9 @@ func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any,
 	var payload []byte
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &errorCode, &payload); err != nil {
 		return nil, nil, err
+	}
+	if status == "waiting_reply" {
+		return &TurnResult{ReplyStatus: "waiting_reply", UserMessage: user, Assistant: map[string]any{}, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil, nil
 	}
 	if status == "failed" {
 		var assistantExists bool
@@ -492,6 +499,11 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		if command.RowsAffected() != 1 {
 			return ErrConflict
 		}
+		// A failed cognition contract cannot authorize a late reply. Explicitly
+		// close private candidates while preserving any already published message.
+		if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_drafts SET status='failed',last_error=$2,updated_at=now() WHERE source_fact_id=$1 AND status IN ('prepared','needs_action','waiting_media','ready')`, inboxID, code); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -565,7 +577,7 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 			}
 		}
 		actionType := "reply"
-		if strings.TrimSpace(stringValue(assistant["id"])) == "" {
+		if strings.TrimSpace(stringValue(assistant["id"])) == "" && pendingReplyDraft(outcome.Results) == "" {
 			actionType = "no_op"
 		}
 		actionID := "agent_turn_" + stableDigest(inboxID)
@@ -606,7 +618,15 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 			"capability_invocations": outcome.Invocations, "capability_results": outcome.Results,
 			"goal_refs": decision["goal_refs"], "intention_refs": decision["intention_refs"], "context_references": causality["context_references"],
 		}
-		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=NULL,payload=jsonb_set(payload,'{agent_result}',$2::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, jsonBytes(resultPayload))
+		settlementStatus := "processed"
+		if ref := pendingReplyDraft(outcome.Results); ref != "" && len(messageIDs) == 0 {
+			settlementStatus = "waiting_reply"
+			resultPayload["reply_draft_ref"] = ref
+			if err := enqueueReplyContinuationTx(ctx, tx, ref); err != nil {
+				return err
+			}
+		}
+		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status=$3,processed_at=CASE WHEN $3='processed' THEN now() ELSE NULL END,claimed_by=NULL,claimed_at=NULL,error_code=NULL,payload=jsonb_set(payload,'{agent_result}',$2::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, jsonBytes(resultPayload), settlementStatus)
 		if err != nil {
 			return err
 		}
@@ -1053,6 +1073,13 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 				return err
 			}
 			nextDue = messageAt.UTC().Add(wakeUpFirstIdleDelay)
+		}
+		if status != "failed" && status != "cancelled" {
+			if ref := pendingReplyDraft(outcome.Results); ref != "" {
+				if err := enqueueReplyContinuationTx(ctx, tx, ref); err != nil {
+					return err
+				}
+			}
 		}
 		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "correlation_id": correlationID, "next_due_at": nextDue.Format(instantLayout)})
 	})

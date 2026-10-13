@@ -244,6 +244,12 @@ func main() {
 				logger.Warn("Go Worker dispatcher retry", "error", err)
 			}
 			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := dispatcher.DispatchReplyContinuations(operationCtx, 20)
+				return err
+			}); err != nil {
+				logger.Warn("Go Worker reply continuation retry", "error", err)
+			}
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
 				_, err := dispatcher.ReconcileOnce(operationCtx, 50)
 				return err
 			}); err != nil {

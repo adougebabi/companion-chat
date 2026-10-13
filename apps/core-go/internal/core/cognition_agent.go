@@ -22,6 +22,8 @@ type ConversationCognitionAgentInput struct {
 	CorrelationID        string
 	CurrentInput         string
 	EnableStreaming      bool
+	AuthorizationPolicy  string
+	Surface              CapabilitySurface
 }
 
 // ConversationCognitionAgentResult is a model result, not a conversation
@@ -65,7 +67,11 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		memoryOperation = MemoryForConversation
 		memoryMode = MemoryConversationExact
 	}
-	projectionRequest := ContextProjectionRequest{
+	profile := ""
+	if run := replyRunFromContext(ctx); run != nil {
+		profile = run.Scope.WorkingProfileID
+	}
+	projectionRequest := ContextProjectionRequest{WorkingProfileID: profile,
 		AuthorizationActorID:   actorID,
 		SpeakerActorID:         firstString(input.SpeakerActorID, actorID),
 		SourceFactID:           input.SourceFactID,
@@ -131,7 +137,8 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 			SourceFactID:         input.SourceFactID,
 			OperationID:          runID,
 			CorrelationID:        "conversation-cognition-agent:" + firstString(input.CorrelationID, runID),
-			Surface:              CapabilitySurfaceConversation,
+			Surface:              replyContinuationSurface(input.Surface, CapabilitySurfaceConversation),
+			AuthorizationPolicy:  input.AuthorizationPolicy,
 			Projection:           projection,
 		},
 	}

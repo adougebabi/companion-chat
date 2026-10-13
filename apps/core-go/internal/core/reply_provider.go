@@ -12,13 +12,14 @@ type ReplyMediaRequest struct {
 	Intent string `json:"intent"`
 }
 type ReplyDraft struct {
-	Text          string              `json:"text"`
-	MediaRequests []ReplyMediaRequest `json:"media_requests,omitempty"`
-	Mode          string              `json:"mode"`
-	ModelRef      string              `json:"model_ref"`
-	ConfigVersion int64               `json:"config_version"`
-	LifeRevision  string              `json:"life_revision,omitempty"`
-	FactsRevision string              `json:"facts_revision,omitempty"`
+	AttachmentRefs []string            `json:"attachment_refs,omitempty"`
+	Text           string              `json:"text"`
+	MediaRequests  []ReplyMediaRequest `json:"media_requests,omitempty"`
+	Mode           string              `json:"mode"`
+	ModelRef       string              `json:"model_ref"`
+	ConfigVersion  int64               `json:"config_version"`
+	LifeRevision   string              `json:"life_revision,omitempty"`
+	FactsRevision  string              `json:"facts_revision,omitempty"`
 }
 
 func parseReplyDraft(text string) (ReplyDraft, error) {
