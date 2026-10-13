@@ -626,7 +626,7 @@ func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, 
 				return err
 			}
 		}
-		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status=$3,processed_at=CASE WHEN $3='processed' THEN now() ELSE NULL END,claimed_by=NULL,claimed_at=NULL,error_code=NULL,payload=jsonb_set(payload,'{agent_result}',$2::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, jsonBytes(resultPayload), settlementStatus)
+		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status=$3::varchar,processed_at=CASE WHEN $3::varchar='processed' THEN now() ELSE NULL END,claimed_by=NULL,claimed_at=NULL,error_code=NULL,payload=jsonb_set(payload,'{agent_result}',$2::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, jsonBytes(resultPayload), settlementStatus)
 		if err != nil {
 			return err
 		}
