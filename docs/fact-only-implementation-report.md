@@ -36,3 +36,5 @@ PostgreSQL publication waiting/cancel 两个子用例、VisualIdentity candidate
 ## 远端发布状态
 
 用户已明确授权推送到公开 GitHub 仓库 `adougebabi/companion-chat` 并构建测试镜像。首次 push 源 SHA 为 `a53d9838501c144d24ae9d5314bf88f911379cf4`，运行 https://github.com/adougebabi/companion-chat/actions/runs/38401908262。Web、Go普通与race通过；Phase 8隔离PG门禁检出两条旧fixture合同问题：pseudo tool_calls错误原因已改为原生输出缺失；真实reply fixture含已禁用visible_text导致额外final repair。已保留无伪造副作用、精确两次调用/一条assistant断言，并增加inbox正常processed断言。修复后重建；此处不把尚未构建的镜像或模板记为真实发布证据。
+
+流水线使用已有的一次性PostgreSQL补跑本机曾SKIP的三条新增受控合同用例（原source发布/取消、候选暂停/伪造评审拒绝、独立视觉实际wire）。真实Provider测试显式关闭；不连接用户真实环境。
