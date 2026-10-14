@@ -1,0 +1,214 @@
+{
+  "provenance": {
+    "kind": "document_excerpt_and_explicit_synthetic_fixture",
+    "source": "混合语料方案优化.md",
+    "known_fields": [
+      "as_of",
+      "reported_history_timestamps",
+      "reported_markdown_titles",
+      "self_name",
+      "active_profile_name"
+    ],
+    "synthetic_fields": [
+      "message_ids",
+      "message_bodies_except_reported_titles",
+      "current_input",
+      "goals",
+      "memory_rows",
+      "actor_ids",
+      "persona_preferences",
+      "relationships"
+    ],
+    "missing": [
+      "three_original_cognition_http_requests",
+      "original_writer_http_request",
+      "raw_responses",
+      "sampling_snapshot"
+    ],
+    "fixture_version": 2,
+    "correction": "Actor maps now match buildActorProjection actor_id; v1 synthetic fixture incorrectly used id."
+  },
+  "working_persona": {
+    "identity": {
+      "name": "林岚"
+    },
+    "working_persona": {
+      "name": "晴岚",
+      "expression": "按自己的判断表达，允许详细分析、寡言或强硬，不必统一安慰。"
+    }
+  },
+  "current_input": "合成测试：我现在想谈谈你对我的态度。",
+  "projection": {
+    "as_of": "2026-10-14T09:59:44.458+08:00",
+    "reference_timezone": "Asia/Shanghai",
+    "fluctlight_id": "test-self",
+    "owner_actor_id": "test-user",
+    "conversation_id": "test-conversation",
+    "source_fact_id": "test-inbound",
+    "current_user_text": "合成测试：我现在想谈谈你对我的态度。",
+    "self_actor": {
+      "ref": "actor_self",
+      "display_name": "林岚",
+      "type": "fluctlight",
+      "actor_id": "test-self"
+    },
+    "current_speaker": {
+      "ref": "actor_user",
+      "display_name": "actor_user",
+      "type": "human",
+      "actor_id": "test-user"
+    },
+    "actors": [
+      {
+        "ref": "actor_self",
+        "display_name": "林岚",
+        "type": "fluctlight",
+        "actor_id": "test-self"
+      },
+      {
+        "ref": "actor_user",
+        "display_name": "actor_user",
+        "type": "human",
+        "actor_id": "test-user"
+      }
+    ],
+    "personality_runtime": {
+      "active_profile_id": "test-profile"
+    },
+    "life_context": {
+      "timezone": "Asia/Shanghai",
+      "activity": "合成测试：上午阅读",
+      "effective_at": "2026-10-14T09:00:00.000+08:00",
+      "expires_at": "2026-10-14T12:00:00.000+08:00"
+    },
+    "current_state": {
+      "data": {
+        "life_context": {
+          "activity": "合成测试：上午阅读",
+          "location": "书桌",
+          "effective_at": "2026-10-14T09:00:00.000+08:00",
+          "expires_at": "2026-10-14T12:00:00.000+08:00"
+        }
+      }
+    },
+    "goals": [
+      {
+        "id": "test-goal",
+        "profile_id": "test-profile",
+        "status": "active",
+        "description": "合成测试：保持真诚的长期关系",
+        "motivation": "希望相互理解",
+        "desired_outcome": "互相理解彼此态度",
+        "success_criteria": [
+          "合成测试原条件：双方明确表达理解"
+        ],
+        "execution": {
+          "next_step": "LEAK_NEXT_STEP：先道歉，暂不推进",
+          "current_stage": {
+            "strategy": "LEAK_STRATEGY：用平静、非玩笑的方式直接确认"
+          },
+          "wait_condition": "LEAK_WAIT：等用户主动",
+          "last_evaluation": {
+            "reason": "LEAK_EVALUATION"
+          }
+        }
+      },
+      {
+        "id": "hidden-goal",
+        "profile_id": "another-profile",
+        "status": "active",
+        "description": "HIDDEN_OTHER_PROFILE",
+        "success_criteria": [
+          "不属于当前人格"
+        ]
+      }
+    ],
+    "recent_messages": [
+      {
+        "id": "test-old-user",
+        "kind": "user",
+        "text": "合成测试：刚才你的态度让我困惑。",
+        "author_actor_id": "test-user",
+        "created_at": "2026-10-14T09:00:00.000+08:00"
+      },
+      {
+        "id": "test-assistant-1",
+        "kind": "assistant",
+        "text": "# 2026-10-14 23:58\n合成测试：第一条连续回复。",
+        "author_actor_id": "test-self",
+        "created_at": "2026-10-14T09:10:17.690+08:00"
+      },
+      {
+        "id": "test-assistant-2",
+        "kind": "assistant",
+        "text": "# 2026-10-14 23:59\n合成测试：第二条连续回复。",
+        "author_actor_id": "test-self",
+        "created_at": "2026-10-14T09:29:22.688+08:00"
+      },
+      {
+        "id": "test-current",
+        "turn_id": "test-current-turn",
+        "kind": "user",
+        "text": "合成测试：我现在想谈谈你对我的态度。",
+        "author_actor_id": "test-user",
+        "created_at": "2026-10-14T09:59:40.000+08:00"
+      }
+    ],
+    "memories": [
+      {
+        "id": "test-memory-1",
+        "type": "relationship",
+        "content": "合成测试：摘要声称双方已确认，尚未核对原话。",
+        "epistemic_kind": "inference",
+        "provenance_status": "verified",
+        "confidence": 0.95,
+        "actor_refs": [
+          "test-self",
+          "test-user"
+        ],
+        "conversation_id": "test-conversation",
+        "occurred_at": "2026-10-13T10:00:00.000+08:00",
+        "effective_source_refs": [
+          "message:test-source"
+        ]
+      },
+      {
+        "id": "test-memory-2",
+        "type": "relationship",
+        "content": "合成测试：摘要声称双方已确认，尚未核对原话。",
+        "epistemic_kind": "inference",
+        "provenance_status": "verified",
+        "confidence": 0.95,
+        "actor_refs": [
+          "test-self",
+          "test-user"
+        ],
+        "conversation_id": "test-conversation",
+        "occurred_at": "2026-10-13T10:00:00.000+08:00",
+        "effective_source_refs": [
+          "message:test-source"
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "id": "test-relationship",
+        "profile_id": "test-profile",
+        "target_actor_id": "test-user",
+        "role": {
+          "label": "合成测试关系记录",
+          "category": "synthetic",
+          "preferred_addressing": "你"
+        },
+        "summary": "CURRENT_RECIPIENT_RELATIONSHIP",
+        "trend": "stable"
+      },
+      {
+        "id": "other-relationship",
+        "profile_id": "test-profile",
+        "target_actor_id": "other-user",
+        "summary": "HIDDEN_OTHER_RECIPIENT"
+      }
+    ]
+  }
+}

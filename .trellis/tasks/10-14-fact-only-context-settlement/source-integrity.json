@@ -1,0 +1,9 @@
+{
+  "source_path": "/Users/vinson/Downloads/混合语料方案优化.md",
+  "snapshot_path": ".trellis/tasks/10-14-fact-only-context-settlement/source-requirements.md",
+  "sha256": "f485a4cdd53877304694f3dbb481cf7e568cb5e7bf2b7c86e06d2416dc52ad63",
+  "baseline_commit": "d696c44",
+  "classification": "user_provided_reference_material",
+  "task_creation_approved_on": "2026-10-14",
+  "implementation_approved": true
+}
