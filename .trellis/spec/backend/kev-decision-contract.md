@@ -157,14 +157,16 @@ Kev narrows an Agent's authorized Tool installation. Mandatory tools and discove
 `capability.catalog({})` lists the authorized installation. `capability.catalog({names:[...]})` validates and asks Kev to admit up to eight names; returns `loaded`, typed `unavailable`, and `replaces_optional_window`. Legacy discover is not in the public executor/disclosure view. `decision.WithFreshStageBudget` creates each later directory stage without changing the shared preparation-stage contract.
 
 ### 3. Contracts
-The public baseline is conversation.reply, capability.catalog, moment.publish intersected with the actual installation. Establish run-local disclosure even if Kev is disabled/error. Keep full executors, but use the same disclosed set for prompt/parent and physical budgets, diagnostics, Generate/Stream and native execution guard. Named requests replace the optional schema window, never accumulate 38 tools. Optional tools need a durable-audited Kev yes and current config/version. No/unclear/timeout/audit failure/disable/revocation return truthful denied/unavailable and baseline; never full original installation. Validate the entire named request before mutating anything. An unqueried hidden tool is distinct from a queried denial. Private Goal/VisualIdentity tools and the Writer's private image-request contract bypass public directory selection. Tool-free tasks keep zero tools.
+The public baseline is conversation.reply, capability.catalog, moment.publish intersected with the actual installation. Establish run-local disclosure even if Kev is disabled/error. Keep full executors, but use the same disclosed set for prompt/parent and physical budgets, diagnostics, Generate/Stream and native execution guard. Named requests replace the optional schema window, never accumulate 38 tools. Optional names first pass Kev when tools.select is enabled. An admitted audited No stays denied. Disabled/unclear/timeout/service/audit failure uses the original explicitly requested authorized window, with admission=catalog_fallback and its real fallback_reason; never full original installation or any unrequested tool. The first request remains baseline. Actual configuration version/enablement changes revoke the optional window; stable disabled/read failure is not labelled a configuration change. Preserve the actual Kev reason when finishing audit records. Validate the entire named request before mutating anything. An unqueried hidden tool is distinct from a queried denial. Private Goal/VisualIdentity tools and the Writer's private image-request contract bypass public directory selection. Tool-free tasks keep zero tools.
 
 ### 4. Validation & Error Matrix
 | Condition | Behavior |
 | --- | --- |
 | first public request, including disabled/error Kev | installed baseline only, at most three |
-| named optional request + audited current yes | next actual schema includes selected names, max baseline+8 |
-| no/unclear/error/audit failure/config revoked | no optional schema or execution; truthful unavailable |
+| named optional request + current yes or bounded original fallback | next actual schema includes only requested names, max baseline+8 |
+| admitted No | denied/tool_not_selected, no schema/execution |
+| stable disabled/unclear/service/audit failure | bounded named fallback, truthful admission/fallback_reason |
+| configuration really changed after selection | optional window revoked/tool_selection_changed |
 | named query includes foreign/private name | whole request rejected; no partial visibility changes |
 | empty typed installation | zero tools |
 
@@ -300,3 +302,7 @@ output is parsed into a fabricated reply. Correct: verify the exact loaded
 combination through the public API, keep original native IDs/receipts, and retain
 the existing execution/authorization contract. Never extract private backend
 credentials as a compatibility workaround.
+
+2026-10-14 regression: globally disabled or media-only tools.select=false previously produced two baseline loaded and six tool_selection_changed despite a stable revision. Test both modes and actual Generate/Stream catalog→execution; test that neither fallback nor later directory calls widen beyond the current named window. Raw unaudited model answers are not adopted.
+
+A failed initial read has an unknown revision, not revision-zero authority. Anchor a named fallback on the next successful snapshot. Distinguish Admit settings_unavailable from config_changed. Once an optional window observes a real revision/enablement change, revoke it persistently until a fresh named query; later read errors cannot resurrect it.

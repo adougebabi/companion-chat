@@ -141,7 +141,7 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	}
 	diagnostics := cloneMap(prompt.Diagnostics)
 	for key, value := range map[string]any{"run_id": input.CorrelationID, "parent_run_id": input.ParentRunID,
-		"draft_ref": input.DraftRef, "reply_mode": firstString(input.Mode, "fact_only"), "effective_binding_role": input.Assignment.Role, "config_version": input.ConfigVersion, "prompt_version": factOnlyReplyPromptVersion, "prompt_budget": prompt.Trace} {
+		"draft_ref": input.DraftRef, "reply_mode": firstString(input.Mode, "fact_only"), "output_scene": firstString(input.Context.Scene, "private_reply"), "effective_binding_role": input.Assignment.Role, "config_version": input.ConfigVersion, "prompt_version": factOnlyReplyPromptVersion, "prompt_budget": prompt.Trace} {
 		diagnostics[key] = value
 	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)

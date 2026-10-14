@@ -79,7 +79,7 @@ jobs:
           FLUCTLIGHT_LIVE_PROVIDER_TEST: '0'
         run: |
           go -C apps/core-go test -race ./internal/core -count=1 -v \
-            -run '^Test(ReplyMediaPublication|ReplyMediaCatalogDenial|ReplyEvidenceRecovery|VisionOptionalReview|MediaQualityFinalProviderRequest)'
+            -run '^Test(FactOnlyMomentPublication|ReplyMediaPublication|ReplyMediaCatalogDenial|ReplyEvidenceRecovery|VisionOptionalReview|MediaQualityFinalProviderRequest)'
 
       - name: Vet Go Core
         run: |

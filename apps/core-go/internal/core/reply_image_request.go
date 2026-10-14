@@ -10,7 +10,7 @@ import (
 const replyImageRequestName = "reply.image.request"
 
 func replyWriterDefinitions(input ReplyContextInput) []CapabilityDefinition {
-	if input.CapabilityFacts["image_generation_registered"] != true {
+	if input.Scene == replySceneMoment || input.CapabilityFacts["image_generation_registered"] != true {
 		return nil
 	}
 	for _, fact := range input.ToolFacts {

@@ -549,7 +549,9 @@ func (r *Result) Admit(ctx context.Context) (Outcome, error) {
 	}
 	if e != nil || v != r.Record.ConfigVersion || !c.Allows(r.Record.Point) {
 		reason := "config_changed"
-		if e == nil && !c.Allows(r.Record.Point) {
+		if e != nil {
+			reason = "settings_unavailable"
+		} else if !c.Allows(r.Record.Point) {
 			reason = "discarded_after_disable"
 		}
 		r.Finish(ctx, "original_used", reason, "")

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"reflect"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,11 +30,138 @@ func toolNamesForTest(definitions []CapabilityDefinition) []string {
 
 type kevRejectingAudit struct{}
 
+type kevFlakySettings struct {
+	mu      sync.Mutex
+	config  decision.Config
+	version int64
+	reads   int
+	failAt  int
+	failAll bool
+}
+
+func (s *kevFlakySettings) Read(context.Context) (decision.Config, int64, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.reads++
+	if s.failAll || s.reads == s.failAt {
+		return decision.Config{}, 0, "", errors.New("controlled transient settings failure")
+	}
+	return s.config, s.version, "", nil
+}
+func TestKevTransientSettingsReadsKeepNamedWindowConsistent(t *testing.T) {
+	for _, failAt := range []int{1, 3} {
+		for _, choice := range []string{"yes", "no"} {
+			t.Run(fmt.Sprintf("read=%d/%s", failAt, choice), func(t *testing.T) {
+				service := controlledKevToolService(t, choice)
+				settings := &kevFlakySettings{config: service.Settings.(*kevFixedSettings).config, version: 1, failAt: failAt}
+				service.Settings = settings
+				state := &kevRunSelection{service: service, original: []CapabilityDefinition{(capabilityCatalogCapability{}).Definition(), {Name: "optional"}}, loaded: map[string]bool{}, version: 1}
+				loaded, unavailable, err := state.load(context.Background(), []string{"optional"})
+				if err != nil || len(loaded) != 1 || len(unavailable) != 0 {
+					t.Fatalf("transient read treated as change: %v %v %v", loaded, unavailable, err)
+				}
+				item, _ := state.availabilityFor(context.Background(), "optional")
+				defs, err := state.definitions(context.Background())
+				if err != nil || item.Status != "available" || item.Admission != "catalog_fallback" || len(defs) != 2 || !state.permits(context.Background(), "optional") {
+					t.Fatalf("loaded/availability/schema/guard drifted: %+v %v %v", item, toolNamesForTest(defs), err)
+				}
+				for _, record := range service.Store.(*kevMemoryStore).records {
+					if record.Reason == "config_changed" {
+						t.Fatal("transient read mislabeled in audit")
+					}
+				}
+			})
+		}
+	}
+}
+func TestKevObservedRevocationCannotReturnAfterReadFailure(t *testing.T) {
+	for _, observe := range []string{"schema", "availability"} {
+		t.Run(observe, func(t *testing.T) {
+			service := controlledKevToolService(t, "yes")
+			config := service.Settings.(*kevFixedSettings).config
+			config.Enabled = false
+			settings := &kevFlakySettings{config: config, version: 1}
+			service.Settings = settings
+			state := &kevRunSelection{service: service, original: []CapabilityDefinition{(capabilityCatalogCapability{}).Definition(), {Name: "optional"}}, loaded: map[string]bool{}, version: 1}
+			if _, _, err := state.load(context.Background(), []string{"optional"}); err != nil {
+				t.Fatal(err)
+			}
+			settings.mu.Lock()
+			settings.version = 2
+			settings.mu.Unlock()
+			if observe == "schema" {
+				_, _ = state.definitions(context.Background())
+			} else {
+				_, _ = state.availabilityFor(context.Background(), "optional")
+			}
+			settings.mu.Lock()
+			settings.failAll = true
+			settings.mu.Unlock()
+			defs, err := state.definitions(context.Background())
+			item, _ := state.availabilityFor(context.Background(), "optional")
+			if err != nil || len(defs) != 1 || state.permits(context.Background(), "optional") || item.ErrorCode != "tool_selection_changed" {
+				t.Fatalf("revoked window resurrected: %v %+v %v", toolNamesForTest(defs), item, err)
+			}
+			settings.mu.Lock()
+			settings.failAll = false
+			settings.mu.Unlock()
+			if _, _, err := state.load(context.Background(), []string{"optional"}); err != nil || !state.permits(context.Background(), "optional") {
+				t.Fatal("fresh named request could not establish new window", err)
+			}
+		})
+	}
+}
+
+func TestKevFailedAuditDoesNotAdoptUnauditedNo(t *testing.T) {
+	service := controlledKevToolService(t, "no")
+	service.Store = kevRejectingAudit{}
+	state := &kevRunSelection{service: service, original: []CapabilityDefinition{{Name: "optional"}}, loaded: map[string]bool{}, version: 1}
+	loaded, unavailable, err := state.load(context.Background(), []string{"optional"})
+	if err != nil || len(loaded) != 1 || len(unavailable) != 0 {
+		t.Fatalf("unaudited answer adopted: %v %v %v", loaded, unavailable, err)
+	}
+	item, _ := state.availabilityFor(context.Background(), "optional")
+	if item.Admission != "catalog_fallback" {
+		t.Fatal("fallback misreported as Kev decision", item)
+	}
+}
+
+func TestKevStableDisabledNamedCatalogLoadsRequestedTools(t *testing.T) {
+	for _, globalDisabled := range []bool{true, false} {
+		t.Run(fmt.Sprint(globalDisabled), func(t *testing.T) {
+			service := controlledKevToolService(t, "yes")
+			settings := service.Settings.(*kevFixedSettings)
+			settings.config.Enabled = !globalDisabled
+			settings.config.Points["tools.select"] = false
+			original := []CapabilityDefinition{(capabilityCatalogCapability{}).Definition(), {Name: conversationReplyCapabilityName}, {Name: "moment.publish"}}
+			names := []string{conversationReplyCapabilityName, "moment.publish"}
+			for i := 0; i < 6; i++ {
+				name := fmt.Sprintf("requested.%d", i)
+				original = append(original, CapabilityDefinition{Name: name})
+				names = append(names, name)
+			}
+			original = append(original, CapabilityDefinition{Name: "unrequested"})
+			state := &kevRunSelection{service: service, original: original, loaded: map[string]bool{}, version: 1}
+			loaded, unavailable, err := state.load(context.Background(), names)
+			if err != nil || len(loaded) != 8 || len(unavailable) != 0 {
+				t.Fatalf("stable config misclassified as changed: loaded=%v unavailable=%v err=%v", loaded, unavailable, err)
+			}
+			defs, err := state.definitions(context.Background())
+			if err != nil || len(defs) != 9 || state.permits(context.Background(), "unrequested") {
+				t.Fatalf("explicit window not preserved/bounded: %v %v", toolNamesForTest(defs), err)
+			}
+			if len(service.Store.(*kevMemoryStore).records) != 0 {
+				t.Fatal("disabled selector called Kev")
+			}
+		})
+	}
+}
+
 func (kevRejectingAudit) Save(context.Context, decision.Record) error {
 	return errors.New("controlled audit failure")
 }
 
-func TestKevNamedCatalogAdmissionIsBoundedAndFailsClosed(t *testing.T) {
+func TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo(t *testing.T) {
 	for _, scenario := range []string{"yes", "no", "unclear", "disabled", "audit_failed", "settings_failed"} {
 		t.Run(scenario, func(t *testing.T) {
 			choice := scenario
@@ -57,20 +185,36 @@ func TestKevNamedCatalogAdmissionIsBoundedAndFailsClosed(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if scenario == "yes" {
+			if scenario == "no" {
+				if len(loaded) != 0 || len(unavailable) != 1 || unavailable[0].ErrorCode != "tool_not_selected" || state.permits(ctx, "optional") {
+					t.Fatalf("explicit No bypassed: %v %v", loaded, unavailable)
+				}
+			} else {
 				if len(loaded) != 1 || len(unavailable) != 0 || !state.permits(ctx, "optional") {
-					t.Fatalf("fresh catalog stage failed: %v %v", loaded, unavailable)
+					t.Fatalf("explicit original window lost: %v %v", loaded, unavailable)
 				}
-				service.Settings.(*kevFixedSettings).config.Enabled = false
-				if state.permits(ctx, "optional") {
-					t.Fatal("disabled optional tool remained executable")
+				item, _ := state.availabilityFor(ctx, "optional")
+				if scenario != "yes" && (item.Admission != "catalog_fallback" || item.FallbackReason == "") {
+					t.Fatalf("fallback not disclosed truthfully: %+v", item)
 				}
-			} else if len(loaded) != 0 || len(unavailable) != 1 || state.permits(ctx, "optional") {
-				t.Fatalf("failed admission leaked: %v %v", loaded, unavailable)
 			}
 			defs, _ := state.definitions(ctx)
-			if len(defs) != 3 {
-				t.Fatalf("fallback grew beyond baseline: %v", toolNamesForTest(defs))
+			want := 4
+			if scenario == "no" {
+				want = 3
+			}
+			if len(defs) != want {
+				t.Fatalf("window unbounded: %v", toolNamesForTest(defs))
+			}
+			if scenario == "yes" {
+				service.Settings.(*kevFixedSettings).config.Enabled = false
+				if state.permits(ctx, "optional") {
+					t.Fatal("revoked window remained executable")
+				}
+				item, _ := state.availabilityFor(ctx, "optional")
+				if item.ErrorCode != "tool_selection_changed" {
+					t.Fatalf("actual revocation mislabeled: %+v", item)
+				}
 			}
 		})
 	}

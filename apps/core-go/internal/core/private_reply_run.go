@@ -33,6 +33,14 @@ func replyRunFromContext(ctx context.Context) *privateReplyRun {
 }
 
 func (a *App) withPrivateReplyRun(ctx context.Context, scope ToolExecutionRequest, currentInput string) (context.Context, error) {
+	ctx, err := a.withPrivateConversationReplyRun(ctx, scope, currentInput)
+	if err != nil {
+		return ctx, err
+	}
+	return a.withMomentWriterRun(ctx, scope)
+}
+
+func (a *App) withPrivateConversationReplyRun(ctx context.Context, scope ToolExecutionRequest, currentInput string) (context.Context, error) {
 	if prior := replyRunFromContext(ctx); prior != nil {
 		if prior.Scope.FluctlightID != scope.FluctlightID || prior.Scope.ConversationID != scope.ConversationID || prior.Scope.AuthorizationActorID != scope.AuthorizationActorID {
 			return ctx, ErrUnauthorized
@@ -58,24 +66,7 @@ func (a *App) withPrivateReplyRun(ctx context.Context, scope ToolExecutionReques
 	if config.Mode == "legacy" {
 		return ctx, nil
 	}
-	if config.ModelRef == "" || a.Provider == nil {
-		run.AssignmentError = errors.New("reply_model_unconfigured")
-	} else {
-		run.Assignment, err = a.Provider.assignment(ctx, config.ModelRef)
-		if err != nil {
-			run.AssignmentError = errors.New("reply_model_unavailable")
-		}
-	}
-	if run.AssignmentError == nil {
-		run.Assignment.TokenBudget = min(run.Assignment.TokenBudget, config.MaxTokens)
-		run.Assignment.MaxInputTokens = min(run.Assignment.MaxInputTokens, config.MaxInputTokens)
-		run.Assignment.Timeout = time.Duration(config.TimeoutSeconds) * time.Second
-		temperature, topP := config.Temperature, config.TopP
-		run.Assignment.Temperature, run.Assignment.TopP = &temperature, &topP
-		if _, err := promptBudgetPolicyForAssignment(run.Assignment); err != nil {
-			run.AssignmentError = errors.New("reply_model_budget_invalid")
-		}
-	}
+	a.freezePersonaWriterAssignment(ctx, run)
 	view, err := a.privateReplyRegistry(run)
 	if err != nil {
 		return ctx, err
@@ -116,4 +107,27 @@ func (a *App) privateReplyRegistry(run *privateReplyRun) (*CapabilityRegistry, e
 		}
 	}
 	return capabilityRegistryView(a.capabilityRegistry(), replacements...)
+}
+
+func (a *App) freezePersonaWriterAssignment(ctx context.Context, run *privateReplyRun) {
+	config := run.Settings
+	var err error
+	if config.ModelRef == "" || a.Provider == nil {
+		run.AssignmentError = errors.New("reply_model_unconfigured")
+	} else {
+		run.Assignment, err = a.Provider.assignment(ctx, config.ModelRef)
+		if err != nil {
+			run.AssignmentError = errors.New("reply_model_unavailable")
+		}
+	}
+	if run.AssignmentError == nil {
+		run.Assignment.TokenBudget = min(run.Assignment.TokenBudget, config.MaxTokens)
+		run.Assignment.MaxInputTokens = min(run.Assignment.MaxInputTokens, config.MaxInputTokens)
+		run.Assignment.Timeout = time.Duration(config.TimeoutSeconds) * time.Second
+		temperature, topP := config.Temperature, config.TopP
+		run.Assignment.Temperature, run.Assignment.TopP = &temperature, &topP
+		if _, err := promptBudgetPolicyForAssignment(run.Assignment); err != nil {
+			run.AssignmentError = errors.New("reply_model_budget_invalid")
+		}
+	}
 }

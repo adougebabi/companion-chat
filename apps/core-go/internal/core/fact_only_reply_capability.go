@@ -262,10 +262,14 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 }
 
 func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, evidenceRefs []string) (ContextProjection, []map[string]any, error) {
+	memoryMode := MemoryConversationExact
+	if invocation.Metadata.ConversationID == "" {
+		memoryMode = MemoryConversationGlobalOnly
+	}
 	projection, err := s.app.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: invocation.Metadata.AuthorizationActorID,
 		SpeakerActorID: firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID), SourceFactID: invocation.SourceFactID,
 		FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, WorkingProfileID: invocation.Metadata.WorkingProfileID,
-		CurrentUserText: run.CurrentInput, MemoryOperation: MemoryForConversation, MemoryConversationMode: MemoryConversationExact})
+		CurrentUserText: run.CurrentInput, MemoryOperation: MemoryForConversation, MemoryConversationMode: memoryMode})
 	if err != nil {
 		return ContextProjection{}, nil, err
 	}
@@ -303,33 +307,10 @@ func (s *factOnlyReplyService) generateFromProjection(ctx context.Context, invoc
 		toolFacts = append(toolFacts, map[string]any{"kind": "private_candidate_text", "value": run.ActionDraftText, "authority": "未发送草稿，按本次真实媒体结果局部调整；不能作为状态证据"})
 	}
 	run.mu.Unlock()
-	compiled, err := s.app.loadCompiledWorkingPersona(ctx, projection)
+	input, err := s.writerTaskInput(ctx, invocation, run, ref, projection, toolFacts, "")
 	if err != nil {
 		return ReplyDraft{}, err
 	}
-	persona := systemPersonaForProjectionWithWorking(projection, "conversation_reply_text", renderCompiledWorkingPersona(compiled))
-	delete(persona, workingPersonaSwitchKey)
-	delete(persona, "personality_system")
-	current := firstString(run.CurrentInput, projection.CurrentUserText)
-	if current == "" {
-		current = "这是一次已授权的主动私聊，请依据当前人格、目标和真实历史自主决定表达。"
-	}
-	vision, _, err := s.app.visionUnderstandingSettings(ctx)
-	if err != nil {
-		return ReplyDraft{}, err
-	}
-	visionState := "disabled"
-	if vision.Enabled {
-		visionState = "configured_separately_no_observation_yet"
-	}
-	_, imageRegistered := s.app.capabilityRegistryForContext(ctx).Definition("media.image.generate")
-	summaries, err := s.app.replyRuntimeSummaries(ctx, projection)
-	if err != nil {
-		return ReplyDraft{}, err
-	}
-	input := ConversationReplyTaskInput{Context: ReplyContextInput{Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts, Summaries: summaries,
-		CapabilityFacts: map[string]any{"image_generation_registered": imageRegistered, "media_requires_real_tool_result": true, "sticker_attachments": false, "vision_understanding": visionState}},
-		DraftRef: ref, Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency}
 	draft, err := s.app.runReplyWithFailurePolicy(ctx, input, run)
 	if err != nil {
 		return draft, err
@@ -362,4 +343,41 @@ func replyEvidenceEntry(inv CapabilityInvocation, live ContextProjection, ref st
 		return ContextReference{}, false
 	}
 	return original, true
+}
+
+func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, ref string, projection ContextProjection, toolFacts []map[string]any, scene string) (ConversationReplyTaskInput, error) {
+	compiled, err := s.app.loadCompiledWorkingPersona(ctx, projection)
+	if err != nil {
+		return ConversationReplyTaskInput{}, err
+	}
+	persona := systemPersonaForProjectionWithWorking(projection, "conversation_reply_text", renderCompiledWorkingPersona(compiled))
+	delete(persona, workingPersonaSwitchKey)
+	delete(persona, "personality_system")
+	current := firstString(run.CurrentInput, projection.CurrentUserText)
+	if current == "" {
+		current = "这是一次已授权的主动私聊，请依据当前人格、目标和真实历史自主决定表达。"
+	}
+	if scene == replySceneMoment {
+		current = "为本次已授权的动态发布，根据当前人格、目标和真实生活状态，自主生成一条面向动态参与者的正文。当前任务是发布动态。"
+	}
+	vision, _, err := s.app.visionUnderstandingSettings(ctx)
+	if err != nil {
+		return ConversationReplyTaskInput{}, err
+	}
+	visionState := "disabled"
+	if vision.Enabled {
+		visionState = "configured_separately_no_observation_yet"
+	}
+	_, imageRegistered := s.app.capabilityRegistryForContext(ctx).Definition("media.image.generate")
+	if scene == replySceneMoment {
+		imageRegistered = false
+	}
+	summaries, err := s.app.replyRuntimeSummaries(ctx, projection)
+	if err != nil {
+		return ConversationReplyTaskInput{}, err
+	}
+	input := ConversationReplyTaskInput{Context: ReplyContextInput{Scene: scene, Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts, Summaries: summaries,
+		CapabilityFacts: map[string]any{"image_generation_registered": imageRegistered, "media_requires_real_tool_result": true, "sticker_attachments": false, "vision_understanding": visionState}},
+		DraftRef: ref, Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency}
+	return input, nil
 }
