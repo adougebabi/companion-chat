@@ -51,10 +51,23 @@
     "apps/core-go/internal/core/tool_final_schema_separation_test.go",
     "apps/core-go/internal/core/tool_publication.go",
     "docs/fact-only-context-protocols.md",
-    "docs/fact-only-context-settlement-report.md"
+    "docs/fact-only-context-settlement-report.md",
+    "apps/core-go/internal/capability/capability.go",
+    "apps/core-go/internal/core/action_outcome.go",
+    "apps/core-go/internal/core/capability_core.go",
+    "apps/core-go/internal/core/cognition.go",
+    "apps/core-go/internal/core/context_reference.go",
+    "apps/core-go/internal/core/context_reference_capacity.go",
+    "apps/core-go/internal/core/context_reference_capacity_test.go",
+    "apps/core-go/internal/core/intelligence.go",
+    "apps/core-go/internal/core/reflection_runtime_v2.go",
+    "apps/core-go/internal/core/tool_execution.go",
+    "docs/context-capacity-availability.md",
+    ".trellis/spec/backend/structured-turn-contract.md"
   ],
-  "notes": "User approved the four local work commits. No push/merge/deploy. Task retained for manual validation; new PG cases SKIP and real models NOT_RUN.",
+  "notes": "Original four work commits completed. F14 capacity availability follow-up implemented and locally verified, currently uncommitted; retain task for user environment validation. No push/merge/deploy or live workflow retry.",
   "meta": {
-    "work_commit_approval": "用户：提交吧"
+    "work_commit_approval": "用户：提交吧",
+    "capacity_followup": "F14 implementation complete; one coherent follow-up commit pending phase 3.4 approval."
   }
 }

@@ -11,16 +11,16 @@ import (
 )
 
 const (
-	contextReferenceIndexVersion     = "fluctlight.context-reference-index.v1"
-	maxContextReferences             = 128
-	maxContextReferenceRunes         = 96
-	maxContextReferenceEntityRunes   = 256
-	maxContextReferenceSnapshotBytes = 32 * 1024
-	maxContextReferenceIndexBytes    = maxToolArgumentsBytes * 2
-	maxDecisionInfluences            = 24
-	maxDecisionInfluenceNoteRunes    = 500
-	maxDriveSemanticSignals          = 16
-	maxDriveSignalEvidenceRefs       = 12
+	contextReferenceIndexVersion          = "fluctlight.context-reference-index.v1"
+	contextReferenceCountWarningThreshold = 128
+	maxContextReferenceRunes              = 96
+	maxContextReferenceEntityRunes        = 256
+	contextReferenceSnapshotWarningBytes  = 32 * 1024
+	contextReferenceIndexWarningBytes     = 128 * 1024
+	maxDecisionInfluences                 = 24
+	maxDecisionInfluenceNoteRunes         = 500
+	maxDriveSemanticSignals               = 16
+	maxDriveSignalEvidenceRefs            = 12
 )
 
 type ContextReferenceKind string
@@ -128,9 +128,6 @@ func (index ContextReferenceIndex) Validate() error {
 	if index.ByRef == nil {
 		return errors.New("context_reference_index_entries_invalid")
 	}
-	if len(index.ByRef) > maxContextReferences {
-		return errors.New("context_reference_index_too_large")
-	}
 	expectedScope := index.expectedScope()
 	for ref, entry := range index.ByRef {
 		if ref != entry.Ref || len([]rune(ref)) > maxContextReferenceRunes || !contextReferencePattern.MatchString(ref) {
@@ -145,16 +142,15 @@ func (index ContextReferenceIndex) Validate() error {
 		if entry.Revision < 0 || entry.Scope != expectedScope {
 			return errors.New("context_reference_scope_invalid")
 		}
-		if len(entry.Snapshot) == 0 || len(entry.Snapshot) > maxContextReferenceSnapshotBytes || !json.Valid(entry.Snapshot) {
+		if len(entry.Snapshot) == 0 || !json.Valid(entry.Snapshot) {
 			return errors.New("context_reference_snapshot_invalid")
 		}
 		if expected := contextReferenceToken(entry.Kind, entry.EntityID, entry.Revision, entry.Scope, entry.Snapshot); expected != ref {
 			return errors.New("context_reference_token_invalid")
 		}
 	}
-	encoded, err := json.Marshal(index)
-	if err != nil || len(encoded) > maxContextReferenceIndexBytes {
-		return errors.New("context_reference_index_too_large")
+	if _, err := json.Marshal(index); err != nil {
+		return errors.New("context_reference_index_encoding_invalid")
 	}
 	return nil
 }
@@ -175,15 +171,12 @@ func (index *ContextReferenceIndex) add(kind ContextReferenceKind, entityID stri
 	if index == nil {
 		return "", errors.New("context_reference_index_missing")
 	}
-	if len(index.ByRef) >= maxContextReferences {
-		return "", errors.New("context_reference_index_too_large")
-	}
 	entityID = strings.TrimSpace(entityID)
 	if _, ok := validContextReferenceKinds[kind]; !ok || entityID == "" || len([]rune(entityID)) > maxContextReferenceEntityRunes || revision < 0 {
 		return "", errors.New("context_reference_target_invalid")
 	}
 	encoded, err := json.Marshal(snapshot)
-	if err != nil || len(encoded) == 0 || len(encoded) > maxContextReferenceSnapshotBytes {
+	if err != nil || len(encoded) == 0 {
 		return "", errors.New("context_reference_snapshot_invalid")
 	}
 	scope := index.expectedScope()

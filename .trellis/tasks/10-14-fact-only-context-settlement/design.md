@@ -98,3 +98,13 @@ prepared/published 先复用缓存/receipt。旧 execution_scope 的 purpose/top
 沿原 conversation.reply legacy/fact_only 设置、既有测试渠道/镜像说明，不增开关、不改 Actions。无迁移；待恢复 draft/continuation 排空沿原文档，不自动执行。
 
 无法机械证明自然语言无策略/幻觉，旧关系/承诺/摘要可能仍矛盾，时间标题来源未知，真实体验与真实 token/延迟待用户回放。保留失败与来源，不能以数据修写伪造改善。
+
+## 11. F14 可用性追加决策（2026-10-14）
+
+用户明确拒绝内部经验容量阈值一刀切阻断合法流程。引用数量128、单快照32 KiB、索引128 KiB改为建议告警值，完整数据继续。Core与canonical capability两套slot/snapshot/resolver/prepared envelope必须一起消除等价容量拒绝与静默nil；Active Memory不按索引剩余量裁剪。
+
+结算内部引用集合可合并Core生成的实际resulting-state，不能借用模型influences的24项输出上限。保留模型原合同、授权作用域、版本/hash、JSON对象与schema验证。此追加覆盖旧设计中内部引用/冻结上下文经验门槛的行为，不更换Provider、模型上下文配置或真实业务规则。
+
+成功注册后、模型前记录context.reference.capacity_warning：数量/编码总字节/快照总字节/最大快照/分类型聚合/前5条描述/超出维度/阈值/阶段/关联身份；worker先输出安全元数据，再尝试原Owner诊断存储，无正文。沿用原独立2秒诊断写超时；不宣称零延迟。大上下文可能增加内存、CPU和模型负担，优化债务有证据可追踪，但不据此预先拒绝合法内部数据。
+
+不自动发布或操作日志中的workflow。代码验证完成后单独提出本轮一笔工作提交；旧四笔提交授权不等于后续发布授权。

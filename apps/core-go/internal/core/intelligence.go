@@ -437,18 +437,10 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if err := buildContextReferenceIndex(&projection); err != nil {
 		return ContextProjection{}, err
 	}
-	referenceCapacity := maxContextReferences - len(projection.ReferenceIndex.ByRef)
-	if referenceCapacity < 0 {
-		referenceCapacity = 0
-	}
-	if len(projection.ActiveMemories) > referenceCapacity {
-		projection.ActiveMemories = projection.ActiveMemories[:referenceCapacity]
-		projection.ActiveMemoryTrace.SelectedCount = len(projection.ActiveMemories)
-		projection.ActiveMemoryTrace.TruncatedReason = "context_reference_limit"
-	}
 	if err := addActiveMemoryReferences(&projection.ReferenceIndex, projection.ActiveMemories); err != nil {
 		return ContextProjection{}, err
 	}
+	a.recordContextReferenceCapacity(ctx, projection, "context_projection")
 	return projection, nil
 }
 

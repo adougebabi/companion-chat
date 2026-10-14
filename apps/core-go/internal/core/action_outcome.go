@@ -66,7 +66,7 @@ func (outcome ActionOutcome) Validate() error {
 	} else if outcome.ExternalRef != "" {
 		return errors.New("action_outcome_external_ref_invalid")
 	}
-	if len(outcome.GoalRefs) > 32 || len(outcome.IntentionRefs) > 32 || len(outcome.EvidenceRefs) > 64 || len(outcome.ContextReferences) > maxDecisionInfluences {
+	if len(outcome.GoalRefs) > 32 || len(outcome.IntentionRefs) > 32 || len(outcome.EvidenceRefs) > 64 {
 		return errors.New("action_outcome_references_too_large")
 	}
 	for ref, entry := range outcome.ContextReferences {
@@ -74,7 +74,7 @@ func (outcome ActionOutcome) Validate() error {
 			return errors.New("action_outcome_context_reference_invalid")
 		}
 	}
-	if len(jsonBytes(outcome.Expected)) > 32*1024 || len(jsonBytes(outcome.Observed)) > 64*1024 || len(jsonBytes(outcome.ContextReferences)) > maxContextReferenceIndexBytes {
+	if len(jsonBytes(outcome.Expected)) > 32*1024 || len(jsonBytes(outcome.Observed)) > 64*1024 {
 		return errors.New("action_outcome_payload_too_large")
 	}
 	return nil
@@ -258,9 +258,8 @@ func actionOutcomeContextReferences(value any) (map[string]ContextReference, err
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, errors.New("action_outcome_context_references_invalid")
 	}
-	if len(result) > maxDecisionInfluences {
-		return nil, errors.New("action_outcome_context_references_too_large")
-	}
+	// Core merges actual resulting-state references with the selected evidence.
+	// The model influence count is not a capacity limit for this internal map.
 	for ref, entry := range result {
 		if ref != entry.Ref || !contextReferencePattern.MatchString(ref) || len(entry.Snapshot) == 0 || !json.Valid(entry.Snapshot) {
 			return nil, errors.New("action_outcome_context_references_invalid")

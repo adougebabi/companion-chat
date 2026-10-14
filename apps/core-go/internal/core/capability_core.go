@@ -275,9 +275,6 @@ func (context CapabilityContext) Snapshot() map[string]any {
 			value = typed.Data
 		}
 		data := jsonBytes(value)
-		if len(data) > maxToolArgumentsBytes*2 {
-			return
-		}
 		var copyValue any
 		if json.Unmarshal(data, &copyValue) == nil {
 			result[key] = copyValue
@@ -310,7 +307,7 @@ func capabilityContextSnapshotForSlots(context CapabilityContext, slots []Contex
 	return result
 }
 
-// ContextSnapshotFromProjection preserves only the bounded capability
+// ContextSnapshotFromProjection preserves only the declared capability
 // context needed for replay. It is deliberately not the full cognition read
 // model and never includes prompts, provider metadata, or raw message history.
 func ContextSnapshotFromProjection(projection ContextProjection) map[string]any {
@@ -409,9 +406,11 @@ func relationshipActorAliasesFromProjection(projection ContextProjection) map[st
 	return result
 }
 
+// Historical name: Core-owned JSON is copied losslessly. Capacity belongs to
+// advisory diagnostics, never silent deletion of authority or prepared state.
 func boundedSnapshotValue(value any) any {
 	data := jsonBytes(value)
-	if len(data) == 0 || len(data) > maxToolArgumentsBytes*2 {
+	if len(data) == 0 {
 		return nil
 	}
 	var copyValue any
@@ -479,7 +478,7 @@ func (resolver *StaticContextResolver) Resolve(ctx context.Context, request Cont
 	return result, nil
 }
 
-// SnapshotContextResolver rehydrates the bounded snapshot persisted with a
+// SnapshotContextResolver rehydrates the complete snapshot persisted with a
 // frozen action. It never reads live ambient state; authorization/revision
 // guards still belong to the executing capability.
 type SnapshotContextResolver struct {
@@ -688,9 +687,6 @@ func decodeCapabilityPreparedPayload(raw json.RawMessage) (CapabilityPreparedPay
 	if len(raw) == 0 || string(raw) == "null" {
 		return CapabilityPreparedPayload{SchemaVersion: CapabilityPreparedPayloadSchemaVersion, Data: map[string]any{}, Provenance: map[string]any{}}, nil
 	}
-	if len(raw) > maxToolArgumentsBytes*2 {
-		return CapabilityPreparedPayload{}, errors.New("capability prepared payload is too large")
-	}
 	var object map[string]any
 	if err := json.Unmarshal(raw, &object); err != nil || object == nil {
 		return CapabilityPreparedPayload{}, errors.New("capability prepared payload must be an object")
@@ -724,9 +720,6 @@ func encodeCapabilityPreparedPayload(payload CapabilityPreparedPayload) (json.Ra
 	if err != nil {
 		return nil, err
 	}
-	if len(encoded) > maxToolArgumentsBytes*2 {
-		return nil, errors.New("capability prepared payload is too large")
-	}
 	return encoded, nil
 }
 
@@ -740,7 +733,7 @@ func withCapabilityPreparedData(invocation CapabilityInvocation, key string, val
 	}
 	bounded := boundedSnapshotValue(value)
 	if value != nil && bounded == nil {
-		return invocation, errors.New("capability prepared data is invalid or too large")
+		return invocation, errors.New("capability prepared data is not JSON-serializable")
 	}
 	payload.Data[key] = bounded
 	encoded, err := encodeCapabilityPreparedPayload(payload)

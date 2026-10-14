@@ -209,7 +209,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	if len(request.FrozenContextSnapshot) > 0 {
 		invocation.ContextSnapshot = mapValue(boundedSnapshotValue(request.FrozenContextSnapshot))
 		if len(invocation.ContextSnapshot) == 0 {
-			return ToolExecutionReceipt{}, fmt.Errorf("%w: frozen Tool context exceeds the snapshot limit", ErrInvalidArguments)
+			return ToolExecutionReceipt{}, fmt.Errorf("%w: frozen Tool context is not a valid JSON object", ErrInvalidArguments)
 		}
 	}
 	implementation, ok := runtime.Registry.LookupCapability(definition.Name)

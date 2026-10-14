@@ -728,3 +728,66 @@ and unknown fields remain absent and missing estimates are unavailable.
 ### 7. Wrong vs Correct
 Wrong: append a second payload modifier and log its whole JSON. Correct: observe
 an allowlist after the existing modifier's policy edits and verify against wire.
+
+## Scenario: Pre-model context capacity advisories (2026-10-14)
+
+### 1. Scope / Trigger
+Oversized valid internal reference data must remain usable and inspectable even
+when projection fails before any ModelRun could otherwise be recorded. Capacity
+is optimization metadata, not business authority or a reason to reject context.
+
+### 2. Signatures
+`ContextReferenceIndex.capacityReport() contextReferenceCapacityReport` measures
+the complete index. `App.recordContextReferenceCapacity(ctx, projection, stage)`
+emits `context.reference.capacity_warning` with level `warning` after successful
+reference registration at `context_projection`, `prompt_assembly` and
+`reflection_context`, before their model request.
+
+### 3. Contracts
+- Warning thresholds: reference_count=128, encoded_bytes=131072 and single
+  snapshot_bytes=32768. Emit only when a value is greater than its threshold.
+- Owner event payload includes stage, decision=`continue_complete_context`,
+  as_of, advisory_thresholds and capacity. Capacity contains reference_count,
+  encoded_bytes, snapshot_bytes (sum), largest_snapshot_bytes, by_kind
+  (count/snapshot_bytes), largest_snapshots and advisory_thresholds_exceeded.
+- `largest_snapshots` contains at most five ref/kind/entity_id/bytes descriptors,
+  sorted by bytes descending then ref. No snapshot bodies, user prose, Prompt,
+  response, headers or credentials enter this event or its worker log.
+- Always emit the worker `slog` warning first, with event_type, stage,
+  correlation_id, fluctlight_id, source_fact_id, as_of, decision, thresholds and
+  measured capacity metadata. Then attempt the existing best-effort Owner sink;
+  missing diagnostic DB must not hide the operational evidence.
+- Correlation uses providerCorrelation, then SourceFactID, then a stable
+  context identity. The warning neither modifies the index/hash nor returns a
+  business error. Existing sink writes use an independent context with a two
+  second timeout; this is not a zero-latency or asynchronous delivery guarantee.
+- Warning means complete internal data continues. It does not prove Provider
+  success, authorize wider scope or claim that a production retry recovered.
+
+### 4. Validation & Error Matrix
+| Condition | Diagnostic / behavior |
+| --- | --- |
+| Valid data exceeds one or more thresholds | worker warning plus attempted Owner event; continue complete context |
+| Values below/equal thresholds | no capacity warning |
+| DB missing/unavailable | worker metadata still visible; sink error does not replace business result |
+| Invalid identity/hash/JSON | original validation fails; no capacity bypass |
+| Large private snapshot body | only descriptor and measured bytes, never its body |
+
+### 5. Good / Base / Bad Cases
+Good: an Owner can find the stage, source, oversized kind and largest entity
+from worker logs even without a ModelRun. Base: small valid indexes are quiet.
+Bad: only return `context_reference_index_too_large`, log every snapshot body,
+or label this warning as truncation while silently discarding required context.
+
+### 6. Tests Required
+`TestContextReferenceCapacityWarningIsInspectableWithoutDatabase` captures the
+real helper's JSON worker log with no DB and asserts event identity, correlation,
+decision, thresholds, measurements, kind/largest-entry descriptors and absence
+of private snapshot text. Size/count/rehydration and integrity regressions live
+beside it. Missing DB is tested; a live DB outage and production workflow retry
+remain separate environment verification.
+
+### 7. Wrong vs Correct
+Wrong: wait for a ModelRun that never started, or rely exclusively on a failed
+diagnostic insert. Correct: emit safe structured worker metadata before the
+best-effort sink and continue the valid internal context without data loss.

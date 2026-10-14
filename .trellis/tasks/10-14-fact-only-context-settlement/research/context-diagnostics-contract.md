@@ -2,7 +2,7 @@
 
 Source: `.trellis/spec/backend/fluctlight-diagnostics-contract.md`
 
-Source SHA-256: `f3fb96ade67c9b2e49ca744e965cefad59365501df6dcea3f60c57b20d4c2bc8`
+Source SHA-256: `56b812cd23735da6c7decbbcc363f742894ce114c9a3cf0516cfb967311556ac`
 
 Verbatim selected complete scenarios. Original spec remains authoritative; later credential-redaction sections supersede earlier historical credential-retention wording. Regenerate if source changes.
 

@@ -118,16 +118,10 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			return PromptAssemblyResult{}, projection, err
 		}
 	}
-	referenceCapacity := maxContextReferences - len(projection.ReferenceIndex.ByRef)
-	if referenceCapacity < 0 {
-		referenceCapacity = 0
-	}
-	if len(activeResult.Items) > referenceCapacity {
-		activeResult.Items = activeResult.Items[:referenceCapacity]
-	}
 	if err := addActiveMemoryReferences(&projection.ReferenceIndex, activeResult.Items); err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
+	a.recordContextReferenceCapacity(ctx, projection, "prompt_assembly")
 	var summaries []map[string]any
 	var summaryTrace ConversationSummaryRetrievalTrace
 	if strings.TrimSpace(projection.ConversationID) != "" && providerContextSurfaceAllowsSummaries(surface) {

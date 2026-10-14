@@ -2,7 +2,7 @@
 
 Source: `.trellis/spec/backend/structured-turn-contract.md`
 
-Source SHA-256: `8f0e29aedc473a43228c455a8718bf304afdeaeed4c211d571cd495a023c8260`
+Source SHA-256: `515774a1b41dbfa1caf33cf0aca664e29c10091c3cdee63ff17760066a3b23c0`
 
 Verbatim selected complete scenario sections to prevent native context injection truncation. The original spec remains authoritative. Read further source sections if implementation touches neighboring behavior; regenerate if its source hash changes.
 

@@ -1,0 +1,174 @@
+{
+  "scope": "F14 internal context capacity availability follow-up",
+  "date": "2026-10-14",
+  "branch": "codex/fact-only-reply-vision",
+  "base_head": "26bfc58bb337318414f9447e7e327e5ede690a81",
+  "work_state": "uncommitted",
+  "environment": {
+    "FLUCTLIGHT_LIVE_PROVIDER_TEST": "0",
+    "GO_CORE_TEST_DATABASE_URL": "",
+    "GOCACHE": "/tmp/fluctlight-go-cache"
+  },
+  "commands": [
+    {
+      "command": "go -C apps/core-go test -json ./...",
+      "exit_code": 0,
+      "status": "PASS",
+      "test_event_counts": {
+        "pass": 1772,
+        "skip": 531
+      },
+      "package_event_counts": {
+        "skip": 14,
+        "pass": 16
+      },
+      "count_note": "Parent and subtest events are included; package skip events are packages without test files, not failed tests."
+    },
+    {
+      "command": "go -C apps/core-go test -race ./internal/core ./internal/workflow",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "go -C apps/core-go vet ./...",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "go -C apps/core-go build ./...",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm typecheck",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm test",
+      "exit_code": 0,
+      "status": "PASS",
+      "workspace_tests": {
+        "browser_client": 21,
+        "core_client": 2,
+        "web": 105
+      },
+      "execution_note": "First sandboxed attempt could not start tsx IPC (listen EPERM); rerun with local IPC permission passed."
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "status": "PASS",
+      "warnings": [
+        "Existing Vite chunk size warning >500 kB"
+      ]
+    }
+  ],
+  "regression_tests": [
+    {
+      "name": "TestContextReferenceCapacityIsAdvisory",
+      "status": "PASS"
+    },
+    {
+      "name": "TestLargeReferenceIndexKeepsIntegrityAndActiveMemory",
+      "status": "PASS"
+    },
+    {
+      "name": "TestContextReferenceCapacityWarningIsInspectableWithoutDatabase",
+      "status": "PASS"
+    },
+    {
+      "name": "TestProjectionSnapshotPreservesLargeReferenceIndex",
+      "status": "PASS"
+    },
+    {
+      "name": "TestLargeInternalContextSnapshotSurvivesBothResolvers",
+      "status": "PASS"
+    },
+    {
+      "name": "TestLargeInternalPreparedPayloadSurvivesCanonicalValidation",
+      "status": "PASS"
+    },
+    {
+      "name": "TestContextReferenceDuplicateAtAdvisoryThresholdIsIdempotent",
+      "status": "PASS"
+    },
+    {
+      "name": "TestActionOutcomeRetainsSelectedReferencesAndResultingState",
+      "status": "PASS"
+    }
+  ],
+  "red_proof": [
+    {
+      "case": "180 refs / 64 x 4096-byte snapshots / 40-KiB single snapshot / duplicate at 128",
+      "old_behavior": "Capacity rejection; detailed command and failures in availability-followup.md"
+    },
+    {
+      "case": "24 selected influences + Core resulting-state reference",
+      "old_behavior": "action_outcome_context_references_too_large in both 100-byte and 6000-byte content variants",
+      "current_behavior": "Complete 25-reference ActionOutcome preserved; Provider influence limit still rejects >24"
+    }
+  ],
+  "retained_guards": [
+    "scope/owner/identity",
+    "JSON/envelope/schema",
+    "reference membership/hash/revision",
+    "Provider influence count",
+    "external model Arguments size/schema",
+    "native Tool authorization/replay"
+  ],
+  "not_run": [
+    "real Provider/model acceptance",
+    "production PostgreSQL",
+    "live diagnostics DB outage",
+    "actual Temporal workflow retry/recovery",
+    "deployment"
+  ],
+  "conditional_skip_policy": "Existing DB/live-service skips remain skips; no new capacity regression was skipped.",
+  "logs": [
+    {
+      "path": "/tmp/context-capacity-go-tests.jsonl",
+      "bytes": 2633569,
+      "sha256": "35104a4e173c347b4955eb79e0fb6dc5dd2d55944d55ce4e7a5ecd4dc687a6e1"
+    },
+    {
+      "path": "/tmp/context-capacity-race.log",
+      "bytes": 167,
+      "sha256": "96c031c2df67e4c74453fd92819e282950375f494168318327eb74d7619d5cf1"
+    },
+    {
+      "path": "/tmp/context-capacity-typecheck.log",
+      "bytes": 285,
+      "sha256": "b234e990091a0773c433eb3388b54ca7c48a5271fff6e5680dfc06a5744acb17"
+    },
+    {
+      "path": "/tmp/context-capacity-workspace-tests.log",
+      "bytes": 15086,
+      "sha256": "bad264bdec46ebcfb7d1e38ee908171a3c8152e38f6916f84f0c33402219eff7"
+    },
+    {
+      "path": "/tmp/context-capacity-workspace-build.log",
+      "bytes": 1603,
+      "sha256": "a358a55925f3ee09120327e29f2ac8ff81bfbfa3e5c0ee3197525b36f831c118"
+    }
+  ],
+  "review": {
+    "read_only_scouts": 2,
+    "resolved_findings": [
+      "P2: internal ActionOutcome map reused model influence count limit"
+    ],
+    "primary_verified_red_green": true
+  },
+  "final_static_checks": {
+    "gofmt_changed_go_files": 11,
+    "gofmt": "PASS",
+    "git_diff_check": "PASS",
+    "untracked_file_whitespace": "PASS",
+    "task_context_validation": {
+      "status": "PASS",
+      "implement_entries": 15,
+      "check_entries": 15
+    },
+    "spec_excerpt_hash_and_content": "PASS"
+  }
+}

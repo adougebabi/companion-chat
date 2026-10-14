@@ -886,7 +886,7 @@ func frozenResultingStateCausalityTx(ctx context.Context, tx pgx.Tx, fluctlightI
 		}
 	}
 	encoded := jsonBytes(stateSnapshot)
-	if len(encoded) == 0 || len(encoded) > maxContextReferenceSnapshotBytes {
+	if len(encoded) == 0 {
 		return nil, errors.New("resulting_state_reference_snapshot_invalid")
 	}
 	scope := index.expectedScope()

@@ -155,19 +155,11 @@ func (a *App) processReflectionV2(
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
-	referenceCapacity := maxContextReferences - len(projection.ReferenceIndex.ByRef)
-	if referenceCapacity < 0 {
-		referenceCapacity = 0
-	}
-	if len(activeMemoryResult.Items) > referenceCapacity {
-		activeMemoryResult.Items = activeMemoryResult.Items[:referenceCapacity]
-		activeMemoryResult.Trace.SelectedCount = len(activeMemoryResult.Items)
-		activeMemoryResult.Trace.TruncatedReason = "context_reference_limit"
-	}
 	if err := addActiveMemoryReferences(&projection.ReferenceIndex, activeMemoryResult.Items); err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
+	a.recordContextReferenceCapacity(ctx, projection, "reflection_context")
 	providerEvidence := compactReflectionEvidenceV2(evidence)
 	taskResult, err := a.RunReflectionProposalTask(ctx, ReflectionProposalTaskInput{Evidence: evidence, Projection: projection})
 	if err != nil {

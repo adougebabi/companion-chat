@@ -276,9 +276,6 @@ func (context CapabilityContext) Snapshot() map[string]any {
 			value = typed.Data
 		}
 		data := jsonBytes(value)
-		if len(data) > maxToolArgumentsBytes*2 {
-			return
-		}
 		var copyValue any
 		if json.Unmarshal(data, &copyValue) == nil {
 			result[key] = copyValue
@@ -311,9 +308,11 @@ func CapabilityContextSnapshotForSlots(context CapabilityContext, slots []Contex
 	return result
 }
 
+// BoundedSnapshotValue is a compatibility name for a lossless Core-owned JSON
+// copy. Optimization thresholds must not erase frozen/prepared authority.
 func BoundedSnapshotValue(value any) any {
 	data := jsonBytes(value)
-	if len(data) == 0 || len(data) > maxToolArgumentsBytes*2 {
+	if len(data) == 0 {
 		return nil
 	}
 	var copyValue any
@@ -601,9 +600,6 @@ func DecodeCapabilityPreparedPayload(raw json.RawMessage) (CapabilityPreparedPay
 	if len(raw) == 0 || string(raw) == "null" {
 		return CapabilityPreparedPayload{SchemaVersion: CapabilityPreparedPayloadSchemaVersion, Data: map[string]any{}, Provenance: map[string]any{}}, nil
 	}
-	if len(raw) > maxToolArgumentsBytes*2 {
-		return CapabilityPreparedPayload{}, errors.New("capability prepared payload is too large")
-	}
 	var object map[string]any
 	if err := json.Unmarshal(raw, &object); err != nil || object == nil {
 		return CapabilityPreparedPayload{}, errors.New("capability prepared payload must be an object")
@@ -637,9 +633,6 @@ func EncodeCapabilityPreparedPayload(payload CapabilityPreparedPayload) (json.Ra
 	if err != nil {
 		return nil, err
 	}
-	if len(encoded) > maxToolArgumentsBytes*2 {
-		return nil, errors.New("capability prepared payload is too large")
-	}
 	return encoded, nil
 }
 
@@ -653,7 +646,7 @@ func WithCapabilityPreparedData(invocation CapabilityInvocation, key string, val
 	}
 	bounded := BoundedSnapshotValue(value)
 	if value != nil && bounded == nil {
-		return invocation, errors.New("capability prepared data is invalid or too large")
+		return invocation, errors.New("capability prepared data is not JSON-serializable")
 	}
 	payload.Data[key] = bounded
 	encoded, err := EncodeCapabilityPreparedPayload(payload)

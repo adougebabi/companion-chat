@@ -86,3 +86,16 @@ P 用例只用明确配置的 disposable 测试 PostgreSQL，必须经 isolatedC
 ## 实际执行记录
 
 详见 local-check.md、acceptance-matrix.md 和 docs/fact-only-context-settlement-report.md。阶段 3.4 四笔本地工作提交已获用户明确批准，实际记录以 git log 为准。真实模型/环境 NOT_RUN，新增数据库场景 SKIP。
+
+## F14 可用性追加实施
+
+- [x] 旧实现实测RED：180条、聚合>128 KiB、单快照>32 KiB及128条重复注册均被容量拒绝。
+- [x] 引用容量改为advisory，三处Active Memory按索引余量裁剪已移除；完整索引/快照不缩短。
+- [x] Core/canonical两套snapshot/resolver/prepared codec及canonical invocation validation贯通大数据；Tool冻结copy和resulting-state单快照拒绝已修。
+- [x] 独立核验发现ActionOutcome借用24项模型上限；新增RED并移除内部合并集合的数量/字节门槛，保留模型influences合同。
+- [x] 模型前worker安全元数据与Owner容量事件，缺少诊断DB仍能排查。
+- [x] 身份/owner/scope/hash/实际ref及模型夹带prepared负例与定向回归通过；完整Go及工作区检查见追加验证记录。
+- [x] 更新可执行spec、诊断说明与历史计划追加条款；不覆盖旧四笔提交记录。
+- [ ] 本轮新增修复提交：待阶段3.4一次确认；不push/部署，不操作真实workflow。
+
+F14详细结果见availability-followup.md、verification/capacity-check-summary.json与docs/context-capacity-availability.md。原R01–R26的数据库/真实环境待验收状态保持独立。

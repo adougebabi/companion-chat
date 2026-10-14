@@ -1,0 +1,19 @@
+# F14 独立核验与修复收敛
+
+两名只读探子分别检查引用/诊断和冻结/prepared/结算传播，不修改文件、不执行最终质量门禁。主代理阅读具体代码、复现、修正并完成最终验证。
+
+## 引用与诊断
+
+未发现阻断问题。核对 ContextReferenceIndex 的三类容量拒绝已移除，重复注册可达幂等分支，三处 Active Memory 不再按索引容量裁剪；所有权/scope/JSON/hash等检查保留。三个容量记录点均在模型前；worker Warn 先于Owner存储，不记录正文。
+
+残余成本：capacityReport重新marshal索引并排序，CPU/内存随数据量增加。既有诊断sink同步使用独立2秒超时上下文；错误不向业务传播，但数据库挂起仍可增加延迟。此次测试验证无DB，不证明真实DB挂起的时序。
+
+## 传播与结算
+
+发现P2残留：action_outcome.go的ActionOutcome.Validate及actionOutcomeContextReferences把Core合并后的内部引用map限制为maxDecisionInfluences。frozenDecisionCausality允许24条合法模型引用；completeTurnCognitionTx合并一条actual resulting-state后变25条，后续结算失败。
+
+主代理新增TestActionOutcomeRetainsSelectedReferencesAndResultingState，使用实际buildContextReferenceIndex → freezeDecisionInfluences → frozenDecisionCausality → buildActionOutcomes。100与6000字节内容两子场景均先RED，错误action_outcome_context_references_too_large。移除内部map的两次数量检查；继续保留原ref/JSON检查及模型24项合同，两场景GREEN，完整引用map相等。大数据场景同时覆盖ActionOutcome旧128 KiB字节门槛。
+
+两套snapshot/resolver/prepared codec与canonical invocation.Validate传播核对无其他128 KiB残留；外部Arguments 64 KiB/schema及frozen identity guard保留。主代理最终补齐worker日志中的decision/as_of/阈值与快照总字节，同步更新告警测试。
+
+最终门禁与未执行范围见verification/capacity-check-summary.json和docs/context-capacity-availability.md。静态审查与本地回归不证明该生产workflow已经恢复。

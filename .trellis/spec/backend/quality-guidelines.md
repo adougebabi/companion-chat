@@ -17,6 +17,12 @@
   before returning browser errors.
 - Keep Go Core as the only domain writer; domain repositories and workflow
   clients do not cross into the Go browser boundary.
+- Treat internal reference/frozen-context optimization thresholds as advisories:
+  preserve complete valid data through both capability runtimes and emit safe
+  pre-model metadata. Verify every downstream copy/codec/settlement path; removing
+  a front-door check alone can leave silent nil/truncation or another count gate.
+  Keep authorization, integrity and external argument/schema validation separate.
+  See the internal-capacity scenarios in the structured-turn and diagnostics contracts.
 
 ## Forbidden Patterns
 
