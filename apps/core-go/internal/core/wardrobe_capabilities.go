@@ -52,7 +52,7 @@ func wardrobeInspectDefinition() CapabilityDefinition {
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
-			"operation": enumStringSchema("list", "detail", "wearing", "outfits", "outfit_detail"),
+			"operation": withToolDefault(enumStringSchema("list", "detail", "wearing", "outfits", "outfit_detail"), "list"),
 			"item_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"outfit_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"category":  map[string]any{"type": "string", "maxLength": 64},
@@ -78,6 +78,14 @@ func (c wardrobeInspectCapability) Execute(ctx context.Context, invocation Capab
 	if err != nil {
 		return failedCapabilityResult(invocation, "invalid_arguments", false), err
 	}
+	missingTarget := (stringValue(args["operation"]) == "detail" && stringValue(args["item_id"]) == "") || (stringValue(args["operation"]) == "outfit_detail" && stringValue(args["outfit_id"]) == "")
+	if missingTarget {
+		if stringValue(args["operation"]) == "outfit_detail" {
+			args["operation"] = "outfits"
+		} else {
+			args["operation"] = "list"
+		}
+	}
 	output, err := c.service.inspectWardrobe(ctx, invocation.Metadata.FluctlightID, invocation.Metadata.WorkingProfileID, args)
 	if err != nil {
 		if errors.Is(err, ErrInvalidArguments) {
@@ -87,6 +95,9 @@ func (c wardrobeInspectCapability) Execute(ctx context.Context, invocation Capab
 			return failedCapabilityResultDetail(invocation, "wardrobe_item_not_found", false, "item is not in the recorded wardrobe"), err
 		}
 		return failedCapabilityResult(invocation, "wardrobe_query_failed", true), err
+	}
+	if missingTarget {
+		output["warning_code"] = "wardrobe_target_missing_listed"
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output,
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "wardrobe-query:" + stableDigest(invocation.CallID)}, nil
@@ -171,7 +182,7 @@ func (s *WardrobeService) inspectWardrobe(ctx context.Context, fluctlightID, wor
 		if err != nil {
 			return nil, err
 		}
-		rows, err := query.Query(ctx, `SELECT id,profile_id,name,revision FROM public.fluctlight_wardrobe_outfits WHERE fluctlight_id=$1 AND (profile_id='' OR profile_id=$2) ORDER BY id LIMIT 31`, fluctlightID, profileID)
+		rows, err := query.Query(ctx, `SELECT id,profile_id,name,revision FROM public.fluctlight_wardrobe_outfits WHERE fluctlight_id=$1 AND (profile_id='' OR profile_id=$2) AND id>$3 ORDER BY id LIMIT 31`, fluctlightID, profileID, stringValue(args["cursor"]))
 		if err != nil {
 			return nil, err
 		}
@@ -191,6 +202,7 @@ func (s *WardrobeService) inspectWardrobe(ctx context.Context, fluctlightID, wor
 		output["has_more"] = len(outfits) > 30
 		if len(outfits) > 30 {
 			outfits = outfits[:30]
+			output["next_cursor"] = outfits[len(outfits)-1]["id"]
 		}
 		output["outfits"] = outfits
 	case "outfit_detail":
@@ -315,7 +327,8 @@ func (c wardrobeWearCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 		return failedCapabilityResult(invocation, "life_state_sleeping", false), err
 	}
 	var revision int
-	if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&revision); err != nil {
+	var wearingState string
+	if err := tx.QueryRow(ctx, `SELECT revision,wearing_state FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&revision, &wearingState); err != nil {
 		return failedCapabilityResult(invocation, "wardrobe_state_unavailable", true), err
 	}
 	if revision != intValue(prepared.Data["expected_wardrobe_revision"]) {
@@ -343,24 +356,49 @@ func (c wardrobeWearCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 		if availability != "available" {
 			return failedCapabilityResultDetail(invocation, "wardrobe_item_unavailable", false, id), ErrConflict
 		}
-		if _, duplicate := selected[slot]; duplicate {
+		if prior, duplicate := selected[slot]; duplicate && prior != id {
 			return failedCapabilityResult(invocation, "wardrobe_slot_duplicate", false), ErrInvalidArguments
 		}
 		selected[slot] = id
 	}
 	remove := map[string]struct{}{}
+	ignoredRemovals := 0
 	for _, rawSlot := range arrayValue(args["remove_slots"]) {
 		slot := strings.TrimSpace(stringValue(rawSlot))
 		if slot == "" {
 			return failedCapabilityResult(invocation, "wardrobe_slot_invalid", false), ErrInvalidArguments
 		}
 		if _, duplicate := selected[slot]; duplicate {
-			return failedCapabilityResultDetail(invocation, "wardrobe_slot_conflict", false, "A selected item already replaces its slot. Remove the overlapping slot from remove_slots and retry partial with only the replacement item IDs; full is not required."), ErrInvalidArguments
+			ignoredRemovals++
+			continue
 		}
 		remove[slot] = struct{}{}
 	}
 	if mode == "partial" && len(selected) == 0 && len(remove) == 0 {
-		return failedCapabilityResult(invocation, "wardrobe_no_change_requested", false), ErrInvalidArguments
+		return handledCapabilityResult(invocation, "wardrobe_no_change_requested", "no_change", map[string]any{"revision": revision}), nil
+	}
+	current, err := readCurrentWornItems(ctx, tx, fluctlightID)
+	if err != nil {
+		return failedCapabilityResult(invocation, "wearing_read_failed", true), err
+	}
+	before := map[string]string{}
+	for _, item := range current {
+		before[stringValue(item["slot"])] = stringValue(item["id"])
+	}
+	after := map[string]string{}
+	if mode != "full" {
+		for slot, id := range before {
+			after[slot] = id
+		}
+	}
+	for slot := range remove {
+		delete(after, slot)
+	}
+	for slot, id := range selected {
+		after[slot] = id
+	}
+	if wearingState == "known" && jsonString(before) == jsonString(after) {
+		return handledCapabilityResult(invocation, "wearing_unchanged", "no_change", map[string]any{"revision": revision, "items": current}), nil
 	}
 	if mode == "full" {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.fluctlight_worn_items WHERE fluctlight_id=$1`, fluctlightID); err != nil {
@@ -391,7 +429,7 @@ func (c wardrobeWearCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 		return failedCapabilityResult(invocation, "wearing_event_failed", true), err
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
-		Output:            map[string]any{"revision": newRevision, "items": worn, "mode": mode},
+		Output:            map[string]any{"revision": newRevision, "items": worn, "mode": mode, "ignored_redundant_removals": ignoredRemovals},
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: fmt.Sprintf("wardrobe:%s:%d", fluctlightID, newRevision)}, nil
 }
 

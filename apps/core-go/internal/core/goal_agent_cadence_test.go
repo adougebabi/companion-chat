@@ -152,11 +152,15 @@ func TestGoalAgentCadencePlannerFailedDayAndExactPrivateEpisodes(t *testing.T) {
 		t.Fatal(pending, err)
 	}
 	// A low-sequence private completion survives a later shared daily admission.
-	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_goals(id,fluctlight_id,status,desired_outcome,description,profile_id) VALUES($1,$2,'completed','done','done','private')`, "done-"+f.suffix, f.fluctlightID); err != nil {
+	privateFixture := f
+	privateFixture.suffix += "_private_completed"
+	privateGoalID := createDialogueGoalForClosure(t, privateFixture, []string{"fixture completed outcome"})
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_goals SET status='completed',profile_id='private' WHERE id=$1`, privateGoalID); err != nil {
 		t.Fatal(err)
 	}
+
 	var seq int64
-	if err := f.repository.Pool().QueryRow(f.ctx, `INSERT INTO public.goal_planning_events(fluctlight_id,source_key,reason,payload) VALUES($1,'private-done','goal_lifecycle_changed',jsonb_build_object('goal_id',$2::text,'status','completed','profile_id','private')) RETURNING seq`, f.fluctlightID, "done-"+f.suffix).Scan(&seq); err != nil {
+	if err := f.repository.Pool().QueryRow(f.ctx, `INSERT INTO public.goal_planning_events(fluctlight_id,source_key,reason,payload) VALUES($1,'private-done','goal_lifecycle_changed',jsonb_build_object('goal_id',$2::text,'status','completed','profile_id','private')) RETURNING seq`, f.fluctlightID, privateGoalID).Scan(&seq); err != nil {
 		t.Fatal(err)
 	}
 	for _, profile := range []string{"default", "private"} {
@@ -251,7 +255,7 @@ func TestGoalAgentCadencePlannerHintsNeedCapturedDailyEvent(t *testing.T) {
 		t.Fatal("old day granted current budget", eligible, err)
 	}
 	// A captured legitimate day event whose queue was lost may be awakened by a hint.
-	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.goal_planning_events(fluctlight_id,source_key,reason,payload) VALUES($1,'captured-day','schedule_accepted_daily',jsonb_build_object('local_date',public.goal_planner_local_day($1)))`, f.fluctlightID); err != nil {
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.goal_planning_events(fluctlight_id,source_key,reason,payload) VALUES($1::text,'captured-day','schedule_accepted_daily',jsonb_build_object('local_date',public.goal_planner_local_day($1::text)))`, f.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
 	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {

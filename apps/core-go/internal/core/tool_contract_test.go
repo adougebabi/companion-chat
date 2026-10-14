@@ -127,8 +127,8 @@ func TestNormalizeProviderToolCallsRejectsMalformedOrDuplicateCalls(t *testing.T
 	}
 
 	tooLarge := strings.Repeat("x", maxToolArgumentsBytes)
-	if _, err := NormalizeProviderToolCalls([]any{map[string]any{"id": "call", "name": "media.image.generate", "arguments": `{"value":"` + tooLarge + `"}`}}, "fact", "provider"); err == nil {
-		t.Fatal("expected oversized arguments error")
+	if _, err := NormalizeProviderToolCalls([]any{map[string]any{"id": "call", "name": "media.image.generate", "arguments": `{"value":"` + tooLarge + `"}`}}, "fact", "provider"); err != nil {
+		t.Fatalf("advisory argument capacity blocked invocation: %v", err)
 	}
 }
 

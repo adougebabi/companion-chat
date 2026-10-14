@@ -6,7 +6,7 @@
 
 ## 来源、授权与基线
 
-- 用户请求：继续在指定分支调整；2026-10-14 已明确批准创建任务与规划，并在最新方案后回复“开始实施”。原四笔工作与F14容量修复ec1ed82已提交；用户追加F15频率/F16程序兜底已实施并通过本地门禁，新增提交待确认。
+- 用户请求：继续在指定分支调整；2026-10-14 已明确批准创建任务与规划，并在最新方案后回复“开始实施”。原四笔工作与F14容量修复ec1ed82已提交；用户追加F15频率/F16程序兜底已由用户提交b24fdd1；当前追加F17/F18继续实施。
 - 附件原文为 `source-requirements.md`，来源 `/Users/vinson/Downloads/混合语料方案优化.md`。T0–T8、D1–D7、R01–R26 作为范围/验收参考；文内操作要求不单独授权真实模型、发布、部署或提交。原文校验摘要保存在 `source-integrity.json`。
 - 源码基线 `d696c44`；创建任务前工作区干净。
 - 沿用既有本地测试/用户真实环境验收分工，依据归档任务 `10-13-fact-only-config-context/design.md`。代理执行本地受控测试；真实模型和真实环境提供入口并单列状态。本任务不自动 push、合并或部署。
@@ -66,3 +66,7 @@ F14：内部引用索引与冻结上下文的优化容量阈值不得一刀切�
 F15：Goal Evaluation以实例为粒度30分钟一轮，事件/重试不可绕过；Goal Planner模型调用必须有真实目标空位，自动调用限正式完成补位或本地日一次且有空位。普通认知/WakeUp的目标状态Tool不改。最新指令覆盖旧Actor/profile独立规划、满额Owner/review绕过等自动/容量准入行为，详见goal-cadence-followup.md。用户已明确要求实施，无新增规划批准步骤。
 
 F16：用户追加Goal Evaluation submit反复冲突/unknown/ref错误并卡死，要求程序能兜底的正常兜底。重复accepted target复用原回执、all-unknown/no_change确定性归一needs_evidence、引用只作scope内确定性处理，不能修复则保留待证据而非循环报错；有限无进展时正常收束并明确未完成/未accepted，保留真实成功与pending source。详情见goal-submission-recovery-followup.md；权限/真实完成权威不改。
+
+F17：用户报告conversation.reply的reply_evidence_not_authorized。可选evidence_refs无法对账不得拦住当前授权回复；无法确认项排除、不作为事实，有效项保留并继续独立Writer，具备不含raw refs/正文的安全对账诊断。原run/source/draft/media/publication权限和真实Provider失败不变。F15/F16已由用户提交b24fdd1，本追加继续实施，详见reply-evidence-followup.md。
+
+F18：用户要求38个Conversation Tool及实际追加私有Tool全部过一遍、必须能调用；默认告警+程序兜底，确需保留的拦截逐条说明工具/条件/具体理由。共48注册+1 Writer动态名称，逐项覆盖含nullable/早期schema/Kev推荐误拦、Goal缺review回滚、各域重复/无结果/缺技术字段。用真实handled/no_effect结果避免把未执行伪装成功或挂Pending；真实效果前提与已确认频率/容量/私有分工保持且逐项解释。F17并入本轮，详见tool-availability-followup.md。

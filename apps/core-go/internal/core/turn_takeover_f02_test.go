@@ -26,7 +26,7 @@ func TestPersonaTakeoverToolRejectsUndeclaredRuleTargetAndStaleSource(t *testing
 				AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID,
 				Surface: CapabilitySurfaceConversation, Arguments: jsonBytes(testCase.args),
 			})
-			if err != nil || receipt.Result.Status != "rejected" || receipt.Result.ErrorCode != testCase.code {
+			if err != nil || receipt.Result.Status != "handled" || goalSubmissionReceiptCode(receipt.Result) != testCase.code {
 				t.Fatalf("receipt=%#v err=%v", receipt, err)
 			}
 			if _, exists := mapValue(receipt.Result.Output)["working_persona"]; exists {

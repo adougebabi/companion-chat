@@ -120,3 +120,11 @@ Planner满额所有调用入口都不启动模型；自动仅完成补位或本�
 对Goal Evaluation原生模型表示层作确定性适配：已accepted target返回原回执不重写；全unknown/no_change转needs_evidence；可唯一确定的scope内ref规范化/相同judgment去重。无法可信修复的内容只生成待处理回执，不写伪造判断或覆盖已有进度。accepted恢复视图稳定带kind/short target refs。
 
 专用session以durable新增accepted targets判断真实进展；有限无进展后关闭重复Tool选择并正常总结/处置awaiting_evidence，明确assessment_complete=false与unresolved targets。操作性收束不冒充native accepted root，不消费未解决sources，不造memo/Goal完成/调用。保留F15持久周期、所有权/claim/证据/CAS，原Provider/基础设施/取消错误不改写。详见goal-submission-recovery-followup.md。
+
+## 14. F17 可选回复证据对账
+
+evidence_refs不承担回复授权；保持原offered/live确认不变，将无法确认的可选hint排除并记录reply.evidence.reconciled，继续当前权限下的独立Writer。不会把旧/foreign ref授权成事实，不原样转发不可信refs/正文；私有run、source、draft/media/publication依旧守原边界，缓存replay优先。shared Moment保留原scene/事实语义过滤。先等价抽取pure旧selection建立实际RED，再改soft处理与最终Writer输入GREEN；PG未配置仍SKIP。详见reply-evidence-followup.md。
+
+## 15. F18 全工具可用性
+
+主代理决定采用共享handled结果来区分“调用正常处理，但无业务效果”与completed/accepted，避免简单改error为success造成假Goal证明或deferred长期挂起。明确output no_effect与warning，经Core/canonical/ledger/outcome/model/UI端到端；可恢复参数/状态只在无副作用或已rollback处兜底，真实IO/cancel/Owner身份不掩盖。Kev仅建议，不继续用披露窗口阻已安装同surface工具。逐域处理能确定的读、去重、已达成、技术缺省与review保守治理，不猜事实/目标/资产。49项具名矩阵与保留前提解释为交付。先共享API后并行独立域，详见tool-availability-followup.md。

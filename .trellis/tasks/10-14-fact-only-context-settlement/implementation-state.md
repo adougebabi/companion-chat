@@ -1,19 +1,22 @@
 # 当前实施状态
 
-分支codex/fact-only-reply-vision；任务仍in_progress。原四笔工作提交1876275、01e8243、4a389d6、26bfc58已完成，容量F14修复也已由用户提交ec1ed82。当前新增F15目标频率和F16提交程序兜底已实现并通过最终本地质量门禁，尚未提交，不push/部署，不操作真实workflow。
+分支 codex/fact-only-reply-vision；任务仍 in_progress。原四笔工作 1876275、01e8243、4a389d6、26bfc58，F14 ec1ed82，F15/F16 b24fdd1 已提交。本轮为 F17/F18；不 push、部署、归档或操作真实工作流。用户最终授权与 `.trellis/tasks/10-14-private-chat-persona-fidelity/` 的实现一起提交，生成报告/JSON/日志/源码备份排除。
 
 ## 当前行为
 
-- Evaluation按Fluctlight共享DB30min周期；pending/retry/frozen/SQL旧入口均过准入，无新事件有durable due repair，等待不消费attempt/来源。
-- Planner所有模型入口必须真实空位；自动仅有捕获的完成/当日日或boot事件及未花episode。普通Actor/profile/wish不另造预算；失败不重置日/精确事件记账，private事件保留。
-- accepted target不同payload复用原回执；native allunknown/no_change归一needs_evidence；不能可靠解析的criterion无领域写入地待处理。
-- 三次无新accepted target即关闭本轮Tools；不合作Provider继续ToolCall也由程序在Generate/SSE收束，不执行违规调用。真实Provider/DB/cancel错误保真。
-- handled cycle可succeeded但disposition=awaiting_evidence、assessment_complete=false；不是Goal完成，不造accepted root/memo，不消费未解决source。
+- 固定48注册+1 Writer私有名称，Conversation38；49行审计和每项保留的真实效果前提见 tool-availability-audit.md。
+- nullable/union与Schema前表示修复；raw参数及ActionOutcome经验容量改告警；Kev No/config/window仅建议，安装/真实资源授权独立。
+- handled端到端表示无请求效果；业务保存点回滚后只写技术ledger；原先durable领取的due Attempt走suppressed结清，无失败计数/Goal进度。两套Runtime都处理fresh Prepare marker与取消。
+- F17可选hint对账排除后继续独立Writer，safe worker诊断；真实draft/action/source/Provider边界和发布重放保持。媒体handled标unavailable，继续同草稿，不制造已生成图片。
+- Goal缺Review不回滚有效根；completed根superseded待Review，未完成technical wait；薄字段/skip/abandon Schema；Planner查询次数只建议，缺技术版本仅绑定此前消费快照。30min/空位/合法episode不旁路。
+- Memory/life/schedule/affect等闭集普通语义错误无效果兜底；Actor SQL错误分类；Persona/Habit/物品/穿着重复状态不假成功/多写，真实来源/对象/版本不猜。
 
-## 证据与待验收
+## 验证与待验收
 
-主报告docs/goal-agent-runtime-availability.md；验证verification/goal-runtime-check-summary.json；源码/独立检查research/goal-cadence-implementation.md、goal-submission-recovery-implementation.md、goal-runtime-check.md。原附件R01–R26及F14历史报告保留，不重开规划。
+详见 verification/tool-availability-results.json。最终可提交快照Go全量1829 PASS事件、564 SKIP、0 FAIL；Core/Workflow race 1489 PASS、499 SKIP、0 FAIL；实际PG/race重点92 PASS、无SKIP/FAIL；最终真实故障/锚点完整性回归另10 PASS。pnpm typecheck、128测试、build通过，最终快照Go vet/build通过。数字包含父/子测试事件，不能当49个真实外部业务均已执行。
 
-最终Go全量PASS事件1787、SKIP542，无FAIL；race/vet/build及pnpm typecheck/test/build通过。纯helper与HTTP/native/SSE可执行回归和敏感性RED/GREEN已完成。数据库全部未执行：无PG/pgvector/Docker daemon且URL未配置，含migration/cadence/并发/持久journal场景均SKIP；父测试容器PASS不计持久化通过。真实模型/Temporal/Redis/线上恢复NOT_RUN。
+完整PG对照：b24fdd1共275 FAIL事件（251个叶失败），中间当前快照160 FAIL事件；并非最终全绿。观察到的24个current-only叶失败都已在最后92项重点回归实际重跑并PASS；其他完整PG失败保留，不一概推断根因。真实Provider、ComfyUI/对象存储、Redis、Temporal与线上恢复NOT_RUN。独占PG已确认停止并删除整个临时安装/cluster目录。
 
-待本轮阶段3.4提交确认；用户环境验收后再按授权归档/日志。不得把之前的提交授权当作本轮或发布授权。
+同一工作区另一个private-chat任务并行编辑源码，包含与本轮共享的fact_only_reply_capability.go、reply_image_request.go、reply_media.go。主线程没有覆盖其内容。最终验证使用/tmp/codex-tool-final-snapshot，只含本轮hunk；源码SHA/排除范围见verification/tool-snapshot-manifest.json。上述验证针对当时的工具实现独立快照。最终提交按用户授权同时包含private-chat实现，完整提交快照另外复验；不包含测试生成的turn_path_cost_report.json或临时verification产物。
+
+已完成两项只读独立核验并由主线程修复其发现；本轮使用用户指定的探索型子代理分工，领域实现和最终验证主线程负责。可执行spec已新增，当前提交已获用户明确授权，真实环境验收后才考虑归档。旧F15/F16提交计划仅作历史记录。

@@ -17,6 +17,7 @@ type privateReplyRun struct {
 	AssignmentError error
 	Scope           ToolExecutionRequest
 	CurrentInput    string
+	Expression      ReplyExpressionContract
 	// Only execution progress is mutable. The settings/model contract above
 	// is fixed before the first physical request and never re-read by a Tool.
 	mu                  sync.Mutex
@@ -25,6 +26,7 @@ type privateReplyRun struct {
 	ActionDraftText     string
 	EffectiveAssignment *providerAssignment
 	EffectiveMode       string
+	GenerationOwner     string
 }
 
 func replyRunFromContext(ctx context.Context) *privateReplyRun {
@@ -62,6 +64,10 @@ func (a *App) withPrivateConversationReplyRun(ctx context.Context, scope ToolExe
 		return ctx, err
 	}
 	run := &privateReplyRun{Settings: config, ConfigVersion: version, Scope: scope, CurrentInput: currentInput}
+	run.Expression, err = replyExpressionContract(config.ExpressionVersion)
+	if err != nil {
+		return ctx, err
+	}
 	ctx = context.WithValue(ctx, privateReplyRunKey{}, run)
 	if config.Mode == "legacy" {
 		return ctx, nil
@@ -93,7 +99,7 @@ func replyRunDiagnostics(ctx context.Context, original map[string]any) map[strin
 	if run := replyRunFromContext(ctx); run != nil {
 		result["reply_mode"] = run.Settings.Mode
 		result["reply_config_version"] = run.ConfigVersion
-		result["reply_prompt_version"] = factOnlyReplyPromptVersion
+		result["reply_prompt_version"] = firstString(run.Expression.Version, firstString(run.Settings.ExpressionVersion, factOnlyReplyPromptVersion))
 		result["reply_model_ref"] = run.Settings.ModelRef
 	}
 	return result

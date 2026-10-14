@@ -76,7 +76,7 @@ func goalEvaluationTraceNeedsFreshSnapshot(ctx context.Context) bool {
 	}
 	_, results := adkContext.Trace.Snapshot()
 	for _, result := range results {
-		if isGoalEvaluationTool(result.CapabilityName) && goalEvaluationStaleSubmissionError(result.ErrorCode) {
+		if isGoalEvaluationTool(result.CapabilityName) && goalEvaluationStaleSubmissionError(goalSubmissionReceiptCode(result)) {
 			return true
 		}
 	}
@@ -160,13 +160,17 @@ func goalEvaluationToolSchemas() (map[string]any, map[string]any, map[string]any
 		"blocker": stringSchema(), "wait_condition": stringSchema(), "next_step": stringSchema(), "next_review_at": stringSchema(), "residual_motivation": stringSchema(), "review": review,
 		"relationship_confirmation": objectSchema(map[string]any{"target_actor_ref": stringSchema(), "evidence_refs": arraySchema(stringSchema()), "label": stringSchema()}, []string{"target_actor_ref", "evidence_refs", "label"}, false),
 		"followup":                  objectSchema(map[string]any{"desired_outcome": stringSchema(), "success_criteria": arraySchema(stringSchema()), "motivation": stringSchema()}, []string{"desired_outcome", "success_criteria", "motivation"}, false),
-	}, []string{"goal_ref", "judgments", "impact", "blocker", "wait_condition", "next_step", "residual_motivation"}, false)
+	}, []string{"goal_ref", "judgments", "impact"}, false)
 	object := objectSchema(map[string]any{"goal_ref": stringSchema(), "object_kind": enumStringSchema("stage", "commitment"), "object_ref": stringSchema(), "judgments": arraySchema(j), "completed": booleanSchema(), "reason": stringSchema()}, []string{"goal_ref", "object_kind", "object_ref", "judgments", "completed", "reason"}, false)
 	stage := goalOperationPlanSchema(map[string]any{"object_ref": stringSchema(), "dependency_refs": arraySchema(stringSchema()), "purpose": stringSchema(), "strategy": stringSchema(), "entry_basis": stringSchema(), "exit_basis": stringSchema(), "criteria": arraySchema(stringSchema()), "reason": stringSchema()}, []string{"purpose", "strategy", "entry_basis", "exit_basis", "criteria", "reason"}, []string{"ref"}, []string{"adjust", "skip"})
-	mapValue(mapValue(arrayValue(stage["anyOf"])[1])["properties"])["object_ref"] = stringSchema()
+	for _, variant := range arrayValue(stage["anyOf"])[1:] {
+		mapValue(mapValue(variant)["properties"])["object_ref"] = stringSchema()
+	}
 	commitment := goalOperationPlanSchema(map[string]any{"object_ref": stringSchema(), "reason": stringSchema(), "expected_result": stringSchema(), "criteria": arraySchema(stringSchema()), "window_start": stringSchema(), "window_end": stringSchema(), "opportunity_condition": stringSchema(), "blocker": stringSchema()}, []string{"expected_result", "criteria", "opportunity_condition", "blocker"}, []string{"ref"}, []string{"adjust", "abandon"})
-	mapValue(mapValue(arrayValue(commitment["anyOf"])[1])["properties"])["object_ref"] = stringSchema()
-	plan := objectSchema(map[string]any{"goal_ref": stringSchema(), "reason": stringSchema(), "next_step": stringSchema(), "wait_condition": stringSchema(), "next_review_at": stringSchema(), "stage": stage, "commitment": commitment}, []string{"goal_ref", "reason", "next_step", "wait_condition"}, false)
+	for _, variant := range arrayValue(commitment["anyOf"])[1:] {
+		mapValue(mapValue(variant)["properties"])["object_ref"] = stringSchema()
+	}
+	plan := objectSchema(map[string]any{"goal_ref": stringSchema(), "reason": stringSchema(), "next_step": stringSchema(), "wait_condition": stringSchema(), "next_review_at": stringSchema(), "stage": stage, "commitment": commitment}, []string{"goal_ref", "reason"}, false)
 	return root, object, plan
 }
 
@@ -252,7 +256,7 @@ func (a *App) executeGoalEvaluationSubmissionTx(ctx context.Context, tx pgx.Tx, 
 	if prior, exists := records[key]; exists {
 		if _, _, err := a.goalSubmissionAuthorityTx(ctx, tx, s, entry, result); err != nil {
 			if goalSubmissionBusinessError(err) {
-				return failedCapabilityResult(inv, err.Error(), false), nil
+				return handledCapabilityResult(inv, err.Error(), "awaiting_state", map[string]any{"assessment_accepted": false}), nil
 			}
 			return CapabilityResult{}, err
 		}
@@ -272,7 +276,7 @@ func (a *App) executeGoalEvaluationSubmissionTx(ctx context.Context, tx pgx.Tx, 
 			return CapabilityResult{}, errors.Join(err, rollbackErr)
 		}
 		if goalSubmissionBusinessError(err) {
-			return failedCapabilityResultDetail(inv, err.Error(), false, "No change from this submission committed; correct this call using the frozen refs. Previously accepted submissions remain committed."), nil
+			return handledCapabilityResult(inv, err.Error(), "awaiting_evidence", map[string]any{"assessment_accepted": false, "retry_same_arguments": false}), nil
 		}
 		return CapabilityResult{}, err
 	}
@@ -280,7 +284,7 @@ func (a *App) executeGoalEvaluationSubmissionTx(ctx context.Context, tx pgx.Tx, 
 		return CapabilityResult{}, err
 	}
 	if output["assessment_accepted"] == false {
-		return goalToolResult(inv, output), nil
+		return handledCapabilityResult(inv, stringValue(output["reason"]), "awaiting_evidence", output), nil
 	}
 	output["capability_name"], output["submission_kind"], output["mutation_committed"] = inv.CapabilityName, goalSubmissionKind(inv.CapabilityName), true
 	records[key] = goalSubmissionRecord{Digest: digest, Output: output}
@@ -362,8 +366,13 @@ func (a *App) applyGoalSubmissionTx(ctx context.Context, tx pgx.Tx, s *goalEvalu
 		}
 		if candidate.Review != nil && candidate.Review.Decision == "adjust" {
 			if _, ok := records[goalSubmissionKey(goalPlanSubmit, entry.GoalID, "")]; !ok {
-				return nil, live, errors.New("goal_review_adjust_plan_required")
+				candidate.Review = nil
+				adaptations = append(adaptations, "review_awaiting_plan")
 			}
+		}
+		if candidate.NextStep == "" && candidate.WaitCondition == "" && candidate.Blocker == "" && candidate.NextReviewAt == nil && candidate.Impact != "completed" {
+			candidate.WaitCondition = "等待下一评估周期的可用证据"
+			adaptations = append(adaptations, "technical_wait")
 		}
 		next, err = a.commitGoalEvaluationTx(ctx, tx, live, candidate, sources, s.binding.snapshot.RequestID)
 		if err != nil {
@@ -373,7 +382,7 @@ func (a *App) applyGoalSubmissionTx(ctx context.Context, tx pgx.Tx, s *goalEvalu
 			if review.GoalID != entry.GoalID {
 				continue
 			}
-			if err := commitGoalReviewTx(ctx, tx, entry.Goal, review, candidate.Review, sources, candidate.NextStep, candidate.NextReviewAt); err != nil {
+			if err := commitGoalReviewRecoveringTx(ctx, tx, next, review, &candidate.Review, sources, candidate.NextStep, candidate.NextReviewAt); err != nil {
 				return nil, live, err
 			}
 			if candidate.Review != nil && ((next.Status == GoalActive && candidate.Review.Decision == "pause") || ((next.Status == GoalActive || next.Status == GoalPaused) && candidate.Review.Decision == "abandon")) {

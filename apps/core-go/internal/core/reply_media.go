@@ -288,16 +288,22 @@ func (s *factOnlyReplyService) resumeMedia(ctx context.Context, inv CapabilityIn
 	}
 	if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
 		invocations, results := bridge.Trace.Snapshot()
-		failed := map[string]bool{}
+		type terminalAction struct{ status, code string }
+		terminal := map[string]terminalAction{}
 		for _, result := range results {
-			if result.CapabilityName == "media.image.generate" && (result.Status == "failed" || result.Status == "rejected") {
-				failed[result.CallID] = true
+			if result.CapabilityName != "media.image.generate" {
+				continue
+			}
+			if result.Status == "handled" {
+				terminal[result.CallID] = terminalAction{"unavailable", firstString(mapValue(result.Output)["warning_code"], "media_action_unavailable")}
+			} else if result.Status == "failed" || result.Status == "rejected" {
+				terminal[result.CallID] = terminalAction{"failed", firstString(result.ErrorCode, "media_action_failed")}
 			}
 		}
 		for _, action := range invocations {
 			args := decodeObject(action.Arguments)
-			if failed[action.CallID] && stringValue(args["draft_ref"]) == ref {
-				if _, err := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_actions SET status='failed',error_code='media_action_failed' WHERE ref=$1 AND draft_id=$2 AND status='requested'`, stringValue(args["media_request_ref"]), ref); err != nil {
+			if state, ok := terminal[action.CallID]; ok && stringValue(args["draft_ref"]) == ref {
+				if _, err := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_actions SET status=$3,error_code=$4 WHERE ref=$1 AND draft_id=$2 AND status='requested'`, stringValue(args["media_request_ref"]), ref, state.status, state.code); err != nil {
 					return stored, err
 				}
 			}
@@ -317,16 +323,20 @@ func (s *factOnlyReplyService) resumeMedia(ctx context.Context, inv CapabilityIn
 		return stored, newCapabilityError("reply_media_handoffs_exhausted", false, ErrConflict)
 	}
 	owner := randomID("reply_adjust_")
-	tag, err := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_drafts SET generation_owner=$2,generation_until=now()+make_interval(secs=>$3) WHERE id=$1 AND status IN ('needs_action','waiting_media') AND resume_attempts<$4 AND (generation_owner IS NULL OR generation_until<=now()) AND expires_at>now()`, ref, owner, run.Settings.TimeoutSeconds, run.Settings.MaxActionHandoffs)
+	var generationUntil time.Time
+	err = s.app.DB.Pool().QueryRow(ctx, `UPDATE public.conversation_reply_drafts SET generation_owner=$2,generation_until=now()+make_interval(secs=>$3) WHERE id=$1 AND status IN ('needs_action','waiting_media') AND resume_attempts<$4 AND (generation_owner IS NULL OR generation_until<=now()) AND expires_at>now() RETURNING generation_until`, ref, owner, run.Settings.TimeoutSeconds, run.Settings.MaxActionHandoffs).Scan(&generationUntil)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return stored, newCapabilityError("reply_adjustment_in_progress", true, ErrConflict)
+	}
 	if err != nil {
 		return stored, err
 	}
-	if tag.RowsAffected() != 1 {
-		return stored, newCapabilityError("reply_adjustment_in_progress", true, ErrConflict)
-	}
+	ctx, generationCancel := context.WithDeadline(ctx, generationUntil)
+	defer generationCancel()
 	run.mu.Lock()
 	run.ActionFacts = states
 	run.ActionDraftText = stored.Text
+	run.GenerationOwner = owner
 	run.mu.Unlock()
 	adjusted, err := s.generate(ctx, inv, run, ref, nil)
 	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
@@ -343,7 +353,10 @@ func (s *factOnlyReplyService) resumeMedia(ctx context.Context, inv CapabilityIn
 			adjusted.AttachmentRefs = append(adjusted.AttachmentRefs, state.AssetID)
 		}
 	}
-	tag, err = s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_drafts SET payload=$3,status='ready',resume_attempts=resume_attempts+1,generation_owner=NULL,generation_until=NULL,updated_at=now() WHERE id=$1 AND generation_owner=$2 AND generation_until>now()`, ref, owner, jsonBytes(adjusted))
+	adjusted.Candidates = append(append([]ReplyStyleTrace(nil), stored.Candidates...), adjusted.Candidates...)
+	adjusted.Style.RepairCount += stored.Style.RepairCount
+	bindingPatch := effectiveReplyBindingPatch(run)
+	tag, err := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_drafts SET payload=$3,binding_snapshot=binding_snapshot||$4::jsonb,status='ready',resume_attempts=resume_attempts+1,generation_owner=NULL,generation_until=NULL,updated_at=now() WHERE id=$1 AND generation_owner=$2 AND generation_until>now()`, ref, owner, jsonBytes(adjusted), jsonBytes(bindingPatch))
 	if err == nil && tag.RowsAffected() != 1 {
 		err = errors.New("reply_adjustment_lease_lost")
 	}

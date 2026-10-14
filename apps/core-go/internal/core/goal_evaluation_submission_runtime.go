@@ -17,14 +17,19 @@ func (a *App) recordGoalEvaluationSubmissionErrors(ctx context.Context, snapshot
 	_, receipts := trace.Snapshot()
 	errors := []map[string]any{}
 	for _, receipt := range receipts {
-		if isGoalEvaluationTool(receipt.CapabilityName) && receipt.ErrorCode != "" {
-			errors = append(errors, map[string]any{"call_id": receipt.CallID, "capability_name": receipt.CapabilityName, "status": receipt.Status, "error_code": receipt.ErrorCode})
+		code := goalSubmissionReceiptCode(receipt)
+		if isGoalEvaluationTool(receipt.CapabilityName) && code != "" {
+			errors = append(errors, map[string]any{"call_id": receipt.CallID, "capability_name": receipt.CapabilityName, "status": receipt.Status, "error_code": code})
 		}
 	}
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	_, err := a.DB.Pool().Exec(recordCtx, `UPDATE public.goal_evaluation_requests SET result=jsonb_set(result,'{submission_errors}',$3::jsonb,true),updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$2`, snapshot.RequestID, snapshot.ClaimRevision, jsonBytes(errors))
 	return err
+}
+
+func goalSubmissionReceiptCode(result CapabilityResult) string {
+	return firstString(result.ErrorCode, stringValue(mapValue(result.Output)["warning_code"]))
 }
 
 func (a *App) goalEvaluationSubmissionResult(ctx context.Context, snapshot goalEvaluationSnapshot) (map[string]any, error) {

@@ -2,6 +2,12 @@
 
 ## Required Patterns
 
+- Apply [Tool Availability](./tool-availability-contract.md) to internal Tool
+  calls. Recover ordinary domain preconditions with truthful handled receipts,
+  refresh stale projections, and settle preclaimed attempts as suppressed. Keep
+  real transaction/Provider/cancel/ownership failures distinct; explain any
+  retained gate by Tool, condition, effect prerequisite and alternative receipt.
+
 - Validate IDs, required text, cursor/query shape, and JSON body types at the
   Go browser boundary route boundary before calling Core.
 - Keep browser camelCase↔Core snake_case mappings explicit per route. Do not

@@ -484,12 +484,12 @@ func TestGoalPlannerFinalWithoutQueryStopsInsteadOfRetryingSameRun(t *testing.T)
 	})}
 	for i := 0; i < 3; i++ {
 		result, err := f.app.ProcessGoalPlanningIntent(f.ctx, runID)
-		if err != nil || result["status"] != "failed" || result["reason"] != "goal_planner_query_results_missing" || calls != 1 {
+		if err != nil || result["decision"] != "no_viable_candidate" || calls != 1 {
 			t.Fatalf("contract replay=%d result=%#v calls=%d err=%v", i, result, calls, err)
 		}
 	}
 	var status string
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.goal_planning_runs WHERE id=$1`, runID).Scan(&status); err != nil || status != "failed" {
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.goal_planning_runs WHERE id=$1`, runID).Scan(&status); err != nil || status != "succeeded" {
 		t.Fatalf("durable failure status=%s err=%v", status, err)
 	}
 }

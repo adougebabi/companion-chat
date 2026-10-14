@@ -1,8 +1,8 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend ownership and check entry points"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Local quality gate and no production DB testing"}
-{"file": ".trellis/spec/backend/goal-planner-contract.md", "reason": "Existing Planner authority; F15 overrides historical trigger/full suggestions exceptions"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-evaluation-authority-contract.md", "reason": "Verbatim Goal authority/private Tool/cadence/recovery contracts below injection byte limit, updated for F15/F16"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/goal-cadence-followup.md", "reason": "F15 latest authoritative 30min/vacancy requirements and scoped implementation plan"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-cadence-audit.md", "reason": "Verified source entry points, prior user decisions, migration and regression seams"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/goal-submission-recovery-followup.md", "reason": "F16 user-authorized deterministic program fallback and finite Goal Evaluation handling; overrides model-representation conflict errors"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-submission-audit.md", "reason": "Confirmed immutable baseline roots and current source anchors; preserve authorization/evidence/partial journal"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend ownership and quality entry points"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Truthful fallback and controlled verification"}
+{"file": ".trellis/spec/backend/tool-availability-contract.md", "reason": "F18 executable handled/recovery/rollback/refresh and retained conditions; supersedes older blanket gates"}
+{"file": ".trellis/spec/backend/fact-only-reply-contract.md", "reason": "F17 Writer scope and cache/publication invariants"}
+{"file": ".trellis/spec/backend/kev-decision-contract.md", "reason": "Existing adapter audit; F18 supersedes disclosure-as-execution-permission gates"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/tool-availability-followup.md", "reason": "F18 latest policy, handled/no-effect contract and staged ownership"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/reply-evidence-followup.md", "reason": "F17 optional reference reconciliation"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/reply-evidence-binding-audit.md", "reason": "Verified reply binding/live mismatch causes"}

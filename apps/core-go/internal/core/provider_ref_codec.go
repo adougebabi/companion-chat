@@ -183,6 +183,34 @@ func (codec *providerContextRefCodec) decodeArguments(raw json.RawMessage) (json
 	return encoded, nil
 }
 
+// Only optional Fact-only evidence hints may remain unresolved for the scoped
+// evidence reconciler. Draft/action/target references still use strict decoding.
+func (codec *providerContextRefCodec) decodeReplyArguments(raw json.RawMessage) (json.RawMessage, error) {
+	var args map[string]any
+	if err := json.Unmarshal(raw, &args); err != nil {
+		return nil, err
+	}
+	refs, present := args["evidence_refs"]
+	delete(args, "evidence_refs")
+	decoded, err := codec.decode(args)
+	if err != nil {
+		return nil, err
+	}
+	if present {
+		values := []any{}
+		for _, ref := range arrayValue(refs) {
+			value, decodeErr := codec.decode(map[string]any{"evidence_ref": ref})
+			if decodeErr != nil {
+				values = append(values, ref)
+			} else {
+				values = append(values, mapValue(value)["evidence_ref"])
+			}
+		}
+		mapValue(decoded)["evidence_refs"] = values
+	}
+	return json.Marshal(decoded)
+}
+
 func (codec *providerContextRefCodec) currentIndex() ContextReferenceIndex {
 	index := ContextReferenceIndex{ByRef: map[string]ContextReference{}}
 	if codec == nil {

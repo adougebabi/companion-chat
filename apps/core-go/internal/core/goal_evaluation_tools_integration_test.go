@@ -187,7 +187,7 @@ func TestGoalEvaluationNativePersistenceSurvivesRejectedStageAndReplaysOnce(t *t
 		}
 	}
 	var failures int
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND result->>'error_code'='goal_judgment_self_report_not_business_fact'`, f.fluctlightID, goalObjectSubmit).Scan(&failures); err != nil || failures != 1 {
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND result->>'status'='handled' AND result->'output'->>'warning_code'='goal_judgment_self_report_not_business_fact'`, f.fluctlightID, goalObjectSubmit).Scan(&failures); err != nil || failures != 1 {
 		t.Fatal("rejection receipt lost", failures, err)
 	}
 }

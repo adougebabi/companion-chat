@@ -45,12 +45,12 @@ func (c goalPlannerQueryCapability) Execute(ctx context.Context, inv CapabilityI
 
 func (c goalPlannerCapability) Definition() CapabilityDefinition {
 	kind := CapabilityTypeQuery
-	schema := objectSchema(map[string]any{"section": enumStringSchema("snapshot", "actor", "history", "persona", "life", "triggers", "goal"), "actor_id": stringSchema(), "goal_id": stringSchema(), "query": stringSchema(), "cursor": integerSchema()}, []string{"section"}, false)
+	schema := objectSchema(map[string]any{"section": withToolDefault(enumStringSchema("snapshot", "actor", "history", "persona", "life", "triggers", "goal"), "snapshot"), "actor_id": stringSchema(), "goal_id": stringSchema(), "query": stringSchema(), "cursor": integerSchema()}, []string{"section"}, false)
 	side, boundary, concurrency := "read_only", "query_result_available", "parallel"
 	if c.name == goalPlannerCommit {
 		kind = CapabilityTypeAction
 		side, boundary, concurrency = "native_projection", "goal_set_committed", "exclusive"
-		schema = objectSchema(map[string]any{"expected_version": integerSchema(), "expected_facts_revision": stringSchema(), "idempotency_key": stringSchema(), "reason": stringSchema(), "changes": map[string]any{"type": "array", "maxItems": 20, "items": objectSchema(map[string]any{"id": stringSchema(), "operation": enumStringSchema("create", "pause", "resume"), "expected_revision": integerSchema(), "desired_outcome": stringSchema(), "success_criteria": arraySchema(stringSchema()), "motivation": stringSchema(), "target_actor_id": stringSchema(), "activate": booleanSchema(), "source": openObjectSchema(), "scope": enumStringSchema("general", "personal", "relationship"), "deadline": stringSchema(), "deadline_policy": enumStringSchema("soft", "hard")}, []string{"id", "operation"}, false)}, "dependencies": openObjectSchema(), "order": arraySchema(stringSchema()), "reviewed_goal_ids": arraySchema(stringSchema()), "decision": stringSchema()}, []string{"expected_version", "expected_facts_revision", "idempotency_key", "reason"}, false)
+		schema = objectSchema(map[string]any{"expected_version": integerSchema(), "expected_facts_revision": stringSchema(), "idempotency_key": stringSchema(), "reason": stringSchema(), "changes": map[string]any{"type": "array", "maxItems": 20, "items": objectSchema(map[string]any{"id": stringSchema(), "operation": enumStringSchema("create", "pause", "resume"), "expected_revision": integerSchema(), "desired_outcome": stringSchema(), "success_criteria": arraySchema(stringSchema()), "motivation": stringSchema(), "target_actor_id": stringSchema(), "activate": booleanSchema(), "source": openObjectSchema(), "scope": enumStringSchema("general", "personal", "relationship"), "deadline": stringSchema(), "deadline_policy": enumStringSchema("soft", "hard")}, []string{"id", "operation"}, false)}, "dependencies": openObjectSchema(), "order": arraySchema(stringSchema()), "reviewed_goal_ids": arraySchema(stringSchema()), "decision": stringSchema()}, []string{"reason"}, false)
 	}
 	return CapabilityDefinition{Name: c.name, Version: "v1", Type: kind, Description: map[bool]string{true: "Read authoritative planning snapshot, relevant Actor facts/relationships, stable persona or bounded history. Use actual results before deciding; history query/cursor is required for duplicate comparison.", false: "Atomically apply the goal set using expected snapshot versions and trusted run permission. No completion, evidence, external actions or relationship editing. Read snapshot after submission."}[kind == CapabilityTypeQuery], Surfaces: []CapabilitySurface{CapabilitySurfaceGoalPlanner}, FailurePolicy: FailurePolicyOptionalInternal, InputSchema: schema, OutputSchema: openObjectSchema(), SideEffectClass: side, SuccessBoundary: boundary, ConcurrencyClass: concurrency, SupportsRetry: true}
 }
@@ -215,6 +215,10 @@ func (a *App) executeGoalPlannerCommitTx(ctx context.Context, tx pgx.Tx, inv Cap
 	if err != nil {
 		return failedCapabilityResult(inv, "invalid_arguments", false), err
 	}
+	args = bindGoalPlannerMetadata(ctx, inv, args)
+	if args["expected_version"] == nil || stringValue(args["expected_facts_revision"]) == "" {
+		return handledCapabilityResult(inv, "planner_snapshot_required", "needs_input", map[string]any{"query_section": "snapshot"}), nil
+	}
 	var cmd GoalSetCommand
 	if json.Unmarshal(jsonBytes(args), &cmd) != nil {
 		return failedCapabilityResult(inv, "invalid_arguments", false), ErrInvalidArguments
@@ -288,7 +292,7 @@ func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, ru
 		return nil, errors.New("goal_planner_trace_missing")
 	}
 	calls, results := run.Trace.Snapshot()
-	queries, commits, afterCommit := goalPlannerQueryCoverage(run.Trace)
+	queries, commits, _ := goalPlannerQueryCoverage(run.Trace)
 	decision := stringValue(run.Completion.Structured["decision"])
 	if strings.TrimSpace(stringValue(run.Completion.Structured["reason"])) == "" || len([]rune(stringValue(run.Completion.Structured["reason"]))) > 2000 {
 		return nil, errors.New("goal_planner_reason_required")
@@ -297,16 +301,22 @@ func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, ru
 		return nil, errors.New("goal_planner_review_condition_required")
 	}
 
+	result := cloneMap(run.Completion.Structured)
+	warnings := []string{}
 	if queries < 2 {
-		return nil, errors.New("goal_planner_query_results_missing")
+		warnings = append(warnings, "planner_query_coverage_advisory")
 	}
-	if (commits > 0 && !afterCommit) || (decision == "applied" && (mode != "apply" || commits == 0)) {
-		return nil, errors.New("goal_planner_durable_result_missing")
+	if decision == "applied" && (mode != "apply" || commits == 0) {
+		result["decision"] = "awaiting_facts"
+		result["review_condition"] = "等待真实提交结果；本次没有已提交目标变更"
+		warnings = append(warnings, "planner_no_committed_effect")
 	}
 	if commits > 0 && decision != "applied" && decision != "no_change" {
-		return nil, errors.New("goal_planner_commit_summary_mismatch")
+		result["decision"] = "applied"
+		warnings = append(warnings, "planner_summary_reconciled_to_receipts")
 	}
-	result := run.Completion.Structured
+	result["warnings"] = warnings
+
 	fresh, err := readGoalSetWith(ctx, a.DB.Pool(), owner, profile)
 	if err != nil {
 		return nil, err
@@ -661,7 +671,7 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 			// an old failed run or consuming the pending private evidence.
 			id := randomID("goal_planner_due_")
 			tag, err := tx.Exec(ctx, `INSERT INTO public.goal_planning_runs(id,fluctlight_id,watermark,available_at)
-             SELECT $2,$1,COALESCE((SELECT max(seq) FROM public.goal_planning_events WHERE fluctlight_id=$1),0),now()
+             SELECT $2,$1::varchar,COALESCE((SELECT max(seq) FROM public.goal_planning_events WHERE fluctlight_id=$1),0),now()
              WHERE NOT EXISTS(SELECT 1 FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status IN ('pending','processing','retry'))
              AND (SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='active')<(SELECT max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1)
              AND EXISTS(SELECT 1 FROM public.goal_planner_episode_keys($1,COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1),'default'),COALESCE((SELECT max(seq) FROM public.goal_planning_events WHERE fluctlight_id=$1),0))) ON CONFLICT DO NOTHING`, owner, id)

@@ -12,14 +12,23 @@ type ReplyMediaRequest struct {
 	Intent string `json:"intent"`
 }
 type ReplyDraft struct {
-	AttachmentRefs []string            `json:"attachment_refs,omitempty"`
-	Text           string              `json:"text"`
-	MediaRequests  []ReplyMediaRequest `json:"media_requests,omitempty"`
-	Mode           string              `json:"mode"`
-	ModelRef       string              `json:"model_ref"`
-	ConfigVersion  int64               `json:"config_version"`
-	LifeRevision   string              `json:"life_revision,omitempty"`
-	FactsRevision  string              `json:"facts_revision,omitempty"`
+	AttachmentRefs    []string                `json:"attachment_refs,omitempty"`
+	Text              string                  `json:"text"`
+	MediaRequests     []ReplyMediaRequest     `json:"media_requests,omitempty"`
+	Mode              string                  `json:"mode"`
+	ModelRef          string                  `json:"model_ref"`
+	ConfigVersion     int64                   `json:"config_version"`
+	LifeRevision      string                  `json:"life_revision,omitempty"`
+	FactsRevision     string                  `json:"facts_revision,omitempty"`
+	ExpressionVersion string                  `json:"expression_version,omitempty"`
+	Expression        ReplyExpressionContract `json:"expression_contract,omitempty"`
+	Style             ReplyStyleTrace         `json:"style,omitempty"`
+	Candidates        []ReplyStyleTrace       `json:"candidates,omitempty"`
+	RawCandidate      string                  `json:"raw_candidate,omitempty"`
+	FinishReason      string                  `json:"finish_reason,omitempty"`
+	ProviderUsage     map[string]any          `json:"provider_usage,omitempty"`
+	CommittedText     string                  `json:"committed_text,omitempty"`
+	CommittedMetadata map[string]any          `json:"committed_metadata,omitempty"`
 }
 
 func parseReplyDraft(text string) (ReplyDraft, error) {
@@ -99,14 +108,16 @@ func normalizeReplyText(text string) string {
 }
 
 type ConversationReplyTaskInput struct {
-	Context       ReplyContextInput
-	Assignment    providerAssignment
-	ConfigVersion int64
-	CorrelationID string
-	ParentRunID   string
-	DraftRef      string
-	Concurrency   int
-	Mode          string
+	Context          ReplyContextInput
+	Assignment       providerAssignment
+	ConfigVersion    int64
+	CorrelationID    string
+	ParentRunID      string
+	DraftRef         string
+	Concurrency      int
+	Mode             string
+	ClaimStyleRepair func(context.Context, ReplyStyleTrace) error
+	RecordStyleTrace func(context.Context, ReplyStyleTrace)
 }
 
 // Clear parent model/tool policy while retaining authorization, logical lease,
@@ -129,8 +140,16 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	ctx = WithProviderAttemptIdentity(ctx, "")
 	ctx = withProviderCapacity(ctx, conversationReplyModelRole, max(1, input.Concurrency))
 	imageTool := &replyImageRequestTool{}
+	if a.DB == nil || a.DB.Pool() == nil {
+		input.Context.CapabilityFacts = cloneMap(input.Context.CapabilityFacts)
+		delete(input.Context.CapabilityFacts, "persona_detail_registered")
+	}
 	definitions := replyWriterDefinitions(input.Context)
-	registry, err := NewCapabilityRegistry(imageTool)
+	capabilities := []Capability{imageTool}
+	if input.Context.CapabilityFacts["persona_detail_registered"] == true {
+		capabilities = append(capabilities, personaDetailCapability{service: newPersonaDetailService(a)})
+	}
+	registry, err := NewCapabilityRegistry(capabilities...)
 	if err != nil {
 		return ReplyDraft{}, err
 	}
@@ -140,39 +159,59 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 		return ReplyDraft{}, err
 	}
 	diagnostics := cloneMap(prompt.Diagnostics)
+	contract, err := replyExpressionContract(input.Context.ExpressionVersion)
+	if err != nil {
+		return ReplyDraft{}, err
+	}
 	for key, value := range map[string]any{"run_id": input.CorrelationID, "parent_run_id": input.ParentRunID,
-		"draft_ref": input.DraftRef, "reply_mode": firstString(input.Mode, "fact_only"), "output_scene": firstString(input.Context.Scene, "private_reply"), "effective_binding_role": input.Assignment.Role, "config_version": input.ConfigVersion, "prompt_version": factOnlyReplyPromptVersion, "prompt_budget": prompt.Trace} {
+		"draft_ref": input.DraftRef, "reply_mode": firstString(input.Mode, "fact_only"), "output_scene": firstString(input.Context.Scene, "private_reply"), "effective_binding_role": input.Assignment.Role, "config_version": input.ConfigVersion, "prompt_version": contract.Version, "style_repair": input.Context.StyleRepair, "prompt_budget": prompt.Trace} {
 		diagnostics[key] = value
 	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)
-	result, err := a.RunFormalAgent(ctx, FormalAgentConversationReply, FormalAgentRunInput{Prompt: prompt, SchemaName: "conversation_reply_text", Definitions: definitions, Invoker: replyImageRequestInvoker{tool: imageTool}})
+	invoker := &replyWriterInvoker{image: replyImageRequestInvoker{tool: imageTool}, app: a, input: input}
+	result, err := a.RunFormalAgent(ctx, FormalAgentConversationReply, FormalAgentRunInput{Prompt: prompt, SchemaName: "conversation_reply_text", Definitions: definitions, Invoker: invoker})
 	if err != nil {
 		return ReplyDraft{}, err
 	}
-	if result.Completion.FinishReason != "stop" {
-		return ReplyDraft{}, errors.New("reply_generation_incomplete")
-	}
-	if input.Assignment.Secret != "" && strings.Contains(result.Completion.Text, input.Assignment.Secret) {
-		return ReplyDraft{}, errors.New("reply_secret_leak_rejected")
-	}
-	draft, err := parseReplyDraft(result.Completion.Text)
+	draft, err := decodeReplyCompletion(result.Completion, input.Context, imageTool.requests, input.Assignment.Secret)
 	if err != nil {
 		return draft, err
 	}
-	if len(draft.MediaRequests) > 0 && len(imageTool.requests) == 0 {
-		return ReplyDraft{}, errors.New("reply_media_request_invalid")
+	draft.ExpressionVersion, draft.Expression = contract.Version, contract
+	if !input.Context.StyleRepair && input.Context.Scene != replySceneMoment && contract.Version == factOnlyReplyPromptVersion {
+		draft, err = a.validateAndRepairReplyStyle(ctx, input, draft, result.Completion.Text)
+		if err != nil {
+			return draft, err
+		}
 	}
-	// Native receipts own every fresh handoff; JSON cannot add requests. The
-	// envelope decoder still reads stored drafts from the earlier protocol.
-	draft.MediaRequests = append([]ReplyMediaRequest(nil), imageTool.requests...)
-	if err := validateReplyMediaProse(draft, input.Context); err != nil {
-		return ReplyDraft{}, err
-	}
-	a.recordDiagnosticEvent(withProviderDiagnosticSecrets(ctx, input.Assignment.Secret), "reply.draft.prepared", "info", input.Context.Projection.FluctlightID, input.DraftRef, input.CorrelationID, map[string]any{"parent_run_id": input.ParentRunID, "draft_ref": input.DraftRef, "stage": "private_draft", "visibility": "not_published", "text": draft.Text, "media_requests": draft.MediaRequests, "reply_mode": firstString(input.Mode, "fact_only"), "config_version": input.ConfigVersion})
+	a.recordDiagnosticEvent(withProviderDiagnosticSecrets(ctx, input.Assignment.Secret), "reply.draft.prepared", "info", input.Context.Projection.FluctlightID, input.DraftRef, input.CorrelationID, map[string]any{"parent_run_id": input.ParentRunID, "draft_ref": input.DraftRef, "stage": "private_draft", "visibility": "not_published", "text": draft.Text, "media_requests": draft.MediaRequests, "style": draft.Style, "prompt_version": contract.Version, "reply_mode": firstString(input.Mode, "fact_only"), "config_version": input.ConfigVersion})
 	draft.Mode = firstString(input.Mode, "fact_only")
 	draft.ModelRef = input.Assignment.ModelID
 	draft.ConfigVersion = input.ConfigVersion
 	return draft, nil
+}
+
+func decodeReplyCompletion(completion ProviderCompletion, input ReplyContextInput, requests []ReplyMediaRequest, secret string) (ReplyDraft, error) {
+	if secret != "" && strings.Contains(completion.Text, secret) {
+		return ReplyDraft{}, errors.New("reply_secret_leak_rejected")
+	}
+	draft := ReplyDraft{RawCandidate: completion.Text, FinishReason: completion.FinishReason, ProviderUsage: cloneMap(completion.Usage)}
+	if completion.FinishReason != "stop" {
+		return draft, errors.New("reply_generation_incomplete")
+	}
+	parsed, err := parseReplyDraft(completion.Text)
+	parsed.RawCandidate, parsed.FinishReason, parsed.ProviderUsage = draft.RawCandidate, draft.FinishReason, draft.ProviderUsage
+	if err != nil {
+		return parsed, err
+	}
+	if len(parsed.MediaRequests) > 0 && len(requests) == 0 {
+		return parsed, errors.New("reply_media_request_invalid")
+	}
+	parsed.MediaRequests = append([]ReplyMediaRequest(nil), requests...)
+	if err := validateReplyMediaProse(parsed, input); err != nil {
+		return parsed, err
+	}
+	return parsed, nil
 }
 
 func validateReplyMediaProse(draft ReplyDraft, input ReplyContextInput) error {

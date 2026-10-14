@@ -75,12 +75,18 @@
     "apps/core-go/internal/core/goal_evaluation_submission_runtime.go",
     "apps/core-go/internal/core/goal_planner.go",
     "apps/core-go/internal/migrations/goal_agent_cadence.go",
-    "apps/core-go/internal/migrations/runner.go"
+    "apps/core-go/internal/migrations/runner.go",
+    ".trellis/spec/backend/tool-availability-contract.md",
+    ".trellis/tasks/10-14-fact-only-context-settlement/tool-availability-audit.md",
+    "apps/core-go/internal/capability/handled.go",
+    "apps/core-go/internal/core/tool_business_recovery.go",
+    "apps/core-go/internal/core/tool_semantic_recovery.go"
   ],
-  "notes": "F14 committed by user as ec1ed82. F15 30min/vacancy admission and F16 deterministic submission recovery implemented; independent check and final local gates pass. Current follow-up uncommitted; real PostgreSQL/live runtime verification remains unavailable. No push/deploy/workflow operations.",
+  "notes": "F14 committed ec1ed82; F15/F16 committed b24fdd1 by user. F17/F18 implemented on same branch: 49-name audit, truthful handled receipts, optional reply evidence recovery, Goal Review/schema and domain fallbacks. Main performs edits/final verification; independent agents read-only. Task-owned disposable PG exercised new persistence/race cases; exploratory full-PG suite is not all green and baseline comparison is recorded separately. User authorized committing F17/F18 together with the private-chat implementation; no push/deploy/real workflow operations; user runtime acceptance pending.",
   "meta": {
     "work_commit_approval": "用户：提交吧",
     "capacity_followup": "Committed in ec1ed82 by user.",
-    "goal_runtime_followup": "F15/F16 local implementation/check complete; commit pending one-shot approval; DB integration SKIP."
+    "goal_runtime_followup": "F15/F16 committed in b24fdd1. F18 additionally exercises cadence on disposable PG; no runtime admission removed.",
+    "tool_availability_followup": "F17/F18 implemented; final owned snapshot full/default/race gates pass, 92 focused PG/race passes plus 10 integrity passes. Full PG not all green; 24 observed current-only cases re-executed and pass. Concurrent private-chat/shared-file changes excluded by hunk patch. Commit authorized by user together with private-chat task; live acceptance pending; temporary PG stopped/removed."
   }
 }

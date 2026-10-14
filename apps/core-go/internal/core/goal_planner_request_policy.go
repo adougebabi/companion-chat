@@ -16,11 +16,50 @@ func (goalPlannerPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.C
 	if !ok || adk.Trace == nil {
 		return physicalModelRequestDecision{}, errors.New("goal_planner_trace_missing")
 	}
-	queries, commits, reread := goalPlannerQueryCoverage(adk.Trace)
-	if queries < 2 || (commits > 0 && !reread) {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, AllowedToolNames: []string{goalPlannerQuery}}, nil
-	}
 	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+}
+
+// Missing technical metadata is bound to the actual snapshot already consumed
+// by this run. Never replace stale model intent with the latest database fence.
+func bindGoalPlannerMetadata(ctx context.Context, inv CapabilityInvocation, args map[string]any) map[string]any {
+	out := cloneMap(args)
+	if stringValue(out["idempotency_key"]) == "" {
+		out["idempotency_key"] = "planner:" + capabilityOperationID(inv)
+	}
+	adk, ok := adkCapabilityContext(ctx)
+	if !ok || adk.Trace == nil {
+		return out
+	}
+	calls, results := adk.Trace.Snapshot()
+	current, currentKnown := adk.Trace.ModelIdentity(inv.CallID)
+	if !currentKnown {
+		return out
+	}
+	queries := map[string]bool{}
+	for _, call := range calls {
+		if call.CapabilityName == goalPlannerQuery && stringValue(decodeObject(call.Arguments)["section"]) == "snapshot" {
+			queries[call.CallID] = true
+		}
+	}
+	for i := len(results) - 1; i >= 0; i-- {
+		result := results[i]
+		if result.CapabilityName != goalPlannerQuery || result.Status != "completed" || !queries[result.CallID] {
+			continue
+		}
+		identity, known := adk.Trace.ModelIdentity(result.CallID)
+		if !known || identity.ModelCallSequence >= current.ModelCallSequence {
+			continue
+		}
+		snapshot := mapValue(result.Output)
+		if out["expected_version"] == nil {
+			out["expected_version"] = snapshot["revision"]
+		}
+		if stringValue(out["expected_facts_revision"]) == "" {
+			out["expected_facts_revision"] = snapshot["facts_revision"]
+		}
+		break
+	}
+	return out
 }
 
 // A read emitted beside a commit is not a post-commit snapshot, even if its

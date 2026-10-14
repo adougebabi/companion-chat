@@ -369,13 +369,14 @@ func TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion(t
 		t.Fatal(err)
 	}
 	finalizeRequest := fixture.request(visualIdentityFinalizeCapabilityName, "visual-finalize", map[string]any{})
-	if missingReceipt, missingErr := fixture.app.ExecuteTool(fixture.ctx, finalizeRequest); missingErr == nil || missingReceipt.Result.Status != "failed" || missingReceipt.Result.ErrorCode != "visual_identity_character_sheet_asset_load_failed" {
+	if missingReceipt, missingErr := fixture.app.ExecuteTool(fixture.ctx, finalizeRequest); missingErr != nil || missingReceipt.Result.Status != "handled" || goalSubmissionReceiptCode(missingReceipt.Result) != "visual_identity_character_sheet_asset_load_failed" {
 		t.Fatalf("missing character asset receipt=%#v err=%v", missingReceipt, missingErr)
 	}
 	characterAssetID := "asset_" + characterIntentID
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) SELECT $2,owner_fluctlight_id,'v1','image','image/png',68,$3,'visual-test-bucket',$4,provider_request_id,workflow_id,'ready',now() FROM public.media_intents WHERE id=$1`, characterIntentID, characterAssetID, stableDigest(characterAssetID), "visual/"+characterAssetID+".png"); err != nil {
 		t.Fatal(err)
 	}
+	finalizeRequest.OperationID += "-asset-ready"
 	finalized, err := fixture.app.ExecuteTool(fixture.ctx, finalizeRequest)
 	if err != nil || finalized.Result.Status != "completed" || stringValue(mapValue(finalized.Result.Output)["character_sheet_asset_id"]) != characterAssetID {
 		t.Fatalf("finalize receipt=%#v err=%v", finalized, err)

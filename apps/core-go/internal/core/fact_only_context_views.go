@@ -61,6 +61,9 @@ func factOnlyContextFacts(projection ContextProjection, cognition bool) factOnly
 	}
 	if len(projection.CommunicationState) > 0 {
 		facts["communication_state"] = factOnlyFields(projection.CommunicationState, "channel", "remote", "meeting_confirmed", "relationship_distance")
+		if projection.CommunicationState["channel_source"] == "validated_private_conversation" {
+			facts["communication_state"] = privateChatCommunicationView(projection)
+		}
 	}
 	var relationships []map[string]any
 	for _, row := range selectActiveProfileRelationships(projection.Relationships, profile) {

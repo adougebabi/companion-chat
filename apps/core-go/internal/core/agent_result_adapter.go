@@ -666,7 +666,8 @@ func (a *App) agentSettlementAuthorityRevisionsTx(ctx context.Context, tx pgx.Tx
 	firstInvocation := 0
 	if start := projection.AuthorityAtRunStart; start != nil && start.AfterRecoveryCallID != "" {
 		rejected, found := resultByCall[start.StaleReplyCallID]
-		if !found || rejected.CapabilityName != conversationReplyCapabilityName || rejected.Status != "failed" || rejected.ErrorCode != "life_context_stale" {
+		legacyStale := rejected.Status == "failed" && rejected.ErrorCode == "life_context_stale"
+		if !found || rejected.CapabilityName != conversationReplyCapabilityName || (!legacyStale && !handledStaleReplyRecovery(rejected)) {
 			return 0, 0, "", "", errors.New("agent_recovery_anchor_invalid")
 		}
 		boundary, rejection := -1, -1

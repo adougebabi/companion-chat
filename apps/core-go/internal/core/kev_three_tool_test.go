@@ -99,7 +99,7 @@ func TestKevObservedRevocationCannotReturnAfterReadFailure(t *testing.T) {
 			settings.mu.Unlock()
 			defs, err := state.definitions(context.Background())
 			item, _ := state.availabilityFor(context.Background(), "optional")
-			if err != nil || len(defs) != 1 || state.permits(context.Background(), "optional") || item.ErrorCode != "tool_selection_changed" {
+			if err != nil || len(defs) != 1 || !state.permits(context.Background(), "optional") || item.WarningCode != "tool_selection_changed" || item.Status != "available" {
 				t.Fatalf("revoked window resurrected: %v %+v %v", toolNamesForTest(defs), item, err)
 			}
 			settings.mu.Lock()
@@ -147,7 +147,7 @@ func TestKevStableDisabledNamedCatalogLoadsRequestedTools(t *testing.T) {
 				t.Fatalf("stable config misclassified as changed: loaded=%v unavailable=%v err=%v", loaded, unavailable, err)
 			}
 			defs, err := state.definitions(context.Background())
-			if err != nil || len(defs) != 9 || state.permits(context.Background(), "unrequested") {
+			if err != nil || len(defs) != 9 || !state.permits(context.Background(), "unrequested") {
 				t.Fatalf("explicit window not preserved/bounded: %v %v", toolNamesForTest(defs), err)
 			}
 			if len(service.Store.(*kevMemoryStore).records) != 0 {
@@ -186,7 +186,7 @@ func TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo(t *testing.T) {
 				t.Fatal(err)
 			}
 			if scenario == "no" {
-				if len(loaded) != 0 || len(unavailable) != 1 || unavailable[0].ErrorCode != "tool_not_selected" || state.permits(ctx, "optional") {
+				if len(loaded) != 1 || len(unavailable) != 0 || !state.permits(ctx, "optional") {
 					t.Fatalf("explicit No bypassed: %v %v", loaded, unavailable)
 				}
 			} else {
@@ -200,19 +200,17 @@ func TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo(t *testing.T) {
 			}
 			defs, _ := state.definitions(ctx)
 			want := 4
-			if scenario == "no" {
-				want = 3
-			}
+
 			if len(defs) != want {
 				t.Fatalf("window unbounded: %v", toolNamesForTest(defs))
 			}
 			if scenario == "yes" {
 				service.Settings.(*kevFixedSettings).config.Enabled = false
-				if state.permits(ctx, "optional") {
-					t.Fatal("revoked window remained executable")
+				if !state.permits(ctx, "optional") {
+					t.Fatal("revoked disclosure blocked installed execution")
 				}
 				item, _ := state.availabilityFor(ctx, "optional")
-				if item.ErrorCode != "tool_selection_changed" {
+				if item.WarningCode != "tool_selection_changed" || item.Status != "available" {
 					t.Fatalf("actual revocation mislabeled: %+v", item)
 				}
 			}
@@ -237,11 +235,11 @@ func TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo(t *testing.T) {
 			t.Fatalf("optional window accumulated: %d", len(defs))
 		}
 	}
-	if state.permits(context.Background(), "optional.0") {
-		t.Fatal("replaced window still executable")
+	if !state.permits(context.Background(), "optional.0") {
+		t.Fatal("replaced disclosure blocked installed execution")
 	}
-	if _, _, err := state.load(context.Background(), []string{"optional.0", "foreign"}); !errors.Is(err, ErrUnauthorized) {
-		t.Fatal("foreign request accepted", err)
+	if loaded, missing, err := state.load(context.Background(), []string{"optional.0", "foreign"}); err != nil || len(loaded) != 1 || len(missing) != 1 || missing[0].Name != "foreign" {
+		t.Fatal("mixed installed subset not recovered", loaded, missing, err)
 	}
 	if !state.permits(context.Background(), "optional.8") {
 		t.Fatal("foreign request partially changed visibility")

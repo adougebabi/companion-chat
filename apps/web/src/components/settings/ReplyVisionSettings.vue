@@ -12,7 +12,7 @@ import { displayStatus } from "../../lib/user-feedback";
 const props = defineProps<{kind:"reply"|"vision"}>();
 const emit = defineEmits<{bindModel:[role:"conversation_reply"|"vision_understanding"]}>();
 const store=useControlCenterStore();
-const reply=reactive({mode:"legacy",model_ref:"conversation_reply",temperature:0.8,top_p:0.9,max_tokens:1024,max_input_tokens:8192,timeout_seconds:300,concurrency:1,retry_limit:1,failure_policy:"error",max_action_handoffs:2});
+const reply=reactive({mode:"legacy",model_ref:"conversation_reply",expression_version:"fact-only-reply.v5",temperature:0.8,top_p:0.9,max_tokens:1024,max_input_tokens:8192,timeout_seconds:300,concurrency:1,retry_limit:1,failure_policy:"error",max_action_handoffs:2});
 const vision=reactive({enabled:false,model_ref:"vision_understanding"});
 const notice=ref(""),error=ref(""),testingVision=ref(false);
 const {errors,validate}=useFormErrors();
@@ -72,6 +72,8 @@ onMounted(restore);
       <template v-if="kind==='reply'">
         <FormField id="reply-mode" label="私聊回复模式" v-slot="{controlAttrs}"><Select v-model="reply.mode"><SelectTrigger v-bind="controlAttrs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="legacy">旧回复模式</SelectItem><SelectItem value="fact_only">Fact-only · 独立回复模型</SelectItem></SelectContent></Select></FormField>
         <p class="field-hint">认知模型负责事实和工具，回复模型自行接话与推进当前目标。采样参数独立于认知模型；总超时包含排队等待。</p>
+        <FormField id="reply-expression-version" label="私聊表达版本" v-slot="{controlAttrs}"><Select v-model="reply.expression_version"><SelectTrigger v-bind="controlAttrs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="fact-only-reply.v5">v5 · 人物亲自发送消息</SelectItem><SelectItem value="fact-only-reply.v4">v4 · 回退此前表达协议</SelectItem></SelectContent></Select></FormField>
+        <p class="field-hint">表达版本不更换模型或采样；新私聊使用所选版本，等待媒体的草稿保留原版本。</p>
         <div class="form-grid"><FormField v-for="field in fields" :id="`reply-${field.key}`" :key="field.key" :label="field.label" v-model:error="errors[`reply-${field.key}`]" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" :model-value="reply[field.key]" type="number" :min="field.min" :max="field.max" :step="field.step" @update:model-value="reply[field.key]=Number($event)"/></FormField></div>
         <FormField id="reply-failure-policy" label="回复模型失败时" v-slot="{controlAttrs}"><Select v-model="reply.failure_policy"><SelectTrigger v-bind="controlAttrs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="error">返回明确失败</SelectItem><SelectItem value="legacy_fallback">显式使用认知模型独立生成回复</SelectItem></SelectContent></Select></FormField>
       </template>

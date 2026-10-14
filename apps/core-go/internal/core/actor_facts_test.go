@@ -248,9 +248,7 @@ func TestActorCorrectionRejectsUnrelatedAttributeAtomically(t *testing.T) {
 	location := recordActorFact(t, f, "cross-location", "assert", "location_scope", "same_building", "")
 	zone := recordActorFact(t, f, "cross-zone", "assert", "timezone", "Asia/Shanghai", "")
 	receipt, err := f.app.ExecuteTool(f.ctx, f.request(actorFactCapabilityName, "cross-correct", map[string]any{"operation": "correct", "attribute": "location_scope", "value": "abroad", "reason": "纠正", "corrected_fact_ids": []any{zone}}))
-	if err == nil || receipt.Result.ErrorCode != "actor_correction_target_invalid" {
-		t.Fatalf("unrelated correction %#v %v", receipt, err)
-	}
+	requireHandledToolNoEffect(t, receipt, err, "actor_correction_target_invalid")
 	var count int
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.actor_facts WHERE id=ANY($1) AND status='active' AND revision=1`, []string{location, zone}).Scan(&count); err != nil || count != 2 {
 		t.Fatalf("atomic correction count=%d err=%v", count, err)

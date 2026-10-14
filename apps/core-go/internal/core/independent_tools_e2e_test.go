@@ -190,7 +190,16 @@ func TestIndependentToolE2EPresenceEvent(t *testing.T) {
 		businessFailure: fixture.request("presence_event", "presence-expired", map[string]any{
 			"operation": "set", "user_presence": "online", "expires_at": time.Now().UTC().Add(-time.Hour).Format(time.RFC3339), "confidence": 0.8,
 		}),
-		checkBusinessError:   expectIndependentToolFailure("presence_expiration_invalid"),
+		checkBusinessError: func(t *testing.T, r ToolExecutionReceipt, err error) {
+			t.Helper()
+			if err != nil || r.Result.Status != "completed" {
+				t.Fatal(r, err)
+			}
+			var expires time.Time
+			if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT expires_at FROM public.life_presence_overlays WHERE id=$1`, mapValue(r.Result.Output)["overlay_id"]).Scan(&expires); err != nil || !expires.After(fixture.app.now()) {
+				t.Fatal(expires, err)
+			}
+		},
 		conflictingArgs:      jsonBytes(map[string]any{"operation": "set", "user_presence": "away", "current_task": "不同任务", "confidence": 0.9}),
 		dependencyApp:        func(t *testing.T) *App { return fixture.faultApp(t, presenceEventCapability{}) },
 		checkDependencyError: expectIndependentToolFailure("capability_prepare_failed"),
@@ -381,7 +390,16 @@ func TestIndependentToolE2ECapabilityRequest(t *testing.T) {
 		businessFailure: fixture.request("capability.request", "capability-sensitive-contract", map[string]any{
 			"capability_key": "calendar.write", "title": "写入日历", "description": "创建事件", "rationale": "安排计划", "desired_contract": map[string]any{"api_key": "must-not-persist"},
 		}),
-		checkBusinessError: expectIndependentToolFailure("capability_request_contract_invalid"),
+		checkBusinessError: func(t *testing.T, r ToolExecutionReceipt, err error) {
+			t.Helper()
+			if err != nil || r.Result.Status != "completed" || intValue(mapValue(r.Result.Output)["omitted_secret_fields"]) != 1 {
+				t.Fatal(r, err)
+			}
+			var raw []byte
+			if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT desired_contract FROM public.capability_requests WHERE id=$1`, mapValue(r.Result.Output)["request_id"]).Scan(&raw); err != nil || containsSensitiveKey(decodeObject(raw)) {
+				t.Fatal(string(raw), err)
+			}
+		},
 		conflictingArgs: jsonBytes(map[string]any{
 			"capability_key": "calendar.freebusy", "title": "不同标题", "description": "读取授权日历的空闲时间段", "rationale": "用于避免安排冲突", "priority": "normal",
 			"desired_contract": map[string]any{"input": "date_range", "output": "busy_intervals"},
@@ -601,6 +619,13 @@ func runIndependentMutationToolMatrix(t *testing.T, fixture independentToolE2EFi
 func expectIndependentToolFailure(code string) func(*testing.T, ToolExecutionReceipt, error) {
 	return func(t *testing.T, receipt ToolExecutionReceipt, err error) {
 		t.Helper()
+		if receipt.Result.Status == "handled" && err == nil && goalSubmissionReceiptCode(receipt.Result) == code {
+			out := mapValue(receipt.Result.Output)
+			if out["effect_applied"] != false || out["mutation_committed"] != false {
+				t.Fatalf("business fallback claimed an effect: %#v", receipt)
+			}
+			return
+		}
 		if err == nil || receipt.Result.Status != "failed" || receipt.Result.ErrorCode != code {
 			t.Fatalf("Tool failure code=%q receipt=%#v err=%v", code, receipt, err)
 		}
@@ -620,7 +645,7 @@ func TestIndependentToolE2ECapabilityDiscover(t *testing.T) {
 	}
 	invalid := fixture.request(capabilityDiscoverName, "discover-foreign", map[string]any{"names": []string{"visual_identity.commit_review"}})
 	rejected, err := fixture.app.ExecuteTool(fixture.ctx, invalid)
-	if err != nil || rejected.Result.Status != "failed" || rejected.Result.ErrorCode != "capability_not_authorized" {
+	if err != nil || rejected.Result.Status != "completed" || len(arrayValue(cloneMap(mapValue(rejected.Result.Output))["unavailable"])) != 1 {
 		t.Fatal(rejected, err)
 	}
 }

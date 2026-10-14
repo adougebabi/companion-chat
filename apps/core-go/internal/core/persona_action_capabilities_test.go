@@ -96,7 +96,7 @@ func TestPostgresDirectPersonaToolsCommitRejectReplayConflictAndAudit(t *testing
 	rejected := switchRequest
 	rejected.OperationID = "switch-rejected-" + suffix
 	rejected.Arguments = jsonBytes(map[string]any{"decision": "switch", "source_profile_id": "twilight", "target_profile_id": "missing", "trigger_id": "switch:safety"})
-	if receipt, rejectErr := app.ExecuteTool(ctx, rejected); rejectErr != nil || receipt.Result.Status != "rejected" || receipt.Result.ErrorCode != "personality_target_profile_not_found" {
+	if receipt, rejectErr := app.ExecuteTool(ctx, rejected); rejectErr != nil || receipt.Result.Status != "handled" || goalSubmissionReceiptCode(receipt.Result) != "personality_target_profile_not_found" {
 		t.Fatalf("switch rejection receipt=%#v err=%v", receipt, rejectErr)
 	}
 
@@ -120,11 +120,11 @@ func TestPostgresDirectPersonaToolsCommitRejectReplayConflictAndAudit(t *testing
 	badTakeover := takeover
 	badTakeover.OperationID = "takeover-rejected-" + suffix
 	badTakeover.Arguments = json.RawMessage(`{"decision":"takeover_b","rule_id":"missing","source_profile_id":"spark","target_profile_id":"twilight"}`)
-	if receipt, rejectErr := app.ExecuteTool(ctx, badTakeover); rejectErr != nil || receipt.Result.Status != "rejected" || receipt.Result.ErrorCode != "persona_takeover_rule_not_found" {
+	if receipt, rejectErr := app.ExecuteTool(ctx, badTakeover); rejectErr != nil || receipt.Result.Status != "handled" || goalSubmissionReceiptCode(receipt.Result) != "persona_takeover_rule_not_found" {
 		t.Fatalf("takeover rejection receipt=%#v err=%v", receipt, rejectErr)
 	}
 	var audits int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_outbox_events WHERE fluctlight_id=$1 AND aggregate_type='persona_action'`, fluctlightID).Scan(&audits); err != nil || audits != 4 {
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_outbox_events WHERE fluctlight_id=$1 AND aggregate_type='persona_action'`, fluctlightID).Scan(&audits); err != nil || audits != 2 {
 		t.Fatalf("persona audit count=%d err=%v", audits, err)
 	}
 }

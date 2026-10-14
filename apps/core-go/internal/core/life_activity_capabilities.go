@@ -448,7 +448,7 @@ func (c lifeActivityAdvanceCapability) Prepare(ctx context.Context, invocation C
 		return invocation, err
 	}
 	if err := validateVirtualActivityResult(kind, request, result); err != nil {
-		return invocation, err
+		return invocation, newCapabilityError("activity_result_invalid", false, err)
 	}
 	plan["result"] = result
 	plan["request"] = request
@@ -527,8 +527,7 @@ func (c lifeActivityAdvanceCapability) ExecuteTx(ctx context.Context, tx pgx.Tx,
 		return failedCapabilityResult(invocation, "activity_revision_conflict", true), ErrConflict
 	}
 	if status != "in_progress" && status != "deferred" {
-		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "rejected", ErrorCode: "activity_already_resolved",
-			Output: map[string]any{"activity_id": activityID, "status": status}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
+		return handledCapabilityResult(invocation, "activity_already_resolved", "no_change", map[string]any{"activity_id": activityID, "status": status}), nil
 	}
 	authorityActive, err := activityAuthorityActiveWith(ctx, tx, activityID, fluctlightID, c.service.app.now().UTC())
 	if err != nil {

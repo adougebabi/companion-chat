@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -20,6 +21,7 @@ const (
 )
 
 type ConversationReplySettings struct {
+	ExpressionVersion string  `json:"expression_version,omitempty"`
 	Mode              string  `json:"mode"`
 	ModelRef          string  `json:"model_ref"`
 	Temperature       float64 `json:"temperature"`
@@ -39,7 +41,7 @@ type VisionUnderstandingSettings struct {
 }
 
 func defaultConversationReplySettings() ConversationReplySettings {
-	return ConversationReplySettings{Mode: "legacy", ModelRef: conversationReplyModelRole,
+	return ConversationReplySettings{Mode: "legacy", ModelRef: conversationReplyModelRole, ExpressionVersion: factOnlyReplyPromptVersion,
 		Temperature: 0.8, TopP: 0.9, MaxTokens: 1024, MaxInputTokens: 8192, TimeoutSeconds: 300,
 		Concurrency: 1, RetryLimit: 1, FailurePolicy: "error", MaxActionHandoffs: 2}
 }
@@ -69,7 +71,11 @@ func decodeConversationReplySettings(raw []byte) (ConversationReplySettings, err
 	if err != nil {
 		return value, errors.New("conversation_reply_config_invalid")
 	}
+	if rawVersion, present := decodeObject(raw)["expression_version"]; present && strings.TrimSpace(stringValue(rawVersion)) == "" {
+		return value, errors.New("conversation_reply_config_invalid")
+	}
 	if (value.Mode != "legacy" && value.Mode != "fact_only") ||
+		(value.ExpressionVersion != factOnlyReplyPromptVersion && value.ExpressionVersion != factOnlyReplyLegacyPromptVersion) ||
 		(value.ModelRef != "" && value.ModelRef != conversationReplyModelRole) ||
 		(value.FailurePolicy != "error" && value.FailurePolicy != "legacy_fallback") ||
 		math.IsNaN(value.Temperature) || math.IsInf(value.Temperature, 0) || value.Temperature < 0 || value.Temperature > 2 ||

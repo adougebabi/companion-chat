@@ -16,6 +16,7 @@ boundaries described below.
 | [Independent Goal Planner](./goal-planner-contract.md) | Set capacity, native Planner, Actor edits, policy/fact fences, scope-safe events, migration and acceptance |
 | [Goal/Life Consistency](./goal-life-consistency-contract.md) | Actor facts, business time, acquisition/use, cumulative summary, repair and diagnostic paging |
 | [Quality Guidelines](./quality-guidelines.md) | Safe changes and verification |
+| [Tool Availability](./tool-availability-contract.md) | All installed Tools, warning/recovery, truthful handled receipts, savepoint rollback and retained authority/effect conditions |
 | [Fluctlight API Contract](./fluctlight-api-contract.md) | Go HTTP/OpenAPI boundary, generated/reference clients, NDJSON streaming, cancellation, errors, health, and framework isolation |
 | [Fluctlight Browser Boundary Contract](./fluctlight-bff-contract.md) | Go API HTTP browser boundary, checked browser contract, NDJSON translation, media proxy, errors, and storage isolation |
 | [Fluctlight Auth Contract](./fluctlight-auth-contract.md) | Single Owner Human setup, Argon2id, opaque sessions, cookie/CSRF transport, service identity, authorization, and recovery |

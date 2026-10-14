@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -50,40 +51,38 @@ func (service *capabilityRequestService) executeWith(ctx context.Context, tx pgx
 	}
 	key := strings.TrimSpace(stringValue(args["capability_key"]))
 	if !validateSlotKey(key) {
-		return failedCapabilityResultDetail(invocation, "capability_request_key_invalid", false, "capability_key is invalid"), errors.New("capability request key invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_key_invalid", false, "capability_key is invalid"), ErrInvalidArguments
 	}
 	title, err := boundedRequiredText(args["title"], 256)
 	if err != nil {
-		return failedCapabilityResultDetail(invocation, "capability_request_title_invalid", false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "capability_request_title_invalid", false, err.Error()), fmt.Errorf("%w: %v", ErrInvalidArguments, err)
 	}
 	description, err := boundedRequiredText(args["description"], 4000)
 	if err != nil {
-		return failedCapabilityResultDetail(invocation, "capability_request_description_invalid", false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "capability_request_description_invalid", false, err.Error()), fmt.Errorf("%w: %v", ErrInvalidArguments, err)
 	}
 	rationale, err := boundedRequiredText(args["rationale"], 4000)
 	if err != nil {
-		return failedCapabilityResultDetail(invocation, "capability_request_rationale_invalid", false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "capability_request_rationale_invalid", false, err.Error()), fmt.Errorf("%w: %v", ErrInvalidArguments, err)
 	}
 	desiredContract := mapValue(args["desired_contract"])
 	if desiredContract == nil {
 		desiredContract = map[string]any{}
 	}
-	if len(jsonBytes(desiredContract)) > 16000 || containsSensitiveKey(desiredContract) {
-		return failedCapabilityResultDetail(invocation, "capability_request_contract_invalid", false, "desired_contract must be a bounded object"), errors.New("capability request contract invalid")
-	}
+	desiredContract, redactedFields := sanitizeCapabilityRequestContract(desiredContract)
 	priority := stringValue(args["priority"])
 	if priority == "" {
 		priority = "normal"
 	}
 	if priority != "low" && priority != "normal" && priority != "high" && priority != "urgent" {
-		return failedCapabilityResultDetail(invocation, "capability_request_priority_invalid", false, "priority is invalid"), errors.New("capability request priority invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_priority_invalid", false, "priority is invalid"), ErrInvalidArguments
 	}
 	sideEffectClass := stringValue(args["side_effect_class"])
 	if sideEffectClass == "" {
 		sideEffectClass = "unknown"
 	}
 	if len([]rune(sideEffectClass)) > 64 {
-		return failedCapabilityResultDetail(invocation, "capability_request_side_effect_invalid", false, "side_effect_class is too long"), errors.New("capability request side effect invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_side_effect_invalid", false, "side_effect_class is too long"), ErrInvalidArguments
 	}
 	refs := arrayValue(args["evidence_refs"])
 	if len(refs) == 0 || len(refs) > 20 {
@@ -96,7 +95,7 @@ func (service *capabilityRequestService) executeWith(ctx context.Context, tx pgx
 	}
 	for _, ref := range refs {
 		if text := stringValue(ref); text == "" || len([]rune(text)) > 256 {
-			return failedCapabilityResultDetail(invocation, "capability_request_evidence_invalid", false, "evidence reference is invalid"), errors.New("capability request evidence invalid")
+			return failedCapabilityResultDetail(invocation, "capability_request_evidence_invalid", false, "evidence reference is invalid"), ErrInvalidArguments
 		}
 	}
 	idempotency := stringValue(args["idempotency_key"])
@@ -104,7 +103,7 @@ func (service *capabilityRequestService) executeWith(ctx context.Context, tx pgx
 		idempotency = "tool:" + capabilityOperationID(invocation)
 	}
 	if len([]rune(idempotency)) > 256 {
-		return failedCapabilityResultDetail(invocation, "capability_request_idempotency_invalid", false, "idempotency_key is too long"), errors.New("capability request idempotency invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_idempotency_invalid", false, "idempotency_key is too long"), ErrInvalidArguments
 	}
 	requestID := "capability_request_" + stableDigest(fluctlightID+":"+idempotency)
 	if service == nil || service.app == nil {
@@ -118,7 +117,34 @@ func (service *capabilityRequestService) executeWith(ctx context.Context, tx pgx
 	if err != nil {
 		return failedCapabilityResultDetail(invocation, "capability_request_persist_failed", true, err.Error()), err
 	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"request_id": requestID, "capability_key": key, "status": "proposed"}, Retryable: false, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability-request:" + requestID}, nil
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"request_id": requestID, "capability_key": key, "status": "proposed", "omitted_secret_fields": redactedFields}, Retryable: false, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability-request:" + requestID}, nil
+}
+
+func sanitizeCapabilityRequestContract(value map[string]any) (map[string]any, int) {
+	result := cloneMap(value)
+	omitted := 0
+	var clean func(any)
+	clean = func(value any) {
+		switch typed := value.(type) {
+		case map[string]any:
+			for key, nested := range typed {
+				normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+				switch normalized {
+				case "password", "token", "secret", "apikey", "credential":
+					delete(typed, key)
+					omitted++
+				default:
+					clean(nested)
+				}
+			}
+		case []any:
+			for _, nested := range typed {
+				clean(nested)
+			}
+		}
+	}
+	clean(result)
+	return result, omitted
 }
 
 func containsSensitiveKey(value any) bool {
@@ -126,7 +152,7 @@ func containsSensitiveKey(value any) bool {
 	case map[string]any:
 		for key, nested := range typed {
 			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
-			if normalized == "password" || normalized == "token" || normalized == "secret" || normalized == "apikey" || normalized == "credential" || normalized == "script" || normalized == "code" {
+			if normalized == "password" || normalized == "token" || normalized == "secret" || normalized == "apikey" || normalized == "credential" {
 				return true
 			}
 			if containsSensitiveKey(nested) {

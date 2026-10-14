@@ -109,7 +109,7 @@ F14详细结果见availability-followup.md、verification/capacity-check-summary
 - [x] Planner统一空位与捕获完成/本地日准入，Actor/profile/repair不旁路；失败/late event预算稳定。
 - [x] Additive0063及fresh/旧head/head rerun隔离场景已补齐；无PG实际SKIP，不计迁移执行通过。
 - [x] 定向RED/GREEN、独立check与全范围本地质量门禁；数据库和真实服务未执行。
-- [x] 同步spec、交付报告和本轮提交计划；尚未提交，不push/部署。
+- [x] 同步spec、交付报告和本轮提交计划；该阶段已由用户提交b24fdd1，不push/部署。
 
 ## F16 提交循环与软件兜底
 
@@ -117,4 +117,22 @@ F14详细结果见availability-followup.md、verification/capacity-check-summary
 - [x] 原生适配层重复回执、unknown impact与scope内确定性ref处理；不能修复则无领域写入的待证据回执。
 - [x] 稳定区分accepted kind，专用无进展正常收束并保留pending sources/已成功兄弟；不改其他Agent默认循环。
 - [x] 脚本native HTTP/SSE bounded与不合作Provider回归、实际helper/loop敏感性RED/GREEN；持久化场景SKIP单列。
-- [x] 与F15联合独立check、主代理全量门禁、spec同步与提交计划；执行提交仍待一次确认。
+- [x] 与F15联合独立check、主代理全量门禁、spec同步与提交计划；该阶段已由用户提交b24fdd1。
+
+## F17 可选reply引用对账
+
+F15/F16已由用户提交b24fdd1。本追加已明确授权继续处理，无需重开规划。
+
+- [x] 原文/跨文件绑定与实际错误分类核对，避免误称越权。
+- [x] 可选引用pure selection、短alias与受控Writer/PG降级回归；真实授权边界不动（不宣称F17具有完整旧码RED）。
+- [x] Worker可见的安全对账诊断、最终Writer输入/共享Moment/缓存与失败对照。
+- [x] 独立只读check、主代理最终快照门禁、可执行spec/报告/提交清单；PG实际层次及完整套件未全绿明确单列。
+
+## F18 全工具告警与兜底
+
+- [x] 六组只读审计完成，48注册+1动态inventory；主代理补affect_event，真实38为Conversation surface。
+- [x] 共享handled/result/outcome/nullable/schema前表示规范化/Kev推荐降级，真实错误与回滚保真。
+- [x] F17 Reply/Media、Goal review/schema、各域读/noop/状态可恢复行为，保持事实与授权前提。
+- [x] 全49行保留/修改/测试证据矩阵，不以注册/schema测试冒充业务执行。
+- [x] 尝试任务独占/tmp PG环境，无系统服务/已有数据库；无法执行的层次明确列出。
+- [x] 联合独立只读check、最终可提交快照门禁、spec/报告/提交计划；整工作区并行任务与完整PG限制单列，不自动提交部署。

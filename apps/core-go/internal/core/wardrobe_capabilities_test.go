@@ -119,7 +119,7 @@ func TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner(t *testing.T) 
 	}
 	coatID := stringValue(mapValue(arrayValue(mapValue(list.Result.Output)["items"])[0])["id"])
 	unavailable, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(wardrobeWearCapabilityName, "wear-unavailable", map[string]any{"mode": "partial", "item_ids": []string{coatID}}))
-	if err == nil || unavailable.Result.ErrorCode != "wardrobe_item_unavailable" {
+	if err != nil || unavailable.Result.Status != "handled" || goalSubmissionReceiptCode(unavailable.Result) != "wardrobe_item_unavailable" {
 		t.Fatalf("unavailable item was worn: receipt=%#v err=%v", unavailable, err)
 	}
 	foreign := fixture.request(wardrobeInspectCapabilityName, "foreign-query", map[string]any{"operation": "list"})
@@ -128,7 +128,7 @@ func TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner(t *testing.T) 
 		t.Fatal("foreign Owner inspected wardrobe")
 	}
 	missing, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(wardrobeInspectCapabilityName, "missing-item", map[string]any{"operation": "detail", "item_id": "wardrobe_missing"}))
-	if err == nil || missing.Result.ErrorCode != "wardrobe_item_not_found" {
+	if err != nil || missing.Result.Status != "handled" || goalSubmissionReceiptCode(missing.Result) != "wardrobe_item_not_found" {
 		t.Fatalf("missing item result was not explicit: receipt=%#v err=%v", missing, err)
 	}
 }

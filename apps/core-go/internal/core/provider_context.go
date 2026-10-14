@@ -136,6 +136,21 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		summaryTrace = summaryResult.Trace
 	}
 	if surface == ProviderContextSurfaceFactOnlyCognition {
+		if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "fact_only" {
+			projection = privateTextChatProjection(projection)
+			at, parseErr := time.Parse(time.RFC3339Nano, projection.AsOf)
+			if parseErr != nil {
+				return PromptAssemblyResult{}, projection, parseErr
+			}
+			coFacts, readErr := readActorFactsWith(ctx, a.DB.Pool(), projection.FluctlightID, stringValue(projection.CurrentSpeaker["actor_id"]), at, false, 2, "co_located")
+			if readErr != nil {
+				return PromptAssemblyResult{}, projection, readErr
+			}
+			projection.ActorFacts = appendPrivateCoFacts(projection.ActorFacts, coFacts)
+			if err := enrichPrivateCommunicationFacts(ctx, a.DB.Pool(), projection.FluctlightID, stringValue(projection.CurrentSpeaker["actor_id"]), projection.ActorFacts); err != nil {
+				return PromptAssemblyResult{}, projection, err
+			}
+		}
 		if err := a.backfillFactOnlyHistory(ctx, &projection); err != nil {
 			return PromptAssemblyResult{}, projection, err
 		}

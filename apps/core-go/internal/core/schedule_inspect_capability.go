@@ -23,7 +23,7 @@ func scheduleInspectDefinition() CapabilityDefinition {
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
-			"operation": enumStringSchema("list", "detail"),
+			"operation": withToolDefault(enumStringSchema("list", "detail"), "list"),
 			"item_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"cursor":    map[string]any{"type": "integer", "minimum": 0, "maximum": 64},
 		}, []string{"operation"}, false),
@@ -61,21 +61,22 @@ func (c scheduleInspectCapability) Execute(ctx context.Context, invocation Capab
 	items := arrayValue(schedule["items"])
 	if stringValue(args["operation"]) == "detail" {
 		itemID := strings.TrimSpace(stringValue(args["item_id"]))
-		if itemID == "" {
-			return failedCapabilityResult(invocation, "schedule_item_selection_required", false), ErrInvalidArguments
-		}
-		for _, raw := range items {
-			item := mapValue(raw)
-			if stringValue(item["id"]) == itemID {
-				output["item"] = scheduleInspectionItem(item)
-				return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID}, nil
+		if itemID != "" {
+			for _, raw := range items {
+				item := mapValue(raw)
+				if stringValue(item["id"]) == itemID {
+					output["item"] = scheduleInspectionItem(item)
+					return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID}, nil
+				}
 			}
+			return failedCapabilityResult(invocation, "schedule_item_not_found", false), ErrNotFound
 		}
-		return failedCapabilityResult(invocation, "schedule_item_not_found", false), ErrNotFound
+		output["operation"], output["warning_code"] = "list", "schedule_target_missing_listed"
 	}
 	cursor := intValue(args["cursor"])
 	if cursor < 0 || cursor > len(items) {
-		return failedCapabilityResult(invocation, "schedule_cursor_invalid", false), ErrInvalidArguments
+		cursor = len(items)
+		output["warning_code"] = "schedule_cursor_exhausted"
 	}
 	end := cursor + 12
 	if end > len(items) {

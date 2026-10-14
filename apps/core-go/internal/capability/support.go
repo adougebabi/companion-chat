@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 )
 
@@ -131,7 +132,7 @@ func NormalizeToolArguments(value any) (json.RawMessage, error) {
 		return nil, providerToolArgumentsError("arguments_empty")
 	}
 	if len(data) > maxToolArgumentsBytes {
-		return nil, providerToolArgumentsError("arguments_oversized")
+		slog.Warn("tool.arguments.capacity_warning", "argument_bytes", len(data), "advisory_bytes", maxToolArgumentsBytes)
 	}
 	if !json.Valid(data) {
 		return nil, providerToolArgumentsError("arguments_invalid_json")

@@ -37,7 +37,7 @@ func intentionInspectDefinition() CapabilityDefinition {
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition, CapabilitySurfaceAutonomy},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: objectSchema(map[string]any{
-			"operation":      enumStringSchema("list", "detail"),
+			"operation":      withToolDefault(enumStringSchema("list", "detail"), "list"),
 			"intention_id":   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 			"include_closed": map[string]any{"type": "boolean"},
 			"cursor":         map[string]any{"type": "integer", "minimum": 0, "maximum": 10000},

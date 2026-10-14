@@ -79,7 +79,7 @@ func TestPostgresDirectActiveMemoryToolCommitsRejectsReplaysAndPersistsAudit(t *
 		EvidenceID: "owner-close-command-" + suffix,
 		Arguments:  jsonBytes(map[string]any{"operation": "complete", "target_ref": "active_memory:ctx_0123456789abcdef0123456789abcdef"}),
 	}
-	if receipt, rejectErr := app.ExecuteTool(ctx, unknownTarget); rejectErr == nil || receipt.Result.Status != "failed" {
+	if receipt, rejectErr := app.ExecuteTool(ctx, unknownTarget); rejectErr != nil || receipt.Result.Status != "handled" {
 		t.Fatalf("unknown target receipt=%#v err=%v", receipt, rejectErr)
 	}
 	closeRequest := unknownTarget

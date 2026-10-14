@@ -81,6 +81,11 @@ func (a *App) ProcessReplyContinuation(ctx context.Context, ref string) (map[str
 	defer release()
 	ctx = WithProviderCancellationKey(ctx, firstString(stringValue(decodeObject(scopeBytes)["cancellation_marker"]), source))
 	run := &privateReplyRun{Settings: settings, ConfigVersion: version, Assignment: binding.Assignment, Scope: stored.Scope, CurrentInput: stored.CurrentInput, DraftRef: ref}
+	run.Expression, err = storedReplyExpressionContract(decodeObject(bindingBytes))
+	if err != nil {
+		return nil, err
+	}
+	run.Settings.ExpressionVersion = run.Expression.Version
 	if mode := stringValue(decodeObject(bindingBytes)["reply_mode"]); mode == "legacy_fallback" {
 		run.EffectiveAssignment = &binding.Assignment
 		run.EffectiveMode = mode

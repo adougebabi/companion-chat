@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"sort"
 	"strconv"
 	"strings"
@@ -67,7 +68,7 @@ func (outcome ActionOutcome) Validate() error {
 		return errors.New("action_outcome_external_ref_invalid")
 	}
 	if len(outcome.GoalRefs) > 32 || len(outcome.IntentionRefs) > 32 || len(outcome.EvidenceRefs) > 64 {
-		return errors.New("action_outcome_references_too_large")
+		slog.Warn("action_outcome.references.capacity_warning", "goal_refs", len(outcome.GoalRefs), "intention_refs", len(outcome.IntentionRefs), "evidence_refs", len(outcome.EvidenceRefs))
 	}
 	for ref, entry := range outcome.ContextReferences {
 		if ref != entry.Ref || !contextReferencePattern.MatchString(ref) {
@@ -75,7 +76,7 @@ func (outcome ActionOutcome) Validate() error {
 		}
 	}
 	if len(jsonBytes(outcome.Expected)) > 32*1024 || len(jsonBytes(outcome.Observed)) > 64*1024 {
-		return errors.New("action_outcome_payload_too_large")
+		slog.Warn("action_outcome.payload.capacity_warning", "expected_bytes", len(jsonBytes(outcome.Expected)), "observed_bytes", len(jsonBytes(outcome.Observed)))
 	}
 	return nil
 }
@@ -159,6 +160,8 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 			status = ActionOutcomeCompleted
 		case "accepted":
 			status = ActionOutcomePending
+		case "handled":
+			status = ActionOutcomeSuppressed
 		case "failed", "rejected":
 			status = ActionOutcomeFailed
 		case "deferred":
@@ -212,6 +215,7 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 	// successful sibling never hides a failed action; suppressed deliveries are
 	// not successful actions. Query results cannot turn a suppressed action into success.
 	pending, failed, cancelled, completedAction, suppressed := false, false, false, false, false
+	handledNoEffect := false
 	failureCode := ""
 	for _, outcome := range outcomes[1:] {
 		def, _ := registry.Definition(outcome.CapabilityName)
@@ -222,6 +226,7 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 		}
 		cancelled = cancelled || outcome.Status == ActionOutcomeCancelled
 		suppressed = suppressed || outcome.Status == ActionOutcomeSuppressed
+		handledNoEffect = handledNoEffect || (outcome.Status == ActionOutcomeSuppressed && outcome.Observed["handled"] == true)
 		completedAction = completedAction || (def.Type == CapabilityTypeAction && outcome.Status == ActionOutcomeCompleted)
 	}
 	switch {
@@ -236,6 +241,11 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 		outcomes[0].Status = ActionOutcomeCancelled
 	case suppressed && !completedAction && outcomes[0].Status == ActionOutcomeCompleted:
 		outcomes[0].Status = ActionOutcomeSuppressed
+	}
+	if outcomes[0].Status == ActionOutcomeSuppressed && handledNoEffect && !completedAction {
+		outcomes[0].Observed["handled"] = true
+		outcomes[0].Observed["effect_applied"] = false
+		outcomes[0].Observed["mutation_committed"] = false
 	}
 	if outcomes[0].Status != ActionOutcomePending {
 		outcomes[0].Observed["status"] = string(outcomes[0].Status)
@@ -331,6 +341,8 @@ func persistActionOutcomesTx(ctx context.Context, tx pgx.Tx, outcomes []ActionOu
 }
 
 func settleOutcomeIntentionAttemptsTx(ctx context.Context, tx pgx.Tx, outcome ActionOutcome) error {
+	// Suppressed no-effect outcomes still close attempts claimed before this
+	// Tool's savepoint. Existing suppression requeues without success/fail count.
 	if err := lockLifeContextTx(ctx, tx, outcome.FluctlightID); err != nil {
 		return err
 	}

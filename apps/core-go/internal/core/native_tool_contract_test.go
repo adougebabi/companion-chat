@@ -266,7 +266,7 @@ func TestNativeArgumentRejectionIsTracedAndCannotReuseChangedCall(t *testing.T) 
 		trace.RecordModelToolCalls("physical-request", 1, []schema.ToolCall{{ID: "bad-call"}})
 		invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{OperationID: "test-run", Projection: nativeGoalTestProjection()}, trace).(ADKCapabilityInvokerWithID)
 		result, err := invoker.ExecuteWithID(context.Background(), "bad-call", "goal.evaluate", args)
-		if err != nil || !strings.Contains(result, `"error_code":"invalid_arguments"`) {
+		if err != nil || !strings.Contains(result, `"warning_code":"invalid_arguments"`) || !strings.Contains(result, `"status":"handled"`) {
 			t.Fatalf("%s %v", result, err)
 		}
 		invocations, results := trace.Snapshot()

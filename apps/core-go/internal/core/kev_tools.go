@@ -58,7 +58,7 @@ func capabilityUtilitySurfaces() []CapabilitySurface {
 }
 
 func (c capabilityCatalogCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{Name: capabilityCatalogName, Version: "v1", Type: CapabilityTypeQuery, Description: "List authorized capability purposes and parameters. Omit names to list only; supply up to 8 names to request Kev admission for the next native request. Named queries replace the optional schema window. Only loaded names can execute; unavailable/denied is not execution. Kev no stays denied; disabled/unavailable uses only the explicitly requested authorized window, never the full installation. Historical source_refs are not actionable evidence_refs.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "maxItems": 8, "uniqueItems": true, "items": stringSchema()}}, nil, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
+	return CapabilityDefinition{Name: capabilityCatalogName, Version: "v1", Type: CapabilityTypeQuery, Description: "List authorized capability purposes and parameters. Omit names to list only; supply names to disclose schemas for the next native request. Kev recommendations are advisory; installed tools in the current surface remain callable. Uninstalled tools are reported separately. Historical source_refs are not actionable evidence_refs.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "uniqueItems": true, "items": stringSchema()}}, nil, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
 }
 func (c capabilityCatalogCapability) RequiredContext() []ContextSlot { return nil }
 func (c capabilityCatalogCapability) Execute(ctx context.Context, inv CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
@@ -83,20 +83,23 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 	for _, d := range definitions {
 		available[d.Name] = true
 	}
-	if len(args.Names) > 8 {
-		return failedCapabilityResultDetail(inv, "invalid_arguments", false, "At most 8 names may be requested"), nil
-	}
-	for _, name := range args.Names {
-		if !available[name] {
-			return failedCapabilityResultDetail(inv, "capability_not_authorized", false, "Requested capability is outside this run's installation"), nil
+	requestedNames := append([]string(nil), args.Names...)
+	args.Names = nil
+	unavailable := []toolDisclosureAvailability{}
+	for _, name := range sortedUniqueStrings(requestedNames) {
+		if available[name] {
+			args.Names = append(args.Names, name)
+		} else {
+			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
 		}
 	}
 	loaded := []string{}
-	unavailable := []toolDisclosureAvailability{}
 	if len(args.Names) > 0 {
 		if selection := kevSelection(ctx); selection != nil {
 			var err error
-			loaded, unavailable, err = selection.load(ctx, args.Names)
+			var missing []toolDisclosureAvailability
+			loaded, missing, err = selection.load(ctx, args.Names)
+			unavailable = append(unavailable, missing...)
 			if err != nil {
 				return CapabilityResult{}, err
 			}
@@ -116,7 +119,7 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 	}
 	items := make([]map[string]any, 0, len(definitions))
 	for _, definition := range definitions {
-		if len(args.Names) > 0 && !requestedToolName(args.Names, definition.Name) {
+		if len(requestedNames) > 0 && !requestedToolName(args.Names, definition.Name) {
 			continue
 		}
 		parameters := definition.InputSchema
@@ -129,7 +132,7 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 }
 
 func (c capabilityDiscoverCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{Name: capabilityDiscoverName, Version: "v1", Type: CapabilityTypeQuery, Description: "Load selected authorized capability schemas for the next model request; use capability.catalog first when names or parameters are unknown.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "minItems": 1, "maxItems": 8, "items": stringSchema()}}, []string{"names"}, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
+	return CapabilityDefinition{Name: capabilityDiscoverName, Version: "v1", Type: CapabilityTypeQuery, Description: "Load selected authorized capability schemas for the next model request; use capability.catalog first when names or parameters are unknown.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "minItems": 1, "items": stringSchema()}}, []string{"names"}, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
 }
 func (c capabilityDiscoverCapability) RequiredContext() []ContextSlot { return nil }
 func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
@@ -158,15 +161,21 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 		items = append(items, map[string]any{"name": d.Name, "description": d.Description})
 	}
 	loaded := []string{}
-	for _, name := range args.Names {
-		if _, ok := available[name]; !ok {
-			return failedCapabilityResultDetail(inv, "capability_not_authorized", false, "Requested capability is outside this run's installation"), nil
+	validNames := []string{}
+	unavailable := []toolDisclosureAvailability{}
+	for _, name := range sortedUniqueStrings(args.Names) {
+		if _, ok := available[name]; ok {
+			validNames = append(validNames, name)
+		} else {
+			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
 		}
 	}
-	var unavailable []toolDisclosureAvailability
+	args.Names = validNames
 	if selection != nil {
 		var err error
-		loaded, unavailable, err = selection.load(ctx, args.Names)
+		var missing []toolDisclosureAvailability
+		loaded, missing, err = selection.load(ctx, args.Names)
+		unavailable = append(unavailable, missing...)
 		if err != nil {
 			return CapabilityResult{}, err
 		}
@@ -224,6 +233,7 @@ func publicBaselineTool(name string) bool {
 }
 
 type toolDisclosureAvailability struct {
+	WarningCode    string `json:"warning_code,omitempty"`
 	Name           string `json:"name"`
 	Status         string `json:"status"`
 	ErrorCode      string `json:"error_code,omitempty"`
@@ -240,22 +250,30 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 	if len(names) == 0 {
 		return []string{}, []toolDisclosureAvailability{}, nil
 	}
-	if len(names) > 8 {
-		return nil, nil, ErrInvalidArguments
-	}
+
 	s.mu.Lock()
 	allowed := map[string]CapabilityDefinition{}
 	for _, d := range s.original {
 		allowed[d.Name] = d
 	}
 	s.mu.Unlock()
-	for _, name := range names {
-		if _, ok := allowed[name]; !ok {
-			return nil, nil, ErrUnauthorized
+	validNames := []string{}
+	unavailable := []toolDisclosureAvailability{}
+	for _, name := range sortedUniqueStrings(names) {
+		if _, ok := allowed[name]; ok {
+			validNames = append(validNames, name)
+		} else {
+			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
 		}
 	}
+	names = validNames
 	loaded := []string{}
-	unavailable := []toolDisclosureAvailability{}
+	if len(names) == 0 {
+		return loaded, unavailable, nil
+	}
+	if s.service == nil || s.service.Settings == nil {
+		return nil, unavailable, errors.New("kev_selection_service_unavailable")
+	}
 	config, version, _, readErr := s.service.Settings.Read(ctx)
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
@@ -313,14 +331,12 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 				item.FallbackReason = ""
 				applied = "applied"
 			} else if out == decision.No {
-				item.Status = "denied"
-				item.ErrorCode = "tool_not_selected"
+				item.WarningCode = "tool_not_selected"
 				item.Admission = "kev"
 				item.FallbackReason = ""
 				applied = "applied"
 			} else if result.Record.Reason == "config_changed" || result.Record.Reason == "discarded_after_disable" {
-				item.Status = "unavailable"
-				item.ErrorCode = "tool_selection_changed"
+				item.WarningCode = "tool_selection_changed"
 			}
 			// Preserve the actual Kev timeout/disabled/guarded/revocation cause.
 			if err := result.Finish(ctx, applied, "", ""); err != nil && item.Status == "available" {
@@ -339,8 +355,7 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 			if item.Status == "denied" {
 				continue
 			}
-			item.Status = "unavailable"
-			item.ErrorCode = "tool_selection_changed"
+			item.WarningCode = "tool_selection_changed"
 			status[name] = item
 		}
 	} else if latestErr != nil {
@@ -366,7 +381,7 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 	}
 	s.revoked = false
 	for _, item := range status {
-		if item.ErrorCode == "tool_selection_changed" {
+		if item.WarningCode == "tool_selection_changed" {
 			s.revoked = true
 		}
 	}
@@ -376,8 +391,7 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 	}
 	for name, item := range s.availability {
 		if !seen[name] && item.Status == "available" {
-			item.Status = "unavailable"
-			item.ErrorCode = "tool_selection_window_replaced"
+			item.WarningCode = "tool_selection_window_replaced"
 			s.availability[name] = item
 		}
 	}
@@ -405,8 +419,7 @@ func (s *kevRunSelection) availabilityFor(ctx context.Context, name string) (too
 	item, ok := s.availability[name]
 	if ok && item.Status == "available" {
 		if s.revoked {
-			item.Status = "unavailable"
-			item.ErrorCode = "tool_selection_changed"
+			item.WarningCode = "tool_selection_changed"
 		} else if err != nil {
 			item.Admission = "catalog_fallback"
 			item.FallbackReason = "settings_unavailable"
@@ -435,8 +448,7 @@ func (s *kevRunSelection) revalidateWindowLocked(config decision.Config, version
 	s.loaded = map[string]bool{}
 	for name, item := range s.availability {
 		if item.Status == "available" {
-			item.Status = "unavailable"
-			item.ErrorCode = "tool_selection_changed"
+			item.WarningCode = "tool_selection_changed"
 			s.availability[name] = item
 		}
 	}
@@ -532,12 +544,13 @@ func (s *kevRunSelection) definitions(ctx context.Context) ([]CapabilityDefiniti
 }
 
 func (s *kevRunSelection) permits(ctx context.Context, name string) bool {
-	defs, err := s.definitions(ctx)
-	if err != nil {
+	if ctx.Err() != nil {
 		return false
 	}
-	for _, d := range defs {
-		if d.Name == name {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, definition := range s.original {
+		if definition.Name == name {
 			return true
 		}
 	}

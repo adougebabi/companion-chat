@@ -707,7 +707,7 @@ func (c scheduleReplanCapability) Prepare(ctx context.Context, invocation Capabi
 		return invocation, newCapabilityError("schedule_replan_planner_failed", true, err)
 	}
 	if err := preserveScheduledActionPlans(planned, resolved.Schedule.Data); err != nil {
-		return invocation, newCapabilityError("schedule_replan_planner_failed", false, err)
+		return invocation, newCapabilityError("schedule_action_invalid", false, err)
 	}
 	planned["local_date"] = resolved.Schedule.Data["local_date"]
 	planned["timezone"] = resolved.Schedule.Data["timezone"]
@@ -729,22 +729,22 @@ func (c scheduleReplanCapability) Prepare(ctx context.Context, invocation Capabi
 
 func validatePreparedSchedulePlan(planned, arguments map[string]any, resolved CapabilityContext) error {
 	if strings.TrimSpace(stringValue(planned["intent"])) == "" || strings.TrimSpace(stringValue(planned["intent"])) != strings.TrimSpace(stringValue(arguments["intent"])) {
-		return errors.New("prepared schedule intent does not match provider arguments")
+		return newCapabilityError("schedule_plan_invalid", false, errors.New("prepared schedule intent does not match provider arguments"))
 	}
 	if len(arrayValue(planned["items"])) == 0 {
-		return errors.New("schedule planner returned no items")
+		return newCapabilityError("schedule_plan_invalid", false, errors.New("schedule planner returned no items"))
 	}
 	if strings.TrimSpace(stringValue(planned["expected_life_context_revision"])) == "" || stringValue(planned["expected_life_context_revision"]) != stringValue(resolved.Life.Data["context_revision"]) {
 		return ErrConflict
 	}
 	for _, field := range []string{"local_date", "timezone", "completed_before", "expected_life_context_revision"} {
 		if strings.TrimSpace(stringValue(planned[field])) == "" {
-			return fmt.Errorf("schedule planner field %s missing", field)
+			return newCapabilityError("schedule_plan_invalid", false, fmt.Errorf("schedule planner field %s missing", field))
 		}
 	}
 	policy, policyOK := planned["reschedule_policy"].(map[string]any)
 	if intValue(planned["expected_revision"]) <= 0 || !policyOK || policy == nil {
-		return errors.New("schedule planner boundary fields missing")
+		return newCapabilityError("schedule_plan_invalid", false, errors.New("schedule planner boundary fields missing"))
 	}
 	if resolved.Schedule == nil {
 		return fmt.Errorf("%w: schedule context is missing", ErrContextResolve)
@@ -752,7 +752,10 @@ func validatePreparedSchedulePlan(planned, arguments map[string]any, resolved Ca
 	if expected := intValue(resolved.Schedule.Data["revision"]); expected > 0 && intValue(planned["expected_revision"]) != expected {
 		return ErrConflict
 	}
-	return validateScheduleReplanItems(arrayValue(planned["items"]))
+	if err := validateScheduleReplanItems(arrayValue(planned["items"])); err != nil {
+		return newCapabilityError("schedule_plan_invalid", false, err)
+	}
+	return nil
 }
 
 func (c scheduleReplanCapability) Execute(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {

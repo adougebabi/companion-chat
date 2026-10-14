@@ -302,6 +302,7 @@ const enumLabels: Record<string, string> = {
   deferred: "已延后",
   proposed: "待审核",
   accepted: "已接受",
+  handled: "已处理（告警/待处理）",
   rejected: "已拒绝",
   awaiting_review: "等待复核",
   rejected_not_self: "不是自己",

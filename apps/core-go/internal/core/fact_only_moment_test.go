@@ -157,9 +157,16 @@ func TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife(t *testing.T)
 				return fakeProviderResult{Text: "依赖旧生活状态的动态。"}
 			})}
 			ctx = withFrozenProviderAssignment(ctx, conversationReplyModelRole, providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "shared-persona-writer", Timeout: 10 * time.Second, TokenBudget: 1024, ContextWindowTokens: 16384, MaxInputTokens: 8192, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1})
-			_, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "blocked-moment", AuthorizationActorID: owner, FluctlightID: self, Arguments: json.RawMessage(`{}`)})
-			if err == nil || calls != 1 {
-				t.Fatalf("failed/stale draft published or retried: err=%v calls=%d", err, calls)
+			receipt, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "blocked-moment", AuthorizationActorID: owner, FluctlightID: self, Arguments: json.RawMessage(`{}`)})
+			if scenario == "writer_failed" {
+				if err == nil {
+					t.Fatal("real Writer failure hidden")
+				}
+			} else {
+				requireHandledToolNoEffect(t, receipt, err, "moment_context_stale")
+			}
+			if calls != 1 {
+				t.Fatalf("failed/stale draft retried: %d", calls)
 			}
 			var count int
 			if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, self).Scan(&count); err != nil || count != 0 {

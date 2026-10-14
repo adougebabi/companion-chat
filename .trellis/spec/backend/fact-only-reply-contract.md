@@ -1,5 +1,13 @@
 # Fact-only Reply Contract
 
+2026-10-14 availability amendment: apply [Tool Availability](./tool-availability-contract.md).
+Optional evidence hints that cannot be reconciled are excluded with safe
+counts/reasons while the independent Writer continues from current authorized
+context. Keep exact offered/live matching and strict draft/action scope; this is
+not permission to use the rejected hint. Published/prepared replay remains first,
+and real Provider failures remain failures. `reply.evidence.reconciled` must be
+visible in worker logs before the generation lease, without raw refs or body.
+
 ## 1. Scope / Trigger
 Opt-in conversation.reply in a confirmed direct conversation; ordinary cognition and authorized WakeUp keep the existing native Eino loop. Other channels keep their existing implementation. Missing settings means legacy.
 
@@ -141,3 +149,89 @@ Wrong: CurrentSpeaker["id"], Writer = common runtime minus a few keys, or verifi
 inference becomes confirmed fact. Correct: actor_id-scoped dedicated views,
 independent source/epistemic semantics, final selected-input assertions and actual
 receipt/message authority after bounded repair.
+
+## Scenario: Private chat expression v5 and durable single style repair
+
+### 1. Scope / Trigger
+Only the validated private Fact-only Writer and its necessary continuation paths
+use v5. Moments, legacy, media intents, visual analysis and cognition JSON keep
+their own output contracts. Original Persona and sent history are immutable.
+
+### 2. Signatures
+`conversation.reply.expression_version` is optional: new runs default to
+`fact-only-reply.v5`; explicit `fact-only-reply.v4` rolls back expression without
+closing Fact-only. Unknown/blank/null versions reject the settings patch.
+`binding_snapshot.reply_contract` stores version, protocol_hash, view_version,
+medium_version. Old durable snapshots without it use v4 compatibility.
+`binding_snapshot.style_repair_claimed/style_candidate` owns the lineage quota;
+`ReplyDraft.style/candidates` retains first, repair and final text.
+
+### 3. Contracts
+- Private operation rules replace the old protocol once. Persona portrait_text
+  remains verbatim with interpretation_boundary; source/compiler/canonical
+  Persona/raw-view/reply-view hashes stay in Owner diagnostics, not extra traits.
+  For old structured cards, derive the existing body before adding the boundary;
+  otherwise an almost-empty body shadows personality/behavioral_policy.
+- Validated private entry projects text_chat to cognition and Writer. Current
+  co_located facts can provide same/different place with epistemic/source/time
+  metadata; online, meeting plans and relationship background cannot. Doorway
+  location statements stay source-qualified, not verified co-presence. Current
+  Actor fact provenance is enriched locally without changing the public query.
+- Ordinary Writer omits unrelated appearance only when the actual scoped
+  persona.detail query is installed. Reuse its canonical owner/profile/version
+  checks and the fresh child trace. When tools are closed for adjustment/repair,
+  keep necessary authority appearance; image execution always keeps full state.
+- History remains original role/text/order. Metadata says past_message_verbatim
+  is not current event proof and past style is not a format rule. Unmarked mixed
+  narrative/dialogue is not split or rewritten. Goal intent/criteria stay intact.
+- High-confidence multi-signal non-requested narration gets at most one repair
+  by the same frozen Cydonia, before publication, with zero tools. A name/pronoun,
+  quote, action word, long answer or refusal alone cannot reject. Ambiguous style
+  is observation only; explicit works and their immediate continuations are
+  allowed. This detector is not a semantic truth/personality judge.
+- Claim quota by one SQL conditional update with draft/owner/active lease/status
+  and unclaimed flag. Do not use resume_attempts or an in-memory bool. Claim DB
+  errors and repair failures are style errors: no whole-generation retry or Qwen
+  fallback. Reject OOM before HTTP transient classification. Explicit fallback
+  generation remains separately labeled and cannot do Cydonia style repair.
+- Initial/failed lease recovery and media restore keep stored configuration and
+  assignment, not current settings. JSONB binding updates merge only effective
+  assignment fields and never reset contract/quota. Media fallback ready CAS
+  must store its actual no-secret binding, just like initial preparation.
+- Production and replay share decodeReplyCompletion finish/native media/secret
+  validation. Preserve failed repair raw text, finish reason and underlying error
+  code; candidates never become sent history or state evidence. The publisher
+  remains unique and Qwen settles actual committed text, never the first draft.
+
+### 4. Validation & Error Matrix
+| Condition | Outcome |
+| --- | --- |
+| Frozen protocol hash/known view differs | reply_expression_snapshot_mismatch; no silent current-version substitution |
+| Quota already claimed, lease lost or claim DB error | reply_style_repair_unavailable; no Qwen fallback |
+| Repair 503/OOM/timeout, invalid output or remaining high narration | explicit failure; no second repair or regenerated first draft |
+| finish_reason is not stop | reply_generation_incomplete, raw/finish preserved; no replay success |
+| JSON requests without native receipt | reply_media_request_invalid; no synthetic media |
+| Detail reader unavailable or tool-free phase | authority facts retained, not an unusable on-demand placeholder |
+| published replay / malformed final cognition | read actual message; schema repair cannot generate or publish again |
+
+### 5. Good / Base / Bad Cases
+Good: unchanged literary portrait + unchanged dirty history + sourced text-chat
+view -> Cydonia message -> optional one repair -> real media/result -> one commit.
+Base: normal/uncertain style adds no model call. Bad: create a new narrator draft
+after a repair 503, lose old structured traits, rebind waiting media to new model,
+or label an old cached body with the current protocol constant.
+
+### 6. Tests Required
+`TestPrivateChat*` covers final wire protocol-only comparison, sources, original
+Persona/history hashes, actual installed tools, closed repair, 503/OOM/claim DB
+failure, raw incomplete output and effective binding merge. Durable quota and
+committed repair + malformed settlement tests require disposable PostgreSQL.
+Controlled A/B/C/D replay is reconstructed transport evidence; live ablation
+and multiround/voice tests are opt-in and retain failed samples. SKIP/NOT_RUN
+cannot certify persistent CAS, real model style or personality/Goal behavior.
+
+### 7. Wrong vs Correct
+Wrong: publish metadata reads the current constant, or generic transient handling
+unwraps a style-503 error and retries the entire Writer. Correct: read the draft
+contract, atomically spend one quota, classify style/OOM before retries, and merge
+actual binding into the same durable draft without touching original history.

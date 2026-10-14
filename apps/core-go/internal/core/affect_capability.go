@@ -51,7 +51,7 @@ func affectEventCapabilityDefinition() CapabilityDefinition {
 					"required": []any{"type", "confidence"},
 					"properties": map[string]any{
 						"type":       map[string]any{"type": "string", "enum": eventType},
-						"confidence": map[string]any{"type": "number", "minimum": 0, "maximum": 1},
+						"confidence": map[string]any{"type": "number", "minimum": 0, "maximum": 1, "default": 0.5},
 					},
 				},
 			},

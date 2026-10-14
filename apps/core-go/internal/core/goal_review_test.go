@@ -61,6 +61,7 @@ func TestGoalReviewCycleReplayAndLateEvidenceRevision(t *testing.T) {
 	if id == "" {
 		t.Fatal("initial review absent")
 	}
+	id = latestPendingGoalRequest(t, f)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, id); err != nil {
 		t.Fatal(err)
 	}

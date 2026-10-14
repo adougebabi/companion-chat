@@ -7,11 +7,18 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func replyErrorCode(err error) string {
 	if code, _ := capabilityErrorInfo(err, "", false); code != "" {
 		return code
+	}
+	if err != nil {
+		switch err.Error() {
+		case "reply_generation_incomplete", "reply_secret_leak_rejected", "reply_media_request_invalid", "reply_media_placeholder_invalid", "reply_envelope_invalid", "reply_draft_invalid", "reply_expression_version_invalid", "reply_expression_snapshot_mismatch":
+			return err.Error()
+		}
 	}
 	if errors.Is(err, context.Canceled) {
 		return "reply_cancelled"
@@ -43,6 +50,9 @@ func replyErrorCode(err error) string {
 }
 
 func replyTransportRetryable(err error) bool {
+	if code := replyErrorCode(err); strings.HasPrefix(code, "reply_style_") || code == "reply_model_oom" {
+		return false
+	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
@@ -55,6 +65,11 @@ func replyTransportRetryable(err error) bool {
 }
 
 func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationReplyTaskInput, run *privateReplyRun) (ReplyDraft, error) {
+	if run.Settings.TimeoutSeconds > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(run.Settings.TimeoutSeconds)*time.Second)
+		defer cancel()
+	}
 	var draft ReplyDraft
 	run.mu.Lock()
 	effectiveMode := run.EffectiveMode
@@ -96,6 +111,9 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 	}
 	if errors.Is(err, context.Canceled) {
 		return draft, context.Canceled
+	}
+	if strings.HasPrefix(replyErrorCode(err), "reply_style_") {
+		return draft, err
 	}
 	if run.Settings.FailurePolicy != "legacy_fallback" || effectiveMode == "legacy_fallback" {
 		return draft, newCapabilityError(replyErrorCode(err), false, errors.New(replyErrorCode(err)))

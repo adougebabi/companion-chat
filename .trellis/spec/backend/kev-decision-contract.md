@@ -1,5 +1,11 @@
 # Kev Decision Contract
 
+2026-10-14 availability amendment: apply [Tool Availability](./tool-availability-contract.md).
+Older execution-denial wording for Kev No, config revocation and disclosure-window
+replacement is superseded for installed current-scope Tools. Keep raw decisions
+and disclosure history, expose warning_code, and preserve actual installation and
+resource authority. Querying a name does not grant another private surface.
+
 ## 1. Scope / Trigger
 
 Kev gates eligible WakeUp, Reflection, Goal assessment/replenishment, permitted

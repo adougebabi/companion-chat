@@ -36,25 +36,20 @@ func TestReplyEvidenceRecoveryBeforeWriterLease(t *testing.T) {
 			ctx = context.WithValue(ctx, privateReplyRunKey{}, run)
 			inv := CapabilityInvocation{CallID: "bad-evidence-call", CapabilityName: conversationReplyCapabilityName, SourceFactID: turn.InboxID, ProviderRequestID: "bad-physical", Arguments: json.RawMessage(`{"evidence_refs":["message:unoffered-history"]}`), Metadata: InvocationMetadata{Source: "model_tool", AuthorizationActorID: owner, SubjectActorID: owner, FluctlightID: self, ConversationID: conversation, CorrelationID: "turn:" + turn.TurnID, Surface: CapabilitySurfaceConversation}}
 			service := newFactOnlyReplyService(app)
-			_, ref, err := service.prepare(ctx, inv, run)
-			if code, _ := capabilityErrorInfo(err, "", false); code != "reply_evidence_not_authorized" || writerCalls != 0 {
-				t.Fatalf("bad evidence reached Writer: calls=%d err=%v", writerCalls, err)
+			draft, ref, err := service.prepare(ctx, inv, run)
+			if writerCalls != 1 {
+				t.Fatalf("optional evidence blocked Writer: calls=%d err=%v", writerCalls, err)
+			}
+			if physicalFailure {
+				if err == nil {
+					t.Fatal("physical failure was hidden")
+				}
+			} else if err != nil || draft.Text != "这是受控生成的一次回复。" {
+				t.Fatalf("optional evidence did not recover: %+v %v", draft, err)
 			}
 			var count int
-			if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_reply_drafts WHERE id=$1`, ref).Scan(&count); err != nil || count != 0 {
-				t.Fatalf("invalid input poisoned durable draft: count=%d err=%v", count, err)
-			}
-			inv.CallID = "corrected-call"
-			inv.Metadata.OperationID = "corrected-operation"
-			inv.ProviderRequestID = "corrected-physical"
-			inv.Arguments = json.RawMessage(`{}`)
-			draft, _, err := service.prepare(ctx, inv, run)
-			if physicalFailure {
-				if err == nil || writerCalls != 1 {
-					t.Fatalf("physical failure not terminal: %v count=%d", err, writerCalls)
-				}
-			} else if err != nil || draft.Text != "这是受控生成的一次回复。" || writerCalls != 1 {
-				t.Fatalf("corrected evidence did not recover: %+v err=%v count=%d", draft, err, writerCalls)
+			if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_reply_drafts WHERE id=$1`, ref).Scan(&count); err != nil || count != 1 {
+				t.Fatalf("draft receipt missing: %d %v", count, err)
 			}
 			inv.CallID = "replayed-call"
 			inv.Metadata.OperationID = "replayed-operation"
@@ -73,7 +68,7 @@ func TestReplyEvidenceRecoveryBeforeWriterLease(t *testing.T) {
 	}
 }
 
-func TestReplyMediaCatalogDenialCompletesSameDraft(t *testing.T) {
+func TestReplyMediaHandledCompletesSameDraft(t *testing.T) {
 	writerCalls := 0
 	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 		writerCalls++
@@ -83,7 +78,7 @@ func TestReplyMediaCatalogDenialCompletesSameDraft(t *testing.T) {
 		if writerCalls == 2 {
 			return fakeProviderResult{Text: "我想配一张夜景图。"}
 		}
-		if len(arrayValue(payload["tools"])) != 0 || !strings.Contains(jsonString(payload["messages"]), "tool_not_selected") {
+		if len(arrayValue(payload["tools"])) != 0 || !strings.Contains(jsonString(payload["messages"]), "image_request_unresolved") {
 			t.Error("adjustment did not consume actual catalog denial without tools")
 		}
 		return fakeProviderResult{Text: "这次图片能力不可用，我们先继续聊。"}
@@ -112,14 +107,11 @@ func TestReplyMediaCatalogDenialCompletesSameDraft(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	app.Kev = controlledKevToolService(t, "no")
-	ctx, _, err = app.prepareKevTools(ctx, ADKStructuredTaskInput{AgentID: FormalAgentConversationCognition, Definitions: capabilityCatalog(app.capabilityRegistry(), CapabilitySurfaceConversation), Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceConversation, Projection: ContextProjection{FluctlightID: self}}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := kevSelection(ctx).load(ctx, []string{"media.image.generate"}); err != nil {
-		t.Fatal(err)
-	}
+	trace := &ADKCapabilityTrace{}
+	trace.AppendInvocation(CapabilityInvocation{CallID: "unavailable-image", CapabilityName: "media.image.generate", Arguments: jsonBytes(map[string]any{"draft_ref": ref, "media_request_ref": replyActionRef(ref, 0)})})
+	trace.AppendResult(handledCapabilityResult(CapabilityInvocation{CallID: "unavailable-image", CapabilityName: "media.image.generate"}, "image_request_unresolved", "needs_input", nil))
+	ctx = WithADKCapabilityInvoker(ctx, &goalRequestPolicyInvoker{}, trace)
+
 	inv.CallID = "after-denial"
 	adjusted, _, err := service.prepare(ctx, inv, run)
 	if err != nil || adjusted.Text != "这次图片能力不可用，我们先继续聊。" || len(adjusted.MediaRequests) != 0 || writerCalls != 3 {

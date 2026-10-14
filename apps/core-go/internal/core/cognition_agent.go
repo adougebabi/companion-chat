@@ -101,6 +101,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	if replyRun := replyRunFromContext(ctx); replyRun != nil && replyRun.Settings.Mode == "fact_only" {
 		surface = ProviderContextSurfaceFactOnlyCognition
 		operationRules = []string{factOnlyExecutionBoundary}
+		projection = privateTextChatProjection(projection)
 	}
 	assembly, projection, err := a.assembleProjectionPromptForSurface(
 		ctx,
