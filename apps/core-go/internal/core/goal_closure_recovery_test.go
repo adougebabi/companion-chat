@@ -33,6 +33,7 @@ func TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder(t *testing
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET claimed_at=now()-interval '6 minutes' WHERE id=$1`, id); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, id)
 	newer, prior, err := f.app.claimGoalEvaluation(f.ctx, id)
 	if err != nil || prior != nil || newer.ClaimRevision != snapshot.ClaimRevision+1 {
 		t.Fatalf("lease reclaim: %#v %v", prior, err)
@@ -159,6 +160,7 @@ func TestEmptyGoalEvaluationRejectsExpiredClaim(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET claimed_at=now()-interval '6 minutes' WHERE id=$1`, id); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, id)
 	live, _, err := f.app.claimGoalEvaluation(f.ctx, id)
 	if err != nil {
 		t.Fatal(err)
@@ -337,6 +339,9 @@ func TestGoalEvaluationBatchRemainderRetainsActualSource(t *testing.T) {
 	})}
 	for i := 0; i < 2; i++ {
 		id := latestPendingGoalRequest(t, f)
+		if i > 0 {
+			advanceGoalEvaluationCycleForTest(t, f, id)
+		}
 		if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, id); err != nil {
 			t.Fatal(err)
 		}

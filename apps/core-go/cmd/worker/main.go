@@ -196,6 +196,9 @@ func main() {
 			} else if ensured > 0 {
 				logger.Info("Go Worker repaired conversation segment intents", "count", ensured)
 			}
+			if _, err := application.RepairGoalEvaluationCadence(ctx, 20); err != nil {
+				logger.Error("goal evaluation cadence recovery failed", "error", err)
+			}
 			if _, err := application.RepairGoalPlanning(ctx, 20); err != nil {
 				logger.Error("goal planner recovery failed", "error", err)
 			}

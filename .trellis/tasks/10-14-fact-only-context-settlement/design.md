@@ -108,3 +108,15 @@ prepared/published 先复用缓存/receipt。旧 execution_scope 的 purpose/top
 成功注册后、模型前记录context.reference.capacity_warning：数量/编码总字节/快照总字节/最大快照/分类型聚合/前5条描述/超出维度/阈值/阶段/关联身份；worker先输出安全元数据，再尝试原Owner诊断存储，无正文。沿用原独立2秒诊断写超时；不宣称零延迟。大上下文可能增加内存、CPU和模型负担，优化债务有证据可追踪，但不据此预先拒绝合法内部数据。
 
 不自动发布或操作日志中的workflow。代码验证完成后单独提出本轮一笔工作提交；旧四笔提交授权不等于后续发布授权。
+
+## 12. F15 Goal Agent周期与空位准入
+
+本轮用户再次明确Evaluation30min及Planner必须空位，Tool分工不变。采用持久化per-Fluctlight调度/准入fence，复用原PostgreSQL workflow intents、Temporal deferred/not_before、Life锁与logical lease。30min约束作用于独立evaluation cycle，不作用于同一native loop物理请求；source事件保留合并，memo不因时钟造新事实。
+
+Planner满额所有调用入口都不启动模型；自动仅完成补位或本地日一次，有空位才允许。Actor/profile/recovery只积累证据，不另开高频预算。自动失败已花该日/该完成事件的episode，下一完成/日期或Owner显式有空位请求再获得机会；既有成功commit恢复与accepted journals不受调度fence阻断。使用0063 additive migration并在旧函数install之后重装新规则，保留全部业务历史。详见goal-cadence-followup.md。
+
+## 13. F16 专用提交的程序兜底
+
+对Goal Evaluation原生模型表示层作确定性适配：已accepted target返回原回执不重写；全unknown/no_change转needs_evidence；可唯一确定的scope内ref规范化/相同judgment去重。无法可信修复的内容只生成待处理回执，不写伪造判断或覆盖已有进度。accepted恢复视图稳定带kind/short target refs。
+
+专用session以durable新增accepted targets判断真实进展；有限无进展后关闭重复Tool选择并正常总结/处置awaiting_evidence，明确assessment_complete=false与unresolved targets。操作性收束不冒充native accepted root，不消费未解决sources，不造memo/Goal完成/调用。保留F15持久周期、所有权/claim/证据/CAS，原Provider/基础设施/取消错误不改写。详见goal-submission-recovery-followup.md。

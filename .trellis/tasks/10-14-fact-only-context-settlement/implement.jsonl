@@ -1,15 +1,8 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend ownership and quality entry points"}
-{"file": ".trellis/spec/backend/fact-only-reply-contract.md", "reason": "Run-local Writer, cache, native media, publication and compatibility invariants"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/context-native-contract.md", "reason": "Verbatim native loop and context-authority spec sections, below injection byte limit"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/context-repair-contract.md", "reason": "Verbatim recovery/publication/final-repair/ref/wire-format sections, below injection byte limit"}
-{"file": ".trellis/spec/backend/fluctlight-memory-contract.md", "reason": "Source-bound authority, scoped refs, working memory and whole history groups"}
-{"file": ".trellis/spec/backend/goal-life-consistency-contract.md", "reason": "Actor/time authority, Goal originals, read freshness and wire budgets"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/context-diagnostics-contract.md", "reason": "Verbatim privacy/correlation/per-call/physical-metadata diagnostic spec sections, below injection byte limit"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required verification and isolated test-channel boundaries"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/call-chains.md", "reason": "Verified two-path symbols, current protections and missing incident requests"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-fields.md", "reason": "Original criteria, profile/target visibility, real execution conditions versus planning text"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/fact-provenance.md", "reason": "Meaning of verified and relationship confirmation; actual source/subject/ref limits"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/time-diagnostics.md", "reason": "Time decoration origin, field validity and physical payload observation seam"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/availability-followup.md", "reason": "F14: user-approved availability behavior and old capacity RED reproductions"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/context-capacity-contract.md", "reason": "Verbatim internal advisory propagation and pre-model diagnostic contracts"}
-{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/capacity-pipeline-audit.md", "reason": "Reference/snapshot/prepared downstream capacity inventory"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend ownership and check entry points"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Local quality gate and no production DB testing"}
+{"file": ".trellis/spec/backend/goal-planner-contract.md", "reason": "Existing Planner authority; F15 overrides historical trigger/full suggestions exceptions"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-evaluation-authority-contract.md", "reason": "Verbatim Goal authority/private Tool/cadence/recovery contracts below injection byte limit, updated for F15/F16"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/goal-cadence-followup.md", "reason": "F15 latest authoritative 30min/vacancy requirements and scoped implementation plan"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-cadence-audit.md", "reason": "Verified source entry points, prior user decisions, migration and regression seams"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/goal-submission-recovery-followup.md", "reason": "F16 user-authorized deterministic program fallback and finite Goal Evaluation handling; overrides model-representation conflict errors"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-submission-audit.md", "reason": "Confirmed immutable baseline roots and current source anchors; preserve authorization/evidence/partial journal"}

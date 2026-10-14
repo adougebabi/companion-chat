@@ -24,6 +24,7 @@ type goalEvaluationSession struct {
 	binding    *goalEvaluationWireBinding
 	projection ContextProjection
 	runID      string
+	progress   goalEvaluationProgress
 }
 
 type goalEvaluationPhysicalRequestPolicy struct {
@@ -49,14 +50,23 @@ func (p goalEvaluationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx cont
 	// the Agent produce its final summary so the existing finalizer can persist
 	// the trace error and replace the stale request with a fresh snapshot. Root
 	// coverage itself remains determined only by the durable submission journal.
-	if goalEvaluationTraceNeedsFreshSnapshot(ctx) {
+	needsFresh := goalEvaluationTraceNeedsFreshSnapshot(ctx)
+	records := goalSubmissionRecords(decodeObject(raw))
+	_, missing := goalEvaluationSubmissionCoverage(snapshot, records)
+	decision := p.session.progress.decide(len(records), goalEvaluationNativeAttempts(ctx), len(missing) > 0)
+	if needsFresh && !p.session.progress.awaitingEvidence() {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
-	_, missing := goalEvaluationSubmissionCoverage(snapshot, goalSubmissionRecords(decodeObject(raw)))
-	if len(missing) > 0 {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+	if p.session.progress.awaitingEvidence() && len(missing) > 0 {
+		tag, err := p.app.DB.Pool().Exec(ctx, `UPDATE public.goal_evaluation_requests SET result=jsonb_set(result,'{cycle_disposition}','"awaiting_evidence"'::jsonb,true),updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$2`, snapshot.RequestID, snapshot.ClaimRevision)
+		if err != nil {
+			return physicalModelRequestDecision{}, err
+		}
+		if tag.RowsAffected() != 1 {
+			return physicalModelRequestDecision{}, ErrConflict
+		}
 	}
-	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+	return decision, nil
 }
 
 func goalEvaluationTraceNeedsFreshSnapshot(ctx context.Context) bool {
@@ -240,11 +250,14 @@ func (a *App) executeGoalEvaluationSubmissionTx(ctx context.Context, tx pgx.Tx, 
 	key := goalSubmissionKey(inv.CapabilityName, entry.GoalID, stringValue(args["object_ref"]))
 	digest := stableDigest(jsonString(args))
 	if prior, exists := records[key]; exists {
-		if prior.Digest != digest {
-			return failedCapabilityResult(inv, "goal_submission_conflict", false), nil
+		if _, _, err := a.goalSubmissionAuthorityTx(ctx, tx, s, entry, result); err != nil {
+			if goalSubmissionBusinessError(err) {
+				return failedCapabilityResult(inv, err.Error(), false), nil
+			}
+			return CapabilityResult{}, err
 		}
-		output := cloneMap(prior.Output)
-		output["replayed"] = true
+		output := goalSubmissionReplay(prior, digest, inv.CapabilityName)
+		output["unresolved_goal_refs"] = goalEvaluationUnresolvedWireRefs(s.binding, records)
 		return goalToolResult(inv, output), nil
 	}
 	// A nested transaction is a PostgreSQL savepoint. Correctable domain errors
@@ -266,7 +279,12 @@ func (a *App) executeGoalEvaluationSubmissionTx(ctx context.Context, tx pgx.Tx, 
 	if err := sp.Commit(ctx); err != nil {
 		return CapabilityResult{}, err
 	}
+	if output["assessment_accepted"] == false {
+		return goalToolResult(inv, output), nil
+	}
+	output["capability_name"], output["submission_kind"], output["mutation_committed"] = inv.CapabilityName, goalSubmissionKind(inv.CapabilityName), true
 	records[key] = goalSubmissionRecord{Digest: digest, Output: output}
+	output["unresolved_goal_refs"] = goalEvaluationUnresolvedWireRefs(s.binding, records)
 	result["submissions"] = records
 	revisions := mapValue(result["goal_revisions"])
 	if revisions == nil {
@@ -310,40 +328,24 @@ func goalSubmissionBusinessError(err error) bool {
 }
 
 func (a *App) applyGoalSubmissionTx(ctx context.Context, tx pgx.Tx, s *goalEvaluationSession, entry goalEvaluationGoal, args map[string]any, name string, result map[string]any, records map[string]goalSubmissionRecord) (map[string]any, GoalAuthority, error) {
-	if err := verifyGoalAssessmentProjectionAuthorityTx(ctx, tx, a, s.projection); err != nil {
-		return nil, GoalAuthority{}, err
-	}
-	expected := entry.Goal.Revision
-	if v := intValue(mapValue(result["goal_revisions"])[entry.GoalID]); v > 0 {
-		expected = v
-	}
-	live, err := loadGoalAuthorityTx(ctx, tx, entry.Goal.FluctlightID, entry.Goal.Ref, ContextReference{EntityID: entry.GoalID, Revision: expected})
+	live, sources, err := a.goalSubmissionAuthorityTx(ctx, tx, s, entry, result)
 	if err != nil {
-		if err.Error() == "reflection_goal_revision_stale" {
-			err = errors.New("goal_submission_authority_stale")
-		}
 		return nil, live, err
-	}
-	if live.TargetActorID == "" {
-		live.TargetActorID = entry.Goal.TargetActorID
 	}
 	if goalStatusTerminal(live.Status) {
 		return nil, live, errors.New("goal_submission_parent_terminal")
 	}
-	sources := map[string]GoalSource{}
-	for _, source := range admittedGoalEvaluationSources(s.binding.snapshot) {
-		if source.Kind == "goal_revision" {
-			continue
-		}
-		actual, err := readGoalSourceWith(ctx, tx, source.EventID, true)
-		if err != nil {
-			return nil, live, err
-		}
-		if goalAssessmentSourceFingerprint(actual) != goalAssessmentSourceFingerprint(source) {
-			return nil, live, errors.New("goal_evaluation_source_stale")
-		}
-		sources[source.Ref] = actual
+	normalized, normalizeErr := normalizeGoalSubmission(s.binding, entry, name, args)
+	if normalizeErr != nil {
+		return goalSubmissionAwaitingEvidence(s.binding, entry, name, args, normalizeErr.Error()), live, nil
 	}
+	adaptations := []string{}
+	for _, field := range []string{"impact", "judgments", "wait_condition"} {
+		if jsonString(args[field]) != jsonString(normalized[field]) {
+			adaptations = append(adaptations, field)
+		}
+	}
+	args = normalized
 	next := live
 	switch name {
 	case goalEvaluationSubmit:
@@ -425,7 +427,7 @@ func (a *App) applyGoalSubmissionTx(ctx context.Context, tx pgx.Tx, s *goalEvalu
 				return nil, live, err
 			}
 		}
-		return map[string]any{"goal_ref": args["goal_ref"], "object_ref": args["object_ref"], "object_kind": kind, "assessment_accepted": true, "completed": hydrated.Completed && live.Status == GoalActive, "parent_status": next.Status, "replayed": false}, next, nil
+		return map[string]any{"goal_ref": args["goal_ref"], "object_ref": args["object_ref"], "object_kind": kind, "assessment_accepted": true, "completed": hydrated.Completed && live.Status == GoalActive, "parent_status": next.Status, "replayed": false, "adapted_fields": adaptations}, next, nil
 	case goalPlanSubmit:
 		if live.Status != GoalActive {
 			return nil, live, errors.New("goal_submission_parent_not_active")
@@ -446,5 +448,40 @@ func (a *App) applyGoalSubmissionTx(ctx context.Context, tx pgx.Tx, s *goalEvalu
 	default:
 		return nil, live, ErrUnauthorized
 	}
-	return map[string]any{"goal_ref": args["goal_ref"], "assessment_accepted": true, "status": next.Status, "progress": next.Progress, "ready_for_settlement": next.ExecutionHint["ready_for_settlement"] == true, "replayed": false}, next, nil
+	return map[string]any{"goal_ref": args["goal_ref"], "assessment_accepted": true, "status": next.Status, "progress": next.Progress, "ready_for_settlement": next.ExecutionHint["ready_for_settlement"] == true, "replayed": false, "adapted_fields": adaptations}, next, nil
+}
+
+func (a *App) goalSubmissionAuthorityTx(ctx context.Context, tx pgx.Tx, s *goalEvaluationSession, entry goalEvaluationGoal, result map[string]any) (GoalAuthority, map[string]GoalSource, error) {
+	if err := verifyGoalAssessmentProjectionAuthorityTx(ctx, tx, a, s.projection); err != nil {
+		return GoalAuthority{}, nil, err
+	}
+	expected := entry.Goal.Revision
+	if v := intValue(mapValue(result["goal_revisions"])[entry.GoalID]); v > 0 {
+		expected = v
+	}
+	live, err := loadGoalAuthorityTx(ctx, tx, entry.Goal.FluctlightID, entry.Goal.Ref, ContextReference{EntityID: entry.GoalID, Revision: expected})
+	if err != nil {
+		if err.Error() == "reflection_goal_revision_stale" {
+			err = errors.New("goal_submission_authority_stale")
+		}
+		return live, nil, err
+	}
+	if live.TargetActorID == "" {
+		live.TargetActorID = entry.Goal.TargetActorID
+	}
+	sources := map[string]GoalSource{}
+	for _, source := range admittedGoalEvaluationSources(s.binding.snapshot) {
+		if source.Kind == "goal_revision" {
+			continue
+		}
+		actual, err := readGoalSourceWith(ctx, tx, source.EventID, true)
+		if err != nil {
+			return live, nil, err
+		}
+		if goalAssessmentSourceFingerprint(actual) != goalAssessmentSourceFingerprint(source) {
+			return live, nil, errors.New("goal_evaluation_source_stale")
+		}
+		sources[source.Ref] = actual
+	}
+	return live, sources, nil
 }

@@ -66,6 +66,7 @@ func TestGoalStageCompletionReplayDoesNotRepeatNextStage(t *testing.T) {
 	if replayID == firstRequest {
 		t.Fatal("test must use a different delivery identity")
 	}
+	advanceGoalEvaluationCycleForTest(t, f, replayID)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, replayID); err != nil {
 		t.Fatal(err)
 	}

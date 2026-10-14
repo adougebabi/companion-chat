@@ -15,7 +15,7 @@ func TestMediaKevUpgradeDoesNotRewriteReleasedSQLOrSettings(t *testing.T) {
 			t.Fatalf("destructive media migration: %s", word)
 		}
 	}
-	if Head != "0062_reply_media" || ReplyMediaPreviousHead != "0061_fact_only_reply" || FactOnlyReplyPreviousHead != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" {
+	if Head != "0063_goal_agent_cadence" || GoalAgentCadencePreviousHead != "0062_reply_media" || ReplyMediaPreviousHead != "0061_fact_only_reply" || FactOnlyReplyPreviousHead != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" {
 		t.Fatal("upgrade chain invalid")
 	}
 }

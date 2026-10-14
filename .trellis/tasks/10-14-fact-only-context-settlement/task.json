@@ -63,11 +63,24 @@
     "apps/core-go/internal/core/reflection_runtime_v2.go",
     "apps/core-go/internal/core/tool_execution.go",
     "docs/context-capacity-availability.md",
-    ".trellis/spec/backend/structured-turn-contract.md"
+    ".trellis/spec/backend/structured-turn-contract.md",
+    ".trellis/spec/backend/goal-planner-contract.md",
+    ".trellis/spec/backend/goal-life-consistency-contract.md",
+    "docs/goal-agent-runtime-availability.md",
+    "apps/core-go/cmd/worker/main.go",
+    "apps/core-go/internal/core/goal_agent_cadence.go",
+    "apps/core-go/internal/core/goal_submission_recovery.go",
+    "apps/core-go/internal/core/goal_evaluation_runtime.go",
+    "apps/core-go/internal/core/goal_evaluation_tools.go",
+    "apps/core-go/internal/core/goal_evaluation_submission_runtime.go",
+    "apps/core-go/internal/core/goal_planner.go",
+    "apps/core-go/internal/migrations/goal_agent_cadence.go",
+    "apps/core-go/internal/migrations/runner.go"
   ],
-  "notes": "Original four work commits completed. F14 capacity availability follow-up implemented and locally verified, currently uncommitted; retain task for user environment validation. No push/merge/deploy or live workflow retry.",
+  "notes": "F14 committed by user as ec1ed82. F15 30min/vacancy admission and F16 deterministic submission recovery implemented; independent check and final local gates pass. Current follow-up uncommitted; real PostgreSQL/live runtime verification remains unavailable. No push/deploy/workflow operations.",
   "meta": {
     "work_commit_approval": "用户：提交吧",
-    "capacity_followup": "F14 implementation complete; one coherent follow-up commit pending phase 3.4 approval."
+    "capacity_followup": "Committed in ec1ed82 by user.",
+    "goal_runtime_followup": "F15/F16 local implementation/check complete; commit pending one-shot approval; DB integration SKIP."
   }
 }

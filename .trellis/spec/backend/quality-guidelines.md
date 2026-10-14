@@ -23,6 +23,13 @@
   a front-door check alone can leave silent nil/truncation or another count gate.
   Keep authorization, integrity and external argument/schema validation separate.
   See the internal-capacity scenarios in the structured-turn and diagnostics contracts.
+- For Goal Agent recovery, test actual Agent admission and native-loop progress:
+  a timer/prompt-only change is insufficient. Deterministic representation errors
+  use truthful handled receipts; accepted targets replay without writes. A stalled
+  cycle must close even if the Provider ignores an empty Tool catalog, while actual
+  Provider/DB/cancel errors remain errors and unresolved evidence stays pending.
+  Test cadence/episode persistence with a disposable PostgreSQL; compile/SKIP
+  evidence cannot certify SQL, upgrade or concurrent atomicity.
 
 ## Forbidden Patterns
 

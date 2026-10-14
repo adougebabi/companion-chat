@@ -274,6 +274,11 @@ func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, ru
 	snapshot = compactGoalPlannerSnapshot(snapshot)
 	schema := objectSchema(map[string]any{"decision": enumStringSchema("applied", "no_change", "no_viable_candidate", "awaiting_facts", "blocked_by_policy", "failed", "suggestions"), "reason": stringSchema(), "review_condition": stringSchema(), "suggestions": arraySchema(openObjectSchema())}, []string{"decision", "reason", "review_condition", "suggestions"}, false)
 	messages := (&PromptComposer{}).ComposeTaskMessages("goal_planner", []map[string]any{{"role": "system", "content": goalPlannerInstruction}, {"role": "user", "content": jsonString(map[string]any{"run_id": runRef, "mode": mode, "snapshot": snapshot})}})
+	if prior, err := a.admitGoalPlannerModel(ctx, owner, actor, profile, runRef, mode); err != nil {
+		return nil, err
+	} else if prior != nil {
+		return prior, nil
+	}
 	ctx = withPhysicalModelRequestPolicy(ctx, goalPlannerPhysicalRequestPolicy{})
 	run, err := a.RunFormalAgent(ctx, FormalAgentGoalPlanner, FormalAgentRunInput{Prompt: PromptAssemblyResult{Messages: formatProviderMessagesForRole(messages, "cognitive_assessment"), ResponseFormat: schema}, Definitions: capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalPlanner), SchemaName: "goal_planner_v1", Capability: &ADKCapabilityRequest{TargetKind: "goal_planning_run", TargetRef: runRef, AuthorizationActorID: actor, FluctlightID: owner, SourceFactID: runRef, OperationID: runRef, CorrelationID: "goal-planner:" + runRef, Surface: CapabilitySurfaceGoalPlanner, Projection: ContextProjection{OwnerActorID: actor, FluctlightID: owner, SourceFactID: runRef, PersonalityRuntime: map[string]any{"active_profile_id": profile}}}})
 	if err != nil {
@@ -319,10 +324,22 @@ func (a *App) RequestGoalPlanning(ctx context.Context, actor, owner, key string)
 	if key == "" || len(key) > 128 {
 		return nil, ErrInvalidArguments
 	}
+	result := map[string]any{"status": "requested", "idempotency_key": key}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		return requestGoalPlanningTx(ctx, tx, owner, "owner:"+key, "owner_request", nil)
+		if err := requestGoalPlanningTx(ctx, tx, owner, "owner:"+key, "owner_request", nil); err != nil {
+			return err
+		}
+		var full bool
+		if err := tx.QueryRow(ctx, `SELECT (SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='active')>=max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1`, owner).Scan(&full); err != nil {
+			return err
+		}
+		if full {
+			result = goalPlannerNoModel("capacity_full", "Active goal capacity is full; Owner request retained until a slot is available")
+			result["idempotency_key"] = key
+		}
+		return nil
 	})
-	return map[string]any{"status": "requested", "idempotency_key": key}, err
+	return result, err
 }
 func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[string]any, error) {
 	var logicalOwner string
@@ -379,7 +396,7 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 			return nil
 		}
 		if notReady || (status == "processing" && liveClaim) {
-			prior = map[string]any{"status": "deferred"}
+			prior = map[string]any{"status": "deferred", "not_before": available.UTC().Format(time.RFC3339Nano)}
 			return nil
 		}
 		if attempts >= maxAttempts {
@@ -409,33 +426,37 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 		if err := tx.QueryRow(ctx, `SELECT COALESCE(max(seq),0) FROM public.goal_planning_events WHERE fluctlight_id=$1 AND processed_run_id IS NULL AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$2)`, owner, profile).Scan(&watermark); err != nil {
 			return err
 		}
+		var full bool
+		if err := tx.QueryRow(ctx, `SELECT (SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='active')>=max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1`, owner).Scan(&full); err != nil {
+			return err
+		}
+		if full {
+			prior = goalPlannerNoModel("capacity_full", "Active goal capacity is full; source events retained")
+			_, err := tx.Exec(ctx, `UPDATE public.goal_planning_runs SET status='capacity_full',result=$2,claimed_at=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(prior))
+			return err
+		}
 		if watermark == 0 {
 			prior = map[string]any{"status": "awaiting_profile", "decision": "awaiting_facts", "reason": "Pending events belong to another private profile; retained until it becomes active"}
 			_, err := tx.Exec(ctx, `UPDATE public.goal_planning_runs SET status='awaiting_profile',result=$2,claimed_at=NULL WHERE id=$1`, id, jsonBytes(prior))
 			return err
 		}
-		var reviewTrigger, primaryTrigger bool
 		var activeCount, capacity int
+		var eligible bool
 		if err := tx.QueryRow(ctx, `SELECT
-			EXISTS(SELECT 1 FROM public.goal_planning_events WHERE fluctlight_id=$1 AND processed_run_id IS NULL AND seq<=$3 AND reason='owner_request' AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$2)),
-			EXISTS(SELECT 1 FROM public.goal_planning_events WHERE fluctlight_id=$1 AND processed_run_id IS NULL AND seq<=$3 AND reason IN ('actor_context_changed','profile_changed') AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$2)),
-			EXISTS(SELECT 1 FROM public.goal_planning_events WHERE fluctlight_id=$1 AND processed_run_id IS NULL AND seq<=$3 AND reason IN ('goal_lifecycle_changed','schedule_accepted_daily','initialization_completed','auto_planning_enabled','startup_recovery') AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$2)),
-			(SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='active'),
-			(SELECT max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1)`, owner, profile, watermark).Scan(&manual, &reviewTrigger, &primaryTrigger, &activeCount, &capacity); err != nil {
+          EXISTS(SELECT 1 FROM public.goal_planning_events WHERE fluctlight_id=$1 AND processed_run_id IS NULL AND seq<=$3 AND reason='owner_request' AND source_key LIKE 'owner:%' AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$2)),
+          (SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='active'),
+          (SELECT max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1),
+          EXISTS(SELECT 1 FROM public.goal_planner_episode_keys($1,$2,$3))`, owner, profile, watermark).Scan(&manual, &activeCount, &capacity, &eligible); err != nil {
 			return err
 		}
-		if !manual && !reviewTrigger && !primaryTrigger {
-			prior = map[string]any{"status": "awaiting_trigger", "decision": "awaiting_facts", "reason": "Planning hints are retained until a goal ends, today's schedule is accepted, relevant context changes, or the Owner requests planning"}
-			_, err := tx.Exec(ctx, `UPDATE public.goal_planning_runs SET status='awaiting_trigger',result=$2,claimed_at=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(prior))
-			return err
+		if activeCount >= capacity {
+			prior = goalPlannerNoModel("capacity_full", "Active goal capacity is full; source events retained")
+		} else if !eligible {
+			prior = goalPlannerNoModel("awaiting_trigger", "Automatic planning awaits a new completion or local date; Owner requests require a free goal slot")
 		}
-		if !manual && !reviewTrigger && activeCount >= capacity {
-			prior = map[string]any{"status": "capacity_full", "decision": "no_change", "reason": "Active goal capacity is full; trigger retained until capacity is released"}
-			_, err := tx.Exec(ctx, `UPDATE public.goal_planning_runs SET status='capacity_full',result=$2,claimed_at=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(prior))
+		if prior != nil {
+			_, err := tx.Exec(ctx, `UPDATE public.goal_planning_runs SET status=$2,result=$3,claimed_at=NULL,updated_at=now() WHERE id=$1`, id, prior["status"], jsonBytes(prior))
 			return err
-		}
-		if manual && activeCount >= capacity {
-			mode = "suggestions"
 		}
 		// Automatic disabled requests do not spend a model call. Owner requests can suggest.
 		if mode == "suggestions" {
@@ -495,6 +516,9 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 			runErr = nil
 		}
 		status := "succeeded"
+		if result["model_admission"] == false {
+			status = stringValue(result["status"])
+		}
 		code := ""
 		if runErr != nil {
 			status = "retry"
@@ -514,7 +538,7 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 		if tag.RowsAffected() != 1 {
 			return ErrConflict
 		}
-		if runErr == nil {
+		if runErr == nil && result["model_admission"] != false {
 			if _, err := tx.Exec(ctx, `UPDATE public.goal_planning_events SET processed_run_id=$3 WHERE fluctlight_id=$1 AND seq<=$2 AND processed_run_id IS NULL AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$4)`, owner, watermark, id, profile); err != nil {
 				return err
 			}
@@ -523,10 +547,8 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 				FROM public.goal_planning_events e
 				WHERE e.fluctlight_id=$1 AND e.processed_run_id IS NULL AND e.seq>$2
 				AND (COALESCE(e.payload->>'profile_id','')='' OR e.payload->>'profile_id'=$3)
-				AND (e.reason IN ('owner_request','actor_context_changed','profile_changed') OR
-					(e.reason IN ('goal_lifecycle_changed','schedule_accepted_daily','initialization_completed','auto_planning_enabled','startup_recovery') AND
-					 (SELECT count(*) FROM public.fluctlight_goals g WHERE g.fluctlight_id=$1 AND g.status='active') <
-					 (SELECT max_active_goals FROM public.goal_set_policies p WHERE p.fluctlight_id=$1)))`, owner, watermark, profile).Scan(&next); err != nil {
+				AND EXISTS(SELECT 1 FROM public.goal_planner_episode_keys($1,$3,e.seq)) AND
+                     (SELECT count(*) FROM public.fluctlight_goals g WHERE g.fluctlight_id=$1 AND g.status='active') < (SELECT max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1)`, owner, watermark, profile).Scan(&next); err != nil {
 				return err
 			}
 			if next > 0 { // preserve events that arrived during the model run
@@ -593,12 +615,13 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 	}
 	repaired := 0
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		contextRepaired, err := a.repairGoalPlannerContextReviewsTx(ctx, tx, limit)
-		if err != nil {
-			return err
-		}
-		repaired += contextRepaired
-		rows, err := tx.Query(ctx, `SELECT f.id FROM public.fluctlights f JOIN public.goal_set_policies p ON p.fluctlight_id=f.id WHERE f.status='active' AND p.auto_planning_enabled AND ((SELECT count(*) FROM public.fluctlight_goals g WHERE g.fluctlight_id=f.id AND g.status='active') < p.max_active_goals OR EXISTS(SELECT 1 FROM public.goal_planning_events e WHERE e.fluctlight_id=f.id AND e.processed_run_id IS NULL AND e.reason IN ('actor_context_changed','profile_changed') AND (COALESCE(e.payload->>'profile_id','')='' OR e.payload->>'profile_id'=COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=f.id),'default')))) AND NOT EXISTS(SELECT 1 FROM public.goal_planning_runs r WHERE r.fluctlight_id=f.id AND r.status IN ('pending','processing','retry')) AND (NOT EXISTS(SELECT 1 FROM public.goal_planning_runs r WHERE r.fluctlight_id=f.id) OR EXISTS(SELECT 1 FROM public.goal_planning_events e WHERE e.fluctlight_id=f.id AND e.processed_run_id IS NULL AND e.reason IN ('goal_lifecycle_changed','schedule_accepted_daily','initialization_completed','auto_planning_enabled','actor_context_changed','profile_changed') AND (COALESCE(e.payload->>'profile_id','')='' OR e.payload->>'profile_id'=COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=f.id),'default')) AND NOT EXISTS(SELECT 1 FROM public.goal_planning_runs failed WHERE failed.fluctlight_id=f.id AND failed.status='failed' AND failed.watermark>=e.seq))) ORDER BY f.id LIMIT $1`, limit)
+		rows, err := tx.Query(ctx, `SELECT f.id FROM public.fluctlights f JOIN public.goal_set_policies p ON p.fluctlight_id=f.id
+          WHERE f.status='active' AND p.auto_planning_enabled
+          AND (SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=f.id AND status='active')<p.max_active_goals
+          AND NOT EXISTS(SELECT 1 FROM public.goal_planning_runs WHERE fluctlight_id=f.id AND status IN ('pending','processing','retry'))
+          AND (NOT EXISTS(SELECT 1 FROM public.goal_planner_admissions a WHERE a.fluctlight_id=f.id AND a.episode_key='daily:'||public.goal_planner_local_day(f.id))
+           OR EXISTS(SELECT 1 FROM public.goal_planner_episode_keys(f.id,COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=f.id),'default'),COALESCE((SELECT max(seq) FROM public.goal_planning_events WHERE fluctlight_id=f.id),0))))
+          ORDER BY f.id LIMIT $1`, limit)
 		if err != nil {
 			return err
 		}
@@ -615,43 +638,39 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		for _, id := range ids {
-			policy, err := a.evaluateAutonomyPolicyWithReader(ctx, tx, id, "capability", a.now(), "", false)
+		for _, owner := range ids {
+			if err := lockLifeContextTx(ctx, tx, owner); err != nil {
+				return err
+			}
+			policy, err := a.evaluateAutonomyPolicyWithReader(ctx, tx, owner, "capability", a.now(), "", false)
 			if err != nil {
 				return err
 			}
 			if !policy.Allowed {
 				continue
 			}
-
-			if err := func() error {
-				var seq int64
-				if err := tx.QueryRow(ctx, `SELECT COALESCE(max(e.seq),0)
-					FROM public.goal_planning_events e
-					JOIN public.goal_set_policies p ON p.fluctlight_id=e.fluctlight_id
-					WHERE e.fluctlight_id=$1 AND e.processed_run_id IS NULL
-					AND (COALESCE(e.payload->>'profile_id','')='' OR e.payload->>'profile_id'=COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1),'default'))
-					AND (e.reason IN ('actor_context_changed','profile_changed') OR
-						(e.reason IN ('goal_lifecycle_changed','schedule_accepted_daily','initialization_completed','auto_planning_enabled','startup_recovery') AND
-						 (SELECT count(*) FROM public.fluctlight_goals g WHERE g.fluctlight_id=$1 AND g.status='active') < p.max_active_goals))
-					AND NOT EXISTS(SELECT 1 FROM public.goal_planning_runs failed WHERE failed.fluctlight_id=e.fluctlight_id AND failed.status='failed' AND failed.watermark>=e.seq)`, id).Scan(&seq); err != nil {
-					return err
-				}
-				if seq == 0 {
-					return requestGoalPlanningTx(ctx, tx, id, "startup-recovery:"+id, "startup_recovery", nil)
-				}
-				// A previous recovery run may have stopped at a now-cleared fence
-				// (for example capacity_full). Use a fresh operational run identity;
-				// the durable event watermark and goal-set CAS retain idempotency.
-				runID := randomID("goal_planner_repair_")
-				_, err := tx.Exec(ctx, `INSERT INTO public.goal_planning_runs(id,fluctlight_id,watermark,available_at) VALUES($1,$2,$3,now()) ON CONFLICT DO NOTHING`, runID, id, seq)
-				return err
-			}(); err != nil {
+			var day string
+			if err := tx.QueryRow(ctx, `SELECT public.goal_planner_local_day($1)`, owner).Scan(&day); err != nil {
 				return err
 			}
-			repaired++
+			if err := requestGoalPlanningTx(ctx, tx, owner, "cadence-day:"+day, "daily_cadence_due", map[string]any{"cadence_due": true, "local_date": day}); err != nil {
+				return err
+			}
+			// A stable day event may already exist (e.g. a private profile became
+			// active). Reconsider individual unspent episodes without resetting
+			// an old failed run or consuming the pending private evidence.
+			id := randomID("goal_planner_due_")
+			tag, err := tx.Exec(ctx, `INSERT INTO public.goal_planning_runs(id,fluctlight_id,watermark,available_at)
+             SELECT $2,$1,COALESCE((SELECT max(seq) FROM public.goal_planning_events WHERE fluctlight_id=$1),0),now()
+             WHERE NOT EXISTS(SELECT 1 FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status IN ('pending','processing','retry'))
+             AND (SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='active')<(SELECT max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1)
+             AND EXISTS(SELECT 1 FROM public.goal_planner_episode_keys($1,COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1),'default'),COALESCE((SELECT max(seq) FROM public.goal_planning_events WHERE fluctlight_id=$1),0))) ON CONFLICT DO NOTHING`, owner, id)
+			if err != nil {
+				return err
+			}
+			repaired += int(tag.RowsAffected())
 		}
-		tag, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) SELECT r.id,'goal-planner:'||r.id,'lifecycle','goal.plan',jsonb_build_object('fluctlight_id',r.fluctlight_id),r.available_at FROM public.goal_planning_runs r JOIN public.goal_set_policies p ON p.fluctlight_id=r.fluctlight_id WHERE r.status IN ('pending','retry') AND r.attempt_count<p.max_attempts ORDER BY r.available_at,r.id LIMIT $1 ON CONFLICT(intent_id) DO NOTHING`, limit)
+		tag, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) SELECT r.id,'goal-planner:'||r.id,'lifecycle','goal.plan',jsonb_build_object('fluctlight_id',r.fluctlight_id),r.available_at FROM public.goal_planning_runs r JOIN public.goal_set_policies p ON p.fluctlight_id=r.fluctlight_id WHERE r.status IN ('pending','retry') AND r.attempt_count<p.max_attempts ORDER BY r.available_at,r.id LIMIT $1 ON CONFLICT DO NOTHING`, limit)
 		repaired += int(tag.RowsAffected())
 		return err
 	})

@@ -2,11 +2,11 @@
 
 Source: `.trellis/spec/backend/structured-turn-contract.md`
 
-Source SHA-256: `515774a1b41dbfa1caf33cf0aca664e29c10091c3cdee63ff17760066a3b23c0`
+Source SHA-256: `e3e98a7114b9bf51eccd66851296a3d6a2f24929d2735153b3bad2eeb3e24dec`
 
-Verbatim selected complete scenario sections to prevent native context injection truncation. The original spec remains authoritative. Read further source sections if implementation touches neighboring behavior; regenerate if its source hash changes.
+Verbatim selected complete scenario sections. Original source remains authoritative; regenerate when its whole-source hash changes. Trailing separating blank lines are excluded.
 
-<!-- Original lines 318–430 -->
+<!-- Original lines 318–428 -->
 
 ## Scenario: Recoverable Runtime Errors Without Fabricated Effects (2026-10-06)
 
@@ -120,9 +120,7 @@ actual scoped refs before the existing no-Tool final repair; respect the wire li
 
 Task-private capabilities may implement Core's `toolExecutionAuthorizer`. The generic ExecuteTool boundary invokes that interface before any mutation receipt replay; business-name dispatch remains forbidden. Private Goal Evaluation sessions must validate actual native/model/task identity and active claim before replay as well as during their mutation transaction. Owner-only governance also uses capability-owned authorization. Catalog visibility does not substitute for this guard.
 
-
-
-<!-- Original lines 513–745 -->
+<!-- Original lines 516–748 -->
 
 ## Scenario: Private chat requires native publication (2026-10-10)
 

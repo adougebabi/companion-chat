@@ -6,11 +6,11 @@ Verbatim complete capacity scenarios; original specs remain authoritative. Regen
 
 Source: `.trellis/spec/backend/structured-turn-contract.md`
 
-Source SHA-256: `515774a1b41dbfa1caf33cf0aca664e29c10091c3cdee63ff17760066a3b23c0`
+Source SHA-256: `e3e98a7114b9bf51eccd66851296a3d6a2f24929d2735153b3bad2eeb3e24dec`
 
-Verbatim selected complete scenario sections to prevent native context injection truncation. The original spec remains authoritative. Read further source sections if implementation touches neighboring behavior; regenerate if its source hash changes.
+Verbatim selected complete scenario sections. Original source remains authoritative; regenerate when its whole-source hash changes. Trailing separating blank lines are excluded.
 
-<!-- Original lines 747–820 -->
+<!-- Original lines 750–823 -->
 
 ## Scenario: Internal context capacity is advisory (2026-10-14)
 
@@ -93,7 +93,7 @@ Source: `.trellis/spec/backend/fluctlight-diagnostics-contract.md`
 
 Source SHA-256: `56b812cd23735da6c7decbbcc363f742894ce114c9a3cf0516cfb967311556ac`
 
-Verbatim selected complete scenario sections to prevent native context injection truncation. The original spec remains authoritative. Read further source sections if implementation touches neighboring behavior; regenerate if its source hash changes.
+Verbatim selected complete scenario sections. Original source remains authoritative; regenerate when its whole-source hash changes. Trailing separating blank lines are excluded.
 
 <!-- Original lines 732–793 -->
 

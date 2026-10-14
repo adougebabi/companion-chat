@@ -53,6 +53,10 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 		if err := lockLifeContextTx(ctx, tx, snapshot.FluctlightID); err != nil {
 			return err
 		}
+		var dbNow time.Time
+		if err := tx.QueryRow(ctx, `SELECT now()`).Scan(&dbNow); err != nil {
+			return err
+		}
 		var status string
 		var attempts, claimRevision int
 		var available time.Time
@@ -77,7 +81,7 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 			prior = map[string]any{"status": "failed", "reason": reason}
 			return nil
 		}
-		if status == "processing" && claimed != nil && time.Since(*claimed) < 5*time.Minute {
+		if status == "processing" && claimed != nil && dbNow.Sub(*claimed) < 5*time.Minute {
 			prior = map[string]any{"status": "deferred"}
 			return nil
 		}
@@ -88,15 +92,11 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 			prior = map[string]any{"status": "failed", "reason": "evaluation_retry_exhausted"}
 			return nil
 		}
-		if status == "retry" && time.Now().Before(available) {
-			prior = map[string]any{"status": "deferred", "not_before": available.UTC().Format(time.RFC3339Nano)}
-			return nil
-		}
 		var otherID string
 		var otherClaimed time.Time
 		err := tx.QueryRow(ctx, `SELECT id,claimed_at FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND profile_id=$2 AND status='processing' AND id<>$3 FOR UPDATE`, snapshot.FluctlightID, snapshot.ProfileID, id).Scan(&otherID, &otherClaimed)
 		if err == nil {
-			if time.Since(otherClaimed) < 5*time.Minute {
+			if dbNow.Sub(otherClaimed) < 5*time.Minute {
 				prior = map[string]any{"status": "deferred"}
 				return nil
 			}
@@ -105,6 +105,12 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 			}
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
+		}
+		if until, err := admitGoalEvaluationCycleTx(ctx, tx, snapshot.FluctlightID, id, available); err != nil {
+			return err
+		} else if !until.IsZero() {
+			prior = map[string]any{"status": "deferred", "reason": "evaluation_cadence", "not_before": until.UTC().Format(time.RFC3339Nano)}
+			return nil
 		}
 		snapshot.ClaimRevision = claimRevision + 1
 		var frozen goalEvaluationSnapshot
@@ -448,7 +454,7 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	_, missing := goalEvaluationSubmissionCoverage(snapshot, goalSubmissionRecords(priorResult))
 	var task ProjectionTaskResult
 	var runErr error
-	if len(missing) > 0 {
+	if len(missing) > 0 && priorResult["cycle_disposition"] != "awaiting_evidence" {
 		task, runErr = a.RunGoalEvaluationTask(ctx, snapshot, projection)
 		if err := a.recordGoalEvaluationSubmissionErrors(ctx, snapshot, task.Trace); err != nil {
 			return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, errors.Join(runErr, err))
@@ -479,7 +485,7 @@ func (a *App) failGoalEvaluation(ctx context.Context, id string, claimRevision i
 	defer cancel()
 	code := boundedLifecycleCause(cause.Error())
 	terminal := terminalGoalEvaluationContractError(cause)
-	if _, err := a.DB.Pool().Exec(recordCtx, `UPDATE public.goal_evaluation_requests SET status=CASE WHEN $4 OR attempt_count>=5 THEN 'failed' ELSE 'retry' END,claimed_at=NULL,error_code=$2,available_at=now()+interval '1 minute',updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$3`, id, code, claimRevision, terminal); err != nil {
+	if _, err := a.DB.Pool().Exec(recordCtx, `UPDATE public.goal_evaluation_requests SET status=CASE WHEN $4 OR attempt_count>=5 THEN 'failed' ELSE 'retry' END,claimed_at=NULL,error_code=$2,available_at=GREATEST(now()+interval '1 minute',COALESCE((SELECT evaluation_next_at FROM public.goal_agent_cadence c WHERE c.fluctlight_id=goal_evaluation_requests.fluctlight_id),now())),updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$3`, id, code, claimRevision, terminal); err != nil {
 		return fmt.Errorf("record goal evaluation failure: %w (assessment: %v)", err, cause)
 	}
 	return cause

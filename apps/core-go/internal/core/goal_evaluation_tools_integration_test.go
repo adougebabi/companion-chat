@@ -239,6 +239,7 @@ func TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo(t 
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET available_at=now() WHERE id=$1`, request); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, request)
 	retry = true
 	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err != nil || len(arrayValue(result["goal_outcomes"])) != 2 {
 		t.Fatal(result, err)

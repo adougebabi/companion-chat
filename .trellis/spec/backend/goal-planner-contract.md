@@ -2,8 +2,10 @@
 
 ## 1. Scope / Trigger
 
-Incremental set planning after Goal resolution, released capacity, Actor/relationship
-context changes, explicit Owner requests, profile activation or bounded recovery.
+Incremental set planning after formal Goal completion or one local-day planning
+episode, with real free Goal capacity required for every model invocation. Owner
+requests also require capacity. Actor/relationship/profile changes remain context
+hints and cannot create an additional automatic episode.
 Preserve the Eino Runner, GoalEvaluation, Stage/Commitment/Intention and Schedule.
 
 ## 2. Signatures
@@ -18,7 +20,7 @@ Preserve the Eino Runner, GoalEvaluation, Stage/Commitment/Intention and Schedul
 - Native Tools: `goal_planner.query` and `goal_planner.commit`, private surface
   `goal_planner`; FormalAgent `goal_planner`, schema `goal_planner_v1`, 12 cycles.
 - Internal/browser resources: `goal-set`, `goal-planning`, `actor-context/:actorId`.
-- Schema head `0059_fact_generation_provenance` includes the additive Kev adapter and logical-run coordination. Planner cadence remains `0055_goal_planner_cadence`, additive from released `0054_goal_planner`; the original Planner bundle remains additive from `0053_goal_reconciliation`.
+- Schema head `0063_goal_agent_cadence` adds operational cadence after released `0062_reply_media`. The released `0054_goal_planner` and `0055_goal_planner_cadence` bundles remain immutable; the current installer supersedes their automatic admission predicates after every Apply.
 
 ## 3. Contracts
 
@@ -46,7 +48,8 @@ Preserve the Eino Runner, GoalEvaluation, Stage/Commitment/Intention and Schedul
     captured before the claim watermark. Private events stay pending until activation.
     Request insertion uses the Life lock; sequence allocation cannot outrun its commit.
 11. Policy-blocked work stays durable. Recovery checks current permission; failed
-    attempts cap retries; unchanged/no-viable snapshots do not create fixed model calls.
+    attempts retain their episode admission; retry/repair cannot grant fresh automatic
+    budget. No-viable output does not justify an extra same-day model call.
 12. Defaults: merge 2s, retry 60s, lease 300s, max attempts 5, candidates 20.
     Owner can configure bounded recovery policy; model cannot. Existing queued deadlines
     keep their original merge window. Failed Tool decisions are retry, never no-viable.
@@ -58,6 +61,7 @@ Preserve the Eino Runner, GoalEvaluation, Stage/Commitment/Intention and Schedul
 | Sixth activation / full candidate storage | Domain conflict; no hidden candidate fallback |
 | Stale collection/facts/claim or inactive instance | Reject mutation; bounded reread/retry |
 | Closed auto planning or suggestions run | Commit denied, existing authorized execution unchanged |
+| Full capacity, including Owner/review/old queue/retry | capacity_full without a model call; keep events |
 | Missing meaningful no-candidate reason/review condition | Invalid Agent contract |
 | Invalid dependency/order/source decision | Whole transaction rollback |
 | Committed run repeats another command | Reject; replay original key returns original result |
@@ -99,49 +103,80 @@ Model scheduled wishes without active goal_ref return planning_requested and do
 not call Schedule generation. Ordinary cognition reads a compact goal_policy
 capacity summary, retaining the same physical model-call count.
 
-### Automatic cadence and evaluation failures (0055)
+## Scenario: Durable Goal cadence and vacancy admission (0063, 2026-10-14)
 
-`request_goal_planning(owner_id, source_id, why, payload)` persists hints but only
-Owner requests, real Actor/profile review, or primary triggers enqueue work.
-Primary triggers are lifecycle capacity release, accepted daily Schedule, initial
-startup and authorized re-enable/recovery; they require instance active count
-below capacity. Claim repeats the same gate for old queued work. Full Owner
-requests use suggestions; real Actor/profile changes may review an existing full
-set. Ordinary cognition/reflection wishes do not dispatch an independent run.
+### 1. Scope / Trigger
+Repeated Planner calls after Actor/profile changes or recovery bypassed the user's
+completion/daily rule. Every invocation now requires active Goal count below
+max_active_goals; there is no full-set Owner/review/suggestions exception.
 
-`acceptScheduleWithTx` requests `schedule_accepted_daily` with source identity
-`schedule:<IANA timezone>:<local date>` after formal acceptance, in the same
-transaction. Replay/replan uses the same daily event. Do not use schedule revision
-or random ID as the daily planning identity. Recovery retains late/private events
-and recovers stranded review events directly; do not convert a full-set Actor
-review into a capacity-blocked startup event or generate new events every minute.
+### 2. Signatures
+- `request_goal_planning(owner_id, source_id, why, data)` retains all hints.
+- `goal_planner_local_day(owner_id) -> text` uses DB time and instance IANA zone.
+- `goal_planner_episode_keys(owner_id, profile, watermark) -> episode_key rows`.
+- `ProcessGoalPlanningIntent`, `RepairGoalPlanning` and final
+  `admitGoalPlannerModel(ctx, owner, actor, profile, runRef, mode)` repeat admission.
+- Migration `0063_goal_agent_cadence` is additive from `0062_reply_media`.
 
-| State/error | Durable behavior |
-|---|---|
-| Full automatic supplementation | No model request; old queued run becomes capacity_full, trigger remains durable |
-| Ordinary wish only | Retain hint; no automatic dispatch, old queued run awaits a primary trigger |
-| Missing assessment goal coverage | One explicit replacement-object correction via the existing formal task |
-| Correction still lacks coverage or enumerated fixed wire/scope error | failed with original cause; no success memo or evidence consumption |
-| Planner final without consumed query / unbacked commit claim | failed with precise contract error; replay makes no new model call |
-| Transient Provider failure / stale authoritative facts | Existing bounded retry and backoff; never write success memo |
-| Successful memo with same semantic authority/sources/conditions | succeeded / assessment_memo_match; no physical model call |
+### 3. Contracts
+`goal_planner_admissions(fluctlight_id, episode_key, run_ref, admitted_at)` records
+actual native Agent admission. `daily:YYYY-MM-DD` is available only with a visible,
+unprocessed captured event within the run watermark for the current local day:
+schedule_accepted_daily, daily_cadence_due, initialization_completed,
+auto_planning_enabled or startup_recovery. Schedule/repair use payload.local_date;
+boot events use their capture time in the instance zone. A date alone, ordinary
+wish, Actor/profile/relationship change, pause/cancel/abandon or context repair
+cannot manufacture a daily budget.
 
-Required tests: `TestGoalPlannerCadenceFullAutomaticAndWishAreQuietButOwnerCanSuggest`
-(full repair twice creates no events; stranded full Actor review recovers),
-`TestGoalPlannerFinalWithoutQueryStopsInsteadOfRetryingSameRun`,
-`TestGoalAssessmentMissingCoverageGetsOneTypedCorrection`,
-`TestGoalAssessmentRepeatedMissingCoverageFailsTerminally`,
-`TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel`,
-`TestAcceptScheduleUsesDatabaseIdempotencyBoundary`, and true 0054 function restore
-then 0055 migration upgrade/reentry. Keep original authority/source rollback
-assertions in malformed-output tests even when request status changes to failed.
+Formal completed lifecycle events and authenticated Owner events use exact
+`event:seq` keys. Completion must still name an actually completed owned Goal.
+Private profile events retain individual eligibility; never replace this ledger
+with a global max watermark. One run may admit several currently visible episode
+keys. Failure keeps those keys spent; a new completion, local day or explicit
+Owner event is needed for more model work. Same-day retries do not reset budget.
 
-Wrong: full set + every wish/replan -> new model call; bad coverage -> five blind
-identical attempts -> retry_exhausted.
-Correct: durable trigger + capacity/semantic admission -> bounded formal task ->
-coverage correction or precise failure; new facts/Owner action may start new work.
-`provider_request_failed` is a physical request error, not duplicate skip. An Agent
-final_message/completed diagnostic is not proof of accepted Goal authority.
+The final Agent boundary validates its processing row, claim revision, lease,
+Owner actor, profile/mode and current real capacity before writing admission.
+Full capacity returns `capacity_full`/model_admission=false; spent budgets return
+`awaiting_trigger` without consuming events. A recovered durable commit returns
+before any new admission or model call. Owner requests with free capacity keep
+explicit behavior, including suggestions when automatic planning is disabled.
+
+The existing repair lifecycle creates one stable daily_cadence_due event with
+local_date when the day is unspent and capacity is free, including no-new-event
+and restart cases. It never resets failed/committed history. Released 0054/0055
+SQL remains unchanged; the new installer runs after old installers on every Apply.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Active count reaches capacity, any entry | no model; capacity_full and retained hints |
+| Formal completion + slot | one unspent completion episode may run |
+| Current captured local-day event + slot | one daily episode may run |
+| Actor/profile/wish/pause/cancel only, no allowed event | no independent planning episode |
+| Yesterday's schedule or repeated same-day repair | no fresh daily budget |
+| Already admitted automatic episode fails | retain cause and spent ledger; retry cannot spend again |
+| Pending private event activates later | exact event remains eligible, subject to capacity |
+| Previously committed run is replayed | recover stored result, no model |
+
+### 5. Good / Base / Bad Cases
+Good: completing one Goal frees a slot and triggers one merged planning episode.
+Base: a full set stays quiet through daily repair and Owner requests. Bad: switch
+profiles repeatedly to call Planner, or let an ordinary hint borrow a date-only
+budget before a legitimate daily event exists.
+
+### 6. Tests Required
+`goal_agent_cadence_test.go` covers full sources/old queue/direct Agent admission,
+failed day/private episodes, captured daily hints and due repair. Migration tests
+restore old installers and 0062 head, then Apply twice without resetting clocks,
+admissions, failed runs or private history. These are real-PG tests and SKIP without
+an explicitly disposable DB; compilation is not SQL/persistence acceptance.
+Retain native query/commit/reread, CAS and original completion evidence tests.
+
+### 7. Wrong vs Correct
+Wrong: full Owner/review requests still call the model, or `daily:<today>` always
+exists in episode_keys. Correct: real capacity + captured legitimate event +
+unspent per-event/day admission, repeated at the final native Agent boundary.
 
 
 ## Scenario: Native query phases and bounded held-context recovery (2026-10-11)

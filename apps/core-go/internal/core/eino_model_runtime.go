@@ -78,6 +78,7 @@ type queuedToolCallingChatModel struct {
 	definitions               []CapabilityDefinition
 	toolInfos                 []*schema.ToolInfo
 	responseFormat            map[string]any
+	toolCallFallback          *schema.Message
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
@@ -182,6 +183,12 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 	}
 
+	if err == nil && m.toolCallFallback != nil && result != nil && len(result.ToolCalls) > 0 {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		result = m.toolCallFallback
+	}
 	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
 		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
 		if adkContext.Trace != nil {
@@ -261,6 +268,24 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	}, observer.observe)
 	if err != nil || stream == nil {
 		return stream, err
+	}
+	if m.toolCallFallback != nil {
+		// Buffer this final response so no unsolicited ToolCall reaches ADK
+		// before the task can enforce its terminal, tool-free decision.
+		full, err := consumeKevCandidateStream(ctx, stream)
+		if err != nil {
+			return nil, err
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if full != nil && len(full.ToolCalls) > 0 {
+			full = m.toolCallFallback
+		}
+		reader, writer := schema.Pipe[*schema.Message](1)
+		writer.Send(full, nil)
+		writer.Close()
+		return reader, nil
 	}
 	if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
 		full, err := consumeKevCandidateStream(ctx, stream)

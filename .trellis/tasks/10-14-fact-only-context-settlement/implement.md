@@ -96,6 +96,25 @@ P 用例只用明确配置的 disposable 测试 PostgreSQL，必须经 isolatedC
 - [x] 模型前worker安全元数据与Owner容量事件，缺少诊断DB仍能排查。
 - [x] 身份/owner/scope/hash/实际ref及模型夹带prepared负例与定向回归通过；完整Go及工作区检查见追加验证记录。
 - [x] 更新可执行spec、诊断说明与历史计划追加条款；不覆盖旧四笔提交记录。
-- [ ] 本轮新增修复提交：待阶段3.4一次确认；不push/部署，不操作真实workflow。
+- [x] F14修复已由用户提交ec1ed82；未由代理push/部署或操作真实workflow。
 
 F14详细结果见availability-followup.md、verification/capacity-check-summary.json与docs/context-capacity-availability.md。原R01–R26的数据库/真实环境待验收状态保持独立。
+
+## F15 Goal Agent频率追加实施
+
+基线ec1ed82已包含F14，工作区干净。用户明确开始纠正频率，按goal-cadence-followup.md直接进入2.1；Tool权限不改。
+
+- [x] 独立源码/历史核验及具体实施边界落盘，结论见research/goal-cadence-audit.md。
+- [x] 持久化Evaluation30min周期、统一claim/旧queue/retry/frozen准入与周期修复。
+- [x] Planner统一空位与捕获完成/本地日准入，Actor/profile/repair不旁路；失败/late event预算稳定。
+- [x] Additive0063及fresh/旧head/head rerun隔离场景已补齐；无PG实际SKIP，不计迁移执行通过。
+- [x] 定向RED/GREEN、独立check与全范围本地质量门禁；数据库和真实服务未执行。
+- [x] 同步spec、交付报告和本轮提交计划；尚未提交，不push/部署。
+
+## F16 提交循环与软件兜底
+
+- [x] 只读基线定位与主代理原文核对，明确无限forced loop/accepted kind丢失/三类可恢复情况。
+- [x] 原生适配层重复回执、unknown impact与scope内确定性ref处理；不能修复则无领域写入的待证据回执。
+- [x] 稳定区分accepted kind，专用无进展正常收束并保留pending sources/已成功兄弟；不改其他Agent默认循环。
+- [x] 脚本native HTTP/SSE bounded与不合作Provider回归、实际helper/loop敏感性RED/GREEN；持久化场景SKIP单列。
+- [x] 与F15联合独立check、主代理全量门禁、spec同步与提交计划；执行提交仍待一次确认。

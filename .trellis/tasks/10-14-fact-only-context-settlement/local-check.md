@@ -17,3 +17,13 @@
 - 最新pnpm typecheck/test/build：通过，Browser21、Core Client2、Web105；保留既有>500 kB chunk提示。首次pnpm test因沙箱IPC listen EPERM未启动，获本地监听权限后同命令通过。
 - 不涉及公共API/schema变更，未重新生成客户端；未连接真实DB/模型或操作日志中的Temporal workflow。
 - F14结果和日志摘要见verification/capacity-check-summary.json，说明见docs/context-capacity-availability.md。本追加修复当前未提交。
+
+## F15/F16 Goal Agent最终检查
+
+- Go test -json ./...：PASS事件1787、SKIP542，无FAIL；16包通过、14包无测试文件。事件含父/子，不代表独立验收数量。
+- Core/Workflow race、go vet ./...、go build ./...均通过。
+- pnpm typecheck/test/build通过；Browser21/Core Client2/Web105全过；既有大chunk提示保留。
+- 实际helper/native HTTP/SSE回归与敏感性RED/GREEN通过，含不合作Provider继续ToolCall、真实503/取消、连续有效target、旧行为无限forced敏感性。
+- 无可用PG/pgvector/Docker daemon，未配置DB URL：新旧数据库用例仍SKIP。部分父容器PASS，内部DB全SKIP，不得当持久化/升级通过。
+- 真实模型/Temporal/Redis/生产DB/部署与线上恢复NOT_RUN。原Tool权限、来源真实性和CAS保留。
+- 详见verification/goal-runtime-check-summary.json、docs/goal-agent-runtime-availability.md。当前F15/F16代码尚未提交。
