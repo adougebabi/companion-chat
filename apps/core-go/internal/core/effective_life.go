@@ -257,7 +257,7 @@ func (a *App) readActiveLifeActivities(ctx context.Context, fluctlightID string,
 			return nil, err
 		}
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.id,r.profile_id,r.kind,r.status,COALESCE(r.intention_id,''),r.started_at,r.not_before,r.result_json FROM public.fluctlight_life_activity_runs r WHERE r.fluctlight_id=$1 AND r.status IN ('scheduled','in_progress','deferred') AND r.active_until>$2 AND (r.authority_event_id IS NULL OR EXISTS(SELECT 1 FROM public.life_events e WHERE e.id=r.authority_event_id AND e.fluctlight_id=r.fluctlight_id AND e.status IN ('confirmed','inferred') AND e.start_at<=$2 AND e.end_at>$2 AND (e.expires_at IS NULL OR e.expires_at>$2))) ORDER BY r.not_before,r.id LIMIT 12`, fluctlightID, at)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.id,r.profile_id,r.kind,r.status,COALESCE(r.intention_id,''),r.started_at,r.not_before,r.active_until,r.result_json FROM public.fluctlight_life_activity_runs r WHERE r.fluctlight_id=$1 AND r.status IN ('scheduled','in_progress','deferred') AND r.active_until>$2 AND (r.authority_event_id IS NULL OR EXISTS(SELECT 1 FROM public.life_events e WHERE e.id=r.authority_event_id AND e.fluctlight_id=r.fluctlight_id AND e.status IN ('confirmed','inferred') AND e.start_at<=$2 AND e.end_at>$2 AND (e.expires_at IS NULL OR e.expires_at>$2))) ORDER BY r.not_before,r.id LIMIT 12`, fluctlightID, at)
 	if err != nil {
 		return nil, err
 	}
@@ -266,13 +266,13 @@ func (a *App) readActiveLifeActivities(ctx context.Context, fluctlightID string,
 	for rows.Next() {
 		var id, profileID, kind, status, intentionID string
 		var started *time.Time
-		var notBefore time.Time
+		var notBefore, activeUntil time.Time
 		var raw []byte
-		if err := rows.Scan(&id, &profileID, &kind, &status, &intentionID, &started, &notBefore, &raw); err != nil {
+		if err := rows.Scan(&id, &profileID, &kind, &status, &intentionID, &started, &notBefore, &activeUntil, &raw); err != nil {
 			return nil, err
 		}
 		entry := map[string]any{"id": id, "profile_id": profileID, "kind": kind, "status": status,
-			"not_before": notBefore.UTC().Format(instantLayout), "ready_for_resolution": !at.Before(notBefore),
+			"active_until": activeUntil.UTC().Format(instantLayout), "not_before": notBefore.UTC().Format(instantLayout), "ready_for_resolution": !at.Before(notBefore),
 			"request": mapValue(decodeObject(raw)["request"])}
 		if started != nil {
 			entry["started_at"] = started.UTC().Format(instantLayout)

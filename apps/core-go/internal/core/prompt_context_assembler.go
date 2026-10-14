@@ -536,6 +536,11 @@ func assemblePromptMessages(system, stable, current map[string]any, selected []p
 
 func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, stable, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
 	runtimeContext := map[string]any{}
+	snapshotValue := boundedSnapshotValue
+	factOnly := surface == ProviderContextSurfaceFactOnlyCognition || surface == ProviderContextSurfaceFactOnlyReply
+	if factOnly {
+		snapshotValue = factOnlyCopyValue
+	}
 	recent := make([]map[string]any, 0)
 	for _, candidate := range selected {
 		fragment := candidate.fragment
@@ -549,24 +554,31 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 				}
 				recent = append(recent, item)
 			} else {
-				recent = append(recent, cloneMap(mapValue(fragment.Content)))
+				item := cloneMap(mapValue(fragment.Content))
+				if factOnly && len(mapValue(item["metadata"])) > 0 {
+					metadata := cloneMap(mapValue(item["metadata"]))
+					metadata["history_index"] = len(recent)
+					runtimeContext["history_metadata"] = append(arrayValue(runtimeContext["history_metadata"]), metadata)
+					delete(item, "metadata")
+				}
+				recent = append(recent, item)
 			}
 		case PromptFragmentRuntimeFact:
 			fact := mapValue(fragment.Content)
 			kind := stringValue(fact["kind"])
 			if kind != "" {
-				runtimeContext[kind] = boundedSnapshotValue(fact["value"])
+				runtimeContext[kind] = snapshotValue(fact["value"])
 			} else {
-				runtimeContext["facts"] = append(arrayValue(runtimeContext["facts"]), boundedSnapshotValue(fragment.Content))
+				runtimeContext["facts"] = append(arrayValue(runtimeContext["facts"]), snapshotValue(fragment.Content))
 			}
 		case PromptFragmentActiveMemory:
-			runtimeContext["active_memory"] = append(arrayValue(runtimeContext["active_memory"]), boundedSnapshotValue(fragment.Content))
+			runtimeContext["active_memory"] = append(arrayValue(runtimeContext["active_memory"]), snapshotValue(fragment.Content))
 		case PromptFragmentResidentMemory:
-			runtimeContext["resident_memory"] = append(arrayValue(runtimeContext["resident_memory"]), boundedSnapshotValue(fragment.Content))
+			runtimeContext["resident_memory"] = append(arrayValue(runtimeContext["resident_memory"]), snapshotValue(fragment.Content))
 		case PromptFragmentRetrievedMemory:
-			runtimeContext["retrieved_memory"] = append(arrayValue(runtimeContext["retrieved_memory"]), boundedSnapshotValue(fragment.Content))
+			runtimeContext["retrieved_memory"] = append(arrayValue(runtimeContext["retrieved_memory"]), snapshotValue(fragment.Content))
 		case PromptFragmentSummary:
-			runtimeContext["conversation_summaries"] = append(arrayValue(runtimeContext["conversation_summaries"]), boundedSnapshotValue(fragment.Content))
+			runtimeContext["conversation_summaries"] = append(arrayValue(runtimeContext["conversation_summaries"]), snapshotValue(fragment.Content))
 		}
 	}
 	if surface == ProviderContextSurfaceWakeUp && len(recent) > 0 {
@@ -583,6 +595,11 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 	}
 	if len(runtimeContext) > 0 {
 		formatted := formatRuntimeContextTimes(runtimeContext)
+		if factOnly && runtimeContext["history_metadata"] != nil {
+			// Stored instants and the frozen sender-zone snapshot are separate
+			// authorities. Do not relabel them into the self's display timezone.
+			formatted["history_metadata"] = factOnlyCopyValue(runtimeContext["history_metadata"])
+		}
 		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + renderProviderRuntimeContext(formatted) + "\n[/RUNTIME CONTEXT]"})
 	}
 	messages = append(messages, recent...)

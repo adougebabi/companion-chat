@@ -141,6 +141,11 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		summaries = summaryResult.Items
 		summaryTrace = summaryResult.Trace
 	}
+	if surface == ProviderContextSurfaceFactOnlyCognition {
+		if err := a.backfillFactOnlyHistory(ctx, &projection); err != nil {
+			return PromptAssemblyResult{}, projection, err
+		}
+	}
 	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
 	workingInput, err = a.selectKevContext(ctx, projection, surface, currentInput, workingInput)
 	if err != nil {
@@ -202,6 +207,11 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			"conversation_summary": summaryTrace,
 			"history_coverage":     map[string]any{"summary_count": len(summaries), "latest_summary_sequence": latestSummarySequence, "raw_fetched": len(projection.RecentMessages), "raw_candidates": len(workingInput.RecentMessages)},
 		}
+		if surface == ProviderContextSurfaceFactOnlyCognition {
+			view := factOnlyContextFacts(projection, true)
+			view.Selection["memory"] = factOnlyMemoryCandidates(projection, activeResult.Items, summaries, true).Diagnostics
+			result.Diagnostics["context_view"] = view.Selection
+		}
 	}
 	return result, projection, err
 }
@@ -212,7 +222,7 @@ func workingMemoryInputFromProjection(projection ContextProjection, active, summ
 
 func workingMemoryInputFromProjectionForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any) WorkingMemoryInput {
 	if surface == ProviderContextSurfaceFactOnlyCognition {
-		surface = ProviderContextSurfaceConversationMain
+		return factOnlyCognitionMemoryInput(projection, active, summaries)
 	}
 	compact := compactCognitionContextForSurface(projection, surface)
 	compact["time_view"] = projectionTimeView(projection)
@@ -1373,7 +1383,7 @@ func compactProviderGoalsForActors(goals []map[string]any, actors []map[string]a
 				if key == "execution" {
 					compact := map[string]any{}
 					for field, data := range mapValue(value) {
-						if field == "intention_id" {
+						if field == "intention_id" || field == "dependency_snapshot" {
 							continue
 						}
 						if data == nil {
