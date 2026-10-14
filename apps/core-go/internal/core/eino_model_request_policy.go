@@ -115,11 +115,8 @@ func applyPhysicalModelRequestPolicy(ctx context.Context, opts []model.Option, r
 	if decision.ToolChoice != "" {
 		opts = append(opts, model.WithToolChoice(decision.ToolChoice))
 	}
-	if decision.ToolChoice == "" && !decision.OmitResponseFormat && !decision.DisableThinking {
-		return opts, responseFormat, nil
-	}
-	if decision.ToolChoice != "" || decision.DisableThinking || decision.OmitResponseFormat {
-		opts = append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
+	{
+		opts = append(opts, openaiext.WithRequestPayloadModifier(func(callCtx context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
 			var body map[string]any
 			if err := json.Unmarshal(raw, &body); err != nil {
 				return nil, err
@@ -141,6 +138,7 @@ func applyPhysicalModelRequestPolicy(ctx context.Context, opts []model.Option, r
 			if decision.OmitResponseFormat {
 				delete(body, "response_format")
 			}
+			observePhysicalRequest(callCtx, body)
 			return json.Marshal(body)
 		}))
 	}
@@ -168,7 +166,7 @@ func finalRepairContext(ctx context.Context) context.Context {
 
 func finalRepairModelOptions(opts []model.Option) []model.Option {
 	opts = append(append([]model.Option(nil), opts...), model.WithTools([]*schema.ToolInfo{}))
-	return append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
+	return append(opts, openaiext.WithRequestPayloadModifier(func(callCtx context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
 		var body map[string]any
 		if err := json.Unmarshal(raw, &body); err != nil {
 			return nil, err
@@ -177,6 +175,7 @@ func finalRepairModelOptions(opts []model.Option) []model.Option {
 		delete(body, "tool_choice")
 		delete(body, "parallel_tool_calls")
 		body["enable_thinking"] = false
+		observePhysicalRequest(callCtx, body)
 		return json.Marshal(body)
 	}))
 }

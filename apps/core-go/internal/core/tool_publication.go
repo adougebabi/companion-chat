@@ -29,8 +29,11 @@ func NewToolPublicationService(app *App) *ToolPublicationService {
 }
 
 type ConversationReplyPublication struct {
-	WorkingProfileID            string
-	SuppressRecentDuplicate     bool
+	WorkingProfileID        string
+	SuppressRecentDuplicate bool
+	// Core-owned bridge across Fact-only purpose schema versions; legacy callers
+	// retain exact-purpose suppression and cannot set this through model args.
+	FactOnlyTopicSuppression    bool
 	TopicKey                    string
 	Purpose                     string
 	AuthorizationActorID        string
@@ -164,8 +167,8 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		if err != nil {
 			return publishedResource{}, err
 		}
-		var previousID string
-		err = tx.QueryRow(ctx, `SELECT message_id FROM public.conversation_proactive_deliveries WHERE fluctlight_id=$1 AND conversation_id=$2 AND topic_key=$3 AND purpose=$4 AND inbound_sequence=$5 AND occurred_at >= $6 ORDER BY occurred_at DESC,message_id DESC LIMIT 1`, command.FluctlightID, command.ConversationID, command.TopicKey, command.Purpose, inboundSequence, service.app.now().UTC().Add(-window)).Scan(&previousID)
+		previousID, lookupErr := recentProactiveReplyTx(ctx, tx, command, inboundSequence, service.app.now().UTC().Add(-window))
+		err = lookupErr
 		if err == nil {
 			return publishedResource{ID: previousID, DuplicateSuppressed: true}, nil
 		}
@@ -432,4 +435,13 @@ func requireConversationPublicationOwnershipTx(ctx context.Context, tx pgx.Tx, a
 		return ErrUnauthorized
 	}
 	return nil
+}
+
+// Previous Fact-only messages already carry reply_metadata. Use that existing
+// provenance for compatibility instead of rewriting old purposes or matching
+// unrelated legacy deliveries with a different purpose.
+func recentProactiveReplyTx(ctx context.Context, tx pgx.Tx, command ConversationReplyPublication, inboundSequence int, since time.Time) (string, error) {
+	var id string
+	err := tx.QueryRow(ctx, `SELECT d.message_id FROM public.conversation_proactive_deliveries d JOIN public.conversation_messages m ON m.id=d.message_id AND m.conversation_id=d.conversation_id AND m.author_actor_id=d.fluctlight_id WHERE d.fluctlight_id=$1 AND d.conversation_id=$2 AND d.topic_key=$3 AND (d.purpose=$4 OR ($7 AND m.reply_metadata->>'reply_mode' IN ('fact_only','legacy_fallback'))) AND d.inbound_sequence=$5 AND d.occurred_at >= $6 ORDER BY d.occurred_at DESC,d.message_id DESC LIMIT 1`, command.FluctlightID, command.ConversationID, command.TopicKey, command.Purpose, inboundSequence, since, command.FactOnlyTopicSuppression).Scan(&id)
+	return id, err
 }

@@ -81,7 +81,7 @@ type queuedToolCallingChatModel struct {
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
-	ctx = withProviderDiagnosticSecrets(ctx, m.assignment.Secret)
+	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
 	originalOpts := opts
@@ -193,7 +193,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
-	ctx = withProviderDiagnosticSecrets(ctx, m.assignment.Secret)
+	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
 	originalOpts := opts
@@ -332,9 +332,9 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 		if err != nil {
 			return nil, err
 		}
-		return m.compactPhysicalInput(ctx, refreshed)
+		return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, refreshed))
 	}
-	return m.compactPhysicalInput(ctx, normalizeEinoToolMessageNames(input))
+	return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, normalizeEinoToolMessageNames(input)))
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {

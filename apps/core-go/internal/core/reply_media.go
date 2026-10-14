@@ -152,7 +152,7 @@ func replyExecutionScope(run *privateReplyRun, inv CapabilityInvocation) map[str
 	scope.Arguments = nil
 	scope.FrozenContextSnapshot = nil
 	args := decodeObject(inv.Arguments)
-	return map[string]any{"scope": scope, "current_input": run.CurrentInput, "topic_key": args["topic_key"], "purpose": args["purpose"]}
+	return map[string]any{"scope": scope, "current_input": run.CurrentInput, "topic_key": args["topic_key"], "purpose": factOnlyReplyPublicationPurpose}
 }
 
 // The wrapper delegates capture/Kev/planner to the real image capability. It

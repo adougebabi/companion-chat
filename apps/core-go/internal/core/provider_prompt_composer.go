@@ -233,7 +233,13 @@ func renderProviderSystemForSurface(surface ProviderContextSurface, operationRul
 		return renderProviderSystem(operationRules, persona, actorRelationshipContext, role)
 	}
 	var builder strings.Builder
-	builder.WriteString(wakeUpProviderFixedProtocol)
+	wakeProtocol := wakeUpProviderFixedProtocol
+	for _, rule := range operationRules {
+		if rule == factOnlyConversationPolicy {
+			wakeProtocol = strings.Replace(wakeProtocol, "并给出稳定 topic_key 和真实 purpose", "并给出稳定 topic_key；purpose由服务端提供，不作为模型参数", 1)
+		}
+	}
+	builder.WriteString(wakeProtocol)
 	filteredRules := make([]string, 0, len(operationRules))
 	for _, rule := range operationRules {
 		trimmed := strings.TrimSpace(rule)

@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+const factOnlyReplyPublicationPurpose = "independent_persona_reply"
+
 type factOnlyReplyCapability struct {
 	service     *factOnlyReplyService
 	run         *privateReplyRun
@@ -18,13 +20,12 @@ type factOnlyReplyCapability struct {
 
 func (c factOnlyReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
-	d.Version = "fact_only.v1"
+	d.Version = "fact_only.v2"
 	d.Description = "Generate the independent persona reply from authoritative context and publish it. evidence_refs is optional: use only offered actionable context ref fields, never historical message/source_refs. The Writer reads context and history itself. Never compose text or prescribe social strategy. Consume needs_action results through real media tools, then resume the same draft."
 	properties := map[string]any{
 		"evidence_refs": map[string]any{"type": "array", "maxItems": 24, "items": stringSchema()},
 		"draft_ref":     stringSchema(), "action_result_refs": map[string]any{"type": "array", "maxItems": 8, "items": stringSchema()},
 		"topic_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
-		"purpose":   map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
 	}
 	d.InputSchema = objectSchema(properties, nil, false)
 	d.OutputSchema = objectSchema(map[string]any{"text": stringSchema(), "target_kind": stringSchema(), "target_ref": stringSchema(),
@@ -97,14 +98,16 @@ func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		}
 	}
 	args := decodeObject(invocation.Arguments)
+	publicationPurpose := factOnlyReplyPublicationPurpose
 	if resumed, _ := ctx.Value(replyContinuationKey{}).(string); resumed != "" {
 		var scope []byte
 		if err := tx.QueryRow(ctx, `SELECT execution_scope FROM public.conversation_reply_drafts WHERE id=$1`, resumed).Scan(&scope); err != nil {
 			return CapabilityResult{}, err
 		}
-		for _, key := range []string{"topic_key", "purpose"} {
-			args[key] = decodeObject(scope)[key]
-		}
+		stored := decodeObject(scope)
+		args["topic_key"] = stored["topic_key"]
+		// Old drafts retain their original suppression identity, Core-side only.
+		publicationPurpose = firstString(stored["purpose"], factOnlyReplyPublicationPurpose)
 		if c.run.Scope.Surface == CapabilitySurfaceWakeUp {
 			if err := authorizeWakeReplyContinuationTx(ctx, tx, resumed); err != nil {
 				return CapabilityResult{}, err
@@ -112,8 +115,8 @@ func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		}
 	}
 	resource, err := c.publication.PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
-		WorkingProfileID: invocation.Metadata.WorkingProfileID, SuppressRecentDuplicate: target.AuthorizationPolicy == "autonomy",
-		TopicKey: stringValue(args["topic_key"]), Purpose: stringValue(args["purpose"]), AuthorizationActorID: target.AuthorizationActorID,
+		WorkingProfileID: invocation.Metadata.WorkingProfileID, SuppressRecentDuplicate: target.AuthorizationPolicy == "autonomy", FactOnlyTopicSuppression: true,
+		TopicKey: stringValue(args["topic_key"]), Purpose: publicationPurpose, AuthorizationActorID: target.AuthorizationActorID,
 		FluctlightID: target.FluctlightID, ConversationID: target.ConversationID, OperationID: privateReplyLogicalKey(ctx, invocation),
 		CorrelationID: invocation.Metadata.CorrelationID, Text: draft.Text, ExpectedLifeContextRevision: stringValue(data["life_revision"]),
 		AttachmentRefs: draft.AttachmentRefs,
@@ -121,6 +124,11 @@ func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 	if err != nil {
 		code, retryable := publicationCapabilityError(err, "reply_publication_failed")
 		return failedCapabilityResultDetail(invocation, code, retryable, "reply publication did not commit"), newCapabilityError(code, retryable, err)
+	}
+	if resource.DuplicateSuppressed || resource.Replayed {
+		if err := tx.QueryRow(ctx, `SELECT text FROM public.conversation_messages WHERE id=$1 AND conversation_id=$2 AND author_actor_id=$3`, resource.ID, target.ConversationID, target.FluctlightID).Scan(&draft.Text); err != nil {
+			return failedCapabilityResult(invocation, "reply_committed_message_missing", false), err
+		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_drafts SET status='published',result_message_id=$2,updated_at=now() WHERE id=$1 AND fluctlight_id=$3 AND conversation_id=$4`, stringValue(data["draft_ref"]), resource.ID, target.FluctlightID, target.ConversationID); err != nil {
 		return failedCapabilityResult(invocation, "reply_draft_commit_failed", true), err
@@ -279,12 +287,17 @@ func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocat
 		if !exists {
 			return ContextProjection{}, nil, newCapabilityError("reply_evidence_not_authorized", false, ErrInvalidArguments)
 		}
-		fact := decodeObject(entry.Snapshot)
-		// A matched piece of inferred text is not an authoritative restriction.
-		if stringValue(fact["assertion_type"]) == "inference" || entry.Kind == ContextReferenceMemory || entry.Kind == ContextReferenceIntention || entry.Kind == ContextReferenceDevelopingSelf {
+		if invocation.CapabilityName == "moment.publish" {
+			fact := decodeObject(entry.Snapshot)
+			if stringValue(fact["assertion_type"]) == "inference" || entry.Kind == ContextReferenceMemory || entry.Kind == ContextReferenceIntention || entry.Kind == ContextReferenceDevelopingSelf {
+				continue
+			}
+			toolFacts = append(toolFacts, map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(fact), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"})
 			continue
 		}
-		toolFacts = append(toolFacts, map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(fact), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"})
+		if fact := factOnlyReplyEvidenceFact(entry, projection); fact != nil {
+			toolFacts = append(toolFacts, fact)
+		}
 	}
 	return projection, toolFacts, nil
 }
@@ -346,6 +359,11 @@ func replyEvidenceEntry(inv CapabilityInvocation, live ContextProjection, ref st
 }
 
 func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, ref string, projection ContextProjection, toolFacts []map[string]any, scene string) (ConversationReplyTaskInput, error) {
+	if scene != replySceneMoment {
+		if err := s.app.backfillFactOnlyHistory(ctx, &projection); err != nil {
+			return ConversationReplyTaskInput{}, err
+		}
+	}
 	compiled, err := s.app.loadCompiledWorkingPersona(ctx, projection)
 	if err != nil {
 		return ConversationReplyTaskInput{}, err
