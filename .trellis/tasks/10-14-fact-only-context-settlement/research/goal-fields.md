@@ -1,0 +1,32 @@
+# Goal field provenance and operational conditions
+
+All paths below are under `apps/core-go/internal/core/`. Read-only source research; no tests run or external/DB calls made.
+
+## Authoritative original conditions
+
+- `goal_intention.go:43-70`, `GoalAuthority`: distinct fields `DesiredOutcome`, `SuccessCriteria []string`, `CriterionIDs []string`, `CriteriaVersion int`, `DeadlinePolicy string`, `Motivation`, `Scope`, `TargetActorRef`, `Deadline *time.Time`, `NeedsReflection bool`, `Status GoalLifecycleStatus`, `Revision int`, and `EvidenceRefs []string`. `ExecutionHint map[string]any` is a separate member at line 46. Original criteria and motivation are authority content, not execution advice. Status enum at lines 22-28 is candidate/active/paused/completed/abandoned/cancelled.
+- `autonomy.go:39-74`, `agencyProfile`: projects stored `description`, `desired_outcome`, `success_criteria`, `motivation`, `needs_reflection`, lifecycle status, importance/urgency/progress, evidence refs, revision, criteria version, deadline policy, criterion IDs; optional deadline, profile ID and target actor ID. It also projects `effective_order` and `context_review_required`. No inference from next_step is needed to recover these originals.
+- `goal_closure.go:17-49`: stage has `Purpose`, `Strategy`, `EntryBasis`, `ExitBasis`, `Criteria []GoalCriterion`, dependency IDs, status and revisions; commitment has `ExpectedResult`, criteria, optional typed `WindowStart/WindowEnd *time.Time`, `OpportunityCondition string`, `Blocker string`, status/revisions. Entry/exit/opportunity/blocker strings are not a structured predicate language. `GoalCriterion` is `{id,text}` at lines 12-15.
+- Projection loss to note: `goal_execution.go:107` current_stage contains only id/purpose/strategy/status/revision/criteria_version; no stage criteria, entry/exit basis or dependency IDs. Commitment compact query at line 116 contains expected_result/status/blocker/window_start/window_end/revision, but omits criteria and opportunity_condition. Full records exist through `GoalDetail` (`goal_owner.go:112-113`).
+
+## Structured runtime facts versus planning prose
+
+- `goal_execution.go:13-47`, `readGoalExecutionStateWith`: stage begins as lifecycle status or awaiting_next_step. A real nonterminal, nonexpired intention supplies action_intent as `next_step`; maps intention statuses candidate→needs_qualification, qualified→ready, due→due, in_progress→executing, paused→waiting. Qualified plus trigger.due_at becomes scheduled with due_at. Typed timing/count fields exposed: next_retry_at, retry_count; retry_reason is a string.
+- `goal_execution.go:88-103`: stored execution_hint forwards `blocker`, `wait_condition`, `next_review_at`, `ready_for_settlement`, `pending_evaluation_id`; next_step fills only if no intention action; hint.state can fill awaiting_next_step. These hints are map values, not proof that a wait/blocker is an objective operational condition.
+- `goal_closure.go:83-99,124-134`: evaluator/plan candidates explicitly supply freeform `Blocker`, `WaitCondition`, `NextStep`; `NextReviewAt` alone is typed `*time.Time`. `goal_evaluation_persistence.go:48` stores evaluator impact and these strings into execution_hint; line 346 stores planner next_step/wait_condition/reason and state planned.
+- `goal_execution.go:146-174`: real intention-attempt record exposes attempt_id/status/started_at/settled_at/wait_ref/deadline/outcome_id/error_code. Action outcome exposes outcome_id/kind=outcome/status/capability/error_code/occurred_at. Separate last_evaluation at line 153 includes impact/criteria_version/judgments/evidence_refs/occurred_at; evaluation_request at 160 includes status/attempt_count/error_code/available_at. Line 167 comment: “Execution and assessment evidence have distinct provenance.” Legacy activity last_result at lines 53-61 uses status/reason/event_id/occurred_at; later real outcomes can overwrite it.
+
+## Dependencies and review block facts
+
+- `goal_execution.go:74-80`: reads context_review_required and EXISTS prerequisite whose status != completed, then sets active goal stage=blocked and emits canned blocker text. This is a concrete DB-derived block, distinct from evaluator blocker strings, but projection currently collapses its cause into stage/blocker.
+- `goal_set.go:621-637`, `requireGoalDependenciesTx`: admission checks prerequisite status != completed **or prerequisite context_review_required**, plus goal's own context_review_required. Thus admission check is stricter than execution read-model dependency query.
+- Existing structured dependency entries: `goal_set.go:148-162` emits goal_id/prerequisite_id/satisfied/status; `goal_owner.go:111` GoalDetail emits prerequisite_id/desired_outcome/status/satisfied. agencyProfile does not project this list.
+
+## Ownership, visibility, totals, terminal selection
+
+- `goal_intention.go:134-136` explicitly says empty ProfileID is shared scope, persisted SQL NULL and visible from every profile.
+- `intelligence.go:486-495`, `filterActiveProfileRows`: retains shared rows and rows matching nonempty dominant profile. Empty active profile retains shared rows only. `filterAgencyForTarget` at 457-479 retains all nonrelationship goals and relationship goals matching target; associated intentions survive only with allowed goal IDs (unbound intentions survive).
+- `autonomy.go:41`: agencyProfile initially selects all profiles for owner; candidate/active/paused plus **latest 3 completed globally for owner**, ordered completed updated_at DESC/id DESC. Abandoned/cancelled never selected. Profile filtering happens afterward, so another profile's completed rows can consume that 3-row terminal quota before visibility filtering. This is source-level fact, not tested here.
+- `goal_set.go:667-669`, `readGoalPolicyWith`: active_count counts all owner's active goals with no profile/target filter; max_active_goals defaults to 5. Capacity enforcement at 94-99 likewise uses global owner count. `readGoalSetWith` at 120-130 counts globally while filtering returned goals to shared+requested profile (or '*' all); its goal list limit is 40 and excludes completed. Therefore active_count can exceed visible active row count legitimately.
+
+Uncertainty: field types in map-shaped execution_hint are not enforced by these readers; presence alone does not establish validated timestamp, readiness boolean, or settlement authority. No exhaustive producer audit beyond the candidate persistence paths above.

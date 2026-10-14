@@ -678,3 +678,53 @@ boundary, before the lossy dependency conversion, while preserving normal HTTP.
 
 ## Successful Provider credential echoes (2026-10-13)
 Secret-key fields (api_key, Authorization, passwords, tokens, cookies and complete assignment objects) are redacted in all diagnostics. Physical and non-ADK model calls carry their known credential only in a private runtime context; prompts, responses, output events and JSON-encoded content scrub exact credential echoes before persistence. Successful responses require the same privacy boundary as failures. Raw Owner diagnostic content remains useful for ordinary text/tool results, while image payloads and credentials are removed. This scrub never mutates the Provider result used for domain parsing. A Writer response containing its actual credential is rejected before publication.
+
+## Scenario: Effective physical request configuration (2026-10-14)
+
+### 1. Scope / Trigger
+Each queued Eino Generate/Stream needs to distinguish effective request policy
+from the logical Composer's schema/budget and from Provider usage.
+
+### 2. Signatures
+`observePhysicalRequest(ctx, body)` emits `adk.model.effective_request` through the
+existing best-effort diagnostic owner. `physicalRequestConfiguration` allowlists
+serialized parameters; `physicalRequestModuleEstimates` labels logical estimates.
+
+### 3. Contracts
+Observe inside the existing final normal/repair payload modifier. The pinned
+WithRequestPayloadModifier setter replaces, rather than composes, callbacks;
+adding a competing modifier can remove tool-choice/schema/repair policy.
+Keep only model, temperature/top_p, max token fields, thinking/stream flags,
+string tool_choice, response-format presence/type and tool count/schema digest.
+Never copy messages, schema text, headers, credentials or reasoning into this
+new event. Existing typed secret/image redaction remains authoritative.
+Keep physical model_call_id, role/phase and parent run; reply, settlement and
+final_repair remain distinguishable. Context selection/version metadata is
+Core-only. Module estimates are disjoint logical sections, explicitly estimated;
+missing section data is available=false, never measured zero. Existing Provider
+response usage/latency records remain separate and cannot be synthesized from
+fixture estimates or summed into a single request size.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| effective native tools present | observed format absent, matching final wire |
+| final repair | no tools/choice/parallel, original schema and thinking=false |
+| absent logical budget | available=false |
+| arbitrary private payload/extra fields | excluded by allowlist before event |
+| sink failure | existing bounded best-effort behavior; no business outcome change |
+
+### 5. Good / Base / Bad Cases
+Good: SDK HTTP/SSE payload and observed config match for each physical call.
+Base: Provider usage missing remains unknown. Bad: a UI prompt proves schema was
+sent, a second modifier overwrites repair policy, or raw body is logged wholesale.
+
+### 6. Tests Required
+TestToolFinalSchemaSeparationPhysicalRequests compares observation with actual
+captured Generate/Stream payloads, including malformed final and invalid repair.
+TestPhysicalRequestConfigurationExcludesPrivatePayload checks private strings
+and unknown fields remain absent and missing estimates are unavailable.
+
+### 7. Wrong vs Correct
+Wrong: append a second payload modifier and log its whole JSON. Correct: observe
+an allowlist after the existing modifier's policy edits and verify against wire.

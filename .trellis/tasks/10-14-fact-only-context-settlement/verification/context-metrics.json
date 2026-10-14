@@ -1,0 +1,104 @@
+{
+  "classification": "synthetic_context_only_logical_assembly_not_incident_wire",
+  "estimator": "existing_EstimatePromptTokens",
+  "actual_provider_prompt_tokens": null,
+  "actual_model_latency_ms": null,
+  "live_model_status": "NOT_RUN",
+  "metrics": {
+    "cognition_before": {
+      "estimated_input_tokens": 12646,
+      "wire_chars": 10144,
+      "section_tokens": {
+        "active_memory": 0,
+        "conversation_summary": 0,
+        "current_input": 62,
+        "protocol": 2895,
+        "recent": 423,
+        "response_schema": 6094,
+        "retrieved_memory": 232,
+        "runtime.current_speaker": 103,
+        "runtime.current_state": 272,
+        "runtime.goals": 456,
+        "runtime.relationships": 343,
+        "runtime.self_actor": 93,
+        "runtime.time_view": 384,
+        "runtime_facts": 1651,
+        "system": 3129,
+        "tools": 957,
+        "working_persona": 153
+      }
+    },
+    "cognition_after": {
+      "estimated_input_tokens": 11817,
+      "wire_chars": 9481,
+      "section_tokens": {
+        "active_memory": 0,
+        "conversation_summary": 0,
+        "current_input": 62,
+        "protocol": 1313,
+        "recent": 979,
+        "response_schema": 6094,
+        "retrieved_memory": 489,
+        "runtime.current_speaker": 94,
+        "runtime.current_state": 272,
+        "runtime.goals": 213,
+        "runtime.relationships": 384,
+        "runtime.self_actor": 119,
+        "runtime.time_view": 384,
+        "runtime_facts": 1466,
+        "system": 1527,
+        "tools": 957,
+        "working_persona": 153
+      }
+    },
+    "reply_before": {
+      "estimated_input_tokens": 4229,
+      "wire_chars": 3413,
+      "section_tokens": {
+        "active_memory": 0,
+        "conversation_summary": 0,
+        "current_input": 62,
+        "protocol": 830,
+        "recent": 233,
+        "response_schema": 3,
+        "retrieved_memory": 114,
+        "runtime.actor_background": 52,
+        "runtime.capability_boundaries": 143,
+        "runtime.current_speaker": 103,
+        "runtime.current_state": 272,
+        "runtime.goals": 506,
+        "runtime.relationships": 343,
+        "runtime.self_actor": 93,
+        "runtime.time_view": 384,
+        "runtime_facts": 1896,
+        "system": 1041,
+        "tools": 840,
+        "working_persona": 153
+      }
+    },
+    "reply_after": {
+      "estimated_input_tokens": 5173,
+      "wire_chars": 4168,
+      "section_tokens": {
+        "active_memory": 0,
+        "conversation_summary": 0,
+        "current_input": 62,
+        "protocol": 762,
+        "recent": 979,
+        "response_schema": 3,
+        "retrieved_memory": 489,
+        "runtime.capability_boundaries": 143,
+        "runtime.current_speaker": 94,
+        "runtime.current_state": 272,
+        "runtime.goals": 213,
+        "runtime.relationships": 384,
+        "runtime.self_actor": 119,
+        "runtime.time_view": 384,
+        "runtime_facts": 1609,
+        "system": 972,
+        "tools": 840,
+        "working_persona": 153
+      }
+    }
+  }
+}

@@ -49,3 +49,95 @@ Prepare outside mutation transactions; validate live/offered refs, build the cur
 Moment Writer only produces text. Private reply.image.request/needs_action cannot be used as Moment media authority. Existing authorized media tools can attach real assets to a committed, owned Moment target. Return actual committed Writer text to cognition. Preserve original Goal conditions and mark history/private chat as data; do not quote private conversation wholesale into a feed.
 
 Moment prepublication cache command identity includes subject actor, source/evidence fact, conversation, working profile and canonical arguments; physical/native call IDs are excluded. A changed command under one operation conflicts before regeneration or publication, matching the durable Tool ledger.
+
+## Scenario: Local fact views and native reply v2 (2026-10-14)
+
+### 1. Scope / Trigger
+Private Fact-only cognition and Writer must preserve persona, Goals and facts
+without forwarding historical execution advice. This supersedes the earlier
+private Writer's use of a common cognition compact followed by recursive key
+removal. Moments retains its existing scene-owned context selection.
+
+### 2. Signatures
+`factOnlyContextFacts`, `factOnlyCognitionMemoryInput`, `factOnlyHistory` and
+`factOnlyMemoryCandidates` build call-local read models from ContextProjection.
+`backfillFactOnlyHistory` reads a leading assistant's actual stored source fact.
+Native conversation.reply version `fact_only.v2` has closed optional fields
+evidence_refs, draft_ref, action_result_refs and topic_key. Model purpose is
+absent; publication uses Core-owned independent_persona_reply. Prompt version is
+fact-only-reply.v4. No persistence migration or new product setting is required.
+
+### 3. Contracts
+- Production Actor maps use actor_id, not id. Keep self Actor, effective profile
+  and recipient separate; semantic actor aliases identify roles, never nicknames.
+  Apply existing profile/shared and recipient visibility before projecting Goals
+  and relationships. Preserve original Goal intent, motivation, criteria, status
+  and real deadline. next_step/strategy/wait/blocker prose is not an objective
+  dependency and cannot enter Writer, including through a valid Goal ref snapshot.
+- Goal dependency_snapshot is a read-only status snapshot, not new admission
+  authority. Prerequisite completion and context-review state do not replace the
+  actual execution guard. Old shared compaction omits the added snapshot field.
+- Now comes from as_of/Clock; history comes from stored metadata. Render selected
+  history metadata separately from unchanged role/content and preserve original
+  sender timestamps plus frozen zone/offset. An unproven Markdown time heading
+  stays text. Expiry is field/source-local; unknown, cleared and false differ.
+- Group consecutive real replies with their triggering user input. A bounded
+  window starting with assistant may backfill only the real same-conversation,
+  same-source_fact_id earlier user; mark possible missing intermediate messages.
+  Missing source means unanchored, never a fabricated user.
+- verified/source_validity prove source liveness, not semantic entailment.
+  Preserve epistemic kind, associated Actors, time/scope and uncertainty; exact
+  duplicates keep every internal record/source pointer. Same source with distinct
+  claims is unresolved, not independent support. Do not use fuzzy semantic merges,
+  generic unescaping or regex deletion of eN-like prose/model names.
+- Added metadata must be tested at final wire selection under the existing
+  section budget. Keep provenance compact; passing builder-only assertions does
+  not prove a candidate survived WorkingMemory/Composer. Required Goal/history
+  values use lossless copies and explicit budget refusal, not Tool-snapshot caps.
+- Referenced entity snapshots do not bypass dedicated views. Private Writer
+  accepts only typed statement/outcome additions plus draft-owned media/candidate
+  facts; parent reasoning, final text and arbitrary extra fact kinds stay out.
+- Old drafts keep stored purpose/topic_key Core-side for continuation. Trusted
+  FactOnlyTopicSuppression bridges same-topic/window/inbound-sequence deliveries
+  across purposes only when the prior message's reply_metadata says fact_only or
+  legacy_fallback. Unrelated legacy callers retain exact-purpose matching.
+  Suppressed publication returns the actual stored message text, never the new
+  uncommitted candidate.
+- Post-commit cognition replaces the sending protocol with settlement guidance
+  while preserving authorized optional Tools. All Tool-bearing physical calls
+  still omit response_format. Only the existing single tool-free final repair
+  binds the complete schema and masks business/Kev/refresh; no second publication.
+
+### 4. Validation & Error Matrix
+| Condition | Outcome |
+| --- | --- |
+| New native purpose/text/tone/unknown or wrongly typed nested input | closed-schema rejection, no Writer I/O |
+| Valid Goal ref contains execution advice | validate ref, use the independent visible-Goal view; no snapshot prose forwarding |
+| Required criteria/trigger history cannot fit | explicit budget error, no silent truncation |
+| Old/new purpose differs but same scoped Fact-only proactive topic | suppress using existing message metadata; real stored text returned |
+| Missing trigger source or unproven heading origin | report gap/preserve text; no invented correction |
+| Published reply plus invalid final JSON | one tool-free repair; failed settlement retains committed message and error |
+
+### 5. Good / Base / Bad Cases
+Good: scoped original Goals + source-tagged inference + real metadata → autonomous
+Writer → one committed reply → separate cognition settlement. Base: no reliable
+recipient name remains unnamed. Bad: drop the real relationship by reading id,
+discard inference because metadata exceeded its cap, forward a Goal snapshot's
+strategy, or use changed purpose to bypass proactive suppression.
+
+### 6. Tests Required
+TestFactOnlyMorningContextRegression and related view tests use the production
+Actor shape and assert final selected input, source immutability, false/unknown,
+scope, exact dedup, sender zone and whole-trigger preservation. Actual HTTP/SSE
+TestToolFinalSchemaSeparationPhysicalRequests includes syntactically broken JSON,
+phase/persona preservation, effective config equality and one reply effect.
+TestFactOnlyCommittedReplyMalformedFinalSettlement and
+TestFactOnlyProactiveSuppressionAcrossPurposeVersions require disposable PG;
+their SKIP is not persistent acceptance. Baselines are explicitly synthetic,
+hash-frozen and reconstructed where needed; they are not original incident wire.
+
+### 7. Wrong vs Correct
+Wrong: CurrentSpeaker["id"], Writer = common runtime minus a few keys, or verified
+inference becomes confirmed fact. Correct: actor_id-scoped dedicated views,
+independent source/epistemic semantics, final selected-input assertions and actual
+receipt/message authority after bounded repair.

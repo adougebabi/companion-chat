@@ -1,0 +1,12 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend ownership and quality entry points"}
+{"file": ".trellis/spec/backend/fact-only-reply-contract.md", "reason": "Run-local Writer, cache, native media, publication and compatibility invariants"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/context-native-contract.md", "reason": "Verbatim native loop and context-authority spec sections, below injection byte limit"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/context-repair-contract.md", "reason": "Verbatim recovery/publication/final-repair/ref/wire-format sections, below injection byte limit"}
+{"file": ".trellis/spec/backend/fluctlight-memory-contract.md", "reason": "Source-bound authority, scoped refs, working memory and whole history groups"}
+{"file": ".trellis/spec/backend/goal-life-consistency-contract.md", "reason": "Actor/time authority, Goal originals, read freshness and wire budgets"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/context-diagnostics-contract.md", "reason": "Verbatim privacy/correlation/per-call/physical-metadata diagnostic spec sections, below injection byte limit"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required verification and isolated test-channel boundaries"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/call-chains.md", "reason": "Verified two-path symbols, current protections and missing incident requests"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-fields.md", "reason": "Original criteria, profile/target visibility, real execution conditions versus planning text"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/fact-provenance.md", "reason": "Meaning of verified and relationship confirmation; actual source/subject/ref limits"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/time-diagnostics.md", "reason": "Time decoration origin, field validity and physical payload observation seam"}
