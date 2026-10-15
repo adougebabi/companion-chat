@@ -301,5 +301,12 @@ export class BrowserClient {
     return response.json();
   }
 }
+
+import { applyV3Contract } from "./v3-contract.ts";
+
+applyV3Contract(BrowserClient);
+
+export { currentRevision, studioApplyUnfinished } from "./v3-contract.ts";
+export type { OwnerRequest, OwnerRequestStatus, OwnerRequestEnvelope, CursorPage, CreateMomentBody, CreateMomentResponse, SceneImage, EvidenceState, AutonomyPolicy, DiaryEntry, ReflectionDetail, WorldView, StudioPreview, HarmIntercepts, DiagnosticTask, MessageIdentity, MessageViewFields, MomentAuthorFields } from "./v3-contract.ts";
 `;
 await writeFile(fileURLToPath(new URL("src/index.ts", root)), source);
