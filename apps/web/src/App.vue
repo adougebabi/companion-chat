@@ -10,6 +10,15 @@ import ChatShowcaseView from "./views/ChatShowcaseView.vue";
 import InstancesView from "./views/InstancesView.vue";
 import MomentsView from "./views/MomentsView.vue";
 import UnwiredView from "./views/UnwiredView.vue";
+import LifeShowcaseView from "./views/LifeShowcaseView.vue";
+import GrowthView from "./views/life/GrowthView.vue";
+import LifeGoalsView from "./views/life/LifeGoalsView.vue";
+import LifeNowView from "./views/life/LifeNowView.vue";
+import LifeScheduleView from "./views/life/LifeScheduleView.vue";
+import LifeWardrobeView from "./views/life/LifeWardrobeView.vue";
+import MediaView from "./views/life/MediaView.vue";
+import PeopleView from "./views/life/PeopleView.vue";
+import ProfileView from "./views/life/ProfileView.vue";
 import WorkspaceState from "./components/product/WorkspaceState.vue";
 import { useConversationStore } from "./stores/conversations";
 import { useControlCenterStore } from "./stores/control-center";
@@ -32,6 +41,7 @@ function lifeFromLocation(): LifeSection {
 function viewFromLocation(): WorkspaceView {
   const path = window.location.pathname;
   if (path.startsWith("/dev/chat-components")) return "showcase";
+  if (path.startsWith("/dev/life-components")) return "lifeShowcase";
   if (path.startsWith("/chat") || /\/chat\/?$/.test(path)) return "chat";
   if (path.startsWith("/moments") || path.startsWith("/feed")) return "moments";
   if (path.startsWith("/diagnostics") || path.startsWith("/settings/diagnostics")) return "diagnostics";
@@ -79,6 +89,7 @@ function pathForView(next: WorkspaceView, correlationId = "", section = "", fluc
     : next === "media" ? scoped("media")
     : next === "profile" ? scoped("profile")
     : next === "showcase" ? "/dev/chat-components"
+    : next === "lifeShowcase" ? "/dev/life-components"
     : "/library";
   const params = new URLSearchParams();
   if (next === "diagnostics" && correlationId.trim()) params.set("correlation_id", correlationId.trim());
@@ -96,7 +107,7 @@ const governanceRequest = ref(false);
 const createRequest = ref(0);
 const activeSettingsSection = computed<SettingsSection | null>(() => view.value === "settings" && activeSection.value && isSettingsSection(activeSection.value) ? activeSection.value as SettingsSection : null);
 const activeDiagnosticsSection = computed<DiagnosticsSection | null>(() => view.value === "diagnostics" && activeSection.value && isDiagnosticsSection(activeSection.value) ? activeSection.value as DiagnosticsSection : null);
-const activeViewLabel = computed(() => ({ chat: "对话", moments: "动态", instances: "角色库", diagnostics: "运行诊断", settings: "系统设置", studio: "创作中心", inbox: "通知", life: "生活", world: "世界", people: "人物关系", growth: "记忆成长", media: "媒体", profile: "角色资料", showcase: "组件场景" })[view.value]);
+const activeViewLabel = computed(() => ({ chat: "对话", moments: "动态", instances: "角色库", diagnostics: "运行诊断", settings: "系统设置", studio: "创作中心", inbox: "通知", life: "生活", world: "世界", people: "人物关系", growth: "记忆成长", media: "媒体", profile: "角色资料", showcase: "组件场景", lifeShowcase: "生活组件场景" })[view.value]);
 
 async function navigate(next: WorkspaceView, correlationId = "", section = "") {
   view.value = next;
@@ -204,6 +215,7 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
 
 <template>
   <ChatShowcaseView v-if="view === 'showcase'" />
+  <LifeShowcaseView v-else-if="view === 'lifeShowcase'" />
   <AppShell v-else :active-view="view" :active-section="activeSection" :life-section="lifeSection" :show-navigation="store.authenticated === true" @navigate="onShellNavigate" @navigate-section="navigateSection" @select-instance="openDesktopChat" @logout="store.logout">
     <AuthPanel
       v-if="store.authenticated !== true"
@@ -223,14 +235,17 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
       <SettingsView v-else-if="view === 'settings'" :section="activeSettingsSection" @navigate-section="(section) => navigateSection('settings', section)" @logout="store.logout" />
       <UnwiredView v-else-if="view === 'studio'" title="创作中心" bp="BP-15" note="资源编辑、试生成沙盒和应用到实例还没有接到现有接口。这里不会写入创作草稿或生活事实。" />
       <UnwiredView v-else-if="view === 'inbox'" title="通知中心" bp="BP-03" note="通知列表还没有服务接口。铃铛不会显示虚构未读数。动态仍可从导航进入。" action-label="打开动态" @action="navigate('moments')" />
-      <UnwiredView v-else-if="view === 'life' && lifeSection === 'goals'" title="目标" bp="BP-07" note="新的目标页面尚未迁移。现有目标治理仍可使用，包含规划、依赖和证据。" action-label="打开现有目标治理" @action="openGovernance" />
-      <UnwiredView v-else-if="view === 'life' && lifeSection === 'wardrobe'" title="衣柜与物品" bp="BP-08" note="新的衣柜页面尚未迁移。拥有、穿着、使用和来源仍在现有物品管理里分开保存。" action-label="打开现有衣柜" @action="openGovernance" />
-      <UnwiredView v-else-if="view === 'life'" :title="lifeSection === 'schedule' ? '日程' : lifeSection === 'diary' ? '日记' : '此刻'" :bp="lifeSection === 'diary' ? 'BP-09' : 'BP-06'" :note="lifeSection === 'diary' ? '日记与共同经历还没有接到现有接口。' : lifeSection === 'schedule' ? '日程编辑还没有接到现有接口。离开本页不会取消任何服务端任务。' : '此刻页尚未接入。当前状态缺失时不会用初始设定或演示值补齐。'" />
+      <LifeNowView v-else-if="view === 'life' && lifeSection === 'now' && !routeCharacterMissing" @open="onShellNavigate" />
+      <LifeScheduleView v-else-if="view === 'life' && lifeSection === 'schedule' && !routeCharacterMissing" />
+      <LifeGoalsView v-else-if="view === 'life' && lifeSection === 'goals' && !routeCharacterMissing" />
+      <LifeWardrobeView v-else-if="view === 'life' && lifeSection === 'wardrobe' && !routeCharacterMissing" />
+      <UnwiredView v-else-if="view === 'life' && lifeSection === 'diary'" title="日记" bp="BP-09" note="日记与共同经历还没有接到现有接口。" />
       <UnwiredView v-else-if="view === 'world'" title="世界" bp="BP-10" note="世界、地点和场景页面尚未接入。浏览这里不会移动角色。" />
-      <UnwiredView v-else-if="view === 'people'" title="人物关系" bp="BP-12" note="新的人物页面尚未迁移。关系修订仍在现有治理中，所有者背景不是 NPC。" action-label="打开现有关系治理" @action="openGovernance" />
-      <UnwiredView v-else-if="view === 'growth'" title="记忆成长" bp="BP-13" note="新的记忆页面尚未迁移。记忆修正、遗忘和证据仍在现有治理中。" action-label="打开现有记忆治理" @action="openGovernance" />
-      <UnwiredView v-else-if="view === 'media'" title="媒体" bp="BP-14" note="媒体库与视觉身份页面尚未按新结构迁移。模型与 ComfyUI 配置仍在系统设置，生成记录仍在诊断。" action-label="打开媒体设置" @action="navigateSection('settings', 'media')" />
-      <UnwiredView v-else title="角色资料" bp="BP-05" note="新的资料页尚未迁移。身份、人格和生活脉络仍从详情与治理进入。" action-label="查看当前资料" @action="openDetails" />
+      <PeopleView v-else-if="view === 'people' && !routeCharacterMissing" />
+      <GrowthView v-else-if="view === 'growth' && !routeCharacterMissing" />
+      <MediaView v-else-if="view === 'media' && !routeCharacterMissing" @open-settings="navigateSection('settings', 'media')" />
+      <ProfileView v-else-if="view === 'profile' && !routeCharacterMissing" @open-media="navigate('media')" />
+      <p v-else-if="routeCharacterMissing" class="statebox">已停止显示其他角色的数据。</p>
     </template>
 
     <InstanceDetailsDialog :open="showDetails" @close="showDetails = false" @manage="openGovernance" />

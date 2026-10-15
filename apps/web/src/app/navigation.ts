@@ -1,4 +1,4 @@
-export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings" | "studio" | "inbox" | "life" | "world" | "people" | "growth" | "media" | "profile" | "showcase";
+export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings" | "studio" | "inbox" | "life" | "world" | "people" | "growth" | "media" | "profile" | "showcase" | "lifeShowcase";
 export type LifeSection = "now" | "schedule" | "goals" | "wardrobe" | "diary";
 export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "kev" | "owner" | "reply" | "vision";
 export type DiagnosticsSection = "lifecycle" | "agent-runs" | "model-runs" | "media-prompts" | "events" | "kev-decisions" | "workflows";

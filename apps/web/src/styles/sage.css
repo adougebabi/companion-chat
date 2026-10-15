@@ -90,6 +90,24 @@
 .instances-page .instance-list-item { border-color: var(--line); border-radius: var(--r3); background: var(--surface-plain); box-shadow: var(--sh1); }
 .auth-panel .brand { margin-bottom: 18px; }
 .settings-page .banner { max-width: 680px; }
+.life-page { display: flex; flex-direction: column; gap: var(--sp3); }
+.life-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp4); }
+.hero { position: relative; border-radius: var(--r4); overflow: hidden; min-height: 220px; display: flex; align-items: flex-end; background: var(--surface-2); }
+.hero .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hero-missing { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); background: var(--surface-2); }
+.hero .over { position: relative; margin: var(--sp4); background: rgb(255 255 255 / 94%); border-radius: var(--r3); padding: var(--sp3) var(--sp4); display: flex; gap: 12px; align-items: center; max-width: 560px; box-shadow: var(--sh2); }
+.hero .over h2 { margin: 2px 0; font-size: 20px; }
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp4); }
+.icard { background: var(--surface-plain); border: 1px solid var(--line); border-radius: var(--r3); overflow: hidden; box-shadow: var(--sh1); text-align: left; }
+.icard.wearing { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.item-fallback { display: grid; place-items: center; min-height: 96px; background: var(--bg); color: var(--ink-2); font-size: 12px; }
+.icard .cap, .cap { padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+.outfit { display: flex; gap: 8px; flex-wrap: wrap; list-style: none; padding: 0; margin: 0; }
+.outfit img, .life-page figure img { width: 96px; height: 96px; object-fit: cover; border-radius: var(--r2); }
+.planfact { display: grid; grid-template-columns: minmax(88px, 140px) minmax(0, 1fr) minmax(72px, 120px); gap: 8px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.life-page .card h2, .life-page .card h3 { margin: 0 0 8px; font-size: 16px; }
+.life-page .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.banner.warn { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--surface-plain)); }
 
 @media (max-width: 760px) {
   .sage-shell .sidenav, .sage-shell .desktop-context-panel { display: none; }
@@ -98,6 +116,8 @@
   .sage-shell .bottom-nav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; width: 100%; height: 62px; transform: none; border-radius: 0; border-width: 1px 0 0; background: var(--surface-plain); box-shadow: none; justify-content: space-around; align-items: center; }
   .hide-n { display: none; }
   .scopebar .badge { display: none; }
+  .wgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .planfact { grid-template-columns: 1fr; }
 }
 @media (min-width: 761px) {
   .sage-shell .bottom-nav { display: none; }
