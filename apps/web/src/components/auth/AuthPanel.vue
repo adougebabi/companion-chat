@@ -35,12 +35,12 @@ async function submitSetup() {
 </script>
 
 <template>
-  <section class="auth-panel" aria-labelledby="auth-title">
-    <div class="auth-mark" aria-hidden="true">F</div>
-    <p class="eyebrow">FLUCTLIGHT WORKSPACE</p>
+  <section class="auth-panel card" aria-labelledby="auth-title">
+    <div class="brand"><span class="brand-dot" aria-hidden="true"></span>摇光</div>
+    <p class="eyebrow">所有者会话</p>
     <h1 id="auth-title">{{ setupAvailable ? "创建所有者" : "所有者登录" }}</h1>
     <p class="auth-copy">
-      {{ setupAvailable ? "输入由本机管理员签发的一次性设置令牌。" : "登录后继续与 Fluctlight 实例对话。" }}
+      {{ setupAvailable ? "输入由本机管理员签发的一次性设置令牌。这会创建真实所有者，不是演示账号。" : "使用所有者密码继续。登录状态、CSRF 和错误仍由现有会话接口处理。" }}
     </p>
 
     <form v-if="setupAvailable" class="auth-form" novalidate @submit.prevent="submitSetup">

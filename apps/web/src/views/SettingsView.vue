@@ -112,9 +112,10 @@ onMounted(() => void load());
     <h1 id="settings-title" class="sr-only">设置</h1>
 
     <section v-if="!currentSection" class="settings-overview" aria-labelledby="settings-overview-title">
-      <p class="eyebrow">CONTROL CENTER</p>
+      <p class="eyebrow">系统设置</p>
       <h2 id="settings-overview-title">选择一个设置项</h2>
-      <p class="page-lede">从左侧列表选择模型、媒体、运行策略或所有者设置。</p>
+      <p class="page-lede">从列表选择模型、媒体、运行策略或所有者设置。这里的保存会写入当前服务，不是只记在浏览器里的偏好。</p>
+      <div class="banner info">模型角色、Endpoint、媒体和运行策略都会改变真实配置。不会把人格切换直接写成运行状态。</div>
       <nav class="settings-mobile-section-list" aria-label="设置选项">
         <Button v-for="section in settingsSections" :key="section.id" class="settings-mobile-section-link" variant="outline" type="button" @click="emit('navigateSection', section.id)">
           <span><strong>{{ section.label }}</strong><small>{{ section.description }}</small></span>

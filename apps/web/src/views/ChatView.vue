@@ -1,29 +1,27 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import Button from "@/components/ui/button/Button.vue";
-import Textarea from "@/components/ui/textarea/Textarea.vue";
-import { ChevronLeft, MoreHorizontal, CircleAlert, Check, CheckCheck, Clock, Plus } from "@lucide/vue";
+import { MoreHorizontal } from "@lucide/vue";
 import { apiOrigin } from "../runtime-config";
 import { useConversationStore } from "../stores/conversations";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
-import { messageTimeLabel } from "../lib/message-time";
 import FeedbackNotice from "../components/product/FeedbackNotice.vue";
 import ChoiceSelect from "../components/product/ChoiceSelect.vue";
 import { userError } from "../lib/user-feedback";
+import ChatPanel from "../components/chat/ChatPanel.vue";
+import { deliveryStatus } from "../components/chat/delivery";
 
 const emit = defineEmits<{
   back: [];
   openDetails: [];
   openInstances: [];
+  openSection: [view: "life" | "growth" | "people" | "media" | "profile"];
 }>();
 
 const store = useConversationStore();
 const draft = ref("");
-type ComposerTarget = { focus?: () => void; $el?: unknown };
-const composer = ref<ComposerTarget | null>(null);
-const transcript = ref<HTMLElement | null>(null);
 const senderOptions = computed(() => {
   const participants = store.conversationParticipants;
   return participants
@@ -37,13 +35,7 @@ const senderOptions = computed(() => {
 });
 
 function focusComposer() {
-  const target = composer.value;
-  if (!target) return;
-  if (typeof target.focus === "function") {
-    target.focus();
-    return;
-  }
-  if (target.$el instanceof HTMLElement) target.$el.focus();
+  document.getElementById("message-composer")?.focus();
 }
 
 async function send() {
@@ -53,20 +45,7 @@ async function send() {
   // retryTurn; keeping it in the editor makes a queued request look unsent.
   draft.value = "";
   await store.send(text);
-  scrollToLatest("smooth");
   focusComposer();
-}
-
-function scrollToLatest(behavior: ScrollBehavior = "auto") {
-  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) behavior = "auto";
-  void nextTick().then(() => {
-    requestAnimationFrame(() => {
-      const element = transcript.value;
-      if (!element) return;
-      element.scrollTo({ top: element.scrollHeight, behavior });
-      window.setTimeout(() => element.scrollTo({ top: element.scrollHeight, behavior: "auto" }), 120);
-    });
-  });
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -80,135 +59,84 @@ function mediaUrl(assetId: string) {
   return new URL(`/api/media/${encodeURIComponent(assetId)}`, apiOrigin).toString();
 }
 
-function deliveryStatus(message: BrowserMessage): "pending" | "failed" | "sent" | "none" {
-  if (message.kind !== "user") return "none";
-	if (message.turnStatus === "pending" || message.turnStatus === "running") return "pending";
-	if (message.turnStatus === "failed" || message.turnStatus === "cancelled") return "failed";
-	if (message.turnStatus === "completed") return "sent";
-	if (store.queuedMessageId === message.id) return "pending";
-	if (
-	  store.canRetry &&
-	  store.retryTurn?.conversationId === message.conversationId &&
-	  store.retryTurn.messageId === message.id
-	) return "failed";
+function statusFor(message: BrowserMessage) {
   const latestUserMessage = [...store.messages].reverse().find((item) => item.kind === "user");
-  return store.sending && latestUserMessage?.id === message.id ? "pending" : "sent";
+  return deliveryStatus(message, {
+    sending: store.sending,
+    queuedMessageId: store.queuedMessageId,
+    canRetry: store.canRetry,
+    retryMessageId: store.retryTurn?.messageId,
+    latestUserMessageId: latestUserMessage?.id,
+  });
 }
 
-function deliveryLabel(message: BrowserMessage): string {
-	const status = deliveryStatus(message);
-	if (status === "pending") return "已接收，处理中";
-	if (status === "failed") {
-		if (message.turnErrorCode === "agent_partial_committed") return "部分操作已执行，不能直接重试";
-		if (message.turnRetryable === false) return "本次生成正在结束";
-		return message.turnStatus === "cancelled" ? "回复已取消，可重试" : "回复失败，可重试";
-	}
-	return "已回复";
-}
-
-function formatMessageText(text?: string | null): string {
-	if (!text) return "";
-	return text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n");
-}
-
+const streamingId = computed(() => store.messages.find((message) => message.id.startsWith("stream-"))?.id ?? null);
+const waiting = computed(() => store.sending && !streamingId.value);
+const peerLabel = computed(() => String(store.selectedFluctlightName ?? "F").slice(0, 1));
 
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
-	scrollToLatest();
-	refreshTimer = setInterval(() => {
-		if (document.visibilityState === "visible" && (store.hasPendingTurn || store.hasSettlingTurn)) void store.refreshActiveTurn();
-	}, 2000);
+  refreshTimer = setInterval(() => {
+    if (document.visibilityState === "visible" && (store.hasPendingTurn || store.hasSettlingTurn)) void store.refreshActiveTurn();
+  }, 2000);
 });
 onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); });
-watch(() => store.fluctlightId, () => scrollToLatest());
-watch(() => store.messages.length, (messageCount, previousCount) => {
-  if (messageCount && previousCount === 0 && !store.loading) scrollToLatest();
-});
 </script>
 
 <template>
-  <section class="page chat-page" aria-labelledby="chat-title">
-    <header class="chat-header">
-      <Button class="icon-button chat-back" variant="ghost" type="button" aria-label="返回聊天列表" @click="emit('back')"><ChevronLeft :size="20" aria-hidden="true" /></Button>
-      <Button class="chat-profile" variant="ghost" type="button" :disabled="!store.selectedFluctlight" @click="emit('openDetails')">
-        <span class="chat-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</span>
-        <span class="chat-header-copy">
-          <strong id="chat-title">{{ store.selectedFluctlightName ?? "选择会话" }}</strong>
-          <small>{{ store.sending ? "正在思考" : store.selectedFluctlight ? fluctlightStatusLabel(store.selectedFluctlight.status) : "等待选择" }}</small>
-        </span>
-      </Button>
-      <Button class="icon-button chat-more" variant="ghost" type="button" aria-label="查看对话详情" @click="emit('openDetails')"><MoreHorizontal :size="20" aria-hidden="true" /></Button>
-    </header>
-
-    <section ref="transcript" class="message-timeline" aria-live="polite" aria-label="对话记录">
-      <div v-if="store.loading" class="empty-state">正在加载对话...</div>
-      <div v-else-if="store.nextBeforeSequence" class="load-more-container">
-        <Button class="secondary-button load-older load-more-pill" variant="outline" type="button" @click="store.loadOlder">加载更早记录</Button>
-      </div>
-      <div v-else-if="!store.selectedFluctlight" class="empty-state">
-        <Plus class="empty-mark" :size="28" aria-hidden="true" />
-        <h2>选择一个会话进行聊天</h2>
-        <p>从左侧最近会话中选择一个摇光，继续你们之间的对话。</p>
-        <Button class="secondary-button" variant="outline" type="button" @click="emit('openInstances')">管理摇光实例</Button>
-      </div>
-      <div v-else-if="!store.messages.length" class="empty-state">
-        <Plus class="empty-mark" :size="28" aria-hidden="true" />
-        <h2>开始与 {{ store.selectedFluctlightName }} 对话</h2>
-        <p>分享一件事、一个问题，或此刻正在发生的事情。</p>
-        <Button class="empty-cta" variant="ghost" type="button" @click="focusComposer">开始写下第一句话</Button>
-      </div>
-
-      <article
-        v-for="message in store.messages"
-        :key="message.id"
-        class="message-row"
-        :class="message.kind === 'user' ? 'from-user' : 'from-fluctlight'"
-      >
-        <div class="avatar" aria-hidden="true">{{ message.kind === "user" ? "我" : String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</div>
-        <div class="message-bubble">
-          <p>{{ formatMessageText(message.text) }}</p>
-          <div v-if="message.attachmentRefs?.length" class="message-media">
-            <img v-for="assetId in message.attachmentRefs" :key="assetId" :src="mediaUrl(assetId)" :alt='`${store.selectedFluctlightName ?? "Fluctlight"} 生成的图片`' loading="lazy" />
-          </div>
-          <div class="message-meta">
-			<time :datetime="message.senderSentAt ?? message.createdAt">{{ messageTimeLabel(message) }}</time>
-            <span v-if='deliveryStatus(message) !== "none"' class="delivery-status" :class="deliveryStatus(message)" :aria-label="deliveryLabel(message)">
-              <CircleAlert v-if='deliveryStatus(message) === "failed"' :size="13" aria-hidden="true" /><Clock v-else-if='deliveryStatus(message) === "pending"' :size="13" aria-hidden="true" /><CheckCheck v-else-if='deliveryStatus(message) === "sent"' :size="15" aria-hidden="true" /><Check v-else :size="13" aria-hidden="true" />
-            </span>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <FeedbackNotice v-if="store.error || store.canRetry || store.retrying" :tone="store.retrying ? 'info' : 'error'" :message="store.retrying ? '正在提交重试请求并等待回复…' : userError(store.error, '回复未完成，可以重试。')" :detail="store.retrying ? '' : store.error">
-      <Button v-if="store.canRetry || store.retrying" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : store.retryIsModelFailure ? "重试回复" : "重新发送" }}</Button>
-      <Button v-if="store.canRetry" class="secondary-button" variant="ghost" type="button" @click="store.dismissRetry">忽略这条</Button>
-    </FeedbackNotice>
-
-    <form class="message-composer" @submit.prevent="send">
-      <label class="sr-only" for="message-composer">消息</label>
-      <div class="composer-row">
-        <Textarea
-          id="message-composer"
-          ref="composer"
-          v-model="draft"
-          rows="1"
-          maxlength="32000"
-          placeholder="写一条消息..."
-          :disabled="store.loading || !store.hasConversation || !store.selectedFluctlight"
-          @keydown="onKeydown"
-        />
-        <div class="composer-actions">
-          <Button v-if="store.canCancel" class="secondary-button" variant="outline" type="button" @click="store.cancel">取消</Button>
-          <Button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
-        </div>
-      </div>
-      <div class="composer-footer">
-        <span class="composer-hint">Enter 发送 · Shift + Enter 换行</span>
+  <section class="page chat-page chat-workspace" aria-labelledby="chat-title">
+    <ChatPanel
+      :title="store.selectedFluctlightName ?? '选择会话'"
+      :subtitle="store.sending ? '正在等待回复' : store.selectedFluctlight ? fluctlightStatusLabel(store.selectedFluctlight.status) : '等待选择'"
+      :avatar-label="peerLabel"
+      :messages="store.messages"
+      :loading="store.loading"
+      :history-loading="store.historyLoading"
+      :has-older="Boolean(store.nextBeforeSequence)"
+      :waiting="waiting"
+      :sending="store.sending"
+      :can-cancel="store.canCancel"
+      :draft="draft"
+      :disabled="store.loading || !store.hasConversation || !store.selectedFluctlight"
+      :streaming-id="streamingId"
+      :status-for="statusFor"
+      :media-url="mediaUrl"
+      :empty-title="store.selectedFluctlight ? `开始与 ${store.selectedFluctlightName} 对话` : '选择一个会话进行聊天'"
+      :empty-copy="store.selectedFluctlight ? '分享一件事、一个问题，或此刻正在发生的事情。' : '从角色库选择一个角色，继续你们之间的对话。'"
+      @update:draft="draft = $event"
+      @submit="send"
+      @cancel="store.cancel"
+      @keydown="onKeydown"
+      @load-older="store.loadOlder"
+      @focus-composer="focusComposer"
+    >
+      <template #actions>
+        <Button class="icon-button chat-more" variant="ghost" type="button" aria-label="查看对话详情" @click="emit('openDetails')"><MoreHorizontal :size="20" aria-hidden="true" /></Button>
+      </template>
+      <template #notices>
+        <FeedbackNotice v-if="store.error || store.canRetry || store.retrying" :tone="store.retrying ? 'info' : 'error'" :message="store.retrying ? '正在提交重试请求并等待回复…' : userError(store.error, '回复未完成，可以重试。')" :detail="store.retrying ? '' : store.error">
+          <Button v-if="store.canRetry || store.retrying" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : store.retryIsModelFailure ? "重试回复" : "重新发送" }}</Button>
+          <Button v-if="store.canRetry" class="secondary-button" variant="ghost" type="button" @click="store.dismissRetry">忽略这条</Button>
+        </FeedbackNotice>
+        <div v-if="!store.selectedFluctlight && !store.loading" class="banner info">当前没有打开的会话。<button class="btn sm" type="button" @click="emit('openInstances')">前往角色库</button></div>
         <label v-if="senderOptions.length > 1" class="sender-picker" for="conversation-sender">发送身份
-          <ChoiceSelect id="conversation-sender" :model-value="store.senderActorId ?? ''" @update:model-value="value=>store.senderActorId=value || null" :disabled="store.sending" :options="senderOptions.map(option=>({value:option.id,label:option.label}))" />
+          <ChoiceSelect id="conversation-sender" :model-value="store.senderActorId ?? ''" :disabled="store.sending" :options="senderOptions.map(option => ({ value: option.id, label: option.label }))" @update:model-value="value => store.senderActorId = value || null" />
         </label>
+      </template>
+    </ChatPanel>
+
+    <aside class="chatside stack">
+      <div class="card">
+        <h3>此刻</h3>
+        <p class="small muted">生活此刻页尚未接入。这里不展示推测中的心情或位置。</p>
+        <button class="btn sm" type="button" @click="emit('openSection', 'life')">打开生活</button>
       </div>
-    </form>
+      <div class="card">
+        <h3>进行中</h3>
+        <p class="small muted">目标、穿着和相关记忆仍在既有治理里，聊天栏不另造一份。</p>
+        <button class="btn ghost sm" type="button" @click="emit('openSection', 'growth')">记忆入口</button>
+        <button class="btn ghost sm" type="button" @click="emit('openDetails')">查看资料</button>
+      </div>
+    </aside>
   </section>
 </template>

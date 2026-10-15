@@ -306,7 +306,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
 
   <section v-else class="page instances-page" aria-labelledby="instances-title">
     <header class="page-header instances-header">
-      <div><p class="eyebrow">MESSAGES</p><h1 id="instances-title">最近</h1><p class="page-lede">选择一个人格继续对话，或进入编辑与治理。</p></div>
+      <div><p class="eyebrow">角色库</p><h1 id="instances-title">角色库</h1><p class="page-lede">这些是当前账号里的 Fluctlight 实例。选择后进入真实对话；创建、分组和治理仍写入服务端。</p></div>
       <Button class="primary-icon-button" variant="default" size="icon-lg" type="button" :aria-expanded="showCreateForm" aria-controls="instance-create" aria-label="新建 Fluctlight" @click="showCreateForm = !showCreateForm"><Plus :size="22" :stroke-width="2" aria-hidden="true" /></Button>
     </header>
 
