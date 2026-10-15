@@ -1,4 +1,4 @@
-export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings" | "studio" | "inbox" | "life" | "world" | "people" | "growth" | "media" | "profile" | "showcase" | "lifeShowcase";
+export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings" | "studio" | "inbox" | "life" | "world" | "people" | "growth" | "media" | "profile" | "autonomy" | "pending" | "data" | "rollback" | "showcase" | "lifeShowcase";
 export type LifeSection = "now" | "schedule" | "goals" | "wardrobe" | "diary";
 export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "kev" | "owner" | "reply" | "vision";
 export type DiagnosticsSection = "lifecycle" | "agent-runs" | "model-runs" | "media-prompts" | "events" | "kev-decisions" | "workflows";
@@ -64,12 +64,15 @@ export const workspaceNavigation = [
   { key: "growth", label: "记忆成长", view: "growth" },
   { key: "media", label: "媒体", view: "media" },
   { key: "profile", label: "角色资料", view: "profile" },
+  { key: "autonomy", label: "自治权限", view: "autonomy" },
 ] as const satisfies ReadonlyArray<{ key: string; label: string; view: WorkspaceView }>;
 
 export const globalNavigation = [
   { key: "library", label: "角色库", view: "instances" },
   { key: "feed", label: "动态", view: "moments" },
   { key: "studio", label: "创作中心", view: "studio" },
+  { key: "pending", label: "待处理", view: "pending" },
+  { key: "data", label: "数据工具", view: "data" },
   { key: "settings", label: "系统设置", view: "settings" },
   { key: "diagnostics", label: "运行诊断", view: "diagnostics" },
   { key: "inbox", label: "通知", view: "inbox" },

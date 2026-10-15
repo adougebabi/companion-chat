@@ -108,6 +108,10 @@
 .life-page .card h2, .life-page .card h3 { margin: 0 0 8px; font-size: 16px; }
 .life-page .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .banner.warn { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--surface-plain)); }
+.studio-split { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: var(--sp4); align-items: start; }
+.studio-preview { height: min(720px, 70dvh); min-height: 460px; display: flex; }
+.studio-preview .chat-panel { flex: 1; height: 100%; }
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp4); }
 
 @media (max-width: 760px) {
   .sage-shell .sidenav, .sage-shell .desktop-context-panel { display: none; }
@@ -118,6 +122,8 @@
   .scopebar .badge { display: none; }
   .wgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .planfact { grid-template-columns: 1fr; }
+  .studio-split { grid-template-columns: 1fr; }
+  .studio-preview { height: 70dvh; }
 }
 @media (min-width: 761px) {
   .sage-shell .bottom-nav { display: none; }

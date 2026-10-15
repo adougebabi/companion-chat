@@ -12,7 +12,7 @@ import { fluctlightStatusLabel } from "../../lib/fluctlight-status";
 import { userError } from "../../lib/user-feedback";
 import { useCharacterSurface } from "./use-character-surface";
 
-const emit = defineEmits<{ openMedia: [] }>();
+const emit = defineEmits<{ openMedia: []; openAutonomy: [] }>();
 const { store, control, detail, readOnlyPreview } = useCharacterSurface();
 const identity = computed(() => asRecord(detail.value?.identity));
 const personality = computed(() => asRecord(detail.value?.personality));
@@ -30,6 +30,7 @@ const summaryKeys = ["name", "occupation", "background_story", "background", "ti
       <span class="badge b-plain">BP-05</span>
       <span v-if="detail?.status" class="badge">{{ fluctlightStatusLabel(detail.status) }}</span>
       <span v-if="readOnlyPreview" class="badge b-preview">不是业务数据</span>
+      <Button v-if="!readOnlyPreview" variant="outline" type="button" @click="emit('openAutonomy')">自治与权限</Button>
     </header>
     <p v-if="!store.fluctlightId && !readOnlyPreview" class="statebox">请先选择角色。这里不会显示其他角色的数据。</p>
     <template v-else>

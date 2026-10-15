@@ -8,8 +8,14 @@ import InstanceDetailsDialog from "./components/instances/InstanceDetailsDialog.
 import ChatView from "./views/ChatView.vue";
 import ChatShowcaseView from "./views/ChatShowcaseView.vue";
 import InstancesView from "./views/InstancesView.vue";
+import AutonomyView from "./views/AutonomyView.vue";
+import DataToolsView from "./views/DataToolsView.vue";
 import MomentsView from "./views/MomentsView.vue";
+import PendingView from "./views/PendingView.vue";
+import RollbackView from "./views/RollbackView.vue";
+import StudioView from "./views/StudioView.vue";
 import UnwiredView from "./views/UnwiredView.vue";
+import WorldView from "./views/WorldView.vue";
 import LifeShowcaseView from "./views/LifeShowcaseView.vue";
 import GrowthView from "./views/life/GrowthView.vue";
 import LifeGoalsView from "./views/life/LifeGoalsView.vue";
@@ -45,8 +51,12 @@ function viewFromLocation(): WorkspaceView {
   if (path.startsWith("/chat") || /\/chat\/?$/.test(path)) return "chat";
   if (path.startsWith("/moments") || path.startsWith("/feed")) return "moments";
   if (path.startsWith("/diagnostics") || path.startsWith("/settings/diagnostics")) return "diagnostics";
+  if (/\/settings\/autonomy\/?$/.test(path) || /\/autonomy\/?$/.test(path)) return "autonomy";
   if (path.startsWith("/settings")) return "settings";
   if (path.startsWith("/studio")) return "studio";
+  if (path.startsWith("/pending")) return "pending";
+  if (path.startsWith("/data/rollback")) return "rollback";
+  if (path.startsWith("/data")) return "data";
   if (path.startsWith("/inbox")) return "inbox";
   if (/\/life(\/|$)/.test(path)) return "life";
   if (/\/world(\/|$)/.test(path)) return "world";
@@ -55,6 +65,21 @@ function viewFromLocation(): WorkspaceView {
   if (/\/media(\/|$)/.test(path)) return "media";
   if (/\/profile(\/|$)/.test(path)) return "profile";
   return "instances";
+}
+
+function legacyCanonicalPath(): string | null {
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const search = window.location.search;
+  if (path === "/instances") return `/library${search}`;
+  if (path === "/moments") return `/feed${search}`;
+  if (path === "/settings/diagnostics") return `/diagnostics${search}`;
+  return null;
+}
+
+function applyLegacyRedirect() {
+  const next = legacyCanonicalPath();
+  if (!next || `${window.location.pathname}${window.location.search}` === next) return;
+  window.history.replaceState({ view: viewFromLocation() }, "", next);
 }
 
 function sectionFromLocation(view: WorkspaceView): WorkspaceSection | null {
@@ -82,6 +107,10 @@ function pathForView(next: WorkspaceView, correlationId = "", section = "", fluc
     : next === "settings" ? "/settings"
     : next === "studio" ? "/studio"
     : next === "inbox" ? "/inbox"
+    : next === "autonomy" ? scoped("settings/autonomy")
+    : next === "pending" ? "/pending"
+    : next === "rollback" ? "/data/rollback"
+    : next === "data" ? "/data"
     : next === "life" ? scoped(`life/${isLifeSection(section) ? section : "now"}`)
     : next === "world" ? scoped("world")
     : next === "people" ? scoped("people")
@@ -107,7 +136,7 @@ const governanceRequest = ref(false);
 const createRequest = ref(0);
 const activeSettingsSection = computed<SettingsSection | null>(() => view.value === "settings" && activeSection.value && isSettingsSection(activeSection.value) ? activeSection.value as SettingsSection : null);
 const activeDiagnosticsSection = computed<DiagnosticsSection | null>(() => view.value === "diagnostics" && activeSection.value && isDiagnosticsSection(activeSection.value) ? activeSection.value as DiagnosticsSection : null);
-const activeViewLabel = computed(() => ({ chat: "对话", moments: "动态", instances: "角色库", diagnostics: "运行诊断", settings: "系统设置", studio: "创作中心", inbox: "通知", life: "生活", world: "世界", people: "人物关系", growth: "记忆成长", media: "媒体", profile: "角色资料", showcase: "组件场景", lifeShowcase: "生活组件场景" })[view.value]);
+const activeViewLabel = computed(() => ({ chat: "对话", moments: "动态", instances: "角色库", diagnostics: "运行诊断", settings: "系统设置", studio: "创作中心", inbox: "通知", life: "生活", world: "世界", people: "人物关系", growth: "记忆成长", media: "媒体", profile: "角色资料", autonomy: "自治权限", pending: "待处理", data: "数据工具", rollback: "时间线回档", showcase: "组件场景", lifeShowcase: "生活组件场景" })[view.value]);
 
 async function navigate(next: WorkspaceView, correlationId = "", section = "") {
   view.value = next;
@@ -137,6 +166,7 @@ function navigateSection(next: "settings" | "diagnostics", section: WorkspaceSec
 }
 
 function onPopState() {
+  applyLegacyRedirect();
   view.value = viewFromLocation();
   lifeSection.value = lifeFromLocation();
   activeSection.value = sectionFromLocation(view.value);
@@ -207,6 +237,7 @@ async function initializeWorkspace() {
 
 onMounted(() => {
   window.addEventListener("popstate", onPopState);
+  applyLegacyRedirect();
   syncDiagnosticsFilterFromLocation();
   void initializeWorkspace();
 });
@@ -233,18 +264,22 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
       <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" :open-create="createRequest" @creation-consumed="createRequest=0" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
       <DiagnosticsView v-else-if="view === 'diagnostics'" :section="activeDiagnosticsSection" @navigate-section="(section) => navigateSection('diagnostics', section)" />
       <SettingsView v-else-if="view === 'settings'" :section="activeSettingsSection" @navigate-section="(section) => navigateSection('settings', section)" @logout="store.logout" />
-      <UnwiredView v-else-if="view === 'studio'" title="创作中心" bp="BP-15" note="资源编辑、试生成沙盒和应用到实例还没有接到现有接口。这里不会写入创作草稿或生活事实。" />
-      <UnwiredView v-else-if="view === 'inbox'" title="通知中心" bp="BP-03" note="通知列表还没有服务接口。铃铛不会显示虚构未读数。动态仍可从导航进入。" action-label="打开动态" @action="navigate('moments')" />
+      <StudioView v-else-if="view === 'studio'" />
+      <PendingView v-else-if="view === 'pending'" @open-governance="openGovernance" @open-profile="navigate('profile')" @open-diagnostics="navigate('diagnostics')" />
+      <DataToolsView v-else-if="view === 'data'" @open-rollback="navigate('rollback')" />
+      <RollbackView v-else-if="view === 'rollback'" @back="navigate('data')" />
+      <AutonomyView v-else-if="view === 'autonomy' && !routeCharacterMissing" @open-profile="navigate('profile')" />
+      <UnwiredView v-else-if="view === 'inbox'" title="通知中心" bp="BP-03" note="通知列表还没有服务接口。铃铛进入待处理，不会显示虚构未读数。动态仍可从导航进入。" action-label="打开动态" @action="navigate('moments')" />
       <LifeNowView v-else-if="view === 'life' && lifeSection === 'now' && !routeCharacterMissing" @open="onShellNavigate" />
       <LifeScheduleView v-else-if="view === 'life' && lifeSection === 'schedule' && !routeCharacterMissing" />
       <LifeGoalsView v-else-if="view === 'life' && lifeSection === 'goals' && !routeCharacterMissing" />
       <LifeWardrobeView v-else-if="view === 'life' && lifeSection === 'wardrobe' && !routeCharacterMissing" />
       <UnwiredView v-else-if="view === 'life' && lifeSection === 'diary'" title="日记" bp="BP-09" note="日记与共同经历还没有接到现有接口。" />
-      <UnwiredView v-else-if="view === 'world'" title="世界" bp="BP-10" note="世界、地点和场景页面尚未接入。浏览这里不会移动角色。" />
+      <WorldView v-else-if="view === 'world' && !routeCharacterMissing" />
       <PeopleView v-else-if="view === 'people' && !routeCharacterMissing" />
       <GrowthView v-else-if="view === 'growth' && !routeCharacterMissing" />
       <MediaView v-else-if="view === 'media' && !routeCharacterMissing" @open-settings="navigateSection('settings', 'media')" />
-      <ProfileView v-else-if="view === 'profile' && !routeCharacterMissing" @open-media="navigate('media')" />
+      <ProfileView v-else-if="view === 'profile' && !routeCharacterMissing" @open-media="navigate('media')" @open-autonomy="navigate('autonomy')" />
       <p v-else-if="routeCharacterMissing" class="statebox">已停止显示其他角色的数据。</p>
     </template>
 

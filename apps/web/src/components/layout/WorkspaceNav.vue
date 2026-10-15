@@ -7,6 +7,7 @@ const props = defineProps<{ activeView: WorkspaceView; lifeSection?: LifeSection
 const emit = defineEmits<{ navigate: [view: WorkspaceView, section?: string] }>();
 
 function current(view: WorkspaceView) {
+  if (props.activeView === "rollback" && view === "data") return true;
   return props.activeView === view;
 }
 </script>

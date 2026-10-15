@@ -73,7 +73,7 @@ function go(view: WorkspaceView, section?: string) {
         <span class="hide-n">{{ characterName }}<template v-if="store.selectedFluctlight"> · {{ fluctlightStatusLabel(store.selectedFluctlight.status) }}</template></span>
       </div>
       <span class="spacer"></span>
-      <button class="btn ghost icon-only bell" type="button" aria-label="通知" data-test="bell" @click="go('inbox')"><Bell :size="18" aria-hidden="true" /></button>
+      <button class="btn ghost icon-only bell" type="button" aria-label="需要你处理" data-test="bell" @click="go('pending')"><Bell :size="18" aria-hidden="true" /></button>
       <button class="btn ghost sm" type="button" @click="emit('logout')"><LogOut :size="16" aria-hidden="true" /><span class="hide-n">退出</span></button>
     </header>
     <div class="layout">
