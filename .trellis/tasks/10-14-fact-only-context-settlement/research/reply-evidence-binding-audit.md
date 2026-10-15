@@ -1,0 +1,28 @@
+# F17 绑定与对账定位
+
+基线b24fdd1。只读探子核对跨文件链路；主代理亲读CONTEXT、Fact-only contract、prepare/resolve/replyEvidenceEntry及原PG用例。不据单条错误猜具体生产ref。
+
+## 调用与触发点
+
+RunConversationCognitionAgent(cognition_agent.go:74)先BuildContextProjection；wake-up(agent_result_adapter.go:851)用MemoryForWakeUp/periodic_check。adk_conversation_runtime.go:598建立ref codec；ExecuteWithID:105使用refresh.latestProjection或原projection，:186创建ContextSnapshot。cognition.go:830 capabilitySnapshotForProjection无论RequiredContext有哪些slots都带context_reference_index。正常Native路径未找到漏挂snapshot分支。
+
+adk_conversation_runtime.go:210先decodeArguments；provider_ref_codec.go:143把已知cr_短alias解为full token，未知短alias会另报provider_context_ref_alias_unknown，不能混同本错误。非alias字符串原样通过。
+
+fact_only_reply_capability.go:272重新BuildContextProjection，固定MemoryForConversation、exact/global模式与run.CurrentInput；:284循环evidence_refs，一条replyEvidenceEntry false在:288硬失败。:342的helper先要求live含ref，model_tool还要求offered含ref、instance/conversation匹配、kind/entity/revision/snapshot匹配。无refs也会正常独立Writer，故这是optional增强失败被上升成整个回复拒绝。
+
+## 可实际构造的类别
+
+- message:unoffered-history不在live；原reply_evidence_recovery_test.go:37已有Writer0调用拒绝断言。
+- offered有R，live更新只有R2：旧合法ref直接missing。哈希包含scope/revision/snapshot，所以真实刷新通常表现为旧token不再存在。
+- live有R，offered没有R；model_tool缺offered index/snapshot；offered instance/conversation或entry不一致。这些均统一false，不能只靠code称权限越界。
+- memory/active-memory在intelligence.go:308按cue/operation/time/limit检索，index缺失也可能只是窗口变化。
+
+runtime_context_refresh.go:242仅相同scope时把最初base index的缺失refs合并入刷新projection；后续offered可合法仍含R。Writer新BuildContextProjection不沿用该合并，R可能missing。codec短alias可保留旧映射，但不是当前授权；中间refresh的refs也不保证累积保留。
+
+## scope与共享
+
+Continuation正常只传draft_ref/action_result_refs，重新构造parent projection/codec/snapshot，不必然缺snapshot。续接parent CurrentInput含续接指令，但Writer用原stored.CurrentInput，cue检索可能不同；未用生产数据证明某ref实际受影响。wake-up与Writer检索operation明确不同。
+
+非model_tool helper只要求live membership；model source条件不可放宽。私有run/source/draft/publication权限另有原边界。moment.publish先scope核对再复用resolver，确认后还过滤inference/memory/intention/developing-self；optional对账降级不得改变事实语义和私聊隔离。
+
+另一个测试缝只读探子因模型服务capacity失败，未修改文件；无需重做绑定检索，实施者在已知reply相关测试范围查找实际纯/HTTP seam即可。

@@ -154,7 +154,7 @@ func personaDetailCapabilityDefinition() CapabilityDefinition {
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false, "required": []any{"operation"},
 			"properties": map[string]any{
-				"operation":  map[string]any{"type": "string", "enum": []any{"list", "read", "history"}},
+				"operation":  map[string]any{"type": "string", "enum": []any{"list", "read", "history"}, "default": "list"},
 				"section_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"cursor":     map[string]any{"type": "integer", "minimum": 0},
 				"revision":   map[string]any{"type": "integer", "minimum": 0},

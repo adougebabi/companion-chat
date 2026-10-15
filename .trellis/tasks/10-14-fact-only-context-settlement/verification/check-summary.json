@@ -1,0 +1,44 @@
+{
+  "go_test_all": "PASS_WITH_EXPLICIT_CONDITIONAL_SKIPS",
+  "go_race_core_workflow": "PASS_WITH_CONDITIONAL_SKIPS",
+  "go_vet": "PASS",
+  "go_build": "PASS",
+  "pnpm_typecheck": "PASS",
+  "pnpm_tests": {
+    "browser_client": {
+      "pass": 21,
+      "fail": 0
+    },
+    "core_client": {
+      "pass": 2,
+      "fail": 0
+    },
+    "web": {
+      "pass": 105,
+      "fail": 0
+    }
+  },
+  "pnpm_build": "PASS_EXISTING_CHUNK_WARNING",
+  "go_test_events_including_parent_and_subtests": {
+    "pass": 1759,
+    "skip": 531
+  },
+  "controlled_native_wire_variants": 20,
+  "fact_only_skipped_tests": [
+    "TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker",
+    "TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays",
+    "TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed",
+    "TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed",
+    "TestFactOnlyCommittedReplyMalformedFinalSettlement/true",
+    "TestFactOnlyCommittedReplyMalformedFinalSettlement/false",
+    "TestFactOnlyHistoryBackfillUsesExactStoredSource",
+    "TestFactOnlyProactiveSuppressionAcrossPurposeVersions/old_to_new",
+    "TestFactOnlyProactiveSuppressionAcrossPurposeVersions/new_to_old_draft",
+    "TestFactOnlyProactiveSuppressionAcrossPurposeVersions/fallback_to_new",
+    "TestFactOnlyProactiveSuppressionAcrossPurposeVersions/legacy_caller_unchanged",
+    "TestFactOnlyProactiveSuppressionAcrossPurposeVersions/unrelated_legacy_delivery"
+  ],
+  "new_persistence_cases": "8 SKIP: final-repair(2), cross-version-purpose(5), source-backfill(1)",
+  "real_models": "NOT_RUN",
+  "external_environment": "NOT_RUN"
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -109,8 +110,12 @@ func queueGoalReviewsTx(ctx context.Context, tx pgx.Tx, owner, profile, reason s
 }
 
 func commitGoalReviewTx(ctx context.Context, tx pgx.Tx, goal GoalAuthority, review GoalReviewContext, decision *GoalReviewDecision, sources map[string]GoalSource, nextStep string, nextReview *time.Time) error {
+	if goalStatusTerminal(goal.Status) {
+		_, err := tx.Exec(ctx, `UPDATE public.goal_reviews SET status='superseded',explanation='Goal ended with validated evidence; no separate review decision needed',updated_at=now() WHERE id=$1 AND revision=$2 AND status='pending'`, review.ID, review.Revision)
+		return err
+	}
 	if decision == nil {
-		return errors.New("goal_review_decision_required")
+		decision = technicalGoalReviewWait()
 	}
 	switch decision.ReasonCategory {
 	case "progressed", "no_opportunity", "not_yet_due", "waiting_external", "ineffective_attempt", "blocked", "missed_opportunity", "evaluation_incomplete", "refusal", "sleeping":
@@ -122,7 +127,7 @@ func commitGoalReviewTx(ctx context.Context, tx pgx.Tx, goal GoalAuthority, revi
 	default:
 		return errors.New("goal_review_decision_invalid")
 	}
-	if decision.Explanation == "" || len([]rune(decision.Explanation)) > 1000 {
+	if decision.Explanation == "" {
 		return errors.New("goal_review_explanation_required")
 	}
 	for _, ref := range decision.EvidenceRefs {
@@ -203,4 +208,29 @@ func commitGoalReviewTx(ctx context.Context, tx pgx.Tx, goal GoalAuthority, revi
 		return ErrConflict
 	}
 	return nil
+}
+
+func technicalGoalReviewWait() *GoalReviewDecision {
+	return &GoalReviewDecision{ReasonCategory: "evaluation_incomplete", Decision: "wait", Explanation: "程序保留本次有效评估；独立复核信息不足，等待下一评估周期", EvidenceRefs: []string{}}
+}
+
+// A malformed optional review must not undo a valid root assessment. Its own
+// writes are isolated; database, cancellation and claim conflicts remain errors.
+func commitGoalReviewRecoveringTx(ctx context.Context, tx pgx.Tx, goal GoalAuthority, review GoalReviewContext, decision **GoalReviewDecision, sources map[string]GoalSource, nextStep string, nextReview *time.Time) error {
+	sp, err := tx.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	err = commitGoalReviewTx(ctx, sp, goal, review, *decision, sources, nextStep, nextReview)
+	if err == nil {
+		return sp.Commit(ctx)
+	}
+	if rollbackErr := sp.Rollback(ctx); rollbackErr != nil {
+		return errors.Join(err, rollbackErr)
+	}
+	if !strings.HasPrefix(err.Error(), "goal_review_") {
+		return err
+	}
+	*decision = technicalGoalReviewWait()
+	return commitGoalReviewTx(ctx, tx, goal, review, *decision, sources, "", nil)
 }

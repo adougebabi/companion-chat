@@ -161,6 +161,7 @@ func TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence(t *testing.T) 
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET status='failed' WHERE id=$1`, request); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, latestPendingGoalRequest(t, f))
 	second, prior, err := f.app.claimGoalEvaluation(f.ctx, latestPendingGoalRequest(t, f))
 	if err != nil || prior != nil {
 		t.Fatal(prior, err)

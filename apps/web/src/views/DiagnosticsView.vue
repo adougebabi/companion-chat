@@ -35,8 +35,8 @@ const currentWorkflow=computed(()=>controlCenter.workflowStatus ? workflowPresen
 const workflowRows=computed(()=>controlCenter.workflows.map((value,index)=>({...workflowPresentation(value,index),raw:value})));
 async function confirmClear(){clearError.value='';await controlCenter.clearDiagnostics();clearError.value=controlCenter.diagnosticError;if(!clearError.value)clearOpen.value=false;else controlCenter.diagnosticError='';}
 function selectWorkflow(id:string){controlCenter.workflowId=id;void controlCenter.queryWorkflowStatus();}
-const scenarioLabels: Record<string, string> = { reply: "回复生成", autonomy_reply: "自治回复", cognitive_assessment: "认知判断", native_cognition: "原生事件认知", daily_review: "日评", schedule_generation: "计划生成", reflection: "反思", wake_up: "唤醒", initialization: "初始化", media_prompt: "媒体提示词", embedding: "Embedding" };
-const bindingLabels: Record<string, string> = { generic_llm: "通用 LLM", embedding: "Embedding" };
+const scenarioLabels: Record<string, string> = { reply: "回复生成", autonomy_reply: "自治回复", cognitive_assessment: "认知判断", native_cognition: "原生事件认知", daily_review: "日评", schedule_generation: "计划生成", reflection: "反思", wake_up: "唤醒", initialization: "初始化", media_prompt: "媒体提示词", fact_only_reply:"独立回复生成", media_quality_acceptance:"图片质量检查", vision_explicit_test:"显式视觉测试", embedding: "Embedding" };
+const bindingLabels: Record<string, string> = { generic_llm: "通用 LLM", embedding: "Embedding", conversation_reply:"独立回复", vision_understanding:"视觉理解" };
 const statusLabels: Record<string, string> = { queued: "排队中", running: "执行中", started: "已启动", scheduled: "已计划", retry: "待重试", completed: "已完成", no_op: "无操作", blocked: "已阻止", paused: "已暂停", inactive: "未激活", disabled: "已禁用", overdue: "已逾期", dead_letter: "已终止", failed: "失败", cancelled: "已取消", timeout: "超时" };
 const mediaFailureStageLabels: Record<string, string> = { prepare: "准备提示词", submit: "提交 ComfyUI", poll_quality: "轮询或质量检查" };
 const agentFailureStageLabels: Record<string, string> = { tool: "Tool 执行", model: "模型请求", model_input: "模型输入预算", cancellation: "取消", agent: "Agent 结果", unknown: "阶段未知" };
@@ -279,6 +279,7 @@ onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer)
                 </div>
                 <FeedbackNotice v-if="run.errorCode" :message="userError(run.errorCode)" :detail="run.errorCode" />
                 <p v-if="isMetadataOnlyPrompt(run.prompt)" class="metadata-only-hint">此历史记录只保存了元数据，原始提示词无法恢复。</p>
+                <p v-if="run.bindingRole==='conversation_reply'" class="field-note">此处 Response 是内部回复候选。实际消息以 conversation.reply 的 committed 结果和聊天记录为准；needs_action / waiting 尚未发送。</p>
                 <JsonViewer :value="diagnosticText(run.prompt)" label="查看本次 Prompt" />
                 <JsonViewer :value="run.prompt" label="Prompt 消息结构" />
                 <template v-if="run.response != null"><JsonViewer :value="diagnosticText(run.response)" label="查看本次 Response" /><JsonViewer :value="run.response" label="Response 消息结构" /></template>

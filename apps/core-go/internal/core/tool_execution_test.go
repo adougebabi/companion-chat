@@ -144,12 +144,7 @@ func TestInvalidCapabilityArgumentsReturnCorrectableToolReceipt(t *testing.T) {
 	arguments := visualIdentityAcceptedReview()
 	arguments["observations"] = 42
 	receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(visualIdentityCommitReviewCapabilityName, "invalid-review-observations", arguments))
-	if !errors.Is(err, capability.ErrInvalidArguments) {
-		t.Fatalf("expected schema validation error, got %v", err)
-	}
-	if receipt.Result.Status != "failed" || receipt.Result.ErrorCode != "invalid_arguments" || receipt.Result.Retryable {
-		t.Fatalf("schema failure must be correctable, receipt=%#v", receipt)
-	}
+	requireHandledToolNoEffect(t, receipt, err, "invalid_arguments")
 	if detail := stringValue(mapValue(receipt.Result.Output)["detail"]); !strings.Contains(detail, `field "observations": value does not match anyOf schema`) {
 		t.Fatalf("schema failure feedback lacks expected field and type: %q", detail)
 	}

@@ -252,7 +252,7 @@ func (a *App) applyScheduleReplanCapabilityWithTx(ctx context.Context, callerTx 
 		return failedCapabilityResultDetail(invocation, "schedule_replan_planner_failed", true, "planner output items are required"), errors.New("schedule replan planner output is required")
 	}
 	if err := validateScheduleReplanItems(items); err != nil {
-		return failedCapabilityResultDetail(invocation, "schedule_replan_planner_failed", true, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "schedule_plan_invalid", false, err.Error()), newCapabilityError("schedule_plan_invalid", false, err)
 	}
 	current, err := a.currentAcceptedScheduleTx(ctx, callerTx, fluctlightID)
 	if err != nil {
@@ -271,10 +271,10 @@ func (a *App) applyScheduleReplanCapabilityWithTx(ctx context.Context, callerTx 
 		payload[key] = value
 	}
 	if strings.TrimSpace(stringValue(payload["local_date"])) == "" || stringValue(payload["local_date"]) != stringValue(current["local_date"]) {
-		return failedCapabilityResultDetail(invocation, "schedule_replan_local_date_invalid", false, "local_date must match the current local schedule date"), errors.New("schedule replan local date invalid")
+		return failedCapabilityResultDetail(invocation, "schedule_replan_local_date_invalid", false, "local_date must match the current local schedule date"), ErrLifeContextStale
 	}
 	if timezone := canonicalTimezone(stringValue(payload["timezone"])); timezone == "" || timezone != canonicalTimezone(stringValue(current["timezone"])) {
-		return failedCapabilityResultDetail(invocation, "schedule_replan_timezone_invalid", false, "timezone must match the current schedule timezone"), errors.New("schedule replan timezone invalid")
+		return failedCapabilityResultDetail(invocation, "schedule_replan_timezone_invalid", false, "timezone must match the current schedule timezone"), ErrLifeContextStale
 	} else {
 		payload["timezone"] = timezone
 	}
@@ -282,16 +282,16 @@ func (a *App) applyScheduleReplanCapabilityWithTx(ctx context.Context, callerTx 
 		return failedCapabilityResultDetail(invocation, "schedule_replan_revision_invalid", true, "expected_revision must match the current accepted schedule"), ErrConflict
 	}
 	if strings.TrimSpace(stringValue(payload["completed_before"])) == "" {
-		return failedCapabilityResultDetail(invocation, "schedule_replan_completed_before_required", false, "completed_before is required"), errors.New("completed_before is required")
+		return failedCapabilityResultDetail(invocation, "schedule_replan_completed_before_required", false, "completed_before is required"), ErrInvalidArguments
 	}
 	if len(arrayValue(payload["evidence_refs"])) == 0 {
-		return failedCapabilityResultDetail(invocation, "schedule_replan_evidence_required", false, "evidence_refs is required"), errors.New("evidence_refs is required")
+		return failedCapabilityResultDetail(invocation, "schedule_replan_evidence_required", false, "evidence_refs is required"), ErrLifeContextStale
 	}
 	if sourceFactID != "" && !containsStringValue(arrayValue(payload["evidence_refs"]), sourceFactID) {
 		payload["evidence_refs"] = append(arrayValue(payload["evidence_refs"]), sourceFactID)
 	}
 	if policy, ok := payload["reschedule_policy"].(map[string]any); !ok || policy == nil {
-		return failedCapabilityResultDetail(invocation, "schedule_replan_planner_failed", true, "reschedule_policy is required"), errors.New("reschedule_policy is required")
+		return failedCapabilityResultDetail(invocation, "schedule_replan_planner_failed", true, "reschedule_policy is required"), ErrInvalidArguments
 	}
 	payload["generated_from"] = "model_replan"
 	payload["source_fact_id"] = sourceFactID

@@ -53,6 +53,7 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 	}); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, replayID)
 	replay, err := f.app.ProcessGoalEvaluationIntent(f.ctx, replayID)
 	if err != nil || modelCalls != 1 || !containsString(decisionServiceRefValues(replay["skipped_goals"]), goalID) {
 		t.Fatalf("durable replay=%#v calls=%d err=%v", replay, modelCalls, err)
@@ -82,6 +83,7 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 	if err := json.Unmarshal(rawSnapshot, &pendingSnapshot); err != nil || reason != "owner_reassess" || !containsString(pendingSnapshot.ForcedGoalIDs, goalID) {
 		t.Fatalf("merged owner force reason=%q snapshot=%#v err=%v", reason, pendingSnapshot, err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, pendingID)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, pendingID); err != nil || modelCalls != 2 {
 		t.Fatalf("owner force calls=%d err=%v", modelCalls, err)
 	}
@@ -95,6 +97,7 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 	}); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, newProofRequest)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, newProofRequest); err != nil || modelCalls != 3 {
 		t.Fatalf("new proof calls=%d err=%v", modelCalls, err)
 	}
@@ -118,6 +121,7 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 		t.Fatal(err)
 	}
 	criteriaRequest := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, criteriaRequest)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, criteriaRequest); err != nil || modelCalls != 4 {
 		t.Fatalf("changed criteria calls=%d err=%v", modelCalls, err)
 	}
@@ -151,6 +155,7 @@ func TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET available_at=$2 WHERE id=$1`, requestID, time.Now().UTC().Add(-time.Minute)); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, requestID)
 	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err != nil || modelCalls != 2 {
 		t.Fatalf("retry result=%v calls=%d err=%v", result, modelCalls, err)
 	}

@@ -117,6 +117,7 @@ export const useControlCenterStore = defineStore("control-center", {
   }),
   actions: {
     dismissCreationError() { this.creationAnalysisRequestId++; this.creationError = ""; this.analysisFailureCorrelationId = ""; },
+    async testVisionUnderstanding(){this.settingsError="";try{return await client.testVisionUnderstanding();}catch(error){this.settingsError=diagnosticsFailureMessage(error);return {state:"unavailable",image_input_verified:false,error_code:"vision_test_failed"};}},
     async testKevConnection(){this.settingsError="";try{return await client.testKevConnection();}catch(error){this.settingsError=diagnosticsFailureMessage(error);return {call_status:"unavailable",error_code:"connection_test_failed"};}},
     async readKevDecisions(filter:Record<string,string>){return client.kevDecisions(filter);},
     async loadKevDecisions(filter:Record<string,string>,reset=true){

@@ -177,10 +177,17 @@ func (a *App) providerGuardForFluctlight(fluctlightID string) func(context.Conte
 }
 
 func providerBindingRole(role string) string {
-	if role == "embedding" {
-		return "embedding"
+	if role == "embedding" || role == conversationReplyModelRole || role == visionUnderstandingModelRole {
+		return role
 	}
 	return "generic_llm"
+}
+
+func providerDiagnosticBindingRole(ctx context.Context, role string) string {
+	if assignment, ok := providerAssignmentSnapshot(ctx, role); ok && assignment.Role != "" {
+		return assignment.Role
+	}
+	return providerBindingRole(role)
 }
 
 func providerScenario(ctx context.Context, role, schemaName string) string {
@@ -224,7 +231,7 @@ func providerScenario(ctx context.Context, role, schemaName string) string {
 
 func providerPriority(scenario string) int {
 	switch scenario {
-	case "reply", "autonomy_reply", "cognitive_assessment", "takeover_judge":
+	case "reply", "autonomy_reply", "cognitive_assessment", "takeover_judge", "fact_only_reply":
 		return 100
 	case "native_cognition", "daily_review", "schedule_generation":
 		return 90
@@ -263,6 +270,10 @@ func redactDiagnostic(value any) any {
 		imagePart := stringValue(typed["type"]) == "image" || stringValue(typed["type"]) == "image_url"
 		for key, child := range typed {
 			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
+			if diagnosticSecretField(normalized) {
+				result[key] = "[REDACTED_SECRET]"
+				continue
+			}
 			if normalized == "imageurl" {
 				if image := mapValue(child); len(image) > 0 {
 					copyImage := make(map[string]any, len(image))
@@ -403,7 +414,7 @@ func (s providerRuntimeSupport) UpdateModelRunResponse(ctx context.Context, id s
 	if s.DB == nil || strings.TrimSpace(id) == "" || response == nil {
 		return
 	}
-	responseJSON, err := json.Marshal(redactDiagnostic(response))
+	responseJSON, err := json.Marshal(redactProviderDiagnostic(ctx, response))
 	if err != nil {
 		recordDiagnosticPersistenceFailure("model_run", "response", id, err)
 		return
@@ -519,18 +530,18 @@ func (s providerRuntimeSupport) PersistModelRunLifecycle(ctx context.Context, ro
 	if strings.TrimSpace(correlationID) == "" {
 		correlationID = "provider:" + stableDigest(role+":"+modelID+":"+time.Now().UTC().Format(time.RFC3339Nano))
 	}
-	promptJSON, err := json.Marshal(redactDiagnostic(prompt))
+	promptJSON, err := json.Marshal(redactProviderDiagnostic(ctx, prompt))
 	if err != nil {
 		return "", fmt.Errorf("marshal diagnostic model-run prompt: %w", err)
 	}
 	var responseJSON []byte
 	if response != nil {
-		responseJSON, err = json.Marshal(redactDiagnostic(response))
+		responseJSON, err = json.Marshal(redactProviderDiagnostic(ctx, response))
 		if err != nil {
 			return "", fmt.Errorf("marshal diagnostic model-run response: %w", err)
 		}
 	}
-	bindingRole := providerBindingRole(role)
+	bindingRole := providerDiagnosticBindingRole(ctx, role)
 	if strings.TrimSpace(scenario) == "" {
 		scenario = providerScenario(ctx, role, "")
 	}
@@ -683,7 +694,7 @@ func (s providerRuntimeSupport) persistDiagnosticEvent(ctx context.Context, even
 	if correlationID == "" {
 		correlationID = eventType + ":" + stableDigest(time.Now().UTC().Format(time.RFC3339Nano))
 	}
-	encoded, err := json.Marshal(redactDiagnostic(payload))
+	encoded, err := json.Marshal(redactProviderDiagnostic(ctx, payload))
 	if err != nil {
 		return "", fmt.Errorf("marshal diagnostic event: %w", err)
 	}

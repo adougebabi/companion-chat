@@ -119,7 +119,7 @@ func (c habitDecideCapability) Prepare(ctx context.Context, invocation Capabilit
 		}
 		for _, existing := range next {
 			if strings.TrimSpace(stringValue(existing)) == text {
-				return invocation, newCapabilityError("habit_already_present", false, ErrConflict)
+				return withHandledCapabilityPreparation(invocation, "habit_already_present", "no_change", map[string]any{"habits": habits, "revision": habitRevision})
 			}
 		}
 		next = append(next, text)
@@ -128,7 +128,7 @@ func (c habitDecideCapability) Prepare(ctx context.Context, invocation Capabilit
 			return invocation, ErrInvalidArguments
 		}
 		if strings.TrimSpace(stringValue(next[index])) == text {
-			return invocation, newCapabilityError("habit_unchanged", false, ErrConflict)
+			return withHandledCapabilityPreparation(invocation, "habit_unchanged", "no_change", map[string]any{"habits": habits, "revision": habitRevision})
 		}
 		next[index] = text
 	case "remove":
@@ -232,6 +232,6 @@ func (c habitDecideCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocat
 		return failedCapabilityResult(invocation, "habit_event_failed", true), err
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
-		Output:            map[string]any{"profile_id": profileID, "revision": newRevision, "habits": next, "working_persona_source_hash_prefix": compiled.SourceHash[:12]},
+		Output:            map[string]any{"profile_id": profileID, "revision": newRevision, "habits": next, "working_persona_source_hash_prefix": compiled.SourceHash[:min(12, len(compiled.SourceHash))]},
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "habit:" + profileID + ":" + fmt.Sprint(newRevision)}, nil
 }

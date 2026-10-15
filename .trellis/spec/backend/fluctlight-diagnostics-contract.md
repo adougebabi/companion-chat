@@ -675,3 +675,119 @@ until captured; controlled HTTP400 is not evidence of production HTTP400.
 Wrong: errors.As selects an empty nested APIError and discards RequestError.
 Correct: normalize the real failed HTTP response at the existing transport
 boundary, before the lossy dependency conversion, while preserving normal HTTP.
+
+## Successful Provider credential echoes (2026-10-13)
+Secret-key fields (api_key, Authorization, passwords, tokens, cookies and complete assignment objects) are redacted in all diagnostics. Physical and non-ADK model calls carry their known credential only in a private runtime context; prompts, responses, output events and JSON-encoded content scrub exact credential echoes before persistence. Successful responses require the same privacy boundary as failures. Raw Owner diagnostic content remains useful for ordinary text/tool results, while image payloads and credentials are removed. This scrub never mutates the Provider result used for domain parsing. A Writer response containing its actual credential is rejected before publication.
+
+## Scenario: Effective physical request configuration (2026-10-14)
+
+### 1. Scope / Trigger
+Each queued Eino Generate/Stream needs to distinguish effective request policy
+from the logical Composer's schema/budget and from Provider usage.
+
+### 2. Signatures
+`observePhysicalRequest(ctx, body)` emits `adk.model.effective_request` through the
+existing best-effort diagnostic owner. `physicalRequestConfiguration` allowlists
+serialized parameters; `physicalRequestModuleEstimates` labels logical estimates.
+
+### 3. Contracts
+Observe inside the existing final normal/repair payload modifier. The pinned
+WithRequestPayloadModifier setter replaces, rather than composes, callbacks;
+adding a competing modifier can remove tool-choice/schema/repair policy.
+Keep only model, temperature/top_p, max token fields, thinking/stream flags,
+string tool_choice, response-format presence/type and tool count/schema digest.
+Never copy messages, schema text, headers, credentials or reasoning into this
+new event. Existing typed secret/image redaction remains authoritative.
+Keep physical model_call_id, role/phase and parent run; reply, settlement and
+final_repair remain distinguishable. Context selection/version metadata is
+Core-only. Module estimates are disjoint logical sections, explicitly estimated;
+missing section data is available=false, never measured zero. Existing Provider
+response usage/latency records remain separate and cannot be synthesized from
+fixture estimates or summed into a single request size.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| effective native tools present | observed format absent, matching final wire |
+| final repair | no tools/choice/parallel, original schema and thinking=false |
+| absent logical budget | available=false |
+| arbitrary private payload/extra fields | excluded by allowlist before event |
+| sink failure | existing bounded best-effort behavior; no business outcome change |
+
+### 5. Good / Base / Bad Cases
+Good: SDK HTTP/SSE payload and observed config match for each physical call.
+Base: Provider usage missing remains unknown. Bad: a UI prompt proves schema was
+sent, a second modifier overwrites repair policy, or raw body is logged wholesale.
+
+### 6. Tests Required
+TestToolFinalSchemaSeparationPhysicalRequests compares observation with actual
+captured Generate/Stream payloads, including malformed final and invalid repair.
+TestPhysicalRequestConfigurationExcludesPrivatePayload checks private strings
+and unknown fields remain absent and missing estimates are unavailable.
+
+### 7. Wrong vs Correct
+Wrong: append a second payload modifier and log its whole JSON. Correct: observe
+an allowlist after the existing modifier's policy edits and verify against wire.
+
+## Scenario: Pre-model context capacity advisories (2026-10-14)
+
+### 1. Scope / Trigger
+Oversized valid internal reference data must remain usable and inspectable even
+when projection fails before any ModelRun could otherwise be recorded. Capacity
+is optimization metadata, not business authority or a reason to reject context.
+
+### 2. Signatures
+`ContextReferenceIndex.capacityReport() contextReferenceCapacityReport` measures
+the complete index. `App.recordContextReferenceCapacity(ctx, projection, stage)`
+emits `context.reference.capacity_warning` with level `warning` after successful
+reference registration at `context_projection`, `prompt_assembly` and
+`reflection_context`, before their model request.
+
+### 3. Contracts
+- Warning thresholds: reference_count=128, encoded_bytes=131072 and single
+  snapshot_bytes=32768. Emit only when a value is greater than its threshold.
+- Owner event payload includes stage, decision=`continue_complete_context`,
+  as_of, advisory_thresholds and capacity. Capacity contains reference_count,
+  encoded_bytes, snapshot_bytes (sum), largest_snapshot_bytes, by_kind
+  (count/snapshot_bytes), largest_snapshots and advisory_thresholds_exceeded.
+- `largest_snapshots` contains at most five ref/kind/entity_id/bytes descriptors,
+  sorted by bytes descending then ref. No snapshot bodies, user prose, Prompt,
+  response, headers or credentials enter this event or its worker log.
+- Always emit the worker `slog` warning first, with event_type, stage,
+  correlation_id, fluctlight_id, source_fact_id, as_of, decision, thresholds and
+  measured capacity metadata. Then attempt the existing best-effort Owner sink;
+  missing diagnostic DB must not hide the operational evidence.
+- Correlation uses providerCorrelation, then SourceFactID, then a stable
+  context identity. The warning neither modifies the index/hash nor returns a
+  business error. Existing sink writes use an independent context with a two
+  second timeout; this is not a zero-latency or asynchronous delivery guarantee.
+- Warning means complete internal data continues. It does not prove Provider
+  success, authorize wider scope or claim that a production retry recovered.
+
+### 4. Validation & Error Matrix
+| Condition | Diagnostic / behavior |
+| --- | --- |
+| Valid data exceeds one or more thresholds | worker warning plus attempted Owner event; continue complete context |
+| Values below/equal thresholds | no capacity warning |
+| DB missing/unavailable | worker metadata still visible; sink error does not replace business result |
+| Invalid identity/hash/JSON | original validation fails; no capacity bypass |
+| Large private snapshot body | only descriptor and measured bytes, never its body |
+
+### 5. Good / Base / Bad Cases
+Good: an Owner can find the stage, source, oversized kind and largest entity
+from worker logs even without a ModelRun. Base: small valid indexes are quiet.
+Bad: only return `context_reference_index_too_large`, log every snapshot body,
+or label this warning as truncation while silently discarding required context.
+
+### 6. Tests Required
+`TestContextReferenceCapacityWarningIsInspectableWithoutDatabase` captures the
+real helper's JSON worker log with no DB and asserts event identity, correlation,
+decision, thresholds, measurements, kind/largest-entry descriptors and absence
+of private snapshot text. Size/count/rehydration and integrity regressions live
+beside it. Missing DB is tested; a live DB outage and production workflow retry
+remain separate environment verification.
+
+### 7. Wrong vs Correct
+Wrong: wait for a ModelRun that never started, or rely exclusively on a failed
+diagnostic insert. Correct: emit safe structured worker metadata before the
+best-effort sink and continue the valid internal context without data loss.

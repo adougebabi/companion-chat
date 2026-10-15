@@ -31,6 +31,7 @@ type ProviderClient struct {
 	queueMu     sync.Mutex
 	generated   *providerQueue
 	embedding   *providerQueue
+	capacities  map[string]*providerQueue
 	redis       redis.UniversalClient
 	redisID     string
 }
@@ -75,6 +76,8 @@ type providerAssignment struct {
 	ContextWindowTokens       int
 	MaxInputTokens            int
 	PromptBudgetPolicyVersion string
+	Temperature               *float64
+	TopP                      *float64
 }
 
 const (
@@ -100,6 +103,9 @@ func providerAssignmentForScenario(assignment providerAssignment, scenario strin
 func (p *ProviderClient) assignment(ctx context.Context, role string) (providerAssignment, error) {
 	if !validProviderRole(role) {
 		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
+	}
+	if value, ok := providerAssignmentSnapshot(ctx, role); ok {
+		return value, nil
 	}
 	var endpointID, baseURL, modelID, purpose, capabilityStatus string
 	var timeoutSeconds, tokenBudget, contextWindowTokens, maxInputTokens int
@@ -139,7 +145,7 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 
 func validProviderRole(role string) bool {
 	switch role {
-	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole:
+	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole, conversationReplyModelRole, visionUnderstandingModelRole:
 		return true
 	default:
 		return false
@@ -258,11 +264,15 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	scenario := providerScenario(ctx, role, schemaName)
 	ctx = WithProviderScenario(ctx, scenario)
 	ctx = ensureProviderAttemptIdentity(ctx)
+	if err := p.guardVisionBeforeAssignment(ctx, role, messages); err != nil {
+		return ProviderCompletion{}, err
+	}
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
 		return ProviderCompletion{}, err
 	}
+	ctx = withProviderDiagnosticSecrets(ctx, assignment.Secret)
 	assignment, err = providerAssignmentForScenario(assignment, scenario)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "scenario_budget", messages, err)
@@ -284,12 +294,19 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}
 	}
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
-	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, definitions, role, schemaName, schema, enableThinking)
+	disclosed := definitions
+	if selection := kevSelection(ctx); selection != nil {
+		disclosed, err = selection.definitions(ctx)
+		if err != nil {
+			return ProviderCompletion{}, err
+		}
+	}
+	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, disclosed, role, schemaName, schema, enableThinking)
 	responseFormat := map[string]any{}
 	if jsonMode {
 		responseFormat = providerResponseFormatForSchema(role, schemaName, schema)
 	}
-	renderedTools := RenderCapabilityTools(definitions)
+	renderedTools := RenderCapabilityTools(disclosed)
 	wireEstimate := estimatePromptWireInput(messages, renderedTools, responseFormat)
 	diagnostics := providerPromptDiagnostics(ctx)
 	if strings.TrimSpace(stringValue(diagnostics["run_id"])) == "" {
@@ -463,7 +480,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "tool_call_unhandled")
 			return ProviderCompletion{}, err
 		}
-		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
+		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true, FinishReason: finishReason, Usage: response.Usage}
 		if adkEnabled {
 			// The Runner's last assistant message is the sole final-output
 			// authority. Intermediate ToolCalls/results live in completion.ToolCalls
@@ -909,7 +926,7 @@ func providerSchemaForRole(role string) map[string]any {
 }
 
 func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
-	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "completed", "")
+	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, redactProviderDiagnostic(withProviderDiagnosticSecrets(ctx, assignment.Secret), providerDiagnosticMessages(role, messages)), redactProviderDiagnostic(withProviderDiagnosticSecrets(ctx, assignment.Secret), providerDiagnosticResponse(role, response)), "completed", "")
 }
 
 func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
@@ -1049,11 +1066,15 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		correlationID = diagnosticCorrelation(messages, "")
 	}
 	ctx = ensureProviderAttemptIdentity(ctx)
+	if err := p.guardVisionBeforeAssignment(ctx, role, messages); err != nil {
+		return "", err
+	}
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
 		return "", err
 	}
+	ctx = withProviderDiagnosticSecrets(ctx, assignment.Secret)
 	messages = (&PromptComposer{}).ComposeTaskMessages(role, messages)
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
 	payload := providerStreamingPayload(assignment.ModelID, messages, assignment.TokenBudget)

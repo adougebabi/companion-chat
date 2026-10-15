@@ -114,13 +114,14 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 		return failedCapabilityResult(i, "borrowing_items_invalid", false), ErrInvalidArguments
 	}
 	items := make([]any, 0, len(members))
+	alreadyReturned := []string{}
 	seen := map[string]bool{}
 	for index, member := range members {
 		var effect map[string]any
 		if c.returning {
 			itemID := strings.TrimSpace(stringValue(member))
 			if seen[itemID] {
-				return failedCapabilityResult(i, "borrowed_item_duplicate", false), ErrInvalidArguments
+				continue
 			}
 			seen[itemID] = true
 			var ownership, availability, itemKind string
@@ -131,6 +132,16 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 				return failedCapabilityResult(i, "wardrobe_item_read_failed", true), err
 			}
 			if ownership != "borrowed" || availability != "available" || itemKind != "wearable" {
+				var confirmedReturn bool
+				if ownership == "borrowed" && availability == "unavailable" && itemKind == "wearable" {
+					if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_events WHERE fluctlight_id=$1 AND kind='wardrobe_unavailable' AND status='confirmed' AND id LIKE 'wardrobe_loan_%' AND result->'wardrobe_effect'->>'item_id'=$2)`, fluctlightID, itemID).Scan(&confirmedReturn); err != nil {
+						return borrowingPersistenceFailure(i, "borrowing_return_proof_failed", err), err
+					}
+				}
+				if confirmedReturn {
+					alreadyReturned = append(alreadyReturned, itemID)
+					continue
+				}
 				return failedCapabilityResultDetail(i, "borrowed_item_not_returnable", false, "Only available borrowed items can be returned; inspect current inventory."), ErrConflict
 			}
 			effect = map[string]any{"item_id": itemID}
@@ -144,7 +155,7 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 			}
 			key := stableDigest(jsonString(effect))
 			if seen[key] {
-				return failedCapabilityResult(i, "borrowed_item_duplicate", false), ErrInvalidArguments
+				continue
 			}
 			seen[key] = true
 		}
@@ -184,7 +195,10 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 		}
 		items = append(items, output)
 	}
-	return CapabilityResult{CallID: i.CallID, CapabilityName: i.CapabilityName, Status: "completed", Output: map[string]any{"items": items}, ProviderRequestID: i.ProviderRequestID, CorrelationID: "wardrobe-loan:" + stableDigest(capabilityOperationID(i))}, nil
+	if len(items) == 0 {
+		return handledCapabilityResult(i, "wardrobe_return_already_recorded", "no_change", map[string]any{"already_returned": alreadyReturned}), nil
+	}
+	return CapabilityResult{CallID: i.CallID, CapabilityName: i.CapabilityName, Status: "completed", Output: map[string]any{"items": items, "already_returned": alreadyReturned}, ProviderRequestID: i.ProviderRequestID, CorrelationID: "wardrobe-loan:" + stableDigest(capabilityOperationID(i))}, nil
 }
 
 // A PostgreSQL syntax/type/schema error needs a code or deployment repair.

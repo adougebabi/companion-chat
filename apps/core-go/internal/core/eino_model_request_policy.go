@@ -26,6 +26,9 @@ type physicalModelRequestDecision struct {
 	// Nil preserves the task's catalog; it never grants a new capability.
 	AllowedToolNames []string
 	DisableThinking  bool
+	// ToolCallFallback is a task-owned operational final response if a Provider
+	// ignores an explicitly empty Tool catalog. It never masks request errors.
+	ToolCallFallback *schema.Message
 }
 
 func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context, opts []model.Option) (*queuedToolCallingChatModel, []model.Option, map[string]any, error) {
@@ -41,6 +44,14 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 			return m, nil, nil, err
 		}
 	}
+	if decision.ToolCallFallback != nil {
+		if decision.ToolChoice != schema.ToolChoiceForbidden || decision.AllowedToolNames == nil || len(decision.AllowedToolNames) != 0 {
+			return m, nil, nil, fmt.Errorf("physical_request_tool_fallback_invalid")
+		}
+		copyModel := *m
+		copyModel.toolCallFallback = decision.ToolCallFallback
+		m = &copyModel
+	}
 	if decision.AllowedToolNames != nil {
 		allowed := map[string]bool{}
 		for _, name := range decision.AllowedToolNames {
@@ -53,7 +64,7 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 				delete(allowed, d.Name)
 			}
 		}
-		if len(allowed) != 0 || len(definitions) == 0 {
+		if len(allowed) != 0 || len(definitions) == 0 && decision.ToolChoice != schema.ToolChoiceForbidden {
 			return m, nil, nil, fmt.Errorf("physical_request_tool_catalog_invalid")
 		}
 		infos, err := aiagent.CapabilityToolInfos(definitions)
@@ -62,6 +73,7 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 		}
 		copyModel := *m
 		copyModel.definitions = definitions
+		copyModel.toolInfos = infos
 		m = &copyModel
 		opts = append(opts, model.WithTools(infos))
 	}
@@ -115,11 +127,8 @@ func applyPhysicalModelRequestPolicy(ctx context.Context, opts []model.Option, r
 	if decision.ToolChoice != "" {
 		opts = append(opts, model.WithToolChoice(decision.ToolChoice))
 	}
-	if decision.ToolChoice == "" && !decision.OmitResponseFormat && !decision.DisableThinking {
-		return opts, responseFormat, nil
-	}
-	if decision.ToolChoice != "" || decision.DisableThinking || decision.OmitResponseFormat {
-		opts = append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
+	{
+		opts = append(opts, openaiext.WithRequestPayloadModifier(func(callCtx context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
 			var body map[string]any
 			if err := json.Unmarshal(raw, &body); err != nil {
 				return nil, err
@@ -135,12 +144,18 @@ func applyPhysicalModelRequestPolicy(ctx context.Context, opts []model.Option, r
 			case schema.ToolChoiceForbidden:
 				body["tool_choice"] = "none"
 			}
+			if decision.ToolChoice == schema.ToolChoiceForbidden && decision.AllowedToolNames != nil && len(decision.AllowedToolNames) == 0 {
+				delete(body, "tools")
+				delete(body, "tool_choice")
+				delete(body, "parallel_tool_calls")
+			}
 			if decision.DisableThinking {
 				body["enable_thinking"] = false
 			}
 			if decision.OmitResponseFormat {
 				delete(body, "response_format")
 			}
+			observePhysicalRequest(callCtx, body)
 			return json.Marshal(body)
 		}))
 	}
@@ -168,7 +183,7 @@ func finalRepairContext(ctx context.Context) context.Context {
 
 func finalRepairModelOptions(opts []model.Option) []model.Option {
 	opts = append(append([]model.Option(nil), opts...), model.WithTools([]*schema.ToolInfo{}))
-	return append(opts, openaiext.WithRequestPayloadModifier(func(_ context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
+	return append(opts, openaiext.WithRequestPayloadModifier(func(callCtx context.Context, _ []*schema.Message, raw []byte) ([]byte, error) {
 		var body map[string]any
 		if err := json.Unmarshal(raw, &body); err != nil {
 			return nil, err
@@ -177,6 +192,7 @@ func finalRepairModelOptions(opts []model.Option) []model.Option {
 		delete(body, "tool_choice")
 		delete(body, "parallel_tool_calls")
 		body["enable_thinking"] = false
+		observePhysicalRequest(callCtx, body)
 		return json.Marshal(body)
 	}))
 }

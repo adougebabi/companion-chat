@@ -129,8 +129,8 @@ func TestKevContextAndToolBatchesSendOnlyTheirCandidateState(t *testing.T) {
 	for index := range definitions {
 		originalNames[index] = definitions[index].Name
 	}
-	_, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: FormalAgentConversationCognition, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": "current task"}}}, Capability: &ADKCapabilityRequest{Projection: ContextProjection{FluctlightID: "actor"}, Surface: CapabilitySurfaceConversation}})
-	if err != nil || len(prepared) != 13 {
+	toolCtx, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: FormalAgentConversationCognition, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": "current task"}}}, Capability: &ADKCapabilityRequest{Projection: ContextProjection{FluctlightID: "actor"}, Surface: CapabilitySurfaceConversation}})
+	if err != nil || len(prepared) != 12 {
 		t.Fatal("tool selection failed", err)
 	}
 	for index := range definitions {
@@ -138,8 +138,17 @@ func TestKevContextAndToolBatchesSendOnlyTheirCandidateState(t *testing.T) {
 			t.Fatal("tool caller definitions mutated")
 		}
 	}
+	if len(requests) != 2 {
+		t.Fatal("assembly called Kev before a named request")
+	}
+	if _, _, err := kevSelection(toolCtx).load(toolCtx, originalNames[:8]); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := kevSelection(toolCtx).load(toolCtx, originalNames[8:]); err != nil {
+		t.Fatal(err)
+	}
 	if len(requests) != 4 {
-		t.Fatalf("expected context 8+3 and tools 8+3, got %d requests", len(requests))
+		t.Fatalf("expected context 8+3 and named tools 8+3, got %d", len(requests))
 	}
 	assertBatches(2, "capabilities")
 }
@@ -201,14 +210,20 @@ func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptional
 			t.Fatalf("Kev no did not hide optional Tool %q: %#v records=%#v", name, visibleNames, store.records)
 		}
 	}
+	if len(store.records) != 0 {
+		t.Fatal("preemptively selected every optional tool")
+	}
+	if _, _, err := selection.load(ctx, []string{"media.image.generate", "visual_identity.initialize", "reply.like.optional", "memory.recall"}); err != nil {
+		t.Fatal(err)
+	}
 	candidates := map[string]bool{}
 	for _, record := range store.records {
 		candidates[record.CandidateID] = true
 	}
-	if len(candidates) != 3 || !candidates["visual_identity.initialize"] || !candidates["reply.like.optional"] || !candidates["memory.recall"] {
+	if len(candidates) != 4 || !candidates["media.image.generate"] || !candidates["visual_identity.initialize"] || !candidates["reply.like.optional"] || !candidates["memory.recall"] {
 		t.Fatalf("optional Tool candidates=%#v", candidates)
 	}
-	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+	for _, name := range []string{capabilityCatalogName} {
 		if !visibleNames[name] {
 			t.Fatalf("catalog utility %q was hidden: %#v", name, visibleNames)
 		}
@@ -218,7 +233,7 @@ func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptional
 			t.Fatalf("mandatory Tool %q became a Kev candidate", name)
 		}
 	}
-	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+	for _, name := range []string{capabilityCatalogName} {
 		if candidates[name] {
 			t.Fatalf("recovery utility %q became a Kev candidate", name)
 		}
@@ -256,7 +271,7 @@ func TestKevToolSelectionFallbackKeepsRecoveryUtilitiesAndToolFreeAgentsStayEmpt
 	for _, definition := range prepared {
 		names[definition.Name] = true
 	}
-	for _, name := range []string{"memory.recall", capabilityCatalogName, capabilityDiscoverName} {
+	for _, name := range []string{"memory.recall", capabilityCatalogName} {
 		if !names[name] {
 			t.Fatalf("fallback removed %q: %#v", name, names)
 		}
@@ -281,18 +296,17 @@ func TestKevPhysicalRequestFallbackKeepsRecoveryUtilities(t *testing.T) {
 			if cause == "settings_error" {
 				service.Settings = &kevReadSequenceSettings{config: config, reads: 1}
 			}
-			selection := &kevRunSelection{service: service, original: []CapabilityDefinition{{Name: "memory.recall"}}, visible: map[string]bool{}, loaded: map[string]bool{}, version: version}
+			selection := &kevRunSelection{service: service, original: []CapabilityDefinition{{Name: "memory.recall"}, {Name: conversationReplyCapabilityName}, {Name: "moment.publish"}, (capabilityCatalogCapability{}).Definition()}, loaded: map[string]bool{"memory.recall": true}, version: version, configKnown: true, selectionEnabled: true}
 			definitions, err := selection.definitions(context.Background())
 			if err != nil {
 				t.Fatal(err)
 			}
-			names := map[string]bool{}
-			for _, definition := range definitions {
-				names[definition.Name] = true
+			if len(definitions) != 3 || !selection.permits(context.Background(), "memory.recall") || selection.permits(context.Background(), capabilityDiscoverName) {
+				t.Fatalf("fallback leaked installation: %v", toolNamesForTest(definitions))
 			}
-			for _, name := range []string{"memory.recall", capabilityCatalogName, capabilityDiscoverName} {
-				if !names[name] || !selection.permits(context.Background(), name) {
-					t.Fatalf("fallback removed %s: %#v", name, names)
+			for _, name := range []string{conversationReplyCapabilityName, "moment.publish", capabilityCatalogName} {
+				if !selection.permits(context.Background(), name) {
+					t.Fatal("baseline lost", name)
 				}
 			}
 		})
@@ -410,7 +424,7 @@ func TestKevSpoolRepairsOnlyIncompleteTerminalAppend(t *testing.T) {
 }
 
 func TestKevDiscoveryNeverWidensInstalledSetOrPartiallyLoads(t *testing.T) {
-	state := &kevRunSelection{original: []CapabilityDefinition{{Name: "allowed", Description: "authorized"}}, loaded: map[string]bool{}}
+	state := &kevRunSelection{service: controlledKevToolService(t, "yes"), original: []CapabilityDefinition{{Name: "allowed", Description: "authorized"}}, loaded: map[string]bool{}}
 	ctx := context.WithValue(context.Background(), kevRunSelectionKey{}, state)
 	capability := capabilityDiscoverCapability{catalog: func(CapabilitySurface) []CapabilityDefinition {
 		t.Fatal("run-scoped discovery read ambient surface catalog")
@@ -421,7 +435,7 @@ func TestKevDiscoveryNeverWidensInstalledSetOrPartiallyLoads(t *testing.T) {
 		t.Fatal(result, err)
 	}
 	result, err = capability.Execute(ctx, CapabilityInvocation{CallID: "call", CapabilityName: capabilityDiscoverName, Arguments: json.RawMessage(`{"names":["allowed","foreign"]}`)}, CapabilityContext{})
-	if err != nil || result.ErrorCode != "capability_not_authorized" || len(state.loaded) != 0 {
+	if err != nil || result.Status != "completed" || len(state.loaded) != 1 || len(arrayValue(decodeObject(jsonBytes(result.Output))["unavailable"])) != 1 {
 		t.Fatal("discovery widened/partially loaded", result, err)
 	}
 }
@@ -481,7 +495,7 @@ func TestKevPersonaAdmissionDropsEntireBatchOrBlocksSwitch(t *testing.T) {
 				if !regenerate || candidate != nil || domain.commits != 1 || domain.request.NativeToolCallID != "" || domain.request.ProviderRequestID != "" || !refresh.dirty {
 					t.Fatalf("old A batch escaped or native identity fabricated: candidate=%+v regenerate=%t commits=%d", candidate, regenerate, domain.commits)
 				}
-				if rejection := kevRejectNativeTool(ctx, personaSwitchCapabilityName, json.RawMessage(`{"trigger_id":"switch:test-rule"}`)); rejection != "kev_persona_already_switched" {
+				if rejection := kevRejectNativeTool(ctx, personaSwitchCapabilityName, json.RawMessage(`{"trigger_id":"switch:test-rule"}`)); rejection != "" {
 					t.Fatal(rejection)
 				}
 			} else {
@@ -489,7 +503,7 @@ func TestKevPersonaAdmissionDropsEntireBatchOrBlocksSwitch(t *testing.T) {
 					t.Fatal("no/abstention committed a switch")
 				}
 				rejection := kevRejectNativeTool(ctx, personaSwitchCapabilityName, json.RawMessage(`{"trigger_id":"switch:test-rule"}`))
-				if choice == "no" && rejection != "kev_persona_condition_false" {
+				if choice == "no" && rejection != "" {
 					t.Fatal("no was overridden", rejection)
 				}
 				if choice == "unclear" && rejection != "" {
@@ -522,8 +536,8 @@ func (i *kevDiscoveryInvoker) Execute(ctx context.Context, name, args string) (s
 	return i.ExecuteWithID(ctx, "call", name, args)
 }
 func (i *kevDiscoveryInvoker) ExecuteWithID(ctx context.Context, id, name, args string) (string, error) {
-	if name == capabilityDiscoverName {
-		capability := capabilityDiscoverCapability{catalog: func(CapabilitySurface) []CapabilityDefinition { return i.state.original }}
+	if name == capabilityCatalogName {
+		capability := capabilityCatalogCapability{catalog: func(CapabilitySurface) []CapabilityDefinition { return i.state.original }}
 		result, err := capability.Execute(ctx, CapabilityInvocation{CallID: id, CapabilityName: name, Arguments: json.RawMessage(args), Metadata: InvocationMetadata{Surface: CapabilitySurfaceConversation}}, CapabilityContext{})
 		return jsonString(result), err
 	}
@@ -531,69 +545,72 @@ func (i *kevDiscoveryInvoker) ExecuteWithID(ctx context.Context, id, name, args 
 	return `{"status":"completed","output":{"actual":"hidden-service-result"}}`, nil
 }
 func TestKevNativeLoopDiscoversAndExecutesHiddenTool(t *testing.T) {
-	for _, streaming := range []bool{false, true} {
-		t.Run(fmt.Sprint(streaming), func(t *testing.T) {
-			var mu sync.Mutex
-			requests := [][]string{}
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				var body map[string]any
-				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-					t.Error(err)
-					return
-				}
-				names := []string{}
-				for _, raw := range arrayValue(body["tools"]) {
-					names = append(names, stringValue(mapValue(mapValue(raw)["function"])["name"]))
-				}
-				mu.Lock()
-				requests = append(requests, names)
-				n := len(requests)
-				mu.Unlock()
-				message := map[string]any{"role": "assistant", "content": "done"}
-				finish := "stop"
-				if n < 3 {
-					name := capabilityDiscoverName
-					args := `{"names":["hidden"]}`
-					if n == 2 {
-						name = "hidden"
-						args = "{}"
+	for _, enabled := range []bool{false, true} {
+		for _, streaming := range []bool{false, true} {
+			t.Run(fmt.Sprintf("kev=%t/stream=%t", enabled, streaming), func(t *testing.T) {
+				var mu sync.Mutex
+				requests := [][]string{}
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					var body map[string]any
+					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+						t.Error(err)
+						return
 					}
-					message = map[string]any{"role": "assistant", "tool_calls": []map[string]any{{"index": 0, "id": fmt.Sprint("call_", n), "type": "function", "function": map[string]any{"name": name, "arguments": args}}}}
-					finish = "tool_calls"
+					names := []string{}
+					for _, raw := range arrayValue(body["tools"]) {
+						names = append(names, stringValue(mapValue(mapValue(raw)["function"])["name"]))
+					}
+					mu.Lock()
+					requests = append(requests, names)
+					n := len(requests)
+					mu.Unlock()
+					message := map[string]any{"role": "assistant", "content": "done"}
+					finish := "stop"
+					if n < 3 {
+						name := capabilityCatalogName
+						args := `{"names":["hidden"]}`
+						if n == 2 {
+							name = "hidden"
+							args = "{}"
+						}
+						message = map[string]any{"role": "assistant", "tool_calls": []map[string]any{{"index": 0, "id": fmt.Sprint("call_", n), "type": "function", "function": map[string]any{"name": name, "arguments": args}}}}
+						finish = "tool_calls"
+					}
+					if body["stream"] == true {
+						w.Header().Set("Content-Type", "text/event-stream")
+						encoded := jsonString(map[string]any{"id": "response", "model": "test", "choices": []map[string]any{{"index": 0, "delta": message, "finish_reason": finish}}})
+						fmt.Fprintf(w, "data: %s\n\ndata: [DONE]\n\n", encoded)
+					} else {
+						w.Header().Set("Content-Type", "application/json")
+						_ = json.NewEncoder(w).Encode(map[string]any{"id": "response", "model": "test", "choices": []map[string]any{{"index": 0, "message": message, "finish_reason": finish}}})
+					}
+				}))
+				defer server.Close()
+				service := controlledKevToolService(t, "yes")
+				service.Settings.(*kevFixedSettings).config.Enabled = enabled
+				state := &kevRunSelection{service: service, original: []CapabilityDefinition{(capabilityCatalogCapability{}).Definition(), {Name: "hidden", Version: "v1", Type: CapabilityTypeQuery, Description: "Read hidden service", Surfaces: []CapabilitySurface{CapabilitySurfaceConversation}}}, loaded: map[string]bool{}, version: 1}
+				ctx := context.WithValue(context.Background(), kevRunSelectionKey{}, state)
+				chat, err := NewEinoModelFactory(server.Client()).NewChatModel(ctx, EinoModelConfig{APIKey: "test", BaseURL: server.URL + "/v1", Model: "test", HTTPClient: server.Client(), Timeout: time.Second})
+				if err != nil {
+					t.Fatal(err)
 				}
-				if body["stream"] == true {
-					w.Header().Set("Content-Type", "text/event-stream")
-					encoded := jsonString(map[string]any{"id": "response", "model": "test", "choices": []map[string]any{{"index": 0, "delta": message, "finish_reason": finish}}})
-					fmt.Fprintf(w, "data: %s\n\ndata: [DONE]\n\n", encoded)
-				} else {
-					w.Header().Set("Content-Type", "application/json")
-					_ = json.NewEncoder(w).Encode(map[string]any{"id": "response", "model": "test", "choices": []map[string]any{{"index": 0, "message": message, "finish_reason": finish}}})
+				invoker := &kevDiscoveryInvoker{state: state}
+				defs := append([]CapabilityDefinition(nil), state.original...)
+				tools, err := NewADKCapabilityTools(defs, invoker)
+				if err != nil {
+					t.Fatal(err)
 				}
-			}))
-			defer server.Close()
-			config := decision.DefaultConfig()
-			config.Enabled = true
-			state := &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config}}, original: []CapabilityDefinition{{Name: "hidden", Version: "v1", Type: CapabilityTypeQuery, Description: "Read hidden service", Surfaces: []CapabilitySurface{CapabilitySurfaceConversation}}}, visible: map[string]bool{}, loaded: map[string]bool{}, version: 1}
-			ctx := context.WithValue(context.Background(), kevRunSelectionKey{}, state)
-			chat, err := NewEinoModelFactory(server.Client()).NewChatModel(ctx, EinoModelConfig{APIKey: "test", BaseURL: server.URL + "/v1", Model: "test", HTTPClient: server.Client(), Timeout: time.Second})
-			if err != nil {
-				t.Fatal(err)
-			}
-			invoker := &kevDiscoveryInvoker{state: state}
-			defs := append(append([]CapabilityDefinition(nil), state.original...), (capabilityCatalogCapability{}).Definition(), (capabilityDiscoverCapability{}).Definition())
-			tools, err := NewADKCapabilityTools(defs, invoker)
-			if err != nil {
-				t.Fatal(err)
-			}
-			model := &queuedToolCallingChatModel{inner: chat, provider: &ProviderClient{HTTP: server.Client()}, role: "cognitive_assessment", assignment: providerAssignment{TokenBudget: 4096, ContextWindowTokens: 131072, MaxInputTokens: 98304, PromptBudgetPolicyVersion: "prompt-budget.v1"}}
-			result, err := RunADKLoop(ctx, ADKLoopConfig{Name: "kev-test", Description: "test actual feedback", Model: model, Tools: tools, MaxIterations: 4, EnableStreaming: streaming}, []*schema.Message{schema.UserMessage("Load hidden and call it")})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if invoker.executions != 1 || len(result.ToolResults) != 2 || len(requests) != 3 || !phase8EqualStrings(requests[0], []string{capabilityCatalogName, capabilityDiscoverName}) || !phase8EqualStrings(requests[1], []string{"hidden", capabilityCatalogName, capabilityDiscoverName}) {
-				t.Fatalf("no actual growth/feedback: wire=%v executions=%d results=%d", requests, invoker.executions, len(result.ToolResults))
-			}
-		})
+				model := &queuedToolCallingChatModel{inner: chat, provider: &ProviderClient{HTTP: server.Client()}, role: "cognitive_assessment", assignment: providerAssignment{TokenBudget: 4096, ContextWindowTokens: 131072, MaxInputTokens: 98304, PromptBudgetPolicyVersion: "prompt-budget.v1"}}
+				result, err := RunADKLoop(ctx, ADKLoopConfig{Name: "kev-test", Description: "test actual feedback", Model: model, Tools: tools, MaxIterations: 4, EnableStreaming: streaming}, []*schema.Message{schema.UserMessage("Load hidden and call it")})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if invoker.executions != 1 || len(result.ToolResults) != 2 || len(requests) != 3 || !phase8EqualStrings(requests[0], []string{capabilityCatalogName}) || !phase8EqualStrings(requests[1], []string{capabilityCatalogName, "hidden"}) {
+					t.Fatalf("no actual growth/feedback: wire=%v executions=%d results=%d", requests, invoker.executions, len(result.ToolResults))
+				}
+			})
+		}
+
 	}
 }
 

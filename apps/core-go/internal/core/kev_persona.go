@@ -168,26 +168,11 @@ func (g *kevPersonaAdmission) inspect(ctx context.Context, message *schema.Messa
 }
 
 func kevRejectNativeTool(ctx context.Context, name string, arguments json.RawMessage) string {
+	// Kev selects recommendations and prompt disclosure, never resource rights.
+	// The native invoker already resolved the installed, surface-scoped registry;
+	// persona business rules are checked by the persona capability itself.
 	if selection := kevSelection(ctx); selection != nil && !selection.permits(ctx, name) {
-		return "capability_not_disclosed"
-	}
-	g := kevPersona(ctx)
-	if g == nil || name != personaSwitchCapabilityName || !g.app.kevService().Enabled(ctx, "persona.switch") {
-		return ""
-	}
-	var args map[string]any
-	_ = json.Unmarshal(arguments, &args)
-	rule := stringValue(args["trigger_id"])
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	if g.switched {
-		return "kev_persona_already_switched"
-	}
-	if g.denied[rule] || g.denied["switch:"+strings.TrimPrefix(rule, "switch:")] {
-		return "kev_persona_condition_false"
-	}
-	if g.winner != "" && g.winner != "switch:"+strings.TrimPrefix(rule, "switch:") {
-		return "kev_persona_rule_not_selected"
+		return "capability_not_installed"
 	}
 	return ""
 }

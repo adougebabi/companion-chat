@@ -37,7 +37,7 @@ func scheduleEditDefinition() CapabilityDefinition {
 			"intent":            stringSchema(),
 			"reason":            stringSchema(),
 			"changes":           openObjectSchema(),
-		}, []string{"operation", "item_id", "expected_revision", "intent", "reason"}, false),
+		}, []string{"operation", "item_id", "intent", "reason"}, false),
 		OutputSchema:    scheduleReplanCapabilityDefinition().OutputSchema,
 		SideEffectClass: "native_projection", SuccessBoundary: "schedule_version_committed", ConcurrencyClass: "exclusive", SupportsRetry: true,
 		ModelResultOmitFields: []string{"schedule_id", "revision", "previous_version"},
@@ -59,6 +59,10 @@ func (c scheduleEditCapability) Prepare(ctx context.Context, invocation Capabili
 	}
 	if err := validateScheduleEditArguments(args); err != nil {
 		return invocation, err
+	}
+	if _, present := args["expected_revision"]; !present && invocation.Metadata.Source == "model_tool" {
+		args["expected_revision"] = intValue(resolved.Schedule.Data["revision"])
+		invocation.Arguments = jsonBytes(args)
 	}
 	if intValue(args["expected_revision"]) != intValue(resolved.Schedule.Data["revision"]) {
 		return invocation, newCapabilityError("schedule_edit_revision_stale", true, ErrConflict)

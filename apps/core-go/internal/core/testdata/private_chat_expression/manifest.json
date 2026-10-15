@@ -1,0 +1,10 @@
+{
+  "classification": "reconstructed_from_task_appendix_not_original_API_request",
+  "sha256": {
+    "wenzhiyi.reconstructed.json": "963e469a88302524d4c4322935d5a684e0d5f5ad45766cb190572f81dd88ee2d"
+  },
+  "portrait_sha256": "fa8bb623ed832b3979d96ccc4fde67c4690f6ada2ebde51713f4786ba5805553",
+  "history_sha256": "bc1084e1e15fc3e5d26752d2c565f61bc66717ff9f6dd23e00893a2fc8984af4",
+  "provider_usage": null,
+  "real_model_validation": "NOT_RUN"
+}

@@ -78,9 +78,11 @@ type queuedToolCallingChatModel struct {
 	definitions               []CapabilityDefinition
 	toolInfos                 []*schema.ToolInfo
 	responseFormat            map[string]any
+	toolCallFallback          *schema.Message
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
+	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
 	originalOpts := opts
@@ -136,6 +138,9 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 			// physical input/output diagnostics remain owned by this adapter.
 			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
 		}
+		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
+			return nil, err
+		}
 		return m.inner.Generate(runCtx, input, opts...)
 	})
 	err = wrapPhysicalProviderRequestError(err)
@@ -143,7 +148,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		m.lastPhysicalResponse.Store(result)
 	}
 	if callDiagnosticID != "" && result != nil {
-		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(result))
+		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, redactProviderDiagnostic(callCtx, einoMessageRaw(result)))
 	}
 	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, result, err)
 	m.recordUsageComparison(callCtx, result)
@@ -178,6 +183,12 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 	}
 
+	if err == nil && m.toolCallFallback != nil && result != nil && len(result.ToolCalls) > 0 {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		result = m.toolCallFallback
+	}
 	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
 		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
 		if adkContext.Trace != nil {
@@ -189,6 +200,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
 	originalOpts := opts
@@ -239,7 +251,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			m.lastPhysicalResponse.Store(full)
 		}
 		if callDiagnosticID != "" && full != nil {
-			m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(full))
+			m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, redactProviderDiagnostic(callCtx, einoMessageRaw(full)))
 			m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(full), time.Since(started))
 		}
 		recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, full, streamErr)
@@ -249,10 +261,31 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
 			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
 		}
+		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
+			return nil, err
+		}
 		return m.inner.Stream(runCtx, input, opts...)
 	}, observer.observe)
 	if err != nil || stream == nil {
 		return stream, err
+	}
+	if m.toolCallFallback != nil {
+		// Buffer this final response so no unsolicited ToolCall reaches ADK
+		// before the task can enforce its terminal, tool-free decision.
+		full, err := consumeKevCandidateStream(ctx, stream)
+		if err != nil {
+			return nil, err
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if full != nil && len(full.ToolCalls) > 0 {
+			full = m.toolCallFallback
+		}
+		reader, writer := schema.Pipe[*schema.Message](1)
+		writer.Send(full, nil)
+		writer.Close()
+		return reader, nil
 	}
 	if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
 		full, err := consumeKevCandidateStream(ctx, stream)
@@ -324,9 +357,9 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 		if err != nil {
 			return nil, err
 		}
-		return m.compactPhysicalInput(ctx, refreshed)
+		return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, refreshed))
 	}
-	return m.compactPhysicalInput(ctx, normalizeEinoToolMessageNames(input))
+	return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, normalizeEinoToolMessageNames(input)))
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
@@ -778,6 +811,14 @@ func einoHTTPClientWithHeaders(base *http.Client, headers map[string]string) *ht
 }
 
 func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCall) (einoModelResponse, error) {
+	inputGuard, guardErr := providerMessagesToEino(call.Messages)
+	if guardErr != nil {
+		return einoModelResponse{}, guardErr
+	}
+	if err := p.guardVisionInput(ctx, call.Assignment, inputGuard); err != nil {
+		return einoModelResponse{}, err
+	}
+
 	if p == nil {
 		return einoModelResponse{}, errors.New("eino_provider_unavailable")
 	}
@@ -799,7 +840,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	if err := (&queuedToolCallingChatModel{assignment: call.Assignment, definitions: call.Definitions, responseFormat: budgetFormat}).enforcePhysicalInputBudget(ctx, input); err != nil {
 		return einoModelResponse{}, err
 	}
-	extra := map[string]any{}
+	extra := providerSamplingFields(call.Assignment)
 	if call.EnableThinking {
 		extra["enable_thinking"] = true
 	} else if call.SchemaName == "conversation_summary_v1" || call.SchemaName == "goal_evaluation_v1" {
@@ -875,7 +916,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	if formatErr != nil {
 		return einoModelResponse{}, formatErr
 	}
-	extra := map[string]any{}
+	extra := providerSamplingFields(call.Assignment)
 	if call.EnableThinking {
 		extra["enable_thinking"] = true
 	} else if call.SchemaName == "conversation_summary_v1" || call.SchemaName == "goal_evaluation_v1" {
@@ -1164,6 +1205,9 @@ func (p *ProviderClient) streamWithEino(ctx context.Context, assignment provider
 	input, err := providerMessagesToEino(messages)
 	if err != nil {
 		return "", fmt.Errorf("eino_message_encode: %w", err)
+	}
+	if err := p.guardVisionInput(ctx, assignment, input); err != nil {
+		return "", err
 	}
 	if err := (&queuedToolCallingChatModel{assignment: assignment}).enforcePhysicalInputBudget(ctx, input); err != nil {
 		return "", err

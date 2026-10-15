@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 55
+- **Total Sessions**: 57
 - **Last Active**: 2026-10-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1810 | Active |
+| `journal-1.md` | ~1868 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 57 | 2026-10-13 | Writer上下文、换行、图片入口与Kev披露修复 | `46bb413`, `b024f35` | `codex/fact-only-reply-vision` |
+| 56 | 2026-10-13 | Fact-only reply, durable media and optional vision | `dd89271`, `ea6d37e`, `9278a21`, `b369cd9`, `9a73cd9`, `27a1bc8` | `codex/fact-only-reply-vision` |
 | 55 | 2026-10-13 | Fluctlight 第一、第二期 UI 与交互统一化 | `6b1d60e` | `codex/ui-consistency-refactor` |
 | 54 | 2026-10-09 | Goal规划频率与无效评估重试修复 | `bc90e52` | `master` |
 | 53 | 2026-10-09 | GoalPlanner GP00–GP12 实施与实证交付 | `9feec97` | `codex/fluctlight-goal-planner-20261009` |

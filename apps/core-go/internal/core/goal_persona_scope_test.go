@@ -43,6 +43,10 @@ func TestGoalProjectionAndToolsPreservePrivateScopeAcrossDurablePersonaSwitch(t 
 			args["expected_revision"], args["reason"] = 1, "cross-profile attempt"
 		}
 		receipt, err := app.ExecuteTool(ctx, ToolExecutionRequest{WorkingProfileID: "spark", CapabilityName: tc.capability, OperationID: "scope-" + tc.operation, AuthorizationActorID: owner, FluctlightID: fluctlight, ConversationID: conversation, EvidenceID: "scope-check", Surface: CapabilitySurfaceConversation, Arguments: jsonBytes(args)})
+		if tc.operation == "detail" {
+			requireHandledToolNoEffect(t, receipt, err, tc.code)
+			continue
+		}
 		if err == nil || receipt.Result.ErrorCode != tc.code {
 			t.Fatalf("cross-profile %s: %#v %v", tc.operation, receipt, err)
 		}

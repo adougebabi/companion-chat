@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -89,7 +90,7 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 		return invocation, newCapabilityError("scene_start_requires_no_active_event", false, ErrConflict)
 	}
 	if operation == "end" && expectedSource != "event" {
-		return invocation, newCapabilityError("scene_end_requires_active_event", false, ErrConflict)
+		return withHandledCapabilityPreparation(invocation, "scene_already_inactive", "no_change", map[string]any{"source": expectedSource})
 	}
 	evidence := sortedUniqueStrings(decisionServiceRefValues(args["evidence_refs"]))
 	if len(evidence) != 1 || evidence[0] != invocation.SourceFactID {
@@ -108,7 +109,7 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 	return withCapabilityPreparedData(invocation, "scene_plan", plan)
 }
 
-func (a *App) preparePresenceCapability(_ context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
+func (a *App) preparePresenceCapability(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
 	if err := requireCapabilityContext(resolved, SlotCurrentLife); err != nil {
 		return invocation, err
 	}
@@ -126,7 +127,8 @@ func (a *App) preparePresenceCapability(_ context.Context, invocation Capability
 		return invocation, newCapabilityError("presence_fields_required", false, ErrInvalidArguments)
 	}
 	if operation == "clear" && (currentTask != "" || userPresence != "" || stringValue(args["expires_at"]) != "") {
-		return invocation, newCapabilityError("presence_clear_fields_forbidden", false, ErrInvalidArguments)
+		currentTask, userPresence = "", ""
+		slog.WarnContext(ctx, "tool.arguments.normalized", "capability", "presence_event", "warning_code", "presence_clear_ignored_metadata")
 	}
 	confidence, err := boundedNumberOrError(args["confidence"], -1)
 	if err != nil || confidence < 0 {
@@ -154,7 +156,9 @@ func (a *App) preparePresenceCapability(_ context.Context, invocation Capability
 		if raw := stringValue(args["expires_at"]); raw != "" {
 			parsed, parseErr := time.Parse(time.RFC3339, raw)
 			if parseErr != nil || !parsed.After(occurredAt) || parsed.After(occurredAt.Add(presenceMaxDuration)) {
-				return invocation, newCapabilityError("presence_expiration_invalid", false, ErrInvalidArguments)
+				// Expiry is a bounded policy default, never a fabricated event time.
+				parsed = expires
+				slog.WarnContext(ctx, "tool.arguments.normalized", "capability", "presence_event", "warning_code", "presence_default_expiration")
 			}
 			expires = parsed.UTC()
 		}

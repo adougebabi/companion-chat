@@ -485,6 +485,7 @@ func TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution(t *test
 				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='goal.evaluate'`, id).Scan(&workflows); err != nil || workflows != 1 {
 					t.Fatalf("withdrawal not durable: %d %v", workflows, err)
 				}
+				advanceGoalEvaluationCycleForTest(t, f, id)
 				if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, id); err != nil {
 					t.Fatal(err)
 				}

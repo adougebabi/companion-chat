@@ -1,0 +1,286 @@
+{
+  "scope": "F15 Goal Agent cadence + F16 deterministic submission recovery",
+  "date": "2026-10-14",
+  "branch": "codex/fact-only-reply-vision",
+  "base_head": "ec1ed826e5bfdaddf3199b52d7d348285c8dc312",
+  "work_state": "uncommitted",
+  "environment": {
+    "FLUCTLIGHT_LIVE_PROVIDER_TEST": "0",
+    "GO_CORE_TEST_DATABASE_URL": "",
+    "GOCACHE": "/tmp/fluctlight-go-cache",
+    "postgres_availability": "No usable binaries/pgvector in checked local application/Homebrew paths; Docker daemon socket absent. No install/start."
+  },
+  "commands": [
+    {
+      "command": "go -C apps/core-go test -json ./...",
+      "exit_code": 0,
+      "status": "PASS",
+      "test_event_counts": {
+        "pass": 1787,
+        "skip": 542
+      },
+      "package_event_counts": {
+        "skip": 14,
+        "pass": 16
+      }
+    },
+    {
+      "command": "go -C apps/core-go test -race ./internal/core ./internal/workflow",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "go -C apps/core-go vet ./...",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "go -C apps/core-go build ./...",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm typecheck",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm test",
+      "exit_code": 0,
+      "status": "PASS",
+      "tests": {
+        "browser_client": 21,
+        "core_client": 2,
+        "web": 105
+      }
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "status": "PASS",
+      "warnings": [
+        "Existing Vite chunk size >500kB warning"
+      ]
+    }
+  ],
+  "count_note": "PASS/SKIP counts include parents and subtests; a parent containing only skipped PostgreSQL subtests may report PASS and is not persistence evidence.",
+  "new_regression_events": [
+    {
+      "test": "TestGoalAgentCadenceHead",
+      "status": "pass"
+    },
+    {
+      "test": "TestPostgresGoalAgentCadenceFreshUpgradeAndRerun",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalAgentCadencePlannerFullAllSourcesAndOldQueue",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalAgentCadencePlannerFailedDayAndExactPrivateEpisodes",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalAgentCadenceEvaluationRepairWithoutNewEvents",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalAgentCadencePlannerHintsNeedCapturedDailyEvent",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryPersistenceUnknownNoChange",
+      "status": "skip"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryAcceptedKinds",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNormalizesUnknownWithoutInventingSuccess",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryScopedRefsAndDuplicates",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryReplayKeepsOriginal",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/replay_plan",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/bad_criterion",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/distinct_targets",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/replay_plan_ignores_tools",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/bad_criterion_ignores_tools",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/replay_plan_ignores_tools_stream",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/provider_error_final",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress/cancelled_final",
+      "status": "pass"
+    },
+    {
+      "test": "TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress",
+      "status": "pass"
+    }
+  ],
+  "sensitivity_red_green": [
+    {
+      "case": "accepted submission kind",
+      "red": "original projection lacked capability/kind",
+      "green": "production projection labels and sorts kind/target"
+    },
+    {
+      "case": "unknown/ref duplicate/changed payload",
+      "red": "equivalent previous helper behavior fails actual regression",
+      "green": "safe normalization/replay/handled disposition"
+    },
+    {
+      "case": "old forced loop",
+      "red": "plan replay/bad criterion exceed ninth scripted HTTP request",
+      "green": "finite tool-free closure; different accepted targets continue"
+    },
+    {
+      "case": "Provider ignores empty Tools",
+      "red": "without ToolCallFallback, uncooperative HTTP exceeds finite request budget",
+      "green": "Generate/SSE close without dispatching unsolicited calls; 503/cancel retain error"
+    }
+  ],
+  "persistence_status": "SKIP / NOT EXECUTED: SQL functions, 30min atomic fence/concurrency, migration upgrade/rerun, durable replay/source retention are not accepted by compilation or parent PASS.",
+  "not_run": [
+    "real Provider acceptance",
+    "real PostgreSQL/pgvector",
+    "Temporal/Redis restart or recovery",
+    "production workflow cancellation/retry",
+    "deployment"
+  ],
+  "schema_head": "0063_goal_agent_cadence",
+  "previous_schema_head": "0062_reply_media",
+  "independent_review": {
+    "status": "PASS with fixes",
+    "record": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-runtime-check.md",
+    "fixed": [
+      "uncooperative successful Provider ToolCall fallback",
+      "captured daily/boot predicate instead of date-only budget",
+      "repair can produce missing legitimate daily event"
+    ]
+  },
+  "logs": [
+    {
+      "path": "/tmp/goal-runtime-all-tests.jsonl",
+      "bytes": 2663999,
+      "sha256": "96f33e5c8958d208d747c70b98155769c7f0923c1913992b624966aa3c12ae37"
+    },
+    {
+      "path": "/tmp/goal-runtime-all-race.log",
+      "bytes": 165,
+      "sha256": "6194e9d7825fa4d2bc28bc04aea9a04a100783916df1156a3d113b19df7286d2"
+    },
+    {
+      "path": "/tmp/goal-runtime-typecheck.log",
+      "bytes": 285,
+      "sha256": "b234e990091a0773c433eb3388b54ca7c48a5271fff6e5680dfc06a5744acb17"
+    },
+    {
+      "path": "/tmp/goal-runtime-workspace-tests.log",
+      "bytes": 15105,
+      "sha256": "46a0d80a1f9d44eba09bd6ba708d16e663462e8935ae6c19c366b5f3da534eb3"
+    },
+    {
+      "path": "/tmp/goal-runtime-workspace-build.log",
+      "bytes": 1603,
+      "sha256": "55df30ae8f19bed4c933aada6f92a51ee9f2ac031979623411296e202a724f26"
+    },
+    {
+      "path": "/tmp/goal-runtime-check-race.json",
+      "bytes": 329836,
+      "sha256": "8ddce8246703712d7e72bd4a58052cf0ffd965c0b4f8844b2f9f964f32849bab"
+    },
+    {
+      "path": "/tmp/goal-runtime-check-fallback-red.json",
+      "bytes": 6723,
+      "sha256": "5a89f547c02394d90d4a3408b78234f984c73076312cb8a52f47b73992eabfc1"
+    },
+    {
+      "path": "/tmp/goal-cadence-targeted-tests.json",
+      "bytes": 275856,
+      "sha256": "eabba55a31b565d52ed9efeb640a531b99e7876b93d3c499b5c2cae0807799f3"
+    },
+    {
+      "path": "/tmp/f16-helper-red.log",
+      "bytes": 1302,
+      "sha256": "7a0e435c4f5a63675789ed4e4c42e3d8a7c564eaf7d9ec951b6820091bd5375c"
+    },
+    {
+      "path": "/tmp/f16-loop-red.log",
+      "bytes": 1402,
+      "sha256": "e33fcdb0a13da31cc203136a0d9934eb4560f3b63d8388a8c1b24e2caff8e8aa"
+    },
+    {
+      "path": "/tmp/f16-green-final.json",
+      "bytes": 139047,
+      "sha256": "49fb7904acecd3f214bec29247bc1bdcedc56c63e06e2e8a2eb500a4910a377b"
+    }
+  ],
+  "final_static_checks": {
+    "gofmt": "PASS",
+    "changed_go_files": 28,
+    "git_diff_check": "PASS",
+    "untracked_whitespace": "PASS",
+    "spec_excerpts_source_hash_and_content": "PASS",
+    "task_context_manifest_entries": 8
+  },
+  "commit_plan": {
+    "message": "fix(goal): enforce cadence and recover stalled evaluations",
+    "files": 54,
+    "unrecognized": [],
+    "path": ".trellis/tasks/10-14-fact-only-context-settlement/goal-runtime-commit-plan.md",
+    "approval": "PENDING"
+  }
+}

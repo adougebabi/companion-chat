@@ -254,6 +254,7 @@ export class BrowserClient {
     const query = new URLSearchParams(options);
     return this.json(\`/api/diagnostics/kev-decisions?\${query}\`) as Promise<{items: Array<Record<string,unknown>>; next_cursor:string; snapshot:string}>;
   }
+  async testVisionUnderstanding(): Promise<Record<string,unknown>> { return this.json("/api/settings/vision/test",{method:"POST",body:{}}) as Promise<Record<string,unknown>>; }
   async testKevConnection(): Promise<Record<string,unknown>> { return this.json("/api/settings/kev/test-connection",{method:"POST",body:{}}) as Promise<Record<string,unknown>>; }
   async diagnosticMediaPrompts(options: { limit?: number } = {}): Promise<BrowserDiagnosticMediaPrompt[]> {
     const limit = Math.min(Math.max(options.limit ?? 20, 1), 20);

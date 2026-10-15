@@ -344,6 +344,14 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callAny(response, request, "/internal/diagnostics/kev-decisions?"+query.Encode(), http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "kev_diagnostics_unavailable", "Kev diagnostics are unavailable"), nil)
 		return
 	}
+	if path == "/api/settings/vision/test" && methodName == http.MethodPost {
+		_, ok := s.mutationBody(response, request, func(value map[string]any) bool { return len(value) == 0 })
+		if !ok {
+			return
+		}
+		s.callAny(response, request, "/internal/settings/vision/test", http.MethodPost, map[string]any{}, s.readOnlyError(http.StatusForbidden, "vision_test_failed", "Vision test failed"), nil)
+		return
+	}
 	if path == "/api/settings/kev/test-connection" && methodName == http.MethodPost {
 		_, ok := s.mutationBody(response, request, func(value map[string]any) bool { return len(value) == 0 })
 		if !ok {
@@ -1703,7 +1711,7 @@ func validateModelRole(value map[string]any) bool {
 	role := stringValue(value["role"])
 	legacy := map[string]struct{}{"initialization": {}, "cognitive_assessment": {}, "action_realization": {}, "interaction": {}, "reflection": {}, "media_prompt": {}}
 	_, legacyRole := legacy[role]
-	valid := (role == "generic_llm" || role == "embedding" || legacyRole) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["tokenBudget"], 1) && validateInteger(value["timeoutSeconds"], 1)
+	valid := (role == "generic_llm" || role == "embedding" || role == "conversation_reply" || role == "vision_understanding" || legacyRole) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["tokenBudget"], 1) && validateInteger(value["timeoutSeconds"], 1)
 	if !valid {
 		return false
 	}

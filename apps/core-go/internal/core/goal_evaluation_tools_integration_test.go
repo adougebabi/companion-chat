@@ -187,7 +187,7 @@ func TestGoalEvaluationNativePersistenceSurvivesRejectedStageAndReplaysOnce(t *t
 		}
 	}
 	var failures int
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND result->>'error_code'='goal_judgment_self_report_not_business_fact'`, f.fluctlightID, goalObjectSubmit).Scan(&failures); err != nil || failures != 1 {
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND result->>'status'='handled' AND result->'output'->>'warning_code'='goal_judgment_self_report_not_business_fact'`, f.fluctlightID, goalObjectSubmit).Scan(&failures); err != nil || failures != 1 {
 		t.Fatal("rejection receipt lost", failures, err)
 	}
 }
@@ -239,6 +239,7 @@ func TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo(t 
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET available_at=now() WHERE id=$1`, request); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, request)
 	retry = true
 	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err != nil || len(arrayValue(result["goal_outcomes"])) != 2 {
 		t.Fatal(result, err)

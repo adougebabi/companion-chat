@@ -91,8 +91,8 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 
 func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 	definitions := FormalAgentDefinitions()
-	if len(definitions) != 21 {
-		t.Fatalf("formal Agent count=%d, want 21: %#v", len(definitions), definitions)
+	if len(definitions) != 22 {
+		t.Fatalf("formal Agent count=%d, want 22: %#v", len(definitions), definitions)
 	}
 	seen := make(map[FormalAgentID]struct{}, len(definitions))
 	for _, definition := range definitions {

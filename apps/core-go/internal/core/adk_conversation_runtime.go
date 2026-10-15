@@ -52,6 +52,7 @@ type appADKCapabilityInvoker struct {
 	app             *App
 	request         ADKCapabilityRequest
 	trace           *ADKCapabilityTrace
+	scopeRegistry   *CapabilityRegistry
 	nativeMu        sync.Mutex
 	nativeArguments map[string]nativeCallArguments
 }
@@ -80,13 +81,17 @@ type ADKCapabilityRequest struct {
 }
 
 func newAppADKCapabilityInvoker(app *App, request ADKCapabilityRequest, trace *ADKCapabilityTrace) ADKCapabilityInvoker {
+	return newAppADKCapabilityInvokerForContext(context.Background(), app, request, trace)
+}
+
+func newAppADKCapabilityInvokerForContext(ctx context.Context, app *App, request ADKCapabilityRequest, trace *ADKCapabilityTrace) ADKCapabilityInvoker {
 	if request.Surface == "" {
 		request.Surface = CapabilitySurfaceConversation
 	}
 	if request.TargetKind == "" && request.TargetRef == "" && request.ConversationID != "" {
 		request.TargetKind, request.TargetRef = "conversation", request.ConversationID
 	}
-	return &appADKCapabilityInvoker{app: app, request: request, trace: trace}
+	return &appADKCapabilityInvoker{app: app, request: request, trace: trace, scopeRegistry: app.capabilityRegistryForContext(ctx)}
 }
 
 func (i *appADKCapabilityInvoker) Execute(ctx context.Context, capabilityName string, argumentsJSON string) (string, error) {
@@ -94,6 +99,9 @@ func (i *appADKCapabilityInvoker) Execute(ctx context.Context, capabilityName st
 }
 
 func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, capabilityName string, argumentsJSON string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	if i == nil || i.app == nil || i.trace == nil {
 		return "", errors.New("adk_capability_invoker_unavailable")
 	}
@@ -104,7 +112,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.requested", callID, capabilityName, "requested", "", argumentsJSON)
-	definition, ok := i.app.capabilityRegistry().Definition(capabilityName)
+	definition, ok := i.scopeRegistry.Definition(capabilityName)
+	if ok && i.request.Surface != "" && !definition.SupportsSurface(i.request.Surface) {
+		return "", ErrUnauthorized
+	}
 	if !ok {
 		// Unknown native calls cannot execute. Preserve an Owner-reviewable
 		// capability need when the run has an authenticated source fact.
@@ -181,29 +192,51 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if len(definition.RequiredContext) > 0 {
 		invocation.ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, i.request.ActionID)
 	}
-	capability, _ := i.app.capabilityRegistry().Lookup(capabilityName)
+	capability, _ := i.scopeRegistry.Lookup(capabilityName)
 	contract, nativeContract := capability.(nativeToolContract)
 	rejectArguments := func(err error) (string, error) {
 		if seen {
-			if result, found := i.trace.FindResult(callID); found && result.ErrorCode == "invalid_arguments" {
+			if result, found := i.trace.FindResult(callID); found && result.Status == "handled" && stringValue(mapValue(result.Output)["warning_code"]) == "invalid_arguments" {
 				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
 			}
 			return "", errors.New("adk_tool_call_id_reused")
 		}
+		// Preserve a valid trace envelope even when the model emitted malformed
+		// JSON. The original argument bytes remain only in the existing diagnostic.
+		if !json.Valid(invocation.Arguments) {
+			invocation.Arguments = json.RawMessage(`{}`)
+		}
 		i.trace.AppendInvocation(invocation)
-		result := failedCapabilityResultDetail(invocation, "invalid_arguments", false, err.Error())
+		result := handledCapabilityResult(invocation, "invalid_arguments", "needs_input", map[string]any{"detail": safeToolArgumentFeedback(err)})
 		i.trace.AppendResult(result)
 		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 		i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 		return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
 	}
+	modelDefinition := definition
+	if nativeContract {
+		modelDefinition = contract.NativeDefinition()
+	}
+	normalizedArguments, normalizeErr := normalizeNativeModelArguments(arguments, modelDefinition)
+	if normalizeErr != nil {
+		return rejectArguments(normalizeErr)
+	}
+	arguments = normalizedArguments
+	invocation.Arguments = arguments
 	if nativeContract {
 		if err := validateNativeArguments(arguments, contract.NativeDefinition()); err != nil {
 			return rejectArguments(err)
 		}
 	}
 	if adkContext, ok := adkCapabilityContext(ctx); ok {
-		decoded, err := adkContext.Refs.decodeArguments(arguments)
+		decode := adkContext.Refs.decodeArguments
+		switch capability.(type) {
+		case factOnlyReplyCapability:
+			decode = adkContext.Refs.decodePrivateReplyArguments
+		case factOnlyMomentCapability:
+			decode = adkContext.Refs.decodeReplyArguments
+		}
+		decoded, err := decode(arguments)
 		if err != nil {
 			return rejectArguments(err)
 		}
@@ -231,6 +264,14 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: previousResult}, definition)
 			}
 			return "", errors.New("adk_tool_result_missing")
+		}
+	}
+	if selection := kevSelection(ctx); selection != nil && selection.permits(ctx, capabilityName) {
+		selection.mu.Lock()
+		loaded := selection.loaded[capabilityName]
+		selection.mu.Unlock()
+		if !loaded && !publicBaselineTool(capabilityName) {
+			i.recordADKToolDiagnostic(ctx, "adk.tool.recommendation_warning", callID, capabilityName, "warning", "tool_not_disclosed", argumentsJSON)
 		}
 	}
 	i.trace.AppendInvocation(invocation)
@@ -294,9 +335,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		gate.switched = true
 		gate.mu.Unlock()
 	}
-	if errors.Is(execErr, ErrLifeContextStale) || (execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted")) {
+	recoveredStale := result.Status == "handled" && mapValue(result.Output)["refresh_context"] == true
+	if errors.Is(execErr, ErrLifeContextStale) || recoveredStale || (execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted")) {
 		if adkContext, ok := adkCapabilityContext(ctx); ok {
-			if capabilityName == conversationReplyCapabilityName && errors.Is(execErr, ErrLifeContextStale) {
+			if capabilityName == conversationReplyCapabilityName && (errors.Is(execErr, ErrLifeContextStale) || mapValue(result.Output)["refresh_reply"] == true) {
 				adkContext.Refresh.markStaleReply(callID)
 			} else {
 				adkContext.Refresh.markDirty()
@@ -304,6 +346,12 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+	if run := replyRunFromContext(ctx); run != nil && capabilityName == conversationReplyCapabilityName {
+		run.mu.Lock()
+		draftRef := run.DraftRef
+		run.mu.Unlock()
+		i.app.recordDiagnosticEvent(withProviderDiagnosticSecrets(ctx, run.Assignment.Secret), "reply.tool.result", "info", i.request.FluctlightID, i.request.SourceFactID, i.request.CorrelationID, map[string]any{"run_id": i.request.OperationID, "draft_ref": draftRef, "stage": "reply_result", "status": result.Status, "result": result.Output, "committed": result.Status == "completed"})
+	}
 	serialized, encodeErr := modelFacingToolResultForContext(ctx, receipt, definition)
 	if encodeErr != nil {
 		return "", encodeErr
@@ -358,8 +406,8 @@ func modelFacingToolResultForContext(ctx context.Context, receipt ToolExecutionR
 	visible := modelFacingToolResult(receipt, definition)
 	if state, ok := adkCapabilityContext(ctx); ok {
 		if invoker, yes := state.Invoker.(*appADKCapabilityInvoker); yes {
-			capability, _ := invoker.app.capabilityRegistry().Lookup(definition.Name)
-			if contract, native := capability.(nativeToolContract); native && visible["output"] != nil {
+			capability, _ := invoker.scopeRegistry.Lookup(definition.Name)
+			if contract, native := capability.(nativeToolContract); native && receipt.Result.Status != "handled" && visible["output"] != nil {
 				projection := invoker.request.Projection
 				if fresh := state.Refresh.latestProjection(); fresh != nil {
 					projection = *fresh
@@ -466,20 +514,33 @@ func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, e
 			modelCallID = identity.ProviderRequestID
 		}
 	}
-	newProviderRuntimeSupport(i.app.DB).RecordDiagnosticEvent(ctx, eventType, statusSeverity(status), i.request.FluctlightID, i.request.SourceFactID, correlationID, map[string]any{
+	data := map[string]any{
 		"run_id": runID, "stage": "tool", "surface": i.request.Surface,
 		"model_call_id": modelCallID,
 		"call_id":       strings.TrimSpace(callID), "capability": strings.TrimSpace(capabilityName),
 		"status": strings.TrimSpace(status), "error_code": strings.TrimSpace(errorCode),
 		"arguments": arguments, "arguments_digest": stableDigest(strings.TrimSpace(arguments)),
-	})
+	}
+	if i.trace != nil {
+		if result, found := i.trace.FindResult(callID); found && result.Status == status {
+			out := mapValue(result.Output)
+			if result.Status == "handled" {
+				data["warning_code"], data["disposition"] = out["warning_code"], out["disposition"]
+				data["effect_applied"], data["mutation_committed"] = false, false
+			}
+			if result.CapabilityName == goalPlannerCommit && out["warnings"] != nil {
+				data["warnings"] = out["warnings"]
+			}
+		}
+	}
+	newProviderRuntimeSupport(i.app.DB).RecordDiagnosticEvent(ctx, eventType, statusSeverity(status), i.request.FluctlightID, i.request.SourceFactID, correlationID, data)
 }
 
 func statusSeverity(status string) string {
 	switch strings.TrimSpace(status) {
 	case "failed", "rejected", "cancelled", "timeout":
 		return "error"
-	case "deferred", "accepted_pending":
+	case "deferred", "accepted_pending", "handled":
 		return "notice"
 	default:
 		return "info"
@@ -520,6 +581,7 @@ type ADKStructuredTaskInput struct {
 	EnableStreaming bool
 	TextOutput      bool
 	Capability      *ADKCapabilityRequest
+	Invoker         ADKCapabilityInvoker
 }
 
 type ADKStructuredTaskResult struct {
@@ -562,10 +624,10 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if input.TextOutput != (definition.OutputKind == FormalAgentOutputText) {
 		return ADKStructuredTaskResult{}, errors.New("formal_agent_output_contract_mismatch")
 	}
-	if len(input.Definitions) > 0 && input.Capability == nil {
+	if len(input.Definitions) > 0 && input.Capability == nil && input.Invoker == nil {
 		return ADKStructuredTaskResult{}, errors.New("adk_structured_task_capability_context_required")
 	}
-	if err := validateADKCapabilityDefinitions(a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
+	if err := validateADKCapabilityDefinitionsForContext(ctx, a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
 		return ADKStructuredTaskResult{}, err
 	}
 	var selectionErr error
@@ -578,7 +640,10 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if input.Capability != nil {
 		request = *input.Capability
 	}
-	invoker := newAppADKCapabilityInvoker(a, request, trace)
+	var invoker ADKCapabilityInvoker = input.Invoker
+	if invoker == nil {
+		invoker = newAppADKCapabilityInvokerForContext(ctx, a, request, trace)
+	}
 	var refs *providerContextRefCodec
 	if input.Capability != nil {
 		var refErr error
@@ -628,13 +693,17 @@ func firstCapabilitySurface(request *ADKCapabilityRequest) CapabilitySurface {
 }
 
 func validateADKCapabilityDefinitions(app *App, definitions []CapabilityDefinition, surface CapabilitySurface) error {
+	return validateADKCapabilityDefinitionsForContext(context.Background(), app, definitions, surface)
+}
+
+func validateADKCapabilityDefinitionsForContext(ctx context.Context, app *App, definitions []CapabilityDefinition, surface CapabilitySurface) error {
 	if len(definitions) == 0 {
 		return nil
 	}
 	if app == nil {
 		return errors.New("adk_capability_registry_unavailable")
 	}
-	registry := app.capabilityRegistry()
+	registry := app.capabilityRegistryForContext(ctx)
 	if registry == nil {
 		return errors.New("adk_capability_registry_unavailable")
 	}

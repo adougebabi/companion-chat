@@ -216,13 +216,16 @@ func providerRedisAgedScore(sequence int64) int64 {
 // the closure and provider result remain local to the caller. A false enabled
 // result means Redis is unavailable and the caller should use its local queue.
 func (p *ProviderClient) acquireProviderRedisSlot(ctx context.Context, role string, priority, limit int, diagnosticID string) (release func(), enabled bool, err error) {
+	return p.acquireProviderRedisSlotForBinding(ctx, role, providerQueueBindingRole(role), priority, limit, diagnosticID)
+}
+
+func (p *ProviderClient) acquireProviderRedisSlotForBinding(ctx context.Context, role, binding string, priority, limit int, diagnosticID string) (release func(), enabled bool, err error) {
 	if p == nil || p.redis == nil || strings.TrimSpace(diagnosticID) == "" {
 		return func() {}, false, nil
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	binding := providerBindingRole(role)
 	pendingKey, processingKey, sequenceKey := providerRedisKeys(binding)
 	sequence, err := p.redis.Incr(ctx, sequenceKey).Result()
 	if err != nil {
@@ -333,6 +336,6 @@ func (p *ProviderClient) ReconcileRedisQueue(ctx context.Context, role string) (
 	if p == nil || p.redis == nil {
 		return 0, nil
 	}
-	pendingKey, processingKey, _ := providerRedisKeys(providerBindingRole(role))
+	pendingKey, processingKey, _ := providerRedisKeys(providerQueueBindingRole(role))
 	return providerRedisRequeueExpiredScript.Run(ctx, p.redis, []string{pendingKey, processingKey}, strconv.FormatInt(time.Now().UnixMilli(), 10)).Int64()
 }

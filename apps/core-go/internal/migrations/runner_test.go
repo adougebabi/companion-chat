@@ -59,7 +59,7 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" || FactGenerationProvenancePreviousHead != "0058_semantic_fact_generation" || SemanticFactGenerationPreviousHead != "0057_logical_agent_leases" || LogicalAgentLeasesPreviousHead != "0056_kev_decisions" || KevDecisionsPreviousHead != "0055_goal_planner_cadence" || GoalPlannerCadencePreviousHead != "0054_goal_planner" || GoalPlannerPreviousHead != "0053_goal_reconciliation" || GoalReconciliationPreviousHead != "0052_goal_governance" || GoalGovernancePreviousHead != "0051_goal_closure" || GoalClosurePreviousHead != "0050_goal_execution" || GoalExecutionPreviousHead != "0049_actor_user_background" || ActorUserBackgroundPreviousHead != "0048_proactive_topics" || ProactiveTopicsPreviousHead != "0047_history_repair" || HistoryRepairPreviousHead != "0046_diagnostic_pagination" || DiagnosticPaginationPreviousHead != "0045_runtime_summary" || RuntimeSummaryPreviousHead != "0044_inventory_usage" || InventoryUsagePreviousHead != "0043_actor_facts" || ActorFactsPreviousHead != "0042_conversation_daily_memory" || ConversationDailyMemoryPreviousHead != "0041_agent_run_diagnostics" || AgentRunDiagnosticsPreviousHead != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
+	if Head != "0063_goal_agent_cadence" || GoalAgentCadencePreviousHead != "0062_reply_media" || ReplyMediaPreviousHead != "0061_fact_only_reply" || FactOnlyReplyPreviousHead != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" || FactGenerationProvenancePreviousHead != "0058_semantic_fact_generation" || SemanticFactGenerationPreviousHead != "0057_logical_agent_leases" || LogicalAgentLeasesPreviousHead != "0056_kev_decisions" || KevDecisionsPreviousHead != "0055_goal_planner_cadence" || GoalPlannerCadencePreviousHead != "0054_goal_planner" || GoalPlannerPreviousHead != "0053_goal_reconciliation" || GoalReconciliationPreviousHead != "0052_goal_governance" || GoalGovernancePreviousHead != "0051_goal_closure" || GoalClosurePreviousHead != "0050_goal_execution" || GoalExecutionPreviousHead != "0049_actor_user_background" || ActorUserBackgroundPreviousHead != "0048_proactive_topics" || ProactiveTopicsPreviousHead != "0047_history_repair" || HistoryRepairPreviousHead != "0046_diagnostic_pagination" || DiagnosticPaginationPreviousHead != "0045_runtime_summary" || RuntimeSummaryPreviousHead != "0044_inventory_usage" || InventoryUsagePreviousHead != "0043_actor_facts" || ActorFactsPreviousHead != "0042_conversation_daily_memory" || ConversationDailyMemoryPreviousHead != "0041_agent_run_diagnostics" || AgentRunDiagnosticsPreviousHead != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -697,5 +697,18 @@ func TestMemoryLifecycleMigrationHasGovernanceAndFailClosedCutover(t *testing.T)
 	}
 	if strings.Contains(affectCanonicalMigrationSQL, "memory_governance") || strings.Contains(projectHealthEvolutionMigrationSQL, "memory_governance") {
 		t.Fatal("released 0027/0028 migrations must not own Memory lifecycle")
+	}
+}
+
+func TestReplyMediaMigrationIsAdditiveAndIsolatedFromLegacyDispatcher(t *testing.T) {
+	for _, required := range []string{"conversation_reply_drafts", "conversation_reply_actions", "conversation_reply_continuations", "expires_at", "execution_scope"} {
+		if !strings.Contains(replyMediaSchemaSQL, required) {
+			t.Fatalf("missing %s", required)
+		}
+	}
+	for _, unsafe := range []string{"DROP TABLE", "DELETE FROM", "platform_workflow_intents", "ALTER COLUMN status"} {
+		if strings.Contains(replyMediaSchemaSQL, unsafe) {
+			t.Fatalf("unsafe/shared protocol migration %s", unsafe)
+		}
 	}
 }

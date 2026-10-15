@@ -1,0 +1,26 @@
+# 原文 T01–T20 验收矩阵
+
+状态：A–F 代码与本地交付已实施。下列证据仅代表本地受控用例/静态检查；真实模型、数据库闭环、远端发布和环境回归单独记录。用户已明确真实环境回归由其执行。
+
+| 编号 | 用例 | 必须断言 | 当前证据 |
+| --- | --- | --- | --- |
+| T01 | 旧配置/legacy | 不调用 Cydonia，旧回复功能不变 | 默认 legacy / 设置严格校验、immutable registry 单测通过；旧真实环境由用户回归 |
+| T02 | fact-only 普通私聊 | Qwen → 原生 reply Tool → Cydonia → 发送入口 → Tool result → Qwen 最终合同 | Generate/Stream 嵌套 Writer/实际正文回填本地受控用例通过；PG/真实聊天待用户 |
+| T03 | Tool 独立运行 | 合法上下文可运行；缺少权限/上下文返回真实错误，无隐藏 Agent 依赖 | 共用 ExecuteTool、权限和缺上下文错误实现；PG独立入口待用户 |
+| T04 | Qwen 夹带回复方向 | direction/tone/“暂不推进”等不得进入 Writer；真实拒绝原话保留 | 封闭refs schema、独立上下文/拒绝保留单测通过 |
+| T05 | 人格/Goal 完整性 | 不经 Qwen 重写、不因其保守判断漏掉有效目标，不默认固定女性/高冷模板 | 权威人格/Goal装配及required超限单测通过；真实人格/Goal多轮待用户 |
+| T06 | e6 与错误摘要 | 未证实线索不变事实，内部标识不泄漏；正常型号/代码不被无差别删除 | 不确定来源/内部标识输入清理、e6/Unicode单测通过 |
+| T07 | 状态与物品 | 当前地点/着装不被一句草稿改变；无库存物品不能被宣称已拥有/正在使用 | facts/life/profile/source事务fence已接；PG/真实状态物品场景待用户 |
+| T08 | 图片成功/失败/异步 | 意图回交真实 Tool；完成后续接；失败不发占位成功语；不重复生图 | component refs/pending/Temporal有限retry本地通过；PG与真实媒体重启/失败闭环待用户 |
+| T09 | 表情包不可用 | 不伪造附件；合法文字表情不被全部误删 | sticker unavailable及Unicode解析通过；真实Writer失败表达待用户 |
+| T10 | 发送后认知失败/重试/取消 | 消息最多按既有幂等语义提交一次；迟到生成不再发 | source/supersede/cancel/replay/发布结算同事务；PGwaiting/cancel子用例SKIP |
+| T11 | 模型不可用/截断/OOM | 分类、有限重试、无静默成功；降级可辨认 | transport有限retry、OOM/截断nonretry、显式fallback及固定fallback模型用例通过 |
+| T12 | 视觉关闭/未配置 | 视觉 HTTP 请求 0；相关步骤是 skip 而非 passed；无后台重试风暴 | 关闭/未配rawProvider前及physical Generate/Stream零HTTP本地通过；候选PGskip用例SKIP |
+| T13 | 视觉启用/错误模型 | 图片只发指定有效视觉模型；服务失败不转给无视觉 Qwen 猜 | 实际image payload只发独立model的受控wire用例通过；真实模型支持/超时待用户 |
+| T14 | 生图开启 + 视觉关闭 | 能生成/保存图片，未视觉校验不自动通过；视频生成配置不受影响 | 质量skipped→存储/发布代码已保留；真实ComfyUI/视频待用户 |
+| T15 | 人格/设定卡初始化 | 可选视觉缺失不阻塞非视觉初始化；旧已确认资产保留 | 文字阶段保留、candidate await/provenance/canonical逻辑已实现；PG/对象存储用例未执行 |
+| T16 | 普通私聊/WakeUp | 应回复时真实 Tool 路由；原有静默、拒绝、睡眠/权限规则未被“每轮必回”覆盖 | 普通/WakeUp统一reply路由与autonomy/awake/topic/new-inbound fence已接；真实主动规则待用户 |
+| T17 | 多轮与配置快照 | 一次用户输入一次完整处理；内部重试不加聊天轮数；run 内 schema 不漂移 | 配置/model/sampling固定、逻辑key/retry/lease单测通过；多轮体验待用户 |
+| T18 | CI 与镜像渠道 | 测试标签隔离、source SHA 正确、发布集合一致、回滚不会仍拉实验 tag | 3个Python发布用例、workflow/route静态检查通过；远端构建digest另行记录 |
+| T19 | 老版本回退 | 新配置/数据/待执行任务不使稳定版无法启动或错误消费 | 独立continuation表/queue、媒体清空legacy目标、迁移additive静态用例及回退清理步骤；旧镜像实际回退待用户 |
+| T20 | 诊断与隐私 | 可查看真实 Writer 输入及发送内容；普通日志/CI 不含密钥和完整私聊 | Owner-only既有diagnostics、成功response密钥/字段/image脱敏本地通过；真实日志诊断待用户 |

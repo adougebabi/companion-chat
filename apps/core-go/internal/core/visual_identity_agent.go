@@ -120,7 +120,12 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	}
 
 	var imageContent map[string]any
+	var vision visionCapability
 	if state.ActionRequired == visualIdentityCommitReviewCapabilityName {
+		vision = a.resolveVisionCapability(ctx)
+		if vision.State != "ready" {
+			return a.pauseVisualIdentityReview(ctx, state, vision.Reason)
+		}
 		imageContent, err = a.visualIdentityImageContent(ctx, state.CandidateAssetID)
 		if err != nil {
 			return VisualIdentityAgentOutput{}, err
@@ -149,6 +154,11 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	}
 	operationID := visualIdentityAgentCheckpointOperationID(state)
 	runCtx := WithProviderCorrelation(ctx, "visual_identity:"+state.SessionID)
+	if state.ActionRequired == visualIdentityCommitReviewCapabilityName {
+		runCtx = withFrozenProviderAssignment(runCtx, "cognitive_assessment", vision.Assignment)
+		runCtx = context.WithValue(runCtx, visualInspectionAuthorityKey{}, visualInspectionAuthority{SessionID: state.SessionID, AssetID: state.CandidateAssetID, ModelID: vision.Assignment.ModelID, ConfigVersion: vision.Version})
+	}
+
 	runCtx = withPhysicalModelRequestPolicy(runCtx, visualIdentityPhysicalRequestPolicy{
 		app: a, sessionID: state.SessionID, attempt: state.Attempt, expectedAction: state.ActionRequired,
 	})
@@ -163,6 +173,15 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 		},
 	})
 	if err != nil {
+		if state.ActionRequired == visualIdentityCommitReviewCapabilityName && ctx.Err() == nil {
+			after, loadErr := a.loadVisualIdentityAgentState(ctx, sessionID)
+			if loadErr != nil {
+				return VisualIdentityAgentOutput{}, loadErr
+			}
+			if after.Decision == "" {
+				return a.pauseVisualIdentityReview(ctx, after, visionFailureReason(err))
+			}
+		}
 		return VisualIdentityAgentOutput{}, err
 	}
 	if err := validateVisualIdentityAgentToolProgress(state.ActionRequired, run.Trace); err != nil {

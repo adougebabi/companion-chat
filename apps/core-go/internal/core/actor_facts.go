@@ -36,7 +36,7 @@ func actorFactDefinition() CapabilityDefinition {
 		Description: "Record a sourced Actor attribute; correct mistakes or change formerly true values. Use actor.inspect IDs and actual inbound sources.",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceNativeCognition}, FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		InputSchema: objectSchema(map[string]any{
-			"assertion_type": enumStringSchema("explicit_statement", "inference"),
+			"assertion_type": withToolDefault(enumStringSchema("explicit_statement", "inference"), "inference"),
 			"operation":      enumStringSchema("assert", "correct", "change"), "actor_id": stringSchema(), "attribute": map[string]any{"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
 			"value": map[string]any{"type": []any{"string", "boolean", "null"}}, "source_message_id": stringSchema(), "effective_at": stringSchema(),
 			"corrected_fact_ids": map[string]any{"type": "array", "maxItems": 16, "items": stringSchema()}, "reason": map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
@@ -137,7 +137,10 @@ func (c actorFactCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Capabil
 			return failedCapabilityResult(i, "actor_assertion_type_required", false), ErrInvalidArguments
 		}
 		var matches bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages m JOIN public.cognition_inbox i ON i.id=m.source_fact_id WHERE m.id=$1 AND m.source_fact_id=$2 AND m.kind='user' AND COALESCE(i.payload->>'source_message_invalidated','false')<>'true')`, sourceID, i.SourceFactID).Scan(&matches); err != nil || !matches {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages m JOIN public.cognition_inbox i ON i.id=m.source_fact_id WHERE m.id=$1 AND m.source_fact_id=$2 AND m.kind='user' AND COALESCE(i.payload->>'source_message_invalidated','false')<>'true')`, sourceID, i.SourceFactID).Scan(&matches); err != nil {
+			return failedCapabilityResult(i, "actor_source_read_failed", true), err
+		}
+		if !matches {
 			return failedCapabilityResult(i, "actor_source_message_stale", false), ErrConflict
 		}
 	}
@@ -153,7 +156,10 @@ func (c actorFactCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Capabil
 		}
 	} else {
 		var isOwner bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.actors WHERE id=$1 AND actor_type='human' AND status='active')`, i.Metadata.AuthorizationActorID).Scan(&isOwner); err != nil || !isOwner {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.actors WHERE id=$1 AND actor_type='human' AND status='active')`, i.Metadata.AuthorizationActorID).Scan(&isOwner); err != nil {
+			return failedCapabilityResult(i, "actor_owner_read_failed", true), err
+		}
+		if !isOwner {
 			return failedCapabilityResult(i, "actor_source_invalid", false), ErrUnauthorized
 		}
 		sourceRef = "owner-command:" + capabilityOperationID(i)

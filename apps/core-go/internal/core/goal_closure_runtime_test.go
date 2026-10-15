@@ -50,6 +50,10 @@ func latestPendingGoalRequest(t *testing.T, f independentToolE2EFixture) string 
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND status IN ('pending','retry') ORDER BY created_at DESC,id DESC LIMIT 1`, f.fluctlightID).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
+	// The fixture starts processing after its ordinary merge window elapsed.
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET available_at=now() WHERE id=$1 AND status='pending'`, id); err != nil {
+		t.Fatal(err)
+	}
 	return id
 }
 
@@ -406,6 +410,7 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 					}
 					t.Fatalf("mutual assessment absent i=%d turns=%d assessments=%d candidates=%s cause=%s err=%v", i, turns, assessments, candidates, text, err)
 				}
+				advanceGoalEvaluationCycleForTest(t, f, requestID)
 				_, err = f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
 				if i == 1 && tc.editDuringAssessment {
 					if !errors.Is(err, ErrConflict) {

@@ -25,7 +25,7 @@ func goalCriterionJudgmentSchema(criterionRefs, evidenceRefs []string) map[strin
 		"subject":       enumStringSchema("actor_self", "target_actor", "both", "domain"),
 		"discourse":     enumStringSchema("assertion", "domain_fact", "quotation", "hypothesis", "plan", "refusal", "report", "uncertain"),
 		"evidence_refs": boundedGoalRefArraySchema(evidenceRefs), "reason": stringSchema(),
-	}, []string{"criterion_ref", "criterion_quote", "optional_improvement", "verdict", "kind", "subject", "discourse", "evidence_refs", "reason"}, false)
+	}, []string{"criterion_ref", "verdict", "kind", "subject", "discourse", "evidence_refs", "reason"}, false)
 }
 
 func goalObjectEvaluationSchema(objectRefs, criterionRefs, evidenceRefs []string) map[string]any {
@@ -114,9 +114,16 @@ func goalOperationPlanSchema(properties map[string]any, required []string, refs 
 	variants := []any{objectSchema(create, required, false)}
 	if len(refs) > 0 {
 		mutate := cloneMap(properties)
-		mutate["operation"] = enumStringSchema(operations...)
 		mutate["object_ref"] = enumStringSchema(refs...)
-		variants = append(variants, objectSchema(mutate, append(append([]string(nil), required...), "object_ref"), false))
+		for _, operation := range operations {
+			variant := cloneMap(mutate)
+			variant["operation"] = enumStringSchema(operation)
+			fields := append(append([]string(nil), required...), "object_ref")
+			if operation == "skip" || operation == "abandon" {
+				fields = []string{"operation", "object_ref", "reason"}
+			}
+			variants = append(variants, objectSchema(variant, fields, false))
+		}
 	}
 	return goalSchemaAlternatives(variants)
 }
@@ -182,7 +189,7 @@ func goalReviewSchema(stageRefs, evidenceRefs []string) map[string]any {
 	if len(stageRefs) > 0 {
 		properties["stage_ref"] = enumStringSchema(stageRefs...)
 	}
-	return objectSchema(properties, []string{"reason_category", "decision", "explanation", "evidence_refs", "feasible_alternative"}, false)
+	return objectSchema(properties, []string{"reason_category", "decision", "explanation", "evidence_refs"}, false)
 }
 
 func boundedGoalRefArraySchema(refs []string) map[string]any {

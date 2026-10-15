@@ -276,9 +276,6 @@ func (context CapabilityContext) Snapshot() map[string]any {
 			value = typed.Data
 		}
 		data := jsonBytes(value)
-		if len(data) > maxToolArgumentsBytes*2 {
-			return
-		}
 		var copyValue any
 		if json.Unmarshal(data, &copyValue) == nil {
 			result[key] = copyValue
@@ -311,9 +308,11 @@ func CapabilityContextSnapshotForSlots(context CapabilityContext, slots []Contex
 	return result
 }
 
+// BoundedSnapshotValue is a compatibility name for a lossless Core-owned JSON
+// copy. Optimization thresholds must not erase frozen/prepared authority.
 func BoundedSnapshotValue(value any) any {
 	data := jsonBytes(value)
-	if len(data) == 0 || len(data) > maxToolArgumentsBytes*2 {
+	if len(data) == 0 {
 		return nil
 	}
 	var copyValue any
@@ -601,9 +600,6 @@ func DecodeCapabilityPreparedPayload(raw json.RawMessage) (CapabilityPreparedPay
 	if len(raw) == 0 || string(raw) == "null" {
 		return CapabilityPreparedPayload{SchemaVersion: CapabilityPreparedPayloadSchemaVersion, Data: map[string]any{}, Provenance: map[string]any{}}, nil
 	}
-	if len(raw) > maxToolArgumentsBytes*2 {
-		return CapabilityPreparedPayload{}, errors.New("capability prepared payload is too large")
-	}
 	var object map[string]any
 	if err := json.Unmarshal(raw, &object); err != nil || object == nil {
 		return CapabilityPreparedPayload{}, errors.New("capability prepared payload must be an object")
@@ -637,9 +633,6 @@ func EncodeCapabilityPreparedPayload(payload CapabilityPreparedPayload) (json.Ra
 	if err != nil {
 		return nil, err
 	}
-	if len(encoded) > maxToolArgumentsBytes*2 {
-		return nil, errors.New("capability prepared payload is too large")
-	}
 	return encoded, nil
 }
 
@@ -653,7 +646,7 @@ func WithCapabilityPreparedData(invocation CapabilityInvocation, key string, val
 	}
 	bounded := BoundedSnapshotValue(value)
 	if value != nil && bounded == nil {
-		return invocation, errors.New("capability prepared data is invalid or too large")
+		return invocation, errors.New("capability prepared data is not JSON-serializable")
 	}
 	payload.Data[key] = bounded
 	encoded, err := EncodeCapabilityPreparedPayload(payload)
@@ -914,6 +907,15 @@ func CapabilityInvocationsFromValue(value any) ([]CapabilityInvocation, error) {
 }
 
 func (invocation CapabilityInvocation) Validate(definition CapabilityDefinition) error {
+	if err := invocation.ValidateEnvelope(definition); err != nil {
+		return err
+	}
+	return invocation.validateArguments(definition)
+}
+
+// ValidateEnvelope checks trusted call/frozen identity independently of the
+// model-owned argument representation, which can be recovered without effects.
+func (invocation CapabilityInvocation) ValidateEnvelope(definition CapabilityDefinition) error {
 	if invocation.SchemaVersion != "" && invocation.SchemaVersion != CapabilityInvocationSchemaVersion {
 		return fmt.Errorf("%w: invocation schema version", ErrInvalidArguments)
 	}
@@ -930,6 +932,15 @@ func (invocation CapabilityInvocation) Validate(definition CapabilityDefinition)
 	if source != "" && source != "model_tool" && source != "policy" && source != "direct" {
 		return fmt.Errorf("%w: invocation source is invalid", ErrInvalidArguments)
 	}
+	if len(invocation.PreparedPayload) > 0 {
+		if _, err := DecodeCapabilityPreparedPayload(invocation.PreparedPayload); err != nil {
+			return fmt.Errorf("%w: %v", ErrInvalidArguments, err)
+		}
+	}
+	return nil
+}
+
+func (invocation CapabilityInvocation) validateArguments(definition CapabilityDefinition) error {
 	arguments, err := NormalizeToolArguments(string(invocation.Arguments))
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidArguments, err)
@@ -1029,6 +1040,19 @@ func ValidateCapabilitySchemaValue(value any, schema map[string]any) error {
 	if len(schema) == 0 {
 		return nil
 	}
+	if types := arrayValue(schema["type"]); len(types) > 0 {
+		for _, rawType := range types {
+			branch := make(map[string]any, len(schema))
+			for key, value := range schema {
+				branch[key] = value
+			}
+			branch["type"] = rawType
+			if err := ValidateCapabilitySchemaValue(value, branch); err == nil {
+				return nil
+			}
+		}
+		return errors.New("value does not match any declared type")
+	}
 	typeName := stringValue(schema["type"])
 	if typeName == "" {
 		if len(arrayValue(schema["required"])) > 0 || len(mapValue(schema["properties"])) > 0 {
@@ -1039,8 +1063,8 @@ func ValidateCapabilitySchemaValue(value any, schema map[string]any) error {
 			for _, raw := range arrayValue(schema["required"]) {
 				key := stringValue(raw)
 				if key != "" {
-					child, present := object[key]
-					if !present || child == nil {
+					_, present := object[key]
+					if !present {
 						return fmt.Errorf("required field %q is missing", key)
 					}
 				}
@@ -1048,7 +1072,7 @@ func ValidateCapabilitySchemaValue(value any, schema map[string]any) error {
 			properties := mapValue(schema["properties"])
 			for key, raw := range properties {
 				child, present := object[key]
-				if !present || child == nil {
+				if !present {
 					continue
 				}
 				if err := ValidateCapabilitySchemaValue(child, mapValue(raw)); err != nil {
@@ -1073,8 +1097,8 @@ func ValidateCapabilitySchemaValue(value any, schema map[string]any) error {
 		for _, raw := range arrayValue(schema["required"]) {
 			key := stringValue(raw)
 			if key != "" {
-				child, present := object[key]
-				if !present || child == nil {
+				_, present := object[key]
+				if !present {
 					return fmt.Errorf("required field %q is missing", key)
 				}
 			}
@@ -1082,7 +1106,7 @@ func ValidateCapabilitySchemaValue(value any, schema map[string]any) error {
 		properties := mapValue(schema["properties"])
 		for key, raw := range properties {
 			child, present := object[key]
-			if !present || child == nil {
+			if !present {
 				continue
 			}
 			if err := ValidateCapabilitySchemaValue(child, mapValue(raw)); err != nil {
@@ -1222,8 +1246,14 @@ func (result CapabilityResult) Validate(invocation CapabilityInvocation) error {
 	if result.CallID != invocation.CallID || result.CapabilityName != invocation.CapabilityName {
 		return errors.New("capability result identity invalid")
 	}
+	if result.Status == "handled" {
+		output := mapValue(result.Output)
+		if result.ErrorCode != "" || result.Retryable || output["handled"] != true || output["effect_applied"] != false || output["mutation_committed"] != false || stringValue(output["disposition"]) == "" || stringValue(output["warning_code"]) == "" {
+			return errors.New("handled capability result must explicitly report no effect and a warning")
+		}
+	}
 	switch result.Status {
-	case "completed", "accepted", "failed", "rejected":
+	case "completed", "accepted", "handled", "failed", "rejected":
 		return nil
 	default:
 		return errors.New("capability result status invalid")
@@ -1357,10 +1387,20 @@ func (runtime *CapabilityRuntime) Execute(ctx context.Context, invocation Capabi
 		return FailedCapabilityResult(invocation, "caller_transaction_required", false), NewCapabilityError("caller_transaction_required", false, ErrConflict)
 	}
 	var err error
+	invocation, err = NormalizeInvocation(ctx, invocation, definition)
+	if err != nil {
+		return FailedCapabilityResult(invocation, "invalid_arguments", false), err
+	}
+	if result, handled, markerErr := PreparedHandledResult(invocation); markerErr != nil {
+		return FailedCapabilityResult(invocation, "invalid_prepared_payload", false), markerErr
+	} else if handled {
+		return result, nil
+	}
 	invocation, err = AugmentCapabilityInvocationProvenance(invocation, definition)
 	if err != nil {
 		return FailedCapabilityResult(invocation, "invalid_arguments", false), fmt.Errorf("%w: %v", ErrInvalidArguments, err)
 	}
+
 	if err := invocation.Validate(definition); err != nil {
 		return FailedCapabilityResult(invocation, "invalid_arguments", false), err
 	}
@@ -1400,6 +1440,14 @@ func (runtime *CapabilityRuntime) Execute(ctx context.Context, invocation Capabi
 	}
 	if len(invocation.ContextSnapshot) == 0 && len(definition.RequiredContext) > 0 {
 		invocation.ContextSnapshot = CapabilityContextSnapshotForSlots(resolved, definition.RequiredContext)
+	}
+	if err := ctx.Err(); err != nil {
+		return FailedCapabilityResult(invocation, "execution_cancelled", false), err
+	}
+	if result, handled, markerErr := PreparedHandledResult(invocation); markerErr != nil {
+		return FailedCapabilityResult(invocation, "invalid_prepared_payload", false), markerErr
+	} else if handled {
+		return result, nil
 	}
 	result, executeErr := capability.Execute(ctx, invocation, resolved)
 	if result.CallID != "" && result.CallID != invocation.CallID {
@@ -1454,10 +1502,20 @@ func (runtime *CapabilityRuntime) Prepare(ctx context.Context, invocation Capabi
 		return invocation, CapabilityContext{}, ErrCapabilityNotFound
 	}
 	var err error
+	invocation, err = NormalizeInvocation(ctx, invocation, definition)
+	if err != nil {
+		return invocation, CapabilityContext{}, err
+	}
+	if _, handled, markerErr := PreparedHandledResult(invocation); markerErr != nil {
+		return invocation, CapabilityContext{}, markerErr
+	} else if handled {
+		return invocation, CapabilityContext{}, nil
+	}
 	invocation, err = AugmentCapabilityInvocationProvenance(invocation, definition)
 	if err != nil {
 		return invocation, CapabilityContext{}, fmt.Errorf("%w: %v", ErrInvalidArguments, err)
 	}
+
 	if err := invocation.Validate(definition); err != nil {
 		return invocation, CapabilityContext{}, err
 	}
@@ -1536,13 +1594,24 @@ func (runtime *CapabilityRuntime) ExecuteTransactional(ctx context.Context, tx p
 	if !ok {
 		return FailedCapabilityResult(invocation, "execution_failed", false), fmt.Errorf("%w: capability is not transactional", ErrCapabilityExecution)
 	}
-	if len(invocation.PreparedPayload) == 0 || (len(definition.RequiredContext) > 0 && len(invocation.ContextSnapshot) == 0) {
-		return FailedCapabilityResult(invocation, "prepared_invocation_required", false), fmt.Errorf("%w: transactional invocation is not frozen", ErrInvalidArguments)
-	}
+
 	var err error
+	invocation, err = NormalizeInvocation(ctx, invocation, definition)
+	if err != nil {
+		return FailedCapabilityResult(invocation, "invalid_arguments", false), err
+	}
+	if result, handled, markerErr := PreparedHandledResult(invocation); markerErr != nil {
+		return FailedCapabilityResult(invocation, "invalid_prepared_payload", false), markerErr
+	} else if handled {
+		return result, nil
+	}
 	invocation, err = AugmentCapabilityInvocationProvenance(invocation, definition)
 	if err != nil {
 		return FailedCapabilityResult(invocation, "invalid_arguments", false), fmt.Errorf("%w: %v", ErrInvalidArguments, err)
+	}
+
+	if len(invocation.PreparedPayload) == 0 || (len(definition.RequiredContext) > 0 && len(invocation.ContextSnapshot) == 0) {
+		return FailedCapabilityResult(invocation, "prepared_invocation_required", false), fmt.Errorf("%w: transactional invocation is not frozen", ErrInvalidArguments)
 	}
 	if err := invocation.Validate(definition); err != nil {
 		return FailedCapabilityResult(invocation, "invalid_arguments", false), err

@@ -342,13 +342,13 @@ Production `StartWorkers` retains Run(nil), queues, deployment version and regis
 - `toolExecutionAuthorizer` is capability-owned and checked before preparation and both receipt replay paths. Evaluation checks formal Agent ID, actual native/provider identity, private run including claim revision, surface, Owner/Fluctlight/profile/request, and active DB claim. Public metadata cannot create private authority.
 - Canonical closed Tool schemas carry short refs only. Immutable wire hydration binds real IDs/versions and enforces ownership. Root payload excludes subordinate evaluations; a root and its frozen due review/relationship confirmation share one transaction. Review adjust requires an already accepted independent plan. Core tracks only its own resulting Goal revision chain; external changes still fail CAS.
 - Each submission commits independently through the existing Tool boundary. A domain rejection rolls its savepoint back before producing a durable failed Tool receipt and normal native feedback. Infrastructure/cancellation errors retain their cause. Root completion cascades normally and does not require positive subordinate judgments. A later malformed Stage, plan, summary or model failure cannot undo completed roots. Paused completion retains paused/ready_for_settlement.
-- Frozen snapshot protocol and request result store accepted per-target digest/result, revision chain, outcome/error diagnostics and successful memos. Same accepted digest replays without revision/outbox changes; changed digest conflicts. Same-request retries preserve ref numbers and accepted state; fresh claim RunID avoids replaying failed agent_runs. Truly changed authority supersedes the frozen request and queues only unresolved roots with fresh authority, preserving pending review links.
+- Frozen snapshot protocol and request result store accepted per-target digest/result, revision chain, outcome/error diagnostics and successful memos. An accepted target replays its original result without revision/outbox changes, including an ignored new payload; original digest/history remain unchanged. Claim, projection, live revision and source fingerprints still guard replay. Same-request retries preserve ref numbers and accepted state; fresh claim RunID avoids replaying failed agent_runs. Truly changed authority supersedes the frozen request and queues only unresolved roots with fresh authority, preserving pending review links.
 - Final assistant JSON is summary-only. Finalization reads the durable journal, never fabricates native calls or applies final prose. Plan/object success cannot cover root evaluation. Unresolved/deferred goals keep shared source events pending; only matching offered source versions are consumed after complete root coverage. Derived goal_revision events are triggers, not proof. Partial successful memos remain reusable and order by actual assessment timestamp; subobject proof links persist independently.
 - Evaluation submissions are excluded from actual business outcome evidence. No new persistence authority, database or LLM orchestration is introduced; snapshot/result and existing tool_executions provide the transaction journal.
 - Local pure/native HTTP tests demonstrate protocol/semantic boundaries. Isolated PostgreSQL tests demonstrate durable completion/rejection/replay/partial-retry/review/source fences only when GO_CORE_TEST_DATABASE_URL is supplied. A skipped database case is not persistence acceptance or live-model evidence.
 
 
-Goal Evaluation's native request stages follow structured-turn-contract.md: uncovered durable roots require ToolCalls without summary response_format; root coverage restores auto + final schema. Frozen-version failures may exit for fresh snapshot recovery, but never count as covered. Tool-free final repair suppresses the request policy. This rule is task-private and does not alter Chat/WakeUp or Goal completion criteria.
+Goal Evaluation's native request stages follow structured-turn-contract.md: uncovered roots require ToolCalls while the session is making progress; ordinary native requests omit final grammar. Root coverage permits optional calls; finite no-progress handling closes Tools and uses the summary grammar. Frozen-version exits and handled awaiting_evidence cycles never count as accepted roots or Goal completion. Tool-free final repair suppresses the request policy. This rule is task-private and does not alter Chat/WakeUp or Goal completion criteria.
 
 
 ### Goal submission journal must remain writable after JSON decode
@@ -359,3 +359,91 @@ Goal Evaluation's native request stages follow structured-turn-contract.md: unco
 
 
 0059_fact_generation_provenance refines the facts fence: Intention cursor-only updates and same-value summary consolidation are operational metadata; real content/status/source changes remain fenced. Runtime summary and daily-memory processing now share chat's per-Fluctlight durable logical lease, with snapshot and commit inside it. New mismatch diagnostic generation-source groups are available only after migration and label incomplete retained/history intervals. See structured-turn-contract.md for exact signatures, matrix and required tests.
+
+## Scenario: Periodic evaluation and deterministic native recovery (2026-10-14)
+
+### 1. Scope / Trigger
+Goal Evaluation was event-driven after two seconds, with one-minute retries and
+unbounded forced Tool correction. User requires one evaluation cycle per 30
+minutes and program handling of recoverable model representation errors.
+
+### 2. Signatures
+- `admitGoalEvaluationCycleTx(ctx, tx, owner, request, available) -> notBefore,error`.
+- `RepairGoalEvaluationCadence(ctx, limit)` produces original durable intents.
+- `normalizeGoalSubmission`, `goalSubmissionReplay`,
+  `goalSubmissionAwaitingEvidence`, `goalEvaluationAcceptedWireResults`.
+- `goalEvaluationProgress.decide(accepted, attempts, missing)` is session-private.
+- Shared `physicalModelRequestDecision.ToolCallFallback *schema.Message` is valid
+  only with forbidden Tool choice and an explicitly empty AllowedToolNames.
+
+### 3. Contracts
+Migration 0063 adds `goal_agent_cadence(fluctlight_id, evaluation_next_at,
+evaluation_request_id, updated_at)`. Under the existing lifecycle/Life/request
+locks, DB time reserves now()+30min per instance, shared across profiles/Workers.
+Pending available_at, retries, frozen snapshots and old direct SQL producers all
+pass this gate. Return deferred/reason=evaluation_cadence/not_before without
+increasing attempt or consuming sources; never sleep while holding a logical
+lease. Repair gives active/paused visible Goals periodic opportunities even with
+no new events. Same-authority memo skips remain legal; clocks do not create facts.
+
+Only the trusted native adapter maps all normalized unknown/no_change to
+needs_evidence, preserving actual unknown judgments. It can supply a technical
+evidence wait if no next/wait state exists. Core's strict validator remains
+unchanged; no unsupported satisfied judgment is promoted. Exact frozen criterion
+refs may trim whitespace; identical duplicate judgments merge evidence. Unknown,
+cross-Goal/object or contradictory duplicates return a handled awaiting_evidence
+receipt with assessment_accepted=false, mutation_committed=false, reason and
+allowed_criterion_refs, with no Goal/revision/memo/accepted-root mutation.
+
+Accepted target replay returns original output plus replayed,
+ignored_payload_change, new_mutation_committed=false and unresolved_goal_refs.
+It never overwrites original digest/history. The recovery input sorts records
+and labels capability_name and submission_kind=root/plan/object with short refs.
+
+Only newly durable accepted targets reset progress. Three consecutive native
+attempts without a new target close this session's Tools. The final request has
+the original summary grammar and no tools/tool_choice/parallel_tool_calls. If a
+successful Provider still returns ToolCalls, task-owned ToolCallFallback supplies
+an operational waiting summary without dispatching those calls. Generate/Stream
+preserve real Provider errors and cancellation; original response/usage diagnostics
+are recorded before adaptation. Other Agents' loop defaults are unchanged.
+
+Before that final request, persist cycle_disposition=awaiting_evidence under claim
+CAS. The handled request may end status=succeeded with disposition=awaiting_evidence,
+assessment_complete=false and unresolved_goals. This is operational cycle closure,
+not native assessment coverage. Do not consume unresolved shared sources, create
+their memo, fabricate a Tool or complete their Goal. Accepted siblings survive;
+replay returns the handled result without restarting the model loop. Actual stale
+authority retains the fresh-snapshot path instead of being disguised as success.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Same instance, next cycle before 30min | deferred with persisted not_before; no new Agent work |
+| Accepted target submitted again with changed payload | original receipt replayed, no second write |
+| All unknown or omitted judgments + no_change | native needs_evidence normalization; Goal not completed |
+| Unresolvable/cross-scope/conflicting criterion | handled waiting receipt; existing authority untouched |
+| Three native attempts add no accepted target | task-owned tool-free closure, explicit unresolved result |
+| Provider ignores empty catalog and returns calls | procedural waiting summary; calls never dispatched |
+| Provider503, stream error, DB failure or actual cancellation | preserve actual error; no fabricated coverage |
+
+### 5. Good / Base / Bad Cases
+Good: accepted plan replay returns its result, unknown root becomes needs_evidence,
+and a stuck sibling ends awaiting evidence. Base: different valid targets keep
+making progress without premature closure. Bad: loop on non-retryable feedback,
+call a plan receipt root coverage, or guess a foreign criterion to make completion.
+
+### 6. Tests Required
+`goal_submission_recovery_test.go` executes production normalization/replay/kind
+helpers and real HTTP/native Generate/Stream, including uncooperative calls after
+empty Tools, Provider503/cancel, and distinct-target progress. Sensitivity tests
+must fail when the old conflict/forced loop behavior is restored. Isolated PG
+tests separately cover no-domain-write waiting, handled replay, original digest,
+partial siblings and pending source retention; SKIP is not persistence proof.
+`goal_agent_cadence_test.go` covers 29m59s/30m boundaries, pending/frozen/profile
+gates, unchanged attempts and no-event repair on a real disposable DB.
+
+### 7. Wrong vs Correct
+Wrong: ask the model indefinitely to fix unknown/no_change or a repeated accepted
+plan. Correct: deterministic native adaptation and original receipt replay,
+finite operational closure, explicit pending evidence and unchanged truth guards.

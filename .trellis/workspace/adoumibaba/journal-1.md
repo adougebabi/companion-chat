@@ -1808,3 +1808,61 @@ T02补来源编辑/撤回与派生lineage并测试原生Loop真实source；T05�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 56: Fact-only reply, durable media and optional vision
+<!-- trellis-session: v=2 fp=d2805b5aab224ddc -->
+
+**Date**: 2026-10-13
+**Task**: Fact-only reply, durable media and optional vision
+**Branch**: `codex/fact-only-reply-vision`
+
+### Summary
+
+Implemented all six deliverables on isolated feature branch. Local Go race, vet/build, Web/client 128 tests, typecheck/build/generated contracts and release helper tests pass. DB/live/deployment regression remains user-owned; no master merge or deployment.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dd89271` | feat(ci): add isolated fact-only image release channel |
+| `ea6d37e` | feat(core): add independent reply and vision settings and context |
+| `9278a21` | feat(core): route private reply tools through independent writer |
+| `b369cd9` | feat(core): resume reply media through durable native continuation |
+| `9a73cd9` | feat(core): make visual inspection an independent optional capability |
+| `27a1bc8` | feat(core): protect reply diagnostics and complete local delivery checks |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- User runs real-model chat/media/vision and rollback acceptance using docs/fact-only-user-verification.md.
+
+
+## Session 57: Writer上下文、换行、图片入口与Kev披露修复
+<!-- trellis-session: v=2 fp=582b03d2a70e7689 -->
+
+**Date**: 2026-10-13
+**Task**: Writer上下文、换行、图片入口与Kev披露修复
+**Branch**: `codex/fact-only-reply-vision`
+
+### Summary
+
+完成Writer近期整轮预算与已存摘要复用、段落换行归一化、固定原生私有图片请求、Kev三工具基线及证据引用租约前验证。完整本地Go/race/vet/build和CI一次性PG/Phase8/Web门禁通过；两fact-only镜像发布并核对digest/源SHA。真实环境验收由用户负责。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `46bb413` | fix(core): bound reply context and require native image handoffs |
+| `b024f35` | test(core): query media owner in reply denial assertion |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 用户使用b024f35对应不可变Core/Web测试镜像统一验收。

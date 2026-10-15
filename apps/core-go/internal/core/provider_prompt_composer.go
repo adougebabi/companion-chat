@@ -24,7 +24,7 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 const providerSingleRuntimeProtocol = `1. 自然语言用中文；协议字面量保持原文。core_persona 约束身份与行为，developing_self 是有来源软线索；当前身体、穿着、地点与持有以有效 current_state 为准。人格偏好和旧聊天不能覆盖当前事实；后两者不得升级为固定人格。
 2. life_context 的 scene/activity/location 属于 actor_self。actor_user 说“我在家”不授权 scene_event；只有明确要求 actor_self 移动或其自身行动已获授权，才依据真实 Tool 结果变更场景。
 3. Human 与 Fluctlight 都是 Actor；以关系上下文识别发送者，不以 transport role=user 判定 actor_user。
-4. 认知只写摘要，事实须有依据；evidence_refs 照抄上下文中的 ref（包括 cr_ 短标号），不得编造。外部能力须真实调用 Tool，不得声称未完成的结果。
+4. 认知只写摘要，事实须有依据；evidence_refs 照抄上下文正式 ref 字段（包括 cr_ 短标号），历史 message/source_refs 不属于可执行证据引用，不得编造。外部能力须真实调用 Tool，不得声称未完成的结果。
 `
 
 func renderProviderRuntimeProtocol(persona map[string]any) string {
@@ -216,11 +216,30 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 // tasks while giving WakeUp its own complete fixed protocol. Surface is an
 // explicit assembly input; model/user text is never inspected to select it.
 func renderProviderSystemForSurface(surface ProviderContextSurface, operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {
+	if surface == ProviderContextSurfaceFactOnlyCognition {
+		var builder strings.Builder
+		builder.WriteString("# 运行协议\n\n" + factOnlyCognitionProtocol + "\n\n" + strings.Join(operationRules, "\n\n"))
+		appendProviderPersona(&builder, persona, role)
+		return strings.TrimSpace(builder.String())
+	}
+	if surface == ProviderContextSurfaceFactOnlyReply {
+		var builder strings.Builder
+		builder.WriteString("# 运行协议\n\n")
+		builder.WriteString(strings.Join(operationRules, "\n\n"))
+		appendProviderPersona(&builder, persona, role)
+		return strings.TrimSpace(builder.String())
+	}
 	if surface != ProviderContextSurfaceWakeUp {
 		return renderProviderSystem(operationRules, persona, actorRelationshipContext, role)
 	}
 	var builder strings.Builder
-	builder.WriteString(wakeUpProviderFixedProtocol)
+	wakeProtocol := wakeUpProviderFixedProtocol
+	for _, rule := range operationRules {
+		if rule == factOnlyConversationPolicy {
+			wakeProtocol = strings.Replace(wakeProtocol, "并给出稳定 topic_key 和真实 purpose", "并给出稳定 topic_key；purpose由服务端提供，不作为模型参数", 1)
+		}
+	}
+	builder.WriteString(wakeProtocol)
 	filteredRules := make([]string, 0, len(operationRules))
 	for _, rule := range operationRules {
 		trimmed := strings.TrimSpace(rule)

@@ -1,0 +1,14 @@
+{
+  "fixture_version": 2,
+  "baseline_commit": "d696c44",
+  "classification": "document_excerpt_plus_explicit_synthetic_not_original_incident_wire",
+  "baseline_method": "Reconstructed from unchanged legacy helpers and protocol constants in git HEAD on corrected production Actor shape. Cognition context-only baseline fixes v2 tool schema for comparison. No model calls or real publication.",
+  "correction": "v1 Actor fixture used id; v2 uses the actual actor_id fields and includes synthetic relationship rows. Baselines regenerated once before freezing this manifest.",
+  "sha256": {
+    "cognition-before-context.synthetic.json": "d06c256c593d054fdc79ac2c1dd997661e358842f79c41eb560e67aa354469bb",
+    "before.synthetic.json": "b4e5b64ca43c9010a5956fcde7f0bbd6a6171c05bde17b54e296371755900b3e",
+    "reported_morning.synthetic.json": "05a3c804b4b5ddfab652ab42ffeb1cc959c7fff2f98e24e2c386092678be9656"
+  },
+  "actual_provider_usage": null,
+  "actual_model_latency_ms": null
+}

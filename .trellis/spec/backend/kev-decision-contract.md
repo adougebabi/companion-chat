@@ -1,5 +1,11 @@
 # Kev Decision Contract
 
+2026-10-14 availability amendment: apply [Tool Availability](./tool-availability-contract.md).
+Older execution-denial wording for Kev No, config revocation and disclosure-window
+replacement is superseded for installed current-scope Tools. Keep raw decisions
+and disclosure history, expose warning_code, and preserve actual installation and
+resource authority. Querying a name does not grant another private surface.
+
 ## 1. Scope / Trigger
 
 Kev gates eligible WakeUp, Reflection, Goal assessment/replenishment, permitted
@@ -24,7 +30,7 @@ Kev migration is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`
 
 ## 3. Contracts
 
-Disabled points do not build optional candidates or call Kev. Fallback remains
+Disabled points do not build optional candidates or call Kev. Except for public Tool disclosure (three-tool baseline), fallback remains
 a lazy original branch, never a false/no action. Parent cancellation ends the
 business request; only child timeout/invalid response/budget failures fall back.
 Check parent cancellation after settings I/O and recheck config version before
@@ -56,8 +62,7 @@ Tool discovery is an independent pure query (`read_only`) and returns only the
 current Agent's original installation when run-scoped. Validate the complete load
 request before changing visibility. The full authorized executor table is fixed;
 v0.7.37 `model.WithTools` call options supply the actual visible schema per physical
-request. Match physical budget/diagnostics to that schema. Selection happens at
-prompt assembly; invocation cannot select against a stale already-built prompt.
+request. Match physical budget/diagnostics to that schema. Public schema state is established during assembly even if Kev is disabled. Named catalog requests start a fresh bounded selection stage; every physical request and native execution rechecks that state/configuration.
 
 Persona admission requires the original installed persona.switch and a refresh
 plan before any side effect. A semantic yes uses the original independent Tool,
@@ -77,7 +82,7 @@ are bounded and consumed before release. Test both Generate and Stream.
 
 | Condition | Behavior |
 | --- | --- |
-| Global/per-point disabled | zero Kev HTTP, original schemas/context/rules |
+| Global/per-point disabled | zero Kev HTTP; public schemas use baseline, other context/rules use original |
 | Parent cancellation during settings/model call | cancelled error, no fallback work |
 | Unknown choice, invalid distribution, missing answer | original for affected question |
 | Invalid envelope/unknown question ID/over-limit response | batch original; retained bounded evidence labelled |
@@ -155,27 +160,30 @@ Correct: explicit typed per-batch projection and actual deadline-cause diagnosti
 Kev narrows an Agent's authorized Tool installation. Mandatory tools and discovery utilities must remain available without Kev questions.
 
 ### 2. Signatures
-`FormalAgentDefinition.MandatoryTools []string` declares each Agent's whitelist. `capability.catalog({})` returns `{items:[{name,purpose,parameters}],count,run_scoped}`. `capability.discover({names:[...]})` loads 1–8 installed names for subsequent physical requests.
+`capability.catalog({})` lists the authorized installation. `capability.catalog({names:[...]})` validates and asks Kev to admit up to eight names; returns `loaded`, typed `unavailable`, and `replaces_optional_window`. Legacy discover is not in the public executor/disclosure view. `decision.WithFreshStageBudget` creates each later directory stage without changing the shared preparation-stage contract.
 
 ### 3. Contracts
-Intersect the Agent whitelist with its actual authorized installation; it grants no new permission. Conversation Cognition/WakeUp own reply, moment.publish and media.image.generate; TakeoverReply owns reply; NativeCognition owns reply/image; DailyReview owns reply/moment/image. Private GoalPlanner/Evaluation/VisualIdentity keep their dedicated catalogs and bypass Kev. Tool-free Agents stay tool-free. Both recovery utilities are always visible on supported tool-bearing surfaces, excluded from business candidates and preserved during disabled/version-changed/settings-error fallback. Every remaining business Tool is one independent candidate. Catalog is read-only and does not load anything; its run-scoped set is the original installed business catalog. Discovery validates all names before changing run-local loaded state. Loaded schemas reach the next actual Generate/Stream request and are never vetoed by the prior selection. No full business-schema directory is put in every prompt.
+The public baseline is conversation.reply, capability.catalog, moment.publish intersected with the actual installation. Establish run-local disclosure even if Kev is disabled/error. Keep full executors, but use the same disclosed set for prompt/parent and physical budgets, diagnostics, Generate/Stream and native execution guard. Named requests replace the optional schema window, never accumulate 38 tools. Optional names first pass Kev when tools.select is enabled. An admitted audited No stays denied. Disabled/unclear/timeout/service/audit failure uses the original explicitly requested authorized window, with admission=catalog_fallback and its real fallback_reason; never full original installation or any unrequested tool. The first request remains baseline. Actual configuration version/enablement changes revoke the optional window; stable disabled/read failure is not labelled a configuration change. Preserve the actual Kev reason when finishing audit records. Validate the entire named request before mutating anything. An unqueried hidden tool is distinct from a queried denial. Private Goal/VisualIdentity tools and the Writer's private image-request contract bypass public directory selection. Tool-free tasks keep zero tools.
 
 ### 4. Validation & Error Matrix
 | Condition | Behavior |
 | --- | --- |
-| Kev says no to every optional Tool | whitelist plus recovery utilities remain |
-| Discover includes foreign/private name | capability_not_authorized; no partial load |
-| Settings read fails or version changes before physical call | original business installation plus recovery utilities |
-| Empty typed installation | zero tools, including utilities |
+| first public request, including disabled/error Kev | installed baseline only, at most three |
+| named optional request + current yes or bounded original fallback | next actual schema includes only requested names, max baseline+8 |
+| admitted No | denied/tool_not_selected, no schema/execution |
+| stable disabled/unclear/service/audit failure | bounded named fallback, truthful admission/fallback_reason |
+| configuration really changed after selection | optional window revoked/tool_selection_changed |
+| named query includes foreign/private name | whole request rejected; no partial visibility changes |
+| empty typed installation | zero tools |
 
 ### 5. Good / Base / Bad Cases
-Good: catalog → discover installed hidden Tool → next physical request exposes it → native execution. Base: a mandatory reply is available without selection. Bad: ask Kev whether catalog itself is needed, or query Goal Evaluation private tools from ordinary chat.
+Good: catalog names query → actual audited admission → next native request calls installed tool. Base: reply/catalog/moment available without selection. Bad: full table after Kev failure, automatic selection of every installation, or a directory dump granting private tools.
 
 ### 6. Tests Required
-`TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptionalTool`, `TestKevPhysicalRequestFallbackKeepsRecoveryUtilities`, `TestCapabilityCatalogReturnsRunScopedPurposesAndParametersWithoutLoading` and `TestKevNativeLoopDiscoversAndExecutesHiddenTool` assert candidate exclusion, fallback preservation, permission scope and actual Generate/Stream schema growth. Fixed inventories include 48 registered tools.
+Actual Generate/Stream baseline and native catalog→hidden execution, fresh catalog budget after expired preparation, all-none/foreign request atomicity, bounded replacement windows, configuration revocation and audit failure. Reply-owned media denial reaches result-aware Writer adjustment without an image execution or invented attachment.
 
 ### 7. Wrong vs Correct
-Wrong: one global whitelist based on output role, or a catalog dump granting hidden private tools. Correct: explicit Agent whitelist intersected with installation, read-only scoped directory, then additive native schema loading.
+Wrong: full-original fallback or a schema-only filter with full executor access. Correct: fixed authorized executor plus a mandatory run-local disclosure/permission state, with demand-driven audited loading.
 
 ## Scenario: Media multi-choice and compatible settings (2026-10-11)
 
@@ -231,11 +239,11 @@ Provider schema rejection or weaken argument authorization.
 | objectSchema receives nil properties | explicit nonnil empty object |
 | catalog arguments {} | valid |
 | catalog arguments contain extra field | reject |
-| Kev disabled/version/settings fallback | original schemas retain properties objects |
+| Kev disabled/version/settings fallback | baseline schemas retain properties objects |
 | tool discovered for next request | subsequent actual schema retains properties object |
 
 ### 5. Good/Base/Bad Cases
-Good: catalog remains available with explicit empty parameters.
+Good: catalog remains available with explicit object parameters; optional names does not make {} invalid.
 Base: existing nonempty object schemas are unchanged. Bad: delete the tool,
 relax additionalProperties or only check a map before SDK serialization.
 
@@ -300,3 +308,7 @@ output is parsed into a fabricated reply. Correct: verify the exact loaded
 combination through the public API, keep original native IDs/receipts, and retain
 the existing execution/authorization contract. Never extract private backend
 credentials as a compatibility workaround.
+
+2026-10-14 regression: globally disabled or media-only tools.select=false previously produced two baseline loaded and six tool_selection_changed despite a stable revision. Test both modes and actual Generate/Stream catalog→execution; test that neither fallback nor later directory calls widen beyond the current named window. Raw unaudited model answers are not adopted.
+
+A failed initial read has an unknown revision, not revision-zero authority. Anchor a named fallback on the next successful snapshot. Distinguish Admit settings_unavailable from config_changed. Once an optional window observes a real revision/enablement change, revoke it persistently until a fresh named query; later read errors cannot resurrect it.

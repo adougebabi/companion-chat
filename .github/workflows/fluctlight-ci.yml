@@ -6,12 +6,17 @@ on:
       - main
       - master
       - 'codex/go-*'
+      - codex/fact-only-reply-vision
   pull_request:
     branches:
       - main
       - master
       - 'codex/go-*'
+      - codex/fact-only-reply-vision
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,7 +25,7 @@ concurrency:
 jobs:
   # Parallel validation jobs: Go backend and Web frontend validate concurrently
   validate-go:
-    if: false # Temporarily skipped for rapid iteration
+    if: github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -68,6 +73,14 @@ jobs:
         run: |
           ./infra/acceptance/run-phase8-contract-gates.sh "$RUNNER_TEMP/phase8-eino-contract-gate"
 
+      - name: Test fact-only controlled database contracts
+        env:
+          GO_CORE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+          FLUCTLIGHT_LIVE_PROVIDER_TEST: '0'
+        run: |
+          go -C apps/core-go test -race ./internal/core -count=1 -v \
+            -run '^Test(FactOnlyMomentPublication|ReplyMediaPublication|ReplyMediaCatalogDenial|ReplyEvidenceRecovery|VisionOptionalReview|MediaQualityFinalProviderRequest)'
+
       - name: Vet Go Core
         run: |
           go -C apps/core-go vet ./...
@@ -92,7 +105,7 @@ jobs:
         run: docker compose --env-file infra/compose/fluctlight.env.example -f infra/compose/fluctlight.compose.yml config --quiet
 
   validate-web:
-    if: false # Temporarily skipped for rapid iteration
+    if: github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -133,10 +146,17 @@ jobs:
 
   # Aggregated validation gate preserved for branch protection and downstream dependencies
   validate:
+    needs: [validate-go, validate-web]
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Skip validation
-        run: echo "Validation skipped during rapid iteration"
+      - name: Require configured validation jobs to succeed
+        env:
+          GO_RESULT: ${{ needs.validate-go.result }}
+          WEB_RESULT: ${{ needs.validate-web.result }}
+        run: |
+          test "$GO_RESULT" = success -o "$GO_RESULT" = skipped
+          test "$WEB_RESULT" = success -o "$WEB_RESULT" = skipped
 
   # The integration branch is the only non-production branch allowed to push
   # images. Stage branches should merge here before their images are shared.
@@ -213,6 +233,89 @@ jobs:
             ${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.image }}:go-${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  # Test images never share a mutable tag with the stable publication jobs.
+  fact-only-build:
+    needs: validate
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/codex/fact-only-reply-vision'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: core
+            file: apps/core-go/Dockerfile
+            image: fluctlight-core-go
+            build_args: GOPROXY=https://proxy.golang.org,direct
+          - name: web
+            file: apps/web/Dockerfile
+            image: fluctlight-web
+            build_args: NPM_REGISTRY=https://registry.npmjs.org
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the actual checked out source
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build immutable test image
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.image }}:fact-only-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            io.fluctlight.source.ref=${{ github.ref }}
+            io.fluctlight.build.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      - name: Record this image digest
+        env:
+          RELEASE_COMPONENT: ${{ matrix.name }}
+          RELEASE_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.image }}
+          RELEASE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: python3 infra/release/fact_only_release.py record --output "${RELEASE_COMPONENT}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fact-only-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ matrix.name }}.json
+          if-no-files-found: error
+
+  fact-only-promote:
+    needs: fact-only-build
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/codex/fact-only-reply-vision'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: fact-only-image-promotion
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fact-only-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-images
+          merge-multiple: true
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Verify the complete set and promote only the current branch head
+        run: python3 infra/release/fact_only_release.py promote --directory release-images --output fact-only-release.json
+      - name: Preserve complete or partial promotion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fact-only-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: fact-only-release.json
+          if-no-files-found: warn
 
   # Production tags remain protected by the main/master branch boundary.
   publish:

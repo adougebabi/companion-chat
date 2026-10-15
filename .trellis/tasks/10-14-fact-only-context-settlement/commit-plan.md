@@ -1,0 +1,79 @@
+# 待审阅提交计划
+
+所有列出的变更均由本任务产生；未发现不认识的 dirty 文件。用户已明确回复“提交吧”，批准以下四笔本地工作提交；实际提交记录以 git log 为准。按顺序执行，不 amend、不 push、不合并 master、不部署。归档与 journal 不属于此批工作提交。
+
+## 1. test(core): freeze fact-only input evidence
+
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/call-chains.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/source-integrity.json`
+- `.trellis/tasks/10-14-fact-only-context-settlement/source-requirements.md`
+- `apps/core-go/internal/core/testdata/fact_only_context/before.synthetic.json`
+- `apps/core-go/internal/core/testdata/fact_only_context/cognition-before-context.synthetic.json`
+- `apps/core-go/internal/core/testdata/fact_only_context/manifest.json`
+- `apps/core-go/internal/core/testdata/fact_only_context/reported_morning.synthetic.json`
+
+## 2. fix(core): project fact-only context from scoped facts
+
+- `apps/core-go/internal/core/effective_life.go`
+- `apps/core-go/internal/core/fact_only_context_views.go`
+- `apps/core-go/internal/core/fact_only_facts.go`
+- `apps/core-go/internal/core/fact_only_history.go`
+- `apps/core-go/internal/core/fact_only_reply_facts.go`
+- `apps/core-go/internal/core/goal_execution.go`
+- `apps/core-go/internal/core/prompt_context_assembler.go`
+- `apps/core-go/internal/core/provider_context.go`
+- `apps/core-go/internal/core/reply_context.go`
+
+## 3. fix(core): isolate reply routing and final settlement
+
+- `apps/core-go/internal/core/cognition_agent.go`
+- `apps/core-go/internal/core/eino_model_request_policy.go`
+- `apps/core-go/internal/core/eino_model_runtime.go`
+- `apps/core-go/internal/core/fact_only_cognition_protocol.go`
+- `apps/core-go/internal/core/fact_only_reply_capability.go`
+- `apps/core-go/internal/core/fact_only_request_phase.go`
+- `apps/core-go/internal/core/physical_request_diagnostics.go`
+- `apps/core-go/internal/core/provider_prompt_composer.go`
+- `apps/core-go/internal/core/reply_media.go`
+- `apps/core-go/internal/core/tool_publication.go`
+
+## 4. test(core): verify context and settlement boundaries
+
+- `.trellis/spec/backend/fact-only-reply-contract.md`
+- `.trellis/spec/backend/fluctlight-diagnostics-contract.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/acceptance-matrix.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/check.jsonl`
+- `.trellis/tasks/10-14-fact-only-context-settlement/commit-plan.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/design.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/implement.jsonl`
+- `.trellis/tasks/10-14-fact-only-context-settlement/implement.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/implementation-state.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/local-check.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/prd.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/context-diagnostics-contract.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/context-native-contract.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/context-repair-contract.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/external-docs.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/fact-provenance.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/goal-fields.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/planning-review.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/review-resolutions.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/runtime-code-review.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/time-diagnostics.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/research/view-code-review.md`
+- `.trellis/tasks/10-14-fact-only-context-settlement/task.json`
+- `.trellis/tasks/10-14-fact-only-context-settlement/verification/check-summary.json`
+- `.trellis/tasks/10-14-fact-only-context-settlement/verification/cognition-after.synthetic.json`
+- `.trellis/tasks/10-14-fact-only-context-settlement/verification/commit-plan.json`
+- `.trellis/tasks/10-14-fact-only-context-settlement/verification/context-metrics.json`
+- `.trellis/tasks/10-14-fact-only-context-settlement/verification/reply-after.synthetic.json`
+- `apps/core-go/internal/core/fact_only_context_view_test.go`
+- `apps/core-go/internal/core/fact_only_settlement_integration_test.go`
+- `apps/core-go/internal/core/fact_only_suppression_integration_test.go`
+- `apps/core-go/internal/core/tool_final_schema_separation_test.go`
+- `docs/fact-only-context-protocols.md`
+- `docs/fact-only-context-settlement-report.md`
+
+## 验证及限制
+
+完整 Go/race/vet/build 和 pnpm 门禁已通过；新增 PG 八场景 SKIP，真实模型/环境 NOT_RUN。fixture 为合成/重建材料，不是事故原始请求。详见实施报告。

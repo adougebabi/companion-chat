@@ -1,13 +1,15 @@
 export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings";
-export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "kev" | "owner";
+export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "kev" | "owner" | "reply" | "vision";
 export type DiagnosticsSection = "lifecycle" | "agent-runs" | "model-runs" | "media-prompts" | "events" | "kev-decisions" | "workflows";
 export type WorkspaceSection = SettingsSection | DiagnosticsSection;
 
 export const settingsSections = [
   { id:"kev",label:"Kev 决策",description:"开关、服务地址和判定策略" },
-  { id: "model-role", label: "模型角色绑定", description: "为通用 LLM 或 Embedding 选择模型和预算" },
+  { id: "model-role", label: "模型角色绑定", description: "为认知、回复、视觉和 Embedding 选择模型" },
+  { id: "reply", label: "私聊回复模型", description: "Fact-only 模式与独立采样参数" },
+  { id: "vision", label: "视觉理解能力", description: "可选看图与设定卡校验，不控制媒体生成" },
   { id: "endpoint", label: "模型 Endpoint", description: "管理模型服务地址和协议" },
-  { id: "binding", label: "当前角色绑定", description: "查看两个绑定目标当前使用的模型" },
+  { id: "binding", label: "当前角色绑定", description: "查看各个绑定目标当前使用的模型" },
   { id: "media", label: "ComfyUI", description: "图片生成服务与工作流" },
   { id: "operations", label: "运行策略", description: "自治行为与诊断保留" },
   { id: "owner", label: "所有者", description: "密码和本地会话" },

@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"errors"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -15,14 +17,19 @@ func (a *App) recordGoalEvaluationSubmissionErrors(ctx context.Context, snapshot
 	_, receipts := trace.Snapshot()
 	errors := []map[string]any{}
 	for _, receipt := range receipts {
-		if isGoalEvaluationTool(receipt.CapabilityName) && receipt.ErrorCode != "" {
-			errors = append(errors, map[string]any{"call_id": receipt.CallID, "capability_name": receipt.CapabilityName, "status": receipt.Status, "error_code": receipt.ErrorCode})
+		code := goalSubmissionReceiptCode(receipt)
+		if isGoalEvaluationTool(receipt.CapabilityName) && code != "" {
+			errors = append(errors, map[string]any{"call_id": receipt.CallID, "capability_name": receipt.CapabilityName, "status": receipt.Status, "error_code": code})
 		}
 	}
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	_, err := a.DB.Pool().Exec(recordCtx, `UPDATE public.goal_evaluation_requests SET result=jsonb_set(result,'{submission_errors}',$3::jsonb,true),updated_at=now() WHERE id=$1 AND status='processing' AND claim_revision=$2`, snapshot.RequestID, snapshot.ClaimRevision, jsonBytes(errors))
 	return err
+}
+
+func goalSubmissionReceiptCode(result CapabilityResult) string {
+	return firstString(result.ErrorCode, stringValue(mapValue(result.Output)["warning_code"]))
 }
 
 func (a *App) goalEvaluationSubmissionResult(ctx context.Context, snapshot goalEvaluationSnapshot) (map[string]any, error) {
@@ -33,7 +40,7 @@ func (a *App) goalEvaluationSubmissionResult(ctx context.Context, snapshot goalE
 
 const goalEvaluationNativeInstruction = `你是专用 Goal Evaluation Agent，评估输入中冻结的目标与真实证据。实际状态只由原生 Tool 提交，最终只返回 summary，文字不能修改目标。
 只使用输入的 goal_ref、criterion_ref、object_ref、stage_ref、actor ref 和 eN 证据引用；Core 绑定真实 ID、版本、所有权和请求身份。每个目标必须通过 goal.evaluation.submit 提交一次根目标评估。accepted_submissions 中已有的提交已落库，不重复评估或改变它。逐个读取真实 Tool 结果；失败表示本次未提交，按 error_code 修正对应调用，不能声称成功，也不重做已接受的其他目标。
-保留原目的和成功标准。每项 criterion_ref 只有一条 judgment，合并其证据。kind 为 communication/relationship/acquisition/information/semantic，subject 为 actor_self/target_actor/both/domain，discourse 为 assertion/domain_fact/quotation/hypothesis/plan/refusal/report/uncertain。证据不明用 unknown；quotation/hypothesis/plan/report/uncertain 不可 satisfied。not_satisfied 的 criterion_quote 必须逐字引用原标准中的非空未满足要求；其他建议只放 optional_improvement。不可新增原标准没有要求的类型、篇幅、阅读反馈或阈值。
+保留原目的和成功标准。每项 criterion_ref 只有一条 judgment，合并其证据。kind 为 communication/relationship/acquisition/information/semantic，subject 为 actor_self/target_actor/both/domain，discourse 为 assertion/domain_fact/quotation/hypothesis/plan/refusal/report/uncertain。证据不明用 unknown；全部 unknown（包括缺项）须 impact=needs_evidence，不用 no_change；quotation/hypothesis/plan/report/uncertain 不可 satisfied。not_satisfied 的 criterion_quote 必须逐字引用原标准中的非空未满足要求；其他建议只放 optional_improvement。不可新增原标准没有要求的类型、篇幅、阅读反馈或阈值。
 消息证明 author 实际说出的话。用户本人说“看小说”是 assertion；转述别人做了什么不是业务事实。表达心意只要求自己实际明确发出表达；双方关系须双方在相关语境分别明确确认，用 both 与双方真实证据，用户一般想恋爱不等于选择摇光。模型自述、草稿、沉默、未来计划不能证明结果。获取须真实入库记录及 object ref；获取不等于穿着，accepted 不等于结果已生成。valid=false 或 can_support_success=false 不能证明成功。
 按 criteria_policy 判定。原目标完成条件满足，impact 必须 completed；未满足不能 completed。父目标满足就先提交根目标完成，不强制重演阶段/承诺，不为它提交计划，不把“等待读后感”等后续聊天变为未完成要求。Core 返回 status=completed 才能报告完成；paused 返回 ready_for_settlement 仍保持暂停。
 根目标 Tool 不接受阶段/承诺评估。未完成目标的现有阶段或承诺，用 goal.object.submit 独立评估；其完成不证明父目标完成。阶段/承诺报错不影响其他提交。父目标已完成后，无需再提交子对象。
@@ -43,8 +50,37 @@ reviews 中列出的目标必须在根目标提交中包含 review：reason_cate
 
 func goalEvaluationAcceptedWireResults(binding *goalEvaluationWireBinding, result map[string]any) []map[string]any {
 	values := []map[string]any{}
-	for _, record := range goalSubmissionRecords(result) {
-		values = append(values, cloneMap(record.Output))
+	records := goalSubmissionRecords(result)
+	keys := make([]string, 0, len(records))
+	for key := range records {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		record := records[key]
+		value := cloneMap(record.Output)
+		for _, name := range []string{goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit} {
+			for id, ref := range binding.goalRefsByID {
+				prefix := goalSubmissionKey(name, id, "")
+				if !strings.HasPrefix(key, prefix) {
+					continue
+				}
+				objectRef := strings.TrimPrefix(key, prefix)
+				matches := objectRef == "" && name != goalObjectSubmit
+				if name == goalObjectSubmit {
+					stage, stageOK := binding.stagesByRef[objectRef]
+					commitment, commitmentOK := binding.commitmentsByRef[objectRef]
+					matches = stageOK && stage.GoalID == id || commitmentOK && commitment.GoalID == id
+				}
+				if matches {
+					value["capability_name"], value["submission_kind"], value["goal_ref"], value["replayed"] = name, goalSubmissionKind(name), ref, true
+					if name == goalObjectSubmit {
+						value["object_ref"] = objectRef
+					}
+				}
+			}
+		}
+		values = append(values, value)
 	}
 	return values
 }
@@ -181,6 +217,11 @@ func (a *App) finalizeGoalEvaluationSubmissions(ctx context.Context, snapshot, c
 		result["goal_outcomes"] = outcomes
 		if len(missing) > 0 {
 			result["status"] = "partial"
+			if result["cycle_disposition"] == "awaiting_evidence" && !goalEvaluationNeedsFreshSnapshot(result) {
+				result["status"], result["disposition"], result["assessment_complete"] = "succeeded", "awaiting_evidence", false
+				_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='succeeded',result=$2,claimed_at=NULL,error_code=NULL,updated_at=now() WHERE id=$1`, snapshot.RequestID, jsonBytes(result))
+				return err
+			}
 			_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET result=$2,updated_at=now() WHERE id=$1`, snapshot.RequestID, jsonBytes(result))
 			return err
 		}
@@ -244,11 +285,11 @@ func (a *App) finalizeGoalEvaluationSubmissions(ctx context.Context, snapshot, c
 				}
 			}
 		}
-		result["status"] = "succeeded"
+		result["status"], result["assessment_complete"] = "succeeded", true
 		_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='succeeded',result=$2,claimed_at=NULL,error_code=NULL,updated_at=now() WHERE id=$1`, snapshot.RequestID, jsonBytes(result))
 		return err
 	})
-	if err == nil && len(missing) > 0 {
+	if err == nil && len(missing) > 0 && result["disposition"] != "awaiting_evidence" {
 		err = errors.New("goal_evaluation_native_submission_missing")
 	}
 	return result, err

@@ -19,6 +19,7 @@ import (
 func (a *App) conversationRuntime() ConversationRuntime { return newConversationRuntime(a) }
 
 type TurnResult struct {
+	ReplyStatus   string
 	UserMessage   map[string]any
 	Assistant     map[string]any
 	MediaIntentID string

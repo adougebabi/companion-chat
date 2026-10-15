@@ -142,6 +142,12 @@ func WithStageBudget(ctx context.Context, budget time.Duration) context.Context 
 	return context.WithValue(ctx, stageDeadlineKey{}, time.Now().Add(budget))
 }
 
+// WithFreshStageBudget starts a new explicit selection stage, e.g. a later
+// directory request after prompt assembly. The parent's deadline still applies.
+func WithFreshStageBudget(ctx context.Context, budget time.Duration) context.Context {
+	return context.WithValue(ctx, stageDeadlineKey{}, time.Now().Add(budget))
+}
+
 type Answer struct {
 	Type          string             `json:"type"`
 	Choice        string             `json:"choice"`
@@ -543,7 +549,9 @@ func (r *Result) Admit(ctx context.Context) (Outcome, error) {
 	}
 	if e != nil || v != r.Record.ConfigVersion || !c.Allows(r.Record.Point) {
 		reason := "config_changed"
-		if e == nil && !c.Allows(r.Record.Point) {
+		if e != nil {
+			reason = "settings_unavailable"
+		} else if !c.Allows(r.Record.Point) {
 			reason = "discarded_after_disable"
 		}
 		r.Finish(ctx, "original_used", reason, "")

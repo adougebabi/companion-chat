@@ -16,6 +16,7 @@ boundaries described below.
 | [Independent Goal Planner](./goal-planner-contract.md) | Set capacity, native Planner, Actor edits, policy/fact fences, scope-safe events, migration and acceptance |
 | [Goal/Life Consistency](./goal-life-consistency-contract.md) | Actor facts, business time, acquisition/use, cumulative summary, repair and diagnostic paging |
 | [Quality Guidelines](./quality-guidelines.md) | Safe changes and verification |
+| [Tool Availability](./tool-availability-contract.md) | All installed Tools, warning/recovery, truthful handled receipts, savepoint rollback and retained authority/effect conditions |
 | [Fluctlight API Contract](./fluctlight-api-contract.md) | Go HTTP/OpenAPI boundary, generated/reference clients, NDJSON streaming, cancellation, errors, health, and framework isolation |
 | [Fluctlight Browser Boundary Contract](./fluctlight-bff-contract.md) | Go API HTTP browser boundary, checked browser contract, NDJSON translation, media proxy, errors, and storage isolation |
 | [Fluctlight Auth Contract](./fluctlight-auth-contract.md) | Single Owner Human setup, Argon2id, opaque sessions, cookie/CSRF transport, service identity, authorization, and recovery |
@@ -23,6 +24,7 @@ boundaries described below.
 | [Fluctlight Persistence Contract](./fluctlight-persistence-contract.md) | Clean-start PostgreSQL module ownership, Unit of Work, short transactions, outbox, external intents, and recovery |
 | [Fluctlight Cognitive Runtime Contract](./fluctlight-cognitive-runtime.md) | Clean-start semantic ownership, LLM-first perception/appraisal/decision/reflection, forbidden heuristic fallbacks, and anti-drift tests |
 | [Structured Turn Contract](./structured-turn-contract.md) | Provider JSON/tool control, affect/drives state, explicit memory, and chat commit boundaries |
+| [Fact-only Reply Contract](./fact-only-reply-contract.md) | Independent reply model, run schema/config snapshots, draft cache, publication and failure boundaries |
 | [Effective Life Contract](./effective-life-contract.md) | Shared current body, wardrobe, profile habits, virtual activity outcomes, backfill and prompt consumers |
 | [Persona Layer Contract](./persona-layer-contract.md) | Core Persona, evidence-backed Developing Self, Current State ownership, initialization, reflection and anti-drift boundaries |
 | [Fluctlight Memory Contract](./fluctlight-memory-contract.md) | Typed Memory authority, provenance, pgvector/FTS hybrid retrieval, async embeddings, visibility, and prompt budgeting |

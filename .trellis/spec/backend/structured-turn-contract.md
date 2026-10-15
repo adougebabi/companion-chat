@@ -437,9 +437,10 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 `withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicy)` installs a private task callback. `DecidePhysicalModelRequest(ctx) -> {ToolChoice, OmitResponseFormat}, error` is evaluated by queued Generate/Stream for each physical request. `goalEvaluationPhysicalRequestPolicy` reads `(status, claim_revision, result)` from the owning `goal_evaluation_requests` row using frozen request/Fluctlight/profile identity. No public arguments or settings are added.
 
 ### 3. Contracts
-- While durable `goal.evaluation.submit` records do not cover all frozen roots, send canonical native Tools with `tool_choice="required"` and omit `response_format` from the serialized body. The original registry schemas, thinking flag, headers and physical call IDs remain intact. Object/plan receipts and summary prose cannot cover a root.
+- While durable `goal.evaluation.submit` records do not cover all frozen roots and the session has not reached its finite no-progress disposition, send canonical native Tools with `tool_choice="required"` and omit `response_format` from the serialized body. The original registry schemas, thinking flag, headers and physical call IDs remain intact. Object/plan receipts and summary prose cannot cover a root.
 - When root submissions are accepted, restore `tool_choice="auto"` while keeping the native request free of final response grammar. Optional object/plan calls remain allowed; the successful stopping candidate is validated against the original final contract, with at most one existing tool-free repair if needed.
-- A real frozen source/authority conflict permits an error summary so the existing finalizer can queue unresolved/deferred targets with a fresh snapshot. This escape never counts as root coverage or success. Ordinary correctable judgment/argument rejections keep required native execution.
+- A real frozen source/authority conflict permits an error summary so the existing finalizer can queue unresolved/deferred targets with a fresh snapshot. This escape never counts as root coverage. The native adapter handles repeated accepted targets, unknown/no_change and deterministic ref normalization as specified in goal-life-consistency-contract.md. Three attempts without a new durable accepted target close Tools and allow an operational awaiting_evidence summary; unresolved targets remain unaccepted and their sources pending.
+- Explicit forbidden choice plus an empty AllowedToolNames removes tools/tool_choice/parallel_tool_calls and permits the summary grammar. Only in that state may task-owned ToolCallFallback replace a successful Provider response that still contains ToolCalls with a procedural summary. Original response/usage diagnostics precede adaptation; Generate/Stream errors and cancellation remain original. The discarded calls never execute, and no Goal judgment is synthesized.
 - Apply options using locked Eino APIs: `model.WithToolChoice` and `openaiext.WithRequestPayloadModifier`. Do not replace ExtraFields to remove one format field. Budget and diagnostics use the effective format of this physical request.
 - Final DTO repair is tool-free and explicitly suppresses the task request policy; it cannot issue required ToolCalls without a catalog or replay mutations. Task policies keep their own required/auto readiness rules; the shared adapter omits final grammar whenever the effective physical Tool catalog is nonempty, including WakeUp and requests without a task policy.
 - DB/claim/cancellation failures remain errors. Native state, evidence/CAS, ownership, paused settlement and independent Tool transactions remain the sole business authority.
@@ -448,7 +449,9 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 | Condition | Required behavior |
 | --- | --- |
 | Uncovered roots, fresh run or partial retry | required native Tools; no summary grammar |
-| Root rejected for wrong judgment/arguments | required remains; actual failure feedback reaches next decision |
+| Recoverable repeated/unknown/ref representation | native program handling; truthful replay or awaiting_evidence receipt |
+| Consecutive attempts make no durable progress | finite tool-free summary and explicit unresolved disposition |
+| Provider still returns calls after Tools close | task-owned operational fallback; no dispatch of unsolicited calls |
 | Frozen source/authority stale | allow error summary; missing roots remain unresolved; existing fresh-request path runs |
 | All durable roots accepted | auto without final grammar; optional Tools allowed, strict final validation retained |
 | Claim no longer processing or revision changed | goal_evaluation_claim_stale; no new physical request |
@@ -459,11 +462,11 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 Good: rejected native root -> feedback -> corrected real root -> other roots -> final summary. Base: a retry starts with one accepted root and submits the remainder. Bad: return “正在评估4个目标” under summary grammar while all root submissions remain absent, or force ToolCalls against an irreparably stale snapshot until timeout.
 
 ### 6. Tests Required
-`TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary` uses the actual OpenAI adapter and Eino Runner with HTTP/SSE, checking Generate/Stream × empty/partial coverage, three closed canonical Tool schemas, actual stream=true, rejection feedback, required/no-format execution requests, auto/no-format optional requests and consistent nonempty physical identity headers. `TestGoalEvaluationFrozenConflictCanExitButJudgmentRejectionCannot` distinguishes stale exit from correctable evidence rejection. `TestPhysicalModelRequestPolicyIsSuppressedForFinalRepair` preserves the tool-free repair boundary. Production DB policy/Task cases require the isolated PG fixture and are explicitly SKIP without it. The test router identifies the private native catalog in both required/auto phases when the final schema is absent; production has no fixture or DTO fallback.
+`TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary` uses the actual OpenAI adapter and Eino Runner with HTTP/SSE, checking Generate/Stream × empty/partial coverage, three closed canonical Tool schemas, actual stream=true, rejection feedback, required/no-format execution requests, auto/no-format optional requests and consistent nonempty physical identity headers. `TestGoalEvaluationFrozenConflictCanExitButJudgmentRejectionCannot` distinguishes immediate stale exit from the finite correction interval. `TestPhysicalModelRequestPolicyIsSuppressedForFinalRepair` preserves the tool-free repair boundary. `TestGoalSubmissionRecoveryNativeHTTPBoundedAndProgress` covers replay, bad refs, productive targets, uncooperative Generate/SSE and actual 503/cancel. Production DB policy/Task cases require the isolated PG fixture and are explicitly SKIP without it. Production never creates synthetic native authority or business-success DTOs; its procedural waiting summary only closes a handled no-progress cycle.
 
 ### 7. Wrong vs Correct
 Wrong: install the summary JSON schema for every physical decision and rely only on prompt wording to require submissions.
-Correct: before each physical request, read durable root coverage and select required/auto native execution without final grammar; validate the stopping result against the final contract after accepted coverage or an explicit stale-snapshot error exit.
+Correct: read durable root coverage and real progress, use required/auto native execution normally, then explicitly close a stalled task without claiming unresolved roots were accepted. Keep final repair and truthful business authority separate.
 
 
 ## Scenario: Background Agent logical ownership and generation provenance (0059)
@@ -743,3 +746,78 @@ catalogs in both required and auto phases; they never create calls from content.
 Wrong: restore auto and final schema in the same request after required effects.
 Correct: keep native decisions free of final grammar, validate the eventual DTO,
 and request schema-constrained correction only through the isolated no-Tool path.
+
+## Scenario: Internal context capacity is advisory (2026-10-14)
+
+### 1. Scope / Trigger
+`ProcessCognitionActivity` failed before a model request with
+`context_reference_index_too_large`. Internal optimization thresholds must permit
+complete valid context to continue, including freezing, Tool replay and settlement.
+This scenario supersedes byte/count rejection for this internal data path; the
+configured physical model budget and external model-argument schema remain separate.
+
+### 2. Signatures
+`ContextReferenceIndex.add(...)`, `ContextReferenceIndex.Validate() error`,
+`ContextSnapshotFromProjection(projection)`, both Core/canonical
+`CapabilityContext.Snapshot()` and snapshot resolvers, prepared payload
+encode/decode/data helpers, `frozenResultingStateCausalityTx`,
+`actionOutcomeContextReferences` and `ActionOutcome.Validate` preserve complete
+JSON data. `App.recordContextReferenceCapacity(ctx, projection, stage)` emits
+the advisory described in the diagnostics contract.
+
+### 3. Contracts
+- Reference count 128, single snapshot 32 KiB and encoded index 128 KiB are
+  **warning thresholds**, not validation limits. Values greater than a threshold
+  remain valid. Do not raise a new ceiling, discard entries or shorten snapshots.
+- `add` remains idempotent for an identical reference at and above 128 entries;
+  incompatible collisions still reject. JSON encoding failure is invalid data,
+  not `context_reference_index_too_large`.
+- Projection, prompt assembly and reflection register every selected Active
+  Memory reference. Do not clip selection to the remaining reference count.
+  Existing scoped retrieval/selection policies retain their own semantics.
+- Both capability implementations preserve slots and complete frozen snapshots
+  above 128 KiB. The historical `boundedSnapshotValue`/`BoundedSnapshotValue`
+  names mean a JSON copy; they must not return nil because of size.
+- Both prepared envelope codecs accept internal data above 128 KiB. Keep the
+  closed top-level envelope, schema version and object-shaped data/provenance.
+- Core resulting-state references may extend the selected influence set. The
+  internal ActionOutcome reference map has no model influence-count or byte cap;
+  its ref/snapshot checks still run. The Provider-owned influence list retains
+  its 24-item schema and validation contract. Do not apply that limit again to
+  Core's merged map.
+- Ownership, scope, revision, hash, authorized ref membership, valid JSON and
+  existing Tool argument/schema checks remain required. External `Arguments`
+  retain their independent 64 KiB boundary. This change creates no authority.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Valid index >128 entries, >128 KiB total or >32 KiB single snapshot | complete context continues; pre-model capacity warning |
+| Identical add at/above old count threshold | same ref and unchanged index |
+| Valid internal frozen/prepared data >128 KiB | retain all slots/data through both runtimes and canonical invocation validation |
+| 24 selected influences plus one actual resulting-state ref | settlement retains all 25 references |
+| Provider sends >24 influences or oversized/invalid external Arguments | original schema/argument rejection |
+| Foreign owner/scope, unknown ref, stale revision or hash tampering | original authority/integrity rejection |
+| Malformed snapshot/envelope or non-JSON prepared data | original shape/encoding rejection; no fabricated empty context |
+
+### 5. Good / Base / Bad Cases
+Good: 180 valid refs and selected Active Memory freeze and replay intact, with a
+capacity advisory. Base: smaller valid data follows the same validators without
+a warning. Bad: accept the index but silently omit a large required slot, or let
+Core's resulting-state ref make an otherwise valid 24-influence decision fail.
+
+### 6. Tests Required
+`context_reference_capacity_test.go` exercises the actual builder/replay validator,
+180 refs, 64×4 KiB snapshots, a 40 KiB snapshot, duplicate registration, active-ref
+retention, large projection freezing, both snapshot resolvers, both prepared
+codecs and canonical invocation validation. Settlement regression uses
+`freezeDecisionInfluences` → `frozenDecisionCausality` → `buildActionOutcomes` with
+24 selected refs plus resulting state, including >128 KiB reference data. Keep
+foreign identity/owner, hash tampering, >24 Provider influences and existing
+model-smuggling/schema negatives. Pure tests do not prove a live workflow retry.
+
+### 7. Wrong vs Correct
+Wrong: `len(index.ByRef) >= 128` returns an error before deduplication, or a
+snapshot copy returns nil above `maxToolArgumentsBytes*2`.
+Correct: validate identity/scope/JSON/hash, preserve the complete data, emit
+metadata-only capacity diagnostics and continue through the original pipeline.

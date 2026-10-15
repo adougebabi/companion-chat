@@ -1171,7 +1171,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 	if logger == nil {
 		logger = slog.Default()
 	}
-	queues := []string{LifecycleQueue, CriticalLifecycleQueue, MediaQueue, InteractionQueue, VisualIdentityQueue}
+	queues := []string{LifecycleQueue, CriticalLifecycleQueue, MediaQueue, InteractionQueue, VisualIdentityQueue, ReplyContinuationQueue}
 	workers := make([]worker.Worker, 0, len(queues))
 	fatalErrors := make(chan error, len(queues))
 	buildID := WorkerDeploymentBuildID()
@@ -1254,6 +1254,9 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 		case MediaQueue:
 			w.RegisterWorkflow(MediaWorkflow)
 			w.RegisterActivity(ProcessMediaActivity)
+		case ReplyContinuationQueue:
+			w.RegisterWorkflow(ReplyContinuationWorkflow)
+			w.RegisterActivity(ProcessReplyContinuationActivity)
 		case InteractionQueue:
 			w.RegisterWorkflow(AutonomyActionWorkflow)
 			w.RegisterWorkflow(CapabilityActionWorkflow)

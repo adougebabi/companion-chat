@@ -67,11 +67,14 @@ func scheduledActionPlanFromArguments(args map[string]any) (map[string]any, erro
 	}
 	plan["capability"] = lifeActivityStartCapabilityName
 	plan["reason"] = args["reason"]
-	return plan, validateScheduledLifeActionPlan(plan)
+	if err := validateScheduledLifeActionPlan(plan); err != nil {
+		return plan, newCapabilityError("schedule_action_invalid", false, err)
+	}
+	return plan, nil
 }
 
 func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
-	if c.service == nil || c.planner == nil || c.intents == nil || resolved.Life == nil || resolved.Agency == nil {
+	if c.service == nil || c.intents == nil || resolved.Life == nil || resolved.Agency == nil {
 		return invocation, errors.New("scheduled_activity_context_unavailable")
 	}
 	args, err := capabilityExecutionArguments(invocation, scheduledActivityDefinition())
@@ -83,6 +86,9 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 			return invocation, ErrInvalidArguments
 		}
 		return withCapabilityPreparedData(invocation, "goal_planning_only", true)
+	}
+	if c.planner == nil {
+		return invocation, errors.New("scheduled_activity_planner_unavailable")
 	}
 	actionPlan, err := scheduledActionPlanFromArguments(args)
 	if err != nil {
@@ -117,7 +123,7 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 		return invocation, newCapabilityError("schedule_activity_planner_failed", true, err)
 	}
 	if err := preserveScheduledActionPlans(planned, current); err != nil {
-		return invocation, err
+		return invocation, newCapabilityError("schedule_action_invalid", false, err)
 	}
 	planned["local_date"] = stringValue(current["local_date"])
 	planned["timezone"] = stringValue(current["timezone"])
@@ -128,7 +134,7 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 	planned["evidence_refs"] = []any{invocation.SourceFactID}
 	planned["idempotency_key"] = "tool:" + capabilityOperationID(invocation)
 	if err := validateScheduledActivityPlan(planned, args, actionPlan, resolved, c.intents.now()); err != nil {
-		return invocation, err
+		return invocation, newCapabilityError("scheduled_activity_plan_invalid", false, err)
 	}
 	return withCapabilityPreparedData(invocation, "scheduled_activity_plan", planned)
 }
@@ -255,7 +261,7 @@ func (c scheduleActivityCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, in
 	}
 	item, err := scheduledAppointmentItem(planned, actionPlan, args, c.intents.now())
 	if err != nil {
-		return failedCapabilityResult(invocation, "schedule_action_slot_invalid", false), err
+		return failedCapabilityResult(invocation, "schedule_action_slot_invalid", false), newCapabilityError("scheduled_activity_plan_invalid", false, err)
 	}
 	item["intention_id"] = intentionID
 	item["action_plan"] = actionPlan

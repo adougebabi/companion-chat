@@ -19,7 +19,7 @@ import (
 func TestToolFinalSchemaSeparationPhysicalRequests(t *testing.T) {
 	for _, streaming := range []bool{false, true} {
 		for _, policy := range []bool{false, true} {
-			for _, outcome := range []string{"valid", "repair", "invalid_repair"} {
+			for _, outcome := range []string{"valid", "repair", "invalid_repair", "malformed", "malformed_invalid_repair"} {
 				t.Run(fmt.Sprintf("stream=%t/policy=%t/%s", streaming, policy, outcome), func(t *testing.T) {
 					var requests []map[string]any
 					seen := map[string]bool{}
@@ -58,7 +58,10 @@ func TestToolFinalSchemaSeparationPhysicalRequests(t *testing.T) {
 						if n == 3 && outcome != "valid" {
 							message["content"] = `{"action_type":42}`
 						}
-						if n == 4 && outcome == "invalid_repair" {
+						if n == 3 && strings.HasPrefix(outcome, "malformed") {
+							message["content"] = `{"action_type":`
+						}
+						if n == 4 && strings.HasSuffix(outcome, "invalid_repair") {
 							message["content"] = `{"action_type":42}`
 						}
 						if n <= 3 {
@@ -77,6 +80,14 @@ func TestToolFinalSchemaSeparationPhysicalRequests(t *testing.T) {
 							}
 						}
 						if n >= 2 {
+							system := stringValue(mapValue(arrayValue(payload["messages"])[0])["content"])
+							wantProtocol := factOnlySettlementProtocol
+							if n == 4 {
+								wantProtocol = factOnlyFinalRepairProtocol
+							}
+							if !strings.Contains(system, wantProtocol) || strings.Contains(system, "普通私聊必须真实调用") || !strings.Contains(system, "KEEP_TEST_PERSONA") {
+								t.Error("physical phase protocol/persona incorrect")
+							}
 							receipt, found := formalAdapterResultFromPayload(payload, "native-reply")
 							if !found || receipt["status"] != "completed" {
 								t.Error("real paired reply receipt missing", receipt)
@@ -99,17 +110,19 @@ func TestToolFinalSchemaSeparationPhysicalRequests(t *testing.T) {
 						}
 					}))
 					defer server.Close()
+					observations := []map[string]any{}
 					trace := &ADKCapabilityTrace{}
 					ctx := withADKCapabilityContext(context.Background(), conversationPublicationTestInvoker{trace: trace}, trace, nil)
+					ctx = context.WithValue(ctx, physicalRequestObservationKey{}, physicalRequestObservation(func(_ context.Context, config map[string]any) { observations = append(observations, cloneMap(config)) }))
 					if policy {
 						ctx = withPhysicalModelRequestPolicy(ctx, conversationPublicationPhysicalRequestPolicy{})
 					}
-					result, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: time.Second, TokenBudget: 4096}, Role: "cognitive_assessment", Messages: []map[string]any{{"role": "user", "content": "reply then optionally read"}}, Definitions: []CapabilityDefinition{conversationReplyCapabilityDefinition(), {Name: "memory.recall", Description: "Read memory", InputSchema: objectSchema(map[string]any{"query": stringSchema()}, []string{"query"}, false)}}, JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: cognitiveTurnResponseSchema(), EnableThinking: true, EnableStreaming: streaming, CorrelationID: "schema-separation"})
+					result, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: time.Second, TokenBudget: 4096}, Role: "cognitive_assessment", Messages: []map[string]any{{"role": "system", "content": factOnlyCognitionProtocol + "\n" + factOnlyConversationPolicy + "\n# 人格设定\nKEEP_TEST_PERSONA"}, {"role": "user", "content": "reply then optionally read"}}, Definitions: []CapabilityDefinition{conversationReplyCapabilityDefinition(), {Name: "memory.recall", Description: "Read memory", InputSchema: objectSchema(map[string]any{"query": stringSchema()}, []string{"query"}, false)}}, JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: cognitiveTurnResponseSchema(), EnableThinking: true, EnableStreaming: streaming, CorrelationID: "schema-separation"})
 					wantRequests := 3
 					if outcome != "valid" {
 						wantRequests = 4
 					}
-					if outcome == "invalid_repair" {
+					if strings.HasSuffix(outcome, "invalid_repair") {
 						if err == nil || !strings.Contains(err.Error(), "adk_final_repair_invalid") {
 							t.Fatalf("strict invalid repair accepted: %v", err)
 						}
@@ -118,6 +131,17 @@ func TestToolFinalSchemaSeparationPhysicalRequests(t *testing.T) {
 					}
 					if len(requests) != wantRequests || len(trace.Results) != 2 || len(trace.Invocations) != 2 {
 						t.Fatalf("effect replay or premature final: requests=%d results=%d invocations=%d", len(requests), len(trace.Results), len(trace.Invocations))
+					}
+					if len(observations) != len(requests) {
+						t.Fatalf("physical configuration missing: %d/%d", len(observations), len(requests))
+					}
+					for index, observed := range observations {
+						if jsonString(observed) != jsonString(physicalRequestConfiguration(requests[index])) {
+							t.Fatalf("observed configuration differs from wire request %d", index)
+						}
+						if observed["messages"] != nil || observed["response_format"] != nil {
+							t.Fatal("private payload copied into config observation")
+						}
 					}
 					replies := 0
 					for _, invocation := range trace.Invocations {

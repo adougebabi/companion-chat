@@ -37,7 +37,15 @@ func conversationHasAuthoritativeOutput(trace *ADKCapabilityTrace) bool {
 	}
 	_, results := trace.Snapshot()
 	_, committed := committedConversationReplyResult(results)
-	return committed
+	if committed {
+		return true
+	}
+	for _, result := range results {
+		if result.CapabilityName == conversationReplyCapabilityName && result.Status == "accepted" && stringValue(mapValue(result.Output)["reply_status"]) == "waiting" && stringValue(mapValue(result.Output)["draft_ref"]) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func conversationPublicationPolicyEnabled(ctx context.Context) bool {

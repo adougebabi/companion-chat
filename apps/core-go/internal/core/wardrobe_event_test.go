@@ -55,7 +55,7 @@ func TestConfirmedWardrobeEventsAcquireAndLoseWithoutFabricatingWearing(t *testi
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND item_id=$2`, fixture.fluctlightID, itemID).Scan(&worn); err != nil || worn != 0 {
 		t.Fatalf("lost item remained worn: count=%d err=%v", worn, err)
 	}
-	if receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(wardrobeWearCapabilityName, "rewear-lost-coat", map[string]any{"mode": "partial", "item_ids": []string{itemID}})); err == nil || receipt.Result.ErrorCode != "wardrobe_item_unavailable" {
+	if receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(wardrobeWearCapabilityName, "rewear-lost-coat", map[string]any{"mode": "partial", "item_ids": []string{itemID}})); err != nil || receipt.Result.Status != "handled" || goalSubmissionReceiptCode(receipt.Result) != "wardrobe_item_unavailable" {
 		t.Fatalf("lost item was wearable: receipt=%#v err=%v", receipt, err)
 	}
 }

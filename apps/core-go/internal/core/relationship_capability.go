@@ -61,13 +61,13 @@ func (service *relationshipLookupService) execute(ctx context.Context, invocatio
 	}
 	target := strings.TrimSpace(stringValue(args["target_actor_id"]))
 	if target == "" {
-		return failedCapabilityResultDetail(invocation, "relationship_lookup_target_required", false, "target actor is required"), errors.New("relationship lookup target required")
+		return failedCapabilityResultDetail(invocation, "relationship_lookup_target_required", false, "target actor is required"), ErrInvalidArguments
 	}
 	var mappedBySnapshot bool
 	var targetErr error
 	target, mappedBySnapshot, targetErr = resolveRelationshipTargetFromScope(resolved.Relation, target)
 	if targetErr != nil {
-		return failedCapabilityResultDetail(invocation, "relationship_lookup_target_invalid", false, targetErr.Error()), targetErr
+		return failedCapabilityResultDetail(invocation, "relationship_lookup_target_invalid", false, targetErr.Error()), ErrInvalidArguments
 	}
 	var humanActorID string
 	if service == nil || service.app == nil || service.app.DB == nil {

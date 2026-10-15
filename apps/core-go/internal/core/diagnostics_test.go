@@ -62,7 +62,7 @@ func TestPromptDiagnosticsKeepTextAndCollectionBounded(t *testing.T) {
 		t.Fatalf("bounded ranking length = %d", len(values))
 	}
 	encoded := jsonString(trace)
-	if !strings.Contains(encoded, "Bearer secret") || !strings.Contains(encoded, `"secret"`) || !strings.Contains(encoded, "hidden") || strings.Contains(encoded, "[REDACTED]") {
+	if strings.Contains(encoded, "Bearer secret") || strings.Contains(encoded, `"secret"`) || !strings.Contains(encoded, "hidden") || !strings.Contains(encoded, "[REDACTED_SECRET]") {
 		t.Fatalf("diagnostic text was changed: %s", encoded)
 	}
 }
@@ -81,7 +81,10 @@ func TestDiagnosticPreservesNonImageTextAndToolArguments(t *testing.T) {
 		"image_url":         map[string]any{"url": "data:image/png;base64,ZmFrZQ=="},
 	})
 	encoded := jsonString(value)
-	for _, expected := range []string{"Bearer private-token", "reasoning text", "library", "private text", "keep me", "REDACTED_IMAGE_DATA"} {
+	if strings.Contains(encoded, "Bearer private-token") {
+		t.Fatal("authorization leaked")
+	}
+	for _, expected := range []string{"REDACTED_SECRET", "reasoning text", "library", "private text", "keep me", "REDACTED_IMAGE_DATA"} {
 		if !strings.Contains(encoded, expected) {
 			t.Fatalf("missing %q in diagnostic: %s", expected, encoded)
 		}

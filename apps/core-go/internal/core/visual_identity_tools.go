@@ -129,6 +129,7 @@ func visualIdentityCommitReviewCapabilityDefinition() CapabilityDefinition {
 			"type": "object", "additionalProperties": false,
 			"required": []any{"decision", "identity_match", "confidence", "observations", "missing_sections", "summary", "feedback"},
 			"properties": map[string]any{
+				"review_source":  enumStringSchema("manual"),
 				"decision":       map[string]any{"type": "string", "enum": []any{"accepted", "regenerate"}},
 				"identity_match": map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
 				"confidence":     map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
@@ -345,6 +346,26 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 	if err := json.Unmarshal(invocation.Arguments, &review); err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
 	}
+	inspectionSource := "vision"
+	proof, hasProof := ctx.Value(visualInspectionAuthorityKey{}).(visualInspectionAuthority)
+	manual := invocation.Metadata.Source == "direct" && stringValue(review["review_source"]) == "manual"
+	if manual {
+		inspectionSource = "manual"
+	} else {
+		if !hasProof || proof.SessionID != sessionID || invocation.Metadata.Source != "model_tool" {
+			return failedCapabilityResult(invocation, "visual_identity_inspection_provenance_required", false), newCapabilityError("visual_identity_inspection_provenance_required", false, ErrUnauthorized)
+		}
+		var raw string
+		var version int64
+		err := tx.QueryRow(ctx, `SELECT value_json,revision FROM public.runtime_settings WHERE key=$1`, visionUnderstandingSettingKey).Scan(&raw, &version)
+		if err != nil {
+			return failedCapabilityResult(invocation, "vision_unavailable", false), err
+		}
+		settings, err := decodeVisionUnderstandingSettings([]byte(raw))
+		if err != nil || !settings.Enabled || version != proof.ConfigVersion {
+			return failedCapabilityResult(invocation, "vision_admission_changed", false), newCapabilityError("vision_admission_changed", false, ErrConflict)
+		}
+	}
 	observations, err := normalizeVisualIdentityObservations(review["observations"])
 	if err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
@@ -369,7 +390,7 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		}
 		return visualIdentityToolResult(invocation, "completed", map[string]any{"session_id": sessionID, "attempt": session.Attempt, "status": session.Status, "decision": session.Decision, "candidate_asset_id": session.CandidateAssetID, "replayed": true}), nil
 	}
-	if session.Status != "running" && session.Status != "queued" {
+	if session.Status != "running" && session.Status != "queued" && !(manual && session.Status == "awaiting_review") {
 		return visualIdentityBusinessRejection(invocation, "visual_identity_session_not_reviewable", sessionID, session.Attempt, session.Status), nil
 	}
 	if session.MediaIntentID == "" {
@@ -394,7 +415,16 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		err := errors.New("visual identity candidate asset is not ready or not owned by the session Fluctlight")
 		return failedCapabilityResultDetail(invocation, "visual_identity_candidate_asset_invalid", false, err.Error()), newCapabilityError("visual_identity_candidate_asset_invalid", false, err)
 	}
-	vision := map[string]any{
+	if !manual && proof.AssetID != assetID {
+		return failedCapabilityResult(invocation, "visual_identity_inspected_asset_changed", false), ErrConflict
+	}
+	if manual && session.Status == "awaiting_review" {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='running',last_error=NULL WHERE id=$1 AND status='awaiting_review'`, sessionID); err != nil {
+			return CapabilityResult{}, err
+		}
+		session.Status = "running"
+	}
+	vision := map[string]any{"inspection_status": "reviewed", "provenance": inspectionSource, "model_id": proof.ModelID, "config_version": proof.ConfigVersion,
 		"identity_match": review["identity_match"], "confidence": review["confidence"],
 		"observations": review["observations"], "missing_sections": review["missing_sections"],
 	}
@@ -418,7 +448,10 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		{visualIdentityStagePatchRequested, "running", "Visual Identity Agent 正在生成身份评审"},
 		{visualIdentityStagePatchReady, "completed", "身份评审已提交"},
 	} {
-		if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, event.stage, event.status, event.summary, []string{assetID}, map[string]any{"decision": decision}, "visual_identity:"+sessionID); err != nil {
+		if manual && (event.stage == visualIdentityStageVisionRequested || event.stage == visualIdentityStageVisionReady) {
+			event.summary = "Owner 已提交人工评审；没有模型视觉观察"
+		}
+		if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, event.stage, event.status, event.summary, []string{assetID}, map[string]any{"decision": decision, "inspection_source": inspectionSource}, "visual_identity:"+sessionID); err != nil {
 			return failedCapabilityResultDetail(invocation, "visual_identity_timeline_failed", true, err.Error()), err
 		}
 	}

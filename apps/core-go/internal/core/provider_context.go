@@ -83,24 +83,25 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	}
 	if config, version, _, readErr := a.kevService().Settings.Read(ctx); readErr == nil && config.Enabled {
 		ctx = decision.WithStageBudget(ctx, time.Duration(config.BudgetMS)*time.Millisecond)
-		if surface != ProviderContextSurfaceDefault && config.Allows("tools.select") && len(definitions) > 0 {
-			agentID, _ := formalAgentForSchema(schemaName)
-			selectedCtx, _, selectionErr := a.prepareKevTools(context.WithValue(ctx, kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{AgentID: agentID, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": currentInput}}}, Capability: &ADKCapabilityRequest{Projection: projection, Surface: capabilitySurfaceForProviderSurface(surface)}})
-			if selectionErr != nil {
-				return PromptAssemblyResult{}, projection, selectionErr
-			}
-			ctx = selectedCtx
-			if selection := kevSelection(ctx); selection != nil {
-				projection.KevTools = selection
-				definitions, selectionErr = selection.definitions(ctx)
-				if selectionErr != nil {
-					return PromptAssemblyResult{}, projection, selectionErr
-				}
-			}
-		}
+
 		if config.Allows("context.select") {
 			projection.KevContextSelected = true
 			projection.KevContextVersion = version
+		}
+	}
+	if surface != ProviderContextSurfaceDefault && len(definitions) > 0 {
+		agentID, _ := formalAgentForSchema(schemaName)
+		selectedCtx, _, selectionErr := a.prepareKevTools(ctx, ADKStructuredTaskInput{AgentID: agentID, Definitions: definitions, Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": currentInput}}}, Capability: &ADKCapabilityRequest{Projection: projection, Surface: capabilitySurfaceForProviderSurface(surface)}})
+		if selectionErr != nil {
+			return PromptAssemblyResult{}, projection, selectionErr
+		}
+		ctx = selectedCtx
+		if selection := kevSelection(ctx); selection != nil {
+			projection.KevTools = selection
+			definitions, selectionErr = selection.definitions(ctx)
+			if selectionErr != nil {
+				return PromptAssemblyResult{}, projection, selectionErr
+			}
 		}
 	}
 	assignment, err := a.Provider.assignment(ctx, role)
@@ -117,16 +118,10 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			return PromptAssemblyResult{}, projection, err
 		}
 	}
-	referenceCapacity := maxContextReferences - len(projection.ReferenceIndex.ByRef)
-	if referenceCapacity < 0 {
-		referenceCapacity = 0
-	}
-	if len(activeResult.Items) > referenceCapacity {
-		activeResult.Items = activeResult.Items[:referenceCapacity]
-	}
 	if err := addActiveMemoryReferences(&projection.ReferenceIndex, activeResult.Items); err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
+	a.recordContextReferenceCapacity(ctx, projection, "prompt_assembly")
 	var summaries []map[string]any
 	var summaryTrace ConversationSummaryRetrievalTrace
 	if strings.TrimSpace(projection.ConversationID) != "" && providerContextSurfaceAllowsSummaries(surface) {
@@ -139,6 +134,26 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		}
 		summaries = summaryResult.Items
 		summaryTrace = summaryResult.Trace
+	}
+	if surface == ProviderContextSurfaceFactOnlyCognition {
+		if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "fact_only" {
+			projection = privateTextChatProjection(projection)
+			at, parseErr := time.Parse(time.RFC3339Nano, projection.AsOf)
+			if parseErr != nil {
+				return PromptAssemblyResult{}, projection, parseErr
+			}
+			coFacts, readErr := readActorFactsWith(ctx, a.DB.Pool(), projection.FluctlightID, stringValue(projection.CurrentSpeaker["actor_id"]), at, false, 2, "co_located")
+			if readErr != nil {
+				return PromptAssemblyResult{}, projection, readErr
+			}
+			projection.ActorFacts = appendPrivateCoFacts(projection.ActorFacts, coFacts)
+			if err := enrichPrivateCommunicationFacts(ctx, a.DB.Pool(), projection.FluctlightID, stringValue(projection.CurrentSpeaker["actor_id"]), projection.ActorFacts); err != nil {
+				return PromptAssemblyResult{}, projection, err
+			}
+		}
+		if err := a.backfillFactOnlyHistory(ctx, &projection); err != nil {
+			return PromptAssemblyResult{}, projection, err
+		}
 	}
 	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
 	workingInput, err = a.selectKevContext(ctx, projection, surface, currentInput, workingInput)
@@ -201,6 +216,11 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			"conversation_summary": summaryTrace,
 			"history_coverage":     map[string]any{"summary_count": len(summaries), "latest_summary_sequence": latestSummarySequence, "raw_fetched": len(projection.RecentMessages), "raw_candidates": len(workingInput.RecentMessages)},
 		}
+		if surface == ProviderContextSurfaceFactOnlyCognition {
+			view := factOnlyContextFacts(projection, true)
+			view.Selection["memory"] = factOnlyMemoryCandidates(projection, activeResult.Items, summaries, true).Diagnostics
+			result.Diagnostics["context_view"] = view.Selection
+		}
 	}
 	return result, projection, err
 }
@@ -210,6 +230,9 @@ func workingMemoryInputFromProjection(projection ContextProjection, active, summ
 }
 
 func workingMemoryInputFromProjectionForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any) WorkingMemoryInput {
+	if surface == ProviderContextSurfaceFactOnlyCognition {
+		return factOnlyCognitionMemoryInput(projection, active, summaries)
+	}
 	compact := compactCognitionContextForSurface(projection, surface)
 	compact["time_view"] = projectionTimeView(projection)
 	if len(projection.CommunicationState) > 0 {
@@ -1369,7 +1392,7 @@ func compactProviderGoalsForActors(goals []map[string]any, actors []map[string]a
 				if key == "execution" {
 					compact := map[string]any{}
 					for field, data := range mapValue(value) {
-						if field == "intention_id" {
+						if field == "intention_id" || field == "dependency_snapshot" {
 							continue
 						}
 						if data == nil {

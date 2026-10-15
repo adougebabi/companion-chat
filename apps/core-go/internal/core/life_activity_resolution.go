@@ -65,7 +65,7 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	}
 	request := mapValue(decodeObject(resultRaw)["request"])
 	if err := validateVirtualActivityResult(kind, request, result); err != nil {
-		return failedCapabilityResult(invocation, "activity_result_invalid", false), err
+		return failedCapabilityResult(invocation, "activity_result_invalid", false), newCapabilityError("activity_result_invalid", false, err)
 	}
 	businessCompleted := status == "completed" && (kind != "virtual_shopping" || len(acquiredShoppingItems(result)) > 0)
 	if _, err := tx.Exec(ctx, `UPDATE public.life_events SET end_at=LEAST(end_at,$3),expires_at=$3,revision=revision+1,result=jsonb_set(result,'{revision}',to_jsonb(revision+1),true),updated_at=$3 WHERE id=(SELECT authority_event_id FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2) AND fluctlight_id=$2 AND status IN ('confirmed','inferred')`, activityID, fluctlightID, now); err != nil {

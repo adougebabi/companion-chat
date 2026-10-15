@@ -34,3 +34,16 @@ func (s *Server) kevConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, value)
 }
+
+func (s *Server) visionConnection(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	value, err := s.app.TestVisionUnderstanding(r.Context(), actor)
+	if err != nil {
+		s.opError(w, err, "vision_test_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}

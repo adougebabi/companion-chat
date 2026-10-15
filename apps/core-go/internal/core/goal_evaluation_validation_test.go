@@ -218,12 +218,12 @@ func TestGoalEvaluationTrueUnmetCriterionStaysUncompleted(t *testing.T) {
 	}
 }
 
-func TestGoalEvaluationJudgmentSchemaRequiresGapQuoteFields(t *testing.T) {
+func TestGoalEvaluationJudgmentSchemaKeepsGapQuoteFieldsOptional(t *testing.T) {
 	schema := goalCriterionJudgmentSchema([]string{"criterion:1.1"}, []string{"e1"})
 	properties := mapValue(schema["properties"])
 	for _, field := range []string{"criterion_quote", "optional_improvement"} {
-		if _, ok := properties[field]; !ok || !containsString(decisionServiceRefValues(schema["required"]), field) {
-			t.Fatalf("wire schema does not require %s", field)
+		if _, ok := properties[field]; !ok || containsString(decisionServiceRefValues(schema["required"]), field) {
+			t.Fatalf("wire schema over-requires optional %s", field)
 		}
 	}
 }

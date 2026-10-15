@@ -66,8 +66,7 @@ func TestGoalPlannerPhysicalPolicyHTTPQueryAndCommitContinuation(t *testing.T) {
 					if id := r.Header.Get("Idempotency-Key"); id == "" || r.Header.Get("X-Fluctlight-Provider-Request-Id") != id {
 						t.Error("missing physical request identity")
 					}
-					queries, commits, reread := goalPlannerQueryCoverage(trace)
-					required := queries < 2 || (commits > 0 && !reread)
+
 					_, hasFormat := payload["response_format"]
 					names := []string{}
 					for _, raw := range arrayValue(payload["tools"]) {
@@ -77,13 +76,10 @@ func TestGoalPlannerPhysicalPolicyHTTPQueryAndCommitContinuation(t *testing.T) {
 							t.Error("noncanonical schema")
 						}
 					}
-					if required {
-						if payload["tool_choice"] != "required" || hasFormat || strings.Join(names, ",") != goalPlannerQuery {
-							t.Fatalf("premature final permitted: %#v", payload)
-						}
-					} else if payload["tool_choice"] != "auto" || hasFormat || len(names) != 2 {
-						t.Fatalf("optional catalog/schema separation lost: %#v", payload)
+					if payload["tool_choice"] != "auto" || hasFormat || len(names) != 2 {
+						t.Fatalf("recommendation became a query-count gate: %#v", payload)
 					}
+
 					if boolValue(payload["stream"]) != streaming {
 						t.Error("stream wire mismatch")
 					}

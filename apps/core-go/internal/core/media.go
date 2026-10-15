@@ -997,6 +997,14 @@ func downloadComfy(ctx context.Context, baseURL string, output map[string]any) (
 }
 
 func (a *App) publishMediaAsset(ctx context.Context, intent mediaIntent, assetID string) error {
+	var draftBound bool
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_reply_actions WHERE media_intent_id=$1)`, intent.ID).Scan(&draftBound); err != nil {
+		return err
+	}
+	if draftBound {
+		return nil
+	}
+
 	if intent.MessageID != nil {
 		return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			var conversationID string

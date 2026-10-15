@@ -47,7 +47,7 @@ func (c goalCapability) Definition() CapabilityDefinition {
 	sideEffect, boundary := "native_projection", "goal_evaluation_queued"
 	capabilityType := CapabilityTypeAction
 	if c.name == "goal.inspect" {
-		fields = map[string]any{"operation": enumStringSchema("list", "detail"), "goal_id": stringSchema(), "include_closed": booleanSchema(), "cursor": integerSchema()}
+		fields = map[string]any{"operation": withToolDefault(enumStringSchema("list", "detail"), "list"), "goal_id": stringSchema(), "include_closed": booleanSchema(), "cursor": integerSchema()}
 		required = []string{"operation"}
 		description = "Read Goals/results. List 10; reuse next_cursor; detail includes evidence."
 		sideEffect, boundary = "read_only", "query_result_available"
@@ -274,7 +274,7 @@ func (c goalCapability) NativeDefinition() CapabilityDefinition {
 	d := c.Definition()
 	switch c.name {
 	case "goal.inspect":
-		d.InputSchema = objectSchema(map[string]any{"operation": enumStringSchema("list", "detail"), "goal_ref": stringSchema(), "include_closed": booleanSchema(), "cursor": integerSchema()}, []string{"operation"}, false)
+		d.InputSchema = objectSchema(map[string]any{"operation": withToolDefault(enumStringSchema("list", "detail"), "list"), "goal_ref": stringSchema(), "include_closed": booleanSchema(), "cursor": integerSchema()}, []string{"operation"}, false)
 		d.Description = "Read currently offered Goals. List 10; reuse next_cursor and set include_closed for offered terminal Goals. Detail requires exact goal_ref; results do not expand scope."
 	case "goal.evaluate":
 		d.InputSchema = objectSchema(map[string]any{"goal_ref": stringSchema(), "reason": stringSchema()}, []string{"goal_ref", "reason"}, false)
@@ -284,6 +284,10 @@ func (c goalCapability) NativeDefinition() CapabilityDefinition {
 }
 func (c goalCapability) BindNativeArguments(raw json.RawMessage, projection ContextProjection) (json.RawMessage, error) {
 	args := decodeObject(raw)
+	if c.name == "goal.inspect" && stringValue(args["operation"]) == "detail" && stringValue(args["goal_ref"]) == "" {
+		args["operation"] = "list"
+		return jsonBytes(args), nil
+	}
 	if c.name != "goal.evaluate" && (c.name != "goal.inspect" || stringValue(args["operation"]) != "detail") {
 		return raw, nil
 	}

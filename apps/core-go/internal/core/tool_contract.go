@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"regexp"
 	"sort"
@@ -29,6 +30,8 @@ type ProviderCompletion struct {
 	ToolCalls          []CapabilityInvocation
 	DoneSeen           bool
 	StructuredFallback bool
+	FinishReason       string
+	Usage              map[string]any
 }
 
 type CapabilityRegistry struct {
@@ -533,7 +536,7 @@ func normalizeToolArguments(value any) (json.RawMessage, error) {
 		return nil, providerToolArgumentsError("arguments_empty")
 	}
 	if len(data) > maxToolArgumentsBytes {
-		return nil, providerToolArgumentsError("arguments_oversized")
+		slog.Warn("tool.arguments.capacity_warning", "argument_bytes", len(data), "advisory_bytes", maxToolArgumentsBytes)
 	}
 	if !json.Valid(data) {
 		return nil, providerToolArgumentsError("arguments_invalid_json")

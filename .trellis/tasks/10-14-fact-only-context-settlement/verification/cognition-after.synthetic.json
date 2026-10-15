@@ -1,0 +1,676 @@
+{
+  "messages": [
+    {
+      "content": "# 运行协议\n\n你负责本轮认知、必要事实查询、权限内的真实工具与完整认知结算。使用当前有效人格、Actor、关系和Goal原条件，不临时重写它们，不因对方简短或冷淡就删除目标或禁止回复。真实拒绝、权限、睡眠、安静时段和操作前置条件沿原业务规则。\n现在以本轮time_view为准，消息时间以持久化元数据为准；正文日期/标题不是系统时钟。current_state属于actor_self，不把对方地点、愿望或历史叙述当作自身状态。当前有效事实和实际工具结果优先，区分事件、计划、历史说法、来源存活和推断，未知保留未知；不能以台词改库存、场景或完成Goal。\n普通私聊通过真实conversation.reply，动态通过真实moment.publish，由工具独立读取人格、目标、关系、状态和聊天生成正文。参数只用当前正式提供的事实/结果ref及必要路由/恢复字段，不传正文、purpose、语气、社交策略或目标推进话术；历史message/source_refs不能作evidence_refs，引用可省略。未知能力先capability.catalog并以names请求原准入机制，确实未安装才capability.request；不因视觉关闭而重复申请能力。\n先执行必要操作并消费真实结果；切换/接管只通过获授权persona.switch/persona.takeover，自述与推断按原actor.fact.record契约区分。媒体或草稿待处理时沿真实工具结果恢复同一draft，queued/accepted不等于生成、看图或送达；原消息/附件实际提交后只回读，不复制再次发送。\n最终只完成本次提供的完整认知schema，保留claims、influences、output_preference_decision、goal_event_candidates等字段；正文、final text、response_plan不发送消息。引用须本轮有效，无匹配按schema给空数组。送达不等于接受，表达不等于双方确认，Goal候选基于实际事件；字段写简短认知摘要，不输出隐藏推理。自然语言中文，协议和模型字面量保持原文。\n\n必要操作沿现有工具准入、权限、物品来源和状态前置条件执行。查询当前状态，执行并消费真实结果后再陈述；未完成/失败/accepted不代表完成。能力目录和真实工具schema提供具体流程；未知能力先发现或按原机制申请，不凭正文改变地点、衣物、物品、人格或目标完成状态。\n# 人格设定\n\nshared_identity:\n  identity:\n    name: 林岚\nworking_persona:\n  expression: 按自己的判断表达，允许详细分析、寡言或强硬，不必统一安慰。\n  name: 晴岚",
+      "role": "system"
+    },
+    {
+      "content": "[RUNTIME CONTEXT]\nself_actor:\n  actor: actor_self\n  display_name: 林岚\n  type: fluctlight\ncurrent_speaker:\n  actor: actor_user\n  type: human\nrelationships:\n  - certainty: 记录状态；历史摘要和后台待核验均不自动改写现实关系。\n    role:\n      category: synthetic\n      label: 合成测试关系记录\n      preferred_addressing: 你\n    source_kind: relationship_record\n    summary: CURRENT_RECIPIENT_RELATIONSHIP\n    target_actor:\n      actor: actor_user\n      type: human\n    trend: stable\ngoals:\n  - description: 合成测试：保持真诚的长期关系\n    desired_outcome: 互相理解彼此态度\n    motivation: 希望相互理解\n    state: active\n    success_criteria:\n      - 合成测试原条件：双方明确表达理解\nhistory_metadata:\n  - created_at: '2026-10-14T09:00:00.000+08:00'\n    history_index: 0\n    lineage: real_contiguous_interaction\n    sender:\n      actor: actor_user\n      type: human\n    source_kind: conversation_message\n  - created_at: '2026-10-14T09:10:17.690+08:00'\n    history_index: 1\n    lineage: real_contiguous_interaction\n    sender:\n      actor: actor_self\n      display_name: 林岚\n      type: fluctlight\n    source_kind: conversation_message\n  - created_at: '2026-10-14T09:29:22.688+08:00'\n    history_index: 2\n    lineage: real_contiguous_interaction\n    sender:\n      actor: actor_self\n      display_name: 林岚\n      type: fluctlight\n    source_kind: conversation_message\ntime_view:\n  actor_self_local_time: '2026-10-14T09:59:44.458+08:00'\n  actor_user_local_time: null\n  actor_user_timezone: null\n  as_of: '2026-10-14T09:59:44.458+08:00'\n  history_time_semantics: 'Display timezone does not identify the sender''s location.'\n  reference_timezone: Asia/Shanghai\ncurrent_state:\n  data:\n    life_context:\n      activity: 合成测试：上午阅读\n      effective_at: '2026-10-14T09:00:00.000+08:00'\n      expires_at: '2026-10-14T12:00:00.000+08:00'\n      location: 书桌\n  subject: actor_self\nretrieved_memory:\n  -\n    associated_actors:\n      - actor: actor_self\n        display_name: 林岚\n        type: fluctlight\n      - actor: actor_user\n        type: human\n    certainty: candidate_not_event_proof\n    confidence: 0.95\n    content: 合成测试：摘要声称双方已确认，尚未核对原话。\n    epistemic_kind: inference\n    occurred_at: '2026-10-13T10:00:00.000+08:00'\n    provenance_status: verified\n    source_kind: memory\n    subject: unknown\n    type: relationship\n[/RUNTIME CONTEXT]",
+      "role": "user"
+    },
+    {
+      "content": "合成测试：刚才你的态度让我困惑。",
+      "role": "user"
+    },
+    {
+      "content": "# 2026-10-14 23:58\n合成测试：第一条连续回复。",
+      "role": "assistant"
+    },
+    {
+      "content": "# 2026-10-14 23:59\n合成测试：第二条连续回复。",
+      "role": "assistant"
+    },
+    {
+      "content": "合成测试：我现在想谈谈你对我的态度。",
+      "role": "user"
+    }
+  ],
+  "tools": [
+    {
+      "function": {
+        "description": "Generate the independent persona reply from authoritative context and publish it. evidence_refs is optional: use only offered actionable context ref fields, never historical message/source_refs. The Writer reads context and history itself. Never compose text or prescribe social strategy. Consume needs_action results through real media tools, then resume the same draft.",
+        "name": "conversation.reply",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "action_result_refs": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            "draft_ref": {
+              "type": "string"
+            },
+            "evidence_refs": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 24,
+              "type": "array"
+            },
+            "topic_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "function"
+    }
+  ],
+  "response_format": {
+    "json_schema": {
+      "name": "conversation_turn_response",
+      "schema": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "enum": [
+              "reply"
+            ],
+            "type": "string"
+          },
+          "agency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
+          },
+          "appraisal": {
+            "additionalProperties": false,
+            "properties": {
+              "controllability": {
+                "type": "number"
+              },
+              "direction": {
+                "type": "string"
+              },
+              "drive_signals": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "direction": {
+                      "enum": [
+                        "increase",
+                        "decrease"
+                      ],
+                      "type": "string"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "maxLength": 96,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "ref": {
+                      "maxLength": 96,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "strength": {
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "ref",
+                    "direction",
+                    "strength",
+                    "confidence",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 16,
+                "type": "array"
+              },
+              "event_kind": {
+                "type": "string"
+              },
+              "evidence_refs": {
+                "items": {
+                  "maxLength": 96,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "expected_effect": {
+                "type": "number"
+              },
+              "goal_congruence": {
+                "type": "number"
+              },
+              "loss": {
+                "type": "number"
+              },
+              "relationship_significance": {
+                "type": "number"
+              },
+              "relevance": {
+                "type": "number"
+              },
+              "responsibility": {
+                "type": "number"
+              },
+              "reward": {
+                "type": "number"
+              },
+              "social_threat": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "relevance",
+              "goal_congruence",
+              "reward",
+              "loss",
+              "social_threat",
+              "controllability",
+              "responsibility",
+              "relationship_significance",
+              "expected_effect",
+              "evidence_refs",
+              "event_kind",
+              "direction"
+            ],
+            "type": "object"
+          },
+          "attention": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "confidence": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "evidence_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kind": {
+                  "enum": [
+                    "confirmed_fact",
+                    "observed_fact",
+                    "supported_hypothesis",
+                    "uncertain_hypothesis",
+                    "unsupported_self_claim"
+                  ],
+                  "type": "string"
+                },
+                "repetition_key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "content",
+                "confidence",
+                "evidence_refs"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "core_alignment": {
+            "additionalProperties": false,
+            "properties": {
+              "aligned": {
+                "type": "boolean"
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "desire": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "goal_event_candidates": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "goal_ref": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "goal_ref",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "influences": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "confidence": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "note": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "ref": {
+                  "maxLength": 96,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "role": {
+                  "enum": [
+                    "grounds",
+                    "motivates",
+                    "constrains",
+                    "conflicts",
+                    "satisfies"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ref",
+                "role",
+                "confidence",
+                "note"
+              ],
+              "type": "object"
+            },
+            "maxItems": 24,
+            "type": "array"
+          },
+          "internal_intent": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "output_preference_decision": {
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "enum": [
+                  "text",
+                  "image",
+                  "voice",
+                  "moment",
+                  "none"
+                ],
+                "type": "string"
+              },
+              "confidence": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "matched": {
+                "type": "boolean"
+              },
+              "profile_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "trigger_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "matched",
+              "channel",
+              "profile_id",
+              "trigger_id",
+              "reason",
+              "confidence"
+            ],
+            "type": "object"
+          },
+          "personality_decision": {
+            "additionalProperties": false,
+            "properties": {
+              "confidence": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "decision": {
+                "enum": [
+                  "keep",
+                  "switch"
+                ],
+                "type": "string"
+              },
+              "evidence_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "from_profile_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "target_profile_id": {
+                "type": "string"
+              },
+              "trigger_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "decision",
+              "from_profile_id",
+              "target_profile_id",
+              "trigger_id",
+              "reason",
+              "confidence",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "response_intent": {
+            "type": "string"
+          },
+          "response_plan": {
+            "additionalProperties": false,
+            "properties": {
+              "action_type": {
+                "enum": [
+                  "reply"
+                ],
+                "type": "string"
+              },
+              "answer_mode": {
+                "type": "string"
+              },
+              "length": {
+                "type": "string"
+              },
+              "profile_id": {
+                "type": "string"
+              },
+              "response_outline": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "strategy": {
+                "type": "string"
+              },
+              "tone": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "self_evaluation": {
+            "additionalProperties": false,
+            "properties": {
+              "confidence": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "mode": {
+                "enum": [
+                  "accepted",
+                  "uncertain",
+                  "omit",
+                  "deferred"
+                ],
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              },
+              "reason_codes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "state_expression": {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "type": "string"
+              },
+              "mood": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "thought": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "action_type",
+          "response_intent",
+          "influences"
+        ],
+        "type": "object"
+      },
+      "strict": true
+    },
+    "type": "json_schema"
+  },
+  "trace": {
+    "policy_version": "prompt-budget.v1",
+    "context_window_tokens": 131072,
+    "max_input_tokens": 98304,
+    "output_reserve_tokens": 1024,
+    "safety_margin_tokens": 4096,
+    "estimated_input_tokens": 11817,
+    "wire_bytes": 11293,
+    "wire_chars": 9481,
+    "token_estimate_method": "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance",
+    "count_mode": "estimated",
+    "section_tokens": {
+      "active_memory": 0,
+      "conversation_summary": 0,
+      "current_input": 62,
+      "protocol": 1313,
+      "recent": 979,
+      "response_schema": 6094,
+      "retrieved_memory": 489,
+      "runtime.current_speaker": 94,
+      "runtime.current_state": 272,
+      "runtime.goals": 213,
+      "runtime.relationships": 384,
+      "runtime.self_actor": 119,
+      "runtime.time_view": 384,
+      "runtime_facts": 1466,
+      "system": 1527,
+      "tools": 957,
+      "working_persona": 153
+    },
+    "section_bytes": {
+      "current_input": 82,
+      "protocol": 2438,
+      "recent": 864,
+      "response_schema": 4875,
+      "retrieved_memory": 436,
+      "runtime.current_speaker": 72,
+      "runtime.current_state": 236,
+      "runtime.goals": 255,
+      "runtime.relationships": 374,
+      "runtime.self_actor": 96,
+      "runtime.time_view": 304,
+      "runtime_facts": 1337,
+      "system": 2670,
+      "tools": 765,
+      "working_persona": 206
+    },
+    "section_chars": {
+      "current_input": 46,
+      "protocol": 1060,
+      "recent": 772,
+      "response_schema": 4875,
+      "retrieved_memory": 388,
+      "runtime.current_speaker": 72,
+      "runtime.current_state": 214,
+      "runtime.goals": 167,
+      "runtime.relationships": 304,
+      "runtime.self_actor": 92,
+      "runtime.time_view": 304,
+      "runtime_facts": 1153,
+      "system": 1218,
+      "tools": 765,
+      "working_persona": 132
+    },
+    "selected": [
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "authority:current_speaker"
+        ],
+        "tokens": 94,
+        "reason": "selected"
+      },
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "authority:current_state"
+        ],
+        "tokens": 272,
+        "reason": "selected"
+      },
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "authority:goals"
+        ],
+        "tokens": 213,
+        "reason": "selected"
+      },
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "authority:relationships"
+        ],
+        "tokens": 384,
+        "reason": "selected"
+      },
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "authority:self_actor"
+        ],
+        "tokens": 119,
+        "reason": "selected"
+      },
+      {
+        "kind": "runtime_fact",
+        "source_refs": [
+          "authority:time_view"
+        ],
+        "tokens": 384,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:test-old-user"
+        ],
+        "tokens": 287,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:test-assistant-1"
+        ],
+        "tokens": 346,
+        "reason": "selected"
+      },
+      {
+        "kind": "recent_message",
+        "source_refs": [
+          "message:test-assistant-2"
+        ],
+        "tokens": 346,
+        "reason": "selected"
+      },
+      {
+        "kind": "retrieved_memory",
+        "source_refs": [
+          "fact-view:3619e1a79aa18531d47e5d89288c48b7"
+        ],
+        "tokens": 489,
+        "reason": "selected"
+      }
+    ],
+    "dropped": []
+  }
+}

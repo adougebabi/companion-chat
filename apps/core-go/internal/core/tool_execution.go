@@ -103,7 +103,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	// Capability-owned task authorization precedes preparation and both receipt
 	// replay paths; public request fields alone cannot create private authority.
 	if a != nil {
-		if registry := a.capabilityRegistry(); registry != nil {
+		if registry := a.capabilityRegistryForContext(ctx); registry != nil {
 			if implementation, ok := registry.LookupCapability(request.CapabilityName); ok {
 				if authorizer, ok := implementation.(toolExecutionAuthorizer); ok {
 					if err := authorizer.AuthorizeToolExecution(ctx, request); err != nil {
@@ -119,6 +119,11 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	resource, authorizationErr := a.DB.GetFluctlight(ctx, strings.TrimSpace(request.FluctlightID), strings.TrimSpace(request.AuthorizationActorID))
 	if authorizationErr != nil {
 		return ToolExecutionReceipt{}, fmt.Errorf("authorize tool resource: %w", authorizationErr)
+	}
+	var scopeErr error
+	ctx, scopeErr = a.withPrivateReplyRun(ctx, request, "")
+	if scopeErr != nil {
+		return ToolExecutionReceipt{}, scopeErr
 	}
 	if request.CapabilityName == personaDetailCapabilityName && request.ExpectedCorePersonaRevision != nil {
 		ctx = context.WithValue(ctx, personaDetailRevisionContextKey{}, *request.ExpectedCorePersonaRevision)
@@ -162,7 +167,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	if request.WorkingProfileID != "" {
 		resolver = toolProfileContextResolver{base: resolver, profile: request.WorkingProfileID}
 	}
-	runtime, runtimeErr := NewCapabilityRuntime(a.capabilityRegistry(), resolver)
+	runtime, runtimeErr := NewCapabilityRuntime(a.capabilityRegistryForContext(ctx), resolver)
 	if runtimeErr != nil {
 		return ToolExecutionReceipt{}, runtimeErr
 	}
@@ -204,7 +209,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	if len(request.FrozenContextSnapshot) > 0 {
 		invocation.ContextSnapshot = mapValue(boundedSnapshotValue(request.FrozenContextSnapshot))
 		if len(invocation.ContextSnapshot) == 0 {
-			return ToolExecutionReceipt{}, fmt.Errorf("%w: frozen Tool context exceeds the snapshot limit", ErrInvalidArguments)
+			return ToolExecutionReceipt{}, fmt.Errorf("%w: frozen Tool context is not a valid JSON object", ErrInvalidArguments)
 		}
 	}
 	implementation, ok := runtime.Registry.LookupCapability(definition.Name)
@@ -232,7 +237,18 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	prepared, resolved, err := runtime.Prepare(ctx, invocation)
 	if err != nil {
 		code, retryable, detail := classifyToolPrepareError(err)
-		return toolExecutionReceipt(request, callID, failedCapabilityResultDetail(invocation, code, retryable, detail)), err
+		if handled, ok := recoverToolBusinessResult(invocation, failedCapabilityResult(invocation, code, retryable), err); ok {
+			if code == "invalid_arguments" {
+				mapValue(handled.Output)["detail"] = detail
+			}
+			recordToolRecovery(ctx, invocation, handled)
+			prepared, err = withHandledCapabilityPreparation(invocation, stringValue(mapValue(handled.Output)["warning_code"]), stringValue(mapValue(handled.Output)["disposition"]), mapValue(handled.Output))
+			if err != nil {
+				return ToolExecutionReceipt{}, err
+			}
+		} else {
+			return toolExecutionReceipt(request, callID, failedCapabilityResultDetail(invocation, code, retryable, detail)), err
+		}
 	}
 	var result CapabilityResult
 	var authority ToolAuthorityRevisions
@@ -247,6 +263,11 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 			Ref:                  strings.TrimSpace(request.TargetRef),
 		}
 		result, authority, replayed, err = a.executeToolMutation(ctx, request, func(tx pgx.Tx) (CapabilityResult, error) {
+			if result, handled, markerErr := preparedHandledCapabilityResult(prepared); markerErr != nil {
+				return CapabilityResult{}, markerErr
+			} else if handled {
+				return result, nil
+			}
 			result, err := direct.ExecuteDirectTx(ctx, tx, prepared, resolved, target)
 			if err != nil {
 				return result, err
@@ -265,6 +286,9 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 		switch executionClass {
 		case CapabilityExecutionPureQuery:
 			result, err = runtime.Execute(ctx, prepared)
+			if handled, ok := recoverToolBusinessResult(prepared, result, err); ok {
+				result, err = handled, nil
+			}
 		case CapabilityExecutionTransactionalMutation, CapabilityExecutionExternalAsyncIntent:
 			result, authority, replayed, err = a.executeToolMutation(ctx, request, func(tx pgx.Tx) (CapabilityResult, error) {
 				return runtime.ExecuteTransactional(ctx, tx, prepared)
@@ -274,7 +298,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 			result = failedCapabilityResultDetail(prepared, "direct_execution_not_implemented", false, err.Error())
 		}
 	}
-	if err != nil && (result.Status == "" || result.Status == "completed" || result.Status == "accepted") {
+	if err != nil && (result.Status == "" || result.Status == "completed" || result.Status == "accepted" || result.Status == "handled") {
 		code, retryable := capabilityErrorInfo(err, "tool_execution_dependency_failed", true)
 		result = failedCapabilityResultDetail(prepared, code, retryable, err.Error())
 	}
@@ -292,6 +316,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	}
 	result.ActingProfileID = request.WorkingProfileID
 	result.RequiredContext = append([]ContextSlot(nil), definition.RequiredContext...)
+	recordToolRecovery(ctx, prepared, result)
 	receipt := toolExecutionReceipt(request, callID, result)
 	receipt.AuthorityRevisions = authority
 	receipt.Replayed = replayed

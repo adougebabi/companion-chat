@@ -39,11 +39,10 @@ func TestTemporaryHairStyleChangesSharedBodyWithoutChangingLengthOrWardrobe(t *t
 
 func TestTemporaryHairStyleCannotCommitDyeAsCurrentAppearance(t *testing.T) {
 	fixture := seedWardrobeToolFixture(t)
-	if _, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(appearanceStyleCapabilityName, "dye-through-style", map[string]any{
+	receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(appearanceStyleCapabilityName, "dye-through-style", map[string]any{
 		"operation": "set", "style": "染成粉色", "reason": "请求未来染发",
-	})); err == nil {
-		t.Fatal("appearance.style accepted dye semantics as a temporary arrangement")
-	}
+	}))
+	requireHandledToolNoEffect(t, receipt, err, "invalid_arguments")
 	appearance, _, _, err := fixture.app.readEffectiveLifeSnapshot(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)

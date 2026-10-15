@@ -118,23 +118,44 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		}
 		before := &ToolAuthorityRevisions{Foundation: beforeFoundation, CurrentState: beforeState, CurrentFacts: beforeFacts, LifeContext: beforeLife}
 		if allowed {
-			if err := a.admitGoalLinkedToolTx(ctx, tx, request); err != nil {
+			// Isolate all business writes, including linked-attempt admission.
+			// A handled receipt commits only after this savepoint is rolled back.
+			businessTx, beginErr := tx.Begin(ctx)
+			if beginErr != nil {
+				return beginErr
+			}
+			if err = a.admitGoalLinkedToolTx(ctx, businessTx, request); err == nil {
+				result, err = execute(businessTx)
+			}
+			inv := CapabilityInvocation{CallID: firstString(request.NativeToolCallID, "direct_call_"+stableDigest(request.FluctlightID + "\x1f" + request.CapabilityName + "\x1f" + request.OperationID)[:32]), CapabilityName: request.CapabilityName, ProviderRequestID: request.ProviderRequestID, Metadata: InvocationMetadata{CorrelationID: request.CorrelationID}}
+			if handled, ok := recoverToolBusinessResult(inv, result, err); ok {
+				result, err = handled, nil
+			}
+			if err != nil {
+				_ = businessTx.Rollback(ctx)
 				return err
 			}
-			result, err = execute(tx)
+			if result.Status == "handled" {
+				err = businessTx.Rollback(ctx)
+			} else {
+				err = businessTx.Commit(ctx)
+			}
+			if err != nil {
+				return err
+			}
 		} else {
 			result = CapabilityResult{CallID: firstString(request.NativeToolCallID, "direct_call_"+stableDigest(request.FluctlightID + "\x1f" + request.CapabilityName + "\x1f" + request.OperationID)[:32]), CapabilityName: request.CapabilityName, Status: "rejected", ErrorCode: "policy_" + policyReason, Output: map[string]any{"reason": policyReason}, ProviderRequestID: request.ProviderRequestID}
 		}
 		if err != nil {
 			return err
 		}
-		if allowed {
+		if allowed && result.Status != "handled" {
 			if err := a.persistDirectLinkedOutcomeTx(ctx, tx, request, result); err != nil {
 				return err
 			}
 		}
 		result.ActingProfileID = request.WorkingProfileID
-		if result.Status != "completed" && result.Status != "accepted" && result.Status != "rejected" && result.Status != "failed" {
+		if result.Status != "completed" && result.Status != "accepted" && result.Status != "handled" && result.Status != "rejected" && result.Status != "failed" {
 			return fmt.Errorf("tool returned nonterminal execution status %q", result.Status)
 		}
 		foundation, currentState, lifeContext, err := readCognitionAuthorityRevisionsWith(ctx, tx, request.FluctlightID, a.now().UTC())

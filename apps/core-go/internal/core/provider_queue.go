@@ -139,6 +139,9 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	if providerQueueBypassed(ctx) {
 		return fn(ctx)
 	}
+	if capacity, ok := ctx.Value(providerCapacityKey{}).(providerCapacity); ok && capacity.class != "" && capacity.limit > 0 {
+		return runProviderWithCapacity(p, ctx, capacity, role, scenario, priority, diagnosticID, fn)
+	}
 	p.refreshQueueLimits(ctx)
 	timeout := providerTimeoutFromContext(ctx)
 	var runCtx context.Context

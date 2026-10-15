@@ -300,6 +300,9 @@ func (service *personaActionBusinessService) applyPersonaActionTx(ctx context.Co
 			}
 		}
 	}
+	if status == "rejected" || stringValue(output["disposition"]) == "no_change" {
+		return handledCapabilityResult(invocation, firstString(errorCode, firstString(output["reason_code"], "persona_unchanged")), "no_change", output), nil
+	}
 	auditID := "persona_action_audit_" + stableDigest(personaActionAuditKey(plan))
 	output["audit_id"] = auditID
 	result := CapabilityResult{

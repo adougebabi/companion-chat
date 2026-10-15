@@ -75,6 +75,7 @@ func readGoalExecutionStateWith(ctx context.Context, q lifeContextQuerier, owner
 	if err := q.QueryRow(ctx, `SELECT context_review_required,EXISTS(SELECT 1 FROM public.goal_dependencies d JOIN public.fluctlight_goals p ON p.id=d.prerequisite_id WHERE d.goal_id=$1 AND p.status<>'completed') FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2`, goalID, owner).Scan(&review, &blocked); err != nil {
 		return nil, err
 	}
+	result["dependency_snapshot"] = map[string]any{"context_review_required": review, "prerequisite_goals_completed": !blocked}
 	if status == "active" && (review || blocked) {
 		result["stage"] = "blocked"
 		result["blocker"] = map[bool]string{true: "Actor背景或关系已变化，等待复核", false: "等待所有前置目标完成"}[review]

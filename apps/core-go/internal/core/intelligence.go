@@ -359,6 +359,29 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	// Current explicit co-location must not disappear behind the general
+	// background window. This remains the same owner-scoped live fact reader.
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "fact_only" && run.Scope.ConversationID == conversationID && conversationID != "" && len(currentSpeaker) > 0 {
+		coFacts, readErr := readActorFactsWith(ctx, a.DB.Pool(), fluctlightID, stringValue(currentSpeaker["actor_id"]), projectionAt, false, 2, "co_located")
+		if readErr != nil {
+			return ContextProjection{}, readErr
+		}
+		for _, fact := range coFacts {
+			found := false
+			for _, existing := range actorFacts {
+				if existing["fact_id"] == fact["fact_id"] {
+					found = true
+					break
+				}
+			}
+			if !found {
+				actorFacts = append(actorFacts, fact)
+			}
+		}
+		if err := enrichPrivateCommunicationFacts(ctx, a.DB.Pool(), fluctlightID, stringValue(currentSpeaker["actor_id"]), actorFacts); err != nil {
+			return ContextProjection{}, err
+		}
+	}
 	developingSelfClaims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -437,18 +460,10 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if err := buildContextReferenceIndex(&projection); err != nil {
 		return ContextProjection{}, err
 	}
-	referenceCapacity := maxContextReferences - len(projection.ReferenceIndex.ByRef)
-	if referenceCapacity < 0 {
-		referenceCapacity = 0
-	}
-	if len(projection.ActiveMemories) > referenceCapacity {
-		projection.ActiveMemories = projection.ActiveMemories[:referenceCapacity]
-		projection.ActiveMemoryTrace.SelectedCount = len(projection.ActiveMemories)
-		projection.ActiveMemoryTrace.TruncatedReason = "context_reference_limit"
-	}
 	if err := addActiveMemoryReferences(&projection.ReferenceIndex, projection.ActiveMemories); err != nil {
 		return ContextProjection{}, err
 	}
+	a.recordContextReferenceCapacity(ctx, projection, "context_projection")
 	return projection, nil
 }
 

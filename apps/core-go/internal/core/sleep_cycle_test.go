@@ -39,9 +39,7 @@ func TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence(t *t
 		t.Fatalf("facts %d→%d reflection %d→%d visible=%d activities=%d", factsBefore, factsAfter, reflectionBefore, reflectionAfter, visible, activities)
 	}
 	denied, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "sleep-shopping", map[string]any{"kind": "virtual_shopping", "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "买靴子"}))
-	if err == nil || denied.Result.ErrorCode != "life_state_sleeping" {
-		t.Fatalf("independent shopping bypassed sleep: %#v %v", denied, err)
-	}
+	requireHandledToolNoEffect(t, denied, err, "life_state_sleeping")
 	projection, err := fixture.app.BuildContextProjectionFor(fixture.ctx, ContextProjectionRequest{AuthorizationActorID: fixture.ownerID, TargetActorID: fixture.ownerID, TriggerSource: "periodic_check", FluctlightID: fixture.fluctlightID, ConversationID: fixture.conversationID, MemoryOperation: MemoryForWakeUp, MemoryConversationMode: MemoryConversationExact})
 	if err != nil || len(projection.CurrentSpeaker) != 0 || projection.ReferenceIndex.SpeakerActorID != "" || projection.LifeContext["behavior_state"] != "sleep" {
 		t.Fatalf("system event invented a user utterance: %#v %v", projection.CurrentSpeaker, err)

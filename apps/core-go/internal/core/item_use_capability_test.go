@@ -29,9 +29,7 @@ func TestOrdinaryObjectAcquisitionAndIndependentUseShareOneAuthority(t *testing.
 		t.Fatalf("purchase auto-used object: %#v %v", appearance, err)
 	}
 	worn, err := f.app.ExecuteTool(f.ctx, f.request(wardrobeWearCapabilityName, "brush-wear", map[string]any{"mode": "partial", "item_ids": []any{itemID}}))
-	if err == nil || worn.Result.ErrorCode != "item_not_wearable" {
-		t.Fatalf("ordinary object forced into clothing slot: %#v %v", worn, err)
-	}
+	requireHandledToolNoEffect(t, worn, err, "item_not_wearable")
 	request := f.request(itemUseCapabilityName, "brush-use", map[string]any{"operation": "start", "item_id": itemID, "activity": "画画"})
 	used, err := f.app.ExecuteTool(f.ctx, request)
 	if err != nil || used.Result.Status != "completed" {
@@ -64,10 +62,8 @@ func TestShoppingBundleRejectsPartialSuccessThenAtomicallyAcquiresAllMembers(t *
 	at = at.Add(15 * time.Minute)
 	router := setupVirtualActivityTestProvider(t, f, map[string]any{"status": "completed", "reason": "只买了第一件", "acquired_items": members[:1]})
 	request := f.request(lifeActivityAdvanceCapabilityName, "bundle-result", map[string]any{"activity_id": id})
-	_, err = f.app.ExecuteTool(f.ctx, request)
-	if err == nil {
-		t.Fatal("partial bundle falsely completed")
-	}
+	partial, err := f.app.ExecuteTool(f.ctx, request)
+	requireHandledToolNoEffect(t, partial, err, "activity_result_invalid")
 	var count int
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND source_kind='purchase_result'`, f.fluctlightID).Scan(&count); err != nil || count != 0 {
 		t.Fatalf("partial ghost inventory %d %v", count, err)
@@ -75,6 +71,7 @@ func TestShoppingBundleRejectsPartialSuccessThenAtomicallyAcquiresAllMembers(t *
 	router.on("virtual_activity_result", func(_ map[string]any) fakeProviderResult {
 		return fakeProviderResult{Structured: map[string]any{"status": "completed", "reason": "全部物品获取成功", "acquired_items": members}}
 	})
+	request.OperationID += "-corrected"
 	done, err := f.app.ExecuteTool(f.ctx, request)
 	if err != nil {
 		t.Fatal(err)

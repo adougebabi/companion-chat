@@ -240,7 +240,7 @@ func TestExecuteToolImageGenerateDependencyFailureCreatesNoIntent(t *testing.T) 
 		TargetKind: "conversation", TargetRef: conversationID,
 		Arguments: json.RawMessage(`{"intent":"依赖失败不能受理"}`),
 	})
-	if err == nil || receipt.Result.Status != "failed" || receipt.Result.ErrorCode != "capability_prepare_failed" {
+	if err != nil || receipt.Result.Status != "handled" || goalSubmissionReceiptCode(receipt.Result) != "capability_prepare_failed" {
 		t.Fatalf("media dependency failure receipt=%#v err=%v", receipt, err)
 	}
 	var count int
@@ -263,10 +263,10 @@ func TestConversationReplyControlValuesNeverPublishAndExplainSilentWakeUp(t *tes
 			ctx, repo, app, owner, fl, conversation := setupDirectPublicationToolTest(t, "control-"+policy)
 			for n, text := range []string{"no_op", " NO_OP ", "noop", "no-op", "none"} {
 				receipt, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: conversationReplyCapabilityName, OperationID: fmt.Sprintf("control-%d", n), AuthorizationPolicy: policy, AuthorizationActorID: owner, FluctlightID: fl, ConversationID: conversation, Arguments: jsonBytes(map[string]any{"text": text, "topic_key": "afternoon_work_resume", "purpose": "无新事件，继续静默执行"})})
-				if err == nil || receipt.Result.Status != "failed" || receipt.Result.ErrorCode != "reply_control_value_invalid" || receipt.Result.Retryable {
+				if err != nil || receipt.Result.Status != "handled" || goalSubmissionReceiptCode(receipt.Result) != "reply_control_value_invalid" || receipt.Result.Retryable {
 					t.Fatalf("control %q receipt=%#v err=%v", text, receipt, err)
 				}
-				if !strings.Contains(err.Error(), "response_intent") {
+				if !strings.Contains(stringValue(mapValue(receipt.Result.Output)["detail"]), "response_intent") {
 					t.Fatalf("no recovery instruction: %v", err)
 				}
 			}

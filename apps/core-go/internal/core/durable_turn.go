@@ -132,7 +132,7 @@ func (a *App) CancelTurn(ctx context.Context, actorID, conversationID, turnID st
 		if inboxStatus == "processed" || inboxStatus == "failed" {
 			return nil
 		}
-		_, err = tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',error_code='user_cancelled',processed_at=now(),claimed_by=NULL,claimed_at=NULL WHERE id=$1 AND status IN ('pending','claimed')`, inboxID)
+		_, err = tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',error_code='user_cancelled',processed_at=now(),claimed_by=NULL,claimed_at=NULL WHERE id=$1 AND status IN ('pending','claimed','waiting_reply')`, inboxID)
 		if err != nil {
 			return err
 		}

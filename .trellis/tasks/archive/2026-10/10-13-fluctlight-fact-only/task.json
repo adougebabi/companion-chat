@@ -1,0 +1,33 @@
+{
+  "id": "fluctlight-fact-only",
+  "name": "fluctlight-fact-only",
+  "title": "Fact-only 双模型私聊与可选视觉理解接入",
+  "description": "依据提供的 FO-00–FO-11 文档，交付隔离功能分支上的私聊回复、媒体回交、视觉开关及构建回滚闭环",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-10-13",
+  "completedAt": "2026-10-13",
+  "branch": "codex/fact-only-reply-vision",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-13-fact-only-release",
+    "10-13-fact-only-config-context",
+    "10-13-fact-only-private-reply",
+    "10-13-fact-only-media-handoff",
+    "10-13-fact-only-optional-vision",
+    "10-13-fact-only-acceptance"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "Implementation and local verification complete. User owns real-environment regression; DB/live/deployment acceptance is not claimed. See docs/fact-only-implementation-report.md.",
+  "meta": {}
+}

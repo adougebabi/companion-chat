@@ -197,6 +197,7 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*),min(id) FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND status='pending' AND reason='assessment_source_remainder' AND goal_ids ? $2`, f.fluctlightID, waitingID).Scan(&pendingCount, &remainder); err != nil || pendingCount != 1 {
 		t.Fatalf("source remainder not queued once: %d %v", pendingCount, err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, remainder)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, remainder); err != nil {
 		t.Fatal(err)
 	}

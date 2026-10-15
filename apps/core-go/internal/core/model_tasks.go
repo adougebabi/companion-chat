@@ -186,6 +186,12 @@ type MediaQualityTaskInput struct {
 }
 
 func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInput) (mediaQualityAcceptance, error) {
+	vision := a.resolveVisionCapability(ctx)
+	if err := vision.err(); err != nil {
+		return mediaQualityAcceptance{}, err
+	}
+	ctx = withFrozenProviderAssignment(ctx, visionUnderstandingModelRole, vision.Assignment)
+
 	messages, err := mediaQualityMessages(input.Intent, input.ContentType, input.Content)
 	if err != nil {
 		return mediaQualityAcceptance{}, err
@@ -211,6 +217,15 @@ type VisualIdentityVisionTaskInput struct {
 var visualIdentityVisionTaskInstruction = "Inspect the supplied candidate image for visual identity continuity. The required target is one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial 3:4 vertical layout. It must contain these visual sections, represented by layout, figures, diagrams, swatches and whitespace rather than rendered text: " + visualIdentityRequiredCardSectionsText + ". Do not require OCR, exact lettering, section headers, titles, labels, numbers or signature characters; generated text is intentionally omitted and incidental unreadable marks must not by themselves lower identity_match. Verify that the same face is preserved across the front, side and back views. If the image is anime, chibi, an unrelated art photo, abstract silhouette, landscape, object-only image, missing a person, missing a required visual section, or inconsistent across views, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."
 
 func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdentityVisionTaskInput) (map[string]any, error) {
+	vision := a.resolveVisionCapability(ctx)
+	if err := vision.err(); err != nil {
+		return nil, err
+	}
+	if input.ImageContent == nil {
+		return nil, errors.New("vision_real_image_required")
+	}
+	ctx = withFrozenProviderAssignment(ctx, visionUnderstandingModelRole, vision.Assignment)
+
 	content := []any{map[string]any{"type": "text", "text": jsonString(map[string]any{
 		"asset_id": input.CandidateAssetID, "render_intent": "character_design_sheet", "expected_subject": "one_human_character",
 		"expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"front": "front_full_body", "side": "side_full_body", "back": "back_full_body"},

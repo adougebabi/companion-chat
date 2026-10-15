@@ -32,20 +32,37 @@ func (c itemUseCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Capabilit
 	if c.service.clock != nil {
 		at = c.service.clock().UTC()
 	}
-	owner, itemID, op := i.Metadata.FluctlightID, stringValue(args["item_id"]), stringValue(args["operation"])
-	if err := requireAwakeLifeTx(ctx, tx, owner, at); err != nil {
-		return failedCapabilityResult(i, "life_state_sleeping", false), err
+	owner, itemID, op := i.Metadata.FluctlightID, strings.TrimSpace(stringValue(args["item_id"])), stringValue(args["operation"])
+	var existingActivity string
+	var startedAt time.Time
+	useErr := tx.QueryRow(ctx, `SELECT activity,started_at FROM public.fluctlight_item_uses WHERE fluctlight_id=$1 AND item_id=$2 FOR UPDATE`, owner, itemID).Scan(&existingActivity, &startedAt)
+	if useErr != nil && !errors.Is(useErr, pgx.ErrNoRows) {
+		return failedCapabilityResult(i, "item_use_read_failed", true), useErr
+	}
+	if op == "stop" && errors.Is(useErr, pgx.ErrNoRows) {
+		return handledCapabilityResult(i, "item_already_inactive", "no_change", map[string]any{"item_id": itemID, "active": false}), nil
+	}
+	activity := strings.TrimSpace(stringValue(args["activity"]))
+	if op == "start" && useErr == nil && activity == existingActivity {
+		return handledCapabilityResult(i, "item_use_unchanged", "no_change", map[string]any{"item_id": itemID, "activity": existingActivity, "started_at": formatInstant(startedAt)}), nil
+	}
+	if op == "start" {
+		if err := requireAwakeLifeTx(ctx, tx, owner, at); err != nil {
+			return failedCapabilityResult(i, "life_state_sleeping", false), err
+		}
 	}
 	var kind, availability, ownership string
 	var itemRevision int
 	var verified bool
 	if err := tx.QueryRow(ctx, `SELECT item_kind,availability,ownership,revision,`+inventorySourceVerifiedSQL+` FROM public.fluctlight_wardrobe_items i WHERE fluctlight_id=$1 AND id=$2 FOR SHARE`, owner, itemID).Scan(&kind, &availability, &ownership, &itemRevision, &verified); err != nil {
-		return failedCapabilityResult(i, "item_not_found", false), err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return handledCapabilityResult(i, "item_not_found", "no_results", nil), nil
+		}
+		return failedCapabilityResult(i, "item_read_failed", true), err
 	}
-	if !verified || kind != "object" || availability != "available" || (ownership != "owned" && ownership != "borrowed") {
+	if op == "start" && (!verified || kind != "object" || availability != "available" || (ownership != "owned" && ownership != "borrowed")) {
 		return failedCapabilityResult(i, "item_not_usable", false), ErrConflict
 	}
-	activity := strings.TrimSpace(stringValue(args["activity"]))
 	if op == "start" && (activity == "" || len([]rune(activity)) > 512) {
 		return failedCapabilityResult(i, "item_use_activity_required", false), ErrInvalidArguments
 	}

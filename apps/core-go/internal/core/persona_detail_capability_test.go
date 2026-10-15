@@ -127,9 +127,8 @@ func TestPersonaDetailIndependentToolReadsCanonicalSource(t *testing.T) {
 	}
 	request = fixture.request(personaDetailCapabilityName, "foreign-section", map[string]any{"operation": "read", "section_id": "profile.secrets"})
 	request.WorkingProfileID = "warm"
-	if _, err := fixture.app.ExecuteTool(fixture.ctx, request); err == nil {
-		t.Fatal("foreign section succeeded")
-	}
+	receipt, err := fixture.app.ExecuteTool(fixture.ctx, request)
+	requireHandledToolNoEffect(t, receipt, err, "persona_detail_section_not_found")
 	request = fixture.request(personaDetailCapabilityName, "foreign-owner", map[string]any{"operation": "list"})
 	request.AuthorizationActorID = fixture.foreignOwnerID
 	if _, err := fixture.app.ExecuteTool(fixture.ctx, request); err == nil {
@@ -138,7 +137,7 @@ func TestPersonaDetailIndependentToolReadsCanonicalSource(t *testing.T) {
 	stale := -1
 	request = fixture.request(personaDetailCapabilityName, "stale", map[string]any{"operation": "list"})
 	request.ExpectedCorePersonaRevision = &stale
-	if receipt, err := fixture.app.ExecuteTool(fixture.ctx, request); err == nil || receipt.Result.ErrorCode != "persona_detail_source_changed" {
+	if receipt, err := fixture.app.ExecuteTool(fixture.ctx, request); err != nil || receipt.Result.Status != "handled" || goalSubmissionReceiptCode(receipt.Result) != "persona_detail_source_changed" {
 		t.Fatalf("stale source status=%s code=%s err=%v", receipt.Result.Status, receipt.Result.ErrorCode, err)
 	}
 	fixture.requireNoModelRuns(t)
