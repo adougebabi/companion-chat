@@ -25,13 +25,14 @@ func (c factOnlyReplyCapability) Definition() CapabilityDefinition {
 	d.Description = "Generate the independent persona reply from authoritative context and publish it. evidence_refs is optional: use only offered actionable context ref fields, never historical message/source_refs. The Writer reads context and history itself. Never compose text or prescribe social strategy. Consume needs_action results through real media tools, then resume the same draft."
 	properties := map[string]any{
 		"evidence_refs": map[string]any{"type": "array", "items": stringSchema()},
-		"draft_ref":     stringSchema(), "action_result_refs": map[string]any{"type": "array", "maxItems": 8, "items": stringSchema()},
+		"draft_ref":     map[string]any{"type": "string", "description": "Optional recovery hint; Core selects the current source draft and ignores mismatched hints."}, "action_result_refs": map[string]any{"type": "array", "maxItems": 8, "items": stringSchema()},
 		"topic_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 	}
 	d.InputSchema = objectSchema(properties, nil, false)
 	d.OutputSchema = objectSchema(map[string]any{"text": stringSchema(), "target_kind": stringSchema(), "target_ref": stringSchema(),
 		"replayed": map[string]any{"type": "boolean"}, "delivery_status": stringSchema(), "reply_status": stringSchema(),
 		"draft_ref": stringSchema(), "media_requests": map[string]any{"type": "array", "items": openObjectSchema()},
+		"warnings":   map[string]any{"type": "array", "items": openObjectSchema()},
 		"reply_mode": stringSchema(), "reply_model_ref": stringSchema(), "config_version": map[string]any{"type": "integer"}}, []string{"reply_status", "reply_mode"}, false)
 	d.ModelResultOmitFields = []string{"target_ref", "replayed"}
 	d.SupportsCancel = true
@@ -53,13 +54,25 @@ func (c factOnlyReplyCapability) Prepare(ctx context.Context, invocation Capabil
 		return invocation, err
 	}
 	data := map[string]any{"draft": draft, "draft_ref": ref, "life_revision": stringValue(resolved.Life.Data["context_revision"])}
+	if warning := reconcileReplyDraftHint(ref, stringValue(decodeObject(invocation.Arguments)["draft_ref"])); warning != nil {
+		data["warnings"] = []any{warning}
+	}
 	if draft.LifeRevision != "" {
 		data["life_revision"] = draft.LifeRevision
 	}
 	return withCapabilityPreparedData(invocation, "fact_only_reply", data)
 }
 
-func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
+func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (result CapabilityResult, resultErr error) {
+	defer func() {
+		if resultErr == nil && result.Output != nil {
+			if prepared, found, err := capabilityPreparedData(invocation, "fact_only_reply"); err == nil && found {
+				if warnings := mapValue(prepared)["warnings"]; warnings != nil {
+					mapValue(result.Output)["warnings"] = warnings
+				}
+			}
+		}
+	}()
 	if err := ctx.Err(); err != nil {
 		return failedCapabilityResult(invocation, "reply_cancelled", false), err
 	}
@@ -171,8 +184,15 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	if err := json.Unmarshal(invocation.Arguments, &args); err != nil {
 		return ReplyDraft{}, "", err
 	}
-	if args.DraftRef != "" && args.DraftRef != ref {
-		return ReplyDraft{}, "", newCapabilityError("reply_draft_scope_invalid", false, ErrUnauthorized)
+	if err := ctx.Err(); err != nil {
+		return ReplyDraft{}, ref, err
+	}
+	if report := reconcileReplyDraftHint(ref, args.DraftRef); report != nil {
+		report["surface"], report["capability_name"] = invocation.Metadata.Surface, invocation.CapabilityName
+		slog.WarnContext(ctx, "reply.draft.reconciled", "correlation_id", invocation.Metadata.CorrelationID, "metadata", report)
+		if s.app != nil && s.app.DB != nil {
+			s.app.recordDiagnosticEvent(ctx, "reply.draft.reconciled", "warning", invocation.Metadata.FluctlightID, invocation.SourceFactID, invocation.Metadata.CorrelationID, report)
+		}
 	}
 	var payload, bindingBytes, configBytes []byte
 	var storedConfigVersion int64
@@ -497,4 +517,13 @@ func (s *factOnlyReplyService) claimReplyStyleRepair(ctx context.Context, ref, o
 		return newCapabilityError("reply_style_repair_unavailable", false, ErrConflict)
 	}
 	return nil
+}
+
+// A model draft pointer is a hint; the caller's logical identity is authority.
+// This does not resolve or query the hint, or expose it in diagnostics/results.
+func reconcileReplyDraftHint(canonical, hint string) map[string]any {
+	if hint == "" || hint == canonical {
+		return nil
+	}
+	return map[string]any{"warning_code": "reply_draft_hint_ignored", "disposition": "continue_canonical_draft", "requested_count": 1, "ignored_count": 1, "reason": "not_current_draft"}
 }

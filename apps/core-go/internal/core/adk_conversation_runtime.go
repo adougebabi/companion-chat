@@ -231,7 +231,9 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if adkContext, ok := adkCapabilityContext(ctx); ok {
 		decode := adkContext.Refs.decodeArguments
 		switch capability.(type) {
-		case factOnlyReplyCapability, factOnlyMomentCapability:
+		case factOnlyReplyCapability:
+			decode = adkContext.Refs.decodePrivateReplyArguments
+		case factOnlyMomentCapability:
 			decode = adkContext.Refs.decodeReplyArguments
 		}
 		decoded, err := decode(arguments)
@@ -512,20 +514,33 @@ func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, e
 			modelCallID = identity.ProviderRequestID
 		}
 	}
-	newProviderRuntimeSupport(i.app.DB).RecordDiagnosticEvent(ctx, eventType, statusSeverity(status), i.request.FluctlightID, i.request.SourceFactID, correlationID, map[string]any{
+	data := map[string]any{
 		"run_id": runID, "stage": "tool", "surface": i.request.Surface,
 		"model_call_id": modelCallID,
 		"call_id":       strings.TrimSpace(callID), "capability": strings.TrimSpace(capabilityName),
 		"status": strings.TrimSpace(status), "error_code": strings.TrimSpace(errorCode),
 		"arguments": arguments, "arguments_digest": stableDigest(strings.TrimSpace(arguments)),
-	})
+	}
+	if i.trace != nil {
+		if result, found := i.trace.FindResult(callID); found && result.Status == status {
+			out := mapValue(result.Output)
+			if result.Status == "handled" {
+				data["warning_code"], data["disposition"] = out["warning_code"], out["disposition"]
+				data["effect_applied"], data["mutation_committed"] = false, false
+			}
+			if result.CapabilityName == goalPlannerCommit && out["warnings"] != nil {
+				data["warnings"] = out["warnings"]
+			}
+		}
+	}
+	newProviderRuntimeSupport(i.app.DB).RecordDiagnosticEvent(ctx, eventType, statusSeverity(status), i.request.FluctlightID, i.request.SourceFactID, correlationID, data)
 }
 
 func statusSeverity(status string) string {
 	switch strings.TrimSpace(status) {
 	case "failed", "rejected", "cancelled", "timeout":
 		return "error"
-	case "deferred", "accepted_pending":
+	case "deferred", "accepted_pending", "handled":
 		return "notice"
 	default:
 		return "info"

@@ -193,8 +193,17 @@ func (a *App) ApplyGoalSetCommand(ctx context.Context, actor, owner string, c Go
 	return result, err
 }
 func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profile, runID string, c GoalSetCommand) (map[string]any, error) {
-	if c.ExpectedVersion < 1 || strings.TrimSpace(c.IdempotencyKey) == "" || len(c.IdempotencyKey) > 256 || strings.TrimSpace(c.Reason) == "" || len(c.Reason) > 2000 || len(c.Changes) > 20 || len(c.Order) > 40 || len(c.Dependencies) > 40 {
-		return nil, ErrInvalidArguments
+	if c.ExpectedVersion < 1 {
+		return nil, newCapabilityError("goal_set_version_required", false, ErrInvalidArguments)
+	}
+	if strings.TrimSpace(c.IdempotencyKey) == "" || len(c.IdempotencyKey) > 256 {
+		return nil, newCapabilityError("goal_set_idempotency_key_invalid", false, ErrInvalidArguments)
+	}
+	if strings.TrimSpace(c.Reason) == "" {
+		return nil, newCapabilityError("goal_set_reason_required", false, ErrInvalidArguments)
+	}
+	if len(c.Reason) > 2000 || len(c.Changes) > 20 || len(c.Order) > 40 || len(c.Dependencies) > 40 {
+		return nil, newCapabilityError("goal_set_request_limits_exceeded", false, ErrInvalidArguments)
 	}
 	if err := ensureGoalSetTx(ctx, tx, owner); err != nil {
 		return nil, err
@@ -228,8 +237,9 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 		}
 	}
 	if runID != "" && strings.TrimSpace(c.ExpectedFactsRevision) == "" {
-		return nil, ErrInvalidArguments
+		return nil, newCapabilityError("goal_set_facts_revision_required", false, ErrInvalidArguments)
 	}
+	var plannerWarnings []string
 	if runID != "" {
 		var instanceStatus string
 		if err := tx.QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=$1 FOR UPDATE`, owner).Scan(&instanceStatus); err != nil {
@@ -284,6 +294,7 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 		if c.AutoPlanningEnabled != nil || c.MaxActiveGoals != nil || c.OrderingMode != "" || c.RecoveryPolicy != nil {
 			return nil, ErrUnauthorized
 		}
+		c, plannerWarnings = normalizeGoalPlannerDependencies(c)
 	}
 	if c.RecoveryPolicy != nil {
 		if !c.RecoveryPolicy.valid() {
@@ -339,7 +350,7 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 			}
 			if change.Operation == "create" {
 				if id == "" || ids[id] != "" {
-					return nil, ErrInvalidArguments
+					return nil, newCapabilityError("goal_set_change_id_invalid", false, ErrInvalidArguments)
 				}
 				local := id
 				id = "goal_plan_" + stableDigest(owner+":"+c.IdempotencyKey+":"+local)
@@ -383,7 +394,7 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 				}
 			} else {
 				if change.Operation != "pause" && change.Operation != "resume" && change.Operation != "cancel" {
-					return nil, ErrInvalidArguments
+					return nil, newCapabilityError("goal_set_change_operation_invalid", false, ErrInvalidArguments)
 				}
 				g, loadErr := loadGoalAuthorityTx(ctx, tx, owner, "goal:ctx_"+stableDigest(id), ContextReference{EntityID: id, Revision: change.ExpectedRevision})
 				if loadErr != nil {
@@ -483,7 +494,7 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 	for goalID, parents := range c.Dependencies {
 		goalID = resolve(goalID)
 		if len(parents) > 20 {
-			return nil, ErrInvalidArguments
+			return nil, newCapabilityError("goal_set_dependency_limit_exceeded", false, ErrInvalidArguments)
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM public.goal_dependencies WHERE fluctlight_id=$1 AND goal_id=$2`, owner, goalID); err != nil {
 			return nil, err
@@ -520,7 +531,7 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 			return nil, err
 		}
 		if len(c.Order) != count {
-			return nil, ErrInvalidArguments
+			return nil, newCapabilityError("goal_set_order_incomplete", false, ErrInvalidArguments)
 		}
 		positions := []int64{}
 		if profile != "*" {
@@ -545,7 +556,7 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 		for i, id := range c.Order {
 			id = resolve(id)
 			if seen[id] {
-				return nil, ErrInvalidArguments
+				return nil, newCapabilityError("goal_set_order_duplicate", false, ErrInvalidArguments)
 			}
 			seen[id] = true
 			position := int64(i + 1)
@@ -588,6 +599,9 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 	result["applied"] = applied
 	result["id_mapping"] = ids
 	result["reason"] = c.Reason
+	if len(plannerWarnings) > 0 {
+		result["warnings"] = plannerWarnings
+	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.goal_set_commands(fluctlight_id,idempotency_key,request_digest,result) VALUES($1,$2,$3,$4)`, owner, c.IdempotencyKey, digest, jsonBytes(result)); err != nil {
 		return nil, err
 	}
@@ -604,7 +618,10 @@ func validateGoalDependencyTx(ctx context.Context, tx pgx.Tx, owner, profile, go
 	}
 	var gProfile, pProfile string
 	if err := tx.QueryRow(ctx, `SELECT COALESCE(g.profile_id,''),COALESCE(p.profile_id,'') FROM public.fluctlight_goals g JOIN public.fluctlight_goals p ON p.fluctlight_id=g.fluctlight_id WHERE g.id=$1 AND p.id=$2 AND g.fluctlight_id=$3`, goal, parent, owner).Scan(&gProfile, &pProfile); err != nil {
-		return ErrUnauthorized
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrUnauthorized
+		}
+		return err
 	}
 	if (pProfile != "" && gProfile != pProfile) || (profile != "*" && ((gProfile != "" && gProfile != profile) || (pProfile != "" && pProfile != profile))) {
 		return ErrUnauthorized

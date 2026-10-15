@@ -183,18 +183,39 @@ func (codec *providerContextRefCodec) decodeArguments(raw json.RawMessage) (json
 	return encoded, nil
 }
 
-// Only optional Fact-only evidence hints may remain unresolved for the scoped
-// evidence reconciler. Draft/action/target references still use strict decoding.
+// Only optional Fact-only hints may remain unresolved for scoped reconciliation.
+// Moments keeps evidence-only handling; private replies also allow draft hints.
+// Action and target references retain strict decoding.
 func (codec *providerContextRefCodec) decodeReplyArguments(raw json.RawMessage) (json.RawMessage, error) {
+	return codec.decodeReplyHints(raw, false)
+}
+
+func (codec *providerContextRefCodec) decodePrivateReplyArguments(raw json.RawMessage) (json.RawMessage, error) {
+	return codec.decodeReplyHints(raw, true)
+}
+
+func (codec *providerContextRefCodec) decodeReplyHints(raw json.RawMessage, allowDraftHint bool) (json.RawMessage, error) {
 	var args map[string]any
 	if err := json.Unmarshal(raw, &args); err != nil {
 		return nil, err
+	}
+	draft, draftPresent := args["draft_ref"]
+	if allowDraftHint {
+		delete(args, "draft_ref")
 	}
 	refs, present := args["evidence_refs"]
 	delete(args, "evidence_refs")
 	decoded, err := codec.decode(args)
 	if err != nil {
 		return nil, err
+	}
+	if allowDraftHint && draftPresent {
+		value, decodeErr := codec.decode(map[string]any{"draft_ref": draft})
+		if decodeErr != nil {
+			mapValue(decoded)["draft_ref"] = draft
+		} else {
+			mapValue(decoded)["draft_ref"] = mapValue(value)["draft_ref"]
+		}
 	}
 	if present {
 		values := []any{}

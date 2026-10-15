@@ -136,3 +136,21 @@ F15/F16已由用户提交b24fdd1。本追加已明确授权继续处理，无需
 - [x] 全49行保留/修改/测试证据矩阵，不以注册/schema测试冒充业务执行。
 - [x] 尝试任务独占/tmp PG环境，无系统服务/已有数据库；无法执行的层次明确列出。
 - [x] 联合独立只读check、最终可提交快照门禁、spec/报告/提交计划；整工作区并行任务与完整PG限制单列，不自动提交部署。
+
+## F19 Planner commit 可修复参数与复核
+
+基线42a2d7c已提交，保留旧验证产物和其他任务未跟踪文件。按goal-planner-commit-followup.md直接实施。
+
+- [x] 两处独立只读定位及主线程原文复核；实际错误与缺少原始调用的证据限制分开。
+- [x] 临时PG真实RED：伪dependency误报未授权、不完整order笼统needs_input、SQL错误误报权限；纯review初始空criteria基线可运行。
+- [x] 私有Planner精确标记规范化、可信初始fence补缺省、具体回执/安全诊断和诚实final分类。
+- [x] 纯逻辑+PG/native/race定向GREEN，复核/依赖/幂等/无进度及49-name registry检查。
+- [x] 独立审阅与主线程全量本地检查；发现P2修正/回归，最终命令/FAIL/SKIP保留。
+- [x] 本轮状态/报告/提交清单及临时PG清理；真实环境待用户回放，尚未提交。
+
+## F20 conversation.reply draft pointer恢复
+
+- [x] 直接报错点/草稿逻辑身份/codec/sourcecontinuation原文定位，追加边界落盘。
+- [x] Trellis implement修复可选pointer和safe诊断，保留F19及其他任务编辑。
+- [x] Trellis check独立验证cached/published/foreign/media/source/取消边界，修正实际PG测试fixture并扩大receipt/schema/diagnostic断言。
+- [x] 主线程本地/临时PG最终验证、spec同步、状态/提交清单更新；真实回放待用户。

@@ -32,9 +32,10 @@ func bindGoalPlannerMetadata(ctx context.Context, inv CapabilityInvocation, args
 	}
 	calls, results := adk.Trace.Snapshot()
 	current, currentKnown := adk.Trace.ModelIdentity(inv.CallID)
-	if !currentKnown {
+	if !currentKnown || current.ModelCallSequence == 0 {
 		return out
 	}
+	var consumed map[string]any
 	queries := map[string]bool{}
 	for _, call := range calls {
 		if call.CapabilityName == goalPlannerQuery && stringValue(decodeObject(call.Arguments)["section"]) == "snapshot" {
@@ -50,14 +51,21 @@ func bindGoalPlannerMetadata(ctx context.Context, inv CapabilityInvocation, args
 		if !known || identity.ModelCallSequence >= current.ModelCallSequence {
 			continue
 		}
-		snapshot := mapValue(result.Output)
+		consumed = mapValue(result.Output)
+		break
+	}
+	if consumed == nil {
+		if initial, ok := ctx.Value(goalPlannerInitialSnapshotKey{}).(goalPlannerSnapshotFence); ok && initial.Version > 0 && initial.Facts != "" {
+			consumed = map[string]any{"revision": initial.Version, "facts_revision": initial.Facts}
+		}
+	}
+	if consumed != nil {
 		if out["expected_version"] == nil {
-			out["expected_version"] = snapshot["revision"]
+			out["expected_version"] = consumed["revision"]
 		}
 		if stringValue(out["expected_facts_revision"]) == "" {
-			out["expected_facts_revision"] = snapshot["facts_revision"]
+			out["expected_facts_revision"] = consumed["facts_revision"]
 		}
-		break
 	}
 	return out
 }

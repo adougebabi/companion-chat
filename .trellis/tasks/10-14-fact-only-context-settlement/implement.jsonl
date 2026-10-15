@@ -6,3 +6,9 @@
 {"file": ".trellis/tasks/10-14-fact-only-context-settlement/tool-availability-followup.md", "reason": "F18 latest policy, handled/no-effect contract and staged ownership"}
 {"file": ".trellis/tasks/10-14-fact-only-context-settlement/reply-evidence-followup.md", "reason": "F17 optional reference reconciliation"}
 {"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/reply-evidence-binding-audit.md", "reason": "Verified reply binding/live mismatch causes"}
+{"file": ".trellis/spec/backend/goal-planner-contract.md", "reason": "F19 Planner review-only, dependency metadata, snapshot and truthful receipt contracts"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/goal-planner-commit-followup.md", "reason": "F19 continued user-authorized scope and change boundary"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/goal-planner-commit-diagnosis.md", "reason": "Confirmed rejection paths, original evidence limitation and review resolution"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/reply-draft-recovery-followup.md", "reason": "F20 latest draft pointer recovery scope, authority and replay requirements"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/reply-draft-implementation.md", "reason": "F20 actual recovery behavior and RED/GREEN boundaries"}
+{"file": ".trellis/tasks/10-14-fact-only-context-settlement/research/reply-draft-check.md", "reason": "F20 actual PG/check findings, fixes and old expression failure"}

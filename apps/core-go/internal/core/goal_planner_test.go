@@ -573,8 +573,11 @@ func TestGoalPlannerCommitToolStandaloneReplayConflictAndProtection(t *testing.T
 	request.OperationID = "protected-pause"
 	request.Arguments = jsonBytes(args)
 	failed, err := f.app.ExecuteTool(f.ctx, request)
-	if err == nil || failed.Result.Status == "completed" {
-		t.Fatal("Planner paused protected Owner goal", failed, err)
+	requireHandledToolNoEffect(t, failed, err, "goal_plan_already_committed")
+	var status string
+	var protected bool
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status,owner_protected FROM public.fluctlight_goals WHERE id=$1`, id).Scan(&status, &protected); err != nil || status != "active" || !protected {
+		t.Fatal("second command changed protected Owner goal", status, protected, err)
 	}
 	f.requireNoModelRuns(t)
 }

@@ -3,8 +3,10 @@
 2026-10-14 availability amendment: apply [Tool Availability](./tool-availability-contract.md).
 Optional evidence hints that cannot be reconciled are excluded with safe
 counts/reasons while the independent Writer continues from current authorized
-context. Keep exact offered/live matching and strict draft/action scope; this is
-not permission to use the rejected hint. Published/prepared replay remains first,
+context. Optional private draft pointers likewise cannot stop the current reply:
+ignore a mismatch and use only Core's current canonical draft. Keep exact
+offered/live evidence matching and actual draft/action ownership; no rejected
+pointer authorizes external content. Published/prepared replay remains first,
 and real Provider failures remain failures. `reply.evidence.reconciled` must be
 visible in worker logs before the generation lease, without raw refs or body.
 
@@ -24,7 +26,13 @@ Child context isolates parent publication/Kev/refresh/diagnostic state while ret
 Default failure is explicit. Only recoverable transport errors retry within configured bounds; truncation/input-too-large/OOM are not retried unchanged. Envelope correction is bounded once. Explicit legacy_fallback selects the existing cognitive model for an isolated fallback, uses the same publication key, records actual binding/model and mode, and cannot count as fact-only acceptance. It cannot retry the same failed model or send after parent cancellation.
 
 ## 4. Validation & Error Matrix
-Foreign run scope/ref/draft: reject. Required overflow: no HTTP. Child inherits required tool policy: contract failure. Model length stop: incomplete error. Context changed after generation: reject stale candidate. Cancelled source or lost lease: no publication. Same scoped operation/payload: replay; changed payload: conflict. Final cognition failure does not erase a committed Tool message.
+Foreign run scope or actual action/resource ownership: reject. Mismatching
+optional draft hint: warning plus current canonical recovery. Required overflow:
+no HTTP. Child inherits required tool policy: contract failure. Model length stop:
+incomplete error. Context changed after generation: reject stale candidate.
+Cancelled source or lost lease: no publication. Same scoped operation/payload:
+replay; changed payload: conflict. Final cognition failure does not erase a
+committed Tool message.
 
 ## 5. Good / Base / Bad Cases
 Good: Qwen native refs → independent Writer → committed message/receipt → actual text feedback → final cognition. Base: legacy skips Writer. Bad: Qwen writes a draft for Cydonia to polish, suppresses an active Goal via a matched inference, puts hidden reasoning in history, or sends a late second reply.
@@ -235,3 +243,61 @@ Wrong: publish metadata reads the current constant, or generic transient handlin
 unwraps a style-503 error and retries the entire Writer. Correct: read the draft
 contract, atomically spend one quota, classify style/OOM before retries, and merge
 actual binding into the same durable draft without touching original history.
+
+## Scenario: Optional draft pointer recovery (F20)
+
+### 1. Scope / Trigger
+Private Fact-only conversation.reply previously failed reply_draft_scope_invalid
+before querying its own draft whenever the model supplied a stale/foreign hint.
+The optional hint must not revoke the current reply's independent authorization.
+
+### 2. Signatures
+`reconcileReplyDraftHint(canonical, hint)` returns safe warning metadata.
+`decodePrivateReplyArguments` allows unresolved optional draft/evidence aliases
+only at the private native reply boundary. `Prepare` freezes optional warnings;
+`ExecuteDirectTx` carries them to actual success/replay/media receipts.
+
+### 3. Contracts
+Canonical identity remains privateReplyLogicalKey(source or fixed run root,
+Fluctlight, conversation, authorization Actor). Never query a draft using the
+model hint. On mismatch emit reply.draft.reconciled and receipt warnings:
+warning_code=reply_draft_hint_ignored, disposition=continue_canonical_draft,
+reason=not_current_draft, requested_count=ignored_count=1. No raw pointer/body,
+asset, configuration or secrets appear in this reconciliation metadata.
+
+Prepared/published cache precedes model availability; cached recovery and
+publication replay do not call Writer again. needs_action/waiting_media/ready
+continue only canonical draft actions. The program does not infer that a hint
+is stale versus foreign by reading it. Action/target aliases and actual action
+ownership retain strict checks; Moments and legacy keep their prior decoder.
+Source closure, cancellation, Provider/DB failure, profile/lease/facts and v5
+style quota/frozen binding remain authoritative. A warning is not a committed
+effect; report the actual committed or pending reply status.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| absent/current draft hint | normal path, no recovery warning |
+| stale/foreign/arbitrary hint | ignore hint, warn, use current authorized draft |
+| unknown private draft alias | reach reconciliation, never decode into authority |
+| published current draft with unavailable Writer | stored message replay, no generation |
+| foreign media action / unknown required alias | actual resource refusal; no foreign media use |
+| closed source / cancellation / actual Provider or DB error | truthful failure, no invented publication |
+
+### 5. Good/Base/Bad Cases
+Good: wrong hint + current source -> one independent Writer -> one message;
+wrong hint again -> cached/published replay. Base: matching pointer adds nothing.
+Bad: select the hinted foreign row, regenerate a published reply, or return a
+handled receipt instead of executing a valid current reply.
+
+### 6. Tests Required
+`TestReplyDraft*` covers native codec separation, safe persisted diagnostics,
+actual Prepare/publication/schema warning, foreign row isolation, one Writer and
+one message, replay despite unavailable Writer, current pending/waiting/ready
+media, closed source, cancellation and real closed-pool DB failure. Run the six
+PG cases against a task-owned disposable instance; SKIP cannot certify effects.
+
+### 7. Wrong vs Correct
+Wrong: draft_ref mismatch -> ErrUnauthorized -> no current reply.
+Correct: ignore the optional hint with a safe warning; resolve only the Core-owned
+canonical draft, then keep the existing generation/publication/effect checks.

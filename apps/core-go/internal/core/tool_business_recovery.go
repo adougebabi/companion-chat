@@ -68,6 +68,11 @@ func recoverToolBusinessResult(inv CapabilityInvocation, result CapabilityResult
 	if code == "reply_control_value_invalid" {
 		output["detail"] = "Control text was ignored; no message published. Use response_intent for the final silent decision."
 	}
+	if inv.CapabilityName == goalPlannerCommit {
+		for key, value := range goalPlannerCommitFeedback(code) {
+			output[key] = value
+		}
+	}
 	return handledCapabilityResult(inv, code, disposition, output), true
 }
 

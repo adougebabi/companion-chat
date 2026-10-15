@@ -70,3 +70,7 @@ F16：用户追加Goal Evaluation submit反复冲突/unknown/ref错误并卡死�
 F17：用户报告conversation.reply的reply_evidence_not_authorized。可选evidence_refs无法对账不得拦住当前授权回复；无法确认项排除、不作为事实，有效项保留并继续独立Writer，具备不含raw refs/正文的安全对账诊断。原run/source/draft/media/publication权限和真实Provider失败不变。F15/F16已由用户提交b24fdd1，本追加继续实施，详见reply-evidence-followup.md。
 
 F18：用户要求38个Conversation Tool及实际追加私有Tool全部过一遍、必须能调用；默认告警+程序兜底，确需保留的拦截逐条说明工具/条件/具体理由。共48注册+1 Writer动态名称，逐项覆盖含nullable/早期schema/Kev推荐误拦、Goal缺review回滚、各域重复/无结果/缺技术字段。用真实handled/no_effect结果避免把未执行伪装成功或挂Pending；真实效果前提与已确认频率/容量/私有分工保持且逐项解释。F17并入本轮，详见tool-availability-followup.md。
+
+F19：F17/F18与独立私聊人格任务已由用户提交42a2d7c。继续修复用户新报告的Planner commit：context_review_required误作依赖不得拦住可执行的有效命令；缺省技术字段从已提供/消费的真实快照补齐；needs_input必须可定位并正确分类。真实复核用reviewed_goal_ids，保留初始空criteria、真实依赖、原子性和所有权；反馈中的暗梗/照片/关系阈值是Agent建议，不是用户标准。详见goal-planner-commit-followup.md。用户继续要求实施，无需重开批准。
+
+F20：用户追加conversation.reply的reply_draft_scope_invalid。错误的可选draft_ref不应拦住当前已授权回复；忽略该提示并绑定当前轮canonical草稿，保留safe告警、cached/published单次效果、媒体续接和真实source/主体/权限。不能读取或借用foreign/旧轮草稿。详见reply-draft-recovery-followup.md，继续实施。

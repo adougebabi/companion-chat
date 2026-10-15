@@ -188,7 +188,10 @@ A Planner may return summary before consuming queries, leaving active Goals bloc
 `goalPlannerPhysicalRequestPolicy` and `goalPlannerQueryCoverage(trace)` inspect distinct completed native query receipts and physical ModelCallSequence. `RepairGoalPlanning` invokes native_query_v2 held-review recovery through existing normal planning events/runs.
 
 ### 3. Contracts
-Until two distinct successful queries exist, expose only installed goal_planner.query, force its actual native call and omit final grammar. Once query coverage exists, permit the full private catalog and final output; semantic no_change/awaiting_facts stay legal. An accepted commit requires a real snapshot query in a later physical call before final; a query in the commit batch is insufficient. No forced creation or commit, no fake query receipts and no second Runner.
+Following F18 availability, query coverage and post-commit reread are advisories;
+installed private Tools stay callable. A query in the commit batch is still not
+a consumed snapshot or post-commit reread. Semantic no_change/awaiting_facts stay
+legal. No forced creation or commit, no fake query receipts and no second Runner.
 
 Recovery creates one stable versioned trigger per held semantic Goal/context signature, not evaluation revision. Signature includes genuine Actor/profile event sequence and excludes recovery's own event. Current auto-planning/permissions/profile/locks/backoff/max_attempts apply. Existing pending work, committed runs and unrelated failures remain untouched; old query_results_missing failure history is immutable. A semantically justified reviewed_goal_ids commit clears the hold through the original sole path.
 
@@ -209,3 +212,71 @@ Good: query actual constraints → commit reviewed IDs if valid → later snapsh
 
 ### 7. Wrong vs Correct
 Wrong: always use summary grammar, then fail query_results_missing; restart after every Goal revision. Correct: require native query evidence and use one bounded recovery per real held context.
+
+## Scenario: Recoverable Planner commit metadata and context review (F19)
+
+### 1. Scope / Trigger
+An apply Planner submitted context_review_required as a prerequisite ID and then
+reported a handled needs_input as blocked_by_policy. Fix representations that
+can be corrected without inferring a semantic review or Goal completion.
+
+### 2. Signatures
+`normalizeGoalPlannerDependencies(GoalSetCommand)` applies only to private runs.
+`withGoalPlannerInitialSnapshot` captures the exact initial request fence;
+`bindGoalPlannerMetadata` supplements omitted technical fields.
+`goalPlannerCommitFeedback` and `reconcileGoalPlannerHandledSummary` retain
+actionable receipt truth in Tool feedback, diagnostics and final run result.
+
+### 3. Contracts
+dependencies is an atomic replacement map of actual Goal IDs to actual
+prerequisite IDs. The exact context_review_required token is state metadata:
+omit it with planner_context_review_flag_ignored. An all-metadata entry leaves
+stored prerequisites intact; an explicitly empty list still clears them.
+Never infer reviewed_goal_ids or clear a hold from this normalization. A genuine
+review-only commit is reason + reviewed_goal_ids with consumed snapshot fences;
+it needs no changes, source, new Goal or criteria. Empty initial criteria with
+needs_reflection=true remain valid and unresolved after context review.
+
+Bind technical defaults only with a real physical call identity: use a completed
+earlier physical snapshot query, otherwise the immutable fence Core put in this
+run's initial prompt. Never read the latest DB to upgrade intent, never consume
+a same-batch query, never overwrite an explicit stale value. CAS still decides
+whether that observed snapshot remains current.
+
+Recoverable domain invalid input has specific codes and fixed safe guidance,
+including goal_set_order_incomplete / goal_set_order_duplicate. ADK handled
+events include warning_code, disposition and both no-effect fields; successful
+Planner normalization warnings persist in the committed receipt. Final
+tool_warnings preserves causes. A last handled/no-effect commit summarized as
+failed/blocked_by_policy is reconciled to awaiting_facts; actual refusal or
+committed business results are never converted to handled.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| context flag mixed into dependencies | warn, ignore metadata, execute valid command atomically |
+| only context flag for one entry | preserve stored dependencies and hold unless explicitly reviewed |
+| omitted technical fences | bind observed initial/earlier-query snapshot, then ordinary CAS |
+| explicit stale fence | awaiting_state, no write; no upgrade to latest |
+| incomplete/duplicate order | handled needs_input with exact code/guidance, rollback review too |
+| foreign/profile/private-claim violation | actual authority refusal, no durable domain change |
+| dependency SQL failure | propagate the real database cause, never mislabel unauthorized |
+
+### 5. Good/Base/Bad Cases
+Good: inspect a valid existing Goal, commit reviewed_goal_ids, persist false hold
+and reread. Base: flag-only metadata preserves the hold and true prerequisites.
+Bad: convert the flag into a completed semantic review or populate initial empty
+criteria with Agent-invented joke/photo/relationship thresholds.
+
+### 6. Tests Required
+`goal_planner_commit_recovery_test.go`: pure metadata immutability, earlier/same
+physical-call fences, explicit stale values, real PG review-only initial Goal,
+dependency preservation, transactional rollback, foreign resource, warning
+diagnostics, receipt replay and scripted native read→commit→reread. Re-run 49-name
+registry inventory: Tool descriptions must satisfy the existing 512-rune limit.
+No PG SKIP or controlled Provider result counts as real-model acceptance.
+
+### 7. Wrong vs Correct
+Wrong: a flag becomes an authorized Goal ID, then missing fields produce an
+opaque no-effect success. Correct: warn on known metadata, use observed fences,
+commit only explicit valid operations and expose exact unresolved causes.
