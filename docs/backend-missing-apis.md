@@ -36,7 +36,7 @@
 - 用途：在已接受的整日日程上增删改一条，而不是每次提交完整 JSON。
 - 建议：`POST /api/fluctlights/{fluctlightId}/schedules/{scheduleId}/items`，`PATCH` 与 `DELETE` 同一资源。现有整日 `PUT /schedules` 保留。
 - 请求字段：`activity`、`scene`、`location`、`startAt`、`endAt`、`evidenceRefs[]`、`expectedRevision`、`expectedLifeContextRevision`、`idempotencyKey`、`reason`。
-- 响应字段：更新后的 `schedule`、`revision`。409 时返回当前版本，草稿不丢。
+- 响应字段（按契约 v0.1，Q3/Q4 待裁决）：`202 {request:OwnerRequest(kind:"schedule_item_suggestion"), schedule_revision, audit_id}`。日程要等 Agent `accepted` 后才变。409 的 `details.current_revision` 用于保留草稿。不在请求事务里改事实。
 - 权限与版本：所有者写。幂等键与 revision 必填。
 - 页面与 BP：`LifeScheduleView`，BP-06 / GOV-04。
 - 优先级：P1。
@@ -45,9 +45,9 @@
 
 - 用途：把已拥有或借用的物品标成正在穿着。穿着不改变所有权和来源。
 - 建议：`POST /api/fluctlights/{fluctlightId}/wardrobe/wear`。内部已有 `wardrobe.wear` 能力，没有所有者浏览器路由。
-- 请求字段：`itemId`、`slot`、`expectedRevision`、`idempotencyKey`、`reason`。
-- 响应字段：`worn_items[]`、`revision`。列表接口继续不要用 `slot` 冒充穿着。
-- 权限与版本：所有者写。幂等键与衣柜 revision 必填。
+- 请求字段：`itemId`、`slot`、`expectedRevision`、`idempotencyKey`、`reason`。管理视图二次确认后另带 `confirm: true`。
+- 响应字段：交流视图 `202 {request:OwnerRequest(kind:"wardrobe_wear"), audit_id}`，接受前不改穿着。管理视图成功为 `200`，`status: "saved"`、`identity: "owner_edit"`、`actor: "owner"`、`audit_id`，并返回新的衣橱 `revision`。`expectedRevision` 传衣橱 GET 的 `revision`，不传 `owner_revision`。`owner_revision` 只展示所有者修改计数。409 为 `revision_conflict`，`details.resource` 为 `"wardrobe"`，`details.current_revision` 是她刚写成的衣橱版本；草稿保留，并提示她刚更新过。`worn_items[].recorded_by` 为 `owner` 时显示「所有者修改」，为 `fluctlight` 时显示她自己。
+- 权限与版本：所有者写。幂等键必填。管理视图的期望版本是衣橱 `revision`。
 - 页面与 BP：`LifeWardrobeView`，`items.wardrobe.view` / BP-08。
 - 优先级：P1。
 
@@ -55,8 +55,8 @@
 
 - 用途：记录物品正在使用。使用、穿着、拥有、来源继续分列。
 - 建议：`POST /api/fluctlights/{fluctlightId}/wardrobe/items/{itemId}/use`，结束使用用同一路由加 `active: false`。
-- 请求字段：`active`、`expectedRevision`、`idempotencyKey`、`reason`、`evidenceRefs[]`。
-- 响应字段：`used_items[]`、`revision`。
+- 请求字段：`active`、`expectedRevision`、`idempotencyKey`、`reason`、`evidenceRefs[]`。管理视图二次确认后另带 `confirm: true`，`expectedRevision` 同样是衣橱 `revision`。
+- 响应字段：交流视图 `202 {request:OwnerRequest(kind:"item_use"), audit_id}`。管理视图成功与换装相同：`status: "saved"`、`identity: "owner_edit"`、`actor: "owner"`、`audit_id`。409 同样是 `revision_conflict` 且 `details.resource` 为 `"wardrobe"`。`used_items[].recorded_by` 为 `owner` 或 `fluctlight`，显示「所有者修改」或她自己。
 - 权限与版本：所有者写。幂等键与 revision 必填。
 - 页面与 BP：衣柜与 `items.item.detail#usage`，GAP-10 / BP-08。
 - 优先级：P1。
@@ -259,8 +259,8 @@
 - 用途：把某个资源版本应用到一个角色，先看差异和冲突。
 - 建议：`POST /api/studio/resources/{resourceId}/apply`。深链 `/studio/apply?resource=:rid&char=:charId` 已能打开说明，没有提交。
 - 请求字段：`fluctlightId`、`resourceVersion`、`expectedInstanceRevision`、`choices[]`（保留或覆盖）、`idempotencyKey`、`reason`。
-- 响应字段：`applied_version`、`applied_at`、`conflicts[]`。冲突未决时不部分写入。
-- 权限与版本：所有者写，记审计。版本、实例 revision、幂等键、原因都必填。
+- 响应字段：`status: "recorded_not_applied"`、`applied: false`、`resource_version`、`instance_revision`（可为 null）、`choices`、`conflicts: null`。界面只标「未完成·已记录选择，尚未写入实例」。不读取已删除的应用版本字段，也不把 `conflicts: null` 显示成冲突已解决。
+- 权限与版本：所有者写，记审计。版本、实例 revision、幂等键、原因都必填。未完成响应不写实例。
 - 页面与 BP：`studio.apply.drawer`，BP-15、BP-05 / GOV-10。
 - 优先级：P1。
 
@@ -286,9 +286,9 @@
 ### C-12 配置包导入
 
 - 用途：导入全局定义，成为创作中心新版本。不是读档，不含运行事实。JSON 创建角色走现有创建分析，不属于恢复。
-- 建议：`POST /api/studio/packs`。
+- 建议：`GET /api/studio/packs/export`，`POST /api/studio/packs/validate`，`POST /api/studio/packs`。
 - 请求字段：包内容、`idempotencyKey`。
-- 响应字段：`resource_version`。永久伤害模板返回 422。导入本身不调用应用到实例。
+- 响应字段：导出 `{pack, available}`；校验 `{valid, status:"validated"}`；导入 `{pack_id, resource_versions, status:"draft"}`。永久伤害模板返回 422。导入只生成草稿，不发布、不应用到实例。
 - 权限与版本：所有者写。幂等键必填。之后必须走 C-09。
 - 页面与 BP：`DataToolsView` 配置包栏，BP-18 / INS-02。
 - 优先级：P2。
@@ -298,7 +298,7 @@
 - 用途：灾备和换机。不提供历史时间点选择，不能当剧情试错。
 - 建议：`POST /api/ops/backups`，`POST /api/ops/backups/{backupId}/restore`。
 - 请求字段：恢复时 `confirm: true`、`idempotencyKey`、`reason`。
-- 响应字段：`backup_id`、`created_at`、`audit_id`。
+- 响应字段：未接入时 `{available:false, status:"not_implemented"}`。恢复按钮在 `available:false` 时禁用，不显示成 0 份备份。
 - 权限与版本：所有者写，记审计。恢复必须二次确认。
 - 页面与 BP：`DataToolsView` 备份栏，BP-18。
 - 优先级：P2。
@@ -317,8 +317,8 @@
 
 - 用途：在角色资料里切换人格，和基础修订不是同一步。
 - 建议：`POST /api/fluctlights/{fluctlightId}/persona-switch`。
-- 请求字段：`target_persona_id`、`expectedRevision`、`idempotencyKey`、`reason`。
-- 响应字段：`revision`、`audit_id`。
+- 请求字段：`targetPersonaId`、`expectedRevision`、`idempotencyKey`、`reason`、`confirm: true`。
+- 响应字段：`revision`、`audit_id`、`status: "pending"`。没有可选人格列表 GET，缺列表时不编造人格。
 - 权限与版本：所有者写。二次确认。不得把切换直接写成运行状态。
 - 页面与 BP：`profile.persona.switch`，GOV-12。
 - 优先级：P2。
@@ -340,6 +340,43 @@
 - 权限与版本：先只读。写操作若增加，必须带 revision 和原因。
 - 页面与 BP：`goals.desire.list`，GAP-05。
 - 优先级：P3。
+
+## X 类：契约补充（v0.1，清单外）
+
+前端 `BrowserClient` 已按契约实现这些读接口。响应 snake_case。写请求体使用 `idempotencyKey` 与 `expectedRevision`（Q1 待裁决：CORS 尚未放行 `Idempotency-Key` 头；multipart B-12 例外，键在请求头）。409 读取 `details.current_revision` 并保留草稿。缺键显示尚未接入，`null` 是无记录，`[]` 是空。
+
+| 编号 | 路由 | 页面用途 |
+|---|---|---|
+| X-01 | `GET /api/notifications/unread-count` | 顶栏红点。404 时不显示假计数 |
+| X-02 | `GET /api/pending/count` | 待处理计数。`partial` 表示有未接入分组 |
+| X-03 | 列表上的 `now_line`、`status`、`status_note`、`group_id` | 角色库此刻一句话。另需 `bio` 才能还原卡片副标题（契约未单列，缺键则不编造简介） |
+| X-04 | 消息 `identity` / `kind` / `recall` / `memory_ref` / `goal_ref` / `action_id` / `link` | 交流/管理只影响视图，不作为服务器授权 |
+| X-05 | `POST /api/memories/{id}/suggestions` → 202 `memory_suggestion` | “告诉她”。不直接改记忆 |
+| X-06 | `GET /api/owner-requests/{id}` 与按角色列表 | 处理中 / 失败。状态只由 Agent 推进 |
+| X-07 | `POST /api/fluctlights/{fid}/promises` → 202 | 约定提议 |
+| X-08 | `POST .../moment-suggestions` → 202 | 角色发帖建议。没有代发 |
+| X-09 | `GET .../world/places/{placeId}` | 地点详情。纯 GET |
+| X-10 | `GET .../world/templates` | 实例模板与永久伤害锁定 |
+| X-11 | `POST .../apply-preview` | 只读差异，不需要幂等键 |
+| X-12 | detail.events[].impacts | 事件影响链 |
+| X-13 | 记忆 / 关系 `revisions[]` | 修订历史 |
+| X-14 | 动态 `author_type`、`author_name`、`author_avatar_url`、`source_action_id` | 作者渲染 |
+
+诊断首页还要从 detail 读到当前 `actions`（契约没有单独的行动列表，待裁决）。反思时间线需要 `GET .../reflections` 列表；契约 C-04 只有按 id 读取，客户端方法已标注待裁决，404 时不编造反思。
+
+### 契约 §6 存疑点（先按当前写法）
+
+- Q1：JSON 写操作使用请求体 `idempotencyKey`。日程条目更新与日记更新按已合入的 OpenAPI 使用 PUT。上传同时带请求头 `Idempotency-Key` 和表单字段 `idempotencyKey`。
+- Q2：新响应使用 snake_case。
+- Q3 / Q4：交流视图的换装、使用、逐条日程是 202 请求，不把本地结果写成事实。管理视图换装和使用在二次确认后带 `confirm: true`，成功回执是 `status: "saved"`、`identity: "owner_edit"`、`actor: "owner"`。衣橱的 `expectedRevision` 是衣橱 `revision`。409 的 `details.resource` 是 `wardrobe`。
+- Q5：人工插画头像 `source: "owner_upload"`、`kind: "visual_identity"`，不打「生成图·非事实」。其余生成图仍打该标。
+- Q6：反思回应是 `POST .../reflections/{id}/feedback`，只提交候选反馈，不改反思正文。
+- Q7：配置包有导出、校验、导入。导入只生成草稿。
+- Q8：没有人格列表 GET。切换前的列表缺键则显示尚未接入，不编造人格。
+- 通知未读数和标记已读未接入时是 404 `not_provided`。红点不显示，不把缺计数当成 0。
+- 分组删除的 `expectedRevision` 固定为 0。
+- 创作应用的未完成状态只显示「未完成·已记录选择，尚未写入实例」。
+- Q9–Q12：备份在 `available:false` 时禁用恢复；C-10 响应必须带 `runtime_effect: "preference_only"`。花费上限和 identity 中文对照仍按当前契约。
 
 ## 本期明确不接成可用功能
 

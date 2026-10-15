@@ -1,36 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, defineAsyncComponent } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { isDiagnosticsSection, isLifeSection, isSettingsSection, type DiagnosticsSection, type LifeSection, type SettingsSection, type WorkspaceSection, type WorkspaceView } from "./app/navigation";
-import AuthPanel from "./components/auth/AuthPanel.vue";
-import AppShell from "./components/layout/AppShell.vue";
-import InstanceDetailsDialog from "./components/instances/InstanceDetailsDialog.vue";
-import ChatView from "./views/ChatView.vue";
-import ChatShowcaseView from "./views/ChatShowcaseView.vue";
-import InstancesView from "./views/InstancesView.vue";
-import AutonomyView from "./views/AutonomyView.vue";
-import DataToolsView from "./views/DataToolsView.vue";
-import MomentsView from "./views/MomentsView.vue";
-import PendingView from "./views/PendingView.vue";
-import RollbackView from "./views/RollbackView.vue";
-import StudioView from "./views/StudioView.vue";
-import UnwiredView from "./views/UnwiredView.vue";
-import WorldView from "./views/WorldView.vue";
-import LifeShowcaseView from "./views/LifeShowcaseView.vue";
-import GrowthView from "./views/life/GrowthView.vue";
-import LifeGoalsView from "./views/life/LifeGoalsView.vue";
-import LifeNowView from "./views/life/LifeNowView.vue";
-import LifeScheduleView from "./views/life/LifeScheduleView.vue";
-import LifeWardrobeView from "./views/life/LifeWardrobeView.vue";
-import MediaView from "./views/life/MediaView.vue";
-import PeopleView from "./views/life/PeopleView.vue";
-import ProfileView from "./views/life/ProfileView.vue";
-import WorkspaceState from "./components/product/WorkspaceState.vue";
 import { useConversationStore } from "./stores/conversations";
 import { useControlCenterStore } from "./stores/control-center";
-
-const DiagnosticsView = defineAsyncComponent({ loader: () => import("./views/DiagnosticsView.vue"), loadingComponent: WorkspaceState, errorComponent: WorkspaceState, delay: 100, timeout: 15000 });
-const SettingsView = defineAsyncComponent({ loader: () => import("./views/SettingsView.vue"), loadingComponent: WorkspaceState, errorComponent: WorkspaceState, delay: 100, timeout: 15000 });
+import { mountProduct } from "./v3/proto/app";
 
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
@@ -239,51 +213,12 @@ onMounted(() => {
   window.addEventListener("popstate", onPopState);
   applyLegacyRedirect();
   syncDiagnosticsFilterFromLocation();
-  void initializeWorkspace();
+  const host = document.getElementById("v3-root");
+  if (host) void mountProduct(host);
 });
 onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
 </script>
 
 <template>
-  <ChatShowcaseView v-if="view === 'showcase'" />
-  <LifeShowcaseView v-else-if="view === 'lifeShowcase'" />
-  <AppShell v-else :active-view="view" :active-section="activeSection" :life-section="lifeSection" :show-navigation="store.authenticated === true" @navigate="onShellNavigate" @navigate-section="navigateSection" @select-instance="openDesktopChat" @logout="store.logout">
-    <AuthPanel
-      v-if="store.authenticated !== true"
-      :setup-available="store.setupAvailable"
-      :loading="store.authLoading"
-      :error="store.authError"
-      @setup="handleSetup"
-      @sign-in="handleSignIn"
-    />
-
-    <template v-else>
-      <div v-if="routeCharacterMissing" class="banner err">链接中的角色不在当前目录，已停止显示其他角色的数据。</div>
-      <ChatView v-if="view === 'chat'" @back="navigate('instances')" @open-details="openDetails" @open-instances="navigate('instances')" @open-section="(next) => navigate(next, '', next === 'life' ? 'now' : '')" />
-      <MomentsView v-else-if="view === 'moments'" />
-      <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" :open-create="createRequest" @creation-consumed="createRequest=0" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
-      <DiagnosticsView v-else-if="view === 'diagnostics'" :section="activeDiagnosticsSection" @navigate-section="(section) => navigateSection('diagnostics', section)" />
-      <SettingsView v-else-if="view === 'settings'" :section="activeSettingsSection" @navigate-section="(section) => navigateSection('settings', section)" @logout="store.logout" />
-      <StudioView v-else-if="view === 'studio'" />
-      <PendingView v-else-if="view === 'pending'" @open-governance="openGovernance" @open-profile="navigate('profile')" @open-diagnostics="navigate('diagnostics')" />
-      <DataToolsView v-else-if="view === 'data'" @open-rollback="navigate('rollback')" />
-      <RollbackView v-else-if="view === 'rollback'" @back="navigate('data')" />
-      <AutonomyView v-else-if="view === 'autonomy' && !routeCharacterMissing" @open-profile="navigate('profile')" />
-      <UnwiredView v-else-if="view === 'inbox'" title="通知中心" bp="BP-03" note="通知列表还没有服务接口。铃铛进入待处理，不会显示虚构未读数。动态仍可从导航进入。" action-label="打开动态" @action="navigate('moments')" />
-      <LifeNowView v-else-if="view === 'life' && lifeSection === 'now' && !routeCharacterMissing" @open="onShellNavigate" />
-      <LifeScheduleView v-else-if="view === 'life' && lifeSection === 'schedule' && !routeCharacterMissing" />
-      <LifeGoalsView v-else-if="view === 'life' && lifeSection === 'goals' && !routeCharacterMissing" />
-      <LifeWardrobeView v-else-if="view === 'life' && lifeSection === 'wardrobe' && !routeCharacterMissing" />
-      <UnwiredView v-else-if="view === 'life' && lifeSection === 'diary'" title="日记" bp="BP-09" note="日记与共同经历还没有接到现有接口。" />
-      <WorldView v-else-if="view === 'world' && !routeCharacterMissing" />
-      <PeopleView v-else-if="view === 'people' && !routeCharacterMissing" />
-      <GrowthView v-else-if="view === 'growth' && !routeCharacterMissing" />
-      <MediaView v-else-if="view === 'media' && !routeCharacterMissing" @open-settings="navigateSection('settings', 'media')" />
-      <ProfileView v-else-if="view === 'profile' && !routeCharacterMissing" @open-media="navigate('media')" @open-autonomy="navigate('autonomy')" />
-      <p v-else-if="routeCharacterMissing" class="statebox">已停止显示其他角色的数据。</p>
-    </template>
-
-    <InstanceDetailsDialog :open="showDetails" @close="showDetails = false" @manage="openGovernance" />
-    <span class="sr-only" aria-live="polite">当前页面：{{ activeViewLabel }}</span>
-  </AppShell>
+  <div id="v3-root"></div>
 </template>

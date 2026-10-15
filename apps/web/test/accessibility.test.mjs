@@ -16,6 +16,7 @@ async function readVueSources(directory) {
 }
 
 const appSource = (await readVueSources(fileURLToPath(new URL("../src", import.meta.url)))).join("\n");
+const authSource = await readFile(new URL("../src/v3/proto/pages/govern.js", import.meta.url), "utf8");
 
 test("control center keeps keyboard, live-region, and form boundaries explicit", () => {
   assert.match(appSource, /aria-label="Fluctlight 主导航"/);
@@ -26,7 +27,8 @@ test("control center keeps keyboard, live-region, and form boundaries explicit",
   assert.match(appSource, /id="auth-password"/);
   assert.match(appSource, /autocomplete="current-password"/);
   assert.match(appSource, /aria-labelledby="auth-title"/);
-  assert.match(appSource, /@logout="store.logout"/);
+  assert.match(authSource, /data-test="signout"/);
+  assert.match(authSource, /store\.signOut/);
   assert.match(appSource, /@keydown="onKeydown"/);
   assert.doesNotMatch(appSource, /v-html/);
 });

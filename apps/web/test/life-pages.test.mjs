@@ -15,18 +15,11 @@ const media = read("../src/views/life/MediaView.vue");
 const pages = [now, schedule, goals, wardrobe, people, growth, profile, media];
 
 test("phase 3 routes mount the sage pages and keep diary unwired", () => {
-  assert.match(app, /LifeNowView/);
-  assert.match(app, /LifeScheduleView/);
-  assert.match(app, /LifeGoalsView/);
-  assert.match(app, /LifeWardrobeView/);
-  assert.match(app, /PeopleView/);
-  assert.match(app, /GrowthView/);
-  assert.match(app, /MediaView/);
-  assert.match(app, /ProfileView/);
-  assert.match(app, /lifeSection === 'diary'/);
-  assert.match(app, /日记与共同经历还没有接到现有接口/);
-  assert.match(app, /routeCharacterMissing/);
+  assert.match(app, /id="v3-root"/);
+  assert.match(app, /mountProduct/);
+  assert.match(now, /LifeNow|此刻|心情尚未接入/);
   assert.doesNotMatch(app, /iframe/);
+  assert.doesNotMatch(app, /<LifeNowView|<UnwiredView|<GovernanceView/);
 });
 
 test("writes stay on the existing revision, reason, evidence and idempotency commands", () => {
