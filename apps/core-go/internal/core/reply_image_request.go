@@ -39,7 +39,7 @@ type replyImageRequestTool struct {
 
 func (*replyImageRequestTool) Definition() CapabilityDefinition {
 	return CapabilityDefinition{Name: replyImageRequestName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:  "Request a real image for this private reply draft. Describe the desired scene in intent; the server hands it to the existing image generator and attaches only real ready files. This receipt means requested_not_generated: no image has been generated, seen or sent. Do not print SVG/path data or claim sending; finish with ordinary persona text. At most two requests. The whole draft stays private until actual media results are available.",
+		Description:  "Request a real image/selfie for this chat reply draft. Describe the desired scene in intent; the server hands it to the image generator. Call this tool ONLY when the user explicitly asks for a photo/selfie/picture, or when agreeing to send one. Never call during ordinary text chat. Do not print SVG/path data or claim sending in text; finish with ordinary persona text. At most two requests.",
 		InputSchema:  objectSchema(map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 2048}}, []string{"intent"}, false),
 		OutputSchema: openObjectSchema(), Surfaces: []CapabilitySurface{CapabilitySurfaceConversation}, SupportsCancel: true,
 		SideEffectClass: "read_only", ConcurrencyClass: "parallel", FailurePolicy: FailurePolicyOptionalInternal, SuccessBoundary: "draft_request_recorded"}
