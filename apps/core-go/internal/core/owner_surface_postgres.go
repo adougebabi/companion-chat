@@ -16,7 +16,20 @@ func newPostgresSurface(pool *pgxpool.Pool) SurfaceStore {
 	return &postgresSurface{pool: pool}
 }
 
-func (s *postgresSurface) Transact(ctx context.Context, fn func(surfaceTx) error) error {
+type surfaceDBTxKey struct{}
+
+// SurfaceDBTx returns the owner-surface transaction when the caller is inside
+// SurfaceStore.Transact. Wardrobe corrections join that transaction so the
+// state write and the owner audit commit or roll back together.
+func SurfaceDBTx(ctx context.Context) (pgx.Tx, bool) {
+	if ctx == nil {
+		return nil, false
+	}
+	tx, ok := ctx.Value(surfaceDBTxKey{}).(pgx.Tx)
+	return tx, ok && tx != nil
+}
+
+func (s *postgresSurface) Transact(ctx context.Context, fn func(context.Context, surfaceTx) error) error {
 	if s == nil || s.pool == nil {
 		return errors.New("owner surface store is unavailable")
 	}
@@ -24,7 +37,8 @@ func (s *postgresSurface) Transact(ctx context.Context, fn func(surfaceTx) error
 	if err != nil {
 		return err
 	}
-	if err := fn(postgresSurfaceTx{tx}); err != nil {
+	txCtx := context.WithValue(ctx, surfaceDBTxKey{}, tx)
+	if err := fn(txCtx, postgresSurfaceTx{tx}); err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}

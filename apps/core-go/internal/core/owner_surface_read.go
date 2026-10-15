@@ -19,16 +19,91 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 
 func (a *App) surfaceHooks() SurfaceHooks {
 	return SurfaceHooks{
-		Now:              a.now,
-		Authorize:        a.authorizeSurface,
-		DeleteGroup:      a.DeleteActorGroup,
-		PublishMoment:    a.publishOwnerMoment,
-		CapabilityItems:  a.surfaceCapabilityItems,
-		ListMedia:        a.ListBrowserMedia,
-		Sidebar:          a.BrowserSidebar,
-		MemoryRevision:   a.surfaceMemoryRevision,
-		InstanceRevision: a.surfaceInstanceRevision,
+		Now:               a.now,
+		Authorize:         a.authorizeSurface,
+		DeleteGroup:       a.DeleteActorGroup,
+		PublishMoment:     a.publishOwnerMoment,
+		CapabilityItems:   a.surfaceCapabilityItems,
+		ListMedia:         a.ListBrowserMedia,
+		Sidebar:           a.BrowserSidebar,
+		MemoryRevision:    a.surfaceMemoryRevision,
+		InstanceRevision:  a.surfaceInstanceRevision,
+		ApplyWardrobeEdit: a.ApplyWardrobeOwnerEdit,
 	}
+}
+
+// ApplyWardrobeOwnerEdit writes a management-view wardrobe correction onto the
+// real worn or in-use rows. It compares and increments fluctlight_wardrobe_states.revision
+// under the same row lock the character wear and use paths take. It does not
+// call wardrobe.wear or item.use, does not emit those events, and does not
+// change wearing_state.
+func (a *App) ApplyWardrobeOwnerEdit(ctx context.Context, owner, fid string, edit WardrobeOwnerEdit) (WardrobeOwnerEditResult, error) {
+	tx, ok := SurfaceDBTx(ctx)
+	if !ok || a == nil || a.DB == nil {
+		return WardrobeOwnerEditResult{}, &SurfaceError{Status: 503, Code: "surface_unavailable", Message: "Wardrobe revision is not connected"}
+	}
+	if _, err := a.DB.GetFluctlight(ctx, fid, owner); err != nil {
+		if errors.Is(err, ErrNotFound) || errors.Is(err, ErrUnauthorized) {
+			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 404, Code: "fluctlight_not_found", Message: "Fluctlight is unavailable"}
+		}
+		return WardrobeOwnerEditResult{}, err
+	}
+	var revision int
+	err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR UPDATE`, fid).Scan(&revision)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return WardrobeOwnerEditResult{}, &SurfaceError{Status: 404, Code: "wardrobe_not_found", Message: "Wardrobe was not found"}
+	}
+	if err != nil {
+		return WardrobeOwnerEditResult{}, err
+	}
+	if revision != edit.Expected {
+		return WardrobeOwnerEditResult{}, conflict("wardrobe", edit.Expected, revision)
+	}
+	at := a.now().UTC()
+	switch edit.Kind {
+	case "wear":
+		var slot string
+		err := tx.QueryRow(ctx, `SELECT slot FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 FOR SHARE`, fid, edit.ItemID).Scan(&slot)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 404, Code: "wardrobe_item_not_found", Message: "Wardrobe item was not found"}
+		}
+		if err != nil {
+			return WardrobeOwnerEditResult{}, err
+		}
+		if slot != edit.Slot {
+			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 422, Code: "wardrobe_slot_mismatch", Message: "Wardrobe item does not belong to this slot"}
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_worn_items(fluctlight_id,slot,item_id,changed_at) VALUES($1,$2,$3,$4) ON CONFLICT(fluctlight_id,slot) DO UPDATE SET item_id=EXCLUDED.item_id,changed_at=EXCLUDED.changed_at`, fid, edit.Slot, edit.ItemID, at); err != nil {
+			return WardrobeOwnerEditResult{}, err
+		}
+	case "item_use":
+		var found int
+		err := tx.QueryRow(ctx, `SELECT 1 FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 FOR SHARE`, fid, edit.ItemID).Scan(&found)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 404, Code: "wardrobe_item_not_found", Message: "Wardrobe item was not found"}
+		}
+		if err != nil {
+			return WardrobeOwnerEditResult{}, err
+		}
+		if edit.Active {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_item_uses(fluctlight_id,item_id,revision,activity,started_at,source_event_id) VALUES($1,$2,1,'',$3,'owner_edit') ON CONFLICT(fluctlight_id,item_id) DO UPDATE SET revision=fluctlight_item_uses.revision+1,activity='',started_at=EXCLUDED.started_at,source_event_id='owner_edit'`, fid, edit.ItemID, at); err != nil {
+				return WardrobeOwnerEditResult{}, err
+			}
+		} else if _, err := tx.Exec(ctx, `DELETE FROM public.fluctlight_item_uses WHERE fluctlight_id=$1 AND item_id=$2`, fid, edit.ItemID); err != nil {
+			return WardrobeOwnerEditResult{}, err
+		}
+	default:
+		return WardrobeOwnerEditResult{}, invalid("wardrobe edit kind is invalid")
+	}
+	newRevision := revision + 1
+	tag, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_states SET revision=$2,updated_at=$3 WHERE fluctlight_id=$1 AND revision=$4`, fid, newRevision, at, revision)
+	if err != nil {
+		return WardrobeOwnerEditResult{}, err
+	}
+	if tag.RowsAffected() != 1 {
+		return WardrobeOwnerEditResult{}, errors.New("wardrobe revision changed during owner edit")
+	}
+	return WardrobeOwnerEditResult{Revision: newRevision}, nil
 }
 
 func (a *App) authorizeSurface(ctx context.Context, owner, fid string) error {
@@ -274,7 +349,7 @@ func (a *App) DecorateWardrobe(ctx context.Context, owner, fid string, page map[
 	if usedOK {
 		page["used_items"] = used
 	}
-	revision, err := store.Revision(ctx, owner, fid, "wardrobe:"+fid)
+	revision, err := store.Revision(ctx, owner, fid, "wardrobe_owner_count")
 	if err == nil {
 		page["owner_revision"] = revision
 	}
@@ -286,29 +361,40 @@ func (a *App) readWornItems(ctx context.Context, owner, fid string, store Surfac
 		return nil, false
 	}
 	defer rows.Close()
-	items := make([]any, 0)
+	type wornRow struct {
+		slot, itemID string
+		changed      time.Time
+	}
+	scanned := make([]wornRow, 0)
 	for rows.Next() {
-		var slot, itemID string
-		var changed time.Time
-		if err := rows.Scan(&slot, &itemID, &changed); err != nil {
+		var row wornRow
+		if err := rows.Scan(&row.slot, &row.itemID, &row.changed); err != nil {
 			return nil, false
 		}
-		items = append(items, map[string]any{"slot": slot, "item_id": itemID, "since": changed.UTC().Format(time.RFC3339), "recorded_by": "fluctlight"})
+		scanned = append(scanned, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, false
 	}
+	rows.Close()
 	records, err := store.ListKind(ctx, owner, "owner_worn", fid)
 	if err != nil {
 		return nil, false
 	}
+	owners := map[string]string{}
 	for _, record := range records {
 		if record.Status != "active" {
 			continue
 		}
-		item := cloneMap(record.Payload)
-		item["recorded_by"] = "owner"
-		items = append(items, item)
+		owners[record.ResourceKey] = stringValue(record.Payload["item_id"])
+	}
+	items := make([]any, 0, len(scanned))
+	for _, row := range scanned {
+		recordedBy := "fluctlight"
+		if owners[row.slot] != "" && owners[row.slot] == row.itemID {
+			recordedBy = "owner"
+		}
+		items = append(items, map[string]any{"slot": row.slot, "item_id": row.itemID, "since": row.changed.UTC().Format(time.RFC3339), "recorded_by": recordedBy})
 	}
 	return items, true
 }
@@ -319,29 +405,40 @@ func (a *App) readUsedItems(ctx context.Context, owner, fid string, store Surfac
 		return nil, false
 	}
 	defer rows.Close()
-	items := make([]any, 0)
+	type usedRow struct {
+		itemID  string
+		started time.Time
+	}
+	scanned := make([]usedRow, 0)
 	for rows.Next() {
-		var itemID string
-		var started time.Time
-		if err := rows.Scan(&itemID, &started); err != nil {
+		var row usedRow
+		if err := rows.Scan(&row.itemID, &row.started); err != nil {
 			return nil, false
 		}
-		items = append(items, map[string]any{"item_id": itemID, "since": started.UTC().Format(time.RFC3339), "recorded_by": "fluctlight"})
+		scanned = append(scanned, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, false
 	}
+	rows.Close()
 	records, err := store.ListKind(ctx, owner, "owner_used", fid)
 	if err != nil {
 		return nil, false
 	}
+	owners := map[string]struct{}{}
 	for _, record := range records {
 		if record.Status != "active" {
 			continue
 		}
-		item := cloneMap(record.Payload)
-		item["recorded_by"] = "owner"
-		items = append(items, item)
+		owners[record.ResourceKey] = struct{}{}
+	}
+	items := make([]any, 0, len(scanned))
+	for _, row := range scanned {
+		recordedBy := "fluctlight"
+		if _, owned := owners[row.itemID]; owned {
+			recordedBy = "owner"
+		}
+		items = append(items, map[string]any{"item_id": row.itemID, "since": row.started.UTC().Format(time.RFC3339), "recorded_by": recordedBy})
 	}
 	return items, true
 }

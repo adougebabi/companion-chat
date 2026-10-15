@@ -62,28 +62,46 @@ type surfaceTx interface {
 
 // SurfaceStore persists owner preferences, drafts, and requests.
 type SurfaceStore interface {
-	Transact(ctx context.Context, fn func(surfaceTx) error) error
+	Transact(ctx context.Context, fn func(context.Context, surfaceTx) error) error
 	ListKind(ctx context.Context, owner, kind, fid string) ([]surfaceRecord, error)
 	Revision(ctx context.Context, owner, fid, scope string) (int, error)
+}
+
+// WardrobeOwnerEdit is an owner management correction of current wardrobe
+// state. It is not a character wear or use action.
+type WardrobeOwnerEdit struct {
+	Kind     string
+	ItemID   string
+	Slot     string
+	Active   bool
+	Expected int
+}
+
+// WardrobeOwnerEditResult is the wardrobe revision after a committed owner edit.
+type WardrobeOwnerEditResult struct {
+	Revision int
 }
 
 // SurfaceHooks are read-only or explicitly owner-attributed adapters.
 // Nil hooks mean that capability is not connected.
 type SurfaceHooks struct {
-	Now              func() time.Time
-	Authorize        func(ctx context.Context, owner, fid string) error
-	DeleteGroup      func(ctx context.Context, owner, groupID string) error
-	PublishMoment    func(ctx context.Context, owner string, moment map[string]any) error
-	CapabilityItems  func(ctx context.Context, owner, fid string) ([]map[string]any, error)
-	ListMedia        func(ctx context.Context, owner, fid, cursor string, limit int) ([]map[string]any, any, error)
-	Sidebar          func(ctx context.Context, owner, fid string) (map[string]any, error)
-	MemoryRevision   func(ctx context.Context, owner, memoryID string) (int, bool, error)
-	InstanceRevision func(ctx context.Context, owner, fid string) (int, error)
+	Now               func() time.Time
+	Authorize         func(ctx context.Context, owner, fid string) error
+	DeleteGroup       func(ctx context.Context, owner, groupID string) error
+	PublishMoment     func(ctx context.Context, owner string, moment map[string]any) error
+	CapabilityItems   func(ctx context.Context, owner, fid string) ([]map[string]any, error)
+	ListMedia         func(ctx context.Context, owner, fid, cursor string, limit int) ([]map[string]any, any, error)
+	Sidebar           func(ctx context.Context, owner, fid string) (map[string]any, error)
+	MemoryRevision    func(ctx context.Context, owner, memoryID string) (int, bool, error)
+	InstanceRevision  func(ctx context.Context, owner, fid string) (int, error)
+	ApplyWardrobeEdit func(ctx context.Context, owner, fid string, edit WardrobeOwnerEdit) (WardrobeOwnerEditResult, error)
 }
 
-// OwnerSurface implements the browser contract for routes that are not yet
-// part of the agent runtime. It never writes life facts on the caller's behalf
-// and never accepts a suggestion as the character.
+// OwnerSurface implements browser routes that sit outside the agent runtime.
+// Its own records are owner drafts, requests, and audits. A confirmed wardrobe
+// correction is applied through ApplyWardrobeEdit onto the wardrobe revision,
+// and is recorded as an owner edit rather than the character wearing or using
+// the item.
 type OwnerSurface struct {
 	store SurfaceStore
 	hooks SurfaceHooks
@@ -126,7 +144,7 @@ func (s *OwnerSurface) Dispatch(ctx context.Context, method, path string, query 
 	}
 	var out map[string]any
 	var biz error
-	err := s.store.Transact(ctx, func(tx surfaceTx) error {
+	err := s.store.Transact(ctx, func(ctx context.Context, tx surfaceTx) error {
 		var storeErr error
 		out, biz, storeErr = s.dispatchTx(ctx, tx, method, path, query, owner, body)
 		return storeErr
@@ -499,49 +517,21 @@ func (s *OwnerSurface) characterOrOwner(ctx context.Context, tx surfaceTx, op su
 	if strings.TrimSpace(stringValue(body["reason"])) == "" {
 		return nil, invalid("reason is required")
 	}
-	scope := "wardrobe:" + op.fid
-	action := op.name
-	if op.name == "schedule_item" {
-		scope = "schedule:" + op.a
-		action = "schedule_item"
-		if !validTimestamp(body["start_at"]) || !validTimestamp(body["end_at"]) || strings.TrimSpace(stringValue(body["activity"])) == "" {
-			return nil, invalid("schedule item fields are invalid")
-		}
+	if op.name == "wear" || op.name == "item_use" {
+		return s.ownerWardrobeEdit(ctx, tx, op, owner, body)
 	}
-	if op.name == "wear" && (strings.TrimSpace(stringValue(body["item_id"])) == "" || strings.TrimSpace(stringValue(body["slot"])) == "") {
-		return nil, invalid("itemId and slot are required")
+	if op.name != "schedule_item" {
+		return nil, &SurfaceError{Status: 404, Code: "not_provided", Message: "This route is not provided"}
 	}
-	if op.name == "item_use" {
-		if strings.TrimSpace(op.a) == "" {
-			return nil, invalid("itemId is required")
-		}
-		if _, isBool := body["active"].(bool); !isBool {
-			return nil, invalid("active is required")
-		}
+	if !validTimestamp(body["start_at"]) || !validTimestamp(body["end_at"]) || strings.TrimSpace(stringValue(body["activity"])) == "" {
+		return nil, invalid("schedule item fields are invalid")
 	}
-	revision, err := s.bump(ctx, tx, owner, op.fid, scope, body["expected_revision"])
+	revision, err := s.bump(ctx, tx, owner, op.fid, "schedule:"+op.a, body["expected_revision"])
 	if err != nil {
 		return nil, err
 	}
 	now := s.now()
 	switch op.name {
-	case "wear":
-		rec := surfaceRecord{ID: "worn_" + shortHash(owner+"|"+op.fid+"|"+stringValue(body["slot"])), OwnerID: owner, FluctlightID: op.fid, Kind: "owner_worn", ResourceKey: stringValue(body["slot"]), Status: "active", Revision: revision, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{"item_id": stringValue(body["item_id"]), "slot": stringValue(body["slot"]), "since": now.Format(time.RFC3339), "recorded_by": "owner"}}
-		if err := tx.Save(ctx, rec); err != nil {
-			return nil, err
-		}
-	case "item_use":
-		key := op.a
-		if body["active"] == false {
-			if err := tx.DeleteKey(ctx, owner, op.fid, "owner_used", key); err != nil {
-				return nil, err
-			}
-		} else {
-			rec := surfaceRecord{ID: "used_" + shortHash(owner+"|"+op.fid+"|"+key), OwnerID: owner, FluctlightID: op.fid, Kind: "owner_used", ResourceKey: key, Status: "active", Revision: revision, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{"item_id": key, "since": now.Format(time.RFC3339), "recorded_by": "owner"}}
-			if err := tx.Save(ctx, rec); err != nil {
-				return nil, err
-			}
-		}
 	case "schedule_item":
 		id := op.b
 		if id == "" {
@@ -555,7 +545,7 @@ func (s *OwnerSurface) characterOrOwner(ctx context.Context, tx surfaceTx, op su
 			return nil, err
 		}
 	}
-	auditID, err := tx.Audit(ctx, owner, op.fid, action, stringValue(body["reason"]), op.fid)
+	auditID, err := tx.Audit(ctx, owner, op.fid, "schedule_item", stringValue(body["reason"]), op.fid)
 	if err != nil {
 		return nil, err
 	}
@@ -564,6 +554,66 @@ func (s *OwnerSurface) characterOrOwner(ctx context.Context, tx surfaceTx, op su
 		response["schedule_revision"] = revision
 	}
 	return withStatus(200, response), nil
+}
+
+func (s *OwnerSurface) ownerWardrobeEdit(ctx context.Context, tx surfaceTx, op surfaceCall, owner string, body map[string]any) (map[string]any, error) {
+	expected, ok := parseRevision(body["expected_revision"])
+	if !ok {
+		return nil, invalid("expectedRevision is required")
+	}
+	edit := WardrobeOwnerEdit{Kind: op.name, Expected: expected}
+	if op.name == "wear" {
+		edit.ItemID = strings.TrimSpace(stringValue(body["item_id"]))
+		edit.Slot = strings.TrimSpace(stringValue(body["slot"]))
+		if edit.ItemID == "" || edit.Slot == "" {
+			return nil, invalid("itemId and slot are required")
+		}
+	} else {
+		edit.ItemID = strings.TrimSpace(op.a)
+		active, isBool := body["active"].(bool)
+		if edit.ItemID == "" || !isBool {
+			return nil, invalid("itemId and active are required")
+		}
+		edit.Active = active
+	}
+	if s.hooks.ApplyWardrobeEdit == nil {
+		return nil, &SurfaceError{Status: 503, Code: "surface_unavailable", Message: "Wardrobe revision is not connected"}
+	}
+	result, err := s.hooks.ApplyWardrobeEdit(ctx, owner, op.fid, edit)
+	if err != nil {
+		return nil, err
+	}
+	ownerRevision, err := s.nextScopeRevision(ctx, tx, owner, op.fid, "wardrobe_owner_count")
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
+	if op.name == "wear" {
+		rec := surfaceRecord{ID: "worn_" + shortHash(owner+"|"+op.fid+"|"+edit.Slot), OwnerID: owner, FluctlightID: op.fid, Kind: "owner_worn", ResourceKey: edit.Slot, Status: "active", Revision: ownerRevision, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{"item_id": edit.ItemID, "slot": edit.Slot, "since": now.Format(time.RFC3339), "recorded_by": "owner"}}
+		if err := tx.Save(ctx, rec); err != nil {
+			return nil, err
+		}
+	} else if edit.Active {
+		rec := surfaceRecord{ID: "used_" + shortHash(owner+"|"+op.fid+"|"+edit.ItemID), OwnerID: owner, FluctlightID: op.fid, Kind: "owner_used", ResourceKey: edit.ItemID, Status: "active", Revision: ownerRevision, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{"item_id": edit.ItemID, "since": now.Format(time.RFC3339), "recorded_by": "owner"}}
+		if err := tx.Save(ctx, rec); err != nil {
+			return nil, err
+		}
+	} else if err := tx.DeleteKey(ctx, owner, op.fid, "owner_used", edit.ItemID); err != nil {
+		return nil, err
+	}
+	auditID, err := tx.Audit(ctx, owner, op.fid, op.name, stringValue(body["reason"]), op.fid)
+	if err != nil {
+		return nil, err
+	}
+	return withStatus(200, map[string]any{"revision": result.Revision, "owner_revision": ownerRevision, "audit_id": auditID, "status": "saved", "recorded_by": "owner", "actor": "owner", "identity": "owner_edit"}), nil
+}
+
+func (s *OwnerSurface) nextScopeRevision(ctx context.Context, tx surfaceTx, owner, fid, scope string) (int, error) {
+	current, err := tx.Revision(ctx, owner, fid, scope)
+	if err != nil {
+		return 0, err
+	}
+	return tx.Bump(ctx, owner, fid, scope, current)
 }
 
 func (s *OwnerSurface) publishMoment(ctx context.Context, tx surfaceTx, owner string, body map[string]any) (map[string]any, error) {
@@ -850,6 +900,7 @@ func (s *OwnerSurface) applyResource(ctx context.Context, tx surfaceTx, op surfa
 	if version == "" || (version != stringValue(record.Payload["draft_version"]) && version != stringValue(record.Payload["published_version"])) {
 		return nil, &SurfaceError{Status: 409, Code: "revision_conflict", Message: "Studio resource version conflict", Details: map[string]any{"current_version": record.Payload["draft_version"], "expected_version": version, "resource": "studio_resource"}}
 	}
+	var recordedRevision any
 	if s.hooks.InstanceRevision != nil {
 		current, revErr := s.hooks.InstanceRevision(ctx, owner, fid)
 		if revErr != nil {
@@ -859,6 +910,7 @@ func (s *OwnerSurface) applyResource(ctx context.Context, tx surfaceTx, op surfa
 		if !ok || expected != current {
 			return nil, conflict("fluctlight", expected, current)
 		}
+		recordedRevision = current
 	}
 	for _, raw := range arrayValue(body["choices"]) {
 		choice := mapValue(raw)
@@ -868,13 +920,18 @@ func (s *OwnerSurface) applyResource(ctx context.Context, tx surfaceTx, op surfa
 		}
 	}
 	now := s.now()
-	rec := surfaceRecord{ID: randomID("apply_"), OwnerID: owner, FluctlightID: fid, Kind: "studio_apply", Status: "recorded_only", Revision: 1, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{"resource_id": op.a, "fluctlight_id": fid, "resource_version": version, "choices": arrayValue(body["choices"]), "runtime_effect": "recorded_only"}}
+	choices := body["choices"]
+	rec := surfaceRecord{ID: randomID("apply_"), OwnerID: owner, FluctlightID: fid, Kind: "studio_apply", Status: "recorded_not_applied", Revision: 1, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{
+		"resource_id": op.a, "fluctlight_id": fid, "resource_version": version, "choices": choices,
+		"instance_revision": recordedRevision, "status": "recorded_not_applied", "runtime_effect": "recorded_only",
+		"conflicts_resolved": false,
+	}}
 	rec.ResourceKey = rec.ID
 	if err := tx.Save(ctx, rec); err != nil {
 		return nil, err
 	}
 	refs := arrayValue(record.Payload["referenced_by"])
-	record.Payload["referenced_by"] = append(refs, map[string]any{"fluctlight_id": fid, "applied_version": version, "runtime_effect": "recorded_only"})
+	record.Payload["referenced_by"] = append(refs, map[string]any{"fluctlight_id": fid, "selected_version": version, "status": "recorded_not_applied", "instance_revision": recordedRevision})
 	if err := tx.Save(ctx, record); err != nil {
 		return nil, err
 	}
@@ -882,7 +939,11 @@ func (s *OwnerSurface) applyResource(ctx context.Context, tx surfaceTx, op surfa
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"applied_version": version, "applied_at": now.Format(time.RFC3339), "conflicts": []any{}, "audit_id": auditID, "runtime_effect": "recorded_only", "status": "recorded_only"}, nil
+	return map[string]any{
+		"status": "recorded_not_applied", "runtime_effect": "recorded_only", "applied": false,
+		"resource_id": op.a, "resource_version": version, "instance_revision": recordedRevision,
+		"instance_revision_unchanged": true, "choices": choices, "conflicts": nil, "audit_id": auditID,
+	}, nil
 }
 
 func (s *OwnerSurface) autonomyGet(ctx context.Context, tx surfaceTx, op surfaceCall, owner string) (map[string]any, error) {
@@ -1546,10 +1607,10 @@ func newMemorySurface() *memorySurface {
 	return &memorySurface{records: map[string]surfaceRecord{}, keys: map[string]string{}, idem: map[string]memoryIdem{}, revision: map[string]int{}}
 }
 
-func (m *memorySurface) Transact(ctx context.Context, fn func(surfaceTx) error) error {
+func (m *memorySurface) Transact(ctx context.Context, fn func(context.Context, surfaceTx) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return fn(memoryTx{m})
+	return fn(ctx, memoryTx{m})
 }
 
 func (m *memorySurface) ListKind(ctx context.Context, owner, kind, fid string) ([]surfaceRecord, error) {

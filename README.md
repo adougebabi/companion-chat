@@ -425,8 +425,8 @@ Provider secrets；不要尝试从旧数据或旧环境变量中解密、复制�
 - 业务备份和恢复未接入，不返回 `backup_id` 或 `job_id`。
 - 时间线回档没有接口。`/api/ops/timeline-checkpoints` 保持 404，和对象修订、配置包、业务备份分开。
 - 事件影响链、消息身份分类、卡片此刻一句话和 `status_note` 都没有生产者，响应里缺这些键。
-- 创作应用到实例只记录所有者选择（`runtime_effect: "recorded_only"`），不改 Foundation、人格或生活事实。
-- 管理视图里的换装、使用和逐条日程记在所有者修订上，不调用 `wardrobe.wear`，也不写入角色日程规划。
+- 创作「应用」已记录选择，尚未写入实例。响应是 `status: "recorded_not_applied"`，实例版本保持记录当时的 revision，冲突字段保持未解决。以后写入需要按记录的选择执行，并重新校验冲突。
+- 管理视图的换装和使用写入真实衣橱状态，用衣橱 `revision` 做冲突校验，成功后加 1。`owner_revision` 只计所有者修改次数，不代替 `revision` 做校验。这类修改不调用 `wardrobe.wear`，不发出角色穿着或使用事件，审计记为所有者修改。逐条日程仍是所有者修订，不写入角色日程规划。
 - 配置包导入只生成创作草稿，不能写入记忆、日记、日程或其他运行时事实。
 - 世界模板目录的 `catalog_status` 为 `not_implemented`。模板开关和自治策略只保存偏好，`runtime_effect` 为 `preference_only`。
 - 分组没有自己的修订列，删除时的修订基线从 0 开始。
