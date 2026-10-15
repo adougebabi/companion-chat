@@ -324,6 +324,7 @@ export const useConversationStore = defineStore("conversations", {
     authLoading: false,
     authError: "" as string,
     loading: false,
+    historyLoading: false,
     sending: false,
 	activeTurnId: null as string | null,
     error: "" as string,
@@ -962,17 +963,19 @@ export const useConversationStore = defineStore("conversations", {
 		}
 	},
     async loadOlder() {
-      if (!this.conversation || !this.nextBeforeSequence || this.loading) return;
-      this.loading = true;
+      if (!this.conversation || !this.nextBeforeSequence || this.loading || this.historyLoading) return;
+      const conversationId = this.conversation.id;
+      this.historyLoading = true;
       try {
-        const page = await client.messages(this.conversation.id, this.nextBeforeSequence);
+        const page = await client.messages(conversationId, this.nextBeforeSequence);
+        if (this.conversation?.id !== conversationId) return;
         const existing = new Set(this.messages.map((message) => message.id));
         this.messages = [...page.messages.filter((message) => !existing.has(message.id)), ...this.messages];
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
       } catch {
-        this.error = "无法加载更早的对话记录。";
+        if (this.conversation?.id === conversationId) this.error = "无法加载更早的对话记录。";
       } finally {
-        this.loading = false;
+        this.historyLoading = false;
       }
     },
     async reportReadPosition() {

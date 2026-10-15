@@ -39,6 +39,7 @@ onMounted(() => void reload());
       <Button class="checkbox-chip" variant="outline" type="button" role="checkbox" :aria-checked="controlCenter.includeHiddenMoments" @click="controlCenter.includeHiddenMoments = !controlCenter.includeHiddenMoments"><component :is="controlCenter.includeHiddenMoments ? Check : Square" :size="16" aria-hidden="true" />显示已隐藏</Button>
     </div>
 
+    <div class="statebox"><h2>发布尚未接入</h2><p>用户不能以角色身份代发动态。发布接口尚未接入，本页不会提交新动态。</p></div>
     <FeedbackNotice :message="controlCenter.momentsError" />
     <p v-if="controlCenter.momentNotice" class="notice-banner" role="status">{{ controlCenter.momentNotice }}</p>
     <div v-if="controlCenter.momentsLoading" class="empty-panel compact">正在加载动态...</div>
@@ -48,6 +49,7 @@ onMounted(() => void reload());
       <article v-for="moment in controlCenter.moments" :key="moment.id" class="moment-card" :class="{ hidden: moment.status === 'hidden' }">
         <header class="moment-card-header"><span class="avatar persona-avatar">{{ ownerName(moment.owner_fluctlight_id).slice(0, 1) }}</span><div><strong>{{ ownerName(moment.owner_fluctlight_id) }}</strong><small>{{ formatMomentDate(moment.created_at) }}<template v-if="moment.unread_count"> · {{ moment.unread_count }} 条未读</template></small></div><Badge v-if="moment.status === 'hidden'" class="status-pill muted" variant="secondary">已隐藏</Badge></header>
         <p class="moment-copy">{{ moment.text }}</p>
+        <p v-if="moment.media.length" class="badge b-preview">生成图·非事实</p>
         <div v-if="moment.media.length" class="moment-media"><template v-for="asset in moment.media" :key="asset.id"><video v-if="asset.kind === 'video'" :src="mediaUrl(asset.id)" controls preload="metadata" /><audio v-else-if="asset.kind === 'audio'" :src="mediaUrl(asset.id)" controls preload="metadata" /><img v-else :src="mediaUrl(asset.id)" :alt="`${ownerName(moment.owner_fluctlight_id)} 的动态媒体`" loading="lazy" /></template></div>
         <div class="moment-meta"><span>{{ moment.reaction_count }} 个反应</span></div>
         <div v-if="moment.comments.length" class="comment-list"><p v-for="comment in moment.comments" :key="comment.id"><strong>{{ authorName(comment.author_actor_id) }}</strong>{{ comment.text }}</p></div>

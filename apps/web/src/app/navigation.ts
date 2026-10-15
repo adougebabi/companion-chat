@@ -1,4 +1,5 @@
-export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings";
+export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings" | "studio" | "inbox" | "life" | "world" | "people" | "growth" | "media" | "profile" | "autonomy" | "pending" | "data" | "rollback" | "showcase" | "lifeShowcase";
+export type LifeSection = "now" | "schedule" | "goals" | "wardrobe" | "diary";
 export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "kev" | "owner" | "reply" | "vision";
 export type DiagnosticsSection = "lifecycle" | "agent-runs" | "model-runs" | "media-prompts" | "events" | "kev-decisions" | "workflows";
 export type WorkspaceSection = SettingsSection | DiagnosticsSection;
@@ -41,3 +42,45 @@ export const primaryNavigation = [
 
 export function isSettingsSection(value: unknown): value is SettingsSection { return settingsSections.some(section=>section.id===value); }
 export function isDiagnosticsSection(value: unknown): value is DiagnosticsSection { return diagnosticsSections.some(section=>section.id===value); }
+
+export const lifeSections = [
+  { id: "now", label: "此刻" },
+  { id: "schedule", label: "日程" },
+  { id: "goals", label: "目标" },
+  { id: "wardrobe", label: "衣柜" },
+  { id: "diary", label: "日记" },
+] as const satisfies ReadonlyArray<{ id: LifeSection; label: string }>;
+
+export function isLifeSection(value: unknown): value is LifeSection {
+  return lifeSections.some((section) => section.id === value);
+}
+
+/** Character workspace entries. `key` avoids treating chat as a legacy primary tab id. */
+export const workspaceNavigation = [
+  { key: "chat", label: "对话", view: "chat" },
+  { key: "life", label: "生活", view: "life" },
+  { key: "world", label: "世界", view: "world" },
+  { key: "people", label: "人物关系", view: "people" },
+  { key: "growth", label: "记忆成长", view: "growth" },
+  { key: "media", label: "媒体", view: "media" },
+  { key: "profile", label: "角色资料", view: "profile" },
+  { key: "autonomy", label: "自治权限", view: "autonomy" },
+] as const satisfies ReadonlyArray<{ key: string; label: string; view: WorkspaceView }>;
+
+export const globalNavigation = [
+  { key: "library", label: "角色库", view: "instances" },
+  { key: "feed", label: "动态", view: "moments" },
+  { key: "studio", label: "创作中心", view: "studio" },
+  { key: "pending", label: "待处理", view: "pending" },
+  { key: "data", label: "数据工具", view: "data" },
+  { key: "settings", label: "系统设置", view: "settings" },
+  { key: "diagnostics", label: "运行诊断", view: "diagnostics" },
+  { key: "inbox", label: "通知", view: "inbox" },
+] as const satisfies ReadonlyArray<{ key: string; label: string; view: WorkspaceView }>;
+
+export const mobileNavigation: ReadonlyArray<{ key: string; label: string; view: WorkspaceView; life?: LifeSection }> = [
+  { key: "chat", label: "对话", view: "chat" },
+  { key: "now", label: "此刻", view: "life", life: "now" },
+  { key: "wardrobe", label: "衣柜", view: "life", life: "wardrobe" },
+  { key: "growth", label: "记忆", view: "growth" },
+];

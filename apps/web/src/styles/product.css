@@ -1,5 +1,5 @@
 /* Product semantics bridge the foundation components and established workspaces. */
-:root { --control-height: 44px; --control-radius: 12px; --motion-fast: 160ms; --motion-page: 220ms; --ease-out: cubic-bezier(.22, 1, .36, 1); --danger-ink: #8e302e; --success-ink: #256644; --success-soft: #eef8f4; }
+:root { --control-height: 44px; --control-radius: 12px; --motion-fast: 160ms; --motion-page: 220ms; --ease-out: cubic-bezier(.22, 1, .36, 1); --danger-ink: #7a5148; --success-ink: #4d6844; --success-soft: #eef2ea; }
 [data-slot="button"] { min-height: var(--control-height); height: auto; max-width: 100%; line-height: 1.4; white-space: normal; border-radius: var(--control-radius); transition: background-color var(--motion-fast), color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast); }
 [data-slot="button"][data-variant="default"] { background: var(--primary); color: var(--primary-foreground); }
 [data-slot="button"][data-variant="default"]:hover:not(:disabled) { background: var(--accent-strong); }
