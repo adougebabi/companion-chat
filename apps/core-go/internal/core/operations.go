@@ -903,10 +903,40 @@ func (a *App) SetActorGroupMember(ctx context.Context, owner, groupID, actorID s
 		return ErrUnauthorized
 	}
 	if add {
+		var status string
+		statusErr := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2`, actorID, owner).Scan(&status)
+		if statusErr == nil && status == "retired" {
+			return ErrRetiredActorGroup
+		}
+		if statusErr != nil && !errors.Is(statusErr, pgx.ErrNoRows) {
+			return statusErr
+		}
 		_, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.actor_group_members(group_id,actor_id) VALUES($1,$2) ON CONFLICT DO NOTHING`, groupID, actorID)
 		return err
 	}
 	_, err := a.DB.Pool().Exec(ctx, `DELETE FROM public.actor_group_members WHERE group_id=$1 AND actor_id=$2`, groupID, actorID)
+	return err
+}
+
+// ErrRetiredActorGroup rejects dragging a retired Fluctlight into an ordinary group.
+var ErrRetiredActorGroup = errors.New("retired_actor_group_forbidden")
+
+// DeleteActorGroup removes the group and leaves former members ungrouped.
+func (a *App) DeleteActorGroup(ctx context.Context, owner, groupID string) error {
+	var groupOwner string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT owner_actor_id FROM public.actor_groups WHERE id=$1`, groupID).Scan(&groupOwner); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if groupOwner != owner {
+		return ErrNotFound
+	}
+	if _, err := a.DB.Pool().Exec(ctx, `DELETE FROM public.actor_group_members WHERE group_id=$1`, groupID); err != nil {
+		return err
+	}
+	_, err := a.DB.Pool().Exec(ctx, `DELETE FROM public.actor_groups WHERE id=$1 AND owner_actor_id=$2`, groupID, owner)
 	return err
 }
 

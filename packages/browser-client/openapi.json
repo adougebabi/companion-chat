@@ -977,7 +977,41 @@
           },
           "turnRetryable": {
             "type": "boolean"
-          }
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recall": {},
+          "memoryRef": {},
+          "goalRef": {},
+          "actionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "link": {}
         },
         "required": [
           "id",
@@ -1020,6 +1054,9 @@
                 "type": "null"
               }
             ]
+          },
+          "long_term_revision_unchanged": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -2095,6 +2132,23 @@
           },
           "can_conclude_absent": {
             "type": "boolean"
+          },
+          "worn_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "used_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "owner_revision": {
+            "type": "integer"
           }
         },
         "required": [
@@ -2784,11 +2838,6 @@
     "/api/fluctlights/{fluctlightId}/moments/read": {
       "post": {
         "operationId": "markFluctlightMomentsRead"
-      }
-    },
-    "/api/moments": {
-      "get": {
-        "operationId": "globalMoments"
       }
     },
     "/api/memories/{memoryId}": {
@@ -3627,6 +3676,260 @@
     "/api/media/{assetId}": {
       "get": {
         "operationId": "readMedia"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/media": {
+      "get": {
+        "operationId": "fluctlightMedia"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/sidebar": {
+      "get": {
+        "operationId": "fluctlightSidebar"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/nearby": {
+      "get": {
+        "operationId": "fluctlightNearby"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/diary": {
+      "get": {
+        "operationId": "listDiary"
+      },
+      "post": {
+        "operationId": "createDiaryEntry"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/diary/{entryId}": {
+      "put": {
+        "operationId": "updateDiaryEntry"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/world": {
+      "get": {
+        "operationId": "fluctlightWorld"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/world/templates": {
+      "get": {
+        "operationId": "listWorldTemplates"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/world/templates/{templateId}": {
+      "put": {
+        "operationId": "updateWorldTemplate"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/world/places/{placeId}": {
+      "get": {
+        "operationId": "worldPlace"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/autonomy-policy": {
+      "get": {
+        "operationId": "readAutonomyPolicy"
+      },
+      "put": {
+        "operationId": "updateAutonomyPolicy"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/desires": {
+      "get": {
+        "operationId": "listDesires"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/owner-requests": {
+      "get": {
+        "operationId": "listFluctlightOwnerRequests"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/promises": {
+      "post": {
+        "operationId": "createPromise"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/moment-suggestions": {
+      "post": {
+        "operationId": "suggestMoment"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/persona-switch": {
+      "post": {
+        "operationId": "requestPersonaSwitch"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/visual-identity": {
+      "put": {
+        "operationId": "updateVisualIdentity"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/wardrobe/wear": {
+      "post": {
+        "operationId": "requestWardrobeWear"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/wardrobe/items/{itemId}/use": {
+      "post": {
+        "operationId": "requestWardrobeUse"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/wardrobe/items/{itemId}/photos": {
+      "post": {
+        "operationId": "requestWardrobePhoto"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/items": {
+      "post": {
+        "operationId": "createScheduleItem"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/items/{itemId}": {
+      "put": {
+        "operationId": "updateScheduleItem"
+      },
+      "delete": {
+        "operationId": "deleteScheduleItem"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/reflections/{reflectionId}": {
+      "get": {
+        "operationId": "readReflection"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/reflections/{reflectionId}/feedback": {
+      "post": {
+        "operationId": "submitReflectionFeedback"
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "operationId": "listNotifications"
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "operationId": "notificationUnreadCount"
+      }
+    },
+    "/api/notifications/{notificationId}/read": {
+      "post": {
+        "operationId": "markNotificationRead"
+      }
+    },
+    "/api/pending": {
+      "get": {
+        "operationId": "listPending"
+      }
+    },
+    "/api/pending/count": {
+      "get": {
+        "operationId": "pendingCount"
+      }
+    },
+    "/api/studio/resources": {
+      "get": {
+        "operationId": "listStudioResources"
+      },
+      "post": {
+        "operationId": "createStudioResource"
+      }
+    },
+    "/api/studio/resources/{resourceId}": {
+      "get": {
+        "operationId": "readStudioResource"
+      },
+      "put": {
+        "operationId": "updateStudioResource"
+      }
+    },
+    "/api/studio/resources/{resourceId}/apply-preview": {
+      "post": {
+        "operationId": "previewStudioApply"
+      }
+    },
+    "/api/studio/resources/{resourceId}/apply": {
+      "post": {
+        "operationId": "applyStudioResource"
+      }
+    },
+    "/api/studio/previews": {
+      "get": {
+        "operationId": "listStudioPreviews"
+      },
+      "post": {
+        "operationId": "createStudioPreview"
+      }
+    },
+    "/api/studio/packs": {
+      "post": {
+        "operationId": "importStudioPack"
+      }
+    },
+    "/api/studio/packs/validate": {
+      "post": {
+        "operationId": "validateStudioPack"
+      }
+    },
+    "/api/studio/packs/export": {
+      "get": {
+        "operationId": "exportStudioPack"
+      }
+    },
+    "/api/ops/backups": {
+      "get": {
+        "operationId": "listBackups"
+      },
+      "post": {
+        "operationId": "createBackup"
+      }
+    },
+    "/api/ops/backups/{backupId}/restore": {
+      "post": {
+        "operationId": "restoreBackup"
+      }
+    },
+    "/api/diagnostics/harm-intercepts": {
+      "get": {
+        "operationId": "harmIntercepts"
+      }
+    },
+    "/api/diagnostics/tasks/{taskId}": {
+      "get": {
+        "operationId": "diagnosticTask"
+      }
+    },
+    "/api/settings/agents": {
+      "get": {
+        "operationId": "listAgents"
+      }
+    },
+    "/api/memories/{memoryId}/suggestions": {
+      "post": {
+        "operationId": "suggestMemoryRevision"
+      }
+    },
+    "/api/owner-requests/{requestId}": {
+      "get": {
+        "operationId": "readOwnerRequest"
+      }
+    },
+    "/api/moments": {
+      "get": {
+        "operationId": "globalMoments"
+      },
+      "post": {
+        "operationId": "publishOwnerMoment"
+      }
+    },
+    "/api/media": {
+      "post": {
+        "operationId": "uploadMedia"
+      }
+    },
+    "/api/actor-groups/{groupId}": {
+      "delete": {
+        "operationId": "deleteActorGroup"
       }
     }
   }

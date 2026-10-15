@@ -75,6 +75,11 @@ func browserMessage(message map[string]any) map[string]any {
 			result[browserName] = value
 		}
 	}
+	for coreName, browserName := range map[string]string{"identity": "identity", "actor": "actor", "recall": "recall", "memory_ref": "memoryRef", "goal_ref": "goalRef", "action_id": "actionId", "link": "link"} {
+		if value, exists := message[coreName]; exists {
+			result[browserName] = value
+		}
+	}
 	if status := stringValue(message["turn_status"]); status == "failed" || status == "cancelled" {
 		result["turnRetryable"] = message["turn_retryable"]
 	}
