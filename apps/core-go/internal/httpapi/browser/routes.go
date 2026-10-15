@@ -228,6 +228,9 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
+	if s.routeSurface(response, request) {
+		return
+	}
 	if s.routeGoals(response, request) {
 		return
 	}
@@ -476,7 +479,18 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if _, exists := body["title"]; exists {
 			mapped["title"] = body["title"]
 		}
-		s.callMap(response, request, "/internal/conversations", http.MethodPost, mapped, s.readOnlyError(http.StatusBadGateway, "conversation_unavailable", "Conversation is unavailable"), func(value map[string]any) any { return browserPage(value) })
+		s.callMap(response, request, "/internal/conversations", http.MethodPost, mapped, s.readOnlyError(http.StatusBadGateway, "conversation_unavailable", "Conversation is unavailable"), func(value map[string]any) any {
+			page := browserPage(value)
+			if conversation, ok := page["conversation"].(map[string]any); ok {
+				if id := stringValue(conversation["id"]); id != "" {
+					conversation["segment_id"] = id
+					conversation["started_at"] = conversation["createdAt"]
+				}
+			}
+			// Creating a conversation does not rewrite long-term memory, relationships, or life facts.
+			page["long_term_revision_unchanged"] = true
+			return page
+		})
 		return
 	}
 	if path == "/api/fluctlights" && methodName == http.MethodPost {
@@ -601,7 +615,21 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		s.callNoContent(response, request, "/internal/actor-groups/"+escape(groupID)+"/members", http.MethodPost, map[string]any{"actor_id": body["actorId"]}, 422, "actor_group_assign_failed", "Actor could not be assigned")
+		session, ok := s.requireForMethod(response, request, http.MethodPost)
+		if !ok {
+			return
+		}
+		_, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/actor-groups/"+escape(groupID)+"/members", session, map[string]any{"actor_id": body["actorId"]})
+		if err != nil {
+			var coreErr *CoreError
+			if errors.As(err, &coreErr) && coreErr.Code == "retired_actor_group_forbidden" {
+				writeError(response, http.StatusUnprocessableEntity, "retired_actor_group_forbidden", "A retired character cannot be placed in an ordinary group")
+				return
+			}
+			writeError(response, http.StatusUnprocessableEntity, "actor_group_assign_failed", "Actor could not be assigned")
+			return
+		}
+		response.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if groupID, actorID, ok := match2(path, "/api/actor-groups/:groupId/members/:actorId"); ok && methodName == http.MethodDelete {

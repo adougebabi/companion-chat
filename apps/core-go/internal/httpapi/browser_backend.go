@@ -153,6 +153,16 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	if err != nil {
 		return nil, err
 	}
+	if core.MatchOwnerSurface(method, path) {
+		if b.server.app == nil {
+			return nil, &browser.CoreError{Status: http.StatusServiceUnavailable, Code: "surface_unavailable", Message: "Owner surface is unavailable"}
+		}
+		result, surfaceErr := b.server.app.DispatchOwnerSurface(ctx, method, path, parsed.Query(), actorID, values)
+		if surfaceErr != nil {
+			return nil, surfaceCoreError(surfaceErr)
+		}
+		return result, nil
+	}
 
 	switch {
 	case path == "/internal/auth/revoke-all":
@@ -198,6 +208,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.HasPrefix(path, "/internal/actor-groups/") && strings.HasSuffix(path, "/members") && method == http.MethodPost:
 		parts := splitInternalPath(path)
 		err = b.server.app.SetActorGroupMember(ctx, actorID, pathPart(parts, 2), stringValue(values["actor_id"]), true)
+		if errors.Is(err, core.ErrRetiredActorGroup) {
+			return nil, &browser.CoreError{Status: http.StatusUnprocessableEntity, Code: "retired_actor_group_forbidden", Message: "A retired character cannot be placed in an ordinary group"}
+		}
 	case strings.Contains(path, "/members/") && method == http.MethodDelete:
 		parts := splitInternalPath(path)
 		err = b.server.app.SetActorGroupMember(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), false)
@@ -247,7 +260,11 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		}
 		return b.server.app.ApplyOwnerGoalCommand(ctx, actorID, owner, goalID, command)
 	case path == "/internal/fluctlights" && method == http.MethodGet:
-		return b.server.repository.ListFluctlights(ctx, actorID)
+		items, listErr := b.server.repository.ListFluctlights(ctx, actorID)
+		if listErr != nil || b.server.app == nil {
+			return items, listErr
+		}
+		return b.server.app.DecorateFluctlightList(ctx, actorID, items), nil
 	case path == "/internal/fluctlights" && method == http.MethodPost:
 		item, createErr := b.server.app.CreateFluctlight(ctx, actorID, stringValue(values["id"]), stringValue(values["name"]), "blank_slate", "", nil, nil, nil)
 		if createErr != nil {
@@ -336,10 +353,20 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		return value, err
 	case strings.HasSuffix(path, "/detail") && method == http.MethodGet:
 		parts := splitInternalPath(path)
-		return b.server.app.FluctlightDetail(ctx, actorID, pathPart(parts, 2))
+		detail, detailErr := b.server.app.FluctlightDetail(ctx, actorID, pathPart(parts, 2))
+		if detailErr != nil {
+			return nil, detailErr
+		}
+		b.server.app.DecorateBrowserDetail(ctx, actorID, detail)
+		return detail, nil
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/wardrobe") && method == http.MethodGet:
 		parts := splitInternalPath(path)
-		return b.server.app.WardrobeItems(ctx, actorID, pathPart(parts, 2), parsed.Query().Get("cursor"))
+		page, wardrobeErr := b.server.app.WardrobeItems(ctx, actorID, pathPart(parts, 2), parsed.Query().Get("cursor"))
+		if wardrobeErr != nil {
+			return nil, wardrobeErr
+		}
+		b.server.app.DecorateWardrobe(ctx, actorID, pathPart(parts, 2), page)
+		return page, nil
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/wardrobe/items") && method == http.MethodPost:
 		parts := splitInternalPath(path)
 		return b.server.app.AddWardrobeItems(ctx, actorID, pathPart(parts, 2), values)
@@ -357,7 +384,11 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		return b.server.app.TriggerWakeUp(ctx, actorID, pathPart(parts, 2))
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/moments") && method == http.MethodGet:
 		parts := splitInternalPath(path)
-		return b.server.app.MomentsWithOptions(ctx, actorID, pathPart(parts, 2), parsed.Query().Get("include_hidden") == "true", queryLimitValue(parsed.Query().Get("limit")))
+		moments, momentsErr := b.server.app.MomentsWithOptions(ctx, actorID, pathPart(parts, 2), parsed.Query().Get("include_hidden") == "true", queryLimitValue(parsed.Query().Get("limit")))
+		if momentsErr != nil {
+			return nil, momentsErr
+		}
+		return b.server.app.DecorateMoments(ctx, actorID, moments), nil
 	case path == "/internal/capability-requests" && method == http.MethodGet:
 		return b.server.app.ListCapabilityRequests(ctx, actorID)
 	case strings.HasPrefix(path, "/internal/capability-requests/"):
@@ -412,7 +443,11 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		parts := splitInternalPath(path)
 		return b.server.app.CancelScheduleExpected(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), values)
 	case path == "/internal/moments" && method == http.MethodGet:
-		return b.server.app.AllMoments(ctx, actorID, parsed.Query().Get("include_hidden") == "true", queryLimitValue(parsed.Query().Get("limit")))
+		moments, momentsErr := b.server.app.AllMoments(ctx, actorID, parsed.Query().Get("include_hidden") == "true", queryLimitValue(parsed.Query().Get("limit")))
+		if momentsErr != nil {
+			return nil, momentsErr
+		}
+		return b.server.app.DecorateMoments(ctx, actorID, moments), nil
 	case strings.HasSuffix(path, "/moments/read"):
 		parts := splitInternalPath(path)
 		err = b.server.app.MarkMomentsRead(ctx, actorID, pathPart(parts, 2))
@@ -672,4 +707,15 @@ func queryLimitValue(value string) int {
 
 func lifecycleFilter(query url.Values) core.LifecycleDiagnosticsFilter {
 	return core.LifecycleDiagnosticsFilter{Limit: queryLimitValue(query.Get("limit")), FluctlightID: query.Get("fluctlight_id"), CorrelationID: query.Get("correlation_id"), IntentID: query.Get("intent_id"), WorkflowID: query.Get("workflow_id"), RunID: query.Get("run_id"), Surface: query.Get("surface"), Status: query.Get("status")}
+}
+
+func surfaceCoreError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var surfaceErr *core.SurfaceError
+	if errors.As(err, &surfaceErr) {
+		return &browser.CoreError{Status: surfaceErr.Status, Code: surfaceErr.Code, Message: surfaceErr.Message, Details: surfaceErr.Details, Replay: surfaceErr.Replay}
+	}
+	return browserBackendError(err, "surface_failed")
 }

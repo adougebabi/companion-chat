@@ -29,6 +29,8 @@ type CoreError struct {
 	Code    string
 	Message string
 	Details map[string]any
+	// Replay is set when an idempotent write returned the original result.
+	Replay bool
 }
 
 func (e *CoreError) Error() string {

@@ -18,15 +18,12 @@ const migration = read("../../../docs/migration-correspondence.md");
 const access = read("../../../docs/access-status.md");
 
 test("phase 4-5 routes replace studio and world placeholders and keep diary unwired", () => {
-  assert.match(app, /StudioView/);
-  assert.match(app, /WorldView/);
-  assert.match(app, /AutonomyView/);
-  assert.match(app, /DataToolsView/);
-  assert.match(app, /RollbackView/);
-  assert.match(app, /PendingView/);
-  assert.match(app, /日记与共同经历还没有接到现有接口/);
-  assert.match(app, /GovernanceView|openGovernance/);
-  assert.doesNotMatch(app, /iframe|prototype-v3|store\.js/);
+  assert.match(app, /id="v3-root"/);
+  assert.match(app, /mountProduct/);
+  assert.match(studio, /创作预览·不进入生活/);
+  assert.match(rollback, /未提供/);
+  assert.doesNotMatch(app, /<GovernanceView|<StudioView|<UnwiredView/);
+  assert.doesNotMatch(app, /iframe|prototype-v3/);
 });
 
 test("legacy urls replace the address without dropping the resolved view", () => {

@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["vite/client", "web-bluetooth"],
     "baseUrl": ".",
     "paths": {

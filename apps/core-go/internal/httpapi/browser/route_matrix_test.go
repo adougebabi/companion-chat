@@ -8,10 +8,11 @@ import (
 )
 
 type browserRouteCase struct {
-	name   string
-	method string
-	path   string
-	body   string
+	name     string
+	method   string
+	path     string
+	body     string
+	statuses []int
 }
 
 func TestBrowserScheduleWriteCannotCreateExecutableActionLink(t *testing.T) {
@@ -140,6 +141,59 @@ func browserRouteCases() []browserRouteCase {
 		{name: "diagnostic media prompt retry", method: http.MethodPost, path: "/api/diagnostics/media-prompts/media-1/retry"},
 		{name: "diagnostics export", method: http.MethodGet, path: "/api/diagnostics/export"},
 		{name: "media", method: http.MethodGet, path: "/api/media/asset-1"},
+		{name: "fluctlight media", method: http.MethodGet, path: "/api/fluctlights/fl-1/media"},
+		{name: "fluctlight sidebar", method: http.MethodGet, path: "/api/fluctlights/fl-1/sidebar"},
+		{name: "fluctlight nearby", method: http.MethodGet, path: "/api/fluctlights/fl-1/nearby"},
+		{name: "diary list", method: http.MethodGet, path: "/api/fluctlights/fl-1/diary"},
+		{name: "diary create", method: http.MethodPost, path: "/api/fluctlights/fl-1/diary", body: `{"idempotencyKey":"diary-1","body":"今天"}`},
+		{name: "diary update", method: http.MethodPut, path: "/api/fluctlights/fl-1/diary/entry-1", body: `{"idempotencyKey":"diary-2","body":"今天","expectedRevision":1,"reason":"修订"}`},
+		{name: "world", method: http.MethodGet, path: "/api/fluctlights/fl-1/world"},
+		{name: "world templates", method: http.MethodGet, path: "/api/fluctlights/fl-1/world/templates"},
+		{name: "world template update", method: http.MethodPut, path: "/api/fluctlights/fl-1/world/templates/template-1", body: `{"idempotencyKey":"tpl-1","enabled":true,"expectedRevision":0,"reason":"偏好"}`},
+		{name: "world place", method: http.MethodGet, path: "/api/fluctlights/fl-1/world/places/place-1"},
+		{name: "autonomy policy read", method: http.MethodGet, path: "/api/fluctlights/fl-1/autonomy-policy"},
+		{name: "autonomy policy update", method: http.MethodPut, path: "/api/fluctlights/fl-1/autonomy-policy", body: `{"idempotencyKey":"auto-1","expectedRevision":0,"reason":"偏好","level":"quiet"}`},
+		{name: "desires", method: http.MethodGet, path: "/api/fluctlights/fl-1/desires"},
+		{name: "fluctlight owner requests", method: http.MethodGet, path: "/api/fluctlights/fl-1/owner-requests"},
+		{name: "promise", method: http.MethodPost, path: "/api/fluctlights/fl-1/promises", body: `{"idempotencyKey":"promise-1","title":"一起吃饭"}`},
+		{name: "moment suggestion", method: http.MethodPost, path: "/api/fluctlights/fl-1/moment-suggestions", body: `{"idempotencyKey":"suggest-1","text":"今天的光"}`},
+		{name: "persona switch", method: http.MethodPost, path: "/api/fluctlights/fl-1/persona-switch", body: `{"idempotencyKey":"persona-1","targetPersonaId":"persona-1","expectedRevision":0,"reason":"切换","confirm":true}`},
+		{name: "visual identity", method: http.MethodPut, path: "/api/fluctlights/fl-1/visual-identity", body: `{"idempotencyKey":"visual-1","expectedRevision":0,"reason":"头像","source":"owner_upload","kind":"visual_identity"}`},
+		{name: "wardrobe wear", method: http.MethodPost, path: "/api/fluctlights/fl-1/wardrobe/wear", body: `{"idempotencyKey":"wear-1","itemId":"item-1","slot":"outer"}`},
+		{name: "wardrobe use", method: http.MethodPost, path: "/api/fluctlights/fl-1/wardrobe/items/item-1/use", body: `{"idempotencyKey":"use-1","active":true}`},
+		{name: "wardrobe photo", method: http.MethodPost, path: "/api/fluctlights/fl-1/wardrobe/items/item-1/photos", body: `{"idempotencyKey":"photo-1","prompt":"窗边"}`},
+		{name: "schedule item create", method: http.MethodPost, path: "/api/fluctlights/fl-1/schedules/schedule-1/items", body: `{"idempotencyKey":"item-1","activity":"阅读","startAt":"2026-01-01T10:00:00Z","endAt":"2026-01-01T11:00:00Z"}`},
+		{name: "schedule item update", method: http.MethodPut, path: "/api/fluctlights/fl-1/schedules/schedule-1/items/item-1", body: `{"idempotencyKey":"item-2","activity":"阅读","startAt":"2026-01-01T10:00:00Z","endAt":"2026-01-01T11:00:00Z","expectedRevision":0,"reason":"改期","confirm":true}`},
+		{name: "schedule item delete", method: http.MethodDelete, path: "/api/fluctlights/fl-1/schedules/schedule-1/items/item-1", body: `{"idempotencyKey":"item-3","expectedRevision":0,"reason":"取消","confirm":true,"activity":"阅读","startAt":"2026-01-01T10:00:00Z","endAt":"2026-01-01T11:00:00Z"}`},
+		{name: "reflection", method: http.MethodGet, path: "/api/fluctlights/fl-1/reflections/reflection-1"},
+		{name: "reflection feedback", method: http.MethodPost, path: "/api/fluctlights/fl-1/reflections/reflection-1/feedback", body: `{"idempotencyKey":"reflect-1","text":"这个判断还不准确"}`},
+		{name: "notifications", method: http.MethodGet, path: "/api/notifications"},
+		{name: "notification unread count", method: http.MethodGet, path: "/api/notifications/unread-count", statuses: []int{http.StatusNotFound}},
+		{name: "notification read", method: http.MethodPost, path: "/api/notifications/notice-1/read", body: `{"idempotencyKey":"read-1"}`, statuses: []int{http.StatusNotFound}},
+		{name: "pending", method: http.MethodGet, path: "/api/pending"},
+		{name: "pending count", method: http.MethodGet, path: "/api/pending/count"},
+		{name: "studio resources", method: http.MethodGet, path: "/api/studio/resources"},
+		{name: "studio resource create", method: http.MethodPost, path: "/api/studio/resources", body: `{"idempotencyKey":"res-1","kind":"place","name":"窗边"}`},
+		{name: "studio resource read", method: http.MethodGet, path: "/api/studio/resources/resource-1"},
+		{name: "studio resource update", method: http.MethodPut, path: "/api/studio/resources/resource-1", body: `{"idempotencyKey":"res-2","name":"窗边","expectedVersion":"1"}`},
+		{name: "studio apply preview", method: http.MethodPost, path: "/api/studio/resources/resource-1/apply-preview", body: `{"fluctlightId":"fl-1"}`},
+		{name: "studio apply", method: http.MethodPost, path: "/api/studio/resources/resource-1/apply", body: `{"idempotencyKey":"apply-1","fluctlightId":"fl-1","resourceVersion":"1","reason":"记录"}`},
+		{name: "studio previews", method: http.MethodGet, path: "/api/studio/previews"},
+		{name: "studio preview create", method: http.MethodPost, path: "/api/studio/previews", body: `{"idempotencyKey":"preview-1","text":"试一试"}`},
+		{name: "studio pack import", method: http.MethodPost, path: "/api/studio/packs", body: `{"idempotencyKey":"pack-1","resources":[]}`},
+		{name: "studio pack validate", method: http.MethodPost, path: "/api/studio/packs/validate", body: `{"idempotencyKey":"pack-2","resources":[]}`},
+		{name: "studio pack export", method: http.MethodGet, path: "/api/studio/packs/export"},
+		{name: "backups", method: http.MethodGet, path: "/api/ops/backups"},
+		{name: "backup create", method: http.MethodPost, path: "/api/ops/backups", body: `{"idempotencyKey":"backup-1"}`},
+		{name: "backup restore", method: http.MethodPost, path: "/api/ops/backups/backup-1/restore", body: `{"idempotencyKey":"backup-2","confirm":true,"reason":"恢复"}`},
+		{name: "harm intercepts", method: http.MethodGet, path: "/api/diagnostics/harm-intercepts"},
+		{name: "diagnostic task", method: http.MethodGet, path: "/api/diagnostics/tasks/task-1"},
+		{name: "agents", method: http.MethodGet, path: "/api/settings/agents"},
+		{name: "memory suggestion", method: http.MethodPost, path: "/api/memories/memory-1/suggestions", body: `{"idempotencyKey":"memory-1","text":"告诉她","expectedRevision":0,"reason":"候选"}`},
+		{name: "owner request", method: http.MethodGet, path: "/api/owner-requests/request-1"},
+		{name: "owner moment", method: http.MethodPost, path: "/api/moments", body: `{"idempotencyKey":"moment-1","text":"我的动态"}`},
+		{name: "media upload", method: http.MethodPost, path: "/api/media", body: `{"idempotencyKey":"upload-1"}`},
+		{name: "actor group delete", method: http.MethodDelete, path: "/api/actor-groups/group-1", body: `{"idempotencyKey":"group-1","expectedRevision":0,"reason":"解散"}`},
 	}
 }
 
@@ -182,9 +236,16 @@ func TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary(t *testing.T) {
 				cookies[sessionCookieName] = "opaque"
 			}
 			response := invokeBrowser(handler, route.method, "https://api.test"+route.path, route.body, headers, cookies)
-			if response.Code != http.StatusOK && response.Code != http.StatusNoContent && response.Code != http.StatusPartialContent {
-				t.Fatalf("route returned %d: %s", response.Code, response.Body.String())
+			allowed := route.statuses
+			if len(allowed) == 0 {
+				allowed = []int{http.StatusOK, http.StatusNoContent, http.StatusPartialContent}
 			}
+			for _, status := range allowed {
+				if response.Code == status {
+					return
+				}
+			}
+			t.Fatalf("route returned %d: %s", response.Code, response.Body.String())
 		})
 	}
 }

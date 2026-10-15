@@ -1,0 +1,21 @@
+// 分区：世界人物（BP-10/11/12/14）
+import { register } from './registry.js';
+import { guard } from '../pages/common.js';
+import * as W from '../pages/world.js';
+const Z = '世界人物';
+const R = (route, key, title, bp, coverage, fn, what, extra = {}) => register({ route, key, title, bp, zone: Z, coverage, render: guard(fn, what), ...extra });
+R('/c/:charId/world', 'world.map.view', '世界总览', 'BP-10', '仅展示', W.renderMap, '世界', { scope: '运行世界' });
+R('/c/:charId/world/place/:placeId', 'world.place.detail', '地点详情', 'BP-10', '可操作', W.renderPlace, '世界', { scope: '运行世界', source: '浏览地点不会移动角色；「建议她来这里」走行动请求' });
+R('/c/:charId/world/event/:evId', 'world.event.detail', '事件详情', 'BP-11', '可操作', W.renderEvent, '世界事件', { scope: '运行世界' });
+R('/c/:charId/world/events', 'world.event.list', '世界变化与事件流', 'BP-11', '仅展示', W.renderEvents, '世界事件', { scope: '运行世界' });
+R('/c/:charId/world/scene', 'world.scene.view', '当前场景', 'BP-10.3', '可操作', W.renderScene, '场景', { scope: '运行世界', source: '默认远程查看，无“进入场景”按钮' });
+R('/c/:charId/world/settings', 'world.instance.settings', '运行世界设定 · 随机事件', 'BP-10/11', '可操作', W.renderWorldSettings, '世界设定', { scope: '运行世界', source: '永久伤害类事件系统强制禁用，不可绕过' });
+R('/c/:charId/people', 'people.graph.view', '人物关系', 'BP-12', '仅展示', W.renderGraph, '人物关系');
+R('/c/:charId/people/npc/:npcId', 'people.npc.detail', 'NPC 详情', 'BP-12', '仅展示', W.renderNpc, '人物');
+R('/c/:charId/people/list', 'people.list.view', '人物目录', 'BP-12.1', '可操作', W.renderPeopleList, '人物');
+R('/c/:charId/people/owner', 'people.owner.background', '我的背景', 'BP-12', '可操作', W.renderOwner, '人物');
+R('/c/:charId/people/relation/:relId', 'people.relation.edit', '关系修正', 'BP-12', '可操作', W.renderRelEdit, '人物关系');
+R('/c/:charId/media', 'media.gallery.view', '媒体库', 'BP-14', '仅展示', W.renderGallery, '媒体');
+R('/c/:charId/media/identity', 'media.identity.view', '视觉身份', 'BP-14', '仅展示', W.renderIdentity, '媒体');
+R('/c/:charId/media/generate', 'media.item.generate', '媒体生成', 'BP-14', '可操作', W.renderGenerate, '媒体', { source: '输出均标「生成图·非事实」，不改变事实' });
+R('/c/:charId/media/:mdId', 'media.item.detail', '媒体详情', 'BP-14', '仅展示', W.renderMediaDetail, '媒体');
