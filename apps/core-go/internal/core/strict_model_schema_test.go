@@ -100,7 +100,7 @@ func TestStrictWireSchemasCoverRegisteredModelContracts(t *testing.T) {
 
 func assertStrictWireSchema(t *testing.T, path string, schema map[string]any) {
 	t.Helper()
-	for _, key := range []string{"minLength", "maxLength", "minimum", "maximum", "maxItems", "minItems", "pattern", "format", "default"} {
+	for _, key := range []string{"minLength", "maxLength", "minimum", "maximum", "maxItems", "pattern", "format", "default"} {
 		if _, ok := schema[key]; ok {
 			t.Fatalf("%s still has %s", path, key)
 		}

@@ -16,6 +16,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestEinoNativeToolCallsRequireFormalIdentityAndObjectArguments(t *testing.T) {
@@ -1116,7 +1117,7 @@ func TestProviderWakeUpUsesADKLoopAndPreservesTrace(t *testing.T) {
 				}
 			}
 		}
-		if stringValue(message["role"]) == "tool" && stringValue(message["tool_call_id"]) == "wake-provider-call-1" && stringValue(message["name"]) == "relationship.lookup" {
+		if stringValue(message["role"]) == "tool" && stringValue(message["tool_call_id"]) == "wake-provider-call-1" && capabilitycontract.CapabilityNamesMatch(stringValue(message["name"]), "relationship.lookup") {
 			toolResult = true
 		}
 	}
@@ -1213,7 +1214,7 @@ func TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace(t *testing.T) {
 				}
 			}
 		case "tool":
-			if stringValue(message["tool_call_id"]) == "b-provider-call-1" && stringValue(message["name"]) == "memory.recall" {
+			if stringValue(message["tool_call_id"]) == "b-provider-call-1" && capabilitycontract.CapabilityNamesMatch(stringValue(message["name"]), "memory.recall") {
 				toolResult = true
 			}
 		}

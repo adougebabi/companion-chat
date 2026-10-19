@@ -12,7 +12,7 @@ import (
 // original schema after nulls are treated as absent.
 var strictSchemaDroppedKeywords = []string{
 	"minLength", "maxLength", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
-	"minItems", "maxItems", "minProperties", "maxProperties", "multipleOf",
+	"maxItems", "minProperties", "maxProperties", "multipleOf",
 	"pattern", "format", "default", "uniqueItems", "patternProperties", "unevaluatedProperties",
 }
 
@@ -29,12 +29,25 @@ func CapabilityWireName(name string) string {
 // unchanged when a model echoes them.
 func RememberCapabilityWireNames(definitions []CapabilityDefinition) {
 	for _, definition := range definitions {
-		name := strings.TrimSpace(definition.Name)
-		if name == "" {
-			continue
-		}
-		capabilityWireToCanonical.Store(CapabilityWireName(name), name)
+		RememberCapabilityAlias(definition.Name)
 	}
+}
+
+// RememberCapabilityAlias records one canonical capability name so a provider
+// echo of its underscore form resolves back to the registered name. A name
+// that is already the wire form is not stored over a real canonical mapping.
+func RememberCapabilityAlias(canonical string) {
+	name := strings.TrimSpace(canonical)
+	if name == "" {
+		return
+	}
+	wire := CapabilityWireName(name)
+	if wire == name {
+		if _, loaded := capabilityWireToCanonical.Load(wire); loaded {
+			return
+		}
+	}
+	capabilityWireToCanonical.Store(wire, name)
 }
 
 // CanonicalCapabilityName maps a provider tool name back to the registered

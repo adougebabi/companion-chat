@@ -313,6 +313,12 @@ func prepareModelValue(value any, schema map[string]any) any {
 		result := make(map[string]any, len(typed))
 		for key, child := range typed {
 			if child == nil {
+				childSchema := mapValue(properties[key])
+				// Null is absent unless the source schema requires the key and
+				// accepts null as a value. Optional nulls stay omitted.
+				if schemaRequires(schema, key) && sourceSchemaAllowsNull(childSchema) {
+					result[key] = nil
+				}
 				continue
 			}
 			childSchema := mapValue(properties[key])
@@ -337,6 +343,43 @@ func prepareModelValue(value any, schema map[string]any) any {
 	default:
 		return omitModelNulls(value)
 	}
+}
+
+func sourceSchemaAllowsNull(schema map[string]any) bool {
+	if schema["type"] == "null" {
+		return true
+	}
+	for _, kind := range arrayValue(schema["type"]) {
+		if kind == "null" {
+			return true
+		}
+	}
+	for _, key := range []string{"anyOf", "oneOf"} {
+		for _, raw := range arrayValue(schema[key]) {
+			if sourceSchemaAllowsNull(mapValue(raw)) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func schemaRequires(schema map[string]any, key string) bool {
+	switch required := schema["required"].(type) {
+	case []string:
+		for _, item := range required {
+			if item == key {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range required {
+			if stringValue(item) == key {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func omitModelNulls(value any) any {

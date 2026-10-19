@@ -31,6 +31,9 @@ func TestActorGoalReviewWindowUsesLocalDateAndDST(t *testing.T) {
 
 func TestGoalReviewCycleReplayAndLateEvidenceRevision(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
+	// The late message is inserted one hour before the review clock. Pin local
+	// noon so that message stays inside the same Shanghai day after midnight.
+	pinFormalActivityClock(f.app)
 	goalID := createDialogueGoalForClosure(t, f, []string{"actual expression"})
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "review-model-"+f.suffix)
 	at := f.app.now()

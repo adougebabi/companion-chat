@@ -38,8 +38,8 @@ func TestNewADKCapabilityTools(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected info error: %v", err)
 	}
-	if info.Name != "test_tool" {
-		t.Fatalf("expected test_tool, got %s", info.Name)
+	if info.Name != "test.tool" {
+		t.Fatalf("expected test.tool, got %s", info.Name)
 	}
 }
 

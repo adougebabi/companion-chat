@@ -190,6 +190,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 		result = m.toolCallFallback
 	}
+	canonicalizeModelToolNames(result)
 	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
 		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
 		if adkContext.Trace != nil {
@@ -284,6 +285,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		if full != nil && len(full.ToolCalls) > 0 {
 			full = m.toolCallFallback
 		}
+		canonicalizeModelToolNames(full)
 		reader, writer := schema.Pipe[*schema.Message](1)
 		writer.Send(full, nil)
 		writer.Close()
@@ -319,6 +321,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 				return m.Stream(context.WithValue(ctx, conversationPublicationCorrectionKey{}, true), conversationPublicationCorrectionInput(originalInput), originalOpts...)
 			}
 		}
+		canonicalizeModelToolNames(candidate)
 		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
 			bridge.Refresh.noteModelToolCalls(sequence, candidate.ToolCalls)
 			bridge.Trace.RecordModelToolCalls(callRequestID, sequence, candidate.ToolCalls)
@@ -330,12 +333,13 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	}
 	adkContext, traceEnabled := adkCapabilityContext(ctx)
 	if !traceEnabled || adkContext.Trace == nil {
-		return stream, nil
+		return canonicalizeToolStream(stream), nil
 	}
 	// Keep the native stream intact while recording the formal ToolCall ID as
 	// soon as Eino exposes it. Later chunks may repeat/complete the same call;
 	// the trace map is an idempotent overwrite for the same physical request.
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
+		canonicalizeModelToolNames(message)
 		if message != nil {
 			adkContext.Refresh.noteModelToolCalls(sequence, message.ToolCalls)
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, message.ToolCalls)
@@ -359,9 +363,17 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 		if err != nil {
 			return nil, err
 		}
-		return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, refreshed))
+		return m.finishPhysicalInput(ctx, refreshed)
 	}
-	return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, normalizeEinoToolMessageNames(input)))
+	return m.finishPhysicalInput(ctx, normalizeEinoToolMessageNames(input))
+}
+
+func (m *queuedToolCallingChatModel) finishPhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
+	prepared, err := m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, input))
+	if err != nil {
+		return nil, err
+	}
+	return cloneWireToolNames(prepared), nil
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
@@ -735,7 +747,8 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 }
 
 func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.ToolCallingChatModel, error) {
-	bound, err := m.inner.WithTools(tools)
+	wired := cloneWireToolInfos(tools)
+	bound, err := m.inner.WithTools(wired)
 	if err != nil {
 		return nil, err
 	}
@@ -743,7 +756,72 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if sequence == nil {
 		sequence = &atomic.Uint64{}
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, publicationCorrectionUsed: m.publicationCorrectionUsed, definitions: m.definitions, toolInfos: tools, responseFormat: m.responseFormat}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, publicationCorrectionUsed: m.publicationCorrectionUsed, definitions: m.definitions, toolInfos: wired, responseFormat: m.responseFormat}, nil
+}
+
+func cloneWireToolInfos(tools []*schema.ToolInfo) []*schema.ToolInfo {
+	if len(tools) == 0 {
+		return tools
+	}
+	cloned := make([]*schema.ToolInfo, len(tools))
+	for index, info := range tools {
+		if info == nil {
+			continue
+		}
+		copyInfo := *info
+		canonical := strings.TrimSpace(info.Name)
+		wire := capabilitycontract.CapabilityWireName(canonical)
+		if wire != canonical {
+			capabilitycontract.RememberCapabilityAlias(canonical)
+		}
+		copyInfo.Name = wire
+		cloned[index] = &copyInfo
+	}
+	return cloned
+}
+
+func canonicalizeModelToolNames(message *schema.Message) {
+	if message == nil {
+		return
+	}
+	for index := range message.ToolCalls {
+		message.ToolCalls[index].Function.Name = capabilitycontract.CanonicalCapabilityName(message.ToolCalls[index].Function.Name)
+	}
+}
+
+func canonicalizeToolStream(stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[*schema.Message] {
+	if stream == nil {
+		return nil
+	}
+	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
+		canonicalizeModelToolNames(message)
+		return message, nil
+	})
+}
+
+func cloneWireToolNames(messages []*schema.Message) []*schema.Message {
+	if len(messages) == 0 {
+		return messages
+	}
+	result := make([]*schema.Message, len(messages))
+	for index, message := range messages {
+		if message == nil {
+			continue
+		}
+		copyMessage := *message
+		if len(message.ToolCalls) > 0 {
+			copyMessage.ToolCalls = append([]schema.ToolCall(nil), message.ToolCalls...)
+			for callIndex := range copyMessage.ToolCalls {
+				copyMessage.ToolCalls[callIndex].Function.Name = capabilitycontract.CapabilityWireName(copyMessage.ToolCalls[callIndex].Function.Name)
+			}
+		}
+		if copyMessage.Role == schema.Tool {
+			copyMessage.Name = capabilitycontract.CapabilityWireName(copyMessage.Name)
+			copyMessage.ToolName = capabilitycontract.CapabilityWireName(copyMessage.ToolName)
+		}
+		result[index] = &copyMessage
+	}
+	return result
 }
 
 func (m *queuedToolCallingChatModel) renderedTools() []map[string]any {

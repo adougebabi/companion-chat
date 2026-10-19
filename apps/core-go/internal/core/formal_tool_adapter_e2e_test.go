@@ -461,6 +461,10 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 		{
 			name: lifeActivityStartCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "accepted",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
+				// A 60-minute activity cannot finish inside a full-day slot that
+				// is already inside its last hour. Pin local noon so the window
+				// check is independent of when the suite runs.
+				pinFormalActivityClock(f.app)
 				return f.request(lifeActivityStartCapabilityName, "adapter-activity-start", map[string]any{
 					"kind": "virtual_shopping", "duration_minutes": 60, "category": "boots", "slot": "shoes", "description": "虚拟短靴", "reason": "安排虚拟购物",
 				})
@@ -483,6 +487,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			verify: func(t *testing.T, f *formalToolAdapterFixture, receipt ToolExecutionReceipt) {
 				id := stringValue(mapValue(receipt.Result.Output)["activity_id"])
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_life_activity_runs WHERE id=$1 AND status='in_progress'`, 1, id)
+				f.app.Clock = nil
 			},
 		},
 		{
@@ -834,6 +839,16 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			},
 		},
 	}, goalFormalAdapterCases()...)
+}
+
+func pinFormalActivityClock(app *App) {
+	location, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		location = time.FixedZone("CST", 8*60*60)
+	}
+	local := time.Now().In(location)
+	noon := time.Date(local.Year(), local.Month(), local.Day(), 12, 0, 0, 0, location)
+	app.Clock = func() time.Time { return noon }
 }
 
 func newFormalToolAdapterFixture(t *testing.T) *formalToolAdapterFixture {

@@ -269,6 +269,17 @@ func (a *App) ApplyWardrobeOwnerEdit(ctx context.Context, owner, fid string, edi
 }
 
 func (a *App) authorizeSurface(ctx context.Context, owner, fid string) error {
+	// Dispatch already holds a pooled transaction. A second pool query here
+	// deadlocks when concurrent commands fill MaxConns and then wait on each
+	// other for another connection.
+	if tx, ok := SurfaceDBTx(ctx); ok {
+		var one int
+		err := tx.QueryRow(ctx, `SELECT 1 FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2`, fid, owner).Scan(&one)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
 	_, err := a.DB.GetFluctlight(ctx, fid, owner)
 	return err
 }
