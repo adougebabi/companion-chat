@@ -34,6 +34,7 @@ const (
 	DefaultWorkerBuildID          = "platform-v1"
 	mediaActivityMaximumAttempts  = 3
 	visualIdentityRetryDelay      = 5 * time.Second
+	visualIdentityMaximumAttempts = 5
 	visualIdentityHeartbeatEvery  = 10 * time.Second
 	reflectionRetryDelay          = 5 * time.Minute
 	reflectionMaximumAttempts     = 5
@@ -78,6 +79,46 @@ func workflowIntentMaximumAttempts(intentType string) int {
 func workflowIntentRetryExhausted(intentType string, attemptCount int) bool {
 	maximum := workflowIntentMaximumAttempts(intentType)
 	return maximum > 0 && attemptCount >= maximum
+}
+
+func visualIdentityFailureIsTerminal(reason string) bool {
+	text := strings.ToLower(reason)
+	for _, needle := range []string{
+		"insufficient_user_quota",
+		"provider http 403",
+		"provider http 401",
+		"provider http 400",
+		"status code 403",
+		"status code 401",
+		"status code 400",
+		"http 403",
+		"http 401",
+		"invalid schema",
+		"invalid_schema",
+		"response_format",
+	} {
+		if strings.Contains(text, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func visualIdentityReconcileDelay(attempt int) time.Duration {
+	if attempt < 1 {
+		attempt = 1
+	}
+	delay := visualIdentityRetryDelay
+	for step := 1; step < attempt; step++ {
+		if delay >= time.Minute {
+			return time.Minute
+		}
+		delay *= 2
+	}
+	if delay > time.Minute {
+		return time.Minute
+	}
+	return delay
 }
 
 func conversationLifecycleAwaitingNewRun(intentType, currentIntentStatus, terminalStatus string) bool {
@@ -1791,14 +1832,36 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 			if sessionStatus == "queued" || sessionStatus == "running" {
-				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+($2 * interval '1 second'),started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),'visual_identity_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','retry','started')`, intentID, int64(visualIdentityRetryDelay/time.Second), terminalFailure)
+				if visualIdentityFailureIsTerminal(terminalFailure) || attemptCount >= visualIdentityMaximumAttempts {
+					reason := "visual_identity_terminal_provider_failure"
+					if !visualIdentityFailureIsTerminal(terminalFailure) {
+						reason = "visual_identity_retry_exhausted"
+					}
+					handled, settleErr := d.deadLetterVisualIdentityIntent(ctx, input, intentID, workflowID, runID, attemptCount, reason, func(tx pgx.Tx) error {
+						_, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='failed',last_error=$2,updated_at=now() WHERE id=(SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('queued','running','character_sheet_pending')`, intentID, reason)
+						return err
+					})
+					if settleErr != nil {
+						return count, settleErr
+					}
+					if handled {
+						slog.Default().Warn("Go Worker visual identity workflow stopped after terminal failure", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "session_status", sessionStatus, "failure", terminalFailure, "reason", reason)
+						if d.Started != nil {
+							delete(d.Started, intentID)
+						}
+						count++
+					}
+					continue
+				}
+				retryDelay := visualIdentityReconcileDelay(attemptCount)
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',attempt_count=COALESCE(attempt_count,0)+1,next_attempt_at=now()+($2 * interval '1 second'),started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),'visual_identity_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','retry','started')`, intentID, int64(retryDelay/time.Second), terminalFailure)
 				if err != nil {
 					return count, err
 				}
 				if command.RowsAffected() != 1 {
 					continue
 				}
-				slog.Default().Warn("Go Worker visual identity workflow requeued after terminal failure", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "session_status", sessionStatus, "next_attempt", visualIdentityRetryDelay, "failure", terminalFailure)
+				slog.Default().Warn("Go Worker visual identity workflow requeued after terminal failure", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "session_status", sessionStatus, "next_attempt", retryDelay, "failure", terminalFailure)
 				if d.Started != nil {
 					delete(d.Started, intentID)
 				}

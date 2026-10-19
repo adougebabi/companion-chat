@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -302,6 +303,14 @@ func (a *App) updateWorldNPCTx(ctx context.Context, tx pgx.Tx, owner, fid, id, m
 func (a *App) worldNPCDetail(ctx context.Context, fid, id string) (map[string]any, error) {
 	world, err := worldIDWith(ctx, a.DB.Pool(), fid)
 	if err != nil {
+		var surface *SurfaceError
+		if errors.As(err, &surface) && surface.Code == "world_not_configured" {
+			// worldIDWith is the write precondition for creating places and NPCs.
+			// A detail read is scoped to the requested character's binding. That
+			// character has no world, so this NPC is not in its scope; the lookup
+			// used the requested fluctlight, not another profile or world.
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 	items, err := a.readWorldNPCs(ctx, fid, world)

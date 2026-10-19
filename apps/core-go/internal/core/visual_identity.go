@@ -1102,6 +1102,16 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 				"error_code": "visual_identity_agent_role_missing",
 			}, nil
 		}
+		if visualIdentityTerminalProviderError(err) {
+			if settleErr := a.failVisualIdentitySession(ctx, sessionID, "visual_identity_terminal_provider_failure"); settleErr != nil {
+				return nil, settleErr
+			}
+			return map[string]any{
+				"session_id": sessionID, "fluctlight_id": state.FluctlightID, "attempt": state.Attempt,
+				"status": "failed", "stage": "failed", "accepted": false,
+				"error_code": "visual_identity_terminal_provider_failure",
+			}, nil
+		}
 		return nil, err
 	}
 	return result.asMap(), nil
@@ -1110,6 +1120,39 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 func visualIdentityJSONEmpty(raw []byte) bool {
 	value := strings.TrimSpace(string(raw))
 	return value == "" || value == "{}" || value == "null"
+}
+
+func visualIdentityTerminalProviderError(err error) bool {
+	if err == nil {
+		return false
+	}
+	text := strings.ToLower(err.Error())
+	for _, needle := range []string{
+		"insufficient_user_quota",
+		"provider http 403",
+		"provider http 401",
+		"provider http 400",
+		"status code 403",
+		"status code 401",
+		"http 403",
+		"http 401",
+		"invalid schema",
+		"invalid_schema",
+		"response_format",
+	} {
+		if strings.Contains(text, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *App) failVisualIdentitySession(ctx context.Context, sessionID, reason string) error {
+	if a == nil || a.DB == nil || a.DB.Pool() == nil {
+		return errors.New("visual_identity_session_unavailable")
+	}
+	_, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='failed',last_error=$2,updated_at=now() WHERE id=$1 AND status IN ('queued','running','character_sheet_pending')`, sessionID, reason)
+	return err
 }
 
 func visualIdentityProviderPending(err error) bool {

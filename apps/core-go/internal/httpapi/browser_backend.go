@@ -240,7 +240,8 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case path == "/internal/settings" && method == http.MethodGet:
 		return b.server.app.ReadSettings(ctx, actorID)
 	case path == "/internal/settings" && method == http.MethodPut:
-		return b.server.app.UpdateSettings(ctx, actorID, values)
+		v, err := b.server.app.UpdateSettings(ctx, actorID, values)
+		return v, surfaceCoreError(err)
 	case path == "/internal/providers/endpoints" && method == http.MethodGet:
 		return b.server.app.ProviderEndpoints(ctx, actorID)
 	case path == "/internal/providers/endpoints" && method == http.MethodPut:

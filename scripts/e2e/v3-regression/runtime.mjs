@@ -21,7 +21,7 @@ export function redact(value,depth=0){
 export class RegressionError extends Error{
  constructor(code,message,details={},status='failed'){super(message);this.code=code;this.details=details;this.status=status;}
 }
-export function check(condition,message,expected=true,actual=condition){if(!condition)throw new RegressionError('ASSERTION_FAILED',message,{expected,actual});}
+export function check(condition,message,expected=true,actual){if(arguments.length<4)actual=condition;if(!condition)throw new RegressionError('ASSERTION_FAILED',message,{expected,actual});}
 export function equal(actual,expected,message){check(isDeepStrictEqual(actual,expected),message,expected,actual);}
 export function assertGoResults(output,expectedNames=[]){
  const events=output.split('\n').flatMap(line=>{try{return [JSON.parse(line)];}catch{return [];}}),tests=events.filter(v=>v.Action==='pass'&&v.Test),skips=events.filter(v=>v.Action==='skip'&&v.Test);
