@@ -261,6 +261,24 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		Instruction: config.Instruction, Model: config.Model,
 		ToolsConfig: adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{
 			Tools: config.Tools, ExecuteSequentially: true,
+			UnknownToolsHandler: func(ctx context.Context, name, input string) (string, error) {
+				wire := capability.CapabilityWireName(name)
+				if wire == name {
+					return "", fmt.Errorf("tool %s not found in toolsNode indexes", name)
+				}
+				for _, candidate := range config.Tools {
+					invokable, ok := candidate.(tool.InvokableTool)
+					if !ok {
+						continue
+					}
+					info, infoErr := candidate.Info(ctx)
+					if infoErr != nil || info == nil || info.Name != wire {
+						continue
+					}
+					return invokable.InvokableRun(ctx, input)
+				}
+				return "", fmt.Errorf("tool %s not found in toolsNode indexes", name)
+			},
 		}},
 		// Production Agents do not impose a model/tool round limit. The
 		// framework requires a positive value and otherwise defaults to 20, so

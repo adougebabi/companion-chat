@@ -459,7 +459,7 @@ func TestSceneEndAndStaleSwitchMutateOnlyFrozenEvent(t *testing.T) {
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
 	app := &App{DB: repository}
 	runtime := lifeCapabilityRuntimeForTest(t, app)
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Microsecond)
 	inferredEnd := now.Add(3 * time.Hour)
 	confirmedEnd := now.Add(2 * time.Hour)
 	if _, err := repository.Pool().Exec(ctx, `
