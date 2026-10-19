@@ -1,6 +1,5 @@
 node_modules
-# Root runtime state only. A bare `data` also dropped apps/web/src/v3/proto/data from the web image.
-/data
+data
 .git
 .github
 .DS_Store
