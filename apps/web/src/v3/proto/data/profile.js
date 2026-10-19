@@ -17,6 +17,12 @@ function revision(value) {
   return Number.isSafeInteger(value) ? value : null;
 }
 
+// fluctlights.status is copied to the top-level detail status. Lifecycle writes
+// active, paused, and retired; archived is treated as closed the same way.
+function readOnlyLifecycle(status) {
+  return status === 'retired' || status === 'archived';
+}
+
 function avatarUrl(detail, character) {
   const directory = plain(character);
   for (const candidate of [detail.avatar, directory?.avatar]) {
@@ -97,6 +103,7 @@ export function profileSnapshotFromDetail(detail, directoryCharacter) {
     name: typeof identity.name === 'string' ? identity.name : '',
     bio: recordedText(identity, 'background_story', 'background'),
     status: typeof source.status === 'string' ? source.status : '',
+    readOnly: readOnlyLifecycle(source.status),
     avatar: avatarUrl(source, directoryCharacter),
     activeProfileId: activeProfileId(runtime),
     foundationRevision: revision(source.current_revision),
