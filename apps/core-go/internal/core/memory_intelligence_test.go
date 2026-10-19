@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNormalizeMemoryRecordRequiresEvidenceAndBoundedSemantics(t *testing.T) {
 	base := map[string]any{
@@ -63,6 +66,42 @@ func TestNormalizeMemoryRecordCanonicalizesPersonalityPerspectives(t *testing.T)
 		},
 	}); err == nil {
 		t.Fatal("expected duplicate profile perspective rejection")
+	}
+}
+
+func TestMemoryActorFactAttachmentIDResolvesContextAlias(t *testing.T) {
+	factID := "actor_fact_real"
+	alias := "actor_fact:ctx_" + strings.Repeat("a", 32)
+	other := "memory:ctx_" + strings.Repeat("b", 32)
+	index := ContextReferenceIndex{ByRef: map[string]ContextReference{
+		alias: {Ref: alias, Kind: ContextReferenceActorFact, EntityID: factID},
+		other: {Ref: other, Kind: ContextReferenceMemory, EntityID: "memory-1"},
+	}}
+	got, skip, err := memoryActorFactAttachmentID(alias, index, true, map[string]struct{}{})
+	if err != nil || skip || got != factID {
+		t.Fatalf("alias id=%q skip=%v err=%v", got, skip, err)
+	}
+	if _, skip, err = memoryActorFactAttachmentID(alias, index, true, map[string]struct{}{factID: {}}); err != nil || !skip {
+		t.Fatalf("already bound skip=%v err=%v", skip, err)
+	}
+	if _, _, err = memoryActorFactAttachmentID("actor_fact:ctx_"+strings.Repeat("c", 32), index, true, nil); err == nil {
+		t.Fatal("unknown alias resolved")
+	}
+	if _, _, err = memoryActorFactAttachmentID(other, index, true, nil); err == nil {
+		t.Fatal("non-actor alias resolved")
+	}
+	if _, _, err = memoryActorFactAttachmentID(alias, index, false, nil); err == nil {
+		t.Fatal("alias resolved without an index")
+	}
+	got, skip, err = memoryActorFactAttachmentID(factID, index, true, nil)
+	if err != nil || skip || got != factID {
+		t.Fatalf("raw id=%q skip=%v err=%v", got, skip, err)
+	}
+	if _, skip, err = memoryActorFactAttachmentID(" "+factID+" ", index, true, map[string]struct{}{factID: {}}); err != nil || !skip {
+		t.Fatalf("bound raw id skip=%v err=%v", skip, err)
+	}
+	if _, _, err = memoryActorFactAttachmentID("  ", index, true, nil); err == nil {
+		t.Fatal("blank id accepted")
 	}
 }
 

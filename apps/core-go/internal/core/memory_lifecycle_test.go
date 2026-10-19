@@ -975,3 +975,82 @@ func TestMemoryEventFreezesRuntimePlanAndSharesCallerTransaction(t *testing.T) {
 		t.Fatalf("Memory replay duplicated authority: memories=%d revisions=%d governance=%d", memoryCount, revisionCount, governanceCount)
 	}
 }
+
+func TestMemoryEventResolvesActorFactContextAlias(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID := "memory-alias-owner"
+	fluctlightID := "memory-alias-fluctlight"
+	factID := "memory-alias-fact"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active')`, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'blank_slate','active','{}','{}','{}','{}','{}','{}')`, fluctlightID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actor_facts(id,owner_fluctlight_id,subject_actor_id,attribute,value_json,epistemic_kind,status,valid_from,source_ref,source_fingerprint,operation_id) VALUES($1,$2,$3,'background','"quiet"'::jsonb,'owner_defined','active','2020-01-01T00:00:00Z','owner-command:alias','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','memory-alias-fact')`, factID, fluctlightID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	index := newContextReferenceIndex(ContextProjection{FluctlightID: fluctlightID, OwnerActorID: ownerID})
+	alias, err := index.add(ContextReferenceActorFact, factID, 1, map[string]any{"fact_id": factID, "revision": 1})
+	if err != nil || index.Validate() != nil {
+		t.Fatal(alias, err, index.Validate())
+	}
+	app := &App{DB: repository}
+	capability := memoryEventCapability{service: app}
+	registry := mustCapabilityRegistry(capability)
+	resolver := NewStaticContextResolver(map[ContextSlot]ContextLoader{
+		SlotCorePersona: func(context.Context, ContextRequest) (any, error) { return map[string]any{}, nil },
+		SlotMemoryScope: func(context.Context, ContextRequest) (any, error) {
+			return map[string]any{"owner_actor_id": ownerID, "active_profile_id": "default", "viewer_actor_ids": []any{ownerID}, "conversation_mode": "global_only", "memories": []any{}}, nil
+		},
+	})
+	runtime, err := NewCapabilityRuntime(registry, resolver)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepare := func(callID string, factRefs []any) CapabilityInvocation {
+		t.Helper()
+		invocation := CapabilityInvocation{
+			CallID: callID, CapabilityName: "memory_event", SchemaVersion: CapabilityInvocationSchemaVersion,
+			Arguments:    jsonBytes(map[string]any{"type": "semantic", "content": "用户偏好安静的工作环境", "confidence": 0.9, "importance": 0.8, "actor_fact_ids": factRefs}),
+			SourceFactID: "memory-alias-source-" + callID, ProviderRequestID: "memory-alias-provider-" + callID,
+			Metadata: InvocationMetadata{Source: "model_tool", FluctlightID: fluctlightID, Surface: CapabilitySurfaceConversation},
+		}
+		prepared, _, prepareErr := runtime.Prepare(ctx, invocation)
+		if prepareErr != nil {
+			t.Fatal(prepareErr)
+		}
+		if prepared.ContextSnapshot == nil {
+			prepared.ContextSnapshot = map[string]any{}
+		}
+		prepared.ContextSnapshot["context_reference_index"] = index
+		return prepared
+	}
+	unknown := prepare("memory-alias-unknown", []any{"actor_fact:ctx_" + strings.Repeat("c", 32)})
+	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
+		result, executeErr := runtime.ExecuteTransactional(ctx, tx, unknown)
+		if executeErr == nil || result.ErrorCode != "actor_fact_dependency_stale" {
+			t.Fatalf("unknown alias result=%#v err=%v", result, executeErr)
+		}
+		return executeErr
+	}); err == nil {
+		t.Fatal("unknown alias committed")
+	}
+	var memories int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.memories WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&memories); err != nil || memories != 0 {
+		t.Fatalf("unknown alias left memories=%d err=%v", memories, err)
+	}
+	resolved := prepare("memory-alias-resolved", []any{alias})
+	var result CapabilityResult
+	if err := withTransaction(ctx, repository.Pool(), func(tx pgx.Tx) error {
+		var executeErr error
+		result, executeErr = runtime.ExecuteTransactional(ctx, tx, resolved)
+		return executeErr
+	}); err != nil || result.Status != "completed" {
+		t.Fatalf("alias memory result=%#v err=%v", result, err)
+	}
+	var linkedFact string
+	if err := repository.Pool().QueryRow(ctx, `SELECT fact_id FROM public.actor_fact_artifacts WHERE artifact_kind='memory' AND artifact_id=$1`, mapValue(result.Output)["memory_id"]).Scan(&linkedFact); err != nil || linkedFact != factID {
+		t.Fatalf("linked fact=%q err=%v", linkedFact, err)
+	}
+}
