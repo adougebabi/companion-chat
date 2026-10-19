@@ -255,13 +255,19 @@ func TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete(t *testing.T
 	goal := createDialogueGoalForClosure(t, f, []string{"实际表达"})
 	insertGoalBoundaryMessage(t, f)
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "summary-only-"+f.suffix)
+	calls := 0
 	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+		calls++
 		assertGoalEvaluationRequestPhase(t, payload, true)
 		return fakeProviderResult{Structured: map[string]any{"summary": "目标完成，等待对方主动反馈读后感"}}
 	})}
-	_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f))
-	if err == nil || err.Error() != "goal_evaluation_native_submission_missing" {
+	request := latestPendingGoalRequest(t, f)
+	_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request)
+	if err == nil || err.Error() != "goal_assessment_coverage_missing" || calls != 2 {
 		t.Fatal(err)
+	}
+	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err != nil || calls != 2 {
+		t.Fatal("terminal missing submission restarted model", err, calls)
 	}
 	var status string
 	var revision int
@@ -284,6 +290,7 @@ func TestGoalEvaluationStaleReplacementMigratesDeferredReviews(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, request)
 	snapshot, prior, err := f.app.claimGoalEvaluation(f.ctx, request)
 	if err != nil || prior != nil {
 		t.Fatal(prior, err)

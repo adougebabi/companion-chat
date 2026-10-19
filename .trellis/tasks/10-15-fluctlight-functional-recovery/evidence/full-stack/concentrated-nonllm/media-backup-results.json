@@ -1,0 +1,10 @@
+{
+  "uploadReady": true,
+  "uploadReplay": true,
+  "exactBytesAndSHA256": true,
+  "assetId": "upload_asset_a8cf6abcfcbe21aceca72c7a64658ed2",
+  "metadataReadback": true,
+  "referenceGrantRoleIsolation": true,
+  "backupQueued": "backup_40cdb377e67152dde0bdbba1c0c4c602",
+  "externalModelsCalled": false
+}

@@ -37,6 +37,7 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 		t.Fatal(err)
 	}
 	compileIndex := 0
+	mainCalls := 0
 	var firstRequest, continuedRequest string
 	router := newFakeProviderRouter().on("persona_compilation_response", func(_ map[string]any) fakeProviderResult {
 		compileIndex++
@@ -48,11 +49,15 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 			"portrait_text": "我是摇光。" + marker + "。喜欢咖啡，但不喜欢甜咖啡。",
 		}}
 	}).on("conversation_turn_response", func(payload map[string]any) fakeProviderResult {
-		if firstRequest == "" {
+		mainCalls++
+		if mainCalls == 1 {
 			firstRequest = jsonString(payload)
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("portrait-detail-read", personaDetailCapabilityName, map[string]any{"operation": "read", "section_id": "profile.secrets"})}}
 		}
-		continuedRequest = jsonString(payload)
+		if mainCalls == 2 {
+			continuedRequest = jsonString(payload)
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("portrait-native-publication", conversationReplyCapabilityName, map[string]any{"text": "已查到：" + secret})}}
+		}
 		final := nativePersonaFinal()
 		final.Structured["response_intent"] = "已查到：" + secret
 		return final
@@ -100,7 +105,8 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 	if diagnostic := mapValue(result.Diagnostics["working_persona"]); stringValue(diagnostic["profile_id"]) != "spark" || stringValue(diagnostic["source_hash_prefix"]) == "" || diagnostic["cache_hit"] != false {
 		t.Fatalf("portrait version/cache diagnostic missing: %#v", diagnostic)
 	}
-	if !strings.Contains(firstRequest, "portrait_text") || strings.Contains(firstRequest, "source_refs") || strings.Contains(firstRequest, "stable_preferences") {
+	firstSystem := stringValue(mapValue(arrayValue(decodeObject([]byte(firstRequest))["messages"])[0])["content"])
+	if !strings.Contains(firstSystem, "portrait_text") || strings.Contains(firstSystem, "source_refs") || strings.Contains(firstSystem, "stable_preferences") {
 		t.Fatalf("formal request did not carry a single text portrait: %s", firstRequest)
 	}
 	if !strings.Contains(firstRequest, "喜欢咖啡") || strings.Contains(firstRequest, secret) || strings.Contains(firstRequest, takeoverChainTwilightMarker) {
@@ -150,8 +156,12 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 		t.Fatal("native Tool trace missing")
 	}
 	invocations, results := result.Trace.Snapshot()
-	if len(invocations) != 1 || len(results) != 1 || invocations[0].CapabilityName != personaDetailCapabilityName || results[0].Status != "completed" {
+	if len(invocations) != 2 || len(results) != 2 || invocations[0].CapabilityName != personaDetailCapabilityName || results[0].Status != "completed" || invocations[1].CapabilityName != conversationReplyCapabilityName || results[1].Status != "completed" {
 		t.Fatalf("native query trace invocations=%#v results=%#v", invocations, results)
+	}
+	var published int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND author_actor_id=$2 AND text=$3`, conversationID, fluctlightID, "已查到："+secret).Scan(&published); err != nil || published != 1 || mainCalls != 3 {
+		t.Fatalf("native publication was not committed exactly once: count=%d model_calls=%d err=%v", published, mainCalls, err)
 	}
 }
 
@@ -265,6 +275,8 @@ func TestTakeoverDetailQueryUsesNewSpeakingProfile(t *testing.T) {
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("portrait-twilight-detail", personaDetailCapabilityName, map[string]any{"operation": "read", "section_id": "profile.secrets"})}}
 		case 3:
 			thirdWire = jsonString(payload)
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("portrait-twilight-reply", conversationReplyCapabilityName, map[string]any{"text": "暮光说出：" + secret})}}
+		case 4:
 			final := nativePersonaFinal()
 			final.Structured["response_intent"] = "暮光说出：" + secret
 			return final
@@ -295,14 +307,14 @@ func TestTakeoverDetailQueryUsesNewSpeakingProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if step != 3 || strings.Contains(firstWire, secret) || strings.Contains(secondWire, secret) || !strings.Contains(secondWire, takeoverChainTwilightMarker) || !strings.Contains(thirdWire, secret) {
+	if step != 4 || strings.Contains(firstWire, secret) || strings.Contains(secondWire, secret) || !strings.Contains(secondWire, takeoverChainTwilightMarker) || !strings.Contains(thirdWire, secret) {
 		t.Fatalf("profile scope/feedback mismatch: step=%d firstSecret=%v secondSecret=%v secondPortrait=%v thirdSecret=%v", step, strings.Contains(firstWire, secret), strings.Contains(secondWire, secret), strings.Contains(secondWire, takeoverChainTwilightMarker), strings.Contains(thirdWire, secret))
 	}
 	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "spark" {
 		t.Fatalf("takeover changed persistent profile: %s", active)
 	}
 	results := nativePersonaTrace(t, ctx, repository, "portrait-takeover-run")
-	if len(results) != 2 || stringValue(results[1]["capability_name"]) != personaDetailCapabilityName || stringValue(results[1]["acting_profile_id"]) != "twilight" {
+	if len(results) != 3 || stringValue(results[1]["capability_name"]) != personaDetailCapabilityName || stringValue(results[1]["acting_profile_id"]) != "twilight" || results[2]["capability_name"] != conversationReplyCapabilityName || results[2]["acting_profile_id"] != "twilight" {
 		t.Fatalf("query did not run under B: %#v", results)
 	}
 }
@@ -344,7 +356,7 @@ func TestFoundationAcceptancePublishesMatchingPortraitOrKeepsOldVersion(t *testi
 		}, "omissions": []any{}}}
 	})
 	app := newTestApp(t, repository, router)
-	first, err := app.ProposeFoundation(ctx, ownerID, fluctlightID, map[string]any{"expected_revision": 0, "changes": map[string]any{"identity": map[string]any{"name": "更新后的摇光"}}})
+	first, err := app.ProposeFoundation(ctx, ownerID, fluctlightID, map[string]any{"reason": "controlled compilation fixture", "expected_revision": 0, "changes": map[string]any{"identity": map[string]any{"name": "更新后的摇光"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,7 +388,7 @@ func TestFoundationAcceptancePublishesMatchingPortraitOrKeepsOldVersion(t *testi
 			t.Fatalf("profile %s source mismatch revision=%d hash=%s err=%v", profileID, revision, hash, err)
 		}
 	}
-	second, err := app.ProposeFoundation(ctx, ownerID, fluctlightID, map[string]any{"expected_revision": 1, "changes": map[string]any{"identity": map[string]any{"name": "未发布的更新"}}})
+	second, err := app.ProposeFoundation(ctx, ownerID, fluctlightID, map[string]any{"reason": "controlled compilation failure fixture", "expected_revision": 1, "changes": map[string]any{"identity": map[string]any{"name": "未发布的更新"}}})
 	if err != nil {
 		t.Fatal(err)
 	}

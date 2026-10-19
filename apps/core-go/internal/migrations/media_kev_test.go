@@ -15,7 +15,8 @@ func TestMediaKevUpgradeDoesNotRewriteReleasedSQLOrSettings(t *testing.T) {
 			t.Fatalf("destructive media migration: %s", word)
 		}
 	}
-	if Head != "0063_goal_agent_cadence" || GoalAgentCadencePreviousHead != "0062_reply_media" || ReplyMediaPreviousHead != "0061_fact_only_reply" || FactOnlyReplyPreviousHead != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" {
+	assertCurrentAdditiveChain(t)
+	if WorldCatalogPreviousHead != "0064_world_runtime" || WorldRuntimePreviousHead != "0063_goal_agent_cadence" || GoalAgentCadencePreviousHead != "0062_reply_media" || ReplyMediaPreviousHead != "0061_fact_only_reply" || FactOnlyReplyPreviousHead != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" {
 		t.Fatal("upgrade chain invalid")
 	}
 }
@@ -24,7 +25,10 @@ func TestMediaKevUpgradeRerunPreservesAuditAndAcceptsOnlyKnownPoints(t *testing.
 	if err := New(pool).Apply(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `ALTER TABLE public.kev_decisions DROP CONSTRAINT kev_decisions_decision_point_check; ALTER TABLE public.kev_decisions ADD CONSTRAINT kev_decisions_decision_point_check CHECK(decision_point IN ('runtime.wakeup','runtime.reflection','goal.completion_check','goal.replenish_plan','tools.select','persona.switch','context.select')); UPDATE public.alembic_version SET version_num=$1`, MediaKevPreviousHead); err != nil {
+	if _, err := pool.Exec(ctx, `ALTER TABLE public.kev_decisions DROP CONSTRAINT kev_decisions_decision_point_check; ALTER TABLE public.kev_decisions ADD CONSTRAINT kev_decisions_decision_point_check CHECK(decision_point IN ('runtime.wakeup','runtime.reflection','goal.completion_check','goal.replenish_plan','tools.select','persona.switch','context.select'))`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE public.alembic_version SET version_num=$1`, MediaKevPreviousHead); err != nil {
 		t.Fatal(err)
 	}
 	insert := `INSERT INTO public.kev_decisions(id,request_id,question_id,decision_point,actor_self,candidate_id,started_at,completed_at,payload) VALUES($1,$1,'q_0001',$2,'actor','candidate',now(),now(),'{}')`

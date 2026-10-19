@@ -26,16 +26,15 @@ test("phase 4-5 routes replace studio and world placeholders and keep diary unwi
   assert.doesNotMatch(app, /iframe|prototype-v3/);
 });
 
-test("legacy urls replace the address without dropping the resolved view", () => {
-  assert.match(app, /path === "\/instances"/);
-  assert.match(app, /\/library\$\{search\}/);
-  assert.match(app, /path === "\/moments"/);
-  assert.match(app, /\/feed\$\{search\}/);
-  assert.match(app, /path === "\/settings\/diagnostics"/);
-  assert.match(app, /\/diagnostics\$\{search\}/);
-  assert.match(app, /history\.replaceState/);
-  assert.match(app, /path\.startsWith\("\/moments"\) \|\| path\.startsWith\("\/feed"\)/);
-  assert.match(app, /path\.startsWith\("\/settings\/diagnostics"\)/);
+test("bookmarked URLs resolve to the active Mock routes before mounting", async () => {
+  const { acceptancePath } = await import('../src/v3/mock-navigation.mjs');
+  assert.equal(acceptancePath('/instances'), '/library');
+  assert.equal(acceptancePath('/moments'), '/feed');
+  assert.equal(acceptancePath('/settings/diagnostics'), '/diag');
+  assert.equal(acceptancePath('/c/c2/people/owner'), '/c/c2/people/owner');
+  const main = read('../src/main.ts');
+  assert.match(main, /!location.hash && bookmarkedPage/);
+  assert.match(main, /history.replaceState/);
 });
 
 test("studio preview stays local and world browsing does not move the character", () => {

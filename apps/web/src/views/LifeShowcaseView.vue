@@ -26,9 +26,9 @@ const scene = ref<SceneName>(sceneFromQuery ?? "正常");
 const drawerOpen = ref(new URLSearchParams(window.location.search).get("drawer") === "1");
 
 const wardrobe: BrowserWardrobeItem[] = [
-  { id: "coat", category: "coat", slot: "outer", description: "旧外套", ownership: "owned", availability: "available", source_kind: "initialization", revision: 1 },
-  { id: "scarf", category: "accessory", slot: "accessory", description: "借来的围巾", ownership: "borrowed", availability: "available", source_kind: "accepted_event", revision: 2 },
-  { id: "brush", category: "art_supply", slot: "", description: "细头画笔", ownership: "owned", availability: "available", source_kind: "purchase_result", revision: 1 },
+  { id: "coat", item_kind:"wearable", category: "coat", slot: "outer", description: "旧外套", ownership: "owned", availability: "available", source_kind: "initialization", revision: 1 },
+  { id: "scarf", item_kind:"wearable", category: "accessory", slot: "accessory", description: "借来的围巾", ownership: "borrowed", availability: "available", source_kind: "accepted_event", revision: 2 },
+  { id: "brush", item_kind:"object", category: "art_supply", slot: "", description: "细头画笔", ownership: "owned", availability: "available", source_kind: "purchase_result", revision: 1 },
 ];
 
 const recorded: LifeRecord = {

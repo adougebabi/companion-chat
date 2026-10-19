@@ -18,11 +18,15 @@ import (
 )
 
 func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any, error) {
+	if _, ok := SurfaceDBTx(ctx); !ok {
+		return a.configurationSnapshot(ctx, func(ctx context.Context) (map[string]any, error) { return a.ReadSettings(ctx, actorID) })
+	}
+	reader := a.configurationReader(ctx)
 	var owner string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT human_actor_id FROM public.owner_accounts LIMIT 1`).Scan(&owner); err != nil || owner != actorID {
+	if err := reader.QueryRow(ctx, `SELECT human_actor_id FROM public.owner_accounts LIMIT 1`).Scan(&owner); err != nil || owner != actorID {
 		return nil, errors.New("forbidden")
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT key,value_json,revision FROM public.runtime_settings ORDER BY key`)
+	rows, err := reader.Query(ctx, `SELECT key,value_json,revision FROM public.runtime_settings ORDER BY key`)
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +40,15 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 			return nil, err
 		}
 		var value any
-		if json.Unmarshal([]byte(raw), &value) == nil {
-			values[key] = value
-			versions[key] = revision
+		if json.Unmarshal([]byte(raw), &value) != nil {
+			return nil, &SurfaceError{Status: 500, Code: "settings_value_invalid", Message: "已保存配置无法解析，请查看配置诊断", Details: map[string]any{"key": key}}
 		}
+		values[key], versions[key] = value, revision
+	}
+	readErr := rows.Err()
+	rows.Close()
+	if readErr != nil {
+		return nil, readErr
 	}
 	wake := normalizeWakeUpSettings(mapValue(values["product.wakeup"]))
 	values["product.wakeup"] = map[string]any{"enabled": wake.Enabled, "interval_seconds": wake.IntervalSeconds}
@@ -50,7 +59,7 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 		values[visionUnderstandingSettingKey] = defaultVisionUnderstandingSettings()
 	}
 	values["ai.capability_status"] = a.replyVisionCapabilityStatus(ctx, values)
-	secretRows, err := a.DB.Pool().Query(ctx, `SELECT purpose FROM public.setting_secrets ORDER BY purpose`)
+	secretRows, err := reader.Query(ctx, `SELECT purpose FROM public.setting_secrets ORDER BY purpose`)
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +72,29 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 		}
 		secrets = append(secrets, purpose)
 	}
+	readErr = secretRows.Err()
+	secretRows.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+	versionRows, err := reader.Query(ctx, `SELECT resource_key,revision FROM public.configuration_revisions`)
+	if err != nil {
+		return nil, err
+	}
+	for versionRows.Next() {
+		var key string
+		var revision int64
+		if err := versionRows.Scan(&key, &revision); err != nil {
+			versionRows.Close()
+			return nil, err
+		}
+		versions[key] = revision
+	}
+	readErr = versionRows.Err()
+	versionRows.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
 	return map[string]any{"values": values, "configured_secrets": secrets, "versions": versions}, nil
 }
 
@@ -71,6 +103,7 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	if err != nil {
 		return nil, err
 	}
+	originalPayload := cloneMap(payload)
 	values := mapValue(payload["values"])
 	if raw, exists := values[conversationReplySettingKey]; exists {
 		config, decodeErr := decodeConversationReplySettings(jsonBytes(raw))
@@ -119,6 +152,16 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 			}
 		}
 	}
+	if raw, ok := values["media.comfyui"]; ok {
+		if err := validateComfySetting(raw); err != nil {
+			return nil, err
+		}
+	}
+	if raw, ok := values["product.notifications"]; ok {
+		if err := validNotificationPreferences(raw); err != nil {
+			return nil, err
+		}
+	}
 	previousWakeUp := normalizeWakeUpSettings(mapValue(mapValue(current["values"])["product.wakeup"]))
 	var nextWakeUp *WakeUpSettings
 	if raw, exists := values["product.wakeup"]; exists {
@@ -134,9 +177,47 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	}
 	secrets := mapValue(payload["secrets"])
 	clear := arrayValue(payload["clear_secrets"])
+	resources := []string{}
+	for key := range values {
+		resources = append(resources, key)
+	}
+	for purpose, raw := range secrets {
+		if purpose == "" || len(purpose) > 128 {
+			return nil, invalid("Invalid secret purpose")
+		}
+		if raw == nil {
+			continue
+		}
+		plain, ok := raw.(string)
+		if !ok {
+			return nil, invalid("Secret values must be strings or null")
+		}
+		if plain != "" && plain != "configured" {
+			resources = append(resources, "secret:"+purpose)
+		}
+	}
+	for _, raw := range clear {
+		purpose, ok := raw.(string)
+		if !ok || purpose == "" || len(purpose) > 128 {
+			return nil, invalid("Invalid secret clear purpose")
+		}
+		if value := stringValue(secrets[purpose]); value != "" && value != "configured" {
+			return nil, invalid("Cannot replace and clear the same secret")
+		}
+		resources = append(resources, "secret:"+purpose)
+	}
+	sort.Strings(resources)
+	var command map[string]any
+
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var replay bool
+		var err error
+		command, replay, err = beginConfigurationCommandTx(ctx, tx, actorID, "settings_update", originalPayload, resources)
+		if err != nil || replay {
+			return err
+		}
 		for key, value := range values {
-			if key != "kev" && key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" && key != conversationReplySettingKey && key != visionUnderstandingSettingKey {
+			if key != "product.notifications" && key != "kev" && key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" && key != conversationReplySettingKey && key != visionUnderstandingSettingKey {
 				return fmt.Errorf("unknown setting %s", key)
 			}
 			if key == "product.goal_retry" {
@@ -151,6 +232,13 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 					return errors.New("llm_queue_invalid")
 				}
 			}
+			if key == "product.autonomy" {
+				next, err := applyGlobalAutonomyConfigurationTx(ctx, tx, mapValue(value))
+				if err != nil {
+					return err
+				}
+				value = next
+			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.runtime_settings (key,value_json,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at,revision=runtime_settings.revision+1`, key, jsonString(value), time.Now().UTC()); err != nil {
 				return err
 			}
@@ -161,21 +249,6 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 				}
 				if err := a.rebuildRuntimeSummariesForBudgetTx(ctx, tx, actorID, budget); err != nil {
 					return err
-				}
-			}
-			if key == "product.autonomy" {
-				autonomyMap := mapValue(value)
-				if rawBudget := autonomyMap["budget_remaining"]; rawBudget != nil {
-					budgetText := numberString(rawBudget, 100)
-					mode := firstString(stringValue(autonomyMap["mode"]), "active")
-					allowedRaw := jsonBytes(arrayValue(autonomyMap["allowed_actions"]))
-					if len(arrayValue(autonomyMap["allowed_actions"])) == 0 {
-						allowedRaw = jsonBytes([]string{"proactive_message", "moment", "capability"})
-					}
-					quietRaw := jsonBytes(mapValue(autonomyMap["quiet_hours"]))
-					if _, err := tx.Exec(ctx, `UPDATE public.autonomy_policies SET budget_remaining=$1, mode=$2, allowed_actions=$3, quiet_hours=$4, updated_at=now()`, budgetText, mode, allowedRaw, quietRaw); err != nil {
-						return err
-					}
 				}
 			}
 		}
@@ -201,12 +274,16 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 				return err
 			}
 		}
+		if command != nil {
+			command["wake_rearm_required"] = nextWakeUp != nil && wakeUpSettingsNeedsRearm(previousWakeUp, *nextWakeUp)
+			return finishConfigurationCommandTx(ctx, tx, actorID, originalPayload, command, "settings_update")
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if nextWakeUp != nil && wakeUpSettingsNeedsRearm(previousWakeUp, *nextWakeUp) {
+	if nextWakeUp != nil && wakeUpSettingsNeedsRearm(previousWakeUp, *nextWakeUp) || command != nil && command["wake_rearm_required"] == true {
 		if _, err := a.EnsureWakeUpIntents(ctx); err != nil {
 			return nil, fmt.Errorf("product_wakeup_rearm_failed: %w", err)
 		}
@@ -214,7 +291,14 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 			return nil, fmt.Errorf("product_wakeup_rearm_failed: %w", err)
 		}
 	}
-	return a.ReadSettings(ctx, actorID)
+	result, err := a.ReadSettings(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	if command != nil {
+		result["command"] = command
+	}
+	return result, nil
 }
 
 func wakeUpSettingsNeedsRearm(previous, next WakeUpSettings) bool {
@@ -302,46 +386,27 @@ func (a *App) ProviderEndpoints(ctx context.Context, actorID string) ([]map[stri
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,kind,base_url,secret_purpose,capability_status FROM public.provider_endpoints ORDER BY id`)
+	rows, err := a.configurationReader(ctx).Query(ctx, `SELECT jsonb_build_object('id',e.id,'kind',e.kind,'base_url',e.base_url,'secret_purpose',e.secret_purpose,'capability_status',e.capability_status,'secret_configured',EXISTS(SELECT 1 FROM public.setting_secrets s WHERE s.purpose=e.secret_purpose),'revision',COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='endpoint:'||e.id),0),'roles',COALESCE((SELECT jsonb_agg(jsonb_build_object('role',r.role,'model_id',r.model_id) ORDER BY r.role) FROM public.model_roles r WHERE r.provider_endpoint_id=e.id AND r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding')),'[]'::jsonb)) FROM public.provider_endpoints e ORDER BY e.id`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := make([]map[string]any, 0)
+	out := []map[string]any{}
 	for rows.Next() {
-		var id, kind, base, purpose, status string
-		if err := rows.Scan(&id, &kind, &base, &purpose, &status); err != nil {
+		var raw []byte
+		if err := rows.Scan(&raw); err != nil {
 			return nil, err
 		}
-		var configured bool
-		_ = a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.setting_secrets WHERE purpose=$1)`, purpose).Scan(&configured)
-		out = append(out, map[string]any{"id": id, "kind": kind, "base_url": base, "secret_configured": configured, "capability_status": status})
-		rolesRows, roleErr := a.DB.Pool().Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 AND role IN ('generic_llm','embedding','conversation_reply','vision_understanding') ORDER BY role`, id)
-		if roleErr != nil {
-			return nil, roleErr
-		}
-		roles := make([]map[string]any, 0)
-		for rolesRows.Next() {
-			var role string
-			if err := rolesRows.Scan(&role); err != nil {
-				rolesRows.Close()
-				return nil, err
-			}
-			var model string
-			_ = a.DB.Pool().QueryRow(ctx, `SELECT model_id FROM public.model_roles WHERE role=$1`, role).Scan(&model)
-			roles = append(roles, map[string]any{"role": role, "model_id": model})
-		}
-		rolesRows.Close()
-		out[len(out)-1]["roles"] = roles
+		out = append(out, decodeObject(raw))
 	}
-	return out, nil
+	return out, rows.Err()
 }
 
 func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[string]any, error) {
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding') ORDER BY r.role`)
+	rows, err := a.configurationReader(ctx).Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding') ORDER BY r.role`)
 	if err != nil {
 		return nil, err
 	}
@@ -379,15 +444,46 @@ func (a *App) ConfigureProviderEndpoint(ctx context.Context, actorID string, pay
 		return errors.New("provider_endpoint_invalid")
 	}
 	parsed, err := url.Parse(base)
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return errors.New("provider_endpoint_invalid")
 	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('owner-configuration',0))`); err != nil {
+			return err
+		}
+		resources := []string{"endpoint:" + id}
+		rows, err := tx.Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 ORDER BY role`, id)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var role string
+			if err := rows.Scan(&role); err != nil {
+				rows.Close()
+				return err
+			}
+			resources = append(resources, "binding:"+role)
+		}
+		readErr := rows.Err()
+		rows.Close()
+		if readErr != nil {
+			return readErr
+		}
+		receipt, replay, err := beginConfigurationCommandTx(ctx, tx, actorID, "provider_endpoint_update", payload, resources)
+		if err != nil || replay {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `DELETE FROM public.model_roles WHERE provider_endpoint_id=$1`, id); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.provider_endpoints (id,kind,base_url,secret_purpose,capability_status) VALUES ($1,$2,$3,$4,'unknown') ON CONFLICT (id) DO UPDATE SET kind=excluded.kind,base_url=excluded.base_url,secret_purpose=excluded.secret_purpose,capability_status='unknown',checked_at=NULL`, id, kind, strings.TrimRight(base, "/"), purpose)
-		return err
+		_, err = tx.Exec(ctx, `INSERT INTO public.provider_endpoints (id,kind,base_url,secret_purpose,capability_status) VALUES ($1,$2,$3,$4,'unknown') ON CONFLICT (id) DO UPDATE SET kind=excluded.kind,base_url=excluded.base_url,secret_purpose=excluded.secret_purpose,capability_status='unknown',checked_at=NULL`, id, kind, strings.TrimRight(base, "/"), purpose)
+		if err != nil {
+			return err
+		}
+		if receipt != nil {
+			return finishConfigurationCommandTx(ctx, tx, actorID, payload, receipt, "provider_endpoint_update")
+		}
+		return nil
 	})
 }
 
@@ -405,7 +501,10 @@ func (a *App) ProviderModels(ctx context.Context, actorID, endpointID string) (m
 	}
 	requestCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(requestCtx, http.MethodGet, strings.TrimRight(base, "/")+"/models", nil)
+	req, requestErr := http.NewRequestWithContext(requestCtx, http.MethodGet, strings.TrimRight(base, "/")+"/models", nil)
+	if requestErr != nil {
+		return nil, errors.New("provider_endpoint_invalid")
+	}
 	if secret != "" {
 		req.Header.Set("Authorization", "Bearer "+secret)
 	}
@@ -424,6 +523,20 @@ func (a *App) ProviderModels(ctx context.Context, actorID, endpointID string) (m
 	var data any
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
+	}
+	recognized := false
+	switch value := data.(type) {
+	case []any:
+		recognized = true
+	case map[string]any:
+		for _, key := range []string{"data", "models"} {
+			if _, ok := value[key].([]any); ok {
+				recognized = true
+			}
+		}
+	}
+	if !recognized {
+		return nil, &SurfaceError{Status: 502, Code: "provider_models_invalid", Message: "服务返回了无法识别的模型目录格式"}
 	}
 	return map[string]any{"endpoint_id": endpointID, "models": providerModelIDs(data)}, nil
 }

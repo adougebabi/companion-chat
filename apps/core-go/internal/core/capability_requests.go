@@ -204,7 +204,7 @@ func (a *App) ListCapabilityRequests(ctx context.Context, actorID string) ([]map
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.id,r.capability_key,r.title,r.description,r.rationale,r.desired_contract,r.side_effect_class,r.priority,r.fluctlight_id,r.source_fact_id,r.evidence_refs,r.status,r.review_note,r.reviewer_actor_id,r.capability_version,r.created_at,r.updated_at,COUNT(*) OVER(PARTITION BY r.capability_key) FROM public.capability_requests r ORDER BY CASE r.status WHEN 'proposed' THEN 0 WHEN 'reviewing' THEN 1 WHEN 'accepted' THEN 2 WHEN 'fulfilled' THEN 3 ELSE 4 END,r.updated_at DESC,r.id LIMIT 500`)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.id,r.capability_key,r.title,r.description,r.rationale,r.desired_contract,r.side_effect_class,r.priority,r.fluctlight_id,r.source_fact_id,r.evidence_refs,r.status,r.review_note,r.reviewer_actor_id,r.capability_version,r.created_at,r.updated_at,r.revision,COUNT(*) OVER(PARTITION BY r.capability_key) FROM public.capability_requests r ORDER BY CASE r.status WHEN 'proposed' THEN 0 WHEN 'reviewing' THEN 1 WHEN 'accepted' THEN 2 WHEN 'fulfilled' THEN 3 ELSE 4 END,r.updated_at DESC,r.id LIMIT 500`)
 	if err != nil {
 		return nil, err
 	}
@@ -215,54 +215,29 @@ func (a *App) ListCapabilityRequests(ctx context.Context, actorID string) ([]map
 		var desired, refs []byte
 		var reviewNote, reviewer, version *string
 		var created, updated time.Time
-		var aggregateCount int
-		if err := rows.Scan(&id, &key, &title, &description, &rationale, &desired, &sideEffect, &priority, &fluctlightID, &sourceFactID, &refs, &status, &reviewNote, &reviewer, &version, &created, &updated, &aggregateCount); err != nil {
+		var aggregateCount, revision int
+		if err := rows.Scan(&id, &key, &title, &description, &rationale, &desired, &sideEffect, &priority, &fluctlightID, &sourceFactID, &refs, &status, &reviewNote, &reviewer, &version, &created, &updated, &revision, &aggregateCount); err != nil {
 			return nil, err
 		}
-		result = append(result, map[string]any{"id": id, "capability_key": key, "title": title, "description": description, "rationale": rationale, "desired_contract": decodeObject(desired), "side_effect_class": sideEffect, "priority": priority, "fluctlight_id": fluctlightID, "source_fact_id": sourceFactID, "evidence_refs": decodeArray(refs), "status": status, "review_note": reviewNote, "reviewer_actor_id": reviewer, "capability_version": version, "aggregate_count": aggregateCount, "created_at": created.Format(time.RFC3339Nano), "updated_at": updated.Format(time.RFC3339Nano)})
+		result = append(result, map[string]any{"id": id, "capability_key": key, "title": title, "description": description, "rationale": rationale, "desired_contract": decodeObject(desired), "side_effect_class": sideEffect, "priority": priority, "fluctlight_id": fluctlightID, "source_fact_id": sourceFactID, "evidence_refs": decodeArray(refs), "status": status, "review_note": reviewNote, "reviewer_actor_id": reviewer, "capability_version": version, "aggregate_count": aggregateCount, "revision": revision, "created_at": created.Format(time.RFC3339Nano), "updated_at": updated.Format(time.RFC3339Nano)})
 	}
 	return result, rows.Err()
 }
 
-func (a *App) ReviewCapabilityRequest(ctx context.Context, actorID, requestID, status, note, capabilityVersion string) (map[string]any, error) {
-	if requestID == "" {
-		return nil, errors.New("capability_request_id_required")
+// Legacy transport delegates to the same scoped, versioned command writer.
+func (a *App) ReviewCapabilityRequest(ctx context.Context, actorID, requestID, status, note, capabilityVersion string, commands ...map[string]any) (map[string]any, error) {
+	if len(commands) != 1 {
+		return nil, invalid("expected revision and idempotency key required")
 	}
-	if status != "reviewing" && status != "accepted" && status != "rejected" && status != "fulfilled" && status != "cancelled" {
-		return nil, errors.New("capability_request_status_invalid")
+	var fid string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT r.fluctlight_id FROM public.capability_requests r JOIN public.fluctlights f ON f.id=r.fluctlight_id WHERE r.id=$1 AND f.created_by_actor_id=$2`, requestID, actorID).Scan(&fid)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
 	}
-	if strings.TrimSpace(note) == "" || len([]rune(note)) > 2000 || (status == "fulfilled" && strings.TrimSpace(capabilityVersion) == "") {
-		return nil, errors.New("capability_request_review_invalid")
-	}
-	if _, err := a.ReadSettings(ctx, actorID); err != nil {
+	if err != nil {
 		return nil, err
 	}
-	var result map[string]any
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var fluctlightID, previous, capabilityKey string
-		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,status,capability_key FROM public.capability_requests WHERE id=$1 FOR UPDATE`, requestID).Scan(&fluctlightID, &previous, &capabilityKey); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrNotFound
-			}
-			return err
-		}
-		if status == "fulfilled" {
-			capability, registered := a.capabilityRegistry().Lookup(capabilityKey)
-			if !registered {
-				return errors.New("capability_request_capability_unavailable")
-			}
-			if capabilityVersionValue := capability.Definition().Version; capabilityVersion != "" && capabilityVersionValue != capabilityVersion {
-				return errors.New("capability_request_capability_version_mismatch")
-			}
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.capability_requests SET status=$2,review_note=$3,reviewer_actor_id=$4,capability_version=CASE WHEN $5='' THEN capability_version ELSE $5 END,updated_at=now() WHERE id=$1`, requestID, status, nullableString(note), actorID, capabilityVersion); err != nil {
-			return err
-		}
-		if err := appendOutboxTx(ctx, tx, "capability.request.reviewed", "capability_request", requestID, fluctlightID, actorID, "capability-request-review:"+requestID, "capability-request-review:"+requestID+":"+status, map[string]any{"request_id": requestID, "from_status": previous, "to_status": status, "capability_version": capabilityVersion}); err != nil {
-			return err
-		}
-		result = map[string]any{"id": requestID, "status": status, "from_status": previous, "review_note": note, "capability_version": nullableString(capabilityVersion)}
-		return nil
-	})
-	return result, err
+	body := cloneMap(commands[0])
+	body["status"], body["note"], body["capability_version"] = status, note, capabilityVersion
+	return a.DispatchOwnerSurface(ctx, "POST", "/internal/fluctlights/"+fid+"/capability-requests/"+requestID+"/review", nil, actorID, body)
 }

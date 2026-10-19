@@ -1,0 +1,7 @@
+{"file":".trellis/spec/frontend/product-ui-contract.md","reason":"Check that documented interaction and error/feedback claims are distinguished from normative UI contracts."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Cross-check current state/cache/refresh findings and identify stale contract statements."}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"Verify endpoint, streaming, cancellation and media-boundary claims against the browser contract."}
+{"file":".trellis/spec/backend/persona-layer-contract.md","reason":"Check Actor/Persona/profile/current-state authority claims in the domain inventory."}
+{"file":".trellis/spec/backend/effective-life-contract.md","reason":"Check item ownership/wearing/use and effective-state distinctions."}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"Check Schedule/Event/Scene/Location/Context claims and distinguish contract from persisted model evidence."}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"Check Memory provenance and lifecycle claims without treating Reflection as a Memory subtype."}

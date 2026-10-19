@@ -622,8 +622,8 @@ func TestVisualIdentityNoopAggregateRepairsDoNotAdvanceFacts(t *testing.T) {
 	if err := fixture.app.refreshVisualIdentityRendererConstraints(fixture.ctx, fixture.fluctlightID, visualIdentityProfileID(fixture.fluctlightID)); err != nil {
 		t.Fatal(err)
 	}
-	if after, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID); err != nil || after == beforeSemanticRefresh {
-		t.Fatalf("semantic renderer refresh did not advance facts: before=%s after=%s err=%v", beforeSemanticRefresh, after, err)
+	if after, err := fixture.app.readCurrentFactsRevision(fixture.ctx, fixture.fluctlightID); err != nil || after != beforeSemanticRefresh {
+		t.Fatalf("historical Persona edit changed frozen renderer session: before=%s after=%s err=%v", beforeSemanticRefresh, after, err)
 	}
 }
 

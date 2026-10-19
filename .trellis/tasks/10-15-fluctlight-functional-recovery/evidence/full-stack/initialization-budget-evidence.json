@@ -1,0 +1,39 @@
+{
+  "status": "resolved_for_isolated_binding_and_bounded_analysis",
+  "model": "Huihui-Qwen3.8-27B-3.8bpw",
+  "loaded_context_window_tokens": 24576,
+  "service_launch_context_tokens": 32768,
+  "model_specific_context_override_tokens": 24576,
+  "model_architecture_max_tokens": 262144,
+  "configured_max_input_tokens": 12288,
+  "configured_output_tokens": 4096,
+  "safety_margin_tokens": 4096,
+  "spec_initialization_output_floor_tokens": 8192,
+  "observed_estimated_input_tokens": 13584,
+  "count_method": "rune_heuristic_not_tokenizer",
+  "original_correlation_id": "initialization-analysis:92d87c1aca4ef1a4c2b02a3ad22a0e75",
+  "provider_io_for_original_attempt": false,
+  "prompt_instruction_character_counts": {
+    "initializationResponseShapeInstruction": 3463,
+    "initializationSemanticCoverageInstruction": 3331,
+    "initializationMediaOwnershipInstruction": 336,
+    "initializationPersonalitySystemOwnershipInstruction": 675,
+    "initializationProfileVoiceOwnershipInstruction": 347,
+    "initializationConstraintOwnershipInstruction": 383
+  },
+  "model_service_changed": false,
+  "real_analysis_attempts_this_slice": 2,
+  "notes": [
+    "Loaded service window is authoritative, architecture maximum is not permission to raise binding.",
+    "Current source preserves generic configured output; spec still states 8192 minimum. Main session notified.",
+    "Stable typed budget error and in-process browser mapping patched; deterministic tests passed."
+  ],
+  "effective_max_input_tokens": 16384,
+  "effective_output_tokens": 4096,
+  "historical_spec_difference": "provider contract/persona layer still describe an 8192 output floor; current providerAssignmentForScenario preserves configured 4096 and extends timeout only. Main session explicitly elected current behavior; no output floor restored.",
+  "successful_analysis_id": "initialization_source_e0267134647d67e52aa3d812edaba594",
+  "successful_correlation_id": "initialization-analysis:3e401420555d58aff9227f1f6c47a2a8",
+  "api_pid": 64067,
+  "source_persisted": true,
+  "source_linked": false
+}

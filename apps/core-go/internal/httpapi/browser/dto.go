@@ -59,6 +59,7 @@ func browserMessage(message map[string]any) map[string]any {
 	}
 	result := map[string]any{
 		"id":                     message["id"],
+		"sourceRef":              "message:" + stringValue(message["id"]),
 		"conversationId":         message["conversation_id"],
 		"sequence":               message["sequence"],
 		"authorActorId":          message["author_actor_id"],
@@ -122,6 +123,7 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 		"createdAt":         stringValue(first(row, "created_at")),
 		"queuedAt":          stringValue(first(row, "queued_at")),
 		"logicalRunId":      stringValue(first(row, "logical_run_id")),
+		"parentRunId":       stringValue(row["parent_run_id"]),
 		"modelCallId":       stringValue(first(row, "model_call_id")),
 		"orderingKey":       stringValue(row["ordering_key"]),
 		"roundCount":        first(row, "round_count"),
@@ -283,7 +285,7 @@ func browserCapabilityRequests(value any) []any {
 			"fluctlightId": first(item, "fluctlight_id"), "sourceFactId": first(item, "source_fact_id"),
 			"evidenceRefs": first(item, "evidence_refs"), "status": item["status"], "reviewNote": first(item, "review_note"),
 			"reviewerActorId": first(item, "reviewer_actor_id"), "capabilityVersion": first(item, "capability_version"),
-			"aggregateCount": first(item, "aggregate_count"), "createdAt": first(item, "created_at"), "updatedAt": first(item, "updated_at"),
+			"revision": item["revision"], "aggregateCount": first(item, "aggregate_count"), "createdAt": first(item, "created_at"), "updatedAt": first(item, "updated_at"),
 		})
 	}
 	return result

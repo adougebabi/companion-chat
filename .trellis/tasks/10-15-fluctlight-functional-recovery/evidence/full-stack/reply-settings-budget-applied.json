@@ -1,0 +1,9 @@
+{
+  "scope": "fluctlight_delivery_1015 only",
+  "http_status": 200,
+  "mode": "fact_only",
+  "previous_max_input": 8192,
+  "saved_max_input": 24576,
+  "loaded_context": 32768,
+  "old_frozen_draft_modified": false
+}

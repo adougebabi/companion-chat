@@ -470,6 +470,9 @@ func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation C
 	}
 	if scene == replySceneMoment {
 		current = "为本次已授权的动态发布，根据当前人格、目标和真实生活状态，自主生成一条面向动态参与者的正文。当前任务是发布动态。"
+		if run.Scope.TargetKind == "owner_moment_request" {
+			current += "\n" + run.CurrentInput
+		}
 	}
 	vision, _, err := s.app.visionUnderstandingSettings(ctx)
 	if err != nil {

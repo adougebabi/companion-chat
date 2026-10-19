@@ -1,0 +1,53 @@
+import {get,list} from '../store.js';
+import {momentsClient,mediaClient} from '../services.js';
+import {esc,drawer,confirm,toast} from '../ui.js';
+import {Field} from './forms.js';
+import {requestReceipt} from './async-page.js';
+import {persistentCommand} from '../../providers/persistent-command.mjs';
+import {studioDraftStorage} from './studio-draft-storage.js';
+import {mountCursorRecords} from './cursor-records.js';
+
+export function mountMomentComposer(host,{mode='publish',fid='',moment=null,alive=()=>true,onSaved=()=>{}}={}){
+ const owner=get('session')?.actorId,slot=`fluctlight-studio:${owner}:moment:${mode}:${moment?.id||(mode==='suggest'?fid||'global':'new')}`,storage=studioDraftStorage();
+ let active=true,busy=false,mediaPanel=null,draft=JSON.parse(storage.getItem(slot+':draft')||'null')||{text:'',fid,mediaIds:[],expectedRevision:moment?.revision};
+ const live=()=>active&&alive()&&host.isConnected&&get('session')?.actorId===owner;
+ const persist=()=>{if(live())storage.setItem(slot+':draft',JSON.stringify(draft));};
+ const command=persistentCommand({key:slot+':command',storage:studioDraftStorage,execute:async(value,key)=>{if(!live())throw new Error('会话已切换，请返回原动态确认提交');const {fid:target,...body}=value;
+  if(mode==='suggest')return momentsClient.suggest(target,{...body,idempotencyKey:key});
+  if(mode==='comment')return momentsClient.comment(moment.id,{...body,idempotencyKey:key});
+  return momentsClient.publish({...body,idempotencyKey:key});
+ }});
+ const isComment=mode==='comment',isSuggestion=mode==='suggest';
+ host.innerHTML=`<form class="card ${isSuggestion?'tint-sun':isComment?'':'tint-primary'} stack"><h3>${isSuggestion?'建议角色发一条':isComment?'以「我」评论':'以「我」发一条'}</h3>${isSuggestion?`<p class="small muted">发不发、怎么写由角色判断。受理后可查询实际结果；发布正文由角色独立表达。</p>${Field({label:'建议哪位角色',name:'fid',type:'select',value:draft.fid,options:[{value:'',label:'请选择角色'},...list('characters').filter(c=>c.status!=='retired').map(c=>({value:c.id,label:c.name}))]})}`:!isComment?Field({label:'发布范围',name:'fid',type:'select',value:draft.fid,options:[{value:'',label:'我的全局动态'},...list('characters').filter(c=>c.status!=='retired').map(c=>({value:c.id,label:c.name+'的动态范围'}))]}):''}${Field({label:isSuggestion?'建议议题':isComment?'评论内容':'动态内容',name:'text',type:'textarea',value:draft.text,attrs:{required:true,maxlength:2000,rows:3}})}${isComment?'':`<div data-selected></div><button class="btn" type="button" data-pick>从我的素材库选择附件</button><div data-media-picker hidden></div><a href="#/studio/media">上传或管理素材</a><p class="small muted">附件保留原来源；图片不证明画面事件发生。每条最多 8 项。</p>`}<p role="alert" data-error></p><p data-result></p><div class="row"><button class="btn" type="button" data-clear>清空当前草稿</button><button class="btn primary" data-send>${isSuggestion?'发出建议':isComment?'评论':'发布'}</button></div><div data-recovery></div>${isComment?'<button class="btn" type="button" data-rebase>读取最新动态版本并保留评论</button>':''}</form>`;
+ const form=host.querySelector('form'),input=form.elements.text,error=host.querySelector('[data-error]');
+ input.oninput=()=>{draft.text=input.value;persist();};
+ if(!isComment)form.elements.fid.onchange=()=>{draft.fid=form.elements.fid.value;persist();};
+ function paint(){if(!live())return;const pending=command.pending();host.querySelector('[data-send]').disabled=busy||!!pending;host.querySelector('[data-recovery]').innerHTML=pending?`<p class="banner info">原提交结果尚未确认，当前草稿单独保留。<button class="btn" type="button" data-retry ${busy||pending.rejection?'disabled':''}>重试原提交</button>${pending.rejection?'<span> 原版本已明确拒绝，请读取最新版本。</span>':''}</p>`:'';host.querySelector('[data-retry]')?.addEventListener('click',()=>void submit(true));const selected=host.querySelector('[data-selected]');if(selected)selected.innerHTML=(draft.mediaIds||[]).map(id=>`<button class="chip" type="button" data-remove="${esc(id)}">${esc(id)} ×</button>`).join('');host.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{draft.mediaIds=draft.mediaIds.filter(id=>id!==b.dataset.remove);persist();paint();});}
+ function showRequest(receipt,target){requestReceipt(target,receipt,()=>{if(live())void onSaved(receipt);},{title:'动态发布建议',labels:{completed:'角色已提交真实动态'},note:'拒绝或暂缓不会发布。已发布的正文和原建议分别保留。'});}
+ async function submit(retry=false){if(busy||!live()||!retry&&!form.reportValidity())return;if(isSuggestion&&!draft.fid&&!retry){error.textContent='请选择真实角色';return;}busy=true;error.textContent='';paint();let accepted=false;
+  const original=JSON.stringify(draft),currentValue=()=>isComment?{text:draft.text.trim(),expectedRevision:draft.expectedRevision,reason:'用户以自己的交流身份评论动态'}:{text:draft.text.trim(),mediaIds:[...(draft.mediaIds||[])],...(isSuggestion?{fid:draft.fid}:draft.fid?{worldId:draft.fid}:{})};
+  const value=retry?command.pending()?.value:currentValue();
+  try{const receipt=await(retry?command.retry():command.submit(value));accepted=true;if(!live())return;
+   if(JSON.stringify(draft)===original&&(!retry||JSON.stringify(currentValue())===JSON.stringify(value))){draft.text='';draft.mediaIds=[];input.value='';if(isComment)draft.expectedRevision=receipt.revision;persist();}
+   host.querySelector('[data-result]').innerHTML=isSuggestion?`<a href="#/diag/request/${encodeURIComponent(receipt.request.id)}">建议已受理，查看处理结果</a>`:`<a href="#/feed/${encodeURIComponent(receipt.id)}">查看已保存动态</a>`;
+   storage.setItem(slot+':last',JSON.stringify(isSuggestion?{id:receipt.request.id,fid:value.fid}:{id:receipt.id}));
+   if(isSuggestion)showRequest(receipt,value.fid);else toast(isComment?'评论已保存':'动态已保存','ok');await onSaved(receipt);
+  }catch(e){if(live())error.textContent=(accepted?'提交已保存，最新内容读取失败：':'')+e.message;}finally{busy=false;paint();}
+ }
+ form.onsubmit=e=>{e.preventDefault();void submit();};host.querySelector('[data-clear]').onclick=()=>{draft.text='';draft.mediaIds=[];input.value='';persist();paint();};
+ host.querySelector('[data-rebase]')?.addEventListener('click',async()=>{if(busy||!live())return;busy=true;paint();try{const current=await momentsClient.record(moment.id);if(!live())return;const pending=command.pending();if(pending&&!pending.rejection)throw new Error('原提交结果未知，请先重试原提交');if(await confirm({title:'采用动态最新版本',text:`当前版本 v${current.revision}，保留当前评论后重新提交？`})&&live()){if(pending)command.releaseRejected();draft.expectedRevision=current.revision;persist();error.textContent='版本已更新，请再次明确提交。';}}catch(e){if(live())error.textContent=e.message;}finally{busy=false;paint();}});
+ host.querySelector('[data-pick]')?.addEventListener('click',()=>{const box=host.querySelector('[data-media-picker]');box.hidden=!box.hidden;if(box.hidden||mediaPanel)return;mediaPanel=mountCursorRecords(box,{alive:live,label:'可选素材',read:cursor=>mediaClient.list({cursor,hidden:false}),render:a=>`<div class="lrow"><span class="grow">${esc(a.title||a.id)} · ${esc(a.kind)} · ${esc(a.read_state)}</span><button class="btn" type="button" data-add-media="${esc(a.id)}" ${a.readable?'':'disabled'}>选择</button></div>`,empty:'素材库为空，请先上传或生成素材。',bind:box=>box.querySelectorAll('[data-add-media]').forEach(b=>b.onclick=()=>{if(draft.mediaIds.includes(b.dataset.addMedia))return;if(draft.mediaIds.length>=8){error.textContent='最多选择 8 项素材';return;}draft.mediaIds.push(b.dataset.addMedia);persist();paint();})});});
+ try{const last=JSON.parse(storage.getItem(slot+':last')||'null');if(last){host.querySelector('[data-result]').innerHTML=`<a href="${isSuggestion?'#/diag/request/':'#/feed/'}${encodeURIComponent(last.id)}">查看上次提交结果</a>`;}}catch{error.textContent='上次回执记录不可读取，请从动态或请求列表核对。';}
+ paint();return {dispose(){active=false;mediaPanel?.dispose();}};
+}
+
+export function openMomentAction(moment,action,onSaved=()=>{}){
+ const owner=get('session')?.actorId,slot=`fluctlight-studio:${owner}:moment:${moment.id}:${action}`,storage=studioDraftStorage();let active=true,busy=false,revision=moment.revision;
+ const live=()=>active&&d.el.isConnected&&get('session')?.actorId===owner;
+ const command=persistentCommand({key:slot+':command',storage:studioDraftStorage,execute:(value,key)=>{if(!live())throw new Error('会话已切换');return action==='retry-npc'?momentsClient.retryNPC(moment.moment_id,moment.id,{...value,idempotencyKey:key}):action==='reaction'?momentsClient.reaction(moment.id,{...value,idempotencyKey:key}):momentsClient.status(moment.id,action,{...value,idempotencyKey:key});}});
+ const d=drawer({title:action==='retry-npc'?'重试 NPC 动态互动':action==='reaction'?'回应动态':action==='hide'?'隐藏动态':'恢复动态',body:`<p>当前对象 v${revision}。${action==='retry-npc'?'重试核对原结识、NPC 定义和运行世界；不会强制评论或制造新关系。':'隐藏只改变展示，保留正文、评论和来源。'}</p>${action==='reaction'?Field({label:'回应',name:'kind',type:'select',value:moment.viewer_reaction?'none':'like',options:[{value:'like',label:'赞'},{value:'care',label:'关心'},{value:'celebrate',label:'庆祝'},{value:'none',label:'取消我的回应'}]}):''}<p role="alert" data-error></p><div data-pending></div>`,footer:'<button class="btn" data-close>关闭</button><button class="btn" data-rebase>读取最新版本</button><button class="btn" data-retry>重试原提交</button><button class="btn primary" data-save>确认</button>',onClose:()=>{active=false;}});
+ function paint(){if(!live())return;const pending=command.pending();d.el.querySelector('[data-save]').disabled=busy||!!pending;d.el.querySelector('[data-retry]').disabled=busy||!pending||!!pending.rejection;d.el.querySelector('[data-pending]').textContent=pending?'原提交待核对；不会发起第二个操作。':`基线 v${revision}`;}
+ async function save(retry){if(busy||!live())return;busy=true;paint();let saved=false;try{const value={expectedRevision:revision,reason:'用户明确'+({reaction:'回应',hide:'隐藏',restore:'恢复','retry-npc':'重试NPC互动'}[action])+'动态',...(action==='reaction'?{kind:d.el.querySelector('[name=kind]').value}:{})};await(retry?command.retry():command.submit(value));saved=true;if(!live())return;await onSaved();if(live())d.close();}catch(e){if(live())d.el.querySelector('[data-error]').textContent=(saved?'操作已保存，最新内容读取失败：':'')+e.message;}finally{busy=false;paint();}}
+ d.el.querySelector('[data-save]').onclick=()=>void save(false);d.el.querySelector('[data-retry]').onclick=()=>void save(true);d.el.querySelector('[data-close]').onclick=()=>d.close();
+ d.el.querySelector('[data-rebase]').onclick=async()=>{if(busy||!live())return;busy=true;paint();try{const current=action==='retry-npc'?await momentsClient.npcInteraction(moment.moment_id,moment.id):await momentsClient.record(moment.id);if(!live())return;const pending=command.pending();if(pending&&!pending.rejection)throw new Error('原提交结果未知，请先重试原提交');if(await confirm({title:'采用最新版本',text:`采用动态 v${current.revision}，保留本次操作意图？`})&&live()){if(pending)command.releaseRejected();revision=current.revision;}}catch(e){if(live())d.el.querySelector('[data-error]').textContent=e.message;}finally{busy=false;paint();}};paint();return d;
+}

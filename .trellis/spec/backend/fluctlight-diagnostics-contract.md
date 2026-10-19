@@ -791,3 +791,7 @@ remain separate environment verification.
 Wrong: wait for a ModelRun that never started, or rely exclusively on a failed
 diagnostic insert. Correct: emit safe structured worker metadata before the
 best-effort sink and continue the valid internal context without data loss.
+
+
+## Independent model parent provenance (v3 regression)
+Physical model rows expose stored metrics.parent_run_id as optional parent_run_id, Browser parentRunId. Missing legacy provenance stays empty; never fill it from current correlation. A reply keeps its own reply: correlation and purpose role conversation_reply, while its stored parent refers to the originating logical run/turn. Cognitive purpose role cognitive_assessment may legitimately bind generic_llm. Cross-model verification follows those actual parent IDs and checks completed physical calls; prompt text mentioning a turn cannot establish a parent. Owner authorization, existing paging, and prompt redaction remain intact. Tests include Core PG projection (authored, not executed in this slice), actual pure Browser DTO test, and controlled regression-harness family traversal.

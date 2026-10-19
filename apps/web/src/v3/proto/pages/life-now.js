@@ -1,3 +1,4 @@
+import { OutfitStrip, NPCRow, GoalRow } from '../components/cards.js';
 // life.now —— 生活·此刻（生活成长 BP-05/06）
 import * as store from '../store.js';
 import { esc, icon, badge, objLink, drawer } from '../ui.js';
@@ -9,6 +10,7 @@ export function renderNow(el, ctx, state = '正常') {
   if (c.id !== 'c1' && charStatus(el, ctx, '此刻')) return;
   if (state === '空') { el.innerHTML = `<div class="statebox" data-test="state-空"><div class="big">🌙</div><h2>${esc(c.name)}尚未开始生活</h2><p class="muted">运行世界未启动（当前范围未找到此刻状态）。</p><a class="btn primary" href="#/studio">去创作中心启动</a></div>`; return; }
   const place = store.get('places', c.locationId);
+  if (!place || place.worldId !== c.worldId) { el.innerHTML = `<div class="statebox"><h2>当前世界的生活尚未开始</h2><p class="muted">位置没有确认记录。</p><a class="btn" href="#/c/${ctx.charId}/worlds">配置世界与地点</a></div>`; return; }
   const sched = store.list('schedule', s => s.charId === c.id);
   const next = sched.filter(s => s.state === '计划');
   const promises = store.list('goals', g => g.charId === c.id && (g.type === '约定' || g.type === '意向') && g.state !== '取消');
@@ -26,12 +28,12 @@ export function renderNow(el, ctx, state = '正常') {
     `<div class="card tint-sun" data-test="mood"><h3>${icon('heart')} 心情 / 精力</h3>
       <div class="lrow"><span class="grow">心情：<b>${esc(c.mood.value)}</b></span>${badge('推测')}</div><div class="small muted">依据：${c.mood.evidence.map(e => `<button class="chip" data-source="${e}" data-test="evidence">${e}</button>`).join('、')}</div>
       <div class="lrow"><span class="grow">精力：<b>${esc(c.energy.value)}</b></span>${badge('推测')}</div><div class="small muted">依据：${c.energy.evidence.map(e => `<button class="chip" data-source="${e}">${e}</button>`).join('、')}</div></div>`}
-    <div class="card tint-teal"><h3>${icon('shirt')} 当前穿着 <span class="small muted">自 ${outfit.since}</span></h3><div class="outfit" data-test="now-outfit">${outfit.current.map(i => `<a href="#/c/c1/life/wardrobe?item=${i}&from=life.now" title="${esc(store.get('items', i).name)}"><img src="${store.get('items', i).img}" alt="${esc(store.get('items', i).name)}"></a>`).join('')}</div>
+    <div class="card tint-teal"><h3>${icon('shirt')} 当前穿着 <span class="small muted">自 ${outfit.since}</span></h3>${OutfitStrip({ items: outfit.current.map(id => store.get('items', id)), link: item => `#/c/c1/life/wardrobe?item=${item.id}&from=life.now`, attrs: { 'data-test': 'now-outfit' } })}
       <div class="small" style="margin-top:6px">${outfit.current.map(i => esc(store.get('items', i).name)).join('、')}</div><a class="small" href="#/c/c1/life/wardrobe?from=life.now">打开衣柜 →</a></div>
   </div>
   <div class="grid g2" style="margin-top:16px">
-    <div class="card"><h3>${icon('target')} 待兑现的约定与意向</h3>${promises.map(g => `<div class="lrow">${badge(g.type, 'plain')}<span class="grow">${objLink(g.id, g.title)} ${g.due ? `<span class="small muted">${g.due}</span>` : ''}</span>${badge(g.state)}</div>`).join('')}</div>
-    <div class="card"><h3>${icon('people')} 此地附近</h3>${store.list('npcs', n => n.placeId === c.locationId).map(n => `<div class="lrow"><img class="av sm" src="${n.avatar}" alt="">${objLink(n.id)} <span class="small muted">${esc(n.role)}</span></div>`).join('') || '<p class="small muted">当前范围未找到在场人物</p>'}
+    <div class="card"><h3>${icon('target')} 待兑现的约定与意向</h3>${promises.map(g => GoalRow(g, objLink, { showDue: true })).join('')}</div>
+    <div class="card"><h3>${icon('people')} 此地附近</h3>${store.list('npcs', n => n.placeId === c.locationId).map(n => NPCRow(n, objLink)).join('') || '<p class="small muted">当前范围未找到在场人物</p>'}
       <div class="row" style="margin-top:8px"><a class="btn sm" href="#/c/${c.id}/chat?say=${encodeURIComponent('你现在在' + place.name + '做什么呀？')}">${icon('chat')} 在对话中问问她</a><a class="btn sm" href="#/c/c1/world/scene?from=life.now">远程查看场景</a></div></div>
   </div>`;
   el.querySelectorAll('[data-actdetail]').forEach(b => b.onclick = () => actionDrawer(b.dataset.actdetail));

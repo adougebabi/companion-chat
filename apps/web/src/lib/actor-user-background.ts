@@ -2,6 +2,16 @@ import type { BrowserActorUserSettings } from "@fluctlight/browser-client";
 
 export const actorUserBackgroundFields = [
   { key: "name", label: "称呼" },
+  { key: "full_name", label: "姓名" },
+  { key: "age", label: "年龄" },
+  { key: "gender", label: "性别" },
+  { key: "personality", label: "性格" },
+  { key: "habits", label: "习惯" },
+  { key: "relationship_description", label: "你们的关系（自述）" },
+  { key: "shared_information", label: "可让她知道" },
+  { key: "wants_you_to_know", label: "希望她知道的事" },
+  { key: "rules", label: "给她的规则与边界" },
+
   { key: "occupation", label: "职业" },
   { key: "background", label: "简单背景" },
   { key: "interests", label: "稳定兴趣" },

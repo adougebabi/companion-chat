@@ -3,7 +3,6 @@ package core
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -160,7 +159,7 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 }
 
 func TestGoalEvaluationGhostStageFailsBeforeDomainCommit(t *testing.T) {
-	for _, mode := range []string{"empty_stage_ref", "null_stage", "empty_commitments", "empty_review_stage_ref"} {
+	for _, mode := range []string{"empty_stage_ref", "unknown_stage_ref", "foreign_goal_ref", "unknown_review_stage_ref"} {
 		t.Run(mode, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
 			goalID := createDialogueGoalForClosure(t, f, []string{"已实际清楚向对方表达自己的心意"})
@@ -168,57 +167,48 @@ func TestGoalEvaluationGhostStageFailsBeforeDomainCommit(t *testing.T) {
 			router := newFakeProviderRouter().onNativeConversationReply(func(payload map[string]any) nativeConversationReplyFixture {
 				refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(jsonString(payload), -1)
 				if len(refs) == 0 {
+					t.Error("actual Goal ref missing")
 					return nativeConversationReplyFixture{ReplyText: "fixture error", Final: fakeProviderResult{Status: 500}}
 				}
-				return nativeConversationReplyFixture{
-					ReplyText: "我认真地告诉你，我很在意你。",
-					Final:     fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "完成真实表达", "influences": []any{map[string]any{"ref": refs[0], "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}}, "goal_event_candidates": []any{map[string]any{"goal_ref": refs[0], "reason": "实际表达可能满足目标"}}}},
+				return nativeConversationReplyFixture{ReplyText: "我认真地告诉你，我很在意你。", Final: fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "完成真实表达", "influences": []any{}, "goal_event_candidates": []any{map[string]any{"goal_ref": refs[0], "reason": "实际表达可能满足目标"}}}}}
+			}).on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+				if payloadHasToolResult(payload) {
+					return fakeProviderResult{Structured: map[string]any{"summary": "invalid object was not committed; root remains unresolved"}}
 				}
-			}).onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
 				snapshot := readProcessingGoalSnapshot(t, f)
-				var proof GoalSource
-				for _, source := range snapshot.Sources {
-					if source.Kind == "message" && source.SubjectActorID == f.fluctlightID {
-						proof = source
-					}
+				binding, err := newGoalEvaluationWireBinding(snapshot)
+				if err != nil {
+					t.Fatal(err)
 				}
-				entry := snapshot.Goals[0]
-				output := GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{{GoalID: entry.GoalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "satisfied", Kind: "communication", Subject: "actor_self", Discourse: "assertion", EvidenceRefs: []string{proof.Ref}, Reason: "实际消息"}}, Impact: "completed"}}, Plans: []GoalPlanCandidate{}}
-				wire := goalEvaluationProviderFixture(snapshot, output)
-				evaluation := mapValue(arrayValue(wire["evaluations"])[0])
+				ref := binding.goalRefsByID[goalID]
+				object := map[string]any{"goal_ref": ref, "object_kind": "stage", "object_ref": "stage:unknown", "judgments": []any{}, "completed": true, "reason": "controlled invalid object reference"}
+				name := goalObjectSubmit
 				switch mode {
 				case "empty_stage_ref":
-					evaluation["stage_evaluation"] = map[string]any{"object_ref": "", "judgments": []any{}, "completed": true, "reason": "ghost"}
-				case "null_stage":
-					evaluation["stage_evaluation"] = nil
-				case "empty_commitments":
-					evaluation["commitment_evaluations"] = []any{}
-				case "empty_review_stage_ref":
-					evaluation["review"] = map[string]any{"reason_category": "progressed", "decision": "continue", "explanation": "真实消息满足标准", "evidence_refs": []any{"e1"}, "stage_ref": "", "feasible_alternative": ""}
+					object["object_ref"] = ""
+				case "foreign_goal_ref":
+					object["goal_ref"] = "goal:foreign"
+				case "unknown_review_stage_ref":
+					name = goalEvaluationSubmit
+					object = map[string]any{"goal_ref": ref, "judgments": []any{}, "impact": "needs_evidence", "wait_condition": "await actual evidence", "review": map[string]any{"reason_category": "no_opportunity", "decision": "wait", "explanation": "no actual stage exists", "evidence_refs": []any{}, "stage_ref": "stage:unknown", "feasible_alternative": ""}}
 				}
-				return fakeProviderResult{Structured: wire}
+				return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("ghost-"+mode, name, object)}}
 			})
 			f.app.Provider.HTTP = &http.Client{Transport: router}
 			if _, err := f.app.HandleTurn(f.ctx, f.ownerID, f.conversationID, map[string]any{"fluctlight_id": f.fluctlightID, "text": "请告诉我你的心意。", "idempotency_key": "ghost-stage-turn-" + f.suffix}); err != nil {
 				t.Fatal(err)
 			}
 			_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f))
-			if err == nil || !strings.Contains(err.Error(), "adk_final_contract_invalid") {
-				t.Fatalf("ghost stage error=%v", err)
+			if err == nil || !strings.Contains(err.Error(), "goal_assessment_coverage_missing") {
+				t.Fatalf("invalid native reference did not remain unresolved: %v", err)
 			}
 			var status string
-			var evaluations, resolutions int
-			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&status); err != nil {
+			var evaluations, resolutions, stages, commitments int
+			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status,(SELECT count(*) FROM public.goal_evaluations WHERE goal_id=$1),(SELECT count(*) FROM public.goal_resolutions WHERE goal_id=$1),(SELECT count(*) FROM public.goal_stages WHERE goal_id=$1),(SELECT count(*) FROM public.goal_commitments WHERE goal_id=$1) FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&status, &evaluations, &resolutions, &stages, &commitments); err != nil {
 				t.Fatal(err)
 			}
-			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_evaluations WHERE goal_id=$1`, goalID).Scan(&evaluations); err != nil {
-				t.Fatal(err)
-			}
-			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_resolutions WHERE goal_id=$1`, goalID).Scan(&resolutions); err != nil {
-				t.Fatal(err)
-			}
-			if status != "active" || evaluations != 0 || resolutions != 0 {
-				t.Fatalf("ghost stage mutated domain: status=%s evaluations=%d resolutions=%d", status, evaluations, resolutions)
+			if status != "active" || evaluations != 0 || resolutions != 0 || stages != 0 || commitments != 0 {
+				t.Fatalf("ghost object mutated domain: %s evaluations=%d resolutions=%d stages=%d commitments=%d", status, evaluations, resolutions, stages, commitments)
 			}
 		})
 	}
@@ -411,10 +401,15 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 					t.Fatalf("mutual assessment absent i=%d turns=%d assessments=%d candidates=%s cause=%s err=%v", i, turns, assessments, candidates, text, err)
 				}
 				advanceGoalEvaluationCycleForTest(t, f, requestID)
-				_, err = f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
+				result, evaluationErr := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
+				err = evaluationErr
 				if i == 1 && tc.editDuringAssessment {
-					if !errors.Is(err, ErrConflict) {
-						t.Fatalf("stale relationship evaluation: %v", err)
+					if err != nil || stringValue(result["replacement_request_id"]) == "" {
+						t.Fatalf("stale relationship did not retain a fresh replacement: %#v %v", result, err)
+					}
+					var oldState, code string
+					if e := f.repository.Pool().QueryRow(f.ctx, `SELECT status,error_code FROM public.goal_evaluation_requests WHERE id=$1`, requestID).Scan(&oldState, &code); e != nil || oldState != "failed" || code != "goal_evaluation_snapshot_stale" {
+						t.Fatal("old authority was not fenced", oldState, code, e)
 					}
 				} else if err != nil {
 					t.Fatal(err)

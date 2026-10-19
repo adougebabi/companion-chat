@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -14,21 +15,169 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 	if a == nil || a.DB == nil || a.DB.Pool() == nil {
 		return nil, &SurfaceError{Status: 503, Code: "surface_unavailable", Message: "Owner surface is unavailable"}
 	}
-	return NewOwnerSurface(newPostgresSurface(a.DB.Pool()), a.surfaceHooks()).Dispatch(ctx, method, path, query, owner, body)
+	if method == "GET" && strings.Join(surfaceParts(path), "/") == "configuration-commands/by-key" {
+		return a.OwnerConfigurationCommand(ctx, owner, query.Get("key"))
+	}
+	if method == "POST" && strings.Join(surfaceParts(path), "/") == "configuration-commands/recover" {
+		if !eventKeys(body, "key") {
+			return nil, ErrInvalidArguments
+		}
+		return a.RecoverOwnerConfigurationCommand(ctx, owner, stringValue(body["key"]))
+	}
+	if method == "GET" && strings.Join(surfaceParts(path), "/") == "data/revisions" {
+		return a.OwnerObjectRevisions(ctx, owner, query)
+	}
+	if matchPlaceDefaults(method, path) {
+		return a.dispatchPlaceDefaults(ctx, method, path, query, owner, body)
+	}
+	if matchBusinessBackups(method, path) {
+		return a.dispatchBusinessBackups(ctx, method, path, query, owner, body)
+	}
+	packParts := surfaceParts(path)
+	if len(packParts) >= 2 && packParts[0] == "studio" && packParts[1] == "packs" {
+		if method == "POST" && len(packParts) == 6 && packParts[3] == "groups" && packParts[5] == "adopt" {
+			return a.AdoptResourcePackGroup(ctx, owner, packParts[2], packParts[4], body)
+		}
+		if method == "GET" && len(packParts) == 3 && packParts[2] == "export" {
+			return a.ExportOwnerResourcePack(ctx, owner, query)
+		}
+		if method == "GET" && len(packParts) == 3 {
+			return a.OwnerResourcePack(ctx, owner, packParts[2])
+		}
+		if method == "POST" && len(packParts) == 2 {
+			return a.ImportOwnerResourcePack(ctx, owner, body)
+		}
+		if method == "POST" && len(packParts) == 3 && packParts[2] == "validate" {
+			return a.ValidateOwnerResourcePack(ctx, owner, body)
+		}
+	}
+	configParts := surfaceParts(path)
+	if method == "GET" && len(configParts) == 1 && configParts[0] == "configuration-catalog" {
+		return a.OwnerConfigurationCatalog(ctx, owner)
+	}
+	if method == "GET" && len(configParts) == 2 && configParts[0] == "settings" && configParts[1] == "agents" {
+		return a.OwnerRuntimeCatalog(ctx, owner)
+	}
+	if method == "POST" && len(configParts) == 3 && strings.Join(configParts, "/") == "settings/media/test-connection" {
+		return a.TestSavedMediaConnection(ctx, owner)
+	}
+	if matchMomentFeed(method, path) {
+		return a.dispatchMomentFeed(ctx, method, path, query, owner, body)
+	}
+	if method == "GET" && strings.Join(surfaceParts(path), "/") == "diagnostics/harm-intercepts" {
+		return a.OwnerHarmSummary(ctx, owner)
+	}
+	if matchWorkflowControls(method, path) {
+		return a.dispatchWorkflowControls(ctx, method, path, query, owner, body)
+	}
+	if matchDiagnosticOperations(method, path) {
+		return a.dispatchDiagnosticOperations(ctx, method, path, query, owner, body)
+	}
+	if MatchOwnerMediaSurface(method, path) {
+		return a.DispatchOwnerMediaSurface(ctx, method, path, query, owner, body)
+	}
+	parts := surfaceParts(path)
+	if method == "GET" && len(parts) >= 2 && parts[0] == "studio" && parts[1] == "resources" {
+		if len(parts) == 2 {
+			return a.OwnerStudioResources(ctx, owner, query)
+		}
+		if len(parts) == 5 && parts[3] == "versions" {
+			return a.OwnerStudioPublication(ctx, owner, parts[2], parts[4])
+		}
+		if len(parts) == 4 && parts[3] == "versions" {
+			return a.OwnerStudioVersions(ctx, owner, parts[2], query)
+		}
+	}
+	if len(parts) >= 3 && parts[0] == "studio" && parts[1] == "resources" {
+		if len(parts) == 3 && method == "DELETE" {
+			return a.studioCatalogCommand(ctx, owner, parts[2], "archive", body)
+		}
+		if len(parts) == 4 && method == "POST" && (parts[3] == "copy" || parts[3] == "restore") {
+			return a.studioCatalogCommand(ctx, owner, parts[2], parts[3], body)
+		}
+	}
+	if op, ok := matchSurface(method, surfaceParts(path)); ok && op.name == "visual_manual_review" {
+		return a.dispatchOwnerVisualReview(ctx, method, path, query, owner, body)
+	}
+	if op, ok := matchSurface(method, surfaceParts(path)); ok && op.name == "persona_switch" {
+		return a.dispatchOwnerPersonaSwitch(ctx, method, path, query, owner, body)
+	}
+	if op, ok := matchSurface(method, surfaceParts(path)); ok && (op.name == "moment_suggestion" || op.name == "wear" || op.name == "photo" || op.name == "media_generate" || op.name == "item_use" || op.name == "schedule_item" || op.name == "promise" || op.name == "inventory_request" || op.name == "promise_command") {
+		return a.dispatchOwnerLifeRequest(ctx, method, path, query, owner, body)
+	}
+	if op, ok := matchSurface(method, surfaceParts(path)); ok && (op.name == "reflection_feedback" || op.name == "diary_reply") {
+		return a.dispatchOwnerFeedback(ctx, method, path, query, owner, body)
+	}
+	result, err := NewOwnerSurface(newPostgresSurface(a.DB.Pool()), a.surfaceHooks()).Dispatch(ctx, method, path, query, owner, body)
+	if err == nil && method == "GET" && len(parts) == 3 && parts[0] == "studio" && parts[1] == "resources" {
+		var visualRefs []any
+		visualRefs, err = a.visualStyleReferences(ctx, owner, parts[2])
+		result["referenced_by"] = append(arrayValue(result["referenced_by"]), visualRefs...)
+		if err == nil {
+			var foundationRefs []any
+			foundationRefs, err = readWorldObjects(ctx, a.DB.Pool(), foundationResourceReferencesSQL, parts[2], owner)
+			result["referenced_by"] = append(arrayValue(result["referenced_by"]), foundationRefs...)
+		}
+		if err == nil {
+			var itemRefs []any
+			itemRefs, err = readWorldObjects(ctx, a.DB.Pool(), itemResourceReferencesSQL, parts[2], owner)
+			result["referenced_by"] = append(arrayValue(result["referenced_by"]), itemRefs...)
+		}
+		if err == nil {
+			var outfitRefs []any
+			outfitRefs, err = readWorldObjects(ctx, a.DB.Pool(), outfitResourceReferencesSQL, parts[2], owner)
+			result["referenced_by"] = append(arrayValue(result["referenced_by"]), outfitRefs...)
+		}
+	}
+	return result, err
 }
 
 func (a *App) surfaceHooks() SurfaceHooks {
 	return SurfaceHooks{
-		Now:               a.now,
-		Authorize:         a.authorizeSurface,
-		DeleteGroup:       a.DeleteActorGroup,
-		PublishMoment:     a.publishOwnerMoment,
-		CapabilityItems:   a.surfaceCapabilityItems,
-		ListMedia:         a.ListBrowserMedia,
-		Sidebar:           a.BrowserSidebar,
-		MemoryRevision:    a.surfaceMemoryRevision,
-		InstanceRevision:  a.surfaceInstanceRevision,
-		ApplyWardrobeEdit: a.ApplyWardrobeOwnerEdit,
+		Promises: a.OwnerPromises, Promise: a.OwnerPromise, PromiseHistory: a.OwnerPromiseHistory, PromiseCommand: a.OwnerPromiseCommand,
+		WearingHistory:      a.OwnerWearingHistory,
+		SaveInventoryOutfit: a.SaveOwnerInventoryOutfit, InventoryOutfitHistory: a.OwnerInventoryOutfitHistory,
+		InventoryOutfit:  a.OwnerInventoryOutfit,
+		InventoryOutfits: a.OwnerInventoryOutfits,
+		InventoryList:    a.OwnerInventoryList, InventoryItem: a.OwnerInventoryItem, InventoryHistory: a.OwnerInventoryHistory, InventoryCommand: a.OwnerInventoryCommand,
+		VisualTimeline: a.OwnerVisualTimeline,
+		VisualBrief:    a.OwnerVisualBrief, VisualBriefHistory: a.OwnerVisualBriefHistory, SaveVisualBrief: a.SaveOwnerVisualBrief, VisualIdentity: a.OwnerVisualIdentity, GenerateVisualIdentity: a.GenerateOwnerVisualIdentity,
+		GovernanceCatalog: a.OwnerGovernanceCatalog, GovernanceObject: a.OwnerGovernanceObject, GovernanceHistory: a.OwnerGovernanceHistory, CapabilityReview: a.OwnerCapabilityReview,
+		Notifications:        a.OwnerNotifications,
+		UnreadNotifications:  a.OwnerUnreadNotifications,
+		ReadNotification:     a.MarkOwnerNotificationRead,
+		ReadAllNotifications: a.MarkAllOwnerNotificationsRead,
+		Pending:              a.OwnerPending,
+		Task:                 a.OwnerTask,
+		RequestTasks:         a.OwnerRequestTasks,
+		AutonomyPolicy:       a.OwnerAutonomyPolicy,
+		UpdateAutonomyPolicy: a.UpdateOwnerAutonomyPolicy,
+		DiaryList:            a.OwnerDiaryList,
+		DiaryDetail:          a.OwnerDiary,
+		DiaryReplies:         a.OwnerDiaryReplies,
+		SharedExperiences:    a.OwnerSharedExperiences,
+		GenerateDiary:        a.RequestOwnerDiary,
+		AnnotateDiary:        a.AnnotateOwnerDiary,
+		SelfClaims:           a.OwnerSelfClaims,
+		SelfClaim:            a.OwnerSelfClaim,
+		SelfHistory:          a.OwnerSelfHistory,
+		SelfCommand:          a.OwnerSelfCommand,
+		ReflectionCatalog:    a.OwnerReflectionCatalog,
+		ReflectionDetail:     a.OwnerReflection,
+		ReflectionFeedback:   a.OwnerReflectionFeedback,
+		EnqueueFeedback:      a.enqueueOwnerFeedback,
+		EnqueueLifeRequest:   a.enqueueOwnerLifeRequest,
+		ApplyPersonaSwitch:   a.applyOwnerPersonaSwitch,
+		Now:                  a.now,
+		Authorize:            a.authorizeSurface,
+		DeleteGroup:          a.DeleteActorGroup,
+		PublishMoment:        a.publishOwnerMoment,
+		CapabilityItems:      a.surfaceCapabilityItems,
+		ListMedia:            a.ListBrowserMedia,
+		Sidebar:              a.BrowserSidebar,
+		MemoryRevision:       a.surfaceMemoryRevision,
+		InstanceRevision:     a.surfaceInstanceRevision,
+		ApplyWardrobeEdit:    a.ApplyWardrobeOwnerEdit,
 	}
 }
 
@@ -48,8 +197,18 @@ func (a *App) ApplyWardrobeOwnerEdit(ctx context.Context, owner, fid string, edi
 		}
 		return WardrobeOwnerEditResult{}, err
 	}
+	if err := lockLifeContextTx(ctx, tx, fid); err != nil {
+		return WardrobeOwnerEditResult{}, err
+	}
+	if err := requireOwnerMutableTx(ctx, tx, owner, fid); err != nil {
+		return WardrobeOwnerEditResult{}, err
+	}
+	beforeWorn, err := readCurrentWornItems(ctx, tx, fid)
+	if err != nil {
+		return WardrobeOwnerEditResult{}, err
+	}
 	var revision int
-	err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR UPDATE`, fid).Scan(&revision)
+	err = tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR UPDATE`, fid).Scan(&revision)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return WardrobeOwnerEditResult{}, &SurfaceError{Status: 404, Code: "wardrobe_not_found", Message: "Wardrobe was not found"}
 	}
@@ -62,15 +221,15 @@ func (a *App) ApplyWardrobeOwnerEdit(ctx context.Context, owner, fid string, edi
 	at := a.now().UTC()
 	switch edit.Kind {
 	case "wear":
-		var slot string
-		err := tx.QueryRow(ctx, `SELECT slot FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 FOR SHARE`, fid, edit.ItemID).Scan(&slot)
+		var slot, itemKind string
+		err := tx.QueryRow(ctx, `SELECT slot,item_kind FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 AND archived_at IS NULL FOR SHARE`, fid, edit.ItemID).Scan(&slot, &itemKind)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 404, Code: "wardrobe_item_not_found", Message: "Wardrobe item was not found"}
 		}
 		if err != nil {
 			return WardrobeOwnerEditResult{}, err
 		}
-		if slot != edit.Slot {
+		if slot != edit.Slot || itemKind != "wearable" {
 			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 422, Code: "wardrobe_slot_mismatch", Message: "Wardrobe item does not belong to this slot"}
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_worn_items(fluctlight_id,slot,item_id,changed_at) VALUES($1,$2,$3,$4) ON CONFLICT(fluctlight_id,slot) DO UPDATE SET item_id=EXCLUDED.item_id,changed_at=EXCLUDED.changed_at`, fid, edit.Slot, edit.ItemID, at); err != nil {
@@ -78,7 +237,7 @@ func (a *App) ApplyWardrobeOwnerEdit(ctx context.Context, owner, fid string, edi
 		}
 	case "item_use":
 		var found int
-		err := tx.QueryRow(ctx, `SELECT 1 FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 FOR SHARE`, fid, edit.ItemID).Scan(&found)
+		err := tx.QueryRow(ctx, `SELECT 1 FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 AND item_kind='object' AND archived_at IS NULL FOR SHARE`, fid, edit.ItemID).Scan(&found)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 404, Code: "wardrobe_item_not_found", Message: "Wardrobe item was not found"}
 		}
@@ -102,6 +261,9 @@ func (a *App) ApplyWardrobeOwnerEdit(ctx context.Context, owner, fid string, edi
 	}
 	if tag.RowsAffected() != 1 {
 		return WardrobeOwnerEditResult{}, errors.New("wardrobe revision changed during owner edit")
+	}
+	if err := recordWearingTransitionTx(ctx, tx, fid, "owner_correction", "owner:"+owner, newRevision, beforeWorn, at); err != nil {
+		return WardrobeOwnerEditResult{}, err
 	}
 	return WardrobeOwnerEditResult{Revision: newRevision}, nil
 }
@@ -162,7 +324,7 @@ func (a *App) ListBrowserMedia(ctx context.Context, owner, fid, cursor string, l
 	if limit < 1 {
 		limit = 50
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT a.id, a.kind, a.mime_type, a.status, a.created_at FROM public.media_assets a JOIN public.fluctlights f ON f.id=a.owner_fluctlight_id WHERE f.created_by_actor_id=$1 AND a.owner_fluctlight_id=$2 AND a.kind IN ('image','video') AND a.status<>'deleted' AND ($3='' OR a.id > $3) ORDER BY a.id LIMIT $4`, owner, fid, cursor, limit+1)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT a.id, a.kind, a.mime_type, a.status, a.created_at FROM public.media_assets a JOIN public.fluctlights f ON f.id=a.owner_fluctlight_id WHERE f.created_by_actor_id=$1 AND a.media_scope='fluctlight' AND a.owner_fluctlight_id=$2 AND a.kind IN ('image','video') AND a.status<>'deleted' AND ($3='' OR a.id > $3) ORDER BY a.id LIMIT $4`, owner, fid, cursor, limit+1)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -283,58 +445,20 @@ func (a *App) lookupSceneImage(ctx context.Context, fid string) (any, bool) {
 }
 
 func (a *App) projectAvatar(ctx context.Context, owner, fid string, detail map[string]any) {
-	store := newPostgresSurface(a.DB.Pool())
-	records, err := store.ListKind(ctx, owner, "visual_identity", fid)
+	view, err := a.displayAvatarWith(ctx, a.DB.Pool(), owner, fid)
 	if err != nil {
-		return
-	}
-	for _, record := range records {
-		if stringValue(record.Payload["source"]) != "owner_upload" {
-			continue
-		}
-		avatar := map[string]any{"source": "owner_upload", "kind": "visual_identity", "label": "插画"}
-		if assetID := stringValue(record.Payload["asset_id"]); assetID != "" {
-			avatar["asset_id"] = assetID
-			avatar["url"] = "/api/media/" + assetID
-		}
-		detail["avatar"] = avatar
-		return
-	}
-	canonical := stringValue(mapValue(detail["visual_identity"])["canonical_asset_id"])
-	if canonical == "" {
 		detail["avatar"] = nil
+		detail["avatar_state"] = map[string]any{"status": "failed", "code": "display_avatar_read_failed"}
 		return
 	}
-	detail["avatar"] = map[string]any{"source": "generated", "kind": "generated", "asset_id": canonical, "url": "/api/media/" + canonical, "factual": false, "label": "生成图·非事实"}
+	detail["avatar"] = view["avatar"]
+	detail["avatar_state"] = map[string]any{"status": view["read_state"], "revision": view["revision"], "mode": view["mode"]}
+
 }
 
-func (a *App) mergeOwnerSchedule(ctx context.Context, owner, fid string, detail map[string]any) {
-	records, err := newPostgresSurface(a.DB.Pool()).ListKind(ctx, owner, "owner_schedule_item", fid)
-	if err != nil || len(records) == 0 {
-		return
-	}
-	extra := make([]any, 0, len(records))
-	for _, record := range records {
-		if record.Status == "deleted" {
-			continue
-		}
-		item := cloneMap(record.Payload)
-		item["source"] = "owner_edit"
-		item["recorded_by"] = "owner"
-		extra = append(extra, item)
-	}
-	if len(extra) == 0 {
-		return
-	}
-	schedule := mapValue(detail["schedule"])
-	if detail["schedule"] == nil {
-		schedule = map[string]any{"items": extra}
-		detail["schedule"] = schedule
-		return
-	}
-	items := arrayValue(schedule["items"])
-	schedule["items"] = append(items, extra...)
-}
+// Historical owner_schedule_item records are drafts, not accepted Schedule
+// authority. They must never be appended to the executable daily plan.
+func (a *App) mergeOwnerSchedule(ctx context.Context, owner, fid string, detail map[string]any) {}
 
 func (a *App) DecorateWardrobe(ctx context.Context, owner, fid string, page map[string]any) {
 	if a == nil || a.DB == nil || page == nil {
@@ -356,19 +480,19 @@ func (a *App) DecorateWardrobe(ctx context.Context, owner, fid string, page map[
 }
 
 func (a *App) readWornItems(ctx context.Context, owner, fid string, store SurfaceStore) ([]any, bool) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT slot, item_id, changed_at FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 ORDER BY slot`, fid)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT w.slot,w.item_id,w.changed_at,i.description FROM public.fluctlight_worn_items w JOIN public.fluctlight_wardrobe_items i ON i.fluctlight_id=w.fluctlight_id AND i.id=w.item_id WHERE w.fluctlight_id=$1 AND i.archived_at IS NULL ORDER BY w.slot`, fid)
 	if err != nil {
 		return nil, false
 	}
 	defer rows.Close()
 	type wornRow struct {
-		slot, itemID string
-		changed      time.Time
+		slot, itemID, description string
+		changed                   time.Time
 	}
 	scanned := make([]wornRow, 0)
 	for rows.Next() {
 		var row wornRow
-		if err := rows.Scan(&row.slot, &row.itemID, &row.changed); err != nil {
+		if err := rows.Scan(&row.slot, &row.itemID, &row.changed, &row.description); err != nil {
 			return nil, false
 		}
 		scanned = append(scanned, row)
@@ -390,29 +514,29 @@ func (a *App) readWornItems(ctx context.Context, owner, fid string, store Surfac
 	}
 	items := make([]any, 0, len(scanned))
 	for _, row := range scanned {
-		recordedBy := "fluctlight"
+		recordedBy := "unknown"
 		if owners[row.slot] != "" && owners[row.slot] == row.itemID {
-			recordedBy = "owner"
+			recordedBy = "owner_annotation"
 		}
-		items = append(items, map[string]any{"slot": row.slot, "item_id": row.itemID, "since": row.changed.UTC().Format(time.RFC3339), "recorded_by": recordedBy})
+		items = append(items, map[string]any{"slot": row.slot, "item_id": row.itemID, "description": row.description, "since": row.changed.UTC().Format(time.RFC3339), "recorded_by": recordedBy})
 	}
 	return items, true
 }
 
 func (a *App) readUsedItems(ctx context.Context, owner, fid string, store SurfaceStore) ([]any, bool) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT item_id, started_at FROM public.fluctlight_item_uses WHERE fluctlight_id=$1 ORDER BY item_id`, fid)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT u.item_id,u.started_at,u.activity,i.description FROM public.fluctlight_item_uses u JOIN public.fluctlight_wardrobe_items i ON i.fluctlight_id=u.fluctlight_id AND i.id=u.item_id WHERE u.fluctlight_id=$1 AND i.item_kind='object' AND i.availability='available' AND i.ownership IN ('owned','borrowed') AND i.archived_at IS NULL ORDER BY u.item_id`, fid)
 	if err != nil {
 		return nil, false
 	}
 	defer rows.Close()
 	type usedRow struct {
-		itemID  string
-		started time.Time
+		itemID, activity, description string
+		started                       time.Time
 	}
 	scanned := make([]usedRow, 0)
 	for rows.Next() {
 		var row usedRow
-		if err := rows.Scan(&row.itemID, &row.started); err != nil {
+		if err := rows.Scan(&row.itemID, &row.started, &row.activity, &row.description); err != nil {
 			return nil, false
 		}
 		scanned = append(scanned, row)
@@ -434,11 +558,11 @@ func (a *App) readUsedItems(ctx context.Context, owner, fid string, store Surfac
 	}
 	items := make([]any, 0, len(scanned))
 	for _, row := range scanned {
-		recordedBy := "fluctlight"
+		recordedBy := "unknown"
 		if _, owned := owners[row.itemID]; owned {
-			recordedBy = "owner"
+			recordedBy = "owner_annotation"
 		}
-		items = append(items, map[string]any{"item_id": row.itemID, "since": row.started.UTC().Format(time.RFC3339), "recorded_by": recordedBy})
+		items = append(items, map[string]any{"item_id": row.itemID, "activity": row.activity, "description": row.description, "since": row.started.UTC().Format(time.RFC3339), "recorded_by": recordedBy})
 	}
 	return items, true
 }
@@ -506,26 +630,12 @@ func (a *App) DecorateMoments(ctx context.Context, owner string, items []map[str
 	if items == nil {
 		items = []map[string]any{}
 	}
-	seen := map[string]struct{}{}
 	for _, item := range items {
 		annotateMoment(owner, item)
-		seen[stringValue(item["id"])] = struct{}{}
 	}
-	if a == nil || a.DB == nil || a.DB.Pool() == nil {
-		return items
-	}
-	records, err := newPostgresSurface(a.DB.Pool()).ListKind(ctx, owner, "user_moment", "")
-	if err != nil {
-		return items
-	}
-	for _, record := range records {
-		if _, exists := seen[record.ID]; exists {
-			continue
-		}
-		item := cloneMap(record.Payload)
-		annotateMoment(owner, item)
-		items = append(items, item)
-	}
+	// 0089 migrates historical Owner posts into the same authoritative feed.
+	// Re-appending stale surface copies would resurrect hidden publications.
+
 	return items
 }
 

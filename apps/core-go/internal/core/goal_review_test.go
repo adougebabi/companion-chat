@@ -102,6 +102,7 @@ func TestPendingGoalReviewLateSourceFencesOldDecision(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, requestID)
 	old, _, err := f.app.claimGoalEvaluation(f.ctx, requestID)
 	if err != nil || len(old.Reviews) != 1 {
 		t.Fatalf("claim %#v %v", old.Reviews, err)
@@ -171,6 +172,7 @@ func TestSoftDeadlineQueuesVisibleReviewWithoutCancellation(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, id)
 	snapshot, _, err := f.app.claimGoalEvaluation(f.ctx, id)
 	if err != nil || len(snapshot.Reviews) != 1 || !snapshot.Reviews[0].DeadlineOverdue {
 		t.Fatalf("overdue soft review absent %#v %v", snapshot.Reviews, err)
@@ -312,6 +314,7 @@ func TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions(t *testing.T
 	}); err != nil {
 		t.Fatal(err)
 	}
+	advanceGoalEvaluationCycleForTest(t, f, requestID)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err != nil {
 		t.Fatal(err)
 	}

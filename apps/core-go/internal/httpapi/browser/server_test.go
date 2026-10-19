@@ -123,18 +123,18 @@ func TestBrowserHandlerKeepsAuthAndCSRFAtPublicBoundary(t *testing.T) {
 		t.Fatalf("session status/body = %d/%s", sessionResponse.Code, sessionResponse.Body.String())
 	}
 
-	request := httptest.NewRequest(http.MethodPut, "https://api.test/api/settings", strings.NewReader(`{"values":{}}`))
+	request := httptest.NewRequest(http.MethodPut, "https://api.test/api/settings", strings.NewReader(`{"values":{},"expectedVersions":{},"idempotencyKey":"settings-auth"}`))
 	request.Header.Set("Origin", "https://fluctlight.test")
 	request.Header.Set("X-CSRF-Token", "csrf")
 	request.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "opaque"})
 	request.AddCookie(&http.Cookie{Name: csrfCookieName, Value: "csrf"})
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
-	if response.Code != http.StatusOK {
+	if response.Code != http.StatusOK || len(backend.calls) < 2 || backend.calls[len(backend.calls)-1] != "PUT /internal/settings" {
 		t.Fatalf("settings status = %d, body = %s", response.Code, response.Body.String())
 	}
 
-	missingCSRF := httptest.NewRequest(http.MethodPut, "https://api.test/api/settings", strings.NewReader(`{"values":{}}`))
+	missingCSRF := httptest.NewRequest(http.MethodPut, "https://api.test/api/settings", strings.NewReader(`{"values":{},"expectedVersions":{},"idempotencyKey":"settings-auth"}`))
 	missingCSRF.Header.Set("Origin", "https://fluctlight.test")
 	missingCSRF.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "opaque"})
 	missingResponse := httptest.NewRecorder()

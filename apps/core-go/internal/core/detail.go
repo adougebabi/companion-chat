@@ -33,7 +33,15 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		"status":            fluctlight.Status,
 		"current_revision":  fluctlight.CurrentRevision,
 	}
-	detail["personality_runtime"], err = a.readPersonalityRuntime(ctx, fluctlightID, stringValue(mapValue(fluctlight.CorePersona["personality_system"])["active_profile_id"]))
+	detail["personality_runtime"], err = a.readPersonalityRuntime(ctx, fluctlightID, initialPersonalityProfileID(fluctlight.CorePersona))
+	if err != nil {
+		return nil, err
+	}
+	detail["persona_compilation"], err = a.readOwnerPersonaProjection(ctx, fluctlightID, fluctlight.CorePersona, fluctlight.CurrentRevision, mapValue(detail["personality_runtime"]))
+	if err != nil {
+		return nil, err
+	}
+	detail["persona_switch_history"], detail["persona_switch_history_has_more"], err = a.readPersonaSwitchHistory(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +153,16 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		return nil, err
 	}
 	if latestFactsRevision != currentFactsRevision {
+		if retry < 2 {
+			return a.FluctlightDetail(context.WithValue(ctx, detailProjectionRetryKey{}, retry+1), actorID, fluctlightID)
+		}
+		return nil, ErrContextProjectionUnstable
+	}
+	latestRuntime, err := a.readPersonalityRuntime(ctx, fluctlightID, initialPersonalityProfileID(fluctlight.CorePersona))
+	if err != nil {
+		return nil, err
+	}
+	if jsonString(latestRuntime) != jsonString(detail["personality_runtime"]) {
 		if retry < 2 {
 			return a.FluctlightDetail(context.WithValue(ctx, detailProjectionRetryKey{}, retry+1), actorID, fluctlightID)
 		}

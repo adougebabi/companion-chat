@@ -186,9 +186,10 @@ func reflectionSlotMutation(domain EvolutionDomain, candidate ReflectionSlotCand
 	return base, nil
 }
 
-func (a *App) applyReflectionDevelopingSelfV2Tx(ctx context.Context, tx pgx.Tx, fluctlightID string, proposal ReflectionProposalV2, plan ReflectionEvolutionPlan, evolution EvolutionContext) error {
+func (a *App) applyReflectionDevelopingSelfV2Tx(ctx context.Context, tx pgx.Tx, fluctlightID string, proposal ReflectionProposalV2, plan *ReflectionEvolutionPlan, evolution EvolutionContext, actorFacts []map[string]any) error {
 	allowed := reflectionAllowedEvidence(evolution)
-	for _, candidatePlan := range plan.Candidates {
+	for index := range plan.Candidates {
+		candidatePlan := &plan.Candidates[index]
 		if candidatePlan.Domain != EvolutionDevelopingSelf || candidatePlan.Disposition != EvolutionAccepted {
 			continue
 		}
@@ -198,7 +199,15 @@ func (a *App) applyReflectionDevelopingSelfV2Tx(ctx context.Context, tx pgx.Tx, 
 			"confidence": candidate.Confidence, "evidence_refs": stringSliceAny(candidate.EvidenceRefs),
 			"provenance": map[string]any{"source": "reflection_v2", "proposal_id": plan.ProposalID}, "status": "active",
 		}
-		if err := a.applyDevelopingSelfCandidateTx(ctx, tx, fluctlightID, item, stringSliceAny(candidate.EvidenceRefs), allowed, plan.SourceWindow); err != nil {
+		outcome, err := a.applyDevelopingSelfCandidateTx(ctx, tx, fluctlightID, item, stringSliceAny(candidate.EvidenceRefs), allowed, plan.SourceWindow)
+		if err != nil {
+			return err
+		}
+		if outcome.ID == "" {
+			candidatePlan.Disposition, candidatePlan.ReasonCode = EvolutionRejected, outcome.Reason
+			continue
+		}
+		if err := attachActorFactSnapshotTx(ctx, tx, fluctlightID, actorFacts, "developing_self", outcome.ID, outcome.Revision, a.now().UTC()); err != nil {
 			return err
 		}
 	}

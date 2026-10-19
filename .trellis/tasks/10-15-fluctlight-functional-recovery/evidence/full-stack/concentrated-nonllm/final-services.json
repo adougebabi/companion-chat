@@ -1,0 +1,62 @@
+[
+  {
+    "Service": "core",
+    "State": "running",
+    "Health": "healthy",
+    "Image": "fluctlight-core-go:v3-nonllm-1019"
+  },
+  {
+    "Service": "cutover",
+    "State": "created",
+    "Health": "",
+    "Image": "sha256:5b6f3bb2ddcdb1ec2e9c69a4ed13d0b31328eade10748880dfc3f640e794e196"
+  },
+  {
+    "Service": "migrate",
+    "State": "exited",
+    "Health": "",
+    "Image": "sha256:5b6f3bb2ddcdb1ec2e9c69a4ed13d0b31328eade10748880dfc3f640e794e196"
+  },
+  {
+    "Service": "minio",
+    "State": "running",
+    "Health": "healthy",
+    "Image": "fluctlight-minio-source:RELEASE.2025-04-22T22-12-26Z"
+  },
+  {
+    "Service": "minio-init",
+    "State": "exited",
+    "Health": "",
+    "Image": "fluctlight-mc-source:RELEASE.2025-04-16T18-13-26Z"
+  },
+  {
+    "Service": "postgres",
+    "State": "running",
+    "Health": "healthy",
+    "Image": "pgvector/pgvector:pg16"
+  },
+  {
+    "Service": "redis",
+    "State": "running",
+    "Health": "healthy",
+    "Image": "redis:8.0.4-alpine"
+  },
+  {
+    "Service": "temporal",
+    "State": "running",
+    "Health": "healthy",
+    "Image": "temporalio/auto-setup:1.29.7"
+  },
+  {
+    "Service": "web",
+    "State": "running",
+    "Health": "healthy",
+    "Image": "fluctlight-web:v3-nonllm-1019"
+  },
+  {
+    "Service": "worker",
+    "State": "created",
+    "Health": "",
+    "Image": "sha256:5b6f3bb2ddcdb1ec2e9c69a4ed13d0b31328eade10748880dfc3f640e794e196"
+  }
+]

@@ -115,6 +115,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
 	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
+	callCtx = budgetModel.withPhysicalPromptBudgetDiagnostics(callCtx, input)
 	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, m.correlationID, sequence, input)
 	// The parent turn attempt is intentionally not reused as the physical
 	// model-call attempt. Diagnostics and cancellation state must distinguish
@@ -235,6 +236,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
 	callCtx = withProviderTimeout(callCtx, m.assignment.Timeout)
 	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
+	callCtx = budgetModel.withPhysicalPromptBudgetDiagnostics(callCtx, input)
 	if tools := m.renderedTools(); len(tools) > 0 {
 		diag := providerPromptDiagnostics(callCtx)
 		diag["tools"] = tools
@@ -456,6 +458,27 @@ func withPhysicalModelCallDiagnostics(ctx context.Context, runID, modelCallID st
 	if strings.TrimSpace(modelCallID) != "" {
 		diagnostics["model_call_id"] = strings.TrimSpace(modelCallID)
 	}
+	return WithPromptDiagnostics(ctx, diagnostics)
+}
+
+// ModelRun metrics describe this exact native/repair request. The parent
+// Composer's final schema may not be transmitted during native Tool rounds.
+// Keep its logical trace separately instead of reporting it as physical input.
+func (m *queuedToolCallingChatModel) withPhysicalPromptBudgetDiagnostics(ctx context.Context, input []*schema.Message) context.Context {
+	messages := make([]map[string]any, 0, len(input))
+	for _, message := range input {
+		if message != nil {
+			messages = append(messages, einoBudgetMessage(message))
+		}
+	}
+	tools := RenderCapabilityTools(m.definitions)
+	diagnostics := providerPromptDiagnostics(ctx)
+	if logical := mapValue(diagnostics["prompt_budget"]); len(logical) > 0 {
+		diagnostics["logical_prompt_budget"] = cloneMap(logical)
+	}
+	estimate := estimatePromptWireInput(messages, tools, m.responseFormat)
+	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(nil, messages, tools, m.responseFormat, m.assignment, estimate)
+	mapValue(diagnostics["prompt_budget"])["request_stage"] = "physical"
 	return WithPromptDiagnostics(ctx, diagnostics)
 }
 

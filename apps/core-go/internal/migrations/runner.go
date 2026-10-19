@@ -12,7 +12,39 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0063_goal_agent_cadence"
+const Head = "0095_place_defaults"
+const PlaceDefaultsPreviousHead = "0094_business_backups"
+const BusinessBackupsPreviousHead = "0093_workflow_controls"
+const WorkflowControlsPreviousHead = "0092_diagnostic_operations"
+const DiagnosticOperationsPreviousHead = "0091_configuration_commands"
+const ConfigurationCommandsPreviousHead = "0090_moment_npc_interactions"
+const MomentNPCInteractionsPreviousHead = "0089_moment_feed"
+const MomentFeedPreviousHead = "0088_media_lifecycle"
+const MediaLifecyclePreviousHead = "0087_role_media_references"
+const RoleMediaReferencesPreviousHead = "0086_owner_media_requests"
+const OwnerMediaRequestsPreviousHead = "0085_media_reference_grants"
+const MediaReferenceGrantsPreviousHead = "0084_owner_media"
+const OwnerMediaPreviousHead = "0083_studio_outfits"
+const StudioOutfitsPreviousHead = "0082_world_items"
+const WorldItemsPreviousHead = "0081_studio_foundation"
+const StudioFoundationPreviousHead = "0080_studio_visual_style"
+const StudioVisualStylePreviousHead = "0079_studio_media"
+const StudioMediaPreviousHead = "0078_studio_jobs"
+const StudioJobsPreviousHead = "0077_world_events"
+const WorldEventsPreviousHead = "0076_world_encounter_runtime"
+const WorldEncounterRuntimePreviousHead = "0075_promise_lifecycle"
+const PromiseLifecyclePreviousHead = "0074_outfit_history"
+const OutfitHistoryPreviousHead = "0073_inventory_management"
+const InventoryManagementPreviousHead = "0072_visual_brief"
+const VisualBriefPreviousHead = "0071_persona_governance"
+const PersonaGovernancePreviousHead = "0070_self_governance"
+const SelfGovernancePreviousHead = "0069_diary"
+const DiaryPreviousHead = "0068_role_autonomy"
+const RoleAutonomyPreviousHead = "0067_notification_center"
+const NotificationCenterPreviousHead = "0066_life_place"
+const LifePlacePreviousHead = "0065_world_catalog"
+const WorldCatalogPreviousHead = "0064_world_runtime"
+const WorldRuntimePreviousHead = "0063_goal_agent_cadence"
 const GoalAgentCadencePreviousHead = "0062_reply_media"
 const GoalPlannerCadencePreviousHead = "0054_goal_planner"
 const GoalPlannerPreviousHead = "0053_goal_reconciliation"
@@ -106,7 +138,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != GoalAgentCadencePreviousHead && current != ReplyMediaPreviousHead && current != FactOnlyReplyPreviousHead && current != MediaKevPreviousHead && current != FactGenerationProvenancePreviousHead && current != SemanticFactGenerationPreviousHead && current != LogicalAgentLeasesPreviousHead && current != KevDecisionsPreviousHead && current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead && current != ActorUserBackgroundPreviousHead && current != GoalExecutionPreviousHead && current != GoalClosurePreviousHead && current != GoalGovernancePreviousHead && current != GoalReconciliationPreviousHead && current != GoalPlannerPreviousHead && current != GoalPlannerCadencePreviousHead {
+		if current != PlaceDefaultsPreviousHead && current != BusinessBackupsPreviousHead && current != WorkflowControlsPreviousHead && current != DiagnosticOperationsPreviousHead && current != ConfigurationCommandsPreviousHead && current != MomentNPCInteractionsPreviousHead && current != MomentFeedPreviousHead && current != MediaLifecyclePreviousHead && current != RoleMediaReferencesPreviousHead && current != OwnerMediaRequestsPreviousHead && current != MediaReferenceGrantsPreviousHead && current != OwnerMediaPreviousHead && current != StudioOutfitsPreviousHead && current != WorldItemsPreviousHead && current != StudioFoundationPreviousHead && current != StudioVisualStylePreviousHead && current != StudioMediaPreviousHead && current != StudioJobsPreviousHead && current != WorldEventsPreviousHead && current != WorldEncounterRuntimePreviousHead && current != PromiseLifecyclePreviousHead && current != OutfitHistoryPreviousHead && current != InventoryManagementPreviousHead && current != VisualBriefPreviousHead && current != PersonaGovernancePreviousHead && current != SelfGovernancePreviousHead && current != DiaryPreviousHead && current != RoleAutonomyPreviousHead && current != NotificationCenterPreviousHead && current != LifePlacePreviousHead && current != WorldCatalogPreviousHead && current != WorldRuntimePreviousHead && current != GoalAgentCadencePreviousHead && current != ReplyMediaPreviousHead && current != FactOnlyReplyPreviousHead && current != MediaKevPreviousHead && current != FactGenerationProvenancePreviousHead && current != SemanticFactGenerationPreviousHead && current != LogicalAgentLeasesPreviousHead && current != KevDecisionsPreviousHead && current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead && current != ActorUserBackgroundPreviousHead && current != GoalExecutionPreviousHead && current != GoalClosurePreviousHead && current != GoalGovernancePreviousHead && current != GoalReconciliationPreviousHead && current != GoalPlannerPreviousHead && current != GoalPlannerCadencePreviousHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -259,6 +291,107 @@ func (r *Runner) Apply(ctx context.Context) error {
 	}
 	if _, err := tx.Exec(ctx, ownerSurfaceSchemaSQL); err != nil {
 		return fmt.Errorf("apply owner surface schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, worldRuntimeSchemaSQL); err != nil {
+		return fmt.Errorf("apply world runtime schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, worldCatalogSchemaSQL); err != nil {
+		return fmt.Errorf("apply world catalog schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, lifePlaceSchemaSQL); err != nil {
+		return fmt.Errorf("apply stable life place schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, notificationCenterSchemaSQL); err != nil {
+		return fmt.Errorf("apply notification center schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, roleAutonomySchemaSQL); err != nil {
+		return fmt.Errorf("apply role autonomy schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, diarySchemaSQL); err != nil {
+		return fmt.Errorf("apply diary schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, selfGovernanceSchemaSQL); err != nil {
+		return fmt.Errorf("apply self governance schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, personaGovernanceSchemaSQL); err != nil {
+		return fmt.Errorf("apply persona governance schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, visualBriefSchemaSQL); err != nil {
+		return fmt.Errorf("apply visual brief schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, inventoryManagementSchemaSQL); err != nil {
+		return fmt.Errorf("apply inventory management schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, outfitHistorySchemaSQL); err != nil {
+		return fmt.Errorf("apply outfit history schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, promiseLifecycleSchemaSQL); err != nil {
+		return fmt.Errorf("apply promise lifecycle schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, worldEncounterRuntimeSchemaSQL); err != nil {
+		return fmt.Errorf("apply world encounter runtime schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, worldEventsSchemaSQL); err != nil {
+		return fmt.Errorf("apply world events schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, studioJobsSchemaSQL); err != nil {
+		return fmt.Errorf("apply studio jobs schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, studioMediaSchemaSQL); err != nil {
+		return fmt.Errorf("apply studio media schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, studioVisualStyleSchemaSQL); err != nil {
+		return fmt.Errorf("apply Studio visual style sources: %w", err)
+	}
+	if _, err := tx.Exec(ctx, studioFoundationSchemaSQL); err != nil {
+		return fmt.Errorf("apply studio foundation source schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, worldItemsSchemaSQL); err != nil {
+		return fmt.Errorf("apply world item catalogue schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, studioOutfitsSchemaSQL); err != nil {
+		return fmt.Errorf("apply studio outfit source schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, ownerMediaSchemaSQL); err != nil {
+		return fmt.Errorf("apply Owner original media schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, mediaReferenceGrantsSchemaSQL); err != nil {
+		return fmt.Errorf("apply explicit media reference authorization schema: %w", err)
+	}
+	if _, err := tx.Exec(ctx, ownerMediaRequestsSchemaSQL); err != nil {
+		return fmt.Errorf("apply Owner media request targets: %w", err)
+	}
+	if _, err := tx.Exec(ctx, roleMediaReferencesSchemaSQL); err != nil {
+		return fmt.Errorf("apply role-scoped media references: %w", err)
+	}
+	if _, err := tx.Exec(ctx, mediaLifecycleSchemaSQL); err != nil {
+		return fmt.Errorf("apply durable media deletion lifecycle: %w", err)
+	}
+	if _, err := tx.Exec(ctx, momentFeedSchemaSQL); err != nil {
+		return fmt.Errorf("apply persistent moment feed: %w", err)
+	}
+	if _, err := tx.Exec(ctx, momentNPCInteractionsSchemaSQL); err != nil {
+		return fmt.Errorf("apply sourced NPC Moment interactions: %w", err)
+	}
+	if _, err := tx.Exec(ctx, configurationCommandsSchemaSQL); err != nil {
+		return fmt.Errorf("apply versioned configuration commands: %w", err)
+	}
+	if _, err := tx.Exec(ctx, diagnosticOperationsSchemaSQL); err != nil {
+		return fmt.Errorf("apply diagnostic operations: %w", err)
+	}
+	if _, err := tx.Exec(ctx, workflowControlsSchemaSQL); err != nil {
+		return fmt.Errorf("apply fenced workflow controls: %w", err)
+	}
+	if _, err := tx.Exec(ctx, businessBackupsSchemaSQL); err != nil {
+		return fmt.Errorf("apply maintenance backup jobs: %w", err)
+	}
+	if _, err := tx.Exec(ctx, placeDefaultsSchemaSQL); err != nil {
+		return fmt.Errorf("apply provenance-backed place defaults: %w", err)
+	}
+	if current != Head {
+		if _, err := tx.Exec(ctx, inventoryManagementDataRepairSQL); err != nil {
+			return fmt.Errorf("repair legacy inventory eligibility: %w", err)
+		}
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {
@@ -548,9 +681,6 @@ ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS started_at tim
 ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS completed_at timestamptz;
 UPDATE public.diagnostic_model_runs SET binding_role=CASE WHEN role='embedding' THEN 'embedding' ELSE 'generic_llm' END WHERE binding_role IS NULL OR binding_role='' OR (binding_role='generic_llm' AND role='embedding');
 INSERT INTO public.runtime_settings(key,value_json) VALUES ('llm.queue','{"generated_concurrency":1,"embedding_concurrency":1}') ON CONFLICT (key) DO NOTHING;
-UPDATE public.runtime_settings SET value_json='{"generated_concurrency":1,"embedding_concurrency":1}',updated_at=now() WHERE key='llm.queue' AND value_json='{"generated_concurrency":2,"embedding_concurrency":1}';
-UPDATE public.runtime_settings SET value_json=jsonb_set(value_json::jsonb, '{budget_remaining}', '100'::jsonb)::text, updated_at=now() WHERE key='product.autonomy' AND COALESCE(NULLIF(value_json::jsonb->>'budget_remaining',''),'0')::numeric <= 1;
-UPDATE public.autonomy_policies SET budget_remaining='100', updated_at=now() WHERE COALESCE(NULLIF(budget_remaining,''),'0')::numeric <= 1;
 INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy)
 SELECT 'generic_llm',provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy
 FROM public.model_roles

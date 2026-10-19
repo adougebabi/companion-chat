@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-19",
+  "sourceHead": "0090_moment_npc_interactions",
+  "databaseHead": "0066_life_place (last actually verified; no new migration run)",
+  "checks": {
+    "apiWorkerBuild": "passed, sessions 55205/10473",
+    "generateAndWorkspaceTypecheck": "passed, session 98931",
+    "productionWebBuild": "passed, session 49672",
+    "noMockBundle": "passed, production build check",
+    "gitDiffCheck": "passed"
+  },
+  "sourceReviewFixes": [
+    "material retain/release stale draft operation",
+    "suggestion filter cursor and character draft partition",
+    "replayed Moment receipt returns committed text",
+    "NPC interaction retry reads interaction revision, not Moment ID"
+  ],
+  "notRun": [
+    "test suites",
+    "E2E",
+    "database migration or business integration",
+    "browser",
+    "LLM",
+    "ComfyUI",
+    "S3 object deletion"
+  ],
+  "priority": "Feature implementation first. Existing 17 scripts retained; no E2E script expansion or live execution this turn.",
+  "inProgress": [
+    "complete real configuration UI and contract",
+    "diagnostics/recovery/audit",
+    "resource packs/business backup/isolated restore",
+    "final unified regression"
+  ]
+}

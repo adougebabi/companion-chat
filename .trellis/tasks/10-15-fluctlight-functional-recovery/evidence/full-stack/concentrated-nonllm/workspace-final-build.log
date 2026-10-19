@@ -1,0 +1,53 @@
+$ pnpm -r build
+Scope: 3 of 4 workspace projects
+apps/web build$ vite build && node scripts/verify-product-build.mjs
+apps/web build: vite v7.1.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 196 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: [plugin vite:reporter] 
+apps/web build: (!) /Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/components/place-defaults.js is dynamically imported by /Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/modules/世界人物.js but also statically imported by /Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/pages/world-management.js, dynamic import will not move module into another chunk.
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                               0.69 kB │ gzip:  0.37 kB
+apps/web build: dist/assets/index-ClpUFE-h.css               22.47 kB │ gzip:  5.39 kB
+apps/web build: dist/assets/governance-tabs-Bzwm8Vwd.js       0.30 kB │ gzip:  0.30 kB
+apps/web build: dist/assets/message-time-ySIE50tA.js          0.74 kB │ gzip:  0.46 kB
+apps/web build: dist/assets/real-generate-CqWoog8e.js         1.29 kB │ gzip:  0.86 kB
+apps/web build: dist/assets/real-material-CIJnFvxx.js         1.55 kB │ gzip:  0.96 kB
+apps/web build: dist/assets/governance-records-CTArr7f0.js    2.09 kB │ gzip:  1.18 kB
+apps/web build: dist/assets/real-backups-CK_-FtY3.js          2.72 kB │ gzip:  1.74 kB
+apps/web build: dist/assets/real-history-_UXINrue.js          2.86 kB │ gzip:  1.41 kB
+apps/web build: dist/assets/business-backups-BE_E1DuJ.js      2.89 kB │ gzip:  1.74 kB
+apps/web build: dist/assets/real-world-events-BQXd7via.js     3.01 kB │ gzip:  1.67 kB
+apps/web build: dist/assets/real-life-now-DIW3CzMU.js         3.49 kB │ gzip:  1.78 kB
+apps/web build: dist/assets/real-life-schedule-D-acye1m.js    4.41 kB │ gzip:  2.23 kB
+apps/web build: dist/assets/real-world-items-C6eHyZQv.js      4.63 kB │ gzip:  2.43 kB
+apps/web build: dist/assets/real-workflow-CWQL5WWZ.js         5.11 kB │ gzip:  2.51 kB
+apps/web build: dist/assets/real-goal-planning-BEDuI7bU.js    5.36 kB │ gzip:  2.55 kB
+apps/web build: dist/assets/real-goal-editor-D60WyirU.js      6.22 kB │ gzip:  2.86 kB
+apps/web build: dist/assets/real-reflection-7uM0n54K.js       6.26 kB │ gzip:  2.89 kB
+apps/web build: dist/assets/real-avatar-CDwYOfjT.js           6.69 kB │ gzip:  3.18 kB
+apps/web build: dist/assets/real-autonomy-D5iuo50y.js         6.97 kB │ gzip:  3.32 kB
+apps/web build: dist/assets/real-operations-1hRfZJTw.js       7.26 kB │ gzip:  3.25 kB
+apps/web build: dist/assets/real-chat-9ggejtoS.js             7.85 kB │ gzip:  3.69 kB
+apps/web build: dist/assets/real-about-you-BQ1Pb_kd.js        8.17 kB │ gzip:  3.58 kB
+apps/web build: dist/assets/real-self-DVxwhHfI.js             9.27 kB │ gzip:  4.08 kB
+apps/web build: dist/assets/real-governance-DAIQWbD9.js       9.34 kB │ gzip:  4.24 kB
+apps/web build: dist/assets/chat-jc9efoMY.js                 10.59 kB │ gzip:  4.80 kB
+apps/web build: dist/assets/real-life-goals-C3NuSABS.js      10.93 kB │ gzip:  4.86 kB
+apps/web build: dist/assets/real-diary-butGGaSz.js           11.20 kB │ gzip:  4.78 kB
+apps/web build: dist/assets/real-memory-CDVmOwTb.js          11.28 kB │ gzip:  4.42 kB
+apps/web build: dist/assets/real-data-tools-OXThLylq.js      11.37 kB │ gzip:  5.20 kB
+apps/web build: dist/assets/real-visual-6iZsaGDr.js          11.40 kB │ gzip:  4.79 kB
+apps/web build: dist/assets/real-diagnostics-CkgNIKnm.js     15.11 kB │ gzip:  6.42 kB
+apps/web build: dist/assets/real-moments-CemafZoH.js         17.32 kB │ gzip:  6.57 kB
+apps/web build: dist/assets/real-media-BxYmkzCS.js           21.21 kB │ gzip:  7.98 kB
+apps/web build: dist/assets/real-core-C--AoXDu.js            22.13 kB │ gzip:  8.52 kB
+apps/web build: dist/assets/real-life-wardrobe-Pt9rMOWn.js   25.57 kB │ gzip:  9.43 kB
+apps/web build: dist/assets/real-configuration-54CYTZkt.js   29.37 kB │ gzip: 11.08 kB
+apps/web build: dist/assets/profile-7gKr_H-P.js              78.39 kB │ gzip: 31.09 kB
+apps/web build: dist/assets/real-Ch6dClW8.js                122.93 kB │ gzip: 33.01 kB
+apps/web build: dist/assets/index-BWvlOnkZ.js               227.19 kB │ gzip: 74.71 kB
+apps/web build: ✓ built in 622ms
+apps/web build: Verified real production bundle: no fixture store, seed, diagnostic samples, debug writers or QA page.
+apps/web build: Done

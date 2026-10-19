@@ -32,7 +32,7 @@ func wardrobeBorrowDefinition(returning bool) CapabilityDefinition {
 	properties := map[string]any{
 		"lender": text(256), "reason": text(512),
 		"items": map[string]any{"type": "array", "minItems": 1, "maxItems": 8, "items": objectSchema(map[string]any{
-			"category": text(64), "slot": text(64), "description": text(512),
+			"category": text(64), "slot": map[string]any{"type": "string", "maxLength": 64}, "description": text(512), "item_kind": enumStringSchema("wearable", "object"),
 		}, []string{"category", "slot", "description"}, false)},
 	}
 	required := []string{"lender", "reason", "items"}
@@ -131,9 +131,9 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 				}
 				return failedCapabilityResult(i, "wardrobe_item_read_failed", true), err
 			}
-			if ownership != "borrowed" || availability != "available" || itemKind != "wearable" {
+			if ownership != "borrowed" || availability != "available" || (itemKind != "wearable" && itemKind != "object") {
 				var confirmedReturn bool
-				if ownership == "borrowed" && availability == "unavailable" && itemKind == "wearable" {
+				if ownership == "borrowed" && availability == "unavailable" && (itemKind == "wearable" || itemKind == "object") {
 					if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_events WHERE fluctlight_id=$1 AND kind='wardrobe_unavailable' AND status='confirmed' AND id LIKE 'wardrobe_loan_%' AND result->'wardrobe_effect'->>'item_id'=$2)`, fluctlightID, itemID).Scan(&confirmedReturn); err != nil {
 						return borrowingPersistenceFailure(i, "borrowing_return_proof_failed", err), err
 					}
@@ -147,15 +147,19 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 			effect = map[string]any{"item_id": itemID}
 		} else {
 			item := mapValue(member)
-			effect, err = validateWardrobeEventEffect(kind, map[string]any{
-				"category": item["category"], "slot": item["slot"], "description": item["description"], "ownership": "borrowed",
-			})
+			rawEffect := map[string]any{"category": item["category"], "slot": item["slot"], "description": item["description"], "ownership": "borrowed"}
+			if value, present := item["item_kind"]; present {
+				rawEffect["item_kind"] = value
+			}
+			effect, err = validateWardrobeEventEffect(kind, rawEffect)
 			if err != nil {
 				return failedCapabilityResult(i, "borrowed_item_invalid", false), err
 			}
-			key := stableDigest(jsonString(effect))
+			identity := cloneMap(effect)
+			identity["item_kind"] = firstString(effect["item_kind"], "wearable")
+			key := stableDigest(jsonString(identity))
 			if seen[key] {
-				continue
+				return failedCapabilityResult(i, "borrowed_item_duplicate", false), ErrInvalidArguments
 			}
 			seen[key] = true
 		}
@@ -192,6 +196,7 @@ func (c wardrobeBorrowCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Ca
 		if !c.returning {
 			output["availability"] = "available"
 			output["category"], output["slot"], output["description"] = effect["category"], effect["slot"], effect["description"]
+			output["item_kind"] = firstString(effect["item_kind"], "wearable")
 		}
 		items = append(items, output)
 	}

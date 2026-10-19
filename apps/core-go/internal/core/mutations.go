@@ -280,8 +280,11 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 					return errors.New("schedule_intention_not_active")
 				}
 			}
+			if err := validateLifePlaceTx(ctx, tx, fluctlightID, stringValue(item["place_id"])); err != nil {
+				return err
+			}
 			itemID := randomID("schedule_item_")
-			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost,intention_id,action_plan) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, itemID, scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5), nullableString(intentionID), nullableJSON(actionPlan)); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost,intention_id,action_plan,place_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`, itemID, scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5), nullableString(intentionID), nullableJSON(actionPlan), nullableString(stringValue(item["place_id"]))); err != nil {
 				return err
 			}
 			if intentionID != "" && start.After(applyAt) {
@@ -503,7 +506,7 @@ func findScheduleItemWithFields(items []any, want map[string]any, wantStart, wan
 }
 
 func sameScheduleItemSemantics(left, right map[string]any) bool {
-	for _, key := range []string{"activity", "scene", "location", "item_type", "status"} {
+	for _, key := range []string{"activity", "scene", "location", "place_id", "item_type", "status"} {
 		if strings.TrimSpace(stringValue(left[key])) != strings.TrimSpace(stringValue(right[key])) {
 			return false
 		}
@@ -532,6 +535,9 @@ func insertPostScheduleLifecycleIntentsTx(ctx context.Context, tx pgx.Tx, fluctl
 		return nil
 	}
 	dateValue := localDate.Format("2006-01-02")
+	if err := enqueueClosedDayDiaryTx(ctx, tx, fluctlightID, dateValue, location.String()); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','daily_review.current_day',$3) ON CONFLICT DO NOTHING`, "daily_review_intent:"+fluctlightID+":"+dateValue, "daily_review:"+fluctlightID+":"+dateValue, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "local_date": dateValue})); err != nil {
 		return err
 	}
@@ -720,6 +726,14 @@ func streamTurnFailureCode(err error) string {
 func streamTurnFailureCodeWithFallback(err error, fallback string) string {
 	if err == nil {
 		return fallback
+	}
+	for _, budget := range []struct {
+		err  error
+		code string
+	}{{ErrPromptCurrentInputBudgetExceeded, "prompt_current_input_budget_exceeded"}, {ErrPromptToolResultBudgetExceeded, "prompt_tool_result_budget_exceeded"}, {ErrPromptOutputReserveConflict, "prompt_output_reserve_conflict"}, {ErrPromptRequiredBudgetExceeded, "prompt_required_budget_exceeded"}} {
+		if errors.Is(err, budget.err) {
+			return budget.code
+		}
 	}
 	if code := ProviderErrorCode(err); code == "tool_call_invalid" {
 		return code

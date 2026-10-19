@@ -66,6 +66,7 @@ type publishedResource struct {
 	DuplicateSuppressed bool
 	ID                  string
 	Replayed            bool
+	Text                string
 }
 
 func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Context, tx pgx.Tx, command ConversationReplyPublication) (publishedResource, error) {
@@ -252,6 +253,9 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if err := service.app.enqueueConversationSegmentTx(ctx, tx, command.FluctlightID, command.ConversationID, false); err != nil {
 		return publishedResource{}, err
 	}
+	if err := appendOutboxTx(ctx, tx, "conversation.reply.published", "conversation_message", messageID, command.FluctlightID, sourceFactID, correlationID, "reply-published:"+messageID, map[string]any{"message_id": messageID, "conversation_id": command.ConversationID, "author_actor_id": command.FluctlightID}); err != nil {
+		return publishedResource{}, err
+	}
 	return publishedResource{ID: messageID}, nil
 }
 
@@ -340,7 +344,12 @@ func (service *ToolPublicationService) PublishMomentTx(ctx context.Context, tx p
 	}); err != nil {
 		return publishedResource{}, err
 	}
-	return publishedResource{ID: momentID, Replayed: replayed}, nil
+	if !replayed {
+		if err := service.app.enqueueNPCMomentInteractionsTx(ctx, tx, momentID); err != nil {
+			return publishedResource{}, err
+		}
+	}
+	return publishedResource{ID: momentID, Replayed: replayed, Text: command.Text}, nil
 }
 
 // ValidateMediaTargetTx resolves an explicit Tool target to the existing media
@@ -356,6 +365,11 @@ func (service *ToolPublicationService) ValidateMediaTargetTx(ctx context.Context
 		return "", "", "", fmt.Errorf("%w: media target scope is required", ErrInvalidArguments)
 	}
 	switch target.Kind {
+	case "owner_media_request":
+		if err := authorizeOwnerMediaTargetTx(ctx, tx, target); err != nil {
+			return "", "", "", err
+		}
+		return "", "", "", nil
 	case "conversation":
 		if target.ConversationID == "" || target.Ref != target.ConversationID {
 			return "", "", "", fmt.Errorf("%w: media conversation target does not match the request scope", ErrInvalidArguments)

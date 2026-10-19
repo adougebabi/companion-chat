@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -48,12 +49,14 @@ func lifeActivityStartDefinition() CapabilityDefinition {
 				"schedule_item_id":    map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"duration_minutes":    map[string]any{"type": "integer", "minimum": 15, "maximum": 240},
 				"item_kind":           enumStringSchema("wearable", "object"),
+				"world_item_id":       map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"items":               map[string]any{"type": "array", "maxItems": 8, "items": shoppingItemSchema()},
 				"category":            map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
-				"slot":                map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+				"slot":                map[string]any{"type": "string", "maxLength": 64},
 				"description":         map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
 				"scene":               map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
 				"activity":            map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"place_id":            map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"location":            map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
 				"desired_hair_length": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"desired_hair_color":  map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
@@ -168,16 +171,17 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 			request[key] = value
 		}
 	}
+	placeID := strings.TrimSpace(stringValue(args["place_id"]))
 	intentionID := strings.TrimSpace(stringValue(args["intention_id"]))
 	if kind == "hair_dye" && scheduleItemID == "" {
 		return failedCapabilityResult(invocation, "hair_dye_schedule_required", false), ErrInvalidArguments
 	}
 	if scheduleItemID != "" {
-		var plannedIntention, scheduledKind, itemActivity, itemScene string
+		var plannedIntention, scheduledKind, itemActivity, itemScene, scheduledPlace string
 		var itemLocation *string
 		var itemEnd time.Time
 		var actionPlanRaw []byte
-		if err := tx.QueryRow(ctx, `SELECT COALESCE(item.intention_id,''),item.action_plan->>'kind',item.action_plan,item.activity,item.scene,item.location,item.end_at FROM public.life_schedule_items item JOIN public.life_schedules s ON s.id=item.schedule_id WHERE item.id=$1 AND s.fluctlight_id=$2 AND s.status='accepted' AND item.start_at<=$3 AND item.end_at>$3 FOR UPDATE OF s,item`, scheduleItemID, fluctlightID, now).Scan(&plannedIntention, &scheduledKind, &actionPlanRaw, &itemActivity, &itemScene, &itemLocation, &itemEnd); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(item.intention_id,''),item.action_plan->>'kind',item.action_plan,item.activity,item.scene,item.location,item.end_at,COALESCE(item.place_id,'') FROM public.life_schedule_items item JOIN public.life_schedules s ON s.id=item.schedule_id WHERE item.id=$1 AND s.fluctlight_id=$2 AND s.status='accepted' AND item.start_at<=$3 AND item.end_at>$3 FOR UPDATE OF s,item`, scheduleItemID, fluctlightID, now).Scan(&plannedIntention, &scheduledKind, &actionPlanRaw, &itemActivity, &itemScene, &itemLocation, &itemEnd, &scheduledPlace); err != nil {
 			return failedCapabilityResult(invocation, "scheduled_activity_not_due", false), ErrConflict
 		}
 		if plannedIntention == "" || plannedIntention != intentionID || scheduledKind != kind || !scheduledActionMatchesArguments(decodeObject(actionPlanRaw), args) {
@@ -199,7 +203,32 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		if itemEnd.Before(activeUntil) {
 			activeUntil = itemEnd
 		}
+		if placeID != "" && placeID != scheduledPlace {
+			return failedCapabilityResult(invocation, "scheduled_activity_place_mismatch", false), ErrConflict
+		}
+		placeID = scheduledPlace
 		request["schedule_item_id"] = scheduleItemID
+	}
+	if scheduleItemID == "" {
+		var err error
+		placeID, err = resolveUnscheduledActivityPlace(args, life)
+		if err != nil {
+			return failedCapabilityResult(invocation, "life_place_required_for_context_change", false), err
+		}
+	}
+	if err := validateLifePlaceTx(ctx, tx, fluctlightID, placeID); err != nil {
+		return failedCapabilityResult(invocation, "life_place_not_available", false), err
+	}
+	if err := requireWorldPlaceOpenTx(ctx, tx, fluctlightID, placeID, now); err != nil {
+		return failedCapabilityResult(invocation, "world_place_temporarily_closed", false), err
+	}
+	if placeID != "" {
+		request["place_id"] = placeID
+	}
+	if kind == "virtual_shopping" {
+		if err := freezeShoppingCatalogueTx(ctx, tx, fluctlightID, placeID, request); err != nil {
+			return failedCapabilityResult(invocation, "shopping_catalogue_invalid", false), err
+		}
 	}
 	if !notBefore.Before(activeUntil) {
 		return failedCapabilityResult(invocation, "activity_completion_outside_window", false), ErrConflict
@@ -270,6 +299,9 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 	}
 	eventResult := map[string]any{"id": eventID, "activity_id": activityID, "status": "confirmed", "revision": 1,
 		"expected_context_revision": life["context_revision"], "resulting_context_revision": life["context_revision"], "replayed": false}
+	if placeID != "" {
+		eventResult["place_id"] = placeID
+	}
 	evidenceRefs := []any{"activity:" + activityID}
 	if invocation.SourceFactID != "" {
 		evidenceRefs = append(evidenceRefs, invocation.SourceFactID)
@@ -345,7 +377,7 @@ func (c lifeActivityAdvanceCapability) Prepare(ctx context.Context, invocation C
 	fluctlightID := invocation.Metadata.FluctlightID
 	currentProfileID, profileErr := (&intentionService{}).resolveProfile(ctx, app.DB.Pool(), fluctlightID, invocation.Metadata.WorkingProfileID)
 	if profileErr != nil {
-		return invocation, profileErr
+		return invocation, fmt.Errorf("activity result profile: %w", profileErr)
 	}
 	if activityID == "" {
 		rows, queryErr := app.DB.Pool().Query(ctx, `SELECT r.id FROM public.fluctlight_life_activity_runs r WHERE r.fluctlight_id=$1 AND r.profile_id=$2 AND r.status IN ('in_progress','deferred') AND r.active_until>$3 AND (r.authority_event_id IS NULL OR EXISTS(SELECT 1 FROM public.life_events e WHERE e.id=r.authority_event_id AND e.status IN ('confirmed','inferred') AND e.start_at<=$3 AND e.end_at>$3 AND (e.expires_at IS NULL OR e.expires_at>$3))) ORDER BY r.started_at DESC,r.id LIMIT 2`, fluctlightID, currentProfileID, app.now().UTC())
@@ -430,22 +462,22 @@ func (c lifeActivityAdvanceCapability) Prepare(ctx context.Context, invocation C
 	request := mapValue(decodeObject(resultRaw)["request"])
 	appearance, _, _, err := app.readEffectiveLifeSnapshot(ctx, fluctlightID, c.service.app.now().UTC())
 	if err != nil {
-		return invocation, err
+		return invocation, fmt.Errorf("activity result appearance: %w", err)
 	}
 	_, life, err := app.readLifeContextSnapshotAt(ctx, fluctlightID, c.service.app.now().UTC())
 	if err != nil {
-		return invocation, err
+		return invocation, fmt.Errorf("activity result life context: %w", err)
 	}
 	outcomes, err := app.readRecentActionOutcomes(ctx, fluctlightID, 6)
 	if err != nil {
-		return invocation, err
+		return invocation, fmt.Errorf("activity result recent outcomes: %w", err)
 	}
 	result, err := app.RunVirtualActivityResultTask(ctx, VirtualActivityResultTaskInput{
 		Kind: kind, Request: request, StartedAt: startedAt.UTC().Format(instantLayout), NotBefore: notBefore.UTC().Format(instantLayout),
 		CurrentAppearance: appearance, CurrentLife: life, RecentOutcomes: outcomes,
 	})
 	if err != nil {
-		return invocation, err
+		return invocation, fmt.Errorf("activity result model: %w", err)
 	}
 	if err := validateVirtualActivityResult(kind, request, result); err != nil {
 		return invocation, newCapabilityError("activity_result_invalid", false, err)

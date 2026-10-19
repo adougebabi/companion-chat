@@ -1,0 +1,116 @@
+#0 building with "orbstack" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.server
+#1 transferring dockerfile: 478B done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/alpine:3.22
+#2 DONE 2.3s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.1s
+
+#4 [1/5] FROM docker.io/library/alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 150.59MB 0.3s done
+#5 DONE 0.4s
+
+#6 [2/5] RUN apk add --no-cache ca-certificates curl tzdata
+#6 0.152 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#6 2.942 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#6 4.678 (1/11) Installing ca-certificates (20260909-r0)
+#6 4.967 (2/11) Installing brotli-libs (1.1.0-r2)
+#6 5.283 (3/11) Installing c-ares (1.34.8-r0)
+#6 5.900 (4/11) Installing libunistring (1.3-r0)
+#6 6.603 (5/11) Installing libidn2 (2.3.7-r0)
+#6 7.235 (6/11) Installing nghttp2-libs (1.69.0-r0)
+#6 7.508 (7/11) Installing libpsl (0.21.5-r3)
+#6 8.115 (8/11) Installing zstd-libs (1.5.7-r0)
+#6 9.058 (9/11) Installing libcurl (8.14.1-r4)
+#6 10.19 (10/11) Installing curl (8.14.1-r4)
+#6 11.06 (11/11) Installing tzdata (2026e-r0)
+#6 11.91 Executing busybox-1.37.0-r20.trigger
+#6 11.91 Executing ca-certificates-20260909-r0.trigger
+#6 11.92 OK: 13 MiB in 27 packages
+#6 DONE 12.9s
+
+#7 [3/5] COPY minio /usr/local/bin/minio
+#7 DONE 0.1s
+
+#8 [4/5] COPY LICENSE /licenses/LICENSE
+#8 DONE 0.1s
+
+#9 [5/5] COPY CREDITS /licenses/CREDITS
+#9 DONE 0.0s
+
+#10 exporting to image
+#10 exporting layers
+#10 exporting layers 0.2s done
+#10 writing image sha256:1b9a3c79ef6b1b812fd48587580b8b88243a427b1969840dffcb9c3af6343d6c done
+#10 naming to docker.io/library/fluctlight-minio-source:RELEASE.2025-04-22T22-12-26Z done
+#10 DONE 0.2s
+#0 building with "orbstack" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.client
+#1 transferring dockerfile: 366B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/alpine:3.22
+#2 DONE 0.5s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/5] FROM docker.io/library/alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 41.07MB 0.1s done
+#5 DONE 0.1s
+
+#6 [2/5] RUN apk add --no-cache ca-certificates
+#6 0.091 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#6 1.958 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#6 3.110 (1/1) Installing ca-certificates (20260909-r0)
+#6 3.372 Executing busybox-1.37.0-r20.trigger
+#6 3.374 Executing ca-certificates-20260909-r0.trigger
+#6 3.386 OK: 8 MiB in 17 packages
+#6 DONE 3.7s
+
+#7 [3/5] COPY mc /usr/local/bin/mc
+#7 DONE 0.1s
+
+#8 [4/5] COPY LICENSE /licenses/LICENSE
+#8 DONE 0.1s
+
+#9 [5/5] COPY CREDITS /licenses/CREDITS
+#9 DONE 0.1s
+
+#10 exporting to image
+#10 exporting layers 0.1s done
+#10 writing image sha256:38a3916a7b2bed26c6073c3c93a966fbe33c4e10331c135d3a3faaf08102b63d done
+#10 naming to docker.io/library/fluctlight-mc-source:RELEASE.2025-04-16T18-13-26Z done
+#10 DONE 0.1s
+{
+  "source_builds": [
+    {
+      "component": "minio",
+      "release": "RELEASE.2025-04-22T22-12-26Z",
+      "revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+      "image": "fluctlight-minio-source:RELEASE.2025-04-22T22-12-26Z",
+      "architecture": "arm64"
+    },
+    {
+      "component": "mc",
+      "release": "RELEASE.2025-04-16T18-13-26Z",
+      "revision": "b00526b153a31b36767991a4f5ce2cced435ee8e",
+      "image": "fluctlight-mc-source:RELEASE.2025-04-16T18-13-26Z",
+      "architecture": "arm64"
+    }
+  ],
+  "workdir": "/private/tmp/fluctlight-v3-delivery-1019"
+}

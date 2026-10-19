@@ -168,6 +168,7 @@ func (a *App) processFrozenToolAction(ctx context.Context, actionID string) (map
 			surface = CapabilitySurfaceAutonomy
 		}
 		receipt, executeErr := a.ExecuteTool(ctx, ToolExecutionRequest{
+			AuthorizationPolicy: "autonomy", FrozenActionID: action.ID,
 			CapabilityName: invocation.CapabilityName, OperationID: operationID,
 			AuthorizationActorID: action.AuthorizationActorID, FluctlightID: action.FluctlightID,
 			ConversationID: action.ConversationID, TargetKind: targetKind, TargetRef: targetRef,

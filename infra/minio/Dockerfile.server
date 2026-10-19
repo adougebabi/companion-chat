@@ -1,0 +1,11 @@
+FROM alpine:3.22
+ARG SOURCE_REVISION
+LABEL org.opencontainers.image.source="https://github.com/minio/minio" org.opencontainers.image.revision="${SOURCE_REVISION}"
+RUN apk add --no-cache ca-certificates curl tzdata
+COPY minio /usr/local/bin/minio
+COPY LICENSE /licenses/LICENSE
+COPY CREDITS /licenses/CREDITS
+VOLUME ["/data"]
+EXPOSE 9000 9001
+ENTRYPOINT ["/usr/local/bin/minio"]
+CMD ["server", "/data", "--console-address", ":9001"]

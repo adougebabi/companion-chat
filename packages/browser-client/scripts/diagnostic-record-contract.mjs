@@ -1,0 +1,28 @@
+import {ownerPathContracts} from './owner-contract-utils.mjs';
+const text={type:'string'},data={type:'object',additionalProperties:true},ref=n=>({$ref:'#/components/schemas/'+n}),object=(properties,required=Object.keys(properties))=>({type:'object',properties,required,additionalProperties:false});
+const filters=['fluctlightId','correlationId','runId','intentId','workflowId','surface','status','eventType','severity','role','identity','action','from','to','q'].map(name=>({name,in:'query',schema:text}));
+export const diagnosticRecordSchemas={
+ BrowserDiagnosticMediaRecoveryBody:object({expectedRevision:{type:'integer',minimum:1},mode:{type:'string',enum:['resume','regenerate']},reason:{type:'string',minLength:1,maxLength:1000},idempotencyKey:{type:'string',minLength:1,maxLength:256}}),
+ BrowserWorkflowInspection:object({intent:object({intent_id:text,workflow_id:text,intent_type:text,status:text,revision:{type:'integer',minimum:1},task_queue:text,payload:data}),runtime:{anyOf:[data,{type:'null'}]},runtime_state:text,allowed_actions:{type:'array',items:text},recovery:object({href:text,label:text,mode:text,reason:text}),control_semantics:text,commands:{type:'array',items:data},commands_has_more:{type:'boolean'},runtime_error:data},['intent','runtime','runtime_state','allowed_actions','recovery','control_semantics','commands','commands_has_more']),
+ BrowserWorkflowHistoryPage:object({workflow_id:text,run_id:text,items:{type:'array',items:object({id:{type:'integer',minimum:1},type:text,at:text,resettable:{type:'boolean'},details:data},['id','type','resettable','details'])},next_cursor:text,complete:{type:'boolean'}}),
+ BrowserWorkflowControlBody:object({sourceRunId:{type:'string',minLength:1,maxLength:256},expectedRevision:{type:'integer',minimum:1},idempotencyKey:{type:'string',minLength:1,maxLength:256},reason:{type:'string',minLength:1,maxLength:1000},historyPoint:{type:'integer',minimum:1}},['sourceRunId','expectedRevision','idempotencyKey','reason']),
+
+ BrowserDiagnosticRecord:object({id:text,ref:text,kind:text,occurred_at:{anyOf:[text,{type:'null'}]},data,related_workflows:{type:'array',items:data},related_has_more:{type:'boolean'}},['id','ref','kind','occurred_at','data']),
+ BrowserDiagnosticRecordPage:object({items:{type:'array',items:ref('BrowserDiagnosticRecord')},next_cursor:text,snapshot:text,as_of:text,filters:data,snapshot_semantics:text,coverage:text}),
+ BrowserDiagnosticClearBody:object({datasets:{type:'array',minItems:1,maxItems:4,items:{type:'string',enum:['events','model-runs','turns','links']}},before:text,snapshot:text,filters:{type:'object',additionalProperties:text},confirm:{type:'boolean',const:true},reason:{type:'string',minLength:1,maxLength:1000},idempotencyKey:{type:'string',minLength:1,maxLength:256}}),
+ BrowserDiagnosticClearResult:object({id:text,cleared:{type:'integer',minimum:0},counts:data,before:text,snapshot:text,domain_history_preserved:{type:'boolean',const:true},audit_id:text}),
+};
+const response=n=>({responses:{200:{description:'Actual Owner diagnostic records',content:{'application/json':{schema:ref(n)}}}}});
+export const diagnosticRecordPaths=ownerPathContracts({
+ '/api/diagnostic-records/media-prompts/{recordId}/retry':{post:{operationId:'retryOwnerDiagnosticMedia',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserDiagnosticMediaRecoveryBody')}}},responses:{200:{description:'Real media recovery attempt queued; original target and checkpoints retained',content:{'application/json':{schema:data}}}}}},
+ '/api/workflow-controls/{workflowId}':{get:{operationId:'ownerWorkflowInspection',...response('BrowserWorkflowInspection')}},
+ '/api/workflow-controls/{workflowId}/history':{get:{operationId:'ownerWorkflowHistoryPage',parameters:[{name:'runId',in:'query',required:true,schema:text},{name:'cursor',in:'query',schema:text}],...response('BrowserWorkflowHistoryPage')}},
+ ...Object.fromEntries(['pause','resume','cancel','restart','reset'].map(action=>['/api/workflow-controls/{workflowId}/'+action,{post:{operationId:'ownerWorkflow'+action[0].toUpperCase()+action.slice(1),requestBody:{required:true,content:{'application/json':{schema:ref('BrowserWorkflowControlBody')}}},responses:{200:{description:'Durable original command receipt; sent is not domain success',content:{'application/json':{schema:data}}}}}}])),
+ '/api/workflow-controls/{workflowId}/commands/{commandId}/retry':{post:{operationId:'retryOwnerWorkflowCommand',responses:{200:{description:'Recover original command with original immutable input',content:{'application/json':{schema:data}}}}}},
+
+ '/api/diagnostic-records/{kind}':{get:{operationId:'ownerDiagnosticRecords',parameters:[...filters,{name:'cursor',in:'query',schema:text},{name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:100}}],...response('BrowserDiagnosticRecordPage')}},
+ '/api/diagnostic-records/{kind}/{recordRef}':{get:{operationId:'ownerDiagnosticRecord',...response('BrowserDiagnosticRecord')}},
+ '/api/diagnostic-records/clear':{post:{operationId:'clearOwnerDiagnosticRecords',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserDiagnosticClearBody')}}},...response('BrowserDiagnosticClearResult')}},
+ '/api/diagnostics/harm-intercepts':{get:{operationId:'ownerHarmSummary',responses:{200:{description:'Actual persisted rejection coverage',content:{'application/json':{schema:data}}}}}},
+ '/api/diagnostic-export':{get:{operationId:'streamOwnerDiagnosticExport',parameters:[...filters,{name:'dataset',in:'query',schema:text}],responses:{200:{description:'JSONL manifest, records and mandatory complete terminal footer from one repeatable-read snapshot',content:{'application/x-ndjson':{schema:{type:'string',format:'binary'}}}}}}},
+});

@@ -318,6 +318,10 @@ func (binding *goalEvaluationWireBinding) stableDefinitions() map[string]any {
 				commitmentCriteria = append(commitmentCriteria, map[string]any{"ref": binding.criterionRefs["commitment\x1f"+commitment.ID+"\x1f"+criterion.ID], "text": criterion.Text})
 			}
 			item := map[string]any{"ref": binding.commitmentRefs[commitment.ID], "expected_result": commitment.ExpectedResult, "criteria": commitmentCriteria, "opportunity_condition": commitment.OpportunityCondition}
+			if commitment.PromiseRequestID != "" {
+				item["kind"] = "owner_promise"
+				item["plan_mutation"] = "requires_promise_request"
+			}
 			if stageRef := binding.stageRefsByID[commitment.StageID]; stageRef != "" {
 				item["stage_ref"] = stageRef
 			}

@@ -90,7 +90,7 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 			return nil, errors.New("Provider request omitted Life Context authority")
 		}
 		structured := map[string]any{
-			"action_type": "reply", "response_intent": "根据当前 Scene 回应并更新事实", "visible_text": assistantText,
+			"action_type": "reply", "response_intent": "根据当前 Scene 回应并更新事实",
 			"influences": []any{map[string]any{"ref": providerLifeRef, "role": "constrains", "confidence": 0.95, "note": "当前 Scene 约束回复和场景切换"}},
 			"appraisal": map[string]any{
 				"relevance": 0.7, "goal_congruence": 0.6, "reward": 0.5, "loss": 0.2, "social_threat": 0.0,

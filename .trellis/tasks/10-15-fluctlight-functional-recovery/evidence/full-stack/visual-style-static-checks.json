@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-19",
+  "slice": "0080 studio visual style",
+  "sourceHead": "0080_studio_visual_style",
+  "go": {
+    "session": 53293,
+    "exitCode": 0,
+    "build": [
+      "api",
+      "worker"
+    ],
+    "compileOnly": [
+      "core",
+      "migrations",
+      "browser"
+    ],
+    "pureValidatorTests": 1,
+    "databaseTestsExecuted": false
+  },
+  "web": {
+    "session": 43403,
+    "exitCode": 0,
+    "workspaceTypecheck": true,
+    "realProductionBuildNoMock": true,
+    "harnessSelfTests": 19,
+    "controlledComponentTests": 2
+  },
+  "realModelCalls": 0,
+  "migrationExecuted": false,
+  "browserExecuted": false,
+  "deployed": false
+}

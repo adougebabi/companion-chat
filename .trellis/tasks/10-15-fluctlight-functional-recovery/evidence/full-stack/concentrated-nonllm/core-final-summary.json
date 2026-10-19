@@ -1,0 +1,21 @@
+{
+  "manifestStatus": "passed",
+  "registered": 1534,
+  "sourceUnchanged": true,
+  "exitCodes": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "events": {
+    "pass": 2337,
+    "skip": 34
+  },
+  "roots": {
+    "pass": 1500,
+    "skip": 34
+  },
+  "uniqueRoots": 1534,
+  "completeSet": true
+}

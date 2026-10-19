@@ -98,11 +98,11 @@ func TestPrivateChatCommittedStyleRepairAndMalformedSettlement(t *testing.T) {
 		return fakeProviderResult{ToolCalls: []map[string]any{{"call_id": "style-reply", "capability_name": conversationReplyCapabilityName, "arguments": map[string]any{}}}}
 	})
 	ctx, repo, app, owner, self, conversation := setupMixedMediaReplyTurnWithTransport(t, "style-settlement", router)
-	resource, err := repo.GetFluctlight(ctx, self, owner)
-	if err != nil {
+	selfName = "暮光"
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.fluctlights SET identity=identity||jsonb_build_object('name',$2::text),core_persona=jsonb_set(core_persona,'{identity}',COALESCE(core_persona->'identity','{}'::jsonb)||jsonb_build_object('name',$2::text)) WHERE id=$1`, self, selfName); err != nil {
 		t.Fatal(err)
 	}
-	selfName = stringValue(resource.Identity["name"])
+	seedLegacyTestWorkingPersonas(t, app)
 	turn, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": self, "text": "合成测试：继续聊近况。", "turn_id": "style-turn", "idempotency_key": "style-source", "attachment_refs": []any{}})
 	if err != nil {
 		t.Fatal(err)

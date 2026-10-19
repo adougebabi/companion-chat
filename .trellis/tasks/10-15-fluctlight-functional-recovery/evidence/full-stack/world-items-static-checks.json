@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-19",
+  "sourceHead": "0082_world_items",
+  "sourceSlice": "published item/world registration/original shopping consumer and dual provenance",
+  "go": {
+    "session": 1589,
+    "exitCode": 0,
+    "apiWorkerBuild": true,
+    "compileOnly": [
+      "core",
+      "migrations",
+      "browser"
+    ],
+    "pureCoreValidatorTests": 1,
+    "pureBrowserConfigTests": 1,
+    "databaseTestsExecuted": false,
+    "correctedMigrationFixtureCompileOnly": {
+      "session": 4538,
+      "exitCode": 0
+    }
+  },
+  "web": {
+    "session": 25300,
+    "exitCode": 0,
+    "generate": true,
+    "workspaceTypecheck": true,
+    "productionNoMock": true,
+    "harnessSelfTests": 19,
+    "controlledItemFormTests": 2
+  },
+  "reviews": {
+    "source": "one definite P2 in unexecuted migration fixture corrected",
+    "uiScript": "no definite P1/P2; 2 offline component tests pass"
+  },
+  "realModelCalls": 0,
+  "businessApiExecuted": false,
+  "browserExecuted": false,
+  "migrationExecuted": false,
+  "deployed": false,
+  "remaining": "Reusable outfit definitions/materialization and original unfinished packages remain."
+}

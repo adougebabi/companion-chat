@@ -1,0 +1,316 @@
+{
+  "recorded_at": "2026-10-15T16:21:35.388753+00:00",
+  "private_runtime_directory": "/tmp/fluctlight-delivery-1015",
+  "api": {
+    "address": "http://127.0.0.1:8081",
+    "trusted_origin": "http://localhost:5175",
+    "binary": "previous recovery binary; main session must rebuild current source",
+    "pid": 19117,
+    "worker_started": false
+  },
+  "isolation": {
+    "database": "fluctlight_delivery_1015",
+    "migration": "0064_world_runtime",
+    "temporal_namespace": "fluctlight-delivery-1015",
+    "temporal_queue_policy": "existing fixed queue names isolated by dedicated namespace",
+    "redis_database": 2,
+    "owner": {
+      "label": "delivery-owner-1015",
+      "actorId": "human_fd44c910e182f4ec295e1228aa06cd34"
+    },
+    "bucket": "fluctlight-delivery-1015"
+  },
+  "provider_bindings": [
+    {
+      "context_window_tokens": 32768,
+      "endpoint_id": "delivery-lmstudio-1015",
+      "endpoint_status": "available",
+      "max_input_tokens": 8192,
+      "model_id": "cydonia-24b-v4.3-heretic-v2-i1",
+      "output_reserve_tokens": 1024,
+      "prompt_budget_policy_version": "prompt-budget.v1",
+      "role": "conversation_reply",
+      "safety_margin_tokens": 4096,
+      "timeout_seconds": 300,
+      "token_budget": 1024
+    },
+    {
+      "context_window_tokens": 32768,
+      "endpoint_id": "delivery-mlx-1015",
+      "endpoint_status": "available",
+      "max_input_tokens": 8192,
+      "model_id": "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ",
+      "output_reserve_tokens": 64,
+      "prompt_budget_policy_version": "prompt-budget.v1",
+      "role": "embedding",
+      "safety_margin_tokens": 4096,
+      "timeout_seconds": 120,
+      "token_budget": 64
+    },
+    {
+      "context_window_tokens": 24576,
+      "endpoint_id": "delivery-mlx-1015",
+      "endpoint_status": "available",
+      "max_input_tokens": 12288,
+      "model_id": "Huihui-Qwen3.8-27B-3.8bpw",
+      "output_reserve_tokens": 4096,
+      "prompt_budget_policy_version": "prompt-budget.v1",
+      "role": "generic_llm",
+      "safety_margin_tokens": 4096,
+      "timeout_seconds": 300,
+      "token_budget": 4096
+    },
+    {
+      "context_window_tokens": 262144,
+      "endpoint_id": "delivery-mlx-1015",
+      "endpoint_status": "available",
+      "max_input_tokens": 8192,
+      "model_id": "Jakevin/kev-4b-ternary-mlx",
+      "output_reserve_tokens": 1024,
+      "prompt_budget_policy_version": "prompt-budget.v1",
+      "role": "vision_understanding",
+      "safety_margin_tokens": 4096,
+      "timeout_seconds": 180,
+      "token_budget": 1024
+    }
+  ],
+  "provider_settings": {
+    "ai.capability_status": {
+      "conversation_reply": {
+        "config_complete": true,
+        "last_call_status": "not_called",
+        "last_error": "",
+        "model_id": "cydonia-24b-v4.3-heretic-v2-i1",
+        "state": "ready"
+      },
+      "vision_understanding": {
+        "config_complete": true,
+        "last_call_status": "not_called",
+        "last_error": "",
+        "model_id": "Jakevin/kev-4b-ternary-mlx",
+        "state": "ready"
+      }
+    },
+    "conversation.reply": {
+      "concurrency": 1,
+      "expression_version": "fact-only-reply.v5",
+      "failure_policy": "error",
+      "max_action_handoffs": 2,
+      "max_input_tokens": 8192,
+      "max_tokens": 1024,
+      "mode": "fact_only",
+      "model_ref": "conversation_reply",
+      "retry_limit": 1,
+      "temperature": 0.8,
+      "timeout_seconds": 300,
+      "top_p": 0.9
+    },
+    "product.wakeup": {
+      "enabled": false,
+      "interval_seconds": 600
+    },
+    "vision.understanding": {
+      "enabled": true,
+      "model_ref": "vision_understanding"
+    }
+  },
+  "http": [
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/auth/setup-status",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/setup",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/endpoints",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/endpoints/delivery-mlx-1015/models",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/endpoints",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/endpoints/delivery-lmstudio-1015/models",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/roles",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/roles",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/roles",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/roles",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/endpoints",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "status": 200
+    }
+  ],
+  "csrf_origin_checks": [
+    {
+      "case": "missing_csrf",
+      "status": 403
+    },
+    {
+      "case": "foreign_origin",
+      "status": 403
+    }
+  ],
+  "local_probes": [
+    {
+      "role_probe": "qwen",
+      "model": "Huihui-Qwen3.8-27B-3.8bpw",
+      "transport": "direct local endpoint, not App business execution",
+      "status": 200,
+      "content": "OK",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 21,
+        "completion_tokens": 1,
+        "total_tokens": 22,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "elapsed_seconds": 2.873
+    },
+    {
+      "role_probe": "cydonia",
+      "model": "cydonia-24b-v4.3-heretic-v2-i1",
+      "transport": "direct local endpoint, not App business execution",
+      "status": 200,
+      "content": "OK",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 186,
+        "completion_tokens": 2,
+        "total_tokens": 188,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "elapsed_seconds": 2.492
+    },
+    {
+      "role_probe": "embedding",
+      "model": "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ",
+      "transport": "direct local endpoint, not App business execution",
+      "status": 200,
+      "dimensions": 1024,
+      "elapsed_seconds": 0.639
+    }
+  ],
+  "boundaries": [
+    "No application business inference executed by these health probes.",
+    "API role preflight currently checks model-list membership; full capability and native-tool execution remain later acceptance.",
+    "Vision is metadata-backed configuration only; model not invoked.",
+    "No ComfyUI generation submitted.",
+    "No old Worker restarted and no old database reset or copied.",
+    "media_prompt currently resolves generic_llm; generic Qwen model metadata advertises text only. C-stage multimodal acceptance still requires real media verification."
+  ],
+  "minio": {
+    "status": "blocked: no built real MinIO image/binary; official image access denied or TLS timeout and source download/build exceeded bounded attempts",
+    "official_registry_failures": [
+      "quay.io exact compose server/client tags: unauthorized",
+      "Docker Hub server 2025-09-07 release: TLS handshake timeout",
+      "Docker Hub mc 2025-08-13 release: access denied"
+    ],
+    "official_source_commits": {
+      "minio_RELEASE.2025-09-07T16-13-09Z": "07c3a429bfed433e49018cb0f78a52145d4bedeb",
+      "mc_RELEASE.2025-08-13T08-35-41Z": "7394ce0dd2a80935aded936b09fa12cbb3cb8096"
+    },
+    "build_attempt": "go install exact minio release reached 240s module download timeout; mc bounded attempt in progress",
+    "build_results": [
+      {
+        "package": "minio",
+        "version": "RELEASE.2025-09-07T16-13-09Z",
+        "exit_code": "timeout",
+        "elapsed_seconds": 240.0
+      },
+      {
+        "package": "mc",
+        "version": "RELEASE.2025-08-13T08-35-41Z",
+        "exit_code": "timeout",
+        "elapsed_seconds": 240.0
+      }
+    ],
+    "additional_failures": [
+      "Official dl.min.io native binary URL: 410 Gone",
+      "GitHub codeload exact release: SSL_ERROR_SYSCALL"
+    ],
+    "override_created": false,
+    "reason_no_override": "No verified real MinIO image or runnable source binary available; no substitute S3 server or fake success created.",
+    "source_transfer_progress": {
+      "module_zip_expected_bytes": 25343993,
+      "first_resume_bytes": 24044016,
+      "observation": "Official source exists; transfer is slow. No storage service or bucket was started."
+    },
+    "official_source_archive": {
+      "path": "/tmp/fluctlight-delivery-1015/minio-source.zip",
+      "bytes": 24537445,
+      "complete_zip": false
+    }
+  },
+  "final_readiness": {
+    "/health/live": {
+      "status": 200,
+      "body": {
+        "role": "api",
+        "status": "ok"
+      }
+    },
+    "/health/ready": {
+      "status": 200,
+      "body": {
+        "role": "api",
+        "status": "ready"
+      }
+    },
+    "isolated_fluctlight_count": 0
+  }
+}

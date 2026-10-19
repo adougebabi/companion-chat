@@ -23,7 +23,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 		"life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "moment.publish",
 		"persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup",
 		"scene_event", "schedule.edit", "schedule.inspect", "schedule.replan", "visual_identity.commit_review", "visual_identity.finalize",
-		"visual_identity.generate_candidate", "visual_identity.initialize", "wardrobe.borrow", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.return", "wardrobe.wear",
+		"visual_identity.generate_candidate", "visual_identity.initialize", "wardrobe.borrow", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.return", "wardrobe.wear", "world.npc.encounter",
 	}
 	if got := capabilityDefinitionNames(registry.Definitions()); !phase8EqualStrings(got, expectedAll) {
 		t.Fatalf("registered capabilities drifted: got=%v want=%v", got, expectedAll)
@@ -33,7 +33,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 		CapabilitySurfaceConversation:    {"active_memory_event", "actor.fact.record", "actor.inspect", "affect_event", "appearance.style", "capability.catalog", "capability.discover", "capability.request", "conversation.reply", "goal.evaluate", "goal.inspect", "goal.review", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "item.use", "life.activity.advance", "life.activity.start", "media.image.generate", "memory.recall", "memory_event", "moment.publish", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.edit", "schedule.inspect", "schedule.replan", "wardrobe.borrow", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.return", "wardrobe.wear"},
 		CapabilitySurfaceWakeUp:          {"active_memory_event", "actor.inspect", "affect_event", "appearance.style", "capability.catalog", "capability.discover", "capability.request", "conversation.reply", "goal.evaluate", "goal.inspect", "goal.review", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "item.use", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "moment.publish", "persona.detail", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.edit", "schedule.inspect", "schedule.replan", "visual_identity.initialize", "wardrobe.borrow", "wardrobe.inspect", "wardrobe.outfit.save", "wardrobe.return", "wardrobe.wear"},
 		CapabilitySurfaceAutonomy:        {"active_memory_event", "actor.inspect", "affect_event", "capability.catalog", "capability.discover", "capability.request", "conversation.reply", "goal.evaluate", "goal.inspect", "goal.review", "intention.decide", "intention.inspect", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.inspect", "schedule.replan"},
-		CapabilitySurfaceNativeCognition: {"active_memory_event", "actor.fact.record", "actor.inspect", "appearance.style", "capability.catalog", "capability.discover", "capability.request", "conversation.reply", "goal.evaluate", "goal.inspect", "goal.review", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "item.use", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.edit", "schedule.inspect", "schedule.replan", "visual_identity.initialize", "wardrobe.borrow", "wardrobe.inspect", "wardrobe.return", "wardrobe.wear"},
+		CapabilitySurfaceNativeCognition: {"active_memory_event", "actor.fact.record", "actor.inspect", "appearance.style", "capability.catalog", "capability.discover", "capability.request", "conversation.reply", "goal.evaluate", "goal.inspect", "goal.review", "habit.decide", "habit.inspect", "intention.decide", "intention.inspect", "intention.schedule", "item.use", "life.activity.advance", "life.activity.start", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.edit", "schedule.inspect", "schedule.replan", "visual_identity.initialize", "wardrobe.borrow", "wardrobe.inspect", "wardrobe.return", "wardrobe.wear", "world.npc.encounter"},
 		CapabilitySurfaceGoalEvaluation:  {goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit},
 		CapabilitySurfaceReflection:      {},
 		CapabilitySurfaceGoalPlanner:     {"goal_planner.query", "goal_planner.commit"},
@@ -91,8 +91,19 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 
 func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 	definitions := FormalAgentDefinitions()
-	if len(definitions) != 22 {
-		t.Fatalf("formal Agent count=%d, want 22: %#v", len(definitions), definitions)
+	expected := []FormalAgentID{
+		FormalAgentConversationCognition, FormalAgentConversationReply, FormalAgentWakeUp,
+		FormalAgentTakeoverJudge, FormalAgentTakeoverReply, FormalAgentInitialization,
+		FormalAgentPersonaCompilation, FormalAgentMediaPrompt, FormalAgentMediaQuality,
+		FormalAgentVisualIdentityVision, FormalAgentVisualIdentityPatch, FormalAgentVisualIdentity,
+		FormalAgentConversationSummary, FormalAgentScheduleGeneration, FormalAgentNativeCognition,
+		FormalAgentStudioAssistant, FormalAgentStudioTextPreview, FormalAgentNPCResponse,
+		FormalAgentDailyReview, FormalAgentDiaryMaterial, FormalAgentDiaryExpression,
+		FormalAgentPersistentSwitch, FormalAgentReflection, FormalAgentScheduleReplan,
+		FormalAgentGoalPlanner, FormalAgentGoalEvaluation, FormalAgentVirtualActivityResult,
+	}
+	if len(definitions) != len(expected) {
+		t.Fatalf("formal Agent count=%d, want %d: %#v", len(definitions), len(expected), definitions)
 	}
 	seen := make(map[FormalAgentID]struct{}, len(definitions))
 	for _, definition := range definitions {
@@ -107,8 +118,16 @@ func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 			t.Fatalf("formal Agent %q does not declare its mandatory Tool whitelist", definition.ID)
 		}
 	}
-	if _, ok := seen[FormalAgentGoalEvaluation]; !ok {
-		t.Fatal("Goal Evaluation Agent missing")
+	for _, id := range expected {
+		if _, ok := seen[id]; !ok {
+			t.Errorf("formal Agent %q missing from registry", id)
+		}
+	}
+	for _, id := range []FormalAgentID{FormalAgentStudioAssistant, FormalAgentStudioTextPreview, FormalAgentNPCResponse, FormalAgentDiaryMaterial, FormalAgentDiaryExpression} {
+		d, _ := FormalAgentDefinitionByID(id)
+		if len(d.MandatoryTools) != 0 || d.DefaultSurface != "" {
+			t.Errorf("isolated Agent %q unexpectedly grants Tools: %#v", id, d)
+		}
 	}
 }
 

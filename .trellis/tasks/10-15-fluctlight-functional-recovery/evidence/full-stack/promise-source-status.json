@@ -1,0 +1,33 @@
+{
+  "slice": "0075_promise_lifecycle",
+  "sourceHead": "0075_promise_lifecycle",
+  "runtimeDatabaseHead": "0066_life_place",
+  "deployment": "not_applied_api_worker_not_restarted",
+  "checks": {
+    "go_api_worker_build": "passed: 42276 exit0",
+    "generation_typecheck": "passed: 45557 exit0",
+    "javascript_syntax": "passed",
+    "test_source_compile": "passed: 17312 core+migrations / 5757 browser; -run ^$; no tests to run",
+    "latest_after_review": "passed: Go API/Worker build+test-source compile-only6481 and typecheck74471; JS syntax checks passed; business cases not run"
+  },
+  "businessTests": "authored_not_run_per_user_final_batch",
+  "browser": "not_run",
+  "realLLM": "not_run_user_owned_acceptance",
+  "coverage": [
+    "stable Owner promise root",
+    "explicit window and IANA timezone",
+    "Goal/Commitment/Intention linkage",
+    "native action scope and receipt recovery",
+    "provisional Planner durable source and explicit binding",
+    "acceptance and Planner receipt atomic transaction",
+    "reschedule request and actual deadline patch",
+    "Owner participation cancellation without Goal cancellation",
+    "deadline repair as clock fact only",
+    "authoritative fulfillment projection with late evidence",
+    "legacy unlinked read compatibility",
+    "current v3 reusable catalogue/editor/history",
+    "independent promise commitments alongside one tactical step",
+    "immutable pending submission survives page refresh",
+    "same-goal multiple promise cancellation isolation"
+  ]
+}

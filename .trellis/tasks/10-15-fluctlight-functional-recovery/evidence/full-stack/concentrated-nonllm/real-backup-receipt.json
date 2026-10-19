@@ -1,0 +1,44 @@
+{
+  "attempt": 1,
+  "created_at": "2026-10-19T09:49:49.015+00:00",
+  "error_code": null,
+  "finished_at": "2026-10-19T09:51:40.271+00:00",
+  "id": "backup_40cdb377e67152dde0bdbba1c0c4c602",
+  "kind": "backup",
+  "reason": "隔离环境真实业务备份与恢复演练",
+  "result": {
+    "artifact_count": 9,
+    "artifacts_verified": true,
+    "database_counts_verified": true,
+    "external_provider_state": "not_snapshotted; original intents, request IDs and provider job IDs retained",
+    "foreign_keys_validated": true,
+    "last_restore_job_id": "restore_7866681113b78869262e378bdd0887af",
+    "legacy_media_versions": 0,
+    "manifest_digest": "0595ee39ccf7d5b0ea6099e4fed0f3161c32eab7431d37d4a1ddb93dc3247de4",
+    "media_count": 1,
+    "media_verified": true,
+    "migration_head": "0095_place_defaults",
+    "models_started": false,
+    "restorable": true,
+    "restore_comparison_verified": true,
+    "source_inventory_verified": true
+  },
+  "revision": 5,
+  "source_backup_id": null,
+  "stage": "backup_verified",
+  "started_at": "2026-10-19T09:51:21.195+00:00",
+  "status": "completed",
+  "steps": [
+    {
+      "at": "2026-10-19T09:51:21.392163898Z",
+      "stage": "quiescing_source",
+      "status": "running"
+    },
+    {
+      "at": "2026-10-19T09:51:40.272526363Z",
+      "stage": "backup_verified",
+      "status": "completed"
+    }
+  ],
+  "target_name": null
+}

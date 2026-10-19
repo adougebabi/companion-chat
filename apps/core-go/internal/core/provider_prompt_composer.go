@@ -218,7 +218,15 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 func renderProviderSystemForSurface(surface ProviderContextSurface, operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {
 	if surface == ProviderContextSurfaceFactOnlyCognition {
 		var builder strings.Builder
-		builder.WriteString("# 运行协议\n\n" + factOnlyCognitionProtocol + "\n\n" + strings.Join(operationRules, "\n\n"))
+		builder.WriteString("# 运行协议\n\n" + factOnlyCognitionProtocol)
+		for _, rule := range operationRules {
+			if rule == factOnlyExecutionBoundary {
+				continue
+			} // Already owned by the fixed protocol.
+			if strings.TrimSpace(rule) != "" {
+				builder.WriteString("\n\n" + rule)
+			}
+		}
 		appendProviderPersona(&builder, persona, role)
 		return strings.TrimSpace(builder.String())
 	}

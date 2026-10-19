@@ -176,6 +176,20 @@ func (router *fakeProviderRouter) RoundTrip(request *http.Request) (*http.Respon
 	router.requests = append(router.requests, payload)
 
 	schemaName := providerWireSchemaName(payload)
+	// Native Tool phases omit final JSON grammar. The outbound Go request
+	// retains its actual task context, so do not confuse Wake/Native with Main.
+	if len(arrayValue(payload["tools"])) > 0 && stringValue(mapValue(mapValue(payload["response_format"])["json_schema"])["name"]) == "" {
+		switch providerScenario(request.Context(), "", "") {
+		case "wake_up":
+			if router.routes["wake_up_response"] != nil {
+				schemaName = "wake_up_response"
+			}
+		case "native_cognition":
+			if router.routes["native_cognition_response"] != nil {
+				schemaName = "native_cognition_response"
+			}
+		}
+	}
 	script := router.routes[schemaName]
 	if script == nil {
 		script = router.fallback

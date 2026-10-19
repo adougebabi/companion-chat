@@ -167,7 +167,7 @@ func TestExecuteToolImageGenerateAcceptsDurableTaskAndRejectsConflict(t *testing
 		CapabilityName: "media.image.generate", OperationID: "image-operation-1",
 		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID,
 		TargetKind: "conversation", TargetRef: conversationID,
-		Arguments: json.RawMessage(`{"intent":"窗边阅读的写实照片"}`),
+		Arguments: jsonBytes(map[string]any{"intent": "窗边阅读的写实照片", "media_plan": mediaTestPlan("landscape", "none", "no", "unknown")}),
 	}
 	accepted, err := app.ExecuteTool(ctx, request)
 	if err != nil {
@@ -215,11 +215,9 @@ func TestExecuteToolImageGenerateRejectsInvalidTargetWithoutIntent(t *testing.T)
 		CapabilityName: "media.image.generate", OperationID: "image-operation-invalid-target",
 		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID,
 		TargetKind: "conversation_message", TargetRef: "missing-message",
-		Arguments: json.RawMessage(`{"intent":"不应受理的图片"}`),
+		Arguments: jsonBytes(map[string]any{"intent": "不应受理的图片", "media_plan": mediaTestPlan("landscape", "none", "no", "unknown")}),
 	})
-	if err == nil || !errors.Is(err, ErrNotFound) || receipt.Result.ErrorCode != "tool_target_not_found" {
-		t.Fatalf("invalid media target receipt=%#v err=%v", receipt, err)
-	}
+	requireHandledToolNoEffect(t, receipt, err, "tool_target_not_found")
 	var count int
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&count); err != nil {
 		t.Fatal(err)

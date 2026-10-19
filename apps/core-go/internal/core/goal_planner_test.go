@@ -712,7 +712,9 @@ func TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain(t *testing
 		if err != nil || stringValue(turn.Assistant["id"]) == "" {
 			t.Fatal(turn, err)
 		}
-		if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f)); err != nil {
+		evaluationCycleID := latestPendingGoalRequest(t, f)
+		advanceGoalEvaluationCycleForTest(t, f, evaluationCycleID)
+		if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, evaluationCycleID); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -839,7 +841,10 @@ func TestGoalPlannerOtherProfileEventsRetainedUntilSwitch(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
-		return requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "B-private-event", "goal_resolved", map[string]any{"profile_id": "B", "private_hint": "B only"})
+		if err := requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "owner:B-private-event", "owner_request", map[string]any{"profile_id": "B", "private_hint": "B only"}); err != nil {
+			return err
+		}
+		return requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "owner:A-private-event", "owner_request", map[string]any{"profile_id": "A"})
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -867,7 +872,7 @@ func TestGoalPlannerOtherProfileEventsRetainedUntilSwitch(t *testing.T) {
 		t.Fatal("A profile run", result, err)
 	}
 	var processed *string
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT processed_run_id FROM public.goal_planning_events WHERE fluctlight_id=$1 AND source_key='B-private-event'`, f.fluctlightID).Scan(&processed); err != nil || processed != nil {
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT processed_run_id FROM public.goal_planning_events WHERE fluctlight_id=$1 AND source_key='owner:B-private-event'`, f.fluctlightID).Scan(&processed); err != nil || processed != nil {
 		t.Fatal("A swallowed B event", processed, err)
 	}
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_personality_runtime SET active_profile_id='B',revision=revision+1 WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
@@ -893,6 +898,11 @@ func TestGoalPlannerCanResumeSystemPausedButNeverOwnerPaused(t *testing.T) {
 		}
 		_, err = persistGoalAuthorityTx(f.ctx, tx, &g, next, record, "system-pause")
 		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		return requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "owner:resume-system-paused", "owner_request", map[string]any{"profile_id": "default"})
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -958,8 +968,13 @@ func TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion(t *test
 		t.Fatal("old Worker bypassed dependency", blocked, err)
 	}
 	request := f.request(lifeActivityStartCapabilityName, "dependency-start", map[string]any{"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "正式已授权虚拟获取"})
-	if _, err := f.app.ExecuteTool(f.ctx, request); err == nil {
-		t.Fatal("direct start bypassed dependency")
+	blockedReceipt, err := f.app.ExecuteTool(f.ctx, request)
+	if err != nil || blockedReceipt.Result.Status != "handled" || mapValue(blockedReceipt.Result.Output)["warning_code"] != "goal_dependency_unsatisfied" || mapValue(blockedReceipt.Result.Output)["mutation_committed"] != false {
+		t.Fatal("dependency refusal lost no-effect receipt", blockedReceipt, err)
+	}
+	var premature int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.fluctlight_life_activity_runs WHERE intention_id=$1`, intentionID).Scan(&premature); err != nil || premature != 0 {
+		t.Fatal("dependency created an activity", premature, err)
 	}
 	receipt, err := f.app.ExecuteTool(f.ctx, f.request(conversationReplyCapabilityName, "prerequisite-message", map[string]any{"text": "我明确表达了当前想法，这是实际发送的前置表达。"}))
 	if err != nil || receipt.Result.Status != "completed" {
@@ -988,7 +1003,9 @@ func TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion(t *test
 		}
 		return fakeProviderResult{Structured: goalEvaluationProviderFixture(s, GoalEvaluationTaskOutput{Evaluations: evaluations, Plans: []GoalPlanCandidate{}})}
 	})}
-	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f)); err != nil {
+	evaluationCycleID := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, evaluationCycleID)
+	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, evaluationCycleID); err != nil {
 		t.Fatal(err)
 	}
 	request.OperationID = "dependency-start-after-result"
@@ -1084,7 +1101,7 @@ func TestGoalPlannerPolicyBlockRetainsEventsAndRecoveryWaitsForPermission(t *tes
 		t.Fatal(err)
 	}
 	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
-		return requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "permission-wait", "goal_resolved", nil)
+		return requestGoalPlanningTx(f.ctx, tx, f.fluctlightID, "permission-wait", "startup_recovery", nil)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -1147,10 +1164,13 @@ func TestGoalPlannerScheduledWishCannotCreateIntentionOrCallScheduleModel(t *tes
 		if !strings.Contains(text, "planning_requested") || !strings.Contains(text, "false") {
 			t.Fatal("Model did not consume the actual unscheduled result", text)
 		}
-		return nativePersonaFinal()
+		if calls == 2 {
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("scheduled-wish-reply", conversationReplyCapabilityName, map[string]any{"text": "这个愿望已交给规划，执行安排还没有形成。"})}}
+		}
+		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "已记录规划请求，执行仍未安排", "influences": []any{}}}
 	})}
 	result, err := f.app.RunConversationCognitionAgent(f.ctx, ConversationCognitionAgentInput{AuthorizationActorID: f.ownerID, FluctlightID: f.fluctlightID, ConversationID: f.conversationID, RunID: "scheduled-wish-" + f.suffix, CurrentInput: "我想看看新的手套"})
-	if err != nil || calls != 2 || scheduleCalls != 0 {
+	if err != nil || calls != 3 || scheduleCalls != 0 {
 		t.Fatal("new wish prematurely planned execution", calls, scheduleCalls, result, err)
 	}
 	var goals, intentions int

@@ -1,0 +1,16 @@
+{
+  "bucket_created": true,
+  "versioning": "Enabled",
+  "public_policy": "absent",
+  "endpoint": "http://127.0.0.1:59000",
+  "bucket": "fluctlight-delivery-1015",
+  "put": 200,
+  "get": 200,
+  "sha256": "c3293074b439dd4bd48333c59af88a6fad91b179dea916e22bc4ce0b18e63994",
+  "bytes": 67,
+  "versioned": true,
+  "delete": 204,
+  "after_delete": 404,
+  "test_object": "delivery-probe/3428cb09-78ba-454a-98df-885fd9de3ccd",
+  "verified_at": "2026-10-15T18:50:22.883972+00:00"
+}

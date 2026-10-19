@@ -150,7 +150,7 @@ fastify.post('/turn', {schema: turnRouteSchema}, async (request, reply) => {
 });
 ```
 
-## Scenario: Ten-field Owner Background Compatibility
+## Scenario: Nineteen-field Owner Background Compatibility
 
 ### 1. Scope / Trigger
 
@@ -168,7 +168,9 @@ context command retains `expectedContextVersion` and must not replace this CAS.
 
 Allowed background keys are `name`, `occupation`, `background`, `interests`,
 `preferences`, `location_scope`, `location`, `timezone`,
-`relationship_distance`, `meeting_confirmed`. All accept explicit null;
+`relationship_distance`, `meeting_confirmed`,
+`full_name`, `age`, `gender`, `personality`, `habits`, `relationship_description`,
+`shared_information`, `wants_you_to_know`, `rules`. All 19 accept explicit null;
 `meeting_confirmed` otherwise requires a boolean, other values require strings
 of 1–1024 code points. Reason is 1–500 code points; operation is correct/change.
 Unknown keys remain rejected even when null. Subject identity is server owned.
@@ -178,7 +180,7 @@ This synchronizes existing fields; it adds no domain state, migration or policy.
 
 | Condition | Boundary behavior |
 | --- | --- |
-| All ten supported keys with null/false | Accept and preserve values into Core mapping |
+| All 19 supported keys with null/false | Accept and preserve values into Core mapping |
 | interests/preferences is an array | Reject before Core |
 | Unknown background or forged top-level Actor field | Reject before Core |
 | 500 Chinese characters in reason | Accept length validation |
@@ -187,7 +189,7 @@ This synchronizes existing fields; it adds no domain state, migration or policy.
 
 ### 5. Good / Base / Bad Cases
 
-Good: ten-field UI payload reaches the existing current-facts command. Base:
+Good: 19-field UI payload reaches the existing current-facts command. Base:
 unknown interests remains null. Bad: fixture accepts interests while the live
 browser validator rejects it, or an Actor context token substitutes facts CAS.
 
@@ -195,12 +197,12 @@ browser validator rejects it, or an Actor context token substitutes facts CAS.
 
 `TestActorUserSettingsBoundaryKeepsSubjectServerOwnedAndNullExplicit` covers
 supported string/null values, false, unknown keys/types and 500/501 reasons.
-The authenticated HTTP route matrix uses the complete ten-field payload.
+The authenticated HTTP route matrix uses the complete 19-field payload.
 Run browser package race tests, vet/build, generator parity and workspace checks.
 Do not treat fixture success as a real Provider/DB acceptance run.
 
 ### 7. Wrong vs Correct
 
-Wrong: copy the historical eight-key validator into a new ten-field editor.
-Correct: validate the same existing ten keys as OpenAPI/Core, preserving strict
+Wrong: copy the historical eight-key validator into a new 19-field editor.
+Correct: validate the same 19 keys as OpenAPI/Core, preserving strict
 types, unknown-field rejection, Owner authorization and current-facts CAS.

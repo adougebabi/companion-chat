@@ -135,7 +135,7 @@ func TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence(t *testing.T) 
 		t.Fatalf("historical recovery not bounded: %v", first.RecoverySourceIDs)
 	}
 	entry := first.Goals[0]
-	candidate := GoalEvaluationCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Impact: "no_change", Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "unknown", Kind: "information", Subject: "target_actor", Discourse: "assertion", Reason: "retain complementary evidence for later assessment"}}}
+	candidate := GoalEvaluationCandidate{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Impact: "needs_evidence", WaitCondition: "await complementary evidence", Judgments: []GoalCriterionJudgment{{CriterionID: entry.Goal.CriterionIDs[0], Verdict: "unknown", Kind: "information", Subject: "target_actor", Discourse: "assertion", Reason: "retain complementary evidence for later assessment"}}}
 	sources := map[string]GoalSource{}
 	for _, s := range admittedGoalEvaluationSources(first) {
 		sources[s.Ref] = s

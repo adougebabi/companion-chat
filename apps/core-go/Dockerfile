@@ -17,6 +17,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctli
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-setup-token-go ./cmd/setup-token
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-persona-backfill-go ./cmd/persona-backfill
 
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-backupctl-go ./cmd/backupctl
+
 FROM ${REGISTRY_PREFIX}alpine:3.22
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
@@ -32,6 +34,8 @@ COPY --from=build /out/fluctlight-cutover-go /usr/local/bin/fluctlight-cutover-g
 COPY --from=build /out/fluctlight-kev-config-go /usr/local/bin/fluctlight-kev-config-go
 COPY --from=build /out/fluctlight-setup-token-go /usr/local/bin/fluctlight-setup-token-go
 COPY --from=build /out/fluctlight-persona-backfill-go /usr/local/bin/fluctlight-persona-backfill-go
+
+COPY --from=build /out/fluctlight-backupctl-go /usr/local/bin/fluctlight-backupctl-go
 
 USER fluctlight
 EXPOSE 8080

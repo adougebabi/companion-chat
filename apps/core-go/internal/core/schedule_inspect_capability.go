@@ -93,6 +93,6 @@ func (c scheduleInspectCapability) Execute(ctx context.Context, invocation Capab
 }
 
 func scheduleInspectionItem(source map[string]any) map[string]any {
-	item := compactStateMap(source, []string{"id", "start_at", "end_at", "activity", "scene", "location", "item_type", "status", "priority", "flexibility", "interruption_cost", "intention_id", "action_status"})
+	item := compactStateMap(source, []string{"id", "start_at", "end_at", "activity", "scene", "location", "place_id", "item_type", "status", "priority", "flexibility", "interruption_cost", "intention_id", "action_status"})
 	return item
 }

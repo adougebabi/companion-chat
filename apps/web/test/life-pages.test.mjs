@@ -54,7 +54,7 @@ test("missing life data is labeled unwired and generated images stay non-factual
   assert.match(wardrobe, /入库中尚未接入/);
   assert.match(wardrobe, /不会把部位当成穿着/);
   assert.match(wardrobe, /换装请求和拍照尚未接入/);
-  assert.match(people, /所有者背景不是 NPC/);
+  assert.match(people, /ActorContextEditor/);
   assert.match(media, /生成图·非事实/);
   assert.match(media, /角色媒体库列表尚未接入/);
   assert.match(growth, /反思详情尚未接入/);

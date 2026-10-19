@@ -349,13 +349,19 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 	}
 	var existingID, existingGoalID, existingStatus string
 	err := tx.QueryRow(ctx, `SELECT i.id,g.id,i.status FROM public.fluctlight_intentions i JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND (COALESCE(i.profile_id,'')='' OR COALESCE(i.profile_id,'')=$2) AND lower(trim(i.action_intent))=$3 AND lower(trim(g.desired_outcome))=$4 AND i.status NOT IN ('completed','cancelled','expired') ORDER BY i.created_at LIMIT 1 FOR UPDATE OF i`, fluctlightID, profileID, strings.ToLower(action), strings.ToLower(goalText)).Scan(&existingID, &existingGoalID, &existingStatus)
-	if err == nil {
+	_, isPromise := promiseScope(ctx)
+	if err == nil && !isPromise {
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
 			Output:            map[string]any{"intention_id": existingID, "goal_id": existingGoalID, "status": existingStatus, "reused": true},
 			ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "intention:" + existingID}, nil
 	}
-	if !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return failedCapabilityResult(invocation, "intention_lookup_failed", true), err
+	}
+	if scope, ok := promiseScope(ctx); ok {
+		if _, err := preparePromiseIntentionTx(ctx, tx, scope, args, invocation.Metadata.WorkingProfileID, at); err != nil {
+			return failedCapabilityResult(invocation, "promise_target_unavailable", false), err
+		}
 	}
 	identity := stableDigest(fluctlightID + "\x1f" + profileID + "\x1f" + capabilityOperationID(invocation))
 	goalID, intentionID := "goal_tool_"+identity, "intention_tool_"+identity
@@ -364,6 +370,13 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 		goalID = linkedGoal.EntityID
 		createdGoal = *linkedGoal
 	} else {
+		if scope, ok := promiseScope(ctx); ok {
+			output, err := requestPromisePlanningTx(ctx, tx, scope, args, invocation.Metadata.WorkingProfileID, reason, at)
+			if err != nil {
+				return failedCapabilityResult(invocation, "promise_planning_failed", true), err
+			}
+			return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID}, nil
+		}
 		if invocation.Metadata.Source != "direct" {
 			if err := requestGoalPlanningTx(ctx, tx, fluctlightID, "intention-wish:"+identity, "cognition_wish", map[string]any{"desired_outcome": goalText, "success_criteria": []string{expected}, "motivation": reason}); err != nil {
 				return failedCapabilityResult(invocation, "planner_request_failed", true), err
@@ -392,12 +405,31 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 		ActionIntent: action, ExpectedOutcome: expected, Trigger: TypedIntentionTrigger{Type: IntentionTriggerSemantic},
 		Expiration: at.Add(30 * 24 * time.Hour), Confidence: 0.8, Status: IntentionCandidate, Revision: 1, EvidenceRefs: evidence,
 	}
+	var promiseBefore map[string]any
+	if scope, ok := promiseScope(ctx); ok {
+		commitment, before, err := createPromiseCommitmentTx(ctx, tx, scope, createdGoal, action, expected, invocation.SourceFactID, at)
+		if err != nil {
+			return failedCapabilityResult(invocation, "promise_commitment_rejected", false), err
+		}
+		promiseBefore = before
+		intention.CommitmentID = commitment
+		intention.StageID = ""
+		end, _ := time.Parse(time.RFC3339Nano, stringValue(before["window_end"]))
+		start, _ := time.Parse(time.RFC3339Nano, stringValue(before["window_start"]))
+		intention.Expiration = end
+		intention.PreferredTime = &start
+	}
 	created, record, err := CreateIntentionAuthority(intention, evidence, at)
 	if err != nil {
 		return failedCapabilityResult(invocation, "intention_create_invalid", false), err
 	}
 	if _, err := persistIntentionAuthorityTx(ctx, tx, nil, created, record, "tool:intention:"+identity); err != nil {
 		return failedCapabilityResult(invocation, "intention_persist_failed", true), err
+	}
+	if scope, ok := promiseScope(ctx); ok {
+		if err := finishPromiseAcceptanceTx(ctx, tx, scope, createdGoal, intentionID, created.CommitmentID, action, expected, invocation.SourceFactID, promiseBefore, at); err != nil {
+			return failedCapabilityResult(invocation, "promise_link_failed", true), err
+		}
 	}
 	if err := appendOutboxTx(ctx, tx, "intention.created", "fluctlight", fluctlightID, fluctlightID, invocation.SourceFactID,
 		"intention:"+intentionID, "intention-tool-created:"+intentionID, map[string]any{"intention_id": intentionID, "goal_id": goalID, "status": string(created.Status)}); err != nil {

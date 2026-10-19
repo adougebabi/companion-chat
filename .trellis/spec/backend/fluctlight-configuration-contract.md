@@ -93,3 +93,72 @@ if patch.provider_api_key.is_explicit_value:
     )
     settings.update_secret(encrypted, tx=tx)
 ```
+
+## Scenario: Versioned Owner configuration and safe submission recovery (0091)
+
+### 1. Scope / Trigger
+
+The current v3 configuration editor writes existing runtime settings, secrets,
+Provider endpoints and role bindings. A lost response or another open editor
+must not overwrite an intervening configuration or recreate a cleared secret.
+
+### 2. Signatures
+
+`PUT /api/settings` adds `expectedVersions: Record<string,number>` and
+`idempotencyKey`. Provider endpoint/role writes carry the same fields.
+`GET /api/configuration-catalog` returns stored/effective values and their source;
+`GET /api/configuration-commands/by-key?key=…` returns only a safe committed receipt.
+`POST /api/configuration-commands/recover {key}` resumes accepted post-save wake-up
+rearming, with no credential replay. `configuration_revisions(resource_key,revision)`
+retains `secret:purpose`, `endpoint:id`, and `binding:role` versions across deletion.
+
+### 3. Contracts
+
+- Serialize configuration admission and effect under the same advisory lock.
+  Check the Owner/key digest before CAS; use identical canonical keys at every
+  read/write. A supplied key must be nonempty, trim-free and at most 256 bytes.
+- Runtime settings use their owning revision. Credential ciphertext and
+  endpoint/binding tables remain their existing authorities; counters add no
+  second copy of their values. Status checks and timestamps alone do not bump
+  an endpoint's configuration revision.
+- Endpoint saves protect every binding they will delete, including a newly
+  attached concurrent binding. Model discovery runs outside the transaction;
+  final binding admission rechecks role, endpoint and credential revisions.
+- Responses/audits/command recovery contain purpose/resource names and versions,
+  never credential plaintext. Browser recovery stores a salted fingerprint,
+  original body and key; the user must re-enter an uncommitted original secret.
+- Keep all current editors mounted after sibling saves. A late success cannot
+  clear a newer credential. Effective defaults come from the actual runtime;
+  unconfigured and failed configuration are distinct. Saved Comfy connectivity
+  checks do not claim that image generation passed.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+| --- | --- |
+| Blank/trimmed key or malformed versions | Reject before mutation |
+| Reused key with a different body | `409 idempotency_conflict` |
+| Stale setting/secret/binding/endpoint | `409 revision_conflict`, retain draft |
+| Secret replaced and cleared together | Reject atomically |
+| Model directory has an unknown envelope | Explicit error, not a successful empty list |
+| Accepted wake-up rearm failed after settings committed | Recover the original receipt/work; do not re-save credentials |
+
+### 5. Good / Base / Bad Cases
+
+Good: credential A commits, the user types B during the wait, and B remains.
+Base: blank credential input preserves the previous encrypted value.
+Bad: endpoint v1 deletes a newly bound role without checking its binding version.
+
+### 6. Tests Required
+
+At the final unified regression, cover empty/0090 upgrade/rerun; counter
+tombstones; concurrent endpoint/binding edits; same-key replay/changed payload;
+wakeup post-save recovery; absence of credential plaintext in storage/receipts;
+decimal form validation; sibling saves preserving credential input; and actual
+consumer effects. Source review/build evidence alone does not pass these cases.
+
+### 7. Wrong vs Correct
+
+Wrong: CAS only `endpoint:id`, then delete all of its role bindings.
+Correct: under the shared admission lock, enumerate and CAS every affected
+`binding:role`, then commit the endpoint, removals, audit and receipt together.

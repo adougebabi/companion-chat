@@ -99,8 +99,8 @@ func (r *PostgresRepository) ResolveSession(ctx context.Context, token string) (
 func (r *PostgresRepository) ListFluctlights(ctx context.Context, ownerActorID string) ([]Fluctlight, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT f.id, f.core_persona, f.identity, f.personality, f.behavioral_policy, f.life_profile, f.provenance, f.status, f.current_revision,
-		       COALESCE((SELECT COUNT(*) FROM public.conversation_messages m JOIN public.fluctlight_direct_conversations dc ON dc.conversation_id=m.conversation_id WHERE dc.fluctlight_actor_id=f.id AND m.author_actor_id=f.id),0),
-		       (SELECT MAX(m.created_at) FROM public.conversation_messages m JOIN public.fluctlight_direct_conversations dc ON dc.conversation_id=m.conversation_id WHERE dc.fluctlight_actor_id=f.id)
+		       COALESCE((SELECT COUNT(*) FROM public.conversation_messages m JOIN public.conversations c ON c.id=m.conversation_id LEFT JOIN public.conversation_read_positions rp ON rp.conversation_id=c.id AND rp.actor_id=$1 WHERE c.created_by_actor_id=$1 AND m.author_actor_id=f.id AND m.sequence>COALESCE(rp.last_read_sequence,0) AND (SELECT count(*) FROM public.conversation_participants p WHERE p.conversation_id=c.id AND p.status='active')=2),0),
+		       (SELECT MAX(m.created_at) FROM public.conversation_messages m JOIN public.conversations c ON c.id=m.conversation_id JOIN public.conversation_participants p ON p.conversation_id=c.id AND p.actor_id=f.id AND p.status='active' WHERE c.created_by_actor_id=$1 AND (SELECT count(*) FROM public.conversation_participants cp WHERE cp.conversation_id=c.id AND cp.status='active')=2)
 		FROM public.fluctlights f
 		WHERE f.created_by_actor_id = $1 AND f.status <> 'retired'
 		ORDER BY f.created_at
@@ -135,6 +135,15 @@ func (r *PostgresRepository) GetFluctlight(ctx context.Context, id, ownerActorID
 		return Fluctlight{}, ErrNotFound
 	}
 	return fluctlight, err
+}
+
+func (r *PostgresRepository) FluctlightOwnerTx(ctx context.Context, tx pgx.Tx, id string) (string, error) {
+	var owner string
+	err := tx.QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, id).Scan(&owner)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	return owner, err
 }
 
 func (r *PostgresRepository) DirectConversationID(ctx context.Context, ownerActorID, fluctlightActorID string) (string, error) {

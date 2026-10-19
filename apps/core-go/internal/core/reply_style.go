@@ -65,7 +65,13 @@ func diagnoseReplyStyle(text string, input ReplyContextInput) ReplyStyleDiagnosi
 		diagnosis.Status = "requested_work"
 		return diagnosis
 	}
-	name := firstString(mapValue(input.WorkingPersona["working_persona"])["name"], firstString(mapValue(input.WorkingPersona["identity"])["name"], stringValue(input.Projection.SelfActor["display_name"])))
+	// Compiled portraits can contain prose instead of structured identity.
+	// Prefer the canonical identity, then the structured shared/legacy carriers;
+	// never infer a name by parsing generated portrait text.
+	name := firstString(mapValue(input.Projection.CorePersona["identity"])["name"],
+		firstString(mapValue(mapValue(input.WorkingPersona[workingPersonaSharedIdentityKey])["identity"])["name"],
+			firstString(mapValue(input.WorkingPersona[workingPersonaBodyKey])["name"],
+				firstString(mapValue(input.WorkingPersona["identity"])["name"], stringValue(input.Projection.SelfActor["display_name"])))))
 	if name == "" {
 		return diagnosis
 	}

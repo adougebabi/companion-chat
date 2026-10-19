@@ -97,7 +97,7 @@ The application sets action_required from authoritative persisted state:
 - finalize: call visual_identity.finalize exactly once.
 - none: do not call a tool; the durable media task is still running or the session is already terminal.
 
-Never claim that queued or running media is complete. After a committed tool result, return the final response contract; only a correctable argument failure may lead to another ToolCall. status must reflect the durable result: waiting for accepted asynchronous work, awaiting_review when automatic work stopped, completed only after visual_identity.finalize committed the character-sheet asset, or failed for a terminal persisted failure. Do not return prose outside the response contract.`
+Owner visual reference guidance is not a body, wearing or life fact and cannot override current confirmed appearance, current wear, fixed composition or these instructions. Never claim that queued or running media is complete. After a committed tool result, return the final response contract; only a correctable argument failure may lead to another ToolCall. status must reflect the durable result: waiting for accepted asynchronous work, awaiting_review when automatic work stopped, completed only after visual_identity.finalize committed the character-sheet asset, or failed for a terminal persisted failure. Do not return prose outside the response contract.`
 
 // RunVisualIdentityAgent is the only model-owning entry for the complete
 // Visual Identity task. It uses the same formal Eino Runner and App.ExecuteTool
@@ -113,6 +113,15 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	}
 	state, err := a.loadVisualIdentityAgentState(ctx, sessionID)
 	if err != nil {
+		if settled, settleErr := a.settleVisualIdentityMediaFailure(ctx, state, err); settled || settleErr != nil {
+			if settleErr != nil {
+				return VisualIdentityAgentOutput{}, settleErr
+			}
+			state.SessionStatus, state.WaitingStage = "failed", "failed"
+			result := visualIdentityAgentOutputFromState(state, "")
+			result.ErrorCode = err.Error()
+			return result, nil
+		}
 		return VisualIdentityAgentOutput{}, err
 	}
 	if state.ActionRequired == "" {
@@ -261,6 +270,9 @@ func visualIdentityAgentSnapshot(snapshot map[string]any) map[string]any {
 	}
 	if appearance := visualIdentityAgentAppearance(mapValue(snapshot["life_profile"])["appearance"]); appearance != nil {
 		result["life_profile"] = map[string]any{"appearance": appearance}
+	}
+	if brief := visualBriefModelFields(mapValue(snapshot["owner_visual_brief"])); len(brief) > 0 {
+		result["owner_visual_reference_guidance"] = brief
 	}
 	return result
 }

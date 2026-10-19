@@ -72,7 +72,12 @@ func personaCompilationSource(input PersonaCompilationInput) (map[string]any, er
 			}
 		}
 		if len(profile) == 0 {
-			return nil, fmt.Errorf("persona_compilation_profile_not_found: %s", profileID)
+			if profileID != "default" || initialPersonalityProfileID(core) != "default" {
+				return nil, fmt.Errorf("persona_compilation_profile_not_found: %s", profileID)
+			}
+			// Shared initial runtime has only shared traits. Selecting the first
+			// declared profile here would silently enact a personality switch.
+			profile = map[string]any{"id": profileID}
 		}
 	} else {
 		profile = map[string]any{"id": profileID}
@@ -237,7 +242,9 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		{"role": "user", "content": jsonString(personaCompilationModelPayload(input, source))},
 	})
 	for attempt := 0; attempt < 2; attempt++ {
-		runCtx := WithProviderScenario(ctx, "persona_compilation")
+		// Compilation is an independent Tool-free model task. Parent publication
+		// constraints must not force a conversation Tool into this request.
+		runCtx := WithProviderScenario(withoutPhysicalModelRequestPolicy(ctx), "persona_compilation")
 		if attempt > 0 {
 			runCtx = WithProviderCorrelation(runCtx, firstString(providerCorrelation(ctx), "persona-compilation")+":repair")
 		}

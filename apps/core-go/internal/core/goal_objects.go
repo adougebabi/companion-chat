@@ -82,14 +82,14 @@ func readGoalObjectsWith(ctx context.Context, q lifeContextQuerier, owner, goalI
 	if err := rows.Err(); err != nil {
 		return nil, nil, err
 	}
-	rows, err = q.Query(ctx, `SELECT id,fluctlight_id,goal_id,COALESCE(stage_id,''),COALESCE(profile_id,''),expected_result,criteria,criteria_version,window_start,window_end,opportunity_condition,blocker,status,revision FROM public.goal_commitments WHERE fluctlight_id=$1 AND goal_id=$2 ORDER BY created_at,id`, owner, goalID)
+	rows, err = q.Query(ctx, `SELECT id,fluctlight_id,goal_id,COALESCE(stage_id,''),COALESCE(profile_id,''),expected_result,criteria,criteria_version,window_start,window_end,opportunity_condition,blocker,status,revision,COALESCE(owner_promise_id,'') FROM public.goal_commitments WHERE fluctlight_id=$1 AND goal_id=$2 ORDER BY created_at,id`, owner, goalID)
 	if err != nil {
 		return nil, nil, err
 	}
 	for rows.Next() {
 		var c GoalCommitment
 		var raw []byte
-		if err := rows.Scan(&c.ID, &c.FluctlightID, &c.GoalID, &c.StageID, &c.ProfileID, &c.ExpectedResult, &raw, &c.CriteriaVersion, &c.WindowStart, &c.WindowEnd, &c.OpportunityCondition, &c.Blocker, &c.Status, &c.Revision); err != nil {
+		if err := rows.Scan(&c.ID, &c.FluctlightID, &c.GoalID, &c.StageID, &c.ProfileID, &c.ExpectedResult, &raw, &c.CriteriaVersion, &c.WindowStart, &c.WindowEnd, &c.OpportunityCondition, &c.Blocker, &c.Status, &c.Revision, &c.PromiseRequestID); err != nil {
 			rows.Close()
 			return nil, nil, err
 		}
@@ -113,6 +113,16 @@ func applyGoalCommitmentPlanTx(ctx context.Context, tx pgx.Tx, parent GoalAuthor
 			c.Operation = "create"
 		} else {
 			c.Operation = "adjust"
+		}
+	}
+	if c.ID != "" {
+		var promiseID string
+		err := tx.QueryRow(ctx, `SELECT COALESCE(owner_promise_id,'') FROM public.goal_commitments WHERE id=$1 AND fluctlight_id=$2 AND goal_id=$3`, c.ID, parent.FluctlightID, parent.EntityID).Scan(&promiseID)
+		if err != nil {
+			return err
+		}
+		if promiseID != "" && promiseID != c.OwnerPromiseID {
+			return newCapabilityError("promise_commitment_requires_request", false, ErrUnauthorized)
 		}
 	}
 	if c.Operation == "abandon" {
@@ -145,11 +155,18 @@ func applyGoalCommitmentPlanTx(ctx context.Context, tx pgx.Tx, parent GoalAuthor
 		if c.ID != "" {
 			return errors.New("goal_commitment_create_identity_invalid")
 		}
-		var active bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.goal_commitments WHERE fluctlight_id=$1 AND goal_id=$2 AND status IN ('active','blocked','paused'))`, parent.FluctlightID, parent.EntityID).Scan(&active); err != nil {
+		var unfinished int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.goal_commitments WHERE fluctlight_id=$1 AND goal_id=$2 AND status IN ('active','blocked','paused')`, parent.FluctlightID, parent.EntityID).Scan(&unfinished); err != nil {
 			return err
 		}
-		if active {
+		if unfinished >= 8 {
+			return newCapabilityError("goal_commitment_capacity_full", false, ErrConflict)
+		}
+		var active bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.goal_commitments WHERE fluctlight_id=$1 AND goal_id=$2 AND commitment_kind='step' AND status IN ('active','blocked','paused'))`, parent.FluctlightID, parent.EntityID).Scan(&active); err != nil {
+			return err
+		}
+		if active && c.OwnerPromiseID == "" {
 			return errors.New("goal_commitment_already_active")
 		}
 		id := "commitment_" + stableDigest(key+"\x1f"+parent.EntityID)
@@ -157,7 +174,11 @@ func applyGoalCommitmentPlanTx(ctx context.Context, tx pgx.Tx, parent GoalAuthor
 		if err := validateGoalCriteria(criteria); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.goal_commitments(id,fluctlight_id,goal_id,stage_id,profile_id,expected_result,criteria,criteria_version,window_start,window_end,opportunity_condition,blocker,status,revision) VALUES($1,$2,$3,$4,$5,$6,$7,1,$8,$9,$10,$11,$12,1)`, id, parent.FluctlightID, parent.EntityID, nullableString(parent.CurrentStageID), nullableString(parent.ProfileID), c.ExpectedResult, jsonBytes(criteria), c.WindowStart, c.WindowEnd, c.OpportunityCondition, c.Blocker, state)
+		kind, stage := "step", parent.CurrentStageID
+		if c.OwnerPromiseID != "" {
+			kind, stage = "promise", ""
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO public.goal_commitments(id,fluctlight_id,goal_id,stage_id,profile_id,expected_result,criteria,criteria_version,window_start,window_end,opportunity_condition,blocker,status,revision,commitment_kind,owner_promise_id) VALUES($1,$2,$3,$4,$5,$6,$7,1,$8,$9,$10,$11,$12,1,$13,$14)`, id, parent.FluctlightID, parent.EntityID, nullableString(stage), nullableString(parent.ProfileID), c.ExpectedResult, jsonBytes(criteria), c.WindowStart, c.WindowEnd, c.OpportunityCondition, c.Blocker, state, kind, nullableString(c.OwnerPromiseID))
 		return err
 	}
 	if c.Operation != "adjust" {

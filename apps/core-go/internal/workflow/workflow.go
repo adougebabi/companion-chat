@@ -50,12 +50,16 @@ const (
 
 func workflowIntentMaximumAttempts(intentType string) int {
 	switch strings.TrimSpace(intentType) {
+	case "studio.generate", "diary.generate", "media.delete":
+		return 1
 	case "goal.plan":
 		return goalEvaluationMaximumAttempts
 	case "goal.evaluate":
 		return goalEvaluationMaximumAttempts
 	case "reflection.run":
 		return reflectionMaximumAttempts
+	case "persona.owner_switch":
+		return cognitionMaximumAttempts
 	case "cognition.processing":
 		return cognitionMaximumAttempts
 	case "autonomy.action", "capability.action":
@@ -105,7 +109,7 @@ type ApplicationService interface {
 	EnsureVisualIdentityInitializationWithPersona(ctx context.Context, fluctlightID, personaID, visualIdentityID string, options map[string]any) (string, error)
 	FailAutonomyAction(ctx context.Context, actionID, reason string) (map[string]any, error)
 	RecordLifecycleDiagnosticBestEffort(ctx context.Context, diagnostic core.LifecycleDiagnostic)
-	RecordMediaActivityFailure(ctx context.Context, intentID, message string) error
+	RecordMediaActivityFailure(ctx context.Context, intentID, sourceWorkflow, message string) error
 }
 
 var runtime struct {
@@ -191,6 +195,7 @@ func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDepl
 }
 
 type Input struct {
+	DiaryAttemptID     string   `json:"diary_attempt_id,omitempty"`
 	KevOriginal        bool     `json:"kev_original,omitempty"`
 	IntentID           string   `json:"intent_id"`
 	CorrelationID      string   `json:"correlation_id"`
@@ -569,7 +574,9 @@ func nextLocalMidnightDelay(now time.Time, timezone string) time.Duration {
 }
 
 type workflowControl struct {
-	paused bool
+	paused         bool
+	pauseConsumed  bool
+	resumeConsumed bool
 }
 
 func registerWorkflowControl(ctx workflow.Context) (*workflowControl, error) {
@@ -588,20 +595,62 @@ func registerWorkflowControl(ctx workflow.Context) (*workflowControl, error) {
 	}
 	pauseCh := workflow.GetSignalChannel(ctx, "pause")
 	resumeCh := workflow.GetSignalChannel(ctx, "resume")
-	workflow.Go(ctx, func(ctx workflow.Context) {
-		var ignored any
-		pauseCh.Receive(ctx, &ignored)
-		if ctx.Err() == nil {
-			control.paused = true
+
+	version := workflow.GetVersion(ctx, "repeated-owner-workflow-controls", workflow.DefaultVersion, 1)
+	if err := workflow.SetQueryHandler(ctx, "control_capabilities", func() ([]string, error) {
+		actions := []string{}
+		if version != workflow.DefaultVersion || !control.pauseConsumed {
+			actions = append(actions, "pause")
 		}
-	})
-	workflow.Go(ctx, func(ctx workflow.Context) {
-		var ignored any
-		resumeCh.Receive(ctx, &ignored)
-		if ctx.Err() == nil {
-			control.paused = false
+		if version != workflow.DefaultVersion || !control.resumeConsumed {
+			actions = append(actions, "resume")
 		}
-	})
+		return actions, nil
+	}); err != nil {
+		return nil, err
+	}
+	if version == workflow.DefaultVersion {
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			var ignored any
+			pauseCh.Receive(ctx, &ignored)
+			if ctx.Err() == nil {
+				control.paused = true
+				control.pauseConsumed = true
+			}
+		})
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			var ignored any
+			resumeCh.Receive(ctx, &ignored)
+			if ctx.Err() == nil {
+				control.paused = false
+				control.resumeConsumed = true
+			}
+		})
+	} else {
+		// Repeated receives survive replay. Commands permit resume only after the
+		// previous pause is observed, so opposite signals are not queued blindly.
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			selector := workflow.NewSelector(ctx)
+			selector.AddReceive(pauseCh, func(ch workflow.ReceiveChannel, more bool) {
+				var ignored any
+				ch.Receive(ctx, &ignored)
+				if ctx.Err() == nil {
+					control.paused = true
+				}
+			})
+			selector.AddReceive(resumeCh, func(ch workflow.ReceiveChannel, more bool) {
+				var ignored any
+				ch.Receive(ctx, &ignored)
+				if ctx.Err() == nil {
+					control.paused = false
+				}
+			})
+			for ctx.Err() == nil {
+				selector.Select(ctx)
+			}
+		})
+	}
+
 	return control, nil
 }
 
@@ -901,7 +950,11 @@ func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, err
 		if terminal {
 			message := boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()})
 			if message != "" {
-				if repairErr := application.RecordMediaActivityFailure(ctx, input.IntentID, message); repairErr != nil {
+				originWorkflow := ""
+				if activity.IsActivity(ctx) {
+					originWorkflow = activity.GetInfo(ctx).WorkflowExecution.ID
+				}
+				if repairErr := application.RecordMediaActivityFailure(ctx, input.IntentID, originWorkflow, message); repairErr != nil {
 					slog.Default().Warn("Go Worker could not persist terminal media failure", "intent_id", input.IntentID, "error", repairErr)
 				}
 			}
@@ -1211,6 +1264,10 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 		})
 		switch queue {
 		case LifecycleQueue:
+			w.RegisterWorkflow(StudioWorkflow)
+			w.RegisterActivity(ProcessStudioActivity)
+			w.RegisterWorkflow(DiaryWorkflow)
+			w.RegisterActivity(ProcessDiaryActivity)
 			// Keep WakeUp and Reflection registered here until every history that
 			// predates CriticalLifecycleQueue has completed or been drained.
 			w.RegisterWorkflow(WakeUpWorkflow)
@@ -1219,6 +1276,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(ReflectionWorkflow)
 			w.RegisterWorkflow(IntentionTriggerWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
+			w.RegisterWorkflow(OwnerPersonaSwitchWorkflow)
 			w.RegisterWorkflow(ConversationSummaryWorkflow)
 			w.RegisterWorkflow(ConversationSegmentWorkflow)
 			w.RegisterWorkflow(GoalEvaluationWorkflow)
@@ -1233,6 +1291,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessIntentionTriggerActivity)
 			w.RegisterActivity(ResolveScheduledLifeActivityActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
+			w.RegisterActivity(ProcessOwnerPersonaSwitchActivity)
 			w.RegisterActivity(ProcessConversationSummaryActivity)
 			w.RegisterActivity(ProcessConversationSegmentActivity)
 			w.RegisterActivity(ProcessGoalEvaluationActivity)
@@ -1252,6 +1311,8 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(VisualIdentityWorkflow)
 			w.RegisterActivity(ProcessVisualIdentityActivity)
 		case MediaQueue:
+			w.RegisterWorkflow(MediaDeletionWorkflow)
+			w.RegisterActivity(ProcessMediaDeletionActivity)
 			w.RegisterWorkflow(MediaWorkflow)
 			w.RegisterActivity(ProcessMediaActivity)
 		case ReplyContinuationQueue:
@@ -1356,6 +1417,20 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			}
 		}
 		execution, describeErr := d.Client.DescribeWorkflowExecution(ctx, normalizedWorkflowID(workflowID), "")
+		if intentType == "studio.generate" || intentType == "diary.generate" || intentType == "media.generation" || intentType == "media.delete" {
+			if describeErr != nil || execution == nil || execution.WorkflowExecutionInfo == nil {
+				// Observation failure says nothing about an in-flight model task.
+				// Its execution budget cannot be spent on a failed status lookup.
+				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error='workflow_status_unavailable' WHERE intent_id=$1 AND status IN ('started','cancel_requested')`, intentID); err != nil {
+					return count, err
+				}
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionRetryScheduled, "workflow_describe", "unknown", "workflow_status_unavailable", attemptCount, describeErr)
+				continue
+			}
+			if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error=NULL WHERE intent_id=$1 AND last_error='workflow_status_unavailable'`, intentID); err != nil {
+				return count, err
+			}
+		}
 		if describeErr != nil {
 			// A just-started execution may not be visible immediately. Leave the
 			// intent untouched and let the next pass retry the lookup.
@@ -1468,6 +1543,16 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		}
 		if intentType != "reflection.run" && intentType != "wake_up.current" && intentStatus == "failed" && workflowIntentRetryExhausted(intentType, attemptCount) {
 			if err := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, runID, attemptCount, terminalFailure); err != nil {
+				return count, err
+			}
+			if d.Started != nil {
+				delete(d.Started, intentID)
+			}
+			count++
+			continue
+		}
+		if intentType == "persona.owner_switch" && (intentStatus == "failed" || intentStatus == "cancelled" || intentStatus == "terminated") {
+			if _, err := d.App.FailOwnerPersonaSwitchIntent(ctx, intentID); err != nil {
 				return count, err
 			}
 			if d.Started != nil {
@@ -1721,20 +1806,41 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 		}
+		if intentType == "media.delete" {
+			if err := d.App.ReconcileMediaDeletionTerminal(ctx, intentID, intentStatus); err != nil {
+				return count, err
+			}
+		}
+		if intentType == "studio.generate" {
+			if err := d.App.ReconcileStudioWorkflowTerminal(ctx, intentID, intentStatus); err != nil {
+				return count, err
+			}
+		}
+		if intentType == "diary.generate" {
+			if err := d.App.ReconcileDiaryWorkflowTerminal(ctx, intentID, intentStatus); err != nil {
+				return count, err
+			}
+		}
+		if intentType == "media.generation" && intentStatus != "completed" {
+			if err := d.App.ReconcileStudioMediaTerminal(ctx, intentID, "workflow_"+intentStatus); err != nil {
+				return count, err
+			}
+		}
 		if intentType == "media.generation" && intentStatus == "failed" {
 			// Activity code may not run on a timeout, cancellation, or worker
 			// crash. Close the product-facing media target here as the final
 			// reconciliation fallback so the retry action remains available.
-			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID)
+			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents m SET status='failed',revision=m.revision+1 FROM public.platform_workflow_intents w WHERE w.intent_id=$1 AND m.id=w.payload->>'intent_id' AND m.workflow_id=w.workflow_id AND m.status IN ('pending','running')`, intentID)
 			if err != nil {
 				return count, err
 			}
 			if command.RowsAffected() == 0 {
 				var mediaStatus string
-				if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&mediaStatus); err != nil {
+				var sameWorkflow bool
+				if err := d.App.DB.Pool().QueryRow(ctx, `SELECT m.status,m.workflow_id=w.workflow_id FROM public.media_intents m JOIN public.platform_workflow_intents w ON m.id=w.payload->>'intent_id' WHERE w.intent_id=$1`, intentID).Scan(&mediaStatus, &sameWorkflow); err != nil {
 					return count, fmt.Errorf("verify terminal media settlement %s: %w", intentID, err)
 				}
-				if mediaStatus == "pending" || mediaStatus == "running" {
+				if sameWorkflow && (mediaStatus == "pending" || mediaStatus == "running") {
 					return count, fmt.Errorf("verify terminal media settlement %s: media_terminal_status_not_written", intentID)
 				}
 			}
@@ -2068,13 +2174,21 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		}
 		var input Input
 		if err := json.Unmarshal(payload, &input); err != nil {
+			if intentType == "media.delete" {
+				if err := d.App.ReconcileMediaDeletionTerminal(ctx, intentID, "failed"); err != nil {
+					return count, err
+				}
+			}
 			reason := boundedTemporalFailureMessage(&failurepb.Failure{Message: "workflow payload invalid: " + err.Error()})
 			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,attempt_count=attempt_count+1,completed_at=now() WHERE intent_id=$1 AND status IN ('pending','retry')`, intentID, reason)
 			if writeErr != nil {
 				return count, fmt.Errorf("settle invalid workflow payload %s: %w", intentID, writeErr)
 			}
 			if intentType == "media.generation" {
-				if _, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID); writeErr != nil {
+				if err := d.App.ReconcileStudioMediaTerminal(ctx, intentID, "invalid_workflow_payload"); err != nil {
+					return count, err
+				}
+				if _, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents m SET status='failed',revision=m.revision+1 FROM public.platform_workflow_intents w WHERE w.intent_id=$1 AND m.id=w.payload->>'intent_id' AND m.workflow_id=w.workflow_id AND m.status IN ('pending','running')`, intentID); writeErr != nil {
 					return count, fmt.Errorf("settle invalid media workflow payload %s: %w", intentID, writeErr)
 				}
 			}
@@ -2119,6 +2233,15 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		// preserving deterministic replay for this intent after restarts.
 		goWorkflowID := normalizedWorkflowID(workflowID)
 		switch intentType {
+		case "media.delete":
+			workflowFn = MediaDeletionWorkflow
+			taskQueue = MediaQueue
+		case "studio.generate":
+			workflowFn = StudioWorkflow
+			taskQueue = LifecycleQueue
+		case "diary.generate":
+			workflowFn = DiaryWorkflow
+			taskQueue = LifecycleQueue
 		case "visual_identity.initialize":
 			workflowFn = VisualIdentityWorkflow
 			taskQueue = VisualIdentityQueue
@@ -2162,6 +2285,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "memory.embedding":
 			workflowFn = MemoryEmbeddingWorkflow
+			taskQueue = LifecycleQueue
+		case "persona.owner_switch":
+			workflowFn = OwnerPersonaSwitchWorkflow
 			taskQueue = LifecycleQueue
 		case "conversation.summary":
 			workflowFn = ConversationSummaryWorkflow
@@ -2294,6 +2420,32 @@ func normalizedWorkflowID(workflowID string) string {
 
 func (d *Dispatcher) deadLetterExhaustedIntent(ctx context.Context, input Input, intentID, workflowID, intentType, runID string, attemptCount int, terminalFailure string) error {
 	const reason = "workflow_retry_exhausted"
+	if intentType == "media.generation" {
+		if err := d.App.ReconcileStudioMediaTerminal(ctx, intentID, reason); err != nil {
+			return err
+		}
+	}
+	if intentType == "media.delete" {
+		if err := d.App.ReconcileMediaDeletionTerminal(ctx, intentID, "failed"); err != nil {
+			return err
+		}
+	}
+	if intentType == "studio.generate" {
+		if err := d.App.ReconcileStudioWorkflowTerminal(ctx, intentID, reason); err != nil {
+			return err
+		}
+	}
+	if intentType == "diary.generate" {
+		if err := d.App.ReconcileDiaryWorkflowTerminal(ctx, intentID, reason); err != nil {
+			return err
+		}
+	}
+	if intentType == "persona.owner_switch" {
+		if _, err := d.App.FailOwnerPersonaSwitchIntent(ctx, intentID); err != nil {
+			return err
+		}
+	}
+
 	if intentType == "autonomy.action" || intentType == "capability.action" {
 		if actionID := strings.TrimSpace(input.ActionID); actionID != "" {
 			if _, err := d.App.FailAutonomyAction(ctx, actionID, reason); err != nil && !errors.Is(err, core.ErrConflict) {
@@ -2383,6 +2535,10 @@ func lifecycleCorrelationForIntent(intentID, surface string, input Input) string
 
 func lifecycleSurfaceForIntent(intentType string) string {
 	switch intentType {
+	case "media.delete":
+		return "media_delete"
+	case "studio.generate":
+		return "studio"
 	case "wake_up.current":
 		return "wake_up"
 	case "goal.evaluate":

@@ -2,18 +2,25 @@ package core
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // formalToolAdapterInventory is a product baseline, not a projection of the
@@ -105,6 +112,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			operationRoot := "formal-adapter-run-" + strings.ReplaceAll(testCase.name, ".", "-") + "-" + fixture.suffix
 			request := testCase.request(t, fixture, operationRoot)
+			request.Surface = testCase.surface
 			request.OperationID = formalAdapterOperationID(operationRoot, testCase.name)
 			if request.TargetKind == "" && request.TargetRef == "" && request.ConversationID != "" {
 				request.TargetKind, request.TargetRef = "conversation", request.ConversationID
@@ -124,6 +132,14 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				failedRequest := request
 				failedRequest.OperationID += "-dependency"
 				receipt, err := missing.ExecuteTool(fixture.ctx, failedRequest)
+				if testCase.name == capabilityCatalogName || testCase.name == capabilityDiscoverName {
+					if err != nil || receipt.Result.Status != "completed" {
+						t.Fatal("registry utility unexpectedly requires a business service", receipt, err)
+					}
+					testCase.verify(t, fixture, receipt)
+					requireFormalAdapterSQLCountArgs(t, fixture, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND operation_id=$2`, 0, request.FluctlightID, failedRequest.OperationID)
+					return
+				}
 				if err == nil || receipt.Result.Status == "completed" || receipt.Result.Status == "accepted" {
 					t.Fatalf("missing business dependency returned false success: %#v %v", receipt, err)
 				}
@@ -142,6 +158,10 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				}
 				requireFormalAdapterSQLCountArgs(t, fixture, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND operation_id=$2`, 0, request.FluctlightID, foreignRequest.OperationID)
 			})
+			if testCase.name == visualIdentityCommitReviewCapabilityName {
+				fixture.reviewActualCandidate(t, request)
+				return
+			}
 			direct, err := fixture.app.ExecuteTool(fixture.ctx, request)
 			if err != nil || direct.Result.Status != testCase.wantStatus {
 				t.Fatalf("direct production execution status=%q receipt=%#v err=%v", direct.Result.Status, direct, err)
@@ -153,6 +173,15 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				t.Fatal("independent product verifier is missing")
 			}
 			testCase.verify(t, fixture, direct)
+			if testCase.name == capabilityDiscoverName {
+				definition, _ := fixture.app.capabilityRegistry().Definition(testCase.name)
+				for _, installed := range appendCapabilityUtilities(fixture.app.capabilityRegistry(), request.Surface, []CapabilityDefinition{definition}) {
+					if installed.Name == capabilityDiscoverName {
+						t.Fatal("retired discover utility reinstalled in native window")
+					}
+				}
+				return
+			}
 			if testCase.name == "goal.decide" {
 				denied := request
 				denied.NativeToolCallID, denied.ProviderRequestID = "owner-native-denied", "controlled-owner-provider"
@@ -289,7 +318,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				t.Fatalf("model-facing adapter result drifted: expected=%#v actual=%#v", expectedVisible, visibleResult)
 			}
 			adapterReceipt := ToolExecutionReceipt{OperationID: request.OperationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: results[0]}
-			if testCase.name != "goal.inspect" && testCase.name != "memory.recall" && testCase.name != personaDetailCapabilityName && testCase.name != "relationship.lookup" && testCase.name != wardrobeInspectCapabilityName && testCase.name != habitInspectCapabilityName && testCase.name != intentionInspectCapabilityName && testCase.name != actorInspectCapabilityName && testCase.name != scheduleInspectCapabilityName {
+			if definition.Type != CapabilityTypeQuery {
 				requireFormalAdapterSQLCountArgs(t, fixture, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2 AND operation_id=$3`, 1, fixture.fluctlightID, testCase.name, request.OperationID)
 			}
 			testCase.verify(t, fixture, adapterReceipt)
@@ -312,7 +341,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			},
 		},
 		{
-			name: "affect_event", surface: CapabilitySurfaceNativeCognition, wantStatus: "completed",
+			name: "affect_event", surface: CapabilitySurfaceConversation, wantStatus: "completed",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
 				return f.request("affect_event", "adapter-affect", map[string]any{"event": map[string]any{"type": "happy", "confidence": 0.8}})
 			},
@@ -459,7 +488,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 		{
 			name: "media.image.generate", surface: CapabilitySurfaceConversation, wantStatus: "accepted",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
-				request := f.request("media.image.generate", "adapter-image", map[string]any{"intent": "窗边阅读的手持自拍", "capture": map[string]any{"mode": "selfie", "camera": "front", "framing": "upper body", "device_visibility": "hidden"}})
+				request := f.request("media.image.generate", "adapter-image", map[string]any{"intent": "窗边书本的照片，不含人物", "capture": map[string]any{"mode": "external_capture", "camera": "rear", "framing": "wide"}})
 				request.TargetKind, request.TargetRef = "conversation", f.conversationID
 				return request
 			},
@@ -471,7 +500,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 					t.Fatal(err)
 				}
 				var frozen map[string]any
-				if err := json.Unmarshal([]byte(prompt), &frozen); err != nil || mapValue(frozen["capture"])["mode"] != "selfie" || mapValue(frozen["capture"])["camera"] != "front" {
+				if err := json.Unmarshal([]byte(prompt), &frozen); err != nil || mapValue(frozen["capture"])["mode"] != "external_capture" || mapValue(frozen["capture"])["camera"] != "rear" {
 					t.Fatalf("durable media intent lost declared capture: %s (%v)", prompt, err)
 				}
 			},
@@ -600,7 +629,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			},
 		},
 		{
-			name: "visual_identity.initialize", surface: CapabilitySurfaceVisualIdentity, wantStatus: "accepted",
+			name: "visual_identity.initialize", surface: CapabilitySurfaceNativeCognition, wantStatus: "accepted",
 			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
 				request := f.request("visual_identity.initialize", "adapter-visual-initialize", map[string]any{})
 				request.ConversationID = ""
@@ -671,7 +700,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			},
 		},
 		{
-			name: wardrobeWearCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "completed",
+			name: wardrobeWearCapabilityName, surface: CapabilitySurfaceConversation, wantStatus: "handled",
 			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
 				var id string
 				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND category='shirt'`, f.fluctlightID).Scan(&id); err != nil {
@@ -679,7 +708,10 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 				}
 				return f.request(wardrobeWearCapabilityName, "adapter-wardrobe-wear", map[string]any{"mode": "partial", "item_ids": []string{id}})
 			},
-			verify: func(t *testing.T, f *formalToolAdapterFixture, _ ToolExecutionReceipt) {
+			verify: func(t *testing.T, f *formalToolAdapterFixture, r ToolExecutionReceipt) {
+				if out := mapValue(r.Result.Output); out["warning_code"] != "wearing_unchanged" || out["effect_applied"] != false || out["mutation_committed"] != false {
+					t.Fatal("already worn item claimed a mutation", r)
+				}
 				requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND slot='top'`, 1, f.fluctlightID)
 			},
 		},
@@ -688,7 +720,7 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			request: func(t *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
 				source := actorFactSourceMessage(t, f.independentToolE2EFixture, "adapter-abroad", f.ownerID, "我住在国外")
 				request := f.request(actorFactCapabilityName, "adapter-actor-fact", map[string]any{"operation": "assert", "attribute": "location_scope", "value": "abroad", "assertion_type": "explicit_statement", "source_message_id": source, "reason": "用户明确自述"})
-				if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) SELECT $1,$2,COALESCE(max(sequence),0)+1,'conversation.turn',$3,$1,$1,$1,now(),'processed' FROM public.cognition_inbox WHERE fluctlight_id=$2`, request.EvidenceID, f.fluctlightID, jsonBytes(map[string]any{"text": "我住在国外", "conversation_id": f.conversationID, "actor_id": f.ownerID})); err != nil {
+				if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) SELECT $1::text,$2::text,COALESCE(max(sequence),0)+1,'conversation.turn',$3::jsonb,$1::text,$1::text,$1::text,now(),'processed' FROM public.cognition_inbox WHERE fluctlight_id=$2`, request.EvidenceID, f.fluctlightID, jsonBytes(map[string]any{"text": "我住在国外", "conversation_id": f.conversationID, "actor_id": f.ownerID})); err != nil {
 					t.Fatal(err)
 				}
 				if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.conversation_messages SET source_fact_id=$2 WHERE id=$1`, source, request.EvidenceID); err != nil {
@@ -897,6 +929,66 @@ func (fixture *formalToolAdapterFixture) makeVisualCandidateReady(t *testing.T) 
 	}
 }
 
+// A visual review cannot be replayed from an unproved direct/manual command.
+// This row uses the typed production Agent, an actual PNG read through the S3
+// SDK and a controlled multimodal HTTP response. It is not live-model evidence.
+func (f *formalToolAdapterFixture) reviewActualCandidate(t *testing.T, request ToolExecutionRequest) {
+	t.Helper()
+	denied, err := f.app.ExecuteTool(f.ctx, request)
+	if !errors.Is(err, ErrUnauthorized) || denied.Result.ErrorCode != "visual_identity_inspection_provenance_required" {
+		t.Fatal("unproved review was accepted", denied, err)
+	}
+	requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_visual_identity_attempts WHERE session_id=$1 AND decision IS NOT NULL`, 0, f.visualSessionID)
+	png := ownerMediaPNG(t)
+	var reads atomic.Int32
+	storageServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.Error(w, "read only fixture", 405)
+			return
+		}
+		if !strings.HasSuffix(r.URL.Path, "/"+f.visualCandidateAssetID+".png") {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Length", strconv.Itoa(len(png)))
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("ETag", `"controlled-image"`)
+		w.Header().Set("Last-Modified", "Mon, 19 Oct 2026 00:00:00 GMT")
+		if r.Method == http.MethodGet {
+			reads.Add(1)
+			_, _ = w.Write(png)
+		}
+	}))
+	t.Cleanup(storageServer.Close)
+	storage, err := minio.New(strings.TrimPrefix(storageServer.URL, "https://"), &minio.Options{Secure: true, Transport: storageServer.Client().Transport, Creds: credentials.NewStaticV4("controlled", "controlled", ""), Region: "us-east-1", BucketLookup: minio.BucketLookupPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.app.Storage = storage
+	digest := sha256.Sum256(png)
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.media_assets SET byte_size=$2,sha256=$3 WHERE id=$1`, f.visualCandidateAssetID, len(png), fmt.Sprintf("%x", digest)); err != nil {
+		t.Fatal(err)
+	}
+	enableControlledVision(t, f.ctx, f.repository)
+	f.provider.begin(visualIdentityCommitReviewCapabilityName, "controlled-native-visual-review", request.Arguments)
+	result, err := f.app.RunVisualIdentityAgent(f.ctx, VisualIdentityAgentInput{SessionID: f.visualSessionID})
+	if err != nil || result.Status != "waiting" || result.CanonicalAssetID != f.visualCandidateAssetID || result.CharacterMediaIntentID == "" {
+		t.Fatal("typed actual-image review failed", result, err)
+	}
+	f.visualCharacterIntent = result.CharacterMediaIntentID
+	requests, _ := f.provider.snapshot()
+	if reads.Load() < 1 || len(requests) != 2 || !strings.Contains(jsonString(requests[0]), "data:image/png;base64,"+base64.StdEncoding.EncodeToString(png)) {
+		t.Fatal("review did not consume actual image bytes", reads.Load(), len(requests))
+	}
+	requireFormalAdapterSQLCountArgs(t, f, `SELECT count(*) FROM public.fluctlight_visual_identity_attempts WHERE session_id=$1 AND decision='accepted' AND reviewed_at IS NOT NULL`, 1, f.visualSessionID)
+	before := len(requests)
+	replayed, err := f.app.RunVisualIdentityAgent(f.ctx, VisualIdentityAgentInput{SessionID: f.visualSessionID})
+	requests, _ = f.provider.snapshot()
+	if err != nil || replayed.CharacterMediaIntentID != f.visualCharacterIntent || len(requests) != before {
+		t.Fatal("review replay restarted model", replayed, err)
+	}
+}
+
 func (fixture *formalToolAdapterFixture) makeVisualCharacterSheetReady(t *testing.T) {
 	t.Helper()
 	if fixture.visualCharacterIntent == "" {
@@ -949,7 +1041,11 @@ func (provider *controlledFormalToolProvider) ServeHTTP(w http.ResponseWriter, r
 	provider.mu.Lock()
 	toolName, callID := provider.toolName, provider.callID
 	arguments := append(json.RawMessage(nil), provider.arguments...)
-	if providerWireSchemaName(payload) != "schedule_replan_plan" {
+	stage := providerWireSchemaName(payload)
+	if stage == "" && len(arrayValue(payload["tools"])) == 0 && strings.Contains(jsonString(payload["messages"]), "intent_text") {
+		stage = "media_subject_parse"
+	}
+	if stage != "schedule_replan_plan" && stage != "media_subject_parse" {
 		provider.requests = append(provider.requests, cloneMap(payload))
 		provider.requestID = append(provider.requestID, request.Header.Get("X-Fluctlight-Provider-Request-Id"))
 	}
@@ -957,6 +1053,10 @@ func (provider *controlledFormalToolProvider) ServeHTTP(w http.ResponseWriter, r
 	provider.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
+	if stage == "media_subject_parse" {
+		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(mediaTestPlan("landscape", "none", "no", "unknown")), "tool_calls": []any{}}}}})
+		return
+	}
 	if providerWireSchemaName(payload) == "schedule_replan_plan" {
 		location, _ := time.LoadLocation("Asia/Shanghai")
 		now := time.Now().In(location).Truncate(time.Second)
@@ -1004,6 +1104,9 @@ func (provider *controlledFormalToolProvider) ServeHTTP(w http.ResponseWriter, r
 		return
 	}
 	final := map[string]any{"answer": "adapter-ok:" + toolName}
+	if toolName == visualIdentityCommitReviewCapabilityName {
+		final = map[string]any{"status": "waiting", "stage": "character_sheet_pending", "summary": "controlled real-byte review committed; character sheet pending"}
+	}
 	response := map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(final), "tool_calls": []any{}}}}}
 	_, _ = w.Write(jsonBytes(response))
 }

@@ -6,7 +6,7 @@ import (
 )
 
 func shoppingItemSchema() map[string]any {
-	return objectSchema(map[string]any{"item_kind": enumStringSchema("wearable", "object"), "category": map[string]any{"type": "string", "minLength": 1, "maxLength": 64}, "slot": map[string]any{"type": "string", "maxLength": 64}, "description": map[string]any{"type": "string", "minLength": 1, "maxLength": 512}}, []string{"category", "description"}, false)
+	return objectSchema(map[string]any{"world_item_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128}, "item_kind": enumStringSchema("wearable", "object"), "category": map[string]any{"type": "string", "minLength": 1, "maxLength": 64}, "slot": map[string]any{"type": "string", "maxLength": 64}, "description": map[string]any{"type": "string", "minLength": 1, "maxLength": 512}}, []string{"category", "description"}, false)
 }
 func normalizeShoppingItem(item map[string]any) (map[string]any, error) {
 	result := map[string]any{"item_kind": firstString(item["item_kind"], "wearable")}
@@ -14,6 +14,14 @@ func normalizeShoppingItem(item map[string]any) (map[string]any, error) {
 		result[key] = strings.TrimSpace(stringValue(item[key]))
 	}
 	kind, slot := stringValue(result["item_kind"]), stringValue(result["slot"])
+	if raw, present := item["world_item_id"]; present {
+		text, ok := raw.(string)
+		id := strings.TrimSpace(text)
+		if !ok || id == "" || len(id) > 128 {
+			return nil, errors.New("shopping_catalogue_id_invalid")
+		}
+		result["world_item_id"] = id
+	}
 	if (kind != "wearable" && kind != "object") || (kind == "wearable" && slot == "") || (kind == "object" && slot != "") || result["category"] == "" || result["description"] == "" || len([]rune(slot)) > 64 || len([]rune(stringValue(result["category"]))) > 64 || len([]rune(stringValue(result["description"]))) > 512 {
 		return nil, errors.New("shopping_item_invalid")
 	}
@@ -27,7 +35,7 @@ func shoppingRequestedItems(request map[string]any) ([]map[string]any, error) {
 		if !ok || len(sources) < 1 || len(sources) > 8 {
 			return nil, errors.New("shopping_bundle_invalid")
 		}
-		if stringValue(request["category"]) != "" || stringValue(request["description"]) != "" {
+		if stringValue(request["category"]) != "" || stringValue(request["description"]) != "" || request["world_item_id"] != nil {
 			return nil, errors.New("shopping_single_bundle_conflict")
 		}
 	} else {
@@ -72,6 +80,9 @@ func validateShoppingAcquisition(request, result map[string]any) error {
 		normalized, err := normalizeShoppingItem(item)
 		if err != nil || normalized["category"] != requested[i]["category"] || normalized["slot"] != requested[i]["slot"] || normalized["item_kind"] != requested[i]["item_kind"] || normalized["description"] != requested[i]["description"] {
 			return errors.New("virtual_shopping_item_mismatch")
+		}
+		if id := stringValue(normalized["world_item_id"]); id != "" && id != stringValue(requested[i]["world_item_id"]) {
+			return errors.New("virtual_shopping_catalogue_mismatch")
 		}
 	}
 	return nil

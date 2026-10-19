@@ -11,6 +11,8 @@ const KEYS = ["groups", "characters", "worlds", "user", "places", "npcs", "relat
 
 test("contract projection round-trips the prototype view model", () => {
   const expected = rewriteSeedAssets(seed());
+  expected.user.background = {}; // Actor background is scoped; it is never a global user snapshot.
+  for (const id of Object.keys(expected.characters)) if (!expected.outfit[id]) expected.outfit[id] = { current: [], history: [], since: undefined };
   const view = viewFromBundle(bundleFromSeed(seed()));
   for (const key of KEYS) assert.deepEqual(view[key], expected[key], key);
 });
@@ -26,24 +28,21 @@ test("an unfinished studio reference does not apply a version or resolve conflic
   assert.equal(view.meta.studioApplyNotes.r_book, "未完成·已记录选择，尚未写入实例");
 });
 
-test("management wardrobe writes use the wardrobe revision and keep the draft on conflict", () => {
-  const store = read("../src/v3/proto/store.js");
-  const studio = read("../src/v3/proto/pages/studio-edit.js");
-  assert.match(store, /confirm: true/);
-  assert.match(store, /revision_conflict/);
-  assert.match(store, /resource === "wardrobe"/);
-  assert.match(store, /owner_edit/);
-  assert.match(store, /她刚更新过。草稿已保留/);
-  assert.match(store, /未完成·已记录选择，尚未写入实例/);
-  assert.match(store, /recorded_by === "owner"/);
-  assert.doesNotMatch(store, /applied_version|applied_at/);
-  assert.doesNotMatch(store, /expectedRevision:\s*data\.meta\.ownerRevisions/);
-  assert.match(studio, /recordStudioApply/);
-  assert.doesNotMatch(studio, /\.applied\s*=[^=]/);
+test("Mock acceptance entry keeps wardrobe flow and persistence separate from the real transport", () => {
+  const store = read('../src/v3/proto/mock/store.js');
+  const wardrobe = read('../src/v3/proto/pages/wardrobe.js');
+  const flows = read('../src/v3/proto/pages/flows.js');
+  assert.match(store, /fluctlight.v3.acceptance.mock.v1/);
+  assert.doesNotMatch(store, /BrowserClient|fetch\(/);
+  assert.match(wardrobe, /requestOutfit/);
+  assert.match(flows, /pending|current/);
+  assert.match(wardrobe, /不会改变穿着、位置或任何事实/);
 });
 
 test("JSON wire shape still round-trips page collections", () => {
   const expected = rewriteSeedAssets(seed());
+  expected.user.background = {}; // Actor background is scoped; it is never a global user snapshot.
+  for (const id of Object.keys(expected.characters)) if (!expected.outfit[id]) expected.outfit[id] = { current: [], history: [], since: undefined };
   const wire = JSON.parse(JSON.stringify(bundleFromSeed(seed())));
   const view = viewFromBundle(wire);
   for (const key of KEYS) assert.deepEqual(view[key], expected[key], key);

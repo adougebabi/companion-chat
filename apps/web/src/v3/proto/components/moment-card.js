@@ -1,0 +1,8 @@
+import {esc,badge,avatarOf} from '../ui.js';
+import {mediaClient} from '../services.js';
+import {MediaPreview} from './media-assets.js';
+
+export function MomentCard(post,{full=false}={}){
+ const author=post.author_type==='user'?'我':post.author_name||'作者名称未记录';
+ return `<article class="card" data-test="post-${esc(post.id)}"><div class="row"><img class="av" src="${esc(avatarOf(post.author_actor_id))}" alt=""><div class="grow"><b>${esc(author)}</b> ${badge({user:'交流',fluctlight:'摇光',npc:'NPC',unknown:'来源身份未知'}[post.author_type]||post.author_type)}<div class="small muted">${esc(post.created_at)} · v${esc(post.revision)}</div></div>${post.status==='hidden'?badge('已隐藏'):''}</div><p class="prewrap">${esc(post.text)}</p>${(post.media||[]).map(asset=>`<div>${MediaPreview(asset,mediaClient.url(asset.id))}<p class="small muted">${esc(asset.label||asset.read_state)} <a href="#/studio/media/${encodeURIComponent(asset.id)}">素材来源</a></p></div>`).join('')}<div class="row small"><button class="chip" type="button" data-moment-action="${esc(post.id)}" data-action="reaction" ${post.status==='hidden'?'disabled':''}>${post.viewer_reaction?'♥ 已回应':'♡ 赞'} ${esc(post.reaction_count)}</button>${full?'':`<a class="chip" href="#/feed/${encodeURIComponent(post.id)}">评论 ${esc(post.comment_count)}</a>`}<button class="btn ghost sm" type="button" data-moment-action="${esc(post.id)}" data-action="${post.status==='hidden'?'restore':'hide'}">${post.status==='hidden'?'恢复展示':'隐藏'}</button></div>${post.request_id?`<p class="small"><a href="#/diag/request/${encodeURIComponent(post.request_id)}">原发布建议与处理结果</a></p>`:''}</article>`;
+}

@@ -1,0 +1,22 @@
+{
+  "test": "TestTemporalRuntimeRealControlRecovery",
+  "status": "passed",
+  "runtime": "real task-owned Temporal; dedicated control-only worker",
+  "workflow": "v3-nonllm-control-1792407657433971784",
+  "firstRun": "01a153d2-5c50-7b00-89c7-3736fbd98a62",
+  "resetRun": "3105f85d-9531-4541-b54c-b5a4d3568e7b",
+  "restartRun": "01a153d2-5cc6-77ce-96e2-06de6012127c",
+  "historyEvents": 24,
+  "historyPages": 8,
+  "resetPoint": 4,
+  "workerRestart": true,
+  "repeatedPauseResume": true,
+  "invalidResetRejected": true,
+  "resetReplaySameRun": true,
+  "restartReplaySameRun": true,
+  "differentCommandRejected": true,
+  "cancelAndTerminate": "passed",
+  "realModelCalls": 0,
+  "evidenceOrigin": "captured from successful docker test tool output (session 40348)",
+  "source": "apps/core-go/internal/workflow/temporal_runtime_integration_test.go"
+}

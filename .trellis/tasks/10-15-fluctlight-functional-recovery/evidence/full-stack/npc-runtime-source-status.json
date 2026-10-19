@@ -1,0 +1,33 @@
+{
+  "slice": "0076_world_encounter_runtime",
+  "sourceHead": "0076_world_encounter_runtime",
+  "runtimeDatabaseHead": "0066_life_place",
+  "deployment": "not_applied_api_worker_not_restarted",
+  "checks": "latest_source_build_compile_only_typecheck_pending",
+  "businessTests": "authored_not_run_final_batch",
+  "browser": "not_run",
+  "realLLM": "not_run_user_owned_L13",
+  "producerConsumer": [
+    "worker_current_NPC_presence",
+    "confirmed_or_active_character_source",
+    "durable_opportunity",
+    "NativeCognition_character_choice",
+    "independent_private_NPC_response",
+    "frozen_prepared_result",
+    "transactional_event_relationship_memory_receipt",
+    "v3_paged_history_and_task_readback"
+  ],
+  "separateOutcomes": [
+    "contacted",
+    "declined",
+    "passed",
+    "deferred",
+    "expired",
+    "failed"
+  ],
+  "remainingScope": [
+    "world event templates runtime",
+    "shared owner co-presence source",
+    "creation/studio/media/moments/settings/diagnostics/backup completion"
+  ]
+}

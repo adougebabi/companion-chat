@@ -157,7 +157,7 @@ func TestGoalPauseAndCancelPreventOldDueAndDirectActivity(t *testing.T) {
 				t.Fatalf("old trigger executed: %#v %v", trigger, err)
 			}
 			receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "old-start", map[string]any{"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "black boots", "reason": "old due"}))
-			if err == nil || receipt.Result.Status == "accepted" {
+			if err != nil || receipt.Result.Status != "handled" || mapValue(receipt.Result.Output)["warning_code"] != "goal_not_active" || mapValue(receipt.Result.Output)["mutation_committed"] != false {
 				t.Fatalf("Goal %s allowed action: %#v %v", operation, receipt, err)
 			}
 			var effects int
@@ -328,7 +328,7 @@ func TestDirectTimeIntentionCannotStartBeforeTrigger(t *testing.T) {
 		t.Fatal(err)
 	}
 	receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "too-early", map[string]any{"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "black boots", "reason": "not due"}))
-	if err == nil || receipt.Result.Status == "accepted" {
+	if err != nil || receipt.Result.Status != "handled" || mapValue(receipt.Result.Output)["warning_code"] != "intention_trigger_not_due" || mapValue(receipt.Result.Output)["mutation_committed"] != false {
 		t.Fatalf("time trigger bypassed: %#v %v", receipt, err)
 	}
 	var attempts int
@@ -370,8 +370,8 @@ func TestUnknownOperationReconciliationIsBoundedAndCannotResume(t *testing.T) {
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT status,deadline FROM public.fluctlight_intention_attempts WHERE attempt_id=$1`, due["attempt_id"]).Scan(&state, &deadline); err != nil || state != "needs_reconciliation" || deadline != nil {
 		t.Fatalf("unbounded reconciliation: %s %v %v", state, deadline, err)
 	}
-	if _, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionDecideCapabilityName, "unsafe-resume", map[string]any{"operation": "resume", "intention_id": intentionID, "reason": "unknown result"})); err == nil {
-		t.Fatal("unknown side effect was retried")
+	if receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionDecideCapabilityName, "unsafe-resume", map[string]any{"operation": "resume", "intention_id": intentionID, "reason": "unknown result"})); err != nil || receipt.Result.Status != "handled" || mapValue(receipt.Result.Output)["warning_code"] != "intention_persist_failed" || mapValue(receipt.Result.Output)["mutation_committed"] != false {
+		t.Fatalf("unknown side effect lost no-effect refusal: %#v %v", receipt, err)
 	}
 }
 

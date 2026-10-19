@@ -189,7 +189,7 @@ func (a *App) replyVisionCapabilityStatus(ctx context.Context, values map[string
 			continue
 		}
 		var model, endpointStatus string
-		err := a.DB.Pool().QueryRow(ctx, `SELECT r.model_id,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role=$1`, item.ref).Scan(&model, &endpointStatus)
+		err := a.configurationReader(ctx).QueryRow(ctx, `SELECT r.model_id,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role=$1`, item.ref).Scan(&model, &endpointStatus)
 		if errors.Is(err, pgx.ErrNoRows) {
 			continue
 		}
@@ -208,7 +208,7 @@ func (a *App) replyVisionCapabilityStatus(ctx context.Context, values map[string
 		}
 		var last, lastError string
 		var at time.Time
-		err = a.DB.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),created_at FROM public.diagnostic_model_runs WHERE binding_role=$1 ORDER BY created_at DESC,id DESC LIMIT 1`, item.ref).Scan(&last, &lastError, &at)
+		err = a.configurationReader(ctx).QueryRow(ctx, `SELECT status,COALESCE(error_code,''),created_at FROM public.diagnostic_model_runs WHERE binding_role=$1 ORDER BY created_at DESC,id DESC LIMIT 1`, item.ref).Scan(&last, &lastError, &at)
 		if err == nil {
 			status["last_call_status"] = last
 			status["last_error"] = lastError

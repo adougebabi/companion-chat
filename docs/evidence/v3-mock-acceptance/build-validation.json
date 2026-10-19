@@ -1,0 +1,19 @@
+{
+  "builtAssets": [
+    {
+      "name": "index-rUzfbMcl.js",
+      "sha256": "c76895b27c3f2c7d9f0cdc3a3c373f3f6a52f243d3b8984a8c0bdb9a0dc840ef"
+    },
+    {
+      "name": "index-DEd7l5ns.css",
+      "sha256": "cfd79166b0fadfc7009600a858196de684c2bf5bf2a447dc9e804d9fc1ca2663"
+    }
+  ],
+  "registeredRoutes": 83,
+  "webTests": {
+    "total": 142,
+    "passed": 142,
+    "failed": 0
+  },
+  "stage": "Mock pages awaiting user acceptance; no real API integration"
+}

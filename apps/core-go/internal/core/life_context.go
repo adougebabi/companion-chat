@@ -123,7 +123,7 @@ func readScheduleAtWith(ctx context.Context, query lifeContextQuerier, fluctligh
 	if err != nil {
 		return nil, err
 	}
-	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
+	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,''),COALESCE(item.place_id,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +133,18 @@ func readScheduleAtWith(ctx context.Context, query lifeContextQuerier, fluctligh
 		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost, intentionID, actionStatus string
 		var itemLocation *string
 		var actionPlan []byte
+		var placeID string
 		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus); err != nil {
+		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus, &placeID); err != nil {
 			return nil, err
 		}
 		entry := map[string]any{
 			"id": itemID, "start_at": start.UTC().Format(instantLayout), "end_at": end.UTC().Format(instantLayout),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": scheduleContextNumber(priority), "flexibility": scheduleContextNumber(flexibility), "interruption_cost": scheduleContextNumber(interruptionCost),
+		}
+		if placeID != "" {
+			entry["place_id"] = placeID
 		}
 		if intentionID != "" {
 			entry["intention_id"] = intentionID
@@ -173,7 +177,7 @@ func resolveLifeContextAtWith(ctx context.Context, query lifeContextQuerier, flu
 	var eventRevision int
 	var eventStart, eventEnd time.Time
 	var eventExpires *time.Time
-	if err := query.QueryRow(ctx, `SELECT id,kind,status,revision,scene,activity,location,start_at,end_at,expires_at FROM public.life_events WHERE fluctlight_id=$1 AND status IN ('confirmed','inferred') AND start_at <= $2 AND end_at > $2 AND (expires_at IS NULL OR expires_at > $2) ORDER BY CASE WHEN status='confirmed' THEN 0 ELSE 1 END,start_at DESC,id DESC LIMIT 1`, fluctlightID, at).Scan(&eventID, &eventKind, &eventStatus, &eventRevision, &scene, &activity, &location, &eventStart, &eventEnd, &eventExpires); err == nil {
+	if err := query.QueryRow(ctx, `SELECT id,kind,status,revision,scene,activity,location,start_at,end_at,expires_at FROM public.life_events WHERE fluctlight_id=$1 AND context_scope='life' AND status IN ('confirmed','inferred') AND start_at <= $2 AND end_at > $2 AND (expires_at IS NULL OR expires_at > $2) ORDER BY CASE WHEN status='confirmed' THEN 0 ELSE 1 END,start_at DESC,id DESC LIMIT 1`, fluctlightID, at).Scan(&eventID, &eventKind, &eventStatus, &eventRevision, &scene, &activity, &location, &eventStart, &eventEnd, &eventExpires); err == nil {
 		result["source"] = "event"
 		result["authority_status"] = eventStatus
 		result["event_kind"] = eventKind
@@ -211,6 +215,16 @@ func resolveLifeContextAtWith(ctx context.Context, query lifeContextQuerier, flu
 		}
 		result["presence"] = presence
 		result["presence_overlay"] = true
+	}
+	if err := attachStableLifePlaceWith(ctx, query, fluctlightID, result, schedule); err != nil {
+		return nil, err
+	}
+	if world := stringValue(result["world_id"]); world != "" {
+		effects, err := activeWorldEffectsWith(ctx, query, fluctlightID, world, stringValue(result["place_id"]), at)
+		if err != nil {
+			return nil, err
+		}
+		result["world_effects"] = effects
 	}
 	stampLifeContextRevision(result, schedule, timezone)
 	return result, nil
@@ -286,9 +300,10 @@ func attachScheduleAuthorityTuple(result, schedule map[string]any, at time.Time)
 
 func stampLifeContextRevision(life, schedule map[string]any, timezone string) {
 	authority := map[string]any{
-		"source": life["source"], "authority_status": life["authority_status"], "timezone": timezone,
+		"world_effects": life["world_effects"], "source": life["source"], "authority_status": life["authority_status"], "timezone": timezone,
 		"local_date": life["local_date"], "effective_at": life["effective_at"], "expires_at": life["expires_at"],
 		"event_id": life["event_id"], "event_revision": life["event_revision"],
+		"place_id": life["place_id"], "world_id": life["world_id"], "world_binding_revision": life["world_binding_revision"],
 		"schedule_id": life["schedule_id"], "schedule_revision": life["schedule_revision"], "schedule_item_id": life["schedule_item_id"],
 		"schedule_item_effective_at": life["schedule_item_effective_at"], "schedule_item_expires_at": life["schedule_item_expires_at"],
 	}

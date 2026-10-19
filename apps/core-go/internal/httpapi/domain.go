@@ -46,6 +46,11 @@ func (s *Server) opError(response http.ResponseWriter, err error, code string) {
 }
 
 func (s *Server) opErrorWithDetails(response http.ResponseWriter, err error, code string, details map[string]any) {
+	var surfaceErr *core.SurfaceError
+	if errors.As(err, &surfaceErr) {
+		writeErrorDetails(response, surfaceErr.Status, surfaceErr.Code, surfaceErr.Details)
+		return
+	}
 	status := http.StatusUnprocessableEntity
 	if errors.Is(err, core.ErrWorkflowRuntime) {
 		status = http.StatusBadGateway
@@ -117,7 +122,7 @@ func (s *Server) configureProviderRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body, valid := s.body(w, r)
-	if !valid {
+	if !valid || body["expected_versions"] == nil || body["idempotency_key"] == nil {
 		return
 	}
 	if err := s.app.ConfigureProviderRole(r.Context(), actor, body); err != nil {

@@ -26,7 +26,7 @@ func insertGoalBoundaryMessage(t *testing.T, f independentToolE2EFixture) string
 func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testing.T) {
 	for _, tc := range []struct{ name, code string }{
 		{"satisfied_progressed", "goal_evaluation_completion_impact_mismatch"},
-		{"duplicate_criterion", "goal_evaluation_wire_criterion_ref_invalid"},
+		{"conflicting_duplicate_criterion", "goal_evaluation_wire_criterion_duplicate_conflict"},
 		{"unknown_no_change", "goal_evaluation_unknown_requires_evidence"},
 		{"invalid_impact", "adk_final_contract_invalid"},
 		{"assistant_self_report", "goal_judgment_self_report_not_business_fact"},
@@ -93,8 +93,10 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 					output.Plans = []GoalPlanCandidate{{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Reason: "only plan", WaitCondition: "wait for evidence"}}
 				case "satisfied_progressed":
 					output.Evaluations[0].Impact = "progressed"
-				case "duplicate_criterion":
-					output.Evaluations[0].Judgments = append(output.Evaluations[0].Judgments, candidate.Judgments[0])
+				case "conflicting_duplicate_criterion":
+					contradictory := candidate.Judgments[0]
+					contradictory.Verdict = "not_satisfied"
+					output.Evaluations[0].Judgments = append(output.Evaluations[0].Judgments, contradictory)
 				case "unknown_no_change":
 					output.Evaluations[0].Impact = "no_change"
 					output.Evaluations[0].Judgments[0].Verdict = "unknown"
@@ -127,8 +129,22 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 				return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, output)}
 			})}
 			requestID := latestPendingGoalRequest(t, f)
-			_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
-			if err == nil || !strings.Contains(err.Error(), "goal_evaluation_native_submission_missing") {
+			result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
+			if tc.name == "unknown_no_change" {
+				// Deterministic normalization preserves uncertainty; it cannot
+				// invent satisfaction or complete the Goal.
+				if err != nil || result["status"] != "succeeded" {
+					t.Fatal("unknown normalization failed", result, err)
+				}
+				var status string
+				var progress float64
+				var resolutions int
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status,progress,(SELECT count(*) FROM public.goal_resolutions WHERE goal_id=$1) FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&status, &progress, &resolutions); err != nil || status != "active" || progress != 0 || resolutions != 0 {
+					t.Fatal("unknown evidence fabricated completion", status, progress, resolutions, err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), "goal_assessment_coverage_missing") {
 				t.Fatalf("rejected root was treated as covered: %v", err)
 			}
 			var resultRaw []byte
@@ -172,7 +188,7 @@ func TestGoalAssessmentRejectsMalformedAuthorityWithoutConsumingSource(t *testin
 			}
 			// Failed root submission keeps its sources pending; native errors are
 			// per-call feedback rather than a discarded aggregate response.
-			wantRequestState := "retry"
+			wantRequestState := "failed"
 			if status != "active" || revision != 1 || requestState != wantRequestState || consumed != 0 || evaluations != 0 || resolutions != 0 {
 				t.Fatalf("invalid output mutated authority: %s rev=%d request=%s consumed=%d evaluations=%d resolutions=%d", status, revision, requestState, consumed, evaluations, resolutions)
 			}

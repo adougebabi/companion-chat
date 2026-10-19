@@ -28,17 +28,42 @@ type mediaIntent struct {
 	ID, Owner, Prompt, ProviderPrompt, ProviderRequestID, ProviderJobID, WorkflowID string
 	Kind, MimeType, Status, QualityRetryGuidance, QualityVerdict                    string
 	QualityCandidateSHA                                                             string
+	StudioOwner, StudioJobID                                                        string
+	OwnerRequestID, OwnerItemID                                                     string
 	QualityRetryFeedback                                                            map[string]any
 	QualityRetryCount                                                               int
 	ConversationID, MessageID, MomentID                                             *string
 }
 
-func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[string]any, error) {
+func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result map[string]any, runErr error) {
+	release, acquired, lockErr := a.tryDailyReviewExecutionLock(ctx, "media-intent", intentID)
+	if lockErr != nil {
+		return nil, lockErr
+	}
+	if !acquired {
+		return nil, errors.New("media_execution_active")
+	}
+	defer release()
 	stopHeartbeat := startMediaHeartbeat(ctx, intentID)
 	defer stopHeartbeat()
 	recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "loading"})
 	intent, err := a.readMediaIntent(ctx, intentID)
 	if err != nil {
+		return nil, err
+	}
+	if activity.IsActivity(ctx) && mediaWorkflowIdentity(activity.GetInfo(ctx).WorkflowExecution.ID) != mediaWorkflowIdentity(intent.WorkflowID) {
+		return nil, errors.New("media_execution_workflow_stale")
+	}
+	if intent.StudioJobID != "" {
+		job, err := readStudioJobWith(ctx, a.DB.Pool(), intent.StudioOwner, intent.StudioJobID, false)
+		if err != nil {
+			return nil, err
+		}
+		if job["status"] == "completed" || job["status"] == "discarded" {
+			return map[string]any{"intent_id": intent.ID, "status": job["status"], "asset_id": mapValue(job["result"])["asset_id"], "quality_verdict": intent.QualityVerdict}, nil
+		}
+	}
+	if err := a.studioMediaActive(ctx, intent); err != nil {
 		return nil, err
 	}
 	assetID := "asset_" + intent.ID
@@ -65,6 +90,12 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 	if err != nil {
 		return nil, err
 	}
+	seconds, err := mediaGenerationTimeoutSeconds(config)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancelMedia := context.WithTimeout(ctx, time.Duration(seconds)*time.Second)
+	defer cancelMedia()
 	baseURL, workflow, err := comfyConfig(config)
 	if err != nil {
 		return nil, err
@@ -165,6 +196,9 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 				return nil, errors.New("current_capture_prompt_conflict")
 			}
 		}
+		if err := a.studioMediaActive(ctx, intent); err != nil {
+			return nil, err
+		}
 		recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
 		constraints := map[string]any{}
 		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil {
@@ -194,7 +228,24 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 					return nil, err
 				}
 			}
-			mime, content, readErr := a.readMediaAssetContent(ctx, referenceOwner, referenceAssetID)
+			var mime string
+			var content []byte
+			var readErr error
+			if mapValue(concept["reference_asset"])["grant_id"] != nil && intent.OwnerRequestID != "" {
+				actor, err := a.ownerMediaReferenceActor(ctx, intent.Owner, mapValue(concept["reference_asset"]), concept)
+				if err != nil {
+					return nil, err
+				}
+				mime, content, readErr = a.readExplicitMediaReference(ctx, actor, "fluctlight", intent.Owner, mapValue(concept["reference_asset"]))
+			} else if intent.StudioJobID != "" {
+				if mapValue(concept["reference_asset"])["grant_id"] != nil {
+					mime, content, readErr = a.readExplicitStudioReference(ctx, intent.StudioOwner, mapValue(concept["reference_asset"]), concept)
+				} else {
+					mime, content, readErr = a.readStudioMediaReference(ctx, intent.StudioOwner, referenceAssetID)
+				}
+			} else {
+				mime, content, readErr = a.readMediaAssetContent(ctx, referenceOwner, referenceAssetID)
+			}
 			if readErr != nil {
 				return nil, readErr
 			}
@@ -242,18 +293,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		payload, _ := json.Marshal(map[string]any{"prompt": workflow})
-		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
-		if err != nil {
-			return nil, err
-		}
-		request.Header.Set("Content-Type", "application/json")
-		a.recordDiagnosticEvent(ctx, "media.comfyui.prompt_submitted", "info", intent.Owner, intent.ProviderRequestID, "media:"+intent.ID, mediaComfyPromptSubmissionDiagnostic(intent, concept, prompt, workflow))
-		client := a.Provider.HTTP
-		if client == nil {
-			client = &http.Client{Timeout: 30 * time.Second}
-		}
-		response, err := client.Do(request)
+		response, err := a.submitComfyPrompt(ctx, intent, concept, workflow, prompt, baseURL)
 		if err != nil {
 			return nil, err
 		}
@@ -361,6 +401,9 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			}
 		}
 	}
+	if err := a.studioMediaActive(ctx, intent); err != nil {
+		return nil, err
+	}
 	objectKey := "media/" + assetID + "/v1"
 	_, err = a.Storage.PutObject(ctx, a.S3Bucket, objectKey, bytes.NewReader(content), int64(len(content)), minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
@@ -369,10 +412,13 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 	version := "v1"
 	workflowID := intent.WorkflowID
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.media_assets (id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'ready',now()) ON CONFLICT (id) DO NOTHING`, assetID, intent.Owner, version, intent.Kind, contentType, len(content), candidateSHA, a.S3Bucket, objectKey, intent.ProviderRequestID, workflowID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.media_assets (id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,media_scope,studio_owner_actor_id,studio_job_id,status,ready_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'ready',now()) ON CONFLICT (id) DO NOTHING`, assetID, nullableString(intent.Owner), version, intent.Kind, contentType, len(content), candidateSHA, a.S3Bucket, objectKey, intent.ProviderRequestID, workflowID, mediaIntentScope(intent), nullableString(intent.StudioOwner), nullableString(intent.StudioJobID)); err != nil {
 			return err
 		}
-		return nil
+		if intent.StudioJobID != "" {
+			return nil
+		}
+		return appendOutboxTx(ctx, tx, "media.asset.ready", "media_asset", assetID, intent.Owner, intent.ID, "media:"+intent.ID, "media-asset-ready:"+assetID, map[string]any{"asset_id": assetID, "intent_id": intent.ID})
 	})
 	if err != nil {
 		// Object storage succeeded but the authoritative asset transaction did
@@ -454,9 +500,16 @@ func mediaComfyPromptSubmissionDiagnostic(intent mediaIntent, concept map[string
 }
 
 func (a *App) markMediaIntentCompleted(ctx context.Context, intentID, assetID string) error {
+	intent, err := a.readMediaIntent(ctx, intentID)
+	if err != nil {
+		return err
+	}
+	if intent.StudioJobID != "" {
+		return a.settleStudioMedia(ctx, intent, true, "")
+	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var owner, prompt, status string
-		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,prompt,status FROM public.media_intents WHERE id=$1 FOR UPDATE`, intentID).Scan(&owner, &prompt, &status); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(owner_fluctlight_id,''),prompt,status FROM public.media_intents WHERE id=$1 FOR UPDATE`, intentID).Scan(&owner, &prompt, &status); err != nil {
 			return err
 		}
 		if status != "pending" && status != "running" && status != "completed" {
@@ -546,7 +599,7 @@ func recordMediaHeartbeat(ctx context.Context, details any) {
 func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent, error) {
 	var i mediaIntent
 	var qualityRetryFeedback []byte
-	err := a.DB.Pool().QueryRow(ctx, `SELECT id,owner_fluctlight_id,prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_retry_feedback,'{}'::jsonb),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &qualityRetryFeedback, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT id,COALESCE(owner_fluctlight_id,''),prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_retry_feedback,'{}'::jsonb),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id,COALESCE(studio_owner_actor_id,''),COALESCE(studio_job_id,''),COALESCE(owner_request_id,''),COALESCE(owner_item_id,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &qualityRetryFeedback, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID, &i.StudioOwner, &i.StudioJobID, &i.OwnerRequestID, &i.OwnerItemID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return i, ErrNotFound
 	}
@@ -815,23 +868,67 @@ func visualIdentityReferenceAssetID(concept map[string]any) string {
 }
 
 func (a *App) readMediaAssetContent(ctx context.Context, owner, assetID string) (string, []byte, error) {
+	return a.readScopedMediaAssetContent(ctx, owner, assetID, false)
+}
+
+func (a *App) submitComfyPrompt(ctx context.Context, intent mediaIntent, concept, workflow map[string]any, prompt, baseURL string) (*http.Response, error) {
+	// Uploading a reference is a separate slow network operation. Re-check an
+	// explicit authorization after that upload, immediately before starting a
+	// new Provider job. Already submitted jobs remain observable and cancelable.
+	reference := mapValue(concept["reference_asset"])
+	if reference["grant_id"] != nil {
+		if intent.StudioJobID != "" && concept["studio_owner_actor_id"] != intent.StudioOwner {
+			return nil, ErrUnauthorized
+		}
+		if intent.StudioJobID == "" && (intent.OwnerRequestID == "" || mapValue(concept["owner_media_request"])["request_id"] != intent.OwnerRequestID) {
+			return nil, errors.New("media_reference_target_scope_invalid")
+		}
+	}
+	if len(reference) > 0 {
+		if err := a.validateMediaReferenceAsset(ctx, intent.Owner, reference, concept); err != nil {
+			return nil, err
+		}
+	}
+	payload, err := json.Marshal(map[string]any{"prompt": workflow})
+	if err != nil {
+		return nil, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	a.recordDiagnosticEvent(ctx, "media.comfyui.prompt_submitted", "info", intent.Owner, intent.ProviderRequestID, "media:"+intent.ID, mediaComfyPromptSubmissionDiagnostic(intent, concept, prompt, workflow))
+	client := a.Provider.HTTP
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	return client.Do(request)
+}
+func (a *App) readScopedMediaAssetContent(ctx context.Context, owner, assetID string, studio bool) (string, []byte, error) {
 	if a.Storage == nil || strings.TrimSpace(assetID) == "" {
 		return "", nil, errors.New("visual_identity_reference_storage_unavailable")
 	}
-	var bucket, objectKey, mimeType string
-	query := `SELECT bucket,object_key,mime_type FROM public.media_assets WHERE id=$1 AND status='ready'`
+	var bucket, objectKey, mimeType, objectVersion string
+	query := `SELECT bucket,object_key,mime_type,COALESCE(object_version,'') FROM public.media_assets WHERE id=$1 AND status='ready'`
 	args := []any{assetID}
 	if strings.TrimSpace(owner) != "" {
-		query = `SELECT bucket,object_key,mime_type FROM public.media_assets WHERE id=$1 AND owner_fluctlight_id=$2 AND status='ready'`
+		query = `SELECT bucket,object_key,mime_type,COALESCE(object_version,'') FROM public.media_assets WHERE id=$1 AND owner_fluctlight_id=$2 AND status='ready'`
 		args = append(args, owner)
 	}
-	if err := a.DB.Pool().QueryRow(ctx, query, args...).Scan(&bucket, &objectKey, &mimeType); err != nil {
+	if studio {
+		query = `SELECT bucket,object_key,mime_type,COALESCE(object_version,'') FROM public.media_assets WHERE id=$1 AND studio_owner_actor_id=$2 AND media_scope='studio' AND status='ready'`
+		args = []any{assetID, owner}
+	} else {
+		query += ` AND media_scope='fluctlight'`
+	}
+	if err := a.DB.Pool().QueryRow(ctx, query, args...).Scan(&bucket, &objectKey, &mimeType, &objectVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil, ErrNotFound
 		}
 		return "", nil, err
 	}
-	object, err := a.Storage.GetObject(ctx, bucket, objectKey, minio.GetObjectOptions{})
+	object, err := a.Storage.GetObject(ctx, bucket, objectKey, minio.GetObjectOptions{VersionID: objectVersion})
 	if err != nil {
 		return "", nil, err
 	}
@@ -856,6 +953,8 @@ func (a *App) uploadComfyReferenceImage(ctx context.Context, baseURL, assetID, m
 		extension = ".jpg"
 	case "image/webp":
 		extension = ".webp"
+	case "image/gif":
+		extension = ".gif"
 	}
 	filename := "visual_identity_reference_" + stableDigest(assetID) + extension
 	var body bytes.Buffer
@@ -997,6 +1096,12 @@ func downloadComfy(ctx context.Context, baseURL string, output map[string]any) (
 }
 
 func (a *App) publishMediaAsset(ctx context.Context, intent mediaIntent, assetID string) error {
+	if intent.OwnerRequestID != "" {
+		return a.publishOwnerMediaAsset(ctx, intent, assetID)
+	}
+	if intent.StudioJobID != "" {
+		return nil
+	}
 	var draftBound bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_reply_actions WHERE media_intent_id=$1)`, intent.ID).Scan(&draftBound); err != nil {
 		return err
@@ -1090,21 +1195,27 @@ func appendUniqueAssetRef(refs []any, assetID string) []any {
 }
 
 func (a *App) ServeMedia(ctx context.Context, writer http.ResponseWriter, assetID, rangeHeader string) error {
-	var bucket, key, mime, etag string
+	if a.Storage == nil {
+		return &SurfaceError{Status: 503, Code: "media_storage_not_configured", Message: "媒体读取存储尚未配置"}
+	}
+	var bucket, key, mime, etag, objectVersion, scope string
 	var size int
-	err := a.DB.Pool().QueryRow(ctx, `SELECT bucket,object_key,mime_type,byte_size,COALESCE(etag,'') FROM public.media_assets WHERE id=$1 AND status='ready'`, assetID).Scan(&bucket, &key, &mime, &size, &etag)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT m.bucket,m.object_key,m.mime_type,m.byte_size,COALESCE(m.etag,''),COALESCE(m.object_version,''),COALESCE(u.storage_scope,'') FROM public.media_assets m LEFT JOIN public.owner_media_uploads u ON u.id=m.owner_upload_id WHERE m.id=$1 AND m.status='ready'`, assetID).Scan(&bucket, &key, &mime, &size, &etag, &objectVersion, &scope)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
 	if err != nil {
 		return err
 	}
+	if scope != "" && scope != a.ownerUploadStorageScope() {
+		return &SurfaceError{Status: 503, Code: "media_storage_scope_changed", Message: "此素材的原存储范围与当前配置不一致"}
+	}
 	start, end, partial, err := parseRange(rangeHeader, int64(size))
 	if err != nil {
 		writer.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", size))
 		return &rangeError{}
 	}
-	options := minio.GetObjectOptions{}
+	options := minio.GetObjectOptions{VersionID: objectVersion}
 	if partial {
 		if err := options.SetRange(start, end); err != nil {
 			return err
@@ -1195,8 +1306,8 @@ func parseRange(value string, size int64) (int64, int64, bool, error) {
 }
 
 func (a *App) AuthorizeAsset(ctx context.Context, actorID, assetID string) error {
-	var owner string
-	err := a.DB.Pool().QueryRow(ctx, `SELECT m.owner_fluctlight_id FROM public.media_assets m JOIN public.fluctlights f ON f.id=m.owner_fluctlight_id WHERE m.id=$1 AND m.status='ready' AND f.created_by_actor_id=$2`, assetID, actorID).Scan(&owner)
+	var id string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT m.id FROM public.media_assets m WHERE m.status='ready' AND `+mediaAssetReadGrantSQL+` AND m.id=$2`, actorID, assetID).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}

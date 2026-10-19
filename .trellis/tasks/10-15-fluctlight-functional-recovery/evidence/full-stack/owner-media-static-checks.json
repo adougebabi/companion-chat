@@ -1,0 +1,62 @@
+{
+  "sourceHead": "0084_owner_media",
+  "executionBoundary": "Development checks only. No live API, PG migration/business, MinIO, browser or model validation was executed.",
+  "checks": [
+    {
+      "command": "pnpm --filter @fluctlight/browser-client generate:openapi; generate; core-client generate",
+      "result": "passed sequentially; generated contract artifacts retained"
+    },
+    {
+      "command": "pnpm -r typecheck",
+      "result": "passed",
+      "session": 71678
+    },
+    {
+      "command": "go build ./cmd/api ./cmd/worker",
+      "result": "passed",
+      "session": 7575
+    },
+    {
+      "command": "node --test apps/web/test/v3-media-upload.test.mjs apps/web/test/v3-media-metadata.test.mjs apps/web/test/v3-persistent-command.test.mjs",
+      "result": "10 passed, 0 skipped",
+      "chunk": "07a6be"
+    },
+    {
+      "command": "go test targeted OwnerMediaPreparation/StorageErrorCodes, MediaMetadataClosedBody and MultipartMediaUploadSessionCSRF",
+      "result": "4 selected pure/controlled transport tests passed; migrations package only compiled, no migration tests executed",
+      "session": 94482
+    },
+    {
+      "command": "pnpm regression:v3:self-test",
+      "result": "20 passed; 17 help entrypoints covered, no business requests",
+      "session": 63657
+    },
+    {
+      "command": "pnpm --filter @fluctlight/web build",
+      "result": "passed; formal bundle no-Mock verification passed",
+      "session": 97539
+    }
+  ],
+  "independentReview": {
+    "backend": [
+      "metadata join snapshot race fixed with separate asset lock before reading annotation"
+    ],
+    "frontend": [
+      "Owner/original-key fence rechecked after lookup/hash before file transmission",
+      "retry compares actual frozen command rather than newer draft"
+    ],
+    "regressions": "Pure upload and controlled metadata tests passed. Concurrent PG CAS test authored and compiled only."
+  },
+  "authoredUnexecuted": [
+    "TestOwnerMediaUploadRecoversSameObjectAndFencesOwnerAndMetadata (PG + controlled S3 transport, not real MinIO)",
+    "TestOwnerMediaUpgradePreservesRealGeneratedProducer",
+    "L09 upload / upload-bytes / upload-metadata (actual deployment; user after full delivery)"
+  ],
+  "remaining": [
+    "Display avatar selection",
+    "Explicit model-reference grants and original/person image paths",
+    "Reference/lifecycle/deletion tasks",
+    "Item photos and general media generation",
+    "Other unfinished work packages and unified regression"
+  ]
+}

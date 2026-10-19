@@ -1,0 +1,8 @@
+FROM alpine:3.22
+ARG SOURCE_REVISION
+LABEL org.opencontainers.image.source="https://github.com/minio/mc" org.opencontainers.image.revision="${SOURCE_REVISION}"
+RUN apk add --no-cache ca-certificates
+COPY mc /usr/local/bin/mc
+COPY LICENSE /licenses/LICENSE
+COPY CREDITS /licenses/CREDITS
+ENTRYPOINT ["/usr/local/bin/mc"]

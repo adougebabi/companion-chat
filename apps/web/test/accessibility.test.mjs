@@ -28,7 +28,8 @@ test("control center keeps keyboard, live-region, and form boundaries explicit",
   assert.match(appSource, /autocomplete="current-password"/);
   assert.match(appSource, /aria-labelledby="auth-title"/);
   assert.match(authSource, /data-test="signout"/);
-  assert.match(authSource, /store\.signOut/);
+  assert.match(authSource, /d\.session = null/);
+  assert.match(authSource, /退出登录（模拟）/);
   assert.match(appSource, /@keydown="onKeydown"/);
   assert.doesNotMatch(appSource, /v-html/);
 });

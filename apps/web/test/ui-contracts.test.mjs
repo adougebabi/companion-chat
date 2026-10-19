@@ -9,7 +9,7 @@ import { validateFields } from "../src/lib/form-validation.ts";
 import { parseWorkflowTemplate, mediaSettingsPatch, autonomySettingsPatch, workflowSummary } from "../src/lib/configuration-forms.ts";
 import { workflowPresentation } from "../src/lib/diagnostic-presentation.ts";
 import { userError } from "../src/lib/user-feedback.ts";
-import { backgroundDraft, backgroundFromDraft } from "../src/lib/actor-user-background.ts";
+import { backgroundDraft, backgroundFromDraft, actorUserBackgroundFields } from "../src/lib/actor-user-background.ts";
 
 test("field validation rejects whitespace, invalid numbers and timezone aliases while preserving false and zero", () => {
   const errors=validateFields([
@@ -51,9 +51,9 @@ test("guided autonomy updates preserve advanced values and configured custom act
   assert.equal(saved.topic_suppression_seconds,1800);assert.equal(saved.budget_remaining,0);assert.deepEqual(saved.allowed_actions,["custom_action"]);
 });
 
-test("background round trips preserve all ten fields and the unknown/no meeting distinction", () => {
+test("background round trips preserve all supported fields and the unknown/no meeting distinction", () => {
   const background={name:"样本",occupation:"编辑",background:"资料",interests:"画画",preferences:"安静",location:"上海",location_scope:"同城",timezone:"Asia/Shanghai",relationship_distance:"线上",meeting_confirmed:false};
-  assert.deepEqual(backgroundFromDraft(backgroundDraft(background)),background);
+  assert.deepEqual(backgroundFromDraft(backgroundDraft(background)),{...Object.fromEntries(actorUserBackgroundFields.map(({key})=>[key,null])),...background});
   assert.equal(backgroundFromDraft({meeting_confirmed:"unknown"}).meeting_confirmed,null);
 });
 

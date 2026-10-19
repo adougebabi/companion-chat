@@ -138,3 +138,36 @@ func TestWardrobePartialConflictExplainsReplacementCorrection(t *testing.T) {
 		t.Fatalf("unchanged wearing wrote again: %#v %v", corrected, err)
 	}
 }
+
+func TestOrdinaryObjectBorrowUseAndReturnRetainsSeparateAuthorities(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	borrowed, err := f.app.ExecuteTool(f.ctx, f.request(wardrobeBorrowCapabilityName, "borrow-ordinary-book", map[string]any{"lender": "测试图书馆", "reason": "明确获准借阅的受控夹具", "items": []any{map[string]any{"item_kind": "object", "category": "book", "slot": "", "description": "BORROW-OBJECT-TEST book"}}}))
+	if err != nil || borrowed.Result.Status != "completed" {
+		t.Fatal(borrowed, err)
+	}
+	item := mapValue(arrayValue(mapValue(borrowed.Result.Output)["items"])[0])
+	id := stringValue(item["item_id"])
+	if item["item_kind"] != "object" || item["ownership"] != "borrowed" {
+		t.Fatal("wrong acquisition identity", item)
+	}
+	var worn, uses int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT (SELECT count(*) FROM public.fluctlight_worn_items WHERE fluctlight_id=$1 AND item_id=$2),(SELECT count(*) FROM public.fluctlight_item_uses WHERE fluctlight_id=$1 AND item_id=$2)`, f.fluctlightID, id).Scan(&worn, &uses); err != nil || worn != 0 || uses != 0 {
+		t.Fatal("borrow changed wearing/use", worn, uses, err)
+	}
+	used, err := f.app.ExecuteTool(f.ctx, f.request(itemUseCapabilityName, "use-borrowed-book", map[string]any{"operation": "start", "item_id": id, "activity": "阅读借来的书"}))
+	if err != nil || used.Result.Status != "completed" {
+		t.Fatal(used, err)
+	}
+	returned, err := f.app.ExecuteTool(f.ctx, f.request(wardrobeReturnCapabilityName, "return-borrowed-book", map[string]any{"reason": "阅读后实际归还的受控夹具", "item_ids": []string{id}}))
+	if err != nil || returned.Result.Status != "completed" {
+		t.Fatal(returned, err)
+	}
+	detail, err := f.app.OwnerInventoryItem(f.ctx, f.ownerID, f.fluctlightID, id)
+	if err != nil || detail["use"] != nil || detail["availability"] != "unavailable" || detail["ownership"] != "borrowed" {
+		t.Fatal("return mixed ownership with usage", detail, err)
+	}
+	var events int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.fluctlight_item_use_events WHERE fluctlight_id=$1 AND item_id=$2`, f.fluctlightID, id).Scan(&events); err != nil || events != 2 {
+		t.Fatal("use/stop evidence lost", events, err)
+	}
+}

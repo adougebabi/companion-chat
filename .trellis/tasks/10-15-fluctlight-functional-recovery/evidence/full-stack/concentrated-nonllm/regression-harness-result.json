@@ -1,0 +1,16 @@
+{
+  "selfTest": {
+    "pass": 24,
+    "fail": 0,
+    "realModels": 0
+  },
+  "registeredEntrypoints": 17,
+  "realPreflight": {
+    "case": "L01",
+    "status": "preflight_passed",
+    "executionMode": "preflight",
+    "modelTriggerOperations": 0,
+    "fullWorkflowAccepted": false
+  },
+  "liveScenariosExecuted": false
+}

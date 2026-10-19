@@ -171,6 +171,7 @@ func (p *OutboxPublisher) fail(ctx context.Context, row outboxRow, cause error) 
 }
 
 type EventConsumer struct {
+	Apply       func(context.Context, pgx.Tx, EventEnvelope) error
 	Pool        *pgxpool.Pool
 	Redis       redis.UniversalClient
 	Stream      string
@@ -270,6 +271,7 @@ func (c *EventConsumer) process(ctx context.Context, message redis.XMessage) err
 	var inboxID int64
 	err = tx.QueryRow(ctx, `INSERT INTO public.platform_consumer_inbox(consumer_group,event_id,result) VALUES($1,$2,$3) ON CONFLICT(consumer_group,event_id) DO NOTHING RETURNING id`, c.Group, event.EventID, []byte(eventValue)).Scan(&inboxID)
 	if errors.Is(err, pgx.ErrNoRows) {
+		_ = tx.Rollback(ctx)
 		return c.Redis.XAck(ctx, c.Stream, c.Group, message.ID).Err()
 	}
 	if err != nil {
@@ -278,6 +280,11 @@ func (c *EventConsumer) process(ctx context.Context, message redis.XMessage) err
 	effectID := "consumer_effect_" + stableDigest(c.Group+":"+event.EventID)
 	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_consumer_effects(id,consumer_group,event_id,effect_type,aggregate_type,aggregate_id,aggregate_sequence,correlation_id,fluctlight_id,payload_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,encode(digest($10,'sha256'),'hex')) ON CONFLICT(id) DO NOTHING`, effectID, c.Group, event.EventID, consumerEffectType(c.Group), event.AggregateType, event.AggregateID, event.AggregateSequence, event.CorrelationID, nullable(event.FluctlightID), eventValue); err != nil {
 		return err
+	}
+	if c.Apply != nil {
+		if err := c.Apply(ctx, tx, event); err != nil {
+			return err
+		}
 	}
 	if event.AggregateType != "" && event.AggregateID != "" {
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_consumer_heads(consumer_group,aggregate_type,aggregate_id,last_sequence) VALUES($1,$2,$3,$4) ON CONFLICT(consumer_group,aggregate_type,aggregate_id) DO UPDATE SET last_sequence=GREATEST(public.platform_consumer_heads.last_sequence,excluded.last_sequence),updated_at=now()`, c.Group, event.AggregateType, event.AggregateID, event.AggregateSequence); err != nil {

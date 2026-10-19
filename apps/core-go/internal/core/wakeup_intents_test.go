@@ -663,7 +663,8 @@ func TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage(t *te
 		calls++
 		if calls == 1 {
 			wire := jsonString(payload)
-			if !strings.Contains(wire, "response_intent") || !strings.Contains(wire, "internal diagnostics") {
+			property := mapValue(mapValue(wakeUpResponseSchema()["properties"])["response_intent"])
+			if !strings.Contains(wire, "response_intent") || len(arrayValue(payload["tools"])) == 0 || property["maxLength"] != 4000 || stringValue(property["description"]) == "" {
 				t.Fatal("WakeUp lost diagnostic routing contract")
 			}
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("wake-control-call", conversationReplyCapabilityName, map[string]any{"text": "no_op", "topic_key": "afternoon_work_resume", "purpose": reason})}}
@@ -690,7 +691,7 @@ func TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage(t *te
 		t.Fatalf("persisted diagnostic=%s err=%v", raw, err)
 	}
 	results, _ := mapValue(wake["result"])["capability_results"].([]CapabilityResult)
-	if len(results) != 1 || results[0].ErrorCode != "reply_control_value_invalid" {
+	if len(results) != 1 || results[0].Status != "handled" || mapValue(results[0].Output)["warning_code"] != "reply_control_value_invalid" || mapValue(results[0].Output)["mutation_committed"] != false || mapValue(results[0].Output)["effect_applied"] != false {
 		t.Fatalf("failed Tool audit missing %#v", results)
 	}
 	if _, err := app.ProcessWakeUp(ctx, fl, 1); err != nil || calls != 2 {

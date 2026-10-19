@@ -74,11 +74,11 @@ func TestIndependentGoalToolsPersistAndDoNotCompleteFromCommands(t *testing.T) {
 			t.Fatalf("%s %#v %v", name, result, err)
 		}
 	}
-	if _, err := f.app.ExecuteTool(f.ctx, f.request("goal.decide", "force-complete", map[string]any{"operation": "complete", "goal_id": id, "expected_revision": 1, "reason": "没有事实"})); err == nil {
-		t.Fatal("forced completion accepted")
-	}
-	if _, err := f.app.ExecuteTool(f.ctx, f.request("goal.evaluate", "stale-assessment", map[string]any{"goal_id": id, "expected_revision": 0, "reason": "陈旧请求"})); err == nil {
-		t.Fatal("stale assessment accepted")
+	forced, err := f.app.ExecuteTool(f.ctx, f.request("goal.decide", "force-complete", map[string]any{"operation": "complete", "goal_id": id, "expected_revision": 1, "reason": "没有事实"}))
+	requireHandledToolNoEffect(t, forced, err, "invalid_arguments")
+	stale, err := f.app.ExecuteTool(f.ctx, f.request("goal.evaluate", "stale-assessment", map[string]any{"goal_id": id, "expected_revision": 0, "reason": "陈旧请求"}))
+	if err == nil || stale.Result.Status != "failed" || stale.Result.ErrorCode != "goal_revision_conflict" {
+		t.Fatal("stale assessment accepted", stale, err)
 	}
 	var state string
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.fluctlight_goals WHERE id=$1`, id).Scan(&state); err != nil || state != "active" {

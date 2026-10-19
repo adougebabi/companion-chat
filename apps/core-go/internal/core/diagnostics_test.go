@@ -181,7 +181,7 @@ func TestProviderUsageAndWireBudgetDiagnosticsNormalizeActuals(t *testing.T) {
 	}
 }
 
-func TestInitializationScenarioUsesFidelityBudgetAndTimeout(t *testing.T) {
+func TestInitializationScenarioPreservesConfiguredBudgetAndExtendsTimeout(t *testing.T) {
 	configured := providerAssignment{
 		Timeout: 300 * time.Second, TokenBudget: 4096,
 		ContextWindowTokens: 65536, MaxInputTokens: 49152,
@@ -221,8 +221,35 @@ func TestDetailedPromptMetricsStayOutOfOrdinaryModelRunsAPIAndRemainPrunable(t *
 	if strings.Contains(modelRuns, "metrics") || strings.Contains(modelRuns, "actual_prompt_tokens") || strings.Contains(modelRuns, "fluctlight_id") {
 		t.Fatalf("detailed prompt metrics leaked into ordinary ModelRuns API: %s", modelRuns)
 	}
-	if !strings.Contains(text, `"diagnostic_model_runs"`) || !strings.Contains(text, `"DELETE FROM public."+table`) {
-		t.Fatal("diagnostic model runs are no longer covered by clear/prune authority")
+	projection, err := os.ReadFile("diagnostic_model_runs_filter.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectionText := string(projection)
+	start = strings.Index(projectionText, "row := map[string]any")
+	end = strings.Index(projectionText[start:], "out = append(out, row)")
+	if start < 0 || end < 0 {
+		t.Fatal("ordinary ModelRuns projection not found")
+	}
+	for _, forbidden := range []string{`"metrics":`, `row["metrics"]`, `"actual_prompt_tokens":`, `row["actual_prompt_tokens"]`, `"fluctlight_id":`, `row["fluctlight_id"]`} {
+		if strings.Contains(projectionText[start:start+end], forbidden) {
+			t.Fatalf("ordinary ModelRuns projection exposes %s", forbidden)
+		}
+	}
+	if !strings.Contains(text, `"diagnostic_model_runs"`) || !strings.Contains(text, "`DELETE FROM public.`+table") {
+		t.Fatal("diagnostic model runs are no longer covered by prune authority")
+	}
+	scoped, err := os.ReadFile("diagnostic_export.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{`"model-runs": "diagnostic_model_runs"`, "ClearOwnerDiagnosticRecords", `body["confirm"] != true`, `stringValue(body["snapshot"])`, "pg_visible_in_snapshot", "DELETE FROM public."} {
+		if !strings.Contains(string(scoped), required) {
+			t.Fatalf("scoped cleanup missing %q", required)
+		}
+	}
+	if !strings.Contains(text, "diagnostic_clear_scope_required") {
+		t.Fatal("legacy blind cleanup is not rejected")
 	}
 	// Diagnostics are explicitly non-fatal when their store is unavailable.
 	(&App{}).recordDiagnosticEvent(nil, "prompt.test", "info", "", "", "", map[string]any{"ok": true})

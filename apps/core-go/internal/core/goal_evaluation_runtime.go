@@ -106,15 +106,26 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		if until, err := admitGoalEvaluationCycleTx(ctx, tx, snapshot.FluctlightID, id, available); err != nil {
+		// Terminal bookkeeping does not invoke a model and must not wait for
+		// the model cadence. The Life lock fences concurrent Goal writers.
+		if _, err := tx.Exec(ctx, `UPDATE public.goal_reviews r SET status='superseded',explanation='Goal ended before review; history retained',updated_at=now() FROM public.fluctlight_goals g WHERE r.evaluation_request_id=$1 AND r.goal_id=g.id AND r.status='pending' AND g.status NOT IN ('active','paused')`, id); err != nil {
 			return err
-		} else if !until.IsZero() {
-			prior = map[string]any{"status": "deferred", "reason": "evaluation_cadence", "not_before": until.UTC().Format(time.RFC3339Nano)}
-			return nil
+		}
+		var hasTargets bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND (profile_id IS NULL OR profile_id=$2) AND status IN ('active','paused') AND (jsonb_array_length($3::jsonb)=0 OR $3::jsonb ? id))`, snapshot.FluctlightID, snapshot.ProfileID, goalRaw).Scan(&hasTargets); err != nil {
+			return err
+		}
+		if hasTargets {
+			if until, err := admitGoalEvaluationCycleTx(ctx, tx, snapshot.FluctlightID, id, available); err != nil {
+				return err
+			} else if !until.IsZero() {
+				prior = map[string]any{"status": "deferred", "reason": "evaluation_cadence", "not_before": until.UTC().Format(time.RFC3339Nano)}
+				return nil
+			}
 		}
 		snapshot.ClaimRevision = claimRevision + 1
 		var frozen goalEvaluationSnapshot
-		if json.Unmarshal(pendingSnapshotRaw, &frozen) == nil && frozen.Protocol == goalEvaluationToolProtocol {
+		if hasTargets && json.Unmarshal(pendingSnapshotRaw, &frozen) == nil && frozen.Protocol == goalEvaluationToolProtocol {
 			frozen.ClaimRevision = snapshot.ClaimRevision
 			snapshot = frozen
 			_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='processing',attempt_count=attempt_count+1,claim_revision=$2,claimed_at=now(),snapshot=$3,error_code=NULL,updated_at=now() WHERE id=$1`, id, snapshot.ClaimRevision, jsonBytes(snapshot))
@@ -124,9 +135,6 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 			return err
 		}
 		if err := tx.QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, snapshot.FluctlightID).Scan(&snapshot.OwnerActorID); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.goal_reviews r SET status='superseded',explanation='Goal ended before review; history retained',updated_at=now() FROM public.fluctlight_goals g WHERE r.evaluation_request_id=$1 AND r.goal_id=g.id AND r.status='pending' AND g.status NOT IN ('active','paused')`, id); err != nil {
 			return err
 		}
 		goalIDs := decisionServiceRefValues(decodeArray(goalRaw))
@@ -467,6 +475,24 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		return result, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, errors.Join(runErr, readErr))
 	}
 	result, err := a.finalizeGoalEvaluationSubmissions(ctx, snapshot, claimedSnapshot, projection)
+	if err != nil && err.Error() == "goal_evaluation_native_submission_missing" && !goalEvaluationNeedsFreshSnapshot(result) {
+		// Native final prose cannot cover an omitted root. Preserve accepted
+		// siblings and offer one explicit continuation using the same frozen
+		// authority and the durable submission journal. Provider failures stay
+		// failures; this does not retry a failed physical model request.
+		correctionCtx := context.WithValue(ctx, goalEvaluationCoverageCorrectionKey{}, true)
+		correction, correctionErr := a.RunGoalEvaluationTask(correctionCtx, snapshot, projection)
+		if recordErr := a.recordGoalEvaluationSubmissionErrors(ctx, snapshot, correction.Trace); recordErr != nil {
+			correctionErr = errors.Join(correctionErr, recordErr)
+		}
+		if correctionErr != nil {
+			return result, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, correctionErr)
+		}
+		result, err = a.finalizeGoalEvaluationSubmissions(ctx, snapshot, claimedSnapshot, projection)
+		if err != nil && err.Error() == "goal_evaluation_native_submission_missing" && !goalEvaluationNeedsFreshSnapshot(result) {
+			err = errors.New("goal_assessment_coverage_missing")
+		}
+	}
 	if err != nil {
 		if err.Error() == "goal_evaluation_native_submission_missing" && goalEvaluationNeedsFreshSnapshot(result) {
 			return a.replaceStaleGoalEvaluation(ctx, snapshot, result)

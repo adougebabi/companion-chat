@@ -27,11 +27,24 @@ func mediaNormalizationInput(concept map[string]any) (map[string]any, error) {
 		return nil, err
 	}
 	result := map[string]any{"intent": concept["intent"], "media_capture_plan": cloneMap(mapValue(concept["media_capture_plan"])), "explicit_constraints": cloneMap(mapValue(concept["explicit_constraints"]))}
+	if source := mapValue(concept["owner_media_request"]); len(source) > 0 {
+		result["owner_image_request_source"] = cloneMap(source)
+	}
 	if bindings := mapValue(concept["referent_bindings"]); len(bindings) > 0 {
 		result["referent_bindings"] = cloneMap(bindings)
 	}
 	if count, known := concept["human_count"]; known {
 		result["human_count"] = count
+	}
+	if concept["source"] == "studio_definition" {
+		source := cloneMap(mapValue(concept["studio_source"]))
+		// Only selected source, no Actor/appearance lookups. For a nonhuman
+		// image an NPC definition cannot leak personal identity into input.
+		if mapValue(concept["media_capture_plan"])["human_presence"] == "none" && eventEnum(source["resource_kind"], "npc", "character_template", "persona_fragment") {
+			delete(source, "body")
+			delete(source, "name")
+		}
+		result["studio_definition_source"] = source
 	}
 	ids := []any{"scene", "animal", "object"}
 	plan := mapValue(concept["media_capture_plan"])
@@ -66,6 +79,9 @@ func mediaNormalizationInput(concept map[string]any) (map[string]any, error) {
 	}
 	if reference := mapValue(concept["reference_asset"]); len(reference) > 0 {
 		result["allowed_reference_assets"] = []any{cloneMap(reference)}
+		if reference["grant_id"] != nil {
+			result["reference_provenance"] = map[string]any{"source": "owner_explicit_unverified_content", "content_verified": false, "purpose": reference["purpose"], "semantics": "Owner allows this exact image only for the explicitly bound target/use. It is not proof of any identity, nonhuman content, current Life or visual review. Do not invent private Actor facts from the image."}
+		}
 	}
 	if subjects := mediaOtherSubjectProviderData(concept); len(subjects) > 0 {
 		result["other_subjects"] = subjects

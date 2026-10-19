@@ -31,6 +31,9 @@ func compactReflectionEvidenceV2(evidence []map[string]any) []map[string]any {
 			if observation := boundedReflectionObservation(stringValue(payload["text"])); observation != "" {
 				entry["observation"] = observation
 			}
+		case ownerReflectionFeedbackFactType:
+			candidate := mapValue(payload["candidate"])
+			entry["owner_feedback"] = map[string]any{"text": boundedReflectionScalar(candidate["feedback"], 2000), "stance": boundedReflectionScalar(candidate["stance"], 32), "previous_reflection_summary_excerpt": boundedReflectionScalar(candidate["reflection_summary"], 2000), "evidence_semantics": "Opinion about an earlier reflection; not automatic agreement, a fact correction, or an applied personality change"}
 		case "autonomy.result", "internal.wake_up":
 			if outcomes := compactReflectionEvidencePayload("autonomy.result", payload); !isEmptyReflectionProviderValue(outcomes) {
 				entry["action_outcomes"] = outcomes
@@ -377,7 +380,7 @@ func (a *App) processReflectionV2(
 				return ErrConflict
 			}
 		}
-		if err := validateActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, a.now().UTC()); err != nil {
+		if err := validateActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, a.now().UTC(), firstString(projection.CurrentSpeaker["actor_id"], ownerActorID)); err != nil {
 			return err
 		}
 		activeMemoryResults, err = a.applyReflectionActiveMemoryCommandsTx(ctx, tx, activeMemoryCommands)
@@ -419,26 +422,8 @@ func (a *App) processReflectionV2(
 		if err := a.applyReflectionSlotCandidatesV2Tx(ctx, tx, fluctlightID, proposal, plan, evolution); err != nil {
 			return err
 		}
-		if err := a.applyReflectionDevelopingSelfV2Tx(ctx, tx, fluctlightID, proposal, plan, evolution); err != nil {
+		if err := a.applyReflectionDevelopingSelfV2Tx(ctx, tx, fluctlightID, proposal, &plan, evolution, projection.ActorFacts); err != nil {
 			return err
-		}
-		for _, candidatePlan := range plan.Candidates {
-			if candidatePlan.Domain != EvolutionDevelopingSelf || candidatePlan.Disposition != EvolutionAccepted {
-				continue
-			}
-			candidate := proposal.DevelopingSelfCandidates[candidatePlan.Index]
-			var id string
-			var revision int
-			err := tx.QueryRow(ctx, `SELECT id,revision FROM public.fluctlight_developing_self_claims WHERE fluctlight_id=$1 AND category=$2 AND claim=$3 AND status IN ('active','uncertain') ORDER BY revision DESC LIMIT 1`, fluctlightID, candidate.Category, candidate.Claim).Scan(&id, &revision)
-			if errors.Is(err, pgx.ErrNoRows) {
-				continue
-			}
-			if err != nil {
-				return err
-			}
-			if err := attachActorFactSnapshotTx(ctx, tx, fluctlightID, projection.ActorFacts, "developing_self", id, revision, a.now().UTC()); err != nil {
-				return err
-			}
 		}
 		liveOverlayState, loadErr := loadPersonaEvolutionState(ctx, tx, overlayBaseline)
 		if loadErr != nil {

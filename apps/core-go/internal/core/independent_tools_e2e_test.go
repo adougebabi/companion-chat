@@ -65,6 +65,7 @@ var independentToolProductInventory = []string{
 	"wardrobe.outfit.save",
 	"wardrobe.return",
 	"wardrobe.wear",
+	"world.npc.encounter", // 0076: independent virtual-world opportunity Tool.
 }
 
 func TestIndependentToolE2ECapabilityCatalog(t *testing.T) {

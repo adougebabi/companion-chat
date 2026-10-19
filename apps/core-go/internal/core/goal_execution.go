@@ -174,7 +174,11 @@ func readGoalClosureExecutionWith(ctx context.Context, q lifeContextQuerier, own
 	if err == nil {
 		result["last_result"] = decodeObject(raw)
 	}
-	err = q.QueryRow(ctx, `SELECT jsonb_build_object('source_id',e.source_id,'source_ref','source:'||e.id,'kind',e.source_kind,'status',l.status,'reason',l.reason,'occurred_at',e.occurred_at) FROM public.goal_evidence_links l JOIN public.goal_source_events e ON e.id=l.source_event_id WHERE l.fluctlight_id=$1 AND l.goal_id=$2 ORDER BY e.occurred_at DESC,e.id DESC LIMIT 1`, owner, goalID).Scan(&raw)
+	// Prefer the proof actually used by the latest root assessment. A newer
+	// candidate link is context for later review, not the evidence that settled
+	// the Goal, and must not replace that provenance in the execution view.
+	assessedRefs := decisionServiceRefValues(mapValue(result["last_evaluation"])["evidence_refs"])
+	err = q.QueryRow(ctx, `SELECT jsonb_build_object('source_id',e.source_id,'source_ref','source:'||e.id,'kind',e.source_kind,'status',l.status,'reason',l.reason,'occurred_at',e.occurred_at) FROM public.goal_evidence_links l JOIN public.goal_source_events e ON e.id=l.source_event_id WHERE l.fluctlight_id=$1 AND l.goal_id=$2 ORDER BY CASE WHEN 'source:'||e.id::text=ANY($3::text[]) THEN 0 ELSE 1 END,e.occurred_at DESC,e.id DESC LIMIT 1`, owner, goalID, assessedRefs).Scan(&raw)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}

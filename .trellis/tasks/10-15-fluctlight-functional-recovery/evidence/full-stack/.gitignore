@@ -1,0 +1,15 @@
+# Keep intermediate execution output locally; final evidence is allowlisted below.
+*.log
+*.jsonl
+
+!concentrated-nonllm/core-final-shard-[1-4].jsonl
+!concentrated-nonllm/other-packages-final.jsonl
+!concentrated-nonllm/postgres-migration-verified.jsonl
+!concentrated-nonllm/v3-operations-postgres.jsonl
+!concentrated-nonllm/scheduled-resolution-recovery.jsonl
+!concentrated-nonllm/web-tests-final.log
+!concentrated-nonllm/browser-client-node-tests.log
+!concentrated-nonllm/workspace-final-build.log
+!concentrated-nonllm/workspace-final-test.log
+!concentrated-nonllm/workspace-final-typecheck.log
+!concentrated-nonllm/minio-source-images.log

@@ -85,11 +85,10 @@ const (
 	initializationMinimumRequestTimeout      = 10 * time.Minute
 )
 
-// providerAssignmentForScenario applies operation-owned floors without
-// changing the persisted generic binding. Initialization emits a substantially
-// larger structured document than ordinary cognition and must not depend on an
-// Owner guessing the output reserve/timeout needed by the configured local
-// model. The existing context-window guard remains authoritative.
+// providerAssignmentForScenario grants initialization its operation-owned
+// deadline without changing the configured output reserve or input/context
+// limits. The physical request budget guard remains authoritative; a dense
+// response that exhausts the configured output must fail explicitly.
 func providerAssignmentForScenario(assignment providerAssignment, scenario string) (providerAssignment, error) {
 	if strings.TrimSpace(scenario) != "initialization" {
 		return assignment, nil

@@ -261,6 +261,7 @@ type PromptAssemblyDecision struct {
 }
 
 type PromptAssemblyTrace struct {
+	ResponseFormatOmitted     bool                     `json:"response_format_omitted,omitempty"`
 	PolicyVersion             string                   `json:"policy_version"`
 	ContextWindowTokens       int                      `json:"context_window_tokens"`
 	MaxInputTokens            int                      `json:"max_input_tokens"`
@@ -306,6 +307,14 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	if surface == "" {
 		surface = ProviderContextSurfaceDefault
 	}
+	// Fact-only native rounds send Tools without the terminal JSON grammar.
+	// Keep the complete logical contract on the result for final validation and
+	// isolated repair, but budget only the actual format of this native phase.
+	// Tool-free calls still count the full schema; physical egress checks again.
+	wireFormat := input.ResponseFormat
+	if surface == ProviderContextSurfaceFactOnlyCognition && len(input.Tools) > 0 {
+		wireFormat = nil
+	}
 	system := map[string]any{"role": "system", "content": renderProviderSystemForSurface(surface, input.OperationRules, filterCorePersona(input.CorePersona), nil, input.Role)}
 	stable := stableTaskContextMessage(input.StableTaskContext)
 	current := map[string]any{"role": "user", "content": input.CurrentInput}
@@ -320,7 +329,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	}
 	currentTokens := estimateProviderMessageTokens(current)
 	toolsTokens := EstimatePromptTokens(input.Tools)
-	schemaTokens := EstimatePromptTokens(input.ResponseFormat)
+	schemaTokens := EstimatePromptTokens(wireFormat)
 	if currentTokens > input.Policy.CurrentInputTokensCap {
 		return PromptAssemblyResult{}, fmt.Errorf("%w: %w: current=%d cap=%d", ErrPromptRequiredBudgetExceeded, ErrPromptCurrentInputBudgetExceeded, currentTokens, input.Policy.CurrentInputTokensCap)
 	}
@@ -330,7 +339,8 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	selected := make([]promptOptionalCandidate, 0, len(candidates))
 	optional := make([]promptOptionalCandidate, 0, len(candidates))
 	trace := PromptAssemblyTrace{
-		PolicyVersion: input.Policy.Version, ContextWindowTokens: input.Policy.ContextWindowTokens,
+		ResponseFormatOmitted: wireFormat == nil && input.ResponseFormat != nil,
+		PolicyVersion:         input.Policy.Version, ContextWindowTokens: input.Policy.ContextWindowTokens,
 		MaxInputTokens: input.Policy.MaxInputTokens, OptionalInputTargetTokens: input.Policy.OptionalInputTargetTokens, OutputReserveTokens: input.Policy.OutputReserveTokens,
 		SafetyMarginTokens: input.Policy.SafetyMarginTokens, SectionTokens: map[string]int{},
 		Selected: []PromptAssemblyDecision{}, Dropped: []PromptAssemblyDecision{},
@@ -347,7 +357,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		}
 	}
 	orderedSelected := orderedPromptCandidates(selected)
-	requiredTotal := estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, orderedSelected), input.Tools, input.ResponseFormat)
+	requiredTotal := estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, orderedSelected), input.Tools, wireFormat)
 	if requiredTotal > input.Policy.MaxInputTokens {
 		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d system=%d stable_task_context=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens, systemTokens, stableTokens, currentTokens, toolsTokens, schemaTokens)
 	}
@@ -427,7 +437,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 			reason = "recent_contiguity_excluded"
 		} else {
 			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
-			if estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, trial), input.Tools, input.ResponseFormat) <= selectionLimit {
+			if estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, trial), input.Tools, wireFormat) <= selectionLimit {
 				selected = append(selected, unit.items...)
 				if unit.kind == PromptFragmentSummary || unit.kind == PromptFragmentRetrievedMemory || unit.kind == PromptFragmentResidentMemory {
 					for _, candidate := range unit.items {
@@ -451,11 +461,11 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
 	}
 	messages := assemblePromptMessagesForSurface(surface, system, stable, current, selected)
-	total := estimatePromptWireInput(messages, input.Tools, input.ResponseFormat)
+	total := estimatePromptWireInput(messages, input.Tools, wireFormat)
 	trace.EstimatedInputTokens = total
-	trace.SectionTokens = promptAssemblySectionTokens(system, stable, current, selected, input.Tools, input.ResponseFormat)
-	trace.SectionBytes, trace.SectionChars = promptAssemblySectionSizes(system, stable, current, selected, input.Tools, input.ResponseFormat)
-	if wire, err := json.Marshal(map[string]any{"messages": messages, "tools": input.Tools, "response_format": input.ResponseFormat}); err == nil {
+	trace.SectionTokens = promptAssemblySectionTokens(system, stable, current, selected, input.Tools, wireFormat)
+	trace.SectionBytes, trace.SectionChars = promptAssemblySectionSizes(system, stable, current, selected, input.Tools, wireFormat)
+	if wire, err := json.Marshal(map[string]any{"messages": messages, "tools": input.Tools, "response_format": wireFormat}); err == nil {
 		trace.WireBytes, trace.WireChars = len(wire), len([]rune(string(wire)))
 	}
 	trace.TokenEstimateMethod = "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance"
@@ -600,7 +610,11 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 			// authorities. Do not relabel them into the self's display timezone.
 			formatted["history_metadata"] = factOnlyCopyValue(runtimeContext["history_metadata"])
 		}
-		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + renderProviderRuntimeContext(formatted) + "\n[/RUNTIME CONTEXT]"})
+		rendered := renderProviderRuntimeContext(formatted)
+		if factOnly {
+			rendered = renderFactOnlyRuntimeContext(formatted)
+		}
+		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + rendered + "\n[/RUNTIME CONTEXT]"})
 	}
 	messages = append(messages, recent...)
 	messages = append(messages, cloneMap(current))

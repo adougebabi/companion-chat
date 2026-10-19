@@ -1,0 +1,14 @@
+[
+  {
+    "step": "typecheck",
+    "exit": 0
+  },
+  {
+    "step": "test",
+    "exit": 0
+  },
+  {
+    "step": "build",
+    "exit": 0
+  }
+]

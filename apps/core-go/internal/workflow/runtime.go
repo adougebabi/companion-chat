@@ -11,6 +11,7 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	commonpb "go.temporal.io/api/common/v1"
 	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/serviceerror"
 	workflowapi "go.temporal.io/api/workflow/v1"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
@@ -89,10 +90,14 @@ func (r *TemporalRuntime) Status(ctx context.Context, workflowID, runID string) 
 	}
 	result := executionFromInfo(response.WorkflowExecutionInfo)
 	if result.Status == "running" {
+		if encoded, err := r.Client.QueryWorkflow(ctx, result.WorkflowID, result.RunID, "control_capabilities"); err == nil && encoded != nil {
+			_ = encoded.Get(&result.ControlActions)
+		}
 		if encoded, queryErr := r.Client.QueryWorkflow(ctx, result.WorkflowID, result.RunID, "status"); queryErr == nil && encoded != nil && encoded.HasValue() {
 			var workflowStatus string
 			if encoded.Get(&workflowStatus) == nil && workflowStatus != "" {
 				result.Status = workflowStatus
+				result.ControlState = workflowStatus
 			}
 		}
 	}
@@ -147,7 +152,7 @@ func (r *TemporalRuntime) Signal(ctx context.Context, workflowID, runID, signalN
 		Identity:          r.Identity,
 		RequestId:         stableRequestID("signal", workflowID, runID, signalName, requestID),
 	})
-	return err
+	return classifiedControlError(err)
 }
 
 func (r *TemporalRuntime) Cancel(ctx context.Context, workflowID, runID, requestID string) error {
@@ -159,7 +164,7 @@ func (r *TemporalRuntime) Cancel(ctx context.Context, workflowID, runID, request
 		RequestId:         stableRequestID("cancel", workflowID, runID, requestID),
 		Reason:            "owner requested workflow cancellation",
 	})
-	return err
+	return classifiedControlError(err)
 }
 
 func (r *TemporalRuntime) Terminate(ctx context.Context, workflowID, runID, reason, requestID string) error {
@@ -209,7 +214,7 @@ func (r *TemporalRuntime) Reset(ctx context.Context, workflowID, runID string, h
 		}
 	}
 	if !validPoint {
-		return core.WorkflowExecution{}, errors.New("history_point must reference a completed workflow task")
+		return core.WorkflowExecution{}, fmt.Errorf("%w: history_point must reference a completed workflow task", core.ErrWorkflowCommandRejected)
 	}
 	response, err := r.service().ResetWorkflowExecution(ctx, &workflowservice.ResetWorkflowExecutionRequest{
 		Namespace:                 r.Namespace,
@@ -221,7 +226,7 @@ func (r *TemporalRuntime) Reset(ctx context.Context, workflowID, runID string, h
 		ResetReapplyType:          enumspb.RESET_REAPPLY_TYPE_NONE,
 	})
 	if err != nil {
-		return core.WorkflowExecution{}, err
+		return core.WorkflowExecution{}, classifiedControlError(err)
 	}
 	newRunID := ""
 	if response != nil && response.RunId != "" {
@@ -246,14 +251,29 @@ func (r *TemporalRuntime) Restart(ctx context.Context, spec core.WorkflowStart) 
 		input.IntentID = spec.WorkflowID
 	}
 	workflowID := normalizedWorkflowID(spec.WorkflowID)
+	reusePolicy := enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	if spec.OwnerCommandID != "" {
+		reusePolicy = enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE
+	}
 	run, err := r.Client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
-		ID:                       workflowID,
-		TaskQueue:                spec.TaskQueue,
-		WorkflowIDReusePolicy:    enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
-		WorkflowExecutionTimeout: 30 * time.Minute,
+		ID:                                       workflowID,
+		TaskQueue:                                spec.TaskQueue,
+		WorkflowIDReusePolicy:                    reusePolicy,
+		WorkflowExecutionErrorWhenAlreadyStarted: true,
+		Memo:                                     map[string]interface{}{"owner_control_command_id": spec.OwnerCommandID},
+		WorkflowExecutionTimeout:                 30 * time.Minute,
 	}, fn, input)
-	if err != nil && !temporal.IsWorkflowExecutionAlreadyStartedError(err) {
-		return core.WorkflowExecution{}, err
+	if err != nil {
+		if temporal.IsWorkflowExecutionAlreadyStartedError(err) && spec.OwnerCommandID != "" {
+			existing, lookupErr := r.Status(ctx, workflowID, "")
+			if lookupErr != nil {
+				return core.WorkflowExecution{}, lookupErr
+			}
+			if existing.OwnerCommandID == spec.OwnerCommandID {
+				return existing, nil
+			}
+		}
+		return core.WorkflowExecution{}, classifiedControlError(err)
 	}
 	runID := ""
 	if run != nil {
@@ -268,6 +288,12 @@ func (r *TemporalRuntime) service() workflowservice.WorkflowServiceClient {
 
 func workflowFunction(intentType string) (any, error) {
 	switch intentType {
+	case "media.delete":
+		return MediaDeletionWorkflow, nil
+	case "studio.generate":
+		return StudioWorkflow, nil
+	case "diary.generate":
+		return DiaryWorkflow, nil
 	case "visual_identity.initialize":
 		return VisualIdentityWorkflow, nil
 	case "wake_up.current":
@@ -292,6 +318,8 @@ func workflowFunction(intentType string) (any, error) {
 		return IntentionTriggerWorkflow, nil
 	case "memory.embedding":
 		return MemoryEmbeddingWorkflow, nil
+	case "persona.owner_switch":
+		return OwnerPersonaSwitchWorkflow, nil
 	case "conversation.summary":
 		return ConversationSummaryWorkflow, nil
 	case "conversation.segment":
@@ -319,6 +347,9 @@ func executionFromInfo(info *workflowapi.WorkflowExecutionInfo) core.WorkflowExe
 		Status:        strings.ToLower(info.Status.String()),
 		HistoryLength: info.HistoryLength,
 	}
+	if payload := info.GetMemo().GetFields()["owner_control_command_id"]; payload != nil {
+		_ = converter.GetDefaultDataConverter().FromPayload(payload, &result.OwnerCommandID)
+	}
 	if info.StartTime != nil {
 		value := info.StartTime.AsTime()
 		result.StartTime = &value
@@ -344,4 +375,63 @@ func minInt(left, right int) int {
 		return left
 	}
 	return right
+}
+
+func (r *TemporalRuntime) HistoryPage(ctx context.Context, wf, run string, token []byte, limit int) (core.WorkflowHistoryPage, error) {
+	if r == nil || r.Client == nil {
+		return core.WorkflowHistoryPage{}, errors.New("workflow runtime unavailable")
+	}
+	if run == "" {
+		return core.WorkflowHistoryPage{}, errors.New("concrete run is required")
+	}
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	response, err := r.service().GetWorkflowExecutionHistory(ctx, &workflowservice.GetWorkflowExecutionHistoryRequest{Namespace: r.Namespace, Execution: executionRef(normalizedWorkflowID(wf), run), MaximumPageSize: int32(limit), NextPageToken: token, WaitNewEvent: false, HistoryEventFilterType: enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT})
+	if err != nil {
+		return core.WorkflowHistoryPage{}, err
+	}
+	result := core.WorkflowHistoryPage{WorkflowID: normalizedWorkflowID(wf), RunID: run, Events: []core.WorkflowHistoryEvent{}, NextToken: response.NextPageToken}
+	for _, event := range response.GetHistory().GetEvents() {
+		item := core.WorkflowHistoryEvent{ID: event.GetEventId(), Type: event.GetEventType().String(), Resettable: event.GetEventType() == enumspb.EVENT_TYPE_WORKFLOW_TASK_COMPLETED, Details: map[string]any{"version": event.GetVersion(), "task_id": event.GetTaskId()}}
+		if event.EventTime != nil {
+			at := event.EventTime.AsTime()
+			item.At = &at
+		}
+		if v := event.GetActivityTaskScheduledEventAttributes(); v != nil {
+			item.Details["activity_id"] = v.ActivityId
+			item.Details["activity_type"] = v.ActivityType.GetName()
+			item.Details["task_queue"] = v.TaskQueue.GetName()
+		}
+		if v := event.GetActivityTaskFailedEventAttributes(); v != nil {
+			item.Details["retry_state"] = v.RetryState.String()
+			item.Details["failure_type"] = v.Failure.GetApplicationFailureInfo().GetType()
+			item.Details["scheduled_event_id"] = v.ScheduledEventId
+		}
+		if v := event.GetWorkflowTaskFailedEventAttributes(); v != nil {
+			item.Details["cause"] = v.Cause.String()
+		}
+		if v := event.GetTimerStartedEventAttributes(); v != nil {
+			item.Details["timer_id"] = v.TimerId
+		}
+		if v := event.GetWorkflowExecutionSignaledEventAttributes(); v != nil {
+			item.Details["signal_name"] = v.SignalName
+		}
+		result.Events = append(result.Events, item)
+	}
+	return result, nil
+}
+
+func classifiedControlError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var invalid *serviceerror.InvalidArgument
+	var precondition *serviceerror.FailedPrecondition
+	var missing *serviceerror.NotFound
+	var started *serviceerror.WorkflowExecutionAlreadyStarted
+	if errors.As(err, &invalid) || errors.As(err, &precondition) || errors.As(err, &missing) || errors.As(err, &started) {
+		return fmt.Errorf("%w: %v", core.ErrWorkflowCommandRejected, err)
+	}
+	return err
 }

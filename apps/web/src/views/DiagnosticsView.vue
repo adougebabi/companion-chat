@@ -179,7 +179,7 @@ function openModelRun(correlationId: string) {
 }
 let pollTimer: number | undefined;
 onMounted(() => {
-  const correlationId = new URLSearchParams(window.location.search).get("correlation_id") ?? "";
+  const correlationId = new URLSearchParams(window.location.hash.split("?")[1] || window.location.search).get("correlation_id") ?? "";
   controlCenter.diagnosticsCorrelationFilter = correlationId;
   void controlCenter.loadDiagnostics();
   if (currentSection.value === "workflows") void controlCenter.loadWorkflows();

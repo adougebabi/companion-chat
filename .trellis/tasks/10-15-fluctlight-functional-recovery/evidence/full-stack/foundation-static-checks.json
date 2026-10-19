@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-19",
+  "sourceHead": "0081_studio_foundation",
+  "slice": "sourced Foundation proposal/accept consumer and isolated text preparation",
+  "go": {
+    "finalSession": 35356,
+    "exitCode": 0,
+    "build": [
+      "api",
+      "worker"
+    ],
+    "compileOnly": [
+      "core",
+      "migrations",
+      "workflow",
+      "browser"
+    ],
+    "pureSourceValidator": 1,
+    "pureBrowserBoundaryTests": {
+      "session": 69702,
+      "passed": 5
+    },
+    "databaseTestsExecuted": false
+  },
+  "web": {
+    "session": 35245,
+    "generate": true,
+    "typecheck": true,
+    "productionBuildNoMock": true,
+    "exitCode": 0,
+    "controlledFoundationReferenceTests": 2,
+    "harness": {
+      "finalSession": 29492,
+      "passed": 19
+    }
+  },
+  "review": {
+    "foundation_source_check": "readonly no definite P1/P2",
+    "foundation_ui_scripts_check": "readonly no definite P1/P2; 2 pure components passed"
+  },
+  "knownCoverageLimits": [
+    "new UI prepare and accept branches have no actual browser coverage",
+    "PG tests including new profiles and migration upgrade are authored but unexecuted"
+  ],
+  "realModelCalls": 0,
+  "browserExecuted": false,
+  "migrationExecuted": false,
+  "deployed": false
+}

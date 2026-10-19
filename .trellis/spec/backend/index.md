@@ -14,6 +14,10 @@ boundaries described below.
 | [Directory Structure](./directory-structure.md) | Adding routes, helpers, or runtime assets |
 | [Kev Decisions](./kev-decision-contract.md) | Seven selection gates, reliable raw audit, dynamic tool disclosure, pre-effect persona admission and fallback |
 | [Independent Goal Planner](./goal-planner-contract.md) | Set capacity, native Planner, Actor edits, policy/fact fences, scope-safe events, migration and acceptance |
+| [Owner Promise Lifecycle](./owner-promise-contract.md) | Original request, Planner binding, independent commitments, deadline/evidence, cancellation and submission recovery |
+| [NPC Runtime](./npc-runtime-contract.md) | Executed presence, opportunities, independent NPC responses, real encounter effects and recovery |
+| [World Events](./world-event-contract.md) | Structured templates, ambient facts, candidate execution, temporary effects/recovery and interrupted routine segments |
+| [Studio](./studio-contract.md) | Isolated definition jobs, verified references, staged model results, material relations and truthful recovery |
 | [Goal/Life Consistency](./goal-life-consistency-contract.md) | Actor facts, business time, acquisition/use, cumulative summary, repair and diagnostic paging |
 | [Quality Guidelines](./quality-guidelines.md) | Safe changes and verification |
 | [Tool Availability](./tool-availability-contract.md) | All installed Tools, warning/recovery, truthful handled receipts, savepoint rollback and retained authority/effect conditions |

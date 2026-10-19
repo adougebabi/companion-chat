@@ -1,0 +1,10 @@
+{
+  "exitCode": 0,
+  "packages": {
+    "skip": 14,
+    "pass": 16
+  },
+  "selectedPackages": 30,
+  "failedTests": [],
+  "realModels": 0
+}

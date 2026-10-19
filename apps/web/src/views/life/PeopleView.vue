@@ -26,7 +26,8 @@ const hasRelationships = computed(() => Boolean(detail.value && Object.prototype
       <span class="badge b-plain">BP-12</span>
       <span v-if="readOnlyPreview" class="badge b-preview">不是业务数据</span>
     </header>
-    <p class="banner info">所有者背景不是 NPC，也不能替角色发关系消息。附近人物图谱尚未接入。</p>
+    <nav class="row"><a class="btn" :href="`#/c/${store.fluctlightId}/people/owner`">关于你</a><a class="btn" :href="`#/c/${store.fluctlightId}/people/list`">人物 / NPC 目录</a><a class="btn ghost" :href="`#/c/${store.fluctlightId}/world`">运行世界</a></nav>
+    <p class="banner info">资料、NPC 设定和角色对某个 Actor 的关系分别保存。所有者修正会保留版本与来源。</p>
     <p v-if="!store.fluctlightId && !readOnlyPreview" class="statebox">请先选择角色。这里不会显示其他角色的数据。</p>
     <template v-else>
       <FeedbackNotice :message="control.error ? userError(control.error) : ''" />

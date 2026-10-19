@@ -184,14 +184,14 @@ func TestVirtualShoppingActivityRequiresElapsedResultAndReusesPurchasedItem(t *t
 	}
 	activityID := stringValue(mapValue(started.Result.Output)["activity_id"])
 	missing, missingErr := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "advance-missing-activity", map[string]any{"activity_id": "missing-activity"}))
-	if missingErr == nil || missing.Result.ErrorCode != "activity_not_found" || missing.Result.Retryable {
+	if missingErr != nil || missing.Result.Status != "handled" || mapValue(missing.Result.Output)["warning_code"] != "activity_not_found" || mapValue(missing.Result.Output)["mutation_committed"] != false {
 		t.Fatalf("unknown activity must be a correctable target error: receipt=%#v err=%v", missing, missingErr)
 	}
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_life_activity_runs SET profile_id='other-profile' WHERE id=$1`, activityID); err != nil {
 		t.Fatal(err)
 	}
 	foreignProfile, foreignProfileErr := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityAdvanceCapabilityName, "advance-other-profile-activity", map[string]any{"activity_id": activityID}))
-	if foreignProfileErr == nil || foreignProfile.Result.ErrorCode != "activity_not_found" || foreignProfile.Result.Retryable {
+	if foreignProfileErr != nil || foreignProfile.Result.Status != "handled" || mapValue(foreignProfile.Result.Output)["warning_code"] != "activity_not_found" || mapValue(foreignProfile.Result.Output)["mutation_committed"] != false {
 		t.Fatalf("another profile's activity must not resolve: receipt=%#v err=%v", foreignProfile, foreignProfileErr)
 	}
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_life_activity_runs SET profile_id='default' WHERE id=$1`, activityID); err != nil {

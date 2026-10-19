@@ -1,0 +1,500 @@
+[
+  {
+    "route": "/c/:charId/chat",
+    "key": "chat.thread.view",
+    "title": "对话",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/chat/history",
+    "key": "chat.history.view",
+    "title": "会话历史与搜索",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/chat/corrections",
+    "key": "chat.correction.list",
+    "title": "纠错记录",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/chat/call",
+    "key": "chat.call.view",
+    "title": "语音与通话（P2 占位）",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/chat/media",
+    "key": "chat.media.view",
+    "title": "聊天中的图片",
+    "manualRefresh": false
+  },
+  {
+    "route": "/feed",
+    "key": "feed.post.list",
+    "title": "动态",
+    "manualRefresh": false
+  },
+  {
+    "route": "/feed/:postId",
+    "key": "feed.post.detail",
+    "title": "动态详情",
+    "manualRefresh": false
+  },
+  {
+    "route": "/settings/outreach",
+    "key": "settings.char.autonomy#outreach",
+    "title": "主动触达设置",
+    "manualRefresh": false
+  },
+  {
+    "route": "/inbox",
+    "key": "inbox.notice.list",
+    "title": "通知中心",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/now",
+    "key": "life.now",
+    "title": "生活 · 此刻",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life",
+    "key": "life.now",
+    "title": "生活 · 此刻",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/wardrobe",
+    "key": "items.wardrobe.view",
+    "title": "衣柜与物品",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/schedule",
+    "key": "life.schedule",
+    "title": "生活 · 日程",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/goals",
+    "key": "goals.list.view",
+    "title": "目标 · 意向 · 约定",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/diary",
+    "key": "diary.list.view",
+    "title": "日记",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/diary/:entryId",
+    "key": "diary.entry.detail",
+    "title": "日记条目",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/shared",
+    "key": "diary.shared.timeline",
+    "title": "共同经历时间线",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/growth",
+    "key": "growth.memory.list",
+    "title": "记忆库",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/growth/memory/:memId",
+    "key": "growth.memory.item",
+    "title": "记忆条目",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/growth/reflection",
+    "key": "growth.reflection.timeline",
+    "title": "反思与成长时间线",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/growth/reflection/:refId",
+    "key": "growth.reflection.detail",
+    "title": "反思详情",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/growth/self",
+    "key": "growth.self.view",
+    "title": "自我认知",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/profile",
+    "key": "profile.char.view",
+    "title": "角色资料",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/life/goal/new",
+    "key": "goals.create",
+    "title": "新建目标",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/life/goal/:goalId",
+    "key": "goals.detail",
+    "title": "目标详情与治理",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/life/planning",
+    "key": "goals.planning",
+    "title": "独立目标规划",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/world",
+    "key": "world.map.view",
+    "title": "世界总览",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/world/place/:placeId",
+    "key": "world.place.detail",
+    "title": "地点详情",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/world/event/:evId",
+    "key": "world.event.detail",
+    "title": "事件详情",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/world/events",
+    "key": "world.event.list",
+    "title": "世界变化与事件流",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/world/scene",
+    "key": "world.scene.view",
+    "title": "当前场景",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/world/settings",
+    "key": "world.instance.settings",
+    "title": "运行世界设定 · 随机事件",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/people",
+    "key": "people.graph.view",
+    "title": "人物关系",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/people/npc/new",
+    "key": "people.npc.create",
+    "title": "新建 NPC 定义",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/people/npc/:npcId/edit",
+    "key": "people.npc.edit",
+    "title": "编辑 NPC",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/people/npcs",
+    "key": "people.npc.manage",
+    "title": "NPC 管理",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/people/npc/:npcId",
+    "key": "people.npc.detail",
+    "title": "NPC 详情",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/people/list",
+    "key": "people.list.view",
+    "title": "人物目录",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/people/owner",
+    "key": "people.owner.background",
+    "title": "关于你",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/people/relation/:relId",
+    "key": "people.relation.edit",
+    "title": "关系修正",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/media",
+    "key": "media.gallery.view",
+    "title": "媒体库",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/media/identity",
+    "key": "media.identity.view",
+    "title": "视觉身份",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/media/generate",
+    "key": "media.item.generate",
+    "title": "媒体生成",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/media/:mdId",
+    "key": "media.item.detail",
+    "title": "媒体详情",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/worlds",
+    "key": "world.directory",
+    "title": "世界目录",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/worlds/:worldId/edit",
+    "key": "world.definition.edit",
+    "title": "世界与场景编辑",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/worlds/:worldId/place/new",
+    "key": "world.place.create",
+    "title": "添加地点",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/worlds/:worldId/place/:placeId/edit",
+    "key": "world.place.edit",
+    "title": "编辑地点",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/governance",
+    "key": "identity.governance",
+    "title": "身份与能力治理",
+    "manualRefresh": true
+  },
+  {
+    "route": "/c/:charId/media/identity/edit",
+    "key": "media.identity.edit",
+    "title": "编辑视觉身份",
+    "manualRefresh": true
+  },
+  {
+    "route": "/auth",
+    "key": "auth.signin",
+    "title": "登录/注册",
+    "manualRefresh": false
+  },
+  {
+    "route": "/library",
+    "key": "library.home",
+    "title": "角色库",
+    "manualRefresh": false
+  },
+  {
+    "route": "/library/create",
+    "key": "library.char.create",
+    "title": "新建角色向导",
+    "manualRefresh": false
+  },
+  {
+    "route": "/studio/npc/:resId",
+    "key": "studio.npc.edit",
+    "title": "NPC 定义编辑",
+    "manualRefresh": true
+  },
+  {
+    "route": "/studio",
+    "key": "studio.home",
+    "title": "创作中心",
+    "manualRefresh": false
+  },
+  {
+    "route": "/studio/edit/:resId",
+    "key": "studio.resource.edit",
+    "title": "资源编辑",
+    "manualRefresh": false
+  },
+  {
+    "route": "/studio/preview",
+    "key": "studio.preview",
+    "title": "试生成沙盒",
+    "manualRefresh": false
+  },
+  {
+    "route": "/studio/apply",
+    "key": "studio.apply",
+    "title": "应用到实例",
+    "manualRefresh": false
+  },
+  {
+    "route": "/studio/template",
+    "key": "studio.event.template",
+    "title": "事件模板",
+    "manualRefresh": false
+  },
+  {
+    "route": "/settings",
+    "key": "settings.global",
+    "title": "系统设置",
+    "manualRefresh": false
+  },
+  {
+    "route": "/c/:charId/settings/autonomy",
+    "key": "settings.char.autonomy",
+    "title": "角色自治与触达设置",
+    "manualRefresh": false
+  },
+  {
+    "route": "/diag",
+    "key": "diag.home",
+    "title": "运行诊断",
+    "manualRefresh": false
+  },
+  {
+    "route": "/diag/task/:taskId",
+    "key": "diag.task.detail",
+    "title": "诊断任务详情",
+    "manualRefresh": false
+  },
+  {
+    "route": "/diag/audit",
+    "key": "diag.audit",
+    "title": "操作审计日志",
+    "manualRefresh": false
+  },
+  {
+    "route": "/diag/pending",
+    "key": "diag.pending.list",
+    "title": "待处理事项",
+    "manualRefresh": false
+  },
+  {
+    "route": "/data",
+    "key": "data.tools",
+    "title": "数据工具",
+    "manualRefresh": false
+  },
+  {
+    "route": "/data/revisions",
+    "key": "data.object.revisions",
+    "title": "对象修订记录",
+    "manualRefresh": false
+  },
+  {
+    "route": "/data/rollback",
+    "key": "data.rollback",
+    "title": "回档说明（P3）",
+    "manualRefresh": false
+  },
+  {
+    "route": "/settings/models",
+    "key": "settings.models",
+    "title": "模型与连接",
+    "manualRefresh": true
+  },
+  {
+    "route": "/settings/reply-vision",
+    "key": "settings.reply-vision",
+    "title": "回复与视觉",
+    "manualRefresh": true
+  },
+  {
+    "route": "/settings/media-workflows",
+    "key": "settings.media-workflows",
+    "title": "媒体与工作流",
+    "manualRefresh": true
+  },
+  {
+    "route": "/settings/kev",
+    "key": "settings.kev",
+    "title": "KEV 选择与连接",
+    "manualRefresh": true
+  },
+  {
+    "route": "/settings/runtime",
+    "key": "settings.runtime",
+    "title": "运行与自治策略",
+    "manualRefresh": true
+  },
+  {
+    "route": "/settings/notifications",
+    "key": "settings.notifications",
+    "title": "通知与触达偏好",
+    "manualRefresh": true
+  },
+  {
+    "route": "/settings/owner",
+    "key": "settings.owner",
+    "title": "所有者与会话",
+    "manualRefresh": true
+  },
+  {
+    "route": "/settings/capabilities",
+    "key": "settings.capabilities",
+    "title": "能力与权限目录",
+    "manualRefresh": true
+  },
+  {
+    "route": "/diag/lifecycle",
+    "key": "diag.lifecycle",
+    "title": "生命周期",
+    "manualRefresh": true
+  },
+  {
+    "route": "/diag/model-runs",
+    "key": "diag.model-runs",
+    "title": "模型运行",
+    "manualRefresh": true
+  },
+  {
+    "route": "/diag/agent-runs",
+    "key": "diag.agent-runs",
+    "title": "Agent 运行",
+    "manualRefresh": true
+  },
+  {
+    "route": "/diag/events",
+    "key": "diag.events",
+    "title": "系统事件",
+    "manualRefresh": true
+  },
+  {
+    "route": "/diag/media-prompts",
+    "key": "diag.media-prompts",
+    "title": "媒体请求",
+    "manualRefresh": true
+  },
+  {
+    "route": "/diag/workflows",
+    "key": "diag.workflows",
+    "title": "工作流控制",
+    "manualRefresh": true
+  },
+  {
+    "route": "/diag/kev",
+    "key": "diag.kev",
+    "title": "KEV 决策",
+    "manualRefresh": true
+  }
+]

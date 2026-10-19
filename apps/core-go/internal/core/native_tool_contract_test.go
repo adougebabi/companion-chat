@@ -216,7 +216,7 @@ func TestNativeActorCurrentInboundSourcePostgres(t *testing.T) {
 	f := seedWardrobeToolFixture(t) // isolated opt-in fixture; SKIP without PG
 	source := actorFactSourceMessage(t, f, "native-current", f.ownerID, "我喜欢小说")
 	factID := "native-actor-current-" + f.suffix
-	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) SELECT $1,$2,COALESCE(max(sequence),0)+1,'conversation.turn',$3,$1,$1,$1,now(),'processed' FROM public.cognition_inbox WHERE fluctlight_id=$2`, factID, f.fluctlightID, jsonBytes(map[string]any{"text": "我喜欢小说", "conversation_id": f.conversationID, "actor_id": f.ownerID})); err != nil {
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) SELECT $1::text,$2::text,COALESCE(max(sequence),0)+1,'conversation.turn',$3::jsonb,$1::text,$1::text,$1::text,now(),'processed' FROM public.cognition_inbox WHERE fluctlight_id=$2`, factID, f.fluctlightID, jsonBytes(map[string]any{"text": "我喜欢小说", "conversation_id": f.conversationID, "actor_id": f.ownerID})); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.conversation_messages SET source_fact_id=$2 WHERE id=$1`, source, factID); err != nil {

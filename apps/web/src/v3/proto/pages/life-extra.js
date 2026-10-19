@@ -1,3 +1,6 @@
+import { renderProfilePage, getProfileProvider } from './profile.js';
+import { profileSnapshotFromDetail } from '../data/profile.js';
+import { Tabs, SearchForm } from '../components/forms.js';
 // 生活成长扩展页：日程（计划 vs 实际）、目标/意向/约定、日记、共同经历、记忆、反思、自我认知、角色资料
 import * as store from '../store.js';
 import { esc, icon, badge, drawer, toast, objLink, mgmt, nameOf, confirm, requireOwner } from '../ui.js';
@@ -6,6 +9,7 @@ import { wait, hm, statusKind, hl } from './common.js';
 
 /* 建议日程抽屉（生活·日程、地点详情共用）：行动请求 → 她决定 */
 export function suggestScheduleDrawer(placeId = 'p_cafe', title = '') {
+  if(!store.isMock) { void import('./real-life-schedule.js').then(({suggestRealSchedule})=>suggestRealSchedule(store.get('ui').charId,{placeId:arguments.length?placeId:'',title}));return; }
   const c = store.get('characters', 'c1');
   const d = drawer({ title: `${icon('calendar')} 建议一项日程`, body: `<p class="small muted">${badge('行动请求')} 只是建议，小遥接受后才进入她的计划；现在她仍在${esc(nameOf(c.locationId))}。</p>
    <form class="stack" data-sf><label class="field">做什么<input class="input" name="title" value="${esc(title || '去' + nameOf(placeId) + '看看')}" data-test="sched-title"></label>
@@ -37,9 +41,10 @@ export function renderSchedule(el, ctx) {
 /* goals.list.view */
 export function renderGoals(el, ctx) {
   el.innerHTML = `<div class="row" style="margin-bottom:12px"><span class="grow small muted">她想要的、她在做的、和你说好的</span><button class="btn primary" data-promise data-test="promise-new">${icon('heart')} 和她约定</button></div>
-  <div class="grid g3">${['目标', '意向', '约定'].map(t => `<div class="card"><h3>${t}</h3>${store.list('goals', g => g.charId === ctx.charId && g.type === t).map(g => `<div class="lrow" data-test="goal-${g.id}"><div class="grow"><b>${esc(g.title)}</b><div class="small muted">${esc(g.why || g.due || g.progress || g.note || '')}</div>
+  <div class="grid g3">${['目标', '意向', '约定'].map(t => `<div class="card"><h3>${t}</h3>${store.list('goals', g => g.charId === ctx.charId && g.type === t).map(g => `<div class="lrow" data-test="goal-${g.id}"><div class="grow"><a href="#/c/${ctx.charId}/life/goal/${g.id}"><b>${esc(g.title)}</b></a><div class="small muted">${esc(g.why || g.due || g.progress || g.note || '')}</div>
     ${g.scheduleId ? `<div class="small">→ ${objLink(g.scheduleId)} → ${objLink(g.actionId)} → ${objLink(g.itemId)}</div>` : ''}${mgmt(`${g.id}${g.sourceMsg ? ' · 来源 ' + objLink(g.sourceMsg, g.sourceMsg) : ''}`)}</div>${badge(g.state)}</div>`).join('') || '<p class="small muted">暂无</p>'}</div>`).join('')}</div>
   <div class="banner info" style="margin-top:12px">${icon('info')} 想要碎花裙：在<a href="#/c/c1/chat">对话</a>里对「购买碎花裙」行动卡发出请求。</div>`;
+  el.insertAdjacentHTML('beforeend', `<div class="row" style="margin-top:12px"><a class="btn" href="#/c/${ctx.charId}/life/goal/new">新建目标</a><a class="btn" href="#/c/${ctx.charId}/life/planning">独立规划与候选</a></div>`);
   el.querySelector('[data-promise]').onclick = () => {
     const d = drawer({ title: `${icon('heart')} 和小遥约定 ${badge('交流')}`, body: `<form class="stack" data-pf><label class="field">约定内容<input class="input" name="title" value="下周一起去花店看向日葵" data-test="promise-title"></label><label class="field">时间<input class="input" name="due" value="10-20 15:00"></label><p class="small muted">约定要她答应才算数。</p></form>`,
       footer: `<button class="btn" data-c>取消</button><button class="btn primary" data-ok data-test="promise-submit">提出约定</button>` });
@@ -85,8 +90,8 @@ export function renderMemList(el, ctx) {
   const kind = ctx.query.kind || '全部'; const kw = ctx.query.q || '';
   const all = store.list('memories', m => m.charId === ctx.charId); const kinds = ['全部', ...new Set(all.map(m => m.kind))];
   const ms = all.filter(m => (kind === '全部' || m.kind === kind) && (!kw || m.content.includes(kw)));
-  el.innerHTML = `<div class="row" style="margin-bottom:12px"><div class="tabs grow">${kinds.map(k => `<a class="tab ${k === kind ? 'on' : ''}" href="#/c/${ctx.charId}/growth?kind=${encodeURIComponent(k)}">${k}</a>`).join('')}</div>
-    <form class="row" data-mf><input class="input" name="q" value="${esc(kw)}" placeholder="搜索记忆" data-test="mem-search"><button class="btn sm">搜</button></form></div>
+  el.innerHTML = `<div class="row" style="margin-bottom:12px">${Tabs({ value: kind, className: 'tabs grow', items: kinds.map(value => ({ value, label: value, href: `#/c/${ctx.charId}/growth?kind=${encodeURIComponent(value)}` })) })}
+    ${SearchForm({ value: kw, placeholder: '搜索记忆', submitLabel: '搜', attrs: { 'data-mf': true }, inputClass: 'input', inputAttrs: { 'data-test': 'mem-search' }, buttonClass: 'btn sm' })}</div>
   <div class="card"><div class="list">${ms.map(m => `<a class="lrow click" href="#/c/${ctx.charId}/growth/memory/${m.id}" data-test="mem-${m.id}"><span class="grow">${hl(m.content, kw)}<div class="small muted">${m.kind}${m.revisions.length > 1 ? ` · 改过 ${m.revisions.length - 1} 次` : ''}${m.pendingRevision ? ' · 有候选修订' : ''}</div></span>${badge(m.state)}</a>`).join('') || '<p class="small muted">当前筛选未找到记忆</p>'}</div></div>
   <div class="row" style="margin-top:12px"><a class="btn" href="#/c/${ctx.charId}/growth/reflection">反思与成长</a><a class="btn" href="#/c/${ctx.charId}/growth/self">自我认知</a></div>`;
   el.querySelector('[data-mf]').onsubmit = e => { e.preventDefault(); ctx.navigate(`#/c/${ctx.charId}/growth?kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(e.target.q.value)}`); };
@@ -108,6 +113,9 @@ export function renderMemItem(el, ctx) {
     d.el.querySelector('[data-c]').onclick = () => d.close();
     d.el.querySelector('[data-ok]').onclick = () => { const t = d.el.querySelector('[data-t]').value.trim(); if (!t) return; store.update(x => { x.memories[m.id].pendingRevision = t; }, { identity: '交流', summary: `告诉小遥关于记忆 #${m.id}：${t}`, target: m.id }); addMsg({ from: 'user', text: t, identity: '交流' }); d.close(); toast('已告诉她', 'ok'); };
   };
+  el.insertAdjacentHTML('beforeend', `<div class="row" style="margin-top:12px"><a class="btn" href="#/c/${ctx.charId}/people/owner">关于你</a><a class="btn" href="#/c/${ctx.charId}/governance">身份与能力治理</a><a class="btn" href="#/c/${ctx.charId}/worlds">世界管理</a></div>`);
+  const identity = store.get('meta').governance?.[ctx.charId]?.foundation;
+  if (identity?.version > 1) el.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:12px"><h3>已应用的身份核心 · v${identity.version}</h3><p>${esc(identity.bio)}</p><a class="btn" href="#/c/${ctx.charId}/governance?tab=foundation">查看身份对象修订</a></div>`);
   el.querySelector('[data-edit]').onclick = () => {
     const box = el.querySelector('[data-editor]'); const base = m.version; let draft = m.content;
     const diff = () => `<div class="diff" data-test="mem-diff"><div class="del">- ${esc(m.content)}</div><div class="add">+ ${esc(draft)}</div></div>`;
@@ -135,7 +143,7 @@ export function renderReflection(el, ctx) {
   el.innerHTML = `<div class="card"><div class="row"><h2 class="grow" style="margin:0">${esc(r.title)}</h2>${badge(r.state)}</div><p style="font-size:16px">${esc(r.text)}</p><div class="small">成长方向：<b>${esc(r.growth)}</b></div><div class="small">想到这些：${r.sources.map(s => objLink(s)).join('、')}</div>${mgmt(`${r.id} · ${r.at} · page key growth.reflection.detail`)}</div>
   <div class="card" style="margin-top:12px"><h3>你的回应 ${badge('交流')}</h3>${r.feedback ? `<div class="banner ok" data-test="refl-fb">${esc(r.feedback.kind)}：${esc(r.feedback.text || '')}<span class="small muted"> · ${r.feedback.at}</span></div>` : ''}
    <form class="stack" data-ff><textarea class="input" rows="2" name="t" placeholder="（可选）想对她说的话" data-test="refl-text"></textarea><div class="row"><button type="button" class="btn" data-k="有不同看法">有不同看法</button><button type="button" class="btn primary" data-k="认同" data-test="refl-agree">认同</button></div></form></div>`;
-  el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const t = el.querySelector('[name=t]').value.trim(); store.update(() => {}, { identity: '交流', summary: `回应反思 ${r.id}：${b.dataset.k}${t ? ' ' + t : ''}`, target: r.id }); });
+  el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const t = el.querySelector('[name=t]').value.trim(); store.update(x => { x.reflections[r.id].feedback = { kind: b.dataset.k, text: t, at: hm() }; }, { identity: '交流', summary: `回应反思 ${r.id}：${b.dataset.k}`, target: r.id }); toast('她会看到你的回应', 'ok'); });
 }
 /* growth.self.view */
 export function renderSelf(el, ctx) {
@@ -143,27 +151,36 @@ export function renderSelf(el, ctx) {
   el.innerHTML = `<div class="grid g2"><div class="card tint-primary"><h3>${icon('user')} 她眼中的自己</h3><div class="row">${c.traits.map(t => badge(t, 'plain')).join('')}</div>
     <h3 style="margin-top:12px">最近在变化</h3>${store.list('reflections', r => r.charId === c.id).map(r => `<div class="lrow small"><span class="grow">${esc(r.growth)}</span>${badge(r.state)}</div>`).join('')}</div>
    <div class="card"><h3>人格提案</h3><p class="small muted">提案来自她的反思，所有者决定是否写入人格定义。</p>${props.map(p => `<div class="lrow" data-test="prop-${p.id}"><span class="grow">${esc(p.title)}</span>${badge(p.state)}${p.state === '候选' ? `<button class="btn sm" data-no="${p.id}">暂不采纳</button><button class="btn sm accent" data-yes="${p.id}" data-test="prop-accept">采纳</button>` : ''}</div>`).join('') || '<p class="small muted">暂无提案</p>'}</div></div>`;
+  el.insertAdjacentHTML('beforeend', `<a class="btn" style="margin-top:12px" href="#/c/${ctx.charId}/governance?tab=developing">身份与自我治理</a>`);
+  const developing = store.get('meta').governance?.[ctx.charId]?.developing;
+  if (developing) el.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:12px"><h3>发展中的自我 · v${developing.version}</h3>${developing.claims.map(claim => `<div class="lrow"><span class="grow">${esc(claim.text)}</span>${badge(claim.status, 'plain')}</div>`).join('')}</div>`);
   const decide = async (id, yes) => { if (!(await requireOwner())) return; if (!(await confirm({ title: yes ? '采纳人格提案' : '暂不采纳', text: esc(store.get('proposals', id).title) }))) return;
     store.update(x => { x.proposals[id].state = yes ? '已确认' : '取消'; if (yes && !x.characters[c.id].traits.includes('主动分享')) x.characters[c.id].traits.push('主动分享'); }, { identity: '所有者修改', summary: `${yes ? '采纳' : '暂不采纳'}人格提案 ${id}`, target: id }); };
   el.querySelectorAll('[data-yes]').forEach(b => b.onclick = () => decide(b.dataset.yes, true));
   el.querySelectorAll('[data-no]').forEach(b => b.onclick = () => decide(b.dataset.no, false));
 }
-/* profile.char.view —— 每个角色显示自己的资料 */
+/* profile.char.view — explicit provider bridge; existing mock records only. */
 export function renderProfile(el, ctx) {
-  const c = store.get('characters', ctx.charId);
-  if (!c) { el.innerHTML = '<div class="statebox"><h2>当前范围未找到该角色</h2></div>'; return; }
-  const w = store.get('worlds', c.worldId); const ro = c.status === '已退休';
-  el.innerHTML = `<div class="grid g2"><div class="card" data-test="profile-${c.id}"><div class="row"><img class="av lg" src="${c.avatar}" alt=""><div class="grow"><h2 style="margin:0">${esc(c.name)}</h2><div class="small muted">${esc(w?.name || '运行世界未创建')}</div></div>${badge(c.status, statusKind(c.status))}</div>
-    <p data-test="profile-bio">${esc(c.bio)}</p><div class="row">${c.traits.map(t => badge(t, 'plain')).join('') || '<span class="small muted">尚未设定性格</span>'}</div>
-    ${c.statusNote ? `<div class="banner ${c.status === '异常' ? 'err' : 'warn'}" style="margin-top:8px">${esc(c.statusNote)}</div>` : ''}
-    <div class="row" style="margin-top:12px"><button class="btn" data-edit data-test="profile-edit" ${ro ? 'disabled title="已退休，只读归档"' : ''}>编辑简介…</button><a class="btn ghost" href="#/c/${c.id}/settings/autonomy">自治与触达</a>${c.id === 'c1' ? `<a class="btn ghost" href="#/c/c1/growth/self">自我认知</a>` : ''}</div>
-    ${mgmt(`ID ${c.id} · 定义 ${c.defVersion || '—'} · 世界 ${c.worldId || '—'} · 分组 ${c.groupId}`)}</div>
-   <div class="card"><h3>她现在</h3>${c.id === 'c1' ? `<div class="kv"><dt>在</dt><dd>${objLink(c.locationId)}</dd><dt>正在</dt><dd>${esc(c.doing)}</dd><dt>心情</dt><dd>${esc(c.mood.value)} ${badge('推测')}</dd><dt>安全拦截</dt><dd>${typeof c.harmIntercepts === 'number' ? `${c.harmIntercepts} 次永久伤害事件被拦截` : '尚未接入'}</dd></div>`
-      : `<p class="muted">${esc(c.name)}目前${esc(c.status)}，没有实时生活状态。</p>`}
-    ${store.list('proposals', p => p.charId === c.id && p.state === '候选').map(p => `<div class="banner warn small"><a href="#/c/${c.id}/growth/self">${esc(p.title)}</a> ${badge(p.state)}</div>`).join('')}</div></div>`;
-  el.querySelector('[data-edit]').onclick = () => {
-    const d = drawer({ title: `编辑简介 ${badge('所有者修改')}`, body: `<textarea class="input" rows="4" data-b data-test="bio-input">${esc(c.bio)}</textarea><p class="small muted">修改的是角色范围的资料，会写入审计。</p>`, footer: `<button class="btn" data-c data-test="bio-cancel">取消</button><button class="btn accent" data-ok data-test="bio-save">保存</button>` });
-    d.el.querySelector('[data-c]').onclick = () => d.close();
-    d.el.querySelector('[data-ok]').onclick = async () => { const v = d.el.querySelector('[data-b]').value.trim(); if (!v) return; if (!(await requireOwner())) return; store.update(x => { x.characters[c.id].bio = v; }, { identity: '所有者修改', summary: `修改 ${c.name} 简介`, target: c.id }); d.close(); toast('已保存', 'ok'); };
-  };
+  const provider = ctx.profileProvider || getProfileProvider();
+  if (provider) { const observer = new AbortController(); void renderProfilePage(el, ctx, provider, {signal:observer.signal}); return () => observer.abort(); }
+  if (!store.isMock) return renderProfilePage(el,ctx,null);
+  return renderProfilePage(el, ctx, {
+    read(id) {
+      const c = store.get('characters', id);
+      if (!c) throw new Error('当前范围未找到角色');
+      const governance = store.get('meta').governance?.[id];
+      const snapshot = profileSnapshotFromDetail({ id, status: c.status, identity: { name: c.name, background: c.bio },
+        core_persona: governance?.foundation, developing_self: governance?.developing,
+        personality: { traits: c.traits }, life_profile: { world: store.get('worlds', c.worldId)?.name },
+        current_state: { location: store.get('places', c.locationId)?.name, activity: c.doing, mood: c.mood,
+          appearance: { worn_items: (store.get('outfit')?.[id]?.current || []).map(itemId => store.get('items', itemId)) } },
+      }, c);
+      snapshot.mode = 'mock';
+      return snapshot;
+    },
+    async editBio(id, bio) {
+      if (!(await requireOwner())) throw new Error('需要所有者授权');
+      store.update(data => { data.characters[id].bio = bio; }, { identity: '所有者修改', summary: `修改 ${store.get('characters', id).name} 简介`, target: id });
+    },
+  });
 }

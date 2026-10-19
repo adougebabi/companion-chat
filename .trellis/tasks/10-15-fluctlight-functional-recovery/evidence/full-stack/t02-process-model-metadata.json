@@ -1,0 +1,50 @@
+{
+  "api": {
+    "pid": 6508,
+    "alive": true,
+    "binary_mtime": "2026-10-15T12:08:05.300289+00:00",
+    "sha256": "89288f6cdfae48f177f9e7b408c695f963b8f11233cf0a344debb10888c2b355",
+    "log": "/tmp/fluctlight-recovery-1015/api.log"
+  },
+  "worker": {
+    "pid": 6509,
+    "alive": false,
+    "binary_mtime": "2026-10-15T12:08:05.328771+00:00",
+    "sha256": "91ac727644444fd21638f31d01f8887404c187f5632c1e372dcbdf92ce543d35",
+    "log": "/tmp/fluctlight-recovery-1015/worker.log"
+  },
+  "lmstudio": {
+    "http_status": 200,
+    "model_ids": [
+      "cydonia-24b-v4.3-heretic-v2-i1",
+      "qwen3.8-27b-dflash2",
+      "qwen3-embedding-0.6b-dwq",
+      "text-embedding-nomic-embed-text-v1.5"
+    ],
+    "model_count": 4
+  },
+  "mlx": {
+    "http_status": 200,
+    "model_ids": [
+      "Cydonia-24B-v4.1-MLX-Mixed",
+      "Huihui-Qwen3.8-27B-3.8bpw",
+      "aac6fef/laya-multilingual-mlx",
+      "Jakevin/kev-4b-ternary-mlx",
+      "TheDrummer/Cydonia-24B-v4.3",
+      "mradermacher/Cydonia-24B-v4.3-heretic-v2-i1-GGUF",
+      "ddalcu/MiniMax-H3-FL2VA-MLX-Serve-4bit",
+      "huihui-ai/Huihui-Qwen3.8-27B-abliterated",
+      "ddalcu/Qwen-Image-2.1-MLX-Serve-4bit",
+      "ddalcu/Krea-2-Turbo-MLX-Serve-mixed-4-8",
+      "prithivMLmods/Qwen-Image-2.1-PE-I2I-MLX",
+      "huihui-ai-Huihui-Qwen3.8-27B-abliterated-MTPLX",
+      "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ",
+      "joeynyc/Studio-Image-Turbo-MLX-6bit-from-Qwen-2.1"
+    ],
+    "model_count": 14
+  },
+  "comfy": {
+    "http_status": 200,
+    "scope": "metadata only, no prompt or generation submitted"
+  }
+}

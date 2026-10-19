@@ -1,4 +1,25 @@
+import {placeDefaultSchemas,placeDefaultPaths} from './place-default-contract.mjs';
+import {dataToolsSchemas,dataToolsPaths} from './data-tools-contract.mjs';
+import {diagnosticRecordSchemas,diagnosticRecordPaths} from './diagnostic-record-contract.mjs';
+import {configurationSchemas,configurationPaths} from './configuration-contract.mjs';
+import {momentSchemas,momentPaths} from './moment-contract.mjs';
+import {mediaLibrarySchemas,mediaLibraryPaths,mediaUploadPath} from './media-library-contract.mjs';
+import {worldItemSchemas,worldItemPaths} from './world-item-contract.mjs';
+import {studioCatalogSchemas,studioCatalogPaths} from './studio-catalog-contract.mjs';
+import {studioJobSchemas,studioJobPaths} from "./studio-job-contract.mjs";
+import {worldEventSchemas,worldEventPaths} from "./world-event-contract.mjs";
 import { writeFile } from "node:fs/promises";
+import { worldSchemas, worldPaths } from "./world-contract.mjs";
+import { memorySchemas, memoryPaths, managedMemoryRead } from "./memory-contract.mjs";
+import { reflectionSchemas, reflectionPaths } from "./reflection-contract.mjs";
+import { operationsSchemas, operationsPaths } from "./operations-contract.mjs";
+import { diarySchemas, diaryPaths } from "./diary-contract.mjs";
+import {governanceSchemas,governancePaths} from "./governance-contract.mjs";
+import {visualBriefSchemas,visualBriefPaths} from "./visual-brief-contract.mjs";
+import {inventorySchemas,inventoryPaths} from "./inventory-contract.mjs";
+import {npcRuntimeSchemas,npcRuntimePaths} from "./npc-runtime-contract.mjs";
+import {promiseSchemas,promisePaths} from "./promise-contract.mjs";
+import { selfSchemas, selfPaths } from "./self-contract.mjs";
 
 const requestBody = (schema) => ({
   requestBody: { required: true, content: { "application/json": { schema: { $ref: `#/components/schemas/${schema}` } } } },
@@ -12,7 +33,7 @@ const jsonObject = { type: "object", additionalProperties: true };
 const jsonObjectArray = { type: "array", items: jsonObject };
 const nullableString = { anyOf: [{ type: "string" }, { type: "null" }] };
 
-const actorUserBackground = { type: "object", additionalProperties: false, properties: Object.fromEntries(["name","occupation","background","location_scope","location","timezone","relationship_distance","meeting_confirmed","interests","preferences"].map(key => [key, {anyOf: [key === "meeting_confirmed" ? {type:"boolean"} : {type:"string",minLength:1,maxLength:1024}, {type:"null"}]}])) };
+const actorUserBackground = { type: "object", additionalProperties: false, properties: Object.fromEntries(["name","occupation","background","location_scope","location","timezone","relationship_distance","meeting_confirmed","interests","preferences","full_name","age","gender","personality","habits","relationship_description","shared_information","wants_you_to_know","rules"].map(key => [key, {anyOf: [key === "meeting_confirmed" ? {type:"boolean"} : {type:"string",minLength:1,maxLength:1024}, {type:"null"}]}])) };
 const lifeCommandProperties = {
   expectedLifeContextRevision: { type: "string", minLength: 1, maxLength: 64 },
   idempotencyKey: { type: "string", minLength: 1, maxLength: 256 },
@@ -35,7 +56,7 @@ const schema = {
       BrowserGoalSet: {type:"object",additionalProperties:true,properties:{revision:{type:"integer"},facts_revision:{type:"string"},active_count:{type:"integer"},max_active_goals:{type:"integer"},auto_planning_enabled:{type:"boolean"},ordering_mode:{type:"string",enum:["automatic","manual"]},capacity_violation:{type:"boolean"},goals:{type:"array",items:{$ref:"#/components/schemas/BrowserGoal"}},dependencies:jsonObjectArray},required:["revision","facts_revision","active_count","max_active_goals","auto_planning_enabled","ordering_mode","capacity_violation","goals","dependencies"]},
       BrowserGoalSetCommand:{type:"object",additionalProperties:false,properties:{expectedVersion:{type:"integer"},expectedFactsRevision:{type:"string"},idempotencyKey:{type:"string"},reason:{type:"string"},autoPlanningEnabled:{type:"boolean"},orderingMode:{type:"string",enum:["automatic","manual"]},maxActiveGoals:{type:"integer",minimum:1,maximum:5},order:{type:"array",items:{type:"string"}},dependencies:{type:"object",additionalProperties:{type:"array",items:{type:"string"}}},changes:jsonObjectArray,recoveryPolicy:{type:"object",additionalProperties:false,properties:{merge_window_seconds:{type:"integer",minimum:1,maximum:60},retry_backoff_seconds:{type:"integer",minimum:5,maximum:3600},max_attempts:{type:"integer",minimum:1,maximum:10},lease_seconds:{type:"integer",minimum:60,maximum:600},candidate_limit:{type:"integer",minimum:1,maximum:20}},required:["merge_window_seconds","retry_backoff_seconds","max_attempts","lease_seconds","candidate_limit"]},sourceReviews:jsonObjectArray,reviewedGoalIds:{type:"array",items:{type:"string"}}},required:["expectedVersion","expectedFactsRevision","idempotencyKey","reason"]},
       BrowserActorContext:{type:"object",additionalProperties:true,properties:{actor_id:{type:"string"},context_version:{type:"string"},background:actorUserBackground,facts:jsonObjectArray,history:jsonObjectArray,relationships:jsonObjectArray,relationship_history:jsonObjectArray},required:["actor_id","context_version","background","facts","history","relationships","relationship_history"]},
-      BrowserActorContextUpdate:{type:"object",additionalProperties:false,properties:{expectedContextVersion:{type:"string"},idempotencyKey:{type:"string"},operation:{type:"string",enum:["correct","change"]},reason:{type:"string"},background:actorUserBackground},required:["expectedContextVersion","idempotencyKey","operation","reason","background"]},
+      BrowserActorContextUpdate:{type:"object",additionalProperties:false,properties:{expectedContextVersion:{type:"string",minLength:1,maxLength:64},idempotencyKey:{type:"string",minLength:1,maxLength:128},operation:{type:"string",enum:["correct","change"]},reason:{type:"string",minLength:1,maxLength:1000,description:"At most 1000 UTF-8 bytes"},background:actorUserBackground},required:["expectedContextVersion","idempotencyKey","operation","reason","background"]},
       BrowserGoalCommand:{type:"object",additionalProperties:false,properties:{targetActorId:{type:"string"},ownerProtected:{type:"boolean"},candidateOnly:{type:"boolean"},reviewPolicy:{type:"object",additionalProperties:false,properties:{missed_opportunity_threshold:{type:"integer",minimum:1,maximum:30},ineffective_attempt_threshold:{type:"integer",minimum:1,maximum:30}},required:["missed_opportunity_threshold","ineffective_attempt_threshold"]},resetReviewCounters:{type:"boolean"},expectedRevision:{type:"integer",minimum:0},idempotencyKey:{type:"string",minLength:1,maxLength:128},reason:{type:"string",minLength:1,maxLength:1000},profileId:{type:"string"},desiredOutcome:{type:"string",minLength:1,maxLength:2000},successCriteria:{type:"array",minItems:1,maxItems:16,items:{type:"string"}},motivation:{type:"string"},scope:{type:"string"},deadline:{type:"string",format:"date-time"},clearDeadline:{type:"boolean"},deadlinePolicy:{type:"string",enum:["soft","hard"]}},required:["idempotencyKey","reason"]},
       BrowserGoalCommandResult:{type:"object",additionalProperties:false,properties:{goal_id:{type:"string"},revision:{type:"integer"},status:{type:"string"},criteria_version:{type:"integer"},evaluation_request_id:{type:"string"}},required:["goal_id","revision","status"]},
       BrowserConversationTurnRequest: {
@@ -56,16 +77,20 @@ const schema = {
       BrowserConversationMessage: {
         type: "object", additionalProperties: false,
         properties: {
-          id: { type: "string" }, conversationId: { type: "string" }, sequence: { type: "integer" },
+          id: { type: "string" }, sourceRef:{type:"string"}, conversationId: { type: "string" }, sequence: { type: "integer" },
           authorActorId: { type: "string" }, kind: { type: "string" }, text: { type: "string" },
           attachmentRefs: { type: "array", items: { type: "string" } }, createdAt: { type: "string", format: "date-time" },
           senderTimezone: nullableString, senderUtcOffsetMinutes: { anyOf: [{ type: "integer" }, { type: "null" }] }, senderSentAt: nullableString,
-          turnId: { type: "string" }, idempotencyKey: { type: "string" }, turnStatus: { type: "string" },
+          turnId: { type: "string" }, idempotencyKey: { type: "string" }, turnStatus: { type: "string", enum:["pending","running","completed","failed","cancelled"] },
           turnErrorCode: { type: "string" }, turnRetryable: { type: "boolean" },
           identity: nullableString, actor: nullableString, recall: {}, memoryRef: {}, goalRef: {}, actionId: nullableString, link: {},
         },
         required: ["id", "conversationId", "sequence", "authorActorId", "kind", "text", "attachmentRefs", "createdAt"],
       },
+      BrowserConversation: {type:"object",additionalProperties:false,properties:{id:{type:"string"},createdByActorId:{type:"string"},title:nullableString,revision:{type:"integer"},createdAt:{type:"string"},updatedAt:{type:"string"}},required:["id","createdByActorId","revision","createdAt","updatedAt"]},
+      BrowserConversationDirectoryPage: {type:"object",additionalProperties:false,properties:{items:{type:"array",items:{type:"object",additionalProperties:false,properties:{conversation:{$ref:"#/components/schemas/BrowserConversation"},unreadCount:{type:"integer"},lastReadSequence:{type:"integer"},lastDeliveredSequence:{type:"integer"},lastMessage:{$ref:"#/components/schemas/BrowserConversationMessage"}},required:["conversation","unreadCount","lastReadSequence","lastDeliveredSequence"]}},currentConversationId:{type:"string"},nextCursor:{type:"string"}},required:["items","currentConversationId","nextCursor"]},
+      BrowserConversationSearchPage: {type:"object",additionalProperties:false,properties:{items:{type:"array",items:{$ref:"#/components/schemas/BrowserConversationMessage"}},nextCursor:{type:"string"}},required:["items","nextCursor"]},
+      BrowserNewDirectConversationRequest: {type:"object",additionalProperties:false,properties:{idempotencyKey:{type:"string",minLength:1,maxLength:256},title:{type:"string",maxLength:200}},required:["idempotencyKey"]},
       BrowserConversationPage: {
         type: "object", additionalProperties: false,
         properties: {
@@ -89,7 +114,7 @@ const schema = {
           priority: { type: "integer" }, queuePendingCount: { type: "integer" }, queuePosition: { anyOf: [{ type: "integer" }, { type: "null" }] },
           endpointId: { anyOf: [{ type: "string" }, { type: "null" }] }, modelId: { type: "string" },
           errorCode: { anyOf: [{ type: "string" }, { type: "null" }] },
-          correlationId: { type: "string" }, logicalRunId: { type: "string" }, modelCallId: { type: "string" },
+          correlationId: { type: "string" }, logicalRunId: { type: "string" }, parentRunId: {type:"string"}, modelCallId: { type: "string" },
           sequence: { anyOf: [{ type: "integer" }, { type: "null" }] }, roundCount: { type: "integer" }, stage: { type: "string" },
           toolSummaries: { type: "array", maxItems: 32, items: { $ref: "#/components/schemas/BrowserDiagnosticToolSummary" } },
           goalEvaluation:jsonObject,
@@ -118,14 +143,6 @@ const schema = {
           id: { type: "string", minLength: 1, maxLength: 128 },
           name: { type: "string", maxLength: 256 },
         },
-      },
-      BrowserFluctlightCreationAnalysisRequest: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          description: { type: "string", minLength: 1, maxLength: 60000, description: "UTF-8 encoded value must not exceed 60000 bytes.", "x-maxBytes": 60000 },
-        },
-        required: ["description"],
       },
       BrowserActorUserSettings: {type:"object",additionalProperties:false,properties:{background:actorUserBackground},required:["background"]},
       BrowserActorUserBackgroundUpdate: {type:"object",additionalProperties:false,properties:{background:actorUserBackground,operation:{type:"string",enum:["correct","change"]},reason:{type:"string",minLength:1,maxLength:500},idempotencyKey:{type:"string",minLength:1,maxLength:256},expectedCurrentFactsRevision:{type:"string",minLength:1,maxLength:64}},required:["background","operation","reason","idempotencyKey","expectedCurrentFactsRevision"]},
@@ -190,10 +207,20 @@ const schema = {
         },
         required: ["id", "correlation_id", "source_text", "source_digest", "prompt_version", "schema_version", "classification", "classification_evidence", "field_derivations", "coverage", "structured_projection", "projection_digest", "created_at", "linked_at"],
       },
+      BrowserPersonalityRuntime:{type:"object",additionalProperties:false,properties:{active_profile_id:{type:"string"},previous_profile_id:{type:"string"},revision:{type:"integer"},switch_reason:{type:"string"},switched_at:{type:"string"},cooldown_until:{type:"string"}},required:["active_profile_id","revision"]},
+      BrowserPersonaSwitchHistoryItem:{type:"object",additionalProperties:false,properties:{audit_id:{type:"string"},occurred_at:{type:"string"},active_profile_id:{type:"string"},previous_profile_id:{type:"string"},revision:{type:"integer"},switch_reason:{type:"string"},cooldown_until:{type:"string"},disposition:{type:"string"}},required:["audit_id","occurred_at"]},
+      BrowserPersonaSwitchRequest: { type:"object", additionalProperties:false, properties:{targetPersonaId:{type:"string",minLength:1,maxLength:128},expectedRevision:{type:"integer",minimum:0,maximum:2147483647},expectedRuntimeRevision:{type:"integer",minimum:0,maximum:2147483647},reason:{type:"string",minLength:1,maxLength:1000},confirm:{type:"boolean",const:true},idempotencyKey:{type:"string",minLength:1,maxLength:256}},required:["targetPersonaId","expectedRevision","expectedRuntimeRevision","reason","confirm","idempotencyKey"] },
+      BrowserPersonaSwitchResult: {type:"object",additionalProperties:false,properties:{request_id:{type:"string"},status:{type:"string",enum:["completed","pending"]},status_url:{type:"string"},source_fact_id:{type:"string"},disposition:{type:"string",enum:["applied","no_change","assessment_pending"]},revision:{type:"integer"},runtime_revision:{type:"integer"},active_profile_id:{type:"string"},previous_profile_id:{type:"string"},audit_id:{type:"string"},persona_action_audit_id:{anyOf:[{type:"string"},{type:"null"}]},request:{type:"object",additionalProperties:true}},required:["request_id","status","disposition","revision","runtime_revision","active_profile_id","previous_profile_id","audit_id","persona_action_audit_id","request"]},
+      BrowserPersonaSwitchTerminal: {type:"object",additionalProperties:false,properties:{request_id:{type:"string"},status:{type:"string",enum:["completed","rejected","failed"]},disposition:{type:"string",enum:["applied","no_change"]},revision:{type:"integer"},runtime_revision:{type:"integer"},active_profile_id:{type:"string"},previous_profile_id:{type:"string"},audit_id:{type:"string"},persona_action_audit_id:{anyOf:[{type:"string"},{type:"null"}]},source_fact_id:{type:"string"},error_code:{type:"string"},retryable:{type:"boolean"}},required:["request_id","status"]},
+      BrowserPersonaCompilation:{type:"object",additionalProperties:false,properties:{profile_id:{type:"string"},foundation_revision:{type:"integer"},overlay_revision:{type:"integer"},status:{type:"string",enum:["ready","missing","stale","invalid"]},working_persona:{anyOf:[jsonObject,{type:"null"}]},rules_version:{type:"string"},source_hash:{type:"string"},owner_switch_status:{type:"string",enum:["assessment_required"]},owner_switch_targets:{type:"array",items:{type:"object",additionalProperties:false,properties:{rule_id:{type:"string"},target_profile_id:{type:"string"}},required:["rule_id","target_profile_id"]}}},required:["profile_id","foundation_revision","overlay_revision","status","working_persona","owner_switch_targets","owner_switch_status"]},
       BrowserFluctlightDetail: {
         type: "object",
         additionalProperties: true,
         properties: {
+          personality_runtime: {$ref:"#/components/schemas/BrowserPersonalityRuntime"},
+          persona_compilation: {$ref:"#/components/schemas/BrowserPersonaCompilation"},
+          persona_switch_history: {type:"array",items:{$ref:"#/components/schemas/BrowserPersonaSwitchHistoryItem"}},
+          persona_switch_history_has_more: {type:"boolean"},
           actor_user: {$ref:"#/components/schemas/BrowserActorUserState"},
           initialization_source: { anyOf: [{ $ref: "#/components/schemas/BrowserInitializationSource" }, { type: "null" }] },
         },
@@ -204,8 +231,9 @@ const schema = {
           id: { type: "string" }, category: { type: "string" }, slot: { type: "string" },
           description: { type: "string" }, ownership: { type: "string" }, availability: { type: "string" },
           source_kind: { type: "string" }, revision: { type: "integer" },
+          item_kind: {type:"string",enum:["wearable","object"]},
         },
-        required: ["id", "category", "slot", "description", "ownership", "availability", "source_kind", "revision"],
+        required: ["id", "category", "slot", "description", "ownership", "availability", "source_kind", "revision", "item_kind"],
       },
       BrowserWardrobePage: {
         type: "object", additionalProperties: false,
@@ -224,6 +252,7 @@ const schema = {
         additionalProperties: false,
         properties: {
           kind: { type: "string", minLength: 1, maxLength: 128 },
+          placeId:{type:"string",maxLength:128},
           startAt: { type: "string", format: "date-time" },
           endAt: { type: "string", format: "date-time" },
           scene: { type: "string", maxLength: 512 },
@@ -259,6 +288,7 @@ const schema = {
           startAt: { type: "string", format: "date-time" }, endAt: { type: "string", format: "date-time" },
 	          activity: { type: "string", minLength: 1, maxLength: 128 }, scene: { type: "string", minLength: 1, maxLength: 128 },
 	          location: { type: "string", maxLength: 512 },
+          placeId: {type:"string",maxLength:128},
           itemType: { type: "string", minLength: 1, maxLength: 128 }, status: { type: "string", minLength: 1, maxLength: 128 },
           priority: { type: "number", minimum: 0, maximum: 1 }, flexibility: { type: "number", minimum: 0, maximum: 1 },
           interruptionCost: { type: "number", minimum: 0, maximum: 1 },
@@ -318,6 +348,10 @@ const schema = {
     "/api/fluctlights/{fluctlightId}/goals/{goalId}/cancel":{post:{operationId:"cancelGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
     "/api/fluctlights/{fluctlightId}/goals/{goalId}/abandon":{post:{operationId:"abandonGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
     "/api/fluctlights/{fluctlightId}/goals/{goalId}/reassess":{post:{operationId:"reassessGoal",...requestBody("BrowserGoalCommand"),...jsonResponse("BrowserGoalCommandResult")}},
+    "/api/fluctlights/{fluctlightId}/conversations": { get:{operationId:"conversationDirectory",...jsonResponse("BrowserConversationDirectoryPage")},post:{operationId:"newDirectConversation",...requestBody("BrowserNewDirectConversationRequest"),...jsonResponse("BrowserConversationPage")} },
+    "/api/fluctlights/{fluctlightId}/conversations/{conversationId}/select": {post:{operationId:"selectDirectConversation",...jsonResponse("BrowserConversationPage")}},
+    "/api/fluctlights/{fluctlightId}/messages/search": {get:{operationId:"searchConversationMessages",...jsonResponse("BrowserConversationSearchPage")}},
+    "/api/conversations/{conversationId}/messages/{messageId}": {get:{operationId:"conversationMessage",...jsonResponse("BrowserConversationMessage")}},
     "/api/fluctlights/{fluctlightId}/conversation": { get: { operationId: "fluctlightDirectConversation" } },
     "/api/fluctlights/{fluctlightId}/moments": { get: { operationId: "fluctlightMoments" } },
     "/api/fluctlights/{fluctlightId}/moments/read": { post: { operationId: "markFluctlightMomentsRead" } },
@@ -394,16 +428,20 @@ const schema = {
     "/api/fluctlights/{fluctlightId}/nearby": { get: { operationId: "fluctlightNearby" } },
     "/api/fluctlights/{fluctlightId}/diary": { get: { operationId: "listDiary" }, post: { operationId: "createDiaryEntry" } },
     "/api/fluctlights/{fluctlightId}/diary/{entryId}": { put: { operationId: "updateDiaryEntry" } },
-    "/api/fluctlights/{fluctlightId}/world": { get: { operationId: "fluctlightWorld" } },
+    "/api/fluctlights/{fluctlightId}/world": { get: { operationId: "fluctlightWorld" }, put: { operationId: "updateRuntimeWorld" } },
+    "/api/fluctlights/{fluctlightId}/world/places": { post: { operationId: "createWorldPlace" } },
+    "/api/fluctlights/{fluctlightId}/npcs": { get: { operationId: "listRuntimeNPCs" } },
+    "/api/fluctlights/{fluctlightId}/npcs/{npcId}": { get: { operationId: "readRuntimeNPC" }, put: { operationId: "updateRuntimeNPC" } },
+    "/api/fluctlights/{fluctlightId}/npcs/{npcId}/encounters": { post: { operationId: "recordNPCEncounter" } },
     "/api/fluctlights/{fluctlightId}/world/templates": { get: { operationId: "listWorldTemplates" } },
     "/api/fluctlights/{fluctlightId}/world/templates/{templateId}": { put: { operationId: "updateWorldTemplate" } },
-    "/api/fluctlights/{fluctlightId}/world/places/{placeId}": { get: { operationId: "worldPlace" } },
+    "/api/fluctlights/{fluctlightId}/world/places/{placeId}": { get: { operationId: "worldPlace" }, put: { operationId: "updateWorldPlace" } },
     "/api/fluctlights/{fluctlightId}/autonomy-policy": { get: { operationId: "readAutonomyPolicy" }, put: { operationId: "updateAutonomyPolicy" } },
     "/api/fluctlights/{fluctlightId}/desires": { get: { operationId: "listDesires" } },
     "/api/fluctlights/{fluctlightId}/owner-requests": { get: { operationId: "listFluctlightOwnerRequests" } },
     "/api/fluctlights/{fluctlightId}/promises": { post: { operationId: "createPromise" } },
     "/api/fluctlights/{fluctlightId}/moment-suggestions": { post: { operationId: "suggestMoment" } },
-    "/api/fluctlights/{fluctlightId}/persona-switch": { post: { operationId: "requestPersonaSwitch" } },
+    "/api/fluctlights/{fluctlightId}/persona-switch": { post: { operationId: "requestPersonaSwitch", ...requestBody("BrowserPersonaSwitchRequest"), responses: { ...jsonResponse("BrowserPersonaSwitchResult").responses, "202": {description:"Accepted for persistent rule assessment",content:{"application/json":{schema:{$ref:"#/components/schemas/BrowserPersonaSwitchResult"}}}} } } },
     "/api/fluctlights/{fluctlightId}/visual-identity": { put: { operationId: "updateVisualIdentity" } },
     "/api/fluctlights/{fluctlightId}/wardrobe/wear": { post: { operationId: "requestWardrobeWear" } },
     "/api/fluctlights/{fluctlightId}/wardrobe/items/{itemId}/use": { post: { operationId: "requestWardrobeUse" } },
@@ -419,6 +457,7 @@ const schema = {
     "/api/pending/count": { get: { operationId: "pendingCount" } },
     "/api/studio/resources": { get: { operationId: "listStudioResources" }, post: { operationId: "createStudioResource" } },
     "/api/studio/resources/{resourceId}": { get: { operationId: "readStudioResource" }, put: { operationId: "updateStudioResource" } },
+    "/api/studio/resources/{resourceId}/publish": { post: { operationId: "publishStudioResource" } },
     "/api/studio/resources/{resourceId}/apply-preview": { post: { operationId: "previewStudioApply" } },
     "/api/studio/resources/{resourceId}/apply": { post: { operationId: "applyStudioResource" } },
     "/api/studio/previews": { get: { operationId: "listStudioPreviews" }, post: { operationId: "createStudioPreview" } },
@@ -438,6 +477,49 @@ const schema = {
   },
 };
 
+const scheduleItemCommand={...lifeCommandProperties,expectedRevision:{type:"integer",minimum:1},reason:{type:"string",minLength:1,maxLength:500}};
+schema.components.schemas.ScheduleItemDeleteBody={type:"object",additionalProperties:false,properties:scheduleItemCommand,required:Object.keys(scheduleItemCommand)};
+schema.components.schemas.ScheduleItemSuggestionBody={type:"object",additionalProperties:false,properties:{...scheduleItemCommand,activity:{type:"string",minLength:1,maxLength:512},scene:{type:"string",maxLength:512},location:{type:"string",maxLength:512},placeId:{type:"string",maxLength:128},startAt:{type:"string",format:"date-time"},endAt:{type:"string",format:"date-time"},evidenceRefs:{type:"array",minItems:1,items:{type:"string"}}},required:[...Object.keys(scheduleItemCommand),"activity","startAt","endAt","evidenceRefs"]};
+schema.paths['/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/items'].post={...schema.paths['/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/items'].post,...requestBody('ScheduleItemSuggestionBody')};
+for(const method of ['put','delete'])schema.paths['/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/items/{itemId}'][method]={...schema.paths['/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/items/{itemId}'][method],...requestBody(method==='delete'?'ScheduleItemDeleteBody':'ScheduleItemSuggestionBody')};
+Object.assign(schema.components.schemas, worldSchemas);
+Object.assign(schema.paths, worldPaths);
+Object.assign(schema.components.schemas, memorySchemas);
+Object.assign(schema.paths, memoryPaths);
+schema.paths['/api/memories/{memoryId}'].get=managedMemoryRead;
+Object.assign(schema.components.schemas,reflectionSchemas);
+Object.assign(schema.paths,reflectionPaths);
+Object.assign(schema.components.schemas,operationsSchemas);
+Object.assign(schema.paths,operationsPaths);
+Object.assign(schema.components.schemas,diarySchemas);
+for(const [path,methods]of Object.entries(diaryPaths))schema.paths[path]={...schema.paths[path],...methods};
+Object.assign(schema.components.schemas,governanceSchemas);Object.assign(schema.paths,governancePaths);
+Object.assign(schema.components.schemas,visualBriefSchemas);
+for(const [path,methods]of Object.entries(visualBriefPaths))schema.paths[path]={...schema.paths[path],...methods};
+Object.assign(schema.components.schemas,inventorySchemas);Object.assign(schema.paths,inventoryPaths);
+Object.assign(schema.components.schemas,npcRuntimeSchemas);
+for(const [path,methods]of Object.entries(npcRuntimePaths))schema.paths[path]={...schema.paths[path],...methods};
+Object.assign(schema.components.schemas,studioJobSchemas);Object.assign(schema.paths,studioJobPaths);
+Object.assign(schema.components.schemas,diagnosticRecordSchemas);Object.assign(schema.paths,diagnosticRecordPaths);
+Object.assign(schema.components.schemas,configurationSchemas);Object.assign(schema.paths,configurationPaths);
+Object.assign(schema.components.schemas,momentSchemas);Object.assign(schema.paths,momentPaths);
+Object.assign(schema.components.schemas,mediaLibrarySchemas);Object.assign(schema.paths,mediaLibraryPaths);schema.paths["/api/media"]=mediaUploadPath;
+Object.assign(schema.components.schemas,worldItemSchemas);Object.assign(schema.paths,worldItemPaths);
+Object.assign(schema.components.schemas,worldEventSchemas);
+for(const [path,methods]of Object.entries(worldEventPaths))schema.paths[path]={...schema.paths[path],...methods};
+Object.assign(schema.components.schemas,promiseSchemas);
+for(const [path,methods]of Object.entries(promisePaths))schema.paths[path]={...schema.paths[path],...methods};
+schema.components.schemas.BrowserOwnerRequest.properties.status.enum.push("awaiting_goal","cancelled");
+Object.assign(schema.components.schemas,selfSchemas);
+Object.assign(schema.paths,selfPaths);
+Object.assign(schema.components.schemas.BrowserOwnerRequest.properties,{tasks_state:{type:'string',enum:['available','failed']},tasks:{type:'array',items:{$ref:'#/components/schemas/BrowserRequestTask'}},tasks_error_code:{type:'string'}});
+schema.paths['/api/owner-requests/{requestId}'].get={...schema.paths['/api/owner-requests/{requestId}'].get,...jsonResponse('BrowserOwnerRequest')};
+
+Object.assign(schema.components.schemas,studioCatalogSchemas);
+for(const [path,methods]of Object.entries(studioCatalogPaths))schema.paths[path]={...schema.paths[path],...methods};
+
+Object.assign(schema.components.schemas,dataToolsSchemas);for(const [path,methods]of Object.entries(dataToolsPaths))schema.paths[path]={...schema.paths[path],...methods};
+Object.assign(schema.components.schemas,placeDefaultSchemas);for(const [path,methods]of Object.entries(placeDefaultPaths))schema.paths[path]={...schema.paths[path],...methods};
 await writeFile(
   new URL("../openapi.json", import.meta.url),
   `${JSON.stringify(schema, null, 2)}\n`,

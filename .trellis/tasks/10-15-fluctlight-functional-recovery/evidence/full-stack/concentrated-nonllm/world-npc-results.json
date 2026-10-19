@@ -1,0 +1,12 @@
+{
+  "worldId": "world_71b6b9cc3f8b4cd9f100236dec800835",
+  "placeId": "place_0dde8467f0d9778f209b4b65632cbd6c",
+  "npcId": "npc_85e737dcb2deb134d7eb5863c997ca05",
+  "definitionId": "res_48dc200ec9eedaab9aa83b545100c78a",
+  "publishedVersion": "1",
+  "runtimeAssociation": true,
+  "creationDoesNotEstablishAcquaintance": true,
+  "browsingDoesNotMoveCharacter": true,
+  "placeInitialDefaultsRecorded": true,
+  "llmExecuted": false
+}

@@ -384,7 +384,7 @@ func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthori
 			}
 		}
 		structured := map[string]any{
-			"action_type": "reply", "response_intent": "observe", "visible_text": "我会按刚才看到的场景处理。",
+			"action_type": "reply", "response_intent": "observe",
 			"appraisal": map[string]any{
 				"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.5, "social_threat": 0.0,
 				"controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.0, "expected_effect": 0.5,
@@ -393,17 +393,16 @@ func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthori
 			"attention": "listen", "thought": "hold", "desire": "wait", "agency": "no action",
 			"influences": []any{map[string]any{"ref": lifeRef, "role": "constrains", "confidence": 0.9, "note": "决策基于当时尚未发生新事件的生活上下文"}},
 		}
-		if call > 1 {
-			structured["visible_text"] = "我已读取最新场景，再回应。"
-		}
 		toolCalls := []any{}
 		if call == 1 {
 			toolCalls = []any{
 				map[string]any{"id": "life-turn-scene-call", "type": "function", "function": map[string]any{"name": "scene_event", "arguments": `{"operation":"start","scene":"书房","activity":"阅读","confidence":0.9}`}},
 				map[string]any{"id": "life-turn-reply-call", "type": "function", "function": map[string]any{"name": "conversation.reply", "arguments": `{"text":"我会按刚才看到的场景处理。"}`}},
 			}
+		} else if call == 2 {
+			toolCalls = []any{map[string]any{"id": "life-turn-fresh-reply-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": `{"text":"我已读取最新场景，再回应。"}`}}}
 		}
-		response := map[string]any{"choices": []any{map[string]any{"finish_reason": map[bool]string{true: "tool_calls", false: "stop"}[call == 1], "message": map[string]any{
+		response := map[string]any{"choices": []any{map[string]any{"finish_reason": map[bool]string{true: "tool_calls", false: "stop"}[len(toolCalls) > 0], "message": map[string]any{
 			"content": jsonString(structured), "tool_calls": toolCalls,
 		}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
@@ -422,7 +421,7 @@ func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthori
 	if err != nil {
 		t.Fatalf("refreshed native continuation failed: %v", err)
 	}
-	if providerCalls.Load() != 2 {
+	if providerCalls.Load() != 3 {
 		t.Fatalf("Provider calls=%d", providerCalls.Load())
 	}
 	var assistantCount int
@@ -430,15 +429,24 @@ func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthori
 		t.Fatalf("stale turn published an assistant count=%d err=%v", assistantCount, err)
 	}
 	var inboxStatus, inboxError string
-	var inboxPayload []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn'`).Scan(&inboxStatus, &inboxError, &inboxPayload); err != nil || inboxStatus != "failed" || inboxError != "agent_cognition_settlement_failed" {
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn'`).Scan(&inboxStatus, &inboxError); err != nil || inboxStatus != "processed" || inboxError != "" {
 		t.Fatalf("stale inbox status=%q error=%q err=%v", inboxStatus, inboxError, err)
 	}
-	invocations, err := capabilityInvocationsFromValue(mapValue(decodeObject(inboxPayload)["agent_partial"])["capability_invocations"])
-	if err != nil || len(invocations) != 2 {
-		t.Fatalf("frozen invocations=%#v err=%v", invocations, err)
+	var invocationRaw, resultRaw []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT jsonb_agg(invocation ORDER BY capability_name),jsonb_agg(result ORDER BY capability_name) FROM public.tool_executions WHERE fluctlight_id=$1 AND invocation->>'call_id' IN ('life-turn-scene-call','life-turn-reply-call')`, fluctlightID).Scan(&invocationRaw, &resultRaw); err != nil {
+		t.Fatal(err)
 	}
-	results := arrayValue(mapValue(decodeObject(inboxPayload)["agent_partial"])["capability_results"])
+	var invocations []CapabilityInvocation
+	var results []any
+	if err := json.Unmarshal(invocationRaw, &invocations); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(resultRaw, &results); err != nil {
+		t.Fatal(err)
+	}
+	if len(invocations) != 2 {
+		t.Fatalf("frozen invocations=%#v", invocations)
+	}
 	if len(results) != 2 {
 		t.Fatalf("stale Tool results lost: %#v", results)
 	}

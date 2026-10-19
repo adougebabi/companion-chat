@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/instant"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform"
 	coreworkflow "github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"
+	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 	"go.temporal.io/sdk/client"
 )
@@ -62,6 +64,11 @@ func main() {
 	} else if ensured > 0 {
 		slog.Default().Info("Go Worker ensured conversation segment intents", "count", ensured)
 	}
+	if ensured, err := application.EnsureDiaryIntents(ctx); err != nil {
+		log.Printf("ensure accepted local-day diary intents: %v", err)
+	} else if ensured > 0 {
+		slog.Default().Info("Go Worker ensured diary intents", "count", ensured)
+	}
 	if reconciled, err := application.ReconcileLegacyConversationSummaries(ctx, 100); err != nil {
 		log.Printf("reconcile legacy conversation summaries: %v", err)
 	} else if reconciled > 0 {
@@ -102,6 +109,15 @@ func main() {
 	consumers := make([]*platform.EventConsumer, 0, len(platform.DurableConsumerGroups))
 	for _, group := range platform.DurableConsumerGroups {
 		consumer := platform.NewEventConsumer(application.DB.Pool(), redisClient, group, consumerID)
+		if group == "api-notifications" {
+			consumer.Apply = func(ctx context.Context, tx pgx.Tx, event platform.EventEnvelope) error {
+				var payload map[string]any
+				if err := json.Unmarshal(event.Payload, &payload); err != nil {
+					return err
+				}
+				return application.ApplyNotificationSourceTx(ctx, tx, core.NotificationSource{EventID: event.EventID, Kind: event.EventType, FluctlightID: event.FluctlightID, SourceID: event.AggregateID, OccurredAt: event.OccurredAt, Payload: payload})
+			}
+		}
 		if err := consumer.EnsureGroup(ctx); err != nil {
 			log.Fatal(err)
 		}
@@ -195,6 +211,18 @@ func main() {
 				logger.Warn("Go Worker conversation segment repair retry", "error", err)
 			} else if ensured > 0 {
 				logger.Info("Go Worker repaired conversation segment intents", "count", ensured)
+			}
+			if _, err := application.RepairWorldEvents(ctx, 20); err != nil {
+				logger.Error("World event recovery failed", "error", err)
+			}
+			if _, err := application.RepairWorldNPCPresence(ctx, 20); err != nil {
+				logger.Error("NPC presence recovery failed", "error", err)
+			}
+			if _, err := application.RepairNPCOpportunities(ctx, 50); err != nil {
+				logger.Error("NPC opportunity recovery failed", "error", err)
+			}
+			if _, err := application.RepairOwnerPromiseDeadlines(ctx, 20); err != nil {
+				logger.Error("promise deadline recovery failed", "error", err)
 			}
 			if _, err := application.RepairGoalEvaluationCadence(ctx, 20); err != nil {
 				logger.Error("goal evaluation cadence recovery failed", "error", err)

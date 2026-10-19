@@ -283,7 +283,8 @@ func TestRejectedNativePersonaTakeoverCannotEscalateWorkingProfile(t *testing.T)
 	}
 	results := nativePersonaTrace(t, ctx, repository, "native-reject-turn")
 	rejected := nativePersonaResultByName(t, results, personaTakeoverCapabilityName)
-	if firstString(rejected["status"], stringValue(rejected["Status"])) != "rejected" {
+	output := mapValue(rejected["output"])
+	if rejected["status"] != "handled" || output["warning_code"] != "persona_takeover_target_mismatch" || output["effect_applied"] != false || output["mutation_committed"] != false {
 		t.Fatalf("takeover rejection was not retained: %#v", rejected)
 	}
 	lookup := nativePersonaResultByName(t, results, "relationship.lookup")

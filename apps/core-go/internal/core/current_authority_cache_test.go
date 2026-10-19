@@ -11,7 +11,7 @@ func TestEmbeddingCacheChangesDoNotInvalidateFacts(t *testing.T) {
 	owner, actor := "embedding-facts-owner", "embedding-facts-actor"
 	seedLifeContextFluctlight(t, ctx, repo, owner, actor)
 	app := &App{DB: repo}
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,canonical_key,request_digest) VALUES('cache-memory',$1,'semantic','原始记忆事实','[]','[]','[]',0.9,0.5,0,'private','active',0,'cache-memory','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')`, actor); err != nil {
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,canonical_key,request_digest) VALUES('cache-memory',$1,'semantic','原始记忆事实','[]','[]','["owner:cache-memory"]',0.9,0.5,0,'private','active',0,md5('cache-memory'),'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')`, actor); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,status,actor_id,evidence_refs,source_window,idempotency_key) VALUES('cache-memory-revision','cache-memory',0,0,'原始记忆事实','active',$1,'[]','cache-memory','cache-memory-revision')`, owner); err != nil {
@@ -22,7 +22,7 @@ func TestEmbeddingCacheChangesDoNotInvalidateFacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, query := range []string{
-		`INSERT INTO public.memory_embeddings(id,memory_id,memory_revision,model_id,dimensions,embedding,status) VALUES('cache-vector','cache-memory',0,'cache-model',2,'[]','pending')`,
+		`INSERT INTO public.memory_embeddings(id,memory_id,memory_revision,model_id,provider_endpoint_id,dimensions,embedding,status) VALUES('cache-vector','cache-memory',0,'cache-model','cache-provider',2,'[]','pending')`,
 		`UPDATE public.memory_embeddings SET embedding='[1,0]',embedding_vector='[1,0]'::vector,status='ready' WHERE id='cache-vector'`,
 		`UPDATE public.memory_embeddings SET status='failed',error_code='provider_request_failed' WHERE id='cache-vector'`,
 		`UPDATE public.memory_embeddings SET status='pending',error_code=NULL WHERE id='cache-vector'`,

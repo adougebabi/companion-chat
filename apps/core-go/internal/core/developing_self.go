@@ -143,54 +143,7 @@ func (a *App) ListDevelopingSelfClaims(ctx context.Context, fluctlightID string)
 }
 
 func (a *App) rollbackDevelopingSelfClaim(ctx context.Context, actorID, claimID string, expectedRevision int, reason string) (map[string]any, error) {
-	if strings.TrimSpace(claimID) == "" || expectedRevision < 1 || strings.TrimSpace(reason) == "" {
-		return nil, errors.New("developing_self_rollback_invalid")
-	}
-	var result map[string]any
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var fluctlightID, category, claim string
-		var currentRevision int
-		var before []byte
-		if err := tx.QueryRow(ctx, `SELECT c.fluctlight_id,c.category,c.claim,c.revision,c.value FROM public.fluctlight_developing_self_claims c JOIN public.fluctlights f ON f.id=c.fluctlight_id WHERE c.id=$1 AND f.created_by_actor_id=$2 FOR UPDATE`, claimID, actorID).Scan(&fluctlightID, &category, &claim, &currentRevision, &before); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrNotFound
-			}
-			return err
-		}
-		if currentRevision != expectedRevision {
-			return ErrConflict
-		}
-		var target []byte
-		if err := tx.QueryRow(ctx, `SELECT candidate FROM public.fluctlight_developing_self_revisions WHERE claim_id=$1 AND revision=$2 AND status='accepted'`, claimID, expectedRevision-1).Scan(&target); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return errors.New("developing_self_rollback_unavailable")
-			}
-			return err
-		}
-		previous := decodeObject(target)
-		if len(previous) == 0 {
-			return errors.New("developing_self_rollback_unavailable")
-		}
-		newRevision := currentRevision + 1
-		command, err := tx.Exec(ctx, `UPDATE public.fluctlight_developing_self_claims SET category=$2,claim=$3,value=$4,confidence=$5,evidence_refs=$6,provenance=$7,status=$8,revision=$9,updated_at=now() WHERE id=$1 AND revision=$10`, claimID, firstString(previous["category"], category), firstString(previous["claim"], claim), jsonBytes(previous["value"]), previous["confidence"], jsonBytes(arrayValue(previous["evidence_refs"])), jsonBytes(mapValue(previous["provenance"])), firstString(previous["status"], "active"), newRevision, expectedRevision)
-		if err != nil {
-			return err
-		}
-		if command.RowsAffected() != 1 {
-			return ErrConflict
-		}
-		rollbackID := "self_revision_rollback_" + stableDigest(claimID+":"+fmt.Sprint(newRevision))
-		rollbackCandidate := map[string]any{"category": firstString(previous["category"], category), "claim": firstString(previous["claim"], claim), "reason": reason}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_developing_self_revisions(id,fluctlight_id,claim_id,revision,base_revision,change_type,candidate,before_value,after_value,evidence_refs,reason_code,status) VALUES($1,$2,$3,$4,$5,'rollback',$6,$7,$8,'[]',$9,'accepted') ON CONFLICT(id) DO NOTHING`, rollbackID, fluctlightID, claimID, newRevision, expectedRevision, jsonBytes(rollbackCandidate), before, target, "owner_rollback"); err != nil {
-			return err
-		}
-		result = map[string]any{"id": claimID, "fluctlight_id": fluctlightID, "revision": newRevision, "status": "rolled_back", "category": firstString(previous["category"], category), "claim": firstString(previous["claim"], claim)}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return a.legacyOwnerSelfCommand(ctx, actorID, claimID, "rollback", expectedRevision, reason)
 }
 
 func canonicalEvidenceKey(ctx context.Context, tx pgx.Tx, fluctlightID, ref string) string {
@@ -232,19 +185,30 @@ func (a *App) writeDevelopingSelfRevision(ctx context.Context, tx pgx.Tx, fluctl
 	return err
 }
 
-func (a *App) applyDevelopingSelfCandidateTx(ctx context.Context, tx pgx.Tx, fluctlightID string, candidate map[string]any, evidenceRefs []any, allowedEvidence map[string]struct{}, sourceWindow string) error {
+type selfCandidateOutcome struct {
+	ID       string
+	Revision int
+	Reason   string
+}
+
+func (a *App) applyDevelopingSelfCandidateTx(ctx context.Context, tx pgx.Tx, fluctlightID string, candidate map[string]any, evidenceRefs []any, allowedEvidence map[string]struct{}, sourceWindow string) (selfCandidateOutcome, error) {
 	normalized, err := normalizeDevelopingSelfClaim(candidate, "reflection")
 	if err != nil {
-		return err
+		return selfCandidateOutcome{}, err
 	}
 	distinctRefs, err := a.distinctDevelopingSelfEvidence(ctx, tx, fluctlightID, evidenceRefs, allowedEvidence)
 	if err != nil {
-		return err
+		return selfCandidateOutcome{}, err
 	}
 	if len(distinctRefs) < 2 {
-		return a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, "", "rejected", "insufficient_evidence", "rejected", sourceWindow, 0, 0, normalized, []byte(`{}`), []byte(`{}`), distinctRefs)
+		return selfCandidateOutcome{Reason: "insufficient_evidence"}, a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, "", "rejected", "insufficient_evidence", "rejected", sourceWindow, 0, 0, normalized, []byte(`{}`), []byte(`{}`), distinctRefs)
 	}
 	normalized["evidence_refs"] = distinctRefs
+	if inactive, err := selfCanonicalInactiveTx(ctx, tx, fluctlightID, stringValue(normalized["category"]), stringValue(normalized["claim"])); err != nil {
+		return selfCandidateOutcome{}, err
+	} else if inactive {
+		return selfCandidateOutcome{Reason: "self_claim_inactive"}, a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, "", "rejected", "self_claim_inactive", "rejected", sourceWindow, 0, 0, normalized, []byte(`{}`), []byte(`{}`), distinctRefs)
+	}
 	category := stringValue(normalized["category"])
 	claimText := stringValue(normalized["claim"])
 	var claimID string
@@ -256,12 +220,12 @@ func (a *App) applyDevelopingSelfCandidateTx(ctx context.Context, tx pgx.Tx, flu
 		claimID = "self_claim_" + stableDigest(fluctlightID+":"+category+":"+claimText)
 		revision = 1
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_developing_self_claims(id,fluctlight_id,category,claim,value,confidence,evidence_refs,provenance,status,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(id) DO NOTHING`, claimID, fluctlightID, category, claimText, jsonBytes(normalized["value"]), normalized["confidence"], jsonBytes(distinctRefs), jsonBytes(normalized["provenance"]), normalized["status"], revision); err != nil {
-			return err
+			return selfCandidateOutcome{}, err
 		}
-		return a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, claimID, "create", "accepted", "accepted", sourceWindow, 1, 0, normalized, []byte(`{}`), jsonBytes(normalized), distinctRefs)
+		return selfCandidateOutcome{ID: claimID, Revision: 1}, a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, claimID, "create", "accepted", "accepted", sourceWindow, 1, 0, normalized, []byte(`{}`), jsonBytes(normalized), distinctRefs)
 	}
 	if err != nil {
-		return err
+		return selfCandidateOutcome{}, err
 	}
 	previousRefs := decodeArray(beforeRefs)
 	canonicalPrevious := make([]any, 0, len(previousRefs))
@@ -274,18 +238,42 @@ func (a *App) applyDevelopingSelfCandidateTx(ctx context.Context, tx pgx.Tx, flu
 	}
 	normalizedConfidence, _ := numberFloat(normalized["confidence"])
 	if sameEvidence(canonicalPrevious, canonicalCurrent) && string(jsonBytes(decodeJSONValue(beforeValue))) == string(jsonBytes(normalized["value"])) && beforeConfidence == normalizedConfidence {
-		return nil
+		return selfCandidateOutcome{ID: claimID, Revision: revision}, nil
 	}
 	newRevision := revision + 1
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_developing_self_claims SET value=$2,confidence=$3,evidence_refs=$4,provenance=$5,status=$6,revision=$7,updated_at=now() WHERE id=$1 AND revision=$8`, claimID, jsonBytes(normalized["value"]), normalized["confidence"], jsonBytes(distinctRefs), jsonBytes(normalized["provenance"]), normalized["status"], newRevision, revision)
 	if err != nil {
-		return err
+		return selfCandidateOutcome{}, err
 	}
 	if command.RowsAffected() != 1 {
-		return ErrConflict
+		return selfCandidateOutcome{}, ErrConflict
 	}
 	previous := map[string]any{"category": category, "claim": claimText, "value": decodeJSONValue(beforeValue), "confidence": beforeConfidence, "evidence_refs": previousRefs, "provenance": decodeObject(beforeProvenance), "status": "active"}
-	return a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, claimID, "update", "accepted", "accepted", sourceWindow, newRevision, revision, normalized, jsonBytes(previous), jsonBytes(normalized), distinctRefs)
+	return selfCandidateOutcome{ID: claimID, Revision: newRevision}, a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, claimID, "update", "accepted", "accepted", sourceWindow, newRevision, revision, normalized, jsonBytes(previous), jsonBytes(normalized), distinctRefs)
+}
+
+// A repeated canonical candidate cannot revive an archived identity or collide
+// with its existing revision 1. Owner restoration remains explicit. Another
+// live claim for that canonical identity keeps its ordinary evolution path.
+func selfCanonicalInactiveTx(ctx context.Context, tx pgx.Tx, fid, category, claim string) (bool, error) {
+	rows, err := tx.Query(ctx, `SELECT status FROM public.fluctlight_developing_self_claims WHERE fluctlight_id=$1 AND category=$2 AND claim=$3 FOR UPDATE`, fid, category, claim)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	inactive, active := false, false
+	for rows.Next() {
+		var status string
+		if err := rows.Scan(&status); err != nil {
+			return false, err
+		}
+		if status == "active" || status == "uncertain" {
+			active = true
+		} else if status == "forgotten" || status == "superseded" {
+			inactive = true
+		}
+	}
+	return inactive && !active, rows.Err()
 }
 
 func (a *App) listDevelopingSelfRevisions(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
@@ -320,40 +308,7 @@ func (a *App) ListDevelopingSelfRevisions(ctx context.Context, fluctlightID stri
 }
 
 func (a *App) forgetDevelopingSelfClaim(ctx context.Context, actorID, claimID string, expectedRevision int, reason string) (map[string]any, error) {
-	if strings.TrimSpace(claimID) == "" || expectedRevision < 1 || strings.TrimSpace(reason) == "" {
-		return nil, errors.New("developing_self_forget_invalid")
-	}
-	var result map[string]any
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var fluctlightID, category, claim string
-		var revision int
-		var value, refs, provenance []byte
-		var confidence float64
-		if err := tx.QueryRow(ctx, `SELECT c.fluctlight_id,c.category,c.claim,c.revision,c.value,c.confidence,c.evidence_refs,c.provenance FROM public.fluctlight_developing_self_claims c JOIN public.fluctlights f ON f.id=c.fluctlight_id WHERE c.id=$1 AND f.created_by_actor_id=$2 FOR UPDATE`, claimID, actorID).Scan(&fluctlightID, &category, &claim, &revision, &value, &confidence, &refs, &provenance); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrNotFound
-			}
-			return err
-		}
-		if revision != expectedRevision {
-			return ErrConflict
-		}
-		newRevision := revision + 1
-		command, err := tx.Exec(ctx, `UPDATE public.fluctlight_developing_self_claims SET status='forgotten',revision=$2,updated_at=now() WHERE id=$1 AND revision=$3`, claimID, newRevision, expectedRevision)
-		if err != nil {
-			return err
-		}
-		if command.RowsAffected() != 1 {
-			return ErrConflict
-		}
-		candidate := map[string]any{"category": category, "claim": claim, "value": decodeJSONValue(value), "confidence": confidence, "evidence_refs": decodeArray(refs), "provenance": decodeObject(provenance), "status": "forgotten", "reason": reason}
-		if err := a.writeDevelopingSelfRevision(ctx, tx, fluctlightID, claimID, "forget", "owner_forget", "forgotten", "owner:"+actorID, newRevision, expectedRevision, candidate, jsonBytes(candidate), jsonBytes(map[string]any{}), decodeArray(refs)); err != nil {
-			return err
-		}
-		result = map[string]any{"id": claimID, "fluctlight_id": fluctlightID, "revision": newRevision, "status": "forgotten", "reason": reason}
-		return nil
-	})
-	return result, err
+	return a.legacyOwnerSelfCommand(ctx, actorID, claimID, "forget", expectedRevision, reason)
 }
 
 func (a *App) RollbackDevelopingSelfClaim(ctx context.Context, actorID, claimID string, expectedRevision int, reason string) (map[string]any, error) {

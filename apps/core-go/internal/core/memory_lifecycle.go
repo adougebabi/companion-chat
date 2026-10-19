@@ -461,6 +461,12 @@ func buildOwnerMemoryCommand(row memoryAuthorityRow, actorID string, operation M
 		"operation": operation, "memory_id": row.ID, "expected_revision": expectedRevision,
 		"evidence_refs": evidenceRefs, "semantic": semantic, "rollback_revision": rollbackRevision,
 	}
+	if operation == MemoryRevise {
+		// Explicit Owner correction replaces the support of the current claim.
+		// Version the command identity so a pre-upgrade accumulation receipt is
+		// never mistaken for this different correction contract.
+		commandIdentity["evidence_policy"] = "replace.v1"
+	}
 	command := PreparedMemoryMutation{
 		SchemaVersion: memoryLifecycleSchemaVersion, Operation: operation,
 		OwnerFluctlightID: row.OwnerFluctlightID, OwnerActorID: actorID, ActorID: actorID,
@@ -470,7 +476,8 @@ func buildOwnerMemoryCommand(row memoryAuthorityRow, actorID string, operation M
 		RollbackRevision: rollbackRevision, RollbackSnapshot: rollbackSnapshot,
 		Visibility: row.Visibility, OccurredAt: time.Now().UTC(), SourceFactID: evidenceRefs[0],
 		CandidateIndex: -1, SemanticReason: semanticReason,
-		IdempotencyKey: "memory:owner:" + stableDigest(jsonString(commandIdentity)),
+		ReplaceEvidence: operation == MemoryRevise,
+		IdempotencyKey:  "memory:owner:" + stableDigest(jsonString(commandIdentity)),
 	}
 	if operation == MemoryRollback {
 		command.ConversationID = stringValue(rollbackSnapshot["conversation_id"])

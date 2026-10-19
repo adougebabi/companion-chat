@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import Button from "@/components/ui/button/Button.vue";
@@ -12,6 +12,8 @@ import ChoiceSelect from "../components/product/ChoiceSelect.vue";
 import { userError } from "../lib/user-feedback";
 import ChatPanel from "../components/chat/ChatPanel.vue";
 import { deliveryStatus } from "../components/chat/delivery";
+import { useCharacterSurface } from './life/use-character-surface';
+import { nowActivity, wornItems } from '../lib/life-surface';
 
 const emit = defineEmits<{
   back: [];
@@ -21,6 +23,12 @@ const emit = defineEmits<{
 }>();
 
 const store = useConversationStore();
+const { control, detail } = useCharacterSurface();
+const activity = computed(() => nowActivity(detail.value));
+const wearing = computed(() => wornItems(detail.value));
+watch(() => store.sending, (sending, wasSending) => {
+  if (wasSending && !sending && store.fluctlightId) void control.loadFluctlightDetail(store.fluctlightId);
+});
 const draft = ref("");
 const senderOptions = computed(() => {
   const participants = store.conversationParticipants;
@@ -110,6 +118,13 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); });
       @load-older="store.loadOlder"
       @focus-composer="focusComposer"
     >
+      <template #summary>
+        <details class="summary card tint-primary">
+          <summary>此刻：{{ activity.activity || '当前活动未确认' }} · {{ activity.place || '地点未确认' }}</summary>
+          <p class="small muted">远程私聊 · 浏览页面不会移动角色或使你在场。</p>
+          <button class="btn ghost sm" type="button" @click="emit('openSection', 'life')">完整生活状态</button>
+        </details>
+      </template>
       <template #actions>
         <Button class="icon-button chat-more" variant="ghost" type="button" aria-label="查看对话详情" @click="emit('openDetails')"><MoreHorizontal :size="20" aria-hidden="true" /></Button>
       </template>
@@ -128,12 +143,14 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); });
     <aside class="chatside stack">
       <div class="card">
         <h3>此刻</h3>
-        <p class="small muted">生活此刻页尚未接入。这里不展示推测中的心情或位置。</p>
+        <p>{{ activity.activity || '当前活动未确认' }}</p><p class="small muted">{{ activity.place || '地点未确认' }}</p>
         <button class="btn sm" type="button" @click="emit('openSection', 'life')">打开生活</button>
       </div>
       <div class="card">
-        <h3>进行中</h3>
-        <p class="small muted">目标、穿着和相关记忆仍在既有治理里，聊天栏不另造一份。</p>
+        <h3>当前穿着</h3>
+        <p v-if="wearing === null" class="small muted">穿着状态尚未读取。</p>
+        <p v-else-if="!wearing.length" class="small muted">尚未记录当前穿着。</p>
+        <ul v-else><li v-for="item in wearing" :key="String(item.id)">{{ item.description || item.id }}</li></ul>
         <button class="btn ghost sm" type="button" @click="emit('openSection', 'growth')">记忆入口</button>
         <button class="btn ghost sm" type="button" @click="emit('openDetails')">查看资料</button>
       </div>

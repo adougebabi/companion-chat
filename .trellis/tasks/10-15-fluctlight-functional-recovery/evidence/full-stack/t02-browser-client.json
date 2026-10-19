@@ -1,0 +1,27 @@
+{
+  "client": "generated BrowserClient from packages/browser-client/src/index.ts",
+  "authenticated": true,
+  "fluctlight_count": 2,
+  "details": [
+    {
+      "id": "recovery-a-1015",
+      "detail_id": "recovery-a-1015",
+      "has_current_state": true
+    },
+    {
+      "id": "recovery-b-1015",
+      "detail_id": "recovery-b-1015",
+      "has_current_state": true
+    }
+  ],
+  "provider_endpoint_count": 0,
+  "provider_binding_count": 0,
+  "settings_keys": [
+    "ai.capability_status",
+    "conversation.reply",
+    "llm.queue",
+    "product.wakeup",
+    "vision.understanding",
+    "working_persona_budget"
+  ]
+}

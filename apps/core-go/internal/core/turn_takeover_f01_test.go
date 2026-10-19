@@ -1,8 +1,11 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestNaturalFinalReplyNeedsNoSyntheticConversationReplyTool(t *testing.T) {
+func TestNaturalFinalTextCannotReplaceNativeConversationReply(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "natural-final-owner", "natural-final-fluctlight", "natural-final-conversation"
 	takeoverChainSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
@@ -12,17 +15,14 @@ func TestNaturalFinalReplyNeedsNoSyntheticConversationReplyTool(t *testing.T) {
 		return result
 	})
 	app := newTestApp(t, repository, router)
-	result, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "你好。", "natural-final-turn", "natural-final-turn-1"))
-	if err != nil {
-		t.Fatal(err)
+	_, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "你好。", "natural-final-turn", "natural-final-turn-1"))
+	if err == nil || !strings.Contains(err.Error(), "conversation_native_output_missing") {
+		t.Fatalf("unpublished final bypassed native Reply boundary: %v", err)
 	}
-	if stringValue(result.Assistant["text"]) != "自然 final 回复" {
-		t.Fatalf("assistant=%#v", result.Assistant)
-	}
-	if trace := nativePersonaTrace(t, ctx, repository, "natural-final-turn"); len(trace) != 0 {
-		t.Fatalf("natural reply fabricated Tool results: %#v", trace)
-	}
-	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID); count != 1 {
+	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID); count != 0 {
 		t.Fatalf("assistant count=%d", count)
+	}
+	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name='conversation.reply'`, fluctlightID); count != 0 {
+		t.Fatal("fabricated reply receipt", count)
 	}
 }

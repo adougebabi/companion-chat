@@ -1,0 +1,21 @@
+{
+  "root_cause": "localhost cookies share host scope across ports, while 5173 and 5175 use different databases",
+  "observed_same_test_cookie": [
+    {
+      "port": 5173,
+      "status": 401,
+      "authenticated": false,
+      "clears_same_host_session_cookie": true
+    },
+    {
+      "port": 5175,
+      "status": 200,
+      "authenticated": true,
+      "clears_same_host_session_cookie": false
+    }
+  ],
+  "fix": "isolated frontend moved to http://127.0.0.1:5175; API trusted origin updated, auth and CSRF retained",
+  "original_5173": "retained",
+  "browser_after_move": "login then reload retained Owner and rendered persisted memory",
+  "secrets_included": false
+}

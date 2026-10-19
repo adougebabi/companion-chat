@@ -1,0 +1,211 @@
+{
+  "updatedAt": "2026-10-19T11:51:22.046783+00:00",
+  "phase": "non_llm_verification_complete_user_model_acceptance_pending",
+  "sourceHead": "0095_place_defaults",
+  "oldDeploymentHead": "last_known_0066_not_modified",
+  "isolatedPostgresFreshMigration": "passed",
+  "isolatedApplication": "http://127.0.0.1:18080",
+  "workerStarted": false,
+  "realLLMCalls": 0,
+  "webTests": {
+    "pass": 213,
+    "fail": 0,
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/web-tests-final.log"
+  },
+  "browserClientTests": {
+    "pass": 36,
+    "fail": 0,
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/browser-client-node-tests.log"
+  },
+  "goWithoutDatabase": {
+    "passEvents": 2215,
+    "skipEvents": 681,
+    "failEvents": 0,
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/go-unit-tests-final.jsonl"
+  },
+  "v3OperationsPostgres": {
+    "passed": [
+      "resource_pack_round_trip",
+      "place_defaults_restore_cas_scope",
+      "diagnostic_snapshot_export_clear",
+      "workflow_command_run_identity",
+      "backup_token_attempt_receipts"
+    ],
+    "externalRuntime": "controlled; actual external execution not certified",
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/v3-operations-postgres.jsonl"
+  },
+  "completeCorePostgres": {
+    "status": "failed_before_repairs",
+    "failEvents": 144,
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/core-postgres-full.jsonl",
+    "passEvents": 2174,
+    "skipEvents": 34,
+    "failedRoots": 90,
+    "explanation": "final initial-run result; replaces the premature 123-fail snapshot"
+  },
+  "realS3BackupRestore": {
+    "uploadReplayAndExactBytes": "passed",
+    "metadataReadback": "passed",
+    "referenceGrantCrossRoleIsolation": "passed",
+    "backup": "passed",
+    "isolatedRestore": "passed",
+    "targetHead": "0095_place_defaults",
+    "targetVerificationContainers": "stopped",
+    "modelsStarted": false,
+    "backupReceipt": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/real-backup-receipt.json",
+    "restoreReceipt": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/real-restore-receipt.json"
+  },
+  "minioSourceBuilds": {
+    "status": "passed",
+    "serverCommit": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+    "clientCommit": "b00526b153a31b36767991a4f5ce2cced435ee8e",
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/minio-source-images.log"
+  },
+  "realModelAcceptance": "user_runs_after_final_delivery; not_executed",
+  "realBrowser": {
+    "ownerSignIn": "passed",
+    "blankRoleCreation": "passed",
+    "aboutYouSaveReadbackAndRefresh": "passed",
+    "aboutYouCrossRoleAPIIsolation": "passed",
+    "image": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/about-you-desktop-final.jpg",
+    "initialNoHashRoute": "passed_fresh_anonymous_browser",
+    "initialNoHashImage": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/fresh-no-hash-auth.jpg",
+    "aboutYouCrossRoleBrowserIsolation": "passed_role_B_fields_empty",
+    "aboutYouConcurrentConflict": "passed_two_windows_409_preserves_draft_then_explicit_rebase",
+    "aboutYouFrozenLayout": "shared_card_desktop_1440x900_and_mobile_390x962",
+    "aboutYouAllCanonicalFields": "19_of_19_actual_DOM_across_three_tabs",
+    "mobileHorizontalOverflow": false,
+    "settingsSaveReadbackRefresh": "passed_runtime_default_to_saved_v1_then_original_values_restored_v2",
+    "providerUnconfiguredLabel": "passed",
+    "moodStructuredProjection": "passed_no_object_string",
+    "finalOriginSignIn": "passed_existing_owner",
+    "readOnlyPages": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/browser-readonly-pages.json",
+    "npcRoutineSaveReadbackRefresh": "passed_current_runtime_revision_2_no_encounter_or_relationship_created",
+    "npcRoutineEvidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/npc-browser-roundtrip.json",
+    "finalOriginPublicScriptPreflight": "passed_127.0.0.1_18080_cookie_session_real_API_model_triggers_0",
+    "mobileImage": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/about-you-mobile-final.jpg"
+  },
+  "repairsVerified": [
+    "media child does not inherit parent Tool choice",
+    "embedding cache does not change fact generation",
+    "conversation mixed media native receipts",
+    "current capture frozen clothing and explicit selfie",
+    "goal outcome source numeric parameter",
+    "goal missing coverage single continuation and terminal failure",
+    "terminal Goal review cleanup before model cadence",
+    "Owner inventory archive retains use history",
+    "controlled upload recovery and revoked grant stops Provider submission",
+    "Owner request wrapper freezes explicit not_required payload; Promise/inventory requests now execute",
+    "NPC pending opportunity source revocation is repaired without batch starvation",
+    "Planner context recovery requires real unspent episode and capacity; schedules durable intent before counting",
+    "Planner daily repair reports actual scheduled work and shares lifecycle-before-Life lock order",
+    "Persona compiler clears parent physical request policy without losing cancellation",
+    "Reply narration detector reads canonical/shared identity with compiled portrait",
+    "Media concept and frozen capability snapshot must match before submission",
+    "Tool receipt retains native frozen context and surface",
+    "Latest Goal execution evidence prioritizes the actual root assessment proof"
+  ],
+  "failedRootRecheck": {
+    "passEvents": 186,
+    "failEvents": 69,
+    "failedRoots": 39,
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/core-postgres-failed-recheck.jsonl",
+    "status": "additional_real_and_fixture_repairs_required"
+  },
+  "migrationSuite": {
+    "pass": 112,
+    "fail": 0,
+    "skip": 0,
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/postgres-migration-verified.jsonl"
+  },
+  "realWorldNPC": {
+    "definitionPublishApplyReadback": "passed",
+    "creationDoesNotEstablishAcquaintance": "passed",
+    "browsingDoesNotMoveCharacter": "passed",
+    "placeInitialBaseline": "passed",
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/world-npc-results.json"
+  },
+  "scheduledResolutionRecovery": {
+    "status": "passed including restart/concurrency/bounded recovery/scheduled cancellation/native late result",
+    "attempts": 3,
+    "backoffMinutes": 5,
+    "noMigrationRequired": true,
+    "source": "apps/core-go/internal/core/scheduled_resolution_recovery.go",
+    "log": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/scheduled-resolution-recovery.jsonl"
+  },
+  "workspaceFinal": {
+    "typecheck": "passed",
+    "test": "passed",
+    "build": "passed",
+    "result": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/workspace-final-result.json"
+  },
+  "temporalRealControl": {
+    "test": "TestTemporalRuntimeRealControlRecovery",
+    "status": "passed",
+    "runtime": "real task-owned Temporal; dedicated control-only worker",
+    "workflow": "v3-nonllm-control-1792407657433971784",
+    "firstRun": "01a153d2-5c50-7b00-89c7-3736fbd98a62",
+    "resetRun": "3105f85d-9531-4541-b54c-b5a4d3568e7b",
+    "restartRun": "01a153d2-5cc6-77ce-96e2-06de6012127c",
+    "historyEvents": 24,
+    "historyPages": 8,
+    "resetPoint": 4,
+    "workerRestart": true,
+    "repeatedPauseResume": true,
+    "invalidResetRejected": true,
+    "resetReplaySameRun": true,
+    "restartReplaySameRun": true,
+    "differentCommandRejected": true,
+    "cancelAndTerminate": "passed",
+    "realModelCalls": 0,
+    "evidenceOrigin": "captured from successful docker test tool output (session 40348)",
+    "source": "apps/core-go/internal/workflow/temporal_runtime_integration_test.go"
+  },
+  "currentFullPostgresRun": {
+    "status": "passed_complete_registered_core_set",
+    "roots": {
+      "pass": 1500,
+      "skip": 34
+    },
+    "events": {
+      "pass": 2337,
+      "skip": 34
+    },
+    "registeredRoots": 1534,
+    "uniqueExecutedRoots": 1534,
+    "coverageSetMatches": true,
+    "sourceUnchanged": true,
+    "manifest": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/core-final-manifest.json",
+    "summary": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/core-final-summary.json",
+    "skips": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/core-skipped-coverage.json",
+    "otherPackagesPassed": 16,
+    "serialBeforeFinalFixes": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/core-postgres-final.jsonl",
+    "otherPackagesFinalSummary": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/other-packages-final-summary.json"
+  },
+  "targetedKnownFailures": "resolved; final clean complete Core run has zero failed roots",
+  "businessWorkerStarted": false,
+  "controlOnlyTestWorkerExecuted": true,
+  "goVet": "passed",
+  "regressionHarness": {
+    "registeredScenarios": 17,
+    "selfTestPass": 24,
+    "selfTestFail": 0,
+    "liveExecuted": false,
+    "preflight": "passed at final origin; zero model trigger operations",
+    "privateRunDirectory": "/private/tmp/fluctlight-v3-final-acceptance"
+  },
+  "remaining": [
+    "Real Qwen/Cydonia/Vision/KEV/Comfy runs are deliberately reserved for the user; current isolated environment has zero provider bindings",
+    "Business Worker remains stopped until the user configures providers and begins model acceptance",
+    "Original user deployment/data volumes were not upgraded; only task-owned isolated schema is 0095",
+    "34 opt-in Go cases are explicitly skipped; their reasons remain in core-skipped-coverage.json"
+  ],
+  "finalServices": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/final-services.json",
+  "finalRuntimeDatabase": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/final-runtime-database-state.json",
+  "artifactPolicy": {
+    "index": "../README.md",
+    "finalRawEvidence": "Core final shards, other packages, migrations and selected final verification logs are retained in Git",
+    "historicalRawLogs": "Earlier failed runs, repeated builds and intermediate reruns remain local only; their historical paths are not repository attachments",
+    "privateArtifacts": "Credentials, cookies, execution tokens and volume archives remain outside the repository"
+  }
+}

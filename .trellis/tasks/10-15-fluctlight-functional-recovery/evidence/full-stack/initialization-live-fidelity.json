@@ -1,0 +1,41 @@
+{
+  "two_stable_profiles": true,
+  "timezone": "Asia/Shanghai",
+  "background_types": {
+    "age": "NoneType",
+    "background": "NoneType",
+    "full_name": "NoneType",
+    "gender": "NoneType",
+    "habits": "NoneType",
+    "interests": "NoneType",
+    "location": "NoneType",
+    "location_scope": "NoneType",
+    "meeting_confirmed": "NoneType",
+    "name": "NoneType",
+    "occupation": "NoneType",
+    "personality": "NoneType",
+    "preferences": "NoneType",
+    "relationship_description": "NoneType",
+    "relationship_distance": "NoneType",
+    "rules": "NoneType",
+    "shared_information": "NoneType",
+    "timezone": "NoneType",
+    "wants_you_to_know": "NoneType"
+  },
+  "no_owner_timezone_inference": true,
+  "blue_shirt_owned_and_worn": true,
+  "profile_voice_nonempty": {
+    "day": true,
+    "night": true
+  },
+  "profile_behavior_loops_nonempty": {
+    "day": true,
+    "night": true
+  },
+  "core_relationship_present": true,
+  "owner_request_evaluation_semantics": true,
+  "no_professional_impersonation_constraint": true,
+  "no_invented_action_constraint": true,
+  "initial_relationship_count": 1,
+  "activated": false
+}

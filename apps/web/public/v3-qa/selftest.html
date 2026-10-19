@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>摇光原型自测</title><link rel="icon" href="/v3/assets/avatars/xiaoyao.svg">
+<style>body{font-family:sans-serif;font-size:13px}iframe{width:1280px;height:820px;border:1px solid #ccc}.pass{color:green}.fail{color:#c00;font-weight:bold}</style></head>
+<body><h1>v3 Mock 验收 · 原型流程自测（流程 A/B/C + 路由 + 状态）</h1><pre id="out"></pre><div id="summary">RUNNING</div>
+<iframe id="f"></iframe>
+<script>
+const QS = new URLSearchParams(location.search); const VW = +(QS.get('w') || 1440), VH = +(QS.get('h') || 900);
+document.getElementById('f').style.width = VW + 'px'; document.getElementById('f').style.height = VH + 'px';
+document.querySelector('h1').textContent += ` @ ${VW}x${VH}`;
+const out = document.getElementById('out'); let pass = 0, fail = 0;
+const W = () => document.getElementById('f').contentWindow, D = () => W().document;
+const log = (ok, name, extra = '') => { ok ? pass++ : fail++; out.innerHTML += `<span class="${ok ? 'pass' : 'fail'}">${ok ? 'PASS' : 'FAIL'}</span> ${name} ${extra}\n`; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function until(fn, ms = 6000) { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch (e) {} await sleep(50); } return null; }
+async function click(sel, name) { const el = await until(() => D().querySelector(sel)); if (!el) { log(false, '找不到元素 ' + sel, name || ''); return false; } el.click(); await sleep(80); return true; }
+async function nav(h) { W().location.hash = h; await sleep(250); }
+const S = () => W().__store;
+window.addEventListener('error', e => log(false, '自测页错误', e.message));
+
+const $ = sel => D().querySelector(sel), $$ = sel => [...D().querySelectorAll(sel)];
+function setVal(sel, v) { const e = $(sel); if (!e) return false; e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; }
+const submit = sel => $(sel)?.closest('form').requestSubmit();
+async function extended() {
+  S().resetDemo(); await sleep(100); S().setUi({ identity: '管理' });
+  const n = c => S().list(c).length;
+  // 已知缺口修复
+  await nav('#/c/c1/chat'); S().update(d => { d.goals.g_post.state = '已确认'; }, { identity: '系统运维', summary: '自测：改目标状态' }); await sleep(150);
+  log(!!$('[data-test=side-goal-g_post] [data-badge="已确认"]'), 'G1 对话右栏随 store 实时刷新');
+  await nav('#/c/c1/life/schedule'); await click('[data-demo-state="冲突"]'); await click('[data-test=keep-draft]');
+  log(!!await until(() => $('[data-test=draft-kept]')), 'G2 冲突态「保留草稿」可用'); await click('.statesw [data-demo-state="正常"]');
+  await nav('#/c/c2/life/now'); log(!!$('[data-test=char-status-c2]') && !/咖啡馆/.test($('#page').textContent), 'G3 阿青此刻页显示自己的状态（不回落小遥）');
+  await nav('#/c/c3/growth'); log(!!$('[data-test=char-status-c3]') && /暂停/.test($('#page').textContent), 'G4 木木记忆页显示已暂停');
+  await nav('#/c/c4/world'); log(!!$('[data-test=char-status-c4]') && /退休/.test($('#page').textContent), 'G5 星野世界页显示已退休');
+  await nav('#/c/c3/profile'); log(/面包店学徒/.test($('[data-test=profile-c3]')?.textContent || ''), 'G6 木木资料页是自己的资料');
+  // 相处体验
+  await nav('#/c/c1/chat/history'); setVal('[data-test=hist-input]', '书店'); submit('[data-test=hist-input]'); await sleep(250);
+  log($$('[data-test=hist-hit]').length >= 2 && !!$('[data-test=hist-list] mark'), 'X1 会话历史搜索命中并高亮');
+  await nav('#/c/c1/chat/corrections'); await click('[data-test=corr-open-msg_007]'); log(!!await until(() => $('[data-test=correction]')), 'X2 纠错记录 → 打开纠错抽屉');
+  await click('[data-test=mode-owner]'); await click('[data-test=corr-save]'); await click('[data-test=confirm-ok]');
+  await until(() => S().get('memories', 'm31').version === 2); await sleep(150); log(!!$('[data-test=corr-done]') && /已纠正/.test($('[data-test=corr-done]').textContent), 'X3 纠错后列表进入已处理');
+  await nav('#/feed'); const p0 = n('posts'); setVal('[data-test=post-input]', '今天也去看海了'); submit('[data-test=post-input]'); await sleep(150);
+  const mine = S().list('posts').find(p => p.text === '今天也去看海了'); log(n('posts') === p0 + 1 && mine?.authorType === 'user' && mine.author === 'u1', 'X4 用户以自己身份发动态');
+  setVal('[data-test=sug-input]', '分享一下明信片'); submit('[data-test=sug-input]');
+  const sug = await until(() => S().list('postSuggestions').find(x => x.state === '已确认'));
+  const cp = sug && S().get('posts', sug.postId); log(!!cp && cp.authorType === 'char' && cp.fromSuggestion === sug.id, 'X5 建议发帖 → 由小遥决定并以她名义发布');
+  log(!S().auditLog().some(a => a.identity === '所有者修改' && /动态/.test(a.summary)), 'X6 没有所有者代角色发帖');
+  await nav('#/feed/po_1'); setVal('[data-test=comment-input]', '好看！'); submit('[data-test=comment-input]'); await sleep(150);
+  log(S().get('posts', 'po_1').comments.some(c => c.text === '好看！' && c.author === 'u1'), 'X7 动态详情评论');
+  await nav('#/inbox'); await click('[data-test=read-nt_1]'); log(S().get('notices').find(x => x.id === 'nt_1').read, 'X8 通知单条标为已读');
+  await nav('#/settings/outreach'); setVal('[data-test=outreach-freq]', '很少'); await click('[data-test=outreach-save]'); log(S().get('prefs').autonomy.c1.主动触达 === '很少' && /运行时权限/.test($('[data-test=outreach-saved]')?.textContent || ''), 'X9 主动触达偏好记录（仅展示）');
+  await nav('#/c/c1/chat/media'); log(!!$('[data-test=genimg]'), 'X10 聊天图片页');
+  // 生活成长
+  await nav('#/c/c1/life/schedule'); log(!!$('[data-test=fact-s_walk]') && /封路/.test($('[data-test=fact-s_walk]').textContent), 'L1 日程显示计划 vs 实际');
+  const s0 = n('schedule'); await click('[data-test=sched-suggest]'); await click('[data-test=sched-cancel]'); log(n('schedule') === s0 && !$('[data-test=sched-drawer]'), 'L2 建议日程：取消不写入且抽屉关闭');
+  await click('[data-test=sched-suggest]'); setVal('[data-test=sched-title]', '傍晚去海边写生'); await click('[data-test=sched-submit]');
+  const ns = await until(() => S().list('schedule').find(x => x.title === '傍晚去海边写生' && x.state === '计划')); log(!!ns, 'L3 建议日程 → 小遥接受进入计划');
+  await nav('#/c/c1/life/goals'); const g0 = n('goals'); await click('[data-test=promise-new]'); await click('[data-test=promise-submit]');
+  log(!!await until(() => n('goals') === g0 + 1 && S().list('goals').some(g => g.title.includes('向日葵') && g.state === '已确认')), 'L4 提出约定 → 她答应');
+  await nav('#/c/c1/life/diary'); await click('[data-test=diary-d_1015]'); await sleep(200); setVal('[data-test=reply-input]', '伞记得还哦'); submit('[data-test=reply-input]'); await sleep(150);
+  log(S().get('diary', 'd_1015').replies.length === 1, 'L5 回应日记');
+  await nav('#/c/c1/life/shared'); log($$('.chain .lrow').length >= 4, 'L6 共同经历时间线');
+  await nav('#/c/c1/growth'); setVal('[data-test=mem-search]', '向日葵'); submit('[data-test=mem-search]'); await sleep(250); log(!!$('[data-test=mem-m32]') && !$('[data-test=mem-m33]'), 'L7 记忆库搜索');
+  await nav('#/c/c1/growth/memory/m32'); log($$('[data-test=rev]').length === 2 && /玫瑰/.test($('#page').textContent), 'L8 #m32 两条修订（原记为玫瑰）');
+  await click('[data-test=mem-edit]'); await click('[data-test=mem-cancel]'); log(S().get('memories', 'm32').version === 2, 'L9 记忆修改：取消不写入');
+  await click('[data-test=mem-edit]'); setVal('[data-test=mem-draft]', '用户喜欢向日葵，也喜欢看海'); await click('[data-test=mem-save]'); await click('[data-test=confirm-ok]');
+  log(!!await until(() => S().get('memories', 'm32').version === 3), 'L10 记忆修改保存为新修订 v3');
+  await nav('#/c/c1/growth/reflection'); await click('[data-test=refl-rf_1]'); await sleep(200); await click('[data-test=refl-agree]'); log(S().get('reflections', 'rf_1').feedback?.kind === '认同', 'L11 回应反思');
+  await nav('#/c/c1/growth/self'); await click('[data-test=prop-accept]'); await click('[data-test=confirm-ok]');
+  log(!!await until(() => S().get('proposals', 'pp_1').state === '已确认') && !S().pending('c1').some(x => x.id === 'pp_1'), 'L12 采纳人格提案，待处理派生同步消失');
+  await nav('#/c/c1/profile'); await click('[data-test=profile-edit]'); setVal('[data-test=bio-input]', '22 岁，插画助理，最近在画海边明信片。'); await click('[data-test=bio-save]');
+  log(!!await until(() => /明信片/.test(S().get('characters', 'c1').bio)), 'L13 编辑角色简介');
+  // 世界人物
+  await nav('#/c/c1/world'); await click('[data-test=place-p_book]'); await sleep(200); const loc = S().get('characters', 'c1').locationId;
+  log(/place\/p_book/.test(W().location.hash) && !!$('[data-test=char-loc]'), 'W1 世界总览 → 地点详情');
+  await click('[data-test=place-suggest]'); log($('[data-test=sched-place]')?.value === 'p_book', 'W2 建议她来这里（预填地点）'); await click('[data-test=sched-submit]');
+  await until(() => S().list('schedule').some(x => x.placeId === 'p_book' && x.state === '计划')); log(S().get('characters', 'c1').locationId === loc, 'W3 浏览地点/建议不移动角色');
+  await nav('#/c/c1/world/scene'); const m0 = n('media'); await click('[data-test=scene-photo]'); await click('[data-test=gen-go]'); log(!!await until(() => n('media') === m0 + 1), 'W4 场景拍照（生成图）');
+  await nav('#/c/c1/world/events'); await click('[data-test=ev-evt_1015a]'); await sleep(200); log($$('[data-test=impact]').length === 5, 'W5 事件 evt_1015a 影响链 5 项');
+  await click('[data-test=impact-open-0]'); log(!$('[data-test=impact-detail-0]').hidden && /取消/.test($('[data-test=impact-detail-0]').textContent), 'W6 展开影响项看到 s_walk 取消');
+  await nav('#/c/c1/world/settings'); log($('[data-test=harm-toggle]').disabled && $('[data-test=harm-count]').textContent === '2' && $('[data-test=harm-count-char]').textContent === '2', 'W7 永久伤害禁用 + 2 个拦截计数');
+  setVal('[data-test=rand-freq]', '较多'); await click('[data-test=ws-save]'); await click('[data-test=confirm-ok]');
+  log(!!await until(() => S().get('worldSettings').w1.freq === '较多') && S().get('worldSettings').w1.harmLocked === true, 'W8 保存随机事件设定，永久伤害仍锁定');
+  await nav('#/c/c1/people'); await click('[data-test=rel-rel_alan]'); await sleep(200); log(!!$('[data-test=npc-not-full]') && $$('[data-test=relrev]').length === 3, 'W9 阿岚：非完整摇光 + 3 条关系修订');
+  await click('[data-test=rel-edit]'); await sleep(200); setVal('[data-test=rel-stage]', '挚友'); await click('[data-test=rel-save]'); await click('[data-test=confirm-ok]');
+  log(!!await until(() => S().get('relations', 'rel_alan').revisions.length === 4 && S().get('relations', 'rel_alan').stage === '挚友'), 'W10 关系修正写入新修订 v4');
+  await nav('#/c/c1/people/list'); setVal('[data-test=people-q]', '花店'); submit('[data-test=people-q]'); await sleep(250); log(!!$('[data-test=npc-n_alan]') && !$('[data-test=npc-n_zhou]'), 'W11 人物目录搜索');
+  await nav('#/c/c1/people/owner'); setVal('[data-test=owner-城市]', '杭州'); await click('[data-test=owner-save]'); log(!!await until(() => S().get('user').background.城市 === '杭州'), 'W12 所有者背景保存');
+  await nav('#/c/c1/media/generate'); const m1 = n('media'); await click('[data-test=gen-submit]');
+  log(!!await until(() => $('[data-test=gen-page-result]')) && n('media') === m1 + 1 && S().list('media').slice(-1)[0].nonFact && S().get('characters', 'c1').locationId === loc, 'W13 媒体生成：生成图·非事实，位置不变');
+  await nav('#/c/c1/media/md_01'); log(!!$('[data-badge="生成图·非事实"]'), 'W14 媒体详情');
+  // 创作治理
+  await nav('#/auth'); await click('[data-test=auth-submit]'); log(!!await until(() => S().get('session')) && !!await until(() => $('[data-test=signed-in]')), 'O1 登录（模拟）');
+  await nav('#/library'); log(!!$('[data-test=lib-c1]') && !!$('[data-test=lib-c4]'), 'O2 角色库分组含 4 个角色'); setVal('[data-test=grp-c3]', 'grp_daily'); await sleep(150); log(S().get('characters', 'c3').groupId === 'grp_daily', 'O3 角色移动分组');
+  await click('[data-test=lib-create]'); await sleep(200); await click('[data-test=wiz-next]'); log(!!$('[data-test=wiz-name]'), 'O4 向导：名字必填校验');
+  setVal('[data-test=wiz-name]', '小满'); await click('[data-test=wiz-next]'); await click('[data-test=wiz-next]'); await click('[data-test=wiz-next]'); await click('[data-test=wiz-done]');
+  const nc = await until(() => S().list('characters').find(c => c.name === '小满')); log(!!nc && nc.status === '未启动', 'O5 新建角色（未启动）');
+  await sleep(200); await nav(`#/c/${nc?.id}/life/now`); log(!!$(`[data-test=char-status-${nc?.id}]`), 'O6 新角色此刻页显示自己的状态');
+  await nav('#/studio'); const r0 = n('resources'); await click('[data-test=res-new]'); await click('[data-test=res-create]'); log(!!await until(() => n('resources') === r0 + 1 && /studio\/edit/.test(W().location.hash)), 'O7 新建资源并进入编辑');
+  await nav('#/studio/preview'); const sd = S().get('studioDrafts').length, m2 = n('media'); await click('[data-test=pv-gen]'); await sleep(150);
+  log(S().get('studioDrafts').length === sd + 1 && n('media') === m2 && !!$('[data-test=preview-item] [data-badge="创作预览·不进入生活"]'), 'O8 沙盒只写 studioDrafts');
+  await nav('#/studio/apply'); await click('[data-test=apply-open-r_book]'); log(!!await until(() => $('[data-test=apply-conflict]')), 'O9 应用到实例页打开冲突抽屉');
+  D().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await sleep(100); log(!$('.drawer'), 'O10 抽屉 Esc 关闭');
+  await nav('#/studio/template'); log(/永久伤害/.test($('#page').textContent), 'O11 事件模板显示永久伤害约束');
+  await nav('#/settings'); await click('[data-test=set-save]'); log(!!S().get('prefs').global.savedAt, 'O12 系统设置记录偏好');
+  await nav('#/c/c1/settings/autonomy'); await click('[data-test=auto-save]'); log(!!S().get('prefs').autonomy.c1.savedAt && /只读/.test($('#page').textContent), 'O13 自治偏好记录 + 权限只读');
+  await nav('#/diag'); await click('[data-test=diag-a12]'); log(!!await until(() => /a12/.test($('.drawer')?.textContent || '')), 'O14 诊断首页 → 行动 a12 详情');
+  await nav('#/diag/task/t88'); await click('[data-test=task-action]'); log(!!$('.drawer'), 'O15 任务 t88 → 行动详情');
+  await nav('#/diag/audit?who=所有者修改'); log($$('[data-test=audit-row]').length > 0 && $$('[data-test=audit-row] [data-badge="交流"]').length === 0, 'O16 审计按身份筛选');
+  await nav('#/diag/pending'); log(!!$('[data-test=pending-r_book]') && !!$('[data-test=pending-t88]'), 'O17 待处理（派生）');
+  await nav('#/data'); await click('[data-test=cfg-export]'); log(!!$('[data-test=cfg-exported]'), 'O18 导出配置包');
+  await click('[data-test=cfg-check]'); log(!!$('[data-test=cfg-ok]'), 'O19 校验配置包');
+  S().update(d => { d.resources.r_dresscat.draft = null; }, { identity: '系统运维', summary: '自测准备', silent: true });
+  await click('[data-test=cfg-import]'); await click('[data-test=confirm-ok]'); log(!!await until(() => S().get('resources', 'r_dresscat').draft), 'O20 导入配置包为草稿');
+  await nav('#/data'); setVal('[data-test=cfg-input]', '{bad'); await click('[data-test=cfg-check]'); log(!!$('[data-test=cfg-bad]'), 'O21 导入非法 JSON 报错');
+  await click('[data-test=to-revisions]'); await sleep(200); log($$('[data-test=revrow]').length >= 6, 'O22 对象修订记录');
+  await nav('#/data/rollback'); log(/P3/.test($('#page').textContent), 'O23 回档 P3 说明页');
+  // 全部路由再巡检
+  let dead = 0; for (const r of W().__app.routes()) { await nav('#' + r.route.replace(/:(\w+)/g, (_, k) => ({ charId: 'c1', placeId: 'p_book', evId: 'evt_1015a', memId: 'm31', npcId: 'n_alan', taskId: 't88', resId: 'r_book', postId: 'po_1', entryId: 'd_1015', refId: 'rf_1', relId: 'rel_alan', mdId: 'md_01' }[k]))); dead += $$('a[href="#"]').length; }
+  log(dead === 0, '全部页面无 href="#"');
+  S().resetDemo(); S().setUi({ identity: '交流' });
+}
+async function run() {
+  await until(() => W().__store && W().__app);
+  const errs = []; W().addEventListener('error', e => errs.push(e.message)); W().addEventListener('unhandledrejection', e => errs.push(String(e.reason)));
+  const oce = W().console.error; W().console.error = (...a) => { errs.push(a.join(' ')); oce.apply(W().console, a); };
+  S().resetDemo(); W().__flowsT.step = 120; S().setUi({ identity: '交流' });
+  // ---------- 路由 ----------
+  const P = { charId: 'c1', placeId: 'p_book', evId: 'evt_1015a', memId: 'm31', npcId: 'n_alan', taskId: 't88', resId: 'r_book', postId: 'po_1', entryId: 'd_1015', refId: 'rf_1', relId: 'rel_alan', mdId: 'md_01' };
+  let bad = [];
+  for (const r of W().__app.routes()) { const h = '#' + r.route.replace(/:(\w+)/g, (_, n) => P[n]); await nav(h); const pg = D().querySelector('#page'); if (!pg || pg.dataset.page !== r.key || /页面渲染出错/.test(pg.textContent)) bad.push(h); }
+  log(bad.length === 0, `全部 ${W().__app.routes().length} 条注册路由可渲染`, bad.join(' '));
+  await nav('#/no/such/route'); log(/未完成/.test(D().querySelector('#page').textContent), '未注册路由显示「未完成」页');
+  log(D().querySelectorAll('a[href="#"]').length === 0, '无 href="#" 死链');
+  // ---------- 返回栈 ----------
+  await nav('#/c/c1/chat'); await nav('#/c/c1/life/now'); await click('[data-test=back]'); await sleep(200);
+  log(W().location.hash === '#/c/c1/chat', '返回按钮回到上一页', W().location.hash);
+  // ---------- 演示状态 ----------
+  for (const st of ['空', '加载', '失败', '未接入', '冲突', '部分成功']) { await click(`[data-demo-state="${st}"]`); log(!!D().querySelector(`[data-test="state-${st}"]`), `对话页演示状态「${st}」`); }
+  await click('[data-demo-state="正常"]');
+  for (const st of ['空', '失败', '未接入']) { await nav('#/c/c1/life/now'); await click(`[data-demo-state="${st}"]`); log(!!D().querySelector(`[data-test="state-${st}"]`), `此刻页演示状态「${st}」`); await click('.statesw [data-demo-state="正常"]'); }
+  // ---------- 原型说明 ----------
+  D().querySelector('[data-test=notes-toggle]').click(); await sleep(100);
+  log(W().getComputedStyle(D().querySelector('.notes')).display !== 'none', '原型说明面板可显示'); D().querySelector('[data-test=notes-toggle]').click();
+  // ---------- 流程 A ----------
+  await nav('#/c/c1/chat'); await sleep(200);
+  const n0 = S().list('messages').length; const inp = D().querySelector('[data-test=chat-input]'); inp.value = '今天心情怎么样？'; D().querySelector('[data-test=composer]').requestSubmit();
+  log(!!await until(() => D().querySelector('[data-test=streaming] .bubble')?.textContent.length > 2), '发送后出现流式回复');
+  log(!!await until(() => S().list('messages').length === n0 + 2), '流式回复完成写入');
+  D().querySelector('[data-msg="msg_007"] [data-test="wrong-msg_007"]').click(); await sleep(150);
+  log(!!D().querySelector('[data-test=correction]'), 'A1 「这条不对」打开纠错抽屉');
+  await click('[data-test=mode-owner]'); log(!!D().querySelector('[data-test=diff] .add'), 'A2 所有者修改显示差异预览');
+  await click('[data-test=corr-cancel]'); log(S().get('memories', 'm31').version === 1 && S().get('memories', 'm31').content === '海边书店已经停业', 'A3 取消不改变记忆');
+  D().querySelector('[data-test="wrong-msg_007"]').click(); await sleep(150); await click('[data-test=mode-owner]');
+  await click('[data-test=simulate-conflict]'); await click('[data-test=corr-save]'); await click('[data-test=confirm-ok]', '切换管理身份');
+  log(!!await until(() => D().querySelector('[data-test=conflict]')), 'A4 版本冲突面板出现');
+  await click('[data-test=refresh-resubmit]'); await click('[data-test=corr-save]'); await click('[data-test=confirm-ok]', '二次确认');
+  const m31 = await until(() => S().get('memories', 'm31').content === '海边书店暂停装修中（未停业）' && S().get('memories', 'm31'));
+  log(!!m31 && m31.version === 3, 'A5 记忆 #m31 已更新（v3）', m31 ? m31.content : '');
+  log(S().get('messages', 'msg_007').corrected && S().get('messages', 'msg_007').text.includes('已经停业'), 'A6 原消息挂已纠正且原文不改写');
+  log(S().auditLog().some(a => a.identity === '所有者修改' && a.target === 'm31'), 'A7 审计记录 所有者修改 m31');
+  await sleep(200); log(!!D().querySelector('[data-msg="msg_007"] [data-test=corrected]'), 'A8 聊天中显示“已纠正”');
+  await nav('#/c/c1/growth/memory/m31'); log(D().querySelector('[data-test=memory-content]')?.textContent === '海边书店暂停装修中（未停业）' && D().querySelectorAll('[data-test=rev]').length === 3, 'A9 记忆页同一内容 + 3 条修订');
+  // ---------- 流程 B ----------
+  await nav('#/c/c1/life/goals'); log(!!D().querySelector('[data-test=goal-g_dress]'), 'B1 目标页显示意向 g_dress');
+  await nav('#/c/c1/chat'); await click('[data-test=act-request]');
+  log(!!await until(() => S().get('items', 'it_dress').status === '拥有', 5000), 'B2 行动 a_buy 完成，it_dress 入库');
+  log(S().get('goals', 'g_dress').state === '已确认' && S().get('schedule', 's_shop').state === '已确认' && S().get('actions', 'a_buy').state === '已确认', 'B3 目标/日程/行动状态联动');
+  await nav('#/c/c1/life/wardrobe?item=it_dress'); await sleep(200);
+  log(!S().get('outfit').c1.current.includes('it_dress'), 'B4 换装前未穿着');
+  await click('[data-test=outfit-request]');
+  log(!!await until(() => S().get('outfit').c1.current.includes('it_dress')), 'B5 小遥接受后才换装');
+  log(!S().get('outfit').c1.current.includes('it_coat'), 'B6 碎花裙替换了外套');
+  const before = JSON.stringify(S().get('outfit').c1); const mc = S().list('media').length;
+  await sleep(200); await click('[data-test=photo-now]'); await click('[data-test=gen-go]');
+  log(!!await until(() => D().querySelector('[data-test=gen-result]')), 'B7 拍照生成完成');
+  const md = S().list('media', m => m.itemId === 'it_dress')[0];
+  log(md && md.nonFact && md.outfitSnapshot.includes('it_dress') && S().list('media').length === mc + 1, 'B8 媒体 md_ 关联物品与穿搭快照，标非事实', md ? md.id : '');
+  log(JSON.stringify(S().get('outfit').c1) === before, 'B9 拍照不改变事实（穿着不变）');
+  await nav('#/c/c1/media'); log(!!D().querySelector(`[data-test="media-${md?.id}"] [data-badge="生成图·非事实"]`), 'B10 媒体库显示「生成图·非事实」');
+  // ---------- 流程 C ----------
+  await nav('#/studio/edit/r_book'); await click('[data-q="描述里加上海风"]');
+  log(D().querySelector('[data-f="描述"]').value.includes('海风'), 'C1 助手修改同一份草稿（表单同步）');
+  log(!!D().querySelector('[data-test=dirty]') && !S().get('resources', 'r_book').draft, 'C2 未保存前不写入');
+  await click('[data-test=save-draft]'); await sleep(100);
+  log(S().get('resources', 'r_book').draft?.描述.includes('海风') && S().get('resources', 'r_book').published === 'v4', 'C3 保存草稿≠发布');
+  const mc2 = S().list('media').length; await click('[data-test=preview-gen]'); await sleep(100);
+  log(S().get('studioDrafts').length === 1 && S().list('media').length === mc2 && !!D().querySelector('[data-test=preview-item] [data-badge="创作预览·不进入生活"]'), 'C4 创作预览只进 studioDrafts，媒体库不变');
+  await click('[data-test=apply]'); log(!!await until(() => D().querySelector('[data-test=apply-conflict]')), 'C5 应用到实例显示与实例修正的冲突');
+  await click('[data-test=apply-override]'); await click('[data-test=apply-confirm]'); await click('[data-test=confirm-ok]');
+  const inst = await until(() => S().get('instances').c1.r_book.applied === 'v4' && S().get('instances').c1.r_book);
+  log(!!inst && !inst.overrides.营业状态 && S().get('places', 'p_book').desc.includes('已重新开业'), 'C6 应用 v4 到小遥（覆盖修正，地点更新）');
+  log(S().auditLog().some(a => a.summary.includes('应用定义')), 'C7 应用写入审计');
+  await click('[data-test=publish]'); await click('[data-test=confirm-ok]'); await sleep(100);
+  log(S().get('resources', 'r_book').published === 'v5' && S().get('instances').c1.r_book.applied === 'v4', 'C8 发布 v5 不自动改变实例');
+  // ---------- 诊断/重置 ----------
+  await nav('#/diag/task/t88'); await click('[data-test=retry]'); const t = S().get('tasks', 't88');
+  log(t.state === '已确认' && t.runs === 2, 'D1 t88 重试仅补步骤 3-4');
+  S().resetDemo(); await sleep(100);
+  log(S().get('studioDrafts').length === 0 && S().get('memories', 'm31').version === 1 && S().auditLog().length === 0, 'D2 重置演示数据恢复种子并清空 studioDrafts');
+
+  // ---------- 扩展页面（每页主操作） ----------
+  await extended();
+  log(errs.length === 0, '无控制台错误', errs.join(' | '));
+  document.getElementById('summary').textContent = `RESULT pass=${pass} fail=${fail}`;
+}
+document.getElementById('f').src = '/index.html#/c/c1/chat';
+document.getElementById('f').onload = () => run().catch(e => { log(false, '异常', e.stack); document.getElementById('summary').textContent = `RESULT pass=${pass} fail=${fail + 1}`; });
+</script></body></html>

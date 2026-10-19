@@ -92,7 +92,7 @@ func (c scheduleEditCapability) Prepare(ctx context.Context, invocation Capabili
 		return invocation, newCapabilityError("schedule_edit_planner_unavailable", true, errors.New("schedule planner is not configured"))
 	}
 	timezone := firstString(stringValue(resolved.Life.Data["timezone"]), stringValue(resolved.Schedule.Data["timezone"]))
-	planned, err := c.planner.Plan(ctx, SchedulePlanInput{Intent: stringValue(args["intent"]), TargetEdit: args, Schedule: resolved.Schedule.Data, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data, SourceFactID: invocation.SourceFactID, Timezone: timezone})
+	planned, err := c.planner.Plan(ctx, SchedulePlanInput{OwnerRequest: ownerScheduleRequestFromContext(ctx), Intent: stringValue(args["intent"]), TargetEdit: args, Schedule: resolved.Schedule.Data, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data, SourceFactID: invocation.SourceFactID, Timezone: timezone})
 	if err != nil {
 		return invocation, newCapabilityError("schedule_edit_planner_failed", true, err)
 	}

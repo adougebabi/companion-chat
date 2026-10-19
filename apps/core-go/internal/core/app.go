@@ -336,7 +336,7 @@ func (a *App) authAudit(ctx context.Context, action, actorID, result, details st
 	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.auth_audit_log(id,action,actor_id,result,details) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING`, randomID("auth_audit_"), action, nullableString(actorID), result, details)
 }
 
-const initializationResponseShapeInstruction = `Canonical JSON shape: {"schema_version":2,"core_persona":{"schema_version":1,"identity":{"name":"","nickname":null,"gender":null,"age":null,"occupation":null,"height":null,"height_cm":null,"blood_type":null,"birthplace":null,"residence":null,"timezone":null,"birthday":null,"background_story":null,"biography":null,"core_values":[],"worldview":null,"notes":null},"personality":{},"behavioral_policy":{},"life_profile":{"appearance":{"description":null,"physical_features":{"hair_length":null,"hair_color":null},"hair_style":null,"injuries":[],"daily_outfit_preferences":[],"style_preferences":{},"wardrobe_items":[{"category":"","slot":"","description":"","ownership":"owned|borrowed|unknown","available":true,"currently_worn":false}]},"social_background":{},"preferences":{},"life_habits":[],"recurring_commitments":[],"relationship_seeds":[],"character_constraints":[],"media_preferences":{}},"personality_system":{"mode":"single|multiple","profiles":[{"id":"stable_id","name":"","identity":{},"personality":{},"behavioral_policy":{},"emotional_state":{},"voice":{},"body_language":{},"behavior_state_machine":{},"behavior_loops":{},"scenario_behavior":{},"secrets":{},"intimacy_progression":{},"output_preferences":{},"fears":[],"stable_motivations":[],"extensions":{}}],"active_profile_id":"default","switching":{},"forced_activation":{},"takeover_rules":[{"id":"stable_rule_id","kind":"turn_takeover","version":"turn-takeover.v1","condition":"","target_profile_id":"stable_profile_id","source_profile_id":"stable_profile_id","priority":0,"cooldown_seconds":0,"enabled":true,"evidence_refs":[],"extensions":{}}],"influence":{},"core_relationship":null,"core_conflict":null,"conflict_resolution":{},"integration":{},"behavior_state_machine":{},"extensions":{}},"extensions":{}},"developing_self":{"claims":[]},"initial_relationships":[],"initial_goals":[],"initial_intentions":[],"actor_user":{"background":{}},"extensions":{}}. Separate concrete finite wishes into initial_goals once and relationship feelings into initial_relationships; profile stable_motivations are values, preferences and enduring motives, never repeatable action instructions. Preserve the original source independently. Use these canonical keys; never replace them with actor_self, personas, goals, or another custom root. actor_user.background is an optional owner-approved human background input, distinct from core_persona (the Fluctlight). Allowed keys: name, occupation, background, location_scope, location, timezone, relationship_distance, meeting_confirmed. Emit only explicitly supplied human facts; missing fields are not assertions and null means unknown. Never infer a human location/timezone from the character, device or server. Strings are at most 1024 characters, meeting_confirmed is boolean or null, timezone must be explicitly supplied IANA or null. For every executable takeover declaration, emit an explicit stable id, kind=turn_takeover, version=turn-takeover.v1, non-empty condition, and target_profile_id that exactly matches a declared profile id. source_profile_id is optional but, when present, must also exactly match a declared profile id. Keep the original forced_activation prose verbatim as migration evidence; a profile display name or a profile mention in condition text cannot substitute for target_profile_id.`
+const initializationResponseShapeInstruction = `Canonical JSON shape: {"schema_version":2,"core_persona":{"schema_version":1,"identity":{"name":"","nickname":null,"gender":null,"age":null,"occupation":null,"height":null,"height_cm":null,"blood_type":null,"birthplace":null,"residence":null,"timezone":null,"birthday":null,"background_story":null,"biography":null,"core_values":[],"worldview":null,"notes":null},"personality":{},"behavioral_policy":{},"life_profile":{"appearance":{"description":null,"physical_features":{"hair_length":null,"hair_color":null},"hair_style":null,"injuries":[],"daily_outfit_preferences":[],"style_preferences":{},"wardrobe_items":[{"category":"","slot":"","description":"","ownership":"owned|borrowed|unknown","available":true,"currently_worn":false}]},"social_background":{},"preferences":{},"life_habits":[],"recurring_commitments":[],"relationship_seeds":[],"character_constraints":[],"media_preferences":{}},"personality_system":{"mode":"single|multiple","profiles":[{"id":"stable_id","name":"","identity":{},"personality":{},"behavioral_policy":{},"emotional_state":{},"voice":{},"body_language":{},"behavior_state_machine":{},"behavior_loops":{},"scenario_behavior":{},"secrets":{},"intimacy_progression":{},"output_preferences":{},"fears":[],"stable_motivations":[],"extensions":{}}],"active_profile_id":"default","switching":{},"forced_activation":{},"takeover_rules":[{"id":"stable_rule_id","kind":"turn_takeover","version":"turn-takeover.v1","condition":"","target_profile_id":"stable_profile_id","source_profile_id":"stable_profile_id","priority":0,"cooldown_seconds":0,"enabled":true,"evidence_refs":[],"extensions":{}}],"influence":{},"core_relationship":null,"core_conflict":null,"conflict_resolution":{},"integration":{},"behavior_state_machine":{},"extensions":{}},"extensions":{}},"developing_self":{"claims":[]},"initial_relationships":[],"initial_goals":[],"initial_intentions":[],"actor_user":{"background":{}},"extensions":{}}. Separate concrete finite wishes into initial_goals once and relationship feelings into initial_relationships; profile stable_motivations are values, preferences and enduring motives, never repeatable action instructions. Preserve the original source independently. Use these canonical keys; never replace them with actor_self, personas, goals, or another custom root. actor_user.background is an optional owner-approved human background input, distinct from core_persona (the Fluctlight). Allowed keys: name, occupation, background, location_scope, location, timezone, relationship_distance, meeting_confirmed, interests, preferences, full_name, age, gender, personality, habits, relationship_description, shared_information, wants_you_to_know, rules. Emit only explicitly supplied human facts; missing fields are not assertions and null means unknown. Never infer a human location/timezone from the character, device or server. Every actor_user.background field except meeting_confirmed must be a non-empty string of at most 1024 characters or null, including interests, preferences, habits, rules, and shared_information; never emit arrays, objects, or empty strings for those fields. Omit unspecified background fields or use null. meeting_confirmed is boolean or null; timezone must be explicitly supplied IANA or null. For every executable takeover declaration, emit an explicit stable id, kind=turn_takeover, version=turn-takeover.v1, non-empty condition, and target_profile_id that exactly matches a declared profile id. source_profile_id is optional but, when present, must also exactly match a declared profile id. Keep the original forced_activation prose verbatim as migration evidence; a profile display name or a profile mention in condition text cannot substitute for target_profile_id.`
 
 const InitializationDescriptionMaxBytes = 60000
 
@@ -376,6 +376,9 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 		result, err := a.RunInitializationTask(providerCtx, InitializationTaskInput{Description: description})
 		if err != nil {
 			failure := &initializationAnalysisError{Code: initializationProviderErrorCode(err), CorrelationID: correlationID, ValidationType: "provider", Path: "provider_response", Retryable: true}
+			if failure.Code == "initialization_input_budget_exceeded" || failure.Code == "initialization_prompt_budget_invalid" {
+				failure.ValidationType, failure.Path, failure.Retryable = "configuration", "provider_prompt_budget", false
+			}
 			slog.Default().Warn("Go Core initialization analysis failed",
 				"code", failure.Code,
 				"correlation_id", correlationID,
@@ -504,10 +507,13 @@ func (a *App) persistInitializationAnalysisSource(ctx context.Context, ownerActo
 			return err
 		}
 		classification := firstString(mapValue(mapValue(prepared["core_persona"])["personality_system"])["mode"], "unknown")
+		classificationEvidence := map[string]any{"basis": "structured_projection", "profile_count": len(arrayValue(mapValue(mapValue(prepared["core_persona"])["personality_system"])["profiles"]))}
+		if source, ok := ctx.Value(initializationTemplateSourceKey{}).(map[string]any); ok {
+			classificationEvidence["template_source"] = source
+		}
 		sourceDigest := stableDigest(description)
 		projectionDigest := stableDigest(jsonString(prepared))
-		profiles := arrayValue(mapValue(mapValue(prepared["core_persona"])["personality_system"])["profiles"])
-		command, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_initialization_sources(id,owner_actor_id,correlation_id,source_text,source_digest,provider_endpoint_id,model_id,prompt_version,schema_version,classification,classification_evidence,field_derivations,coverage,structured_projection,projection_digest,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ON CONFLICT(correlation_id) DO NOTHING`, sourceID, ownerActorID, correlationID, description, sourceDigest, endpointID, modelID, providerPromptVersion("initialization"), providerSchemaVersion("initialization"), classification, jsonBytes(map[string]any{"basis": "structured_projection", "profile_count": len(profiles)}), jsonBytes(map[string]any{"status": "not_reported_by_provider"}), jsonBytes(map[string]any{"extracted_semantic_units": initializationSemanticUnitCount(prepared)}), jsonBytes(prepared), projectionDigest, analysisStartedAt)
+		command, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_initialization_sources(id,owner_actor_id,correlation_id,source_text,source_digest,provider_endpoint_id,model_id,prompt_version,schema_version,classification,classification_evidence,field_derivations,coverage,structured_projection,projection_digest,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ON CONFLICT(correlation_id) DO NOTHING`, sourceID, ownerActorID, correlationID, description, sourceDigest, endpointID, modelID, providerPromptVersion("initialization"), providerSchemaVersion("initialization"), classification, jsonBytes(classificationEvidence), jsonBytes(map[string]any{"status": "not_reported_by_provider"}), jsonBytes(map[string]any{"extracted_semantic_units": initializationSemanticUnitCount(prepared)}), jsonBytes(prepared), projectionDigest, analysisStartedAt)
 		if err != nil {
 			return err
 		}
@@ -530,6 +536,13 @@ func (a *App) persistInitializationAnalysisSource(ctx context.Context, ownerActo
 }
 
 func initializationProviderErrorCode(err error) string {
+	if errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+		return "initialization_input_budget_exceeded"
+	}
+	var budgetError promptBudgetConfigError
+	if errors.As(err, &budgetError) || errors.Is(err, ErrPromptOutputReserveConflict) {
+		return "initialization_prompt_budget_invalid"
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "initialization_provider_timeout"
 	}
@@ -1938,7 +1951,8 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 // transaction repeats all checks under locks to close the race.
 func (a *App) validateInitializationSourceBeforeCompilation(ctx context.Context, ownerActorID, sourceID string) error {
 	var sourceOwnerActorID, latestSourceID string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT owner_actor_id FROM public.fluctlight_initialization_sources WHERE id=$1`, sourceID).Scan(&sourceOwnerActorID); err != nil {
+	var evidence []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT owner_actor_id,classification_evidence FROM public.fluctlight_initialization_sources WHERE id=$1`, sourceID).Scan(&sourceOwnerActorID, &evidence); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrActivationAnalysisInvalid
 		}
@@ -1946,6 +1960,9 @@ func (a *App) validateInitializationSourceBeforeCompilation(ctx context.Context,
 	}
 	if sourceOwnerActorID != ownerActorID {
 		return ErrActivationAnalysisInvalid
+	}
+	if err := validateInitializationTemplate(ctx, a.DB.Pool(), ownerActorID, decodeObject(evidence), false); err != nil {
+		return err
 	}
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT id FROM public.fluctlight_initialization_sources WHERE owner_actor_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1`, ownerActorID).Scan(&latestSourceID); err != nil {
 		return err
@@ -1982,11 +1999,15 @@ func linkInitializationSourceTx(ctx context.Context, tx pgx.Tx, ownerActorID, fl
 		return err
 	}
 	var sourceOwnerActorID string
-	err := tx.QueryRow(ctx, `SELECT owner_actor_id FROM public.fluctlight_initialization_sources WHERE id=$1 FOR UPDATE`, sourceID).Scan(&sourceOwnerActorID)
+	var evidence []byte
+	err := tx.QueryRow(ctx, `SELECT owner_actor_id,classification_evidence FROM public.fluctlight_initialization_sources WHERE id=$1 FOR UPDATE`, sourceID).Scan(&sourceOwnerActorID, &evidence)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && sourceOwnerActorID != ownerActorID) {
 		return ErrActivationAnalysisInvalid
 	}
 	if err != nil {
+		return err
+	}
+	if err := validateInitializationTemplate(ctx, tx, ownerActorID, decodeObject(evidence), true); err != nil {
 		return err
 	}
 	var latestSourceID string
@@ -2096,25 +2117,23 @@ func (a *App) EnsureDirectConversation(ctx context.Context, ownerID, fluctlightI
 		return "", err
 	}
 	var id string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&id); err == nil {
-		return id, nil
-	}
-	id = randomID("conversation_")
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var existing string
-		if err := tx.QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2 FOR UPDATE`, ownerID, fluctlightID).Scan(&existing); err == nil {
-			id = existing
-			return nil
-		} else if !errors.Is(err, pgx.ErrNoRows) {
+		// Lock the stable pair authority even when the mapping does not exist yet.
+		if _, err := tx.Exec(ctx, `SELECT id FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, ownerID); err != nil {
 			return err
 		}
-		return a.insertDirectConversation(ctx, tx, ownerID, fluctlightID)
+		err := tx.QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&id)
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if err := a.insertDirectConversation(ctx, tx, ownerID, fluctlightID); err != nil {
+			return err
+		}
+		return tx.QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&id)
 	})
-	if err == nil {
-		_ = a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&id)
-	}
-	if err == nil {
-	}
 	return id, err
 }
 

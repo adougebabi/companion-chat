@@ -443,6 +443,10 @@ func (a *App) mediaStructuredCall(ctx context.Context, stage, instruction string
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	// The parent conversation may require publication through its own Tool.
+	// This independent, tool-free media task keeps cancellation/correlation but
+	// must not inherit that parent's physical tool-choice or catalog policy.
+	ctx = withoutPhysicalModelRequestPolicy(ctx)
 	prompt := PromptAssemblyResult{ResponseFormat: providerResponseFormatForSchema("media_prompt", stage, schema), Messages: formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": jsonString(packet)}}, "media_prompt")}
 	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: stage})
 	if err != nil {
@@ -513,6 +517,11 @@ func validateBranchedMediaConcept(concept map[string]any) error {
 	if !isBranchedMedia(concept) {
 		return errors.New("media_plan_version_invalid")
 	}
+	if concept["source"] == "studio_definition" {
+		if err := validateStudioMediaConcept(concept); err != nil {
+			return err
+		}
+	}
 	plan := mapValue(concept["media_capture_plan"])
 	if count, known := concept["human_count"]; known {
 		n, validCount := mediaHumanCountValue(count)
@@ -551,7 +560,7 @@ func validateBranchedMediaConcept(concept map[string]any) error {
 			if _, err := mediaReferenceOwner("self", reference, concept); err != nil {
 				return err
 			}
-		} else if purpose := reference["purpose"]; purpose != "animal" && purpose != "scene" && purpose != "object" {
+		} else if purpose := reference["purpose"]; purpose != "animal" && purpose != "scene" && purpose != "object" && !(purpose == "person" && stringValue(reference["grant_id"]) != "" && (concept["source"] == "studio_definition" || stringValue(mapValue(concept["owner_media_request"])["request_id"]) != "" && !mediaPlanHasSelfIdentity(plan))) {
 			return errors.New("media_reference_purpose_invalid")
 		}
 	}

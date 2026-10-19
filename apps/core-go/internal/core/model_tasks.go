@@ -406,7 +406,7 @@ func virtualActivityModelInput(input VirtualActivityResultTaskInput) map[string]
 	}
 	return map[string]any{
 		"kind":       input.Kind,
-		"request":    compactStateMap(input.Request, []string{"item_kind", "items", "category", "slot", "description", "desired_hair_length", "desired_hair_color", "scene", "activity", "location", "duration_minutes"}),
+		"request":    compactStateMap(input.Request, []string{"item_kind", "items", "category", "slot", "description", "desired_hair_length", "desired_hair_color", "scene", "activity", "location", "duration_minutes", "world_item_id", "catalogue_source"}),
 		"started_at": input.StartedAt, "not_before": input.NotBefore,
 		"current_appearance": compactMediaAppearance(input.CurrentAppearance),
 		"current_life":       compactMediaLifeContext(input.CurrentLife),
@@ -513,6 +513,12 @@ func (a *App) RunNativeCognitionTask(ctx context.Context, input NativeCognitionT
 		return ProjectionTaskResult{}, errors.New("native_cognition_projection_request_invalid")
 	}
 	operationRules := []string{providerContextAuthorityRule, nativeCognitionInstruction}
+	if input.EventType == ownerReflectionFeedbackFactType {
+		operationRules = append(operationRules, "这是 Owner 对已有反思的交流反馈，不是直接改写人格或记忆的管理命令。将反馈与原反思摘要、原来源和当前有效事实分开判断。可不产生改变；只有真实 Tool/正常结算提交的结果才算应用。不要把收到反馈写成已认可或已成长。")
+	}
+	if input.EventType == ownerDiaryReplyFactType {
+		operationRules = append(operationRules, "这是 Owner 对既有主观日记的真实交流回应。读取明确关联的日记版本和回应，自主决定是否在真实会话回复；不改写日记原文，不把回应推成用户同场。")
+	}
 	currentInput := jsonString(map[string]any{"event_type": input.EventType, "fact": compactProviderFact(input.Fact)})
 	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceNativeCognition, input.Projection, "cognitive_assessment", operationRules, currentInput, definitions, "native_cognition_response", schema)
 	if err != nil {
@@ -520,7 +526,11 @@ func (a *App) RunNativeCognitionTask(ctx context.Context, input NativeCognitionT
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "native_cognition"), assembly.Diagnostics)
 	providerCtx = a.bindProjectionRefresh(providerCtx, input.ProjectionRequest, ProviderContextSurfaceNativeCognition, "cognitive_assessment", operationRules, currentInput, definitions, "native_cognition_response", schema, nil)
-	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentNativeCognition, assembly.Messages, definitions, "native_cognition_response", schema, true, formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition))
+	capabilityRequest := formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition)
+	if input.EventType == ownerDiaryReplyFactType {
+		capabilityRequest.AuthorizationPolicy = ""
+	}
+	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentNativeCognition, assembly.Messages, definitions, "native_cognition_response", schema, true, capabilityRequest)
 	if run.Projection != nil {
 		projection = *run.Projection
 	}

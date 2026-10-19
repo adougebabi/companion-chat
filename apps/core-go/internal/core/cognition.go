@@ -53,6 +53,9 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if status == "waiting_reply" {
 		return map[string]any{"inbox_id": inboxID, "status": status}, nil
 	}
+	if (status == "processed" || status == "failed") && (stringValue(decodeObject(payload)["event_type"]) == ownerReflectionFeedbackFactType || stringValue(decodeObject(payload)["event_type"]) == ownerDiaryReplyFactType) {
+		return a.processOwnerReflectionFeedback(ctx, inboxID, decodeObject(payload))
+	}
 	if status == "processed" {
 		return map[string]any{"inbox_id": inboxID, "status": "processed"}, nil
 	}
@@ -79,6 +82,38 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 		if acceptedTime.zone != nil {
 			acceptedTime.addToPayload(data)
 		}
+	}
+	if stringValue(data["event_type"]) == npcMomentFactType {
+		result, err := a.processNPCMoment(ctx, inboxID, data)
+		if err != nil {
+			return nil, err
+		}
+		claimSettled = true
+		return result, nil
+	}
+	if stringValue(data["event_type"]) == npcOpportunityFactType {
+		result, err := a.processNPCOpportunity(ctx, inboxID, data)
+		if err != nil {
+			return nil, err
+		}
+		claimSettled = true
+		return result, nil
+	}
+	if stringValue(data["event_type"]) == ownerLifeRequestFactType {
+		result, err := a.processOwnerLifeRequest(ctx, inboxID, data)
+		if err != nil {
+			return nil, err
+		}
+		claimSettled = true
+		return result, nil
+	}
+	if stringValue(data["event_type"]) == ownerReflectionFeedbackFactType || stringValue(data["event_type"]) == ownerDiaryReplyFactType {
+		result, err := a.processOwnerReflectionFeedback(ctx, inboxID, data)
+		if err != nil {
+			return nil, err
+		}
+		claimSettled = true
+		return result, nil
 	}
 	if eventType := stringValue(data["event_type"]); strings.HasPrefix(eventType, "life.") || eventType == intentionDueFactType {
 		if depth := intValue(data["native_cognition_depth"]); nativeCognitionCycleGuarded(depth) {

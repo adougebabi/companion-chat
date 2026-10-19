@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-19",
+  "source_head": "0093_workflow_controls",
+  "last_verified_database_head": "0066 (not rechecked this slice)",
+  "checks": [
+    {
+      "kind": "API/Worker build + five package compile-only",
+      "session": 4311,
+      "exit_code": 0,
+      "note": "go test -run ^$; no tests to run"
+    },
+    {
+      "kind": "generate/workspace typecheck/production Web/no-Mock bundle",
+      "session": 93929,
+      "exit_code": 0
+    },
+    {
+      "kind": "read-only source review",
+      "note": "7 scouts terminal across diagnostics/workflow/data packages; main agent fixed definite issues. No tests run by scouts."
+    }
+  ],
+  "not_run": [
+    "migrations",
+    "PostgreSQL business queries",
+    "browser tests",
+    "LLM/Vision/KEV/Comfy calls",
+    "17 regression scripts",
+    "backup/restore drill"
+  ],
+  "scope": "diagnostic records/export/cleanup/typed harm observation; fenced workflow management and media recovery; resource packs/object directory/group and preference drafts"
+}

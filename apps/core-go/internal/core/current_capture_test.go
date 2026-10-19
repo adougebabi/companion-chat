@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -86,110 +88,117 @@ func TestCurrentCapturePreservesCameraAndRejectsFinalTemplateOverrides(t *testin
 }
 
 func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides(t *testing.T) {
-	for _, scenario := range []string{"valid-frozen", "enum-fallback", "framing-normalization", "model-clothing", "workflow-clothing"} {
+	for _, scenario := range []string{"valid-frozen", "enum-rejected", "explicit-selfie", "model-clothing", "workflow-clothing"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "capture-worker-provider-"+f.suffix)
+			// A controlled active identity is declared setup data, not an image result.
+			if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,identity_snapshot) VALUES($1,$2,'active','{"identity":{"name":"Fixture identity"}}') ON CONFLICT(fluctlight_id) DO UPDATE SET status='active',identity_snapshot=EXCLUDED.identity_snapshot`, "capture-visual-"+f.suffix, f.fluctlightID); err != nil {
+				t.Fatal(err)
+			}
 			workflow := map[string]any{"1": map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}}, "2": map[string]any{"class_type": "KSampler", "inputs": map[string]any{"positive": []any{"1", 0}}}}
 			if scenario == "workflow-clothing" {
 				mapValue(mapValue(workflow["1"])["inputs"])["text"] = "{{prompt}} wearing nonexistent boots"
 			}
-			if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT (key) DO UPDATE SET value_json=EXCLUDED.value_json`, jsonString(map[string]any{"baseUrl": "http://capture-comfy.invalid", "workflow": workflow})); err != nil {
+			if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=EXCLUDED.value_json`, jsonString(map[string]any{"baseUrl": "http://capture-comfy.invalid", "workflow": workflow})); err != nil {
 				t.Fatal(err)
 			}
-			submitted := 0
-			modelCalls := 0
+			plan := mediaTestPlan("person", "present", "yes", "full")
+			plan["capture_method"], plan["viewpoint"], plan["framing"], plan["camera_angle"] = "external_photo", "observer", "half_body", "eye_level"
+			if scenario == "explicit-selfie" {
+				plan["capture_method"], plan["viewpoint"], plan["framing"] = "handheld_selfie", "subject_facing", "full_body"
+			}
+			submitted, modelCalls := 0, 0
 			var final map[string]any
 			f.app.Provider.HTTP = &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
-				body, _ := io.ReadAll(request.Body)
+				raw, err := io.ReadAll(request.Body)
+				if err != nil {
+					return nil, err
+				}
 				if request.URL.Host == "capture-comfy.invalid" {
 					if request.URL.Path != "/prompt" {
-						t.Fatal("unexpected renderer request", request.URL.Path)
+						return nil, fmt.Errorf("unexpected renderer route %s", request.URL.Path)
 					}
 					submitted++
-					final = decodeObject(body)
+					final = decodeObject(raw)
 					return embeddingHTTPResponse(request, http.StatusServiceUnavailable, `{}`), nil
 				}
 				modelCalls++
-				plan := captureStyleForTest()
-				if scenario == "enum-fallback" {
-					if !strings.Contains(string(body), "Allowed values") || !strings.Contains(string(body), "full_body") || !strings.Contains(string(body), "closeup") {
-						t.Fatal("formal MediaPrompt request omitted enum choices")
+				var output map[string]any
+				if strings.Contains(string(raw), "解析本次原始图像意图") {
+					output = cloneMap(plan)
+					if scenario == "enum-rejected" {
+						output["framing"] = "unsupported_medium_long_shot"
 					}
-					plan["framing"] = "unsupported_medium_long_shot"
-				}
-				if scenario == "framing-normalization" {
-					if !strings.Contains(string(body), "Normalize the upstream vague photo instruction") {
-						t.Fatal("MediaPrompt still acts as a literal validator")
+				} else if strings.Contains(string(raw), "你负责把本次媒体意图编译") {
+					if !strings.Contains(string(raw), "白衬衫") {
+						return nil, errors.New("normalizer did not receive actual frozen clothing")
 					}
-					plan["framing"] = "full_body"
-					plan["capture"] = map[string]any{"mode": "mirror_selfie", "camera": "rear", "mirror": true, "device_visibility": "visible"}
+					output = map[string]any{"prompt": "人物穿当前实际白衬衫，佩戴银项链。", "declared_human_presence": "present", "self_in_frame": "yes", "capture_method": plan["capture_method"], "used_subject_ids": []any{"self"}, "used_reference_ids": []any{}, "declared_human_count": nil}
+					if scenario == "explicit-selfie" {
+						output["prompt"] = "人物穿当前实际白衬衫，手持手机全身自拍。"
+					}
+					if scenario == "model-clothing" {
+						output["clothing"] = "nonexistent boots"
+					}
+				} else {
+					return nil, fmt.Errorf("unexpected model task: %s", string(raw))
 				}
-				if scenario == "model-clothing" {
-					plan["clothing"] = "nonexistent boots"
-				}
-				response := map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(plan)}}}}
+				response := map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(output)}}}}
 				return embeddingHTTPResponse(request, http.StatusOK, jsonString(response)), nil
 			})}
 			before, _, _, err := f.app.readEffectiveLifeSnapshot(f.ctx, f.fluctlightID, f.app.now())
 			if err != nil {
 				t.Fatal(err)
 			}
-			request := f.request("media.image.generate", "current-worker", map[string]any{"intent": "穿上刚买的黑色短靴拍现在的照片"})
-			if scenario == "framing-normalization" {
-				request.Arguments = jsonBytes(map[string]any{"intent": "拍现在的全身自拍", "capture": map[string]any{"mode": "selfie", "framing": "portrait", "camera": "front"}})
+			args := map[string]any{"intent": "穿上刚买的黑色短靴拍现在的照片", "media_plan": plan}
+			if scenario == "enum-rejected" {
+				delete(args, "media_plan")
 			}
-			request.TargetKind = "conversation"
-			request.TargetRef = f.conversationID
+			if scenario == "explicit-selfie" {
+				args["intent"] = "拍现在的全身自拍"
+				args["capture"] = map[string]any{"mode": "selfie", "framing": "full_body", "camera": "front"}
+			}
+			request := f.request("media.image.generate", "current-worker", args)
+			request.TargetKind, request.TargetRef = "conversation", f.conversationID
 			accepted, err := f.app.ExecuteTool(f.ctx, request)
-			if err != nil {
-				t.Fatal(err)
-			}
-			intentID := stringValue(mapValue(accepted.Result.Output)["media_intent_id"])
-			if _, err := f.app.ProcessMediaIntent(f.ctx, intentID); err == nil {
-				t.Fatal("renderer failure/override was reported successful")
-			}
-			if scenario == "valid-frozen" || scenario == "enum-fallback" || scenario == "framing-normalization" {
-				wire := jsonString(final)
-				if submitted != 1 || !strings.Contains(wire, "白衬衫") || strings.Contains(wire, "短靴") || strings.Contains(wire, "nonexistent boots") {
-					t.Fatalf("final renderer lost authority: %s submits=%d", wire, submitted)
+			if scenario == "enum-rejected" {
+				if err == nil || !strings.Contains(err.Error(), "media_subject_parse_invalid") || submitted != 0 || modelCalls != 1 {
+					t.Fatal("invalid enum was silently accepted or retried", accepted, err, submitted, modelCalls)
 				}
-				if scenario == "enum-fallback" {
-					if !strings.Contains(wire, "full-body composition") || !strings.Contains(wire, "first-person view") {
-						t.Fatalf("enum fallback lost requested camera/framing: %s", wire)
-					}
-					stored, err := f.app.readMediaIntent(f.ctx, intentID)
-					if err != nil {
-						t.Fatal(err)
-					}
-					saved := decodeObject([]byte(stored.Prompt))
-					if mapValue(saved["capture_plan"])["framing"] != "full_body" || mapValue(saved["capture_plan_fallback"])["mode"] != "first_person" {
-						t.Fatalf("worker did not persist fallback %#v", saved)
-					}
+			} else {
+				if err != nil {
+					t.Fatal("image admission", err)
 				}
-				if scenario == "framing-normalization" {
-					if !strings.Contains(wire, "full-body composition") || !strings.Contains(wire, "through a mirror") {
-						t.Fatalf("standard photo normalization lost %s", wire)
-					}
-					stored, err := f.app.readMediaIntent(f.ctx, intentID)
-					if err != nil {
-						t.Fatal(err)
-					}
-					normalized, ok := compactMediaConceptObjectForProvider(stored.Prompt)
-					if !ok || mapValue(normalized["capture"])["framing"] != "full_body" || mapValue(normalized["capture"])["mode"] != "mirror_selfie" {
-						t.Fatalf("quality view disagrees with normalized photo %#v", normalized)
-					}
+				intentID := stringValue(mapValue(accepted.Result.Output)["media_intent_id"])
+				if _, err = f.app.ProcessMediaIntent(f.ctx, intentID); err == nil {
+					t.Fatal("renderer failure/override was reported successful")
 				}
-				t.Logf("FINAL_COMFY_INPUT=%s", wire)
-			} else if submitted != 0 {
-				t.Fatal("override reached final renderer", final)
-			}
-			if modelCalls < 1 {
-				t.Fatal("formal MediaPrompt was bypassed")
+				if scenario == "valid-frozen" || scenario == "explicit-selfie" {
+					wire := jsonString(final)
+					if submitted != 1 || !strings.Contains(wire, "白衬衫") || strings.Contains(wire, "短靴") || strings.Contains(wire, "nonexistent boots") {
+						t.Fatalf("renderer lost actual clothing: %s submits=%d", wire, submitted)
+					}
+					if scenario == "explicit-selfie" {
+						stored, err := f.app.readMediaIntent(f.ctx, intentID)
+						if err != nil {
+							t.Fatal(err)
+						}
+						frozen := mapValue(decodeObject([]byte(stored.Prompt))["media_capture_plan"])
+						if frozen["capture_method"] != "handheld_selfie" || frozen["framing"] != "full_body" {
+							t.Fatal("normalization rewrote explicit camera", frozen)
+						}
+					}
+				} else if submitted != 0 {
+					t.Fatal("override reached renderer", final)
+				}
+				if scenario != "workflow-clothing" && modelCalls < 1 {
+					t.Fatal("formal media task was bypassed")
+				}
 			}
 			after, _, _, err := f.app.readEffectiveLifeSnapshot(f.ctx, f.fluctlightID, f.app.now())
 			if err != nil || appearanceSnapshotIdentity(before) != appearanceSnapshotIdentity(after) {
-				t.Fatalf("media wrote inventory/body/use %#v %v", after, err)
+				t.Fatal("media wrote inventory/body/use", after, err)
 			}
 		})
 	}

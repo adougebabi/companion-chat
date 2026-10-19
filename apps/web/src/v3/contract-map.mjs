@@ -193,7 +193,7 @@ export function bundleFromSeed(seed) {
       participants: [],
       long_term_revision_unchanged: true,
       messages: Object.values(seed.messages).filter((item) => item.charId === character.id).map((item) => ({
-        id: item.id, conversationId: `conv_${character.id}`, sequence: 0, authorActorId: item.from === "user" ? "owner" : character.id,
+        id: item.id, conversationId: `conv_${character.id}`, sequence: 0, authorActorId: item.from === "user" ? seed.user.id : character.id,
         text: item.text ?? "", attachmentRefs: item.mediaId ? [item.mediaId] : [], createdAt: item.at && item.at.includes(":") && item.at.length <= 5 ? `2026-10-15T${item.at}:00+08:00` : "2026-10-15T09:00:00+08:00",
         identity: item.identity ? IDENTITY_OUT[item.identity] : undefined, kind: messageKind(item), recall: Boolean(item.recall),
         memory_ref: item.memoryRef ?? null, goal_ref: item.goalRef ?? null, action_id: item.actionId ?? null, link: item.link ?? null, media_id: item.mediaId ?? null,
@@ -243,14 +243,14 @@ function itemStatus(item, used) {
 export function viewFromBundle(bundle) {
   const data = {
     meta: { seedVersion: 4, seq: 100, unwired: {}, wardrobeRevisions: {}, ownerRevisions: {}, studioApplyNotes: {} },
-    ui: { charId: bundle.fluctlights?.[0]?.id || "c1", identity: "交流", notes: false },
-    groups: {}, characters: {}, worlds: {}, user: { id: bundle.owner?.id || "u1", name: bundle.owner?.name || "我", avatar: bundle.owner?.avatar_url || "/v3/assets/avatars/user.svg", background: {} },
+    ui: { charId: bundle.fluctlights?.[0]?.id || "", identity: "交流", notes: false },
+    groups: {}, characters: {}, worlds: {}, user: { id: bundle.session?.actorId || bundle.owner?.id || "", name: bundle.owner?.name || "我", avatar: bundle.owner?.avatar_url || "/v3/assets/avatars/user.svg", background: {} },
     places: {}, npcs: {}, relations: {}, messages: {}, memories: {}, goals: {}, schedule: {}, actions: {}, items: {}, outfit: {}, media: {}, events: {}, diary: {}, tasks: {}, proposals: {}, resources: {}, instances: {}, studioDrafts: [], posts: {}, postSuggestions: {}, reflections: {}, worldSettings: {}, prefs: { global: {}, autonomy: {} }, session: null, notices: [], audit: [], ownerRequests: {},
   };
   const mark = (key) => { data.meta.unwired[key] = true; };
   if (!bundle.fluctlights) mark("characters");
   for (const item of bundle.fluctlights || []) {
-    const character = { id: item.id, name: item.identity?.name || item.name || item.id, avatar: item.avatar?.url || "", status: item.status, groupId: item.group_id, worldId: item.world_id, bio: item.bio, traits: item.traits || [], locationId: item.location_id };
+    const character = { id: item.id, name: item.identity?.name || item.name || item.id, avatar: item.avatar?.url || "", status: ({active:"正常",paused:"已暂停",retired:"已退休",created:"未启动",failed:"异常"}[item.status] || item.status), groupId: item.group_id || "ungrouped", worldId: item.world_id, bio: item.bio, traits: item.traits || [], locationId: item.location_id };
     if (item.def_version !== undefined) character.defVersion = item.def_version;
     if (Object.hasOwn(item, "harm_intercepts")) character.harmIntercepts = item.harm_intercepts;
     if (item.status_note) character.statusNote = item.status_note;
@@ -261,11 +261,23 @@ export function viewFromBundle(bundle) {
     else if (item.now_line) character.doingActionId = state?.doing?.action_id ?? null;
     if (state && Object.hasOwn(state, "mood") && state.mood) character.mood = { value: state.mood.label, state: state.mood.state, evidence: state.mood.evidence };
     if (state && Object.hasOwn(state, "momentum") && state.momentum) character.energy = { value: state.momentum.label, state: state.momentum.state, evidence: state.momentum.evidence };
-    if (detail?.actor_user?.background) data.user.background = detail.actor_user.background;
+    if (detail?.context) {
+      character.locationText = detail.context.location;
+      character.doing = detail.context.activity;
+      character.contextSource = detail.context.source;
+    }
+    if (detail?.avatar?.url) character.avatar = detail.avatar.url;
+    if (detail?.mood) character.mood = { value: detail.mood.label, state: detail.mood.source, ...(detail.mood.evidence ? { evidence: detail.mood.evidence } : {}) };
+    if (detail?.momentum) character.energy = { value: detail.momentum.label ?? detail.momentum.value, state: detail.momentum.source, ...(detail.momentum.evidence ? { evidence: detail.momentum.evidence } : {}) };
     data.characters[item.id] = character;
-    for (const event of detail?.events || []) data.events[event.id] = { id: event.id, worldId: event.world_id, title: event.title, at: event.at, placeId: event.place_id, state: event.state, impacts: event.impacts || [] };
-    for (const entry of detail?.schedule_items || []) {
-      const row = { id: entry.id, charId: entry.char_id, time: entry.time, title: entry.title, placeId: entry.place_id, state: entry.state, fact: entry.fact, factState: entry.fact_state };
+    for (const event of detail?.events || []) {
+      const row = { id: event.id, worldId: event.world_id, title: event.title || event.activity || event.kind, at: event.at || event.start_at, placeId: event.place_id, state: event.state || event.status, impacts: event.impacts || [] };
+      if (!event.world_id) row.charId = item.id;
+      if (event.location !== undefined) row.location = event.location;
+      data.events[event.id] = row;
+    }
+    for (const entry of detail?.schedule_items || detail?.schedule?.items || []) {
+      const row = { id: entry.id, charId: entry.char_id || item.id, time: entry.time || [entry.start_at, entry.end_at].filter(Boolean).map(clock).join("–"), title: entry.title || entry.activity, placeId: entry.place_id, state: entry.state || entry.status, fact: entry.fact, factState: entry.fact_state };
       copyDefined(row, "actionId", entry.action_id || undefined);
       copyDefined(row, "goalId", entry.goal_id || undefined);
       copyDefined(row, "adjustedBy", entry.adjusted_by || undefined);
@@ -273,7 +285,7 @@ export function viewFromBundle(bundle) {
       data.schedule[entry.id] = row;
     }
     for (const memory of detail?.memories || []) {
-      const row = { id: memory.id, charId: memory.fluctlight_id, content: memory.content, state: memory.state, kind: memory.kind, version: memory.version, revisions: (memory.revisions || []).map((revision) => {
+      const row = { id: memory.id, charId: memory.owner_fluctlight_id || memory.fluctlight_id || item.id, content: memory.content, state: memory.status || memory.state, kind: memory.type || memory.kind, version: memory.revision ?? memory.version, revisions: (memory.revisions || []).map((revision) => {
         const itemRevision = { v: revision.v, at: revision.at, text: revision.text, by: BY_IN[revision.by] || revision.by };
         if (revision.source_ref) itemRevision.source = revision.source_ref;
         if (revision.note) itemRevision.note = revision.note;
@@ -286,7 +298,8 @@ export function viewFromBundle(bundle) {
       data.memories[memory.id] = row;
     }
     for (const relation of detail?.relationships || []) data.relations[relation.id] = {
-      id: relation.id, charId: relation.fluctlight_id, npcId: relation.npc_id, stage: relation.stage, intimacy: relation.intimacy, version: relation.version,
+      id: relation.id, charId: relation.fluctlight_id || item.id, npcId: relation.npc_id || relation.target_actor_id, stage: relation.stage || relation.summary || relation.target_actor_type, intimacy: relation.intimacy, version: relation.revision ?? relation.version,
+      ...(relation.target_actor_id ? { targetActorId: relation.target_actor_id, targetActorType: relation.target_actor_type, role: relation.role, metrics: relation.metrics, provenance: relation.provenance } : {}),
       revisions: (relation.revisions || []).map((revision) => {
         const itemRevision = { v: revision.v, at: revision.at, text: revision.text, by: BY_IN[revision.by] || revision.by };
         if (revision.source_ref) itemRevision.source = revision.source_ref;
@@ -302,7 +315,7 @@ export function viewFromBundle(bundle) {
       if (typeof wardrobe.owner_revision === "number") data.meta.ownerRevisions[item.id] = wardrobe.owner_revision;
       const used = new Set((wardrobe.used_items || []).map((entry) => entry.item_id));
       for (const entry of wardrobe.items || []) {
-        const row = { id: entry.id, charId: item.id, name: entry.name, cat: entry.category_label || entry.category, img: entry.image_url, status: itemStatus(entry, used), source: entry.source_label || "" };
+        const row = { id: entry.id, charId: item.id, name: entry.name || entry.description, cat: entry.category_label || entry.category, img: entry.image_url, status: itemStatus(entry, used), source: entry.source_label || "" };
         if (entry.source_message_id) row.sourceMsg = entry.source_message_id;
         if (entry.owner_actor_id) row.owner = entry.owner_actor_id;
         if (entry.source_event_id) row.sourceEvent = entry.source_event_id;
@@ -310,8 +323,8 @@ export function viewFromBundle(bundle) {
         if (entry.goal_id) row.goalId = entry.goal_id;
         data.items[entry.id] = row;
       }
-      if (wardrobe.worn_items?.length) {
-        const outfit = { current: wardrobe.worn_items.map((entry) => entry.item_id), since: wardrobe.worn_items[0].since, history: [] };
+      if (Array.isArray(wardrobe.worn_items)) {
+        const outfit = { current: wardrobe.worn_items.map((entry) => entry.item_id), since: wardrobe.worn_items[0]?.since, history: [] };
         const recordedBy = Object.fromEntries(wardrobe.worn_items.filter((entry) => entry.recorded_by === "owner" || entry.recorded_by === "fluctlight").map((entry) => [entry.item_id, entry.recorded_by]));
         if (Object.keys(recordedBy).length) outfit.recordedBy = recordedBy;
         data.outfit[item.id] = outfit;
@@ -321,13 +334,14 @@ export function viewFromBundle(bundle) {
       }
     }
     for (const entry of bundle.media?.[item.id]?.items || []) {
-      const row = { id: entry.asset_id, charId: item.id, img: entry.url, title: entry.title, nonFact: entry.factual === false, sourceMsg: entry.source_message_id || undefined };
+      const row = { id: entry.asset_id || entry.id, charId: item.id, img: entry.url, title: entry.title, nonFact: entry.factual === false, sourceMsg: entry.source_message_id || undefined };
       if (!row.sourceMsg) delete row.sourceMsg;
       if (entry.place_id) row.placeId = entry.place_id;
       if (entry.item_id) row.itemId = entry.item_id;
       if (entry.outfit_snapshot) row.outfitSnapshot = entry.outfit_snapshot;
       if (entry.overlay_url) row.overlay = entry.overlay_url;
-      data.media[entry.asset_id] = row;
+      if (!row.id) throw new Error("媒体响应缺少稳定 ID");
+      data.media[row.id] = row;
     }
     for (const entry of bundle.diaries?.[item.id]?.items || []) data.diary[entry.id] = { id: entry.id, charId: item.id, date: entry.date, text: entry.body, refs: entry.refs || [], replies: entry.replies || [] };
     const world = bundle.worlds?.[item.id];
@@ -366,7 +380,7 @@ export function viewFromBundle(bundle) {
     if (policy) data.prefs.autonomy[item.id] = { 自治程度: policy.level, 主动触达: OUTREACH_IN[policy.outreach_limit] || policy.outreach_limit, 免打扰: policy.quiet_hours ? `${policy.quiet_hours.start}-${policy.quiet_hours.end}` : "", 允许发动态: policy.allow_moments };
     const conversation = bundle.conversations?.[item.id];
     for (const message of conversation?.messages || []) {
-      const row = { id: message.id, charId: item.id, from: message.kind === "divider" ? "divider" : message.kind === "system" ? "sys" : message.kind === "action" ? "action" : message.authorActorId === "owner" ? "user" : "char", at: message.display_at || clock(message.createdAt) };
+      const row = { id: message.id, charId: item.id, from: message.kind === "divider" ? "divider" : message.kind === "system" ? "sys" : message.kind === "action" ? "action" : message.authorActorId === (bundle.session?.actorId || conversation.conversation?.createdByActorId || bundle.owner?.id) ? "user" : "char", at: message.display_at || clock(message.createdAt) };
       if (message.text && message.kind !== "action") row.text = message.text;
       if (message.identity) row.identity = IDENTITY[message.identity] || message.identity;
       if (message.recall) row.recall = true;
@@ -379,7 +393,11 @@ export function viewFromBundle(bundle) {
       data.messages[message.id] = row;
     }
   }
-  for (const group of bundle.groups || []) data.groups[group.id] = { id: group.id, name: group.name };
+  for (const group of bundle.groups || []) {
+    data.groups[group.id] = { id: group.id, name: group.name };
+    for (const actorId of group.actor_ids || group.members || []) if (data.characters[actorId]) data.characters[actorId].groupId = group.id;
+  }
+  if (Object.values(data.characters).some(c => c.groupId === "ungrouped")) data.groups.ungrouped = { id: "ungrouped", name: "未分组" };
   for (const post of bundle.moments || []) {
     const row = { id: post.id, worldId: post.world_id, author: post.author_actor_id, authorType: post.author_type === "fluctlight" ? "char" : post.author_type, text: post.text, at: post.created_at, likes: post.reaction_count ?? 0, liked: Boolean(post.viewer_reaction), comments: (post.comments || []).map((comment) => ({ id: comment.id, author: comment.author_actor_id, text: comment.text, at: comment.created_at })) };
     if (post.media_id) row.mediaId = post.media_id;
@@ -409,6 +427,8 @@ export function viewFromBundle(bundle) {
   for (const [id, task] of Object.entries(bundle.tasks || {})) data.tasks[id] = { id, charId: task.fluctlight_id, actionId: task.action_id, title: task.title, state: task.state, runs: task.runs, steps: (task.steps || []).map((step) => ({ n: step.n, name: step.name, state: step.status, ...(step.error_message ? { err: step.error_message } : {}) })) };
   if (!bundle.harm || bundle.harm.available === false || bundle.harm.status === "not_implemented" || typeof bundle.harm.count !== "number") mark("harm");
   data.meta.unreadCount = bundle.unread?.count;
+  data.meta.alertCount = bundle.unread?.alert_count;
+  data.meta.pendingGroups = bundle.pending?.groups?.map(group=>({...group,items:group.items?.map(item=>({...item,charId:item.fluctlight_id,text:item.title,link:item.href}))}));
   data.meta.pendingCount = bundle.pendingCount?.count;
   data.meta.pendingPartial = bundle.pendingCount?.partial;
   data.meta.conversations = Object.fromEntries(Object.entries(bundle.conversations || {}).map(([id, page]) => [id, page.conversation?.id]).filter(([, id]) => id));

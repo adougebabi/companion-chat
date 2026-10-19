@@ -905,7 +905,7 @@ func compactLifeContextForSurface(value map[string]any, index ContextReferenceIn
 			}
 		}
 	}
-	for _, key := range []string{"source", "authority_status", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
+	for _, key := range []string{"source", "authority_status", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at", "world_environment"} {
 		if raw, ok := value[key]; ok && raw != nil && raw != "" {
 			result[key] = raw
 		}
@@ -1867,7 +1867,7 @@ func compactStateMap(value any, keys []string) map[string]any {
 
 func compactLifeContext(context map[string]any) map[string]any {
 	result := make(map[string]any, 7)
-	for _, key := range []string{"ref", "source", "authority_status", "context_revision", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
+	for _, key := range []string{"ref", "source", "authority_status", "context_revision", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at", "world_environment"} {
 		if value, ok := context[key]; ok && value != nil && value != "" {
 			result[key] = value
 		}

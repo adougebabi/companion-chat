@@ -1,0 +1,71 @@
+import {mountReferenceGrantPicker,referenceFromGrant} from './media-reference-grants.js';
+import {get} from '../store.js';
+import {mediaClient,inventoryClient} from '../services.js';
+import {esc,confirm} from '../ui.js';
+import {Field,SearchForm} from './forms.js';
+import {JsonDetails} from './records.js';
+import {MediaPreview,bindMediaFailures,mediaDetailPath} from './media-assets.js';
+import {mountCursorRecords} from './cursor-records.js';
+import {persistentCommand} from '../../providers/persistent-command.mjs';
+import {studioDraftStorage} from './studio-draft-storage.js';
+
+const decisions={pending:'等待角色判断',processing:'角色正在判断',accepted:'角色已接受图片任务',rejected:'角色没有接受',deferred:'角色暂缓处理',failed:'请求处理失败',completed:'请求已处理'};
+const mediaStates={pending:'生成任务等待执行',running:'图片生成中',completed:'图片生成任务已完成',failed:'图片生成失败',cancelled:'图片生成已取消'};
+export function mountMediaGeneration(host,{fid,requestId,alive=()=>true}){
+ let active=true,current=requestId,timer=null,epoch=0,reads=0;const live=()=>active&&alive()&&host.isConnected;
+ function stop(){clearTimeout(timer);timer=null;}
+ async function query(reset=false){stop();if(!live()||!current)return;if(reset)reads=0;const id=current,token=++epoch;
+  try{const value=await mediaClient.generation(fid,id);if(!live()||token!==epoch||id!==current)return;if(value.fluctlight_id!==fid||value.request?.id!==id)throw new Error('图片请求返回了其他范围的结果');
+   const media=value.media,asset=value.asset;host.innerHTML=`<div class="card stack"><h3>实际图片结果</h3><p>${esc(decisions[value.request.status]||value.request.status)}</p><p>${media?esc(mediaStates[media.status]||media.status):'尚无已受理的图片生成任务'}</p><p>${esc(value.request.decision_reason||'')}</p>${media?.status==='completed'&&!asset?'<p class="banner err" role="alert">生成记录已完成但缺少资产读回，请核对原任务。</p>':''}${asset?MediaPreview(asset,mediaClient.url(asset.id)):''}${asset?`<a class="btn" href="${esc(mediaDetailPath(asset,fid))}">查看实际素材与来源</a>`:''}<a href="#/diag/request/${encodeURIComponent(id)}">请求详情与实际关联任务</a>${(value.request.tasks||[]).map(task=>`<a href="#/diag/task/${encodeURIComponent(task.task_id)}">${esc(task.kind)} · ${esc(task.status)}</a>`).join('')}${media?JsonDetails({intent_id:media.id,workflow_id:media.workflow_id,provider_job_id:media.provider_job_id,quality_verdict:media.quality_verdict},'本次执行标识与质量状态'):''}${media?.source?JsonDetails(media.source,'冻结的物品与画面场景来源'):''}<p class="small muted">受理、角色接受、生成完成与资产可读取分别显示。关闭页面只停止观察。</p><button class="btn" type="button" data-query>继续查询实际结果</button><p role="status" data-query-state></p></div>`;bindMediaFailures(host);host.querySelector('[data-query]').onclick=()=>void query(true);
+   const running=media?['pending','running'].includes(media.status):['pending','processing'].includes(value.request.status);if(running){reads++;if(reads<120&&!document.hidden)timer=setTimeout(()=>void query(),3000);else host.querySelector('[data-query-state]').textContent=document.hidden?'页面隐藏期间暂停自动查询。':'自动查询已暂停，任务仍保留，可手动继续查询。';}
+  }catch(error){if(live()&&token===epoch){host.innerHTML=`<div class="card"><p class="banner err" role="alert">${esc(error.message)}</p><button class="btn" data-query>重试读取原图片请求</button></div>`;host.querySelector('[data-query]').onclick=()=>void query(true);}}
+ }
+ const visibility=()=>{stop();if(!document.hidden&&current)void query(true);};document.addEventListener('visibilitychange',visibility);
+ if(current)void query();return {select(id){stop();current=id;reads=0;void query();},dispose(){active=false;epoch++;stop();document.removeEventListener('visibilitychange',visibility);}};
+}
+
+export function mountOwnerMediaRequest(host,{fid,fixedItem=null,requestId='',initialPrompt='',initialPlace=null,initialGrantId='',onSubmitted=()=>{}}){
+ const owner=get('session')?.actorId,slot=`fluctlight-media:${owner}:${fid}:request:${fixedItem?.id||'general'}`;let active=true,busy=false,itemQuery='',places=[],locationsEpoch=0;
+ const isOwner=()=>get('session')?.actorId===owner,alive=()=>active&&host.isConnected&&isOwner(),retired=get('characters',fid)?.status==='已退休';
+ const raw=studioDraftStorage().getItem(slot+':draft');let draft=raw?JSON.parse(raw):{prompt:initialPrompt,reason:'',item:fixedItem?{id:fixedItem.id,revision:fixedItem.revision,description:fixedItem.description}:null,place:initialPlace?structuredClone(initialPlace):null,reference:null};
+ const persist=()=>{if(isOwner())studioDraftStorage().setItem(slot+':draft',JSON.stringify(draft));};
+ const body=()=>({prompt:draft.prompt,reason:draft.reason,...(draft.item?{itemId:draft.item.id,expectedItemRevision:draft.item.revision}:{}),...(draft.place?{placeId:draft.place.id,expectedPlaceRevision:draft.place.revision}:{}),...(draft.reference?{referenceAsset:structuredClone(draft.reference)}:{})});
+ const command=persistentCommand({key:slot+':command',storage:studioDraftStorage,preAdmissionConflicts:['revision_conflict','media_reference_authorization_changed','media_reference_source_changed'],execute:async(value,key)=>{
+  if(!isOwner())throw new Error('会话已切换，未提交图片请求');let receipt;
+  if(fixedItem){if(value.itemId!==fixedItem.id)throw new Error('图片请求不属于原物品');const {itemId,...fields}=value;receipt=await mediaClient.photo(fid,itemId,{...fields,idempotencyKey:key});}
+  else receipt=await mediaClient.generate(fid,{...value,idempotencyKey:key});
+  if(receipt.request?.fluctlight_id!==fid||!receipt.request?.id)throw new Error('图片请求没有返回真实受理标识');
+  if(isOwner()&&command.pending()?.idempotencyKey===key)studioDraftStorage().setItem(slot+':result',JSON.stringify({requestId:receipt.request.id,idempotencyKey:key}));return receipt;
+ }});
+ const last=studioDraftStorage().getItem(slot+':result'),selected=requestId||(last?JSON.parse(last).requestId:'');
+ host.innerHTML=`<div class="grid g2"><div><form class="card stack" data-image-request><h3>${fixedItem?'物品图片请求':'生成一张图'}</h3><p class="small muted">生成图·非事实。角色可以拒绝或暂缓；生成画面不会移动角色、取得物品或改变穿着。</p>${Field({label:'画面描述',name:'prompt',type:'textarea',value:draft.prompt,attrs:{required:true,maxlength:2000}})}${Field({label:'画面地点（可不指定）',name:'place',type:'select',options:[{value:'',label:'未指定地点'}]})}<p class="small" data-item></p>${!fixedItem?'<button class="btn" type="button" data-clear-item>不关联物品</button>':''}<div data-linked-reference></div><div data-reference-picker></div>${Field({label:'请求原因',name:'reason',type:'textarea',value:draft.reason,attrs:{required:true,maxlength:500}})}<p role="alert" data-error></p><p role="status" data-pending></p><div class="row"><button class="btn" type="button" data-reset>重置当前草稿</button><button class="btn primary" data-submit>提交真实图片请求</button><button class="btn" type="button" data-retry>重试原提交</button><button class="btn" type="button" data-rebase>核对并采用最新来源</button></div></form>${!fixedItem?`<div class="card"><h3>关联实际登记物品（可不选）</h3><div data-item-search>${SearchForm({placeholder:'搜索角色物品'})}</div><div data-item-picker></div></div>`:''}</div><div data-result></div></div>`;
+ const form=host.querySelector('form'),errors=host.querySelector('[data-error]'),observer=mountMediaGeneration(host.querySelector('[data-result]'),{fid,requestId:selected,alive});
+ function paint(){if(!alive())return;const pending=command.pending();host.querySelector('[data-item]').textContent=draft.item?`画面关联：${draft.item.description} · v${draft.item.revision}`:'未关联物品';host.querySelector('[data-pending]').textContent=pending?'原提交结果未确认，继续编辑的内容单独保留。':'';host.querySelector('[data-submit]').disabled=retired||busy||!!pending;host.querySelector('[data-retry]').disabled=retired||busy||!pending||!!pending.rejection;host.querySelector('[data-rebase]').disabled=busy||!!pending&&!pending.rejection;
+  const options=[{id:'',name:'未指定地点'},...places];if(draft.place&&!places.some(p=>p.id===draft.place.id))options.push({...draft.place,name:draft.place.name+'（原选择，请核对当前世界）'});form.elements.place.innerHTML=options.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');form.elements.place.value=draft.place?.id||'';
+ }
+ async function readLocations(){const token=++locationsEpoch;const value=await mediaClient.locations(fid);if(!alive()||token!==locationsEpoch)return null;if(value.available===false||!Array.isArray(value.places))throw new Error('当前世界地点未完整返回');places=value.places.filter(p=>p.status==='active');paint();return places;}
+
+ for(const name of ['prompt','reason'])form.elements[name].oninput=()=>{draft[name]=form.elements[name].value;persist();};form.elements.place.onchange=()=>{const place=places.find(p=>p.id===form.elements.place.value);draft.place=place?{id:place.id,name:place.name,revision:place.revision}:null;persist();};
+ const referencePicker=mountReferenceGrantPicker(host.querySelector('[data-reference-picker]'),{targetId:fid,targetScope:'fluctlight',value:draft.reference,alive,onChange:reference=>{draft.reference=reference;persist();}});
+ const picker=!fixedItem?mountCursorRecords(host.querySelector('[data-item-picker]'),{alive,label:'物品',read:cursor=>inventoryClient.list(fid,{q:itemQuery,cursor}),render:item=>`<div class="lrow"><span class="grow">${esc(item.description)} · v${item.revision}</span><button class="btn" type="button" data-item="${esc(item.id)}">关联画面</button></div>`,empty:'当前筛选没有物品；可以不关联物品生成画面，或先在衣柜补录真实已知资料。',bind:(box,page)=>box.querySelectorAll('[data-item]').forEach(button=>button.onclick=()=>{if(!alive())return;const item=page.items.find(row=>row.id===button.dataset.item);draft.item={id:item.id,revision:item.revision,description:item.description};persist();paint();})}):null;
+ if(picker){host.querySelector('[data-item-search] form').onsubmit=e=>{e.preventDefault();itemQuery=e.target.elements.q.value.trim();void picker.reload({reset:true});};host.querySelector('[data-clear-item]').onclick=()=>{draft.item=null;persist();paint();};}
+ async function submit(retry){if(retired||busy||!alive()||!retry&&!form.reportValidity())return;const submitted=JSON.stringify(retry?command.pending()?.value:body());busy=true;paint();try{const receipt=await(retry?command.retry():command.submit(body()));if(!alive())return;observer.select(receipt.request.id);if(JSON.stringify(body())===submitted){draft.prompt='';draft.reason='';form.elements.prompt.value='';form.elements.reason.value='';persist();errors.textContent='请求已持久化。角色判断和实际图片生成结果在右侧分别显示。';}else errors.textContent='原图片请求已受理，新描述和选择已保留。';await onSubmitted(receipt.request);}catch(error){if(alive())errors.textContent=`${error.message}${error.code?'（'+error.code+'）':''}`;}finally{busy=false;paint();}}
+ host.querySelector('[data-reset]').onclick=()=>{if(!alive())return;draft={prompt:initialPrompt,reason:'',item:fixedItem?draft.item:null,place:initialPlace?structuredClone(initialPlace):null,reference:null};referencePicker.value(null);form.elements.prompt.value=draft.prompt;form.elements.reason.value='';persist();paint();errors.textContent=command.pending()?'当前草稿已重置；原提交身份与已受理任务保持，请先核对原结果。':'当前未提交草稿已重置。';};
+ form.onsubmit=e=>{e.preventDefault();void submit(false);};host.querySelector('[data-retry]').onclick=()=>void submit(true);
+ const sourceFingerprint=()=>JSON.stringify({item:draft.item,place:draft.place,reference:draft.reference});
+ host.querySelector('[data-rebase]').onclick=async()=>{if(busy||!alive())return;const source=structuredClone({item:draft.item,place:draft.place,reference:draft.reference}),fingerprint=sourceFingerprint();busy=true;paint();try{
+  const currentItem=source.item?await inventoryClient.read(fid,source.item.id):null;
+  if(source.reference){const grant=await mediaClient.grant(source.reference.grantId);if(grant.target_scope!=='fluctlight'||grant.target_id!==fid||JSON.stringify(referenceFromGrant(grant))!==JSON.stringify(source.reference))throw new Error('原参考授权已变化，请明确选择当前可用的授权或不使用参考');}
+  const freshPlaces=await readLocations();if(!alive()||!freshPlaces)return;
+  if(sourceFingerprint()!==fingerprint)throw new Error('来源选择已变化，新选择已保留，请重新核对最新来源');
+  const currentPlace=source.place?freshPlaces.find(p=>p.id===source.place.id):null;if(source.place&&!currentPlace)throw new Error('原地点已不在当前运行世界，请先明确选择新地点或取消地点限制');
+  if(await confirm({title:'采用最新图片来源',text:'保留画面描述和原因，使用刚查询到的物品与地点版本；不会穿用物品或移动角色。'})&&alive()){
+   if(sourceFingerprint()!==fingerprint)throw new Error('确认期间来源选择已变化，新选择已保留，请重新核对');
+   if(command.pending()?.rejection)command.releaseRejected();if(currentItem)draft.item={id:currentItem.id,revision:currentItem.revision,description:currentItem.description};if(currentPlace)draft.place={id:currentPlace.id,name:currentPlace.name,revision:currentPlace.revision};persist();errors.textContent='已明确采用最新来源，请再次确认提交。';
+  }
+ }catch(error){if(alive())errors.textContent=error.message;}finally{busy=false;paint();}};
+
+ if(initialGrantId){void mediaClient.grant(initialGrantId).then(grant=>{if(!alive())return;if(grant.target_scope!=='fluctlight'||grant.target_id!==fid)throw new Error('这份参考授权不属于当前角色');const reference=referenceFromGrant(grant),box=host.querySelector('[data-linked-reference]');box.innerHTML=`<div class="banner info"><p>链接中的参考：${esc(reference.assetId)} · ${esc(reference.purpose)} · 授权v${reference.grantRevision}。当前描述、理由和原提交保持。</p><button class="btn" type="button" data-adopt-linked-reference>明确改用这份参考</button></div>`;box.querySelector('[data-adopt-linked-reference]').onclick=()=>{if(!alive())return;draft.reference=structuredClone(reference);persist();referencePicker.value(draft.reference);};}).catch(error=>{if(alive())errors.textContent=error.message;});}
+
+ paint();void readLocations().catch(error=>{if(alive())errors.textContent=`地点读取失败：${error.message}`;});return {select:observer.select,dispose(){active=false;locationsEpoch++;observer.dispose();picker?.dispose();referencePicker.dispose();}};
+}

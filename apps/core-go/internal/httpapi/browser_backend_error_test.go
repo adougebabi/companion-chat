@@ -43,6 +43,32 @@ func TestBrowserConversationTurnErrorLeavesUnknownFailuresForFallback(t *testing
 	}
 }
 
+func TestBrowserInitializationAnalysisErrorPreservesCorrelatedFailures(t *testing.T) {
+	for _, item := range []struct {
+		code, validationType string
+		status               int
+	}{
+		{"initialization_input_budget_exceeded", "configuration", http.StatusUnprocessableEntity},
+		{"initialization_provider_timeout", "provider", http.StatusServiceUnavailable},
+		{"initialization_persona_invalid", "semantic_invalid", http.StatusUnprocessableEntity},
+		{"initialization_source_persistence_failed", "persistence", http.StatusInternalServerError},
+	} {
+		details := map[string]any{"correlation_id": "initialization-analysis:test", "validation_error": map[string]any{"type": item.validationType, "path": "provider_prompt_budget"}, "retryable": false}
+		err := testPublicDetailsError{code: item.code, details: details}
+		var mapped *browser.CoreError
+		if got := browserInitializationAnalysisError(err); !errors.As(got, &mapped) || mapped.Code != item.code || mapped.Status != item.status || mapped.Details["correlation_id"] != details["correlation_id"] || mapped.Details["retryable"] != false || mapped.Message != "" {
+			t.Fatalf("initialization error mapping lost safe metadata: %#v", got)
+		}
+	}
+	if browserInitializationAnalysisError(nil) != nil {
+		t.Fatal("successful analysis acquired an error")
+	}
+	unknown := errors.New("private upstream detail")
+	if browserInitializationAnalysisError(unknown) != unknown {
+		t.Fatal("unknown error must retain route fallback")
+	}
+}
+
 func TestBrowserAgentRunDiagnosticsErrorKeepsAuthorizationAndFilterCodes(t *testing.T) {
 	for _, testCase := range []struct {
 		name, code string

@@ -355,9 +355,21 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if speakerActorID == "" {
 		currentSpeaker = nil
 	}
-	actorFacts, err := readActorFactsWith(ctx, a.DB.Pool(), fluctlightID, "", projectionAt, false, 16)
+	backgroundSubject := stringValue(currentSpeaker["actor_id"])
+	// No speaker means no relevant human background; do not load all Actors.
+	if backgroundSubject == "" {
+		backgroundSubject = targetActorID
+	}
+	actorFacts, err := readActorFactsWith(ctx, a.DB.Pool(), fluctlightID, backgroundSubject, projectionAt, false, 32)
 	if err != nil {
 		return ContextProjection{}, err
+	}
+	worldEnvironment, err := a.worldEnvironmentContext(ctx, fluctlightID, stringValue(personalityRuntime["active_profile_id"]))
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	if worldEnvironment != nil {
+		lifeContext["world_environment"] = worldEnvironment
 	}
 	// Current explicit co-location must not disappear behind the general
 	// background window. This remains the same owner-scoped live fact reader.

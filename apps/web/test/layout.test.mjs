@@ -24,7 +24,7 @@ test("Telegram-style workspace keeps four primary tabs", () => {
   assert.doesNotMatch(navigationSource, /id: "chat"/);
   assert.match(navigationSource, /primaryNavigation[\s\S]*id: "instances"[\s\S]*id: "moments"[\s\S]*id: "settings"[\s\S]*id: "diagnostics"/);
   assert.match(shellSource, /activeView !== 'chat'/);
-  assert.match(appSource, /correlation_id/);
+  assert.match(appSource, /mountProduct/);
   assert.match(bottomNavSource, /activeNavigationView = computed<WorkspaceView>/);
   assert.doesNotMatch(bottomNavSource, /props\.activeView === "diagnostics" \? "settings"/);
   assert.match(desktopContextSource, /activeSection/);
@@ -99,9 +99,8 @@ test("diagnostics keeps existing modules and adds a filtered lifecycle disclosur
 });
 
 test("desktop secondary navigation is page-addressable and chat groups stay flat", () => {
-  assert.match(appSource, /navigateSection/);
-  assert.match(appSource, /sectionFromLocation/);
-  assert.match(appSource, /pathForView\(next, correlationId, section/);
+  assert.match(appSource, /id="v3-root"/);
+  assert.doesNotMatch(appSource, /useConversationStore|BrowserClient/);
   assert.match(settingsSource, /settings-mobile-section-list/);
   assert.match(settingsSource, /navigateSection/);
   assert.match(diagnosticsSource, /diagnostics-mobile-section-list/);

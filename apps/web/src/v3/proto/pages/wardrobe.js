@@ -1,6 +1,8 @@
+import { OutfitStrip, ImageCard } from '../components/cards.js';
 // items.wardrobe.view —— 衣柜与物品（生活成长 BP-08）
 import * as store from '../store.js';
-import { esc, icon, badge, objLink, drawer, modal, toast } from '../ui.js';
+import { esc, icon, badge, objLink, drawer, modal, toast, sourceDrawer } from '../ui.js';
+import { KeyValueList } from '../components/forms.js';
 import { requestOutfit, takePhoto } from './flows.js';
 import { genImg } from './chat.js';
 
@@ -17,9 +19,9 @@ function itemDrawer(id) {
     <h3 style="margin-top:14px">相关照片 ${badge('生成图·非事实')}</h3>${photos.length ? `<div class="row">${photos.map(m => `<a href="#/c/c1/media?md=${m.id}" title="${m.id}">${genImg(m)}</a>`).join('')}</div>` : '<p class="small muted">当前范围未找到照片</p>'}
     ${o.pending === id ? `<div class="banner info typing" data-test="outfit-pending">已发出换装请求，等待小遥接受</div>` : ''}`,
     footer: `${it.cat === '服装' && st !== '穿着' && it.status === '拥有' ? `<button class="btn primary" data-dress data-test="outfit-request">${icon('swap')} 换装请求</button>` : ''}<button class="btn" data-photo data-test="photo">${icon('camera')} 拍照</button><button class="btn ghost" data-src>来源</button>` });
-  d.el.querySelector('[data-dress]')?.addEventListener('click', async () => { d.close(); await requestOutfit(id); });
+  d.el.querySelector('[data-dress]')?.addEventListener('click', async () => { toast('已发出换装请求（行动请求），等待小遥接受'); d.close(); const ok = await requestOutfit(id); toast(ok ? '小遥换上了 ' + it.name : '小遥婉拒了', ok ? 'ok' : 'err'); });
   d.el.querySelector('[data-photo]').onclick = () => { d.close(); photoModal(id); };
-  d.el.querySelector('[data-src]').onclick = () => { import('../ui.js').then(u => u.sourceDrawer(id)); };
+  d.el.querySelector('[data-src]').onclick = () => sourceDrawer(id);
 }
 export function photoModal(itemId) {
   const before = JSON.stringify(store.get('outfit').c1.current);
@@ -39,13 +41,12 @@ export function renderWardrobe(el, ctx) {
   const o = store.get('outfit').c1;
   const shown = items.filter(i => filter === '全部' || statusOf(i) === filter);
   el.innerHTML = `<div class="grid wtop">
-    <div class="card tint-primary"><h3>${icon('shirt')} 当前穿着 ${badge('已确认')} <span class="small muted">自 ${o.since}</span></h3><div class="outfit" data-test="outfit">${o.current.map(i => `<img src="${store.get('items', i).img}" alt="${esc(store.get('items', i).name)}" title="${esc(store.get('items', i).name)}">`).join('')}</div>
-      <div class="small" style="margin-top:6px" data-test="outfit-names">${o.current.map(i => esc(store.get('items', i).name)).join('、')}</div>${(o.recordedBy && o.current.some(id => o.recordedBy[id])) ? `<p class="small muted" data-test="recorded-by">${o.current.map(id => { const who = o.recordedBy[id] === 'owner' ? '所有者修改' : o.recordedBy[id] === 'fluctlight' ? '她自己' : ''; return who ? `${esc(store.get('items', id).name)}·${who}` : ''; }).filter(Boolean).join('、')}</p>` : ''}
-      ${typeof store.get('meta')?.ownerRevisions?.c1 === 'number' ? `<p class="small muted" data-test="owner-revision">所有者修改 ${store.get('meta').ownerRevisions.c1} 次（只作计数，不作为期望版本）</p>` : ''}
+    <div class="card tint-primary"><h3>${icon('shirt')} 当前穿着 ${badge('已确认')} <span class="small muted">自 ${o.since}</span></h3>${OutfitStrip({ items: o.current.map(id => store.get('items', id)), attrs: { 'data-test': 'outfit' } })}
+      <div class="small" style="margin-top:6px" data-test="outfit-names">${o.current.map(i => esc(store.get('items', i).name)).join('、')}</div>
       ${o.pending ? `<div class="banner info small typing" style="margin-top:8px">换装请求：${esc(store.get('items', o.pending).name)}，等待小遥接受</div>` : ''}</div>
     <div class="card"><h3>${icon('camera')} 拍一张</h3><p class="small muted">生成当前穿搭照片，${badge('生成图·非事实')}</p><button class="btn primary" data-photoall data-test="photo-now">${icon('camera')} 拍照</button></div></div>
   <div class="row" style="margin-bottom:12px" data-test="filters">${FILTERS.map(f => `<button class="chip ${f === filter ? 'on' : ''}" style="${f === filter ? 'background:var(--primary-soft);color:var(--primary-strong);border-color:var(--primary-line)' : ''}" data-f="${f}">${f} ${f === '全部' ? items.length : items.filter(i => statusOf(i) === f).length}</button>`).join('')}</div>
-  ${shown.length ? `<div class="wgrid" data-test="wgrid">${shown.map(i => { const st = statusOf(i); return `<button class="icard ${st === '穿着' ? 'wearing' : ''}" data-item="${i.id}" data-test="item-${i.id}"><img src="${i.img}" alt=""><div class="cap"><b>${esc(i.name)}</b><div class="row"><span class="badge st-${st}">${st}</span><span class="small muted">${i.cat}</span>${i.recordedBy === 'owner' ? '<span class="small muted">所有者修改</span>' : i.recordedBy === 'fluctlight' ? '<span class="small muted">她自己</span>' : ''}</div></div></button>`; }).join('')}</div>`
+  ${shown.length ? `<div class="wgrid" data-test="wgrid">${shown.map(i => { const st = statusOf(i); return ImageCard({ as: 'button', className: `icard ${st === '穿着' ? 'wearing' : ''}`, img: i.img, attrs: { 'data-item': i.id, 'data-test': `item-${i.id}` }, caption: `<b>${esc(i.name)}</b><div class="row"><span class="badge st-${st}">${st}</span><span class="small muted">${i.cat}</span></div>` }); }).join('')}</div>`
     : `<div class="statebox"><h2>当前筛选「${filter}」未找到物品</h2><button class="btn" data-f="全部">显示全部</button></div>`}
   <p class="small muted" style="margin-top:12px">图例：<span class="badge st-拥有">拥有</span> <span class="badge st-穿着">穿着</span> <span class="badge st-借用">借用</span>（需归还）<span class="badge st-使用">使用</span>（正在用）<span class="badge st-入库中">入库中</span>（异步，可能失败）</p>`;
   el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; renderWardrobe(el, ctx); });

@@ -40,7 +40,7 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	}
 	baseInvocation := CapabilityInvocation{
 		CallID: "media-life-call", CapabilityName: "media.image.generate", SchemaVersion: CapabilityInvocationSchemaVersion,
-		Arguments: json.RawMessage(`{"intent":"记录此刻的场景"}`), SourceFactID: "media-life-fact", ActionID: "media-life-action",
+		Arguments: jsonBytes(map[string]any{"intent": "记录此刻的场景与手部", "media_plan": mediaTestPlan("person", "partial", "yes", "hands")}), SourceFactID: "media-life-fact", ActionID: "media-life-action",
 		ProviderRequestID: "media-life-provider", Metadata: InvocationMetadata{FluctlightID: fluctlightID, ConversationID: conversationID, Surface: CapabilitySurfaceConversation},
 	}
 	preparedInitial, err := capability.Prepare(ctx, baseInvocation, resolved)
@@ -129,7 +129,7 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	if err := json.Unmarshal([]byte(workerInput), &workerConcept); err != nil {
 		t.Fatalf("worker media input invalid: %v: %s", err, workerInput)
 	}
-	workerLife := mapValue(mapValue(workerConcept["context_binding"])["current_life"])
+	workerLife := mapValue(mapValue(workerConcept["allowed_subject_data"])["self_current_environment"])
 	liveLife := currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())
 	if workerLife["context_revision"] != nil || stringValue(workerLife["scene"]) != "客厅" || stringValue(liveLife["scene"]) != "厨房" {
 		t.Fatalf("media worker did not keep committed snapshot: worker=%#v live=%#v", workerLife, liveLife)
@@ -200,7 +200,7 @@ func TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale(t *test
 					"influences": []any{map[string]any{"ref": lifeRef, "role": "constrains", "confidence": 0.9, "note": "使用模型实际看到的生活上下文"}},
 				}
 				if surface == "wake_up" {
-					structured["action_type"] = "scene_change"
+					structured["action_type"] = "no_op"
 					structured["evidence_refs"] = []any{}
 				}
 				toolCalls := []any{}

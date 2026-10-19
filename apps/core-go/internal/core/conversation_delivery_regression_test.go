@@ -320,7 +320,7 @@ func TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages(t *testi
 func TestDirectConversationToolCallsExecuteIndependentlyWithoutVisibleReply(t *testing.T) {
 	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurn(t, "tool-only", fakeProviderResult{ToolCalls: []map[string]any{
 		{"id": "tool-only-image", "type": "function", "function": map[string]any{
-			"name": "media.image.generate", "arguments": jsonString(map[string]any{"intent": "林夏希在书桌前，数位板亮着，戴着耳机，背景是暖色书房。"}),
+			"name": "media.image.generate", "arguments": jsonString(map[string]any{"intent": "暖色书房中的数位板静物画", "media_plan": mediaTestPlan("object", "none", "no", "unknown")}),
 		}},
 		{"id": "tool-only-affect", "type": "function", "function": map[string]any{
 			"name": "affect_event", "arguments": jsonString(map[string]any{"event": map[string]any{"type": "embarrassed", "confidence": 0.7}}),
@@ -329,8 +329,13 @@ func TestDirectConversationToolCallsExecuteIndependentlyWithoutVisibleReply(t *t
 	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
 		"fluctlight_id": fluctlightID, "text": "帮我记录一下现在的状态", "idempotency_key": "tool-only-turn", "turn_id": "tool-only-turn-1", "attachment_refs": []any{},
 	})
-	if err != nil {
-		t.Fatalf("tool-only direct turn failed: %v", err)
+	// Private chat cannot complete through image/affect alone. Already committed
+	// independent effects survive the truthful final-contract failure.
+	if err == nil {
+		t.Fatal("chat falsely completed without a private Reply receipt")
+	}
+	if !strings.Contains(err.Error(), "conversation") {
+		t.Fatalf("unexpected failure before publication boundary: %v", err)
 	}
 	if len(result.Assistant) != 0 {
 		t.Fatalf("tool-only direct turn fabricated an assistant message: %#v", result.Assistant)

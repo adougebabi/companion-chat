@@ -473,7 +473,8 @@ export const useConversationStore = defineStore("conversations", {
         this.loading = false;
       }
     },
-	    async selectFluctlight(fluctlightId: string, options: { loading?: boolean } = {}) {
+	    async selectFluctlight(fluctlightId: string, options: { loading?: boolean; current?:()=>boolean } = {}) {
+      if(options.current && !options.current())return;
       if (!this.fluctlights.some((item) => item.id === fluctlightId)) {
         this.error = "所选 Fluctlight 实例不可用。";
         return;
@@ -481,8 +482,10 @@ export const useConversationStore = defineStore("conversations", {
       if (options.loading !== false) this.loading = true;
       this.invalidateRequest();
       this.error = "";
+      const selectionEpoch = this.requestEpoch;
       try {
         const page = await client.directConversation(fluctlightId);
+        if (selectionEpoch !== this.requestEpoch || (options.current && !options.current())) return;
         if (this.retryTurn && this.retryTurn.fluctlightId === fluctlightId && this.retryTurn.conversationId !== page.conversation.id) {
           this.retryTurn = null;
           persistRetry(null);
@@ -506,10 +509,11 @@ export const useConversationStore = defineStore("conversations", {
 				await this.sendQueuedTurn();
 			}
       } catch {
+        if (selectionEpoch !== this.requestEpoch || (options.current && !options.current())) return;
         this.clearActiveConversation();
         this.error = "无法打开该 Fluctlight 的对话。";
       } finally {
-        if (options.loading !== false) this.loading = false;
+        if (selectionEpoch === this.requestEpoch && options.loading !== false) this.loading = false;
       }
     },
     clearActiveConversation() {

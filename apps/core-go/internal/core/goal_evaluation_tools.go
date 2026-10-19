@@ -256,7 +256,7 @@ func (a *App) executeGoalEvaluationSubmissionTx(ctx context.Context, tx pgx.Tx, 
 	if prior, exists := records[key]; exists {
 		if _, _, err := a.goalSubmissionAuthorityTx(ctx, tx, s, entry, result); err != nil {
 			if goalSubmissionBusinessError(err) {
-				return handledCapabilityResult(inv, err.Error(), "awaiting_state", map[string]any{"assessment_accepted": false}), nil
+				return handledCapabilityResult(inv, goalSubmissionBusinessCode(err), "awaiting_state", map[string]any{"assessment_accepted": false}), nil
 			}
 			return CapabilityResult{}, err
 		}
@@ -276,7 +276,7 @@ func (a *App) executeGoalEvaluationSubmissionTx(ctx context.Context, tx pgx.Tx, 
 			return CapabilityResult{}, errors.Join(err, rollbackErr)
 		}
 		if goalSubmissionBusinessError(err) {
-			return handledCapabilityResult(inv, err.Error(), "awaiting_evidence", map[string]any{"assessment_accepted": false, "retry_same_arguments": false}), nil
+			return handledCapabilityResult(inv, goalSubmissionBusinessCode(err), "awaiting_evidence", map[string]any{"assessment_accepted": false, "retry_same_arguments": false}), nil
 		}
 		return CapabilityResult{}, err
 	}
@@ -493,4 +493,23 @@ func (a *App) goalSubmissionAuthorityTx(ctx context.Context, tx pgx.Tx, s *goalE
 		sources[source.Ref] = actual
 	}
 	return live, sources, nil
+}
+
+// Domain sentinels are not wire codes: preserve stable stale-authority handling
+// across accepted siblings and the fresh-snapshot replacement path.
+func goalSubmissionBusinessCode(err error) string {
+	var typed *CapabilityError
+	if errors.As(err, &typed) && typed.Code != "" {
+		return typed.Code
+	}
+	switch {
+	case errors.Is(err, ErrConflict):
+		return "conflict"
+	case errors.Is(err, ErrFoundationRevisionStale):
+		return "foundation_revision_stale"
+	case errors.Is(err, ErrLifeContextStale):
+		return "life_context_stale"
+	default:
+		return err.Error()
+	}
 }

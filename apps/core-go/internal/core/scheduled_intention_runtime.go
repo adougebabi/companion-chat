@@ -109,10 +109,11 @@ func (a *App) ResolveScheduledLifeActivity(ctx context.Context, activityID strin
 	if activityID == "" {
 		return nil, ErrNotFound
 	}
-	var fluctlightID, ownerID, profileID, status string
+	var fluctlightID, ownerID, profileID, status, intentionID string
+	var resultRaw []byte
 	var revision int
 	var notBefore time.Time
-	err := a.DB.Pool().QueryRow(ctx, `SELECT r.fluctlight_id,f.created_by_actor_id,r.profile_id,r.status,r.revision,r.not_before FROM public.fluctlight_life_activity_runs r JOIN public.fluctlights f ON f.id=r.fluctlight_id WHERE r.id=$1`, activityID).Scan(&fluctlightID, &ownerID, &profileID, &status, &revision, &notBefore)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT r.fluctlight_id,f.created_by_actor_id,r.profile_id,r.status,r.revision,r.not_before,COALESCE(r.intention_id,''),r.result_json FROM public.fluctlight_life_activity_runs r JOIN public.fluctlights f ON f.id=r.fluctlight_id WHERE r.id=$1`, activityID).Scan(&fluctlightID, &ownerID, &profileID, &status, &revision, &notBefore, &intentionID, &resultRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -122,9 +123,32 @@ func (a *App) ResolveScheduledLifeActivity(ctx context.Context, activityID strin
 	if a.now().UTC().Before(notBefore) {
 		return map[string]any{"activity_id": activityID, "status": "pending", "not_before": notBefore.UTC().Format(instantLayout)}, nil
 	}
+	recovery := mapValue(decodeObject(resultRaw)["resolution_recovery"])
+	if len(recovery) > 0 {
+		count, ok := parseRevision(recovery["attempt_count"])
+		if !ok || count < 1 || count > scheduledResolutionMaximumAttempts || recovery["next_attempt_at"] == nil {
+			return nil, errors.New("scheduled_resolution_retry_metadata_invalid")
+		}
+	}
+	if raw, exists := recovery["next_attempt_at"]; exists {
+		retryAt, err := time.Parse(time.RFC3339Nano, stringValue(raw))
+		if err != nil {
+			return nil, errors.New("scheduled_resolution_retry_metadata_invalid")
+		}
+		if a.now().Before(retryAt) {
+			active, err := scheduledResolutionSourcesActiveWith(ctx, a.DB.Pool(), activityID, fluctlightID, intentionID, decodeObject(resultRaw), a.now())
+			if err != nil {
+				return nil, err
+			}
+			if active {
+				return scheduledResolutionRetryView(activityID, retryAt, intValue(recovery["attempt_count"]), stringValue(recovery["last_warning_code"])), nil
+			}
+		}
+	}
+	operationID := fmt.Sprintf("scheduled-resolve:%s:%d", activityID, revision)
 	receipt, err := a.ExecuteTool(ctx, ToolExecutionRequest{
 		CapabilityName:       lifeActivityAdvanceCapabilityName,
-		OperationID:          fmt.Sprintf("scheduled-resolve:%s:%d", activityID, revision),
+		OperationID:          operationID,
 		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
 		EvidenceID: "activity:" + activityID, Surface: CapabilitySurfaceNativeCognition,
 		CorrelationID: "scheduled-activity:" + activityID,
@@ -132,6 +156,9 @@ func (a *App) ResolveScheduledLifeActivity(ctx context.Context, activityID strin
 	})
 	if err != nil {
 		return nil, err
+	}
+	if knownInvalidScheduledResolution(receipt.Result) {
+		return a.recoverScheduledResolution(ctx, activityID, fluctlightID, revision, operationID)
 	}
 	output := mapValue(receipt.Result.Output)
 	return map[string]any{"activity_id": activityID, "status": firstString(output["status"], receipt.Result.Status), "not_before": output["not_before"]}, nil

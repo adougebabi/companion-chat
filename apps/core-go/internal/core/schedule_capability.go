@@ -41,6 +41,7 @@ func scheduleReplanCapabilityDefinition() CapabilityDefinition {
 }
 
 type SchedulePlanInput struct {
+	OwnerRequest  map[string]any
 	Intent        string
 	PlannedAction map[string]any
 	TargetEdit    map[string]any
@@ -116,7 +117,7 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 	schedule := compactStateMap(input.Schedule, []string{"local_date", "timezone", "completed_before", "reschedule_policy"})
 	items := make([]map[string]any, 0)
 	for _, raw := range arrayValue(input.Schedule["items"]) {
-		fields := []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id"}
+		fields := []string{"start_at", "end_at", "activity", "scene", "location", "place_id", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id"}
 		if len(input.TargetEdit) > 0 {
 			fields = append(fields, "id")
 		}
@@ -137,12 +138,15 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 	if len(input.TargetEdit) > 0 {
 		result["target_edit"] = input.TargetEdit
 	}
+	if len(input.OwnerRequest) > 0 {
+		result["owner_request"] = input.OwnerRequest
+	}
 	return result
 }
 
 func schedulePlannerOutputSchema() map[string]any {
 	item := objectSchema(map[string]any{
-		"start_at": stringSchema(), "end_at": stringSchema(), "activity": stringSchema(), "scene": stringSchema(), "location": stringSchema(),
+		"start_at": stringSchema(), "end_at": stringSchema(), "activity": stringSchema(), "scene": stringSchema(), "location": stringSchema(), "place_id": stringSchema(),
 		"item_type": stringSchema(), "status": stringSchema(), "priority": unitNumberSchema(), "flexibility": unitNumberSchema(), "interruption_cost": unitNumberSchema(),
 		"intention_id":        stringSchema(),
 		"source_item_id":      stringSchema(),
@@ -191,6 +195,10 @@ func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
 	if len(input.TargetEdit) > 0 {
 		instruction += " Apply target_edit to exactly the selected existing item. For move or revise, include source_item_id equal to target_edit.item_id on exactly one resulting item and satisfy every requested field. For cancel, omit that source_item_id and its intention_id, replacing its time with a sensible explicit activity. Preserve all other executable links. Do not copy or invent source_item_id for other items."
 	}
+	if len(input.OwnerRequest) > 0 {
+		instruction += " The character has chosen to assess this Owner request with this Tool. Preserve its exact requested interval and semantic fields including explicit place_id; Core verifies it before commit. Acceptance is not completion. Never infer a place_id from a location name."
+	}
+	instruction += " Retain explicit stable place_id on unchanged intervals. Location text alone does not identify a place; omit place_id when unknown."
 	return instruction
 }
 
@@ -394,7 +402,7 @@ func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, flu
 		LIMIT 1`, fluctlightID, currentDate).Scan(&id, &localDate, &timezone, &revision, &policy); err != nil {
 		return nil, err
 	}
-	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
+	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,''),COALESCE(item.place_id,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -404,14 +412,18 @@ func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, flu
 		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost, intentionID, actionStatus string
 		var itemLocation *string
 		var actionPlan []byte
+		var placeID string
 		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus); err != nil {
+		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus, &placeID); err != nil {
 			return nil, err
 		}
 		entry := map[string]any{
 			"id": itemID, "start_at": formatInstant(start), "end_at": formatInstant(end),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": priority, "flexibility": flexibility, "interruption_cost": interruptionCost,
+		}
+		if placeID != "" {
+			entry["place_id"] = placeID
 		}
 		if intentionID != "" {
 			entry["intention_id"] = intentionID

@@ -37,7 +37,10 @@ func TestFactGenerationProvenanceUpgradeAndHeadRerun(t *testing.T) {
 	if _, err := pool.Exec(ctx, `
 		CREATE TRIGGER context_generation_bump AFTER INSERT OR UPDATE OR DELETE ON public.memory_embeddings
 		 FOR EACH ROW EXECUTE FUNCTION public.bump_context_memory_child_trigger();
-		UPDATE public.alembic_version SET version_num=$1`, FactGenerationProvenancePreviousHead); err != nil {
+`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE public.alembic_version SET version_num=$1`, FactGenerationProvenancePreviousHead); err != nil {
 		t.Fatal(err)
 	}
 	for _, phase := range []string{"0058 upgrade", "0059 head rerun"} {
@@ -71,9 +74,9 @@ func TestFactGenerationProvenanceCursorSourcesRetentionAndRollback(t *testing.T)
 		 ('facts-journal-fl','facts-journal-owner','blank_slate','active','{}','{}','{}','{}','{}','{}'),
 		 ('facts-journal-other','facts-journal-owner','blank_slate','active','{}','{}','{}','{}','{}','{}');
 		INSERT INTO public.fluctlight_goals(id,fluctlight_id,profile_id,source,scope,description,desired_outcome,success_criteria,motivation,needs_reflection,importance,urgency,progress,status,evidence_refs,revision,idempotency_key,request_digest)
-		 VALUES('facts-journal-goal','facts-journal-fl','default','reflection','general','finish','finish','["done"]','motivation',false,0.8,0.6,0,'active','["fact"]',1,'facts-journal-goal','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+		 VALUES('facts-journal-goal','facts-journal-fl','default','reflection','general','finish','finish','["done"]','motivation',false,'{"score":0.8}','{"score":0.6}','{"score":0}', 'active','["fact"]',1,'facts-journal-goal','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 		INSERT INTO public.fluctlight_intentions(id,fluctlight_id,profile_id,goal_id,action,action_intent,expected_outcome,capability_constraints,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision,idempotency_key,request_digest)
-		 VALUES('facts-journal-intention','facts-journal-fl','default','facts-journal-goal','act','act','result','["schedule.replan"]','{"type":"event","event_type":"life.event.created"}',0.9,now()+interval '1 day','["fact"]','{}','{}','qualified',1,'facts-journal-intention','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')`); err != nil {
+		 VALUES('facts-journal-intention','facts-journal-fl','default','facts-journal-goal','act','act','result','["schedule.replan"]','{"type":"event","event_type":"life.event.created"}','{"score":0.9}',now()+interval '1 day','["fact"]','{}','{}','qualified',1,'facts-journal-intention','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')`); err != nil {
 		t.Fatal(err)
 	}
 	var before int64

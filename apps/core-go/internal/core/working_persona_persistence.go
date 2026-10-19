@@ -13,13 +13,18 @@ import (
 
 func declaredPersonaProfileIDs(corePersona map[string]any) []string {
 	ids := make([]string, 0)
+	seen := map[string]bool{}
 	for _, raw := range arrayValue(mapValue(corePersona["personality_system"])["profiles"]) {
-		if id := strings.TrimSpace(stringValue(mapValue(raw)["id"])); id != "" {
+		if id := strings.TrimSpace(stringValue(mapValue(raw)["id"])); id != "" && !seen[id] {
 			ids = append(ids, id)
+			seen[id] = true
 		}
 	}
-	if len(ids) == 0 {
-		ids = append(ids, initialPersonalityProfileID(corePersona))
+	// The explicitly selected initial runtime may be the shared virtual
+	// "default" while declared profiles await a controlled takeover. It needs
+	// the same persisted habits/compiled portrait as every other legal runtime.
+	if initial := initialPersonalityProfileID(corePersona); !seen[initial] {
+		ids = append(ids, initial)
 	}
 	sort.Strings(ids)
 	return ids
@@ -63,7 +68,7 @@ func (a *App) compileFoundationWorkingPersonas(ctx context.Context, fluctlightID
 	profiles := declaredPersonaProfileIDs(corePersona)
 	compiled := make([]CompiledWorkingPersona, 0, len(profiles))
 	for _, profileID := range profiles {
-		input, err := a.personaCompilationInputForProfile(ctx, fluctlightID, corePersona, sourceRevision, profileID, loadOverlays)
+		input, err := a.foundationCompilationInputForProfile(ctx, fluctlightID, corePersona, sourceRevision, profileID, loadOverlays)
 		if err != nil {
 			return nil, err
 		}
@@ -96,6 +101,33 @@ func (a *App) compileFoundationWorkingPersonas(ctx context.Context, fluctlightID
 		compiled = append(compiled, item)
 	}
 	return compiled, nil
+}
+
+func (a *App) foundationCompilationInputForProfile(ctx context.Context, fid string, core map[string]any, revision int, profile string, loadOverlays bool) (PersonaCompilationInput, error) {
+	if loadOverlays {
+		var raw []byte
+		var habitsExist bool
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona,EXISTS(SELECT 1 FROM public.fluctlight_profile_habits WHERE fluctlight_id=$1 AND profile_id=$2) FROM public.fluctlights WHERE id=$1`, fid, profile).Scan(&raw, &habitsExist); err != nil {
+			return PersonaCompilationInput{}, err
+		}
+		declared := false
+		for _, old := range declaredPersonaProfileIDs(decodeObject(raw)) {
+			declared = declared || old == profile
+		}
+		if !declared && !habitsExist {
+			// The new profile does not have runtime rows until acceptance commits.
+			// Compile from its explicit initial definition without mutating state
+			// before remote I/O. Existing missing/corrupt habits still fail below.
+			input, err := a.personaCompilationInputForProfile(ctx, fid, core, revision, profile, false)
+			habits := arrayValue(mapValue(core["life_profile"])["life_habits"])
+			if habits == nil {
+				habits = []any{}
+			}
+			input.EffectiveLifeHabits = &habits
+			return input, err
+		}
+	}
+	return a.personaCompilationInputForProfile(ctx, fid, core, revision, profile, loadOverlays)
 }
 
 func (a *App) personaCompilationInputForProfile(ctx context.Context, fluctlightID string, corePersona map[string]any, sourceRevision int, profileID string, loadOverlays bool) (PersonaCompilationInput, error) {

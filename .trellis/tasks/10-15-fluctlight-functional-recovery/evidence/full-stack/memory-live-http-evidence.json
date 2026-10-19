@@ -1,0 +1,19 @@
+{
+  "memory_id": "memory_cf0d0fe3f23dee63a28316db1a6ad7c6",
+  "read_http": 200,
+  "revision": 3,
+  "history_revisions": [
+    3,
+    2,
+    1,
+    0
+  ],
+  "current_source_kinds": [
+    "owner_confirmation"
+  ],
+  "original_source_kinds": [
+    "message"
+  ],
+  "current_source_live": true,
+  "fixture_kind": "real Owner command, not model production"
+}

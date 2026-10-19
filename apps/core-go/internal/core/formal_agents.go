@@ -30,7 +30,12 @@ const (
 	FormalAgentConversationSummary   FormalAgentID = "conversation_summary"
 	FormalAgentScheduleGeneration    FormalAgentID = "schedule_generation"
 	FormalAgentNativeCognition       FormalAgentID = "native_cognition"
+	FormalAgentStudioAssistant       FormalAgentID = "studio_assistant"
+	FormalAgentStudioTextPreview     FormalAgentID = "studio_text_preview"
+	FormalAgentNPCResponse           FormalAgentID = "npc_response"
 	FormalAgentDailyReview           FormalAgentID = "daily_review"
+	FormalAgentDiaryMaterial         FormalAgentID = "diary_material"
+	FormalAgentDiaryExpression       FormalAgentID = "diary_expression"
 	FormalAgentPersistentSwitch      FormalAgentID = "persistent_switch"
 	FormalAgentReflection            FormalAgentID = "reflection"
 	FormalAgentScheduleReplan        FormalAgentID = "schedule_replan"
@@ -66,6 +71,11 @@ type FormalAgentDefinition struct {
 }
 
 var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
+	FormalAgentStudioAssistant:       {ID: FormalAgentStudioAssistant, Name: "fluctlight-studio-assistant", Description: "Suggest a complete definition from an isolated Owner draft without life access or tools.", Role: "cognitive_assessment", Scenario: "studio_assistant", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
+	FormalAgentStudioTextPreview:     {ID: FormalAgentStudioTextPreview, Name: "fluctlight-studio-text-preview", Description: "Express an explicitly fictional isolated resource preview without life access or tools.", Role: conversationReplyModelRole, Scenario: "studio_text_preview", OutputKind: FormalAgentOutputText, MandatoryTools: []string{}},
+	FormalAgentNPCResponse:           {ID: FormalAgentNPCResponse, Name: "fluctlight-npc-response", Description: "Resolve one virtual NPC response from its own private definition without changing life state or exposing biography to the character.", Role: "cognitive_assessment", Scenario: "npc_response", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
+	FormalAgentDiaryMaterial:         {ID: FormalAgentDiaryMaterial, Name: "fluctlight-diary-material", Description: "Select actual local-day evidence without writing a diary draft or changing life facts.", Role: "cognitive_assessment", Scenario: "diary_material", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
+	FormalAgentDiaryExpression:       {ID: FormalAgentDiaryExpression, Name: "fluctlight-diary-expression", Description: "Independently express a subjective diary from actual selected sources and effective persona, without life or publication tools.", Role: conversationReplyModelRole, Scenario: "diary_expression", OutputKind: FormalAgentOutputText, MandatoryTools: []string{}},
 	FormalAgentConversationReply:     {ID: FormalAgentConversationReply, Name: "fluctlight-conversation-reply", Description: "Independently express the persona and request draft-owned images through the private tool, using authoritative facts.", Role: conversationReplyModelRole, Scenario: "fact_only_reply", OutputKind: FormalAgentOutputText, MaxIterations: 3, MandatoryTools: []string{replyImageRequestName, personaDetailCapabilityName}},
 	FormalAgentGoalPlanner:           {ID: FormalAgentGoalPlanner, Name: "fluctlight-goal-planner", Description: "Maintain the independent authoritative Goal set through query and atomic commit tools.", Role: "cognitive_assessment", Scenario: "goal_planner", OutputKind: FormalAgentOutputStructured, MaxIterations: 12, DefaultSurface: CapabilitySurfaceGoalPlanner, MandatoryTools: []string{"goal_planner.query", "goal_planner.commit"}},
 	FormalAgentGoalEvaluation:        {ID: FormalAgentGoalEvaluation, Name: "fluctlight-goal-evaluation", Description: "Submit authoritative Goal evidence through private evaluation, object and plan tools.", Role: "cognitive_assessment", Scenario: "goal_evaluation", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceGoalEvaluation, MandatoryTools: []string{goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit}},
@@ -106,6 +116,18 @@ func FormalAgentDefinitionByID(id FormalAgentID) (FormalAgentDefinition, bool) {
 
 func formalAgentForSchema(schemaName string) (FormalAgentID, bool) {
 	switch strings.TrimSpace(schemaName) {
+	case "studio_assistant_v1":
+		return FormalAgentStudioAssistant, true
+	case "studio_preview_text":
+		return FormalAgentStudioTextPreview, true
+	case "npc_response_v1":
+		return FormalAgentNPCResponse, true
+	case "npc_opportunity_decision":
+		return FormalAgentNativeCognition, true
+	case "diary_material_v1":
+		return FormalAgentDiaryMaterial, true
+	case "diary_expression_text":
+		return FormalAgentDiaryExpression, true
 	case "conversation_reply_text":
 		return FormalAgentConversationReply, true
 	case "conversation_turn_response":

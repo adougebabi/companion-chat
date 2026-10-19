@@ -81,6 +81,10 @@ type personalityDecisionPlan struct {
 }
 
 func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID string, decision map[string]any) (*personalityDecisionPlan, error) {
+	return a.preparePersonalityDecisionQuery(ctx, a.DB.Pool(), fluctlightID, decision)
+}
+
+func (a *App) preparePersonalityDecisionQuery(ctx context.Context, query personaActionRowQuerier, fluctlightID string, decision map[string]any) (*personalityDecisionPlan, error) {
 	if len(decision) == 0 {
 		return nil, nil
 	}
@@ -94,7 +98,7 @@ func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID strin
 	// "default". Otherwise a valid LLM decision such as keep(base) is rejected
 	// as personality_source_profile_stale before the first chat frame.
 	var rawPersona []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&rawPersona); err != nil {
+	if err := query.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&rawPersona); err != nil {
 		return nil, err
 	}
 	corePersona := decodeObject(rawPersona)
@@ -104,7 +108,7 @@ func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID strin
 	var revision int
 	var cooldownUntil *time.Time
 	runtimeExists := true
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT active_profile_id,COALESCE(previous_profile_id,''),revision,cooldown_until FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&current, &previous, &revision, &cooldownUntil); err != nil {
+	if err := query.QueryRow(ctx, `SELECT active_profile_id,COALESCE(previous_profile_id,''),revision,cooldown_until FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&current, &previous, &revision, &cooldownUntil); err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
 		}

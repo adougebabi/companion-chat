@@ -37,10 +37,12 @@ func TestFormalMainWardrobeQueryResultRequestsIndependentGoalPlanning(t *testing
 			}
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("form-boots-intention", intentionDecideCapabilityName,
 				map[string]any{"operation": "create", "goal": "拥有可穿的短靴", "action": "安排虚拟购物购买短靴", "expected_outcome": "短靴实际入柜", "reason": "查询确认已记录的靴子不可用"})}}
-		default:
+		case 3:
 			if !payloadHasToolResult(payload) || !strings.Contains(nativePersonaToolMessages(payload), "planning_requested") {
 				t.Fatalf("final model request did not consume committed intention receipt: %#v", payload["messages"])
 			}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("planning-reply", conversationReplyCapabilityName, map[string]any{"text": "当前靴子不可用，新愿望已交给规划，还没有购入或穿上。"})}}
+		default:
 			return nativePersonaFinal()
 		}
 	})
@@ -49,11 +51,11 @@ func TestFormalMainWardrobeQueryResultRequestsIndependentGoalPlanning(t *testing
 		AuthorizationActorID: fixture.ownerID, FluctlightID: fixture.fluctlightID, ConversationID: fixture.conversationID,
 		RunID: "main-wardrobe-intention-" + fixture.suffix, CurrentInput: "我想看你穿靴子",
 	})
-	if err != nil || calls != 3 || result.Trace == nil {
+	if err != nil || calls != 4 || result.Trace == nil {
 		t.Fatalf("formal Main loop failed: calls=%d result=%#v err=%v", calls, result, err)
 	}
 	invocations, receipts := result.Trace.Snapshot()
-	if len(invocations) != 2 || len(receipts) != 2 || invocations[0].CapabilityName != wardrobeInspectCapabilityName || invocations[1].CapabilityName != intentionDecideCapabilityName || receipts[1].Status != "completed" {
+	if len(invocations) != 3 || len(receipts) != 3 || invocations[0].CapabilityName != wardrobeInspectCapabilityName || invocations[1].CapabilityName != intentionDecideCapabilityName || receipts[1].Status != "completed" || invocations[2].CapabilityName != conversationReplyCapabilityName || receipts[2].Status != "completed" {
 		t.Fatalf("formal Main Tool trace incomplete: calls=%#v results=%#v", invocations, receipts)
 	}
 	var pending, purchased, worn int
@@ -305,8 +307,8 @@ func TestFormalDueActivityResultCannotSettleSupersededAttempt(t *testing.T) {
 				}
 				receipt, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(intentionDecideCapabilityName, "supersede-"+change, args))
 				if change == "resume" {
-					if err == nil {
-						t.Fatal("unresolved operation allowed a new execution qualification")
+					if err != nil || receipt.Result.Status != "handled" || mapValue(receipt.Result.Output)["warning_code"] != "intention_persist_failed" || mapValue(receipt.Result.Output)["mutation_committed"] != false {
+						t.Fatalf("unresolved operation did not preserve no-effect refusal: %#v %v", receipt, err)
 					}
 					continue
 				}

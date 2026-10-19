@@ -197,6 +197,19 @@ func validateMediaReferenceSource(reference, source map[string]any) error {
 }
 
 func (a *App) validateMediaReferenceAsset(ctx context.Context, owner string, reference, concept map[string]any) error {
+	if concept["source"] == "studio_definition" {
+		return a.validateStudioReferenceWith(ctx, a.DB.Pool(), stringValue(concept["studio_owner_actor_id"]), stringValue(mapValue(concept["studio_source"])["resource_id"]), reference)
+	}
+	if reference["grant_id"] != nil {
+		actor, err := a.ownerMediaReferenceActor(ctx, owner, reference, concept)
+		if err != nil {
+			return err
+		}
+		if reference["purpose"] == "person" && mediaPlanHasSelfIdentity(mapValue(concept["media_capture_plan"])) {
+			return errors.New("unverified_reference_cannot_identify_self")
+		}
+		return a.validateExplicitMediaReferenceFor(ctx, a.DB.Pool(), actor, "fluctlight", owner, reference)
+	}
 	referenceOwner, err := mediaReferenceOwner(owner, reference, concept)
 	if err != nil {
 		return err

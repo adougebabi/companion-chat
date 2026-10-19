@@ -27,6 +27,8 @@ func TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure(
 		{name: "legacy provider transport wrapper", err: errors.New("provider request failed: upstream unavailable"), want: "provider_request_failed"},
 		{name: "provider suppression", err: fmt.Errorf("%w: %w", errProviderRequestFailed, errProviderPaused), want: "fluctlight_paused"},
 		{name: "agent failure", err: errors.New("agent_run_failed: adk loop failed"), want: "agent_run_failed"},
+		{name: "wrapped required input budget", err: fmt.Errorf("assembly failed: %w", ErrPromptRequiredBudgetExceeded), want: "prompt_required_budget_exceeded"},
+		{name: "wrapped current input budget", err: fmt.Errorf("assembly failed: %w: %w", ErrPromptRequiredBudgetExceeded, ErrPromptCurrentInputBudgetExceeded), want: "prompt_current_input_budget_exceeded"},
 		{name: "business final contract failure", err: fmt.Errorf("%w: invalid influence", errAgentFinalContractInvalid), want: "agent_final_contract_invalid"},
 		{name: "final contract failure", err: errors.New("adk_final_output_invalid: schema mismatch"), want: "adk_final_output_invalid"},
 		{name: "tool execution failure", err: errors.New("tool execution tool_execution_failed: dependency unavailable"), want: "tool_execution_failed"},
@@ -201,38 +203,13 @@ func TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContr
 
 func TestFailedConversationTurnCanBeRetriedAndStreamed(t *testing.T) {
 	callCount := 0
+	successful := newConversationToolLoopTransport(fakeProviderResult{ToolCalls: []map[string]any{{"id": "retry-native-reply", "type": "function", "function": map[string]any{"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": "重试成功回复"})}}}})
 	transport := projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		callCount++
 		if callCount == 1 {
 			return nil, errors.New("simulated network connection failure")
 		}
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			return nil, err
-		}
-		payload := decodeObject(body)
-		content := jsonString(map[string]any{
-			"action_type":     "reply",
-			"response_intent": "回复用户",
-			"visible_text":    "重试成功回复",
-			"influences":      []any{},
-		})
-		if boolValue(payload["stream"]) {
-			chunk := map[string]any{"choices": []any{map[string]any{"delta": map[string]any{"role": "assistant", "content": content}, "finish_reason": "stop"}}}
-			return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader("data: " + string(jsonBytes(chunk)) + "\n\ndata: [DONE]\n\n")), Request: request}, nil
-		}
-		envelope := map[string]any{
-			"choices": []any{
-				map[string]any{
-					"finish_reason": "stop",
-					"message": map[string]any{
-						"role":    "assistant",
-						"content": content,
-					},
-				},
-			},
-		}
-		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(envelope))), nil
+		return successful.RoundTrip(request)
 	})
 	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurnWithTransport(t, "retry", transport)
 
@@ -350,7 +327,7 @@ func conversationPayloadHasToolResult(payload map[string]any) bool {
 func validToolOnlyConversationFinal() map[string]any {
 	return map[string]any{
 		"action_type": "reply", "response_intent": "committed native Tool results",
-		"visible_text": "", "influences": []any{},
+		"influences": []any{},
 	}
 }
 
@@ -398,7 +375,7 @@ func newConversationToolLoopTransportWithFinal(first, final fakeProviderResult) 
 func mixedImageReplyToolCalls() []map[string]any {
 	return []map[string]any{
 		{"id": "call_image", "type": "function", "function": map[string]any{
-			"name": "media.image.generate", "arguments": jsonString(map[string]any{"intent": "a fantasy swordsman WIP"}),
+			"name": "media.image.generate", "arguments": jsonString(map[string]any{"intent": "a fantasy swordsman WIP drawing on paper", "media_plan": mediaTestPlan("object", "none", "no", "unknown")}),
 		}},
 		{"id": "call_reply", "type": "function", "function": map[string]any{
 			"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": "诶？真的要看啊。"}),

@@ -1,0 +1,11 @@
+{
+  "http_status": 200,
+  "role": "conversation_reply",
+  "model": "cydonia-24b-v4.3-heretic-v2-i1",
+  "actual_loaded_window": 32768,
+  "max_input_tokens": 24576,
+  "output_reserve": 1024,
+  "safety_margin": 4096,
+  "scope": "fluctlight_delivery_1015 only",
+  "model_changed": false
+}

@@ -1,0 +1,42 @@
+{
+  "attempt": 1,
+  "created_at": "2026-10-19T09:53:31.919+00:00",
+  "error_code": null,
+  "finished_at": "2026-10-19T09:53:44.148+00:00",
+  "id": "restore_7866681113b78869262e378bdd0887af",
+  "kind": "restore",
+  "reason": "验证新隔离目标恢复后精确对象版本与数据库一致",
+  "result": {
+    "artifacts_verified": true,
+    "database_counts_verified": true,
+    "isolated_target": "fluctlight_restore_1019v3testa",
+    "legacy_media_versions": 0,
+    "manifest_digest": "0595ee39ccf7d5b0ea6099e4fed0f3161c32eab7431d37d4a1ddb93dc3247de4",
+    "media_count": 1,
+    "media_verified": true,
+    "models_started": false,
+    "restorable": false,
+    "restore_comparison_verified": true,
+    "source_head": "0095_place_defaults",
+    "source_inventory_verified": true,
+    "upgrade_head": "0095_place_defaults"
+  },
+  "revision": 4,
+  "source_backup_id": "backup_40cdb377e67152dde0bdbba1c0c4c602",
+  "stage": "isolated_restore_verified",
+  "started_at": "2026-10-19T09:53:35.731+00:00",
+  "status": "completed",
+  "steps": [
+    {
+      "at": "2026-10-19T09:53:40.334268331Z",
+      "stage": "creating_isolated_restore",
+      "status": "running"
+    },
+    {
+      "at": "2026-10-19T09:53:44.149321719Z",
+      "stage": "isolated_restore_verified",
+      "status": "completed"
+    }
+  ],
+  "target_name": "fluctlight_restore_1019v3testa"
+}

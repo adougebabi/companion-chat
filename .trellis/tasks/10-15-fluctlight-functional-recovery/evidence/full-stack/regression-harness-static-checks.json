@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-19",
+  "scope": "L01-L17 regression source and diagnostic model parent projection",
+  "harness_tests": {
+    "command": "node scripts/e2e/v3-regression/run.mjs --self-test",
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "layer": "controlled fetch/stream/process fixtures; no business API/database/model"
+  },
+  "entrypoints": 17,
+  "entrypoint_import_help": "passed",
+  "list": "passed",
+  "production_checks": {
+    "client_generate_typecheck_web_build": {
+      "session": 44947,
+      "exit_code": 0
+    },
+    "go_build_compile_only_browser_parent_dto": {
+      "session": 13658,
+      "exit_code": 0,
+      "core_pg_test_executed": false
+    }
+  },
+  "real_llm_calls": 0,
+  "real_business_scenarios_executed": false,
+  "user_runs_live_after_full_delivery": true,
+  "environment": "Previous isolated infrastructure stopped; no service restart/migration in this slice",
+  "remaining": "Full functional delivery still in_progress; new LLM consumers must extend scripts and operator manual together."
+}

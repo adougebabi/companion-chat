@@ -1,0 +1,60 @@
+{
+  "head": "0086_owner_media_requests",
+  "boundary": "No new actual API/PG/migration/browser/model/S3 execution.",
+  "checks": [
+    {
+      "kind": "API/Worker build",
+      "session": 32573,
+      "status": "passed"
+    },
+    {
+      "kind": "workspace typecheck",
+      "session": 14868,
+      "status": "passed"
+    },
+    {
+      "kind": "Core accepted-effect/preflight + Browser closed-body pure tests",
+      "session": 9980,
+      "passed": 3,
+      "note": "PG source and migrations compiled only"
+    },
+    {
+      "kind": "request components",
+      "chunk": "0d201f",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "kind": "Browser typed SDK item-photo transport and cursor",
+      "chunk": "7884ba",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "kind": "regression harness",
+      "session": 6206,
+      "passed": 20,
+      "note": "17 help entrypoints, no business/model calls"
+    },
+    {
+      "kind": "formal Web build/no-Mock including reset/shared drawer",
+      "chunk": "c3f1fe",
+      "status": "passed"
+    }
+  ],
+  "independentReviewFixes": [
+    "Runtime Preflight signature/delegation corrected with interface assertion and pure regression",
+    "Fresh location failure cannot release original rejected identity or claim rebase",
+    "Late rebase checks source fingerprint before/after confirmation to preserve new selection"
+  ],
+  "authoredUnexecuted": [
+    "TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference (PG+controlled Provider and explicit ready-row fixture, not pixels)",
+    "TestOwnerMediaRequestUpgradePreservesExistingMediaTargets",
+    "L09 general-request/item-photo/current-outfit actual model/image flow"
+  ],
+  "remaining": [
+    "Fluctlight-scope explicit image reference consumer",
+    "Asset lifecycle/deletion",
+    "Remaining full-stack work packages and unified non-LLM/visual regression"
+  ]
+}

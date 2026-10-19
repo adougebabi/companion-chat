@@ -174,7 +174,7 @@ func TestInitializedSharedRelationshipGoalCanCreateAndPauseNextStepWithoutDuplic
 	request := f.request(intentionDecideCapabilityName, "shared-next-step", map[string]any{"operation": "create", "goal_ref": goalRef, "action": "温和地询问彼此对关系的期待", "expected_outcome": "获得真实回应", "reason": "有明确的关系目标与用户信号"})
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "shared-goal-provider-"+f.suffix)
 	calls := 0
-	router := newFakeProviderRouter().on("shared_goal_action", func(map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
 		calls++
 		if calls == 1 {
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("shared-goal-native", intentionDecideCapabilityName, decodeObject(request.Arguments))}}

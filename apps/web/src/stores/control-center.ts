@@ -558,6 +558,7 @@ export const useControlCenterStore = defineStore("control-center", {
       try {
         await client.submitFoundationRevision(fluctlightId, {
           changes,
+          idempotencyKey:this.lifeCommandKey(JSON.stringify([fluctlightId,changes,detail.current_revision,this.revisionReason])),
           expectedRevision: Number(detail.current_revision ?? 0),
           reason: this.revisionReason.trim(),
         });
@@ -592,6 +593,7 @@ export const useControlCenterStore = defineStore("control-center", {
       try {
         const proposed = await client.submitFoundationRevision(fluctlightId, {
           changes,
+          idempotencyKey:this.lifeCommandKey(JSON.stringify([fluctlightId,changes,detail.current_revision,this.revisionReason])),
           expectedRevision: Number(detail.current_revision ?? 0),
           reason,
         }) as { id?: string };
@@ -891,7 +893,7 @@ export const useControlCenterStore = defineStore("control-center", {
       const note = this.governanceReason.trim();
       if (!note) { this.error = "审核能力需求需要填写原因或备注。"; return; }
       this.saving = true;
-      try { await client.reviewCapabilityRequest(requestId, { status, note, ...(capabilityVersion.trim() ? { capabilityVersion: capabilityVersion.trim() } : {}) }); this.governanceReason = ""; await this.loadCapabilityRequests(); }
+      try { await client.reviewCapabilityRequest(requestId, { status, note, expectedRevision:Number(this.capabilityRequests.find(r=>r.id===requestId)?.revision),idempotencyKey:this.lifeCommandKey(JSON.stringify([requestId,status,note,capabilityVersion,this.capabilityRequests.find(r=>r.id===requestId)?.revision])), ...(capabilityVersion.trim() ? { capabilityVersion: capabilityVersion.trim() } : {}) }); this.governanceReason = ""; await this.loadCapabilityRequests(); }
       catch { this.error = "无法更新能力需求状态。"; }
       finally { this.saving = false; }
     },
@@ -1107,6 +1109,8 @@ export const useControlCenterStore = defineStore("control-center", {
         this.settings = await client.updateSettings({
           values,
           secrets,
+          expectedVersions:Object.fromEntries([...Object.keys(values),...Object.keys(secrets).filter(k=>secrets[k]).map(k=>'secret:'+k)].map(key=>[key,this.settings?.versions?.[key]??0])),
+          idempotencyKey:crypto.randomUUID(),
         });
       } catch {
         this.settingsError = "无法保存设置。";
@@ -1128,9 +1132,11 @@ export const useControlCenterStore = defineStore("control-center", {
           kind: input.kind,
           baseUrl: input.baseUrl,
           secretPurpose: input.secretPurpose,
+          expectedVersions:{["endpoint:"+input.endpointId]:this.settings?.versions?.["endpoint:"+input.endpointId]??0},idempotencyKey:crypto.randomUUID(),
         });
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
+        this.settings=await client.settings();
       } catch {
         this.settingsError = "无法保存模型 endpoint。请检查地址和协议类型。";
       } finally {
@@ -1152,6 +1158,7 @@ export const useControlCenterStore = defineStore("control-center", {
         await client.configureModelRole({
           role: input.role,
           endpointId: input.endpointId,
+          expectedVersions:{...this.settings?.versions,["binding:"+input.role]:this.settings?.versions?.["binding:"+input.role]??0,["endpoint:"+input.endpointId]:this.settings?.versions?.["endpoint:"+input.endpointId]??0},idempotencyKey:crypto.randomUUID(),
           modelId: input.modelId,
           tokenBudget: input.tokenBudget,
           timeoutSeconds: input.timeoutSeconds,
@@ -1160,6 +1167,7 @@ export const useControlCenterStore = defineStore("control-center", {
         });
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
+        this.settings=await client.settings();
       } catch (error) {
         this.settingsError = providerRoleFailureMessage(error);
       } finally {

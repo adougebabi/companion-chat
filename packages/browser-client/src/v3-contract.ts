@@ -1,3 +1,5 @@
+import type { BrowserStudioJob, BrowserStudioJobBody, BrowserStudioJobCommandBody, BrowserStudioJobPage, BrowserStudioMaterialPage, BrowserStudioMaterialReceipt } from "./index.js";
+import type { BrowserPersonaSwitchRequest, BrowserPersonaSwitchResult } from "./index.js";
 // 摇光浏览器契约 v0.1（uploads/fluctlight-backend-contract.md）。
 // 响应字段 snake_case。JSON 写操作把幂等键放在请求体 idempotencyKey（Q1 待裁决：
 // CORS 目前不放行 Idempotency-Key 头，Allow-Methods 也可能没有 PATCH）。
@@ -5,15 +7,19 @@
 // multipart 上传无法把键放进 JSON 体，按契约 B-12 放在请求头 Idempotency-Key。
 // C-14 时间线回档不定义任何方法。
 
-export type OwnerRequestStatus = "pending" | "processing" | "accepted" | "rejected" | "failed";
+export type OwnerRequestStatus = "pending" | "processing" | "accepted" | "rejected" | "deferred" | "awaiting_goal" | "cancelled" | "failed" | "completed";
 
-export type OwnerRequest = {
+export type OwnerRequest<Result = Record<string, unknown>> = {
   id: string;
   kind: string;
   fluctlight_id: string;
   status: OwnerRequestStatus;
   payload: Record<string, unknown>;
-  decided_by: "agent" | null;
+  decided_by: "agent" | "owner" | "core_persona_assessment" | null;
+  result?: Result;
+  tasks_state?: "available" | "failed";
+  tasks_error_code?: string;
+  tasks?: import("./index.js").BrowserRequestTask[];
   decision_reason: string | null;
   result_refs: string[];
   created_at: string;
@@ -25,6 +31,18 @@ export type OwnerRequestEnvelope = { request: OwnerRequest; audit_id?: string; s
 
 export type CursorPage<T> = { items: T[]; next_cursor: string | null };
 
+export type ManagedMemory = {
+  id: string; owner_fluctlight_id: string; type: 'episodic'|'semantic'|'relationship'|'autobiographical'; content: string;
+  actor_refs: string[]; conversation_id: string|null; event_refs: string[]; evidence_refs: string[];
+  personality_perspectives: Record<string,unknown>[]; confidence: number; importance: number; emotional_significance: number;
+  visibility: 'private'|'owner'|'participants'; status: 'active'|'superseded'|'deprecated'|'forgotten'; revision: number;
+  provenance_status: string; occurred_at: string|null; created_at: string; last_confirmed_at: string|null;
+  superseded_by_memory_id: string|null; supersedes_memory_id: string|null; revision_count: number; source_count: number;
+};
+export type MemoryRevision = { revision: number; base_revision: number|null; operation: string; content: string; status: string; actor_id: string; evidence_refs: string[]; source_window: string|null; proposal_id: string|null; semantic_reason: string; related_memory_ids: string[]; reason_code: string|null; schema_version: string; created_at: string };
+export type MemorySource = { memory_revision: number; source_ref: string; source_kind: string; source_id: string|null; source_revision: number|null; occurred_at: string|null; recorded_at: string; status: string; live: boolean; superseded_by_ref: string|null; conversation_id: string|null };
+export type MemoryBrowseOptions = { q?: string; type?: ManagedMemory['type']|''; status?: ManagedMemory['status']|''; cursor?: string; limit?: number };
+
 export type FactLabel = { factual: false; label: "生成图·非事实" | "插画" };
 
 export type SceneImage = { asset_id: string; url: string | null; captured_at: string; factual: false; label: "生成图·非事实" };
@@ -35,18 +53,19 @@ export type ScheduleItemSuggestionBody = {
   activity: string;
   scene?: string;
   location?: string;
+  placeId?: string;
   startAt: string;
   endAt: string;
   evidenceRefs: string[];
   expectedRevision: number;
-  expectedLifeContextRevision: number;
+  expectedLifeContextRevision: string;
   reason: string;
   idempotencyKey: string;
 };
 
 export type ScheduleItemDeleteBody = {
   expectedRevision: number;
-  expectedLifeContextRevision: number;
+  expectedLifeContextRevision: string;
   reason: string;
   idempotencyKey: string;
 };
@@ -55,9 +74,9 @@ export type WearRequestBody = { itemId: string; slot: string; expectedRevision?:
 
 export type ItemUseRequestBody = { active: boolean; expectedRevision?: number; reason: string; evidenceRefs: string[]; idempotencyKey: string; confirm?: true };
 
-export type ItemPhotoRequestBody = { prompt: string; outfitSnapshotId?: string; idempotencyKey: string; expectedRevision?: never };
+export type ItemPhotoRequestBody = import("./index.js").BrowserMediaPhotoBody & {expectedRevision?:never};
 
-export type ItemPhotoResponse = { asset_id: string; status: "queued" | "ready" | "failed"; factual: false; label: "生成图·非事实" };
+export type ItemPhotoResponse = import("./index.js").BrowserMediaRequestEnvelope;
 
 export type CharacterMediaItem = {
   asset_id: string;
@@ -87,53 +106,58 @@ export type CreateMomentBody = { text: string; mediaIds: string[]; worldId?: str
 
 export type CreateMomentResponse = { id: string; author_actor_id: string; author_type: "user"; created_at: string; audit_id: string };
 
-export type UploadMediaResponse = { asset_id: string; kind: string; mime: string; size: number; factual: true; uploaded_by: "owner" };
+export type UploadMediaResponse = import("./index.js").BrowserMediaUploadReceipt;
 
 export type HarmIntercepts = { count: number; window: string; latest_reason: string | null; items: Array<{ id: string; at: string; text: string; rule: string }> };
 
-export type DiagnosticTask = {
-  task_id: string;
-  type: string;
-  title: string;
-  initiator: string;
-  state: string;
-  runs: number;
-  correlation_id: string;
-  fluctlight_id: string;
-  action_id: string | null;
-  steps: Array<{ n: number; name: string; status: "ok" | "failed" | "pending" | "running"; idempotency_key: string; error_code: string | null; error_message: string | null }>;
-};
+export type DiagnosticTask = import("./index.js").BrowserTask;
 
-export type VisualIdentityWriteBody = { source: "owner_upload"; kind: "visual_identity"; identitySnapshot?: Record<string, unknown>; expectedRevision: number; reason: string; idempotencyKey: string };
+export type VisualIdentityWriteBody = import("./index.js").BrowserMediaAvatarBody;
 
-export type NotificationItem = { id: string; title: string; body: string; link: string; read_at: string | null; created_at: string; source_kind: string; source_id: string };
+export type NotificationItem = import("./index.js").BrowserNotification;
+export type NotificationPage = import("./index.js").BrowserNotificationPage;
+export type PendingPage = import("./index.js").BrowserPendingPage;
 
-export type NearbyActors = { place_id: string | null; actors: Array<{ actor_id: string; name: string; npc: boolean; full_fluctlight: boolean; since: string }> };
+export type NearbyActors = import("./index.js").BrowserNearbyActors;
 
-export type DiaryEntry = { id: string; date: string; body: string; occurred_at: string; event_id: string | null; refs: string[]; source: "agent" | "owner"; replies: Array<{ id: string; actor_id: string; text: string; at: string }>; revision: number };
+export type DiaryEntry = import("./index.js").BrowserDiaryEntry;
 
 export type DiaryWriteBody = { body: string; occurredAt: string; eventId?: string; expectedRevision?: number; reason: string; idempotencyKey: string };
 
-export type ReflectionDetail = { id: string; title: string; body: string; state: string; growth: string | null; at: string; responded_at: string | null; claim_ids: string[]; source_refs: string[]; feedback: string | null };
+export type ReflectionSummary = { id:string;fluctlight_id:string;title:string;summary:string|null;body:string|null;state:string;status:string;growth:null;at:string;created_at:string;from_sequence:number;to_sequence:number;base_state_revision:number;source_refs:string[];evidence_refs:string[];schema_version:string;model_version:string|null;prompt_version:string|null;policy_version:string;correlation_id:string;expected_revisions:Record<string,number>;result:Record<string,unknown> };
+export type ReflectionDetail = ReflectionSummary & { source_window:Record<string,unknown>|null;source_window_status:string;proposal:Record<string,unknown>;references:Array<{ref:string;kind:string;entity_id:string;revision:number}>;dispositions:Array<{domain:string;candidate_id:string;candidate_index:number;disposition:string;reason_code:string;target_ref:string|null;changed_ref:string|null;base_revision:number;resulting_revision:number;evidence_refs:string[]}> };
+export type ReflectionCatalog = CursorPage<ReflectionSummary> & {window:Record<string,unknown>|null;latest_task:Record<string,unknown>|null};
+export type ReflectionFeedbackBody = {text:string;stance?:'agree'|'disagree';idempotencyKey:string};
 
-export type WorldView = {
-  world: { id: string; name: string; def_version?: string };
-  places: Array<{ id: string; name: string; desc: string; scene_asset: { url: string | null; label: string } | null; resource_id: string | null; override: Record<string, unknown> | null }>;
-  scenes: unknown[];
-  map: Record<string, unknown> | null;
-  npcs: Array<{ id: string; name: string; role: string; place_id: string; avatar_url: string | null; full_fluctlight: boolean; bio: string }>;
-};
+export type WorldCatalog = import("./index.js").BrowserWorldCatalog;
+export type WorldCreateBody = import("./index.js").BrowserWorldCreateBody;
+export type WorldSelectBody = import("./index.js").BrowserWorldSelectBody;
+export type WorldDeleteBody = import("./index.js").BrowserWorldDeleteBody;
+export type WorldDeleteResult = import("./index.js").BrowserWorldDeleteResult;
+export type WorldCommand = import("./index.js").BrowserWorldCommand;
+export type RuntimeWorld = import("./index.js").BrowserRuntimeWorld;
+export type RuntimePlace = import("./index.js").BrowserRuntimePlace;
+export type NPCRoutineSlot = import("./index.js").BrowserNPCRoutineSlot;
+export type RuntimeNPC = import("./index.js").BrowserRuntimeNPC;
+export type WorldView = import("./index.js").BrowserWorldView;
+export type PlaceDetail = RuntimePlace;
+export type WorldWriteBody = import("./index.js").BrowserWorldWriteBody;
+export type PlaceWriteBody = import("./index.js").BrowserPlaceWriteBody;
+export type NPCWriteBody = import("./index.js").BrowserNPCWriteBody;
+export type NPCEncounterBody = { confirmed: true; summary: string; startAt: string; endAt: string; placeId: string; evidenceRefs: string[]; expectedLifeContextRevision: string; reason: string; idempotencyKey: string };
+export type WorldWriteResult = import("./index.js").BrowserWorldWriteResult;
 
-export type PlaceDetail = WorldView["places"][number] & { present_actors: unknown[]; related_event_ids: string[]; related_memory_ids: string[] };
-
-export type WorldTemplate = { template_id: string; name: string; category: string; enabled: boolean; permanent_harm: boolean; locked: boolean };
+export type WorldTemplate = import("./index.js").BrowserWorldEventTemplate;
 
 export type WorldTemplateWriteBody = { enabled: boolean; expectedRevision: number; reason: string; idempotencyKey: string };
 
 export type StudioResource = {
   id: string;
-  kind: "character_template" | "persona_fragment" | "place" | "item" | "event_template" | "visual_style";
+  kind: "character_template" | "persona_fragment" | "place" | "item" | "outfit" | "event_template" | "visual_style" | "world" | "npc";
+  revision: number;
   name: string;
+  status?: "draft" | "published" | "archived";
+  archived_at?: string;
   published_version: string | null;
   draft_version: string | null;
   versions: Array<{ version: string; created_at: string; body?: Record<string, unknown> }>;
@@ -142,6 +166,12 @@ export type StudioResource = {
   body?: Record<string, unknown>;
 };
 
+export type StudioPublication = {id:string;version:string;kind:StudioResource["kind"];name:string;body:Record<string,unknown>;immutable:true};
+export type StudioResourceQuery = {kind?:string;q?:string;published?:boolean;archived?:boolean;cursor?:string;limit?:number};
+
+export type StudioPublicationRecord = {id:string;version:string;kind:StudioResource['kind'];name:string;created_at:string};
+export type StudioCatalogCommand = {expectedRevision:number;reason:string;idempotencyKey:string};
+export type StudioCopyBody = StudioCatalogCommand & {source:'draft'|'published';sourceVersion:string;name:string};
 export type StudioResourceWriteBody = { kind: StudioResource["kind"]; name: string; body: Record<string, unknown>; expectedVersion?: string; reason: string; idempotencyKey: string };
 
 export type StudioPreview = { preview_id: string; text: string; label: "创作预览·不进入生活"; life_write: false; created_at: string; resource_id?: string | null };
@@ -150,20 +180,25 @@ export type StudioPreviewBody = { resourceId?: string; text: string; idempotency
 
 export type ApplyPreviewBody = { fluctlightId: string; resourceVersion: string };
 
-export type ApplyPreviewResponse = { diff: Array<{ field: string; from: unknown; to: unknown }>; conflicts: unknown[]; instance_revision: number };
+export type ApplyPreviewResponse = { target_kind?:"visual_brief"|"foundation"|"world_item"|"wardrobe_outfit"; preparation_required?:boolean; world_id?:string; world_binding_revision?:number; profile_id?:string; wardrobe_revision?:number; members?:Array<{resource_id:string;resource_version:string;name:string;slot:string;description:string;more_candidates:boolean;candidates:Array<{item_id:string;description:string;ownership:string;availability:string;exact_source:boolean|null;source_verified:boolean}>}>; available?:boolean; semantics?:string; diff: Array<{ field: string; from: unknown; to: unknown }>; conflicts: unknown[]; instance_revision: number; runtime_revision?: number; runtime_id?: string | null };
 
-export type ApplyResourceBody = { fluctlightId: string; resourceVersion: string; expectedInstanceRevision: number; choices: Array<{ field: string; decision: "keep" | "override" }>; reason: string; idempotencyKey: string };
+export type ApplyResourceBody = { fluctlightId: string; resourceVersion: string; expectedInstanceRevision: number; expectedRuntimeRevision?: number; worldId?:string; expectedWorldRevision?:number; profileId?:string; expectedWardrobeRevision?:number; memberItems?:Array<{resourceId:string;resourceVersion:string;itemId:string}>; homePlaceId?: string | null; routine?: NPCRoutineSlot[]; choices: Array<{ field: string; decision: "keep" | "override" }>; reason: string; idempotencyKey: string };
 
-export type ApplyResourceResponse = {
-  status: "recorded_not_applied";
-  applied: false;
-  runtime_effect?: "recorded_only";
+export type ApplyResourceResponse = { target_kind?:"visual_brief"|"foundation"|"world_item"|"wardrobe_outfit"; brief?:Record<string,unknown>; life_write?:boolean; semantics?:string;
+  status: "recorded_not_applied" | "applied" | "proposed";
+  proposal_id?:string;
+  fluctlight_id?:string;
+  applied: boolean;
+  id?: string;
+  runtime_revision?: number;
+  wardrobe_revision?:number;
+  runtime_effect?: "recorded_only" | "applied";
   resource_id?: string;
   resource_version?: string;
   instance_revision: number | null;
   instance_revision_unchanged?: boolean;
   choices?: Array<{ field: string; decision: string }>;
-  conflicts: null;
+  conflicts?: unknown[] | null;
   audit_id?: string;
   available?: boolean;
 };
@@ -175,24 +210,13 @@ export function studioApplyUnfinished(response: { status?: string; applied?: boo
   return response.runtime_effect === "recorded_only" || response.status === "not_implemented";
 }
 
-export type AutonomyPolicy = {
-  level: string;
-  quiet_hours: { start: string; end: string } | null;
-  spend_cap: { amount: number; currency: string; period: string } | null;
-  outreach_limit: "low" | "medium" | "high" | null;
-  allow_moments: boolean;
-  confirm_action_types: string[];
-  revision?: number;
-  effective_at?: string;
-  runtime_effect?: "preference_only";
-  audit_id?: string;
-};
+export type AutonomyPolicy = import("./index.js").BrowserAutonomyPolicy;
+export type AutonomyPolicyWriteBody = import("./index.js").BrowserAutonomyPolicyWriteBody;
 
-export type AutonomyPolicyWriteBody = AutonomyPolicy & { expectedRevision: number; reason: string; idempotencyKey: string };
+export type PendingGroup = import("./index.js").BrowserPendingGroup;
 
-export type PendingGroup = { kind: "capability" | "persona_proposal" | "studio_apply" | "failed_task" | "owner_request"; status: "ok" | "unwired"; items?: Array<{ id: string; title: string; href: string; created_at: string }> };
-
-export type BackupRecord = { backup_id: string; created_at: string; size_bytes: number | null; audit_id?: string };
+export type BackupRecord = import("./index.js").BrowserBusinessBackupJob;
+export type BackupRequestReceipt = {id:string;status:string;kind:string;revision:number;stage?:string;accepted?:boolean;audit_id:string};
 
 export type DesireItem = { id: string; text: string; status: string; why: string | null; source_message_id: string | null };
 
@@ -250,6 +274,21 @@ export function currentRevision(error: { status?: number; details?: Record<strin
 }
 
 export const v3ContractMethods = {
+  async managedMemories(this: object, fluctlightId: string, options: MemoryBrowseOptions = {}): Promise<CursorPage<ManagedMemory>> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/memories${q(options)}`) as Promise<CursorPage<ManagedMemory>>;
+  },
+  async managedMemory(this: object, memoryId: string): Promise<ManagedMemory> {
+    return clientOf(this).json(`/api/memories/${encodeURIComponent(memoryId)}`) as Promise<ManagedMemory>;
+  },
+  async memoryRevisions(this: object, memoryId: string, options: {cursor?:string;limit?:number} = {}): Promise<CursorPage<MemoryRevision>> {
+    return clientOf(this).json(`/api/memories/${encodeURIComponent(memoryId)}/revisions${q(options)}`) as Promise<CursorPage<MemoryRevision>>;
+  },
+  async memorySources(this: object, memoryId: string, options: {cursor?:string;limit?:number;revision?:number} = {}): Promise<CursorPage<MemorySource>> {
+    return clientOf(this).json(`/api/memories/${encodeURIComponent(memoryId)}/sources${q(options)}`) as Promise<CursorPage<MemorySource>>;
+  },
+  async rollbackMemory(this: object, memoryId: string, body: {targetRevision:number;expectedRevision:number;evidenceRefs:string[]}): Promise<Record<string,unknown>> {
+    return clientOf(this).json(`/api/memories/${encodeURIComponent(memoryId)}/rollback`,{method:'POST',body}) as Promise<Record<string,unknown>>;
+  },
   async suggestScheduleItem(this: object, fluctlightId: string, scheduleId: string, body: ScheduleItemSuggestionBody): Promise<OwnerRequestEnvelope> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/schedules/${encodeURIComponent(scheduleId)}/items`, { method: "POST", body }) as Promise<OwnerRequestEnvelope>;
   },
@@ -281,10 +320,10 @@ export const v3ContractMethods = {
     rejectMomentAuthor(body);
     return clientOf(this).json("/api/moments", { method: "POST", body }) as Promise<CreateMomentResponse>;
   },
-  async uploadOwnerMedia(this: object, file: Blob, mime: string, idempotencyKey: string): Promise<UploadMediaResponse> {
+  async uploadOwnerMedia(this: object, file: Blob, mime: string, idempotencyKey: string, filename?: string): Promise<UploadMediaResponse> {
     const runtime = clientOf(this);
     const form = new FormData();
-    form.set("file", file);
+    form.set("file", file, filename ?? (file instanceof File ? file.name : "upload"));
     form.set("mime", mime);
     form.set("idempotencyKey", idempotencyKey);
     const response = await runtime.fetcher(runtime.url("/api/media"), {
@@ -309,24 +348,37 @@ export const v3ContractMethods = {
   async diagnosticTask(this: object, taskId: string): Promise<DiagnosticTask> {
     return clientOf(this).json(`/api/diagnostics/tasks/${encodeURIComponent(taskId)}`) as Promise<DiagnosticTask>;
   },
-  async saveVisualIdentity(this: object, fluctlightId: string, body: VisualIdentityWriteBody): Promise<{ current_revision: number; status: "saved"; audit_id: string }> {
-    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/visual-identity`, { method: "PUT", body }) as Promise<{ current_revision: number; status: "saved"; audit_id: string }>;
+  async saveVisualIdentity(this: object, fluctlightId: string, body: VisualIdentityWriteBody): Promise<import("./index.js").BrowserMediaAvatar> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/display-avatar`, { method: "PUT", body }) as Promise<import("./index.js").BrowserMediaAvatar>;
   },
-  async listNotifications(this: object, options: { cursor?: string; limit?: number; unread?: boolean } = {}): Promise<CursorPage<NotificationItem>> {
-    return clientOf(this).json(`/api/notifications${q(options)}`) as Promise<CursorPage<NotificationItem>>;
+  async listNotifications(this: object, options: { cursor?: string; limit?: number; unread?: boolean; fluctlightId?: string } = {}): Promise<NotificationPage> {
+    return clientOf(this).json(`/api/notifications${q(options)}`) as Promise<NotificationPage>;
   },
   async markNotificationRead(this: object, notificationId: string, body: { idempotencyKey: string }): Promise<{ id: string; read_at: string }> {
     return clientOf(this).json(`/api/notifications/${encodeURIComponent(notificationId)}/read`, { method: "POST", body }) as Promise<{ id: string; read_at: string }>;
   },
-  async unreadNotificationCount(this: object): Promise<{ count: number }> {
-    return clientOf(this).json("/api/notifications/unread-count") as Promise<{ count: number }>;
+  async markAllNotificationsRead(this: object, body: { before: string; idempotencyKey: string }): Promise<{ updated: number; before: string }> {
+    return clientOf(this).json("/api/notifications/read-all", { method: "POST", body }) as Promise<{ updated: number; before: string }>;
+  },
+  async unreadNotificationCount(this: object): Promise<{ count: number; alert_count: number }> {
+    return clientOf(this).json("/api/notifications/unread-count") as Promise<{ count: number; alert_count: number }>;
   },
   async nearby(this: object, fluctlightId: string): Promise<NearbyActors> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/nearby`) as Promise<NearbyActors>;
   },
-  async listDiary(this: object, fluctlightId: string, cursor = ""): Promise<CursorPage<DiaryEntry>> {
-    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary${q({ cursor })}`) as Promise<CursorPage<DiaryEntry>>;
+  async selfClaims(this:object,fid:string,options:{q?:string;status?:string;category?:string;cursor?:string;limit?:number}={}):Promise<import("./index.js").BrowserSelfPage>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fid)}/self-claims${q(options)}`) as Promise<import("./index.js").BrowserSelfPage>;},
+  async selfClaim(this:object,fid:string,id:string):Promise<import("./index.js").BrowserSelfClaim>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fid)}/self-claims/${encodeURIComponent(id)}`) as Promise<import("./index.js").BrowserSelfClaim>;},
+  async selfClaimHistory(this:object,fid:string,id:string,kind:'revisions'|'reviews',cursor=''):Promise<import("./index.js").BrowserSelfHistory>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fid)}/self-claims/${encodeURIComponent(id)}/${kind}${q({cursor})}`) as Promise<import("./index.js").BrowserSelfHistory>;},
+  async manageSelfClaim(this:object,fid:string,id:string,...args: [command:'review'|'forget',body:import("./index.js").BrowserSelfCommandBody] | [command:'restore',body:import("./index.js").BrowserSelfRestoreBody]):Promise<import("./index.js").BrowserSelfCommandResult>{const [command,body]=args;return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fid)}/self-claims/${encodeURIComponent(id)}/${command}`,{method:'POST',body}) as Promise<import("./index.js").BrowserSelfCommandResult>;},
+  async listDiary(this: object, fluctlightId: string, cursor = "", options: {favorite?:boolean;limit?:number} = {}): Promise<import("./index.js").BrowserDiaryPage> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary${q({cursor,...options})}`) as Promise<import("./index.js").BrowserDiaryPage>;
   },
+  async diary(this:object,fluctlightId:string,id:string):Promise<DiaryEntry>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary/${encodeURIComponent(id)}`) as Promise<DiaryEntry>;},
+  async generateDiary(this:object,fluctlightId:string,body:import("./index.js").BrowserDiaryGenerateBody):Promise<import("./index.js").BrowserDiaryGeneration>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary/generate`,{method:'POST',body}) as Promise<import("./index.js").BrowserDiaryGeneration>;},
+  async annotateDiary(this:object,fluctlightId:string,id:string,body:import("./index.js").BrowserDiaryAnnotationBody):Promise<import("./index.js").BrowserDiaryAnnotationResult>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary/${encodeURIComponent(id)}/annotation`,{method:'PUT',body}) as Promise<import("./index.js").BrowserDiaryAnnotationResult>;},
+  async diaryReplies(this:object,fluctlightId:string,id:string,cursor=''):Promise<import("./index.js").BrowserDiaryReplies>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary/${encodeURIComponent(id)}/replies${q({cursor})}`) as Promise<import("./index.js").BrowserDiaryReplies>;},
+  async replyToDiary(this:object,fluctlightId:string,id:string,body:import("./index.js").BrowserDiaryReplyBody):Promise<OwnerRequestEnvelope>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary/${encodeURIComponent(id)}/replies`,{method:'POST',body}) as Promise<OwnerRequestEnvelope>;},
+  async sharedExperiences(this:object,fluctlightId:string,cursor=''):Promise<import("./index.js").BrowserSharedExperiencePage>{return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/shared-experiences${q({cursor})}`) as Promise<import("./index.js").BrowserSharedExperiencePage>;},
   async createDiaryEntry(this: object, fluctlightId: string, body: DiaryWriteBody): Promise<{ id: string; revision: number; source: string; audit_id: string }> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/diary`, { method: "POST", body }) as Promise<{ id: string; revision: number; source: string; audit_id: string }>;
   },
@@ -336,23 +388,78 @@ export const v3ContractMethods = {
   async reflection(this: object, fluctlightId: string, reflectionId: string): Promise<ReflectionDetail> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/reflections/${encodeURIComponent(reflectionId)}`) as Promise<ReflectionDetail>;
   },
-  async submitReflectionFeedback(this: object, fluctlightId: string, reflectionId: string, body: { text: string; idempotencyKey: string }): Promise<OwnerRequestEnvelope> {
+  async submitReflectionFeedback(this: object, fluctlightId: string, reflectionId: string, body: ReflectionFeedbackBody): Promise<OwnerRequestEnvelope> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/reflections/${encodeURIComponent(reflectionId)}/feedback`, { method: "POST", body }) as Promise<OwnerRequestEnvelope>;
+  },
+  async worldCatalog(this: object, fluctlightId: string): Promise<WorldCatalog> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/catalog`) as Promise<WorldCatalog>;
+  },
+  async catalogWorld(this: object, fluctlightId: string, worldId: string): Promise<WorldView> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/catalog/${encodeURIComponent(worldId)}`) as Promise<WorldView>;
+  },
+  async createCatalogWorld(this: object, fluctlightId: string, body: WorldCreateBody): Promise<WorldWriteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/catalog`, { method: "POST", body }) as Promise<WorldWriteResult>;
+  },
+  async updateCatalogWorld(this: object, fluctlightId: string, worldId: string, body: WorldWriteBody): Promise<WorldWriteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/catalog/${encodeURIComponent(worldId)}`, { method: "PUT", body }) as Promise<WorldWriteResult>;
+  },
+  async deleteCatalogWorld(this: object, fluctlightId: string, worldId: string, body: WorldCommand): Promise<WorldDeleteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/catalog/${encodeURIComponent(worldId)}`, { method: "DELETE", body }) as Promise<WorldDeleteResult>;
+  },
+  async selectWorld(this: object, fluctlightId: string, body: WorldSelectBody): Promise<WorldWriteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/active`, { method: "PUT", body }) as Promise<WorldWriteResult>;
+  },
+  async deleteWorldPlace(this: object, fluctlightId: string, placeId: string, body: WorldDeleteBody): Promise<WorldDeleteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/places/${encodeURIComponent(placeId)}`, { method: "DELETE", body }) as Promise<WorldDeleteResult>;
+  },
+  async deleteRuntimeNPC(this: object, fluctlightId: string, npcId: string, body: WorldCommand): Promise<WorldDeleteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/npcs/${encodeURIComponent(npcId)}`, { method: "DELETE", body }) as Promise<WorldDeleteResult>;
   },
   async world(this: object, fluctlightId: string): Promise<WorldView> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world`) as Promise<WorldView>;
   },
+  async updateRuntimeWorld(this: object, fluctlightId: string, body: WorldWriteBody): Promise<WorldWriteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world`, { method: 'PUT', body }) as Promise<WorldWriteResult>;
+  },
+  async createWorldPlace(this: object, fluctlightId: string, body: PlaceWriteBody): Promise<WorldWriteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/places`, { method: 'POST', body }) as Promise<WorldWriteResult>;
+  },
+  async updateWorldPlace(this: object, fluctlightId: string, placeId: string, body: PlaceWriteBody): Promise<WorldWriteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/places/${encodeURIComponent(placeId)}`, { method: 'PUT', body }) as Promise<WorldWriteResult>;
+  },
+  async listRuntimeNPCs(this: object, fluctlightId: string): Promise<CursorPage<RuntimeNPC>> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/npcs`) as Promise<CursorPage<RuntimeNPC>>;
+  },
+  async runtimeNPC(this: object, fluctlightId: string, npcId: string): Promise<RuntimeNPC> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/npcs/${encodeURIComponent(npcId)}`) as Promise<RuntimeNPC>;
+  },
+  async updateRuntimeNPC(this: object, fluctlightId: string, npcId: string, body: NPCWriteBody): Promise<WorldWriteResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/npcs/${encodeURIComponent(npcId)}`, { method: 'PUT', body }) as Promise<WorldWriteResult>;
+  },
+  async recordNPCEncounter(this: object, fluctlightId: string, npcId: string, body: NPCEncounterBody): Promise<{ id: string; event_id: string; npc_id: string; relationship_id: string; memory_id: string; status: string; audit_id: string }> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/npcs/${encodeURIComponent(npcId)}/encounters`, { method: 'POST', body }) as Promise<{ id: string; event_id: string; npc_id: string; relationship_id: string; memory_id: string; status: string; audit_id: string }>;
+  },
+  async publishStudioResource(this: object, resourceId: string, body: WorldCommand): Promise<{ id: string; revision: number; published_version: string; status: 'published' }> {
+    return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(resourceId)}/publish`, { method: 'POST', body }) as Promise<{ id: string; revision: number; published_version: string; status: 'published' }>;
+  },
   async placeDetail(this: object, fluctlightId: string, placeId: string): Promise<PlaceDetail> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/places/${encodeURIComponent(placeId)}`) as Promise<PlaceDetail>;
   },
-  async worldTemplates(this: object, fluctlightId: string): Promise<{ items: WorldTemplate[]; revision: number }> {
-    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/templates`) as Promise<{ items: WorldTemplate[]; revision: number }>;
+  async worldTemplates(this: object, fluctlightId: string): Promise<{ items: WorldTemplate[]; revision?: number; world_id:string; catalog_status:"runtime"; runtime_effect:"worker_executed" }> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/templates`) as Promise<{ items: WorldTemplate[]; revision?: number; world_id:string; catalog_status:"runtime"; runtime_effect:"worker_executed" }>;
   },
   async setWorldTemplate(this: object, fluctlightId: string, templateId: string, body: WorldTemplateWriteBody): Promise<{ template_id: string; enabled: boolean; revision: number; audit_id: string }> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/world/templates/${encodeURIComponent(templateId)}`, { method: "PUT", body }) as Promise<{ template_id: string; enabled: boolean; revision: number; audit_id: string }>;
   },
-  async listStudioResources(this: object, options: { kind?: string; cursor?: string } = {}): Promise<CursorPage<StudioResource>> {
+  async listStudioResources(this: object, options: StudioResourceQuery = {}): Promise<CursorPage<StudioResource>> {
     return clientOf(this).json(`/api/studio/resources${q(options)}`) as Promise<CursorPage<StudioResource>>;
+  },
+  async studioVersions(this:object,id:string,options:{cursor?:string;limit?:number}={}):Promise<CursorPage<StudioPublicationRecord>>{return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(id)}/versions${q(options)}`) as Promise<CursorPage<StudioPublicationRecord>>;},
+  async copyStudioResource(this:object,id:string,body:StudioCopyBody):Promise<StudioResource>{return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(id)}/copy`,{method:'POST',body}) as Promise<StudioResource>;},
+  async archiveStudioResource(this:object,id:string,body:StudioCatalogCommand):Promise<StudioResource>{return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(id)}`,{method:'DELETE',body}) as Promise<StudioResource>;},
+  async restoreStudioResource(this:object,id:string,body:StudioCatalogCommand):Promise<StudioResource>{return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(id)}/restore`,{method:'POST',body}) as Promise<StudioResource>;},
+  async studioPublication(this:object,resourceId:string,version:string):Promise<StudioPublication>{
+    return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(resourceId)}/versions/${encodeURIComponent(version)}`) as Promise<StudioPublication>;
   },
   async studioResource(this: object, resourceId: string): Promise<StudioResource> {
     return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(resourceId)}`) as Promise<StudioResource>;
@@ -363,6 +470,13 @@ export const v3ContractMethods = {
   async updateStudioResource(this: object, resourceId: string, body: StudioResourceWriteBody): Promise<StudioResource> {
     return clientOf(this).json(`/api/studio/resources/${encodeURIComponent(resourceId)}`, { method: "PUT", body }) as Promise<StudioResource>;
   },
+  async createStudioJob(this: object, body: BrowserStudioJobBody): Promise<BrowserStudioJob> { return clientOf(this).json('/api/studio/jobs', {method:'POST',body}) as Promise<BrowserStudioJob>; },
+  async studioJob(this: object,id:string):Promise<BrowserStudioJob>{ return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}`) as Promise<BrowserStudioJob>; },
+  async listStudioJobs(this:object,options:{resource_id?:string;cursor?:string}={}):Promise<BrowserStudioJobPage>{ return clientOf(this).json(`/api/studio/jobs${q(options)}`) as Promise<BrowserStudioJobPage>; },
+  async listStudioMaterials(this:object,options:{resource_id?:string;cursor?:string;released?:boolean}={}):Promise<BrowserStudioMaterialPage>{ return clientOf(this).json(`/api/studio/materials${q(options)}`) as Promise<BrowserStudioMaterialPage>; },
+  async retryStudioJob(this:object,id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>{return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}/retry`,{method:'POST',body}) as Promise<BrowserStudioJob>;},
+  async discardStudioJob(this:object,id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>{return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}/discard`,{method:'POST',body}) as Promise<BrowserStudioJob>;},
+  async saveStudioMaterial(this:object,id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioMaterialReceipt>{return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}/save-material`,{method:'POST',body}) as Promise<BrowserStudioMaterialReceipt>;},
   async createStudioPreview(this: object, body: StudioPreviewBody): Promise<StudioPreview> {
     return clientOf(this).json("/api/studio/previews", { method: "POST", body }) as Promise<StudioPreview>;
   },
@@ -382,32 +496,32 @@ export const v3ContractMethods = {
     const saved = await clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/autonomy-policy`, { method: "PUT", body }) as AutonomyPolicy;
     return saved;
   },
-  async pending(this: object, fluctlightId = ""): Promise<{ groups: PendingGroup[] }> {
-    return clientOf(this).json(`/api/pending${q({ fluctlightId })}`) as Promise<{ groups: PendingGroup[] }>;
+  async pending(this: object, fluctlightId = "", options: {kind?: PendingGroup["kind"];cursor?:string;limit?:number} = {}): Promise<PendingPage> {
+    return clientOf(this).json(`/api/pending${q({ fluctlightId,...options })}`) as Promise<PendingPage>;
   },
   async pendingCount(this: object, fluctlightId = ""): Promise<{ count: number; partial: boolean }> {
     return clientOf(this).json(`/api/pending/count${q({ fluctlightId })}`) as Promise<{ count: number; partial: boolean }>;
   },
-  async importStudioPack(this: object, body: { pack: Record<string, unknown>; idempotencyKey: string }): Promise<{ pack_id: string; resource_versions: Array<{ resource_id: string; version: string }>; audit_id: string; status?: string }> {
-    return clientOf(this).json("/api/studio/packs", { method: "POST", body }) as Promise<{ pack_id: string; resource_versions: Array<{ resource_id: string; version: string }>; audit_id: string; status?: string }>;
+  async importStudioPack(this: object, body: import("./index.js").BrowserResourcePackImportBody): Promise<import("./index.js").BrowserResourcePackImportResult> {
+    return clientOf(this).json("/api/studio/packs", { method: "POST", body }) as Promise<import("./index.js").BrowserResourcePackImportResult>;
   },
-  async validateStudioPack(this: object, body: { pack: Record<string, unknown>; idempotencyKey: string }): Promise<{ valid?: boolean; status?: string; available?: boolean }> {
-    return clientOf(this).json("/api/studio/packs/validate", { method: "POST", body }) as Promise<{ valid?: boolean; status?: string; available?: boolean }>;
+  async validateStudioPack(this: object, body: { pack: import("./index.js").BrowserResourcePack }): Promise<import("./index.js").BrowserResourcePackValidation> {
+    return clientOf(this).json("/api/studio/packs/validate", { method: "POST", body }) as Promise<import("./index.js").BrowserResourcePackValidation>;
   },
-  async exportStudioPack(this: object): Promise<{ pack: Record<string, unknown>; available?: boolean }> {
-    return clientOf(this).json("/api/studio/packs/export") as Promise<{ pack: Record<string, unknown>; available?: boolean }>;
+  async exportStudioPack(this: object, resourceId=""): Promise<import("./index.js").BrowserResourcePackExport> {
+    return clientOf(this).json(`/api/studio/packs/export${q({resourceId})}`) as Promise<import("./index.js").BrowserResourcePackExport>;
   },
-  async listBackups(this: object): Promise<CursorPage<BackupRecord>> {
-    return clientOf(this).json("/api/ops/backups") as Promise<CursorPage<BackupRecord>>;
+  async listBackups(this: object, cursor=""): Promise<import("./index.js").BrowserBusinessBackupPage> {
+    return clientOf(this).json(`/api/ops/backups${q({cursor})}`) as Promise<import("./index.js").BrowserBusinessBackupPage>;
   },
-  async createBackup(this: object, body: { idempotencyKey: string }): Promise<BackupRecord> {
-    return clientOf(this).json("/api/ops/backups", { method: "POST", body }) as Promise<BackupRecord>;
+  async createBackup(this: object, body: { reason:string; idempotencyKey: string }): Promise<BackupRequestReceipt> {
+    return clientOf(this).json("/api/ops/backups", { method: "POST", body }) as Promise<BackupRequestReceipt>;
   },
-  async restoreBackup(this: object, backupId: string, body: { confirm: true; reason: string; idempotencyKey: string }): Promise<{ job_id: string; audit_id: string }> {
-    return clientOf(this).json(`/api/ops/backups/${encodeURIComponent(backupId)}/restore`, { method: "POST", body }) as Promise<{ job_id: string; audit_id: string }>;
+  async restoreBackup(this: object, backupId: string, body: { confirm: true; reason: string; targetName:string;expectedRevision:number;idempotencyKey: string }): Promise<BackupRequestReceipt> {
+    return clientOf(this).json(`/api/ops/backups/${encodeURIComponent(backupId)}/restore`, { method: "POST", body }) as Promise<BackupRequestReceipt>;
   },
-  async switchPersona(this: object, fluctlightId: string, body: { targetPersonaId: string; expectedRevision: number; reason: string; confirm: true; idempotencyKey: string }): Promise<{ revision: number; audit_id: string; status: "pending" }> {
-    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/persona-switch`, { method: "POST", body }) as Promise<{ revision: number; audit_id: string; status: "pending" }>;
+  async switchPersona(this: object, fluctlightId: string, body: BrowserPersonaSwitchRequest): Promise<BrowserPersonaSwitchResult> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/persona-switch`, { method: "POST", body }) as Promise<BrowserPersonaSwitchResult>;
   },
   async settingsAgents(this: object): Promise<{ agents: Array<{ id: string; name: string; description: string; tools: string[] }>; tools: Array<{ id: string; name: string; description: string }>; version: string }> {
     return clientOf(this).json("/api/settings/agents") as Promise<{ agents: Array<{ id: string; name: string; description: string; tools: string[] }>; tools: Array<{ id: string; name: string; description: string }>; version: string }>;
@@ -418,21 +532,23 @@ export const v3ContractMethods = {
   async suggestMemoryRevision(this: object, memoryId: string, body: { text: string; reason: string; expectedRevision: number; idempotencyKey: string }): Promise<OwnerRequestEnvelope> {
     return clientOf(this).json(`/api/memories/${encodeURIComponent(memoryId)}/suggestions`, { method: "POST", body }) as Promise<OwnerRequestEnvelope>;
   },
-  async ownerRequest(this: object, requestId: string): Promise<OwnerRequest> {
-    return clientOf(this).json(`/api/owner-requests/${encodeURIComponent(requestId)}`) as Promise<OwnerRequest>;
+  async ownerRequest<Result = Record<string, unknown>>(this: object, requestId: string): Promise<OwnerRequest<Result>> {
+    return clientOf(this).json(`/api/owner-requests/${encodeURIComponent(requestId)}`) as Promise<OwnerRequest<Result>>;
   },
   async listOwnerRequests(this: object, fluctlightId: string, options: { status?: OwnerRequestStatus; cursor?: string } = {}): Promise<CursorPage<OwnerRequest>> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/owner-requests${q(options)}`) as Promise<CursorPage<OwnerRequest>>;
   },
-  async proposePromise(this: object, fluctlightId: string, body: { title: string; dueAt: string; reason: string; idempotencyKey: string }): Promise<OwnerRequestEnvelope> {
+  async proposePromise(this: object, fluctlightId: string, body: { title: string; dueAt: string; startsAt?: string; reason: string; idempotencyKey: string }): Promise<OwnerRequestEnvelope> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/promises`, { method: "POST", body }) as Promise<OwnerRequestEnvelope>;
   },
   async suggestMoment(this: object, fluctlightId: string, body: { text: string; mediaIds: string[]; idempotencyKey: string }): Promise<OwnerRequestEnvelope> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/moment-suggestions`, { method: "POST", body }) as Promise<OwnerRequestEnvelope>;
   },
-  // 待裁决：契约 C-04 只有按 id 读取，反思时间线没有列表路由。缺响应按未接入，不编造条目。
-  async listReflections(this: object, fluctlightId: string): Promise<CursorPage<ReflectionDetail>> {
-    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/reflections`) as Promise<CursorPage<ReflectionDetail>>;
+  async listReflections(this: object, fluctlightId: string, options:{cursor?:string;limit?:number}={}): Promise<ReflectionCatalog> {
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/reflections${q(options)}`) as Promise<ReflectionCatalog>;
+  },
+  async reflectionFeedback(this:object,fluctlightId:string,reflectionId:string,options:{cursor?:string;limit?:number}={}):Promise<CursorPage<OwnerRequest>>{
+    return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/reflections/${encodeURIComponent(reflectionId)}/feedback${q(options)}`) as Promise<CursorPage<OwnerRequest>>;
   },
 };
 
@@ -442,6 +558,11 @@ export function applyV3Contract(ctor: { prototype: object }): void {
 
 declare module "./index.ts" {
   interface BrowserClient {
+    managedMemories(fluctlightId:string,options?:MemoryBrowseOptions):Promise<CursorPage<ManagedMemory>>;
+    managedMemory(memoryId:string):Promise<ManagedMemory>;
+    memoryRevisions(memoryId:string,options?:{cursor?:string;limit?:number}):Promise<CursorPage<MemoryRevision>>;
+    memorySources(memoryId:string,options?:{cursor?:string;limit?:number;revision?:number}):Promise<CursorPage<MemorySource>>;
+    rollbackMemory(memoryId:string,body:{targetRevision:number;expectedRevision:number;evidenceRefs:string[]}):Promise<Record<string,unknown>>;
     suggestScheduleItem(fluctlightId: string, scheduleId: string, body: ScheduleItemSuggestionBody): Promise<OwnerRequestEnvelope>;
     updateScheduleItem(fluctlightId: string, scheduleId: string, itemId: string, body: ScheduleItemSuggestionBody): Promise<OwnerRequestEnvelope>;
     deleteScheduleItem(fluctlightId: string, scheduleId: string, itemId: string, body: ScheduleItemDeleteBody): Promise<OwnerRequestEnvelope>;
@@ -451,50 +572,90 @@ declare module "./index.ts" {
     listCharacterMedia(fluctlightId: string, options?: { cursor?: string; limit?: number }): Promise<CursorPage<CharacterMediaItem>>;
     sidebar(fluctlightId: string): Promise<SidebarSummary>;
     createMoment(body: CreateMomentBody): Promise<CreateMomentResponse>;
-    uploadOwnerMedia(file: Blob, mime: string, idempotencyKey: string): Promise<UploadMediaResponse>;
+    uploadOwnerMedia(file: Blob, mime: string, idempotencyKey: string, filename?: string): Promise<UploadMediaResponse>;
     deleteActorGroup(groupId: string, body: { expectedRevision: 0; idempotencyKey: string }): Promise<void>;
     harmIntercepts(options?: { fluctlightId?: string; window?: string }): Promise<HarmIntercepts>;
     diagnosticTask(taskId: string): Promise<DiagnosticTask>;
-    saveVisualIdentity(fluctlightId: string, body: VisualIdentityWriteBody): Promise<{ current_revision: number; status: "saved"; audit_id: string }>;
-    listNotifications(options?: { cursor?: string; limit?: number; unread?: boolean }): Promise<CursorPage<NotificationItem>>;
+    saveVisualIdentity(fluctlightId: string, body: VisualIdentityWriteBody): Promise<import("./index.js").BrowserMediaAvatar>;
+    listNotifications(options?: { cursor?: string; limit?: number; unread?: boolean; fluctlightId?: string }): Promise<NotificationPage>;
     markNotificationRead(notificationId: string, body: { idempotencyKey: string }): Promise<{ id: string; read_at: string }>;
-    unreadNotificationCount(): Promise<{ count: number }>;
+    markAllNotificationsRead(body: { before: string; idempotencyKey: string }): Promise<{ updated: number; before: string }>;
+    unreadNotificationCount(): Promise<{ count: number; alert_count: number }>;
     nearby(fluctlightId: string): Promise<NearbyActors>;
-    listDiary(fluctlightId: string, cursor?: string): Promise<CursorPage<DiaryEntry>>;
+    selfClaims(fid:string,options?:{q?:string;status?:string;category?:string;cursor?:string;limit?:number}):Promise<import("./index.js").BrowserSelfPage>;
+    selfClaim(fid:string,id:string):Promise<import("./index.js").BrowserSelfClaim>;
+    selfClaimHistory(fid:string,id:string,kind:'revisions'|'reviews',cursor?:string):Promise<import("./index.js").BrowserSelfHistory>;
+    manageSelfClaim(fid:string,id:string,...args: [command:'review'|'forget',body:import("./index.js").BrowserSelfCommandBody] | [command:'restore',body:import("./index.js").BrowserSelfRestoreBody]):Promise<import("./index.js").BrowserSelfCommandResult>;
+    listDiary(fluctlightId: string, cursor?: string, options?:{favorite?:boolean;limit?:number}): Promise<import("./index.js").BrowserDiaryPage>;
+    diary(fluctlightId:string,id:string):Promise<DiaryEntry>;
+    generateDiary(fluctlightId:string,body:import("./index.js").BrowserDiaryGenerateBody):Promise<import("./index.js").BrowserDiaryGeneration>;
+    annotateDiary(fluctlightId:string,id:string,body:import("./index.js").BrowserDiaryAnnotationBody):Promise<import("./index.js").BrowserDiaryAnnotationResult>;
+    diaryReplies(fluctlightId:string,id:string,cursor?:string):Promise<import("./index.js").BrowserDiaryReplies>;
+    replyToDiary(fluctlightId:string,id:string,body:import("./index.js").BrowserDiaryReplyBody):Promise<OwnerRequestEnvelope>;
+    sharedExperiences(fluctlightId:string,cursor?:string):Promise<import("./index.js").BrowserSharedExperiencePage>;
     createDiaryEntry(fluctlightId: string, body: DiaryWriteBody): Promise<{ id: string; revision: number; source: string; audit_id: string }>;
     updateDiaryEntry(fluctlightId: string, entryId: string, body: DiaryWriteBody): Promise<{ id: string; revision: number; source: string; audit_id: string }>;
     reflection(fluctlightId: string, reflectionId: string): Promise<ReflectionDetail>;
-    submitReflectionFeedback(fluctlightId: string, reflectionId: string, body: { text: string; idempotencyKey: string }): Promise<OwnerRequestEnvelope>;
+    submitReflectionFeedback(fluctlightId: string, reflectionId: string, body: ReflectionFeedbackBody): Promise<OwnerRequestEnvelope>;
+    reflectionFeedback(fluctlightId:string,reflectionId:string,options?:{cursor?:string;limit?:number}):Promise<CursorPage<OwnerRequest>>;
+    worldCatalog(fluctlightId: string): Promise<WorldCatalog>;
+    catalogWorld(fluctlightId: string, worldId: string): Promise<WorldView>;
+    createCatalogWorld(fluctlightId: string, body: WorldCreateBody): Promise<WorldWriteResult>;
+    updateCatalogWorld(fluctlightId: string, worldId: string, body: WorldWriteBody): Promise<WorldWriteResult>;
+    deleteCatalogWorld(fluctlightId: string, worldId: string, body: WorldCommand): Promise<WorldDeleteResult>;
+    selectWorld(fluctlightId: string, body: WorldSelectBody): Promise<WorldWriteResult>;
+    deleteWorldPlace(fluctlightId: string, placeId: string, body: WorldDeleteBody): Promise<WorldDeleteResult>;
+    deleteRuntimeNPC(fluctlightId: string, npcId: string, body: WorldCommand): Promise<WorldDeleteResult>;
     world(fluctlightId: string): Promise<WorldView>;
+    updateRuntimeWorld(fluctlightId: string, body: WorldWriteBody): Promise<WorldWriteResult>;
+    createWorldPlace(fluctlightId: string, body: PlaceWriteBody): Promise<WorldWriteResult>;
+    updateWorldPlace(fluctlightId: string, placeId: string, body: PlaceWriteBody): Promise<WorldWriteResult>;
+    listRuntimeNPCs(fluctlightId: string): Promise<CursorPage<RuntimeNPC>>;
+    runtimeNPC(fluctlightId: string, npcId: string): Promise<RuntimeNPC>;
+    updateRuntimeNPC(fluctlightId: string, npcId: string, body: NPCWriteBody): Promise<WorldWriteResult>;
+    recordNPCEncounter(fluctlightId: string, npcId: string, body: NPCEncounterBody): Promise<{ id: string; event_id: string; npc_id: string; relationship_id: string; memory_id: string; status: string; audit_id: string }>;
+    publishStudioResource(resourceId: string, body: WorldCommand): Promise<{ id: string; revision: number; published_version: string; status: 'published' }>;
     placeDetail(fluctlightId: string, placeId: string): Promise<PlaceDetail>;
-    worldTemplates(fluctlightId: string): Promise<{ items: WorldTemplate[]; revision: number }>;
+    worldTemplates(fluctlightId: string): Promise<{ items: WorldTemplate[]; revision?: number; world_id:string; catalog_status:"runtime"; runtime_effect:"worker_executed" }>;
     setWorldTemplate(fluctlightId: string, templateId: string, body: WorldTemplateWriteBody): Promise<{ template_id: string; enabled: boolean; revision: number; audit_id: string }>;
-    listStudioResources(options?: { kind?: string; cursor?: string }): Promise<CursorPage<StudioResource>>;
+    listStudioResources(options?: StudioResourceQuery): Promise<CursorPage<StudioResource>>;
     studioResource(resourceId: string): Promise<StudioResource>;
+    studioPublication(resourceId:string,version:string):Promise<StudioPublication>;
+    studioVersions(id:string,options?:{cursor?:string;limit?:number}):Promise<CursorPage<StudioPublicationRecord>>;
+    copyStudioResource(id:string,body:StudioCopyBody):Promise<StudioResource>;
+    archiveStudioResource(id:string,body:StudioCatalogCommand):Promise<StudioResource>;
+    restoreStudioResource(id:string,body:StudioCatalogCommand):Promise<StudioResource>;
     createStudioResource(body: StudioResourceWriteBody): Promise<StudioResource>;
     updateStudioResource(resourceId: string, body: StudioResourceWriteBody): Promise<StudioResource>;
+    createStudioJob(body:BrowserStudioJobBody):Promise<BrowserStudioJob>;
+    studioJob(id:string):Promise<BrowserStudioJob>;
+    listStudioJobs(options?:{resource_id?:string;cursor?:string}):Promise<BrowserStudioJobPage>;
+    listStudioMaterials(options?:{resource_id?:string;cursor?:string;released?:boolean}):Promise<BrowserStudioMaterialPage>;
+    retryStudioJob(id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>;
+    discardStudioJob(id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>;
+    saveStudioMaterial(id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioMaterialReceipt>;
     createStudioPreview(body: StudioPreviewBody): Promise<StudioPreview>;
     listStudioPreviews(resourceId?: string): Promise<CursorPage<StudioPreview>>;
     previewStudioApply(resourceId: string, body: ApplyPreviewBody): Promise<ApplyPreviewResponse>;
     applyStudioResource(resourceId: string, body: ApplyResourceBody): Promise<ApplyResourceResponse>;
     autonomyPolicy(fluctlightId: string): Promise<AutonomyPolicy>;
     saveAutonomyPolicy(fluctlightId: string, body: AutonomyPolicyWriteBody): Promise<AutonomyPolicy>;
-    pending(fluctlightId?: string): Promise<{ groups: PendingGroup[] }>;
+    pending(fluctlightId?: string, options?: {kind?: PendingGroup["kind"];cursor?:string;limit?:number}): Promise<PendingPage>;
     pendingCount(fluctlightId?: string): Promise<{ count: number; partial: boolean }>;
-    importStudioPack(body: { pack: Record<string, unknown>; idempotencyKey: string }): Promise<{ pack_id: string; resource_versions: Array<{ resource_id: string; version: string }>; audit_id: string; status?: string }>;
-    validateStudioPack(body: { pack: Record<string, unknown>; idempotencyKey: string }): Promise<{ valid?: boolean; status?: string; available?: boolean }>;
-    exportStudioPack(): Promise<{ pack: Record<string, unknown>; available?: boolean }>;
-    listBackups(): Promise<CursorPage<BackupRecord>>;
-    createBackup(body: { idempotencyKey: string }): Promise<BackupRecord>;
-    restoreBackup(backupId: string, body: { confirm: true; reason: string; idempotencyKey: string }): Promise<{ job_id: string; audit_id: string }>;
-    switchPersona(fluctlightId: string, body: { targetPersonaId: string; expectedRevision: number; reason: string; confirm: true; idempotencyKey: string }): Promise<{ revision: number; audit_id: string; status: "pending" }>;
+    importStudioPack(body: import("./index.js").BrowserResourcePackImportBody): Promise<import("./index.js").BrowserResourcePackImportResult>;
+    validateStudioPack(body: { pack: import("./index.js").BrowserResourcePack }): Promise<import("./index.js").BrowserResourcePackValidation>;
+    exportStudioPack(resourceId?:string): Promise<import("./index.js").BrowserResourcePackExport>;
+    listBackups(cursor?:string): Promise<import("./index.js").BrowserBusinessBackupPage>;
+    createBackup(body: { reason:string;idempotencyKey: string }): Promise<BackupRequestReceipt>;
+    restoreBackup(backupId: string, body: { confirm: true; reason: string; targetName:string;expectedRevision:number;idempotencyKey: string }): Promise<BackupRequestReceipt>;
+    switchPersona(fluctlightId: string, body: BrowserPersonaSwitchRequest): Promise<BrowserPersonaSwitchResult>;
     settingsAgents(): Promise<{ agents: Array<{ id: string; name: string; description: string; tools: string[] }>; tools: Array<{ id: string; name: string; description: string }>; version: string }>;
     desires(fluctlightId: string): Promise<{ items: DesireItem[] }>;
     suggestMemoryRevision(memoryId: string, body: { text: string; reason: string; expectedRevision: number; idempotencyKey: string }): Promise<OwnerRequestEnvelope>;
-    ownerRequest(requestId: string): Promise<OwnerRequest>;
+    ownerRequest<Result = Record<string, unknown>>(requestId: string): Promise<OwnerRequest<Result>>;
     listOwnerRequests(fluctlightId: string, options?: { status?: OwnerRequestStatus; cursor?: string }): Promise<CursorPage<OwnerRequest>>;
-    proposePromise(fluctlightId: string, body: { title: string; dueAt: string; reason: string; idempotencyKey: string }): Promise<OwnerRequestEnvelope>;
+    proposePromise(fluctlightId: string, body: { title: string; dueAt: string; startsAt?: string; reason: string; idempotencyKey: string }): Promise<OwnerRequestEnvelope>;
     suggestMoment(fluctlightId: string, body: { text: string; mediaIds: string[]; idempotencyKey: string }): Promise<OwnerRequestEnvelope>;
-    listReflections(fluctlightId: string): Promise<CursorPage<ReflectionDetail>>;
+    listReflections(fluctlightId: string,options?:{cursor?:string;limit?:number}): Promise<ReflectionCatalog>;
   }
 }

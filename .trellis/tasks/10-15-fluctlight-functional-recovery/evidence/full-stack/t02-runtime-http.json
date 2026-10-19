@@ -1,0 +1,374 @@
+{
+  "captured_at": "2026-10-15T15:44:49.491486+00:00",
+  "cookie_flags": [
+    {
+      "name": "fluctlight_session",
+      "flags": [
+        "Path=/",
+        "HttpOnly",
+        "SameSite=Lax"
+      ]
+    },
+    {
+      "name": "fluctlight_csrf",
+      "flags": [
+        "Path=/",
+        "Max-Age=86400",
+        "SameSite=Lax"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "method": "GET",
+      "path": "/health/live",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "role",
+        "status"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/health/ready",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "role",
+        "status"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "base": "http://localhost:5173",
+      "status": 401,
+      "keys": [
+        "authenticated"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights",
+      "base": "http://localhost:5173",
+      "status": 401,
+      "keys": [
+        "code",
+        "message"
+      ],
+      "code": "unauthenticated"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/settings",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "bytes",
+        "content_type"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "base": "http://localhost:5173",
+      "status": 401,
+      "keys": [
+        "authenticated"
+      ],
+      "code": null
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "actorId",
+        "authenticated"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "base": "http://localhost:8080",
+      "status": 200,
+      "keys": [
+        "actorId",
+        "authenticated"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights",
+      "base": "http://localhost:8080",
+      "status": 200,
+      "count": 2
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "base": "http://localhost:8080",
+      "status": 200,
+      "keys": [
+        "configuredSecrets",
+        "values",
+        "versions"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "base": "http://localhost:8080",
+      "status": 200,
+      "count": 0
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/endpoints",
+      "base": "http://localhost:8080",
+      "status": 200,
+      "count": 0
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "actorId",
+        "authenticated"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "count": 2
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "configuredSecrets",
+        "values",
+        "versions"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "count": 0
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/endpoints",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "count": 0
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings",
+      "base": "http://localhost:5173",
+      "status": 403,
+      "keys": [
+        "code",
+        "message"
+      ],
+      "code": "invalid_origin"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings",
+      "base": "http://localhost:8080",
+      "status": 403,
+      "keys": [
+        "code",
+        "message"
+      ],
+      "code": "invalid_origin"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings",
+      "base": "http://localhost:8080",
+      "status": 403,
+      "keys": [
+        "code",
+        "message"
+      ],
+      "code": "invalid_origin"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/settings",
+      "base": "http://localhost:8080",
+      "status": 401,
+      "keys": [
+        "detail"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "count": 2
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/recovery-a-1015/detail",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "actor_user",
+        "avatar",
+        "behavioral_policy",
+        "cognition_history",
+        "context",
+        "core_persona",
+        "core_persona_revision",
+        "current_facts_revision",
+        "current_revision",
+        "current_state",
+        "current_state_revision",
+        "developing_self",
+        "developing_self_revision",
+        "developing_self_revisions",
+        "drive_slots",
+        "editable_actor_ids",
+        "events",
+        "evolution_revisions",
+        "foundation_revisions",
+        "goals",
+        "hypotheses",
+        "id",
+        "identity",
+        "initialization_source",
+        "inner_state",
+        "intentions",
+        "life_profile",
+        "memories",
+        "momentum",
+        "mood",
+        "personality",
+        "personality_runtime",
+        "preference_slots",
+        "provenance",
+        "relationships",
+        "scene_image",
+        "schedule",
+        "status",
+        "trigger_preferences",
+        "visual_identity",
+        "wake_ups"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/recovery-a-1015/world",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "available",
+        "current_context",
+        "npcs",
+        "places",
+        "scenes",
+        "world"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/recovery-b-1015/detail",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "actor_user",
+        "avatar",
+        "behavioral_policy",
+        "cognition_history",
+        "context",
+        "core_persona",
+        "core_persona_revision",
+        "current_facts_revision",
+        "current_revision",
+        "current_state",
+        "current_state_revision",
+        "developing_self",
+        "developing_self_revision",
+        "developing_self_revisions",
+        "drive_slots",
+        "editable_actor_ids",
+        "events",
+        "evolution_revisions",
+        "foundation_revisions",
+        "goals",
+        "hypotheses",
+        "id",
+        "identity",
+        "initialization_source",
+        "inner_state",
+        "intentions",
+        "life_profile",
+        "memories",
+        "momentum",
+        "mood",
+        "personality",
+        "personality_runtime",
+        "preference_slots",
+        "provenance",
+        "relationships",
+        "scene_image",
+        "schedule",
+        "status",
+        "trigger_preferences",
+        "visual_identity",
+        "wake_ups"
+      ],
+      "code": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/recovery-b-1015/world",
+      "base": "http://localhost:5173",
+      "status": 200,
+      "keys": [
+        "available",
+        "npcs",
+        "places",
+        "scenes",
+        "world"
+      ],
+      "code": null
+    }
+  ],
+  "settings_keys": [
+    "ai.capability_status",
+    "conversation.reply",
+    "llm.queue",
+    "product.wakeup",
+    "vision.understanding",
+    "working_persona_budget"
+  ],
+  "configured_secret_purposes": []
+}

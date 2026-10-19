@@ -275,7 +275,7 @@ func validateMemoryActorScopeTx(ctx context.Context, tx pgx.Tx, record memoryRec
 			}
 			return err
 		}
-		if status != "active" || (actorType != "human" && actorType != "fluctlight") {
+		if status != "active" || (actorType != "human" && actorType != "fluctlight" && actorType != "npc") {
 			return errors.New("memory_actor_ref_invalid")
 		}
 		if actorType == "human" && actorID != ownerActorID {
@@ -287,7 +287,16 @@ func validateMemoryActorScopeTx(ctx context.Context, tx pgx.Tx, record memoryRec
 				return errors.New("memory_actor_ref_forbidden")
 			}
 		}
-		if record.ConversationID != nil {
+		if actorType == "npc" {
+			var visible bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.world_npcs n JOIN public.life_worlds w ON w.id=n.world_id JOIN public.relationships r ON r.owner_fluctlight_id=w.fluctlight_id AND r.target_actor_id=n.actor_id WHERE n.actor_id=$1 AND w.fluctlight_id=$2)`, actorID, record.FluctlightID).Scan(&visible); err != nil {
+				return err
+			}
+			if !visible {
+				return errors.New("memory_actor_ref_forbidden")
+			}
+		}
+		if record.ConversationID != nil && actorType != "npc" {
 			var participant bool
 			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id=$2 AND status='active')`, *record.ConversationID, actorID).Scan(&participant); err != nil {
 				return err

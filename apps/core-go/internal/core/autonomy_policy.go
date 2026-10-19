@@ -2,8 +2,8 @@ package core
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -45,38 +45,26 @@ func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader auton
 		return AutonomyPolicyDecision{Allowed: true, Snapshot: map[string]any{"mode": "active", "action_type": actionType}}, nil
 	}
 	var mode, budgetText string
-	var allowedRaw, quietRaw []byte
+	var allowedRaw, quietRaw, confirmationsRaw []byte
+	var outreachPaused bool
 	var cooldown *time.Time
 	var concurrency, revision int
-	err := reader.QueryRow(ctx, `SELECT mode,allowed_actions,budget_remaining,quiet_hours,cooldown_until,concurrency_limit,revision FROM public.autonomy_policies WHERE fluctlight_id=$1`, fluctlightID).Scan(&mode, &allowedRaw, &budgetText, &quietRaw, &cooldown, &concurrency, &revision)
+	err := reader.QueryRow(ctx, `SELECT mode,allowed_actions,budget_remaining,quiet_hours,cooldown_until,concurrency_limit,revision,outreach_paused,confirm_action_types FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR SHARE`, fluctlightID).Scan(&mode, &allowedRaw, &budgetText, &quietRaw, &cooldown, &concurrency, &revision, &outreachPaused, &confirmationsRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
-		mode, budgetText, concurrency = "active", "100", 1
-		allowedRaw, quietRaw = jsonBytes([]string{"proactive_message", "moment", "capability"}), jsonBytes(map[string]any{})
-		var settingRaw string
-		if settingErr := reader.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.autonomy'`).Scan(&settingRaw); settingErr == nil {
-			var setting map[string]any
-			if json.Unmarshal([]byte(settingRaw), &setting) == nil {
-				mode = firstString(setting["mode"], mode)
-				if rawBudget := setting["budget_remaining"]; rawBudget != nil {
-					budgetText = numberString(rawBudget, 100)
-				}
-				if rawAllowed := arrayValue(setting["allowed_actions"]); len(rawAllowed) > 0 {
-					allowedRaw = jsonBytes(rawAllowed)
-				}
-				if rawQuiet := mapValue(setting["quiet_hours"]); len(rawQuiet) > 0 {
-					quietRaw = jsonBytes(rawQuiet)
-				}
-				if rawConcurrency := setting["concurrency_limit"]; rawConcurrency != nil {
-					if c := intValue(rawConcurrency); c > 0 {
-						concurrency = c
-					}
-				}
-			}
+		config, err := readGlobalAutonomyConfiguration(ctx, reader)
+		if err != nil {
+			return AutonomyPolicyDecision{}, err
 		}
+		mode, budgetText, concurrency = stringValue(config["mode"]), stringValueOrNumber(config["budget_remaining"]), intValue(config["concurrency_limit"])
+		allowedRaw, quietRaw, confirmationsRaw = jsonBytes(config["allowed_actions"]), jsonBytes(config["quiet_hours"]), jsonBytes(config["confirm_action_types"])
+		outreachPaused, _ = config["outreach_paused"].(bool)
 	} else if err != nil {
 		return AutonomyPolicyDecision{}, err
 	}
 	allowed := decodeArray(allowedRaw)
+	if actionType == "proactive_message" && outreachPaused {
+		return autonomyDenied(mode, "outreach_paused", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
+	}
 	allowedSet := make(map[string]struct{}, len(allowed))
 	for _, raw := range allowed {
 		allowedSet[strings.TrimSpace(stringValue(raw))] = struct{}{}
@@ -100,11 +88,14 @@ func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader auton
 	if mode != "active" {
 		return autonomyDenied(mode, "autonomy_mode_blocked", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 	}
-	if cooldown != nil && now.Before(cooldown.UTC()) {
+	if !budgetReserved && cooldown != nil && now.Before(cooldown.UTC()) {
 		return autonomyDenied(mode, "cooldown_active", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 	}
 	budget, parseErr := strconv.ParseFloat(strings.TrimSpace(budgetText), 64)
-	if !budgetReserved && parseErr == nil && budget <= 0 {
+	if parseErr != nil || math.IsNaN(budget) || math.IsInf(budget, 0) {
+		return AutonomyPolicyDecision{}, errors.New("autonomy_budget_corrupt")
+	}
+	if !budgetReserved && budget <= 0 {
 		return autonomyDenied(mode, "budget_exhausted", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 	}
 	if concurrency < 1 {
@@ -113,9 +104,9 @@ func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader auton
 	var active int
 	var activeErr error
 	if excludeActionID == "" {
-		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND status IN ('frozen','running') AND created_at > now() - interval '5 minutes'`, fluctlightID).Scan(&active)
+		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND status IN ('frozen','running')`, fluctlightID).Scan(&active)
 	} else {
-		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND id<>$2 AND status IN ('frozen','running') AND created_at > now() - interval '5 minutes'`, fluctlightID, excludeActionID).Scan(&active)
+		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND id<>$2 AND status IN ('frozen','running')`, fluctlightID, excludeActionID).Scan(&active)
 	}
 	if activeErr != nil {
 		return AutonomyPolicyDecision{}, activeErr
@@ -127,55 +118,27 @@ func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader auton
 		return autonomyDenied(mode, "quiet_hours", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 	}
 	snapshot := autonomySnapshot(mode, actionType, allowed, budgetText, quietRaw, cooldown, concurrency, revision)
+	snapshot["confirm_action_types"] = decodeArray(confirmationsRaw)
+	snapshot["outreach_paused"] = outreachPaused
 	return AutonomyPolicyDecision{Allowed: true, Snapshot: snapshot}, nil
 }
 
 func reserveAutonomyBudgetTx(ctx context.Context, tx pgx.Tx, fluctlightID string) error {
+	if err := ensureAutonomyPolicyTx(ctx, tx, fluctlightID); err != nil {
+		return err
+	}
 	var budgetText string
 	var revision int
 	err := tx.QueryRow(ctx, `SELECT budget_remaining,revision FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&budgetText, &revision)
-	if errors.Is(err, pgx.ErrNoRows) {
-		budgetText = "100"
-		revision = 0
-		mode := "active"
-		allowed := []any{"proactive_message", "moment", "capability"}
-		quiet := map[string]any{}
-		concurrency := 1
-		var settingRaw string
-		if settingErr := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.autonomy'`).Scan(&settingRaw); settingErr == nil {
-			var setting map[string]any
-			if json.Unmarshal([]byte(settingRaw), &setting) == nil {
-				mode = firstString(setting["mode"], mode)
-				if setting["budget_remaining"] != nil {
-					budgetText = numberString(setting["budget_remaining"], 100)
-				}
-				if values := arrayValue(setting["allowed_actions"]); len(values) > 0 {
-					allowed = values
-				}
-				if values := mapValue(setting["quiet_hours"]); len(values) > 0 {
-					quiet = values
-				}
-				if value := intValue(setting["concurrency_limit"]); value > 0 {
-					concurrency = value
-				}
-			}
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,$2,$3,$4,$5,$6,0) ON CONFLICT DO NOTHING`, fluctlightID, mode, jsonBytes(allowed), budgetText, jsonBytes(quiet), concurrency); err != nil {
-			return err
-		}
-
-		if err := tx.QueryRow(ctx, `SELECT budget_remaining,revision FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&budgetText, &revision); err != nil {
-			return err
-		}
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 	budget, err := strconv.ParseFloat(strings.TrimSpace(budgetText), 64)
-	if err != nil || budget <= 0 {
+	if err != nil || math.IsNaN(budget) || math.IsInf(budget, 0) || budget <= 0 {
 		return errors.New("autonomy_budget_exhausted")
 	}
 	budget -= 1
-	_, err = tx.Exec(ctx, `UPDATE public.autonomy_policies SET budget_remaining=$2,revision=$3,updated_at=now() WHERE fluctlight_id=$1 AND revision=$4`, fluctlightID, strconv.FormatFloat(budget, 'f', -1, 64), revision+1, revision)
+	_, err = tx.Exec(ctx, `UPDATE public.autonomy_policies SET budget_remaining=$2,revision=$3,cooldown_until=CASE WHEN cooldown_seconds>0 THEN now()+cooldown_seconds*interval '1 second' ELSE cooldown_until END,updated_at=now() WHERE fluctlight_id=$1 AND revision=$4`, fluctlightID, strconv.FormatFloat(budget, 'f', -1, 64), revision+1, revision)
 	return err
 }
 
@@ -195,6 +158,11 @@ func autonomySnapshot(mode, actionType string, allowed []any, budget string, qui
 
 func quietHoursActive(raw []byte, now time.Time) bool {
 	value := decodeObject(raw)
+	if zone := stringValue(value["timezone"]); zone != "" {
+		if location, err := time.LoadLocation(zone); err == nil {
+			now = now.In(location)
+		}
+	}
 	start, end := stringValue(value["start"]), stringValue(value["end"])
 	if start == "" || end == "" {
 		return false

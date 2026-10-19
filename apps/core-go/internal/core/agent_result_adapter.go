@@ -310,7 +310,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 
 	if err != nil {
-		code := "agent_run_failed"
+		code := streamTurnFailureCodeWithFallback(err, "agent_run_failed")
 		if errors.Is(err, errADKFinalContractInvalid) {
 			code = "agent_final_contract_invalid"
 			err = fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
@@ -1189,6 +1189,16 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		SourceFactID: inboxID, MemoryOperation: MemoryForNativeCognition,
 		MemoryConversationMode: MemoryConversationGlobalOnly,
 		MemoryCues:             []MemoryQueryCue{{Kind: "native_event_type", Text: eventType}, {Kind: "native_fact", Text: jsonString(compactProviderFact(payload))}},
+	}
+	if eventType == ownerDiaryReplyFactType {
+		candidate := mapValue(factPayload["candidate"])
+		currentInput := jsonString(map[string]any{"kind": "owner_response_to_diary", "diary_body": candidate["diary_body"], "owner_response": candidate["feedback"], "scope": "remote communication about a subjective diary; no physical co-presence or body rewrite"})
+		projectionRequest.CurrentUserText = currentInput
+		replyCtx, replyErr := a.withPrivateReplyRun(ctx, ToolExecutionRequest{AuthorizationActorID: ownerID, SubjectActorID: ownerID, FluctlightID: fluctlightID, ConversationID: contactID, EvidenceID: inboxID, RunID: "diary-reply:" + inboxID, OperationID: "diary-reply:" + inboxID, Surface: CapabilitySurfaceNativeCognition}, currentInput)
+		if replyErr != nil {
+			return replyErr
+		}
+		ctx = replyCtx
 	}
 	projection, err := a.BuildContextProjectionFor(ctx, projectionRequest)
 	if err != nil {

@@ -85,16 +85,64 @@ type WardrobeOwnerEditResult struct {
 // SurfaceHooks are read-only or explicitly owner-attributed adapters.
 // Nil hooks mean that capability is not connected.
 type SurfaceHooks struct {
-	Now               func() time.Time
-	Authorize         func(ctx context.Context, owner, fid string) error
-	DeleteGroup       func(ctx context.Context, owner, groupID string) error
-	PublishMoment     func(ctx context.Context, owner string, moment map[string]any) error
-	CapabilityItems   func(ctx context.Context, owner, fid string) ([]map[string]any, error)
-	ListMedia         func(ctx context.Context, owner, fid, cursor string, limit int) ([]map[string]any, any, error)
-	Sidebar           func(ctx context.Context, owner, fid string) (map[string]any, error)
-	MemoryRevision    func(ctx context.Context, owner, memoryID string) (int, bool, error)
-	InstanceRevision  func(ctx context.Context, owner, fid string) (int, error)
-	ApplyWardrobeEdit func(ctx context.Context, owner, fid string, edit WardrobeOwnerEdit) (WardrobeOwnerEditResult, error)
+	Promises               func(context.Context, string, string, url.Values) (map[string]any, error)
+	Promise                func(context.Context, string, string, string) (map[string]any, error)
+	PromiseHistory         func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	PromiseCommand         func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
+	WearingHistory         func(context.Context, string, string, url.Values) (map[string]any, error)
+	SaveInventoryOutfit    func(context.Context, string, string, string, map[string]any) (map[string]any, error)
+	InventoryOutfitHistory func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	InventoryOutfit        func(context.Context, string, string, string) (map[string]any, error)
+	InventoryOutfits       func(context.Context, string, string, url.Values) (map[string]any, error)
+	InventoryList          func(context.Context, string, string, url.Values) (map[string]any, error)
+	InventoryItem          func(context.Context, string, string, string) (map[string]any, error)
+	InventoryHistory       func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	InventoryCommand       func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
+	VisualTimeline         func(context.Context, string, string, url.Values) (map[string]any, error)
+	VisualBrief            func(context.Context, string, string) (map[string]any, error)
+	VisualBriefHistory     func(context.Context, string, string, url.Values) (map[string]any, error)
+	SaveVisualBrief        func(context.Context, string, string, map[string]any) (map[string]any, error)
+	VisualIdentity         func(context.Context, string, string) (map[string]any, error)
+	GenerateVisualIdentity func(context.Context, string, string, map[string]any) (map[string]any, error)
+	GovernanceCatalog      func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	GovernanceObject       func(context.Context, string, string, string, string) (map[string]any, error)
+	GovernanceHistory      func(context.Context, string, string, string, string, url.Values) (map[string]any, error)
+	CapabilityReview       func(context.Context, string, string, string, map[string]any) (map[string]any, error)
+	Notifications          func(context.Context, string, url.Values) (map[string]any, error)
+	UnreadNotifications    func(context.Context, string) (map[string]any, error)
+	ReadNotification       func(context.Context, string, string, map[string]any) (map[string]any, error)
+	ReadAllNotifications   func(context.Context, string, map[string]any) (map[string]any, error)
+	Pending                func(context.Context, string, url.Values, bool) (map[string]any, error)
+	Task                   func(context.Context, string, string) (map[string]any, error)
+	RequestTasks           func(context.Context, string, string, string, string) ([]any, error)
+	AutonomyPolicy         func(context.Context, string, string) (map[string]any, error)
+	UpdateAutonomyPolicy   func(context.Context, string, string, map[string]any) (map[string]any, error)
+	DiaryList              func(context.Context, string, string, url.Values) (map[string]any, error)
+	DiaryDetail            func(context.Context, string, string, string) (map[string]any, error)
+	DiaryReplies           func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	SharedExperiences      func(context.Context, string, string, url.Values) (map[string]any, error)
+	GenerateDiary          func(context.Context, string, string, map[string]any) (map[string]any, error)
+	AnnotateDiary          func(context.Context, string, string, string, map[string]any) (map[string]any, error)
+	SelfClaims             func(context.Context, string, string, url.Values) (map[string]any, error)
+	SelfClaim              func(context.Context, string, string, string) (map[string]any, error)
+	SelfHistory            func(context.Context, string, string, string, string, url.Values) (map[string]any, error)
+	SelfCommand            func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
+	ReflectionCatalog      func(context.Context, string, string, url.Values) (map[string]any, error)
+	ReflectionDetail       func(context.Context, string, string, string) (map[string]any, error)
+	ReflectionFeedback     func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	EnqueueFeedback        func(context.Context, string, string, string, string, map[string]any) (string, error)
+	EnqueueLifeRequest     func(context.Context, string, string, string, string, map[string]any) (string, error)
+	ApplyPersonaSwitch     func(context.Context, string, string, map[string]any) (map[string]any, error)
+	Now                    func() time.Time
+	Authorize              func(ctx context.Context, owner, fid string) error
+	DeleteGroup            func(ctx context.Context, owner, groupID string) error
+	PublishMoment          func(ctx context.Context, owner string, moment map[string]any) error
+	CapabilityItems        func(ctx context.Context, owner, fid string) ([]map[string]any, error)
+	ListMedia              func(ctx context.Context, owner, fid, cursor string, limit int) ([]map[string]any, any, error)
+	Sidebar                func(ctx context.Context, owner, fid string) (map[string]any, error)
+	MemoryRevision         func(ctx context.Context, owner, memoryID string) (int, bool, error)
+	InstanceRevision       func(ctx context.Context, owner, fid string) (int, error)
+	ApplyWardrobeEdit      func(ctx context.Context, owner, fid string, edit WardrobeOwnerEdit) (WardrobeOwnerEditResult, error)
 }
 
 // OwnerSurface implements browser routes that sit outside the agent runtime.
@@ -134,6 +182,55 @@ type surfaceCall struct {
 // MatchOwnerSurface reports whether this method and internal path belong to
 // the owner-surface contract. Existing routes stay on their original handlers.
 func MatchOwnerSurface(method, path string) bool {
+	if matchPlaceDefaults(method, path) {
+		return true
+	}
+	if matchBusinessBackups(method, path) {
+		return true
+	}
+	parts := surfaceParts(path)
+	if method == "POST" && len(parts) == 6 && parts[0] == "studio" && parts[1] == "packs" && parts[3] == "groups" && parts[5] == "adopt" {
+		return true
+	}
+	if method == "GET" && strings.Join(surfaceParts(path), "/") == "data/revisions" {
+		return true
+	}
+	if method == "GET" && len(surfaceParts(path)) == 3 && surfaceParts(path)[0] == "studio" && surfaceParts(path)[1] == "packs" {
+		return true
+	}
+	if matchWorkflowControls(method, path) {
+		return true
+	}
+	if matchDiagnosticOperations(method, path) {
+		return true
+	}
+	if method == "POST" && strings.Join(surfaceParts(path), "/") == "configuration-commands/recover" {
+		return true
+	}
+	if method == "GET" && strings.Join(surfaceParts(path), "/") == "configuration-commands/by-key" {
+		return true
+	}
+	if method == "GET" && len(surfaceParts(path)) == 1 && surfaceParts(path)[0] == "configuration-catalog" {
+		return true
+	}
+	if method == "POST" && len(surfaceParts(path)) == 3 && strings.Join(surfaceParts(path), "/") == "settings/media/test-connection" {
+		return true
+	}
+	if matchMomentFeed(method, path) {
+		return true
+	}
+	p := surfaceParts(path)
+	if len(p) >= 3 && p[0] == "studio" && p[1] == "resources" {
+		if len(p) == 3 && method == "DELETE" {
+			return true
+		}
+		if len(p) == 4 && ((method == "GET" && p[3] == "versions") || (method == "POST" && (p[3] == "copy" || p[3] == "restore"))) {
+			return true
+		}
+	}
+	if method == "GET" && len(p) == 5 && p[0] == "studio" && p[1] == "resources" && p[3] == "versions" {
+		return true
+	}
 	_, ok := matchSurface(method, surfaceParts(path))
 	return ok
 }
@@ -150,12 +247,25 @@ func (s *OwnerSurface) Dispatch(ctx context.Context, method, path string, query 
 		return storeErr
 	})
 	if err != nil {
-		if surface, ok := err.(*SurfaceError); ok {
-			return nil, surface
-		}
-		return nil, &SurfaceError{Status: 503, Code: "surface_unavailable", Message: "Owner surface is unavailable"}
+		return nil, ownerSurfaceStorageError(err)
 	}
 	return out, biz
+}
+
+func ownerSurfaceStorageError(err error) error {
+	var surface *SurfaceError
+	if errors.As(err, &surface) {
+		return surface
+	}
+	switch {
+	case errors.Is(err, ErrNotFound), errors.Is(err, ErrUnauthorized):
+		return &SurfaceError{Status: 404, Code: "owner_object_not_found", Message: "对象不存在或不属于当前范围"}
+	case errors.Is(err, ErrConflict):
+		return &SurfaceError{Status: 409, Code: "owner_revision_conflict", Message: "对象版本已变化，请保留草稿并核对最新内容"}
+	case errors.Is(err, ErrInvalidArguments):
+		return &SurfaceError{Status: 400, Code: "invalid_request", Message: "请求字段不符合当前操作要求"}
+	}
+	return &SurfaceError{Status: 503, Code: "surface_unavailable", Message: "Owner surface is unavailable"}
 }
 
 func (s *OwnerSurface) dispatchTx(ctx context.Context, tx surfaceTx, method, path string, query url.Values, owner string, body map[string]any) (map[string]any, error, error) {
@@ -280,18 +390,225 @@ func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall
 		return s.mediaList(ctx, op, query, owner)
 	case "sidebar":
 		return s.sidebar(ctx, op, owner)
-	case "nearby", "world", "place", "desires", "reflection", "harm", "agents":
+	case "reflection_catalog":
+		if s.hooks.ReflectionCatalog == nil {
+			return notImplemented(nil), nil
+		}
+		return s.hooks.ReflectionCatalog(ctx, owner, op.fid, query)
+	case "reflection":
+		if s.hooks.ReflectionDetail == nil {
+			return notImplemented(nil), nil
+		}
+		return s.hooks.ReflectionDetail(ctx, owner, op.fid, op.a)
+	case "reflection_feedbacks":
+		if s.hooks.ReflectionFeedback == nil {
+			return notImplemented(nil), nil
+		}
+		return s.hooks.ReflectionFeedback(ctx, owner, op.fid, op.a, query)
+	case "nearby", "world", "place", "desires", "harm", "agents":
 		return notImplemented(nil), nil
 	case "task":
+		if s.hooks.Task != nil {
+			return s.hooks.Task(ctx, owner, op.a)
+		}
 		return notImplemented(map[string]any{"task_id": op.a}), nil
 	case "notifications":
+		if s.hooks.Notifications != nil {
+			return s.hooks.Notifications(ctx, owner, query)
+		}
 		return notImplemented(nil), nil
-	case "unread_count", "notification_read":
+	case "unread_count":
+		if s.hooks.UnreadNotifications != nil {
+			return s.hooks.UnreadNotifications(ctx, owner)
+		}
+		return nil, &SurfaceError{Status: 404, Code: "not_provided", Message: "Notifications are not connected"}
+	case "notification_read":
+		if s.hooks.ReadNotification != nil {
+			return s.hooks.ReadNotification(ctx, owner, op.a, body)
+		}
+		return nil, &SurfaceError{Status: 404, Code: "not_provided", Message: "Notifications are not connected"}
+	case "notification_read_all":
+		if s.hooks.ReadAllNotifications != nil {
+			return s.hooks.ReadAllNotifications(ctx, owner, body)
+		}
 		return nil, &SurfaceError{Status: 404, Code: "not_provided", Message: "Notifications are not connected"}
 	case "templates":
 		return s.templateList(ctx, tx, op, owner)
 	case "diary_list":
+		if s.hooks.DiaryList != nil && query.Get("source") != "owner" {
+			return s.hooks.DiaryList(ctx, owner, op.fid, query)
+		}
 		return s.diaryList(ctx, tx, op, query, owner)
+	case "wearing_history":
+		if s.hooks.WearingHistory != nil {
+			return s.hooks.WearingHistory(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "inventory_outfit_save":
+		if s.hooks.SaveInventoryOutfit != nil {
+			return s.hooks.SaveInventoryOutfit(ctx, owner, op.fid, op.a, body)
+		}
+		return notImplemented(nil), nil
+	case "inventory_outfit_history":
+		if s.hooks.InventoryOutfitHistory != nil {
+			return s.hooks.InventoryOutfitHistory(ctx, owner, op.fid, op.a, query)
+		}
+		return notImplemented(nil), nil
+	case "inventory_outfit":
+		if s.hooks.InventoryOutfit != nil {
+			return s.hooks.InventoryOutfit(ctx, owner, op.fid, op.a)
+		}
+		return notImplemented(nil), nil
+	case "promises":
+		if s.hooks.Promises != nil {
+			return s.hooks.Promises(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "promise_detail":
+		if s.hooks.Promise != nil {
+			return s.hooks.Promise(ctx, owner, op.fid, op.a)
+		}
+		return notImplemented(nil), nil
+	case "promise_history":
+		if s.hooks.PromiseHistory != nil {
+			return s.hooks.PromiseHistory(ctx, owner, op.fid, op.a, query)
+		}
+		return notImplemented(nil), nil
+	case "promise_command":
+		if s.hooks.PromiseCommand != nil {
+			return s.hooks.PromiseCommand(ctx, owner, op.fid, op.a, op.b, body)
+		}
+		return notImplemented(nil), nil
+	case "inventory_request":
+		return s.inventoryRequest(ctx, tx, op, owner, body)
+	case "inventory_outfits":
+		if s.hooks.InventoryOutfits != nil {
+			return s.hooks.InventoryOutfits(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "inventory_list":
+		if s.hooks.InventoryList != nil {
+			return s.hooks.InventoryList(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "inventory_item":
+		if s.hooks.InventoryItem != nil {
+			return s.hooks.InventoryItem(ctx, owner, op.fid, op.a)
+		}
+		return notImplemented(nil), nil
+	case "inventory_history":
+		if s.hooks.InventoryHistory != nil {
+			return s.hooks.InventoryHistory(ctx, owner, op.fid, op.a, query)
+		}
+		return notImplemented(nil), nil
+	case "inventory_command":
+		if s.hooks.InventoryCommand != nil {
+			return s.hooks.InventoryCommand(ctx, owner, op.fid, op.a, op.c, body)
+		}
+		return notImplemented(nil), nil
+	case "visual_timeline":
+		if s.hooks.VisualTimeline != nil {
+			return s.hooks.VisualTimeline(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "visual_brief_read":
+		if s.hooks.VisualBrief != nil {
+			return s.hooks.VisualBrief(ctx, owner, op.fid)
+		}
+		return notImplemented(nil), nil
+	case "visual_brief_history":
+		if s.hooks.VisualBriefHistory != nil {
+			return s.hooks.VisualBriefHistory(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "visual_brief_save":
+		if s.hooks.SaveVisualBrief != nil {
+			return s.hooks.SaveVisualBrief(ctx, owner, op.fid, body)
+		}
+		return notImplemented(nil), nil
+	case "visual_identity_read":
+		if s.hooks.VisualIdentity != nil {
+			return s.hooks.VisualIdentity(ctx, owner, op.fid)
+		}
+		return notImplemented(nil), nil
+	case "visual_identity_generate":
+		if s.hooks.GenerateVisualIdentity != nil {
+			value, err := s.hooks.GenerateVisualIdentity(ctx, owner, op.fid, body)
+			if err != nil {
+				return nil, err
+			}
+			return withStatus(202, value), nil
+		}
+		return notImplemented(nil), nil
+	case "governance_catalog":
+		if s.hooks.GovernanceCatalog != nil {
+			return s.hooks.GovernanceCatalog(ctx, owner, op.fid, op.c, query)
+		}
+		return notImplemented(nil), nil
+	case "governance_object":
+		if s.hooks.GovernanceObject != nil {
+			return s.hooks.GovernanceObject(ctx, owner, op.fid, op.c, op.a)
+		}
+		return notImplemented(nil), nil
+	case "governance_history":
+		if s.hooks.GovernanceHistory != nil {
+			return s.hooks.GovernanceHistory(ctx, owner, op.fid, op.c, op.a, query)
+		}
+		return notImplemented(nil), nil
+	case "capability_review":
+		if s.hooks.CapabilityReview != nil {
+			return s.hooks.CapabilityReview(ctx, owner, op.fid, op.a, body)
+		}
+		return notImplemented(nil), nil
+	case "self_claims":
+		if s.hooks.SelfClaims != nil {
+			return s.hooks.SelfClaims(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "self_claim":
+		if s.hooks.SelfClaim != nil {
+			return s.hooks.SelfClaim(ctx, owner, op.fid, op.a)
+		}
+		return notImplemented(nil), nil
+	case "self_history":
+		if s.hooks.SelfHistory != nil {
+			return s.hooks.SelfHistory(ctx, owner, op.fid, op.a, op.c, query)
+		}
+		return notImplemented(nil), nil
+	case "self_command":
+		if s.hooks.SelfCommand != nil {
+			return s.hooks.SelfCommand(ctx, owner, op.fid, op.a, op.c, body)
+		}
+		return notImplemented(nil), nil
+	case "shared_experiences":
+		if s.hooks.SharedExperiences != nil {
+			return s.hooks.SharedExperiences(ctx, owner, op.fid, query)
+		}
+		return notImplemented(nil), nil
+	case "diary_detail":
+		if s.hooks.DiaryDetail != nil {
+			return s.hooks.DiaryDetail(ctx, owner, op.fid, op.a)
+		}
+		return notImplemented(nil), nil
+	case "diary_replies":
+		if s.hooks.DiaryReplies != nil {
+			return s.hooks.DiaryReplies(ctx, owner, op.fid, op.a, query)
+		}
+		return notImplemented(nil), nil
+	case "diary_generate":
+		if s.hooks.GenerateDiary != nil {
+			value, err := s.hooks.GenerateDiary(ctx, owner, op.fid, body)
+			if err != nil {
+				return nil, err
+			}
+			return withStatus(202, value), nil
+		}
+		return notImplemented(nil), nil
+	case "diary_annotation":
+		if s.hooks.AnnotateDiary != nil {
+			return s.hooks.AnnotateDiary(ctx, owner, op.fid, op.a, body)
+		}
+		return notImplemented(nil), nil
 	case "owner_requests":
 		return s.requestList(ctx, tx, op, query, owner)
 	case "owner_request":
@@ -307,9 +624,9 @@ func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall
 	case "autonomy_get":
 		return s.autonomyGet(ctx, tx, op, owner)
 	case "pending":
-		return s.pending(ctx, op, owner, false)
+		return s.pending(ctx, op, query, owner, false)
 	case "pending_count":
-		return s.pending(ctx, op, owner, true)
+		return s.pending(ctx, op, query, owner, true)
 	case "backups":
 		return notImplemented(nil), nil
 	case "backup_create", "backup_restore":
@@ -323,15 +640,12 @@ func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall
 		return s.diaryWrite(ctx, tx, op, owner, body)
 	case "wear", "item_use", "schedule_item":
 		return s.characterOrOwner(ctx, tx, op, owner, body)
-	case "photo":
-		if _, exists := body["expected_revision"]; exists {
-			return nil, &SurfaceError{Status: 422, Code: "photo_cannot_change_facts", Message: "A photo cannot change item facts"}
-		}
-		return withStatus(202, map[string]any{"available": false, "status": "not_implemented", "factual": false, "label": "生成图·非事实"}), nil
+	case "photo", "media_generate":
+		return s.ownerMediaRequest(ctx, tx, op, owner, body)
 	case "moment":
 		return s.publishMoment(ctx, tx, owner, body)
 	case "media_upload":
-		return notImplemented(nil), nil
+		return nil, &SurfaceError{Status: 415, Code: "media_upload_multipart_required", Message: "原始媒体上传需要通过已认证的multipart文件入口"}
 	case "group_delete":
 		return s.deleteGroup(ctx, tx, op, owner, body)
 	case "visual_identity":
@@ -350,7 +664,7 @@ func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall
 		return s.pack(ctx, tx, op, owner, body)
 	case "persona_switch":
 		return s.personaSwitch(ctx, tx, op, owner, body)
-	case "promise", "moment_suggestion", "memory_suggestion", "reflection_feedback":
+	case "promise", "moment_suggestion", "memory_suggestion", "reflection_feedback", "diary_reply":
 		return s.queueRequest(ctx, tx, op, owner, body)
 	default:
 		return nil, &SurfaceError{Status: 404, Code: "not_provided", Message: "This route is not provided"}
@@ -499,61 +813,35 @@ func (s *OwnerSurface) characterOrOwner(ctx context.Context, tx surfaceTx, op su
 		return nil, harmError()
 	}
 	kind := map[string]string{"wear": "wardrobe_wear", "item_use": "item_use", "schedule_item": "schedule_item_suggestion"}[op.name]
-	if body["confirm"] != true {
-		request, err := s.insertRequest(ctx, tx, owner, op.fid, kind, body)
-		if err != nil {
-			return nil, err
+	if body["confirm"] == true && op.name != "schedule_item" {
+		if strings.TrimSpace(stringValue(body["reason"])) == "" {
+			return nil, invalid("reason is required")
 		}
-		response := map[string]any{"request": request.Payload, "audit_id": request.Audit}
-		if op.name == "schedule_item" {
-			revision, revErr := tx.Revision(ctx, owner, op.fid, "schedule:"+op.a)
-			if revErr != nil {
-				return nil, revErr
-			}
-			response["schedule_revision"] = revision
-		}
-		return withStatus(202, response), nil
-	}
-	if strings.TrimSpace(stringValue(body["reason"])) == "" {
-		return nil, invalid("reason is required")
-	}
-	if op.name == "wear" || op.name == "item_use" {
 		return s.ownerWardrobeEdit(ctx, tx, op, owner, body)
 	}
-	if op.name != "schedule_item" {
-		return nil, &SurfaceError{Status: 404, Code: "not_provided", Message: "This route is not provided"}
-	}
-	if !validTimestamp(body["start_at"]) || !validTimestamp(body["end_at"]) || strings.TrimSpace(stringValue(body["activity"])) == "" {
-		return nil, invalid("schedule item fields are invalid")
-	}
-	revision, err := s.bump(ctx, tx, owner, op.fid, "schedule:"+op.a, body["expected_revision"])
-	if err != nil {
-		return nil, err
-	}
-	now := s.now()
+	// The route owns these identities. Keep them in the durable request; a
+	// later Worker cannot reconstruct a PUT/DELETE target from the body.
+	requestBody := cloneMap(body)
 	switch op.name {
+	case "item_use":
+		requestBody["item_id"] = op.a
 	case "schedule_item":
-		id := op.b
-		if id == "" {
-			id = randomID("sched_item_")
+		requestBody["schedule_id"], requestBody["item_id"] = op.a, op.b
+		operation := "create"
+		if op.b != "" {
+			operation = "update"
 		}
-		rec := surfaceRecord{ID: id, OwnerID: owner, FluctlightID: op.fid, Kind: "owner_schedule_item", ResourceKey: op.a + ":" + id, Status: "active", Revision: revision, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{"id": id, "schedule_id": op.a, "activity": stringValue(body["activity"]), "scene": nilIfEmpty(stringValue(body["scene"])), "location": nilIfEmpty(stringValue(body["location"])), "start_at": stringValue(body["start_at"]), "end_at": stringValue(body["end_at"]), "source": "owner_edit", "recorded_by": "owner"}}
 		if op.c == "delete" {
-			rec.Status = "deleted"
+			operation = "cancel"
 		}
-		if err := tx.Save(ctx, rec); err != nil {
-			return nil, err
-		}
+		requestBody["operation"] = operation
 	}
-	auditID, err := tx.Audit(ctx, owner, op.fid, "schedule_item", stringValue(body["reason"]), op.fid)
+	request, err := s.insertRequest(ctx, tx, owner, op.fid, kind, requestBody)
 	if err != nil {
 		return nil, err
 	}
-	response := map[string]any{"revision": revision, "audit_id": auditID, "status": "saved", "recorded_by": "owner", "actor": "owner", "identity": "owner_edit"}
-	if op.name == "schedule_item" {
-		response["schedule_revision"] = revision
-	}
-	return withStatus(200, response), nil
+	response := map[string]any{"request": request.Payload, "audit_id": request.Audit}
+	return withStatus(202, response), nil
 }
 
 func (s *OwnerSurface) ownerWardrobeEdit(ctx context.Context, tx surfaceTx, op surfaceCall, owner string, body map[string]any) (map[string]any, error) {
@@ -717,7 +1005,7 @@ func (s *OwnerSurface) writeResource(ctx context.Context, tx surfaceTx, op surfa
 		return nil, harmError()
 	}
 	kind := stringValue(body["kind"])
-	if op.a == "" && !validResourceKind(kind) {
+	if (op.a == "" || kind != "") && !validResourceKind(kind) {
 		return nil, invalid("kind is invalid")
 	}
 	name := strings.TrimSpace(stringValue(body["name"]))
@@ -748,10 +1036,13 @@ func (s *OwnerSurface) writeResource(ctx context.Context, tx surfaceTx, op surfa
 	if !ok || current.Kind != "studio_resource" {
 		return nil, &SurfaceError{Status: 404, Code: "studio_resource_not_found", Message: "Studio resource was not found"}
 	}
+	if err := activeStudioResource(current.Status); err != nil {
+		return nil, err
+	}
+
 	expected := strings.TrimSpace(stringValue(body["expected_version"]))
 	draft := stringValue(current.Payload["draft_version"])
-	published := stringValue(current.Payload["published_version"])
-	if expected == "" || (expected != draft && expected != published) {
+	if expected == "" || expected != draft {
 		return nil, &SurfaceError{Status: 409, Code: "revision_conflict", Message: "Studio resource version conflict", Details: map[string]any{"current_version": draft, "expected_version": expected, "current_revision": current.Revision, "expected_revision": expected, "resource": "studio_resource"}}
 	}
 	next := strconv.Itoa(current.Revision + 1)
@@ -782,6 +1073,7 @@ func (s *OwnerSurface) resourceView(record surfaceRecord, auditID string) map[st
 	view["id"] = record.ID
 	view["audit_id"] = auditID
 	view["revision"] = record.Revision
+	view["status"] = record.Status
 	if _, exists := view["referenced_by"]; !exists {
 		view["referenced_by"] = []any{}
 	}
@@ -896,6 +1188,10 @@ func (s *OwnerSurface) applyResource(ctx context.Context, tx surfaceTx, op surfa
 	if !ok || record.Kind != "studio_resource" {
 		return nil, &SurfaceError{Status: 404, Code: "studio_resource_not_found", Message: "Studio resource was not found"}
 	}
+	if err := activeStudioResource(record.Status); err != nil {
+		return nil, err
+	}
+
 	version := stringValue(body["resource_version"])
 	if version == "" || (version != stringValue(record.Payload["draft_version"]) && version != stringValue(record.Payload["published_version"])) {
 		return nil, &SurfaceError{Status: 409, Code: "revision_conflict", Message: "Studio resource version conflict", Details: map[string]any{"current_version": record.Payload["draft_version"], "expected_version": version, "resource": "studio_resource"}}
@@ -947,6 +1243,9 @@ func (s *OwnerSurface) applyResource(ctx context.Context, tx surfaceTx, op surfa
 }
 
 func (s *OwnerSurface) autonomyGet(ctx context.Context, tx surfaceTx, op surfaceCall, owner string) (map[string]any, error) {
+	if s.hooks.AutonomyPolicy != nil {
+		return s.hooks.AutonomyPolicy(ctx, owner, op.fid)
+	}
 	record, ok, err := tx.GetKey(ctx, owner, op.fid, "autonomy_policy", "current")
 	if err != nil {
 		return nil, err
@@ -961,6 +1260,9 @@ func (s *OwnerSurface) autonomyGet(ctx context.Context, tx surfaceTx, op surface
 }
 
 func (s *OwnerSurface) autonomyPut(ctx context.Context, tx surfaceTx, op surfaceCall, owner string, body map[string]any) (map[string]any, error) {
+	if s.hooks.UpdateAutonomyPolicy != nil {
+		return s.hooks.UpdateAutonomyPolicy(ctx, owner, op.fid, body)
+	}
 	if containsPermanentHarm(body) {
 		return nil, harmError()
 	}
@@ -1046,14 +1348,31 @@ func (s *OwnerSurface) personaSwitch(ctx context.Context, tx surfaceTx, op surfa
 	if strings.TrimSpace(stringValue(body["target_persona_id"])) == "" {
 		return nil, invalid("targetPersonaId is required")
 	}
-	if err := s.checkInstanceRevision(ctx, op.fid, owner, body["expected_revision"]); err != nil {
-		return nil, err
+	if s.hooks.ApplyPersonaSwitch == nil {
+		return nil, &SurfaceError{Status: 503, Code: "persona_switch_unavailable", Message: "Persona switch is not connected"}
 	}
-	request, err := s.insertRequest(ctx, tx, owner, op.fid, "persona_switch", body)
+	result, err := s.hooks.ApplyPersonaSwitch(ctx, owner, op.fid, body)
 	if err != nil {
 		return nil, err
 	}
-	return withStatus(202, map[string]any{"revision": request.Payload["revision"], "audit_id": request.Audit, "status": "pending", "request": request.Payload}), nil
+	now := s.now()
+	id := stringValue(result["request_id"])
+	auditID, err := tx.Audit(ctx, owner, op.fid, "persona_switch", stringValue(body["reason"]), id)
+	if err != nil {
+		return nil, err
+	}
+	result["audit_id"] = auditID
+	status := firstString(result["status"], "completed")
+	payload := map[string]any{"id": id, "kind": "persona_switch", "fluctlight_id": op.fid, "status": status, "payload": requestPayload(body), "decided_by": "owner", "decision_reason": body["reason"], "result": cloneMap(result), "result_refs": []any{auditID}, "created_at": now.Format(time.RFC3339Nano), "updated_at": now.Format(time.RFC3339Nano), "revision": 1}
+	if err := tx.Save(ctx, surfaceRecord{ID: id, OwnerID: owner, FluctlightID: op.fid, Kind: "owner_request", ResourceKey: id, Status: status, Revision: 1, CreatedAt: now, UpdatedAt: now, Payload: payload}); err != nil {
+		return nil, err
+	}
+	result["request"] = payload
+	code := 200
+	if status == "pending" {
+		code = 202
+	}
+	return withStatus(code, result), nil
 }
 
 func (s *OwnerSurface) queueRequest(ctx context.Context, tx surfaceTx, op surfaceCall, owner string, body map[string]any) (map[string]any, error) {
@@ -1074,12 +1393,27 @@ func (s *OwnerSurface) queueRequest(ctx context.Context, tx surfaceTx, op surfac
 		if momentAuthorForbidden(body) {
 			return nil, &SurfaceError{Status: 422, Code: "moment_author_forbidden", Message: "The owner cannot publish as a character"}
 		}
+		if text := strings.TrimSpace(stringValue(body["text"])); text == "" || len([]rune(text)) > 2000 {
+			return nil, invalid("text must contain 1–2000 characters")
+		}
+		if !eventKeys(body, "text", "media_ids", "idempotency_key") || len(stringList(body["media_ids"])) > 8 {
+			return nil, invalid("Invalid Moment suggestion fields")
+		}
+		if s.hooks.EnqueueLifeRequest == nil {
+			return nil, &SurfaceError{Status: 503, Code: "moment_suggestion_unavailable", Message: "动态建议处理服务尚未就绪"}
+		}
+	case "reflection_feedback", "diary_reply":
 		if strings.TrimSpace(stringValue(body["text"])) == "" {
 			return nil, invalid("text is required")
 		}
-	case "reflection_feedback":
-		if strings.TrimSpace(stringValue(body["text"])) == "" {
-			return nil, invalid("text is required")
+		if s.hooks.EnqueueFeedback == nil {
+			return nil, &SurfaceError{Status: 503, Code: "feedback_processing_unavailable", Message: "Feedback processing is unavailable"}
+		}
+		body = cloneMap(body)
+		if op.name == "diary_reply" {
+			body["diary_id"] = op.a
+		} else {
+			body["reflection_id"] = op.a
 		}
 	}
 	request, err := s.insertRequest(ctx, tx, owner, op.fid, kind, body)
@@ -1103,6 +1437,20 @@ func (s *OwnerSurface) insertRequest(ctx context.Context, tx surfaceTx, owner, f
 		"created_at": now.Format(time.RFC3339), "updated_at": now.Format(time.RFC3339), "revision": 1,
 	}
 	rec := surfaceRecord{ID: id, OwnerID: owner, FluctlightID: fid, Kind: "owner_request", ResourceKey: id, Status: "pending", Revision: 1, CreatedAt: now, UpdatedAt: now, Payload: payload}
+	if isOwnerLifeRequestKind(kind) && s.hooks.EnqueueLifeRequest != nil {
+		inbox, err := s.hooks.EnqueueLifeRequest(ctx, owner, fid, id, kind, mapValue(payload["payload"]))
+		if err != nil {
+			return queuedRequest{}, err
+		}
+		payload["source_fact_id"] = inbox
+	}
+	if kind == "reflection_feedback" || kind == "diary_reply" {
+		inbox, err := s.hooks.EnqueueFeedback(ctx, owner, fid, id, kind, mapValue(payload["payload"]))
+		if err != nil {
+			return queuedRequest{}, err
+		}
+		payload["source_fact_id"] = inbox
+	}
 	if err := tx.Save(ctx, rec); err != nil {
 		return queuedRequest{}, err
 	}
@@ -1121,7 +1469,17 @@ func (s *OwnerSurface) requestGet(ctx context.Context, tx surfaceTx, owner, id s
 	if !ok || record.Kind != "owner_request" {
 		return nil, &SurfaceError{Status: 404, Code: "owner_request_not_found", Message: "Owner request was not found"}
 	}
-	return cloneMap(record.Payload), nil
+	result := cloneMap(record.Payload)
+	if s.hooks.RequestTasks != nil {
+		tasks, err := s.hooks.RequestTasks(ctx, owner, record.FluctlightID, id, stringValue(record.Payload["source_fact_id"]))
+		if err != nil {
+			result["tasks_state"] = "failed"
+			result["tasks_error_code"] = "request_tasks_read_failed"
+		} else {
+			result["tasks_state"], result["tasks"] = "available", tasks
+		}
+	}
+	return result, nil
 }
 
 func (s *OwnerSurface) requestList(ctx context.Context, tx surfaceTx, op surfaceCall, query url.Values, owner string) (map[string]any, error) {
@@ -1145,7 +1503,10 @@ func (s *OwnerSurface) requestList(ctx context.Context, tx surfaceTx, op surface
 	return map[string]any{"items": items, "next_cursor": nextCursor}, nil
 }
 
-func (s *OwnerSurface) pending(ctx context.Context, op surfaceCall, owner string, countOnly bool) (map[string]any, error) {
+func (s *OwnerSurface) pending(ctx context.Context, op surfaceCall, query url.Values, owner string, countOnly bool) (map[string]any, error) {
+	if s.hooks.Pending != nil {
+		return s.hooks.Pending(ctx, owner, query, countOnly)
+	}
 	groups := make([]any, 0, 5)
 	count := 0
 	partial := false
@@ -1273,8 +1634,6 @@ func withStatus(status int, body map[string]any) map[string]any {
 func requestPayload(body map[string]any) map[string]any {
 	payload := cloneMap(body)
 	delete(payload, "idempotency_key")
-	delete(payload, "expected_revision")
-	delete(payload, "expected_life_context_revision")
 	return payload
 }
 
@@ -1347,7 +1706,7 @@ func containsPermanentHarm(value any) bool {
 
 func validResourceKind(kind string) bool {
 	switch kind {
-	case "character_template", "persona_fragment", "place", "item", "event_template", "visual_style":
+	case "character_template", "persona_fragment", "place", "item", "outfit", "event_template", "visual_style", "world", "npc":
 		return true
 	default:
 		return false
@@ -1455,6 +1814,72 @@ func surfaceParts(path string) []string {
 func matchSurface(method string, parts []string) (surfaceCall, bool) {
 	call := surfaceCall{success: 200, needsKey: method != "GET" && method != "HEAD"}
 	switch {
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "wearing-history" && method == "GET":
+		call.name, call.fid, call.read = "wearing_history", parts[1], true
+
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && method == "POST":
+		call.name, call.fid = "inventory_outfit_save", parts[1]
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && method == "PUT":
+		call.name, call.fid, call.a = "inventory_outfit_save", parts[1], parts[4]
+	case len(parts) == 6 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && parts[5] == "revisions" && method == "GET":
+		call.name, call.fid, call.a, call.read = "inventory_outfit_history", parts[1], parts[4], true
+
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && method == "GET":
+		call.name, call.fid, call.a, call.read = "inventory_outfit", parts[1], parts[4], true
+
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "requests" && method == "POST":
+		call.name, call.fid = "inventory_request", parts[1]
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && method == "GET":
+		call.name, call.fid, call.read = "inventory_outfits", parts[1], true
+
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "inventory" && method == "GET":
+		call.name, call.fid, call.read = "inventory_list", parts[1], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "items" && method == "POST":
+		call.name, call.fid, call.c = "inventory_command", parts[1], "add"
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "items" && (method == "GET" || method == "PUT" || method == "DELETE"):
+		call.fid, call.a = parts[1], parts[4]
+		call.name, call.read = "inventory_item", method == "GET"
+		if method != "GET" {
+			call.name, call.c = "inventory_command", "update"
+			if method == "DELETE" {
+				call.c = "archive"
+			}
+		}
+	case len(parts) == 6 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "items" && parts[5] == "history" && method == "GET":
+		call.name, call.fid, call.a, call.read = "inventory_history", parts[1], parts[4], true
+
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "visual-sessions" && parts[4] == "review" && method == "POST":
+		call.name, call.fid, call.a = "visual_manual_review", parts[1], parts[3]
+
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "visual-identity" && parts[3] == "timeline" && method == "GET":
+		call.name, call.fid, call.read = "visual_timeline", parts[1], true
+
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "visual-brief" && (method == "GET" || method == "PUT"):
+		call.name, call.fid, call.read = "visual_brief_read", parts[1], method == "GET"
+		if method == "PUT" {
+			call.name = "visual_brief_save"
+		}
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "visual-brief" && parts[3] == "history" && method == "GET":
+		call.name, call.fid, call.read = "visual_brief_history", parts[1], true
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "visual-identity" && method == "GET":
+		call.name, call.fid, call.read = "visual_identity_read", parts[1], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "visual-identity" && parts[3] == "generate" && method == "POST":
+		call.name, call.fid, call.success = "visual_identity_generate", parts[1], 202
+
+	case len(parts) >= 3 && parts[0] == "fluctlights" && (parts[2] == "foundation-revisions" || parts[2] == "capability-requests") && method == "GET" && (len(parts) == 3 || len(parts) == 4 || (len(parts) == 5 && parts[4] == "history")):
+		call.fid, call.read, call.c = parts[1], true, "foundation"
+		if parts[2] == "capability-requests" {
+			call.c = "capability"
+		}
+		call.name = "governance_catalog"
+		if len(parts) >= 4 {
+			call.name, call.a = "governance_object", parts[3]
+		}
+		if len(parts) == 5 {
+			call.name = "governance_history"
+		}
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "capability-requests" && parts[4] == "review" && method == "POST":
+		call.name, call.fid, call.a = "capability_review", parts[1], parts[3]
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "media" && method == "GET":
 		call.name, call.fid, call.read = "media_list", parts[1], true
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "sidebar" && method == "GET":
@@ -1463,6 +1888,26 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		call.name, call.fid, call.read = "nearby", parts[1], true
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "diary" && method == "GET":
 		call.name, call.fid, call.read = "diary_list", parts[1], true
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "self-claims" && method == "GET":
+		call.name, call.fid, call.read = "self_claims", parts[1], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "self-claims" && method == "GET":
+		call.name, call.fid, call.a, call.read = "self_claim", parts[1], parts[3], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "self-claims" && method == "GET" && (parts[4] == "revisions" || parts[4] == "reviews"):
+		call.name, call.fid, call.a, call.c, call.read = "self_history", parts[1], parts[3], parts[4], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "self-claims" && method == "POST" && (parts[4] == "review" || parts[4] == "forget" || parts[4] == "restore"):
+		call.name, call.fid, call.a, call.c = "self_command", parts[1], parts[3], parts[4]
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "shared-experiences" && method == "GET":
+		call.name, call.fid, call.read = "shared_experiences", parts[1], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "diary" && parts[3] == "generate" && method == "POST":
+		call.name, call.fid, call.success = "diary_generate", parts[1], 202
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "diary" && method == "GET":
+		call.name, call.fid, call.a, call.read = "diary_detail", parts[1], parts[3], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "diary" && parts[4] == "annotation" && method == "PUT":
+		call.name, call.fid, call.a = "diary_annotation", parts[1], parts[3]
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "diary" && parts[4] == "replies" && method == "GET":
+		call.name, call.fid, call.a, call.read = "diary_replies", parts[1], parts[3], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "diary" && parts[4] == "replies" && method == "POST":
+		call.name, call.fid, call.a, call.success = "diary_reply", parts[1], parts[3], 202
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "diary" && method == "POST":
 		call.name, call.fid, call.success = "diary_write", parts[1], 201
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "diary" && method == "PUT":
@@ -1483,6 +1928,14 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		call.name, call.fid, call.read = "desires", parts[1], true
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "owner-requests" && method == "GET":
 		call.name, call.fid, call.read = "owner_requests", parts[1], true
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "promises" && method == "GET":
+		call.name, call.fid, call.read = "promises", parts[1], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "promises" && method == "GET":
+		call.name, call.fid, call.a, call.read = "promise_detail", parts[1], parts[3], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "promises" && parts[4] == "history" && method == "GET":
+		call.name, call.fid, call.a, call.read = "promise_history", parts[1], parts[3], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "promises" && (parts[4] == "cancel" || parts[4] == "reschedule" || parts[4] == "retry") && method == "POST":
+		call.name, call.fid, call.a, call.b = "promise_command", parts[1], parts[3], parts[4]
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "promises" && method == "POST":
 		call.name, call.fid, call.success = "promise", parts[1], 202
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "moment-suggestions" && method == "POST":
@@ -1495,6 +1948,8 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		call.name, call.fid, call.success = "wear", parts[1], 202
 	case len(parts) == 6 && parts[0] == "fluctlights" && parts[2] == "wardrobe" && parts[3] == "items" && parts[5] == "use" && method == "POST":
 		call.name, call.fid, call.a, call.success = "item_use", parts[1], parts[4], 202
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "media-generations" && method == "POST":
+		call.name, call.fid, call.success = "media_generate", parts[1], 202
 	case len(parts) == 6 && parts[0] == "fluctlights" && parts[2] == "wardrobe" && parts[3] == "items" && parts[5] == "photos" && method == "POST":
 		call.name, call.fid, call.a, call.success = "photo", parts[1], parts[4], 202
 	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "schedules" && parts[4] == "items" && method == "POST":
@@ -1504,6 +1959,10 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		if method == "DELETE" {
 			call.c = "delete"
 		}
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "reflections" && method == "GET":
+		call.name, call.fid, call.read = "reflection_catalog", parts[1], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "reflections" && parts[4] == "feedback" && method == "GET":
+		call.name, call.fid, call.a, call.read = "reflection_feedbacks", parts[1], parts[3], true
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "reflections" && method == "GET":
 		call.name, call.fid, call.a, call.read = "reflection", parts[1], parts[3], true
 	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "reflections" && parts[4] == "feedback" && method == "POST":
@@ -1512,6 +1971,8 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		call.name, call.read, call.needsKey = "notifications", true, false
 	case len(parts) == 2 && parts[0] == "notifications" && parts[1] == "unread-count" && method == "GET":
 		call.name, call.read, call.needsKey = "unread_count", true, false
+	case len(parts) == 2 && parts[0] == "notifications" && parts[1] == "read-all" && method == "POST":
+		call.name = "notification_read_all"
 	case len(parts) == 3 && parts[0] == "notifications" && parts[2] == "read" && method == "POST":
 		call.name, call.a = "notification_read", parts[1]
 	case len(parts) == 1 && parts[0] == "pending" && method == "GET":

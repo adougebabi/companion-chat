@@ -102,7 +102,7 @@ func (b *browserBackend) Media(ctx context.Context, session, assetID, rangeHeade
 	return nil
 }
 
-func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session string, body any) (any, error) {
+func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session string, body any) (operationResult any, operationErr error) {
 	parsed, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, browserBackendError(err, "core_request_invalid")
@@ -152,6 +152,60 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	actorID, err := b.resolveActor(ctx, session)
 	if err != nil {
 		return nil, err
+	}
+	defer func() {
+		if operationErr == nil {
+			return
+		}
+		code := ""
+		var e *browser.CoreError
+		var surface *core.SurfaceError
+		if errors.As(operationErr, &e) {
+			code = e.Code
+		} else if errors.As(operationErr, &surface) {
+			code = surface.Code
+		}
+		if code == "permanent_harm_forbidden" {
+			b.server.app.ObserveOwnerHarmRejection(ctx, actorID, method, path, firstString(values["idempotency_key"], stringValue(values["idempotencyKey"])))
+		}
+	}()
+	if value, matched, memoryErr := b.memoryCommand(ctx, method, path, parsed.Query(), actorID, values); matched {
+		return value, memoryErr
+	}
+	if value, matched, conversationErr := b.conversationCommand(ctx, method, path, parsed.Query(), actorID, values); matched {
+		if conversationErr != nil {
+			if errors.Is(conversationErr, core.ErrConversationInvalid) {
+				return nil, &browser.CoreError{Status: 400, Code: "conversation_request_invalid", Message: "Invalid conversation request"}
+			}
+			if errors.Is(conversationErr, core.ErrConflict) {
+				return nil, &browser.CoreError{Status: 409, Code: "conversation_command_conflict", Message: "Conversation command conflicts with an earlier request"}
+			}
+			return nil, browserBackendError(conversationErr, "conversation_operation_failed")
+		}
+		return value, nil
+	}
+	if core.MatchStudioJobSurface(method, path) {
+		result, err := b.server.app.DispatchStudioJobSurface(ctx, method, path, parsed.Query(), actorID, values)
+		return result, surfaceCoreError(err)
+	}
+	if core.MatchOwnerMediaSurface(method, path) {
+		if b.server.app == nil {
+			return nil, &browser.CoreError{Status: 503, Code: "media_service_unavailable", Message: "媒体服务尚未就绪"}
+		}
+		query := parsed.Query()
+		if fid := query.Get("fluctlightId"); fid != "" {
+			if query.Get("fluctlight_id") != "" {
+				return nil, browserBackendError(core.ErrInvalidArguments, "media_query_invalid")
+			}
+			query.Set("fluctlight_id", fid)
+			query.Del("fluctlightId")
+		}
+		result, err := b.server.app.DispatchOwnerMediaSurface(ctx, method, path, query, actorID, values)
+		return result, browserBackendError(err, "media_operation_failed")
+	}
+	if core.MatchWorldSurface(method, path) {
+		result, worldErr := b.server.app.DispatchWorldSurface(ctx, method, path, parsed.Query(), actorID, values)
+		return result, surfaceCoreError(worldErr)
 	}
 	if core.MatchOwnerSurface(method, path) {
 		if b.server.app == nil {
@@ -279,7 +333,19 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		}
 		return jsonMap(item)
 	case path == "/internal/fluctlight-creations/analysis":
-		return b.server.app.AnalyzeDescription(ctx, actorID, stringValue(values["description"]))
+		if values["resource_id"] != nil {
+			value, err := b.server.app.AnalyzePublishedCharacterTemplate(ctx, actorID, stringValue(values["resource_id"]), stringValue(values["resource_version"]))
+			if err != nil {
+				var surface *core.SurfaceError
+				if errors.As(err, &surface) {
+					return nil, surfaceCoreError(err)
+				}
+				return nil, browserInitializationAnalysisError(err)
+			}
+			return value, nil
+		}
+		result, analysisErr := b.server.app.AnalyzeDescription(ctx, actorID, stringValue(values["description"]))
+		return result, browserInitializationAnalysisError(analysisErr)
 	case path == "/internal/fluctlight-creations/activate":
 		return b.activate(ctx, actorID, values)
 	case strings.HasSuffix(path, "/developing-self") && method == http.MethodGet:
@@ -298,12 +364,17 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		return map[string]any{"claims": claims, "revisions": revisions}, nil
 	case strings.Contains(path, "/developing-self/"):
 		parts := splitInternalPath(path)
+		if _, scopeErr := b.server.app.OwnerSelfClaim(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4)); scopeErr != nil {
+			return nil, surfaceCoreError(scopeErr)
+		}
 		action := pathPart(parts, 5)
 		expected := intValue(values["expected_revision"])
 		if action == "rollback" {
-			return b.server.app.RollbackDevelopingSelfClaim(ctx, actorID, pathPart(parts, 4), expected, stringValue(values["reason"]))
+			value, err := b.server.app.RollbackDevelopingSelfClaim(ctx, actorID, pathPart(parts, 4), expected, stringValue(values["reason"]))
+			return value, ownerVersionError(err, "self_claim_revision_conflict")
 		}
-		return b.server.app.ForgetDevelopingSelfClaim(ctx, actorID, pathPart(parts, 4), expected, stringValue(values["reason"]))
+		value, err := b.server.app.ForgetDevelopingSelfClaim(ctx, actorID, pathPart(parts, 4), expected, stringValue(values["reason"]))
+		return value, ownerVersionError(err, "self_claim_revision_conflict")
 	case strings.HasSuffix(path, "/conversation") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		conversationID, convErr := b.server.repository.DirectConversationID(ctx, actorID, pathPart(parts, 2))
@@ -393,7 +464,7 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		return b.server.app.ListCapabilityRequests(ctx, actorID)
 	case strings.HasPrefix(path, "/internal/capability-requests/"):
 		parts := splitInternalPath(path)
-		return b.server.app.ReviewCapabilityRequest(ctx, actorID, pathPart(parts, 2), stringValue(values["status"]), stringValue(values["note"]), stringValue(values["capability_version"]))
+		return b.server.app.ReviewCapabilityRequest(ctx, actorID, pathPart(parts, 2), stringValue(values["status"]), stringValue(values["note"]), stringValue(values["capability_version"]), values)
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/status"):
 		parts := splitInternalPath(path)
 		return b.server.app.SetFluctlightStatus(ctx, actorID, pathPart(parts, 2), stringValue(values["status"]), stringValue(values["reason"]), intPtr(values["expected_revision"]))
@@ -402,13 +473,16 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		return b.server.app.RetireFluctlight(ctx, actorID, pathPart(parts, 2), stringValue(values["reason"]), intPtr(values["expected_revision"]))
 	case strings.HasSuffix(path, "/foundation-revisions") && method == http.MethodPost:
 		parts := splitInternalPath(path)
-		return b.server.app.ProposeFoundation(ctx, actorID, pathPart(parts, 2), values)
+		value, err := b.server.app.ProposeFoundation(ctx, actorID, pathPart(parts, 2), values)
+		return value, ownerVersionError(err, "foundation_revision_conflict")
 	case strings.Contains(path, "/foundation-revisions/") && (strings.HasSuffix(path, "/accept") || strings.HasSuffix(path, "/reject")):
 		parts := splitInternalPath(path)
-		return b.server.app.SetFoundationDecisionExpected(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), pathPart(parts, 5), stringValue(values["reason"]), intPtr(values["expected_revision"]))
+		value, err := b.server.app.SetFoundationDecisionExpected(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), pathPart(parts, 5), stringValue(values["reason"]), intPtr(values["expected_revision"]))
+		return value, ownerVersionError(err, "foundation_revision_conflict")
 	case strings.HasSuffix(path, "/foundation-revisions/rollback"):
 		parts := splitInternalPath(path)
-		return b.server.app.RollbackFoundation(ctx, actorID, pathPart(parts, 2), values)
+		value, err := b.server.app.RollbackFoundation(ctx, actorID, pathPart(parts, 2), values)
+		return value, ownerVersionError(err, "foundation_revision_conflict")
 	case strings.HasPrefix(path, "/internal/memories/") && method == http.MethodPut:
 		parts := splitInternalPath(path)
 		return b.server.app.ReviseMemory(ctx, actorID, pathPart(parts, 2), stringValue(values["content"]), intPtr(values["expected_revision"]), arrayValue(values["evidence_refs"]))
@@ -471,7 +545,7 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.HasSuffix(path, "/read") && strings.Contains(path, "/internal/conversations/"):
 		parts := splitInternalPath(path)
 		err = b.server.app.MarkRead(ctx, actorID, pathPart(parts, 2), values)
-	case strings.HasSuffix(path, "/history"):
+	case strings.HasPrefix(path, "/internal/conversations/") && strings.HasSuffix(path, "/history"):
 		parts := splitInternalPath(path)
 		before := intPtrFromQuery(parsed.Query().Get("before_sequence"))
 		if before == nil {
@@ -565,9 +639,26 @@ func (b *browserBackend) activate(ctx context.Context, actorID string, body map[
 	return map[string]any{"id": item.ID, "core_persona": item.CorePersona, "identity": item.Identity, "personality": item.Personality, "behavioral_policy": item.BehavioralPolicy, "life_profile": item.LifeProfile, "provenance": item.Provenance, "status": item.Status, "current_revision": item.CurrentRevision}, nil
 }
 
+func browserInitializationAnalysisError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var detailed interface{ PublicDetails() map[string]any }
+	if errors.As(err, &detailed) {
+		// Core's initialization error exposes only a stable code and bounded
+		// public metadata. Do not forward a raw Provider/DB error message.
+		return &browser.CoreError{Status: initializationAnalysisFailureStatus(err), Code: err.Error(), Details: detailed.PublicDetails()}
+	}
+	return err
+}
+
 func browserBackendError(err error, fallback string) error {
 	if err == nil {
 		return nil
+	}
+	var surfaceErr *core.SurfaceError
+	if errors.As(err, &surfaceErr) {
+		return &browser.CoreError{Status: surfaceErr.Status, Code: surfaceErr.Code, Message: surfaceErr.Message, Details: surfaceErr.Details, Replay: surfaceErr.Replay}
 	}
 	slog.Default().Error("browserBackend error", "err", err, "error_type", fmt.Sprintf("%T", err), "fallback", fallback)
 	status := http.StatusBadGateway
@@ -710,12 +801,30 @@ func lifecycleFilter(query url.Values) core.LifecycleDiagnosticsFilter {
 }
 
 func surfaceCoreError(err error) error {
+	return browserBackendError(err, "surface_failed")
+}
+
+func ownerVersionError(err error, conflictCode string) error {
 	if err == nil {
 		return nil
 	}
 	var surfaceErr *core.SurfaceError
 	if errors.As(err, &surfaceErr) {
-		return &browser.CoreError{Status: surfaceErr.Status, Code: surfaceErr.Code, Message: surfaceErr.Message, Details: surfaceErr.Details, Replay: surfaceErr.Replay}
+		return surfaceCoreError(err)
 	}
-	return browserBackendError(err, "surface_failed")
+	if errors.Is(err, core.ErrConflict) {
+		return &browser.CoreError{Status: 409, Code: conflictCode, Message: "对象版本已变化，请保留草稿并核对最新内容"}
+	}
+	if errors.Is(err, core.ErrNotFound) {
+		return &browser.CoreError{Status: 404, Code: "owner_object_not_found", Message: "对象不存在或不属于当前范围"}
+	}
+	return err
+}
+
+func (b *browserBackend) ExportDiagnostics(ctx context.Context, session string, q url.Values, w http.ResponseWriter) error {
+	actor, err := b.resolveActor(ctx, session)
+	if err != nil {
+		return err
+	}
+	return browserBackendError(b.server.app.ExportOwnerDiagnostics(ctx, actor, q, w), "diagnostic_export_failed")
 }

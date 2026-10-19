@@ -62,6 +62,13 @@ func (a *App) withMomentWriterRun(ctx context.Context, scope ToolExecutionReques
 	if run.Settings.Mode != "fact_only" {
 		return ctx, nil
 	}
+	if scope.TargetKind == "owner_moment_request" {
+		var err error
+		run.CurrentInput, err = a.ownerMomentWriterInput(ctx, scope)
+		if err != nil {
+			return ctx, err
+		}
+	}
 	service := &factOnlyMomentService{app: a, run: run, candidates: map[string]momentWriterCandidate{}}
 	view, err := capabilityRegistryView(registry, factOnlyMomentCapability{service: service})
 	if err != nil {
@@ -163,13 +170,13 @@ func (c factOnlyMomentCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx
 	if _, err := c.service.app.requireLifeContextRevisionTx(ctx, tx, target.FluctlightID, draft.LifeRevision, c.service.app.now().UTC()); err != nil {
 		return failedCapabilityResult(inv, "moment_context_stale", false), err
 	}
-	resource, err := NewToolPublicationService(c.service.app).PublishMomentTx(ctx, tx, MomentPublication{FluctlightID: target.FluctlightID, OperationID: capabilityOperationID(inv), CorrelationID: inv.Metadata.CorrelationID, Text: draft.Text})
+	resource, err := c.service.app.publishInvocationMomentTx(ctx, tx, inv, target, draft.Text)
 	if err != nil {
 		code, retryable := publicationCapabilityError(err, "moment_publication_failed")
 		return failedCapabilityResult(inv, code, retryable), newCapabilityError(code, retryable, err)
 	}
 	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", ProviderRequestID: inv.ProviderRequestID, CorrelationID: "moment:" + resource.ID,
-		Output: map[string]any{"text": draft.Text, "target_kind": "moment", "target_ref": resource.ID, "replayed": resource.Replayed}}, nil
+		Output: map[string]any{"text": resource.Text, "target_kind": "moment", "target_ref": resource.ID, "replayed": resource.Replayed}}, nil
 }
 
 func momentWriterRequestDigest(inv CapabilityInvocation) string {

@@ -1,8 +1,47 @@
+import {placeDefaultSchemas,placeDefaultPaths} from '../../browser-client/scripts/place-default-contract.mjs';
+import {dataToolsSchemas,dataToolsPaths} from '../../browser-client/scripts/data-tools-contract.mjs';
+import {diagnosticRecordSchemas,diagnosticRecordPaths} from '../../browser-client/scripts/diagnostic-record-contract.mjs';
+import {configurationSchemas,configurationPaths} from '../../browser-client/scripts/configuration-contract.mjs';
+import {momentSchemas,momentPaths} from '../../browser-client/scripts/moment-contract.mjs';
+import {mediaLibrarySchemas,mediaLibraryPaths} from '../../browser-client/scripts/media-library-contract.mjs';
+import {worldItemSchemas,worldItemPaths} from '../../browser-client/scripts/world-item-contract.mjs';
+import {studioCatalogSchemas,studioCatalogPaths} from '../../browser-client/scripts/studio-catalog-contract.mjs';
+import {studioJobSchemas,studioJobPaths} from "../../browser-client/scripts/studio-job-contract.mjs";
+import {worldEventSchemas,worldEventPaths} from "../../browser-client/scripts/world-event-contract.mjs";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import {operationsSchemas,operationsPaths} from '../../browser-client/scripts/operations-contract.mjs';
+import {diarySchemas,diaryPaths} from '../../browser-client/scripts/diary-contract.mjs';
+import {governanceSchemas,governancePaths} from "../../browser-client/scripts/governance-contract.mjs";
+import {visualBriefSchemas,visualBriefPaths} from "../../browser-client/scripts/visual-brief-contract.mjs";
+import {npcRuntimeSchemas,npcRuntimePaths} from "../../browser-client/scripts/npc-runtime-contract.mjs";
+import {worldSchemas} from "../../browser-client/scripts/world-contract.mjs";
+import {promiseSchemas,promisePaths} from "../../browser-client/scripts/promise-contract.mjs";
+import {inventorySchemas,inventoryPaths} from "../../browser-client/scripts/inventory-contract.mjs";
+import {selfSchemas,selfPaths} from '../../browser-client/scripts/self-contract.mjs';
 
 const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
+schema.components.schemas.DiagnosticModelRunResponse.properties.parent_run_id={type:'string'};
+const snake=value=>value.replace(/[A-Z]/g,ch=>'_'+ch.toLowerCase());
+const coreShape=(value,request=false)=>{
+ if(Array.isArray(value))return value.map(v=>coreShape(v,request));
+ if(!value||typeof value!=='object')return typeof value==='string'&&value.startsWith('#/components/schemas/Browser')?value.replace('/Browser','/Core'):value;
+ return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,key==='properties'&&request?Object.fromEntries(Object.entries(v).map(([field,shape])=>[snake(field),coreShape(shape,request)])):key==='required'&&request?v.map(snake):coreShape(v,request)]));
+};
+const deliverySchemas={...placeDefaultSchemas,...dataToolsSchemas,...diagnosticRecordSchemas,...configurationSchemas,...momentSchemas,...mediaLibrarySchemas,...worldItemSchemas,...studioCatalogSchemas,...operationsSchemas,...diarySchemas,...selfSchemas,...governanceSchemas,...visualBriefSchemas,...inventorySchemas,...promiseSchemas,...npcRuntimeSchemas,...worldEventSchemas,...studioJobSchemas, BrowserRuntimeNPC:worldSchemas.BrowserRuntimeNPC,BrowserNPCRoutineSlot:worldSchemas.BrowserNPCRoutineSlot,BrowserNearbyActors:worldSchemas.BrowserNearbyActors};
+for(const [name,value]of Object.entries(deliverySchemas))schema.components.schemas[name.replace(/^Browser/,'Core')]=coreShape(value,name.endsWith('Body')||name.endsWith('Request')||name==='BrowserConfigurationWrite'||name==='BrowserConfigurationSaved');
+for(const [path,methods]of Object.entries({...placeDefaultPaths,...dataToolsPaths,...diagnosticRecordPaths,...configurationPaths,...momentPaths,...mediaLibraryPaths,...worldItemPaths,...studioCatalogPaths,...operationsPaths,...diaryPaths,...selfPaths,...governancePaths,...visualBriefPaths,...inventoryPaths,...promisePaths,...npcRuntimePaths,...worldEventPaths,...studioJobPaths})){
+ const nativePath=path.replace('/api/','/internal/').replace(/\{([^}]+)\}/g,(_,name)=>'{'+snake(name)+'}');
+ schema.paths[nativePath]={...schema.paths[nativePath],...coreShape(methods)};
+ for(const operation of Object.values(schema.paths[nativePath]))if(operation.parameters)for(const parameter of operation.parameters)parameter.name=snake(parameter.name);
+ for(const operation of Object.values(schema.paths[nativePath]))for(const [status,response]of Object.entries(operation.responses||{}))if(Number(status)>=400&&response.content?.['application/json'])response.content['application/json'].schema={$ref:'#/components/schemas/CoreGoalError'};
+}
+schema.paths['/internal/fluctlight-creations/analysis'].post.requestBody={required:true,content:{'application/json':{schema:{$ref:'#/components/schemas/CoreFluctlightCreationAnalysisRequest'}}}};
+schema.components.schemas.CoreOwnerRequest.properties.status.enum=['pending','processing','accepted','rejected','deferred','awaiting_goal','cancelled','failed','completed'];
+Object.assign(schema.components.schemas.CoreOwnerRequest.properties,{tasks_state:{type:'string',enum:['available','failed']},tasks:{type:'array',items:{$ref:'#/components/schemas/CoreRequestTask'}},tasks_error_code:{type:'string'}});
+schema.paths['/internal/owner-requests/{request_id}']={get:{operationId:'readOwnerRequest',responses:{200:{description:'Authorized request state and actual workflow pointers',content:{'application/json':{schema:{$ref:'#/components/schemas/CoreOwnerRequest'}}}}}}};
+await writeFile(new URL('openapi.json',root),JSON.stringify(schema,null,2)+'\n');
 const operations = Object.keys(schema.paths).sort();
 const goalSchemaType = (value) => {
   if (value?.$ref) return value.$ref.split("/").pop();
@@ -22,7 +61,7 @@ const goalSchemaType = (value) => {
   }
   return "unknown";
 };
-const goalTypes = ["CoreGoalSet","CoreGoalSetCommand","CoreActorContext","CoreActorContextUpdate","CoreGoal", "CoreGoalPage", "CoreGoalRecordPage", "CoreGoalOwnerCommand", "CoreGoalCommandResult"].map(name => {
+const goalTypes = [...Object.keys(deliverySchemas).map(name=>name.replace(/^Browser/,'Core')),"CoreOwnerRequest","CoreGoalSet","CoreGoalSetCommand","CoreActorContext","CoreActorContextUpdate","CoreGoal", "CoreGoalPage", "CoreGoalRecordPage", "CoreGoalOwnerCommand", "CoreGoalCommandResult"].map(name => {
   if (!schema.components.schemas[name]) throw new Error(`Missing Goal schema ${name}`);
   return `export type ${name} = ${goalSchemaType(schema.components.schemas[name])};`;
 }).join("\n");
@@ -34,7 +73,7 @@ export type CoreHealth = { status: string; role: string };
 export type CoreSession = { authenticated: boolean; actorId?: string };
 export type CoreSetupStatus = { setupAvailable: boolean };
 export type CoreAuthenticatedSession = CoreSession & { sessionToken: string };
-export type CoreSafeSettings = { values: Record<string, unknown>; configuredSecrets: string[] };
+export type CoreSafeSettings = { values: Record<string, unknown>; configuredSecrets: string[]; versions: Record<string,number>; command?:Record<string,unknown> };
 export type CoreProviderPreflight = { role: string; available: boolean; capability_version?: string };
 export type CoreProviderModels = { endpoint_id: string; models: string[] };
 export type CoreConversation = { id: string; created_by_actor_id: string; title?: string | null; revision: number; created_at: string; updated_at: string };
@@ -45,10 +84,10 @@ export type CoreConversationCreate = { title?: string; participant_actor_ids: st
 export type CoreConversationTurn = { text: string; fluctlight_id: string; attachment_refs?: string[]; idempotency_key: string; turn_id?: string };
 export type CoreFluctlight = { id: string; identity: Record<string, unknown>; status: string };
 export type CoreDiagnosticEvent = { id: string; event_type: string; severity: string; fluctlight_id?: string | null; causation_id?: string | null; correlation_id: string; payload: Record<string, unknown>; created_at?: string | null };
-export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: unknown; response?: unknown; status: string; goal_evaluation?: Record<string,unknown>; error_code?: string | null; correlation_id: string; created_at: string };
+export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: unknown; response?: unknown; status: string; goal_evaluation?: Record<string,unknown>; parent_run_id?:string; error_code?: string | null; correlation_id: string; created_at: string };
 export type CoreDiagnosticRunPage<T> = {items:T[];next_cursor:string;snapshot:string};
 export type CoreDiagnosticAgentRun = { fluctlight_id: string; agent_id: string; run_id: string; correlation_id: string; association_status: "linked" | "unknown"; status: string; source?: "agent_runs" | "termination_event"; failure_stage?: string; failure_code?: string; safe_cause?: string; started_at: string; finished_at?: string };
-export type CoreActorUserSettings = { background: {name?: string | null; occupation?: string | null; background?: string | null; location_scope?: string | null; location?: string | null; timezone?: string | null; relationship_distance?: string | null; meeting_confirmed?: boolean | null} };
+export type CoreActorUserSettings = { background: CoreActorContext["background"] };
 export type CoreActorUserBackgroundUpdate = { background: CoreActorUserSettings["background"]; operation: "correct" | "change"; reason: string; expected_current_facts_revision: string; idempotency_key: string };
 export type CoreFluctlightCreationAnalysis = { analysis_id: string; correlation_id: string; schema_version: number; core_persona: Record<string, unknown>; actor_user?: CoreActorUserSettings; developing_self: Record<string, unknown>; extensions: Record<string, unknown>; initial_goals: Array<Record<string, unknown>>; initial_intentions: Array<Record<string, unknown>>; initial_relationships: Array<Record<string, unknown>> };
 export type CoreFluctlightActivationRequest = { request_id: string; initialization_mode: "blank_slate" | "llm_defined"; analysis_id?: string; schema_version?: number; name?: string | null; core_persona?: Record<string, unknown>; actor_user?: CoreActorUserSettings; developing_self?: Record<string, unknown>; extensions?: Record<string, unknown>; initial_goals?: Array<Record<string, unknown>>; initial_intentions?: Array<Record<string, unknown>>; initial_relationships?: Array<Record<string, unknown>> };
@@ -174,6 +213,15 @@ export class CoreClient {
   async markFluctlightMomentsRead(humanSession: string, fluctlightId: string): Promise<void> { await this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/moments/read\`, humanSession, "POST", {}); }
   async reviseMemory(humanSession: string, memoryId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/memories/\${encodeURIComponent(memoryId)}\`, humanSession, "PUT", body) as Promise<Record<string, unknown>>; }
   async forgetMemory(humanSession: string, memoryId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/memories/\${encodeURIComponent(memoryId)}/forget\`, humanSession, "POST", body) as Promise<Record<string, unknown>>; }
+  async managedMemories(humanSession: string, fluctlightId: string, options: {q?:string;type?:string;status?:string;cursor?:string;limit?:number} = {}): Promise<Record<string,unknown>> { const query=new URLSearchParams(Object.entries(options).filter(([,v])=>v!==undefined).map(([k,v])=>[k,String(v)]));return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/memories?\${query}\`,humanSession,"GET") as Promise<Record<string,unknown>>; }
+  async managedMemory(humanSession: string, memoryId: string): Promise<Record<string,unknown>> {return this.json(\`/internal/memories/\${encodeURIComponent(memoryId)}\`,humanSession,"GET") as Promise<Record<string,unknown>>;}
+  async memoryRevisions(humanSession: string, memoryId: string, cursor = ""): Promise<Record<string,unknown>> {return this.json(\`/internal/memories/\${encodeURIComponent(memoryId)}/revisions?cursor=\${encodeURIComponent(cursor)}\`,humanSession,"GET") as Promise<Record<string,unknown>>;}
+  async memorySources(humanSession: string, memoryId: string, revision: number, cursor = ""): Promise<Record<string,unknown>> {return this.json(\`/internal/memories/\${encodeURIComponent(memoryId)}/sources?revision=\${revision}&cursor=\${encodeURIComponent(cursor)}\`,humanSession,"GET") as Promise<Record<string,unknown>>;}
+  async rollbackMemory(humanSession: string, memoryId: string, body: object): Promise<Record<string,unknown>> {return this.json(\`/internal/memories/\${encodeURIComponent(memoryId)}/rollback\`,humanSession,"POST",body) as Promise<Record<string,unknown>>;}
+  async reflections(humanSession:string,fluctlightId:string,cursor=""):Promise<Record<string,unknown>>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/reflections?cursor=\${encodeURIComponent(cursor)}\`,humanSession,"GET") as Promise<Record<string,unknown>>;}
+  async reflection(humanSession:string,fluctlightId:string,reflectionId:string):Promise<Record<string,unknown>>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/reflections/\${encodeURIComponent(reflectionId)}\`,humanSession,"GET") as Promise<Record<string,unknown>>;}
+  async reflectionFeedback(humanSession:string,fluctlightId:string,reflectionId:string,cursor=""):Promise<Record<string,unknown>>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/reflections/\${encodeURIComponent(reflectionId)}/feedback?cursor=\${encodeURIComponent(cursor)}\`,humanSession,"GET") as Promise<Record<string,unknown>>;}
+  async submitReflectionFeedback(humanSession:string,fluctlightId:string,reflectionId:string,body:{text:string;stance?:"agree"|"disagree";idempotency_key:string}):Promise<Record<string,unknown>>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/reflections/\${encodeURIComponent(reflectionId)}/feedback\`,humanSession,"POST",body) as Promise<Record<string,unknown>>;}
   async rollbackRelationship(humanSession: string, fluctlightId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/relationships/rollback\`, humanSession, "POST", body) as Promise<Record<string, unknown>>; }
   async listAutonomyActions(humanSession: string, fluctlightId: string): Promise<Array<Record<string, unknown>>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/autonomy-actions\`, humanSession, "GET") as Promise<Array<Record<string, unknown>>>; }
   async governAutonomyAction(humanSession: string, actionId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/autonomy-actions/\${encodeURIComponent(actionId)}/govern\`, humanSession, "POST", body) as Promise<Record<string, unknown>>; }
@@ -191,6 +239,17 @@ export class CoreClient {
   async commentOnMoment(humanSession: string, momentId: string, text: string): Promise<Record<string, unknown>> { return this.json(\`/internal/moments/\${encodeURIComponent(momentId)}/comments\`, humanSession, "POST", { text }) as Promise<Record<string, unknown>>; }
   async reactToMoment(humanSession: string, momentId: string, kind: string): Promise<Record<string, unknown>> { return this.json(\`/internal/moments/\${encodeURIComponent(momentId)}/reactions\`, humanSession, "POST", { kind }) as Promise<Record<string, unknown>>; }
   async setMomentStatus(humanSession: string, momentId: string, action: "hide" | "restore"): Promise<void> { await this.json(\`/internal/moments/\${encodeURIComponent(momentId)}/\${action}\`, humanSession, "POST", {}); }
+  async conversationDirectory(humanSession: string, fluctlightId: string, options: {limit?:number;cursor?:string}={}): Promise<{items:Array<{conversation:CoreConversation;unread_count:number;last_read_sequence:number;last_delivered_sequence:number;last_message?:CoreMessage}>;current_conversation_id:string;next_cursor:string}> {
+    const query=new URLSearchParams({limit:String(options.limit??50)});if(options.cursor)query.set("cursor",options.cursor);
+    return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/conversations?\${query}\`,humanSession,"GET") as Promise<{items:Array<{conversation:CoreConversation;unread_count:number;last_read_sequence:number;last_delivered_sequence:number;last_message?:CoreMessage}>;current_conversation_id:string;next_cursor:string}>;
+  }
+  async newDirectConversation(humanSession:string,fluctlightId:string,body:{idempotency_key:string;title?:string}):Promise<CoreConversationPage>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/conversations\`,humanSession,"POST",body) as Promise<CoreConversationPage>;}
+  async selectDirectConversation(humanSession:string,fluctlightId:string,conversationId:string):Promise<CoreConversationPage>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/conversations/\${encodeURIComponent(conversationId)}/select\`,humanSession,"POST",{}) as Promise<CoreConversationPage>;}
+  async searchConversationMessages(humanSession:string,fluctlightId:string,q:string,options:{limit?:number;cursor?:string}={}):Promise<{items:CoreMessage[];next_cursor:string}>{
+    const query=new URLSearchParams({q,limit:String(options.limit??50)});if(options.cursor)query.set("cursor",options.cursor);
+    return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/messages/search?\${query}\`,humanSession,"GET") as Promise<{items:CoreMessage[];next_cursor:string}>;
+  }
+  async conversationMessage(humanSession:string,conversationId:string,messageId:string):Promise<CoreMessage>{return this.json(\`/internal/conversations/\${encodeURIComponent(conversationId)}/messages/\${encodeURIComponent(messageId)}\`,humanSession,"GET") as Promise<CoreMessage>;}
   async fluctlightDirectConversation(humanSession: string, fluctlightId: string): Promise<CoreConversationPage> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/conversation\`, humanSession, "GET") as Promise<CoreConversationPage>; }
   async conversationHistory(humanSession: string, conversationId: string, beforeSequence?: number, limit = 50): Promise<CoreConversationPage> {
     const query = new URLSearchParams({ limit: String(limit) });
@@ -298,8 +357,8 @@ export class CoreClient {
     return { authenticated: Boolean(row.authenticated), actorId: row.actorId ?? row.actor_id, sessionToken: row.sessionToken ?? row.session_token ?? "" };
   }
   private mapSettings(value: unknown): CoreSafeSettings {
-    const row = value as { values?: Record<string, unknown>; configuredSecrets?: string[]; configured_secrets?: string[] };
-    return { values: row.values ?? {}, configuredSecrets: row.configuredSecrets ?? row.configured_secrets ?? [] };
+    const row = value as { values?: Record<string, unknown>; configuredSecrets?: string[]; configured_secrets?: string[];versions?:Record<string,number>;command?:Record<string,unknown> };
+    return { values: row.values ?? {}, configuredSecrets: row.configuredSecrets ?? row.configured_secrets ?? [],versions:row.versions??{},...(row.command?{command:row.command}:{}) };
   }
 }
 `;

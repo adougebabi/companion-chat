@@ -45,12 +45,12 @@ func (c goalPlannerQueryCapability) Execute(ctx context.Context, inv CapabilityI
 
 func (c goalPlannerCapability) Definition() CapabilityDefinition {
 	kind := CapabilityTypeQuery
-	schema := objectSchema(map[string]any{"section": withToolDefault(enumStringSchema("snapshot", "actor", "history", "persona", "life", "triggers", "goal"), "snapshot"), "actor_id": stringSchema(), "goal_id": stringSchema(), "query": stringSchema(), "cursor": integerSchema()}, []string{"section"}, false)
+	schema := objectSchema(map[string]any{"section": withToolDefault(enumStringSchema("snapshot", "actor", "history", "persona", "life", "triggers", "goal", "promise"), "snapshot"), "actor_id": stringSchema(), "goal_id": stringSchema(), "promise_request_id": stringSchema(), "query": stringSchema(), "cursor": integerSchema()}, []string{"section"}, false)
 	side, boundary, concurrency := "read_only", "query_result_available", "parallel"
 	if c.name == goalPlannerCommit {
 		kind = CapabilityTypeAction
 		side, boundary, concurrency = "native_projection", "goal_set_committed", "exclusive"
-		schema = objectSchema(map[string]any{"expected_version": integerSchema(), "expected_facts_revision": stringSchema(), "idempotency_key": stringSchema(), "reason": stringSchema(), "changes": map[string]any{"type": "array", "maxItems": 20, "items": objectSchema(map[string]any{"id": stringSchema(), "operation": enumStringSchema("create", "pause", "resume"), "expected_revision": integerSchema(), "desired_outcome": stringSchema(), "success_criteria": arraySchema(stringSchema()), "motivation": stringSchema(), "target_actor_id": stringSchema(), "activate": booleanSchema(), "source": openObjectSchema(), "scope": enumStringSchema("general", "personal", "relationship"), "deadline": stringSchema(), "deadline_policy": enumStringSchema("soft", "hard")}, []string{"id", "operation"}, false)}, "dependencies": openObjectSchema(), "order": arraySchema(stringSchema()), "reviewed_goal_ids": arraySchema(stringSchema()), "decision": stringSchema()}, []string{"reason"}, false)
+		schema = objectSchema(map[string]any{"expected_version": integerSchema(), "expected_facts_revision": stringSchema(), "idempotency_key": stringSchema(), "reason": stringSchema(), "changes": map[string]any{"type": "array", "maxItems": 20, "items": objectSchema(map[string]any{"id": stringSchema(), "operation": enumStringSchema("create", "pause", "resume"), "expected_revision": integerSchema(), "desired_outcome": stringSchema(), "success_criteria": arraySchema(stringSchema()), "motivation": stringSchema(), "target_actor_id": stringSchema(), "activate": booleanSchema(), "source": openObjectSchema(), "scope": enumStringSchema("general", "personal", "relationship"), "deadline": stringSchema(), "deadline_policy": enumStringSchema("soft", "hard")}, []string{"id", "operation"}, false)}, "dependencies": openObjectSchema(), "order": arraySchema(stringSchema()), "reviewed_goal_ids": arraySchema(stringSchema()), "promise_bindings": map[string]any{"type": "array", "maxItems": 20, "items": objectSchema(map[string]any{"request_id": stringSchema(), "goal_id": stringSchema(), "expected_revision": integerSchema()}, []string{"request_id", "goal_id", "expected_revision"}, false)}, "decision": stringSchema()}, []string{"reason"}, false)
 	}
 	return CapabilityDefinition{Name: c.name, Version: "v1", Type: kind, Description: map[bool]string{true: "Read authoritative planning snapshot, relevant Actor facts/relationships, stable persona or bounded history. Use actual results before deciding; history query/cursor is required for duplicate comparison.", false: "Atomically commit using consumed snapshot versions and trusted run permission. Review-only: reason + reviewed_goal_ids; no changes/source/new criteria needed. dependencies maps Goal ids to prerequisite Goal id arrays; context_review_required is a flag, never an id. Omit order/dependencies to preserve them. Missing technical versions bind from the snapshot provided to this run. No completion, evidence or external actions. Read snapshot after submission."}[kind == CapabilityTypeQuery], Surfaces: []CapabilitySurface{CapabilitySurfaceGoalPlanner}, FailurePolicy: FailurePolicyOptionalInternal, InputSchema: schema, OutputSchema: openObjectSchema(), SideEffectClass: side, SuccessBoundary: boundary, ConcurrencyClass: concurrency, SupportsRetry: true}
 }
@@ -87,6 +87,19 @@ func (a *App) executeGoalPlannerQuery(ctx context.Context, inv CapabilityInvocat
 		err = a.DB.Pool().QueryRow(ctx, `SELECT to_jsonb(g)-'request_digest'-'idempotency_key'-'evidence_refs' FROM public.fluctlight_goals g WHERE fluctlight_id=$1 AND id=$2 AND (profile_id IS NULL OR profile_id=$3)`, owner, id, profile).Scan(&raw)
 		if err == nil {
 			result = decodeObject(raw)
+		}
+	case "promise":
+		id := stringValue(args["promise_request_id"])
+		if id == "" || len(id) > 128 {
+			return failedCapabilityResult(inv, "invalid_arguments", false), ErrInvalidArguments
+		}
+		p, e := readPromiseLinkTx(ctx, a.DB.Pool(), actor, owner, id, false)
+		err = e
+		if err == nil {
+			if p["profile_id"] != profile {
+				return failedCapabilityResult(inv, "promise_scope_invalid", false), ErrUnauthorized
+			}
+			result = compactStateMap(p, []string{"request_id", "revision", "profile_id", "title", "proposed_goal", "proposed_action", "expected_result", "window_start", "window_end", "timezone", "planning_source_key", "cancelled_at", "intention_id"})
 		}
 	case "triggers":
 		rows, e := a.DB.Pool().Query(ctx, `SELECT jsonb_build_object('reason',e.reason,'source_key',e.source_key,'payload',e.payload,'seq',e.seq) FROM public.goal_planning_events e WHERE fluctlight_id=$1 AND processed_run_id IS NULL AND (COALESCE(payload->>'profile_id','')='' OR payload->>'profile_id'=$2) AND (NOT payload ? 'goal_id' OR EXISTS(SELECT 1 FROM public.fluctlight_goals g WHERE g.id=e.payload->>'goal_id' AND g.fluctlight_id=e.fluctlight_id AND (g.profile_id IS NULL OR g.profile_id=$2))) ORDER BY seq DESC LIMIT 12`, owner, profile)
@@ -237,7 +250,7 @@ func (a *App) executeGoalPlannerCommitTx(ctx context.Context, tx pgx.Tx, inv Cap
 
 const goalPlannerInstruction = `You are the independent GoalPlanner. Maintain one goal set; do not execute actions.
 First query snapshot, triggers and stable persona, then current life constraints and relevant Actor facts/relations and history. Consume actual Tool results. Review existing valid unfinished goals before adding new ones. All profiles share at most five active goals; blocked/waiting goals occupy slots. Preserve older goals first by default; new goals append. Manual order and Owner pause/cancel/protection cannot be overridden. For context_review_required goals, inspect changed Actor/profile constraints and actual goal details; if the existing goal remains valid, commit its ID in reviewed_goal_ids using the current snapshot fences. Review-only requires reason and reviewed_goal_ids; omit changes, order and dependencies unless you intend those separate mutations. It requires no new source or success criteria. An existing goal with empty success_criteria and needs_reflection=true is legitimate; context review may clear its hold but cannot invent criteria or complete it. A textual no_change alone does not clear that review hold. Leave unresolved goals held with an honest review condition. 'derived_from' is provenance, dependencies maps real Goal ids to arrays of real prerequisite Goal ids that must complete before new actions. Never put context_review_required or other state flags into dependencies.
-Propose observable finite outcomes with criteria, motivation, actual source refs, Actor and deduplication decision. Compare outcomes, Actor, window, criteria and conditions with active, paused, cancelled and completed history, not just title/hash. A completed expression does not prove acceptance. Never repeat pressure after rejection, invent resources/responses, change completion/progress/evidence or manufacture relationship facts. Stable interests can motivate real new directions but do not prove actions happened. Reuse candidate IDs using resume with current revision. New changes have a stable local id and operation=create. Pauses require legitimate reasons and no Owner protection.
+For pending Owner promises, the snapshot carries at most five short summaries. Query section=promise with promise_request_id to read the full chosen action, criteria and window before deciding; the trigger list retains other pending identities. Explicitly bind a compatible existing or new local Goal through promise_bindings [{request_id,goal_id,expected_revision}]. Use only the captured promise version, action, expected result and window. Binding creates its Commitment/Intention from the prior character decision, never fulfillment. Leave unrelated or unviable promises pending with the exact reason. Propose observable finite outcomes with criteria, motivation, actual source refs, Actor and deduplication decision. Compare outcomes, Actor, window, criteria and conditions with active, paused, cancelled and completed history, not just title/hash. A completed expression does not prove acceptance. Never repeat pressure after rejection, invent resources/responses, change completion/progress/evidence or manufacture relationship facts. Stable interests can motivate real new directions but do not prove actions happened. Reuse candidate IDs using resume with current revision. New changes have a stable local id and operation=create. Pauses require legitimate reasons and no Owner protection.
 In apply mode call goal_planner.commit using exact snapshot revision/facts_revision and run_id as idempotency_key, then query snapshot AGAIN and report only durable results. Missing technical versions may bind from the snapshot Core already provided or an earlier consumed snapshot query; explicit stale values are never upgraded. Read warning_code, disposition and detail on handled receipts: they have no committed business effect and are recoverable input/state conditions, not proof of a policy block. Read and adjust at most once using that guidance, then report the exact unresolved condition without claiming application. Actual Tool/provider failures remain failures. In suggestions mode do not commit. May retain fewer than five or zero goals if no viable direction: record reason and review condition. Tool/provider failure is failed, never no_viable_candidate. Do not force quota or create goals already satisfied. Return the final JSON contract.`
 
 func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, runRef, mode string) (map[string]any, error) {
@@ -654,8 +667,18 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 			return err
 		}
 		for _, owner := range ids {
+			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, owner); err != nil {
+				return err
+			}
 			if err := lockLifeContextTx(ctx, tx, owner); err != nil {
 				return err
+			}
+			var alreadyQueued bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status IN ('pending','processing','retry'))`, owner).Scan(&alreadyQueued); err != nil {
+				return err
+			}
+			if alreadyQueued {
+				continue
 			}
 			policy, err := a.evaluateAutonomyPolicyWithReader(ctx, tx, owner, "capability", a.now(), "", false)
 			if err != nil {
@@ -675,7 +698,7 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 			// active). Reconsider individual unspent episodes without resetting
 			// an old failed run or consuming the pending private evidence.
 			id := randomID("goal_planner_due_")
-			tag, err := tx.Exec(ctx, `INSERT INTO public.goal_planning_runs(id,fluctlight_id,watermark,available_at)
+			_, err = tx.Exec(ctx, `INSERT INTO public.goal_planning_runs(id,fluctlight_id,watermark,available_at)
              SELECT $2,$1::varchar,COALESCE((SELECT max(seq) FROM public.goal_planning_events WHERE fluctlight_id=$1),0),now()
              WHERE NOT EXISTS(SELECT 1 FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status IN ('pending','processing','retry'))
              AND (SELECT count(*) FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status='active')<(SELECT max_active_goals FROM public.goal_set_policies WHERE fluctlight_id=$1)
@@ -683,7 +706,13 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 			if err != nil {
 				return err
 			}
-			repaired += int(tag.RowsAffected())
+			var queued bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status='pending')`, owner).Scan(&queued); err != nil {
+				return err
+			}
+			if queued {
+				repaired++
+			}
 		}
 		tag, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) SELECT r.id,'goal-planner:'||r.id,'lifecycle','goal.plan',jsonb_build_object('fluctlight_id',r.fluctlight_id),r.available_at FROM public.goal_planning_runs r JOIN public.goal_set_policies p ON p.fluctlight_id=r.fluctlight_id WHERE r.status IN ('pending','retry') AND r.attempt_count<p.max_attempts ORDER BY r.available_at,r.id LIMIT $1 ON CONFLICT DO NOTHING`, limit)
 		repaired += int(tag.RowsAffected())
@@ -693,7 +722,7 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 }
 
 func compactGoalPlannerSnapshot(snapshot map[string]any) map[string]any {
-	result := compactStateMap(snapshot, []string{"revision", "facts_revision", "active_count", "max_active_goals", "auto_planning_enabled", "ordering_mode", "capacity_violation", "trigger_reasons", "dependencies", "stable_persona_summary", "persona_revision", "overlay_revision", "merge_window_seconds", "retry_backoff_seconds", "max_attempts", "lease_seconds", "candidate_limit"})
+	result := compactStateMap(snapshot, []string{"pending_promises", "revision", "facts_revision", "active_count", "max_active_goals", "auto_planning_enabled", "ordering_mode", "capacity_violation", "trigger_reasons", "dependencies", "stable_persona_summary", "persona_revision", "overlay_revision", "merge_window_seconds", "retry_backoff_seconds", "max_attempts", "lease_seconds", "candidate_limit"})
 	goals := []any{}
 	counts := map[string]int{}
 	for _, raw := range arrayValue(snapshot["goals"]) {

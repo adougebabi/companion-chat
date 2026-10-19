@@ -170,6 +170,26 @@ func TestPrivateChatStyleDiagnosisConservative(t *testing.T) {
 	}
 }
 
+func TestPrivateChatStyleDiagnosisUsesAuthoritativeIdentityWithCompiledPortrait(t *testing.T) {
+	dirty := "暮光抬起头，看向窗外。\n\n她轻声说：“周六见你。”\n\n她笑着问：“一起聊新书？”\n\n她转向柜台，说：“我想见你。”\n\n她低声答：“我愿意。”"
+	for _, carrier := range []string{"canonical", "shared"} {
+		t.Run(carrier, func(t *testing.T) {
+			input := ReplyContextInput{CurrentInput: "继续聊近况", WorkingPersona: map[string]any{workingPersonaBodyKey: map[string]any{"portrait_text": "稳定的已编译人物描述"}}, Projection: ContextProjection{SelfActor: map[string]any{"display_name": "不同的账户名"}}}
+			if carrier == "canonical" {
+				input.Projection.CorePersona = map[string]any{"identity": map[string]any{"name": "暮光"}}
+			} else {
+				input.WorkingPersona[workingPersonaSharedIdentityKey] = map[string]any{"identity": map[string]any{"name": "暮光"}}
+			}
+			if got := diagnoseReplyStyle(dirty, input); got.Status != "high_confidence_narration" {
+				t.Fatal("authoritative name missed", carrier, got)
+			}
+			if got := diagnoseReplyStyle("暮光：周六一起聊聊新书？", input); got.Status != "normal" {
+				t.Fatal("ordinary named message rejected", got)
+			}
+		})
+	}
+}
+
 func TestPrivateChatStyleRepairUsesSameModelNoTools(t *testing.T) {
 	for _, outcome := range []string{"success", "still_narration", "oom", "repair_503", "oom_503", "claim_database_error", "cancelled", "normal", "quota_spent"} {
 		t.Run(outcome, func(t *testing.T) {

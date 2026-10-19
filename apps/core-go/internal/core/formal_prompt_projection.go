@@ -41,6 +41,10 @@ func projectFormalPromptBoundary(ctx context.Context, input ADKStructuredTaskInp
 	diagnostics := providerPromptDiagnostics(ctx)
 	versions := map[string]any{}
 	if input.Capability != nil {
+		// The validated invocation is the scope authority. Do not infer a role
+		// from correlation text or depend on a surface's optional trace fields.
+		diagnostics["fluctlight_id"] = input.Capability.FluctlightID
+		diagnostics["conversation_id"] = input.Capability.ConversationID
 		projection := input.Capability.Projection
 		versions = map[string]any{
 			"foundation": projection.ContextRevision, "current_state": projection.CurrentStateRevision,

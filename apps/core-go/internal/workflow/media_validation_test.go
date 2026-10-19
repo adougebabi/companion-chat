@@ -20,7 +20,7 @@ func (s *mediaValidationService) ProcessMediaIntent(context.Context, string) (ma
 	s.calls++
 	return nil, fmt.Errorf("media prompt generation failed: %w", &core.CapabilityError{Code: "media_prompt_validation_failed", Retryable: false})
 }
-func (s *mediaValidationService) RecordMediaActivityFailure(context.Context, string, string) error {
+func (s *mediaValidationService) RecordMediaActivityFailure(context.Context, string, string, string) error {
 	s.failures++
 	return nil
 }

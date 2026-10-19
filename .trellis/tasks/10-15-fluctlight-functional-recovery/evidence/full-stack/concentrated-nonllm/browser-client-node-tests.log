@@ -1,0 +1,44 @@
+✔ BrowserClient resolves an empty base URL against the browser origin (8.013042ms)
+✔ BrowserClient maps an unauthenticated session response without treating it as a platform failure (0.529875ms)
+✔ BrowserClient pages the recorded wardrobe using an encoded cursor (0.231208ms)
+✔ BrowserClient requires an explicit base URL outside the browser (0.190459ms)
+✔ BrowserClient preserves safe API failure codes (0.209708ms)
+✔ BrowserClient preserves structured diagnostics details (0.152834ms)
+✔ BrowserClient preserves a non-2xx conversation turn error code (0.198792ms)
+✔ BrowserClient transports initialization analysis authority and typed detail source (4.578417ms)
+✔ BrowserClient requests the bounded media prompt diagnostics module (0.255791ms)
+✔ BrowserClient exposes media prompt retry (0.176209ms)
+✔ BrowserClient exposes immediate Fluctlight wake-up (0.106458ms)
+✔ BrowserClient serializes every lifecycle diagnostics filter for query and export (0.285292ms)
+✔ BrowserClient serializes the schema-derived Life Context command contracts (0.293708ms)
+✔ diagnostic pages preserve the envelope and encode cursor/filter for both sources (0.187541ms)
+✔ actor user initialization and owner background update keep unknown values and scope (0.117291ms)
+✔ Goal client preserves scope, cursor, revision and replay key across governance operations (0.270417ms)
+✔ Goal evidence cursor uses its scoped read endpoint (0.089917ms)
+✔ goal set and Actor context commands preserve versions, idempotency and scoped URLs (0.184291ms)
+✔ direct directory, persistent selection, full search and exact source use explicit contracts (8.423709ms)
+✔ Kev client preserves filter/cursor identity and raw per-question response (8.259625ms)
+✔ Kev connection test uses an explicit mutation without business data (0.424792ms)
+✔ reference first-page reads omit undefined cursor and retain exact target scope (7.994583ms)
+✔ the shared v3 client extension provides the typed item-photo transport and real request envelope (0.595875ms)
+✔ Owner persona switch preserves both CAS authorities and reads a terminal receipt (8.167375ms)
+✔ generated BrowserClient methods follow accepted Owner persona request to typed terminal (0.345959ms)
+✔ creation template and raw inputs use the shared client transport without field rewriting (8.153333ms)
+✔ wardrobe wear returns the 202 owner request and does not imply success (7.829416ms)
+✔ 409 current revision is read from details and is absent for other errors (0.063958ms)
+✔ createMoment refuses a character author before the request is sent (0.208708ms)
+✔ multipart upload puts the idempotency key in the header (0.4035ms)
+✔ studio apply stays unfinished when the choice was recorded and not applied (0.068333ms)
+✔ timeline rollback is not a client method (0.043667ms)
+✔ vision probe is an explicit authenticated mutation without an uploaded image (7.674917ms)
+✔ world catalog methods execute on BrowserClient with scoped URLs and camelCase mutation bodies (8.700542ms)
+✔ world reads preserve catalog binding, full snapshot, and evidence-based nearby presence (0.302875ms)
+✔ world mutation conflicts remain errors and OpenAPI declares real request/response schemas (7.096833ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 169.339708

@@ -1,0 +1,1288 @@
+TAP version 13
+# Subtest: control center keeps keyboard, live-region, and form boundaries explicit
+ok 1 - control center keeps keyboard, live-region, and form boundaries explicit
+  ---
+  duration_ms: 0.693209
+  type: 'test'
+  ...
+# Subtest: explicit user background preserves false, unknown and omitted attributes
+ok 2 - explicit user background preserves false, unknown and omitted attributes
+  ---
+  duration_ms: 1.092833
+  type: 'test'
+  ...
+# Subtest: creation retains actor_user through edited preview and activation
+ok 3 - creation retains actor_user through edited preview and activation
+  ---
+  duration_ms: 8.103209
+  type: 'test'
+  ...
+# Subtest: user background is viewed separately and edited only through owner governance
+ok 4 - user background is viewed separately and edited only through owner governance
+  ---
+  duration_ms: 4.473542
+  type: 'test'
+  ...
+# Subtest: all confirmed about-you fields have independent canonical keys and preserve clears
+ok 5 - all confirmed about-you fields have independent canonical keys and preserve clears
+  ---
+  duration_ms: 0.559584
+  type: 'test'
+  ...
+# Subtest: governance exposes the owner capability request pool
+ok 6 - governance exposes the owner capability request pool
+  ---
+  duration_ms: 0.671875
+  type: 'test'
+  ...
+# Subtest: browser client keeps capability request endpoints at the API boundary
+ok 7 - browser client keeps capability request endpoints at the API boundary
+  ---
+  duration_ms: 0.210208
+  type: 'test'
+  ...
+# Subtest: stream reveal keeps history immediate, snaps calibration, and refuses a long backlog
+ok 8 - stream reveal keeps history immediate, snaps calibration, and refuses a long backlog
+  ---
+  duration_ms: 82.377167
+  type: 'test'
+  ...
+# Subtest: older history keeps the reader in place and the bottom follow rule is explicit
+ok 9 - older history keeps the reader in place and the bottom follow rule is explicit
+  ---
+  duration_ms: 12.992833
+  type: 'test'
+  ...
+# Subtest: chat components keep streaming, cancellation and history separate from the store
+ok 10 - chat components keep streaming, cancellation and history separate from the store
+  ---
+  duration_ms: 735.11575
+  type: 'test'
+  ...
+# Subtest: a new submit remains visible while an older durable retry is being processed
+ok 11 - a new submit remains visible while an older durable retry is being processed
+  ---
+  duration_ms: 374.093875
+  type: 'test'
+  ...
+# Subtest: a stale post-stream history read cannot erase committed streamed messages
+ok 12 - a stale post-stream history read cannot erase committed streamed messages
+  ---
+  duration_ms: 124.667084
+  type: 'test'
+  ...
+# Subtest: a successful older retry cannot overwrite or lose the separately identified queued user turn
+ok 13 - a successful older retry cannot overwrite or lose the separately identified queued user turn
+  ---
+  duration_ms: 57.737417
+  type: 'test'
+  ...
+# Subtest: a terminal cognition error keeps the authoritative user message visible and retry-bound
+ok 14 - a terminal cognition error keeps the authoritative user message visible and retry-bound
+  ---
+  duration_ms: 52.194
+  type: 'test'
+  ...
+# Subtest: a non-2xx turn response keeps the API error code instead of collapsing to turn_failed
+ok 15 - a non-2xx turn response keeps the API error code instead of collapsing to turn_failed
+  ---
+  duration_ms: 44.174334
+  type: 'test'
+  ...
+# Subtest: a retry from a discarded conversation is pruned when the server returns a new conversation
+ok 16 - a retry from a discarded conversation is pruned when the server returns a new conversation
+  ---
+  duration_ms: 45.831833
+  type: 'test'
+  ...
+# Subtest: a completed retry from another conversation no longer blocks the selected conversation
+ok 17 - a completed retry from another conversation no longer blocks the selected conversation
+  ---
+  duration_ms: 45.485417
+  type: 'test'
+  ...
+# Subtest: reconcilePersistedRetry matches durable turn identity and clears completed turns without duplicates
+ok 18 - reconcilePersistedRetry matches durable turn identity and clears completed turns without duplicates
+  ---
+  duration_ms: 42.862708
+  type: 'test'
+  ...
+# Subtest: refresh restores a pending server turn and later shows its committed reply
+ok 19 - refresh restores a pending server turn and later shows its committed reply
+  ---
+  duration_ms: 44.262541
+  type: 'test'
+  ...
+# Subtest: explicit cancel calls the server and restores a retryable cancelled state
+ok 20 - explicit cancel calls the server and restores a retryable cancelled state
+  ---
+  duration_ms: 39.08775
+  type: 'test'
+  ...
+# Subtest: transport loss after server acceptance keeps background cognition pending
+ok 21 - transport loss after server acceptance keeps background cognition pending
+  ---
+  duration_ms: 44.954125
+  type: 'test'
+  ...
+# Subtest: sending a new message when previous turn is stuck pending auto-cancels and sends
+ok 22 - sending a new message when previous turn is stuck pending auto-cancels and sends
+  ---
+  duration_ms: 42.66075
+  type: 'test'
+  ...
+# Subtest: server-restored retry preserves frozen sender clock and the original durable identity
+ok 23 - server-restored retry preserves frozen sender clock and the original durable identity
+  ---
+  duration_ms: 43.666708
+  type: 'test'
+  ...
+# Subtest: server-restored retry preserves zero UTC offset and the original durable identity
+ok 24 - server-restored retry preserves zero UTC offset and the original durable identity
+  ---
+  duration_ms: 42.867167
+  type: 'test'
+  ...
+# Subtest: server-restored retry preserves unknown legacy clock and the original durable identity
+ok 25 - server-restored retry preserves unknown legacy clock and the original durable identity
+  ---
+  duration_ms: 38.590666
+  type: 'test'
+  ...
+# Subtest: server-restored retry preserves null legacy clock and the original durable identity
+ok 26 - server-restored retry preserves null legacy clock and the original durable identity
+  ---
+  duration_ms: 41.737917
+  type: 'test'
+  ...
+# Subtest: retry stays visibly disabled in flight and a 409 keeps identity, draft and useful failure
+ok 27 - retry stays visibly disabled in flight and a 409 keeps identity, draft and useful failure
+  ---
+  duration_ms: 691.802084
+  type: 'test'
+  ...
+# Subtest: restored local retry and queue bubbles preserve attachments, actor, clock and turn identity
+ok 28 - restored local retry and queue bubbles preserve attachments, actor, clock and turn identity
+  ---
+  duration_ms: 43.284083
+  type: 'test'
+  ...
+# Subtest: a partial committed failure stays non-retryable and does not claim it will settle into retry
+ok 29 - a partial committed failure stays non-retryable and does not claim it will settle into retry
+  ---
+  duration_ms: 156.45375
+  type: 'test'
+  ...
+# Subtest: leaving a source page while its conversation read is pending cannot replace the selected role
+ok 30 - leaving a source page while its conversation read is pending cannot replace the selected role
+  ---
+  duration_ms: 354.466542
+  type: 'test'
+  ...
+# Subtest: detail display has safe object formatting and Chinese field labels
+ok 31 - detail display has safe object formatting and Chinese field labels
+  ---
+  duration_ms: 0.531375
+  type: 'test'
+  ...
+# Subtest: provider role defaults preserve enough output budget for initialization
+ok 32 - provider role defaults preserve enough output budget for initialization
+  ---
+  duration_ms: 0.069583
+  type: 'test'
+  ...
+# Subtest: detail owns read-only life-world sections and uses timezone-aware timeline formatting
+ok 33 - detail owns read-only life-world sections and uses timezone-aware timeline formatting
+  ---
+  duration_ms: 0.1255
+  type: 'test'
+  ...
+# Subtest: detail exposes the recorded wardrobe with a paged read-only view
+ok 34 - detail exposes the recorded wardrobe with a paged read-only view
+  ---
+  duration_ms: 0.117084
+  type: 'test'
+  ...
+# Subtest: detail exposes a Chinese progressive state drawer
+ok 35 - detail exposes a Chinese progressive state drawer
+  ---
+  duration_ms: 0.123292
+  type: 'test'
+  ...
+# Subtest: read-only details keep Wake-up mutations in explicit governance
+ok 36 - read-only details keep Wake-up mutations in explicit governance
+  ---
+  duration_ms: 0.086333
+  type: 'test'
+  ...
+# Subtest: detail exposes the owner-only initialization source as a collapsed safe panel
+ok 37 - detail exposes the owner-only initialization source as a collapsed safe panel
+  ---
+  duration_ms: 0.210625
+  type: 'test'
+  ...
+# Subtest: settings accordion remounts when the selected section changes
+ok 38 - settings accordion remounts when the selected section changes
+  ---
+  duration_ms: 0.074208
+  type: 'test'
+  ...
+# Subtest: PC shell and role tabs do not scroll the outer frame
+ok 39 - PC shell and role tabs do not scroll the outer frame
+  ---
+  duration_ms: 0.147125
+  type: 'test'
+  ...
+# Subtest: schedule timeline highlights the item active at the current instant
+ok 40 - schedule timeline highlights the item active at the current instant
+  ---
+  duration_ms: 0.10775
+  type: 'test'
+  ...
+# Subtest: model run diagnostics show the server creation time
+ok 41 - model run diagnostics show the server creation time
+  ---
+  duration_ms: 6.042
+  type: 'test'
+  ...
+# Subtest: Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots
+ok 42 - Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots
+  ---
+  duration_ms: 0.481209
+  type: 'test'
+  ...
+# Subtest: diagnostics sources use independent filter epochs
+ok 43 - diagnostics sources use independent filter epochs
+  ---
+  duration_ms: 0.114209
+  type: 'test'
+  ...
+# Subtest: background diagnostics refresh does not request the workflow runtime list
+ok 44 - background diagnostics refresh does not request the workflow runtime list
+  ---
+  duration_ms: 0.200625
+  type: 'test'
+  ...
+# Subtest: workflow list loader coalesces pending requests and keeps its failure local
+ok 45 - workflow list loader coalesces pending requests and keeps its failure local
+  ---
+  duration_ms: 0.415917
+  type: 'test'
+  ...
+# Subtest: Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens
+ok 46 - Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens
+  ---
+  duration_ms: 0.236083
+  type: 'test'
+  ...
+# Subtest: filtered export reuses every active lifecycle filter
+ok 47 - filtered export reuses every active lifecycle filter
+  ---
+  duration_ms: 0.078791
+  type: 'test'
+  ...
+# Subtest: loading an older partial page pauses polling independently of row count
+ok 48 - loading an older partial page pauses polling independently of row count
+  ---
+  duration_ms: 43.320625
+  type: 'test'
+  ...
+# Subtest: instance switch releases pending revision pagination and discards its stale failure
+ok 49 - instance switch releases pending revision pagination and discards its stale failure
+  ---
+  duration_ms: 2.09575
+  type: 'test'
+  ...
+# Subtest: refreshing the same Goal fences an old revision page while a new page is pending
+ok 50 - refreshing the same Goal fences an old revision page while a new page is pending
+  ---
+  duration_ms: 0.654417
+  type: 'test'
+  ...
+# Subtest: CAS conflict preserves the draft, frozen revision and retry identity until explicit reread
+ok 51 - CAS conflict preserves the draft, frozen revision and retry identity until explicit reread
+  ---
+  duration_ms: 1.434459
+  type: 'test'
+  ...
+# Subtest: capacity errors preserve a create draft and explain the available governance actions
+ok 52 - capacity errors preserve a create draft and explain the available governance actions
+  ---
+  duration_ms: 0.486125
+  type: 'test'
+  ...
+# Subtest: evidence continuation deduplicates stable IDs and rejects a stale selection
+ok 53 - evidence continuation deduplicates stable IDs and rejects a stale selection
+  ---
+  duration_ms: 0.391917
+  type: 'test'
+  ...
+# Subtest: the Goal editor rejects empty and whitespace fields without issuing a command
+ok 54 - the Goal editor rejects empty and whitespace fields without issuing a command
+  ---
+  duration_ms: 0.371208
+  type: 'test'
+  ...
+# Subtest: manual order and disabled planning are server commands carrying authoritative versions
+ok 55 - manual order and disabled planning are server commands carrying authoritative versions
+  ---
+  duration_ms: 62.657
+  type: 'test'
+  ...
+# Subtest: capacity/version failure keeps manual draft and late instance response is fenced
+ok 56 - capacity/version failure keeps manual draft and late instance response is fenced
+  ---
+  duration_ms: 20.610125
+  type: 'test'
+  ...
+# Subtest: Actor conflict retains draft and explicit re-read only advances version
+ok 57 - Actor conflict retains draft and explicit re-read only advances version
+  ---
+  duration_ms: 23.8645
+  type: 'test'
+  ...
+# Subtest: Owner background keeps the current-facts CAS and tri-state relationship fields
+ok 58 - Owner background keeps the current-facts CAS and tri-state relationship fields
+  ---
+  duration_ms: 17.153958
+  type: 'test'
+  ...
+# Subtest: Actor drafts use a new idempotency identity when the payload changes
+ok 59 - Actor drafts use a new idempotency identity when the payload changes
+  ---
+  duration_ms: 5.519833
+  type: 'test'
+  ...
+# Subtest: clearing an Actor target fences a late context response
+ok 60 - clearing an Actor target fences a late context response
+  ---
+  duration_ms: 6.907584
+  type: 'test'
+  ...
+# Subtest: Owner revision reasons obey the 500-character boundary while Actor reasons obey the byte budget
+ok 61 - Owner revision reasons obey the 500-character boundary while Actor reasons obey the byte budget
+  ---
+  duration_ms: 14.037
+  type: 'test'
+  ...
+# Subtest: failed initial background read can be retried without changing the target
+ok 62 - failed initial background read can be retried without changing the target
+  ---
+  duration_ms: 5.633333
+  type: 'test'
+  ...
+# Subtest: default group reconciliation keeps only ungrouped actor IDs for assignment
+ok 63 - default group reconciliation keeps only ungrouped actor IDs for assignment
+  ---
+  duration_ms: 0.3805
+  type: 'test'
+  ...
+# Subtest: actor group payloads normalize the migrated members key before filtering
+ok 64 - actor group payloads normalize the migrated members key before filtering
+  ---
+  duration_ms: 0.076791
+  type: 'test'
+  ...
+# Subtest: diagnostic instant display keeps milliseconds and numeric offsets across DST
+ok 65 - diagnostic instant display keeps milliseconds and numeric offsets across DST
+  ---
+  duration_ms: 32.176625
+  type: 'test'
+  ...
+# Subtest: kev bookmarks resolve to the Mock acceptance route
+ok 66 - kev bookmarks resolve to the Mock acceptance route
+  ---
+  duration_ms: 0.585458
+  type: 'test'
+  ...
+# Subtest: kev has a naturally reachable settings or diagnostics entry
+ok 67 - kev has a naturally reachable settings or diagnostics entry
+  ---
+  duration_ms: 13.461667
+  type: 'test'
+  ...
+# Subtest: kev-decisions bookmarks resolve to the Mock acceptance route
+ok 68 - kev-decisions bookmarks resolve to the Mock acceptance route
+  ---
+  duration_ms: 0.12975
+  type: 'test'
+  ...
+# Subtest: kev-decisions has a naturally reachable settings or diagnostics entry
+ok 69 - kev-decisions has a naturally reachable settings or diagnostics entry
+  ---
+  duration_ms: 4.452375
+  type: 'test'
+  ...
+# Subtest: Telegram-style workspace keeps four primary tabs
+ok 70 - Telegram-style workspace keeps four primary tabs
+  ---
+  duration_ms: 0.576541
+  type: 'test'
+  ...
+# Subtest: settings configuration is progressively disclosed by closed drawers
+ok 71 - settings configuration is progressively disclosed by closed drawers
+  ---
+  duration_ms: 0.159667
+  type: 'test'
+  ...
+# Subtest: web typography does not depend on a runtime Google Fonts stylesheet
+ok 72 - web typography does not depend on a runtime Google Fonts stylesheet
+  ---
+  duration_ms: 0.13725
+  type: 'test'
+  ...
+# Subtest: web controls are backed by the local shadcn-vue component layer
+ok 73 - web controls are backed by the local shadcn-vue component layer
+  ---
+  duration_ms: 0.069791
+  type: 'test'
+  ...
+# Subtest: diagnostics keeps existing modules and adds a filtered lifecycle disclosure
+ok 74 - diagnostics keeps existing modules and adds a filtered lifecycle disclosure
+  ---
+  duration_ms: 0.197083
+  type: 'test'
+  ...
+# Subtest: desktop secondary navigation is page-addressable and chat groups stay flat
+ok 75 - desktop secondary navigation is page-addressable and chat groups stay flat
+  ---
+  duration_ms: 0.188709
+  type: 'test'
+  ...
+# Subtest: chat owns a fixed-height work surface with an internal message scroller
+ok 76 - chat owns a fixed-height work surface with an internal message scroller
+  ---
+  duration_ms: 0.122709
+  type: 'test'
+  ...
+# Subtest: mobile surfaces keep diagnostics, navigation, and empty states shrink-safe
+ok 77 - mobile surfaces keep diagnostics, navigation, and empty states shrink-safe
+  ---
+  duration_ms: 0.391042
+  type: 'test'
+  ...
+# Subtest: phase 3 routes mount the sage pages and keep diary unwired
+ok 78 - phase 3 routes mount the sage pages and keep diary unwired
+  ---
+  duration_ms: 0.903334
+  type: 'test'
+  ...
+# Subtest: writes stay on the existing revision, reason, evidence and idempotency commands
+ok 79 - writes stay on the existing revision, reason, evidence and idempotency commands
+  ---
+  duration_ms: 0.118334
+  type: 'test'
+  ...
+# Subtest: missing life data is labeled unwired and generated images stay non-factual
+ok 80 - missing life data is labeled unwired and generated images stay non-factual
+  ---
+  duration_ms: 0.174667
+  type: 'test'
+  ...
+# Subtest: wearing, using, ownership and source stay separate
+ok 81 - wearing, using, ownership and source stay separate
+  ---
+  duration_ms: 0.471625
+  type: 'test'
+  ...
+# Subtest: missing wearing list is unwired instead of treating a slot as worn
+ok 82 - missing wearing list is unwired instead of treating a slot as worn
+  ---
+  duration_ms: 0.073042
+  type: 'test'
+  ...
+# Subtest: mood without evidence is recorded but not inferred, and absent schedule stays missing
+ok 83 - mood without evidence is recorded but not inferred, and absent schedule stays missing
+  ---
+  duration_ms: 0.369584
+  type: 'test'
+  ...
+# Subtest: phase 4-5 routes replace studio and world placeholders and keep diary unwired
+ok 84 - phase 4-5 routes replace studio and world placeholders and keep diary unwired
+  ---
+  duration_ms: 0.518208
+  type: 'test'
+  ...
+# Subtest: bookmarked URLs resolve to the active Mock routes before mounting
+ok 85 - bookmarked URLs resolve to the active Mock routes before mounting
+  ---
+  duration_ms: 0.737334
+  type: 'test'
+  ...
+# Subtest: studio preview stays local and world browsing does not move the character
+ok 86 - studio preview stays local and world browsing does not move the character
+  ---
+  duration_ms: 0.133
+  type: 'test'
+  ...
+# Subtest: moments, autonomy, data tools and pending keep honest unwired states
+ok 87 - moments, autonomy, data tools and pending keep honest unwired states
+  ---
+  duration_ms: 0.111917
+  type: 'test'
+  ...
+# Subtest: diagnostics keeps filters, export, paging and confirms dangerous workflow commands
+ok 88 - diagnostics keeps filters, export, paging and confirms dangerous workflow commands
+  ---
+  duration_ms: 0.135625
+  type: 'test'
+  ...
+# Subtest: phase documents cover migration, access and all 53 audit features
+ok 89 - phase documents cover migration, access and all 53 audit features
+  ---
+  duration_ms: 0.15925
+  type: 'test'
+  ...
+# Subtest: runtime API configuration is emitted at container startup
+ok 90 - runtime API configuration is emitted at container startup
+  ---
+  duration_ms: 0.404792
+  type: 'test'
+  ...
+# Subtest: runtime API configuration rejects non-HTTP URLs
+ok 91 - runtime API configuration rejects non-HTTP URLs
+  ---
+  duration_ms: 0.190292
+  type: 'test'
+  ...
+# Subtest: web chat keeps the generated browser client at its boundary
+ok 92 - web chat keeps the generated browser client at its boundary
+  ---
+  duration_ms: 2.759542
+  type: 'test'
+  ...
+# Subtest: web keeps a failed turn retryable instead of allowing later messages to overtake it
+ok 93 - web keeps a failed turn retryable instead of allowing later messages to overtake it
+  ---
+  duration_ms: 1.854
+  type: 'test'
+  ...
+# Subtest: chat clears accepted drafts and keeps every streamed token reactive
+ok 94 - chat clears accepted drafts and keeps every streamed token reactive
+  ---
+  duration_ms: 4.980333
+  type: 'test'
+  ...
+# Subtest: control center exposes the required product views
+ok 95 - control center exposes the required product views
+  ---
+  duration_ms: 0.466333
+  type: 'test'
+  ...
+# Subtest: owner password change explains its policy without trapping the submit button
+ok 96 - owner password change explains its policy without trapping the submit button
+  ---
+  duration_ms: 0.533166
+  type: 'test'
+  ...
+# Subtest: web uses the secure random-ID compatibility helper instead of randomUUID directly
+ok 97 - web uses the secure random-ID compatibility helper instead of randomUUID directly
+  ---
+  duration_ms: 1.783583
+  type: 'test'
+  ...
+# Subtest: creation dialog presents activation failures where the user can act on them
+ok 98 - creation dialog presents activation failures where the user can act on them
+  ---
+  duration_ms: 2.06725
+  type: 'test'
+  ...
+# Subtest: persona details expose layered JSON without rendering object coercion
+ok 99 - persona details expose layered JSON without rendering object coercion
+  ---
+  duration_ms: 1.291375
+  type: 'test'
+  ...
+# Subtest: diagnostics entry loads records and creation keeps a direct correlation link
+ok 100 - diagnostics entry loads records and creation keeps a direct correlation link
+  ---
+  duration_ms: 0.242458
+  type: 'test'
+  ...
+# Subtest: creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit
+ok 101 - creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit
+  ---
+  duration_ms: 2.753375
+  type: 'test'
+  ...
+# Subtest: UI-01 removes chat chips and picture send while retaining media display and assistant chips
+ok 102 - UI-01 removes chat chips and picture send while retaining media display and assistant chips
+  ---
+  duration_ms: 5.86475
+  type: 'test'
+  ...
+# Subtest: profile adapter preserves cleared effective appearance and runtime authority
+ok 103 - profile adapter preserves cleared effective appearance and runtime authority
+  ---
+  duration_ms: 0.614833
+  type: 'test'
+  ...
+# Subtest: unwired command visibly disables switching without fabricating a current persona
+ok 104 - unwired command visibly disables switching without fabricating a current persona
+  ---
+  duration_ms: 0.875625
+  type: 'test'
+  ...
+# Subtest: switch sends dual revisions and idempotency then confirms only authoritative readback
+ok 105 - switch sends dual revisions and idempotency then confirms only authoritative readback
+  ---
+  duration_ms: 1.869
+  type: 'test'
+  ...
+# Subtest: version conflict preserves drafts and does not claim switch success
+ok 106 - version conflict preserves drafts and does not claim switch success
+  ---
+  duration_ms: 1.666583
+  type: 'test'
+  ...
+# Subtest: accepted command with failed readback remains unconfirmed and keeps recovery draft
+ok 107 - accepted command with failed readback remains unconfirmed and keeps recovery draft
+  ---
+  duration_ms: 0.278334
+  type: 'test'
+  ...
+# Subtest: stale profile read cannot replace a later route, and initial failure exposes retry
+ok 108 - stale profile read cannot replace a later route, and initial failure exposes retry
+  ---
+  duration_ms: 0.123208
+  type: 'test'
+  ...
+# Subtest: owner persona projection limits legal switch targets and retains bounded history metadata
+ok 109 - owner persona projection limits legal switch targets and retains bounded history metadata
+  ---
+  duration_ms: 0.412125
+  type: 'test'
+  ...
+# Subtest: message wall clock remains at the original sender offset
+ok 110 - message wall clock remains at the original sender offset
+  ---
+  duration_ms: 10.025417
+  type: 'test'
+  ...
+# Subtest: datetime-local is interpreted in Fluctlight timezone with explicit DST policy
+ok 111 - datetime-local is interpreted in Fluctlight timezone with explicit DST policy
+  ---
+  duration_ms: 2.827292
+  type: 'test'
+  ...
+# Subtest: field validation rejects whitespace, invalid numbers and timezone aliases while preserving false and zero
+ok 112 - field validation rejects whitespace, invalid numbers and timezone aliases while preserving false and zero
+  ---
+  duration_ms: 0.7255
+  type: 'test'
+  ...
+# Subtest: workflow imports keep numeric placeholders compatible and reject invalid roots
+ok 113 - workflow imports keep numeric placeholders compatible and reject invalid roots
+  ---
+  duration_ms: 0.29275
+  type: 'test'
+  ...
+# Subtest: guided media saves preserve branched workflows, aliases and unknown fields without mutating the original
+ok 114 - guided media saves preserve branched workflows, aliases and unknown fields without mutating the original
+  ---
+  duration_ms: 0.1305
+  type: 'test'
+  ...
+# Subtest: guided autonomy updates preserve advanced values and configured custom actions
+ok 115 - guided autonomy updates preserve advanced values and configured custom actions
+  ---
+  duration_ms: 0.076083
+  type: 'test'
+  ...
+# Subtest: background round trips preserve all supported fields and the unknown/no meeting distinction
+ok 116 - background round trips preserve all supported fields and the unknown/no meeting distinction
+  ---
+  duration_ms: 0.131042
+  type: 'test'
+  ...
+# Subtest: workflow rows distinguish executions and do not fabricate missing metadata
+ok 117 - workflow rows distinguish executions and do not fabricate missing metadata
+  ---
+  duration_ms: 0.160833
+  type: 'test'
+  ...
+# Subtest: user-facing errors explain the action while technical codes remain separately available
+ok 118 - user-facing errors explain the action while technical codes remain separately available
+  ---
+  duration_ms: 0.2995
+  type: 'test'
+  ...
+# Subtest: real SFC rendering and store actions honor loading, accessibility and error scope contracts
+ok 119 - real SFC rendering and store actions honor loading, accessibility and error scope contracts
+  ---
+  duration_ms: 1334.713
+  type: 'test'
+  ...
+# Subtest: media import commits to the target chosen before the file read
+ok 120 - media import commits to the target chosen before the file read
+  ---
+  duration_ms: 33.302208
+  type: 'test'
+  ...
+# Subtest: shared choices preserve empty domain values and only emit configured options
+ok 121 - shared choices preserve empty domain values and only emit configured options
+  ---
+  duration_ms: 5.278833
+  type: 'test'
+  ...
+# Subtest: cleared visual workflow cannot reappear from a stale successful-save draft
+ok 122 - cleared visual workflow cannot reappear from a stale successful-save draft
+  ---
+  duration_ms: 6.884958
+  type: 'test'
+  ...
+# Subtest: Kev continuation uses the applied filter snapshot instead of unsubmitted edits
+ok 123 - Kev continuation uses the applied filter snapshot instead of unsubmitted edits
+  ---
+  duration_ms: 5.229792
+  type: 'test'
+  ...
+# Subtest: Kev invalid date ranges focus the inline error and never request records
+ok 124 - Kev invalid date ranges focus the inline error and never request records
+  ---
+  duration_ms: 14.880125
+  type: 'test'
+  ...
+# Subtest: authentication forms show inline policy errors before emitting requests and preserve exact credential text
+ok 125 - authentication forms show inline policy errors before emitting requests and preserve exact credential text
+  ---
+  duration_ms: 2.811583
+  type: 'test'
+  ...
+# Subtest: lifecycle filters remain a draft until applied and explicit reset clears the applied snapshot
+ok 126 - lifecycle filters remain a draft until applied and explicit reset clears the applied snapshot
+  ---
+  duration_ms: 7.832916
+  type: 'test'
+  ...
+# Subtest: changing model roles clears old validation and fences late save feedback
+ok 127 - changing model roles clears old validation and fences late save feedback
+  ---
+  duration_ms: 9.501916
+  type: 'test'
+  ...
+# Subtest: clear failure stays inside its open dialog and cancelling clears the action error
+ok 128 - clear failure stays inside its open dialog and cancelling clears the action error
+  ---
+  duration_ms: 10.430459
+  type: 'test'
+  ...
+# Subtest: actual Go detail fields retain owner scope and stable media/message identities
+ok 129 - actual Go detail fields retain owner scope and stable media/message identities
+  ---
+  duration_ms: 1.881
+  type: 'test'
+  ...
+# Subtest: an optional 502 preserves successful modules and differs from unavailable and empty
+ok 130 - an optional 502 preserves successful modules and differs from unavailable and empty
+  ---
+  duration_ms: 0.399916
+  type: 'test'
+  ...
+# Subtest: an authentication transport failure is not represented as logged out
+ok 131 - an authentication transport failure is not represented as logged out
+  ---
+  duration_ms: 0.219583
+  type: 'test'
+  ...
+# Subtest: creation preview JSON preserves exact source and cannot synthesize absent analysis authority
+ok 132 - creation preview JSON preserves exact source and cannot synthesize absent analysis authority
+  ---
+  duration_ms: 0.842667
+  type: 'test'
+  ...
+# Subtest: creation sources distinguish raw JSON, immutable publication and restored analysis authority
+ok 133 - creation sources distinguish raw JSON, immutable publication and restored analysis authority
+  ---
+  duration_ms: 1.542417
+  type: 'test'
+  ...
+# Subtest: refresh keeps source, edited preview, original request and activated grouping checkpoint in the same Owner scope
+ok 134 - refresh keeps source, edited preview, original request and activated grouping checkpoint in the same Owner scope
+  ---
+  duration_ms: 9.702833
+  type: 'test'
+  ...
+# Subtest: unknown activation response replays immutable payload despite newer draft or refresh
+ok 135 - unknown activation response replays immutable payload despite newer draft or refresh
+  ---
+  duration_ms: 0.451791
+  type: 'test'
+  ...
+# Subtest: only the first known stale-analysis rejection permits explicit new analysis
+ok 136 - only the first known stale-analysis rejection permits explicit new analysis
+  ---
+  duration_ms: 0.347916
+  type: 'test'
+  ...
+# Subtest: activation after page disposal checkpoints before releasing original request and cannot be erased by an older page
+ok 137 - activation after page disposal checkpoints before releasing original request and cannot be erased by an older page
+  ---
+  duration_ms: 0.920709
+  type: 'test'
+  ...
+# Subtest: display avatar retry uses original asset and preserves a newer selection and reason
+ok 138 - display avatar retry uses original asset and preserves a newer selection and reason
+  ---
+  duration_ms: 3.110167
+  type: 'test'
+  ...
+# Subtest: disposed display editor cannot recreate cleared draft when an accepted response arrives
+ok 139 - disposed display editor cannot recreate cleared draft when an accepted response arrives
+  ---
+  duration_ms: 3.701208
+  type: 'test'
+  ...
+# Subtest: successful save acknowledges its captured note, leaving later edits dirty
+ok 140 - successful save acknowledges its captured note, leaving later edits dirty
+  ---
+  duration_ms: 0.395834
+  type: 'test'
+  ...
+# Subtest: reply acceptance cannot clear text typed after the submitted snapshot
+ok 141 - reply acceptance cannot clear text typed after the submitted snapshot
+  ---
+  duration_ms: 0.07325
+  type: 'test'
+  ...
+# Subtest: stable draft identity prevents a second in-flight submission across renderers
+ok 142 - stable draft identity prevents a second in-flight submission across renderers
+  ---
+  duration_ms: 0.180625
+  type: 'test'
+  ...
+# Subtest: governance reopen preserves edits while sharing the submitted version and pending state
+ok 143 - governance reopen preserves edits while sharing the submitted version and pending state
+  ---
+  duration_ms: 0.092208
+  type: 'test'
+  ...
+# Subtest: explicit rebase survives closing and reopening the actual command drawer
+ok 144 - explicit rebase survives closing and reopening the actual command drawer
+  ---
+  duration_ms: 1.225292
+  type: 'test'
+  ...
+# Subtest: late inventory acceptance observes its original page and never opens an unrelated receipt
+ok 145 - late inventory acceptance observes its original page and never opens an unrelated receipt
+  ---
+  duration_ms: 0.759
+  type: 'test'
+  ...
+# Subtest: repairing invalid advanced item JSON through an ordinary field clears the original form error
+ok 146 - repairing invalid advanced item JSON through an ordinary field clears the original form error
+  ---
+  duration_ms: 0.561667
+  type: 'test'
+  ...
+# Subtest: advanced JSON changing an object to clothing makes the slot editable and preserves custom categories
+ok 147 - advanced JSON changing an object to clothing makes the slot editable and preserves custom categories
+  ---
+  duration_ms: 0.166709
+  type: 'test'
+  ...
+# Subtest: life adapter retains aggregate and opaque CAS, failed-request idempotency and request scope
+ok 148 - life adapter retains aggregate and opaque CAS, failed-request idempotency and request scope
+  ---
+  duration_ms: 349.197959
+  type: 'test'
+  ...
+# Subtest: original image acceptance retry preserves a newer draft and never presents an intent as image pixels
+ok 149 - original image acceptance retry preserves a newer draft and never presents an intent as image pixels
+  ---
+  duration_ms: 8.843167
+  type: 'test'
+  ...
+# Subtest: image command accepted after logout/disposal cannot recreate the previous Owner checkpoint or draft
+ok 150 - image command accepted after logout/disposal cannot recreate the previous Owner checkpoint or draft
+  ---
+  duration_ms: 1.207209
+  type: 'test'
+  ...
+# Subtest: failed fresh location reads preserve a rejected original identity and never claim a successful rebase
+ok 151 - failed fresh location reads preserve a rejected original identity and never claim a successful rebase
+  ---
+  duration_ms: 1.152333
+  type: 'test'
+  ...
+# Subtest: a delayed source rebase cannot restore an item that the user cleared while the read was pending
+ok 152 - a delayed source rebase cannot restore an item that the user cleared while the read was pending
+  ---
+  duration_ms: 2.743167
+  type: 'test'
+  ...
+# Subtest: resetting the current image draft does not erase an unknown original command identity
+ok 153 - resetting the current image draft does not erase an unknown original command identity
+  ---
+  duration_ms: 0.662916
+  type: 'test'
+  ...
+# Subtest: retrying an unknown original metadata command preserves the newer persisted draft
+ok 154 - retrying an unknown original metadata command preserves the newer persisted draft
+  ---
+  duration_ms: 5.8005
+  type: 'test'
+  ...
+# Subtest: unknown grant creation retries the exact original target/use while newer choices remain a draft
+ok 155 - unknown grant creation retries the exact original target/use while newer choices remain a draft
+  ---
+  duration_ms: 3.532458
+  type: 'test'
+  ...
+# Subtest: media upload response loss recovers by original key without retaining or resending a File after refresh
+ok 156 - media upload response loss recovers by original key without retaining or resending a File after refresh
+  ---
+  duration_ms: 5.563792
+  type: 'test'
+  ...
+# Subtest: unsettled upload needs the exact file and never switches identity on replacement bytes
+ok 157 - unsettled upload needs the exact file and never switches identity on replacement bytes
+  ---
+  duration_ms: 0.769417
+  type: 'test'
+  ...
+# Subtest: late media result cannot resurrect a logged-out Owner result pointer
+ok 158 - late media result cannot resurrect a logged-out Owner result pointer
+  ---
+  duration_ms: 2.014333
+  type: 'test'
+  ...
+# Subtest: media upload rejects unsafe file size and does not discard a key reuse ambiguity
+ok 159 - media upload rejects unsafe file size and does not discard a key reuse ambiguity
+  ---
+  duration_ms: 0.554666
+  type: 'test'
+  ...
+# Subtest: a late missing-upload lookup cannot send the old file with a replacement Owner session
+ok 160 - a late missing-upload lookup cannot send the old file with a replacement Owner session
+  ---
+  duration_ms: 1.735708
+  type: 'test'
+  ...
+# Subtest: memory adapter scopes every operation and reads back actual revision without a detail-summary fallback
+ok 161 - memory adapter scopes every operation and reads back actual revision without a detail-summary fallback
+  ---
+  duration_ms: 298.013
+  type: 'test'
+  ...
+# Subtest: restored Mock seed matches the original v3 fixture and uses its own namespace
+ok 162 - restored Mock seed matches the original v3 fixture and uses its own namespace
+  ---
+  duration_ms: 2.949458
+  type: 'test'
+  ...
+# Subtest: about-you save has CAS, role/Actor isolation, history and persisted readback
+ok 163 - about-you save has CAS, role/Actor isolation, history and persisted readback
+  ---
+  duration_ms: 2.191208
+  type: 'test'
+  ...
+# Subtest: NPC definition create/publish/apply never creates a relationship or moves the role
+ok 164 - NPC definition create/publish/apply never creates a relationship or moves the role
+  ---
+  duration_ms: 1.222166
+  type: 'test'
+  ...
+# Subtest: NPC editing validates scope and time, protects references, and preserves local overrides on reapply
+ok 165 - NPC editing validates scope and time, protects references, and preserves local overrides on reapply
+  ---
+  duration_ms: 2.221834
+  type: 'test'
+  ...
+# Subtest: world/place management enforces revisions and reference deletion without moving on browse/save
+ok 166 - world/place management enforces revisions and reference deletion without moving on browse/save
+  ---
+  duration_ms: 2.096333
+  type: 'test'
+  ...
+# Subtest: Mock goal planning actually finishes and produces candidates without automatic adoption
+ok 167 - Mock goal planning actually finishes and produces candidates without automatic adoption
+  ---
+  duration_ms: 352.316792
+  type: 'test'
+  ...
+# Subtest: goal edits retain history and reject another role or stale revision
+ok 168 - goal edits retain history and reject another role or stale revision
+  ---
+  duration_ms: 0.440417
+  type: 'test'
+  ...
+# Subtest: settings validate JSON and CAS and never persist credential input
+ok 169 - settings validate JSON and CAS and never persist credential input
+  ---
+  duration_ms: 0.439291
+  type: 'test'
+  ...
+# Subtest: diagnostic pagination and versioned workflow commands keep ordered records
+ok 170 - diagnostic pagination and versioned workflow commands keep ordered records
+  ---
+  duration_ms: 0.476792
+  type: 'test'
+  ...
+# Subtest: common control components preserve attributes and avoid accidental form submissions
+ok 171 - common control components preserve attributes and avoid accidental form submissions
+  ---
+  duration_ms: 0.552333
+  type: 'test'
+  ...
+# Subtest: production entry selects real providers while fixtures are explicit build-time imports
+ok 172 - production entry selects real providers while fixtures are explicit build-time imports
+  ---
+  duration_ms: 3.41825
+  type: 'test'
+  ...
+# Subtest: failed Mock persistence rolls back memory and does not report a successful write
+ok 173 - failed Mock persistence rolls back memory and does not report a successful write
+  ---
+  duration_ms: 0.368875
+  type: 'test'
+  ...
+# Subtest: a Mock NPC relationship is created only from an explicit sourced encounter
+ok 174 - a Mock NPC relationship is created only from an explicit sourced encounter
+  ---
+  duration_ms: 1.341917
+  type: 'test'
+  ...
+# Subtest: every original v3 route and all new Mock pages remain registered without shadows
+ok 175 - every original v3 route and all new Mock pages remain registered without shadows
+  ---
+  duration_ms: 55.4745
+  type: 'test'
+  ...
+# Subtest: retired roles remain read-only in all new Mock domain services
+ok 176 - retired roles remain read-only in all new Mock domain services
+  ---
+  duration_ms: 0.252833
+  type: 'test'
+  ...
+# Subtest: ordinary outfit description repairs a previous JSON error while preserving exact member references
+ok 177 - ordinary outfit description repairs a previous JSON error while preserving exact member references
+  ---
+  duration_ms: 0.850333
+  type: 'test'
+  ...
+# Subtest: picker captures actual published version, rejects duplicates and ignores a disposed parent
+ok 178 - picker captures actual published version, rejects duplicates and ignores a disposed parent
+  ---
+  duration_ms: 0.27575
+  type: 'test'
+  ...
+# Subtest: a malformed old member remains repairable when another verified reference is explicitly added
+ok 179 - a malformed old member remains repairable when another verified reference is explicitly added
+  ---
+  duration_ms: 0.908125
+  type: 'test'
+  ...
+# Subtest: response loss and a page refresh preserve immutable input and idempotency before later edits can submit
+ok 180 - response loss and a page refresh preserve immutable input and idempotency before later edits can submit
+  ---
+  duration_ms: 2.363291
+  type: 'test'
+  ...
+# Subtest: storage failure prevents admission and a lost-auth retry retains the original identity
+ok 181 - storage failure prevents admission and a lost-auth retry retains the original identity
+  ---
+  duration_ms: 2.095917
+  type: 'test'
+  ...
+# Subtest: only a first, explicitly rejected CAS command can release its identity for deliberate rebase
+ok 182 - only a first, explicitly rejected CAS command can release its identity for deliberate rebase
+  ---
+  duration_ms: 0.426667
+  type: 'test'
+  ...
+# Subtest: logout cleanup and a replacement command survive late responses from the old identity
+ok 183 - logout cleanup and a replacement command survive late responses from the old identity
+  ---
+  duration_ms: 0.201417
+  type: 'test'
+  ...
+# Subtest: persona provider observes the owned accepted task and aborting observation sends no cancellation
+ok 184 - persona provider observes the owned accepted task and aborting observation sends no cancellation
+  ---
+  duration_ms: 2400.455
+  type: 'test'
+  ...
+# Subtest: a disposed async page cannot reload over the next page in the same host
+ok 185 - a disposed async page cannot reload over the next page in the same host
+  ---
+  duration_ms: 37.491
+  type: 'test'
+  ...
+# Subtest: real facade starts without fixture facts and refuses arbitrary local writes
+ok 186 - real facade starts without fixture facts and refuses arbitrary local writes
+  ---
+  duration_ms: 0.682625
+  type: 'test'
+  ...
+# Subtest: snapshot selection follows available server identities and never defaults to fixture c1
+ok 187 - snapshot selection follows available server identities and never defaults to fixture c1
+  ---
+  duration_ms: 0.116417
+  type: 'test'
+  ...
+# Subtest: current chat uses protocol state while keeping the composer mounted during updates
+ok 188 - current chat uses protocol state while keeping the composer mounted during updates
+  ---
+  duration_ms: 5.049458
+  type: 'test'
+  ...
+# Subtest: Reflection adapter keeps V2 structure, request target, scope and retry identity
+ok 189 - Reflection adapter keeps V2 structure, request target, scope and retry identity
+  ---
+  duration_ms: 268.415667
+  type: 'test'
+  ...
+# Subtest: contract projection round-trips the prototype view model
+ok 190 - contract projection round-trips the prototype view model
+  ---
+  duration_ms: 3.964542
+  type: 'test'
+  ...
+# Subtest: an unfinished studio reference does not apply a version or resolve conflicts
+ok 191 - an unfinished studio reference does not apply a version or resolve conflicts
+  ---
+  duration_ms: 0.615875
+  type: 'test'
+  ...
+# Subtest: Mock acceptance entry keeps wardrobe flow and persistence separate from the real transport
+ok 192 - Mock acceptance entry keeps wardrobe flow and persistence separate from the real transport
+  ---
+  duration_ms: 0.40125
+  type: 'test'
+  ...
+# Subtest: JSON wire shape still round-trips page collections
+ok 193 - JSON wire shape still round-trips page collections
+  ---
+  duration_ms: 1.360667
+  type: 'test'
+  ...
+# Subtest: a persisted Foundation proposal links to governed acceptance and never claims it is effective
+ok 194 - a persisted Foundation proposal links to governed acceptance and never claims it is effective
+  ---
+  duration_ms: 0.439292
+  type: 'test'
+  ...
+# Subtest: current and historical applications use server state and exclude unrelated domain references
+ok 195 - current and historical applications use server state and exclude unrelated domain references
+  ---
+  duration_ms: 0.098792
+  type: 'test'
+  ...
+# Subtest: late assistant completion displays a separate suggestion and preserves newer form edits until explicit adoption
+ok 196 - late assistant completion displays a separate suggestion and preserves newer form edits until explicit adoption
+  ---
+  duration_ms: 4.964666
+  type: 'test'
+  ...
+# Subtest: late accepted job after disposal and Owner storage cleanup cannot repaint or recreate the previous Owner draft
+ok 197 - late accepted job after disposal and Owner storage cleanup cannot repaint or recreate the previous Owner draft
+  ---
+  duration_ms: 3.207542
+  type: 'test'
+  ...
+# Subtest: preview initializes a full resource draft and preserves an existing CAS baseline and local edits
+ok 198 - preview initializes a full resource draft and preserves an existing CAS baseline and local edits
+  ---
+  duration_ms: 1.747667
+  type: 'test'
+  ...
+# Subtest: needs_input never exposes an adoption action or mutates the working draft
+ok 199 - needs_input never exposes an adoption action or mutates the working draft
+  ---
+  duration_ms: 2.376208
+  type: 'test'
+  ...
+# Subtest: background observation preserves older task pages, composer node and selection, and pauses while hidden
+ok 200 - background observation preserves older task pages, composer node and selection, and pauses while hidden
+  ---
+  duration_ms: 1.975833
+  type: 'test'
+  ...
+# Subtest: image request freezes selected retained reference and keeps image choices out of text submissions
+ok 201 - image request freezes selected retained reference and keeps image choices out of text submissions
+  ---
+  duration_ms: 2.033083
+  type: 'test'
+  ...
+# Subtest: image pending state shows actual workflow evidence and only ready result exposes image and explicit material save
+ok 202 - image pending state shows actual workflow evidence and only ready result exposes image and explicit material save
+  ---
+  duration_ms: 1.436292
+  type: 'test'
+  ...
+# Subtest: unconfigured image failure shows actionable status without fabricated image or save action
+ok 203 - unconfigured image failure shows actionable status without fabricated image or save action
+  ---
+  duration_ms: 0.539958
+  type: 'test'
+  ...
+# Subtest: lost image acceptance replays original reference and key while newer reference choices remain a separate draft
+ok 204 - lost image acceptance replays original reference and key while newer reference choices remain a separate draft
+  ---
+  duration_ms: 1.424542
+  type: 'test'
+  ...
+# Subtest: an explicit reference choice freezes actual grant identity and revision into an image task
+ok 205 - an explicit reference choice freezes actual grant identity and revision into an image task
+  ---
+  duration_ms: 1.12625
+  type: 'test'
+  ...
+# Subtest: parent redraw during copy retains accepted result pointer and the new component reads the actual copy
+ok 206 - parent redraw during copy retains accepted result pointer and the new component reads the actual copy
+  ---
+  duration_ms: 6.487625
+  type: 'test'
+  ...
+# Subtest: archive response after parent redraw refreshes through server readback in the current component
+ok 207 - archive response after parent redraw refreshes through server readback in the current component
+  ---
+  duration_ms: 2.983375
+  type: 'test'
+  ...
+# Subtest: Owner change during an accepted operation cannot recreate old result pointers
+ok 208 - Owner change during an accepted operation cannot recreate old result pointers
+  ---
+  duration_ms: 1.560167
+  type: 'test'
+  ...
+# Subtest: invalid advanced JSON becomes submittable after a normal field repairs its value
+ok 209 - invalid advanced JSON becomes submittable after a normal field repairs its value
+  ---
+  duration_ms: 0.769
+  type: 'test'
+  ...
+# Subtest: saving visual guidance updates its origin projection without remounting or clearing new inputs
+ok 210 - saving visual guidance updates its origin projection without remounting or clearing new inputs
+  ---
+  duration_ms: 0.435417
+  type: 'test'
+  ...
+# Subtest: world adapter preserves identities, selection CAS, NPC publication and explicit application
+ok 211 - world adapter preserves identities, selection CAS, NPC publication and explicit application
+  ---
+  duration_ms: 240.524291
+  type: 'test'
+  ...
+# Subtest: Chinese wardrobe choices submit canonical states and compatible slots
+ok 212 - Chinese wardrobe choices submit canonical states and compatible slots
+  ---
+  duration_ms: 0.796292
+  type: 'test'
+  ...
+# Subtest: ordinary objects have no wearing slot and additions do not imply wearing
+ok 213 - ordinary objects have no wearing slot and additions do not imply wearing
+  ---
+  duration_ms: 0.089083
+  type: 'test'
+  ...
+1..213
+# tests 213
+# suites 0
+# pass 213
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2874.769625

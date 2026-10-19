@@ -12,6 +12,9 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "e2e:persona": "node scripts/e2e/persona-layers-real.mjs",
+    "regression:v3": "node scripts/e2e/v3-regression/run.mjs --all",
+    "regression:v3:list": "node scripts/e2e/v3-regression/run.mjs --list",
+    "regression:v3:self-test": "node scripts/e2e/v3-regression/run.mjs --self-test",
     "generate": "pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/browser-client generate:openapi && pnpm --filter @fluctlight/browser-client generate"
   }
 }

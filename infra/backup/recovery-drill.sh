@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-if [[ -z "${FLUCTLIGHT_RECOVERY_WORKDIR:-}" ]]; then
-  echo "Set FLUCTLIGHT_RECOVERY_WORKDIR to a disposable recovery directory." >&2
-  exit 2
-fi
-
+: "${FLUCTLIGHT_RECOVERY_WORKDIR:?Set an explicitly disposable recovery work directory}"
+: "${FLUCTLIGHT_RECOVERY_JOB:?Create an actual isolated restore job from the completed backup first}"
+: "${FLUCTLIGHT_RECOVERY_ENV_FILE:?Set the source deployment private env file}"
 case "$FLUCTLIGHT_RECOVERY_WORKDIR" in
   /tmp/*|/private/tmp/*) ;;
-  *) echo "Recovery drill refuses non-temporary targets: $FLUCTLIGHT_RECOVERY_WORKDIR" >&2; exit 2 ;;
+  *) echo 'Recovery drill requires an explicit temporary work directory.' >&2; exit 2 ;;
 esac
-
-echo "1. Restore PostgreSQL application, temporal and temporal_visibility snapshots into disposable volumes."
-echo "2. Restore the private object bucket and verify manifest counts/SHA-256 samples."
-echo "3. Run the Go migration binary to the manifest application head."
-echo "4. Start Temporal, Core and Worker; query the active workflow ID from the manifest."
-echo "5. Prove one active workflow resumes with its stable workflow/provider IDs."
-echo "6. Record evidence under $FLUCTLIGHT_RECOVERY_WORKDIR and destroy the disposable volumes."
+case "$FLUCTLIGHT_RECOVERY_JOB" in
+  restore_*) ;;
+  *) echo 'Recovery drill accepts only a restore job, never a source backup operation.' >&2; exit 2 ;;
+esac
+task_backup_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 "$task_backup_dir/maintenance.py" \
+  --job "$FLUCTLIGHT_RECOVERY_JOB" \
+  --compose "${FLUCTLIGHT_RECOVERY_COMPOSE:-$task_backup_dir/../compose/fluctlight.compose.yml}" \
+  --env-file "$FLUCTLIGHT_RECOVERY_ENV_FILE" \
+  --workdir "$FLUCTLIGHT_RECOVERY_WORKDIR" \
+  --maintenance-confirm

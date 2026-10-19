@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-16",
+  "scope": "diary generation/read/annotations/replies/shared-communication and terminal recovery",
+  "commands": [
+    {
+      "command": "pnpm typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "GOCACHE=/tmp/fluctlight-go-cache go -C apps/core-go build ./cmd/api ./cmd/worker",
+      "result": "passed"
+    },
+    {
+      "command": "node --check real-diary.js / real-autonomy.js (individual calls)",
+      "result": "passed"
+    }
+  ],
+  "tests": "new PostgreSQL diary/no-material/staged-recovery/upgrade tests and draft tests written; not executed",
+  "readOnlyReview": "two narrow source reviews completed; crash recovery/stage reuse/draft races/schema errors corrected in source; no runtime validation claimed",
+  "liveLLM": "not invoked",
+  "runtimeRestarted": false,
+  "runningDatabaseHead": "0066_life_place",
+  "sourceMigrationHead": "0069_diary",
+  "remaining": "physical joint participation sources and other confirmed work packages remain incomplete"
+}

@@ -1,0 +1,73 @@
+{
+  "recorded_at": "2026-10-16T01:07:00+08:00",
+  "scope": "WP02 Actor background fields and consumers",
+  "fields": {
+    "name": "称呼",
+    "full_name": "姓名",
+    "age": "年龄",
+    "gender": "性别",
+    "occupation": "职业",
+    "background": "简单背景",
+    "interests": "稳定兴趣（原UI喜好）",
+    "preferences": "偏好",
+    "location_scope": "所在地概况",
+    "location": "具体所在地（原UI城市）",
+    "timezone": "时区",
+    "relationship_distance": "双方距离或交流方式",
+    "meeting_confirmed": "是否已约定线下见面",
+    "personality": "性格",
+    "habits": "习惯",
+    "relationship_description": "你们的关系（自述）",
+    "shared_information": "可让她知道",
+    "wants_you_to_know": "希望她知道的事",
+    "rules": "给她的规则与边界"
+  },
+  "storage": "existing actor_facts(owner_fluctlight_id,subject_actor_id,attribute); no migration",
+  "semantics": {
+    "missing": "leave current assertion unchanged",
+    "null": "explicit current unknown; retires prior assertion via correct/change",
+    "string": "1–1024 Unicode code points, non-blank; age/gender remain self-reported strings",
+    "meeting_confirmed": "boolean or null; false preserved",
+    "rules": "newline-preserving user preferences; no System/Tool authority",
+    "relationship_description": "Actor self-report; no mutual relationship assertion",
+    "owner_command": "expected_current_facts_revision; reason <=500 code points",
+    "actor_context_command": "expected_context_version; reason <=1000 UTF-8 bytes"
+  },
+  "checks": [
+    {
+      "status": "PASS",
+      "command": "python3 /tmp/fluctlight-recovery-1015/envexec.py go -C apps/core-go test ./internal/core ./internal/httpapi -run 'TestAboutYou|TestActorUser|TestActorCorrection|TestActorBackground|TestGoalPlannerBrowserAPI' -count=1 -v",
+      "cases": "12 core, 2 HTTP; disposable databases created/dropped by tests; no SKIP"
+    },
+    {
+      "status": "PASS",
+      "command": "python3 /tmp/fluctlight-recovery-1015/envexec.py go -C apps/core-go test ./internal/core -run TestAboutYouCompleteFields -count=1 -v",
+      "cases": "19 fields, scoped snapshot validation plus unrelated Actor edit, 2 controlled physical Provider requests, profile-visible GoalPlanner query"
+    },
+    {
+      "status": "PASS",
+      "command": "GOCACHE=/tmp/fluctlight-go-cache go -C apps/core-go test -race ./internal/httpapi/browser -run 'TestCompleteAboutYou|TestActorUser|TestOwnerBackground' -count=1"
+    },
+    {
+      "status": "PASS",
+      "command": "GOCACHE=/tmp/fluctlight-go-cache go -C apps/core-go vet ./internal/core ./internal/httpapi/browser ./internal/httpapi"
+    },
+    {
+      "status": "PASS",
+      "command": "node --test apps/web/test/actor-user-background.test.mjs",
+      "cases": 4
+    },
+    {
+      "status": "FAIL_PENDING_SHARED_GENERATION",
+      "command": "GOCACHE=/tmp/fluctlight-go-cache go -C apps/core-go test -race ./internal/httpapi/browser -count=1",
+      "reason": "World concurrent route GET /api/fluctlights/fl-1/world/catalog/world-1 missing from checked OpenAPI before root unified generation"
+    }
+  ],
+  "provider_evidence": "Controlled local HTTP transport serializes actual assembled cognition and independent Cydonia requests; not a live model semantic acceptance. GoalPlanner query uses existing profile visibility and sourced current Actor facts.",
+  "remaining": [
+    "Root unified pnpm generate and generated contract drift checks",
+    "T03 v3 provider/page integration owned by root colleague",
+    "Final actual local model E02 owned by environment/root; not claimed here"
+  ],
+  "authorization": "Original GoalPlanner profile visibility kept unchanged; auto-review refused suggested replacement, safe existing-scope fixture used instead."
+}

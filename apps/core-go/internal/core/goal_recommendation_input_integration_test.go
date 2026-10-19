@@ -124,6 +124,11 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 		if splitErr != nil {
 			t.Fatal(splitErr)
 		}
+		var journal []byte
+		if err := f.repository.Pool().QueryRow(f.ctx, `SELECT result FROM public.goal_evaluation_requests WHERE id=$1`, snapshot.RequestID).Scan(&journal); err != nil {
+			t.Fatal(err)
+		}
+		current["accepted_submissions"] = goalEvaluationAcceptedWireResults(binding, decodeObject(journal))
 		if stringValue(mapValue(messages[1])["content"]) != stringValue(stableTaskContextMessage(stable)["content"]) || lastContent != jsonString(current) {
 			expected := jsonString(current)
 			at := 0
@@ -162,6 +167,13 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 		}
 		if calls == 1 && proof == "" {
 			t.Fatal("recent recommendation starved behind old inspection receipts")
+		}
+		if calls == 1 {
+			// A new explicit association arrives after input admission. Keep that
+			// unoffered source pending and queue it for the unfinished Goal.
+			if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) VALUES($1,$2,$3,$4,'candidate','explicit relevant source arriving after snapshot admission') ON CONFLICT DO NOTHING`, "remainder_"+f.suffix, f.fluctlightID, waitingID, omittedID); err != nil {
+				t.Fatal(err)
+			}
 		}
 		candidates := []GoalEvaluationCandidate{}
 		for _, target := range snapshot.Goals {

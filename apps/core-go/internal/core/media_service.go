@@ -50,8 +50,8 @@ func (s *MediaService) MediaPromptsFiltered(ctx context.Context, actorID string,
 }
 
 // RecordMediaActivityFailure records a terminal workflow failure for a media intent.
-func (s *MediaService) RecordMediaActivityFailure(ctx context.Context, intentID, message string) error {
-	return s.app.RecordMediaActivityFailure(ctx, intentID, message)
+func (s *MediaService) RecordMediaActivityFailure(ctx context.Context, intentID, sourceWorkflow, message string) error {
+	return s.app.RecordMediaActivityFailure(ctx, intentID, sourceWorkflow, message)
 }
 
 // ProcessVisualIdentity advances an in-flight visual identity generation session.

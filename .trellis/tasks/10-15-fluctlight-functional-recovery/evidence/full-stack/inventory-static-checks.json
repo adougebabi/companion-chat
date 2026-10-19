@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-16",
+  "sourceMigrationHead": "0073_inventory_management",
+  "runningDatabaseHead": "0066_life_place",
+  "scope": "inventory management subset; borrower/outfits/photo and other domains incomplete",
+  "commands": [
+    {
+      "command": "GOCACHE=/tmp/fluctlight-go-cache go -C apps/core-go build ./cmd/api ./cmd/worker",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "node --check inventory editor/records/page/route module",
+      "result": "passed"
+    }
+  ],
+  "tests": "new real PG management/archive/history/paging tests written, not executed",
+  "liveLLM": "not invoked",
+  "runtimeRestarted": false,
+  "review": "original management two-direction source reviews complete; once-only repair marker, legacy duplicate worn slot, fixed-use request and cursor deep links corrected",
+  "migration": "passive history and archive; sourced one-time cleanup of current-use rows that violate pre-existing kind/availability/ownership rules, not DB reset; not applied"
+}

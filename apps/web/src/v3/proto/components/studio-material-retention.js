@@ -1,0 +1,20 @@
+import {get} from '../store.js';
+import {studioClient} from '../services.js';
+import {drawer,esc,confirm} from '../ui.js';
+import {Field} from './forms.js';
+import {persistentCommand} from '../../providers/persistent-command.mjs';
+import {studioDraftStorage} from './studio-draft-storage.js';
+
+export function studioMaterialRetention(material,onSaved=()=>{}){
+ const owner=get('session')?.actorId,slot=`fluctlight-studio:${owner}:material:${material.id}:retention`;let active=true,busy=false;
+ const isOwner=()=>get('session')?.actorId===owner;let draft=JSON.parse(studioDraftStorage().getItem(slot+':draft')||'null')||{operation:material.released_at?'retain':'release',expectedRevision:material.revision,reason:''};
+ const command=persistentCommand({key:slot+':command',storage:studioDraftStorage,execute:async(body,key)=>{if(!isOwner())throw new Error('会话已切换，未修改保留状态');const {operation,...fields}=body;return studioClient.materialRetention(material.id,operation,{...fields,idempotencyKey:key});}});
+ if(!command.pending()&&!draft.reason?.trim())draft={operation:material.released_at?'retain':'release',expectedRevision:material.revision,reason:''};
+ const d=drawer({title:'创作素材保留状态',body:`<p>取消保留只解除资源素材关联，不删除原任务、字节、来源或已生成结果。恢复保留仍核对原任务与图片来源。</p><p data-state></p>${Field({label:'修改原因',name:'reason',type:'textarea',value:draft.reason,attrs:{required:true,maxlength:1000}})}<p role="alert" data-error></p>`,footer:'<button class="btn" data-close>关闭</button><button class="btn" data-rebase>读取最新版本并保留意图</button><button class="btn" data-retry>重试原提交</button><button class="btn primary" data-save>确认操作</button>',onClose:()=>{active=false;}});
+ const alive=()=>active&&d.el.isConnected&&isOwner(),errors=d.el.querySelector('[data-error]'),reason=d.el.querySelector('[name=reason]');
+ const persist=()=>{if(isOwner())studioDraftStorage().setItem(slot+':draft',JSON.stringify(draft));};reason.oninput=()=>{draft.reason=reason.value;persist();};
+ function paint(){if(!alive())return;const pending=command.pending();d.el.querySelector('[data-state]').textContent=`本次意图：${draft.operation==='retain'?'恢复保留':'取消保留'} · 基线v${draft.expectedRevision}${pending?' · 原提交待核对':''}`;d.el.querySelector('[data-save]').disabled=busy||!!pending;d.el.querySelector('[data-retry]').disabled=busy||!pending||!!pending.rejection;d.el.querySelector('[data-rebase]').disabled=busy||!!pending&&!pending.rejection;}
+ async function save(retry){if(busy||!alive()||!retry&&!reason.reportValidity())return;busy=true;paint();let accepted=false;const submitted=JSON.stringify(retry?command.pending()?.value:draft);try{await(retry?command.retry():command.submit(draft));accepted=true;if(!alive())return;const current=await studioClient.material(material.id);if(!alive())return;if(JSON.stringify(draft)===submitted){draft={operation:current.released_at?'retain':'release',expectedRevision:current.revision,reason:''};reason.value='';studioDraftStorage().removeItem(slot+':draft');}errors.textContent=`原操作已记录；当前素材${current.released_at?'已取消保留':'处于保留状态'}。`;await onSaved(current);}catch(error){if(alive())errors.textContent=`${accepted?'原操作已保存；最新状态查询失败：':''}${error.message}`;}finally{busy=false;paint();}}
+ d.el.querySelector('[data-save]').onclick=()=>void save(false);d.el.querySelector('[data-retry]').onclick=()=>void save(true);d.el.querySelector('[data-close]').onclick=()=>d.close();
+ d.el.querySelector('[data-rebase]').onclick=async()=>{if(busy||!alive())return;busy=true;paint();try{const current=await studioClient.material(material.id);if(alive()&&await confirm({title:'采用素材最新版本',text:`当前${current.released_at?'已取消保留':'仍保留'}，版本v${current.revision}。保留本次${draft.operation==='retain'?'恢复保留':'取消保留'}意图与理由继续？`})&&alive()){if(command.pending()?.rejection)command.releaseRejected();draft.expectedRevision=current.revision;persist();errors.textContent='版本已核对，请再次明确提交。';}}catch(error){if(alive())errors.textContent=error.message;}finally{busy=false;paint();}};paint();return d;
+}

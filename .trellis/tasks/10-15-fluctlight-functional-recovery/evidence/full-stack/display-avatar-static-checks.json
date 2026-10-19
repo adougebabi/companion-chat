@@ -1,0 +1,49 @@
+{
+  "head": "0084_owner_media (reuses existing tables)",
+  "checks": [
+    {
+      "kind": "API/Worker build",
+      "session": 75861,
+      "status": "passed"
+    },
+    {
+      "kind": "workspace typecheck",
+      "session": 8878,
+      "status": "passed"
+    },
+    {
+      "kind": "formal Web build/no-Mock",
+      "session": 39652,
+      "status": "passed"
+    },
+    {
+      "kind": "controlled avatar components",
+      "chunk": "11002f",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "kind": "Browser closed avatar body",
+      "session": 50205,
+      "passed": 1,
+      "note": "Core package compile only, no selected Core tests executed"
+    },
+    {
+      "kind": "regression harness",
+      "passed": 20,
+      "note": "No live API/model operations"
+    }
+  ],
+  "independentReview": "No confirmed defect in the specified source; not runtime verification.",
+  "authoredUnexecuted": [
+    "PG display selection/current reference/history/canonical isolation appended to TestOwnerMediaUploadRecoversSameObjectAndFencesOwnerAndMetadata",
+    "L09 avatar live scenario",
+    "Browser cross-page/Owner switch/manual interaction"
+  ],
+  "notValidated": [
+    "actual migration",
+    "actual PostgreSQL/S3 business execution",
+    "browser UI",
+    "models"
+  ]
+}

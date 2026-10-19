@@ -125,11 +125,16 @@ func (a *App) CreateConversation(ctx context.Context, ownerID string, participan
 
 func (a *App) MarkRead(ctx context.Context, actorID, conversationID string, payload map[string]any) error {
 	read := intValue(payload["read_sequence"])
-	delivered := intValue(payload["delivered_sequence"])
+	delivered := read
+	if value, exists := payload["delivered_sequence"]; exists {
+		delivered = intValue(value)
+	}
 	if read < 0 || delivered < 0 || delivered < read {
 		return errors.New("conversation_read_position_invalid")
 	}
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.conversation_read_positions SET last_read_sequence=GREATEST(last_read_sequence,$3),last_delivered_sequence=GREATEST(last_delivered_sequence,$4),updated_at=now() WHERE conversation_id=$1 AND actor_id=$2`, conversationID, actorID, read, delivered)
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.conversation_read_positions r SET last_read_sequence=GREATEST(r.last_read_sequence,$3),last_delivered_sequence=GREATEST(r.last_delivered_sequence,$4),updated_at=now() WHERE r.conversation_id=$1 AND r.actor_id=$2
+ AND EXISTS(SELECT 1 FROM public.conversation_participants p WHERE p.conversation_id=r.conversation_id AND p.actor_id=$2 AND p.status='active')
+ AND $4 <= COALESCE((SELECT max(m.sequence) FROM public.conversation_messages m WHERE m.conversation_id=r.conversation_id),0)`, conversationID, actorID, read, delivered)
 	if err != nil {
 		return err
 	}
@@ -231,6 +236,14 @@ func (a *App) ProposeFoundation(ctx context.Context, actorID, fluctlightID strin
 	if err != nil {
 		return nil, err
 	}
+	reason := strings.TrimSpace(stringValue(payload["reason"]))
+	if reason == "" || len([]rune(reason)) > 1024 {
+		return nil, invalid("foundation reason required")
+	}
+	expected, valid := parseRevision(payload["expected_revision"])
+	if !valid || expected < 0 {
+		return nil, invalid("expected revision required")
+	}
 	changes := mapValue(payload["changes"])
 	if len(changes) == 0 {
 		return nil, errors.New("foundation_changes_invalid")
@@ -249,8 +262,6 @@ func (a *App) ProposeFoundation(ctx context.Context, actorID, fluctlightID strin
 	}
 	if raw, ok := payload["expected_revision"]; !ok || raw == nil {
 		return nil, errors.New("expected_revision_required")
-	} else if intValue(raw) != current {
-		return nil, ErrConflict
 	}
 	candidate := map[string]any{
 		"identity":          mergeFoundationMap(f.Identity, mapValue(changes["identity"])),
@@ -278,29 +289,83 @@ func (a *App) ProposeFoundation(ctx context.Context, actorID, fluctlightID strin
 		candidate["identity"] = mergeFoundationMap(candidate["identity"].(map[string]any), identityPatch)
 	}
 	if value, ok := changes["identity"].(map[string]any); ok && len(value) > 0 {
-		candidate["identity"] = mergeFoundationMap(f.Identity, value)
+		candidate["identity"] = mergeFoundationMap(candidate["identity"].(map[string]any), value)
 	}
 	corePersona["identity"] = candidate["identity"]
 	corePersona["personality"] = candidate["personality"]
 	corePersona["behavioral_policy"] = candidate["behavioral_policy"]
 	corePersona["life_profile"] = candidate["life_profile"]
+	if system, present := changes["personality_system"]; present {
+		corePersona["personality_system"] = mergeFoundationMap(mapValue(f.CorePersona["personality_system"]), mapValue(system))
+		if err := validateFoundationProfileContinuity(f.CorePersona, corePersona); err != nil {
+			return nil, err
+		}
+	}
 	candidate["core_persona"] = corePersona
+	key := strings.TrimSpace(stringValue(payload["idempotency_key"]))
+	if len(key) > 256 {
+		return nil, invalid("invalid idempotency key")
+	}
+	// Historical in-process callers use a deterministic content identity. Public
+	// clients send an explicit key, retained across unknown transport outcomes.
+	key, digest := foundationProposalCommandIdentity(ctx, actorID, fluctlightID, payload)
+	var result map[string]any
 	id := randomID("foundation_revision_")
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		receipts := postgresSurfaceTx{tx}
+		storedDigest, stored, found, err := receipts.Idempotency(ctx, actorID, key)
+		if err != nil {
+			return err
+		}
+		if found {
+			if storedDigest != digest {
+				return &SurfaceError{Status: 422, Code: "idempotency_key_reused", Message: "幂等键已用于不同的身份提案"}
+			}
+			result = stored
+			result["replayed"] = true
+			return nil
+		}
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
+		}
+		if err := requireOwnerMutableTx(ctx, tx, actorID, fluctlightID); err != nil {
+			return err
+		}
+		var liveRevision int
+		if err := tx.QueryRow(ctx, `SELECT current_revision FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, actorID).Scan(&liveRevision); err != nil {
+			return err
+		}
+		if liveRevision != expected || liveRevision != current || liveRevision != f.CurrentRevision {
+			return ErrConflict
+		}
+		if source, ok := ctx.Value(studioFoundationSourceKey{}).(studioFoundationSource); ok {
+			if err := lockFoundationSourceTx(ctx, tx, actorID, source.Publication); err != nil {
+				return err
+			}
+		}
 		evidence := arrayValue(payload["evidence_refs"])
 		if len(evidence) == 0 {
 			evidence = []any{"owner:" + actorID}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) VALUES($1,$2,$3,$4,'human','proposed',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`, id, fluctlightID, current+1, current, actorID, initializationMode, lifecycleStatus, foundationCreatedAt, jsonBytes(1.0), jsonBytes(changes), jsonBytes(candidate["core_persona"]), jsonBytes(candidate["identity"]), jsonBytes(candidate["personality"]), jsonBytes(candidate["behavioral_policy"]), jsonBytes(candidate["life_profile"]), jsonBytes(candidate["provenance"]), jsonBytes(evidence), stringValue(payload["reason"]), "foundation:"+id); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key,base_snapshot) VALUES($1,$2,$3,$4,'human','proposed',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`, id, fluctlightID, current+1, current, actorID, initializationMode, lifecycleStatus, foundationCreatedAt, jsonBytes(1.0), jsonBytes(changes), jsonBytes(candidate["core_persona"]), jsonBytes(candidate["identity"]), jsonBytes(candidate["personality"]), jsonBytes(candidate["behavioral_policy"]), jsonBytes(candidate["life_profile"]), jsonBytes(candidate["provenance"]), jsonBytes(evidence), stringValue(payload["reason"]), "foundation:"+id, jsonBytes(map[string]any{"core_persona": f.CorePersona, "identity": f.Identity, "personality": f.Personality, "behavioral_policy": f.BehavioralPolicy, "life_profile": f.LifeProfile, "provenance": f.Provenance, "revision": current})); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_governance(id,fluctlight_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'propose',$4,$5)`, randomID("foundation_governance_"), fluctlightID, id, actorID, nullableString(stringValue(payload["reason"])))
-		return err
+		if source, ok := ctx.Value(studioFoundationSourceKey{}).(studioFoundationSource); ok {
+			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_foundation_revisions SET source_resource_id=$2,source_version=$3,source_choices=$4 WHERE id=$1`, id, source.Publication.ID, source.Publication.Version, jsonBytes(arrayValue(source.Command["choices"]))); err != nil {
+				return err
+			}
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_governance(id,fluctlight_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'propose',$4,$5)`, randomID("foundation_governance_"), fluctlightID, id, actorID, nullableString(stringValue(payload["reason"])))
+		if err != nil {
+			return err
+		}
+		result = map[string]any{"id": id, "fluctlight_id": fluctlightID, "revision": current + 1, "base_revision": current, "status": "proposed", "changes": changes, "core_persona": candidate["core_persona"], "identity": candidate["identity"], "personality": candidate["personality"], "behavioral_policy": candidate["behavioral_policy"], "life_profile": candidate["life_profile"], "provenance": candidate["provenance"]}
+		return receipts.SaveIdempotency(ctx, actorID, key, digest, result)
 	})
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "revision": current + 1, "base_revision": current, "status": "proposed", "changes": changes, "core_persona": candidate["core_persona"], "identity": candidate["identity"], "personality": candidate["personality"], "behavioral_policy": candidate["behavioral_policy"], "life_profile": candidate["life_profile"], "provenance": candidate["provenance"]}, nil
+	return result, nil
 }
 
 func (a *App) SetFoundationDecision(ctx context.Context, actorID, fluctlightID, revisionID, action, reason string) (map[string]any, error) {
@@ -314,12 +379,23 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 	if strings.TrimSpace(reason) == "" || len([]rune(reason)) > 1024 {
 		return nil, errors.New("foundation_reason_invalid")
 	}
+	var proposalStatus, resourceStatus string
+	preflightErr := a.DB.Pool().QueryRow(ctx, `SELECT r.status,f.status FROM public.fluctlight_foundation_revisions r JOIN public.fluctlights f ON f.id=r.fluctlight_id WHERE r.id=$1 AND r.fluctlight_id=$2 AND f.created_by_actor_id=$3 AND r.actor_id=$3`, revisionID, fluctlightID, actorID).Scan(&proposalStatus, &resourceStatus)
+	if errors.Is(preflightErr, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if preflightErr != nil {
+		return nil, preflightErr
+	}
+	if proposalStatus == "proposed" && resourceStatus == "retired" {
+		return nil, retiredOwnerWriteError()
+	}
 	var compiledWorkingPersonas []CompiledWorkingPersona
 	if action == "accept" {
-		var revision int
+		var revision, base, current int
 		var status, mode string
 		var rawCore, rawIdentity, rawPersonality, rawPolicy, rawLife []byte
-		err := a.DB.Pool().QueryRow(ctx, `SELECT r.revision,r.status,f.initialization_mode,r.core_persona,r.identity,r.personality,r.behavioral_policy,r.life_profile FROM public.fluctlight_foundation_revisions r JOIN public.fluctlights f ON f.id=r.fluctlight_id WHERE r.id=$1 AND r.fluctlight_id=$2 AND r.actor_id=$3 AND f.created_by_actor_id=$3`, revisionID, fluctlightID, actorID).Scan(&revision, &status, &mode, &rawCore, &rawIdentity, &rawPersonality, &rawPolicy, &rawLife)
+		err := a.DB.Pool().QueryRow(ctx, `SELECT r.revision,r.base_revision,f.current_revision,r.status,f.initialization_mode,r.core_persona,r.identity,r.personality,r.behavioral_policy,r.life_profile FROM public.fluctlight_foundation_revisions r JOIN public.fluctlights f ON f.id=r.fluctlight_id WHERE r.id=$1 AND r.fluctlight_id=$2 AND r.actor_id=$3 AND f.created_by_actor_id=$3`, revisionID, fluctlightID, actorID).Scan(&revision, &base, &current, &status, &mode, &rawCore, &rawIdentity, &rawPersonality, &rawPolicy, &rawLife)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -327,6 +403,12 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 			return nil, err
 		}
 		if status == "proposed" {
+			if current != base {
+				return nil, &SurfaceError{Status: 409, Code: "foundation_proposal_stale", Message: "提案基线已过期，请对照最新身份重新创建提案", Details: map[string]any{"proposal_base_revision": base, "current_revision": current}}
+			}
+			if expected != nil && current != *expected {
+				return nil, ErrConflict
+			}
 			core := decodeObject(rawCore)
 			if len(core) == 0 {
 				current, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
@@ -371,6 +453,9 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 		var current int
 		var lifecycleStatus string
 		var currentIdentity []byte
+		if err := requireOwnerMutableTx(ctx, tx, actorID, fluctlightID); err != nil {
+			return err
+		}
 		if err := tx.QueryRow(ctx, `SELECT current_revision,status,identity FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, actorID).Scan(&current, &lifecycleStatus, &currentIdentity); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
@@ -385,7 +470,7 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 				return errors.New("working_persona_compilation_required")
 			}
 			if current != baseRevision {
-				return ErrConflict
+				return &SurfaceError{Status: 409, Code: "foundation_proposal_stale", Message: "提案基线已过期，请对照最新身份重新创建提案", Details: map[string]any{"proposal_base_revision": baseRevision, "current_revision": current}}
 			}
 			if expected != nil && current != *expected {
 				return ErrConflict
@@ -414,6 +499,9 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 				return err
 			}
 			if err := insertCompiledWorkingPersonasTx(ctx, tx, fluctlightID, compiledWorkingPersonas); err != nil {
+				return err
+			}
+			if err := initializeAddedProfileHabitsTx(ctx, tx, fluctlightID, revisionID, decodeObject(corePersona)); err != nil {
 				return err
 			}
 			if err := a.applyLifeContextTimezoneChangeTx(ctx, tx, fluctlightID, actorID, revisionID, revision, decodeObject(currentIdentity), decodeObject(identity)); err != nil {
@@ -457,12 +545,15 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		if err != nil {
 			return nil, err
 		}
+		if current.Status == "retired" {
+			return nil, retiredOwnerWriteError()
+		}
 		if current.CurrentRevision != expected {
 			return nil, ErrConflict
 		}
 		var mode, status string
 		var rawCore []byte
-		err = a.DB.Pool().QueryRow(ctx, `SELECT initialization_mode,status,core_persona FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2`, fluctlightID, target).Scan(&mode, &status, &rawCore)
+		err = a.DB.Pool().QueryRow(ctx, `SELECT initialization_mode,status,core_persona FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2 AND status='accepted'`, fluctlightID, target).Scan(&mode, &status, &rawCore)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -497,6 +588,9 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		} else if !errors.Is(replayErr, pgx.ErrNoRows) {
 			return replayErr
 		}
+		if err := requireOwnerMutableTx(ctx, tx, actorID, fluctlightID); err != nil {
+			return err
+		}
 		var current int
 		var currentIdentity []byte
 		if err := tx.QueryRow(ctx, `SELECT current_revision,identity FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, actorID).Scan(&current, &currentIdentity); err != nil {
@@ -513,7 +607,7 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		}
 		var sourceID, sourceStatus string
 		var corePersona, identity, personality, policy, life, provenance, evidence []byte
-		if err := tx.QueryRow(ctx, `SELECT id,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2`, fluctlightID, target).Scan(&sourceID, &sourceStatus, &corePersona, &identity, &personality, &policy, &life, &provenance, &evidence); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT id,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2 AND status='accepted'`, fluctlightID, target).Scan(&sourceID, &sourceStatus, &corePersona, &identity, &personality, &policy, &life, &provenance, &evidence); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -524,7 +618,7 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		}
 		newRevision := current + 1
 		newID := randomID("foundation_revision_")
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) SELECT $1,fluctlight_id,$2,$3,'owner_rollback','accepted',$4,initialization_mode,'active',foundation_created_at,confidence,jsonb_build_object('rollback_from_revision',$5),core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,$6,$7 FROM public.fluctlight_foundation_revisions WHERE id=$8`, newID, newRevision, current, actorID, target, nullableString(reason), idempotencyKey, sourceID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) SELECT $1,fluctlight_id,$2,$3,'owner_rollback','accepted',$4,initialization_mode,'active',foundation_created_at,confidence,jsonb_build_object('rollback_from_revision',$5::integer),core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,$6,$7 FROM public.fluctlight_foundation_revisions WHERE id=$8`, newID, newRevision, current, actorID, target, nullableString(reason), idempotencyKey, sourceID); err != nil {
 			return err
 		}
 		if len(decodeObject(corePersona)) == 0 {
@@ -588,9 +682,14 @@ func mergeFoundationMap(base, changes map[string]any) map[string]any {
 func validateFoundationChanges(changes map[string]any) error {
 	for key, value := range changes {
 		switch key {
-		case "identity", "personality", "behavioral_policy", "life_profile":
+		case "identity", "personality", "behavioral_policy", "life_profile", "personality_system":
 			if _, ok := value.(map[string]any); !ok {
 				return errors.New("foundation_changes_invalid")
+			}
+			if key == "personality_system" {
+				if _, forbidden := mapValue(value)["active_profile_id"]; forbidden {
+					return invalid("Current personality switching requires its controlled runtime command")
+				}
 			}
 		case "provenance":
 			provenance, ok := value.(map[string]any)
@@ -729,10 +828,25 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 		if toStatus == "paused" {
 			command = "pause"
 		}
-		if workflowResult, workflowErr := a.WorkflowCommand(ctx, actorID, workflowID, command, map[string]any{"action_id": actionID, "reason": reason}); workflowErr != nil {
-			result["workflow_command_error"] = workflowErr.Error()
+		intent, lookupErr := a.ownerWorkflowIntent(ctx, actorID, workflowID)
+		if lookupErr != nil {
+			result["workflow_command_error"] = "workflow_intent_unavailable"
 		} else {
-			result["workflow_command"] = workflowResult
+			runtimeCtx, cancel := context.WithTimeout(ctx, workflowListTimeout)
+			execution, runtimeErr := a.Workflows.Status(runtimeCtx, workflowID, "")
+			cancel()
+			if runtimeErr != nil {
+				result["workflow_command_error"] = "workflow_runtime_unavailable"
+			} else if (command == "pause" && execution.Status == "paused") || containsString([]string{"completed", "failed", "canceled", "cancelled", "terminated", "timed_out"}, execution.Status) {
+				result["workflow_control_state"] = "already_observed"
+			} else {
+				body := map[string]any{"source_run_id": execution.RunID, "expected_revision": intent.Revision, "idempotency_key": "autonomy-governance:" + actionID + ":" + from + ":" + toStatus + ":" + stableDigest(reason), "reason": reason}
+				if workflowResult, workflowErr := a.OwnerWorkflowCommand(ctx, actorID, workflowID, command, body); workflowErr != nil {
+					result["workflow_command_error"] = workflowErr.Error()
+				} else {
+					result["workflow_command"] = workflowResult
+				}
+			}
 		}
 	}
 	return result, nil
@@ -747,6 +861,9 @@ func nullableString(value string) any {
 
 func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload map[string]any) error {
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
+		return err
+	}
+	if replay, err := a.configurationCommandReplayed(ctx, actorID, "provider_binding_update", payload); err != nil || replay {
 		return err
 	}
 	role, endpoint, model := stringValue(payload["role"]), stringValue(payload["endpoint_id"]), stringValue(payload["model_id"])
@@ -825,6 +942,10 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 	if !endpointExists {
 		return errors.New("provider_endpoint_not_found")
 	}
+	var secretPurpose string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT secret_purpose FROM public.provider_endpoints WHERE id=$1`, endpoint).Scan(&secretPurpose); err != nil {
+		return err
+	}
 	models, err := a.ProviderModels(ctx, actorID, endpoint)
 	if err != nil {
 		return fmt.Errorf("provider_models_unavailable: %w", err)
@@ -840,6 +961,10 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		return errors.New("provider_model_not_available")
 	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		receipt, replay, err := beginConfigurationCommandTx(ctx, tx, actorID, "provider_binding_update", payload, []string{"binding:" + bindingRole, "endpoint:" + endpoint, "secret:" + secretPurpose})
+		if err != nil || replay {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy,context_window_tokens,max_input_tokens,prompt_budget_policy_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(role) DO UPDATE SET provider_endpoint_id=excluded.provider_endpoint_id,model_id=excluded.model_id,token_budget=excluded.token_budget,timeout_seconds=excluded.timeout_seconds,required_capabilities=excluded.required_capabilities,retry_policy=excluded.retry_policy,context_window_tokens=excluded.context_window_tokens,max_input_tokens=excluded.max_input_tokens,prompt_budget_policy_version=excluded.prompt_budget_policy_version`, bindingRole, endpoint, model, budget, timeout, stringValue(payload["required_capabilities"]), jsonString(mapValue(payload["retry_policy"])), contextWindowTokens, maxInputTokens, promptBudgetPolicyVersion); err != nil {
 			return err
 		}
@@ -847,8 +972,14 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		if _, err := tx.Exec(ctx, `INSERT INTO public.provider_preflights(id,role,result,capability_version,checked_at) VALUES($1,$2,'available',$3,now()) ON CONFLICT(id) DO UPDATE SET result='available',capability_version=excluded.capability_version,checked_at=now()`, preflightID, bindingRole, "models-v1"); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `UPDATE public.provider_endpoints SET capability_status='available',checked_at=now() WHERE id=$1`, endpoint)
-		return err
+		_, err = tx.Exec(ctx, `UPDATE public.provider_endpoints SET capability_status='available',checked_at=now() WHERE id=$1`, endpoint)
+		if err != nil {
+			return err
+		}
+		if receipt != nil {
+			return finishConfigurationCommandTx(ctx, tx, actorID, payload, receipt, "provider_binding_update")
+		}
+		return nil
 	})
 }
 
@@ -1029,6 +1160,38 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return nil, err
 	}
+	var result map[string]any
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var err error
+		result, err = a.createLifeEventTx(ctx, tx, actorID, fluctlightID, payload)
+		return err
+	})
+	return result, err
+}
+
+type lifeEventSourceKey struct{}
+
+func lifeEventSource(ctx context.Context, actor string) string {
+	if value, _ := ctx.Value(lifeEventSourceKey{}).(string); value != "" {
+		return value
+	}
+	return "owner:" + actor
+}
+
+// createLifeEventTx joins a caller-owned transaction, preserving the event's
+// revision/replay receipt, native cognition and outbox boundaries.
+func (a *App) createLifeEventTx(ctx context.Context, tx pgx.Tx, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	runtimeEffect, _ := ctx.Value(lifeEventRuntimeEffectKey{}).(lifeEventRuntimeEffect)
+	contextScope := "life"
+	if runtimeEffect.Ambient {
+		contextScope = "ambient"
+	}
+	placeID := stringValue(payload["place_id"])
+	if raw, exists := payload["place_id"]; exists {
+		if _, ok := raw.(string); !ok {
+			return nil, ErrInvalidArguments
+		}
+	}
 	start, e1 := parseScheduleTime(stringValue(payload["start_at"]))
 	end, e2 := parseScheduleTime(stringValue(payload["end_at"]))
 	if e1 != nil || e2 != nil || !end.After(start) {
@@ -1058,14 +1221,19 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 		return nil, errors.New("life_context_revision_required")
 	}
 	id := "event_" + stableDigest(fluctlightID+":"+idempotency)
-	requestDigest := stableDigest(jsonString(map[string]any{
+	requestFields := map[string]any{
 		"fluctlight_id": fluctlightID, "kind": stringValue(payload["kind"]), "start_at": start.UTC().Format(time.RFC3339Nano),
 		"end_at": end.UTC().Format(time.RFC3339Nano), "scene": stringValue(payload["scene"]), "activity": stringValue(payload["activity"]),
-		"location": stringValue(payload["location"]), "evidence_refs": refs, "idempotency_key": idempotency,
+		"location": stringValue(payload["location"]), "place_id": placeID, "evidence_refs": refs, "idempotency_key": idempotency,
 		"expected_life_context_revision": expectedLifeRevision, "body_effect": bodyEffect, "wardrobe_effect": wardrobeEffect,
-	}))
+	}
+	if runtimeEffect.Ambient || runtimeEffect.Facts != nil {
+		requestFields["context_scope"] = contextScope
+		requestFields["runtime_effect"] = runtimeEffect.Facts
+	}
+	requestDigest := stableDigest(jsonString(requestFields))
 	var result map[string]any
-	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err = func() error {
 		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
 		}
@@ -1089,7 +1257,17 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
 		}
-		inserted, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,revision,evidence_refs,idempotency_key,request_digest,result) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',1,$9,$10,$11,'{}')`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(refs), idempotency, requestDigest)
+		if err := validateLifePlaceTx(ctx, tx, fluctlightID, placeID); err != nil {
+			return err
+		}
+		initialResult := map[string]any{}
+		if runtimeEffect.Facts != nil {
+			initialResult["runtime_effect"] = runtimeEffect.Facts
+		}
+		if placeID != "" {
+			initialResult["place_id"] = placeID
+		}
+		inserted, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,revision,evidence_refs,idempotency_key,request_digest,result,context_scope) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',1,$9,$10,$11,$12,$13)`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(refs), idempotency, requestDigest, jsonBytes(initialResult), contextScope)
 		if err != nil {
 			return err
 		}
@@ -1100,7 +1278,7 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 		if err != nil {
 			return err
 		}
-		inboxID, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), "owner:"+actorID, "life.event.created", "life-event:"+stableDigest(fluctlightID+"\x1f"+idempotency), map[string]any{"event_id": id, "kind": stringValue(payload["kind"]), "body_effect": bodyEffect, "wardrobe_effect": wardrobeEffect, "expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"]})
+		inboxID, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), lifeEventSource(ctx, actorID), "life.event.created", "life-event:"+stableDigest(fluctlightID+"\x1f"+idempotency), map[string]any{"event_id": id, "kind": stringValue(payload["kind"]), "body_effect": bodyEffect, "wardrobe_effect": wardrobeEffect, "expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"], "runtime_effect": runtimeEffect.Facts, "start_at": start.UTC().Format(time.RFC3339Nano), "end_at": end.UTC().Format(time.RFC3339Nano)})
 		if err != nil {
 			return err
 		}
@@ -1109,8 +1287,14 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 			"idempotency_key": idempotency, "inbox_id": inboxID, "expected_context_revision": expectedLifeRevision,
 			"resulting_context_revision": resultingLife["context_revision"], "replayed": false,
 		}
+		if runtimeEffect.Facts != nil {
+			result["runtime_effect"] = runtimeEffect.Facts
+		}
 		if len(bodyEffect) > 0 {
 			result["body_effect"] = bodyEffect
+		}
+		if placeID != "" {
+			result["place_id"] = placeID
 		}
 		if len(wardrobeEffect) > 0 {
 			result["wardrobe_effect"] = wardrobeEffect
@@ -1141,7 +1325,7 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 			}
 		}
 		return appendOutboxTx(ctx, tx, "life.event.created", "fluctlight", fluctlightID, fluctlightID, actorID, "life:"+id, "life-event:"+fluctlightID+":"+stableDigest(idempotency), map[string]any{"event_id": id, "revision": 1, "aggregate_sequence": 1})
-	})
+	}()
 	if err != nil {
 		return nil, err
 	}
@@ -1387,8 +1571,7 @@ func (a *App) AllMoments(ctx context.Context, actorID string, includeHidden bool
 	}
 	query := `SELECT m.id,m.owner_fluctlight_id,m.author_actor_id,m.text,m.visibility,m.status,m.media_asset_ids,m.created_at
 		FROM public.moments m
-		JOIN public.fluctlights f ON f.id=m.owner_fluctlight_id
-		WHERE f.created_by_actor_id=$1 AND f.status<>'retired' AND m.visibility IN ('owner','participants')`
+		WHERE m.owner_actor_id=$1 AND m.visibility IN ('owner','participants')`
 	if !includeHidden {
 		query += ` AND m.status<>'hidden'`
 	}
@@ -1400,13 +1583,17 @@ func (a *App) AllMoments(ctx context.Context, actorID string, includeHidden bool
 	defer rows.Close()
 	out := make([]map[string]any, 0)
 	for rows.Next() {
-		var id, owner, author, text, visibility, status string
+		var id, author, text, visibility, status string
+		var owner *string
 		var media []byte
 		var created time.Time
 		if err := rows.Scan(&id, &owner, &author, &text, &visibility, &status, &media, &created); err != nil {
 			return nil, err
 		}
-		moment := map[string]any{"id": id, "owner_fluctlight_id": owner, "author_actor_id": author, "text": text, "visibility": visibility, "status": status, "media_asset_ids": decodeArray(media), "created_at": created.Format(time.RFC3339Nano)}
+		moment := map[string]any{"id": id, "owner_fluctlight_id": nil, "author_actor_id": author, "text": text, "visibility": visibility, "status": status, "media_asset_ids": decodeArray(media), "created_at": created.Format(time.RFC3339Nano)}
+		if owner != nil {
+			moment["owner_fluctlight_id"] = *owner
+		}
 		if err := a.hydrateMoment(ctx, actorID, moment); err != nil {
 			return nil, err
 		}
@@ -1429,7 +1616,25 @@ func (a *App) CommentMoment(ctx context.Context, actorID, momentID, text string)
 		return nil, err
 	}
 	id := randomID("comment_")
-	_, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.moment_comments(id,moment_id,author_actor_id,text) VALUES($1,$2,$3,$4)`, id, momentID, actorID, strings.TrimSpace(text))
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		row, err := readMomentWith(ctx, tx, actorID, momentID, true)
+		if err != nil {
+			return err
+		}
+		if row["status"] != "visible" {
+			return &SurfaceError{Status: 409, Code: "moment_hidden", Message: "隐藏动态不可评论"}
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.moments SET revision=revision+1 WHERE id=$1`, momentID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.moment_comments(id,moment_id,author_actor_id,text) VALUES($1,$2,$3,$4)`, id, momentID, actorID, strings.TrimSpace(text)); err != nil {
+			return err
+		}
+		if fid := stringValue(row["owner_fluctlight_id"]); fid != "" {
+			return appendOutboxTx(ctx, tx, "moment.comment.created", "moment_comment", id, fid, momentID, "moment-comment:"+id, "moment-comment:"+id, map[string]any{"moment_id": momentID, "author_actor_id": actorID})
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -1443,7 +1648,20 @@ func (a *App) ReactMoment(ctx context.Context, actorID, momentID, kind string) (
 		return nil, err
 	}
 	kind = strings.TrimSpace(kind)
-	_, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.moment_reactions(moment_id,actor_id,kind) VALUES($1,$2,$3) ON CONFLICT(moment_id,actor_id) DO UPDATE SET kind=excluded.kind,created_at=now()`, momentID, actorID, kind)
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		row, err := readMomentWith(ctx, tx, actorID, momentID, true)
+		if err != nil {
+			return err
+		}
+		if row["status"] != "visible" {
+			return &SurfaceError{Status: 409, Code: "moment_hidden", Message: "隐藏动态不可回应"}
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.moment_reactions(moment_id,actor_id,kind) VALUES($1,$2,$3) ON CONFLICT(moment_id,actor_id) DO UPDATE SET kind=excluded.kind,created_at=now()`, momentID, actorID, kind); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `UPDATE public.moments SET revision=revision+1 WHERE id=$1`, momentID)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -1453,7 +1671,7 @@ func (a *App) SetMomentStatus(ctx context.Context, actorID, momentID, status str
 	if status != "visible" && status != "hidden" {
 		return errors.New("moment_status_invalid")
 	}
-	cmd, err := a.DB.Pool().Exec(ctx, `UPDATE public.moments m SET status=$2 FROM public.fluctlights f WHERE m.id=$1 AND f.id=m.owner_fluctlight_id AND f.created_by_actor_id=$3`, momentID, status, actorID)
+	cmd, err := a.DB.Pool().Exec(ctx, `UPDATE public.moments m SET status=$2,revision=revision+1 WHERE m.id=$1 AND m.owner_actor_id=$3`, momentID, status, actorID)
 	if err != nil {
 		return err
 	}
@@ -1465,7 +1683,7 @@ func (a *App) SetMomentStatus(ctx context.Context, actorID, momentID, status str
 
 func (a *App) authorizeMoment(ctx context.Context, actorID, momentID string) error {
 	var owner string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT f.created_by_actor_id FROM public.moments m JOIN public.fluctlights f ON f.id=m.owner_fluctlight_id WHERE m.id=$1`, momentID).Scan(&owner); err != nil {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT m.owner_actor_id FROM public.moments m WHERE m.id=$1`, momentID).Scan(&owner); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -1514,15 +1732,15 @@ func (a *App) hydrateMoment(ctx context.Context, actorID string, moment map[stri
 		if assetID == "" {
 			continue
 		}
-		var kind, mime, version, status string
-		var size int
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT kind,mime_type,version,status,byte_size FROM public.media_assets WHERE id=$1 AND owner_fluctlight_id=(SELECT owner_fluctlight_id FROM public.moments WHERE id=$2) AND status='ready'`, assetID, momentID).Scan(&kind, &mime, &version, &status, &size); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				continue
-			}
+		asset, err := a.ownerMediaAssetWith(ctx, a.DB.Pool(), actorID, assetID, false)
+		if errors.Is(err, ErrNotFound) {
+			media = append(media, map[string]any{"id": assetID, "read_state": "unavailable", "readable": false})
+			continue
+		}
+		if err != nil {
 			return err
 		}
-		media = append(media, map[string]any{"id": assetID, "kind": kind, "mime_type": mime, "version": version, "status": status, "byte_size": size})
+		media = append(media, asset)
 	}
 	moment["media"] = media
 	return nil
@@ -1813,18 +2031,7 @@ func (a *App) ClearDiagnosticsCount(ctx context.Context, actorID string) (int64,
 	if err := a.requireOwner(ctx, actorID); err != nil {
 		return 0, err
 	}
-	var cleared int64
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		for _, table := range []string{"diagnostic_events", "diagnostic_model_runs", "diagnostic_turns", "diagnostic_workflow_links"} {
-			command, err := tx.Exec(ctx, "DELETE FROM public."+table)
-			if err != nil {
-				return err
-			}
-			cleared += command.RowsAffected()
-		}
-		return nil
-	})
-	return cleared, err
+	return 0, &SurfaceError{Status: 422, Code: "diagnostic_clear_scope_required", Message: "请从当前诊断页选择快照、截止时间、表和理由后清理"}
 }
 func (a *App) ModelRuns(ctx context.Context, actorID string, limit int) ([]map[string]any, error) {
 	return a.ModelRunsFiltered(ctx, actorID, limit, "")
@@ -1954,70 +2161,7 @@ func (a *App) RetryMediaIntent(ctx context.Context, actorID, intentID string) (m
 	if err := a.requireOwner(ctx, actorID); err != nil {
 		return nil, err
 	}
-	var workflowID, mediaStatus, workflowStatus, ownerFluctlightID, providerRequestID string
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT workflow_id,status,owner_fluctlight_id,provider_request_id FROM public.media_intents WHERE id=$1 FOR UPDATE`, intentID).Scan(&workflowID, &mediaStatus, &ownerFluctlightID, &providerRequestID); errors.Is(err, pgx.ErrNoRows) {
-			return ErrNotFound
-		} else if err != nil {
-			return err
-		}
-		// Lock the workflow row separately. PostgreSQL cannot apply FOR UPDATE
-		// to the nullable side of the outer join that is needed to repair legacy
-		// media rows without a workflow intent.
-		if err := tx.QueryRow(ctx, `SELECT status FROM public.platform_workflow_intents WHERE workflow_id=$1 AND intent_type='media.generation' FOR UPDATE`, workflowID).Scan(&workflowStatus); errors.Is(err, pgx.ErrNoRows) {
-			workflowStatus = ""
-		} else if err != nil {
-			return err
-		}
-		if mediaStatus != "failed" && workflowStatus != "failed" {
-			return ErrConflict
-		}
-		if workflowStatus == "started" || workflowStatus == "paused" || workflowStatus == "cancel_requested" {
-			return ErrConflict
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET provider_job_id=NULL,status='pending',quality_verdict='',quality_candidate_sha256=NULL,quality_checked_at=NULL,revision=revision+1 WHERE id=$1`, intentID); err != nil {
-			return err
-		}
-		if workflowStatus == "" {
-			// Older media rows may predate the durable workflow-intent record.
-			// Recreate that record from the media intent before restarting so the
-			// retry does not get stuck at an irreversible not-found error.
-			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'media','media.generation',jsonb_build_object('intent_id',$3,'provider_request_id',$4,'fluctlight_id',$5)) ON CONFLICT (workflow_id) DO NOTHING`, "media_workflow_intent:"+intentID, workflowID, intentID, providerRequestID, ownerFluctlightID); err != nil {
-				return err
-			}
-		}
-		command, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',attempt_count=0,last_error=NULL,next_attempt_at=now(),started_at=NULL,completed_at=NULL WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID)
-		if err != nil {
-			return err
-		}
-		if command.RowsAffected() != 1 {
-			return ErrNotFound
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if a.Workflows == nil {
-		return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
-	}
-	if _, err := a.WorkflowCommand(ctx, actorID, workflowID, "restart", nil); err != nil {
-		bounded := visualIdentityBoundedText(strings.Join(strings.Fields(err.Error()), " "), 1024)
-		if mediaRetryRestartIsPermanent(err) {
-			if persistErr := a.persistPermanentMediaRetryFailure(ctx, intentID, workflowID, bounded); persistErr != nil {
-				return nil, fmt.Errorf("%w; retry state persistence failed: %v", err, persistErr)
-			}
-			return nil, err
-		}
-		if _, persistErr := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,next_attempt_at=now()+interval '5 seconds' WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, bounded); persistErr != nil {
-			return nil, fmt.Errorf("%w; retry state persistence failed: %v", err, persistErr)
-		}
-		// The durable row is still queued for the Worker. A transient Temporal
-		// restart failure should not make the browser retry button unusable; the
-		// next dispatcher pass will retry using the same stable workflow ID.
-		return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
-	}
-	return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
+	return nil, &SurfaceError{Status: 422, Code: "media_recovery_scope_required", Message: "请从媒体诊断详情核对原版本，并明确选择恢复原阶段或重新生成"}
 }
 
 func (a *App) persistPermanentMediaRetryFailure(ctx context.Context, intentID, workflowID, message string) error {
@@ -2035,20 +2179,40 @@ func (a *App) persistPermanentMediaRetryFailure(ctx context.Context, intentID, w
 	})
 }
 
-func (a *App) RecordMediaActivityFailure(ctx context.Context, intentID, message string) error {
+func mediaWorkflowIdentity(id string) string { return strings.TrimPrefix(strings.TrimSpace(id), "go:") }
+
+func (a *App) RecordMediaActivityFailure(ctx context.Context, intentID, sourceWorkflow, message string) error {
 	if a == nil || strings.TrimSpace(intentID) == "" {
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 	defer cancel()
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID); err != nil {
-			return err
+	intent, err := a.readMediaIntent(ctx, intentID)
+	if err != nil {
+		return err
+	}
+	if sourceWorkflow == "" {
+		if intent.StudioJobID != "" {
+			return errors.New("studio_media_failure_origin_required")
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error=$2 WHERE workflow_id=(SELECT workflow_id FROM public.media_intents WHERE id=$1) AND intent_type='media.generation' AND status IN ('pending','started','retry')`, intentID, message); err != nil {
-			return err
-		}
+		sourceWorkflow = intent.WorkflowID
+	}
+	if mediaWorkflowIdentity(sourceWorkflow) != mediaWorkflowIdentity(intent.WorkflowID) {
 		return nil
+	}
+	if intent.StudioJobID != "" {
+		if err := a.settleStudioMedia(ctx, intent, false, "studio_media_generation_failed"); err != nil {
+			return err
+		}
+	}
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if intent.StudioJobID == "" {
+			if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND workflow_id=$2 AND status IN ('pending','running')`, intentID, intent.WorkflowID); err != nil {
+				return err
+			}
+		}
+		_, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error=$2 WHERE workflow_id=$3 AND intent_type='media.generation' AND status IN ('pending','started','retry') AND EXISTS(SELECT 1 FROM public.media_intents WHERE id=$1 AND workflow_id=$3)`, intentID, message, intent.WorkflowID)
+		return err
 	})
 }
 
@@ -2111,7 +2275,7 @@ func (a *App) DiagnosticsExportFiltered(ctx context.Context, actorID string, fil
 	return map[string]any{
 		"events": events, "model_runs": runs, "media_prompts": mediaPrompts,
 		"lifecycle": lifecycle["events"], "workflow_intents": lifecycle["workflow_intents"],
-		"filters": normalized.Map(),
+		"filters": normalized.Map(), "complete": false, "export_mode": "bounded_legacy_view", "complete_export_path": "/api/diagnostic-export",
 	}, nil
 }
 
@@ -2262,74 +2426,7 @@ func (a *App) WorkflowHistory(ctx context.Context, actorID, wf string) (map[stri
 }
 
 func (a *App) WorkflowCommand(ctx context.Context, actorID, wf, action string, payload map[string]any) (map[string]any, error) {
-	if err := a.requireOwner(ctx, actorID); err != nil {
-		_ = a.auditWorkflow(ctx, actorID, action, wf, false, map[string]any{"error": "forbidden"})
-		return nil, err
-	}
-	intentID, queue, intentType, intentPayload, err := a.workflowIntent(ctx, wf)
-	if err != nil {
-		return nil, err
-	}
-	if a.Workflows == nil {
-		return nil, ErrWorkflowRuntime
-	}
-	requestID := stringValue(payload["request_id"])
-	if requestID == "" {
-		requestID = stableDigest(fmt.Sprintf("%s:%s:%s:%s", actorID, action, wf, intentID))
-	}
-	var result map[string]any
-	switch action {
-	case "pause", "resume":
-		if err := a.Workflows.Signal(ctx, wf, "", action, requestID); err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		intentStatus := "paused"
-		if action == "resume" {
-			intentStatus = "started"
-		}
-		if err := a.updateWorkflowIntentStatus(ctx, wf, intentStatus); err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		result = map[string]any{"workflow_id": wf, "operation": action, "status": "accepted"}
-	case "cancel":
-		if err := a.Workflows.Cancel(ctx, wf, "", requestID); err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		if err := a.updateWorkflowIntentStatus(ctx, wf, "cancel_requested"); err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		result = map[string]any{"workflow_id": wf, "operation": action, "status": "accepted"}
-	case "reset":
-		historyPoint, ok := positiveInt64(payload["history_point"])
-		if !ok {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, errors.New("history_point must be greater than zero"))
-		}
-		execution, err := a.Workflows.Reset(ctx, wf, "", historyPoint, "owner requested workflow reset", requestID)
-		if err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		if err := a.updateWorkflowIntentStatus(ctx, wf, "started"); err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		result = workflowExecutionMap(execution)
-		result["operation"] = action
-	case "restart":
-		execution, err := a.Workflows.Restart(ctx, WorkflowStart{WorkflowID: wf, TaskQueue: queue, IntentType: intentType, Payload: intentPayload})
-		if err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		if err := a.updateWorkflowIntentStatus(ctx, wf, "started"); err != nil {
-			return nil, a.workflowCommandFailure(ctx, actorID, action, wf, err)
-		}
-		result = workflowExecutionMap(execution)
-		result["operation"] = action
-	default:
-		return nil, a.workflowCommandFailure(ctx, actorID, action, wf, errors.New("unsupported workflow command"))
-	}
-	if err := a.auditWorkflow(ctx, actorID, action, wf, true, map[string]any{"status": result["status"], "request_id": requestID}); err != nil {
-		return nil, err
-	}
-	return result, nil
+	return a.OwnerWorkflowCommand(ctx, actorID, wf, action, payload)
 }
 
 func (a *App) workflowCommandFailure(ctx context.Context, actorID, action, workflowID string, err error) error {
@@ -2379,13 +2476,13 @@ func (a *App) auditWorkflow(ctx context.Context, actorID, action, workflowID str
 	if err != nil {
 		return err
 	}
-	auditID := "workflow_audit_" + stableDigest(strings.Join([]string{actorID, action, workflowID, string(encoded)}, ":"))
-	_, err = a.DB.Pool().Exec(ctx, `INSERT INTO public.platform_workflow_management_audit(id,action,workflow_id,actor_id,authorized,details) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO UPDATE SET details=EXCLUDED.details,created_at=now()`, auditID, action, workflowID, actorID, strconv.FormatBool(authorized), encoded)
+	auditID := randomID("workflow_audit_")
+	_, err = a.DB.Pool().Exec(ctx, `INSERT INTO public.platform_workflow_management_audit(id,action,workflow_id,actor_id,authorized,details) VALUES($1,$2,$3,$4,$5,$6)`, auditID, action, workflowID, actorID, strconv.FormatBool(authorized), encoded)
 	return err
 }
 
 func workflowExecutionMap(execution WorkflowExecution) map[string]any {
-	value := map[string]any{"workflow_id": execution.WorkflowID, "run_id": execution.RunID, "workflow_type": execution.WorkflowType, "task_queue": execution.TaskQueue, "status": execution.Status, "history_length": execution.HistoryLength}
+	value := map[string]any{"workflow_id": execution.WorkflowID, "run_id": execution.RunID, "workflow_type": execution.WorkflowType, "task_queue": execution.TaskQueue, "status": execution.Status, "history_length": execution.HistoryLength, "owner_command_id": execution.OwnerCommandID, "control_state": execution.ControlState, "control_actions": execution.ControlActions}
 	if execution.StartTime != nil {
 		value["start_time"] = execution.StartTime.Format(time.RFC3339Nano)
 	}

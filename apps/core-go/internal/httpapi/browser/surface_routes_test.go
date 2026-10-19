@@ -254,12 +254,10 @@ func TestSurfaceForbiddenWrites(t *testing.T) {
 		name, method, path, body, code string
 	}{
 		{name: "moment author", method: http.MethodPost, path: "/api/moments", body: `{"idempotencyKey":"m1","text":"hi","authorFluctlightId":"fl-1"}`, code: "moment_author_forbidden"},
-		{name: "photo revision", method: http.MethodPost, path: "/api/fluctlights/fl-1/wardrobe/items/item-1/photos", body: `{"idempotencyKey":"photo","prompt":"窗边","expectedRevision":1}`, code: "photo_cannot_change_facts"},
 		{name: "diary preview", method: http.MethodPost, path: "/api/fluctlights/fl-1/diary", body: `{"idempotencyKey":"diary","body":"草稿","source":"preview"}`, code: "preview_life_write_forbidden"},
 		{name: "preview life write", method: http.MethodPost, path: "/api/studio/previews", body: `{"idempotencyKey":"preview","text":"试","lifeWrite":true}`, code: "preview_life_write_forbidden"},
 		{name: "template harm", method: http.MethodPut, path: "/api/fluctlights/fl-1/world/templates/permanent_harm", body: `{"idempotencyKey":"harm","enabled":true,"expectedRevision":0,"reason":"no"}`, code: "permanent_harm_forbidden"},
 		{name: "pack facts", method: http.MethodPost, path: "/api/studio/packs", body: `{"idempotencyKey":"pack","pack":{"resources":[],"memories":[]}}`, code: "pack_contains_runtime_facts"},
-		{name: "autonomy harm", method: http.MethodPut, path: "/api/fluctlights/fl-1/autonomy-policy", body: `{"idempotencyKey":"auto","expectedRevision":0,"reason":"no","permanentHarm":true}`, code: "permanent_harm_forbidden"},
 	}
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
@@ -287,28 +285,51 @@ func TestSurfaceUnreadCountAndTimelineStayUnprovided(t *testing.T) {
 }
 
 func TestSurfaceRoutesMatchCoreAndMatrix(t *testing.T) {
-	cases := map[string]struct{}{}
-	for _, route := range browserRouteCases() {
-		cases[route.method+" "+route.path] = struct{}{}
-	}
-	replacements := map[string]string{
-		":fluctlightId": "fl-1", ":entryId": "entry-1", ":templateId": "template-1", ":placeId": "place-1",
-		":itemId": "item-1", ":scheduleId": "schedule-1", ":reflectionId": "reflection-1", ":notificationId": "notice-1",
-		":resourceId": "resource-1", ":backupId": "backup-1", ":taskId": "task-1", ":memoryId": "memory-1",
-		":requestId": "request-1", ":groupId": "group-1",
+	covered := map[string]bool{}
+	for _, test := range browserRouteCases() {
+		best := ""
+		specificity := -1
+		for _, route := range surfaceRoutes {
+			template := surfaceTemplate(route.pattern)
+			if route.method != test.method || !concretePathMatchesTemplate(test.path, template) {
+				continue
+			}
+			score := templateSpecificity(template)
+			if score > specificity {
+				best = route.method + " " + route.pattern
+				specificity = score
+			}
+		}
+		if best != "" {
+			covered[best] = true
+		}
 	}
 	for _, route := range surfaceRoutes {
-		sample := route.pattern
-		for key, value := range replacements {
-			sample = strings.ReplaceAll(sample, key, value)
+		if !covered[route.method+" "+route.pattern] {
+			t.Errorf("matrix is missing %s %s", route.method, route.pattern)
 		}
-		if _, ok := cases[route.method+" "+sample]; !ok {
-			t.Fatalf("matrix is missing %s %s", route.method, sample)
+		// Matcher identity is independent of the fixture's chosen sample ID.
+		parts := strings.Split(route.pattern, "/")
+		for i, part := range parts {
+			if strings.HasPrefix(part, ":") {
+				parts[i] = "fixture-" + strings.TrimPrefix(part, ":")
+			}
 		}
-		if !core.MatchOwnerSurface(route.method, "/internal"+strings.TrimPrefix(sample, "/api")) {
-			t.Fatalf("core matcher missed %s %s", route.method, sample)
+		sample := strings.Join(parts, "/")
+		if !core.MatchOwnerSurface(route.method, "/internal"+strings.TrimPrefix(sample, "/api")) && !core.MatchWorldSurface(route.method, "/internal"+strings.TrimPrefix(sample, "/api")) && !core.MatchStudioJobSurface(route.method, "/internal"+strings.TrimPrefix(sample, "/api")) && !core.MatchOwnerMediaSurface(route.method, "/internal"+strings.TrimPrefix(sample, "/api")) {
+			t.Errorf("core matcher missed %s %s", route.method, sample)
 		}
 	}
+}
+
+func surfaceTemplate(pattern string) string {
+	parts := strings.Split(pattern, "/")
+	for i, part := range parts {
+		if strings.HasPrefix(part, ":") {
+			parts[i] = "{" + strings.TrimPrefix(part, ":") + "}"
+		}
+	}
+	return strings.Join(parts, "/")
 }
 
 func mapValue(value any) map[string]any {
@@ -316,4 +337,20 @@ func mapValue(value any) map[string]any {
 		return result
 	}
 	return map[string]any{}
+}
+
+func TestStrictSurfaceWritesRejectFactAndHarmFieldsBeforeDispatch(t *testing.T) {
+	cases := []struct{ name, path, method, body string }{
+		{"photo", "/api/fluctlights/fl-1/wardrobe/items/item-1/photos", http.MethodPost, `{"idempotencyKey":"photo","prompt":"The item by the window","reason":"Owner image request","expectedItemRevision":1,"expectedRevision":1}`},
+		{"autonomy", "/api/fluctlights/fl-1/autonomy-policy", http.MethodPut, `{"idempotencyKey":"auto","expectedRevision":0,"reason":"Owner preference","policySource":"override","mode":"paused","permanentHarm":true}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			backend := &fakeBackend{}
+			response := surfaceInvoke(newBrowserTestHandler(backend), tc.method, tc.path, tc.body, true, true)
+			if response.code != 400 || response.json(t)["code"] != "invalid_request" || len(backend.calls) != 0 {
+				t.Fatalf("forbidden write escaped validation: %d %s calls=%v", response.code, response.body, backend.calls)
+			}
+		})
+	}
 }

@@ -14,8 +14,13 @@ import (
 // If its Intention was revoked in the meantime, close that pending run before
 // any Life Event or appearance effect can be written.
 func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, app *App, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte, now time.Time) (CapabilityResult, error) {
+	return cancelUnsettledLifeActivityWithReasonTx(ctx, tx, app, invocation, activityID, fluctlightID, intentionID, revision, resultRaw, now, "scheduled_intention_inactive")
+}
+
+// Operational cancellation is distinct from a model's business result.
+func cancelUnsettledLifeActivityWithReasonTx(ctx context.Context, tx pgx.Tx, app *App, invocation CapabilityInvocation, activityID, fluctlightID, intentionID string, revision int, resultRaw []byte, now time.Time, reason string) (CapabilityResult, error) {
 	currentResult := decodeObject(resultRaw)
-	currentResult["result"] = map[string]any{"status": "cancelled", "reason": "scheduled_intention_inactive"}
+	currentResult["result"] = map[string]any{"status": "cancelled", "reason": reason}
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET status='cancelled',resolved_at=$3,result_json=$4,revision=revision+1 WHERE id=$1 AND fluctlight_id=$2 AND revision=$5`, activityID, fluctlightID, now, jsonBytes(currentResult), revision)
 	if err != nil || command.RowsAffected() != 1 {
 		if err == nil {
@@ -23,7 +28,7 @@ func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, app 
 		}
 		return failedCapabilityResult(invocation, "activity_cancel_failed", true), err
 	}
-	if _, err := app.settleActionOutcomeByExternalRefTx(ctx, tx, activityID, ActionOutcomeCancelled, map[string]any{"reason": "scheduled_intention_inactive"}, "scheduled_intention_inactive"); err != nil {
+	if _, err := app.settleActionOutcomeByExternalRefTx(ctx, tx, activityID, ActionOutcomeCancelled, map[string]any{"reason": reason}, reason); err != nil {
 		return failedCapabilityResult(invocation, "activity_cancel_outcome_failed", true), err
 	}
 	if err := appendOutboxTx(ctx, tx, "life.activity.resolved", "life_activity", activityID, fluctlightID, invocation.SourceFactID,
@@ -31,7 +36,7 @@ func cancelUnsettledScheduledLifeActivityTx(ctx context.Context, tx pgx.Tx, app 
 		return failedCapabilityResult(invocation, "activity_outbox_failed", true), err
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
-		Output:            map[string]any{"activity_id": activityID, "status": "cancelled", "intention_id": intentionID, "reason": "scheduled_intention_inactive"},
+		Output:            map[string]any{"activity_id": activityID, "status": "cancelled", "intention_id": intentionID, "reason": reason},
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "activity:" + activityID}, nil
 }
 
@@ -79,6 +84,9 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 	lifeRevision := stringValue(lifeBefore["context_revision"])
 	eventResult := map[string]any{"id": eventID, "activity_id": activityID, "kind": kind, "status": "confirmed", "revision": 1,
 		"expected_context_revision": lifeRevision, "resulting_context_revision": lifeRevision, "replayed": false, "result": result}
+	if place := stringValue(request["place_id"]); place != "" {
+		eventResult["place_id"] = place
+	}
 	requestDigest := stableDigest(jsonString(eventResult))
 	activityLabel := "虚拟购物"
 	if kind == "haircut" {
@@ -94,13 +102,14 @@ func applyVirtualActivityResultTx(ctx context.Context, tx pgx.Tx, app *App, invo
 		switch kind {
 		case "virtual_shopping":
 			acquired := acquiredShoppingItems(result)
+			frozenSources := shoppingFrozenSources(request)
 			ids := make([]string, 0, len(acquired))
 			for index, item := range acquired {
 				key := "primary"
 				if len(acquired) > 1 {
 					key = fmt.Sprintf("member:%d", index)
 				}
-				itemID, wardrobeRevision, err := grantVirtualPurchaseMemberTx(ctx, tx, fluctlightID, eventID, key, item)
+				itemID, wardrobeRevision, err := grantVirtualPurchaseMemberWithSourceTx(ctx, tx, fluctlightID, eventID, key, item, frozenSources[index])
 				if err != nil {
 					return failedCapabilityResult(invocation, "purchase_item_invalid", true), err
 				}
@@ -245,6 +254,9 @@ func grantVirtualPurchaseItemTx(ctx context.Context, tx pgx.Tx, fluctlightID, ev
 	return grantVirtualPurchaseMemberTx(ctx, tx, fluctlightID, eventID, "primary", item)
 }
 func grantVirtualPurchaseMemberTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID, key string, item map[string]any) (string, int, error) {
+	return grantVirtualPurchaseMemberWithSourceTx(ctx, tx, fluctlightID, eventID, key, item, nil)
+}
+func grantVirtualPurchaseMemberWithSourceTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventID, key string, item, source map[string]any) (string, int, error) {
 	if err := verifyCompletedActivityEventTx(ctx, tx, fluctlightID, eventID, "virtual_shopping"); err != nil {
 		return "", 0, err
 	}
@@ -253,7 +265,15 @@ func grantVirtualPurchaseMemberTx(ctx context.Context, tx pgx.Tx, fluctlightID, 
 		return "", 0, err
 	}
 	itemID := "wardrobe_" + stableDigest(fluctlightID+"\x1f"+eventID+"\x1f"+key)
-	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,item_kind,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key,acquired_at) SELECT $1::text,$2::text,$3::text,$4::text,$5::text,$6::text,'owned','available','purchase_result',$7::text,$8::text,end_at FROM public.life_events WHERE id=$7::text`, itemID, fluctlightID, normalized["item_kind"], normalized["category"], normalized["slot"], normalized["description"], eventID, key); err != nil {
+	var sourceRevision any
+	if len(source) > 0 {
+		revision, ok := parseRevision(source["world_item_revision"])
+		if !ok || revision < 1 || stringValue(source["source_resource_id"]) == "" || stringValue(source["source_version"]) == "" || stringValue(source["world_item_id"]) == "" {
+			return "", 0, errors.New("purchase_catalogue_source_invalid")
+		}
+		sourceRevision = revision
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_items(id,fluctlight_id,item_kind,category,slot,description,ownership,availability,source_kind,source_ref,source_item_key,acquired_at,source_resource_id,source_version,source_world_item_id,source_world_item_revision) SELECT $1::text,$2::text,$3::text,$4::text,$5::text,$6::text,'owned','available','purchase_result',$7::text,$8::text,end_at,$9::varchar,$10::varchar,$11::varchar,$12::integer FROM public.life_events WHERE id=$7::text`, itemID, fluctlightID, normalized["item_kind"], normalized["category"], normalized["slot"], normalized["description"], eventID, key, source["source_resource_id"], source["source_version"], source["world_item_id"], sourceRevision); err != nil {
 		return "", 0, err
 	}
 	var revision int

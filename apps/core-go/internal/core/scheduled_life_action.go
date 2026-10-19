@@ -23,7 +23,7 @@ func validateScheduledLifeActionPlan(plan map[string]any) error {
 	}
 	for key := range plan {
 		switch key {
-		case "capability", "kind", "duration_minutes", "desired_hair_color", "desired_hair_length", "category", "slot", "description", "item_kind", "items", "reason":
+		case "capability", "kind", "duration_minutes", "desired_hair_color", "desired_hair_length", "category", "slot", "description", "item_kind", "items", "reason", "world_item_id":
 		default:
 			return errors.New("schedule_action_field_invalid")
 		}

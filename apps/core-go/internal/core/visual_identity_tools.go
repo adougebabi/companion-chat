@@ -384,6 +384,11 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		err := errors.New("visual identity session is outside the authorized Fluctlight")
 		return failedCapabilityResultDetail(invocation, "visual_identity_target_invalid", false, err.Error()), newCapabilityError("visual_identity_target_invalid", false, err)
 	}
+	if manual {
+		if err := checkOwnerVisualReviewFenceTx(ctx, tx, session); err != nil {
+			return failedCapabilityResult(invocation, "visual_review_conflict", false), err
+		}
+	}
 	if session.Decision != "" {
 		if session.Decision != decision || stableDigest(jsonString(session.PatchResult)) != stableDigest(jsonString(review)) {
 			return failedCapabilityResultDetail(invocation, "visual_identity_review_conflict", false, ErrConflict.Error()), newCapabilityError("visual_identity_review_conflict", false, ErrConflict)
@@ -432,7 +437,7 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 	if decision == "accepted" {
 		status = "accepted"
 	}
-	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET candidate_asset_id=$2,vision_result=$3,patch_result=$4,decision=$5,feedback=$6,status=$7,updated_at=now() WHERE id=$1 AND decision IS NULL`, session.AttemptID, assetID, jsonBytes(vision), jsonBytes(review), decision, nullableString(stringValue(review["feedback"])), status)
+	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET candidate_asset_id=$2,vision_result=$3,patch_result=$4,decision=$5,feedback=$6,status=$7,reviewed_at=now(),updated_at=now() WHERE id=$1 AND decision IS NULL`, session.AttemptID, assetID, jsonBytes(vision), jsonBytes(review), decision, nullableString(stringValue(review["feedback"])), status)
 	if err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_review_write_failed", true, err.Error()), err
 	}
@@ -453,6 +458,11 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		}
 		if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, event.stage, event.status, event.summary, []string{assetID}, map[string]any{"decision": decision, "inspection_source": inspectionSource}, "visual_identity:"+sessionID); err != nil {
 			return failedCapabilityResultDetail(invocation, "visual_identity_timeline_failed", true, err.Error()), err
+		}
+	}
+	if fence, ok := ctx.Value(ownerVisualReviewFenceKey{}).(ownerVisualReviewFence); ok {
+		if _, err := (postgresSurfaceTx{tx}).Audit(ctx, fence.Owner, session.FluctlightID, "visual_identity_manual_review", fence.Reason, session.AttemptID); err != nil {
+			return CapabilityResult{}, err
 		}
 	}
 	if decision == "regenerate" {
@@ -476,6 +486,11 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET current_attempt=$2,status='running',updated_at=now() WHERE id=$1`, sessionID, nextAttempt); err != nil {
 			return failedCapabilityResultDetail(invocation, "visual_identity_session_update_failed", true, err.Error()), err
 		}
+		if manual {
+			if err := enqueueOwnerVisualResumeTx(ctx, tx, invocation, session); err != nil {
+				return CapabilityResult{}, err
+			}
+		}
 		return visualIdentityToolResult(invocation, "completed", map[string]any{"session_id": sessionID, "attempt": session.Attempt, "next_attempt": nextAttempt, "status": "regenerating", "decision": decision, "candidate_asset_id": assetID, "replayed": false}), nil
 	}
 	if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, visualIdentityStageAccepted, "completed", visualIdentityBoundedText(stringValue(review["summary"]), 512), []string{assetID}, map[string]any{"decision": decision}, "visual_identity:"+sessionID); err != nil {
@@ -485,14 +500,26 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 	if err := tx.QueryRow(ctx, `SELECT identity_snapshot FROM public.fluctlight_visual_identities WHERE id=$1`, session.ProfileID).Scan(&canonicalSnapshotRaw); err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_profile_load_failed", true, err.Error()), err
 	}
-	canonicalSnapshot := decodeObject(canonicalSnapshotRaw)
+	canonicalSnapshot := cloneMap(session.InputSnapshot)
+	if len(canonicalSnapshot) == 0 {
+		canonicalSnapshot = decodeObject(canonicalSnapshotRaw)
+	}
 	var corePersonaRaw []byte
 	if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, session.FluctlightID).Scan(&corePersonaRaw); err == nil && len(corePersonaRaw) > 0 {
 		enrichIdentitySnapshotWithPersona(canonicalSnapshot, decodeObject(corePersonaRaw))
 	}
-	characterIntentID, err := a.promoteVisualIdentityCanonicalTx(ctx, tx, sessionID, session.AttemptID, session.ProfileID, session.FluctlightID, assetID, canonicalSnapshot, session.RendererConstraints)
+	source := "visual_identity_agent"
+	if manual {
+		source = "owner_manual_review"
+	}
+	characterIntentID, err := a.promoteVisualIdentityCanonicalTx(ctx, tx, sessionID, session.AttemptID, session.ProfileID, session.FluctlightID, assetID, canonicalSnapshot, session.RendererConstraints, source)
 	if err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_canonical_save_failed", true, err.Error()), err
+	}
+	if manual {
+		if err := enqueueOwnerVisualResumeTx(ctx, tx, invocation, session); err != nil {
+			return CapabilityResult{}, err
+		}
 	}
 	return visualIdentityToolResult(invocation, "accepted", map[string]any{
 		"session_id": sessionID, "attempt": session.Attempt, "status": "character_sheet_pending", "decision": decision,

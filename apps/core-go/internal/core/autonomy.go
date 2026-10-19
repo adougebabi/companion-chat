@@ -29,8 +29,12 @@ func (a *App) tryDailyReviewExecutionLock(ctx context.Context, fluctlightID, loc
 		return func() {}, false, nil
 	}
 	release := func() {
+		unlockCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
 		var unlocked bool
-		_ = connection.QueryRow(context.Background(), `SELECT pg_advisory_unlock(hashtextextended($1,0))`, key).Scan(&unlocked)
+		if err := connection.QueryRow(unlockCtx, `SELECT pg_advisory_unlock(hashtextextended($1,0))`, key).Scan(&unlocked); err != nil || !unlocked {
+			_ = connection.Conn().Close(unlockCtx)
+		}
 		connection.Release()
 	}
 	return release, true, nil

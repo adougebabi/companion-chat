@@ -99,6 +99,11 @@ func listSurfaceRecords(ctx context.Context, query postgresQuery, owner, kind, f
 type postgresSurfaceTx struct{ tx pgx.Tx }
 
 func (t postgresSurfaceTx) Idempotency(ctx context.Context, owner, key string) (string, map[string]any, bool, error) {
+	// Serialize identical owner-scoped command keys before the first read. A
+	// concurrent retry observes the committed receipt rather than executing again.
+	if _, err := t.tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "owner-surface:"+owner+"\x1f"+key); err != nil {
+		return "", nil, false, err
+	}
 	var digest string
 	var raw []byte
 	err := t.tx.QueryRow(ctx, `SELECT digest, response FROM public.owner_surface_idempotency WHERE owner_actor_id=$1 AND idempotency_key=$2`, owner, key).Scan(&digest, &raw)
@@ -180,7 +185,7 @@ func (t postgresSurfaceTx) DeleteKey(ctx context.Context, owner, fid, kind, reso
 }
 
 func (t postgresSurfaceTx) Get(ctx context.Context, owner, id string) (surfaceRecord, bool, error) {
-	rows, err := t.tx.Query(ctx, `SELECT id, owner_actor_id, fluctlight_id, kind, resource_key, status, payload, revision, created_at, updated_at FROM public.owner_surface_records WHERE owner_actor_id=$1 AND id=$2`, owner, id)
+	rows, err := t.tx.Query(ctx, `SELECT id, owner_actor_id, fluctlight_id, kind, resource_key, status, payload, revision, created_at, updated_at FROM public.owner_surface_records WHERE owner_actor_id=$1 AND id=$2 FOR UPDATE`, owner, id)
 	if err != nil {
 		return surfaceRecord{}, false, err
 	}

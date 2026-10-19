@@ -89,15 +89,23 @@ func TestInvalidFinalKeepsCommittedPersonaReceiptAndFailedRunDoesNotReplay(t *te
 				"decision": "switch", "source_profile_id": "spark", "target_profile_id": "twilight", "trigger_id": "switch:safety", "reason": "explicit controlled evidence",
 			})}}
 		}
-		return fakeProviderResult{Structured: map[string]any{
-			"action_type": "reply", "response_intent": "invalid final", "influences": []any{}, "unexpected_legacy_fallback": true,
-		}}
+		if step == 2 {
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("receipt-reply", conversationReplyCapabilityName, map[string]any{"text": "确认已收到。"})}}
+		}
+		return fakeProviderResult{Text: `{"action_type":`}
 	})
 	app := newTestApp(t, repository, router)
-	if _, err := app.HandleTurn(ctx, ownerID, conversationID, payload); err == nil || !strings.Contains(err.Error(), "adk_final_output_invalid") {
+	if _, err := app.HandleTurn(ctx, ownerID, conversationID, payload); err != nil {
+		// A previously committed reply remains visible even when settlement fails.
+		if !strings.Contains(err.Error(), "adk_final") {
+			t.Fatal(err)
+		}
+	}
+	var inboxStatus, inboxError string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE idempotency_key=$1`, payload["idempotency_key"]).Scan(&inboxStatus, &inboxError); err != nil || inboxStatus != "failed" || inboxError != "agent_final_contract_invalid" {
 		t.Fatalf("invalid final must fail after the committed switch: %v", err)
 	}
-	if step != 3 || readActiveProfileForGate(t, ctx, repository, fluctlightID) != "twilight" {
+	if step != 4 || readActiveProfileForGate(t, ctx, repository, fluctlightID) != "twilight" {
 		t.Fatalf("switch was not committed before final failure: steps=%d active=%q", step, readActiveProfileForGate(t, ctx, repository, fluctlightID))
 	}
 	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.platform_outbox_events WHERE aggregate_type='persona_action' AND fluctlight_id=$1 AND kind='persona.switch.committed'`, fluctlightID); count != 1 {
@@ -109,8 +117,8 @@ func TestInvalidFinalKeepsCommittedPersonaReceiptAndFailedRunDoesNotReplay(t *te
 		return fakeProviderResult{Status: 500}
 	})
 	restarted := newTestApp(t, repository, replayRouter)
-	if _, err := restarted.HandleTurn(ctx, ownerID, conversationID, payload); err == nil {
-		t.Fatal("failed run retry was reported as success")
+	if replay, err := restarted.HandleTurn(ctx, ownerID, conversationID, payload); err != nil || replay.Assistant["text"] != "确认已收到。" {
+		t.Fatal("committed reply was not recovered after settlement failure", replay, err)
 	}
 	if replayRouter.totalRequests() != 0 {
 		t.Fatalf("failed run retry made %d Provider calls", replayRouter.totalRequests())

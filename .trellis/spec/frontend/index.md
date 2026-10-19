@@ -19,6 +19,10 @@ as a compatibility entry point.
 | [Goal / Actor Governance](./goal-planner-governance-contract.md) | Authoritative sorting, dependencies, Actor CAS, source review and responsive verification |
 | [Quality Guidelines](./quality-guidelines.md) | Browser verification and safe DOM updates |
 
+## 当前阶段约束
+
+2026-10-15 用户已明确进入完整全栈交付。当前补全后的 v3 加 UI-01/UI-02 为唯一 UI 基线；允许并要求真实接入，不再等待逐页 Mock 验收。保留组件/视觉，集中 provider/客户端映射，生产默认真实模式且失败不回退 Mock。历史 [Mock 阶段边界](./v3-mock-acceptance-contract.md) 的停工条款不再适用。执行范围见当前任务 `full-stack-delivery-source.md`。
+
 ## Pre-Development Checklist
 
 - Find the owning Vue view/component and Pinia store/composable before editing.

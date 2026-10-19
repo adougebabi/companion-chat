@@ -32,6 +32,7 @@ type GoalStage struct {
 }
 
 type GoalCommitment struct {
+	PromiseRequestID     string          `json:"promise_request_id,omitempty"`
 	ID                   string          `json:"id"`
 	FluctlightID         string          `json:"fluctlight_id"`
 	GoalID               string          `json:"goal_id"`
@@ -147,6 +148,8 @@ type GoalStagePlan struct {
 }
 
 type GoalCommitmentPlan struct {
+	// Trusted domain context only; models cannot claim an Owner promise identity.
+	OwnerPromiseID       string     `json:"-"`
 	Operation            string     `json:"operation,omitempty"`
 	Reason               string     `json:"reason,omitempty"`
 	ID                   string     `json:"id,omitempty"`

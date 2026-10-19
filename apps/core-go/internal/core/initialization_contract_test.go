@@ -12,6 +12,17 @@ import (
 )
 
 func TestInitializationProviderErrorsDistinguishTimeoutAndCancellation(t *testing.T) {
+	for _, item := range []struct {
+		err  error
+		code string
+	}{
+		{fmt.Errorf("physical request: %w: private detail", ErrPromptRequiredBudgetExceeded), "initialization_input_budget_exceeded"},
+		{fmt.Errorf("wrapped: %w", promptBudgetConfigError{cause: ErrPromptOutputReserveConflict}), "initialization_prompt_budget_invalid"},
+	} {
+		if got := initializationProviderErrorCode(item.err); got != item.code {
+			t.Fatalf("budget failure code = %q, want %q", got, item.code)
+		}
+	}
 	if got := initializationProviderErrorCode(fmt.Errorf("provider request failed: %w", context.DeadlineExceeded)); got != "initialization_provider_timeout" {
 		t.Fatalf("deadline error code = %q", got)
 	}
@@ -527,6 +538,27 @@ func TestValidInitializationAcceptsOpenRelationshipLabelAndActorUser(t *testing.
 	}
 	if !validInitialization(value) {
 		t.Fatal("expected canonical actor_user initialization to be valid")
+	}
+}
+
+func TestInitializationOwnerBackgroundKeepsStrictScalarTypes(t *testing.T) {
+	for _, key := range []string{"interests", "preferences", "habits", "rules", "shared_information"} {
+		for _, value := range []any{[]any{}, []any{"explicit source fact"}, map[string]any{}, ""} {
+			input := map[string]any{"core_persona": defaultCorePersona("", "验收角色"), "actor_user": map[string]any{"background": map[string]any{key: value}}}
+			if _, err := prepareInitializationResponse(input); err == nil {
+				t.Fatalf("initialization accepted invalid background %s (%T)", key, value)
+			}
+		}
+		for _, value := range []any{nil, "explicit source fact"} {
+			input := map[string]any{"core_persona": defaultCorePersona("", "验收角色"), "actor_user": map[string]any{"background": map[string]any{key: value}}}
+			prepared, err := prepareInitializationResponse(input)
+			if err != nil || mapValue(mapValue(prepared["actor_user"])["background"])[key] != value {
+				t.Fatalf("initialization lost valid scalar background %s: %v", key, err)
+			}
+		}
+	}
+	if !strings.Contains(initializationResponseShapeInstruction, "never emit arrays, objects, or empty strings") || !strings.Contains(initializationResponseShapeInstruction, "Omit unspecified background fields or use null") {
+		t.Fatal("initialization prompt must describe the strict background scalar contract")
 	}
 }
 

@@ -17,10 +17,10 @@ func TestBrowserCapabilityRequestsMapsOwnerSafeFields(t *testing.T) {
 }
 
 func TestValidateCapabilityRequestReviewRequiresVersionForFulfilled(t *testing.T) {
-	if validateCapabilityRequestReview(map[string]any{"status": "fulfilled", "note": "done"}) {
+	if validateCapabilityRequestReview(map[string]any{"status": "fulfilled", "note": "done", "expectedRevision": float64(1), "idempotencyKey": "fulfilled-1"}) {
 		t.Fatal("fulfilled request without capability version should be rejected")
 	}
-	if !validateCapabilityRequestReview(map[string]any{"status": "fulfilled", "note": "done", "capabilityVersion": "v1"}) {
+	if !validateCapabilityRequestReview(map[string]any{"status": "fulfilled", "note": "done", "capabilityVersion": "v1", "expectedRevision": float64(1), "idempotencyKey": "fulfilled-1"}) {
 		t.Fatal("fulfilled request with capability version should be accepted")
 	}
 }

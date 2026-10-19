@@ -28,7 +28,7 @@ func TestPostgresGoalPlannerCadenceUpgradeFrom0054AndRerun(t *testing.T) {
 		t.Fatalf("cadence migration head=%q want=%q", head, Head)
 	}
 	var functionPresent bool
-	if err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='request_goal_planning' AND pg_get_functiondef(oid) LIKE '%schedule_accepted_daily%')`).Scan(&functionPresent); err != nil || !functionPresent {
+	if err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='request_goal_planning' AND pg_get_functiondef(oid) LIKE '%goal_planner_episode_keys%') AND EXISTS(SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='goal_planner_episode_keys' AND pg_get_functiondef(oid) LIKE '%schedule_accepted_daily%')`).Scan(&functionPresent); err != nil || !functionPresent {
 		t.Fatalf("cadence function present=%v err=%v", functionPresent, err)
 	}
 }

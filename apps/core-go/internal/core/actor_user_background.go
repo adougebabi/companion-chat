@@ -13,7 +13,7 @@ import (
 
 // Settings are owner-authored inputs. actor_facts remains the sole runtime
 // authority; no copy is stored in the Fluctlight's own Foundation.
-var actorUserBackgroundFields = []string{"name", "occupation", "background", "location_scope", "location", "timezone", "relationship_distance", "meeting_confirmed", "interests", "preferences"}
+var actorUserBackgroundFields = []string{"name", "occupation", "background", "location_scope", "location", "timezone", "relationship_distance", "meeting_confirmed", "interests", "preferences", "full_name", "age", "gender", "personality", "habits", "relationship_description", "shared_information", "wants_you_to_know", "rules"}
 
 func actorUserSettingsSchema() map[string]any {
 	fields := map[string]any{}

@@ -59,7 +59,8 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0063_goal_agent_cadence" || GoalAgentCadencePreviousHead != "0062_reply_media" || ReplyMediaPreviousHead != "0061_fact_only_reply" || FactOnlyReplyPreviousHead != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" || FactGenerationProvenancePreviousHead != "0058_semantic_fact_generation" || SemanticFactGenerationPreviousHead != "0057_logical_agent_leases" || LogicalAgentLeasesPreviousHead != "0056_kev_decisions" || KevDecisionsPreviousHead != "0055_goal_planner_cadence" || GoalPlannerCadencePreviousHead != "0054_goal_planner" || GoalPlannerPreviousHead != "0053_goal_reconciliation" || GoalReconciliationPreviousHead != "0052_goal_governance" || GoalGovernancePreviousHead != "0051_goal_closure" || GoalClosurePreviousHead != "0050_goal_execution" || GoalExecutionPreviousHead != "0049_actor_user_background" || ActorUserBackgroundPreviousHead != "0048_proactive_topics" || ProactiveTopicsPreviousHead != "0047_history_repair" || HistoryRepairPreviousHead != "0046_diagnostic_pagination" || DiagnosticPaginationPreviousHead != "0045_runtime_summary" || RuntimeSummaryPreviousHead != "0044_inventory_usage" || InventoryUsagePreviousHead != "0043_actor_facts" || ActorFactsPreviousHead != "0042_conversation_daily_memory" || ConversationDailyMemoryPreviousHead != "0041_agent_run_diagnostics" || AgentRunDiagnosticsPreviousHead != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
+	assertCurrentAdditiveChain(t)
+	if LifePlacePreviousHead != "0065_world_catalog" || WorldCatalogPreviousHead != "0064_world_runtime" || WorldRuntimePreviousHead != "0063_goal_agent_cadence" || GoalAgentCadencePreviousHead != "0062_reply_media" || ReplyMediaPreviousHead != "0061_fact_only_reply" || FactOnlyReplyPreviousHead != "0060_media_kev" || MediaKevPreviousHead != "0059_fact_generation_provenance" || FactGenerationProvenancePreviousHead != "0058_semantic_fact_generation" || SemanticFactGenerationPreviousHead != "0057_logical_agent_leases" || LogicalAgentLeasesPreviousHead != "0056_kev_decisions" || KevDecisionsPreviousHead != "0055_goal_planner_cadence" || GoalPlannerCadencePreviousHead != "0054_goal_planner" || GoalPlannerPreviousHead != "0053_goal_reconciliation" || GoalReconciliationPreviousHead != "0052_goal_governance" || GoalGovernancePreviousHead != "0051_goal_closure" || GoalClosurePreviousHead != "0050_goal_execution" || GoalExecutionPreviousHead != "0049_actor_user_background" || ActorUserBackgroundPreviousHead != "0048_proactive_topics" || ProactiveTopicsPreviousHead != "0047_history_repair" || HistoryRepairPreviousHead != "0046_diagnostic_pagination" || DiagnosticPaginationPreviousHead != "0045_runtime_summary" || RuntimeSummaryPreviousHead != "0044_inventory_usage" || InventoryUsagePreviousHead != "0043_actor_facts" || ActorFactsPreviousHead != "0042_conversation_daily_memory" || ConversationDailyMemoryPreviousHead != "0041_agent_run_diagnostics" || AgentRunDiagnosticsPreviousHead != "0040_activity_authority" || ActivityAuthorityPreviousHead != "0039_message_time" || MessageTimePreviousHead != "0038_scheduled_actions" || ScheduledActionPreviousHead != MemoryProvenanceHead || PreviousHead != EffectiveLifeHead || EffectiveLifeHead != "0036_effective_life" || WorkingPersonaHead != "0035_working_persona" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -120,15 +121,9 @@ func TestEffectiveLifeMigrationDeclaresSharedStateAndEventProvenance(t *testing.
 
 func TestPostgresEffectiveLifeMigrationUpgrades0035WithoutChangingFoundation(t *testing.T) {
 	ctx, pool := isolatedMigrationPool(t)
-	if err := New(pool).Apply(ctx); err != nil {
-		t.Fatal(err)
-	}
+	applyReleasedMigrationFixture(t, ctx, pool, "0035_working_persona")
 	if _, err := pool.Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES('effective-upgrade-owner','human','active'),('effective-upgrade-fluctlight','fluctlight','active');
 INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES('effective-upgrade-fluctlight','effective-upgrade-owner','blank_slate','active','{"identity":{"name":"旧实例"}}','{"name":"旧实例"}','{}','{}','{}','{}');`); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := pool.Exec(ctx, `DROP TABLE public.fluctlight_item_use_events,public.fluctlight_item_uses,public.fluctlight_life_activity_runs,public.fluctlight_worn_items,public.fluctlight_wardrobe_outfit_items,public.fluctlight_wardrobe_outfits,public.fluctlight_wardrobe_items,public.fluctlight_wardrobe_states,public.fluctlight_profile_habit_revisions,public.fluctlight_profile_habits,public.fluctlight_appearance_revisions,public.fluctlight_appearance_states;
-UPDATE public.alembic_version SET version_num='0035_working_persona';`); err != nil {
 		t.Fatal(err)
 	}
 	if err := New(pool).Apply(ctx); err != nil {

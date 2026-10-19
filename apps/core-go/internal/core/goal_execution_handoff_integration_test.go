@@ -2,6 +2,7 @@ package core
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -10,6 +11,15 @@ import (
 
 func TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires(t *testing.T) {
 	f := newIndependentToolE2EFixture(t, "autonomous-goal-handoff")
+	var directErr error
+	f.conversationID, directErr = f.app.EnsureDirectConversation(f.ctx, f.ownerID, f.fluctlightID)
+	if directErr != nil {
+		t.Fatal(directErr)
+	}
+	seedUnknownEffectiveLifeForTest(t, f.ctx, f.repository, f.fluctlightID)
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision) VALUES($1,'default',0) ON CONFLICT DO NOTHING`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
 	f.seedAcceptedSchedule(t)
 	goalID := "goal-handoff-" + f.suffix
 	goal, record, err := CreateGoalAuthority(GoalAuthority{EntityID: goalID, SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(goalID), FluctlightID: f.fluctlightID, DesiredOutcome: "拥有黑色短靴", SuccessCriteria: []string{"实际获得黑色短靴"}, Motivation: "自己的生活需要", Scope: "general", Status: GoalActive, Revision: 1}, []string{"owner:goal"}, f.app.now())
@@ -106,6 +116,15 @@ func TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires(t *testi
 		if nativeCalls == 1 {
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("handoff-start", lifeActivityStartCapabilityName, map[string]any{"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "已确认资格的目标活动"})}}
 		}
+		// Starting the activity refreshes Intention state and its reference. Use
+		// only the actual current refs offered to this physical continuation.
+		wire := jsonString(payload["messages"])
+		if refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(wire, -1); len(refs) > 0 {
+			goalRef = refs[len(refs)-1]
+		}
+		if refs := regexp.MustCompile(`intention:ctx_[a-f0-9]{32}`).FindAllString(wire, -1); len(refs) > 0 {
+			intentionRef = refs[len(refs)-1]
+		}
 		return fakeProviderResult{Structured: map[string]any{"attention": "活动执行中", "thought": "等待真实结果", "desire": "取得物品", "agency": "尚未完成目标", "appraisal": map[string]any{"relevance": 0.8, "goal_congruence": 0.8, "reward": 0.4, "loss": 0.0, "social_threat": 0.0, "controllability": 0.7, "responsibility": 0.6, "relationship_significance": 0.0, "expected_effect": 0.6, "evidence_refs": []any{}, "event_kind": "intention_due", "direction": "positive", "drive_signals": []any{}}, "influences": []any{map[string]any{"ref": goalRef, "role": "motivates", "confidence": 0.9, "note": "当前目标"}, map[string]any{"ref": intentionRef, "role": "grounds", "confidence": 0.9, "note": "到期意愿"}}}}
 	})
 	if _, err := f.app.ProcessCognitionInbox(f.ctx, stringValue(due["inbox_id"])); err != nil {
@@ -121,7 +140,9 @@ func TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires(t *testi
 	})
 	result, err := f.app.ExecuteTool(f.ctx, f.request(lifeActivityAdvanceCapabilityName, "handoff-resolve", map[string]any{"activity_id": activityID}))
 	if err != nil || stringValue(mapValue(result.Result.Output)["item_id"]) == "" {
-		t.Fatalf("no durable acquired item: %#v %v", result, err)
+		var diagnostic []byte
+		_ = f.repository.Pool().QueryRow(f.ctx, `SELECT payload FROM public.diagnostic_events WHERE fluctlight_id=$1 AND event_type='tool.prepare.failed' ORDER BY created_at DESC LIMIT 1`, f.fluctlightID).Scan(&diagnostic)
+		t.Fatalf("no durable acquired item: %#v %v diagnostic=%s", result, err, diagnostic)
 	}
 	runGoalAssessmentFixture(t, f, "acquisition", true, nil)
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&status); err != nil || status != "completed" {

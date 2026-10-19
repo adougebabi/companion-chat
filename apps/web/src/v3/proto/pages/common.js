@@ -13,7 +13,7 @@ const STATUS_TEXT = {
 /** 非小遥角色：显示她自己的状态，不回落到小遥数据。返回 true 表示已渲染。 */
 export function charStatus(el, ctx, what = '这一页') {
   const c = store.get('characters', ctx.charId);
-  if (!c || c.id === 'c1') return false;
+  if (!c || c.id === 'c1' || (!store.isMock && c.status === '正常')) return false;
   const [txt, btn] = STATUS_TEXT[c.status] || ['当前范围未找到内容。', ''];
   const w = store.get('worlds', c.worldId);
   el.innerHTML = `<div class="card" data-test="char-status-${c.id}"><div class="row"><img class="av lg" src="${c.avatar}" alt=""><div class="grow"><h2 style="margin:0">${esc(c.name)}</h2><div class="small muted">${esc(w?.name || '运行世界未创建')}</div></div>${badge(c.status, statusKind(c.status))}</div>

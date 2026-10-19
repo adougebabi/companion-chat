@@ -235,10 +235,10 @@ func TestOwnerAddUpdateDeleteWardrobeItems(t *testing.T) {
 		t.Fatalf("delete item failed: %#v err=%v", deleted, err)
 	}
 
-	// Verify item is gone
+	// Removal archives inventory so source/use history remains attributable.
 	var itemExists bool
-	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2)`, fixture.fluctlightID, itemID).Scan(&itemExists); err != nil || itemExists {
-		t.Fatalf("deleted item still exists: exists=%v", itemExists)
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND id=$2 AND archived_at IS NOT NULL AND availability='unavailable')`, fixture.fluctlightID, itemID).Scan(&itemExists); err != nil || !itemExists {
+		t.Fatalf("removed item was not archived: exists=%v err=%v", itemExists, err)
 	}
 }
 

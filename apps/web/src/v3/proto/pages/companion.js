@@ -1,3 +1,6 @@
+import { providerPage } from './provider-page.js';
+import { Tabs, Field } from '../components/forms.js';
+import { PreferenceFields } from '../components/forms.js';
 // 相处体验扩展页：会话历史、纠错记录、多模态、动态、主动触达、通知
 import * as store from '../store.js';
 import { esc, icon, badge, drawer, toast, objLink, mgmt, nameOf, avatarOf, confirm } from '../ui.js';
@@ -7,11 +10,12 @@ import { hl, wait, hm } from './common.js';
 
 /* chat.history.view */
 export function renderHistory(el, ctx) {
+  if (!store.isMock) return providerPage(() => import('./real-history.js'), 'renderHistory',el,ctx);
   const c = store.get('characters', ctx.charId); const kw = ctx.query.q || '';
   const all = store.list('messages', m => m.charId === c.id && m.from !== 'action');
   const hits = kw ? all.filter(m => m.from !== 'divider' && (m.text || '').includes(kw)) : all;
   el.innerHTML = `<form class="row" data-test="hist-form"><input class="input grow" name="q" value="${esc(kw)}" placeholder="搜索和${esc(c.name)}的聊天…" data-test="hist-input"><button class="btn primary" data-test="hist-go">${icon('chat')} 搜索</button>${kw ? '<button type="button" class="btn" data-clear>清除</button>' : ''}</form>
-  <p class="small muted" data-test="hist-count">范围：和${esc(c.name)}的全部会话 · ${kw ? `匹配“${esc(kw)}”的 ${hits.length} 条` : `${hits.filter(m => m.from !== 'divider').length} 条消息`}</p>
+  <p class="small muted" data-test="hist-count">范围：和${esc(c.name)}的已读取消息 · ${kw ? `匹配“${esc(kw)}”的 ${hits.length} 条` : `${hits.filter(m => m.from !== 'divider').length} 条消息`}</p>
   ${hits.length ? `<div class="card"><div class="list" data-test="hist-list">${hits.map(m => m.from === 'divider' ? `<div class="divider">${esc(m.text)}</div>`
     : `<a class="lrow click" href="#/c/${c.id}/chat?from=chat.history.view" data-test="hist-hit"><img class="av sm" src="${m.from === 'user' ? '/v3/assets/avatars/user.svg' : c.avatar}" alt=""><span class="grow">${m.from === 'sys' ? badge('系统运维') + ' ' : ''}${hl(m.text, kw)}${m.corrected ? ' ' + badge('已纠正', 'plain') : ''}</span><span class="small muted">${m.at || ''}</span></a>`).join('')}</div></div>`
     : `<div class="statebox"><h2>当前范围未找到“${esc(kw)}”</h2><p class="muted">只搜索和${esc(c.name)}的聊天，不含动态和日记。</p><button class="btn" data-clear>清除搜索</button></div>`}
@@ -59,9 +63,15 @@ function bindLikes(el) {
 export async function suggestPost(text) {
   const id = store.uid('ps_');
   store.update(d => { d.postSuggestions[id] = { id, charId: 'c1', text, state: '候选', at: hm() }; }, { identity: '交流', summary: '建议小遥发一条动态（由她决定）', target: id });
-  return id;
+  await wait(T.step);
+  const pid = store.uid('po_');
+  store.update(d => { const s = d.postSuggestions[id]; s.state = '已确认'; s.postId = pid;
+    d.posts[pid] = { id: pid, worldId: 'w1', author: 'c1', authorType: 'char', text: `听了你的建议～${text.replace(/^(帮我|建议你|你可以)?/, '')}（我自己写的）`, at: '10-15 ' + hm(), likes: 0, liked: false, comments: [], fromSuggestion: id }; },
+    { identity: '交流', summary: '小遥采纳建议，用自己的话发了动态', target: pid });
+  return pid;
 }
 export function renderFeed(el, ctx) {
+  if (!store.isMock) return providerPage(() => import('./real-moments.js'), 'renderRealFeed',el,ctx);
   const posts = store.list('posts').sort((a, b) => (b.at > a.at ? 1 : -1));
   const sugs = store.list('postSuggestions').reverse();
   el.innerHTML = `<div class="grid g2" style="align-items:start"><div class="stack" data-test="feed-list">${posts.map(p => postCard(p)).join('') || '<div class="statebox"><h2>运行世界里还没有动态</h2></div>'}</div>
@@ -74,10 +84,11 @@ export function renderFeed(el, ctx) {
   mine.onsubmit = e => { e.preventDefault(); const t = mine.t.value.trim(); if (!t) return toast('先写点内容', 'err'); const id = store.uid('po_');
     store.update(d => { d.posts[id] = { id, worldId: 'w1', author: 'u1', authorType: 'user', text: t, at: '10-15 ' + hm(), likes: 0, liked: false, comments: [] }; }, { identity: '交流', summary: '用户以自己身份发布动态', target: id }); toast('已发布（以你自己的名义）', 'ok'); };
   mine.querySelector('[data-clear]').onclick = () => { mine.t.value = ''; };
-  el.querySelector('[data-sug]').onsubmit = e => { e.preventDefault(); const t = e.target.t.value.trim(); if (!t) return; suggestPost(t); };
+  el.querySelector('[data-sug]').onsubmit = e => { e.preventDefault(); const t = e.target.t.value.trim(); if (!t) return; toast('建议已发出，等小遥决定'); suggestPost(t).then(() => toast('小遥采纳了建议并发了动态', 'ok')); };
   bindLikes(el);
 }
 export function renderPost(el, ctx) {
+  if (!store.isMock) return providerPage(() => import('./real-moments.js'), 'renderRealPost',el,ctx);
   const p = store.get('posts', ctx.params.postId);
   if (!p) { el.innerHTML = `<div class="statebox"><h2>当前范围未找到这条动态</h2><a class="btn" href="#/feed">回到动态</a></div>`; return; }
   el.innerHTML = `${postCard(p, { full: true })}<div class="card" style="margin-top:12px"><h3>评论</h3><div class="list" data-test="comments">${p.comments.map(c => `<div class="lrow small"><img class="av sm" src="${avatarOf(c.author)}" alt=""><b>${esc(c.author === 'u1' ? '我' : nameOf(c.author))}</b><span class="grow">${esc(c.text)}</span><span class="muted">${c.at}</span></div>`).join('') || '<p class="small muted">还没有评论</p>'}</div>
@@ -90,6 +101,7 @@ export function renderPost(el, ctx) {
 
 /* settings.char.autonomy#outreach —— 主动触达（偏好展示） */
 export function renderOutreach(el, ctx) {
+  if (!store.isMock) return providerPage(() => import('./real-autonomy.js'), 'renderRealAutonomy',el,ctx);
   const pr = store.get('prefs').autonomy.c1;
   el.innerHTML = `<div class="banner info">${icon('info')} 仅展示：这里记录你对小遥主动找你的偏好。原型不会改变运行时的触达权限或频率。</div>
   <form class="card" style="margin-top:12px" data-of><div class="stack">
@@ -104,10 +116,10 @@ export function renderOutreach(el, ctx) {
 
 /* inbox.notice.list */
 export function renderInbox(el, ctx) {
+  if (!store.isMock) return providerPage(() => import('./real-operations.js'), 'renderRealInbox',el,ctx);
   const tab = ctx.query.tab || '全部';
   const n = store.get('notices').filter(x => tab === '全部' || !x.read); const p = store.pending(ctx.charId);
-  const unwired = store.get('meta')?.unwired?.notices;
-  el.innerHTML = `<div class="grid g2"><div class="card">${unwired ? '<div class="banner warn">通知尚未接入</div>' : ''}<div class="tabs">${['全部', '未读'].map(t => `<a class="tab ${t === tab ? 'on' : ''}" href="#/inbox?tab=${t}">${t}</a>`).join('')}</div>
+  el.innerHTML = `<div class="grid g2"><div class="card">${Tabs({ value: tab, items: ['全部', '未读'].map(value => ({ value, label: value, href: `#/inbox?tab=${value}` })) })}
     <div class="list" style="margin-top:8px">${n.map(x => `<div class="lrow" data-test="notice-${x.id}"><a class="grow" href="${x.link}">${esc(x.text)}</a>${x.read ? '<span class="small muted">已读</span>' : `${badge('未读', 'plain')}<button class="btn ghost sm" data-one="${x.id}" data-test="read-${x.id}">标为已读</button>`}</div>`).join('') || '<p class="small muted">当前筛选没有通知</p>'}</div>
     <button class="btn sm" data-read data-test="read-all" style="margin-top:8px">全部标为已读</button></div>
     <div class="card"><h3>待处理事项</h3><p class="small muted">从现有对象派生，和通知分开。</p>${p.map(x => `<div class="lrow"><a class="grow" href="${x.link}">${esc(x.text)}</a></div>`).join('') || '<p class="muted small">当前范围未找到</p>'}<a class="small" href="#/diag/pending">全部待处理 →</a></div></div>`;

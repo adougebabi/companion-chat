@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "canonicalFields": 19,
+  "tabs": [
+    {
+      "tab": "basic",
+      "keys": [
+        "name",
+        "location",
+        "occupation",
+        "interests",
+        "shared_information",
+        "full_name",
+        "age",
+        "gender",
+        "background",
+        "preferences",
+        "location_scope",
+        "timezone"
+      ]
+    },
+    {
+      "tab": "relationship",
+      "keys": [
+        "relationship_description",
+        "relationship_distance",
+        "personality",
+        "habits",
+        "wants_you_to_know",
+        "meeting_confirmed"
+      ]
+    },
+    {
+      "tab": "rules",
+      "keys": [
+        "rules"
+      ]
+    }
+  ]
+}

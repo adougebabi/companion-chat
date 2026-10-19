@@ -104,8 +104,12 @@ func TestDurableTimedTurnReplaysAcceptedSenderTime(t *testing.T) {
 				}
 			}
 			result, err := app.ProcessCognitionInbox(ctx, accepted.InboxID)
-			if err != nil || stringValue(result["status"]) != "processed" {
+			if err != nil || stringValue(result["status"]) != "committed" {
 				t.Fatalf("timed Worker replay failed: result=%#v err=%v", result, err)
+			}
+			var status string
+			if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE id=$1`, accepted.InboxID).Scan(&status); err != nil || status != "processed" {
+				t.Fatal("timed reply did not settle inbox", status, err)
 			}
 			page, err := repository.History(ctx, conversationID, ownerID, nil, 10)
 			if err != nil || len(page.Messages) < 2 || page.Messages[0].TurnStatus != "completed" {

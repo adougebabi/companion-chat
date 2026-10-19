@@ -1,0 +1,30 @@
+{
+  "id": "fluctlight-functional-recovery",
+  "name": "fluctlight-functional-recovery",
+  "title": "摇光正式系统可用性修复与功能补全",
+  "description": "执行完整全栈任务书：当前补全v3为基线，完成UI-01/UI-02后冻结，连续实施T00—T04、WP-01—18及E01—22真实验收。",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-10-15",
+  "completedAt": null,
+  "branch": "codex/fluctlight-functional-recovery",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "2026-10-15用户明确授权完整交付，覆盖前一Mock-only阶段限制；保留全部未提交工作；无需再次逐页或逐包审批。",
+  "meta": {
+    "deliveryStage": "non_llm_verification_complete_user_acceptance_pending",
+    "acceptanceEntry": "http://127.0.0.1:18080/#/library",
+    "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/progress.json"
+  }
+}

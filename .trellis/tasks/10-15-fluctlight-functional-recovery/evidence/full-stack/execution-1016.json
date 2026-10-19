@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-16 Asia/Shanghai",
+  "scope": "isolated DB fluctlight_delivery_1015; API8081; completed v3 real frontend http://127.0.0.1:5175; old localhost5173 retained",
+  "migration": {
+    "head": "0066_life_place",
+    "upgradeAndRerun": "TestLifePlace0065UpgradePreservesTextAndExplicitIdentity: PASS isolated PostgreSQL/race; text locations preserved, unknown identity remains NULL, explicit FK preserved"
+  },
+  "browser": {
+    "fluctlightId": "fluctlight_1cc52b2d06be229916c79600caec9b17",
+    "sourceAnalysisId": "initialization_source_e0267134647d67e52aa3d812edaba594",
+    "name": "澄岚",
+    "creation": "restored actual persisted analysis JSON in current v3 wizard, confirmed and activated; Core identity name is authoritative",
+    "profile": "real API read passed after shared initial profile repair; default portrait compiled; day/night retained",
+    "wardrobe": "actual initial blue shirt shown, worn; no seed image",
+    "goalId": "goal_owner_b88b0889c146d9ccc77be2b5f73f4d4a",
+    "goalCreateReadback": "current v3 form -> actual API -> goal revision1 active -> detail with matching outcome/motivation/criteria",
+    "refresh": "After separate 127.0.0.1 host login, reload preserved session and memory. Root cause of prior loss reproduced:localhost5173 cleared shared host cookie for5175.",
+    "screenshot": "browser/goal-real-desktop.png",
+    "memory": "Real Owner-command fixture v0→v1 saved in current UI; concurrent v2,409 preserves draft. Repeat v3 +409→reload retains content/reason and requires explicit rebase→v4 saved. Historical v0 sources link to actual original message. Not model production."
+  },
+  "realModel": {
+    "initialization": "second and last allowed analysis HTTP200, source persisted",
+    "sharedPortrait": "persona-backfill compiled missing default only; day/night skipped current",
+    "chat": "New turn_8baaf93e-feba-4c81-be61-30b65ecffd8b actually called Qwen and Cydonia, both complete requests contain latest Actor test fields. Reply persisted; Qwen settlement timed out. Output did not use requested name and included unsupported weather/actions. E02/E03 not accepted.",
+    "personaSwitch": "not run; analysis has no typed persistent rule, UI correctly has no target"
+  },
+  "tests": {
+    "web": "160/160 including explicit transport fixtures and delayed role selection; not full business E2E",
+    "webProductionBuild": "PASS no fixture store/seed/debug writer/QA page",
+    "core": "isolated PostgreSQL/race stable place test + life requests success/rejection/provider failure/postcommit-final failure/stale/target/replay + catalog tests PASS",
+    "visualMediaFailure": "isolated PostgreSQL/race parent failed once, replay without repeated timeline or Provider PASS",
+    "sharedProfile": "isolated PostgreSQL/race habitats/backfill and shared-source isolation PASS",
+    "browserBoundary": "full Go browser race PASS",
+    "existingFailure": "TestCompiledWorkingPersonaNativeDetailChain fixture corrected to execute native reply, actual one message and PostgreSQL/race PASS",
+    "memory": "105 records/7pages no gaps/duplicates; crossOwner, historical source and Owner correction replacement, CAS, forget/compensation: real isolated PG/race PASS",
+    "typecheck": "whole workspace PASS",
+    "physicalBudgetDiagnostics": "controlled HTTP/SSE native/final repair + PG settlement/race PASS; current running binaries not yet rebuilt"
+  },
+  "remaining": "Full WP01-18 and E01-22 unfinished. See sole functional ledger; no user acceptance or full completion claimed.",
+  "runtime": {
+    "apiPid": 304,
+    "workerPid": 305,
+    "viteSession": 58622,
+    "frontend": "http://127.0.0.1:5175",
+    "pidFilesAuthority": "/tmp/fluctlight-delivery-1015/{api,worker}.pid",
+    "diagnosticCodeDeployed": false
+  }
+}

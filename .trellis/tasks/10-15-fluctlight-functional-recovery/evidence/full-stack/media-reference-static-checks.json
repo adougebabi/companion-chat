@@ -1,0 +1,59 @@
+{
+  "head": "0085_media_reference_grants",
+  "boundary": "No real API/PG/S3/browser/model execution.",
+  "checks": [
+    {
+      "kind": "API/Worker build",
+      "session": 51594,
+      "status": "passed"
+    },
+    {
+      "kind": "workspace typecheck",
+      "session": 15095,
+      "status": "passed"
+    },
+    {
+      "kind": "formal Web build/no-Mock",
+      "chunk": "ec21ab",
+      "status": "passed"
+    },
+    {
+      "kind": "new Core/Browser pure validation",
+      "session": 34016,
+      "passed": 2,
+      "note": "PG fixtures and migration source only compiled"
+    },
+    {
+      "kind": "grant recovery + Studio controlled components",
+      "chunk": "e0cb4a",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "kind": "Browser typed query first-page regression",
+      "chunk": "6d9aac",
+      "passed": 1,
+      "note": "Initial tsx CLI blocked by sandbox IPC, node --import tsx executed successfully"
+    },
+    {
+      "kind": "regression harness",
+      "session": 21812,
+      "passed": 20,
+      "skipped": 0
+    }
+  ],
+  "independentReviewFixes": [
+    "undefined cursor omitted by typed client",
+    "explicit grant rechecked after reference upload immediately before Provider prompt submission"
+  ],
+  "authoredUnexecuted": [
+    "OwnerMedia PG+controlled S3 fixture now includes grant admission/exact bytes/crossOwner/target/revoke/replay plus a blocking reference-upload/revoke prompt-denial sequence",
+    "TestMediaReferenceUpgradeDoesNotInventLegacyModelPermission",
+    "L16 uploaded-reference/person-reference/revoke-reference live steps"
+  ],
+  "remaining": [
+    "Formal character general-media and item-photo request targets/consumers",
+    "Asset lifecycle/deletion",
+    "Other unfinished work packages and unified regression"
+  ]
+}

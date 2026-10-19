@@ -11,7 +11,7 @@ func (a *App) ActorContext(ctx context.Context, actor, owner, target string) (ma
 	if _, err := a.DB.GetFluctlight(ctx, owner, actor); err != nil {
 		return nil, err
 	}
-	if err := a.requireVisibleActorWith(ctx, a.DB.Pool(), owner, actor, "*", target); err != nil {
+	if err := requireActorFactScope(ctx, a.DB.Pool(), owner, actor, target); err != nil {
 		return nil, err
 	}
 	return a.readActorContextWith(ctx, a.DB.Pool(), owner, target)
@@ -27,6 +27,11 @@ func (a *App) readActorContextWith(ctx context.Context, q lifeContextQuerier, ow
 	}
 	background["history"] = history
 	background["actor_id"] = target
+	var actorType string
+	if err := q.QueryRow(ctx, `SELECT actor_type FROM public.actors WHERE id=$1`, target).Scan(&actorType); err != nil {
+		return nil, err
+	}
+	background["actor_type"] = actorType
 	rows, err := q.Query(ctx, `SELECT to_jsonb(r) FROM public.relationships r WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 ORDER BY updated_at DESC,id LIMIT 20`, owner, target)
 	if err != nil {
 		return nil, err
@@ -45,7 +50,7 @@ func (a *App) readActorContextWith(ctx context.Context, q lifeContextQuerier, ow
 		return nil, err
 	}
 	background["relationships"] = relations
-	background["context_version"] = stableDigest(jsonString(map[string]any{"facts": history, "relationships": relations}))
+	background["context_version"] = stableDigest(jsonString(map[string]any{"current_facts": background["facts"], "facts": history, "relationships": relations}))
 	rows, err = q.Query(ctx, `SELECT to_jsonb(v) FROM public.relationship_revisions v JOIN public.relationships r ON r.id=v.relationship_id WHERE r.owner_fluctlight_id=$1 AND r.target_actor_id=$2 ORDER BY v.created_at DESC,v.id DESC LIMIT 30`, owner, target)
 	if err != nil {
 		return nil, err
@@ -88,7 +93,10 @@ func (a *App) UpdateActorContext(ctx context.Context, actor, owner, target strin
 		if err := lockLifeContextTx(ctx, tx, owner); err != nil {
 			return err
 		}
-		if err := a.requireVisibleActorWith(ctx, tx, owner, actor, "*", target); err != nil {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "actor-facts:"+owner); err != nil {
+			return err
+		}
+		if err := requireActorFactScope(ctx, tx, owner, actor, target); err != nil {
 			return err
 		}
 		ledgerKey := "actor-context:" + target + ":" + key
@@ -100,6 +108,7 @@ func (a *App) UpdateActorContext(ctx context.Context, actor, owner, target strin
 				return ErrConflict
 			}
 			result = decodeObject(raw)
+			result["replayed"] = true
 			return nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {

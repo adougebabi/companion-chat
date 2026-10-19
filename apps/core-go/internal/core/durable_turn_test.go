@@ -59,8 +59,11 @@ func TestDurableBrowserObserverDisconnectDoesNotCancelWorker(t *testing.T) {
 		t.Fatalf("inbox after disconnect = %q, err=%v", status, err)
 	}
 	result, err := app.ProcessCognitionInbox(ctx, inboxID)
-	if err != nil || stringValue(result["status"]) != "processed" {
+	if err != nil || stringValue(result["status"]) != "committed" {
 		t.Fatalf("worker result=%#v err=%v", result, err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status); err != nil || status != "processed" {
+		t.Fatal("reply committed without processed inbox", status, err)
 	}
 	page, err := repository.History(ctx, conversationID, ownerID, nil, 50)
 	if err != nil {

@@ -2,10 +2,21 @@ package core
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func (s *ReflectionService) Browse(ctx context.Context, owner, fid string, query url.Values) (map[string]any, error) {
+	return s.app.OwnerReflectionCatalog(ctx, owner, fid, query)
+}
+func (s *ReflectionService) Read(ctx context.Context, owner, fid, id string) (map[string]any, error) {
+	return s.app.OwnerReflection(ctx, owner, fid, id)
+}
+func (s *ReflectionService) Feedback(ctx context.Context, owner, fid, id string, query url.Values) (map[string]any, error) {
+	return s.app.OwnerReflectionFeedback(ctx, owner, fid, id, query)
+}
 
 // ReflectionService coordinates reflection window evaluation, proposal generation,
 // memory consolidation, and evolution overlay application.

@@ -228,7 +228,7 @@ func momentPublishCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: "moment.publish", Version: "v1", Type: CapabilityTypeAction,
 		Description:   "Publish the final text of one Fluctlight Moment to the shared feed.",
-		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
+		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
@@ -266,12 +266,12 @@ func imageCapabilityDefinition() CapabilityDefinition {
 				"media_intent_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"task_id":         map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"status":          map[string]any{"type": "string", "enum": []any{"pending", "running", "completed", "failed"}},
-				"target_kind":     map[string]any{"type": "string", "enum": []any{"conversation", "conversation_message", "moment", "wake_up"}},
+				"target_kind":     map[string]any{"type": "string", "enum": []any{"conversation", "conversation_message", "moment", "wake_up", "owner_media_request"}},
 				"target_ref":      map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 				"replayed":        map[string]any{"type": "boolean"},
 			},
 		},
-		TargetKinds:           []string{"conversation", "conversation_message", "moment", "wake_up"},
+		TargetKinds:           []string{"conversation", "conversation_message", "moment", "wake_up", "owner_media_request"},
 		OutputRole:            "media",
 		SideEffectClass:       "external_async",
 		SuccessBoundary:       "durable_media_intent_created",

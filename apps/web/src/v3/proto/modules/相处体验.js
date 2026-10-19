@@ -13,4 +13,4 @@ register({ route: '/c/:charId/chat/media', key: 'chat.media.view', title: '聊�
 register({ route: '/feed', key: 'feed.post.list', title: '动态', bp: 'BP-04', zone: Z, coverage: '可操作', scope: '运行世界', iface: [['动态列表', '新增'], ['发布（用户本人）', '新增'], ['发帖建议', '新增']], source: '全局导航「动态」。用户只能以自己的 Actor 发帖，或向角色提建议', render: renderFeed });
 register({ route: '/feed/:postId', key: 'feed.post.detail', title: '动态详情', bp: 'BP-04', zone: Z, coverage: '可操作', scope: '运行世界', render: renderPost });
 register({ route: '/settings/outreach', key: 'settings.char.autonomy#outreach', title: '主动触达设置', bp: 'BP-03 / BP-16', zone: Z, coverage: '仅展示', source: '仅记录偏好，不改变运行时权限', render: renderOutreach });
-register({ route: '/inbox', key: 'inbox.notice.list', title: '通知中心', bp: 'BP-03', zone: Z, coverage: '可操作', scope: '全局定义', iface: [['通知列表', '待核验']], render: renderInbox });
+register({ route: '/inbox', key: 'inbox.notice.list', title: '通知中心', bp: 'BP-03', zone: Z, coverage: '可操作', scope: '全局定义', iface: [['通知列表', '待核验']], render: renderInbox, manualRefresh: true });

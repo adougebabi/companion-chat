@@ -355,27 +355,22 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPostCo
 
 ## 备份与恢复
 
-`infra/backup/` 使用一个操作员 manifest 统筹备份，而不是只备份某一个容器：
+当前业务备份使用 `infra/backup/maintenance.py` 和 Core 镜像内的
+`fluctlight-backupctl-go`。在 v3 `#/data` 创建持久维护任务，再由有部署权限的
+本地工具执行实际校验、停写与全卷归档；排队回执不表示已经生成备份。
 
-- PostgreSQL 应同时覆盖应用数据库和 Temporal 的 `temporal`、
-  `temporal_visibility` 数据库；
-- MinIO/S3 记录私有 bucket 的对象 key、版本 ID、字节数和抽样 SHA-256；
-- 部署环境文件只记录字段是否存在，不把凭据或 `FLUCTLIGHT_SETTINGS_KEY` 明文写入
-  manifest。
+备份覆盖应用/Temporal/visibility PostgreSQL、原始 MinIO 对象版本、Redis、KEV
+卷、确切镜像与私有部署配置。manifest 只保留字段名、摘要和核验结果，不携带
+凭据值；私有 `.env` 和数据归档仍需按私有文件保管。
 
-快照准备好后创建并校验 manifest：
+恢复只创建新的隔离卷和 internal 网络，不覆盖源库。工具先比较真实表数量和
+媒体版本/字节摘要，再执行指定 Core 发行镜像的迁移，并停止核验容器。
+恢复流程不自动启动 Temporal、API、Worker 或模型任务。需要模型的原工作流
+恢复另行验收，不能用数据库数量一致替代其执行结果。
 
-```bash
-fluctlight-backup manifest /backup/fluctlight/manifest.json
-fluctlight-backup verify /backup/fluctlight/manifest.json
-```
-
-恢复前先落到可丢弃的 PostgreSQL、MinIO 和 Temporal volume，执行发布版本的 Go
-迁移并启动 Worker，再将服务切换到恢复后的数据。若丢失
-`FLUCTLIGHT_SETTINGS_KEY`，保留数据库和对象数据，通过 Owner Settings 重新录入
-Provider secrets；不要尝试从旧数据或旧环境变量中解密、复制或重建密钥。诊断数据
-清理和 tombstoned media 清理都必须先经过引用失效、校验和版本确认，不能删除领域
-修订、证据或治理历史。
+完整命令、维护条件、中断恢复、无源部署的灾难恢复与证据边界见
+[备份与隔离恢复操作说明](infra/backup/README.md)。正式任务目前的源码和开发检查
+不能当作已完成演练；实际运行记录统一见当前功能台账及状态文档。
 
 ## CI 与镜像发布
 
@@ -406,9 +401,11 @@ Provider secrets；不要尝试从旧数据或旧环境变量中解密、复制�
 7. **运维可视化**：补齐诊断导出、清理和工作流观测等已有 API 能力的 UI 入口，
    让问题定位、恢复操作和备份/恢复演练更容易被 Owner 安全地执行。
 
-## 待后续迭代功能
+## 历史接入阶段核查记录
 
-以下能力已经有浏览器路由和字段，但本期没有真实生产者。响应是空状态、`available: false` 或 `status: "not_implemented"`，不会用种子数据或 `0` 计数冒充已接入。
+此节保留早期“仅接已有 API”阶段的定位记录；其中“未实现/只记录”等标签已经被本轮完整交付覆盖，不能据此延期已确认功能。请按下列当前台账核验实际实现和未验证范围。
+
+以下条目保留早期接入阶段的历史核查背景，不是当前全栈交付状态。当前实现、未验证边界和剩余项以 `docs/v3-functional-ledger.json`、`docs/access-status.md` 为准；旧的“未接入/只记录”描述须按实际代码重新核验。
 
 - 此刻场景图：没有地点关联媒体时 `scene_image` 为 null；查询失败则缺这个键。
 - 心情和精力只投影已保存的 label / value。没有 evidence 时不补空数组。
@@ -422,7 +419,7 @@ Provider secrets；不要尝试从旧数据或旧环境变量中解密、复制�
 - 反思正文未接入。反思回应只生成候选，不改人格或 Reflection 规则。
 - 独立 Desire 未接入。
 - Agent / Tool 目录未接入。
-- 业务备份和恢复未接入，不返回 `backup_id` 或 `job_id`。
+- 业务备份现由 `business_backup_jobs` 及本地维护工具执行；返回真实 `id` 和阶段，实际完成依据核验回执，见 `infra/backup/README.md`。
 - 时间线回档没有接口。`/api/ops/timeline-checkpoints` 保持 404，和对象修订、配置包、业务备份分开。
 - 事件影响链、消息身份分类、卡片此刻一句话和 `status_note` 都没有生产者，响应里缺这些键。
 - 创作「应用」已记录选择，尚未写入实例。响应是 `status: "recorded_not_applied"`，实例版本保持记录当时的 revision，冲突字段保持未解决。以后写入需要按记录的选择执行，并重新校验冲突。

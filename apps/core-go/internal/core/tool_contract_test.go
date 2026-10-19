@@ -282,7 +282,7 @@ func TestCapabilityRendererKeepsProviderSchemaAtBoundary(t *testing.T) {
 		t.Fatalf("media manifest missing = %#v", names)
 	}
 	definition := imageCapabilityDefinition()
-	if len(definition.TargetKinds) != 4 || definition.TargetKinds[0] != "conversation" || definition.TargetKinds[1] != "conversation_message" || definition.TargetKinds[2] != "moment" || definition.TargetKinds[3] != "wake_up" {
+	if len(definition.TargetKinds) != 5 || definition.TargetKinds[0] != "conversation" || definition.TargetKinds[1] != "conversation_message" || definition.TargetKinds[2] != "moment" || definition.TargetKinds[3] != "wake_up" || definition.TargetKinds[4] != "owner_media_request" {
 		t.Fatalf("media target kinds = %#v", definition.TargetKinds)
 	}
 	if !definition.IsDeferredOutput() || definition.OutputSchema == nil {

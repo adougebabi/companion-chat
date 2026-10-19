@@ -1,0 +1,29 @@
+# 全栈交付设计边界
+
+当前 `apps/web/src/v3/proto` 的页面/公共展示组件与 CSS 是被确认的基线，快照在 `evidence/full-stack/ui-before-t00*`。仅先落实 UI-01/UI-02，然后保存新基线。之前的 Core/BrowserClient WIP 保留，逐项复验后复用，不假定已经完成。
+
+同一套页面经明确、类型化 provider 访问真实客户端；Mock 只在显式测试构建/入口使用。认证、错误、空/未配置、版本、任务状态、分页与范围投影集中处理。页面只拥有草稿和 UI 状态。生产不导入种子，不发失败后自动返回空/默认值，不通过隐藏徽标假接入。
+
+后端仍是现有 Go Core 和 in-process browser boundary；复用已有领域服务、工具、事务/outbox、Temporal/Worker、媒体与 Provider 基础。补缺失模型与生产者/消费者，保证版本、幂等、权限、恢复。确定性 CRUD 不强制过模型；Qwen 认知与 Cydonia 独立表达不改变。
+
+实施按纵向工作包推进；共用 provider/API/schema/迁移编号由主代理协调。独立领域可以并行，但明确文件所有权；不重写工作流平台。全部验证使用有标识的隔离对象/数据库，维护单一功能台账与决策/执行记录。
+
+UI-01 移除聊天推荐话术和发送图片入口优先于历史附件入口。任务书 WP-03/E05 的附件要求若与此有语义冲突，先查最新确认记录，再集中提出具体裁定，不阻塞非附件工作。UI-02 人格切换必须使用受控 Core 命令并保留有效生活状态。
+
+## 当前共用契约与分工
+- 真实资料组件已提供 ProfileProvider(read/switchPersona/editBio)；集中 profileSnapshotFromDetail 读取 persona_compilation 与 persona_switch_history。
+- Owner不同人格切换必须形成请求事实/既有评估任务/受控执行/持久终态回读；不能把Owner确认等同任意自由文本触发条件，也不能以安全拒绝替代该功能建设。API不承担后台模型Activity。
+- 前端共享数据层保留现有展示组件，生产默认real、显式mock构建才导入seed；替换store为明确provider facade，真实模式禁止通用mutator假写。各页面写操作逐动作接真实命令，不能按审计文案猜dispatch。
+- 当前runtime证据的API是既有旧二进制，后续必须重编；旧任务库有待处理自治/媒体任务，因此新全栈验证使用独立app DB/Temporal队列与明确测试Owner，保留已有库/卷。
+- 迁移0064已有WIP且已在旧隔离库应用；后续新迁移编号由主线程分配，当前world差额切片预留0065，其余不得抢号。
+
+## 下一波独立服务注册
+`proto/services.js` 提供 configureDomainService(domain, implementation)，真实 facade 按明确方法转发，不接mutator/审计文案猜业务。world/NPC与life前端适配分别放独立provider模块并导出install/register函数；主线程在 providers/real.ts 的 registerProviders 统一注册，子代理不并发重写共享入口。世界/NPC前端代理只负责其页和 providers/world.ts；life前端代理负责此刻/日程/目标/衣柜/行动相关页和 providers/life.ts。其它领域仍逐包实现，暂时明确未实现不能算完成。
+
+当前真实创建首先被初始化输入预算拒绝（估算13584 > 12288），不是缺API或合法空数据。修复须核实际加载模型上下文/预算和必要提示负担，不提高虚假窗口、不裁剪用户描述、不回退默认角色。
+
+## 2026-10-16 真实聊天预算核验
+首个真实v3聊天在Provider前被required wire estimate22561>16384拒绝，无Qwen/Cydonia调用。定位到Fact-only native工具阶段物理请求早已省略response_format，但前置AssemblePromptContext仍计入6094估算的完整final schema。局部修复只使Fact-only+实际Tools的装配按实际wire format预算；结果仍保留完整logical schema，tool-free/final repair和真实physical budget检查保持。共享projection refresh复用该assembler，因此同样修复。固定协议覆盖权限、物品来源可用性和真实工具结果约束后去重完全重复的factOnlyExecutionBoundary，不裁剪用户/事实/Goal、不改加载24576窗口、不改Qwen/Cydonia分工或总执行框架。
+
+## 0075约定模型补充
+Owner原请求是约定身份，链接表只存窗口/版本/真实执行关联；完成真相仍由原GoalCommitment评估持有。Commitment区分step与promise：原单活跃step规则保留，多个独立约定可挂同一Goal，约定不附着短期Stage以防阶段换代误取消参与。沿现有评估单Goal最多8个活跃承诺的输入能力做事务准入，容量满明确冲突，不先接受后卡死评价；读取历史不截为8。约定ID是可信服务上下文，不能让模型或Owner GoalSet直传升级权限。通用Goal plans不能直接改/弃约定；改期/取消经原约定入口，完成仍走证据。响应未知持久保留原请求身份与输入，确认前不创建第二条。

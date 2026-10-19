@@ -439,6 +439,14 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	if err := lockEffectiveLifeSnapshotTx(ctx, tx, fluctlightID); err != nil {
 		return "", err
 	}
+	var existingSession string
+	err := tx.QueryRow(ctx, `SELECT id FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running','character_sheet_pending','awaiting_review') ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&existingSession)
+	if err == nil {
+		return existingSession, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
+	}
 	current, bodyRevision, wardrobeRevision, err := readEffectiveLifeSnapshotWith(ctx, tx, fluctlightID, a.now().UTC())
 	if err != nil {
 		return "", err
@@ -501,20 +509,14 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='missing',identity_snapshot=$2,renderer_constraints=$3,adapter_version=$4,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0 AND (status,identity_snapshot,renderer_constraints,adapter_version) IS DISTINCT FROM ('missing',$2::jsonb,$3::jsonb,$4)`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 			return "", err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status='queued'`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
-			return "", err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts AS a SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() FROM public.media_intents AS m WHERE a.visual_identity_id=$1 AND a.media_intent_id=m.id AND a.candidate_asset_id IS NULL AND m.provider_job_id IS NULL AND a.status IN ('queued','image_queued','vision_queued','patch_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
-			return "", err
-		}
+
 	}
-	var existingSession string
-	err = tx.QueryRow(ctx, `SELECT id FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running','character_sheet_pending','awaiting_review') ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&existingSession)
-	if err == nil {
-		return existingSession, nil
+	brief, briefErr := readVisualBriefWith(ctx, tx, fluctlightID)
+	if briefErr != nil {
+		return "", briefErr
 	}
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return "", err
+	if brief != nil {
+		identitySnapshot["owner_visual_brief"] = brief
 	}
 	sessionID := visualIdentitySessionID(fluctlightID, triggerType, sourceFactID)
 	workflowID := visualIdentityWorkflowID(sessionID)
@@ -577,6 +579,7 @@ func visualIdentityPromptFromConcept(concept map[string]any) string {
 		description = "保持同一张脸的角色"
 	}
 	prompt := fmt.Sprintf(visualIdentityPromptTemplate, description)
+	prompt += visualBriefPrompt(mapValue(target["identity_snapshot"]))
 	if guidance := visualIdentityReviewGuidance(mapValue(target["identity_snapshot"])); guidance != "" {
 		prompt += "\n\n上一轮评审修正要求：" + guidance
 	}
@@ -1074,6 +1077,15 @@ func (a *App) visualIdentityWakeupNeedsInitialization(ctx context.Context, fluct
 func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[string]any, error) {
 	state, err := a.loadVisualIdentityAgentState(ctx, strings.TrimSpace(sessionID))
 	if err != nil {
+		if settled, settleErr := a.settleVisualIdentityMediaFailure(ctx, state, err); settled || settleErr != nil {
+			if settleErr != nil {
+				return nil, settleErr
+			}
+			state.SessionStatus, state.WaitingStage = "failed", "failed"
+			result := visualIdentityAgentOutputFromState(state, "")
+			result.ErrorCode = err.Error()
+			return result.asMap(), nil
+		}
 		return nil, err
 	}
 	if state.SessionStatus == "queued" || state.SessionStatus == "running" {
@@ -1144,91 +1156,84 @@ func (a *App) recordVisualIdentityStage(ctx context.Context, sessionID, attemptI
 }
 
 func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluctlightID, profileID string) error {
-	var raw []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1 AND status <> 'retired'`, fluctlightID).Scan(&raw); err != nil {
-		return err
-	}
-	var persona map[string]any
-	if err := json.Unmarshal(raw, &persona); err != nil {
-		return err
-	}
-	normalizeVisualIdentityFoundation(persona)
-	constraints, err := rendererConstraintsForCorePersona(persona)
-	if err != nil {
-		// Keep a compatibility-created profile diagnosable. Swallowing this
-		// error leaves the aggregate as plain "missing" and lets the worker
-		// create an image without a valid renderer constraint.
-		constraints = map[string]any{
-			"schema_version":  visualIdentitySchemaVersion,
-			"adapter_version": visualIdentityAdapterVersion,
-			"error":           err.Error(),
-		}
-	}
-	identitySnapshot := map[string]any{
-		"schema_version": visualIdentitySchemaVersion,
-		"identity":       cloneMap(mapValue(persona["identity"])),
-		"life_profile":   cloneMap(mapValue(persona["life_profile"])),
-	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
+		}
+		var attemptID string
+		var frozenRaw, personaRaw []byte
+		err := tx.QueryRow(ctx, `SELECT a.id,a.input_snapshot,f.core_persona FROM public.fluctlight_visual_identities v JOIN public.fluctlights f ON f.id=v.fluctlight_id JOIN public.fluctlight_visual_identity_sessions s ON s.id=v.active_session_id JOIN public.fluctlight_visual_identity_attempts a ON a.session_id=s.id AND a.attempt_number=s.current_attempt WHERE v.id=$1 AND v.fluctlight_id=$2 AND f.status<>'retired' AND s.status IN ('queued','running') FOR UPDATE OF s,a`, profileID, fluctlightID).Scan(&attemptID, &frozenRaw, &personaRaw)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		frozen := decodeObject(frozenRaw)
+		persona := decodeObject(personaRaw)
+		normalizeVisualIdentityFoundation(persona)
+		// New sessions freeze effective Life and its authority revisions. Renderer
+		// repair must never substitute historical Foundation body/wear for that input.
+		identitySnapshot := cloneMap(frozen)
+		_, bodyRecorded := frozen["body_revision"]
+		_, wardrobeRecorded := frozen["wardrobe_revision"]
+		legacy := stringValue(frozen["source"]) != "effective_life" && !bodyRecorded && !wardrobeRecorded
+		if legacy {
+			identitySnapshot = map[string]any{"schema_version": visualIdentitySchemaVersion, "identity": cloneMap(mapValue(persona["identity"])), "life_profile": cloneMap(mapValue(persona["life_profile"]))}
+			for _, key := range []string{"previous_review", "previous_asset_id", "owner_visual_brief"} {
+				if value, present := frozen[key]; present {
+					identitySnapshot[key] = value
+				}
+			}
+		}
+		constraints, constraintErr := rendererConstraintsForCorePersona(identitySnapshot)
+		if constraintErr != nil {
+			constraints = map[string]any{"schema_version": visualIdentitySchemaVersion, "adapter_version": visualIdentityAdapterVersion, "error": constraintErr.Error()}
+		}
 		profileStatus := "missing"
-		if stringValue(constraints["error"]) != "" {
+		if constraintErr != nil {
 			profileStatus = visualIdentityStatusRendererPending
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,identity_snapshot=$3,renderer_constraints=$4,adapter_version=$5,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0 AND (status,identity_snapshot,renderer_constraints,adapter_version) IS DISTINCT FROM ($2,$3::jsonb,$4::jsonb,$5)`, profileID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2::jsonb || jsonb_strip_nulls(jsonb_build_object('previous_review',input_snapshot->'previous_review','previous_asset_id',input_snapshot->'previous_asset_id')),renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status IN ('queued','image_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
+		// Touch only this active attempt before external submission. Historical
+		// attempts and already submitted jobs retain their own inputs and constraints.
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts a SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE a.id=$1 AND a.media_intent_id IS NULL AND a.status IN ('queued','image_queued') AND (a.input_snapshot,a.renderer_constraints) IS DISTINCT FROM ($2::jsonb,$3::jsonb)`, attemptID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
 			return err
 		}
-		// A compatibility-created attempt may already have a pending media
-		// intent from the previous build. It is still safe to repair its frozen
-		// renderer snapshot until ComfyUI has accepted a provider job; after
-		// that point the attempt must remain immutable.
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts AS a SET input_snapshot=$2::jsonb || jsonb_strip_nulls(jsonb_build_object('previous_review',a.input_snapshot->'previous_review','previous_asset_id',a.input_snapshot->'previous_asset_id')),renderer_constraints=$3,updated_at=now() FROM public.media_intents AS m WHERE a.visual_identity_id=$1 AND a.media_intent_id=m.id AND a.candidate_asset_id IS NULL AND m.provider_job_id IS NULL AND a.status IN ('queued','image_queued','vision_queued','patch_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
-			return err
+		var mediaID string
+		err = tx.QueryRow(ctx, `SELECT media_intent_id FROM public.fluctlight_visual_identity_attempts WHERE id=$1 AND media_intent_id IS NOT NULL AND candidate_asset_id IS NULL`, attemptID).Scan(&mediaID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
 		}
-		rows, err := tx.Query(ctx, `SELECT media_intent_id FROM public.fluctlight_visual_identity_attempts WHERE visual_identity_id=$1 AND media_intent_id IS NOT NULL AND candidate_asset_id IS NULL`, profileID)
 		if err != nil {
 			return err
 		}
-		mediaIntentIDs := make([]string, 0)
-		for rows.Next() {
-			var mediaIntentID string
-			if err := rows.Scan(&mediaIntentID); err != nil {
-				rows.Close()
-				return err
-			}
-			mediaIntentIDs = append(mediaIntentIDs, mediaIntentID)
-		}
-		if err := rows.Err(); err != nil {
-			rows.Close()
+		var jobID, status, prompt string
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(provider_job_id,''),status,prompt FROM public.media_intents WHERE id=$1 FOR UPDATE`, mediaID).Scan(&jobID, &status, &prompt); err != nil {
 			return err
 		}
-		// pgx does not allow another statement on the same connection while a
-		// result set is open. Close the cursor before locking each media intent;
-		// otherwise this recovery path fails with the opaque "conn busy" error
-		// immediately after ComfyUI has finished successfully.
-		rows.Close()
-		for _, mediaIntentID := range mediaIntentIDs {
-			var providerJobID, status, prompt string
-			if err := tx.QueryRow(ctx, `SELECT COALESCE(provider_job_id,''),status,prompt FROM public.media_intents WHERE id=$1 FOR UPDATE`, mediaIntentID).Scan(&providerJobID, &status, &prompt); err != nil {
-				return err
-			}
-			if providerJobID != "" || (status != "failed" && status != "pending" && status != "retry" && status != "running") {
-				continue
-			}
-			updatedPrompt, promptErr := mergeVisualIdentityRendererConstraints(prompt, constraints)
-			if promptErr != nil {
-				continue
-			}
-			if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET prompt=$2,status='pending',revision=revision+1 WHERE id=$1 AND provider_job_id IS NULL`, mediaIntentID, updatedPrompt); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, "media_workflow_intent:"+mediaIntentID); err != nil {
-				return err
-			}
+		if jobID != "" || (status != "failed" && status != "pending" && status != "retry" && status != "running") {
+			return nil
 		}
-		return nil
+		// A created media intent has already frozen the rendered identity text. Keep
+		// its matching attempt snapshot unchanged; only repair numeric renderer data.
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET renderer_constraints=$2,updated_at=now() WHERE id=$1 AND renderer_constraints IS DISTINCT FROM $2::jsonb`, attemptID, jsonBytes(constraints)); err != nil {
+			return err
+		}
+		updatedPrompt, err := mergeVisualIdentityRendererConstraints(prompt, constraints)
+		if err != nil {
+			return err
+		}
+		if updatedPrompt == prompt {
+			return nil
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET prompt=$2,status='pending',revision=revision+1 WHERE id=$1 AND provider_job_id IS NULL`, mediaID, updatedPrompt); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, "media_workflow_intent:"+mediaID)
+		return err
 	})
 }
 
@@ -1248,7 +1253,7 @@ func mergeVisualIdentityRendererConstraints(prompt string, constraints map[strin
 	return string(data), nil
 }
 
-func (a *App) promoteVisualIdentityCanonicalTx(ctx context.Context, tx pgx.Tx, sessionID, attemptID, profileID, fluctlightID, assetID string, identitySnapshot, constraints map[string]any) (string, error) {
+func (a *App) promoteVisualIdentityCanonicalTx(ctx context.Context, tx pgx.Tx, sessionID, attemptID, profileID, fluctlightID, assetID string, identitySnapshot, constraints map[string]any, source string) (string, error) {
 	var revision int
 	if err := tx.QueryRow(ctx, `SELECT current_revision FROM public.fluctlight_visual_identities WHERE id=$1 FOR UPDATE`, profileID).Scan(&revision); err != nil {
 		return "", err
@@ -1258,7 +1263,7 @@ func (a *App) promoteVisualIdentityCanonicalTx(ctx context.Context, tx pgx.Tx, s
 	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='active',current_revision=$2,identity_snapshot=$3,renderer_constraints=$4,canonical_asset_id=$5,active_session_id=$6,updated_at=now() WHERE id=$1`, profileID, newRevision, jsonBytes(identitySnapshot), jsonBytes(constraints), assetID, sessionID); err != nil {
 		return "", err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_revisions(id,visual_identity_id,fluctlight_id,revision,base_revision,identity_snapshot,renderer_constraints,canonical_asset_id,adapter_version,source,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'visual_identity_agent',$10)`, revisionID, profileID, fluctlightID, newRevision, revision, jsonBytes(identitySnapshot), jsonBytes(constraints), assetID, visualIdentityAdapterVersion, "visual-identity:"+sessionID+":"+attemptID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_revisions(id,visual_identity_id,fluctlight_id,revision,base_revision,identity_snapshot,renderer_constraints,canonical_asset_id,adapter_version,source,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$11,$10)`, revisionID, profileID, fluctlightID, newRevision, revision, jsonBytes(identitySnapshot), jsonBytes(constraints), assetID, visualIdentityAdapterVersion, "visual-identity:"+sessionID+":"+attemptID, source); err != nil {
 		return "", err
 	}
 	characterIntentID := "media_intent_" + stableDigest(attemptID+":character-sheet")

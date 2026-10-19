@@ -134,8 +134,8 @@ func TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody(t *te
 	}
 	if stale, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "old-schedule-dye", map[string]any{
 		"kind": "hair_dye", "intention_id": intentionID, "schedule_item_id": oldItemID, "duration_minutes": 15, "desired_hair_color": "粉色", "reason": "旧日程触发",
-	})); err == nil {
-		t.Fatalf("superseded schedule started an activity: %#v", stale)
+	})); err != nil || stale.Result.Status != "handled" || mapValue(stale.Result.Output)["warning_code"] != "intention_trigger_not_due" || mapValue(stale.Result.Output)["mutation_committed"] != false {
+		t.Fatalf("superseded schedule did not return its no-effect refusal: %#v %v", stale, err)
 	}
 	forcedStart := time.Now().UTC().Add(-time.Minute)
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.life_schedule_items SET end_at=$3 WHERE schedule_id=$1 AND end_at=$2 AND intention_id IS NULL`, stringValue(moved["id"]), movedStart, forcedStart); err != nil {
@@ -165,13 +165,23 @@ func TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody(t *te
 	}
 	forceVirtualActivityDue(t, fixture, activityID)
 	setupVirtualActivityTestProvider(t, fixture, map[string]any{"status": "completed", "reason": "不匹配的染发结果", "hair_color": "蓝色"})
-	if invalid, err := fixture.app.ResolveScheduledLifeActivity(fixture.ctx, activityID); err == nil {
-		t.Fatalf("mismatched dye result was accepted: %#v", invalid)
+	retryBoundary, err := fixture.app.ResolveScheduledLifeActivity(fixture.ctx, activityID)
+	if err != nil || retryBoundary["status"] != "pending" || retryBoundary["warning_code"] != "activity_result_invalid" || retryBoundary["effect_applied"] != false {
+		t.Fatalf("mismatched dye did not schedule bounded no-effect recovery: %#v %v", retryBoundary, err)
+	}
+	replay, err := fixture.app.ResolveScheduledLifeActivity(fixture.ctx, activityID)
+	if err != nil || replay["not_before"] != retryBoundary["not_before"] {
+		t.Fatal("replayed invalid result rotated twice", replay, err)
 	}
 	appearance, _, _, err = fixture.app.readEffectiveLifeSnapshot(fixture.ctx, fixture.fluctlightID, time.Now().UTC())
 	if err != nil || stringValue(mapValue(mapValue(appearance["body_fields"])["hair_color"])["value"]) != "black" {
 		t.Fatalf("invalid result changed hair color: appearance=%#v err=%v", appearance, err)
 	}
+	due, parseErr := time.Parse(time.RFC3339Nano, stringValue(retryBoundary["not_before"]))
+	if parseErr != nil {
+		t.Fatal(parseErr)
+	}
+	fixture.app.Clock = fixedClock(due.Add(time.Millisecond))
 	fixture.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("virtual_activity_result", func(_ map[string]any) fakeProviderResult {
 		return fakeProviderResult{Structured: map[string]any{"status": "completed", "reason": "虚拟染发完成", "hair_color": "粉色"}}
 	})}
@@ -254,10 +264,10 @@ func TestCancelledScheduledIntentionCannotStartDyeOrChangeColor(t *testing.T) {
 	if result, err := fixture.app.ProcessIntentionTrigger(fixture.ctx, intentionID); err != nil || stringValue(result["status"]) != "cancelled" {
 		t.Fatalf("cancelled trigger=%#v err=%v", result, err)
 	}
-	if _, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "stale-dye-start", map[string]any{
+	if blocked, err := fixture.app.ExecuteTool(fixture.ctx, fixture.request(lifeActivityStartCapabilityName, "stale-dye-start", map[string]any{
 		"kind": "hair_dye", "intention_id": intentionID, "schedule_item_id": scheduleItemID, "duration_minutes": 15, "desired_hair_color": "粉色", "reason": "过期的预约",
-	})); err == nil {
-		t.Fatal("cancelled scheduled dye started")
+	})); err != nil || blocked.Result.Status != "handled" || mapValue(blocked.Result.Output)["warning_code"] != "intention_not_executable" || mapValue(blocked.Result.Output)["mutation_committed"] != false {
+		t.Fatalf("cancelled schedule lost explicit no-effect refusal: %#v %v", blocked, err)
 	}
 	var activities int
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT count(*) FROM public.fluctlight_life_activity_runs WHERE intention_id=$1`, intentionID).Scan(&activities); err != nil || activities != 0 {

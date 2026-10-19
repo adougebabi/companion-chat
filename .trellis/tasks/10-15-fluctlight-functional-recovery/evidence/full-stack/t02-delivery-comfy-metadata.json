@@ -1,0 +1,184 @@
+{
+  "system_stats_status": 200,
+  "comfyui_version": "0.31.0",
+  "node_count": 1834,
+  "loaders": {
+    "CheckpointLoaderSimple": {
+      "ckpt_name": [
+        [
+          "sam3.1_multiplex_fp16.safetensors"
+        ],
+        {
+          "tooltip": "The name of the checkpoint (model) to load."
+        }
+      ]
+    },
+    "VAELoader": {
+      "vae_name": [
+        [
+          "qwen_image_vae.safetensors",
+          "sdxl_vae.safetensors",
+          "pixel_space"
+        ]
+      ]
+    },
+    "LoraLoader": {
+      "model": [
+        "MODEL",
+        {
+          "tooltip": "The diffusion model the LoRA will be applied to."
+        }
+      ],
+      "clip": [
+        "CLIP",
+        {
+          "tooltip": "The CLIP model the LoRA will be applied to."
+        }
+      ],
+      "lora_name": [
+        [
+          "Krea2/Character/hana-zib-v7.safetensors",
+          "Krea2/Character/huihui-zib-kage.safetensors",
+          "Krea2/Character/七彩韶华ColorfulYouth10000,epoch_15.safetensors",
+          "Krea2/Emotions V1.safetensors",
+          "Krea2/Krea2_TextFusion_Refusal_Reduction.safetensors",
+          "Krea2/MysticXXX_KREA2_v3.safetensors",
+          "Krea2/breast_size_v2_krea2_loraholic.safetensors",
+          "Krea2/depth-control-lora.safetensors",
+          "Krea2/identity_edit/krea2_identity_edit_v1_2.safetensors",
+          "Krea2/krea2-Cc-天魔-身材.safetensors",
+          "Krea2/krea2-Cc风情万种-风格.safetensors"
+        ],
+        {
+          "tooltip": "The name of the LoRA."
+        }
+      ],
+      "strength_model": [
+        "FLOAT",
+        {
+          "default": 1.0,
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.01,
+          "tooltip": "How strongly to modify the diffusion model. This value can be negative."
+        }
+      ],
+      "strength_clip": [
+        "FLOAT",
+        {
+          "default": 1.0,
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.01,
+          "tooltip": "How strongly to modify the CLIP model. This value can be negative."
+        }
+      ]
+    },
+    "CLIPLoader": {
+      "clip_name": [
+        [
+          "MiaoMiao Harem Anima 1.5.safetensors",
+          "clip_l.safetensors",
+          "minimax_h3_video_vae_fp16.safetensors",
+          "qwen3_vl_4b_text_encoder_bf16.safetensors",
+          "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "t5xxl_fp16.safetensors",
+          "uncensoredQwen34BLLMForZ_bf16.safetensors"
+        ]
+      ],
+      "type": [
+        [
+          "stable_diffusion",
+          "stable_cascade",
+          "sd3",
+          "stable_audio",
+          "mochi",
+          "ltxv",
+          "pixart",
+          "cosmos",
+          "lumina2",
+          "wan",
+          "hidream",
+          "chroma",
+          "ace",
+          "omnigen2",
+          "qwen_image",
+          "hunyuan_image",
+          "flux2",
+          "ovis",
+          "longcat_image",
+          "cogvideox",
+          "lens",
+          "pixeldit",
+          "ideogram4",
+          "boogu",
+          "krea2",
+          "joyimage",
+          "mage",
+          "minimax"
+        ]
+      ]
+    },
+    "UNETLoader": {
+      "unet_name": [
+        [
+          "Miaomiao Harem anima15.safetensors",
+          "flux-2-klein-9b.safetensors",
+          "miaomiaoRealskin_anima11.safetensors",
+          "moodyRealMix_xhsEdition.safetensors"
+        ]
+      ],
+      "weight_dtype": [
+        [
+          "default",
+          "fp8_e4m3fn",
+          "fp8_e4m3fn_fast",
+          "fp8_e5m2"
+        ],
+        {
+          "advanced": true
+        }
+      ]
+    },
+    "DualCLIPLoader": {
+      "clip_name1": [
+        [
+          "MiaoMiao Harem Anima 1.5.safetensors",
+          "clip_l.safetensors",
+          "minimax_h3_video_vae_fp16.safetensors",
+          "qwen3_vl_4b_text_encoder_bf16.safetensors",
+          "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "t5xxl_fp16.safetensors",
+          "uncensoredQwen34BLLMForZ_bf16.safetensors"
+        ]
+      ],
+      "clip_name2": [
+        [
+          "MiaoMiao Harem Anima 1.5.safetensors",
+          "clip_l.safetensors",
+          "minimax_h3_video_vae_fp16.safetensors",
+          "qwen3_vl_4b_text_encoder_bf16.safetensors",
+          "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "t5xxl_fp16.safetensors",
+          "uncensoredQwen34BLLMForZ_bf16.safetensors"
+        ]
+      ],
+      "type": [
+        [
+          "sdxl",
+          "sd3",
+          "flux",
+          "hunyuan_video",
+          "hidream",
+          "hunyuan_image",
+          "hunyuan_video_15",
+          "kandinsky5",
+          "kandinsky5_image",
+          "ltxv",
+          "newbie",
+          "ace"
+        ]
+      ]
+    }
+  }
+}

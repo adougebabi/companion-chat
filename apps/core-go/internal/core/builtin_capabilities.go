@@ -138,6 +138,7 @@ func builtinCapabilities(app *App) []Capability {
 		appearanceRepository = app.DB
 	}
 	capabilities := []Capability{
+		newNPCEncounterCapability(app, ""),
 		capabilityDiscoverCapability{catalog: func(surface CapabilitySurface) []CapabilityDefinition {
 			return capabilityCatalog(app.capabilityRegistry(), surface)
 		}},
@@ -297,17 +298,14 @@ func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		return failedCapabilityResult(invocation, "moment_arguments_invalid", false), newCapabilityError("moment_arguments_invalid", false, err)
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
-	resource, err := c.publication.PublishMomentTx(ctx, tx, MomentPublication{
-		FluctlightID: target.FluctlightID, OperationID: capabilityOperationID(invocation),
-		CorrelationID: invocation.Metadata.CorrelationID, Text: text,
-	})
+	resource, err := c.publication.app.publishInvocationMomentTx(ctx, tx, invocation, target, text)
 	if err != nil {
 		code, retryable := publicationCapabilityError(err, "moment_publication_failed")
 		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
 	}
 	return CapabilityResult{
 		CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
-		Output:            map[string]any{"text": text, "target_kind": "moment", "target_ref": resource.ID, "replayed": resource.Replayed},
+		Output:            map[string]any{"text": resource.Text, "target_kind": "moment", "target_ref": resource.ID, "replayed": resource.Replayed},
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "moment:" + resource.ID,
 	}, nil
 }
@@ -494,6 +492,14 @@ func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 	}
 	if err := validateBranchedMediaConcept(concept); err != nil {
 		return failedCapabilityResult(invocation, "media_context_invalid", false), err
+	}
+	// Preparation freezes both the media concept and the allowed capability
+	// snapshot. Replacing only the concept's Life/appearance carrier must not
+	// turn a stale decision into a fresh authorized request.
+	for slot, value := range mapValue(concept["context_binding"]) {
+		if jsonString(value) != jsonString(invocation.ContextSnapshot[slot]) {
+			return failedCapabilityResult(invocation, "media_prepared_context_mismatch", false), ErrConflict
+		}
 	}
 	if err := lockMediaSubjectSnapshots(ctx, tx, invocation.Metadata.FluctlightID, concept, c.publication.app.now().UTC()); err != nil {
 		return failedCapabilityResult(invocation, "media_snapshot_stale", false), err
@@ -702,7 +708,7 @@ func (c scheduleReplanCapability) Prepare(ctx context.Context, invocation Capabi
 	if timezone == "" {
 		timezone = stringValue(resolved.Schedule.Data["timezone"])
 	}
-	planned, err := planner.Plan(ctx, SchedulePlanInput{Intent: stringValue(args["intent"]), Schedule: resolved.Schedule.Data, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data, SourceFactID: invocation.SourceFactID, Timezone: timezone})
+	planned, err := planner.Plan(ctx, SchedulePlanInput{OwnerRequest: ownerScheduleRequestFromContext(ctx), Intent: stringValue(args["intent"]), Schedule: resolved.Schedule.Data, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data, SourceFactID: invocation.SourceFactID, Timezone: timezone})
 	if err != nil {
 		return invocation, newCapabilityError("schedule_replan_planner_failed", true, err)
 	}

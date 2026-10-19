@@ -39,14 +39,14 @@ func TestGoalSubmissionThinRecoverySchema(t *testing.T) {
 	}
 }
 
-func TestToolAvailabilityAll49Names(t *testing.T) {
+func TestToolAvailabilityAll50Names(t *testing.T) {
 	r := mustCapabilityRegistry(builtinCapabilities(&App{})...)
 	names := capabilityDefinitionNames(r.Definitions())
 	names = append(names, (&replyImageRequestTool{}).Definition().Name)
 	sort.Strings(names)
 	want := append(append([]string{}, independentToolProductInventory...), replyImageRequestName)
 	sort.Strings(want)
-	if len(names) != 49 || !phase8EqualStrings(names, want) {
+	if len(names) != 50 || !phase8EqualStrings(names, want) {
 		t.Fatalf("tool availability inventory drift: %v", names)
 	}
 	if len(r.Catalog(CapabilitySurfaceConversation)) != 38 {

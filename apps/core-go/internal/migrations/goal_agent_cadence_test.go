@@ -3,7 +3,8 @@ package migrations
 import "testing"
 
 func TestGoalAgentCadenceHead(t *testing.T) {
-	if Head != "0063_goal_agent_cadence" {
+	assertCurrentAdditiveChain(t)
+	if WorldCatalogPreviousHead != "0064_world_runtime" || WorldRuntimePreviousHead != "0063_goal_agent_cadence" {
 		t.Fatalf("Goal cadence has no additive migration: head=%s", Head)
 	}
 }

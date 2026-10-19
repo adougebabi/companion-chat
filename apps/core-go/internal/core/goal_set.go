@@ -14,6 +14,7 @@ import (
 // GoalSetCommand changes the final set atomically. Lifecycle evidence remains
 // owned by GoalEvaluation; this command cannot manufacture completion.
 type GoalSetCommand struct {
+	PromiseBindings       []GoalPromiseBinding       `json:"promise_bindings,omitempty"`
 	RecoveryPolicy        *GoalPlannerRecoveryPolicy `json:"recovery_policy,omitempty"`
 	SourceReviews         []GoalSourceReviewDecision `json:"source_reviews,omitempty"`
 	ReviewedGoalIDs       []string                   `json:"reviewed_goal_ids,omitempty"`
@@ -178,7 +179,25 @@ func readGoalSetWith(ctx context.Context, q lifeContextQuerier, owner, profile s
 	}
 	sourceRows.Close()
 	result["source_reviews"] = reviews
-	return result, sourceRows.Err()
+	if err := sourceRows.Err(); err != nil {
+		return nil, err
+	}
+	rows, err = q.Query(ctx, `SELECT jsonb_build_object('request_id',request_id,'revision',revision,'profile_id',profile_id,'title',left(title,180),'expected_result',left(expected_result,180),'window_start',window_start,'window_end',window_end,'planning_source_key',planning_source_key) FROM public.owner_promise_links WHERE fluctlight_id=$1 AND ($2='*' OR profile_id=$2) AND cancelled_at IS NULL AND intention_id IS NULL AND planning_source_key IS NOT NULL AND window_end>now() ORDER BY created_at,request_id LIMIT 5`, owner, profile)
+	if err != nil {
+		return nil, err
+	}
+	promises := []any{}
+	for rows.Next() {
+		var raw []byte
+		if err := rows.Scan(&raw); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		promises = append(promises, decodeObject(raw))
+	}
+	rows.Close()
+	result["pending_promises"] = promises
+	return result, rows.Err()
 }
 func (a *App) ApplyGoalSetCommand(ctx context.Context, actor, owner string, c GoalSetCommand) (map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, owner, actor); err != nil {
@@ -591,10 +610,28 @@ func (a *App) applyGoalSetTx(ctx context.Context, tx pgx.Tx, actor, owner, profi
 			return nil, err
 		}
 	}
+	if len(c.PromiseBindings) > 20 || (len(c.PromiseBindings) > 0 && runID == "") {
+		return nil, ErrUnauthorized
+	}
+	promiseResults := []any{}
+	seenPromises := map[string]bool{}
+	for _, binding := range c.PromiseBindings {
+		if seenPromises[binding.RequestID] {
+			return nil, ErrInvalidArguments
+		}
+		seenPromises[binding.RequestID] = true
+		binding.GoalID = resolve(binding.GoalID)
+		bound, err := a.bindPlannerPromiseTx(ctx, tx, actor, owner, profile, runID, binding)
+		if err != nil {
+			return nil, err
+		}
+		promiseResults = append(promiseResults, bound)
+	}
 	result, err := readGoalSetWith(ctx, tx, owner, profile)
 	if err != nil {
 		return nil, err
 	}
+	result["promise_bindings"] = promiseResults
 	result["commit_succeeded"] = true
 	result["applied"] = applied
 	result["id_mapping"] = ids

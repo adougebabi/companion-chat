@@ -1,0 +1,30 @@
+{
+  "scope": "delivery-owner-1015",
+  "model": "Huihui-Qwen3.8-27B-3.8bpw",
+  "context_window_tokens": 24576,
+  "max_input_tokens": 16384,
+  "output_tokens": 4096,
+  "safety_margin_tokens": 4096,
+  "model_service_changed": false,
+  "attempt": 2,
+  "http_status": 200,
+  "elapsed_seconds": 369.63,
+  "correlation_id": "initialization-analysis:3e401420555d58aff9227f1f6c47a2a8",
+  "analysis_id": "initialization_source_e0267134647d67e52aa3d812edaba594",
+  "profile_count": 2,
+  "profile_ids": [
+    "day",
+    "night"
+  ],
+  "timezone": "Asia/Shanghai",
+  "semantic_validity": "Core validation passed; source-supported field coverage inspected separately",
+  "source_persisted": true,
+  "source_linked": false,
+  "activated": false,
+  "finish_reason": "stop",
+  "estimated_input_tokens": 13842,
+  "actual_prompt_tokens": 2497,
+  "actual_completion_tokens": 1420,
+  "fidelity_evidence": "/tmp/fluctlight-delivery-1015/initialization-live-fidelity.json",
+  "api_pid": 64067
+}

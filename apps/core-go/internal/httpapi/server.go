@@ -76,6 +76,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /internal/actor-groups/{groupID}/members/{actorID}", s.removeActorGroupMember)
 	mux.HandleFunc("POST /internal/fluctlights", s.createFluctlight)
 	mux.HandleFunc("POST /internal/fluctlight-creations/analysis", s.analyzeCreation)
+	for _, route := range []string{"DELETE /internal/media-assets/{assetID}", "GET /internal/media-assets/{assetID}/references", "GET /internal/media-deletions/{deletionID}", "POST /internal/media-deletions/{deletionID}/retry", "GET /internal/studio/materials/{materialID}", "GET /internal/studio/materials/{materialID}/history", "POST /internal/studio/materials/{materialID}/release", "POST /internal/studio/materials/{materialID}/retain", "POST /internal/fluctlights/{fluctlightID}/media-generations", "GET /internal/fluctlights/{fluctlightID}/media-generations", "GET /internal/fluctlights/{fluctlightID}/media-generations/{requestID}", "GET /internal/media-reference-grants", "POST /internal/media-reference-grants", "GET /internal/media-reference-grants/{grantID}", "POST /internal/media-reference-grants/{grantID}/revoke", "GET /internal/media-reference-grants/{grantID}/history", "GET /internal/media-reference-grants/{grantID}/uses", "GET /internal/fluctlights/{fluctlightID}/display-avatar", "PUT /internal/fluctlights/{fluctlightID}/display-avatar", "GET /internal/fluctlights/{fluctlightID}/display-avatar/history", "GET /internal/media-library", "GET /internal/media-assets/{assetID}", "PUT /internal/media-assets/{assetID}", "GET /internal/media-uploads/by-key"} {
+		mux.HandleFunc(route, s.ownerSurfaceManagement)
+	}
+	mux.HandleFunc("GET /internal/studio/resources/{resourceID}/versions/{version}", s.ownerSurfaceManagement)
+	for _, route := range []string{"GET /internal/studio/resources/{resourceID}/versions", "POST /internal/studio/resources/{resourceID}/copy", "POST /internal/studio/resources/{resourceID}/restore", "DELETE /internal/studio/resources/{resourceID}"} {
+		mux.HandleFunc(route, s.ownerSurfaceManagement)
+	}
 	mux.HandleFunc("POST /internal/fluctlight-creations/activate", s.activateCreation)
 	mux.HandleFunc("GET /internal/fluctlights", s.listFluctlights)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}", s.getFluctlight)
@@ -126,10 +133,86 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/moments/{momentID}/reactions", s.reactMoment)
 	mux.HandleFunc("POST /internal/moments/{momentID}/hide", s.hideMoment)
 	mux.HandleFunc("POST /internal/moments/{momentID}/restore", s.restoreMoment)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/conversations", s.conversationCommands)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/conversations", s.conversationCommands)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/conversations/{conversationID}/select", s.conversationCommands)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/messages/search", s.conversationCommands)
+	mux.HandleFunc("GET /internal/conversations/{conversationID}/messages/{messageID}", s.conversationCommands)
+	for _, route := range []string{"GET /internal/studio/jobs", "POST /internal/studio/jobs", "GET /internal/studio/jobs/{jobID}", "POST /internal/studio/jobs/{jobID}/retry", "POST /internal/studio/jobs/{jobID}/discard", "POST /internal/studio/jobs/{jobID}/save-material", "GET /internal/studio/materials"} {
+		mux.HandleFunc(route, s.ownerSurfaceManagement)
+	}
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/foundation-revisions", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/foundation-revisions/{revisionID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/foundation-revisions/{revisionID}/history", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/capability-requests", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/capability-requests/{requestID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/capability-requests/{requestID}/history", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/capability-requests/{requestID}/review", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/visual-brief", s.ownerSurfaceManagement)
+	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/visual-brief", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/visual-brief/history", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/visual-identity", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/visual-identity/generate", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/visual-identity/timeline", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/visual-sessions/{sessionID}/review", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/promises", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/promises/{promiseID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/promises/{promiseID}/history", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/promises/{promiseID}/reschedule", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/promises/{promiseID}/cancel", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/promises/{promiseID}/retry", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/npcs/{npcID}/opportunities/{opportunityID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/npcs/{npcID}/encounters", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/npcs/{npcID}/presences", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/npcs/{npcID}/opportunities", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/npcs/{npcID}/opportunities/{opportunityID}/retry", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/inventory", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/inventory/items", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/inventory/items/{itemID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/inventory/items/{itemID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("DELETE /internal/fluctlights/{fluctlightID}/inventory/items/{itemID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/inventory/items/{itemID}/history", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/inventory/requests", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/inventory/outfits", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/inventory/outfits/{outfitID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/inventory/outfits", s.ownerSurfaceManagement)
+	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/inventory/outfits/{outfitID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/inventory/outfits/{outfitID}/revisions", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/inventory/wearing-history", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/notifications", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/diary", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/shared-experiences", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/self-claims", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/self-claims/{claimID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/self-claims/{claimID}/revisions", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/self-claims/{claimID}/reviews", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/self-claims/{claimID}/review", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/self-claims/{claimID}/forget", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/self-claims/{claimID}/restore", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/diary/{entryID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/diary/generate", s.ownerSurfaceManagement)
+	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/diary/{entryID}/annotation", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/diary/{entryID}/replies", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/diary/{entryID}/replies", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/notifications/unread-count", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/notifications/read-all", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/notifications/{notificationID}/read", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/pending", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/pending/count", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/diagnostics/tasks/{taskID}", s.ownerSurfaceManagement)
 	mux.HandleFunc("POST /internal/conversations", s.createConversation)
 	mux.HandleFunc("POST /internal/conversations/{conversationID}/read", s.markRead)
 	mux.HandleFunc("PUT /internal/memories/{memoryID}", s.reviseMemory)
 	mux.HandleFunc("POST /internal/memories/{memoryID}/forget", s.forgetMemory)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/memories", s.memoryManagement)
+	mux.HandleFunc("GET /internal/memories/{memoryID}", s.memoryManagement)
+	mux.HandleFunc("GET /internal/memories/{memoryID}/revisions", s.memoryManagement)
+	mux.HandleFunc("GET /internal/memories/{memoryID}/sources", s.memoryManagement)
+	mux.HandleFunc("POST /internal/memories/{memoryID}/rollback", s.memoryManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/reflections", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/reflections/{reflectionID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/reflections/{reflectionID}/feedback", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/reflections/{reflectionID}/feedback", s.ownerSurfaceManagement)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/schedules", s.schedule)
 	mux.HandleFunc("GET /internal/conversations/{conversationID}/history", s.history)
 	mux.HandleFunc("POST /internal/conversations/{conversationID}/turn", s.turn)
@@ -138,6 +221,22 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/settings/kev/test-connection", s.kevConnection)
 	mux.HandleFunc("POST /internal/settings/vision/test", s.visionConnection)
 	mux.HandleFunc("GET /internal/diagnostics", s.diagnostics)
+	mux.HandleFunc("GET /internal/diagnostic-export", s.streamOwnerDiagnosticExport)
+	for _, route := range []string{"GET /internal/fluctlights/{fluctlightID}/world/places/{placeID}/defaults", "POST /internal/fluctlights/{fluctlightID}/world/places/{placeID}/defaults", "GET /internal/fluctlights/{fluctlightID}/world/places/{placeID}/defaults/history"} {
+		mux.HandleFunc(route, s.ownerSurfaceManagement)
+	}
+	for _, route := range []string{"GET /internal/ops/backups/{backupID}", "POST /internal/ops/backups/{backupID}/retry", "POST /internal/ops/backups/{backupID}/cancel"} {
+		mux.HandleFunc(route, s.ownerSurfaceManagement)
+	}
+	mux.HandleFunc("GET /internal/studio/packs/{packID}", s.ownerSurfaceManagement)
+	mux.HandleFunc("GET /internal/data/revisions", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/studio/packs/{packID}/groups/{index}/adopt", s.ownerSurfaceManagement)
+	for _, route := range []string{"GET /internal/diagnostic-records/{kind}", "GET /internal/diagnostic-records/{kind}/{recordRef}", "POST /internal/diagnostic-records/clear", "POST /internal/diagnostic-records/media-prompts/{recordID}/retry"} {
+		mux.HandleFunc(route, s.ownerSurfaceManagement)
+	}
+	for _, route := range []string{"GET /internal/workflow-controls/{workflowID}", "GET /internal/workflow-controls/{workflowID}/history", "POST /internal/workflow-controls/{workflowID}/pause", "POST /internal/workflow-controls/{workflowID}/resume", "POST /internal/workflow-controls/{workflowID}/cancel", "POST /internal/workflow-controls/{workflowID}/restart", "POST /internal/workflow-controls/{workflowID}/reset", "POST /internal/workflow-controls/{workflowID}/commands/{commandID}/retry"} {
+		mux.HandleFunc(route, s.ownerSurfaceManagement)
+	}
 	mux.HandleFunc("GET /internal/diagnostics/lifecycle", s.lifecycleDiagnostics)
 	mux.HandleFunc("DELETE /internal/diagnostics", s.clearDiagnostics)
 	mux.HandleFunc("GET /internal/diagnostics/model-runs", s.modelRuns)
@@ -272,13 +371,13 @@ func (s *Server) updateSettings(response http.ResponseWriter, request *http.Requ
 		return
 	}
 	body, valid := readJSON(request)
-	if !valid {
+	if !valid || body["expected_versions"] == nil || body["idempotency_key"] == nil {
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
 		return
 	}
 	value, err := s.app.UpdateSettings(request.Context(), actorID, body)
 	if err != nil {
-		writeError(response, http.StatusUnprocessableEntity, "settings_update_failed")
+		s.opError(response, err, "settings_update_failed")
 		return
 	}
 	writeJSON(response, http.StatusOK, value)
@@ -314,12 +413,12 @@ func (s *Server) configureProviderEndpoint(response http.ResponseWriter, request
 		return
 	}
 	body, valid := readJSON(request)
-	if !valid {
+	if !valid || body["expected_versions"] == nil || body["idempotency_key"] == nil {
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
 		return
 	}
 	if err := s.app.ConfigureProviderEndpoint(request.Context(), actorID, body); err != nil {
-		writeError(response, http.StatusUnprocessableEntity, "provider_configuration_failed")
+		s.opError(response, err, "provider_configuration_failed")
 		return
 	}
 	response.WriteHeader(http.StatusNoContent)
@@ -530,6 +629,10 @@ func (s *Server) rollbackDevelopingSelf(response http.ResponseWriter, request *h
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
 		return
 	}
+	if _, err := s.app.OwnerSelfClaim(request.Context(), actorID, request.PathValue("fluctlightID"), request.PathValue("claimID")); err != nil {
+		writeError(response, 404, "self_claim_not_found")
+		return
+	}
 	result, err := s.app.RollbackDevelopingSelfClaim(request.Context(), actorID, request.PathValue("claimID"), intValueHTTP(body["expected_revision"]), stringValue(body["reason"]))
 	if err != nil {
 		status := http.StatusUnprocessableEntity
@@ -552,6 +655,10 @@ func (s *Server) forgetDevelopingSelf(response http.ResponseWriter, request *htt
 	body, valid := readJSON(request)
 	if !valid {
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
+		return
+	}
+	if _, err := s.app.OwnerSelfClaim(request.Context(), actorID, request.PathValue("fluctlightID"), request.PathValue("claimID")); err != nil {
+		writeError(response, 404, "self_claim_not_found")
 		return
 	}
 	result, err := s.app.ForgetDevelopingSelfClaim(request.Context(), actorID, request.PathValue("claimID"), intValueHTTP(body["expected_revision"]), stringValue(body["reason"]))
@@ -604,12 +711,27 @@ func (s *Server) analyzeCreation(response http.ResponseWriter, request *http.Req
 			description = jsonString(rawJSON)
 		}
 	}
-	if !validInitializationDescriptionRequest(description) {
-		writeError(response, http.StatusUnprocessableEntity, "description_invalid")
-		return
+	var value map[string]any
+	var err error
+	if body["resource_id"] != nil {
+		if len(body) != 2 || stringValue(body["resource_id"]) == "" || stringValue(body["resource_version"]) == "" {
+			writeError(response, http.StatusUnprocessableEntity, "description_invalid")
+			return
+		}
+		value, err = s.app.AnalyzePublishedCharacterTemplate(request.Context(), actorID, stringValue(body["resource_id"]), stringValue(body["resource_version"]))
+	} else {
+		if !validInitializationDescriptionRequest(description) {
+			writeError(response, http.StatusUnprocessableEntity, "description_invalid")
+			return
+		}
+		value, err = s.app.AnalyzeDescription(request.Context(), actorID, description)
 	}
-	value, err := s.app.AnalyzeDescription(request.Context(), actorID, description)
 	if err != nil {
+		var surface *core.SurfaceError
+		if errors.As(err, &surface) {
+			s.opError(response, err, "initialization_template_analysis_failed")
+			return
+		}
 		code := err.Error()
 		if !strings.Contains(code, "_") || strings.Contains(code, " ") {
 			code = "initialization_persona_invalid"
@@ -621,6 +743,7 @@ func (s *Server) analyzeCreation(response http.ResponseWriter, request *http.Req
 		}
 		return
 	}
+	response.Header().Set("Cache-Control", "private, no-store")
 	writeJSON(response, http.StatusOK, value)
 }
 
@@ -877,7 +1000,7 @@ func (s *Server) reviewCapabilityRequest(response http.ResponseWriter, request *
 	if !valid {
 		return
 	}
-	value, err := s.app.ReviewCapabilityRequest(request.Context(), actorID, request.PathValue("requestID"), stringValue(body["status"]), stringValue(body["note"]), stringValue(body["capability_version"]))
+	value, err := s.app.ReviewCapabilityRequest(request.Context(), actorID, request.PathValue("requestID"), stringValue(body["status"]), stringValue(body["note"]), stringValue(body["capability_version"]), body)
 	if err != nil {
 		s.opError(response, err, "capability_request_review_failed")
 		return
@@ -1156,4 +1279,33 @@ func validTurnErrorCode(value string) string {
 		}
 	}
 	return ""
+}
+
+func (s *Server) streamOwnerDiagnosticExport(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok {
+		return
+	}
+	if s.app == nil {
+		writeError(w, 503, "diagnostic_export_unavailable")
+		return
+	}
+	w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	tracked := &diagnosticExportWriter{ResponseWriter: w}
+	if err := s.app.ExportOwnerDiagnostics(r.Context(), actor, r.URL.Query(), tracked); err != nil && !tracked.started {
+		s.opError(w, err, "diagnostic_export_failed")
+	}
+}
+
+// Only map early failures to HTTP errors. Once a JSONL manifest was sent Core
+// emits an explicit incomplete footer; never append an unrelated JSON response.
+type diagnosticExportWriter struct {
+	http.ResponseWriter
+	started bool
+}
+
+func (w *diagnosticExportWriter) Write(p []byte) (int, error) {
+	w.started = true
+	return w.ResponseWriter.Write(p)
 }

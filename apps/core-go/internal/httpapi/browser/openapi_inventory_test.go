@@ -39,12 +39,18 @@ func TestBrowserRouteMatrixMatchesOpenAPIArtifact(t *testing.T) {
 			continue
 		}
 		matched := ""
+		bestSpecificity := -1
 		for template, operations := range document.Paths {
 			if _, exists := operations[strings.ToLower(route.method)]; exists && concretePathMatchesTemplate(route.path, template) {
-				if matched != "" {
+				specificity := templateSpecificity(template)
+				if specificity < bestSpecificity {
+					continue
+				}
+				if matched != "" && specificity == bestSpecificity {
 					t.Fatalf("route %s %s matched both %s and %s", route.method, route.path, matched, template)
 				}
 				matched = template
+				bestSpecificity = specificity
 			}
 		}
 		if matched == "" {
@@ -60,7 +66,18 @@ func TestBrowserRouteMatrixMatchesOpenAPIArtifact(t *testing.T) {
 	}
 }
 
+func templateSpecificity(template string) int {
+	count := 0
+	for _, part := range strings.Split(strings.Trim(template, "/"), "/") {
+		if !strings.HasPrefix(part, "{") {
+			count++
+		}
+	}
+	return count
+}
+
 func concretePathMatchesTemplate(concrete, template string) bool {
+	concrete = strings.SplitN(concrete, "?", 2)[0]
 	concreteParts := strings.Split(strings.Trim(concrete, "/"), "/")
 	templateParts := strings.Split(strings.Trim(template, "/"), "/")
 	if len(concreteParts) != len(templateParts) {

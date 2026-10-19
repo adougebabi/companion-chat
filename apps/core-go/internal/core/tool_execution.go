@@ -16,9 +16,12 @@ import (
 // command; NativeToolCallID is diagnostic correlation supplied only when a
 // model actually emitted a ToolCall.
 type ToolExecutionRequest struct {
-	CorrelationID        string
-	WorkingProfileID     string
-	AuthorizationPolicy  string
+	CorrelationID       string
+	WorkingProfileID    string
+	AuthorizationPolicy string
+	// Set only by the frozen-action executor. Policy admission verifies its
+	// persisted scope, state and budget reservation inside the effect transaction.
+	FrozenActionID       string
 	SubjectActorID       string
 	AgentID              FormalAgentID
 	RunID                string
@@ -237,6 +240,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	prepared, resolved, err := runtime.Prepare(ctx, invocation)
 	if err != nil {
 		code, retryable, detail := classifyToolPrepareError(err)
+		a.recordDiagnosticEvent(ctx, "tool.prepare.failed", "warning", request.FluctlightID, request.EvidenceID, firstString(providerCorrelation(ctx), "tool-operation:"+request.OperationID), map[string]any{"capability_name": request.CapabilityName, "error_code": code, "retryable": retryable, "safe_cause": boundedOperationalCause(err.Error())})
 		if handled, ok := recoverToolBusinessResult(invocation, failedCapabilityResult(invocation, code, retryable), err); ok {
 			if code == "invalid_arguments" {
 				mapValue(handled.Output)["detail"] = detail

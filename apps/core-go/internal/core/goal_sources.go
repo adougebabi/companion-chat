@@ -77,7 +77,7 @@ func recordGoalOutcomeSourceTx(ctx context.Context, tx pgx.Tx, outcome ActionOut
 		return err
 	}
 	if len(goalIDs) > 0 {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) SELECT 'goal_outcome_'||md5(g.id||':'||$3::text),$1::varchar,g.id,$3::bigint,'candidate','actual outcome explicitly bound to Goal' FROM public.fluctlight_goals g WHERE g.fluctlight_id=$1 AND g.id=ANY($2::text[]) ON CONFLICT(goal_id,source_event_id) DO NOTHING`, outcome.FluctlightID, goalIDs, eventID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) SELECT 'goal_outcome_'||md5(g.id||':'||($3::bigint)::text),$1::varchar,g.id,$3::bigint,'candidate','actual outcome explicitly bound to Goal' FROM public.fluctlight_goals g WHERE g.fluctlight_id=$1 AND g.id=ANY($2::text[]) ON CONFLICT(goal_id,source_event_id) DO NOTHING`, outcome.FluctlightID, goalIDs, eventID); err != nil {
 			return err
 		}
 		_, err = queueGoalEvaluationTx(ctx, tx, outcome.FluctlightID, profile, "actual_outcome", fmt.Sprint(eventID), goalIDs)

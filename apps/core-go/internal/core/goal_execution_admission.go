@@ -168,21 +168,8 @@ func configureIntentionRetryTx(ctx context.Context, tx pgx.Tx, current Intention
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
-	maximum := intValue(policy["max_attempts"])
-	if maximum < 1 {
-		maximum = 5
-	}
-	if maximum > 20 {
-		maximum = 20
-	}
-	base := intValue(policy["base_seconds"])
-	if base < 30 {
-		base = 60
-	}
-	capSeconds := intValue(policy["max_seconds"])
-	if capSeconds < base {
-		capSeconds = 3600
-	}
+	maximum, base, capSeconds := effectiveIntentionRetryPolicy(policy)
+
 	delay := time.Duration(base) * time.Second
 	for i := 0; i < count && delay < time.Duration(capSeconds)*time.Second; i++ {
 		delay *= 2
@@ -479,4 +466,23 @@ func preferredActionFailureCode(current, candidate string) string {
 		return candidate
 	}
 	return current
+}
+
+func effectiveIntentionRetryPolicy(policy map[string]any) (maximum, base, capSeconds int) {
+	maximum = intValue(policy["max_attempts"])
+	if maximum < 1 {
+		maximum = 5
+	}
+	if maximum > 20 {
+		maximum = 20
+	}
+	base = intValue(policy["base_seconds"])
+	if base < 30 {
+		base = 60
+	}
+	capSeconds = intValue(policy["max_seconds"])
+	if capSeconds < base {
+		capSeconds = 3600
+	}
+	return
 }

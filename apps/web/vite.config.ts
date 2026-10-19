@@ -11,6 +11,7 @@ if (devApiProxyTarget && !devApiProxyOrigin) {
 }
 
 export default defineConfig({
+  build: { target: "es2022" },
   plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {

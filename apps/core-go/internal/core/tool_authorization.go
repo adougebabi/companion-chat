@@ -44,16 +44,35 @@ func (a *App) authorizeToolPolicyTx(ctx context.Context, tx pgx.Tx, request Tool
 	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.tool_policy_reservations WHERE fluctlight_id=$1 AND reservation_id=$2)`, request.FluctlightID, reservationID).Scan(&reserved); err != nil {
 		return false, "", err
 	}
-	policy, err := a.evaluateAutonomyPolicyWithReader(ctx, tx, request.FluctlightID, actionType, a.now().UTC(), "", reserved)
+	excludeActionID := ""
+	if request.FrozenActionID != "" {
+		var state string
+		var snapshot []byte
+		if err := tx.QueryRow(ctx, `SELECT status,policy_snapshot FROM public.autonomy_actions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, request.FrozenActionID, request.FluctlightID).Scan(&state, &snapshot); err != nil {
+			return false, "", err
+		}
+		if state != "frozen" {
+			return false, "action_no_longer_frozen", nil
+		}
+		priorBudget, _ := decodeObject(snapshot)["budget_reserved"].(bool)
+		reserved = reserved || priorBudget
+		excludeActionID = request.FrozenActionID
+	}
+	policy, err := a.evaluateAutonomyPolicyWithReader(ctx, tx, request.FluctlightID, actionType, a.now().UTC(), excludeActionID, reserved)
 	if err != nil {
 		return false, "", err
 	}
 	if !policy.Allowed {
 		return false, policy.Reason, nil
 	}
+	for _, kind := range arrayValue(policy.Snapshot["confirm_action_types"]) {
+		if kind == actionType {
+			return false, "explicit_owner_command_required", nil
+		}
+	}
 	if !reserved {
 		var concurrent int
-		if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.tool_policy_reservations p JOIN public.agent_runs r ON r.fluctlight_id=p.fluctlight_id AND r.agent_id=p.agent_id AND r.run_id=p.run_id WHERE p.fluctlight_id=$1 AND p.reservation_id<>$2 AND r.status='running' AND r.started_at > now() - interval '5 minutes'`, request.FluctlightID, reservationID).Scan(&concurrent); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.tool_policy_reservations p JOIN public.agent_runs r ON r.fluctlight_id=p.fluctlight_id AND r.agent_id=p.agent_id AND r.run_id=p.run_id WHERE p.fluctlight_id=$1 AND p.reservation_id<>$2 AND r.status='running'`, request.FluctlightID, reservationID).Scan(&concurrent); err != nil {
 			return false, "", err
 		}
 		limit := intValue(policy.Snapshot["concurrency_limit"])

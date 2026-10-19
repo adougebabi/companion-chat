@@ -1,0 +1,7 @@
+{"file":".trellis/spec/frontend/product-ui-contract.md","reason":"Clarifies existing browser UI contracts and interaction/feedback behavior relevant to documenting current flows and restructure risks."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Describes frontend state ownership and refresh expectations to compare with current Pinia and local draft behavior."}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"Defines browser boundary, NDJSON translation, media proxy, errors and storage separation for the backend-to-UI mapping."}
+{"file":".trellis/spec/backend/persona-layer-contract.md","reason":"Defines authority boundaries among Persona, current state, profile-scoped data and relationship governance for the domain inventory."}
+{"file":".trellis/spec/backend/effective-life-contract.md","reason":"Defines inventory, wearing, use and effective-state semantics for the domain inventory and feature matrix."}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"Defines Schedule/Event/Context semantics and authority constraints for the domain inventory and restructure risks."}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"Defines Memory provenance and persistence semantics for backend/UI gap and domain inventory documents."}

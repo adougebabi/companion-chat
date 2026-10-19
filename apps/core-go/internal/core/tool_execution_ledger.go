@@ -173,6 +173,8 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		} else {
 			invocation.Metadata.Source = "direct"
 		}
+		invocation.Metadata.Surface = request.Surface
+		invocation.ContextSnapshot = mapValue(boundedSnapshotValue(request.FrozenContextSnapshot))
 		invocationRecord := mapValue(decodeJSONValue(jsonBytes(invocation)))
 		invocationRecord["authority_revisions"] = authority
 		_, err = tx.Exec(ctx, `INSERT INTO public.tool_executions(fluctlight_id,capability_name,operation_id,authorization_actor_id,request_digest,result,agent_id,run_id,invocation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, request.FluctlightID, request.CapabilityName, request.OperationID, request.AuthorizationActorID, toolExecutionDigest(request), jsonBytes(result), request.AgentID, request.RunID, jsonBytes(invocationRecord))

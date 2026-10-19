@@ -1,0 +1,170 @@
+{
+  "at": "2026-10-15",
+  "narrow390": [
+    {
+      "path": "/c/c1/people/owner",
+      "error": "",
+      "scrollWidth": 375,
+      "title": "关于你",
+      "width": 390
+    },
+    {
+      "path": "/c/c1/people/npc/npc_106/edit",
+      "error": "",
+      "scrollWidth": 375,
+      "title": "编辑 NPC",
+      "width": 390
+    },
+    {
+      "path": "/c/c1/worlds/w1/edit",
+      "error": "",
+      "scrollWidth": 375,
+      "title": "世界与场景编辑",
+      "width": 390
+    },
+    {
+      "path": "/settings/models",
+      "error": "",
+      "scrollWidth": 375,
+      "title": "模型与连接",
+      "width": 390
+    },
+    {
+      "path": "/diag/workflows",
+      "error": "",
+      "scrollWidth": 390,
+      "title": "工作流控制",
+      "width": 390
+    },
+    {
+      "path": "/c/c1/governance?tab=foundation",
+      "error": "",
+      "scrollWidth": 390,
+      "title": "身份与能力治理",
+      "width": 390
+    },
+    {
+      "path": "/c/c1/life/planning",
+      "error": "",
+      "scrollWidth": 390,
+      "title": "独立目标规划",
+      "width": 390
+    },
+    {
+      "path": "/c/c1/worlds/w1/place/p_cafe/edit",
+      "error": "",
+      "scrollWidth": 390,
+      "title": "编辑地点",
+      "width": 390
+    }
+  ],
+  "settings320": [
+    {
+      "section": "models",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "模型与连接",
+      "width": 320
+    },
+    {
+      "section": "reply-vision",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "回复与视觉",
+      "width": 320
+    },
+    {
+      "section": "media-workflows",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "媒体与工作流",
+      "width": 320
+    },
+    {
+      "section": "kev",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "KEV 选择与连接",
+      "width": 320
+    },
+    {
+      "section": "runtime",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "运行与自治策略",
+      "width": 320
+    },
+    {
+      "section": "notifications",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "通知与触达偏好",
+      "width": 320
+    },
+    {
+      "section": "owner",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "所有者与会话",
+      "width": 320
+    },
+    {
+      "section": "capabilities",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "能力与权限目录",
+      "width": 320
+    }
+  ],
+  "diagnostics320": [
+    {
+      "section": "lifecycle",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "生命周期",
+      "width": 320
+    },
+    {
+      "section": "model-runs",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "模型运行",
+      "width": 320
+    },
+    {
+      "section": "agent-runs",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "Agent 运行",
+      "width": 320
+    },
+    {
+      "section": "events",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "系统事件",
+      "width": 320
+    },
+    {
+      "section": "media-prompts",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "媒体请求",
+      "width": 320
+    },
+    {
+      "section": "workflows",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "工作流控制",
+      "width": 320
+    },
+    {
+      "section": "kev",
+      "error": "",
+      "scrollWidth": 320,
+      "title": "KEV 决策",
+      "width": 320
+    }
+  ]
+}

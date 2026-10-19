@@ -1,0 +1,115 @@
+PASS 全部 83 条注册路由可渲染 
+PASS 未注册路由显示「未完成」页 
+PASS 无 href="#" 死链 
+PASS 返回按钮回到上一页 #/c/c1/chat
+PASS 对话页演示状态「空」 
+PASS 对话页演示状态「加载」 
+PASS 对话页演示状态「失败」 
+PASS 对话页演示状态「未接入」 
+PASS 对话页演示状态「冲突」 
+PASS 对话页演示状态「部分成功」 
+PASS 此刻页演示状态「空」 
+PASS 此刻页演示状态「失败」 
+PASS 此刻页演示状态「未接入」 
+PASS 原型说明面板可显示 
+PASS 发送后出现流式回复 
+PASS 流式回复完成写入 
+PASS A1 「这条不对」打开纠错抽屉 
+PASS A2 所有者修改显示差异预览 
+PASS A3 取消不改变记忆 
+PASS A4 版本冲突面板出现 
+PASS A5 记忆 #m31 已更新（v3） 海边书店暂停装修中（未停业）
+PASS A6 原消息挂已纠正且原文不改写 
+PASS A7 审计记录 所有者修改 m31 
+PASS A8 聊天中显示“已纠正” 
+PASS A9 记忆页同一内容 + 3 条修订 
+PASS B1 目标页显示意向 g_dress 
+PASS B2 行动 a_buy 完成，it_dress 入库 
+PASS B3 目标/日程/行动状态联动 
+PASS B4 换装前未穿着 
+PASS B5 小遥接受后才换装 
+PASS B6 碎花裙替换了外套 
+PASS B7 拍照生成完成 
+PASS B8 媒体 md_ 关联物品与穿搭快照，标非事实 md_mv9nvpj7
+PASS B9 拍照不改变事实（穿着不变） 
+PASS B10 媒体库显示「生成图·非事实」 
+PASS C1 助手修改同一份草稿（表单同步） 
+PASS C2 未保存前不写入 
+PASS C3 保存草稿≠发布 
+PASS C4 创作预览只进 studioDrafts，媒体库不变 
+PASS C5 应用到实例显示与实例修正的冲突 
+PASS C6 应用 v4 到小遥（覆盖修正，地点更新） 
+PASS C7 应用写入审计 
+PASS C8 发布 v5 不自动改变实例 
+PASS D1 t88 重试仅补步骤 3-4 
+PASS D2 重置演示数据恢复种子并清空 studioDrafts 
+PASS G1 对话右栏随 store 实时刷新 
+PASS G2 冲突态「保留草稿」可用 
+PASS G3 阿青此刻页显示自己的状态（不回落小遥） 
+PASS G4 木木记忆页显示已暂停 
+PASS G5 星野世界页显示已退休 
+PASS G6 木木资料页是自己的资料 
+PASS X1 会话历史搜索命中并高亮 
+PASS X2 纠错记录 → 打开纠错抽屉 
+PASS X3 纠错后列表进入已处理 
+PASS X4 用户以自己身份发动态 
+PASS X5 建议发帖 → 由小遥决定并以她名义发布 
+PASS X6 没有所有者代角色发帖 
+PASS X7 动态详情评论 
+PASS X8 通知单条标为已读 
+PASS X9 主动触达偏好记录（仅展示） 
+PASS X10 聊天图片页 
+PASS L1 日程显示计划 vs 实际 
+PASS L2 建议日程：取消不写入且抽屉关闭 
+PASS L3 建议日程 → 小遥接受进入计划 
+PASS L4 提出约定 → 她答应 
+PASS L5 回应日记 
+PASS L6 共同经历时间线 
+PASS L7 记忆库搜索 
+PASS L8 #m32 两条修订（原记为玫瑰） 
+PASS L9 记忆修改：取消不写入 
+PASS L10 记忆修改保存为新修订 v3 
+PASS L11 回应反思 
+PASS L12 采纳人格提案，待处理派生同步消失 
+PASS L13 编辑角色简介 
+PASS W1 世界总览 → 地点详情 
+PASS W2 建议她来这里（预填地点） 
+PASS W3 浏览地点/建议不移动角色 
+PASS W4 场景拍照（生成图） 
+PASS W5 事件 evt_1015a 影响链 5 项 
+PASS W6 展开影响项看到 s_walk 取消 
+PASS W7 永久伤害禁用 + 2 个拦截计数 
+PASS W8 保存随机事件设定，永久伤害仍锁定 
+PASS W9 阿岚：非完整摇光 + 3 条关系修订 
+PASS W10 关系修正写入新修订 v4 
+PASS W11 人物目录搜索 
+PASS W12 所有者背景保存 
+PASS W13 媒体生成：生成图·非事实，位置不变 
+PASS W14 媒体详情 
+PASS O1 登录（模拟） 
+PASS O2 角色库分组含 4 个角色 
+PASS O3 角色移动分组 
+PASS O4 向导：名字必填校验 
+PASS O5 新建角色（未启动） 
+PASS O6 新角色此刻页显示自己的状态 
+PASS O7 新建资源并进入编辑 
+PASS O8 沙盒只写 studioDrafts 
+PASS O9 应用到实例页打开冲突抽屉 
+PASS O10 抽屉 Esc 关闭 
+PASS O11 事件模板显示永久伤害约束 
+PASS O12 系统设置记录偏好 
+PASS O13 自治偏好记录 + 权限只读 
+PASS O14 诊断首页 → 行动 a12 详情 
+PASS O15 任务 t88 → 行动详情 
+PASS O16 审计按身份筛选 
+PASS O17 待处理（派生） 
+PASS O18 导出配置包 
+PASS O19 校验配置包 
+PASS O20 导入配置包为草稿 
+PASS O21 导入非法 JSON 报错 
+PASS O22 对象修订记录 
+PASS O23 回档 P3 说明页 
+PASS 全部页面无 href="#" 
+PASS 无控制台错误 
+
+RESULT pass=113 fail=0

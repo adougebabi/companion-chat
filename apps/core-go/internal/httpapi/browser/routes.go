@@ -100,7 +100,16 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/auth/session", cookieValue(request, sessionCookieName), nil)
-		if err != nil || !truthy(value["authenticated"]) {
+		if err != nil {
+			if s.publicUnauthorized(response, err) {
+				return
+			}
+			// A database/transport failure is not proof that the session was
+			// revoked. Preserve the credential so recovery can recheck it.
+			writeError(response, http.StatusServiceUnavailable, "session_service_unavailable", "Session service is unavailable; retry when the service recovers")
+			return
+		}
+		if !truthy(value["authenticated"]) {
 			clearSessionCookie(response, s.secureCookies)
 			writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
 			return
@@ -228,6 +237,10 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
+	if request.URL.Path == "/api/diagnostic-export" && request.Method == http.MethodGet {
+		s.diagnosticStreamExport(response, request)
+		return
+	}
 	if s.routeSurface(response, request) {
 		return
 	}
@@ -235,6 +248,12 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	path := request.URL.Path
+	if s.conversationRoutes(response, request) {
+		return
+	}
+	if s.memoryRoutes(response, request) {
+		return
+	}
 	methodName := request.Method
 
 	if conversationID, ok := match(path, "/api/conversations/:conversationId/turn"); ok {
@@ -300,7 +319,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 
 	// Authenticated read-only routes.
 	if path == "/api/settings" && methodName == http.MethodGet {
-		s.callMap(response, request, "/internal/settings", http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "settings_unavailable", "Settings are unavailable"), func(value map[string]any) any { return mapSettings(value) })
+		s.callMap(response, request, "/internal/settings", http.MethodGet, nil, s.configurationError, func(value map[string]any) any { return mapSettings(value) })
 		return
 	}
 	if path == "/api/capability-requests" && methodName == http.MethodGet {
@@ -408,7 +427,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !ok {
 			return
 		}
-		s.callNoContent(response, request, "/internal/providers/endpoints", http.MethodPut, map[string]any{"endpoint_id": body["endpointId"], "kind": body["kind"], "base_url": body["baseUrl"], "secret_purpose": body["secretPurpose"]}, 403, "provider_configuration_failed", "Provider configuration failed")
+		s.callNoContent(response, request, "/internal/providers/endpoints", http.MethodPut, map[string]any{"endpoint_id": body["endpointId"], "kind": body["kind"], "base_url": body["baseUrl"], "secret_purpose": body["secretPurpose"], "expected_versions": body["expectedVersions"], "idempotency_key": body["idempotencyKey"]}, 403, "provider_configuration_failed", "Provider configuration failed")
 		return
 	}
 	if endpointID, ok := match(path, "/api/providers/endpoints/:endpointId/models"); ok && methodName == http.MethodGet {
@@ -438,6 +457,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		corePayload := map[string]any{
+			"expected_versions": body["expectedVersions"], "idempotency_key": body["idempotencyKey"],
 			"role":            body["role"],
 			"endpoint_id":     body["endpointId"],
 			"model_id":        body["modelId"],
@@ -466,8 +486,8 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !ok {
 			return
 		}
-		mapped := map[string]any{"values": objectValue(body["values"]), "secrets": objectValue(body["secrets"]), "clear_secrets": stringArray(body["clearSecrets"])}
-		s.callMap(response, request, "/internal/settings", http.MethodPut, mapped, s.readOnlyError(http.StatusForbidden, "settings_unavailable", "Settings are unavailable"), func(value map[string]any) any { return mapSettings(value) })
+		mapped := map[string]any{"values": objectValue(body["values"]), "secrets": objectValue(body["secrets"]), "clear_secrets": stringArray(body["clearSecrets"]), "expected_versions": body["expectedVersions"], "idempotency_key": body["idempotencyKey"]}
+		s.callMap(response, request, "/internal/settings", http.MethodPut, mapped, s.configurationError, func(value map[string]any) any { return mapSettings(value) })
 		return
 	}
 	if path == "/api/conversations" && methodName == http.MethodPost {
@@ -502,18 +522,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if path == "/api/fluctlight-creations/analysis" && methodName == http.MethodPost {
-		body, ok := s.mutationBody(response, request, func(value map[string]any) bool {
-			if validateInitializationDescriptionShape(value["description"]) {
-				return true
-			}
-			if _, hasCore := value["core_persona"]; hasCore {
-				return true
-			}
-			if rawJSON := object(value["json"]); len(rawJSON) > 0 {
-				return true
-			}
-			return false
-		})
+		body, ok := s.mutationBody(response, request, validCreationAnalysisInput)
 		if !ok {
 			return
 		}
@@ -529,7 +538,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 				}
 			}
 		}
-		if !validateInitializationDescription(descriptionText) {
+		if body["resourceId"] == nil && !validateInitializationDescription(descriptionText) {
 			writeError(response, http.StatusRequestEntityTooLarge, "initialization_description_too_large", "Description exceeds the 60000-byte UTF-8 limit")
 			return
 		}
@@ -537,7 +546,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		value, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/analysis", session, map[string]any{"description": descriptionText})
+		mapped := map[string]any{"description": descriptionText}
+		if body["resourceId"] != nil {
+			mapped = map[string]any{"resource_id": body["resourceId"], "resource_version": body["resourceVersion"]}
+		}
+		value, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/analysis", session, mapped)
 		if err != nil {
 			if s.publicUnauthorized(response, err) {
 				return
@@ -545,6 +558,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			s.creationError(response, err, "analysis")
 			return
 		}
+		response.Header().Set("Cache-Control", "private, no-store")
 		writeJSON(response, http.StatusOK, value)
 		return
 	}
@@ -682,7 +696,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 	if fluctlightID, actorID, ok := match2(path, "/api/fluctlights/:fluctlightId/actor-context/:actorId"); ok && (methodName == http.MethodGet || methodName == http.MethodPut) {
 		var mapped map[string]any
 		if methodName == http.MethodPut {
-			v, valid := readBody(response, request)
+			v, valid := s.mutationBody(response, request, validateActorContextUpdate)
 			if !valid {
 				return
 			}
@@ -698,7 +712,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		}
 		mapped := map[string]any{"background": body["background"], "operation": body["operation"], "reason": body["reason"], "idempotency_key": body["idempotencyKey"], "expected_current_facts_revision": body["expectedCurrentFactsRevision"]}
 		response.Header().Set("Cache-Control", "no-store, private")
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/actor-user-background", http.MethodPut, mapped, s.readOnlyError(http.StatusBadRequest, "actor_user_background_update_failed", "Unable to update user background"), nil)
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/actor-user-background", http.MethodPut, mapped, actorContextRouteError, nil)
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/detail"); ok && methodName == http.MethodGet {
@@ -749,7 +763,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		s.callMap(response, request, "/internal/capability-requests/"+escape(requestID)+"/review", http.MethodPost, map[string]any{"status": body["status"], "note": body["note"], "capability_version": body["capabilityVersion"]}, s.readOnlyError(http.StatusUnprocessableEntity, "capability_request_review_failed", "Capability request could not be reviewed"), nil)
+		s.callMap(response, request, "/internal/capability-requests/"+escape(requestID)+"/review", http.MethodPost, map[string]any{"status": body["status"], "note": body["note"], "capability_version": body["capabilityVersion"], "expected_revision": body["expectedRevision"], "idempotency_key": body["idempotencyKey"]}, s.readOnlyError(http.StatusUnprocessableEntity, "capability_request_review_failed", "Capability request could not be reviewed"), nil)
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/status"); ok && methodName == http.MethodPut {
@@ -779,7 +793,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/foundation-revisions", http.MethodPost, map[string]any{"changes": body["changes"], "expected_revision": body["expectedRevision"], "reason": body["reason"]}, s.readOnlyError(422, "foundation_revision_failed", "Foundation revision could not be proposed"), nil)
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/foundation-revisions", http.MethodPost, map[string]any{"changes": body["changes"], "expected_revision": body["expectedRevision"], "reason": body["reason"], "idempotency_key": body["idempotencyKey"]}, s.readOnlyError(422, "foundation_revision_failed", "Foundation revision could not be proposed"), nil)
 		return
 	}
 	if fluctlightID, revisionID, action, ok := foundationAction(path); ok && methodName == http.MethodPost {
@@ -805,7 +819,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		s.callMap(response, request, "/internal/memories/"+escape(memoryID), http.MethodPut, map[string]any{"expected_revision": body["expectedRevision"], "content": body["content"], "evidence_refs": body["evidenceRefs"]}, s.readOnlyError(422, "memory_revision_failed", "Memory could not be revised"), nil)
+		s.callMap(response, request, "/internal/memories/"+escape(memoryID), http.MethodPut, map[string]any{"expected_revision": body["expectedRevision"], "content": body["content"], "evidence_refs": body["evidenceRefs"]}, conversationRouteError(502, "memory_revision_failed", "Memory could not be revised"), nil)
 		return
 	}
 	if memoryID, ok := match(path, "/api/memories/:memoryId/forget"); ok && methodName == http.MethodPost {
@@ -813,7 +827,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		s.callMap(response, request, "/internal/memories/"+escape(memoryID)+"/forget", http.MethodPost, map[string]any{"expected_revision": body["expectedRevision"], "evidence_refs": body["evidenceRefs"]}, s.readOnlyError(422, "memory_forget_failed", "Memory could not be forgotten"), nil)
+		s.callMap(response, request, "/internal/memories/"+escape(memoryID)+"/forget", http.MethodPost, map[string]any{"expected_revision": body["expectedRevision"], "evidence_refs": body["evidenceRefs"]}, conversationRouteError(502, "memory_forget_failed", "Memory could not be forgotten"), nil)
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/relationships/rollback"); ok && methodName == http.MethodPost {
@@ -868,7 +882,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			"kind": body["kind"], "start_at": body["startAt"], "end_at": body["endAt"], "evidence_refs": body["evidenceRefs"],
 			"expected_life_context_revision": body["expectedLifeContextRevision"], "idempotency_key": body["idempotencyKey"],
 		}
-		for from, to := range map[string]string{"scene": "scene", "activity": "activity", "location": "location"} {
+		for from, to := range map[string]string{"scene": "scene", "activity": "activity", "location": "location", "placeId": "place_id"} {
 			if value, exists := body[from]; exists {
 				mapped[to] = value
 			}
@@ -915,6 +929,9 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			mapped := map[string]any{"start_at": item["startAt"], "end_at": item["endAt"], "activity": item["activity"], "scene": item["scene"]}
 			if v, exists := item["location"]; exists {
 				mapped["location"] = v
+			}
+			if v, exists := item["placeId"]; exists {
+				mapped["place_id"] = v
 			}
 			for from, to := range map[string]string{"itemType": "item_type", "status": "status", "priority": "priority", "flexibility": "flexibility", "interruptionCost": "interruption_cost"} {
 				if v, exists := item[from]; exists {
@@ -1136,6 +1153,10 @@ func (s *Server) callNoContent(response http.ResponseWriter, request *http.Reque
 		if s.publicUnauthorized(response, err) {
 			return
 		}
+		if strings.HasPrefix(endpoint, "/internal/providers/") {
+			s.configurationError(response, err)
+			return
+		}
 		writeError(response, status, code, message)
 		return
 	}
@@ -1200,6 +1221,11 @@ func mediaRetryError(response http.ResponseWriter, err error) {
 }
 
 func providerRoleError(response http.ResponseWriter, err error) {
+	var conflictError *CoreError
+	if errors.As(err, &conflictError) && conflictError.Status == 409 {
+		writeErrorWithDetails(response, 409, conflictError.Code, "配置版本已变化，请保留草稿并读取最新版本", conflictError.Details)
+		return
+	}
 	var coreErr *CoreError
 	if !errors.As(err, &coreErr) {
 		writeError(response, http.StatusBadGateway, "provider_preflight_failed", "Provider preflight failed")
@@ -1499,12 +1525,12 @@ func (s *Server) creationError(response http.ResponseWriter, err error, operatio
 			writeError(response, 401, "unauthenticated", "Authentication is required")
 			return
 		}
-		if coreErr.Status == 422 {
+		if coreErr.Status == 422 || coreErr.Status == 400 || coreErr.Status == 404 {
 			message := "Fluctlight analysis was rejected"
 			if operation == "activation" {
 				message = "Fluctlight activation was rejected"
 			}
-			writeErrorWithDetails(response, 422, coreErr.Code, message, coreErr.Details)
+			writeErrorWithDetails(response, coreErr.Status, coreErr.Code, message, coreErr.Details)
 			return
 		}
 		if coreErr.Status == http.StatusConflict {
@@ -1733,9 +1759,15 @@ func validateExpectedRevision(value map[string]any) bool {
 	return validateInteger(value["expectedRevision"], 0)
 }
 func validateProviderEndpoint(value map[string]any) bool {
+	if !onlyKeys(value, "endpointId", "kind", "baseUrl", "secretPurpose", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {
+		return false
+	}
 	return validateString(value["endpointId"], 1, 128) && validateString(value["kind"], 1, 64) && validateString(value["baseUrl"], 8, 1<<20) && validateString(value["secretPurpose"], 1, 128)
 }
 func validateModelRole(value map[string]any) bool {
+	if !onlyKeys(value, "role", "endpointId", "modelId", "tokenBudget", "timeoutSeconds", "contextWindowTokens", "maxInputTokens", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {
+		return false
+	}
 	role := stringValue(value["role"])
 	legacy := map[string]struct{}{"initialization": {}, "cognitive_assessment": {}, "action_realization": {}, "interaction": {}, "reflection": {}, "media_prompt": {}}
 	_, legacyRole := legacy[role]
@@ -1752,11 +1784,24 @@ func validateModelRole(value map[string]any) bool {
 	return true
 }
 func validateSettings(value map[string]any) bool {
+	if !onlyKeys(value, "values", "secrets", "clearSecrets", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {
+		return false
+	}
 	if values, ok := value["values"]; ok && !isObject(values) {
 		return false
 	}
 	if secrets, ok := value["secrets"]; ok && !isObject(secrets) {
 		return false
+	}
+	for purpose, raw := range objectValue(value["secrets"]) {
+		if len(purpose) == 0 || len(purpose) > 128 {
+			return false
+		}
+		if raw != nil {
+			if _, ok := raw.(string); !ok {
+				return false
+			}
+		}
 	}
 	if clear, ok := value["clearSecrets"]; ok && !isStringArray(clear) {
 		return false
@@ -1764,7 +1809,7 @@ func validateSettings(value map[string]any) bool {
 	return true
 }
 func validateCapabilityRequestReview(value map[string]any) bool {
-	if !validateString(value["status"], 1, 32) {
+	if !onlyKeys(value, "status", "note", "capabilityVersion", "expectedRevision", "idempotencyKey") || !validateInteger(value["expectedRevision"], 1) || !validateString(value["idempotencyKey"], 1, 256) || !validateString(value["status"], 1, 32) {
 		return false
 	}
 	status := stringValue(value["status"])
@@ -1848,7 +1893,7 @@ func validateFluctlightStatus(value map[string]any) bool {
 	return (status == "active" || status == "paused") && validateRevisionReason(value)
 }
 func validateFoundationRevision(value map[string]any) bool {
-	return isObject(value["changes"]) && len(objectValue(value["changes"])) > 0 && validateRevisionReason(value)
+	return onlyKeys(value, "changes", "expectedRevision", "reason", "idempotencyKey") && validateString(value["idempotencyKey"], 1, 256) && isObject(value["changes"]) && len(objectValue(value["changes"])) > 0 && validateRevisionReason(value)
 }
 func validateFoundationRollback(value map[string]any) bool {
 	return validateRevisionReason(value) && validateInteger(value["targetRevision"], 0)
@@ -1901,6 +1946,9 @@ func validateAutonomyGovernance(value map[string]any) bool {
 	return (status == "paused" || status == "deferred" || status == "cancelled") && validateString(value["reason"], 1, 1024)
 }
 func validateLifeEvent(value map[string]any) bool {
+	if place, exists := value["placeId"]; exists && !validateString(place, 0, 128) {
+		return false
+	}
 	if !validateString(value["kind"], 1, 128) || !validateString(value["startAt"], 1, 1<<20) || !validateString(value["endAt"], 1, 1<<20) || !validateEvidence(value["evidenceRefs"]) || !validateLifeContextCommandIdentity(value) {
 		return false
 	}
@@ -1940,6 +1988,9 @@ func validateSchedule(value map[string]any) bool {
 			return false
 		}
 		if location, exists := item["location"]; exists && !validateString(location, 0, 512) {
+			return false
+		}
+		if place, exists := item["placeId"]; exists && !validateString(place, 0, 128) {
 			return false
 		}
 		for _, key := range []string{"priority", "flexibility", "interruptionCost"} {
@@ -2107,14 +2158,14 @@ func mapSettings(value map[string]any) map[string]any {
 	if _, exists := value["configured_secrets"]; !exists {
 		configuredSecrets = stringArray(value["configuredSecrets"])
 	}
-	return map[string]any{"values": objectValue(value["values"]), "configuredSecrets": configuredSecrets, "versions": objectValue(value["versions"])}
+	return map[string]any{"values": objectValue(value["values"]), "configuredSecrets": configuredSecrets, "versions": objectValue(value["versions"]), "command": value["command"]}
 }
 
 func validateActorUserInput(value map[string]any) bool {
 	if len(value) != 1 || !isObject(value["background"]) {
 		return false
 	}
-	fields := map[string]bool{"name": true, "occupation": true, "background": true, "interests": true, "preferences": true, "location_scope": true, "location": true, "timezone": true, "relationship_distance": true, "meeting_confirmed": true}
+	fields := map[string]bool{"name": true, "occupation": true, "background": true, "interests": true, "preferences": true, "location_scope": true, "location": true, "timezone": true, "relationship_distance": true, "meeting_confirmed": true, "full_name": true, "age": true, "gender": true, "personality": true, "habits": true, "relationship_description": true, "shared_information": true, "wants_you_to_know": true, "rules": true}
 	for key, v := range object(value["background"]) {
 		if !fields[key] {
 			return false
@@ -2140,4 +2191,14 @@ func validateActorUserBackgroundUpdate(value map[string]any) bool {
 		}
 	}
 	return validateActorUserInput(map[string]any{"background": value["background"]}) && (value["operation"] == "correct" || value["operation"] == "change") && validateString(value["reason"], 1, 500) && validateString(value["idempotencyKey"], 1, 256) && validateString(value["expectedCurrentFactsRevision"], 1, 64)
+}
+
+func validateActorContextUpdate(value map[string]any) bool {
+	allowed := map[string]bool{"background": true, "operation": true, "reason": true, "idempotencyKey": true, "expectedContextVersion": true}
+	for key := range value {
+		if !allowed[key] {
+			return false
+		}
+	}
+	return validateActorUserInput(map[string]any{"background": value["background"]}) && (value["operation"] == "correct" || value["operation"] == "change") && validateString(value["reason"], 1, 1000) && len(stringValue(value["reason"])) <= 1000 && validateString(value["idempotencyKey"], 1, 128) && validateString(value["expectedContextVersion"], 1, 64)
 }
