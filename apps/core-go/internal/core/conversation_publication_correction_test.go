@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
@@ -122,7 +123,7 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 				}
 				correction := requests[2]
 				correctionTools := arrayValue(correction["tools"])
-				if len(correctionTools) != 1 || stringValue(mapValue(mapValue(correctionTools[0])["function"])["name"]) != conversationReplyCapabilityName || correction["tool_choice"] != "required" || correction["response_format"] != nil || correction["enable_thinking"] != false {
+				if len(correctionTools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(correctionTools[0])["function"])["name"]), conversationReplyCapabilityName) || correction["tool_choice"] != "required" || correction["response_format"] != nil || correction["enable_thinking"] != false {
 					t.Fatalf("correction wire=%#v", correction)
 				}
 				if strings.Contains(jsonString(correction["messages"]), "Rejected private prose candidate") || !strings.Contains(jsonString(correction["messages"]), "target_kind") {

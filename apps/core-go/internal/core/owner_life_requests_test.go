@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -19,7 +20,7 @@ func TestOwnerLifeRequestWearNativeConsumptionAndRecovery(t *testing.T) {
 				calls++
 				for _, raw := range arrayValue(payload["tools"]) {
 					name := stringValue(mapValue(mapValue(raw)["function"])["name"])
-					if name == "conversation.reply" || name == "moment.publish" || name == "persona.switch" {
+					if capabilitycontract.CapabilityNamesMatch(name, "conversation.reply") || capabilitycontract.CapabilityNamesMatch(name, "moment.publish") || capabilitycontract.CapabilityNamesMatch(name, "persona.switch") {
 						t.Errorf("unrelated capability installed: %s", name)
 					}
 				}

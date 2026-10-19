@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -58,7 +59,7 @@ func visualIdentityRequestForcesTool(payload map[string]any, name string) bool {
 	if choice == "required" {
 		return true
 	}
-	return stringValue(mapValue(mapValue(choice)["function"])["name"]) == name
+	return capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(choice)["function"])["name"]), name)
 }
 
 func seedUnknownEffectiveLifeForTest(t *testing.T, ctx context.Context, repository *PostgresRepository, fluctlightID string) {
@@ -494,11 +495,11 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 		t.Fatal(err)
 	}
 	firstTools := arrayValue(first["tools"])
-	if !visualIdentityRequestForcesTool(first, visualIdentityGenerateCandidateCapabilityName) || first["response_format"] != nil || len(firstTools) != 1 || stringValue(mapValue(mapValue(firstTools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
+	if !visualIdentityRequestForcesTool(first, visualIdentityGenerateCandidateCapabilityName) || first["response_format"] != nil || len(firstTools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(firstTools[0])["function"])["name"]), visualIdentityGenerateCandidateCapabilityName) {
 		t.Fatalf("first request did not enforce the stage Tool without final grammar: %#v", first)
 	}
 	secondTools := arrayValue(second["tools"])
-	if second["tool_choice"] != "auto" || second["response_format"] != nil || len(secondTools) != 1 || stringValue(mapValue(mapValue(secondTools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
+	if second["tool_choice"] != "auto" || second["response_format"] != nil || len(secondTools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(secondTools[0])["function"])["name"]), visualIdentityGenerateCandidateCapabilityName) {
 		t.Fatalf("optional request lost auto/bounded stage catalog or retained final grammar: %#v", second)
 	}
 	receipt, found := formalAdapterResultFromPayload(second, "visual-generate-call")
@@ -533,7 +534,7 @@ func TestVisualIdentityPhysicalRequestStagesGenerateAndStream(t *testing.T) {
 					t.Errorf("stream wire=%#v want=%t", payload["stream"], streaming)
 				}
 				tools := arrayValue(payload["tools"])
-				if len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != visualIdentityGenerateCandidateCapabilityName {
+				if len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), visualIdentityGenerateCandidateCapabilityName) {
 					t.Errorf("stage catalog=%#v", tools)
 				}
 				message := map[string]any{"role": "assistant", "content": jsonString(map[string]any{"status": "waiting", "stage": "image_pending", "summary": "accepted"})}

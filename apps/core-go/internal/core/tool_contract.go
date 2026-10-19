@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 const (
@@ -164,25 +166,7 @@ func (registry *CapabilityRegistry) Catalog(surface CapabilitySurface) []Capabil
 // RenderCapabilityTools is the single provider renderer. It intentionally
 // receives definitions, never executors or domain services.
 func RenderCapabilityTools(definitions []CapabilityDefinition) []map[string]any {
-	result := make([]map[string]any, 0, len(definitions))
-	for _, definition := range definitions {
-		if strings.TrimSpace(definition.Name) == "" {
-			continue
-		}
-		parameters := definition.InputSchema
-		if parameters == nil {
-			parameters = map[string]any{"type": "object", "additionalProperties": false}
-		}
-		result = append(result, map[string]any{
-			"type": "function",
-			"function": map[string]any{
-				"name":        definition.Name,
-				"description": definition.Description,
-				"parameters":  parameters,
-			},
-		})
-	}
-	return result
+	return capability.RenderCapabilityTools(definitions)
 }
 
 // CapabilityToolSchemaStats reports the provider-visible serialized size. The
@@ -421,6 +405,7 @@ func normalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 		if name == "" || len(name) > maxToolNameLength || !toolNamePattern.MatchString(name) {
 			return nil, newProviderToolCallNormalizationError(index, "name_invalid", fmt.Errorf("tool call %d name is invalid", index))
 		}
+		name = capability.CanonicalCapabilityName(name)
 		var rawArguments []byte
 		if id == "" {
 			return nil, newProviderToolCallNormalizationError(index, "id_required", fmt.Errorf("tool call %d id is required", index))
@@ -549,7 +534,11 @@ func normalizeToolArguments(value any) (json.RawMessage, error) {
 	if err := json.Unmarshal(trimmed, &object); err != nil || object == nil {
 		return nil, providerToolArgumentsError("arguments_not_object")
 	}
-	return json.RawMessage(append([]byte(nil), trimmed...)), nil
+	prepared, err := json.Marshal(omitModelNulls(object))
+	if err != nil {
+		return nil, providerToolArgumentsError("arguments_invalid_json")
+	}
+	return json.RawMessage(prepared), nil
 }
 
 // providerToolCallNormalizationDiagnostic exposes only bounded shape metadata

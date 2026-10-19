@@ -1438,7 +1438,7 @@ func einoResponseFormat(jsonMode bool, schemaName string, raw map[string]any) (*
 	if strings.TrimSpace(schemaName) == "" || len(raw) == 0 {
 		return &openaiext.ChatCompletionResponseFormat{Type: openaiext.ChatCompletionResponseFormatTypeJSONObject}, nil
 	}
-	encoded, err := json.Marshal(raw)
+	encoded, err := json.Marshal(capabilitycontract.StrictModelSchema(raw))
 	if err != nil {
 		return nil, fmt.Errorf("eino_response_schema_encode: %w", err)
 	}
@@ -1465,6 +1465,7 @@ func einoResponseFormatForRole(role string, jsonMode bool, schemaName string, ra
 }
 
 func capabilityToolInfos(definitions []CapabilityDefinition) ([]*schema.ToolInfo, error) {
+	capabilitycontract.RememberCapabilityWireNames(definitions)
 	tools := make([]*schema.ToolInfo, 0, len(definitions))
 	for _, definition := range definitions {
 		if strings.TrimSpace(definition.Name) == "" {
@@ -1472,7 +1473,7 @@ func capabilityToolInfos(definitions []CapabilityDefinition) ([]*schema.ToolInfo
 		}
 		var params *schema.ParamsOneOf
 		if len(definition.InputSchema) > 0 {
-			encoded, err := json.Marshal(definition.InputSchema)
+			encoded, err := json.Marshal(capabilitycontract.StrictModelSchema(definition.InputSchema))
 			if err != nil {
 				return nil, fmt.Errorf("eino_tool_schema_encode: %w", err)
 			}
@@ -1482,7 +1483,7 @@ func capabilityToolInfos(definitions []CapabilityDefinition) ([]*schema.ToolInfo
 			}
 			params = schema.NewParamsOneOfByJSONSchema(&js)
 		}
-		tools = append(tools, &schema.ToolInfo{Name: definition.Name, Desc: definition.Description, ParamsOneOf: params})
+		tools = append(tools, &schema.ToolInfo{Name: capabilitycontract.CapabilityWireName(definition.Name), Desc: definition.Description, ParamsOneOf: params})
 	}
 	return tools, nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 type adkConversationContextKey struct{}
@@ -111,6 +112,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			projection = *fresh
 		}
 	}
+	capabilityName = capabilitycontract.CanonicalCapabilityName(capabilityName)
 	i.recordADKToolDiagnostic(ctx, "adk.tool.requested", callID, capabilityName, "requested", "", argumentsJSON)
 	definition, ok := i.scopeRegistry.Definition(capabilityName)
 	if ok && i.request.Surface != "" && !definition.SupportsSurface(i.request.Surface) {

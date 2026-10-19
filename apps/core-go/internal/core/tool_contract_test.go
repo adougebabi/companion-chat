@@ -269,16 +269,16 @@ func TestCapabilityRendererKeepsProviderSchemaAtBoundary(t *testing.T) {
 		}
 		names[stringValue(function["name"])] = struct{}{}
 	}
-	if _, ok := names["conversation.reply"]; !ok {
-		t.Fatalf("conversation.reply manifest missing = %#v", names)
+	if _, ok := names["conversation_reply"]; !ok {
+		t.Fatalf("conversation_reply manifest missing = %#v", names)
 	}
-	if _, ok := names["moment.publish"]; !ok {
-		t.Fatalf("moment.publish manifest missing = %#v", names)
+	if _, ok := names["moment_publish"]; !ok {
+		t.Fatalf("moment_publish manifest missing = %#v", names)
 	}
 	if _, ok := names["affect_event"]; !ok {
 		t.Fatalf("affect_event manifest missing = %#v", names)
 	}
-	if _, ok := names["media.image.generate"]; !ok {
+	if _, ok := names["media_image_generate"]; !ok {
 		t.Fatalf("media manifest missing = %#v", names)
 	}
 	definition := imageCapabilityDefinition()

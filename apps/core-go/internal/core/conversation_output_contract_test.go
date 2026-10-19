@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 type conversationPublicationTestInvoker struct {
@@ -26,7 +27,7 @@ func conversationWireForcesReply(payload map[string]any) bool {
 		return true
 	}
 	function := mapValue(mapValue(choice)["function"])
-	return stringValue(function["name"]) == conversationReplyCapabilityName
+	return capabilitycontract.CapabilityNamesMatch(stringValue(function["name"]), conversationReplyCapabilityName)
 }
 
 func (i conversationPublicationTestInvoker) Execute(ctx context.Context, name, arguments string) (string, error) {

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"log/slog"
 	"sort"
 
@@ -16,6 +17,9 @@ func normalizeStructuredShape(value map[string]any, schema map[string]any) (map[
 }
 
 func normalizeProviderStructured(value map[string]any, schemaName string, schema map[string]any) (map[string]any, []string) {
+	if prepared, ok := prepareModelValue(value, schema).(map[string]any); ok {
+		value = prepared
+	}
 	// Initialization is strict: a missing required field must remain missing so
 	// validInitialization can reject an incomplete personality contract. Other
 	// operations retain their typed-shape normalization behavior.
@@ -297,6 +301,99 @@ func isArrayContainer(value any) bool {
 	default:
 		return false
 	}
+}
+
+// prepareModelValue treats JSON null as an absent field and expands the strict
+// freeform object wrapper back into the object the original schema describes.
+func prepareModelValue(value any, schema map[string]any) any {
+	value = unwrapStrictFreeform(value, schema)
+	switch typed := value.(type) {
+	case map[string]any:
+		properties := mapValue(schema["properties"])
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			if child == nil {
+				continue
+			}
+			childSchema := mapValue(properties[key])
+			if len(childSchema) == 0 {
+				result[key] = omitModelNulls(child)
+				continue
+			}
+			result[key] = prepareModelValue(child, childSchema)
+		}
+		return result
+	case []any:
+		itemSchema := mapValue(schema["items"])
+		result := make([]any, len(typed))
+		for index, item := range typed {
+			if len(itemSchema) == 0 {
+				result[index] = omitModelNulls(item)
+				continue
+			}
+			result[index] = prepareModelValue(item, itemSchema)
+		}
+		return result
+	default:
+		return omitModelNulls(value)
+	}
+}
+
+func omitModelNulls(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			if child == nil {
+				continue
+			}
+			result[key] = omitModelNulls(child)
+		}
+		return result
+	case []any:
+		result := make([]any, len(typed))
+		for index, item := range typed {
+			result[index] = omitModelNulls(item)
+		}
+		return result
+	default:
+		return value
+	}
+}
+
+func unwrapStrictFreeform(value any, schema map[string]any) any {
+	if !schemaIsStrictFreeform(schema) {
+		return value
+	}
+	object, ok := value.(map[string]any)
+	if !ok || len(object) != 1 {
+		return value
+	}
+	encoded, ok := object["json"].(string)
+	if !ok {
+		return value
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(encoded), &decoded); err != nil || decoded == nil {
+		return value
+	}
+	return decoded
+}
+
+func schemaIsStrictFreeform(schema map[string]any) bool {
+	if len(arrayValue(schema["anyOf"])) > 0 || len(arrayValue(schema["oneOf"])) > 0 || len(mapValue(schema["properties"])) > 0 {
+		return false
+	}
+	typeName, _ := schema["type"].(string)
+	if typeName != "" && typeName != "object" {
+		return false
+	}
+	additional, present := schema["additionalProperties"]
+	if !present {
+		return typeName == "object"
+	}
+	flag, ok := additional.(bool)
+	return ok && flag
 }
 
 func isJSONNumber(value any) bool {

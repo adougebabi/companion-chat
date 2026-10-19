@@ -13,6 +13,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 // readSourceFile finds and reads a source file, looking first in the current directory (internal/core),
@@ -354,8 +356,8 @@ func providerWireSchemaName(payload map[string]any) string {
 		if isGoalEvaluationTool(name) {
 			goalTools[name] = true
 		}
-		hasConversationReply = hasConversationReply || name == conversationReplyCapabilityName
-		hasPlannerQuery = hasPlannerQuery || name == goalPlannerQuery
+		hasConversationReply = hasConversationReply || capabilitycontract.CapabilityNamesMatch(name, conversationReplyCapabilityName)
+		hasPlannerQuery = hasPlannerQuery || capabilitycontract.CapabilityNamesMatch(name, goalPlannerQuery)
 	}
 	if hasPlannerQuery {
 		return "goal_planner_v1"

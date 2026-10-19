@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -84,7 +85,7 @@ func goalEvaluationTraceNeedsFreshSnapshot(ctx context.Context) bool {
 }
 
 func isGoalEvaluationTool(name string) bool {
-	return name == goalEvaluationSubmit || name == goalObjectSubmit || name == goalPlanSubmit
+	return capabilitycontract.CapabilityNamesMatch(name, goalEvaluationSubmit) || capabilitycontract.CapabilityNamesMatch(name, goalObjectSubmit) || capabilitycontract.CapabilityNamesMatch(name, goalPlanSubmit)
 }
 
 func authorizeGoalEvaluationTool(ctx context.Context, request ToolExecutionRequest) error {

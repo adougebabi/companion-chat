@@ -17,6 +17,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func toolNamesForTest(definitions []CapabilityDefinition) []string {
@@ -329,7 +330,7 @@ func TestKevThreeToolBaselineOnActualWireWhenDisabled(t *testing.T) {
 				t.Fatal(err)
 			}
 			sort.Strings(seen)
-			want := []string{capabilityCatalogName, conversationReplyCapabilityName, "moment.publish"}
+			want := []string{capabilitycontract.CapabilityWireName(capabilityCatalogName), capabilitycontract.CapabilityWireName(conversationReplyCapabilityName), capabilitycontract.CapabilityWireName("moment.publish")}
 			sort.Strings(want)
 			if !reflect.DeepEqual(seen, want) {
 				t.Fatalf("first physical request disclosed %d tools; want only %v; actual=%v", len(seen), want, seen)

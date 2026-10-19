@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestReplyProviderUsesFrozenModelSamplingAndIsolatedMessages(t *testing.T) {
@@ -39,7 +41,7 @@ func TestReplyProviderUsesFrozenModelSamplingAndIsolatedMessages(t *testing.T) {
 			if received["model"] != "cydonia-frozen" || received["temperature"] != temp || received["top_p"] != top || received["max_completion_tokens"] != float64(333) {
 				t.Fatalf("frozen transport lost: %#v", received)
 			}
-			if len(arrayValue(received["tools"])) != 1 || stringValue(mapValue(mapValue(arrayValue(received["tools"])[0])["function"])["name"]) != replyImageRequestName || received["tool_choice"] != "auto" || received["response_format"] != nil {
+			if len(arrayValue(received["tools"])) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(arrayValue(received["tools"])[0])["function"])["name"]), replyImageRequestName) || received["tool_choice"] != "auto" || received["response_format"] != nil {
 				t.Fatalf("parent tool/schema policy leaked: %#v", received)
 			}
 			if strings.Contains(jsonString(received["messages"]), "用户冷淡所以暂时不推进") {
@@ -142,7 +144,7 @@ func TestReplyWriterNativeImageRequestOwnsPrivateHandoff(t *testing.T) {
 	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 		calls++
 		tools := arrayValue(payload["tools"])
-		if len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != replyImageRequestName {
+		if len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), replyImageRequestName) {
 			t.Errorf("Writer needs its sole private image tool: %v", tools)
 		}
 		if calls == 1 {
@@ -217,7 +219,7 @@ func TestNestedReplyAtConcurrencyOneFeedsActualTextBack(t *testing.T) {
 					}
 				} else {
 					writerCalls++
-					if tools := arrayValue(payload["tools"]); len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != replyImageRequestName {
+					if tools := arrayValue(payload["tools"]); len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), replyImageRequestName) {
 						t.Error("writer inherited parent tools")
 					}
 				}
