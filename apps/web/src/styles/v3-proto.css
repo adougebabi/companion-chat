@@ -245,3 +245,24 @@ mark{background:var(--primary-soft);color:inherit;border-radius:4px;padding:0 2p
 
 .media-preview{display:block;width:100%;max-height:70vh;object-fit:contain;border-radius:var(--radius,12px)}
 .media-asset-card{min-width:0;padding:8px}.media-asset-card .media-preview{height:180px}.media-asset-card audio.media-preview{height:54px}
+/* Current settings workspace: one selected connection owns all related actions. */
+.settings-page{max-width:1180px;margin-inline:auto;width:100%;container-type:inline-size}
+.settings-page,.settings-page *{box-sizing:border-box}
+.settings-page .grid,.settings-page .card,.settings-page .field,.settings-page form,.settings-page section,.settings-page aside{min-width:0;max-width:100%}
+.settings-page>.grid{align-items:start}
+.settings-page>.grid.g2:not(.settings-home){grid-template-columns:minmax(0,1fr)}
+.provider-workspace{display:grid;grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:24px;align-items:start}
+.provider-entry,.provider-role{display:grid;gap:6px;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;color:var(--ink);width:100%;cursor:pointer;min-width:0;overflow-wrap:anywhere}
+.provider-entry.on,.provider-role.on{background:var(--primary-soft);border-color:var(--primary)}
+.provider-entry span,.provider-entry small,.provider-role span{font-size:12px;color:var(--ink-2);overflow-wrap:anywhere}
+.provider-role-list,.configuration-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.settings-page .input,.settings-page .select{width:100%;min-width:0;max-width:100%}
+.settings-page .btn{white-space:normal;overflow-wrap:anywhere;min-height:40px;max-width:100%}
+.settings-page pre,.settings-page code,.settings-page [data-model-list]{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;max-width:100%}
+.settings-page [data-model-list]{display:flex;flex-wrap:wrap;gap:8px}
+.settings-page .configuration-actions{align-items:stretch}
+@container (max-width:780px){.provider-workspace{grid-template-columns:minmax(0,1fr)}.provider-role-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:520px){.configuration-fields,.provider-role-list,.settings-home{grid-template-columns:minmax(0,1fr)!important}.configuration-actions>.btn{flex:1 1 100%}}
+
+.settings-page .configuration-fields>.field:has(textarea),.settings-page .configuration-fields>fieldset{grid-column:1/-1}
+.creation-flow{max-width:900px;margin-inline:auto;min-width:0;width:100%}.creation-flow .btn{white-space:normal;max-width:100%;min-height:40px}.creation-flow pre,.creation-flow dd{overflow-wrap:anywhere;white-space:pre-wrap}.creation-flow .field{min-width:0}

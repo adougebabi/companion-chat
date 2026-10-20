@@ -51,11 +51,12 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   relationship/goal/intention arrays, `developing_self.claims`, extensions,
   nullable unknown identity placeholders, empty Life Profile containers, and a
   default single-profile-system scaffold when no profiles were proposed. It
-  fills missing base personality and Behavioral Policy fields from the existing
-  server defaults and missing declared-profile payload fields with typed empty
-  values. Provider-supplied values are never overwritten. Profile IDs,
-  relationship meaning, goal/intention semantics, and explicitly invalid values
-  are not invented or repaired.
+  fills missing analyzed identity, personality and Behavioral Policy fields
+  with null, and missing profile/container fields with typed empties. Optional
+  malformed representations retain their originals in `extensions.recovered_fields`
+  and expose `extensions.initialization_warnings`. Unknown takeover targets are
+  retained as original, non-executable rules instead of selecting an arbitrary
+  declared profile. Never invent relationship meaning or goal/intention facts.
 - `life_profile.relationship_seeds` remains in the canonical Life Profile even
   when it is also used as the compatibility source for
   `initial_relationships`; normalization never deletes a required Core field.
@@ -67,7 +68,9 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   containers. A non-empty card with truncated/unparseable JSON, an empty
   `StructuredFallback`, or zero source-supported semantic units is a typed,
   correlated, retryable failure and can never become a neutral default Persona.
-  Explicit invalid values remain semantic failures. Every user-triggered
+  Invalid optional timezone becomes null with its original value and warning;
+  device timezone remains the explicit activation fallback. Unrecoverable
+  authority/source/reference violations remain failures. Every user-triggered
   analysis gets a fresh `initialization-analysis:*` correlation/Provider
   idempotency identity; retries within one attempt may reuse an identity, but
   separate clicks never replay one cached invalid result.
@@ -155,7 +158,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Condition | Result |
 | --- | --- |
 | Initialization omits only safe structural containers/placeholders | Normalize them first, then validate; do not reject solely because an empty root collection was omitted. |
-| Initialization omits a Core group, base personality/policy field, declared profile payload field, or Developing Self container | Fill only the missing value with the server default or typed empty representation, then validate. |
+| Initialization omits a Core group, base personality/policy field, declared profile payload field, or Developing Self container | Fill unknown semantic fields with null and canonical containers with typed empties, then validate. |
 | Initialization returns a structured fallback with no source-supported semantics | Return typed retryable `initialization_response_semantic_empty`; do not create a preview or neutral Persona. |
 | Initialization returns non-empty unparseable or truncated content | Return `initialization_response_invalid_json`; if `finish_reason=length`, record `structured_response_truncated` and never repair/activate the partial object. |
 | Initialization wraps one complete JSON object in an explicit Markdown fence | Extract only the complete fenced body, then run ordinary normalization and semantic validation. |
@@ -166,7 +169,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Normalized initialization still contains an explicit invalid value/reference/type | Return `initialization_persona_invalid` with safe `details.correlation_id` and `details.validation_error.{type,path}`; log only those fields, never the Persona payload. |
 | Optional Developing Self/Goal/Intention/Relationship candidate is incomplete or malformed | Drop an unusable claim or an Intention without a valid Goal reference, bind omitted Intention references by stable ID or source position when possible, default/clamp optional unit scores, and reset invalid relationship metrics/trend; never reject the complete Persona for one optional candidate. |
 | Activation fails after preview validation | Preserve typed Persona details as `activation_persona_invalid`; map conflicts to `activation_request_conflict` and all other transaction/persistence failures to `activation_persistence_failed`, always with an activation correlation ID. Operational logs may add only a bounded snake_case underlying error code; raw database/provider text and Persona content remain forbidden. |
-| Initialization explicitly returns an invalid timezone, duplicate/blank profile identity, bad goal/relationship reference, or out-of-range governed value | Reject with `initialization_persona_invalid`; do not overwrite the explicit invalid value with a default. |
+| Initialization has recoverable optional shape gaps, invalid timezone or unmatched takeover target | Preserve source and warn; timezone remains unknown and unmatched rules do not execute. Required authority/source/reference violations still reject with correlated details. |
 | Owner submits the same description as a new analysis attempt | Use a fresh correlation and Provider idempotency identity; do not reuse a prior invalid completion. |
 | LLM-defined activation omits/forges an analysis ID | Return `activation_analysis_required` or bounded `activation_analysis_invalid`; create no Fluctlight. |
 | A newer successful analysis exists | Return `activation_analysis_stale` with conflict status; the old preview cannot activate. |
@@ -197,7 +200,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   structure and accepts the result.
 - Base: an otherwise normal Provider response omits individual Personality,
   Policy, Life Profile, or profile payload fields; the preview uses existing
-  defaults/typed empty values for those missing fields and preserves everything
+  null/typed empty values for those missing fields and preserves everything
   the model did return.
 - Good: a real local model returns two distinct profiles with non-empty
   personality, policy, voice, body language, fears, and desires within the
@@ -208,7 +211,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   remains readable and the source panel is absent.
 - Bad: reject a recoverable missing `initial_goals: []` before normalization,
   accept a semantic-empty fallback as a neutral Persona, overwrite an explicit
-  invalid timezone, reuse one Provider identity for manual re-analysis, or
+  invalid timezone with a claimed factual default, reuse one Provider identity for manual re-analysis, or
   select a source by best-effort projection digest.
 - Bad: three aliases of one inbox fact satisfy an evidence count, or a single positive user reaction changes `personality.agreeableness`.
 - Bad: realization re-reads a newer Persona after a frozen decision and combines an old response plan with a new voice.
@@ -281,8 +284,8 @@ if !hasInitializationEnvelope(rawProviderResult) {
 
 ```go
 foundation, err := prepareInitializationResponse(rawProviderResult)
-// Preserves returned values, fills missing fields with canonical defaults or
-// typed empties, then rejects only explicit invalid identities/references/values.
+// Preserves source values, fills unknowns with null or canonical containers,
+// warns on optional repairs, and retains required authority/reference checks.
 ```
 
 ## Scenario: Native persona Tool scope and reply attribution

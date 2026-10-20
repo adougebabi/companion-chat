@@ -194,3 +194,10 @@ Foundation提议保存完整创建基线、提交事务CAS与持久幂等回执�
 源码和新隔离实际schema均0095；原用户部署仍最后已知0066，未改原卷。新隔离正式入口 http://localhost:18080 ，Worker未启动、模型运行数实际0。Web213/213、BrowserClient36/36通过；新数据工具关键真实PG闭环、关于你浏览器保存/刷新/跨角色API隔离、真实MinIO字节/摘要/授权隔离、整卷备份及新隔离目标恢复/比较/0095升级已执行并读回结果。证据见 `.trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/progress.json` 和实际公开回执。
 
 仍有39个顶层Core回归场景未通过（后续定向修复中），全站浏览器/实际Temporal控制及最终模型验收尚未完成，不声明全量交付。维护执行入口现为 `infra/backup/maintenance.py`；固定MinIO镜像不可取得时，使用 `infra/minio/build-source-images.py` 构建已校验的原固定官方源码。唯一功能台账仍为 `docs/v3-functional-ledger.json`，本节覆盖旧阶段状态，不将编译或受控Provider当真实模型通过。
+
+
+## 2026-10-20 当前设置/启动/初始化体验修复
+
+本轮六项修复已在源码实现：连接上下文统一、设置响应式、会话超时恢复、服务→世界底稿→人物向导、初始化可恢复缺项/精确诊断、交流与管理导航。证据与实际执行限制见当前任务 `evidence/full-stack/workspace-recovery-1020.json`，同一功能台账 `deliveryVerification.regressionFixes` 追加记录，不覆盖此前真实回归证据。
+
+本轮只执行编译、定向前端与受控组件浏览器验证，没有数据库/后端逻辑回归或真实模型调用。部署Core/Web同一构建后，用户从 `#/setup`、`#/settings/models`、交流/管理切换继续真实验收；源码修复不等于NAS和模型已通过。

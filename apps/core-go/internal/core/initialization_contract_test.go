@@ -300,32 +300,30 @@ func TestPrepareInitializationResponseNormalizesSafeContainersBeforeValidation(t
 	}
 }
 
-func TestPrepareInitializationResponseFillsMissingPersonaFieldsWithDefaults(t *testing.T) {
+func TestPrepareInitializationResponseFillsMissingPersonaFieldsWithNull(t *testing.T) {
 	value := map[string]any{"core_persona": defaultCorePersona("", "影者")}
 	delete(mapValue(mapValue(value["core_persona"])["personality"]), "openness")
 	delete(mapValue(mapValue(value["core_persona"])["behavioral_policy"]), "response_style")
 	prepared, err := prepareInitializationResponse(value)
 	if err != nil {
-		t.Fatalf("missing persona fields were not defaulted: %v", err)
+		t.Fatalf("missing persona fields were not recovered: %v", err)
 	}
 	persona := mapValue(prepared["core_persona"])
-	if mapValue(persona["personality"])["openness"] != defaultPersonality()["openness"] || mapValue(persona["behavioral_policy"])["response_style"] != defaultPolicy()["response_style"] {
-		t.Fatalf("persona defaults were not applied: %#v", persona)
+	if mapValue(persona["personality"])["openness"] != nil || mapValue(persona["behavioral_policy"])["response_style"] != nil {
+		t.Fatalf("unknown persona facts were filled with certainty: %#v", persona)
 	}
 }
 
-func TestPrepareInitializationResponseStillRejectsExplicitInvalidValues(t *testing.T) {
+func TestPrepareInitializationResponsePreservesInvalidTimezoneAsReviewableUnknown(t *testing.T) {
 	value := map[string]any{"core_persona": defaultCorePersona("", "影者")}
 	mapValue(mapValue(value["core_persona"])["identity"])["timezone"] = "Mars/Olympus"
-	_, err := prepareInitializationResponse(value)
-	var failure *initializationAnalysisError
-	if err == nil || err.Error() != "initialization_persona_invalid" || !errors.As(err, &failure) {
-		t.Fatalf("explicit invalid timezone err=%v", err)
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("recoverable timezone stopped review: %v", err)
 	}
-	details := failure.PublicDetails()
-	validation := mapValue(details["validation_error"])
-	if stringValue(validation["type"]) != "value_invalid" || stringValue(validation["path"]) != "core_persona.identity.timezone" {
-		t.Fatalf("invalid timezone details=%#v", details)
+	extensions := mapValue(prepared["extensions"])
+	if mapValue(mapValue(prepared["core_persona"])["identity"])["timezone"] != nil || mapValue(extensions["recovered_fields"])["core_persona.identity.timezone"] != "Mars/Olympus" || len(arrayValue(extensions["initialization_warnings"])) == 0 {
+		t.Fatalf("invalid timezone source/warning was lost: %#v", prepared)
 	}
 }
 

@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-20",
+  "scope": "workspace_setup_session_initialization_recovery",
+  "status": "implemented_compile_and_controlled_frontend_verified_user_live_acceptance_pending",
+  "changes": [
+    "设置统一所选连接上下文，复用配置编辑器；重置保留固定连接，更换模型清理旧窗口；桌面与390px布局适配",
+    "首屏只等真实会话与角色目录；JSON读取有界；会话SQL/统计更新有界，超时可重试且不伪装401",
+    "服务连接→发布世界底稿→人物分析激活→独立世界应用/选用/回读；角色回执与后续原命令按Owner/fid保存",
+    "初始化可恢复结构与无效可选时区保留原值并警告，未知语义字段null，未知接管目标不执行",
+    "初始化code/path/correlation与过滤模型诊断链接；不完整warnings不影响预览",
+    "交流/管理统一导航分组，直接管理URL同步工作区，保留服务端鉴权",
+    "分组确认只合并真实目录投影并后台刷新，不清空其他已加载资料",
+    "人物向导无效时区保留原输入并提示本次采用设备时区，不因时区格式中断"
+  ],
+  "checks": {
+    "targetedFrontend": {
+      "passed": 17,
+      "failed": 0
+    },
+    "browserClientControlled": {
+      "passed": 38,
+      "failed": 0
+    },
+    "webTypecheck": "passed",
+    "webProductionBuild": "passed_no_mock_bundle",
+    "coreBuild": "passed_compilation_only",
+    "diffCheck": "passed"
+  },
+  "browser": {
+    "kind": "real_current_components_with_controlled_api_responses_no_business_db_or_model",
+    "passed": [
+      "optional_503_shell_survives",
+      "endpoint_context_switch",
+      "reset_keeps_selected_endpoint_and_clears_foreign_model_window",
+      "model_change_clears_old_window",
+      "management_navigation_and_direct_urls",
+      "setup_service_world_character_links",
+      "structured_initialization_diagnostic",
+      "hung_session_timeout_then_retry_restores_library"
+    ],
+    "desktop": {
+      "clientWidth": 1265,
+      "scrollWidth": 1265,
+      "settingsWidth": 1005
+    },
+    "mobileIframe": {
+      "viewportWidth": 390,
+      "clientWidth": 373,
+      "scrollWidth": 373
+    },
+    "screenshots": [
+      "workspace-settings-desktop.png",
+      "workspace-settings-mobile.png",
+      "workspace-initialization-diagnostics.png",
+      "workspace-session-timeout.png",
+      "workspace-session-retry.png"
+    ]
+  },
+  "deploymentReadOnlyProbe": {
+    "root": "HTTP 200 ~20ms",
+    "anonymousSession": "HTTP 401 ~20ms",
+    "authenticatedNasHangReproduced": false
+  },
+  "notExecuted": [
+    "database_regression",
+    "backend_logic_regression",
+    "real_llm_or_comfyui",
+    "authenticated_nas_flow_after_deploy",
+    "world_apply_select_business_integration"
+  ],
+  "backendTestSources": "initialization_recovery_test.go and updated initialization_contract_test.go authored, not executed per user instruction",
+  "migrationRequired": false,
+  "realModelCalls": 0,
+  "deployment": "Update Core and Web from the same CI build, then user continues testing; no source volumes reset."
+}

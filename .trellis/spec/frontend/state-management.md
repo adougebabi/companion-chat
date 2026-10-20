@@ -1,5 +1,19 @@
 # Client State And Synchronization
 
+## Current v3 bounded startup (2026-10-20)
+
+The initial shell needs only actual Owner session and character directory.
+Optional modules load afterward and retain their own loading/failed/forbidden/
+unconfigured states. JSON GET deadlines cover response headers and body; session
+is bounded to 8 seconds, other JSON reads default to 15 seconds. Only real 401
+means logged out. Timeout keeps credentials and provides a fresh read attempt.
+Do not apply these short read deadlines to model-triggering writes or NDJSON.
+
+`refreshProduct` epochs publish only the newest read. A successful group move
+merges the confirmed directory projection into the same snapshot and starts
+background refresh; it must not replace all optional data with an initial-only
+snapshot. Post-activation optional reads must not delay receipt checkpointing.
+
 ## State Categories
 
 Pinia app state is the server snapshot (`settings`, `personas`, `groups`, and

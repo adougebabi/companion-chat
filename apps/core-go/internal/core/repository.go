@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -79,6 +80,8 @@ func (r *PostgresRepository) ResolveSession(ctx context.Context, token string) (
 	if strings.TrimSpace(token) == "" {
 		return "", ErrUnauthorized
 	}
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	digest := sha256.Sum256([]byte(token))
 	var actorID string
 	err := r.pool.QueryRow(ctx, `
@@ -92,7 +95,9 @@ func (r *PostgresRepository) ResolveSession(ctx context.Context, token string) (
 	if err != nil {
 		return "", fmt.Errorf("resolve Core session: %w", err)
 	}
-	_, _ = r.pool.Exec(ctx, `UPDATE public.auth_sessions SET last_seen_at=now() WHERE token_hash=$1`, hex.EncodeToString(digest[:]))
+	touchCtx, touchCancel := context.WithTimeout(ctx, 150*time.Millisecond)
+	defer touchCancel()
+	_, _ = r.pool.Exec(touchCtx, `UPDATE public.auth_sessions SET last_seen_at=now() WHERE token_hash=$1 AND (last_seen_at IS NULL OR last_seen_at<now()-interval '5 minutes')`, hex.EncodeToString(digest[:]))
 	return actorID, nil
 }
 

@@ -1,3 +1,4 @@
+import {exchangeNavigation,managementNavigation,globalNavigation} from '../workspace-navigation.mjs';
 import { ApplicationShell } from './components/shell.js';
 import * as store from './store.js';
 import * as ui from './ui.js';
@@ -11,16 +12,6 @@ import './modules/世界人物.js';
 import './modules/创作治理.js';
 const { icon, esc, badge } = ui;
 
-const NAV = [
-  { k: 'chat', label: '对话', icon: 'chat', path: 'chat' },
-  { k: 'life', label: '生活', icon: 'life', path: 'life/now', subs: [['此刻', 'life/now', 'now'], ['日程', 'life/schedule', 'calendar'], ['目标', 'life/goals', 'target'], ['衣柜', 'life/wardrobe', 'shirt'], ['日记', 'life/diary', 'book']] },
-  { k: 'world', label: '世界', icon: 'globe', path: 'world' },
-  { k: 'people', label: '人物关系', icon: 'people', path: 'people' },
-  { k: 'growth', label: '记忆成长', icon: 'brain', path: 'growth' },
-  { k: 'media', label: '媒体', icon: 'image', path: 'media' },
-  { k: 'profile', label: '角色资料', icon: 'user', path: 'profile' },
-];
-const GLOBAL = [['角色库', '#/library', 'home'], ['动态', '#/feed', 'feed'], ['创作中心', '#/studio', 'studio'], ['系统设置', '#/settings', 'settings'], ['运行诊断', '#/diag', 'diag'], ['通知', '#/inbox', 'inbox']];
 const demoStates = {}; const keptDrafts = {}; // route key → 演示状态
 let disposePage = null;
 let current = null; const HKEY = 'fluctlight.backstack';
@@ -74,16 +65,16 @@ function demoMenu(a) {
     { test: 'reset-demo', html: `${icon('reset')} 重置演示数据（仅原型，不是时间线回档）`, run: async () => { if (await ui.confirm({ title: '重置演示数据', text: '恢复原型种子数据（仅原型，不是时间线回档）。', identity: '系统运维', okText: '重置' })) { store.resetDemo(); ui.toast('已重置演示数据', 'ok'); } } }]);
 }
 function moreMenu(a) {
-  popmenu(a, [...GLOBAL.map(([l, h, i]) => ({ html: `${icon(i)} ${l}`, run: () => navigate(h) })), ...(store.isMock ? ['-',
+  popmenu(a, [...globalNavigation(store.get('ui').identity).map(([l, h, i]) => ({ html: `${icon(i)} ${l}`, run: () => navigate(h) })), ...(store.isMock ? ['-',
     { html: `${icon('route')} 演示流程…`, run: () => demoMenu(a) },
     { html: `${icon('info')} ${store.get('ui').notes ? '隐藏' : '显示'}原型说明`, run: () => store.setUi({ notes: !store.get('ui').notes }) }] : [])]);
 }
 function renderChrome(ctx) {
-  const st = store.get('ui'); const c = store.get('characters', ctx.charId) || { id: '', name: '角色库', avatar: '', worldId: null }; const w = store.get('worlds', c.worldId);
+  const st = store.get('ui'); const c = store.get('characters', ctx.charId) || { id: ctx.charId||'', name: ctx.charId?'角色资料待读取':'角色库', avatar: '', worldId: null }; const w = store.get('worlds', c.worldId);
   ui.$('#charsw').innerHTML = `${c.avatar?`<img class="av" src="${esc(c.avatar)}" alt="">`:`<span class="av" aria-hidden="true" style="display:grid;place-items:center;background:var(--primary-soft)">${esc(c.name.slice(0,1))}</span>`}<b>${esc(c.name)}</b>${icon('more')}`;
   ui.$('#scopebar').innerHTML = `<span class="hide-n">${badge(ctx.def?.scope || '角色范围')}</span><span class="hide-n">${esc(c.name)} · ${esc(w?.name || '')}</span>
     <span class="ident" data-test="ident">${['交流', '管理'].map(v => `<button data-v="${v}" class="${st.identity === v ? 'on' : ''}">${v}</button>`).join('')}</span>`;
-  ui.$$('#scopebar .ident button').forEach(b => b.onclick = () => { store.setUi({ identity: b.dataset.v }); ui.toast(`已切换为「${b.dataset.v}」身份`); });
+  ui.$$('#scopebar .ident button').forEach(b => b.onclick = () => { store.setUi({ identity: b.dataset.v }); navigate(b.dataset.v==='管理'?'#/settings':c.id?`#/c/${c.id}/chat`:'#/library'); });
   const pending=store.pending(ctx.charId);
   const meta=store.get('meta');
   const unread = store.isMock ? (pending===null ? null : store.get('notices').filter(n => !n.read).length + pending.length) : (typeof meta.alertCount==='number' && typeof meta.pendingCount==='number' && meta.pendingPartial===false ? meta.alertCount+meta.pendingCount : null);
@@ -92,10 +83,10 @@ function renderChrome(ctx) {
   ui.$('#notesT').checked = store.isMock && st.notes; document.body.classList.toggle('show-notes', store.isMock && !!st.notes);
   const p = ctx.path; const base = `#/c/${c.id}/`;
   const on = path => p === '/c/' + c.id + '/' + path || p.startsWith('/c/' + c.id + '/' + path + '/');
-  ui.$('#sidenav').innerHTML = `<div class="sec">角色工作区 · ${esc(c.name)}</div>` + (c.id ? NAV : []).map(n => `<a class="navlink ${n.subs ? (p.includes('/life/') ? 'on' : '') : on(n.path) ? 'on' : ''}" href="${base}${n.path}">${icon(n.icon)} ${n.label}</a>` +
+  ui.$('#sidenav').innerHTML = `<div class="sec">角色工作区 · ${esc(c.name)}</div>` + (c.id ? (st.identity==='管理'?managementNavigation:exchangeNavigation) : []).map(n => `<a class="navlink ${n.subs ? (p.includes('/life/') ? 'on' : '') : on(n.path) ? 'on' : ''}" href="${base}${n.path}">${icon(n.icon)} ${n.label}</a>` +
     (n.subs ? n.subs.map(([l, sp, ic]) => `<a class="navlink sub ${on(sp) ? 'on' : ''}" href="${base}${sp}">${icon(ic)} ${l}</a>`).join('') : '')).join('') +
-    `<div class="sec">全局</div>` + GLOBAL.map(([l, h, i]) => `<a class="navlink ${('#' + p).startsWith(h) ? 'on' : ''}" href="${h}">${icon(i)} ${l}</a>`).join('');
-  const bb = [['对话', 'chat', 'chat'], ['此刻', 'life/now', 'now'], ['衣柜', 'life/wardrobe', 'shirt'], ['记忆', 'growth', 'brain']];
+    `<div class="sec">全局</div>` + globalNavigation(st.identity).map(([l, h, i]) => `<a class="navlink ${('#' + p).startsWith(h) ? 'on' : ''}" href="${h}">${icon(i)} ${l}</a>`).join('');
+  const bb = st.identity==='管理' ? [['角色资料','profile','user'],['世界管理','worlds','globe'],['自治设置','settings/autonomy','settings']] : [['对话', 'chat', 'chat'], ['此刻', 'life/now', 'now'], ['衣柜', 'life/wardrobe', 'shirt'], ['记忆', 'growth', 'brain']];
   ui.$('#bottombar').innerHTML = (c.id ? bb : []).map(([l, sp, i]) => `<a href="${base}${sp}" class="${on(sp) ? 'on' : ''}">${icon(i)}${l}</a>`).join('') + `<button id="navDrawer" data-test="nav-drawer">${icon('menu')}全部</button>`;
   ui.$('#navDrawer').onclick = () => { const d = ui.drawer({ title: '导航', body: ui.$('#sidenav').innerHTML }); d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
 }
@@ -108,13 +99,14 @@ function renderPage() {
   main.innerHTML = `<div class="pagehead">${showBack ? `<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>` : ''}<h1>${def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
     ${ui.notesPanel(def)}<div id="page" data-page="${def.key}"></div>`;
   const el = ui.$('#page');
+  const bootstrapWarning=store.get('meta')?.bootstrapWarning;if(bootstrapWarning)el.insertAdjacentHTML('beforebegin',`<div class="banner info">${esc(bootstrapWarning)}</div>`);
   if (!store.isMock) {
     const section = ctx.path.split('/').slice(3).join('/');
     const reads = ctx.path === '/library' ? ['global:groups'] : ctx.path === '/inbox' ? ['global:notifications'] : ctx.path.startsWith('/studio') ? ['global:resources'] : section.startsWith('world') ? [`${ctx.charId}:worlds`] : section.startsWith('life/wardrobe') ? [`${ctx.charId}:wardrobes`] : section.startsWith('media') ? [`${ctx.charId}:media`] : section.startsWith('life/diary') ? [`${ctx.charId}:diaries`] : [];
     const failures = reads.map(key => store.get('meta').surfaces?.[key]).filter(value => value && value.status !== 'ready');
     if (failures.length) {
-      el.innerHTML = `<div class="banner err" role="alert">${failures.map(value => esc(value.message || '当前服务不可用')).join('；')}</div><button class="btn" data-read-retry>重新读取</button>`;
-      el.querySelector('[data-read-retry]').onclick = async () => { try { await real.refreshProduct(); } catch(error) { ui.toast(error.message,'err'); } }; return;
+      el.insertAdjacentHTML('beforebegin',`<div class="banner info" role="status">${failures.map(value => esc(value.message || '部分资料暂未读到')).join('；')}。其他入口仍可使用。 <button class="btn sm" data-read-retry>重新读取</button></div>`);
+      main.querySelector('[data-read-retry]').onclick = async () => { try { await real.refreshProduct(); } catch(error) { ui.toast(error.message,'err'); } };
     }
   }
   try {
@@ -136,23 +128,34 @@ function route() {
   const charId = m.params.charId || store.get('ui').charId || '';
   if (m.params.charId && store.get('ui').charId !== charId && store.get('characters', charId)) store.setUi({ charId });
   current = { ...m, ctx: { params: m.params, query, path, charId, def: m.def, navigate, goBack, refresh: () => renderPage(), store, ui } };
+  if(m.def.workspace&&store.get('ui').identity!==m.def.workspace)store.setUi({identity:m.def.workspace});
   ui.closeOverlays(); document.querySelectorAll('.popmenu').forEach(x => x.remove());
   if (!store.isMock && path !== '/auth' && !store.get('session')) { navigate('#/auth'); return; }
-  if (!store.isMock && m.params.charId && !store.get('characters', charId)) { navigate('#/library'); return; }
+  // A stale directory is not an authorization decision. The page's scoped API
+  // reads the actual character and supplies the real not-found/permission state.
   renderPage(); window.scrollTo(0, 0);
 }
 export async function mountProduct(host) {
 if (!host) return;
+let stopped=false, cleanup=null;
+async function start(){
+if(stopped||!host.isConnected)return;
+cleanup?.();cleanup=null;
 document.title = store.isMock ? '摇光 · 隔离演示' : '摇光';
 if (real) {
-  host.innerHTML = '<div class="statebox" role="status">正在读取所有者会话…</div>';
-  try { real.registerProviders(); await real.refreshProduct(); } catch (error) { host.innerHTML = `<div class="statebox" role="alert"><h2>服务读取失败</h2><p>${esc(error.message)}</p><button class="btn" onclick="location.reload()">重新读取</button></div>`; return; }
+  host.innerHTML = '<div class="statebox" role="status">正在验证所有者会话与读取角色目录…</div>';
+  try { real.registerProviders(); await real.refreshProduct({initialOnly:true}); } catch (error) { host.innerHTML = `<div class="statebox" role="alert"><h2>服务读取失败</h2><p>${esc(error.message)}</p><button class="btn" data-boot-retry>重新读取</button><a class="btn" href="/">重新打开首页</a></div>`; host.querySelector('[data-boot-retry]').onclick=()=>void start(); return; }
 }
+if(stopped||!host.isConnected)return;
 const disposeShell = shell(host);
 if (!store.isMock) { ui.$('#demoBtn').remove(); ui.$('#notesT').closest('label').hidden = true; }
 const unsubscribe = store.subscribe(evt => { if (!current || !host.isConnected) return; if (!store.isMock && evt.type === 'snapshot' && ['auth.signin','library.char.create'].includes(current.def.key)) { renderChrome(current.ctx); return; } if (evt.type === 'snapshot') renderChrome(current.ctx); if (evt.type === 'ui') renderChrome(current.ctx); else if (evt.type === 'reset' || (evt.type !== 'conversation' && !current.def.manualRefresh)) renderPage(); else current.def.onStore?.(evt, current.ctx); });
 addEventListener('hashchange', route);
 route();
+if(real&&store.get('session'))void real.refreshProduct().catch(error=>ui.toast(error.message,'err'));
 if (store.isMock) window.__app = { navigate, goBack, routes: allRoutes, get current() { return current; }, demoStates };
-return () => { unsubscribe(); disposeShell(); removeEventListener('hashchange', route); disposePage?.(); disposePage = null; current = null; ui.closeOverlays(); };
+cleanup = () => { unsubscribe(); disposeShell(); removeEventListener('hashchange', route); disposePage?.(); disposePage = null; current = null; ui.closeOverlays(); };
+}
+await start();
+return()=>{stopped=true;cleanup?.();};
 }

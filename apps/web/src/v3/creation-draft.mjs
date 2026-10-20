@@ -29,5 +29,21 @@ export function checkpointCreation(recovery,submitted,result,ownerCurrent){
   if(!ownerCurrent())return;
   const saved=recovery.read();
   if(saved.requestId!==submitted.body.requestId)return;
-  recovery.save({...saved,activatedId:result.id,activationGroupId:submitted.groupId});
+  recovery.save({...saved,activatedId:result.id,activationGroupId:submitted.groupId,...(submitted.worldResourceId?{worldResourceId:submitted.worldResourceId,worldResourceVersion:submitted.worldResourceVersion}:{})});
+}
+
+// A different published source changes analysis context, never a pending command.
+export function selectCreationWorld(draft,{resourceId,version,pending=false}){
+ if(!resourceId||!version||pending)return false;
+ if(draft.activatedId){
+  // An explicitly chosen late source can complete an unconfigured world step.
+  // An already bound source/runtime remains governed by world management.
+  if(draft.worldResourceId||draft.worldRuntimeId)return false;
+  draft.worldResourceId=resourceId;draft.worldResourceVersion=version;return true;
+ }
+ if(draft.worldResourceId===resourceId&&draft.worldResourceVersion===version)return false;
+ draft.worldResourceId=resourceId;draft.worldResourceVersion=version;
+ draft.analysis=null;draft.analysisText='';draft.worldContextWarning='';
+ if(draft.step===3)draft.step=draft.mode==='analysis'?0:2;
+ draft.requestId=randomId();return true;
 }

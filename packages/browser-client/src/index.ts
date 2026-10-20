@@ -270,7 +270,7 @@ export class BrowserApiError extends Error {
 }
 
 export class BrowserClient {
-  constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis)) {}
+  constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis), private readonly readTimeoutMs = 15000) {}
   private url(path: string): URL {
     const origin = this.baseUrl || (typeof window !== "undefined" ? window.location.origin : "");
     if (!origin) throw new Error("BrowserClient requires a base URL outside the browser");
@@ -278,18 +278,7 @@ export class BrowserClient {
   }
   async health(path: "/health/live" | "/health/ready"): Promise<BrowserHealth> { return this.json(path) as Promise<BrowserHealth>; }
   async session(): Promise<BrowserSession> {
-    const response = await this.fetcher(this.url("/auth/session"), { credentials: "include" });
-    if (response.status === 401) return { authenticated: false };
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown } | null;
-      const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
-      const message = typeof payload?.message === "string" ? payload.message : `Browser request failed: ${response.status}`;
-      const details = payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details)
-        ? payload.details as Record<string, unknown>
-        : {};
-      throw new BrowserApiError(response.status, code, message, details);
-    }
-    return response.json() as Promise<BrowserSession>;
+    return this.json("/auth/session", { anonymousSession: true, timeoutMs: Math.min(this.readTimeoutMs, 8000) }) as Promise<BrowserSession>;
   }
   async login(password: string): Promise<BrowserSession> { return this.json("/auth/login", { method: "POST", body: { password } }) as Promise<BrowserSession>; }
   async setup(setupToken: string, password: string): Promise<BrowserSession> { return this.json("/auth/setup", { method: "POST", body: { setupToken, password } }) as Promise<BrowserSession>; }
@@ -565,25 +554,40 @@ export class BrowserClient {
     const token = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(prefix))?.slice(prefix.length);
     return token ? { "x-csrf-token": decodeURIComponent(token) } : {};
   }
-  private async json(path: string, options: { method?: string; body?: unknown } = {}): Promise<unknown> {
+  private async json(path: string, options: { method?: string; body?: unknown; timeoutMs?: number; anonymousSession?: boolean } = {}): Promise<unknown> {
     const method = options.method ?? "GET";
-    const response = await this.fetcher(this.url(path), {
-      method, credentials: "include",
-      headers: { ...(options.body ? { "content-type": "application/json" } : {}), ...(method !== "GET" ? this.csrfHeaders() : {}) },
-      body: options.body ? JSON.stringify(options.body) : undefined,
+    const controller = new AbortController();
+    const timeoutMs = options.timeoutMs ?? (method === "GET" ? this.readTimeoutMs : 0);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const work = (async () => {
+      const response = await this.fetcher(this.url(path), {
+        method, credentials: "include", signal: controller.signal,
+        headers: { ...(options.body ? { "content-type": "application/json" } : {}), ...(method !== "GET" ? this.csrfHeaders() : {}) },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+      if (options.anonymousSession && response.status === 401) return { authenticated: false };
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown } | null;
+        const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
+        const message = typeof payload?.message === "string" ? payload.message : `Browser request failed: ${response.status}`;
+        const details = payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details) ? payload.details as Record<string, unknown> : {};
+        throw new BrowserApiError(response.status, code, message, details);
+      }
+      if (response.status === 204) return undefined;
+      return response.json();
+    })();
+    // Model-triggering writes keep their server-owned task/timeout lifecycle.
+    if (timeoutMs <= 0) return work;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new BrowserApiError(0, "browser_request_timeout", "服务读取超时，请重试；原会话和已提交请求已保留。", { path, method, retryable: true }));
+        controller.abort();
+      }, timeoutMs);
     });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown } | null;
-      const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
-      const message = typeof payload?.message === "string" ? payload.message : `Browser request failed: ${response.status}`;
-      const details = payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details)
-        ? payload.details as Record<string, unknown>
-        : {};
-      throw new BrowserApiError(response.status, code, message, details);
-    }
-    if (response.status === 204) return undefined;
-    return response.json();
+    try { return await Promise.race([work, deadline]); }
+    finally { if (timer) clearTimeout(timer); }
   }
+
 }
 
 import { applyV3Contract } from "./v3-contract.ts";

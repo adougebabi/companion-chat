@@ -28901,6 +28901,29 @@
         "migrationRequired": false,
         "modelCalls": 0,
         "browserEvidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/provider-configuration-recovery-browser.png"
+      },
+      {
+        "date": "2026-10-20",
+        "feature": "设置布局/连接工作区、会话启动恢复、世界人物初始化与诊断、交流管理导航",
+        "implementation": "连续向导与原请求恢复；可恢复缺项null/结构/警告，保留必要鉴权/来源/真实提交边界",
+        "checks": {
+          "targetedFrontend": {
+            "passed": 17,
+            "failed": 0
+          },
+          "browserClientControlled": {
+            "passed": 38,
+            "failed": 0
+          },
+          "webTypecheck": "passed",
+          "webProductionBuild": "passed_no_mock_bundle",
+          "coreBuild": "passed_compilation_only",
+          "diffCheck": "passed"
+        },
+        "migrationRequired": false,
+        "modelCalls": 0,
+        "liveAcceptance": "pending_user_deployed_core_web_and_llm_acceptance",
+        "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/workspace-recovery-1020.json"
       }
     ]
   }

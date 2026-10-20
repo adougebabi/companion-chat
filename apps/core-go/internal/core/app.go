@@ -602,13 +602,14 @@ func prepareInitializationResponse(value map[string]any) (map[string]any, error)
 	if initializationSemanticUnitCount(value) == 0 {
 		return nil, &initializationAnalysisError{Code: "initialization_response_semantic_empty", ValidationType: "semantic_empty", Path: "provider_response", Retryable: true}
 	}
-	result := normalizeInitializationResponse(value)
+	result := normalizeInitializationResponse(recoverInitializationContainers(value))
 	normalizeFoundationCollections(result)
 	// Grouped Provider collections are converted after the first alias pass.
 	// Re-run candidate normalization so every persisted Intention has one real
 	// Goal reference, and discard optional orphan candidates instead of letting
 	// activation fail inside the transaction.
 	normalizeInitializationAliases(result)
+	recoverInitializationProfiles(result)
 	normalizeVisualIdentityFoundation(mapValue(result["core_persona"]))
 	if !hasInitializationEnvelope(result) || !validInitialization(result) {
 		validationType, path := initializationValidationDiagnostic(result)
@@ -1488,6 +1489,7 @@ func normalizeInitializationTakeoverRules(system map[string]any, declaredProfile
 		if len(rule) == 0 {
 			continue
 		}
+		originalRule := cloneMap(rule)
 		id := strings.TrimSpace(stringValue(rule["id"]))
 		if id == "" {
 			id = fmt.Sprintf("takeover_rule_%d", index+1)
@@ -1514,10 +1516,11 @@ func normalizeInitializationTakeoverRules(system map[string]any, declaredProfile
 			target = firstInitializationString(rule["target"], rule["target_profile"], rule["to_profile"])
 		}
 		if _, exists := declaredProfiles[target]; !exists {
-			for pid := range declaredProfiles {
-				target = pid
-				break
+			if extensions != nil {
+				extensions["unmatched_takeover_rules"] = append(arrayValue(extensions["unmatched_takeover_rules"]), originalRule)
+				extensions["initialization_warnings"] = append(arrayValue(extensions["initialization_warnings"]), map[string]any{"path": fmt.Sprintf("core_persona.personality_system.takeover_rules[%d].target_profile_id", index), "message": "规则引用的人格尚未确定，规则原文已保留，暂不执行；人物初始化可继续"})
 			}
+			continue
 		}
 		rule["target_profile_id"] = target
 

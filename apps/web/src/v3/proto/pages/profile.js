@@ -1,3 +1,4 @@
+import {get as readStore} from '../store.js';
 import { randomId } from '../../../random-id.mjs';
 import { Field } from '../components/forms.js';
 import { drawer } from '../components/overlay.js';
@@ -32,7 +33,7 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
   function paint() {
     if (!current()) return;
     const id = encodeURIComponent(snapshot.id);
-    el.innerHTML = `<div class="stack" data-test="profile-detail">${ProfileHeader(snapshot, Boolean(provider.editBio))}${PersonaSection(snapshot, Boolean(provider.switchPersona))}${ProfileGroups(snapshot)}${PersonaHistory(snapshot)}<div class="row"><a class="btn" href="#/c/${id}/people/owner">关于你</a><a class="btn" href="#/c/${id}/governance">身份与能力治理</a><a class="btn" href="#/c/${id}/worlds">世界管理</a>${snapshot.mode!=='mock'?`<a class="btn" href="#/c/${id}/media/avatar">显示头像</a>`:''}</div></div>`;
+    el.innerHTML = `<div class="stack" data-test="profile-detail">${ProfileHeader(snapshot, Boolean(provider.editBio))}${PersonaSection(snapshot, Boolean(provider.switchPersona))}${ProfileGroups(snapshot)}${PersonaHistory(snapshot)}<div class="row"><a class="btn" href="#/c/${id}/people/owner">关于你</a>${readStore('ui').identity==='管理'?`<a class="btn" href="#/c/${id}/governance">身份与能力治理</a><a class="btn" href="#/c/${id}/worlds">世界管理</a>`:''}${snapshot.mode!=='mock'?`<a class="btn" href="#/c/${id}/media/avatar">显示头像</a>`:''}</div></div>`;
     const form = el.querySelector('[data-profile-switch]');
     form.elements.targetPersonaId.value = draft.targetPersonaId;
     form.elements.reason.value = draft.reason;

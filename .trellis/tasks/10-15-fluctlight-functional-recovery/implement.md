@@ -447,3 +447,18 @@ Web类型检查、正式Vite构建及现有无Mock产物检查通过；diff chec
 模型绑定最大输入改只读实时派生，上下文窗口−输出预算−服务端安全预留；新绑定策略默认值由catalog返回，旧v1/v2分别沿原policy/margin。新保存省略maxInputTokens，由Core权威计算；旧显式输入请求继续兼容。读取、reset/rebase/导入与保存回读均重新派生，不重写pending原body或已运行任务快照。
 
 实际验证：相关Node8/8、BrowserClient36/36；Browser API边界包通过；两个纯Go预算/错误映射用例通过。类型/正式构建/无Mock检查通过。真实浏览器挂载当前组件并使用受控配置响应，实测4069→自动16411、422后保存可用、502保留pending、修改草稿→明确停止→保存新稿并回读；截图evidence/full-stack/provider-configuration-recovery-browser.png。这是组件受控回归，不是实际配置库/Provider联调。PG取消事务用例已编译但因专用数据库/OrbStack未启动skip，未计通过。用户随后明确不再运行数据库/后端逻辑回归，完成后直接提交；遵照停止追加此类测试。两名独立只读核验无阻断发现。
+
+
+## 2026-10-20 六项体验与初始化修复交付
+
+设置保持当前v3与C鼠尾草青绿；公共配置编辑器增加响应式字段/操作组，所选连接统一地址、凭据、模型目录与角色绑定。固定上下文在加载、reset、rebase和采用草稿时一致；换模型清旧窗口。交流/管理成为统一导航工作区，直接管理URL同步mode，不代替Core鉴权。
+
+启动先读真实会话与角色目录，可选域后台独立加载；GET/session期限覆盖headers/body，超时保留会话并有实际重试。ResolveSession查询3s，last_seen统计写150ms并按5分钟节流；Nginx session独立短期限，原流式代理不变。匿名NAS只读探测正常，未复现已登录NAS卡住，不把风险定位写成真实复现。分组后合并已确认目录并后台刷新，不清空全站资料。
+
+增加服务连接→世界底稿→人物连续向导，底稿先作为全局定义发布，按精确版本带入分析。角色激活回执先持久checkpoint，之后apply/选用/读回各自保持原命令、双CAS与fid隔离；后续失败警告保留角色可进入，不重新激活。改世界/版本清旧分析并保留原描述；已有pending或绑定来源不被悄悄替换。原未选择世界的已激活草稿允许明确补选，继续后续步骤。
+
+初始化恢复集中在prepare之前：可选错误表示/时区保留recovered_fields并告警，未知identity/personality/policy字段null，容器保持规范结构；空模型结果不伪装成功，未知接管目标保留未变原规则且不执行。预览防御null/错误warnings。错误显示code/字段/关联记录及过滤模型诊断，允许明确选择空白继续且不称为分析成功。必要鉴权、来源、引用完整性、版本与真实提交边界保留。
+
+最终复核曾发现并已修：reset回到旧端点、换模型残留窗口、改世界复用旧分析、分组后initialOnly永久清空可选资料、缺失字段补人格事实、null warning崩溃、未匹配规则原文被先改写。三名探子只读复核，主线程修改。
+
+检查：定向前端17/17，BrowserClient受控38/38，Web typecheck、正式build/no-Mock、Core build通过。真实浏览器挂当前组件+受控响应：设置A/B上下文/reset/换模型清窗口、交流管理导航、连续向导、字段关联诊断、超时后实际重试恢复通过；桌面1265/1265，390px iframe实际client/scroll均373无横向溢出。截图与范围见evidence/full-stack/workspace-recovery-1020.json。本轮按用户要求不执行DB、后端逻辑、真实LLM/Comfy或部署联调；对应后端用例已补源但未执行。无需迁移。NAS部署需Core/Web同一构建；总任务继续in_progress，真实模型及部署验收待用户继续，不声明全量通过。临时harness/日志及并行profile-types.ts不提交。

@@ -1,4 +1,5 @@
 // 模块注册表：各分区 js/modules/<分区>.js 调用 register() 挂页面
+import {workspaceForPath} from '../../workspace-navigation.mjs';
 const routes = [];
 /**
  * register({route, key, title, bp, zone, coverage, iface, source, scope, render(el, ctx), renderState?(el, ctx), manualRefresh?})
@@ -9,7 +10,7 @@ export function register(def) {
   if (!def.route || !def.key || typeof def.render !== 'function') throw new Error('register: 缺 route/key/render');
   const names = []; const re = new RegExp('^' + def.route.replace(/:(\w+)/g, (_, n) => { names.push(n); return '([^/]+)'; }) + '/?$');
   const i = routes.findIndex(r => r.route === def.route);
-  const entry = { coverage: '占位', zone: '', bp: '', scope: '角色范围', ...def, re, names };
+  const entry = { coverage: '占位', zone: '', bp: '', scope: '角色范围', workspace:workspaceForPath(def.route), ...def, re, names };
   if (i >= 0) routes[i] = entry; else routes.push(entry);
   return entry;
 }

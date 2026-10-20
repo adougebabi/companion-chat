@@ -50,6 +50,10 @@ The browser cookie contains an opaque random session token only. browser boundar
 - browser boundary service identity and Human session are independently required/validated. Core is not host-exposed by default.
 - Production has no anonymous mode, automatic owner, default credential, or localhost-trust fallback.
 - Local recovery CLI is explicit, audited, and revokes all sessions when resetting credentials.
+- ResolveSession has a 3-second lookup deadline. The non-authoritative
+  last_seen touch has a 150ms deadline and runs at most once per 5 minutes per
+  session. A blocked statistics update must not block authenticated reads.
+  Browser GET timeout/503 preserves the session; only real 401 means anonymous.
 
 ### 4. Validation & Error Matrix
 

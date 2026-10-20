@@ -65,3 +65,26 @@ Correct: keep a local draft, copy to applied state only on Apply, and use applie
 Wrong: place an operation error behind its open confirmation modal.
 
 Correct: render the action error within the modal slot, with retry and cancel reachable.
+
+## Current v3 setup and connection workspace (2026-10-20)
+
+- Keep the accepted v3 components and sage palette. Settings fields/actions wrap
+  inside their owning container; 390px verification records actual viewport and
+  document scroll widths, not a resized screenshot alone.
+- A selected connection owns address, secret purpose, model directory and role
+  draft. Fixed endpoint context must survive reset/rebase/adoption. Changing
+  endpoint clears dependent model/window; changing model clears its former
+  loaded window. Do not change a frozen pending request to fit a newer draft.
+- Exchange/management are navigation workspaces. Sidebar, more menu, mobile
+  drawer and direct routes use `workspace-navigation.mjs`; management exposes
+  settings, diagnostics, data and setup. Server authorization remains unchanged.
+- Setup links service configuration → published world definition → character.
+  Exact source/version enters analysis and later per-character runtime apply,
+  select and readback. World changes invalidate uncommitted analysis; accepted
+  character and original pending commands retain their identities.
+- World/group continuation failures keep the accepted character and retained
+  checkpoint. They offer continuation without another activation. A character
+  with no selected world can explicitly add that source later in the guide.
+- Initialization feedback consumes error code, validation path and correlation
+  and links filtered model diagnostics. Malformed warning entries must never
+  throw during preview; preserve original values in full JSON.

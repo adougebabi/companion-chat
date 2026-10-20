@@ -14,6 +14,7 @@ const R = (route, key, title, bp, coverage, render, extra = {}) => register({ ro
 R('/auth', 'auth.signin', '登录/注册', 'BP-01', '可操作', G.renderAuth, { source: '原型模拟登录，不连接真实账号' });
 R('/library', 'library.home', '角色库', 'BP-01', '可操作', G.renderLibrary);
 R('/library/create', 'library.char.create', '新建角色向导', 'BP-01', '可操作', G.renderCreate);
+R('/setup','setup.home','初始化向导','BP-01/16','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-setup.js'),'renderRealSetup',el,ctx),{manualRefresh:true});
 R('/studio/npc/:resId', 'studio.npc.edit', 'NPC 定义编辑', 'BP-12/15', '可操作', renderNPCDefinition, { manualRefresh: true });
 R('/studio/material/:materialId','studio.material.detail','创作素材与保留历史','BP-15','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-material.js'),'renderRealMaterial',el,ctx));
 R('/studio/media', 'studio.media.library', '我的素材库', 'BP-14/15', '可操作', (el,ctx)=>providerPage(()=>import('../pages/real-media.js'),'renderRealMediaLibrary',el,ctx));

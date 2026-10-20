@@ -1545,9 +1545,9 @@ func (s *Server) creationError(response http.ResponseWriter, err error, operatio
 			return
 		}
 		if coreErr.Status == 422 || coreErr.Status == 400 || coreErr.Status == 404 {
-			message := "Fluctlight analysis was rejected"
+			message := "初始化分析尚需补充，原输入已保留；展开诊断可查看具体字段和关联记录"
 			if operation == "activation" {
-				message = "Fluctlight activation was rejected"
+				message = "人物激活尚未完成，原创建内容已保留；请核对下方具体原因后继续"
 			}
 			writeErrorWithDetails(response, coreErr.Status, coreErr.Code, message, coreErr.Details)
 			return

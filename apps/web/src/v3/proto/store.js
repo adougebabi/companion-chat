@@ -5,6 +5,7 @@ const fixture = isMock ? await import('./mock/store.js') : null;
 export const IDENTITIES = ['交流', '行动请求', '所有者修改', '系统运维'];
 const tables = ['groups','characters','worlds','places','npcs','relations','messages','memories','goals','schedule','actions','items','outfit','media','events','diary','tasks','proposals','resources','instances','posts','postSuggestions','reflections','worldSettings','ownerRequests'];
 let data = { ...Object.fromEntries(tables.map(key => [key, {}])), meta: { surfaces: {}, unwired: {} }, ui: { charId: '', identity: '交流', notes: false }, user: { id: '', name: '我', background: {} }, prefs: { global: {}, autonomy: {} }, session: null, notices: [], audit: [], studioDrafts: [] };
+try {const mode=sessionStorage.getItem('fluctlight.workspace-mode');if(['交流','管理'].includes(mode))data.ui.identity=mode;} catch { /* Workspace preference is optional. */ }
 const subs = new Set();
 const projections = new Map();
 export function configureReadProjection(col, read) { projections.set(col,read); }
@@ -18,7 +19,7 @@ export function replaceSnapshot(snapshot) {
 export function get(col, id) { if (fixture) return fixture.get(col,id); const value = col ? (projections.has(col) ? projections.get(col)(data[col]) : data[col]) : data; return id === undefined ? value : value?.[id]; }
 export function list(col, predicate = () => true) { if (fixture) return fixture.list(col,predicate); const value = get(col); return (Array.isArray(value) ? value : Object.values(value || {})).filter(predicate); }
 export function update(...args) { if (fixture) return fixture.update(...args); throw new Error('此操作尚未连接真实命令，未保存任何修改'); }
-export function setUi(patch) { if (fixture) return fixture.setUi(patch); Object.assign(data.ui,patch); emit({type:'ui',patch}); }
+export function setUi(patch) { if(['交流','管理'].includes(patch.identity))try{sessionStorage.setItem('fluctlight.workspace-mode',patch.identity);}catch{/* Preference storage is optional. */} if (fixture) return fixture.setUi(patch); Object.assign(data.ui,patch); emit({type:'ui',patch}); }
 export function subscribe(fn) { if (fixture) return fixture.subscribe(fn); subs.add(fn); return () => subs.delete(fn); }
 export function uid(prefix) { return prefix + randomId(); }
 export function resetDemo() { if (fixture) return fixture.resetDemo(); throw new Error('真实模式不提供演示重置'); }

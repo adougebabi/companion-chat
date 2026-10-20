@@ -20,7 +20,7 @@ import {installDataToolsProvider} from './data-tools';
 import {installDiagnosticsProvider} from './diagnostics';
 // The JS renderers consume one centralized projection, never wire DTO copies.
 // @ts-expect-error JS projection
-import { viewFromBundle } from '../contract-map.mjs';
+import { viewFromBundle, directoryGroupProjection } from '../contract-map.mjs';
 // @ts-expect-error JS reader
 import { readProduct } from '../read-product.mjs';
 // @ts-expect-error JS facade
@@ -33,26 +33,32 @@ export const client = new BrowserClient(import.meta.env.VITE_API_ORIGIN || '');
 const governance = createGovernanceProvider(client,refreshProduct);
 export const conversation = () => useConversationStore(workspacePinia);
 let refreshEpoch = 0;
-export async function refreshProduct() {
+let latestRefresh: Promise<unknown> = Promise.resolve();
+export function refreshProduct(options:{initialOnly?:boolean}={}) {
   const epoch = ++refreshEpoch;
-  const bundle = await readProduct(client);
-  if (epoch !== refreshEpoch) return;
-  const snapshot = viewFromBundle(bundle);
-  snapshot.session = bundle.session.authenticated ? bundle.session : null;
-  snapshot.meta.surfaces = bundle.surfaces || {};
-  snapshot.meta.details = bundle.details || {};
-  replaceSnapshot(snapshot);
-  return bundle.session;
+  const task = readProduct(client,options).then((bundle:any) => {
+    if (epoch !== refreshEpoch) return latestRefresh;
+    const snapshot = viewFromBundle(bundle);
+    snapshot.session = bundle.session.authenticated ? bundle.session : null;
+    snapshot.meta.surfaces = bundle.surfaces || {};
+    snapshot.meta.details = bundle.details || {};
+    replaceSnapshot(snapshot);
+    return bundle.session;
+  });
+  latestRefresh=task;return task;
 }
+function refreshInBackground(){void refreshProduct().catch((error:unknown)=>{const snapshot=get();replaceSnapshot({...snapshot,meta:{...snapshot.meta,bootstrapWarning:error instanceof Error?error.message:'部分资料读取尚未完成，请重试'}});});}
+
 export const auth = {
   session: () => client.session(), setupStatus: () => client.setupStatus(),
-  async login(password: string) { await client.login(password); await refreshProduct(); },
-  async setup(token: string, password: string) { await client.setup(token,password); await refreshProduct(); },
+  async login(password: string) { await client.login(password); await refreshProduct({initialOnly:true}); refreshInBackground(); },
+  async setup(token: string, password: string) { await client.setup(token,password); await refreshProduct({initialOnly:true}); refreshInBackground(); },
   async logout() { await conversation().logout(); await refreshProduct(); },
 };
 export const directory = {
   groups: () => client.listActorGroups(),
   async move(characterId: string, groupId: string) {
+    const owner=get('session')?.actorId;
     const desired = groupId === 'ungrouped' ? '' : groupId;
     const groups = await client.listActorGroups();
     const memberships = groups.filter(g=>(g.actor_ids ?? g.members ?? []).includes(characterId));
@@ -62,10 +68,11 @@ export const directory = {
     try {
       if(desired)await client.assignActorGroupMember(desired,characterId);
       for(const group of memberships)if(group.id!==desired)await client.removeActorGroupMember(group.id,characterId);
-      const actual=(await client.listActorGroups()).filter(g=>(g.actor_ids??g.members??[]).includes(characterId)).map(g=>g.id);
+      const confirmed=await client.listActorGroups();
+      const actual=confirmed.filter(g=>(g.actor_ids??g.members??[]).includes(characterId)).map(g=>g.id);
       if(actual.length!==(desired?1:0)||(desired&&actual[0]!==desired))throw new Error('分组命令后读回不一致，请重新读取并核对原选择');
-      await refreshProduct();
-    } catch(error) { await refreshProduct(); throw error; }
+      if(get('session')?.actorId===owner){const snapshot=get();replaceSnapshot({...snapshot,...directoryGroupProjection(snapshot.characters,confirmed)});refreshInBackground();}
+    } catch(error) { refreshInBackground(); throw error; }
   },
   async createGroup(name: string) { const result = await client.createActorGroup(name); await refreshProduct(); return result; },
   async lifecycle(id: string, status: 'active'|'paused'|'retired', expectedRevision: number, reason: string) {
@@ -86,7 +93,7 @@ export const directory = {
       try { await client.assignActorGroupMember(groupId,result.id); }
       catch(error) { warning=`角色已激活；分组未保存：${error instanceof Error ? error.message : '读取失败'}`; }
     }
-    await refreshProduct(); return {...result,warning};
+    refreshInBackground(); return {...result,warning};
   },
 };
 export function activationFromAnalysis(analysis: BrowserFluctlightCreationAnalysis, name: string, requestId: string, timezone: string): BrowserFluctlightActivationRequest {
