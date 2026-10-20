@@ -486,3 +486,14 @@ Profile原本Real/Mock已共用组件，但组件直接遍历原字段并把对�
 完整前端初跑243/246：发现旧分组投影丢显式group_id（两项roundtrip）和旧boot源码断言。主线程修实际投影使完整读取保留已确认目录group，move仍按真实成员重置；断言更新bounded首屏+后台。最终全Web246/246、最后定向12/12、type/build/no-Mock通过；没有DB/后端逻辑/LLM/Comfy调用。两名只读终审：修了未知键自然语言被隐藏的问题，增加voice.speech_style和开放场景说明回归。
 
 实际浏览器加载正式dist回放NAS报告结构与既有完整初始化fixture；诊断/自治/衣物/日程跨午夜/大写目录完成核对并保存6张图，1280/1280与390px真实iframe390/390无横向溢出，console error为空。此为报告结构回放，不是NAS更新后或功能通过。日程数据时区错位源报告无接受项仍未证实。无需迁移，不部署；并行profile-types.ts保持不动，总任务in_progress。
+
+
+## 2026-10-20 NAS追加UX-07—16修复
+
+目标当前分区误用history=true已改false，真实BrowserClient夹具锁false/limit/opaque cursor及503不回退。schedule failed仅真实Describe RUNNING且有RunID时通过类型+failed原子条件修复started，清旧terminal字段、不加attempt、不重派、不改Workflow历史；已有pending/retry running修复也清completed_at。
+
+聊天目录无names不再返回全部参数或长调用说明，49项显式用途元数据保持完整可发现性；按名仍返回完整Description/schema及加载/不可用状态，未改模型预算/native事实结果。会话目录38项4080估算token（原NAS工具结果38377），不是实际模型复测通过。动态失败只读诊断确认Provider connection refused，保留原请求failed与诊断入口，不自动重发；日记未日终不作故障。
+
+共享Avatar、SchedulePlanItem/planWindow、RequestFailureLink分别承接空/破头像、时钟半开窗口/历史/实际状态边界、真实请求失败诊断。聊天反馈紧凑、cancel/retry由store决定、草稿不重挂；仅状态文案翻译，用户消息原文保留。衣柜已登记穿着空态与局部card hover；outdoor_clothing沿前次共享字典。日程地点保留真实历史，未来生成提示不默认home且未知允许省略，不以关键词改旧记录。
+
+验收证据与剩余限制见evidence/full-stack/nas-additions-1020/result.json与fixes.md；不把本机受控回放当NAS部署后或实际模型/数据库事务通过。

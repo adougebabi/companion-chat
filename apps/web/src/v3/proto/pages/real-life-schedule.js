@@ -2,9 +2,7 @@ import { lifeClient } from '../services.js';
 import { asyncPage,requestReceipt } from '../components/async-page.js';
 import { Field } from '../components/forms.js';
 import {displayTimezone} from '../../presentation-time.mjs';
-import {stateLabel} from '../../domain-presentation.mjs';
-import {formatZonedRange} from '../../../lib/fluctlight-display.ts';
-import {JsonDetails} from '../components/records.js';
+import {SchedulePlanItem,refreshPlanWindows} from '../components/schedule-records.js';
 import { esc,badge,drawer,toast } from '../ui.js';
 
 export async function suggestRealSchedule(fid,{detail,item=null,placeId='',title='',reload=()=>{}}={}) {
@@ -25,9 +23,9 @@ export async function suggestRealSchedule(fid,{detail,item=null,placeId='',title
 }
 
 export function renderRealSchedule(el,ctx) {
-  return asyncPage(el,()=>lifeClient.detail(ctx.charId),(detail,reload)=>{
+  return asyncPage(el,()=>lifeClient.detail(ctx.charId),(detail,reload,alive)=>{
     const schedule=detail.schedule,zone=displayTimezone(schedule?.timezone,detail.context?.timezone);
-    el.innerHTML=`<div class="row" style="margin-bottom:12px"><span class="grow small muted">${esc(schedule?.local_date || detail.context?.local_date || '')} · ${esc(zone || '')} · 左边是计划，右边是实际发生的</span><button class="btn" data-reload>重新读取</button><button class="btn primary" data-suggest>建议一项日程</button></div><div class="card"><div class="planfact small muted"><b>时间</b><b>计划</b><b>实际</b></div>${schedule?`<div class="list">${schedule.items.map(item=>`<div class="lrow planfact" style="border-left:3px dashed var(--sky);padding-left:10px"><b class="small">${esc(formatZonedRange(item.start_at,item.end_at,zone))}</b><div>${esc(item.activity)} ${badge(stateLabel(item.status))}<div class="small muted">${esc(item.location || '地点未记录')}${item.place_id?` · ${esc(item.place_id)}`:''}</div><div class="row"><button class="btn ghost sm" data-edit="${esc(item.id)}">建议调整</button><button class="btn ghost sm" data-cancel="${esc(item.id)}">建议取消</button></div>${JsonDetails(item,'原始时间与来源')}</div><div>${item.action_status?badge(stateLabel(item.action_status)):'<span class="small muted">尚无执行结果</span>'}${item.intention_id?`<div class="small">关联意向 ${esc(item.intention_id)}</div>`:''}</div></div>`).join('')}</div>`:'<div class="statebox"><h2>今天尚无已接受日程</h2><p>初始日程由真实任务生成，等待不代表已经发生。</p><a class="btn" href="#/diag">查看初始化任务</a><a class="btn" href="#/c/'+ctx.charId+'/chat">与她安排日程</a></div>'}</div><p class="small muted">计划与实际结果分别记录。经过某个时段不代表计划已经完成。调整使用日程版本与生活版本双重校验。</p><p data-error role="alert"></p>`;
+    el.innerHTML=`<div class="row" style="margin-bottom:12px"><span class="grow small muted">${esc(schedule?.local_date || detail.context?.local_date || '')} · ${esc(zone || '')} · 计划与实际分开记录</span><button class="btn" data-reload>重新读取</button><button class="btn primary" data-suggest>建议一项日程</button></div><div class="card"><div class="planfact schedule-head small muted"><b>时间</b><b>计划</b><b>实际</b></div>${schedule?`<div class="list">${schedule.items.map(item=>SchedulePlanItem(item,zone)).join('')}</div>`:'<div class="statebox"><h2>今天尚无已接受日程</h2><p>初始日程由真实任务生成，等待不代表已经发生。</p><a class="btn" href="#/diag">查看初始化任务</a><a class="btn" href="#/c/'+ctx.charId+'/chat">与她安排日程</a></div>'}</div><p class="small muted">当前计划时段按时钟标记，不代表正在执行。历史时段保留原计划，经过时段不代表已经完成。“—”表示尚无执行结果。调整使用日程版本与生活版本双重校验。</p><p data-error role="alert"></p>`;
     el.querySelector('[data-reload]').onclick=reload;
     el.querySelector('[data-suggest]').onclick=()=>suggestRealSchedule(ctx.charId,{detail,reload});
     el.querySelectorAll('[data-edit]').forEach(button=>button.onclick=()=>suggestRealSchedule(ctx.charId,{detail,item:schedule.items.find(i=>i.id===button.dataset.edit),reload}));
@@ -38,5 +36,8 @@ export function renderRealSchedule(el,ctx) {
       catch(error){el.querySelector('[data-error]').textContent=error.message;}
       finally{button.disabled=false;}
     });
+    const refreshWindows=()=>{if(alive()&&!document.hidden&&schedule)refreshPlanWindows(el,schedule.items);};
+    const timer=setInterval(refreshWindows,30000);document.addEventListener('visibilitychange',refreshWindows);
+    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',refreshWindows);};
   });
 }

@@ -1,0 +1,29 @@
+{
+  "source": "NAS existing diagnostic UI, read-only, no model calls",
+  "imageTurn": "turn_360e64a0-d5ce-4450-84d0-05ce70b313aa",
+  "budgetEvent": "diagnostic_87639aff980721267a52c7f0e2ea740a",
+  "budget": {
+    "iteration": 6,
+    "estimatedInput": 51360,
+    "toolResults": 38377,
+    "maxInput": 18432,
+    "window": 32768,
+    "outputReserve": 10240,
+    "margin": 4096
+  },
+  "lastTool": {
+    "event": "diagnostic_0bd6eadb2ff94783c3e1f655710b2a22",
+    "name": "capability.catalog",
+    "arguments": {
+      "names": null
+    }
+  },
+  "momentFailure": {
+    "request": "req_4a880d15c66f8a3369c9638495147662",
+    "event": "diagnostic_e47132c4a9b36817d504e0bcc44ebd33",
+    "cause": "provider connection refused; raw configured address omitted",
+    "correlation": "owner-life:inbox_53da2120e1a0e0932b840742d8140e51"
+  },
+  "location": "No evidence of programmatic home fallback; preserve accepted source and do not infer from activity keywords.",
+  "liveRetest": "not_executed"
+}

@@ -73,7 +73,7 @@ func TestIndependentToolE2ECapabilityCatalog(t *testing.T) {
 	request := fixture.request(capabilityCatalogName, "catalog-permitted", map[string]any{})
 	receipt, err := fixture.app.ExecuteTool(fixture.ctx, request)
 	items := arrayValue(mapValue(receipt.Result.Output)["items"])
-	if err != nil || receipt.Result.Status != "completed" || len(items) == 0 || mapValue(items[0])["parameters"] == nil {
+	if err != nil || receipt.Result.Status != "completed" || len(items) == 0 || mapValue(items[0])["parameters"] != nil || mapValue(items[0])["purpose"] == nil {
 		t.Fatalf("catalog receipt=%#v err=%v", receipt, err)
 	}
 }

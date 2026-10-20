@@ -46,7 +46,7 @@ const (
 	minWakeUpIntervalSeconds      = 10 * 60
 	maxWakeUpIntervalSeconds      = 10 * 60
 	dispatcherIntentOrder         = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','schedule.current_day','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
@@ -1458,6 +1458,24 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			}
 		}
 		execution, describeErr := d.Client.DescribeWorkflowExecution(ctx, normalizedWorkflowID(workflowID), "")
+		// A failed schedule ledger may refer to an earlier Run while the stable
+		// daily scheduler is still running. Observe only; never redispatch or
+		// reinterpret a terminal/not-found/unavailable execution as recovery.
+		if intentType == "schedule.current_day" && currentIntentStatus == "failed" {
+			repaired, repairErr := reconcileFailedScheduleLedger(ctx, intentID, execution, describeErr, d.App.DB.Pool().Exec)
+			if repairErr != nil {
+				return count, repairErr
+			}
+			if repaired {
+				runID := execution.WorkflowExecutionInfo.GetExecution().GetRunId()
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_reconcile", "started", "schedule_running_ledger_repaired", attemptCount, nil)
+				if d.Started != nil {
+					d.Started[intentID] = struct{}{}
+				}
+				count++
+			}
+			continue
+		}
 		if intentType == "studio.generate" || intentType == "diary.generate" || intentType == "media.generation" || intentType == "media.delete" {
 			if describeErr != nil || execution == nil || execution.WorkflowExecutionInfo == nil {
 				// Observation failure says nothing about an in-flight model task.
@@ -1541,7 +1559,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		status := execution.WorkflowExecutionInfo.GetStatus()
 		if status == enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING {
 			if currentIntentStatus != "started" {
-				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),completed_at=NULL,next_attempt_at=NULL,attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
 				if err != nil {
 					return count, err
 				}

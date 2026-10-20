@@ -314,7 +314,7 @@ func TestKevPhysicalRequestFallbackKeepsRecoveryUtilities(t *testing.T) {
 	}
 }
 
-func TestCapabilityCatalogReturnsRunScopedPurposesAndParametersWithoutLoading(t *testing.T) {
+func TestCapabilityCatalogListsRunScopedPurposesWithoutLoadingSchemas(t *testing.T) {
 	definition := CapabilityDefinition{Name: "allowed", Description: "Read the allowed fact.", InputSchema: objectSchema(map[string]any{"id": stringSchema()}, []string{"id"}, false)}
 	state := &kevRunSelection{original: []CapabilityDefinition{definition}, loaded: map[string]bool{}}
 	ctx := context.WithValue(context.Background(), kevRunSelectionKey{}, state)
@@ -324,7 +324,7 @@ func TestCapabilityCatalogReturnsRunScopedPurposesAndParametersWithoutLoading(t 
 	}}
 	result, err := capability.Execute(ctx, CapabilityInvocation{CallID: "catalog", CapabilityName: capabilityCatalogName}, CapabilityContext{})
 	items := arrayValue(mapValue(result.Output)["items"])
-	if err != nil || len(items) != 1 || stringValue(mapValue(items[0])["name"]) != "allowed" || stringValue(mapValue(items[0])["purpose"]) != definition.Description || len(mapValue(mapValue(items[0])["parameters"])) == 0 {
+	if err != nil || len(items) != 1 || stringValue(mapValue(items[0])["name"]) != "allowed" || stringValue(mapValue(items[0])["purpose"]) != definition.Description || mapValue(items[0])["parameters"] != nil {
 		t.Fatalf("catalog result=%#v err=%v", result, err)
 	}
 	if len(state.loaded) != 0 {

@@ -875,3 +875,39 @@ late Provider settlement, 140-message drain, legacy replay, local midnight and
 DST, source edit/return-to-earlier-digest, Memory failure rollback, same-day
 revision, and final Prompt raw fallback. Redis is not a scheduler for these
 intents; PostgreSQL due times and the existing Temporal dispatcher own them.
+
+
+## Scenario: Failed daily scheduler ledger observation repair (2026-10-20)
+
+### 1. Scope / Trigger
+A daily scheduler ledger can retain an older Run failure while its stable Workflow
+is RUNNING and waiting for local midnight after generating the accepted schedule.
+
+### 2. Signatures
+`ReconcileOnce` selects failed `schedule.current_day`;
+`reconcileFailedScheduleLedger(ctx,intentID,DescribeResponse,describeErr,exec)`
+updates only the matching `intent_type='schedule.current_day' AND status='failed'`.
+
+### 3. Contracts
+Require actual RUNNING plus nonempty RunID. Restore started, clear completed_at,
+next_attempt_at and current last_error; preserve attempt_count and historical
+failure diagnostics. Record AlreadyRunning with the observed RunID once. This is
+observation only, with no dispatch, signal, restart or change to Workflow code/history.
+
+### 4. Validation & Error Matrix
+Unknown/not-found/Describe failure/terminal/empty RunID → no write and no restart.
+CAS loser/already repaired → no new event/count. DB write error → propagate.
+
+### 5. Good / Base / Bad Cases
+Good: failed ledger becomes started after current RUNNING observation. Base:
+existing started stays unchanged. Bad: mark a timer-waiting scheduler completed
+because today's schedule exists, or count observation as another execution attempt.
+
+### 6. Tests Required
+`schedule_ledger_test.go` covers terminal/nil/error observations, RunID, guarded
+command, CAS loser and DB failure. Pure/controlled command tests do not certify
+PostgreSQL concurrent updates or NAS Temporal acceptance; record those separately.
+
+### 7. Wrong vs Correct
+Wrong: generic failed → retry/completed repair. Correct: narrow failed daily-ledger
+repair only after actual current RUNNING; preserve genuine terminal failures.

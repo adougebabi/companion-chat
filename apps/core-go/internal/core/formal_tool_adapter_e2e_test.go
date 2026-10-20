@@ -370,8 +370,8 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 			},
 			verify: func(t *testing.T, _ *formalToolAdapterFixture, r ToolExecutionReceipt) {
 				items := arrayValue(mapValue(r.Result.Output)["items"])
-				if len(items) == 0 || mapValue(items[0])["parameters"] == nil {
-					t.Fatal("authorized parameter catalog missing", r.Result.Output)
+				if len(items) == 0 || mapValue(items[0])["parameters"] != nil || mapValue(items[0])["purpose"] == nil {
+					t.Fatal("authorized directory purpose missing", r.Result.Output)
 				}
 			},
 		},

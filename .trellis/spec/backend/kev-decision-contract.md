@@ -312,3 +312,39 @@ credentials as a compatibility workaround.
 2026-10-14 regression: globally disabled or media-only tools.select=false previously produced two baseline loaded and six tool_selection_changed despite a stable revision. Test both modes and actual Generate/Stream catalog→execution; test that neither fallback nor later directory calls widen beyond the current named window. Raw unaudited model answers are not adopted.
 
 A failed initial read has an unknown revision, not revision-zero authority. Anchor a named fallback on the next successful snapshot. Distinguish Admit settings_unavailable from config_changed. Once an optional window observes a real revision/enablement change, revoke it persistently until a fresh named query; later read errors cannot resurrect it.
+
+
+## Scenario: Purpose directory versus named schema disclosure (2026-10-20)
+
+### 1. Scope / Trigger
+An unfiltered catalog leaked every business schema into native history and caused
+NAS prompt_tool_result_budget_exceeded. Full descriptions alone also cost 8752 tokens.
+
+### 2. Signatures
+`capability.catalog({})`, `{names:null}` and `{names:[]}` return a full authorized
+`items:[{name,purpose}]` directory. `{names:["media.image.generate"]}` returns
+complete Description as purpose plus parameters and the existing admission receipt.
+
+### 3. Contracts
+Use explicit `capabilityDirectoryPurposes` for built-ins, covered against installed
+definitions; custom tools retain their actual Description. Do not slice descriptions,
+truncate factual results, raise model limits, hide installed names or change native
+Tool instructions. Name disclosure retains the scoped registry and permission checks.
+
+### 4. Validation & Error Matrix
+Omitted/null/empty names → no parameters or schema loading. Named allowed tool →
+complete schema; unavailable name → typed unavailable, no unrelated directory dump.
+
+### 5. Good / Base / Bad Cases
+Good: inspect purposes then request a named schema. Base: custom purpose unchanged.
+Bad: empty names return all schemas, or a short directory replaces full call instructions.
+
+### 6. Tests Required
+`capability_catalog_listing_test.go` checks every built-in purpose, full name sets,
+all four utility surfaces, directory <=4608 estimated tokens, full named schema and
+unavailable/run-context status. Keep native named-loading/admission tests. Pure
+wire estimates do not certify an external model turn or media result.
+
+### 7. Wrong vs Correct
+Wrong: an unfiltered catalog eagerly adds parameters to every item. Correct:
+list deliberate purposes; disclose full instructions/schema only for requested names.

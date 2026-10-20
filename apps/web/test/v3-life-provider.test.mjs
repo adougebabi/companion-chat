@@ -10,10 +10,11 @@ test('life adapter retains aggregate and opaque CAS, failed-request idempotency 
   globalThis.window={location:{origin:'http://life.test'}};
   globalThis.document={cookie:'fluctlight_csrf=fixture',addEventListener(){},createElement(){return {};}};
   const server=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
-  const calls=[];let first=true,failWardrobe=false;
+  const calls=[];let first=true,failWardrobe=false,failGoals=false;
   const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
   const fetcher=async(url,init={})=>{
-    const path=new URL(String(url)).pathname,body=init.body?JSON.parse(init.body):null;calls.push({path,body,method:init.method || 'GET'});
+    const parsed=new URL(String(url)),path=parsed.pathname,body=init.body?JSON.parse(init.body):null;calls.push({path,query:Object.fromEntries(parsed.searchParams),body,method:init.method || 'GET'});
+    if(path.endsWith('/goals'))return failGoals?json({code:'dependency_failed',message:'controlled goals failure'},503):json({items:parsed.searchParams.get('history')==='true'?[{id:'completed-one',status:'completed'}]:[{id:'active-one',status:'active'},{id:'active-two',status:'active'}],next_cursor:'opaque+cursor/='});
     if(path.endsWith('/wardrobe/wear')){if(first){first=false;throw new TypeError('controlled transport interruption');}return json({request:{id:'request-1',fluctlight_id:'fl-one',status:'pending',kind:'wardrobe_wear'}});}
     if(path.endsWith('/schedules/sc-one/items'))return json({request:{id:'schedule-request',fluctlight_id:'fl-one',status:'pending'}});
     if(path.endsWith('/wardrobe/items/item-one/use'))return json({request:{id:'use-request',fluctlight_id:'fl-one',status:'pending'}});
@@ -33,6 +34,9 @@ test('life adapter retains aggregate and opaque CAS, failed-request idempotency 
     await assert.rejects(life.wear('fl-one','item-one','upper_body',7,'换装'),/controlled transport/);
     const accepted=await life.wear('fl-one','item-one','upper_body',7,'换装');assert.equal(accepted.request.status,'pending');
     const wears=calls.filter(c=>c.path.endsWith('/wardrobe/wear'));assert.equal(wears[0].body.idempotencyKey,wears[1].body.idempotencyKey);assert.equal(wears[1].body.expectedRevision,7);assert.equal(wears[1].body.confirm,undefined);
+    const goals=await life.goals('fl-one');assert.deepEqual(goals.items.map(g=>g.id),['active-one','active-two']);assert.equal(goals.next_cursor,'opaque+cursor/=');
+    await life.goals('fl-one',goals.next_cursor);const goalCalls=calls.filter(c=>c.path.endsWith('/goals'));assert.equal(goalCalls[0].query.history,'false');assert.equal(goalCalls[0].query.limit,'50');assert.equal(goalCalls[1].query.cursor,goals.next_cursor);
+    failGoals=true;await assert.rejects(life.goals('fl-one'),/controlled goals failure/);
     const detail=await life.detail('fl-one');
     await life.scheduleItem('fl-one',detail,null,{activity:'阅读',scene:'书屋',location:'同名地点',placeId:'place-one',startAt:'2026-10-17T10:00:00+08:00',endAt:'2026-10-17T11:00:00+08:00',reason:'建议'},'create');
     const schedule=calls.find(c=>c.path.endsWith('/schedules/sc-one/items'));assert.equal(schedule.body.expectedLifeContextRevision,'life_ctx_opaque');assert.equal(schedule.body.expectedRevision,12);assert.equal(schedule.body.placeId,'place-one');

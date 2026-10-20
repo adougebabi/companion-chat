@@ -122,11 +122,20 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 		if len(requestedNames) > 0 && !requestedToolName(args.Names, definition.Name) {
 			continue
 		}
-		parameters := definition.InputSchema
-		if parameters == nil {
-			parameters = objectSchema(nil, nil, false)
+		item := map[string]any{"name": definition.Name, "purpose": definition.Description}
+		if len(requestedNames) == 0 {
+			item["purpose"] = capabilityDirectoryPurpose(definition)
 		}
-		items = append(items, map[string]any{"name": definition.Name, "purpose": definition.Description, "parameters": parameters})
+		// Listing discovers purposes, not every installed business schema.
+		// Named disclosure below retains the complete schema and admissions.
+		if len(requestedNames) > 0 {
+			parameters := definition.InputSchema
+			if parameters == nil {
+				parameters = objectSchema(nil, nil, false)
+			}
+			item["parameters"] = parameters
+		}
+		items = append(items, item)
 	}
 	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"items": items, "count": len(items), "run_scoped": kevSelection(ctx) != nil, "loaded": loaded, "unavailable": unavailable, "admissions": admissions, "replaces_optional_window": len(args.Names) > 0}}, nil
 }

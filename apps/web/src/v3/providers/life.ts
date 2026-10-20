@@ -41,7 +41,8 @@ export function createLifeProvider(client: BrowserClient) {
     photo: (fid:string,itemId:string,body:Omit<import("@fluctlight/browser-client").BrowserMediaPhotoBody,"idempotencyKey">,idempotencyKey:string) => {writable(fid);return client.requestItemPhoto(fid,itemId,{...body,idempotencyKey});},
     request: (fid:string,id:string) => client.ownerRequest(id).then(request=>{if(request.fluctlight_id!==fid)throw new Error('请求范围不匹配');return request;}),
     requests: (fid:string,cursor?:string) => client.listOwnerRequests(fid,{cursor}),
-    goals: (fid:string,cursor?:string) => client.goals(fid,{history:true,limit:50,cursor}),
+    // Core partitions terminal history from current goals; true is not “include history”.
+    goals: (fid:string,cursor?:string) => client.goals(fid,{history:false,limit:50,cursor}),
     goal: (fid:string,id:string) => client.goalDetail(fid,id),
     goalHistory: (fid:string,id:string,cursor='') => client.goalHistory(fid,id,cursor),
     goalEvidence: (fid:string,id:string,cursor='') => client.goalEvidence(fid,id,cursor),

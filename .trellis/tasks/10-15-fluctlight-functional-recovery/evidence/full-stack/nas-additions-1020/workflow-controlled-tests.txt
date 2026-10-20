@@ -1,0 +1,36 @@
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning/Running
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning/Completed
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning/Failed
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning/Canceled
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning/Terminated
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning/TimedOut
+=== RUN   TestFailedScheduleLedgerRepairsOnlyObservedRunning/ContinuedAsNew
+--- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning (0.00s)
+    --- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning/Running (0.00s)
+    --- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning/Completed (0.00s)
+    --- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning/Failed (0.00s)
+    --- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning/Canceled (0.00s)
+    --- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning/Terminated (0.00s)
+    --- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning/TimedOut (0.00s)
+    --- PASS: TestFailedScheduleLedgerRepairsOnlyObservedRunning/ContinuedAsNew (0.00s)
+=== RUN   TestScheduleLedgerObservationPreservesAttemptsAndClearsStaleTerminalFields
+--- PASS: TestScheduleLedgerObservationPreservesAttemptsAndClearsStaleTerminalFields (0.00s)
+=== RUN   TestNextLocalMidnightDelayUsesConfiguredTimezone
+--- PASS: TestNextLocalMidnightDelayUsesConfiguredTimezone (0.00s)
+=== RUN   TestCurrentDayScheduleWorkflowRejectsMissingOrInvalidTimezone
+=== RUN   TestCurrentDayScheduleWorkflowRejectsMissingOrInvalidTimezone/schedule_timezone_missing
+2026/10/20 23:53:49 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType EnsureCurrentDayScheduleActivity
+=== RUN   TestCurrentDayScheduleWorkflowRejectsMissingOrInvalidTimezone/schedule_timezone_invalid
+2026/10/20 23:53:49 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType EnsureCurrentDayScheduleActivity
+--- PASS: TestCurrentDayScheduleWorkflowRejectsMissingOrInvalidTimezone (0.08s)
+    --- PASS: TestCurrentDayScheduleWorkflowRejectsMissingOrInvalidTimezone/schedule_timezone_missing (0.08s)
+    --- PASS: TestCurrentDayScheduleWorkflowRejectsMissingOrInvalidTimezone/schedule_timezone_invalid (0.00s)
+=== RUN   TestNextLocalMidnightDelayFallsBackForUnknownTimezone
+--- PASS: TestNextLocalMidnightDelayFallsBackForUnknownTimezone (0.00s)
+=== RUN   TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime
+--- PASS: TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime (0.00s)
+=== RUN   TestWakeUpTerminalFailureRemainsRecoverableWithinRetryBudget
+--- PASS: TestWakeUpTerminalFailureRemainsRecoverableWithinRetryBudget (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	2.401s

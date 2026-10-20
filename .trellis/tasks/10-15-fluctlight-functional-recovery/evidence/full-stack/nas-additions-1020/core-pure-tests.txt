@@ -1,0 +1,58 @@
+=== RUN   TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas
+=== RUN   TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/conversation
+    capability_catalog_listing_test.go:50: surface=conversation tools=38 directory_tokens=4080
+    capability_catalog_listing_test.go:50: surface=conversation tools=38 directory_tokens=4080
+    capability_catalog_listing_test.go:50: surface=conversation tools=38 directory_tokens=4080
+=== RUN   TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/wake_up
+    capability_catalog_listing_test.go:50: surface=wake_up tools=37 directory_tokens=3978
+    capability_catalog_listing_test.go:50: surface=wake_up tools=37 directory_tokens=3978
+    capability_catalog_listing_test.go:50: surface=wake_up tools=37 directory_tokens=3978
+=== RUN   TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/autonomy
+    capability_catalog_listing_test.go:50: surface=autonomy tools=22 directory_tokens=2410
+    capability_catalog_listing_test.go:50: surface=autonomy tools=22 directory_tokens=2410
+    capability_catalog_listing_test.go:50: surface=autonomy tools=22 directory_tokens=2410
+=== RUN   TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/native_cognition
+    capability_catalog_listing_test.go:50: surface=native_cognition tools=36 directory_tokens=3899
+    capability_catalog_listing_test.go:50: surface=native_cognition tools=36 directory_tokens=3899
+    capability_catalog_listing_test.go:50: surface=native_cognition tools=36 directory_tokens=3899
+--- PASS: TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas (0.00s)
+    --- PASS: TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/conversation (0.00s)
+    --- PASS: TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/wake_up (0.00s)
+    --- PASS: TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/autonomy (0.00s)
+    --- PASS: TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas/native_cognition (0.00s)
+=== RUN   TestCapabilityCatalogNamedDisclosurePreservesCompleteSchemaAndUnavailable
+--- PASS: TestCapabilityCatalogNamedDisclosurePreservesCompleteSchemaAndUnavailable (0.00s)
+=== RUN   TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy
+--- PASS: TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy (0.00s)
+=== RUN   TestCapabilityCatalogListsRunScopedPurposesWithoutLoadingSchemas
+--- PASS: TestCapabilityCatalogListsRunScopedPurposesWithoutLoadingSchemas (0.00s)
+=== RUN   TestKevStableDisabledNamedCatalogLoadsRequestedTools
+=== RUN   TestKevStableDisabledNamedCatalogLoadsRequestedTools/true
+=== RUN   TestKevStableDisabledNamedCatalogLoadsRequestedTools/false
+--- PASS: TestKevStableDisabledNamedCatalogLoadsRequestedTools (0.00s)
+    --- PASS: TestKevStableDisabledNamedCatalogLoadsRequestedTools/true (0.00s)
+    --- PASS: TestKevStableDisabledNamedCatalogLoadsRequestedTools/false (0.00s)
+=== RUN   TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo
+=== RUN   TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/yes
+=== RUN   TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/no
+=== RUN   TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/unclear
+=== RUN   TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/disabled
+=== RUN   TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/audit_failed
+=== RUN   TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/settings_failed
+--- PASS: TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo (0.00s)
+    --- PASS: TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/yes (0.00s)
+    --- PASS: TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/no (0.00s)
+    --- PASS: TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/unclear (0.00s)
+    --- PASS: TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/disabled (0.00s)
+    --- PASS: TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/audit_failed (0.00s)
+    --- PASS: TestKevNamedCatalogAdmissionHasBoundedFallbackAndRespectsNo/settings_failed (0.00s)
+=== RUN   TestScheduleGenerationModelInputKeepsSemanticsWithoutStorageIDs
+--- PASS: TestScheduleGenerationModelInputKeepsSemanticsWithoutStorageIDs (0.00s)
+=== RUN   TestNormalizeScheduleResponseKeepsUnknownAndModelDeclaredLocations
+--- PASS: TestNormalizeScheduleResponseKeepsUnknownAndModelDeclaredLocations (0.00s)
+=== RUN   TestNormalizeScheduleResponseRequiresContiguousLocalDay
+--- PASS: TestNormalizeScheduleResponseRequiresContiguousLocalDay (0.00s)
+=== RUN   TestNormalizeScheduleResponsePreservesProviderSemanticLabelsWithoutInference
+--- PASS: TestNormalizeScheduleResponsePreservesProviderSemanticLabelsWithoutInference (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.673s

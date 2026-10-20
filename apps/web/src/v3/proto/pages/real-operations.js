@@ -7,6 +7,7 @@ import {mountPendingGroups} from '../components/pending-groups.js';
 import {JsonDetails} from '../components/records.js';
 import {Tabs} from '../components/forms.js';
 import {domainName,stateLabel} from '../../domain-presentation.mjs';
+import {requestDecisionText,RequestFailureLink} from '../components/request-failure.js';
 import {esc,badge,confirm} from '../ui.js';
 
 const taskLink=id=>`#/diag/task/${encodeURIComponent(id)}`;
@@ -33,7 +34,7 @@ export function renderRealPending(el,ctx){
 }
 export function renderRealRequest(el,ctx){
   return asyncPage(el,()=>operationsClient.request(ctx.params.requestId),(request,reload)=>{
-    el.innerHTML=`<div class="card"><div class="row"><h2 class="grow">${esc(request.kind)} ${badge(request.status)}</h2><button class="btn" data-reload>重新查询</button></div><p>${esc(request.decision_reason||'尚无处理结论')}</p><p class="small muted">${esc(request.id)} · ${esc(instant(request.created_at))} · v${esc(request.revision)}</p>${requestTaskLinks(request)}${JsonDetails(request.payload,'请求原始内容')}${JsonDetails(request.result||{status:request.status},'实际结果')}${JsonDetails(request.result_refs,'结果与事实来源')}<a class="btn" href="#/diag/pending">返回待处理</a>${request.fluctlight_id?`<a class="btn" href="#/c/${encodeURIComponent(request.fluctlight_id)}/life/now">角色此刻</a>`:''}</div>`;el.querySelector('[data-reload]').onclick=reload;
+    el.innerHTML=`<div class="card"><div class="row"><h2 class="grow">${esc(domainName(request.kind,'行动请求'))} ${badge(stateLabel(request.status))}</h2><button class="btn" data-reload>重新查询</button></div><p>${esc(requestDecisionText(request)||'尚无处理结论')}</p><p class="small muted">${esc(request.id)} · ${esc(instant(request.created_at))} · v${esc(request.revision)}</p>${requestTaskLinks(request)}${RequestFailureLink(request)}${JsonDetails(request.payload,'请求原始内容')}${JsonDetails(request.result||{status:request.status},'实际结果')}${JsonDetails(request.result_refs,'结果与事实来源')}<a class="btn" href="#/diag/pending">返回待处理</a>${request.fluctlight_id?`<a class="btn" href="#/c/${encodeURIComponent(request.fluctlight_id)}/life/now">角色此刻</a>`:''}</div>`;el.querySelector('[data-reload]').onclick=reload;
   });
 }
 export function renderRealTask(el,ctx){

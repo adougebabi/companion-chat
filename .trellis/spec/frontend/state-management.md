@@ -502,3 +502,25 @@ Conversation delivery tests exercise actual frozen-clock POST, zero/null fields,
 
 ### 7. Wrong vs Correct
 Wrong: restore text/key only and let the button disappear while retrying. Correct: restore the accepted identity snapshot and show accurate request progress.
+
+
+## NAS regression seams (2026-10-20)
+
+- `BrowserClient.goals(fid,{history:false,limit:50,cursor})` owns current Goals.
+  `history:true` is a terminal-only partition, never “include history”. Keep test
+  transport fixtures partition-faithful; an aggregate detail fallback hides this bug.
+- `planWindow(start,end,now)` compares RFC3339 instants with [start,end) boundaries.
+  Label current/historical **plan windows**, never infer actual execution/completion.
+  Clock refresh updates only markers and disposes its timer/listener on navigation.
+- Use shared Avatar for missing/broken chat media, with actual-name fallback;
+  no demo-persona substitution. Bind load failure after rendering, escape values.
+- Only chat status/error presentation translates technical codes. Preserve original
+  user/assistant message text, retry identity, canCancel/canRetry and mounted composer.
+- Successful worn-items=[] means no registered wear; wardrobe has no wearing_state
+  authority and cannot claim the character is naked. Card-link hover is scoped;
+  inline text links retain their link affordance.
+
+Regression: `v3-life-provider.test.mjs` asserts the real query and errors;
+`nas-additions.test.mjs` asserts offsets/midnight/DST/half-open windows, original
+message content, avatar failure, truthful wardrobe and failure links. Browser
+fixtures remain explicit local tests and are not real model/NAS acceptance.

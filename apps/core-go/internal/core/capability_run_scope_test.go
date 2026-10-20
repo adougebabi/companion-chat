@@ -43,7 +43,7 @@ func TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy(t *testing.T) {
 		t.Fatalf("real text feedback/privacy lost: %#v", visible)
 	}
 	catalog := capabilityCatalogCapability{catalog: base.Catalog}
-	receipt, err := catalog.Execute(ctx, CapabilityInvocation{CallID: "catalog-test", CapabilityName: capabilityCatalogName, Metadata: InvocationMetadata{Surface: CapabilitySurfaceConversation}}, CapabilityContext{})
+	receipt, err := catalog.Execute(ctx, CapabilityInvocation{CallID: "catalog-test", Arguments: json.RawMessage(`{"names":["conversation.reply"]}`), CapabilityName: capabilityCatalogName, Metadata: InvocationMetadata{Surface: CapabilitySurfaceConversation}}, CapabilityContext{})
 	if err != nil {
 		t.Fatal(err)
 	}

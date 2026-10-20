@@ -250,7 +250,8 @@
         "observation": "真实人物路由已打开，按页面状态核对。"
       },
       "issueIds": [
-        "issue-12"
+        "issue-12",
+        "issue-16"
       ]
     },
     {
@@ -273,7 +274,9 @@
       },
       "issueIds": [
         "issue-09",
-        "issue-10"
+        "issue-10",
+        "issue-14",
+        "issue-15"
       ]
     },
     {
@@ -2048,7 +2051,7 @@
     "blocked": 15,
     "entered_unassessed": 0,
     "not_accessed": 0,
-    "issues": 13
+    "issues": 16
   },
   "resources": {
     "character": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",

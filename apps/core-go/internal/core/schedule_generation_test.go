@@ -28,6 +28,23 @@ func TestScheduleGenerationModelInputKeepsSemanticsWithoutStorageIDs(t *testing.
 	}
 }
 
+func TestNormalizeScheduleResponseKeepsUnknownAndModelDeclaredLocations(t *testing.T) {
+	for _, location := range []any{nil, "", "家"} {
+		item := map[string]any{"start_at": "2026-10-20T00:00:00+08:00", "end_at": "2026-10-21T00:00:00+08:00", "activity": "海边散步", "scene": "海边"}
+		if location != nil {
+			item["location"] = location
+		}
+		result, err := normalizeScheduleResponse(map[string]any{"items": []any{item}}, "2026-10-20", "Asia/Shanghai")
+		if err != nil {
+			t.Fatal(err)
+		}
+		actual := mapValue(arrayValue(result["items"])[0])
+		if actual["location"] != location {
+			t.Fatalf("location inferred or overwritten: got %#v want %#v", actual["location"], location)
+		}
+	}
+}
+
 func TestScheduleGenerationFinalProviderRequestOmitsStorageIDs(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	seedCognitiveProviderRole(t, ctx, repository, "schedule-generation-wire")

@@ -44,3 +44,9 @@ Owner原请求是约定身份，链接表只存窗口/版本/真实执行关联�
 
 ## NAS报告修复最小边界
 真实差距：页面父容器缺gap、诊断formatter绕过本地时区、profile通用递归丢失衣物布尔语义、runtime catalog读取Go原生大写字段却使用小写、初始化审阅直接展开目标JSON。修复位于现有Web展示组件/provider投影，不修改数据库、已存日程时间或模型/Worker。新增共享时间/领域状态展示与衣物/当前状态组件；保留原始记录供折叠核对，false/zero和unknown/cleared语义不可丢失。日程采用实际schedule.timezone优先，context/设备仅作明确显示后备，建议命令继续原带offset字符串+双CAS。能力在configuration provider集中归一化大小写兼容，不改全局Go JSON契约。自治仅分组排版，继承禁用和保存预算/版本行为不变；删不受后端支持的personal目标选项。所有修复以NAS报告/既有真实schema形状为夹具并保留实测未覆盖项；本地验证不记作NAS修复后或功能回归通过。
+
+
+## 追加报告的纵向修复边界
+当前目标API history为互斥分区，life provider误传true；改false并锁客户端真实query，不回退detail数组。Schedule failed账本仅当stable Runtime Describe确认当前RUNNING时作观察修复，completed_at与当前error清空但历史事件保留、不计新attempt、不重派failed Run。catalog无names按已有说明只列name/purpose，有names保留完整parameters及现有披露，不截已有Tool收据、不加窗口/取消guard。前端新增共享Avatar/聊天失败显示、紧凑可取消进度；不改正文与原retry identity。日程按[start,end)标当前计划、过去段标历史计划，不推导实际执行；操作折叠，保留完整24小时及地点原字段。衣柜只说无登记，不声称未穿衣；card hover局部修复，普通链接下划线保留。动态失败只桥接既有真实诊断，实际端点依赖由后续功能验收核实，不重放已终结Owner请求。
+
+目录实测补充：仅去schema仍8752估算token，故将49个内置能力的用途概览显式维护在capability_catalog_purposes.go（非截断规则/事实），目录只返回name/purpose；有names时仍完整Description+schema，不改native工具说明。内置覆盖测试要求每项有概览；自定义工具保留原说明。实际会话38项目录4080估算token，硬预算不改。

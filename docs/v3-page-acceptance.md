@@ -213,3 +213,10 @@ Foundation提议保存完整创建基线、提交事务CAS与持久幂等回执�
 ## 2026-10-20 真实NAS报告与修复状态
 
 独立NAS页面报告：104条路由，89评估、15因缺少类型资源blocked；不是功能回归。UX-01—06源码修复与定向验证完成，见当前任务 `evidence/full-stack/nas-ui-fixes-1020/result.json`。Web246/246，type/build/no-Mock；本地正式dist按报告结构的桌面/390px复验有截图。未部署NAS、未做新代码NAS复验或功能回归。日程数据是否错位仍需真实已接受条目，当前仅修显示/时区选择链，不能视作全量时区验收。
+
+
+## 2026-10-20 NAS追加UX-07—16与真实失败定位
+
+目标当前/终态分区修正；目录无names仅短用途列表、按名完整schema；failed日程账本只在真实RUNNING观察下恢复started；共享头像、紧凑等待/失败、日程历史/当前窗口/操作折叠、衣柜登记空态与card hover。Web253/253、type/build/no-Mock、Core纯/受控10根、Workflow纯/受控7根与Core全包编译通过。390px正式产物夹具回放width/scroll=390，非NAS部署验收。
+
+真实NAS只读诊断确认动态失败为Provider连接拒绝，原请求failed保留；海边活动地点家保留历史值，仅修未来模型提示；日记未日终pending未算故障。本轮无模型/DB事务/真实Temporal回归、无部署。完整证据与限制见当前任务evidence/full-stack/nas-additions-1020/result.json，仍由用户继续统一功能验收。

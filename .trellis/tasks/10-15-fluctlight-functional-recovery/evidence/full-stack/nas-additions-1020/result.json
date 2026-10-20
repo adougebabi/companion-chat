@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-20",
+  "scope": "NAS追加UX-07—16与已观察的功能失败",
+  "sourceReport": "../nas-ux-1020/report.md",
+  "implementation": {
+    "UX-07": "共享Avatar，真实姓名首字占位，空/失败图片不展示破图",
+    "UX-08": "紧凑等待状态与store授权取消；保持输入组件",
+    "UX-09": "failed daily ledger仅在真实RUNNING观察后修复started，不增加attempt、不重派",
+    "UX-10": "scheduled中文，历史计划标记；未知地点不默认家，历史原值保留",
+    "UX-11": "当前Goal查询history=false，不回退detail；真实query回归",
+    "UX-12": "已登记穿着空态，类别复用既有中文映射",
+    "UX-13": "catalog目录/参数披露分开，49项短用途；错误状态中文且链接原turn，保留消息原文",
+    "UX-14": "[start,end)标当前计划时段，不推断实际执行",
+    "UX-15": "每行操作/原始来源折叠，空结果低噪音呈现",
+    "UX-16": "仅链接型卡片hover取消整卡下划线，普通链接保留"
+  },
+  "checks": {
+    "webFull": {
+      "passed": 253,
+      "failed": 0,
+      "skipped": 0
+    },
+    "corePureControlled": {
+      "rootPassed": 10,
+      "failed": 0,
+      "database": false,
+      "liveModel": false
+    },
+    "workflowPureControlled": {
+      "rootPassed": 7,
+      "failed": 0,
+      "database": false,
+      "realTemporal": false
+    },
+    "webTypecheck": "passed",
+    "productionBuild": "passed_no_mock_bundle",
+    "coreBuildAll": "passed",
+    "independentStaticReviews": {
+      "count": 2,
+      "backend": "no_blocking_findings",
+      "frontend": "queued-turn diagnosis finding corrected and regression added"
+    }
+  },
+  "catalog": {
+    "builtinPurposeEntries": 49,
+    "conversationDirectoryItems": 38,
+    "conversationDirectoryEstimatedTokens": 4080,
+    "directoryRegressionCap": 4608,
+    "namedFullDescriptionAndSchema": "preserved",
+    "modelBudget": "unchanged",
+    "realImageTurnRetest": "not_executed"
+  },
+  "browserReplay": {
+    "runtime": "production dist + explicit loopback transport fixtures; no real Core",
+    "desktop": "1280px application checks",
+    "narrow": {
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "scheduleItems": 13,
+      "currentPlanMarkers": 1,
+      "closedOptions": 13,
+      "pendingFeedbackHeight": 45.59375,
+      "brokenAvatars": 0
+    },
+    "verified": [
+      "missing-avatar fallback",
+      "human-readable budget failure",
+      "pending cancellation grouped",
+      "draft remains visible through polling",
+      "two active goals rendered",
+      "wardrobe no registered wear/category labels",
+      "historical/current schedule and preserved source location",
+      "assessment failure page and eventType/request-ID filter link"
+    ],
+    "limits": [
+      "hover interaction not independently triggered; scoped CSS regression checked",
+      "diagnostic link filter values verified; target diagnostic dataset is outside current fixture routes",
+      "CUA log buffer observed MutationObserver.observe non-Node errors during iframe harness navigation; source not attributed, no console-clean acceptance claimed"
+    ],
+    "screenshots": [
+      "chat-desktop.png",
+      "chat-pending-390.png",
+      "schedule-current-390.png",
+      "goals-390.png",
+      "wardrobe-empty-390.png",
+      "request-failure-desktop.png"
+    ]
+  },
+  "notAccepted": {
+    "NASPostDeployment": "not_run",
+    "liveLLMAndMedia": "not_run_by_agent",
+    "scheduleLedgerPostgresConcurrencyAndNASTemporal": "not_run",
+    "moment": "historical Provider connection refused; no replay/no success claimed",
+    "scheduleHistoricalLocation": "preserved accepted model source 家; future prompt correction requires live retest",
+    "diary": "not proven failed before local day end; no forced generation"
+  },
+  "migrationRequired": false,
+  "agentModelCalls": 0,
+  "taskStatus": "in_progress_pending_user_live_acceptance"
+}
