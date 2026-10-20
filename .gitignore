@@ -4,7 +4,9 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 dist/
-data/
+# Root runtime state only (data/companion.sqlite and similar). A bare `data/`
+# also matched source trees such as apps/web/src/v3/proto/data/.
+/data/
 .env
 infra/compose/fluctlight.local.env
 .DS_Store
