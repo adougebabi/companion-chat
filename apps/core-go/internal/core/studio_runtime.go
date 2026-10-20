@@ -14,8 +14,20 @@ func validateStudioOutput(kind string, snapshot, out map[string]any) error {
 		return harmError()
 	}
 	if kind == "assistant" {
-		if !eventKeys(out, "disposition", "reply", "name", "body", "warnings") {
+		if !eventKeys(out, "disposition", "reply", "name", "body", "warnings", "omitted_fields") {
 			return invalid("Invalid assistant output fields")
+		}
+		if raw, exists := out["omitted_fields"]; exists {
+			fields, ok := raw.([]any)
+			if !ok || len(fields) == 0 || len(fields) > 16 {
+				return invalid("Invalid omitted fields")
+			}
+			for _, field := range fields {
+				name, ok := field.(string)
+				if !ok || strings.TrimSpace(name) == "" || len([]rune(name)) > 64 {
+					return invalid("Invalid omitted field")
+				}
+			}
 		}
 		reply := strings.TrimSpace(stringValue(out["reply"]))
 		if reply == "" || len([]rune(reply)) > 4000 {
@@ -112,7 +124,7 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 			defer cancel()
 			code := safeAgentFailureCode(ProviderErrorCode(runErr), "generation_failed")
-			if errors.Is(runErr, errStudioMediaNotConfigured) {
+			if errors.Is(runErr, errStudioMediaNotConfigured) || errors.Is(runErr, errImageProviderNotConfigured) {
 				code = "media_not_configured"
 			}
 			_ = a.ReconcileStudioWorkflowTerminal(cleanup, intentID, code)

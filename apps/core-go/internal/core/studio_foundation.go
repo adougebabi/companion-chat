@@ -284,12 +284,43 @@ func (a *App) prepareStudioCharacterDefinition(ctx context.Context, snapshot map
 	if err != nil {
 		return nil, err
 	}
+	omitted := stripReusableDefinitionFields(raw)
 	prepared, err := prepareInitializationResponse(raw)
 	if err != nil {
 		return nil, err
 	}
 	if _, hasActor := prepared["actor_user"]; hasActor {
-		return nil, invalid("A reusable definition cannot grant an Actor background")
+		delete(prepared, "actor_user")
+		omitted = append(omitted, "actor_user")
 	}
-	return map[string]any{"disposition": "proposal", "reply": "已从精确发布文本解析出结构化角色定义。请审阅并明确采用、保存和发布；尚未修改任何角色。", "name": snapshot["name"], "body": map[string]any{"schema": "character-template.v1", "initialization": prepared}, "warnings": []any{"应用到已有角色仅形成Foundation提案；初始Goal、关系、Developing Self和初始人格选择不导入。"}}, nil
+	warnings := []any{"应用到已有角色仅形成Foundation提案；初始Goal、关系、Developing Self和初始人格选择不导入。"}
+	if len(omitted) > 0 {
+		warnings = append(warnings, "已剔除不可进入可复用定义的字段："+strings.Join(omitted, "、"))
+	}
+	result := map[string]any{"disposition": "proposal", "reply": "已从精确发布文本解析出结构化角色定义。请审阅并明确采用、保存和发布；尚未修改任何角色。", "name": snapshot["name"], "body": map[string]any{"schema": "character-template.v1", "initialization": prepared}, "warnings": warnings}
+	if len(omitted) > 0 {
+		fields := make([]any, 0, len(omitted))
+		for _, field := range omitted {
+			fields = append(fields, field)
+		}
+		result["omitted_fields"] = fields
+	}
+	return result, nil
+}
+
+// Reusable character definitions cannot carry an Actor background, analysis
+// credentials, or a runtime archive. Those fields are removed and reported
+// instead of failing the Studio job into the dead-letter queue.
+func stripReusableDefinitionFields(value map[string]any) []string {
+	if len(value) == 0 {
+		return nil
+	}
+	omitted := make([]string, 0)
+	for _, key := range []string{"actor_user", "analysis_id", "correlation_id", "messages", "current_state"} {
+		if _, ok := value[key]; ok {
+			delete(value, key)
+			omitted = append(omitted, key)
+		}
+	}
+	return omitted
 }

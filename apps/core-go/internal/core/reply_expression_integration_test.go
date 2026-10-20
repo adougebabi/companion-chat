@@ -135,13 +135,13 @@ func TestPrivateChatCommittedStyleRepairAndMalformedSettlement(t *testing.T) {
 	if decodeObject(payload)["committed_text"] != final || mapValue(decodeObject(payload)["committed_metadata"])["prompt_version"] != factOnlyReplyPromptVersion {
 		t.Fatal("actual commit trace missing", string(payload))
 	}
-	if writerCalls != 2 || cognitionCalls != 2 || settlementRepairs != 1 {
+	if writerCalls != 2 || cognitionCalls != 1 || settlementRepairs != 0 {
 		t.Fatal("unexpected calls", writerCalls, cognitionCalls, settlementRepairs)
 	}
 	if _, err := app.ProcessCognitionInbox(ctx, turn.InboxID); err != nil {
 		t.Fatal(err)
 	}
-	if writerCalls != 2 || cognitionCalls != 2 || settlementRepairs != 1 {
+	if writerCalls != 2 || cognitionCalls != 1 || settlementRepairs != 0 {
 		t.Fatal("published replay regenerated")
 	}
 }

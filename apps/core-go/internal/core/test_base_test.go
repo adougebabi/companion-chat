@@ -149,9 +149,17 @@ func (router *fakeProviderRouter) onNativeConversationReply(script nativeConvers
 		}
 		callSequence++
 		pending = &fixture
-		return fakeProviderResult{ToolCalls: []map[string]any{
+		result := fakeProviderResult{ToolCalls: []map[string]any{
 			nativePersonaToolCall(fmt.Sprintf("native-conversation-reply-%d", callSequence), conversationReplyCapabilityName, map[string]any{"text": fixture.ReplyText}),
 		}}
+		// The visible reply ends the turn, so cognition that used to arrive on
+		// the following model call travels with this same response.
+		if fixture.Final.Structured != nil {
+			result.Structured = fixture.Final.Structured
+		} else if strings.TrimSpace(fixture.Final.Text) != "" {
+			result.Text = fixture.Final.Text
+		}
+		return result
 	})
 }
 

@@ -183,7 +183,7 @@ func CapabilityToolSchemaStats(definitions []CapabilityDefinition) (bytes int, c
 func conversationReplyCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: conversationReplyCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Send a real private message to contact the recipient; never internal diagnostics, silence or no_op. WakeUp silence uses final action_type=no_op/response_intent. Autonomous topic_key/purpose describe actual communication.",
+		Description:     "Send a real private message to contact the recipient; never internal diagnostics, silence or no_op. WakeUp silence uses final action_type=no_op/response_intent. Autonomous topic_key/purpose describe actual communication. Side-effect tools such as memory_event and actor.fact.record must already have run; do not send this in the same batch and promise to record later. A committed reply ends the turn.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCurrentLife},

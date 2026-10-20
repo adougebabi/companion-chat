@@ -111,14 +111,14 @@ func TestConversationPhysicalRequestsForceNativePublicationGenerateAndStream(t *
 				Role:       "cognitive_assessment", Scenario: "cognitive_assessment", Messages: []map[string]any{{"role": "user", "content": "reply please"}}, Definitions: []CapabilityDefinition{conversationReplyCapabilityDefinition()},
 				JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: cognitiveTurnResponseSchema(), EnableStreaming: streaming, ProviderRequestID: "native-output", CorrelationID: "turn:native-output",
 			})
-			if err != nil || response.Message == nil || len(requests) != 2 || len(trace.Results) != 1 {
+			if err != nil || response.Message == nil || len(requests) != 1 || len(trace.Results) != 1 {
 				t.Fatalf("native publication loop failed: requests=%d results=%d response=%v err=%v", len(requests), len(trace.Results), response.Message, err)
 			}
 			if !conversationWireForcesReply(requests[0]) || requests[0]["response_format"] != nil {
 				t.Fatalf("first request was not forced native execution: %#v", requests[0])
 			}
-			if requests[1]["tool_choice"] != "auto" || requests[1]["response_format"] != nil {
-				t.Fatalf("optional request retained final grammar: %#v", requests[1])
+			if response.Message.Content == "" || len(response.Message.ToolCalls) != 0 {
+				t.Fatalf("committed reply did not end the turn locally: %#v", response.Message)
 			}
 		})
 	}

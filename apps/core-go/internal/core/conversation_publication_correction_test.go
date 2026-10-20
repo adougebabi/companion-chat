@@ -96,9 +96,9 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 					wantCalls, wantResults = 4, 2
 				}
 				if outcome == "reply" || outcome == "corrected_receipt" {
-					wantCalls, wantResults = 4, 2
+					wantCalls, wantResults = 3, 2
 					if outcome == "corrected_receipt" {
-						wantCalls, wantResults = 5, 3
+						wantCalls, wantResults = 4, 3
 					}
 					if err != nil || len(response.ExecutedToolCalls) != wantResults || strings.Contains(response.Message.Content, "Rejected private prose") {
 						t.Fatalf("native success=%#v err=%v", response, err)
@@ -142,9 +142,8 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 					}
 				}
 				if outcome == "reply" || outcome == "corrected_receipt" {
-					final := requests[len(requests)-1]
-					if final["tool_choice"] != "auto" || final["response_format"] != nil || len(arrayValue(final["tools"])) != 2 || final["enable_thinking"] != true {
-						t.Fatalf("optional catalog retained final grammar: %#v", final)
+					if len(requests) != wantCalls {
+						t.Fatalf("committed reply continued the turn: requests=%d", len(requests))
 					}
 				}
 			})

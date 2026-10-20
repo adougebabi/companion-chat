@@ -421,7 +421,7 @@ func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthori
 	if err != nil {
 		t.Fatalf("refreshed native continuation failed: %v", err)
 	}
-	if providerCalls.Load() != 3 {
+	if providerCalls.Load() != 2 {
 		t.Fatalf("Provider calls=%d", providerCalls.Load())
 	}
 	var assistantCount int

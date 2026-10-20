@@ -212,10 +212,7 @@ func TestNestedReplyAtConcurrencyOneFeedsActualTextBack(t *testing.T) {
 						message = map[string]any{"role": "assistant", "tool_calls": []any{map[string]any{"id": "real-native-reply", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": "{}"}}}}
 						finish = "tool_calls"
 					} else {
-						if !strings.Contains(jsonString(payload["messages"]), "周六一起讨论吧。") {
-							t.Error("actual child text absent from parent tool result")
-						}
-						message["content"] = `{"action_type":"reply","response_intent":"已消费真实回复结果","influences":[]}`
+						t.Error("parent model called after the visible reply committed")
 					}
 				} else {
 					writerCalls++
@@ -250,7 +247,7 @@ func TestNestedReplyAtConcurrencyOneFeedsActualTextBack(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if parentCalls != 2 || writerCalls != 1 || len(invoker.published) != 1 {
+			if parentCalls != 1 || writerCalls != 1 || len(invoker.published) != 1 {
 				t.Fatalf("loop/effect counts: parent=%d writer=%d publication=%d", parentCalls, writerCalls, len(invoker.published))
 			}
 		})

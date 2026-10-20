@@ -20,7 +20,7 @@ var validMemoryVisibility = map[string]struct{}{"private": {}, "owner": {}, "par
 func memoryCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: "memory_event", Version: "v2", Type: CapabilityTypeAction,
-		Description:     "Record/correct sourced memory. Revise needs context/recall opaque ref; recall if absent, never invent.",
+		Description:     "Record/correct sourced memory before conversation.reply. Revise needs context/recall opaque ref; recall if absent, never invent. Do not defer this until after a visible reply or promise to record later in the same batch.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCorePersona, SlotMemoryScope},

@@ -82,6 +82,9 @@ type queuedToolCallingChatModel struct {
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
+	if terminal, ok := visibleReplyEndsTurn(ctx, input); ok {
+		return terminal, nil
+	}
 	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
@@ -202,6 +205,9 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	if terminal, ok := visibleReplyEndsTurn(ctx, input); ok {
+		return assistantMessageStream(terminal), nil
+	}
 	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
@@ -1090,7 +1096,14 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	}
 	if call.JSONMode {
 		validationSchema := call.ResponseSchema
-		if validationErr := validateADKFinalContract(final, call.Role, validationSchema, adkContext.Refs); validationErr != nil {
+		validationErr := validateADKFinalContract(final, call.Role, validationSchema, adkContext.Refs)
+		if validationErr != nil && visibleReplyCommitted(ctx) {
+			// The visible reply already committed. Do not spend another model call repairing cognition JSON.
+			final = visibleReplyTerminalMessage(nil)
+			loopResult.FinalMessage = final
+			validationErr = nil
+		}
+		if validationErr != nil {
 			// A second, tool-free model call can correct a malformed final DTO.
 			// The original Tool effects are already committed, so the repair loop
 			// must not receive the Tool catalog or execute another ToolCall.

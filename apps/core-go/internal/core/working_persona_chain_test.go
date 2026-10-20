@@ -149,18 +149,15 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 		}
 		t.Logf("controlled slot %s chars=%d bytes=%d estimated_tokens=%d", label, len([]rune(value)), len([]byte(value)), EstimatePromptTokens(value))
 	}
-	if !strings.Contains(stringValue(result.Completion.Structured["response_intent"]), secret) {
-		t.Fatal("final model result did not use queried detail")
-	}
 	if result.Trace == nil {
 		t.Fatal("native Tool trace missing")
 	}
 	invocations, results := result.Trace.Snapshot()
-	if len(invocations) != 2 || len(results) != 2 || invocations[0].CapabilityName != personaDetailCapabilityName || results[0].Status != "completed" || invocations[1].CapabilityName != conversationReplyCapabilityName || results[1].Status != "completed" {
+	if len(invocations) != 2 || len(results) != 2 || invocations[0].CapabilityName != personaDetailCapabilityName || results[0].Status != "completed" || invocations[1].CapabilityName != conversationReplyCapabilityName || results[1].Status != "completed" || !strings.Contains(string(invocations[1].Arguments), secret) {
 		t.Fatalf("native query trace invocations=%#v results=%#v", invocations, results)
 	}
 	var published int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND author_actor_id=$2 AND text=$3`, conversationID, fluctlightID, "已查到："+secret).Scan(&published); err != nil || published != 1 || mainCalls != 3 {
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND author_actor_id=$2 AND text=$3`, conversationID, fluctlightID, "已查到："+secret).Scan(&published); err != nil || published != 1 || mainCalls != 2 {
 		t.Fatalf("native publication was not committed exactly once: count=%d model_calls=%d err=%v", published, mainCalls, err)
 	}
 }
@@ -307,7 +304,7 @@ func TestTakeoverDetailQueryUsesNewSpeakingProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if step != 4 || strings.Contains(firstWire, secret) || strings.Contains(secondWire, secret) || !strings.Contains(secondWire, takeoverChainTwilightMarker) || !strings.Contains(thirdWire, secret) {
+	if step != 3 || strings.Contains(firstWire, secret) || strings.Contains(secondWire, secret) || !strings.Contains(secondWire, takeoverChainTwilightMarker) || !strings.Contains(thirdWire, secret) {
 		t.Fatalf("profile scope/feedback mismatch: step=%d firstSecret=%v secondSecret=%v secondPortrait=%v thirdSecret=%v", step, strings.Contains(firstWire, secret), strings.Contains(secondWire, secret), strings.Contains(secondWire, takeoverChainTwilightMarker), strings.Contains(thirdWire, secret))
 	}
 	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "spark" {

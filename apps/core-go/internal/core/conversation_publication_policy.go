@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -77,6 +78,59 @@ func conversationPublicationOmission(message *schema.Message) bool {
 		finish = strings.TrimSpace(message.ResponseMeta.FinishReason)
 	}
 	return finish == "" || finish == "stop" || finish == "unknown"
+}
+
+// A committed visible reply ends the conversation turn. The next physical
+// model request is replaced locally so Eino can stop without another provider call.
+func visibleReplyEndsTurn(ctx context.Context, input []*schema.Message) (*schema.Message, bool) {
+	if !visibleReplyCommitted(ctx) {
+		return nil, false
+	}
+	return visibleReplyTerminalMessage(input), true
+}
+
+func visibleReplyCommitted(ctx context.Context) bool {
+	if !conversationPublicationPolicyEnabled(ctx) {
+		return false
+	}
+	bridge, ok := adkCapabilityContext(ctx)
+	if !ok || bridge.Trace == nil {
+		return false
+	}
+	_, results := bridge.Trace.Snapshot()
+	_, committed := committedConversationReplyResult(results)
+	return committed
+}
+
+func visibleReplyTerminalMessage(input []*schema.Message) *schema.Message {
+	content := `{"action_type":"reply","response_intent":"visible reply committed","influences":[]}`
+	for index := len(input) - 1; index >= 0; index-- {
+		message := input[index]
+		if message == nil || message.Role != schema.Assistant {
+			continue
+		}
+		trimmed := strings.TrimSpace(message.Content)
+		if trimmed != "" && json.Valid([]byte(trimmed)) {
+			parsed := map[string]any{}
+			if json.Unmarshal([]byte(trimmed), &parsed) == nil && parsed["action_type"] != nil && parsed["response_intent"] != nil && parsed["influences"] != nil {
+				content = trimmed
+			}
+		}
+		break
+	}
+	message := schema.AssistantMessage(content, nil)
+	if message.ResponseMeta == nil {
+		message.ResponseMeta = &schema.ResponseMeta{}
+	}
+	message.ResponseMeta.FinishReason = "stop"
+	return message
+}
+
+func assistantMessageStream(message *schema.Message) *schema.StreamReader[*schema.Message] {
+	reader, writer := schema.Pipe[*schema.Message](1)
+	writer.Send(message, nil)
+	writer.Close()
+	return reader
 }
 
 func validateConversationPublicationCorrection(ctx context.Context, message *schema.Message) error {

@@ -25,7 +25,7 @@ func (a *App) queueStudioMedia(ctx context.Context, owner, id, aid string, job m
 	if !exists {
 		config, err := a.runtimeValue(ctx, "media.comfyui")
 		if err != nil {
-			return nil, err
+			return nil, imageProviderUnavailable(err)
 		}
 		if _, _, err := comfyConfig(config); err != nil {
 			return nil, errStudioMediaNotConfigured

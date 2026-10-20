@@ -35,7 +35,7 @@ func recoverToolBusinessResult(inv CapabilityInvocation, result CapabilityResult
 		disposition = "needs_input"
 	case errors.Is(err, ErrNotFound):
 		disposition = "no_results"
-	case errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, pgx.ErrNoRows), errors.Is(err, errImageProviderNotConfigured):
 		disposition = "no_results"
 		if result.Retryable {
 			disposition = "unavailable"

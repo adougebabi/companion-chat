@@ -33,7 +33,7 @@ type actorFactCapability struct{ service *actorFactService }
 
 func actorFactDefinition() CapabilityDefinition {
 	return CapabilityDefinition{Name: actorFactCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description: "Record a sourced Actor attribute; correct mistakes or change formerly true values. Use actor.inspect IDs and actual inbound sources.",
+		Description: "Record a sourced Actor attribute before conversation.reply; correct mistakes or change formerly true values. Use actor.inspect IDs and actual inbound sources. Do not defer this until after a visible reply or promise to record later in the same batch.",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceNativeCognition}, FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		InputSchema: objectSchema(map[string]any{
 			"assertion_type": withToolDefault(enumStringSchema("explicit_statement", "inference"), "inference"),

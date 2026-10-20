@@ -65,21 +65,66 @@ func (r *runtimeContextRefresh) noteModelToolCalls(sequence uint64, calls []sche
 }
 
 func (r *runtimeContextRefresh) replyNeedsFreshSchedule(sequence uint64, callID string) bool {
-	if r == nil {
-		return false
+	code, _, blocked := replyBlockedBySameBatchSideEffect(r, sequence, callID, nil)
+	return blocked && code == "schedule_context_refresh_required"
+}
+
+func (r *runtimeContextRefresh) sameBatch(sequence uint64, callID string) (map[string]string, bool) {
+	if r == nil || sequence == 0 {
+		return nil, false
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	batch := r.batches[sequence]
 	if batch[callID] != conversationReplyCapabilityName {
-		return false
+		return nil, false
 	}
-	for _, name := range batch {
+	copyBatch := make(map[string]string, len(batch))
+	for id, name := range batch {
+		copyBatch[id] = name
+	}
+	return copyBatch, true
+}
+
+// replyBlockedBySameBatchSideEffect rejects a visible reply that shares a
+// physical model response with a recording tool. memory_event,
+// actor.fact.record, and active_memory_event must commit first; the reply is
+// composed on the next model turn. A committed reply then ends the turn.
+func replyBlockedBySameBatchSideEffect(refresh *runtimeContextRefresh, sequence uint64, callID string, _ *App) (string, string, bool) {
+	batch, ok := refresh.sameBatch(sequence, callID)
+	if !ok {
+		return "", "", false
+	}
+	schedule := false
+	sideEffect := false
+	for id, name := range batch {
+		if id == callID {
+			continue
+		}
 		if name == scheduleActivityCapabilityName || name == "schedule.replan" {
-			return true
+			schedule = true
+			continue
+		}
+		if replyRecordTool(name) {
+			sideEffect = true
 		}
 	}
-	return false
+	if schedule {
+		return "schedule_context_refresh_required", "Wait for the Schedule Tool result and refreshed context, then compose the reply in the next model turn.", true
+	}
+	if sideEffect {
+		return "side_effect_before_reply_required", "Execute side-effect tools such as memory_event and actor.fact.record before conversation.reply. Do not send the reply in the same batch and then record later.", true
+	}
+	return "", "", false
+}
+
+func replyRecordTool(name string) bool {
+	switch name {
+	case "memory_event", actorFactCapabilityName, "active_memory_event":
+		return true
+	default:
+		return false
+	}
 }
 
 func (r *runtimeContextRefresh) latestProjection() *ContextProjection {

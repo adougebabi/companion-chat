@@ -114,3 +114,48 @@ func TestPrivateReplyWaitsForFreshScheduleAfterSameBatchPlanning(t *testing.T) {
 		t.Fatal("a reply in the next model turn was blocked")
 	}
 }
+
+func TestSameBatchSideEffectMustPrecedeVisibleReply(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	for _, name := range []string{"memory_event", actorFactCapabilityName, "active_memory_event"} {
+		trace := &ADKCapabilityTrace{}
+		refresh := &runtimeContextRefresh{}
+		calls := []schema.ToolCall{
+			{ID: "reply-first", Function: schema.FunctionCall{Name: conversationReplyCapabilityName}},
+			{ID: "effect-second", Function: schema.FunctionCall{Name: name}},
+		}
+		trace.RecordModelToolCalls("provider-request-1", 1, calls)
+		refresh.noteModelToolCalls(1, calls)
+		invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{
+			FluctlightID: "fluctlight-1", ConversationID: "conversation-1", SourceFactID: "fact-1", ActionID: "turn-1",
+			Surface: CapabilitySurfaceConversation,
+		}, trace)
+		ctx := withADKCapabilityContext(context.Background(), invoker, trace, refresh)
+		result, err := invoker.(ADKCapabilityInvokerWithID).ExecuteWithID(ctx, "reply-first", conversationReplyCapabilityName, `{"text":"我先回复，稍后记录"}`)
+		if err != nil || !strings.Contains(result, "side_effect_before_reply_required") {
+			t.Fatalf("%s same-batch reply was not rejected: result=%s err=%v", name, result, err)
+		}
+		_, results := trace.Snapshot()
+		if len(results) != 1 || results[0].Status != "rejected" || results[0].ErrorCode != "side_effect_before_reply_required" {
+			t.Fatalf("%s rejection result=%#v", name, results)
+		}
+	}
+	refresh := &runtimeContextRefresh{}
+	refresh.noteModelToolCalls(1, []schema.ToolCall{
+		{ID: "reply", Function: schema.FunctionCall{Name: conversationReplyCapabilityName}},
+		{ID: "read", Function: schema.FunctionCall{Name: "memory.recall"}},
+	})
+	if _, _, blocked := replyBlockedBySameBatchSideEffect(refresh, 1, "reply", app); blocked {
+		t.Fatal("a read-only tool in the same batch blocked the reply")
+	}
+	alone := &runtimeContextRefresh{}
+	alone.noteModelToolCalls(1, []schema.ToolCall{{ID: "reply", Function: schema.FunctionCall{Name: conversationReplyCapabilityName}}})
+	if _, _, blocked := replyBlockedBySameBatchSideEffect(alone, 1, "reply", app); blocked {
+		t.Fatal("a reply-only batch was blocked")
+	}
+}

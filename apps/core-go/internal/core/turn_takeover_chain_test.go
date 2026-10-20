@@ -216,7 +216,7 @@ func TestNativePersonaTakeoverFeedsScopedToolsReplyAndFinal(t *testing.T) {
 	if scriptFailure != "" {
 		t.Fatal(scriptFailure)
 	}
-	if stringValue(result.Assistant["text"]) != "暮光按自己的关系与记忆作答" || step != 4 {
+	if stringValue(result.Assistant["text"]) != "暮光按自己的关系与记忆作答" || step != 3 {
 		t.Fatalf("result=%#v model decisions=%d", result, step)
 	}
 	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "spark" {

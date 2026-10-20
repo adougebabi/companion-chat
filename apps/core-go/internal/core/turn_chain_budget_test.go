@@ -1,7 +1,6 @@
 package core
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -38,7 +37,7 @@ func TestNativePersonaLoopUsesGenericIterationGuardInsteadOfLegacyStageBudget(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if step != 5 || router.requestCount(takeoverJudgeSchemaName) != 0 || router.requestCount(takeoverReplySchemaName) != 0 {
+	if step != 4 || router.requestCount(takeoverJudgeSchemaName) != 0 || router.requestCount(takeoverReplySchemaName) != 0 {
 		var cause *string
 		_ = repository.Pool().QueryRow(ctx, `SELECT payload->>'safe_cause' FROM public.diagnostic_events WHERE fluctlight_id=$1 AND event_type='agent.run.termination' ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&cause)
 		reason := ""
@@ -73,9 +72,8 @@ func TestNativePersonaLoopUsesGenericIterationGuardInsteadOfLegacyStageBudget(t 
 
 }
 
-// A committed Tool receipt is the recovery unit. If the later final DTO is
-// invalid, the run fails, the persistent switch remains committed, and retrying
-// the same business run performs no Provider call and no second switch.
+// A committed reply ends the turn. The persistent switch stays committed, and
+// replaying the same business run performs no Provider call and no second switch.
 func TestInvalidFinalKeepsCommittedPersonaReceiptAndFailedRunDoesNotReplay(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "receipt-recovery-owner", "receipt-recovery-fluctlight", "receipt-recovery-conversation"
@@ -96,17 +94,14 @@ func TestInvalidFinalKeepsCommittedPersonaReceiptAndFailedRunDoesNotReplay(t *te
 	})
 	app := newTestApp(t, repository, router)
 	if _, err := app.HandleTurn(ctx, ownerID, conversationID, payload); err != nil {
-		// A previously committed reply remains visible even when settlement fails.
-		if !strings.Contains(err.Error(), "adk_final") {
-			t.Fatal(err)
-		}
+		t.Fatal(err)
 	}
 	var inboxStatus, inboxError string
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE idempotency_key=$1`, payload["idempotency_key"]).Scan(&inboxStatus, &inboxError); err != nil || inboxStatus != "failed" || inboxError != "agent_final_contract_invalid" {
-		t.Fatalf("invalid final must fail after the committed switch: %v", err)
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE idempotency_key=$1`, payload["idempotency_key"]).Scan(&inboxStatus, &inboxError); err != nil || inboxStatus != "processed" || inboxError != "" {
+		t.Fatalf("committed reply did not end the turn: status=%s code=%s err=%v", inboxStatus, inboxError, err)
 	}
-	if step != 4 || readActiveProfileForGate(t, ctx, repository, fluctlightID) != "twilight" {
-		t.Fatalf("switch was not committed before final failure: steps=%d active=%q", step, readActiveProfileForGate(t, ctx, repository, fluctlightID))
+	if step != 2 || readActiveProfileForGate(t, ctx, repository, fluctlightID) != "twilight" {
+		t.Fatalf("switch was not committed before the reply ended the turn: steps=%d active=%q", step, readActiveProfileForGate(t, ctx, repository, fluctlightID))
 	}
 	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.platform_outbox_events WHERE aggregate_type='persona_action' AND fluctlight_id=$1 AND kind='persona.switch.committed'`, fluctlightID); count != 1 {
 		t.Fatalf("persona switch audit count=%d, want 1", count)
