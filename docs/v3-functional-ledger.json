@@ -11669,7 +11669,9 @@
       "requirementSource": "本轮任务书+当前补全v3；原定位为核验线索",
       "scope": "已确认范围，待逐项收敛",
       "implementation": "待实现/复验",
-      "completionEvidence": [],
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/l04-world-initialization-fix.json"
+      ],
       "producerConsumer": "create/saveNPCDraft→resources；publish→versions；apply→npcs+instances，无关系",
       "backendEvidence": {
         "locations": [
@@ -11720,7 +11722,9 @@
       "requirementSource": "本轮任务书+当前补全v3；原定位为核验线索",
       "scope": "已确认范围，待逐项收敛",
       "implementation": "待实现/复验",
-      "completionEvidence": [],
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/l04-world-initialization-fix.json"
+      ],
       "producerConsumer": "saveNPC校验规律与world位置→NPC/instance overrides；remove保护引用",
       "backendEvidence": {
         "locations": [
@@ -28868,6 +28872,20 @@
     "coreSkippedCases": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/core-skipped-coverage.json",
     "realTemporal": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/temporal-real-control-result.json",
     "browserPages": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/browser-readonly-pages.json",
-    "notes": "受控HTTP模型/组件测试、真实PG/S3/Temporal/浏览器与真实模型分别记录。原串行回归的4个根用例失败已修，最终完整4分片同一源码全部通过；原日志保留。"
+    "notes": "受控HTTP模型/组件测试、真实PG/S3/Temporal/浏览器与真实模型分别记录。原串行回归的4个根用例失败已修，最终完整4分片同一源码全部通过；原日志保留。",
+    "regressionFixes": [
+      {
+        "date": "2026-10-20",
+        "cases": [
+          "L04",
+          "L13"
+        ],
+        "fix": "第二角色显式世界创建/选用/绑定读回后验证同定义独立实例与双向隔离",
+        "scriptSelfTests": 28,
+        "postgresTargeted": "blocked_environment_not_passed",
+        "liveExecuted": false,
+        "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/l04-world-initialization-fix.json"
+      }
+    ]
   }
 }

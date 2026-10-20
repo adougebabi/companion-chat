@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -96,10 +97,46 @@ func TestWorldNPCPersistenceIsolationEncounterAndSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	command("PUT", "/internal/fluctlights/"+other.ID+"/world", map[string]any{"name": "Other world", "expected_revision": 0})
+	otherBase := "/internal/fluctlights/" + other.ID
+	otherCatalog := command("GET", otherBase+"/world/catalog", nil)
+	if otherCatalog["active_binding"] != nil || len(arrayValue(otherCatalog["items"])) != 0 {
+		t.Fatal("blank activation must not invent a world", otherCatalog)
+	}
+	_, err = f.app.DispatchWorldSurface(f.ctx, "GET", otherBase+"/npcs/"+npcID, nil, f.ownerID, nil)
+	var missingWorld *SurfaceError
+	if !errors.As(err, &missingWorld) || missingWorld.Status != 422 || missingWorld.Code != "world_not_configured" {
+		t.Fatal("unconfigured world must remain a prerequisite error", err)
+	}
+	if afterRead := command("GET", otherBase+"/world/catalog", nil); afterRead["active_binding"] != nil || len(arrayValue(afterRead["items"])) != 0 {
+		t.Fatal("NPC read created a world", afterRead)
+	}
+	otherWorld := command("POST", otherBase+"/world/catalog", map[string]any{"name": "Other world"})
+	if created := command("GET", otherBase+"/world/catalog", nil); created["active_binding"] != nil {
+		t.Fatal("catalogue creation implicitly selected a world", created)
+	}
+	command("PUT", otherBase+"/world/active", map[string]any{"world_id": otherWorld["id"], "expected_revision": 0})
+	for _, scope := range []struct{ base, fid, world string }{
+		{base, f.fluctlightID, stringValue(npc["world_id"])},
+		{otherBase, other.ID, stringValue(otherWorld["id"])},
+	} {
+		catalog := command("GET", scope.base+"/world/catalog", nil)
+		snapshot := command("GET", scope.base+"/world", nil)
+		if mapValue(catalog["active_binding"])["world_id"] != scope.world || mapValue(snapshot["world"])["id"] != scope.world || mapValue(snapshot["world"])["fluctlight_id"] != scope.fid {
+			t.Fatal("scope check requires persisted independent world bindings", catalog, snapshot)
+		}
+	}
 	otherApply := command("POST", "/internal/studio/resources/"+rid+"/apply", map[string]any{"fluctlight_id": other.ID, "resource_version": published["published_version"], "expected_instance_revision": other.CurrentRevision, "expected_runtime_revision": 0, "choices": []any{}})
-	if otherApply["id"] == npcID || otherApply["actor_id"] == npc["actor_id"] {
-		t.Fatal("template instances share identity", otherApply)
+	otherNPC := command("GET", otherBase+"/npcs/"+stringValue(otherApply["id"]), nil)
+	if otherNPC["id"] == npcID || stringValue(otherNPC["actor_id"]) == "" || otherNPC["actor_id"] == npc["actor_id"] || otherNPC["world_id"] == npc["world_id"] {
+		t.Fatal("template instances share identity or world", otherNPC)
+	}
+	if otherNPC["source_resource_id"] != rid || otherNPC["source_version"] != npc["source_version"] || len(arrayValue(otherNPC["encounters"])) != 0 || len(arrayValue(mapValue(otherNPC["relationship_context"])["relationships"])) != 0 {
+		t.Fatal("same definition copied interaction history or lost its exact source", otherNPC)
+	}
+	for _, path := range []string{otherBase + "/npcs/" + npcID, base + "/npcs/" + stringValue(otherNPC["id"])} {
+		if _, err := f.app.DispatchWorldSurface(f.ctx, "GET", path, nil, f.ownerID, nil); !errors.Is(err, ErrNotFound) {
+			t.Fatal("configured cross-world NPC read must reach scope rejection", path, err)
+		}
 	}
 	wrong := map[string]any{"name": "Cross-world", "description": "must reject", "parent_place_id": place["id"], "expected_revision": 0, "idempotency_key": randomID("invalid_place_"), "reason": "scope test"}
 	if _, err := f.app.DispatchWorldSurface(f.ctx, "POST", "/internal/fluctlights/"+other.ID+"/world/places", nil, f.ownerID, wrong); err == nil {

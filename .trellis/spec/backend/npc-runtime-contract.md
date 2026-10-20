@@ -50,6 +50,17 @@ opportunity, never Owner confirmation or automatic Human co-presence. Existing
 Owner-confirmed history uses the shared writer with its original explicit evidence.
 Permanent harm remains unavailable.
 
+Blank-slate activation does not create or select a runtime world. Catalogue
+creation and active selection are separate explicit writes. NPC reads must not
+initialize a world: no binding remains `422 world_not_configured`. Cross-world
+isolation acceptance first creates/selects and reads back two distinct owned
+worlds, then applies the same exact published definition to each and checks
+independent NPC/Actor identities, interaction history and bidirectional rejection.
+An unconfigured second character cannot certify this boundary. L04 and L13 share
+`scripts/e2e/v3-regression/npc-isolation.mjs` for this prerequisite and proof;
+`TestWorldNPCPersistenceIsolationEncounterAndSource` pins both the unconfigured
+negative path and the configured scope path.
+
 ## 4. Validation & Error Matrix
 
 | Condition | Behavior |

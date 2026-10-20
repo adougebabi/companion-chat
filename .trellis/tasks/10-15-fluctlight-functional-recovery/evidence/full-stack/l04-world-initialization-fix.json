@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-20",
+  "baseCommit": "9f3e659e",
+  "rootCause": "L04 and L13 configure the primary runtime world only; the shared secondary blank_slate fixture has no binding before the cross-world NPC GET",
+  "productContract": "Blank activation does not preconfigure a world. Catalogue creation and active selection are explicit separate writes; NPC GET remains read-only and unconfigured requests retain 422 world_not_configured",
+  "repair": "Shared verifyNPCWorldIsolation configures the secondary world, reads both bindings and owners, applies the exact primary NPC definition version independently, checks distinct NPC/Actor/world identities and history, and tests rejection in both directions",
+  "scriptSelfTests": {
+    "pass": 28,
+    "fail": 0,
+    "command": "pnpm regression:v3:self-test",
+    "kind": "controlled harness; not live business integration"
+  },
+  "postgresTargeted": {
+    "status": "blocked_environment",
+    "compiled": true,
+    "passed": 0,
+    "tests": [
+      "TestWorldNPCPersistenceIsolationEncounterAndSource",
+      "TestWorldCatalogCreateSelectScopeCycleReferencesAndReplay",
+      "TestWorldCatalogUnboundEditsAndHarmPublicationNPCRemoval"
+    ],
+    "reason": "Dedicated PostgreSQL 127.0.0.1:15439 refused connection; OrbStack Docker socket absent"
+  },
+  "liveScenariosExecuted": false,
+  "modelCalls": 0,
+  "migrationRequired": false,
+  "resume": "Use the existing private --run-dir for L04/L13; no role reset or deletion required"
+}

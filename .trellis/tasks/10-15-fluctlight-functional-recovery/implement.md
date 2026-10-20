@@ -413,3 +413,11 @@ ReadSettings/配置catalog使用同一只读repeatable-read快照，值、凭据
 最终入口改为127.0.0.1:18080，避免与原localhost5173共享Cookie；仅改隔离精确信任Origin。原用户卷未变，当前隔离库实际head0095/model_runs0/provider_bindings0；业务Worker仍停，等用户配置并集中运行模型流程。私有env/密码/cookies-127/备份只在/private/tmp，不入repo。总任务保持in_progress直到用户统一验收，不commit/archive，不宣称全量真实模型已通过。
 
 最终补证：Core之外30个包在相同最终Go源码上重新执行，16包pass、14无测试包skip、0fail，日志other-packages-final.jsonl。最终Web213/BrowserClient36/CoreClient3及type/build再收0，Go vet0。新增脚本匿名401/先导入Cookie负例后自测24/24，127真实preflight通过。最终数据库只读仍0095/model_runs0/bindings0，Core/Web/PG/Redis/MinIO/Temporal健康，业务Worker为created未运行；最新服务脱敏快照final-services.json。NPC规律实际浏览器保存到runtime v2并刷新保持，仍无接触/关系；关于你最终三标签DOM19/19，最新桌面/移动截图已刷新，临时视口已reset、临时并发页已关闭。
+
+## 2026-10-20 L04/L13 第二角色世界前置修复
+
+基于远端最新9f3e659e（含fc973e16撤回）排查。UI空白开始明确“不预设身份经历、人格或世界”；Core所有激活模式均未创建运行世界，目录创建也不自动选用。L04只对primary调用ensureWorld，secondary blank激活后直接跨NPC GET；L13同样遗漏。因此422正确指出没有世界前置，根因在回归准备链，不能改404或自动生成产品世界掩盖。
+
+变更边界：新增共享npc-isolation.mjs，由两脚本scope复用，为secondary显式创建/选用独立世界，双边catalog/snapshot读回所有者/绑定，再把主NPC精确source_version应用为第二运行身份，验证NPC/Actor/world/source/历史及双向跨读拒绝。保留原fixture/run-dir/幂等命令。扩展现有Core真实PG用例，分别锁定blank不造world、无绑定422且GET无写、catalog不隐式选用、选用后独立身份/历史/双向ErrNotFound。未改Core生产路径、API状态码、UI创建语义或迁移。
+
+实际执行：脚本自测28/28（新增世界选用顺序/持久化负例/共享Actor及串历史拒绝；受控HTTP不是业务联调）。三项Go真实PG定向用例已编译并尝试执行，默认沙盒连端口被拒；提权后确认15439 connection refused，Docker只读检查发现OrbStack socket不存在，无法执行数据库部分，明确不计通过。未启动业务Worker、未触发LLM或执行L04/L13 --live，用户后续原run-dir续跑。记录见evidence/full-stack/l04-world-initialization-fix.json。

@@ -10,6 +10,7 @@ import {readStream,modelRunFamily,visualGenerationComplete,visualGenerationAsset
 import {runnerArguments,caseOutcome} from './cli.mjs';
 import {cases} from './cases.mjs';
 import {assertPromiseReschedule,assertLivePromiseFulfillment} from './promise-proof.mjs';
+import {verifyNPCWorldIsolation} from './npc-isolation.mjs';
 
 test('Diary isolation ignores scheduler pending placeholders and keeps written rows',()=>{
  const pending={id:'diary-pending',revision:1,status:'pending',body:null};
@@ -41,6 +42,51 @@ async function context(fetcher,{live=false,...extra}={}){
  const runDir=await mkdtemp(join(tmpdir(),'fluctlight-regression-harness-'));
  const ctx=new RegressionContext('L00','Controlled harness fixture',{live,preflight:false,unit:true,runDir,timeoutMs:30,requestTimeoutMs:30,pollMs:1},{FLUCTLIGHT_E2E_ISOLATED:'1',FLUCTLIGHT_E2E_PASSWORD:'private-test-password',...extra},fetcher);await ctx.init();return ctx;
 }
+async function npcIsolationContext({persistSelection=true,sharedActor=false,copiedEncounter=false,missingSource=false}={}){
+ const calls=[],source={id:'npc-a',world_id:'world-a',actor_id:'actor-a',source_resource_id:'definition',source_version:'1'};
+ if(missingSource)delete source.source_version;
+ let binding=null,created=0;
+ const t=await context(async(url,init)=>{
+  const path=new URL(url).pathname,method=init.method,body=init.body?JSON.parse(init.body):null;calls.push({path,method,body});
+  if(path==='/api/fluctlights/b/detail')return Response.json({id:'b',relationships:[],memories:[]});
+  if(path==='/api/fluctlights/a/npcs/npc-a')return Response.json(source);
+  if(path==='/api/fluctlights/b/world/catalog'&&method==='POST'){created++;return Response.json({id:'world-b',fluctlight_id:'b'});}
+  if(path==='/api/fluctlights/b/world/active'&&method==='PUT'){assert.equal(body.worldId,'world-b');if(persistSelection)binding={world_id:'world-b',revision:1};return Response.json({world_id:'world-b',revision:1});}
+  if(path==='/api/fluctlights/a/world/catalog')return Response.json({active_binding:{world_id:'world-a',revision:1}});
+  if(path==='/api/fluctlights/b/world/catalog')return Response.json({active_binding:binding});
+  if(path==='/api/fluctlights/a/world')return Response.json({world:{id:'world-a',fluctlight_id:'a'}});
+  if(path==='/api/fluctlights/b/world')return Response.json({world:binding?{id:'world-b',fluctlight_id:'b'}:null});
+  if(path==='/api/studio/resources/definition')return Response.json({id:'definition',published_version:'2'});
+  if(path==='/api/studio/resources/definition/apply-preview'){assert.equal(body.resourceVersion,'1');return Response.json({available:true,diff:[],instance_revision:0,runtime_revision:0});}
+  if(path==='/api/studio/resources/definition/apply'){assert.equal(body.fluctlightId,'b');assert.equal(Object.hasOwn(body,'worldId'),false);assert.equal(body.resourceVersion,'1');assert.ok(binding);return Response.json({id:'npc-b',applied:true});}
+  if(path==='/api/fluctlights/b/npcs/npc-b')return Response.json({...source,id:'npc-b',world_id:'world-b',actor_id:sharedActor?'actor-a':'actor-b'});
+  if(path==='/api/fluctlights/b/npcs/npc-b/encounters')return Response.json({items:copiedEncounter?[{id:'primary-encounter'}]:[]});
+  if(path==='/api/fluctlights/b/npcs/npc-a'||path==='/api/fluctlights/a/npcs/npc-b'){assert.ok(binding,'Scope reads must follow persisted world selection');return Response.json({code:'not_found'},{status:404});}
+  throw new Error('Unexpected NPC isolation request '+method+' '+path);
+ },{live:true});
+ await t.remember('fixture:secondary',{id:'b'});
+ return {t,calls,created:()=>created};
+}
+test('NPC isolation initializes the blank secondary world and verifies bindings before cross reads',async()=>{
+ const {t,calls,created}=await npcIsolationContext();
+ const evidence=await verifyNPCWorldIsolation(t,{fid:'a',worldId:'world-a',npcId:'npc-a'});
+ assert.equal(evidence.secondary.worldId,'world-b');assert.equal(evidence.secondary.actorId,'actor-b');assert.equal(evidence.resourceVersion,'1');
+ const selected=calls.findIndex(c=>c.method==='PUT'&&c.path.endsWith('/world/active')),cross=calls.findIndex(c=>c.path==='/api/fluctlights/b/npcs/npc-a');
+ assert.ok(selected>=0&&cross>selected);assert.equal(t.modelOperations,0);
+ assert.deepEqual(await verifyNPCWorldIsolation(t,{fid:'a',worldId:'world-a',npcId:'npc-a'}),evidence);assert.equal(created(),1,'Resume must reuse the saved secondary world');
+});
+test('NPC isolation cannot mistake an unpersisted selection for cross-world isolation',async()=>{
+ const {t,calls}=await npcIsolationContext({persistSelection:false});
+ await assert.rejects(verifyNPCWorldIsolation(t,{fid:'a',worldId:'world-a',npcId:'npc-a'}),/World selection must read back/);
+ assert.ok(!calls.some(c=>c.path==='/api/fluctlights/b/npcs/npc-a'));
+});
+test('NPC isolation rejects shared Actor identity, copied encounters and missing definition provenance',async()=>{
+ for(const options of [{sharedActor:true},{copiedEncounter:true},{missingSource:true}]){
+  const {t,calls}=await npcIsolationContext(options);
+  await assert.rejects(verifyNPCWorldIsolation(t,{fid:'a',worldId:'world-a',npcId:'npc-a'}),RegressionError);
+  assert.ok(!calls.some(c=>c.path==='/api/fluctlights/b/npcs/npc-a'));
+ }
+});
 const frame=(type,sequence,extra={})=>({type,sequence,turnId:'turn-original',payload:{},...extra});
 const stream=bytes=>new Response(new ReadableStream({start(controller){for(const chunk of bytes)controller.enqueue(chunk);controller.close();}}),{headers:{'content-type':'application/x-ndjson'}});
 test('preflight treats the actual anonymous 401 as login and retains its CSRF cookie',async()=>{
