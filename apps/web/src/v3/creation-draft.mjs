@@ -1,3 +1,4 @@
+import { randomId } from '../random-id.mjs';
 // Only UI drafts and original command identities live in session storage.
 // The server remains the authority for analysis freshness and activation replay.
 export function creationDraft({owner,storage,timezone=Intl.DateTimeFormat().resolvedOptions().timeZone}) {
@@ -5,7 +6,7 @@ export function creationDraft({owner,storage,timezone=Intl.DateTimeFormat().reso
   const key=`fluctlight-creation:${owner}:draft`;
   function read(){
     const raw=storage.getItem(key);
-    if(!raw)return {version:1,step:0,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:crypto.randomUUID(),timezone,analysis:null,includeGoals:true,activatedId:null};
+    if(!raw)return {version:1,step:0,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:randomId(),timezone,analysis:null,includeGoals:true,activatedId:null};
     const value=JSON.parse(raw);
     if(value?.version!==1||!Number.isInteger(value.step)||value.step<0||value.step>3||typeof value.requestId!=='string'||!value.requestId)throw new Error('创建草稿不可读取，请先核对原创建请求，避免重复激活');
     return value;

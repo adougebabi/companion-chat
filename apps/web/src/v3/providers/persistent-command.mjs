@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 // This stores a submitted command identity and its immutable input, never a
 // business result. Unknown transport outcomes must replay that exact command
 // before the UI can start another proposal, including after a page refresh.
@@ -39,7 +40,7 @@ export function persistentCommand({key,storage,execute,preAdmissionConflicts=['r
   async submit(value){
    const previous=pending();
    if(previous){if(JSON.stringify(previous.value)!==JSON.stringify(value))throw new Error('原提议的受理结果尚未确认。新草稿已保留，请先查询或重试原提交。');return run(previous);}
-   const record={version:1,idempotencyKey:crypto.randomUUID(),attempts:0,value:structuredClone(value)};
+   const record={version:1,idempotencyKey:randomId(),attempts:0,value:structuredClone(value)};
    storage().setItem(key,JSON.stringify(record));return run(record);
   },
   async retry(){const record=pending();if(!record)throw new Error('没有等待核对的原提交，请重新读取请求列表。');return run(record);},

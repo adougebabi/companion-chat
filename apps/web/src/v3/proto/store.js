@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 // Shared server snapshot facade. The isolated fixture store is build-time opt-in.
 export const isMock = typeof import.meta.env !== 'undefined' && import.meta.env.VITE_PRODUCT_MODE === 'mock';
 const fixture = isMock ? await import('./mock/store.js') : null;
@@ -19,7 +20,7 @@ export function list(col, predicate = () => true) { if (fixture) return fixture.
 export function update(...args) { if (fixture) return fixture.update(...args); throw new Error('此操作尚未连接真实命令，未保存任何修改'); }
 export function setUi(patch) { if (fixture) return fixture.setUi(patch); Object.assign(data.ui,patch); emit({type:'ui',patch}); }
 export function subscribe(fn) { if (fixture) return fixture.subscribe(fn); subs.add(fn); return () => subs.delete(fn); }
-export function uid(prefix) { return prefix + crypto.randomUUID(); }
+export function uid(prefix) { return prefix + randomId(); }
 export function resetDemo() { if (fixture) return fixture.resetDemo(); throw new Error('真实模式不提供演示重置'); }
 export function auditLog() { return get('audit'); }
 export function find(id) { for (const col of tables) { const obj = get(col,id); if (obj) return {col,obj}; } return null; }

@@ -84,7 +84,7 @@ test("owner password change explains its policy without trapping the submit butt
 test("web uses the secure random-ID compatibility helper instead of randomUUID directly", async () => {
   const appSource = vueSource;
   const storeSource = await readFile(new URL("../src/stores/conversations.ts", import.meta.url), "utf8");
-  const helperSource = await readFile(new URL("../src/random-id.ts", import.meta.url), "utf8");
+  const helperSource = await readFile(new URL("../src/random-id.mjs", import.meta.url), "utf8");
   assert.match(appSource, /randomId\(\)/);
   assert.match(storeSource, /randomId\(\)/);
   assert.doesNotMatch(appSource, /crypto\.randomUUID/);

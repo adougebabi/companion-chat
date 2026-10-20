@@ -1,3 +1,4 @@
+import { randomId } from '../../../random-id.mjs';
 import { lifeClient } from '../services.js';
 import { Field } from '../components/forms.js';
 import { RecordDetails } from '../components/records.js';
@@ -6,7 +7,7 @@ import { esc,badge,toast,requireOwner,confirm } from '../ui.js';
 
 export function renderRealGoalEditor(el,ctx) {
   let alive=true,id=ctx.params.goalId || null,current,draft,busy=false,conflict=false,accepted=null;
-  let history={items:[],next_cursor:''},evidence={items:[],next_cursor:''},key=crypto.randomUUID();
+  let history={items:[],next_cursor:''},evidence={items:[],next_cursor:''},key=randomId();
   const fromGoal=g=>({title:g?.desired_outcome || '',why:g?.motivation || '',criteria:(g?.success_criteria || []).join('\n'),due:g?.deadline || '',deadlinePolicy:g?.deadline_policy || 'soft',scope:g?.scope || 'general',profileId:g?.profile_id || '',targetActorId:g?.target_actor_id || '',ownerProtected:!!g?.owner_protected,candidateOnly:g?.status==='candidate',reason:'',version:g?.revision ?? 0});
   async function read() {
     el.innerHTML='<div class="statebox" role="status">正在读取目标…</div>';
@@ -24,14 +25,14 @@ export function renderRealGoalEditor(el,ctx) {
         if(!accepted){const body={idempotencyKey:key,reason:draft.reason,desiredOutcome:draft.title,motivation:draft.why,successCriteria:draft.criteria.split('\n').map(t=>t.trim()).filter(Boolean),deadlinePolicy:draft.deadlinePolicy,scope:draft.scope,ownerProtected:draft.ownerProtected,...(draft.profileId?{profileId:draft.profileId}:{}),...(draft.targetActorId?{targetActorId:draft.targetActorId}:{}),...(draft.due?{deadline:draft.due}:{clearDeadline:true}),...(id?{expectedRevision:draft.version}:{candidateOnly:draft.candidateOnly})};accepted=await lifeClient.saveGoal(ctx.charId,id,body);id=accepted.goal_id;}
         const saved=await lifeClient.goal(ctx.charId,id);if(!alive)return;
         if(saved.desired_outcome!==draft.title || saved.motivation!==draft.why)throw new Error('命令已受理，但读回内容尚未确认一致。请重新读取。');
-        current=saved;draft=fromGoal(saved);accepted=null;conflict=false;key=crypto.randomUUID();toast('目标已保存并读回','ok');
+        current=saved;draft=fromGoal(saved);accepted=null;conflict=false;key=randomId();toast('目标已保存并读回','ok');
         if(!ctx.params.goalId){ctx.navigate(`#/c/${ctx.charId}/life/goal/${id}`);return;}
         [history,evidence]=await Promise.all([lifeClient.goalHistory(ctx.charId,id),lifeClient.goalEvidence(ctx.charId,id)]);paint();
       } catch(error) {if(!alive)return;if(error.status===409&&id){current=await lifeClient.goal(ctx.charId,id);conflict=true;paint();}el.querySelector('[data-error]').textContent=error.message;}finally{busy=false;}
     };
-    el.querySelector('[data-revert]').onclick=()=>{draft=fromGoal(current);conflict=false;key=crypto.randomUUID();paint();};
+    el.querySelector('[data-revert]').onclick=()=>{draft=fromGoal(current);conflict=false;key=randomId();paint();};
     el.querySelector('[data-keep]')?.addEventListener('click',()=>toast('草稿已保留'));
-    el.querySelector('[data-refresh]')?.addEventListener('click',()=>{draft.version=current.revision;conflict=false;key=crypto.randomUUID();paint();});
+    el.querySelector('[data-refresh]')?.addEventListener('click',()=>{draft.version=current.revision;conflict=false;key=randomId();paint();});
     el.querySelectorAll('[data-command]').forEach(button=>button.onclick=async()=>{capture();if(busy || !(await requireOwner()) || !draft.reason.trim())return toast('请填写修改原因','err');if(!(await confirm({title:'调整目标',text:esc(draft.title)})))return;busy=true;try{await lifeClient.goalCommand(ctx.charId,id,button.dataset.command,current.revision,draft.reason);await read();}catch(error){if(alive)el.querySelector('[data-error]').textContent=error.message;}finally{busy=false;}});
     el.querySelectorAll('[data-more]').forEach(button=>button.onclick=async()=>{capture();button.disabled=true;try{const kind=button.dataset.more,old=kind==='history'?history:evidence,next=await (kind==='history'?lifeClient.goalHistory(ctx.charId,id,old.next_cursor):lifeClient.goalEvidence(ctx.charId,id,old.next_cursor));const merged={items:[...old.items,...next.items],next_cursor:next.next_cursor};if(kind==='history')history=merged;else evidence=merged;paint();}catch(error){if(alive)el.querySelector('[data-error]').textContent=error.message;button.disabled=false;}});
   }

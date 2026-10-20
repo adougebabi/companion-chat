@@ -431,3 +431,11 @@ ReadSettings/配置catalog使用同一只读repeatable-read快照，值、凭据
 本地YAML分支/依赖断言及actionlint1.7.12通过；actionlint仅忽略原有compose-smoke if:false常量条件提示，未改动该禁用状态。独立只读核验未发现真实构建阻断或跨渠道发布问题。未运行应用全套测试、LLM或真实部署；推送本次CI提交后由GitHub实际执行校验和镜像构建。
 
 用户随后明确“仅保留一个格式之类的校验”，覆盖上述Go/Web全套gate方案。CI现只保留validate中的Go格式检查；移除Go/Web测试、race/vet/独立编译、类型检查、再生成一致性、旧Core路由文本比对、Phase8/fact-only专项、迁移切换残留扫描及原禁用Compose smoke。Docker正常构建及完整集合/来源/digest晋升仍保留；原测试源码和历史手工工具不删除。本次未提交的旧路由提取修补已撤销，只留下流水线收敛改动。打包成功不等于业务或模型验收通过。
+
+## 2026-10-20 UUID兼容热修
+
+用户要求先修复并推送影响回归的crypto.randomUUID不可用，业务ID归属另行排查。根因是已有random-id.ts兼容器只覆盖部分旧Vue/聊天store；v3新页面和provider又散落23文件40处直接调用，普通HTTP局域网缺少secure-context-only randomUUID即报错。将原兼容实现统一为JS/TS共用random-id.mjs（原TS入口仅重导出并提供声明），所有直接调用改用该入口。可用native时保留receiver，否则使用HTTP仍支持的getRandomValues设v4/version/variant位；缺安全随机数明确失败，不用Math.random。未改接口、业务ID来源、幂等/重试/草稿身份、鉴权或UI。
+
+新增全src扩展名扫描防止直接调用再次进入；原测试只检查Vue及conversations.ts所以漏检。实际定向24/24通过，覆盖native、HTTP-shaped无randomUUID、1000个安全随机格式/唯一性、无安全RNG失败、创建草稿及未知结果原身份重试；不冒充真实HTTP浏览器或LLM验收。按用户要求保持CI仅格式检查，没有添加测试gate。
+
+Web类型检查、正式Vite构建及现有无Mock产物检查通过；diff check通过。未提交并行的profile-types.ts，不修改其内容。

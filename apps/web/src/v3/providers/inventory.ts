@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserInventoryCreateBody,BrowserInventoryUpdateBody,BrowserInventoryArchiveBody,BrowserInventoryActionBody,BrowserInventoryOutfitWriteBody} from '@fluctlight/browser-client';
 // @ts-expect-error v3 service facade
 import {configureDomainService} from '../proto/services.js';
@@ -6,7 +7,7 @@ import {get} from '../proto/store.js';
 type WithoutKey<T> = T extends unknown ? Omit<T,'idempotencyKey'> : never;
 export function createInventoryProvider(client:BrowserClient){
  const keys=new Map<string,string>();
- async function command<T>(scope:unknown,body:object,execute:(key:string)=>Promise<T>){const identity=JSON.stringify([get('session')?.actorId,scope,body]);let key=keys.get(identity);if(!key){key=crypto.randomUUID();keys.set(identity,key);}const result=await execute(key);keys.delete(identity);return result;}
+ async function command<T>(scope:unknown,body:object,execute:(key:string)=>Promise<T>){const identity=JSON.stringify([get('session')?.actorId,scope,body]);let key=keys.get(identity);if(!key){key=randomId();keys.set(identity,key);}const result=await execute(key);keys.delete(identity);return result;}
  return {
   async list(fid:string,options:Record<string,string|number>={}){const [page,wardrobe]=await Promise.all([client.inventoryPage(fid,{...options,limit:20}),client.wardrobe(fid)]);if(!Array.isArray(wardrobe.worn_items)||!Array.isArray(wardrobe.used_items))throw new Error('当前穿着或使用读面未完整返回，请重新读取');return {...page,worn_items:wardrobe.worn_items,used_items:wardrobe.used_items};},
   async read(fid:string,id:string){const item=await client.inventoryItem(fid,id);if(item.fluctlight_id!==fid)throw new Error('物品不属于当前角色');return item;},

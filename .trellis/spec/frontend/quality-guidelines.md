@@ -29,6 +29,22 @@
 - Browser-side provider calls that would expose MTPLX keys or ComfyUI configuration.
 - Reintroducing the deleted vanilla `src/` entry as a production fallback.
 
+## Browser request identity compatibility
+
+All browser pages, JS/MJS renderers, TS providers and stores use
+`apps/web/src/random-id.mjs` (`random-id.ts` reexports it for existing callers).
+Direct native `crypto.randomUUID()` calls outside that adapter are forbidden:
+native UUID is secure-context-only, while supported HTTP LAN deployment uses
+`getRandomValues` with UUID v4 version/variant bits. Keep the Crypto receiver;
+missing secure randomness is an explicit failure, never Math.random or a fixed
+fallback. Preserve existing pending command/draft/turn identities across retries.
+
+`apps/web/test/random-id.test.mjs` executes the native and HTTP-shaped paths,
+secure-byte UUID format, creation and unknown-outcome retry, and scans every
+browser source extension to prevent another direct UUID dependency. The old
+Vue/conversation-only source check missed v3 JS pages and TS providers. This
+compatibility adapter does not grant client IDs domain identity or authority.
+
 ## Scenario: Responsive Glass Detail And Governance Surfaces
 
 ### 1. Scope / Trigger

@@ -1,3 +1,4 @@
+import { randomId } from '../../../random-id.mjs';
 import { Field } from '../components/forms.js';
 import { drawer } from '../components/overlay.js';
 import { ProfileHeader, ProfileGroups, PersonaSection, PersonaHistory } from '../components/profile.js';
@@ -78,7 +79,7 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
     if (snapshot.foundationRevision === null || snapshot.runtimeRevision === null || !snapshot.activeProfileId) { feedback('版本或当前人格缺失，请重新读取后再试。', true); return; }
     const command = { targetPersonaId: draft.targetPersonaId, expectedRevision: snapshot.foundationRevision, expectedRuntimeRevision: snapshot.runtimeRevision, reason: draft.reason.trim(), confirm: true };
     const fingerprint = JSON.stringify(command);
-    if (fingerprint !== commandFingerprint) { commandFingerprint = fingerprint; commandKey = crypto.randomUUID(); }
+    if (fingerprint !== commandFingerprint) { commandFingerprint = fingerprint; commandKey = randomId(); }
     lock(true); feedback('正在提交人格切换…');
     let accepted = false;
     try {

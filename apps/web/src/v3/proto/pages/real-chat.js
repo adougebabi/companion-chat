@@ -1,3 +1,4 @@
+import { randomId } from '../../../random-id.mjs';
 import * as store from '../store.js';
 import { openConversation, conversation, client } from '../../providers/real.ts';
 import { esc, badge, drawer, toast, objLink, requireOwner } from '../ui.js';
@@ -33,7 +34,7 @@ export function renderChat(el,ctx){
     if(!current())return;
     el.innerHTML=ChatPanel({character:c,summary:`<details class="summary card tint-primary" style="margin:8px 12px;padding:8px 12px"><summary>此刻：${esc(c.doing||'尚无当前活动')}</summary><p>${esc(c.locationText||store.get('places',c.locationId)?.name||'位置尚未记录')}</p></details>`,messages:[],messageOptions:options,sidebar:`<aside class="chatside stack"><div class="card"><h3>相关资料</h3><a href="#/c/${c.id}/profile">角色资料</a><p><a href="#/c/${c.id}/people/owner">关于你</a></p><a href="#/c/${c.id}/chat/corrections">纠错记录</a></div></aside>`});
     const newSession=document.createElement('button');newSession.className='btn ghost sm';newSession.textContent='新会话';el.querySelector('.chathead').append(newSession);
-    newSession.onclick=async()=>{newSession.disabled=true;if(!newSessionKeys.has(c.id))newSessionKeys.set(c.id,crypto.randomUUID());try{await client.newDirectConversation(c.id,{idempotencyKey:newSessionKeys.get(c.id)});newSessionKeys.delete(c.id);await openConversation(c.id);update();}catch(error){status.textContent=error.message;}finally{newSession.disabled=false;}};
+    newSession.onclick=async()=>{newSession.disabled=true;if(!newSessionKeys.has(c.id))newSessionKeys.set(c.id,randomId());try{await client.newDirectConversation(c.id,{idempotencyKey:newSessionKeys.get(c.id)});newSessionKeys.delete(c.id);await openConversation(c.id);update();}catch(error){status.textContent=error.message;}finally{newSession.disabled=false;}};
     stream=el.querySelector('.stream');form=el.querySelector('form');
     const feedback=document.createElement('div');feedback.className='stack';feedback.innerHTML='<p class="small muted" role="status" data-chat-status></p><div class="row" data-chat-controls></div>';form.before(feedback);status=feedback.querySelector('[data-chat-status]');controls=feedback.querySelector('[data-chat-controls]');
     form.elements.t.value=draftText.get(c.id)||ctx.query.say||'';form.elements.t.placeholder=`和${c.name}说点什么…`;

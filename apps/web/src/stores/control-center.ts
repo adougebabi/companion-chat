@@ -1,3 +1,4 @@
+import { randomId } from '../random-id.mjs';
 import { defineStore } from "pinia";
 import {
   BrowserClient,
@@ -135,7 +136,7 @@ export const useControlCenterStore = defineStore("control-center", {
 
 
     lifeCommandKey(identity: string): string {
-		if (!this.lifeCommandKeys[identity]) this.lifeCommandKeys[identity] = `owner-ui:${crypto.randomUUID()}`;
+		if (!this.lifeCommandKeys[identity]) this.lifeCommandKeys[identity] = `owner-ui:${randomId()}`;
 		return this.lifeCommandKeys[identity];
 	},
     clearLifeCommandKey(identity: string) {
@@ -1110,7 +1111,7 @@ export const useControlCenterStore = defineStore("control-center", {
           values,
           secrets,
           expectedVersions:Object.fromEntries([...Object.keys(values),...Object.keys(secrets).filter(k=>secrets[k]).map(k=>'secret:'+k)].map(key=>[key,this.settings?.versions?.[key]??0])),
-          idempotencyKey:crypto.randomUUID(),
+          idempotencyKey:randomId(),
         });
       } catch {
         this.settingsError = "无法保存设置。";
@@ -1132,7 +1133,7 @@ export const useControlCenterStore = defineStore("control-center", {
           kind: input.kind,
           baseUrl: input.baseUrl,
           secretPurpose: input.secretPurpose,
-          expectedVersions:{["endpoint:"+input.endpointId]:this.settings?.versions?.["endpoint:"+input.endpointId]??0},idempotencyKey:crypto.randomUUID(),
+          expectedVersions:{["endpoint:"+input.endpointId]:this.settings?.versions?.["endpoint:"+input.endpointId]??0},idempotencyKey:randomId(),
         });
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
@@ -1158,7 +1159,7 @@ export const useControlCenterStore = defineStore("control-center", {
         await client.configureModelRole({
           role: input.role,
           endpointId: input.endpointId,
-          expectedVersions:{...this.settings?.versions,["binding:"+input.role]:this.settings?.versions?.["binding:"+input.role]??0,["endpoint:"+input.endpointId]:this.settings?.versions?.["endpoint:"+input.endpointId]??0},idempotencyKey:crypto.randomUUID(),
+          expectedVersions:{...this.settings?.versions,["binding:"+input.role]:this.settings?.versions?.["binding:"+input.role]??0,["endpoint:"+input.endpointId]:this.settings?.versions?.["endpoint:"+input.endpointId]??0},idempotencyKey:randomId(),
           modelId: input.modelId,
           tokenBudget: input.tokenBudget,
           timeoutSeconds: input.timeoutSeconds,

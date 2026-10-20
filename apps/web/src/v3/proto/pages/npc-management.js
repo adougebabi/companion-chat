@@ -1,3 +1,4 @@
+import { randomId } from '../../../random-id.mjs';
 import {mountResourceLifecycle} from '../components/resource-lifecycle.js';
 import {persistentCommand} from '../../providers/persistent-command.mjs';
 import {mountStudioJobs} from '../components/studio-jobs.js';
@@ -136,7 +137,7 @@ export async function npcApplyDrawer(resourceId, characterId, placeId = '') {
 export async function encounterDrawer(characterId, npcId) {
   try {
     const [npc,revision] = await Promise.all([mockClient.npc(characterId,npcId),mockClient.encounterContext(characterId)]);
-    await mockWorld.refresh(characterId);const places=placeOptions(characterId), idempotencyKey=crypto.randomUUID();
+    await mockWorld.refresh(characterId);const places=placeOptions(characterId), idempotencyKey=randomId();
     const d=modal({title:'记录 Owner 确认的实际接触',body:`<p class="small muted">仅记录你确认实际发生的、与 ${esc(npc.name)} 的接触。此操作会写入真实事件、关系和记忆；不会将手工历史记录称作自动相遇。</p><form class="stack" data-encounter>${Field({label:'接触地点',name:'placeId',value:'',type:'select',options:[{value:'',label:'选择地点'},...places.map(p=>({value:p.id,label:p.name}))]})}${Field({label:'开始时间',name:'startAt',type:'datetime-local',attrs:{required:true}})}${Field({label:'结束时间',name:'endAt',type:'datetime-local',attrs:{required:true}})}${Field({label:'实际经过',name:'summary',type:'textarea',attrs:{required:true}})}${Field({label:'证据引用（逗号分隔）',name:'evidenceRefs',attrs:{required:true}})}<label class="toggle"><input name="confirmed" type="checkbox"> 我确认此事实际发生，并同意记录到生活历史</label></form><p data-encounter-error role="alert"></p>`,footer:Button({label:'确认记录实际接触',tone:'primary',attrs:{'data-encounter-confirm':true}})});
     d.el.querySelector('[data-encounter-confirm]').onclick=async event=>{const form=d.el.querySelector('[data-encounter]');try{if(!form.reportValidity())return;if(!form.confirmed.checked)throw new Error('请确认接触实际发生');if(!(await requireOwner()))return;event.target.disabled=true;const result=await mockClient.recordEncounter(characterId,npcId,{placeId:form.placeId.value,summary:form.summary.value,startAt:new Date(form.startAt.value).toISOString(),endAt:new Date(form.endAt.value).toISOString(),evidenceRefs:form.evidenceRefs.value.split(',').map(v=>v.trim()).filter(Boolean),expectedLifeContextRevision:revision,idempotencyKey});d.close();toast('实际接触已持久记录，事件／关系／记忆来源可回读','ok');location.hash=`#/c/${characterId}/people/npc/${npcId}`;}catch(error){d.el.querySelector('[data-encounter-error]').textContent=error.message;event.target.disabled=false;}};return d;
   } catch(error) {toast(error.message,'err');}

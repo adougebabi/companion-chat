@@ -1,3 +1,4 @@
+import { randomId } from '../../../random-id.mjs';
 import {configurationClient} from '../services.js';
 import {persistentCommand} from '../../providers/persistent-command.mjs';
 import {studioDraftStorage} from './studio-draft-storage.js';
@@ -20,7 +21,7 @@ export function configurationCommand({slot,alive,readSecret}){
   return {response,secretProofs:value.secretProofs,submittedBody:value.body};
  }});
  return {...command,async matchesSecret(proof,plain){return !!proof&&await fingerprint(proof.salt,plain)===proof.hash;},async submit(operation,body,secrets={}){
-  const secretProofs={};for(const [purpose,plain]of Object.entries(secrets)){if(!plain)continue;const salt=crypto.randomUUID();secretProofs[purpose]={salt,hash:await fingerprint(salt,plain)};}
+  const secretProofs={};for(const [purpose,plain]of Object.entries(secrets)){if(!plain)continue;const salt=randomId();secretProofs[purpose]={salt,hash:await fingerprint(salt,plain)};}
   return command.submit({operation,body:structuredClone(body),secretProofs});
  }};
 }

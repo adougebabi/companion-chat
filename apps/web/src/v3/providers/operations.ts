@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 import type {BrowserClient, BrowserPendingGroup} from '@fluctlight/browser-client';
 // @ts-expect-error explicit v3 service registration
 import {configureDomainService} from '../proto/services.js';
@@ -5,7 +6,7 @@ import {configureDomainService} from '../proto/services.js';
 export function createOperationsProvider(client:BrowserClient,refresh:()=>Promise<unknown>){
   const keys=new Map<string,string>();
   async function command<T>(identity:string,run:(key:string)=>Promise<T>){
-    let key=keys.get(identity);if(!key){key=crypto.randomUUID();keys.set(identity,key);}
+    let key=keys.get(identity);if(!key){key=randomId();keys.set(identity,key);}
     const result=await run(key);keys.delete(identity);
     // A projection refresh failure must not rewrite a committed command as
     // failed. Pages read the authority again and surface refresh warnings.

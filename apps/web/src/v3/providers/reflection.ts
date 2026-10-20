@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 import type {BrowserClient} from '@fluctlight/browser-client';
 // @ts-expect-error shared explicit v3 facade
 import {configureDomainService} from '../proto/services.js';
@@ -15,7 +16,7 @@ export function createReflectionProvider(client:BrowserClient){
       if(!text.trim())throw new Error('请填写反馈内容');
       if(get('characters',fid)?.status==='已退休')throw new Error('当前角色不可提交反馈');
       await read(fid,id);
-      const identity=JSON.stringify([get('session')?.actorId,fid,id,text,stance]);let key=keys.get(identity);if(!key){key=crypto.randomUUID();keys.set(identity,key);}
+      const identity=JSON.stringify([get('session')?.actorId,fid,id,text,stance]);let key=keys.get(identity);if(!key){key=randomId();keys.set(identity,key);}
       const result=await client.submitReflectionFeedback(fid,id,{text,stance,idempotencyKey:key});
       if(result.request.fluctlight_id!==fid||result.request.kind!=='reflection_feedback'||result.request.payload.reflection_id!==id)throw new Error('反馈已受理，但任务范围不匹配，请重新查询');
       keys.delete(identity);return result;

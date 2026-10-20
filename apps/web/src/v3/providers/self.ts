@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserSelfCommandBody,BrowserSelfRestoreBody} from '@fluctlight/browser-client';
 // @ts-expect-error explicit v3 facade
 import {configureDomainService} from '../proto/services.js';
@@ -13,7 +14,7 @@ export function createSelfProvider(client:BrowserClient){
   reflections:(fid:string,cursor='')=>client.listReflections(fid,{cursor,limit:5}),
   async command(fid:string,id:string,...args:[operation:'review'|'forget',body:Omit<BrowserSelfCommandBody,'idempotencyKey'>]|[operation:'restore',body:Omit<BrowserSelfRestoreBody,'idempotencyKey'>]){
    const [operation,body]=args;
-   const identity=JSON.stringify([get('session')?.actorId,fid,id,operation,body]);let key=identities.get(identity);if(!key){key=crypto.randomUUID();identities.set(identity,key);}
+   const identity=JSON.stringify([get('session')?.actorId,fid,id,operation,body]);let key=identities.get(identity);if(!key){key=randomId();identities.set(identity,key);}
    const result=await (operation==='restore'?client.manageSelfClaim(fid,id,operation,{...(body as Omit<BrowserSelfRestoreBody,'idempotencyKey'>),idempotencyKey:key}):client.manageSelfClaim(fid,id,operation,{...body,idempotencyKey:key}));if(result.fluctlight_id!==fid||result.id!==id)throw new Error('操作已提交，但返回的对象范围不匹配，请重新查询');identities.delete(identity);return result;
   },
   decideFoundation:(fid:string,id:string,accept:boolean,expectedRevision:number,reason:string)=>accept?client.acceptFoundationRevision(fid,id,{expectedRevision,reason}):client.rejectFoundationRevision(fid,id,{expectedRevision,reason}),

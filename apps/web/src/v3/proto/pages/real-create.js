@@ -1,3 +1,4 @@
+import { randomId } from '../../../random-id.mjs';
 import * as store from '../store.js';
 import {directory,activationFromAnalysis} from '../../providers/real.ts';
 import {esc,requireOwner,toast} from '../ui.js';
@@ -25,7 +26,7 @@ export function renderRealCreate(el,ctx){
  }});
  const chooseLinkedTemplate=()=>{if(ctx.query.template&&ctx.query.version){draft.mode='template';draft.templateId=ctx.query.template;draft.templateVersion=ctx.query.version;draft.templateName=ctx.query.template;}};
  const save=()=>{if(current())recovery.save(draft);};
- const changed=()=>{draft.requestId=crypto.randomUUID();save();};
+ const changed=()=>{draft.requestId=randomId();save();};
  const fail=error=>{errorText=typeof error==='string'?error:error.message;if(current()){const box=el.querySelector('[data-result]');if(box)box.textContent=errorText;}};
  function capture(form){
   for(const name of ['name','bio','traits','world','groupId','mode','json','timezone'])if(form.elements[name])draft[name]=form.elements[name].value;
@@ -93,7 +94,7 @@ export function renderRealCreate(el,ctx){
      if(!current()||token!==epoch)return;
      draft.analysis=parseCreationAnalysis(JSON.stringify(result));draft.analysisText=JSON.stringify(draft.analysis,null,2);draft.includeGoals=true;
     }
-    draft.step=3;draft.requestId=crypto.randomUUID();
+    draft.step=3;draft.requestId=randomId();
    }
    save();
   }catch(error){fail(error);}finally{busy=false;if(current())paint();}

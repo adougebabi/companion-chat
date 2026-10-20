@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserCapabilityReviewBody,BrowserFoundationProposalBody} from '@fluctlight/browser-client';
 // @ts-expect-error explicit v3 service facade
 import {configureDomainService} from '../proto/services.js';
@@ -5,7 +6,7 @@ import {configureDomainService} from '../proto/services.js';
 import {get} from '../proto/store.js';
 export function createGovernanceProvider(client:BrowserClient,refresh:()=>Promise<unknown>){
  const keys=new Map<string,string>();
- async function command<T>(scope:unknown,body:object,execute:(key:string)=>Promise<T>){const identity=JSON.stringify([get('session')?.actorId,scope,body]);let key=keys.get(identity);if(!key){key=crypto.randomUUID();keys.set(identity,key);}const result=await execute(key);keys.delete(identity);return result;}
+ async function command<T>(scope:unknown,body:object,execute:(key:string)=>Promise<T>){const identity=JSON.stringify([get('session')?.actorId,scope,body]);let key=keys.get(identity);if(!key){key=randomId();keys.set(identity,key);}const result=await execute(key);keys.delete(identity);return result;}
  const owned=<T extends {fluctlight_id:string}>(fid:string,row:T)=>{if(row.fluctlight_id!==fid)throw new Error('治理对象与当前角色不匹配，请重新读取');return row;};
  return {
   refresh,

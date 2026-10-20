@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserDiaryGenerateBody,BrowserDiaryAnnotationBody} from '@fluctlight/browser-client';
 // @ts-expect-error shared v3 service facade
 import {configureDomainService} from '../proto/services.js';
@@ -5,7 +6,7 @@ import {configureDomainService} from '../proto/services.js';
 import {get} from '../proto/store.js';
 export function createDiaryProvider(client:BrowserClient){
  const keys=new Map<string,string>();
- async function write<T>(identity:unknown,call:(key:string)=>Promise<T>){const encoded=JSON.stringify([get('session')?.actorId,identity]);let key=keys.get(encoded);if(!key){key=crypto.randomUUID();keys.set(encoded,key);}const result=await call(key);keys.delete(encoded);return result;}
+ async function write<T>(identity:unknown,call:(key:string)=>Promise<T>){const encoded=JSON.stringify([get('session')?.actorId,identity]);let key=keys.get(encoded);if(!key){key=randomId();keys.set(encoded,key);}const result=await call(key);keys.delete(encoded);return result;}
  return {
   list:(fid:string,cursor='',favorite=false)=>client.listDiary(fid,cursor,{favorite,limit:20}),
   async read(fid:string,id:string){const result=await client.diary(fid,id);if(result.fluctlight_id!==fid||result.source!=='agent')throw new Error('日记归属或来源不匹配');return result;},

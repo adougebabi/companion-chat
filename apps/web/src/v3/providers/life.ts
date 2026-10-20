@@ -1,3 +1,4 @@
+import { randomId } from '../../random-id.mjs';
 import {persistentCommand} from './persistent-command.mjs';
 import type { BrowserClient, BrowserGoalCommand, BrowserPromiseCommandBody, BrowserPromiseRescheduleBody } from '@fluctlight/browser-client';
 // @ts-expect-error JS service facade
@@ -8,13 +9,13 @@ import { get } from '../proto/store.js';
 type Data = Record<string, unknown>;
 const object = (value: unknown): Data => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Data : {};
 export function createLifeProvider(client: BrowserClient) {
-  const command = (reason: string) => ({reason,idempotencyKey:crypto.randomUUID()});
+  const command = (reason: string) => ({reason,idempotencyKey:randomId()});
   const writable = (fid: string) => {const row=get('characters',fid);if(!row || row.status==='已退休')throw new Error('当前角色不可写入');};
   const pendingKeys = new Map<string,string>();
   async function mutate<T>(fid:string,operation:string,body:Data,run:(key:string)=>Promise<T>) {
     writable(fid);
     const identity=JSON.stringify([get('session')?.actorId,fid,operation,body]);
-    let key=pendingKeys.get(identity);if(!key){key=crypto.randomUUID();pendingKeys.set(identity,key);}
+    let key=pendingKeys.get(identity);if(!key){key=randomId();pendingKeys.set(identity,key);}
     const result=await run(key);pendingKeys.delete(identity);return result;
   }
   type PromiseDraft={title:string;startsAt?:string;dueAt:string;reason:string};
@@ -48,7 +49,7 @@ export function createLifeProvider(client: BrowserClient) {
     goalCommand: async(fid:string,id:string,action:'pause'|'resume'|'cancel'|'abandon'|'reassess',revision:number,reason:string) => {writable(fid);return client.goalCommand(fid,id,action,{expectedRevision:revision,...command(reason)});},
     goalSet: (fid:string)=>client.goalSet(fid),
     planningHistory: (fid:string)=>client.goalPlanningHistory(fid),
-    plan: async(fid:string)=>{writable(fid);return client.requestGoalPlanning(fid,crypto.randomUUID());},
+    plan: async(fid:string)=>{writable(fid);return client.requestGoalPlanning(fid,randomId());},
     updateGoalSet: async(fid:string,state:Data,changes:Data,reason:string)=>{writable(fid);return client.updateGoalSet(fid,{...changes,expectedVersion:Number(state.revision),expectedFactsRevision:String(state.facts_revision),...command(reason)});},
     promises:(fid:string,cursor='')=>client.promises(fid,cursor),
     readPromise:(fid:string,id:string)=>client.promise(fid,id),
