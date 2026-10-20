@@ -19,6 +19,10 @@ func recordGoalSourceEventTx(ctx context.Context, tx pgx.Tx, fluctlightID, profi
 }
 
 func queueGoalEvaluationTx(ctx context.Context, tx pgx.Tx, owner, profile, reason, identity string, goalIDs []string) (string, error) {
+	blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, owner)
+	if blockErr != nil || blocked {
+		return "", blockErr
+	}
 	if err := lockLifeContextTx(ctx, tx, owner); err != nil {
 		return "", err
 	}

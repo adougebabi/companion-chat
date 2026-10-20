@@ -11,6 +11,13 @@ import (
 )
 
 func enqueueDiaryAttemptTx(ctx context.Context, tx pgx.Tx, fid, date, zone string, due time.Time) (string, error) {
+	blocked, life, blockErr := autonomousActivityBlockedTx(ctx, tx, fid)
+	if blockErr != nil {
+		return "", blockErr
+	}
+	if blocked {
+		return "", &SurfaceError{Status: 409, Code: autonomousStopReason(life), Message: "暂停或停用的角色不会生成日记"}
+	}
 	id := "diary_" + stableDigest(fid+":"+date+":"+zone)
 	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_diary_days(id,fluctlight_id,local_date,timezone,status) VALUES($1,$2,$3,$4,'pending') ON CONFLICT(fluctlight_id,local_date,timezone) DO NOTHING`, id, fid, date, zone); err != nil {
 		return "", err

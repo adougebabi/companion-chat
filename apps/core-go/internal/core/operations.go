@@ -163,6 +163,7 @@ func (a *App) setFluctlightLifecycle(ctx context.Context, actorID, id, status, r
 		return nil, errors.New("expected_revision_required")
 	}
 	var result map[string]any
+	var transitioned bool
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var currentRevision, lifecycleRevision int
 		var currentStatus, owner string
@@ -200,12 +201,26 @@ func (a *App) setFluctlightLifecycle(ctx context.Context, actorID, id, status, r
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_governance(id,fluctlight_id,revision,from_status,to_status,actor_id,reason) VALUES($1,$2,$3,$4,$5,$6,$7)`, randomID("fluctlight_governance_"), id, lifecycleRevision, currentStatus, status, actorID, nullableString(reason)); err != nil {
 			return err
 		}
+		if status == "paused" || status == "retired" {
+			if err := cancelCurrentDayScheduleIntentTx(ctx, tx, id, status); err != nil {
+				return err
+			}
+		}
+		if status == "active" {
+			if err := reopenPausedCurrentDayScheduleIntentTx(ctx, tx, id); err != nil {
+				return err
+			}
+		}
+		transitioned = true
 		result = map[string]any{"id": id, "status": status, "revision": lifecycleRevision, "current_revision": currentRevision, "reason": reason}
 		if retiredAt != nil {
 			result["retired_at"] = retiredAt.Format(time.RFC3339Nano)
 		}
 		return nil
 	})
+	if err == nil && transitioned && (status == "paused" || status == "retired") {
+		a.requestCurrentDayScheduleCancel(ctx, id, status)
+	}
 	if err == nil && status == "active" {
 		_, ensureErr := a.EnsureWakeUpIntents(ctx)
 		if ensureErr == nil {

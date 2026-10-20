@@ -57,7 +57,7 @@ func (a *App) enqueueConversationSegmentTx(ctx context.Context, tx pgx.Tx, fluct
 	var epoch, timezone string
 	var idleSince time.Time
 	if err := tx.QueryRow(ctx, `SELECT m.id,m.created_at,COALESCE(f.identity->>'timezone','Asia/Shanghai')
-		FROM public.conversation_messages m JOIN public.fluctlights f ON f.id=$2
+		FROM public.conversation_messages m JOIN public.fluctlights f ON f.id=$2 AND f.status='active'
 		WHERE m.conversation_id=$1 AND m.kind='user' ORDER BY m.sequence DESC LIMIT 1`, conversationID, fluctlightID).Scan(&epoch, &idleSince, &timezone); errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	} else if err != nil {
@@ -180,6 +180,7 @@ func (a *App) EnsureConversationSegmentIntents(ctx context.Context, limit int) (
 	}
 	rows, err := a.DB.Pool().Query(ctx, `SELECT DISTINCT m.conversation_id,m.author_actor_id
 		FROM public.conversation_messages m JOIN public.actors actor ON actor.id=m.author_actor_id AND actor.actor_type='fluctlight'
+		JOIN public.fluctlights f ON f.id=m.author_actor_id AND f.status='active'
 		WHERE m.kind='assistant'
 		  AND EXISTS (SELECT 1 FROM public.conversation_messages u WHERE u.conversation_id=m.conversation_id AND u.kind='user')
 		  AND NOT EXISTS (SELECT 1 FROM public.platform_workflow_intents i WHERE i.intent_type='conversation.segment'
@@ -240,6 +241,11 @@ func (a *App) ProcessConversationSegmentIntent(ctx context.Context, intentID str
 	}
 	if work.FluctlightID == "" || work.ConversationID == "" || work.ToSequence < work.FromSequence || work.FromSequence < 1 {
 		return nil, errors.New("conversation_segment_intent_invalid")
+	}
+	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, work.FluctlightID); blockErr != nil {
+		return nil, blockErr
+	} else if blocked {
+		return map[string]any{"intent_id": intentID, "fluctlight_id": work.FluctlightID, "status": "inactive", "reason": autonomousStopReason(life)}, nil
 	}
 	var currentEpoch string
 	var currentAt time.Time

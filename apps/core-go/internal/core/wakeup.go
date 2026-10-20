@@ -125,6 +125,10 @@ func setWakeUpIdleEpochTx(ctx context.Context, tx pgx.Tx, fluctlightID, messageI
 	if strings.TrimSpace(messageID) == "" {
 		return errors.New("wake_up_idle_message_required")
 	}
+	blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, fluctlightID)
+	if blockErr != nil || blocked {
+		return blockErr
+	}
 	intentID := "wake_up_intent:" + fluctlightID
 	var raw []byte
 	err := tx.QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&raw)
@@ -292,7 +296,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 				'completed',
 				now()+($1 * interval '1 second')
 			FROM public.fluctlights AS f
-			WHERE f.status IN ('active', 'paused')
+			WHERE f.status='active'
 			ON CONFLICT (intent_id) DO NOTHING`, settings.IntervalSeconds)
 		if err != nil {
 			return err
@@ -304,7 +308,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			FROM public.fluctlights AS f
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id' = f.id
-			  AND f.status IN ('active', 'paused')
+			  AND f.status='active'
 			  AND (
 			    i.status IN ('failed', 'dead_letter', 'cancelled')
 			    OR (i.status = 'started' AND (i.started_at IS NULL OR i.started_at < now() - interval '5 minutes'))
@@ -327,7 +331,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			FROM public.fluctlights AS f
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id'=f.id
-			  AND f.status IN ('active','paused')
+			  AND f.status='active'
 			  AND i.status IN ('superseded', 'cancelled')
 			  AND NOT EXISTS (
 				SELECT 1 FROM public.cognition_inbox AS c
@@ -345,7 +349,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			FROM public.fluctlights AS f
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id'=f.id
-			  AND f.status IN ('active','paused')
+			  AND f.status='active'
 			  AND i.next_attempt_at IS NULL`, settings.IntervalSeconds)
 		if err != nil {
 			return err
@@ -402,7 +406,7 @@ func (a *App) RepairWakeUpClocks(ctx context.Context) (int64, error) {
 				'completed',
 				now()+($1 * interval '1 second')
 			FROM public.fluctlights AS f
-			WHERE f.status IN ('active','paused')
+			WHERE f.status='active'
 			ON CONFLICT (intent_id) DO NOTHING`, settings.IntervalSeconds)
 		if err != nil {
 			return err
@@ -414,7 +418,7 @@ func (a *App) RepairWakeUpClocks(ctx context.Context) (int64, error) {
 			FROM public.fluctlights AS f
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id'=f.id
-			  AND f.status IN ('active','paused')
+			  AND f.status='active'
 			  AND i.next_attempt_at IS NULL`, settings.IntervalSeconds)
 		if err != nil {
 			return err
@@ -695,11 +699,17 @@ func insertReflectionIntentWithDelayTx(ctx context.Context, tx pgx.Tx, intentID,
 	if exists {
 		return nil
 	}
+	fluctlightID := strings.TrimSpace(stringValue(payload["fluctlight_id"]))
+	if fluctlightID != "" {
+		blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, fluctlightID)
+		if blockErr != nil || blocked {
+			return blockErr
+		}
+	}
 	if delay <= 0 {
 		delay = reflectionQuietPeriod
 	}
 	nextReflectionAt := time.Now().UTC().Add(delay)
-	fluctlightID := strings.TrimSpace(stringValue(payload["fluctlight_id"]))
 	if fluctlightID != "" {
 		var lastPublishedAt *time.Time
 		if err := tx.QueryRow(ctx, `

@@ -193,6 +193,11 @@ func (a *App) ProcessConversationSummaryIntent(ctx context.Context, intentID, fl
 	if err := a.validateConversationSummaryWorkIdentity(ctx, work); err != nil {
 		return nil, err
 	}
+	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, work.FluctlightID); blockErr != nil {
+		return nil, blockErr
+	} else if blocked {
+		return map[string]any{"intent_id": work.IntentID, "fluctlight_id": work.FluctlightID, "status": "inactive", "reason": autonomousStopReason(life)}, nil
+	}
 	return a.runConversationSummaryIntentWork(ctx, work.FluctlightID, func(runCtx context.Context) (map[string]any, error) {
 		return a.processRuntimeSummary(runCtx, work)
 	})

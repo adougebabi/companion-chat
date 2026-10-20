@@ -431,6 +431,13 @@ func visualIdentityAttemptID(sessionID string, attempt int) string {
 // WakeUp. It only writes domain state and a committed workflow intent; the
 // Worker owns every Provider/Temporal side effect after the transaction.
 func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.Tx, fluctlightID, triggerType, sourceFactID string, corePersona map[string]any) (string, error) {
+	blocked, _, blockErr := autonomousActivityBlockedTx(ctx, tx, fluctlightID)
+	if blockErr != nil {
+		return "", blockErr
+	}
+	if blocked {
+		return "", ErrNotFound
+	}
 	if strings.TrimSpace(fluctlightID) == "" {
 		return "", errors.New("visual_identity_fluctlight_required")
 	}
@@ -944,7 +951,7 @@ func enforceVisualIdentityTurnaroundPrompt(prompt, stage string) string {
 func (a *App) EnsureVisualIdentityInitialization(ctx context.Context, fluctlightID, triggerType, sourceFactID string) (string, error) {
 	var persona map[string]any
 	var raw []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1 AND status <> 'retired'`, fluctlightID).Scan(&raw); err != nil {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1 AND status='active'`, fluctlightID).Scan(&raw); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", ErrNotFound
 		}
@@ -974,7 +981,7 @@ func (a *App) EnsureVisualIdentityInitializationWithPersona(ctx context.Context,
 			}
 			return err
 		}
-		if status == "retired" {
+		if status != "active" {
 			return ErrNotFound
 		}
 		var err error
@@ -1075,7 +1082,16 @@ func (a *App) visualIdentityWakeupNeedsInitialization(ctx context.Context, fluct
 // checkpoint now enters the complete formal Visual Identity Agent; Temporal
 // supplies only the stable session resume coordinate.
 func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[string]any, error) {
-	state, err := a.loadVisualIdentityAgentState(ctx, strings.TrimSpace(sessionID))
+	sessionID = strings.TrimSpace(sessionID)
+	var fluctlightID, lifecycleStatus string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT s.fluctlight_id,f.status FROM public.fluctlight_visual_identity_sessions s JOIN public.fluctlights f ON f.id=s.fluctlight_id WHERE s.id=$1`, sessionID).Scan(&fluctlightID, &lifecycleStatus)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	if err == nil && lifecycleStatus != "active" {
+		return map[string]any{"session_id": sessionID, "fluctlight_id": fluctlightID, "status": "cancelled", "reason": autonomousStopReason(lifecycleStatus)}, nil
+	}
+	state, err := a.loadVisualIdentityAgentState(ctx, sessionID)
 	if err != nil {
 		if settled, settleErr := a.settleVisualIdentityMediaFailure(ctx, state, err); settled || settleErr != nil {
 			if settleErr != nil {
@@ -1205,7 +1221,7 @@ func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluc
 		}
 		var attemptID string
 		var frozenRaw, personaRaw []byte
-		err := tx.QueryRow(ctx, `SELECT a.id,a.input_snapshot,f.core_persona FROM public.fluctlight_visual_identities v JOIN public.fluctlights f ON f.id=v.fluctlight_id JOIN public.fluctlight_visual_identity_sessions s ON s.id=v.active_session_id JOIN public.fluctlight_visual_identity_attempts a ON a.session_id=s.id AND a.attempt_number=s.current_attempt WHERE v.id=$1 AND v.fluctlight_id=$2 AND f.status<>'retired' AND s.status IN ('queued','running') FOR UPDATE OF s,a`, profileID, fluctlightID).Scan(&attemptID, &frozenRaw, &personaRaw)
+		err := tx.QueryRow(ctx, `SELECT a.id,a.input_snapshot,f.core_persona FROM public.fluctlight_visual_identities v JOIN public.fluctlights f ON f.id=v.fluctlight_id JOIN public.fluctlight_visual_identity_sessions s ON s.id=v.active_session_id JOIN public.fluctlight_visual_identity_attempts a ON a.session_id=s.id AND a.attempt_number=s.current_attempt WHERE v.id=$1 AND v.fluctlight_id=$2 AND f.status='active' AND s.status IN ('queued','running') FOR UPDATE OF s,a`, profileID, fluctlightID).Scan(&attemptID, &frozenRaw, &personaRaw)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}

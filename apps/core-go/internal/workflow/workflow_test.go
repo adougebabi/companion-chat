@@ -289,6 +289,7 @@ func TestWakeUpIntentRetriesOnlyForLiveFluctlights(t *testing.T) {
 	}{
 		{name: "active failed", fluctlightStatus: "active", workflowStatus: "failed", want: true},
 		{name: "paused completed", fluctlightStatus: "paused", workflowStatus: "completed", want: false},
+		{name: "paused failed", fluctlightStatus: "paused", workflowStatus: "failed", want: false},
 		{name: "active cancelled", fluctlightStatus: "active", workflowStatus: "cancelled", want: true},
 		{name: "retired failed", fluctlightStatus: "retired", workflowStatus: "failed", want: false},
 	} {

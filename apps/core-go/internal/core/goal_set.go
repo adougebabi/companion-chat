@@ -686,6 +686,10 @@ func requireGoalDependenciesTx(ctx context.Context, tx pgx.Tx, owner, id string)
 	return nil
 }
 func requestGoalPlanningTx(ctx context.Context, tx pgx.Tx, owner, source, reason string, data map[string]any) error {
+	blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, owner)
+	if blockErr != nil || blocked {
+		return blockErr
+	}
 	if data == nil {
 		data = map[string]any{}
 	}

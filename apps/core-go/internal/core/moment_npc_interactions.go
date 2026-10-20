@@ -21,6 +21,10 @@ func (a *App) enqueueNPCMomentInteractionsTx(ctx context.Context, tx pgx.Tx, mom
 	if err != nil || fid == "" {
 		return err
 	}
+	blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, fid)
+	if blockErr != nil || blocked {
+		return blockErr
+	}
 	rows, err := tx.Query(ctx, `SELECT DISTINCT ON(n.id) n.id,n.actor_id,n.revision,n.world_id,n.name,n.role,n.background,w.rules,e.id,e.life_event_id,e.summary FROM public.world_npcs n JOIN public.life_worlds w ON w.id=n.world_id JOIN public.fluctlight_world_bindings b ON b.world_id=w.id AND b.fluctlight_id=$1 JOIN public.world_encounters e ON e.npc_id=n.id AND e.world_id=n.world_id AND e.relationship_id IS NOT NULL JOIN public.life_events le ON le.id=e.life_event_id AND le.status='confirmed' JOIN public.relationships r ON r.id=e.relationship_id AND r.owner_fluctlight_id=$1 AND r.target_actor_id=n.actor_id WHERE n.status='active' AND n.enabled=true AND n.actor_id<>$2 ORDER BY n.id,e.occurred_at DESC,e.id DESC`, fid, author)
 	if err != nil {
 		return err
@@ -75,6 +79,13 @@ func readNPCMomentWith(ctx context.Context, q lifeContextQuerier, owner, id stri
 func (a *App) validateNPCMomentTx(ctx context.Context, tx pgx.Tx, row map[string]any) error {
 	if err := requireOwnerMutableTx(ctx, tx, stringValue(row["owner_actor_id"]), stringValue(row["fluctlight_id"])); err != nil {
 		return err
+	}
+	blocked, life, blockErr := autonomousActivityBlockedTx(ctx, tx, stringValue(row["fluctlight_id"]))
+	if blockErr != nil {
+		return blockErr
+	}
+	if blocked {
+		return &SurfaceError{Status: 409, Code: autonomousStopReason(life), Message: "暂停或停用的角色不会继续 NPC 互动"}
 	}
 	var valid bool
 	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.moments m JOIN public.world_npcs n ON n.id=$2 JOIN public.fluctlight_world_bindings b ON b.fluctlight_id=$3 AND b.world_id=n.world_id JOIN public.world_encounters e ON e.id=$4 AND e.npc_id=n.id AND e.world_id=n.world_id JOIN public.life_events le ON le.id=e.life_event_id AND le.status='confirmed' JOIN public.relationships r ON r.id=e.relationship_id AND r.owner_fluctlight_id=$3 AND r.target_actor_id=n.actor_id WHERE m.id=$1 AND m.owner_fluctlight_id=$3 AND m.owner_actor_id=$5 AND m.status='visible' AND m.text=$6 AND n.world_id=$7 AND n.actor_id=$8 AND n.revision=$9 AND n.status='active' AND n.enabled)`, row["moment_id"], row["npc_id"], row["fluctlight_id"], row["encounter_id"], row["owner_actor_id"], mapValue(mapValue(row["snapshot"])["moment"])["text"], row["world_id"], row["npc_actor_id"], row["npc_revision"]).Scan(&valid)

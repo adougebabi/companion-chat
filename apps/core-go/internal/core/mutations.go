@@ -534,6 +534,10 @@ func insertPostScheduleLifecycleIntentsTx(ctx context.Context, tx pgx.Tx, fluctl
 	if localDate.Format("2006-01-02") != at.In(location).Format("2006-01-02") {
 		return nil
 	}
+	blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, fluctlightID)
+	if blockErr != nil || blocked {
+		return blockErr
+	}
 	dateValue := localDate.Format("2006-01-02")
 	if err := enqueueClosedDayDiaryTx(ctx, tx, fluctlightID, dateValue, location.String()); err != nil {
 		return err

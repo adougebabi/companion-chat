@@ -91,6 +91,13 @@ func (a *App) scheduleWakeUpAfterCognition(ctx context.Context, fluctlightID str
 			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
 				return err
 			}
+			blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, fluctlightID)
+			if blockErr != nil {
+				return blockErr
+			}
+			if blocked {
+				return errAutonomousLifecycleStopped
+			}
 			var payloadRaw []byte
 			if err := tx.QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_type='wake_up.current' AND payload->>'fluctlight_id'=$1 FOR UPDATE`, fluctlightID).Scan(&payloadRaw); err != nil {
 				return err
@@ -112,6 +119,9 @@ func (a *App) scheduleWakeUpAfterCognition(ctx context.Context, fluctlightID str
 			}
 			return nil
 		}); err != nil {
+			if errors.Is(err, errAutonomousLifecycleStopped) {
+				return nil
+			}
 			return err
 		}
 	}
@@ -183,11 +193,14 @@ func (a *App) ScheduleWakeUpTriggers(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	if _, err := a.DB.Pool().Exec(ctx, `
-		UPDATE public.platform_workflow_intents
+		UPDATE public.platform_workflow_intents AS i
 		SET next_attempt_at=now()+interval '10 minutes'
-		WHERE intent_type='wake_up.current'
-		  AND status='completed'
-		  AND next_attempt_at IS NULL`); err != nil {
+		FROM public.fluctlights AS f
+		WHERE i.intent_type='wake_up.current'
+		  AND i.status='completed'
+		  AND i.next_attempt_at IS NULL
+		  AND i.payload->>'fluctlight_id'=f.id
+		  AND f.status='active'`); err != nil {
 		return 0, err
 	}
 	if !settings.Enabled {
@@ -287,13 +300,14 @@ func (a *App) HandleRedisExpiredTrigger(ctx context.Context, key string) error {
 			return nil
 		}
 		if strings.HasPrefix(identity, "reflection_intent:") {
-			_, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now() WHERE intent_id=$1 AND intent_type='reflection.run' AND status IN ('pending','retry')`, identity)
+			_, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents AS i SET next_attempt_at=now() FROM public.fluctlights AS f WHERE i.intent_id=$1 AND i.intent_type='reflection.run' AND i.status IN ('pending','retry') AND i.payload->>'fluctlight_id'=f.id AND f.status='active'`, identity)
 			return err
 		}
 		_, err := a.DB.Pool().Exec(ctx, `
-			UPDATE public.platform_workflow_intents
+			UPDATE public.platform_workflow_intents AS i
 			SET next_attempt_at=now()
-			WHERE intent_id=(
+			FROM public.fluctlights AS f
+			WHERE i.intent_id=(
 				SELECT intent_id
 				FROM public.platform_workflow_intents
 				WHERE intent_type='reflection.run'
@@ -302,7 +316,9 @@ func (a *App) HandleRedisExpiredTrigger(ctx context.Context, key string) error {
 				ORDER BY created_at DESC,intent_id DESC
 				LIMIT 1
 			)
-			AND status IN ('pending','retry')`, identity)
+			AND i.status IN ('pending','retry')
+			AND i.payload->>'fluctlight_id'=f.id
+			AND f.status='active'`, identity)
 		return err
 	}
 	if strings.HasPrefix(key, wakeUpTriggerPrefix) {
@@ -433,15 +449,18 @@ func (a *App) AuditWakeUpClocks(ctx context.Context, limit int) (int64, error) {
 	}
 	// Recover wake_up.current intents stuck in started/running for >= 15 minutes.
 	if _, reapErr := a.DB.Pool().Exec(ctx, `
-		UPDATE public.platform_workflow_intents
+		UPDATE public.platform_workflow_intents AS i
 		SET status='retry',
 			started_at=NULL,
 			completed_at=NULL,
 			next_attempt_at=now(),
 			last_error='reaped_stuck_wake_up'
-		WHERE intent_type='wake_up.current'
-		  AND status IN ('started','running','cancel_requested')
-		  AND (started_at < now() - interval '15 minutes' OR (started_at IS NULL AND created_at < now() - interval '15 minutes'))
+		FROM public.fluctlights AS f
+		WHERE i.intent_type='wake_up.current'
+		  AND i.payload->>'fluctlight_id'=f.id
+		  AND f.status='active'
+		  AND i.status IN ('started','running','cancel_requested')
+		  AND (i.started_at < now() - interval '15 minutes' OR (i.started_at IS NULL AND i.created_at < now() - interval '15 minutes'))
 	`); reapErr != nil {
 		return 0, reapErr
 	}
@@ -456,7 +475,7 @@ func (a *App) AuditWakeUpClocks(ctx context.Context, limit int) (int64, error) {
 		FROM public.fluctlights AS f
 		WHERE i.intent_type='wake_up.current'
 		  AND i.payload->>'fluctlight_id'=f.id
-		  AND f.status IN ('active', 'paused')
+		  AND f.status='active'
 		  AND i.status IN ('cancelled', 'failed', 'dead_letter')
 	`); reapErr != nil {
 		return 0, reapErr
@@ -472,7 +491,7 @@ func (a *App) AuditWakeUpClocks(ctx context.Context, limit int) (int64, error) {
 		FROM public.fluctlights AS f
 		WHERE i.intent_type='wake_up.current'
 		  AND i.payload->>'fluctlight_id'=f.id
-		  AND f.status IN ('active', 'paused')
+		  AND f.status='active'
 		  AND i.status='superseded'
 		  AND NOT EXISTS (
 			SELECT 1 FROM public.cognition_inbox AS c

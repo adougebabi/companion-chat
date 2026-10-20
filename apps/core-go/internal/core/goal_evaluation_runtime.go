@@ -342,6 +342,11 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id FROM public.goal_evaluation_requests WHERE id=$1`, id).Scan(&logicalOwner); err != nil {
 		return nil, err
 	}
+	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, logicalOwner); blockErr != nil {
+		return nil, blockErr
+	} else if blocked {
+		return map[string]any{"id": id, "fluctlight_id": logicalOwner, "status": "inactive", "reason": autonomousStopReason(life), "model_admission": false}, nil
+	}
 	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, logicalOwner, "goal_evaluation")
 	if logicalErr != nil {
 		return nil, logicalErr

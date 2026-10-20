@@ -2104,7 +2104,7 @@ func boundedTemporalFailureMessage(failure *failurepb.Failure) string {
 }
 
 func wakeUpIntentShouldRetry(fluctlightStatus, workflowStatus string) bool {
-	if fluctlightStatus != "active" && fluctlightStatus != "paused" {
+	if fluctlightStatus != "active" {
 		return false
 	}
 	return workflowStatus == "failed" || workflowStatus == "cancelled" || workflowStatus == "terminated" || workflowStatus == "timed_out"

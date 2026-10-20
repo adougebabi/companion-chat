@@ -826,6 +826,10 @@ func ensureLinkedActivityResultIntentTx(ctx context.Context, tx pgx.Tx, outcome 
 	if !ok {
 		return errors.New("activity_result_intention_reference_missing")
 	}
+	blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, outcome.FluctlightID)
+	if blockErr != nil || blocked {
+		return blockErr
+	}
 	var notBefore time.Time
 	if err := tx.QueryRow(ctx, `SELECT not_before FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2`, outcome.ExternalRef, outcome.FluctlightID).Scan(&notBefore); err != nil {
 		return err
