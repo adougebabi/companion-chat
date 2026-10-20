@@ -1,7 +1,6 @@
 package core
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -31,14 +30,8 @@ func TestNativeConversationReplyReceiptIsTheVisiblePublicationAuthority(t *testi
 					nativePersonaToolCall("native-visible-reply", "conversation.reply", map[string]any{"text": "已提交的唯一可见回复"}),
 				},
 			}
-		case 2:
-			tools := nativePersonaToolMessages(payload)
-			if !strings.Contains(tools, "conversation_message") || !strings.Contains(tools, "completed") {
-				t.Fatalf("committed reply receipt missing from final decision: %s", tools)
-			}
-			return nativePersonaFinal()
 		default:
-			t.Fatalf("unexpected extra model decision %d", step)
+			t.Fatalf("visible reply committed but another model decision was made: %d", step)
 			return fakeProviderResult{Status: 500}
 		}
 	})
@@ -60,7 +53,7 @@ func TestNativeConversationReplyReceiptIsTheVisiblePublicationAuthority(t *testi
 	if firstString(receipt["status"], stringValue(receipt["Status"])) != "completed" {
 		t.Fatalf("reply receipt was not committed: %#v", receipt)
 	}
-	if step != 2 || router.requestCount(workingPersonaMainTurnSchema) != 2 {
+	if step != 1 || router.requestCount(workingPersonaMainTurnSchema) != 1 {
 		t.Fatalf("native reply path used %d decisions / %d requests", step, router.requestCount(workingPersonaMainTurnSchema))
 	}
 }

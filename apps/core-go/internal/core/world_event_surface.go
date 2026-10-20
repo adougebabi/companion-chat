@@ -27,8 +27,9 @@ func (a *App) applyWorldEventTemplateTx(ctx context.Context, tx pgx.Tx, fid stri
 		id = randomID("world_template_")
 	}
 	var revision int
-	err = tx.QueryRow(ctx, `INSERT INTO public.world_event_templates(id,world_id,source_resource_id,source_version,name,definition,next_check_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(world_id,source_resource_id) DO UPDATE SET source_version=EXCLUDED.source_version,name=EXCLUDED.name,definition=EXCLUDED.definition,revision=world_event_templates.revision+1,next_check_at=EXCLUDED.next_check_at,error_code=NULL,updated_at=now() RETURNING revision`, id, world, p.ID, p.Version, values["name"], jsonBytes(d), a.now().UTC()).Scan(&revision)
-	return map[string]any{"id": id, "revision": revision, "world_id": world, "life_write": false}, err
+	var enabled bool
+	err = tx.QueryRow(ctx, `INSERT INTO public.world_event_templates(id,world_id,source_resource_id,source_version,name,definition,next_check_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(world_id,source_resource_id) DO UPDATE SET source_version=EXCLUDED.source_version,name=EXCLUDED.name,definition=EXCLUDED.definition,revision=world_event_templates.revision+1,next_check_at=EXCLUDED.next_check_at,error_code=NULL,updated_at=now() RETURNING revision, enabled`, id, world, p.ID, p.Version, values["name"], jsonBytes(d), a.now().UTC()).Scan(&revision, &enabled)
+	return map[string]any{"id": id, "revision": revision, "world_id": world, "enabled": enabled, "life_write": false}, err
 }
 func readWorldTemplateWith(ctx context.Context, q lifeContextQuerier, fid, id string, lock bool) (map[string]any, error) {
 	sql := `SELECT to_jsonb(t) FROM public.world_event_templates t JOIN public.life_worlds w ON w.id=t.world_id WHERE w.fluctlight_id=$1 AND t.id=$2`

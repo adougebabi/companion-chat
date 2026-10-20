@@ -62,6 +62,7 @@ func validateNativeArguments(arguments json.RawMessage, definition CapabilityDef
 	if err := json.Unmarshal(arguments, &value); err != nil {
 		return errors.New("invalid_arguments: expected an object matching the native tool parameters")
 	}
+	value = prepareModelValue(value, definition.InputSchema)
 	if err := capabilitycontract.ValidateCapabilitySchemaValue(value, definition.InputSchema); err != nil {
 		return fmt.Errorf("invalid_arguments: %s", safeToolArgumentFeedback(err))
 	}

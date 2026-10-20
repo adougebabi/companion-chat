@@ -1170,7 +1170,7 @@ func TestGoalPlannerScheduledWishCannotCreateIntentionOrCallScheduleModel(t *tes
 		return fakeProviderResult{Structured: map[string]any{"action_type": "reply", "response_intent": "已记录规划请求，执行仍未安排", "influences": []any{}}}
 	})}
 	result, err := f.app.RunConversationCognitionAgent(f.ctx, ConversationCognitionAgentInput{AuthorizationActorID: f.ownerID, FluctlightID: f.fluctlightID, ConversationID: f.conversationID, RunID: "scheduled-wish-" + f.suffix, CurrentInput: "我想看看新的手套"})
-	if err != nil || calls != 3 || scheduleCalls != 0 {
+	if err != nil || calls != 2 || scheduleCalls != 0 {
 		t.Fatal("new wish prematurely planned execution", calls, scheduleCalls, result, err)
 	}
 	var goals, intentions int

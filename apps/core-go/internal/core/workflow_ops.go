@@ -90,6 +90,11 @@ func (a *App) processFrozenToolAction(ctx context.Context, actionID string) (map
 	default:
 		return nil, fmt.Errorf("autonomy action is not executable: %s", action.Status)
 	}
+	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, action.FluctlightID); blockErr != nil {
+		return nil, blockErr
+	} else if blocked {
+		return map[string]any{"action_id": action.ID, "action_type": action.ActionType, "status": "inactive", "reason": autonomousStopReason(life)}, nil
+	}
 	if err := validateExecutableCapabilityPayload(action.Payload); err != nil {
 		return a.failAutonomyAction(ctx, action.ID, "capability_runtime_envelope_invalid")
 	}
@@ -807,13 +812,16 @@ func (a *App) ProcessMemoryEmbeddingAt(ctx context.Context, memoryID string, req
 // semantic plan; Go only normalizes the structural JSON shape, validates the
 // timezone/day coverage and commits the accepted projection transactionally.
 func (a *App) EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string) (map[string]any, error) {
-	var timezone, ownerID string
+	var timezone, ownerID, lifecycleStatus string
 	var identity, lifeProfile []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id,COALESCE(identity->>'timezone','Asia/Shanghai'),identity,life_profile FROM public.fluctlights WHERE id=$1 AND status <> 'retired'`, fluctlightID).Scan(&ownerID, &timezone, &identity, &lifeProfile); err != nil {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id,COALESCE(identity->>'timezone','Asia/Shanghai'),identity,life_profile,status FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID, &timezone, &identity, &lifeProfile, &lifecycleStatus); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, err
+	}
+	if lifecycleStatus != "active" {
+		return map[string]any{"fluctlight_id": fluctlightID, "status": "inactive", "reason": autonomousStopReason(lifecycleStatus), "timezone": canonicalTimezone(timezone)}, nil
 	}
 	timezone = canonicalTimezone(timezone)
 	if _, err := time.LoadLocation(timezone); err != nil {

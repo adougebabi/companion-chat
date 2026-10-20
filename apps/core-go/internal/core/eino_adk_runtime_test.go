@@ -16,6 +16,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestEinoNativeToolCallsRequireFormalIdentityAndObjectArguments(t *testing.T) {
@@ -755,7 +756,7 @@ func TestHandleTurnProductionADKToolLoopSettlesOneAssistant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stringValue(result.Assistant["text"]) != "deferred" || router.requestCount("conversation_turn_response") != 2 {
+	if stringValue(result.Assistant["text"]) != "deferred" || router.requestCount("conversation_turn_response") != 1 {
 		t.Fatalf("result=%#v requests=%d", result, router.requestCount("conversation_turn_response"))
 	}
 	var assistantCount int
@@ -772,18 +773,9 @@ func TestHandleTurnProductionADKToolLoopSettlesOneAssistant(t *testing.T) {
 	if inboxStatus != "processed" || inboxError != "" {
 		t.Fatalf("native reply did not settle final cognition: status=%s error=%s", inboxStatus, inboxError)
 	}
-	second := router.payloads("conversation_turn_response")
-	if len(second) != 2 {
-		t.Fatalf("payload count = %d", len(second))
-	}
-	toolResultFound := false
-	for _, message := range arrayValue(second[1]["messages"]) {
-		if stringValue(mapValue(message)["role"]) == "tool" && stringValue(mapValue(message)["tool_call_id"]) == "adk-production-call" {
-			toolResultFound = true
-		}
-	}
-	if !toolResultFound {
-		t.Fatalf("production ADK second request missing matching tool result: %#v", second[1]["messages"])
+	payloads := router.payloads("conversation_turn_response")
+	if len(payloads) != 1 {
+		t.Fatalf("payload count = %d", len(payloads))
 	}
 }
 
@@ -1116,7 +1108,7 @@ func TestProviderWakeUpUsesADKLoopAndPreservesTrace(t *testing.T) {
 				}
 			}
 		}
-		if stringValue(message["role"]) == "tool" && stringValue(message["tool_call_id"]) == "wake-provider-call-1" && stringValue(message["name"]) == "relationship.lookup" {
+		if stringValue(message["role"]) == "tool" && stringValue(message["tool_call_id"]) == "wake-provider-call-1" && capabilitycontract.CapabilityNamesMatch(stringValue(message["name"]), "relationship.lookup") {
 			toolResult = true
 		}
 	}
@@ -1213,7 +1205,7 @@ func TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace(t *testing.T) {
 				}
 			}
 		case "tool":
-			if stringValue(message["tool_call_id"]) == "b-provider-call-1" && stringValue(message["name"]) == "memory.recall" {
+			if stringValue(message["tool_call_id"]) == "b-provider-call-1" && capabilitycontract.CapabilityNamesMatch(stringValue(message["name"]), "memory.recall") {
 				toolResult = true
 			}
 		}

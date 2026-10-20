@@ -10,6 +10,18 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// scheduledTriggerMatchesStart compares a JSON trigger instant with a
+// timestamptz schedule start. PostgreSQL stores microseconds; the trigger
+// text keeps the original nanoseconds. Exact Equal treats that round trip
+// as a different schedule.
+func scheduledTriggerMatchesStart(triggerAt, startAt time.Time) bool {
+	delta := triggerAt.Sub(startAt)
+	if delta < 0 {
+		delta = -delta
+	}
+	return delta <= time.Microsecond
+}
+
 func (a *App) processScheduledIntentionTrigger(ctx context.Context, intentionID, fluctlightID, ownerID string) (map[string]any, bool, error) {
 	var itemID, profileID, status string
 	var startAt, endAt time.Time
@@ -48,7 +60,7 @@ func (a *App) processScheduledIntentionTrigger(ctx context.Context, intentionID,
 	}
 	trigger := decodeObject(triggerRaw)
 	triggerAt, parseErr := time.Parse(time.RFC3339Nano, stringValue(trigger["due_at"]))
-	if parseErr != nil || stringValue(trigger["type"]) != string(IntentionTriggerTime) || !triggerAt.Equal(startAt) || (status != string(IntentionQualified) && status != string(IntentionDue)) {
+	if parseErr != nil || stringValue(trigger["type"]) != string(IntentionTriggerTime) || !scheduledTriggerMatchesStart(triggerAt, startAt) || (status != string(IntentionQualified) && status != string(IntentionDue)) {
 		return map[string]any{"intention_id": intentionID, "status": "stale_schedule"}, true, nil
 	}
 	now := a.now().UTC()

@@ -182,7 +182,12 @@ func NewADKCapabilityTools(definitions []capability.CapabilityDefinition, invoke
 		return nil, err
 	}
 	tools := make([]tool.BaseTool, 0, len(infos))
-	for _, info := range infos {
+	for index, info := range infos {
+		if info != nil && index < len(definitions) {
+			// The tools node indexes the canonical name. Provider requests
+			// rewrite that name to the underscore wire form at the model edge.
+			info.Name = strings.TrimSpace(definitions[index].Name)
+		}
 		tools = append(tools, &ADKCapabilityTool{info: info, invoker: invoker})
 	}
 	return tools, nil
@@ -218,10 +223,11 @@ func (t *ADKCapabilityTool) InvokableRun(ctx context.Context, argumentsJSON stri
 	if !ok {
 		return "", errors.New("adk_tool_call_identity_invoker_required")
 	}
-	return identityInvoker.ExecuteWithID(ctx, callID, t.info.Name, argumentsJSON)
+	return identityInvoker.ExecuteWithID(ctx, callID, capability.CanonicalCapabilityName(t.info.Name), argumentsJSON)
 }
 
 func CapabilityToolInfos(definitions []capability.CapabilityDefinition) ([]*schema.ToolInfo, error) {
+	capability.RememberCapabilityWireNames(definitions)
 	tools := make([]*schema.ToolInfo, 0, len(definitions))
 	for _, definition := range definitions {
 		if strings.TrimSpace(definition.Name) == "" {
@@ -229,7 +235,7 @@ func CapabilityToolInfos(definitions []capability.CapabilityDefinition) ([]*sche
 		}
 		var params *schema.ParamsOneOf
 		if len(definition.InputSchema) > 0 {
-			encoded, err := json.Marshal(definition.InputSchema)
+			encoded, err := json.Marshal(capability.StrictModelSchema(definition.InputSchema))
 			if err != nil {
 				return nil, fmt.Errorf("eino_tool_schema_encode: %w", err)
 			}
@@ -239,7 +245,7 @@ func CapabilityToolInfos(definitions []capability.CapabilityDefinition) ([]*sche
 			}
 			params = schema.NewParamsOneOfByJSONSchema(&js)
 		}
-		tools = append(tools, &schema.ToolInfo{Name: definition.Name, Desc: definition.Description, ParamsOneOf: params})
+		tools = append(tools, &schema.ToolInfo{Name: capability.CapabilityWireName(definition.Name), Desc: definition.Description, ParamsOneOf: params})
 	}
 	return tools, nil
 }

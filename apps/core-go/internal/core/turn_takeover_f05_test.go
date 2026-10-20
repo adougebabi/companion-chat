@@ -1,7 +1,6 @@
 package core
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -29,13 +28,8 @@ func TestOrdinaryNativeReplyDoesNotLoadUnusedTargetPersonaOverlay(t *testing.T) 
 			return fakeProviderResult{ToolCalls: []map[string]any{
 				nativePersonaToolCall("f05-source-reply", "conversation.reply", map[string]any{"text": "星火正常回复"}),
 			}}
-		case 2:
-			if tools := nativePersonaToolMessages(payload); !strings.Contains(tools, "conversation_message") {
-				t.Fatalf("committed reply receipt missing from final model decision: %s", tools)
-			}
-			return nativePersonaFinal()
 		default:
-			t.Fatalf("unexpected extra model decision %d", step)
+			t.Fatalf("visible reply committed but another model decision was made: %d", step)
 			return fakeProviderResult{Status: 500}
 		}
 	})
@@ -47,7 +41,7 @@ func TestOrdinaryNativeReplyDoesNotLoadUnusedTargetPersonaOverlay(t *testing.T) 
 	if got := stringValue(result.Assistant["text"]); got != "星火正常回复" {
 		t.Fatalf("assistant text=%q", got)
 	}
-	if step != 2 || router.requestCount(workingPersonaMainTurnSchema) != 2 {
+	if step != 1 || router.requestCount(workingPersonaMainTurnSchema) != 1 {
 		t.Fatalf("ordinary reply used %d decisions / %d requests", step, router.requestCount(workingPersonaMainTurnSchema))
 	}
 	results := nativePersonaTrace(t, ctx, repository, "f05-unused-turn")

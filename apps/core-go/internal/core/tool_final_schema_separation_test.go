@@ -118,6 +118,12 @@ func TestToolFinalSchemaSeparationPhysicalRequests(t *testing.T) {
 						ctx = withPhysicalModelRequestPolicy(ctx, conversationPublicationPhysicalRequestPolicy{})
 					}
 					result, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: time.Second, TokenBudget: 4096}, Role: "cognitive_assessment", Messages: []map[string]any{{"role": "system", "content": factOnlyCognitionProtocol + "\n" + factOnlyConversationPolicy + "\n# 人格设定\nKEEP_TEST_PERSONA"}, {"role": "user", "content": "reply then optionally read"}}, Definitions: []CapabilityDefinition{conversationReplyCapabilityDefinition(), {Name: "memory.recall", Description: "Read memory", InputSchema: objectSchema(map[string]any{"query": stringSchema()}, []string{"query"}, false)}}, JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: cognitiveTurnResponseSchema(), EnableThinking: true, EnableStreaming: streaming, CorrelationID: "schema-separation"})
+					if policy {
+						if err != nil || result.Message == nil || len(requests) != 1 || len(trace.Results) != 1 || len(trace.Invocations) != 1 || trace.Invocations[0].CapabilityName != conversationReplyCapabilityName {
+							t.Fatalf("committed reply continued the model loop: requests=%d results=%d invocations=%d err=%v", len(requests), len(trace.Results), len(trace.Invocations), err)
+						}
+						return
+					}
 					wantRequests := 3
 					if outcome != "valid" {
 						wantRequests = 4

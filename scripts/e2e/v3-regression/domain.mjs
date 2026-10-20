@@ -77,7 +77,10 @@ export async function lifeSnapshot(t,fid){
  const p=fidPath(fid),[detail,inventory,diary,media]=await Promise.all([t.get(p+'/detail'),t.pages(p+'/inventory?limit=100'),t.pages(p+'/diary?limit=100'),t.pages(p+'/media?limit=100')]);
  check(detail.current_state?.appearance&&Array.isArray(detail.memories)&&Array.isArray(detail.relationships),'Isolation checks require real appearance, memory and relationship snapshots');
  const {captured_at,...effectiveAppearance}=detail.current_state.appearance;
- return {fid,identity:detail.identity,context:detail.context,appearance:effectiveAppearance,memories:detail.memories.map(m=>({id:m.id,revision:m.revision})),relationships:detail.relationships.map(r=>({id:r.id,revision:r.revision})),inventory:inventory.map(i=>({id:i.id,revision:i.revision})),diary:diary.map(d=>({id:d.id,revision:d.revision})),media:media.map(m=>({id:m.id||m.asset_id}))};
+ return {fid,identity:detail.identity,context:detail.context,appearance:effectiveAppearance,memories:detail.memories.map(m=>({id:m.id,revision:m.revision})),relationships:detail.relationships.map(r=>({id:r.id,revision:r.revision})),inventory:inventory.map(i=>({id:i.id,revision:i.revision})),diary:diaryIsolationRows(diary),media:media.map(m=>({id:m.id||m.asset_id}))};
+}
+export function diaryIsolationRows(rows){
+ return rows.filter(row=>row?.status!=='pending').map(row=>({id:row.id,revision:row.revision}));
 }
 export function sameInventoryAndAppearance(before,after){equal(after.inventory,before.inventory,'Operation must not grant or duplicate inventory');equal(after.appearance,before.appearance,'Operation must preserve current effective appearance');}
 export async function actualModelRuns(t,turnId){

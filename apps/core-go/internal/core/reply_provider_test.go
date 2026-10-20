@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestReplyProviderUsesFrozenModelSamplingAndIsolatedMessages(t *testing.T) {
@@ -39,7 +41,7 @@ func TestReplyProviderUsesFrozenModelSamplingAndIsolatedMessages(t *testing.T) {
 			if received["model"] != "cydonia-frozen" || received["temperature"] != temp || received["top_p"] != top || received["max_completion_tokens"] != float64(333) {
 				t.Fatalf("frozen transport lost: %#v", received)
 			}
-			if len(arrayValue(received["tools"])) != 1 || stringValue(mapValue(mapValue(arrayValue(received["tools"])[0])["function"])["name"]) != replyImageRequestName || received["tool_choice"] != "auto" || received["response_format"] != nil {
+			if len(arrayValue(received["tools"])) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(arrayValue(received["tools"])[0])["function"])["name"]), replyImageRequestName) || received["tool_choice"] != "auto" || received["response_format"] != nil {
 				t.Fatalf("parent tool/schema policy leaked: %#v", received)
 			}
 			if strings.Contains(jsonString(received["messages"]), "用户冷淡所以暂时不推进") {
@@ -142,7 +144,7 @@ func TestReplyWriterNativeImageRequestOwnsPrivateHandoff(t *testing.T) {
 	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 		calls++
 		tools := arrayValue(payload["tools"])
-		if len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != replyImageRequestName {
+		if len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), replyImageRequestName) {
 			t.Errorf("Writer needs its sole private image tool: %v", tools)
 		}
 		if calls == 1 {
@@ -210,14 +212,11 @@ func TestNestedReplyAtConcurrencyOneFeedsActualTextBack(t *testing.T) {
 						message = map[string]any{"role": "assistant", "tool_calls": []any{map[string]any{"id": "real-native-reply", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": "{}"}}}}
 						finish = "tool_calls"
 					} else {
-						if !strings.Contains(jsonString(payload["messages"]), "周六一起讨论吧。") {
-							t.Error("actual child text absent from parent tool result")
-						}
-						message["content"] = `{"action_type":"reply","response_intent":"已消费真实回复结果","influences":[]}`
+						t.Error("parent model called after the visible reply committed")
 					}
 				} else {
 					writerCalls++
-					if tools := arrayValue(payload["tools"]); len(tools) != 1 || stringValue(mapValue(mapValue(tools[0])["function"])["name"]) != replyImageRequestName {
+					if tools := arrayValue(payload["tools"]); len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), replyImageRequestName) {
 						t.Error("writer inherited parent tools")
 					}
 				}
@@ -248,7 +247,7 @@ func TestNestedReplyAtConcurrencyOneFeedsActualTextBack(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if parentCalls != 2 || writerCalls != 1 || len(invoker.published) != 1 {
+			if parentCalls != 1 || writerCalls != 1 || len(invoker.published) != 1 {
 				t.Fatalf("loop/effect counts: parent=%d writer=%d publication=%d", parentCalls, writerCalls, len(invoker.published))
 			}
 		})

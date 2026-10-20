@@ -403,7 +403,7 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 		scope.TargetRef = stringValue(request["_request_id"])
 	}
 	scope.AuthorizationPolicy = "" // Exact authenticated Owner request, not unrelated autonomous work.
-	run, err := a.runFormalStructuredTask(ctx, FormalAgentNativeCognition, assembly.Messages, definitions, "owner_life_request_decision", schema, true, scope)
+	run, err := a.runFormalStructuredTask(withUpstreamModelRetry(ctx), FormalAgentNativeCognition, assembly.Messages, definitions, "owner_life_request_decision", schema, true, scope)
 	return ProjectionTaskResult{Trace: run.Trace, Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics}, err
 }
 

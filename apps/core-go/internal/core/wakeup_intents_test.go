@@ -210,6 +210,7 @@ func TestWakeUpCreatesDirectConversationBeforeBuildingReplyContext(t *testing.T)
 
 func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
+	persistConversationReplyMode(t, ctx, repository, "legacy")
 	ownerID, fluctlightID := "wakeup-reply-owner", "wakeup-reply-fluctlight"
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
 	resource, err := repository.GetFluctlight(ctx, fluctlightID, ownerID)
@@ -295,6 +296,7 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 
 func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
+	persistConversationReplyMode(t, ctx, repository, "legacy")
 	ownerID, fluctlightID := "wakeup-noop-sidecar-owner", "wakeup-noop-sidecar-fluctlight"
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
 	baseApp := &App{DB: repository}
@@ -344,6 +346,7 @@ func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testi
 
 func TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
+	persistConversationReplyMode(t, ctx, repository, "legacy")
 	ownerID, fluctlightID := "wakeup-failed-agent-owner", "wakeup-failed-agent-fluctlight"
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
 	if _, err := (&App{DB: repository}).EnsureWakeUpIntents(ctx); err != nil {
@@ -648,6 +651,7 @@ func TestPostgresWakeUpClockRecoversLostRedisAndDeduplicatesRelease(t *testing.T
 
 func TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage(t *testing.T) {
 	ctx, repo := isolatedCoreTestRepository(t)
+	persistConversationReplyMode(t, ctx, repo, "legacy")
 	owner, fl := "wake-control-owner", "wake-control-fl"
 	seedLifeContextFluctlight(t, ctx, repo, owner, fl)
 	base := &App{DB: repo}

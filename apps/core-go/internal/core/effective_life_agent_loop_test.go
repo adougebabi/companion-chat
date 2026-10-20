@@ -51,7 +51,7 @@ func TestFormalMainWardrobeQueryResultRequestsIndependentGoalPlanning(t *testing
 		AuthorizationActorID: fixture.ownerID, FluctlightID: fixture.fluctlightID, ConversationID: fixture.conversationID,
 		RunID: "main-wardrobe-intention-" + fixture.suffix, CurrentInput: "我想看你穿靴子",
 	})
-	if err != nil || calls != 4 || result.Trace == nil {
+	if err != nil || calls != 3 || result.Trace == nil {
 		t.Fatalf("formal Main loop failed: calls=%d result=%#v err=%v", calls, result, err)
 	}
 	invocations, receipts := result.Trace.Snapshot()

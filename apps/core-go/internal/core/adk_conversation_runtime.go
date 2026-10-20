@@ -12,6 +12,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 type adkConversationContextKey struct{}
@@ -111,6 +112,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			projection = *fresh
 		}
 	}
+	capabilityName = capabilitycontract.CanonicalCapabilityName(capabilityName)
 	i.recordADKToolDiagnostic(ctx, "adk.tool.requested", callID, capabilityName, "requested", "", argumentsJSON)
 	definition, ok := i.scopeRegistry.Definition(capabilityName)
 	if ok && i.request.Surface != "" && !definition.SupportsSurface(i.request.Surface) {
@@ -281,13 +283,15 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
 	}
 	if capabilityName == conversationReplyCapabilityName {
-		if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh.replyNeedsFreshSchedule(modelIdentity.ModelCallSequence, callID) {
-			result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "rejected",
-				ErrorCode: "schedule_context_refresh_required", Output: map[string]any{"detail": "Wait for the Schedule Tool result and refreshed context, then compose the reply in the next model turn."},
-				ProviderRequestID: modelIdentity.ProviderRequestID, CorrelationID: "capability:" + callID}
-			i.trace.AppendResult(result)
-			i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
-			return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
+		if adkContext, ok := adkCapabilityContext(ctx); ok {
+			if code, detail, blocked := replyBlockedBySameBatchSideEffect(adkContext.Refresh, modelIdentity.ModelCallSequence, callID, i.app); blocked {
+				result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "rejected",
+					ErrorCode: code, Output: map[string]any{"detail": detail},
+					ProviderRequestID: modelIdentity.ProviderRequestID, CorrelationID: "capability:" + callID}
+				i.trace.AppendResult(result)
+				i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
+			}
 		}
 	}
 	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)

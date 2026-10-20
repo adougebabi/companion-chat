@@ -206,7 +206,7 @@ func TestFormalAgentE2EBrokenToolResultFeedbackProbe(t *testing.T) {
 	if provider.seedError() != nil {
 		t.Fatalf("controlled provider could not seed the database-only memory after initial prompt capture: %v", provider.seedError())
 	}
-	if len(requests) != 3 || len(requestIDs) != 3 || requestIDs[0] == "" || requestIDs[0] == requestIDs[1] || requestIDs[1] == requestIDs[2] {
+	if len(requests) != 2 || len(requestIDs) != 2 || requestIDs[0] == "" || requestIDs[0] == requestIDs[1] {
 		t.Fatalf("controlled provider physical calls=%d request_ids=%v", len(requests), requestIDs)
 	}
 	if formalAgentRequestContains(requests[0], secret) || formalAgentRequestContains(requests[0], secretCategory) {

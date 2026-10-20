@@ -198,7 +198,7 @@ func validWorldStudioBody(operation string, body map[string]any) bool {
 	}
 	allowed := map[string]bool{"reason": true, "idempotencyKey": true, "expectedRevision": true}
 	if operation != "publish" {
-		for _, key := range []string{"fluctlightId", "resourceVersion", "expectedInstanceRevision", "expectedRuntimeRevision", "homePlaceId", "parentPlaceId", "routine", "choices"} {
+		for _, key := range []string{"fluctlightId", "resourceVersion", "expectedInstanceRevision", "expectedRuntimeRevision", "expectedWardrobeRevision", "expectedWorldRevision", "profileId", "worldId", "memberItems", "homePlaceId", "parentPlaceId", "routine", "choices"} {
 			allowed[key] = true
 		}
 	}
@@ -207,9 +207,28 @@ func validWorldStudioBody(operation string, body map[string]any) bool {
 			return false
 		}
 		switch key {
-		case "expectedRevision", "expectedInstanceRevision", "expectedRuntimeRevision":
+		case "expectedRevision", "expectedInstanceRevision", "expectedRuntimeRevision", "expectedWardrobeRevision", "expectedWorldRevision":
 			if !worldRevision(value) {
 				return false
+			}
+		case "memberItems":
+			items, ok := value.([]any)
+			if !ok || len(items) > 64 {
+				return false
+			}
+			for _, raw := range items {
+				switch item := raw.(type) {
+				case string:
+					if item == "" || len([]rune(item)) > 128 {
+						return false
+					}
+				case map[string]any:
+					if len(item) == 0 || len(item) > 16 {
+						return false
+					}
+				default:
+					return false
+				}
 			}
 		case "choices":
 			choices, ok := value.([]any)

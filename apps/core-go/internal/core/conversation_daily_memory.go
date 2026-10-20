@@ -28,6 +28,10 @@ type conversationDailySource struct {
 }
 
 func (a *App) enqueueConversationDailyMemoryTx(ctx context.Context, tx pgx.Tx, fluctlightID, conversationID, localDate, timezone string) error {
+	blocked, blockErr := autonomousEnqueueBlocked(ctx, tx, fluctlightID)
+	if blockErr != nil || blocked {
+		return blockErr
+	}
 	location, err := time.LoadLocation(timezone)
 	if err != nil {
 		return err
@@ -109,6 +113,11 @@ func (a *App) ProcessConversationDailyMemoryIntent(ctx context.Context, intentID
 	localDate, timezone := stringValue(payload["local_date"]), stringValue(payload["timezone"])
 	if fluctlightID == "" || conversationID == "" || localDate == "" || timezone == "" {
 		return nil, errors.New("conversation_daily_memory_intent_invalid")
+	}
+	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, fluctlightID); blockErr != nil {
+		return nil, blockErr
+	} else if blocked {
+		return map[string]any{"intent_id": intentID, "fluctlight_id": fluctlightID, "status": "inactive", "reason": autonomousStopReason(life)}, nil
 	}
 	if status == "completed" {
 		return map[string]any{"status": "completed", "replayed": true}, nil

@@ -20,7 +20,7 @@ var validMemoryVisibility = map[string]struct{}{"private": {}, "owner": {}, "par
 func memoryCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: "memory_event", Version: "v2", Type: CapabilityTypeAction,
-		Description:     "Record/correct sourced memory. Revise needs context/recall opaque ref; recall if absent, never invent.",
+		Description:     "Record/correct sourced memory before conversation.reply. Revise needs context/recall opaque ref; recall if absent, never invent. Do not defer this until after a visible reply or promise to record later in the same batch.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCorePersona, SlotMemoryScope},
@@ -173,21 +173,38 @@ func (a *App) applyMemoryCapabilityTx(ctx context.Context, tx pgx.Tx, invocation
 	if err := jsonUnmarshal(invocation.Arguments, &nativeArgs); err != nil {
 		return failedCapabilityResult(invocation, "invalid_arguments", false), err
 	}
-	if invocation.Metadata.Source != "direct" {
-		if index, err := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"]); err == nil {
-			for _, entry := range index.ByRef {
-				if entry.Kind == ContextReferenceActorFact {
-					if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, entry.EntityID, "memory", result.MemoryID, result.Revision, a.now().UTC()); err != nil {
-						return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), err
-					}
-				}
+	boundActorFacts := map[string]struct{}{}
+	index, indexErr := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"])
+	indexReady := indexErr == nil
+	if !indexReady {
+		index = ContextReferenceIndex{}
+	}
+	if invocation.Metadata.Source != "direct" && indexReady {
+		for _, entry := range index.ByRef {
+			if entry.Kind != ContextReferenceActorFact {
+				continue
 			}
+			if _, seen := boundActorFacts[entry.EntityID]; seen {
+				continue
+			}
+			if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, entry.EntityID, "memory", result.MemoryID, result.Revision, a.now().UTC()); err != nil {
+				return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), err
+			}
+			boundActorFacts[entry.EntityID] = struct{}{}
 		}
 	}
 	for _, raw := range arrayValue(nativeArgs["actor_fact_ids"]) {
-		if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, stringValue(raw), "memory", result.MemoryID, result.Revision, a.now().UTC()); err != nil {
+		factID, skip, resolveErr := memoryActorFactAttachmentID(stringValue(raw), index, indexReady, boundActorFacts)
+		if resolveErr != nil {
+			return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), resolveErr
+		}
+		if skip {
+			continue
+		}
+		if err := attachActorFactArtifactTx(ctx, tx, invocation.Metadata.FluctlightID, factID, "memory", result.MemoryID, result.Revision, a.now().UTC()); err != nil {
 			return failedCapabilityResult(invocation, "actor_fact_dependency_stale", false), err
 		}
+		boundActorFacts[factID] = struct{}{}
 	}
 	output := map[string]any{
 		"operation": string(result.Operation), "memory_id": result.MemoryID, "status": result.Status,
@@ -197,6 +214,28 @@ func (a *App) applyMemoryCapabilityTx(ctx context.Context, tx pgx.Tx, invocation
 		}),
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "memory:" + result.MemoryID}, nil
+}
+
+// memoryActorFactAttachmentID resolves a model-supplied actor_fact:ctx_ alias
+// through the frozen context reference index. Facts already attached from that
+// index are skipped. A raw database id is left unchanged.
+func memoryActorFactAttachmentID(raw string, index ContextReferenceIndex, indexReady bool, bound map[string]struct{}) (string, bool, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", false, errors.New("actor_fact_dependency_stale")
+	}
+	factID := raw
+	if contextReferencePattern.MatchString(raw) {
+		entry, ok := index.ByRef[raw]
+		if !indexReady || !ok || entry.Kind != ContextReferenceActorFact || strings.TrimSpace(entry.EntityID) == "" {
+			return "", false, errors.New("actor_fact_dependency_stale")
+		}
+		factID = entry.EntityID
+	}
+	if _, already := bound[factID]; already {
+		return "", true, nil
+	}
+	return factID, false, nil
 }
 
 // RecordMemory is the only ordinary-chat authority path for a new long-lived

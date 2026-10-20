@@ -132,7 +132,7 @@ func (a *App) RepairGoalEvaluationCadence(ctx context.Context, limit int) (int, 
 			}
 		}
 		// Old direct SQL producers and interrupted dispatch retain their original IDs.
-		_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) SELECT id,'goal-evaluation:'||id,'lifecycle','goal.evaluate',jsonb_build_object('fluctlight_id',fluctlight_id,'evaluation_id',id,'profile_id',profile_id),available_at FROM public.goal_evaluation_requests WHERE status IN ('pending','retry') AND attempt_count<5 ORDER BY available_at,id LIMIT $1 ON CONFLICT DO NOTHING`, limit)
+		_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) SELECT r.id,'goal-evaluation:'||r.id,'lifecycle','goal.evaluate',jsonb_build_object('fluctlight_id',r.fluctlight_id,'evaluation_id',r.id,'profile_id',r.profile_id),r.available_at FROM public.goal_evaluation_requests r JOIN public.fluctlights f ON f.id=r.fluctlight_id AND f.status='active' WHERE r.status IN ('pending','retry') AND r.attempt_count<5 ORDER BY r.available_at,r.id LIMIT $1 ON CONFLICT DO NOTHING`, limit)
 		return err
 	})
 	if err != nil {

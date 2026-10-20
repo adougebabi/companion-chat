@@ -131,6 +131,7 @@ func (registry *CapabilityRegistry) Catalog(surface CapabilitySurface) []Capabil
 }
 
 func RenderCapabilityTools(definitions []CapabilityDefinition) []map[string]any {
+	RememberCapabilityWireNames(definitions)
 	result := make([]map[string]any, 0, len(definitions))
 	for _, definition := range definitions {
 		if strings.TrimSpace(definition.Name) == "" {
@@ -143,9 +144,9 @@ func RenderCapabilityTools(definitions []CapabilityDefinition) []map[string]any 
 		result = append(result, map[string]any{
 			"type": "function",
 			"function": map[string]any{
-				"name":        definition.Name,
+				"name":        CapabilityWireName(definition.Name),
 				"description": definition.Description,
-				"parameters":  parameters,
+				"parameters":  StrictModelSchema(parameters),
 			},
 		})
 	}

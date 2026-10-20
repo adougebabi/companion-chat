@@ -374,6 +374,11 @@ func (a *App) ProcessGoalPlanningIntent(ctx context.Context, id string) (map[str
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id FROM public.goal_planning_runs WHERE id=$1`, id).Scan(&logicalOwner); err != nil {
 		return nil, err
 	}
+	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, logicalOwner); blockErr != nil {
+		return nil, blockErr
+	} else if blocked {
+		return map[string]any{"id": id, "fluctlight_id": logicalOwner, "status": "inactive", "reason": autonomousStopReason(life), "model_admission": false}, nil
+	}
 	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, logicalOwner, "goal_planner")
 	if logicalErr != nil {
 		return nil, logicalErr
@@ -714,7 +719,7 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 				repaired++
 			}
 		}
-		tag, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) SELECT r.id,'goal-planner:'||r.id,'lifecycle','goal.plan',jsonb_build_object('fluctlight_id',r.fluctlight_id),r.available_at FROM public.goal_planning_runs r JOIN public.goal_set_policies p ON p.fluctlight_id=r.fluctlight_id WHERE r.status IN ('pending','retry') AND r.attempt_count<p.max_attempts ORDER BY r.available_at,r.id LIMIT $1 ON CONFLICT DO NOTHING`, limit)
+		tag, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) SELECT r.id,'goal-planner:'||r.id,'lifecycle','goal.plan',jsonb_build_object('fluctlight_id',r.fluctlight_id),r.available_at FROM public.goal_planning_runs r JOIN public.goal_set_policies p ON p.fluctlight_id=r.fluctlight_id JOIN public.fluctlights f ON f.id=r.fluctlight_id AND f.status='active' WHERE r.status IN ('pending','retry') AND r.attempt_count<p.max_attempts ORDER BY r.available_at,r.id LIMIT $1 ON CONFLICT DO NOTHING`, limit)
 		repaired += int(tag.RowsAffected())
 		return err
 	})

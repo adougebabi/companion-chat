@@ -13,6 +13,7 @@ import (
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 // Exercise the pinned SDK/Eino serialization through the same queued native
@@ -80,7 +81,7 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 							t.Errorf("tools[%d] %s parameters.properties must be an object, got %#v", index, name, parameters["properties"])
 							return &http.Response{StatusCode: 400, Header: http.Header{"Content-Type": {"application/json"}}, Body: io.NopCloser(strings.NewReader(`{"error":"parameters.properties: Required object"}`)), Request: r}, nil
 						}
-						if name == capabilityCatalogName {
+						if capabilitycontract.CapabilityNamesMatch(name, capabilityCatalogName) {
 							catalogFound = true
 							if properties["names"] == nil || parameters["additionalProperties"] != false {
 								t.Errorf("catalog no-argument contract changed: %#v", parameters)

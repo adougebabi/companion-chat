@@ -157,21 +157,17 @@ func TestNextTurnAfterNativeTakeoverRestoresPersistentProfile(t *testing.T) {
 		case 2:
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-twilight-reply", "conversation.reply", map[string]any{"text": "暮光第一轮"})}}
 		case 3:
-			return nativePersonaFinal()
-		case 4:
 			wire := jsonString(payload)
 			if !strings.Contains(wire, takeoverChainSparkMarker) || strings.Contains(wire, takeoverChainTwilightMarker) {
 				t.Fatalf("next turn did not restore persistent persona")
 			}
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-spark-relationship", "relationship.lookup", map[string]any{"target_actor_id": ownerID})}}
-		case 5:
+		case 4:
 			tools := nativePersonaToolMessages(payload)
 			if !strings.Contains(tools, scopeMatrixSparkRelationshipSummary) || strings.Contains(tools, scopeMatrixTwilightRelationshipSummary) {
 				t.Fatalf("next-turn relationship scope did not restore spark: %s", tools)
 			}
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-spark-reply", "conversation.reply", map[string]any{"text": "星火第二轮"})}}
-		case 6:
-			return nativePersonaFinal()
 		default:
 			t.Fatalf("unexpected model decision %d", step)
 			return fakeProviderResult{Status: 500}

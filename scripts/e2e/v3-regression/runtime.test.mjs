@@ -6,11 +6,16 @@ import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {RegressionContext,RegressionError,optionsFrom,redact,hash,assertGoResults,importCookies,runBoundedProcess} from './runtime.mjs';
-import {readStream,modelRunFamily,visualGenerationComplete,visualGenerationAsset} from './domain.mjs';
+import {readStream,modelRunFamily,visualGenerationComplete,visualGenerationAsset,diaryIsolationRows} from './domain.mjs';
 import {runnerArguments,caseOutcome} from './cli.mjs';
 import {cases} from './cases.mjs';
 import {assertPromiseReschedule,assertLivePromiseFulfillment} from './promise-proof.mjs';
 
+test('Diary isolation ignores scheduler pending placeholders and keeps written rows',()=>{
+ const pending={id:'diary-pending',revision:1,status:'pending',body:null};
+ const ready={id:'diary-ready',revision:2,status:'ready',body:'今天'};
+ assert.deepEqual(diaryIsolationRows([pending,ready,{id:'diary-inactive',revision:2,status:'inactive'}]),[{id:'diary-ready',revision:2},{id:'diary-inactive',revision:2}]);
+});
 test('Promise reschedule acceptance verifies both authorities instead of any terminal result',()=>{
  const current={goal_id:'g',intention_id:'i',commitment_id:'c',window_start:'2026-10-19T12:00:00Z',window_end:'2026-10-19T13:00:00Z'},end='2026-10-19T14:00:00Z';
  const after={...current,window_end:end,commitment:{window_end:end},intention:{expiration:end}};

@@ -16,6 +16,7 @@ import (
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 type kevFixedSettings struct{ config decision.Config }
@@ -605,7 +606,7 @@ func TestKevNativeLoopDiscoversAndExecutesHiddenTool(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if invoker.executions != 1 || len(result.ToolResults) != 2 || len(requests) != 3 || !phase8EqualStrings(requests[0], []string{capabilityCatalogName}) || !phase8EqualStrings(requests[1], []string{capabilityCatalogName, "hidden"}) {
+				if invoker.executions != 1 || len(result.ToolResults) != 2 || len(requests) != 3 || !phase8EqualStrings(requests[0], []string{capabilitycontract.CapabilityWireName(capabilityCatalogName)}) || !phase8EqualStrings(requests[1], []string{capabilitycontract.CapabilityWireName(capabilityCatalogName), "hidden"}) {
 					t.Fatalf("no actual growth/feedback: wire=%v executions=%d results=%d", requests, invoker.executions, len(result.ToolResults))
 				}
 			})

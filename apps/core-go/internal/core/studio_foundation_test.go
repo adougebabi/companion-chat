@@ -2,9 +2,11 @@ package core
 
 import (
 	"errors"
-	"github.com/jackc/pgx/v5"
 	"net/http"
+	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func TestFoundationNewProfileHabitsStageWithoutResettingExistingState(t *testing.T) {
@@ -196,5 +198,70 @@ func TestStudioTextPreparationDoesNotCreateInitializationCredential(t *testing.T
 	var after int
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.fluctlight_initialization_sources WHERE owner_actor_id=$1`, f.ownerID).Scan(&after); err != nil || after != before {
 		t.Fatal("Studio invalidated Owner initialization source", before, after, err)
+	}
+}
+
+func TestStripReusableDefinitionFieldsBeforeValidation(t *testing.T) {
+	raw := map[string]any{
+		"core_persona":   map[string]any{"identity": map[string]any{"name": "Parsed fictional adult"}, "personality_system": map[string]any{"mode": "single"}},
+		"actor_user":     map[string]any{"background": map[string]any{"not_a_real_field": "kept"}},
+		"analysis_id":    "analysis-1",
+		"correlation_id": "correlation-1",
+		"messages":       []any{map[string]any{"text": "runtime archive"}},
+		"current_state":  map[string]any{"mood": "runtime"},
+	}
+	omitted := stripReusableDefinitionFields(raw)
+	if strings.Join(omitted, ",") != "actor_user,analysis_id,correlation_id,messages,current_state" {
+		t.Fatalf("omitted=%v", omitted)
+	}
+	prepared, err := prepareInitializationResponse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := prepared["actor_user"]; ok || stringValue(mapValue(mapValue(prepared["core_persona"])["identity"])["name"]) != "Parsed fictional adult" {
+		t.Fatalf("reusable definition=%#v", prepared)
+	}
+}
+
+func TestStudioReusableDefinitionDropsActorBackgroundIntoReview(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "studio-definition-strip")
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().otherwise(func(_ map[string]any) fakeProviderResult {
+		return fakeProviderResult{Structured: map[string]any{
+			"core_persona": map[string]any{"identity": map[string]any{"name": "Parsed fictional adult"}, "personality_system": map[string]any{"mode": "single"}},
+			"actor_user":   map[string]any{"background": map[string]any{"not_a_real_field": "must not fail the job"}},
+		}}
+	})}
+	definition := map[string]any{"schema": "character-template.v1", "description": "Create the complete definition of a fictional adult named Parsed fictional adult."}
+	r, err := f.app.DispatchOwnerSurface(f.ctx, "POST", "/internal/studio/resources", nil, f.ownerID, map[string]any{"kind": "character_template", "name": "Text definition", "body": definition, "reason": "Test source", "idempotency_key": "strip-source"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, err := f.app.publishWorldResource(f.ctx, f.ownerID, stringValue(r["id"]), map[string]any{"expected_revision": r["revision"], "reason": "Publish text", "idempotency_key": "strip-publish"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := f.app.DispatchStudioJobSurface(f.ctx, "POST", "/internal/studio/jobs", nil, f.ownerID, map[string]any{"resource_id": r["id"], "resource_revision": pub["revision"], "resource_version": pub["published_version"], "purpose": "foundation_prepare", "kind": "assistant", "name": "Text definition", "body": definition, "instruction": "Parse exact published definition", "reason": "Explicit parse", "idempotency_key": "strip-job"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.app.ProcessStudioGeneration(f.ctx, "studio_intent:"+stringValue(job["id"])+"_attempt_1"); err != nil {
+		t.Fatal(err)
+	}
+	read, err := f.app.StudioJob(f.ctx, f.ownerID, stringValue(job["id"]))
+	if err != nil || read["status"] != "completed" {
+		t.Fatal(read, err)
+	}
+	result := mapValue(read["result"])
+	initialization := mapValue(mapValue(result["body"])["initialization"])
+	if _, ok := initialization["actor_user"]; ok {
+		t.Fatalf("actor background remained in the review proposal: %#v", initialization)
+	}
+	if jsonString(result["omitted_fields"]) != `["actor_user"]` || !strings.Contains(jsonString(result["warnings"]), "actor_user") {
+		t.Fatalf("omitted fields were not recorded: %#v", result)
+	}
+	var dead int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_id=$1 AND status='dead'`, "studio_intent:"+stringValue(job["id"])+"_attempt_1").Scan(&dead); err != nil || dead != 0 {
+		t.Fatal("reusable definition entered the dead-letter queue", dead, err)
 	}
 }

@@ -15,7 +15,7 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		{name: "language", value: providerLanguageRule, max: 100, must: []string{"自然语言内容使用中文", "协议字面量保持原文"}},
 		{name: "context", value: providerContextAuthorityRule, max: 520, must: []string{"core_persona", "developing_self", "current_state", "confirmed Event", "inferred Event", "accepted Schedule item", "context_override.explicit=true"}},
 		{name: "wake-up", value: capabilityWakeUpPolicyInstruction, max: 900, must: []string{"正式 Agent", "Tool result", "no_op", "accepted", "memory_event", "新事实"}},
-		{name: "conversation", value: capabilityConversationPolicyInstruction, max: 1100, must: []string{"正式 Agent", "Tool result", "conversation.reply", "最终 schema 不发送消息", "capability.catalog", "names", "evidence_refs"}},
+		{name: "conversation", value: capabilityConversationPolicyInstruction, max: 1400, must: []string{"正式 Agent", "Tool result", "conversation.reply", "最终 schema 不发送消息", "capability.catalog", "names", "evidence_refs", "memory_event", "actor.fact.record", "稍后记录", "可见回复提交后本轮结束"}},
 		{name: "daily-review", value: capabilityDailyReviewPolicyInstruction, max: 700, must: []string{"正式 Agent", "Tool result", "Moment", "accepted"}},
 		{name: "reflection", value: reflectionV2Instruction, max: 850, must: []string{"memory_candidates", "relationship_observations", "emotional_summary", "personality_evolution_candidates", "behavior_policy_evolution_candidates", "evidence_refs", "Core Persona"}},
 		{name: "native-cognition", value: nativeCognitionInstruction, max: 300, must: []string{"appraisal", "attention", "thought", "desire", "agency"}},

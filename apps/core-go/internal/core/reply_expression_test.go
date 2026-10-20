@@ -267,6 +267,10 @@ func TestPrivateChatStyleRepairUsesSameModelNoTools(t *testing.T) {
 				if err != nil || calls != 1 || claims != 0 {
 					t.Fatal(draft, err, calls, claims)
 				}
+			} else if outcome == "repair_503" {
+				if err == nil || calls != 1+upstreamProviderMaxRetries+1 || claims != 1 {
+					t.Fatal("repair 503 was not limited to the model call", err, calls, claims)
+				}
 			} else {
 				if err == nil || calls > 2 || claims != 1 {
 					t.Fatal("unbounded/fallback repair", err, calls, claims)
@@ -274,7 +278,7 @@ func TestPrivateChatStyleRepairUsesSameModelNoTools(t *testing.T) {
 				if outcome == "cancelled" && !errors.Is(err, context.Canceled) {
 					t.Fatal("cancellation lost", err)
 				}
-				if (outcome == "repair_503" || outcome == "oom_503") && calls != 2 {
+				if outcome == "oom_503" && calls != 2 {
 					t.Fatal("repair transport retried whole generation", calls)
 				}
 				if outcome == "claim_database_error" && calls != 1 {

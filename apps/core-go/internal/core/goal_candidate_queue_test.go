@@ -40,6 +40,9 @@ func (t *candidateQueueTx) QueryRow(_ context.Context, query string, _ ...any) p
 		t.queued++
 		return candidateQueueRow{"evaluation"}
 	}
+	if strings.Contains(query, "FROM public.fluctlights") {
+		return candidateQueueRow{"active"}
+	}
 	return candidateQueueRow{true}
 }
 func TestGoalCandidateRequiresNewCommittedEvidenceBeforeQueue(t *testing.T) {

@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 )
@@ -70,19 +69,16 @@ func TestFactOnlyCommittedReplyMalformedFinalSettlement(t *testing.T) {
 			if count != 1 || publishedText != "这是一条真实写入测试数据库的独立回复。" || draftStatus != "published" {
 				t.Fatalf("publication changed after final validation: %d/%q/%s", count, publishedText, draftStatus)
 			}
-			if repairValid && (inboxStatus != "processed" || errorCode != "") {
-				t.Fatalf("valid repair not settled: %s/%s", inboxStatus, errorCode)
+			if inboxStatus != "processed" || errorCode != "" {
+				t.Fatalf("committed reply did not end the turn: %s/%s", inboxStatus, errorCode)
 			}
-			if !repairValid && (inboxStatus != "failed" || !strings.Contains(errorCode, "final_contract")) {
-				t.Fatalf("failed repair hidden: %s/%s", inboxStatus, errorCode)
-			}
-			if writerCalls != 1 || cognitionCalls != 2 || repairCalls != 1 {
+			if writerCalls != 1 || cognitionCalls != 1 || repairCalls != 0 {
 				t.Fatalf("unexpected physical calls writer=%d cognition=%d repair=%d", writerCalls, cognitionCalls, repairCalls)
 			}
 			if _, err := app.ProcessCognitionInbox(ctx, turn.InboxID); err != nil {
 				t.Fatal(err)
 			}
-			if writerCalls != 1 || cognitionCalls != 2 || repairCalls != 1 {
+			if writerCalls != 1 || cognitionCalls != 1 || repairCalls != 0 {
 				t.Fatal("terminal replay regenerated or resent")
 			}
 			var controls int

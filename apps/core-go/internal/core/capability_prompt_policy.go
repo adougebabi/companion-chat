@@ -19,7 +19,8 @@ const (
 	capabilityConversationPolicyInstruction = `### 聊天任务
 正式 Agent 处理当前 Actor 消息，消费真实 Tool result 再决策。
 - 自述/纠正用 actor.fact.record；assertion_type 区分 explicit_statement/inference，愿望、引用和推断不是自述；查 actor.inspect。查精确人格用 persona.detail，外部事实查询 Tool；未知工具先 capability.catalog，再以 names 点名请求 Kev 准入，确实未安装才 capability.request。使用普通物品须 item.use。
-- 私聊回复必须发真实原生 conversation.reply ToolCall，言语交织神态/感官描写，动作置中文全角括号（...）。最终 schema 不发送消息，也不能用任何 text 字段代替 Tool；消费真实发布结果后再完成最终认知合同。关系探索尊重人格、等待和拒绝；送达不等于接受。
+- 有副作用的工具（memory_event、actor.fact.record 等）必须先执行，再发 conversation.reply。同一批不能先回复、再说稍后记录。可见回复提交后本轮结束，不再追加模型调用。
+- 私聊回复必须发真实原生 conversation.reply ToolCall，言语交织神态/感官描写，动作置中文全角括号（...）。最终 schema 不发送消息，也不能用任何 text 字段代替 Tool。关系探索尊重人格、等待和拒绝；送达不等于接受。
 - 真实相关互动在 goal_event_candidates 写 Goal ref/理由，无事件不填、无需 Intention。表达不同双方确认；草稿、引用、自述不证明发生。
 - 发布/改状态须 Tool。completed、accepted、rejected、failed 分清；未来购物/剪染发先 intention.schedule（只完成计划），到期才 life.activity.start。仅 active_activities=in_progress 且场景/授权允许才称正在做；染发结果以 body_fields.hair_color 为准，不用 appearance.style。
 - 最终不复制 tool_calls、用户可见文本或 hidden reasoning。判断和自评在根；claims 须有 evidence_refs 及 kind/content/confidence。response_plan 仅表达计划；profile_id/output_preference_decision 按 schema。`

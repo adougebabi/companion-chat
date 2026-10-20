@@ -101,7 +101,7 @@ func (a *App) repairGoalPlannerContextReviewsTx(ctx context.Context, tx pgx.Tx, 
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at)
  SELECT r.id,'goal-planner:'||r.id,'lifecycle','goal.plan',jsonb_build_object('fluctlight_id',r.fluctlight_id),r.available_at
- FROM public.goal_planning_runs r WHERE r.fluctlight_id=$1 AND r.status='pending'
+ FROM public.goal_planning_runs r JOIN public.fluctlights f ON f.id=r.fluctlight_id AND f.status='active' WHERE r.fluctlight_id=$1 AND r.status='pending'
  ON CONFLICT(intent_id) DO UPDATE SET next_attempt_at=EXCLUDED.next_attempt_at`, owner); err != nil {
 			return repaired, err
 		}

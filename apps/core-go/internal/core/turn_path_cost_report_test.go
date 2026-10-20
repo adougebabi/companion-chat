@@ -142,7 +142,7 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 		}(),
 	}
 
-	for index, want := range []int{2, 3} {
+	for index, want := range []int{1, 2} {
 		report := reports[index]
 		if report.PhysicalRequests != want || len(report.Calls) != want || len(report.SchemaSequence) != want {
 			t.Fatalf("%s physical requests=%d calls=%d schemas=%d, want %d each", report.Path, report.PhysicalRequests, len(report.Calls), len(report.SchemaSequence), want)

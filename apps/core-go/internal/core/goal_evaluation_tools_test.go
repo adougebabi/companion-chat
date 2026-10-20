@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestGoalEvaluationPrivateToolCatalogAndClosedArguments(t *testing.T) {
@@ -356,7 +357,7 @@ func TestGoalEvaluationPhysicalRequestPolicyRequiresNativeRootsBeforeSummary(t *
 						}
 					}
 					sort.Strings(toolNames)
-					wantNames := []string{goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit}
+					wantNames := []string{capabilitycontract.CapabilityWireName(goalEvaluationSubmit), capabilitycontract.CapabilityWireName(goalObjectSubmit), capabilitycontract.CapabilityWireName(goalPlanSubmit)}
 					sort.Strings(wantNames)
 					canonicalTools := strings.Join(toolNames, ",") == strings.Join(wantNames, ",")
 					coverage := invoker.coverage()

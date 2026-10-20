@@ -461,6 +461,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			return ProviderCompletion{}, errors.New("adk_structured_response_invalid")
 		}
 		if adkEnabled && parsedStructuredOK {
+			if prepared, ok := prepareModelValue(parsedStructured, structuredSchema).(map[string]any); ok {
+				parsedStructured = prepared
+			}
 			if adkCtx, ok := adkCapabilityContext(ctx); ok && adkCtx.Refs != nil {
 				decoded, decodeErr := adkCtx.Refs.decode(parsedStructured)
 				if decodeErr != nil {
@@ -893,7 +896,7 @@ func providerResponseFormatForSchema(role, schemaName string, schema map[string]
 		"json_schema": map[string]any{
 			"name":   schemaName,
 			"strict": true,
-			"schema": schema,
+			"schema": capabilitycontract.StrictModelSchema(schema),
 		},
 	}
 }

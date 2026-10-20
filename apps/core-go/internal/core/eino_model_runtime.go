@@ -82,6 +82,9 @@ type queuedToolCallingChatModel struct {
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
+	if terminal, ok := visibleReplyEndsTurn(ctx, input); ok {
+		return terminal, nil
+	}
 	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
@@ -133,16 +136,23 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	}
 	started := time.Now()
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
-		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
-			// The inner component's raw proposal must not be published as an
-			// Agent event. The outer node will emit only the admitted response;
-			// physical input/output diagnostics remain owned by this adapter.
-			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+		generate := func() (*schema.Message, error) {
+			attemptCtx := runCtx
+			if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
+				// The inner component's raw proposal must not be published as an
+				// Agent event. The outer node will emit only the admitted response;
+				// physical input/output diagnostics remain owned by this adapter.
+				attemptCtx = callbacks.InitCallbacks(attemptCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+			}
+			if err := m.provider.guardVisionInput(attemptCtx, m.assignment, input); err != nil {
+				return nil, err
+			}
+			return m.inner.Generate(attemptCtx, input, opts...)
 		}
-		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
-			return nil, err
+		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
+			return generate()
 		}
-		return m.inner.Generate(runCtx, input, opts...)
+		return retryUpstreamModelCall(runCtx, m.scenario, generate)
 	})
 	err = wrapPhysicalProviderRequestError(err)
 	if m.lastPhysicalResponse != nil {
@@ -190,6 +200,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 		result = m.toolCallFallback
 	}
+	canonicalizeModelToolNames(result)
 	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
 		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
 		if adkContext.Trace != nil {
@@ -201,6 +212,9 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	if terminal, ok := visibleReplyEndsTurn(ctx, input); ok {
+		return assistantMessageStream(terminal), nil
+	}
 	ctx = withPhysicalRequestObservation(withProviderDiagnosticSecrets(ctx, m.assignment.Secret), m.provider, m.role)
 	var err error
 	originalInput := input
@@ -260,13 +274,20 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		m.recordUsageComparison(callCtx, full)
 	})
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
-		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
-			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+		open := func() (*schema.StreamReader[*schema.Message], error) {
+			attemptCtx := runCtx
+			if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
+				attemptCtx = callbacks.InitCallbacks(attemptCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+			}
+			if err := m.provider.guardVisionInput(attemptCtx, m.assignment, input); err != nil {
+				return nil, err
+			}
+			return m.inner.Stream(attemptCtx, input, opts...)
 		}
-		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
-			return nil, err
+		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
+			return open()
 		}
-		return m.inner.Stream(runCtx, input, opts...)
+		return retryUpstreamModelCall(runCtx, m.scenario, open)
 	}, observer.observe)
 	if err != nil || stream == nil {
 		return stream, err
@@ -284,6 +305,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		if full != nil && len(full.ToolCalls) > 0 {
 			full = m.toolCallFallback
 		}
+		canonicalizeModelToolNames(full)
 		reader, writer := schema.Pipe[*schema.Message](1)
 		writer.Send(full, nil)
 		writer.Close()
@@ -319,6 +341,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 				return m.Stream(context.WithValue(ctx, conversationPublicationCorrectionKey{}, true), conversationPublicationCorrectionInput(originalInput), originalOpts...)
 			}
 		}
+		canonicalizeModelToolNames(candidate)
 		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
 			bridge.Refresh.noteModelToolCalls(sequence, candidate.ToolCalls)
 			bridge.Trace.RecordModelToolCalls(callRequestID, sequence, candidate.ToolCalls)
@@ -330,12 +353,13 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	}
 	adkContext, traceEnabled := adkCapabilityContext(ctx)
 	if !traceEnabled || adkContext.Trace == nil {
-		return stream, nil
+		return canonicalizeToolStream(stream), nil
 	}
 	// Keep the native stream intact while recording the formal ToolCall ID as
 	// soon as Eino exposes it. Later chunks may repeat/complete the same call;
 	// the trace map is an idempotent overwrite for the same physical request.
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
+		canonicalizeModelToolNames(message)
 		if message != nil {
 			adkContext.Refresh.noteModelToolCalls(sequence, message.ToolCalls)
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, message.ToolCalls)
@@ -359,9 +383,17 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 		if err != nil {
 			return nil, err
 		}
-		return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, refreshed))
+		return m.finishPhysicalInput(ctx, refreshed)
 	}
-	return m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, normalizeEinoToolMessageNames(input)))
+	return m.finishPhysicalInput(ctx, normalizeEinoToolMessageNames(input))
+}
+
+func (m *queuedToolCallingChatModel) finishPhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
+	prepared, err := m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, input))
+	if err != nil {
+		return nil, err
+	}
+	return cloneWireToolNames(prepared), nil
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
@@ -735,7 +767,8 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 }
 
 func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.ToolCallingChatModel, error) {
-	bound, err := m.inner.WithTools(tools)
+	wired := cloneWireToolInfos(tools)
+	bound, err := m.inner.WithTools(wired)
 	if err != nil {
 		return nil, err
 	}
@@ -743,7 +776,72 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if sequence == nil {
 		sequence = &atomic.Uint64{}
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, publicationCorrectionUsed: m.publicationCorrectionUsed, definitions: m.definitions, toolInfos: tools, responseFormat: m.responseFormat}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, agentName: m.agentName, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, cumulativeInput: m.cumulativeInput, lastInputEstimate: m.lastInputEstimate, lastPhysicalResponse: m.lastPhysicalResponse, publicationCorrectionUsed: m.publicationCorrectionUsed, definitions: m.definitions, toolInfos: wired, responseFormat: m.responseFormat}, nil
+}
+
+func cloneWireToolInfos(tools []*schema.ToolInfo) []*schema.ToolInfo {
+	if len(tools) == 0 {
+		return tools
+	}
+	cloned := make([]*schema.ToolInfo, len(tools))
+	for index, info := range tools {
+		if info == nil {
+			continue
+		}
+		copyInfo := *info
+		canonical := strings.TrimSpace(info.Name)
+		wire := capabilitycontract.CapabilityWireName(canonical)
+		if wire != canonical {
+			capabilitycontract.RememberCapabilityAlias(canonical)
+		}
+		copyInfo.Name = wire
+		cloned[index] = &copyInfo
+	}
+	return cloned
+}
+
+func canonicalizeModelToolNames(message *schema.Message) {
+	if message == nil {
+		return
+	}
+	for index := range message.ToolCalls {
+		message.ToolCalls[index].Function.Name = capabilitycontract.CanonicalCapabilityName(message.ToolCalls[index].Function.Name)
+	}
+}
+
+func canonicalizeToolStream(stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[*schema.Message] {
+	if stream == nil {
+		return nil
+	}
+	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
+		canonicalizeModelToolNames(message)
+		return message, nil
+	})
+}
+
+func cloneWireToolNames(messages []*schema.Message) []*schema.Message {
+	if len(messages) == 0 {
+		return messages
+	}
+	result := make([]*schema.Message, len(messages))
+	for index, message := range messages {
+		if message == nil {
+			continue
+		}
+		copyMessage := *message
+		if len(message.ToolCalls) > 0 {
+			copyMessage.ToolCalls = append([]schema.ToolCall(nil), message.ToolCalls...)
+			for callIndex := range copyMessage.ToolCalls {
+				copyMessage.ToolCalls[callIndex].Function.Name = capabilitycontract.CapabilityWireName(copyMessage.ToolCalls[callIndex].Function.Name)
+			}
+		}
+		if copyMessage.Role == schema.Tool {
+			copyMessage.Name = capabilitycontract.CapabilityWireName(copyMessage.Name)
+			copyMessage.ToolName = capabilitycontract.CapabilityWireName(copyMessage.ToolName)
+		}
+		result[index] = &copyMessage
+	}
+	return result
 }
 
 func (m *queuedToolCallingChatModel) renderedTools() []map[string]any {
@@ -989,8 +1087,9 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			return einoModelResponse{}, fmt.Errorf("eino_tools_bind: %w", err)
 		}
 	}
-	// ADK itself owns the model/tool/result loop; each underlying model call
-	// still receives the same bounded request identity and no retry policy.
+	// ADK itself owns the model/tool/result loop. Upstream transport retries
+	// stay inside each physical Generate/Stream and reuse that call's request
+	// identity, so a retry cannot execute tools again.
 	loopResult, runErr = RunADKLoop(ctx, ADKLoopConfig{
 		Name: call.Agent.Name, Description: call.Agent.Description,
 		Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations,
@@ -1012,7 +1111,14 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	}
 	if call.JSONMode {
 		validationSchema := call.ResponseSchema
-		if validationErr := validateADKFinalContract(final, call.Role, validationSchema, adkContext.Refs); validationErr != nil {
+		validationErr := validateADKFinalContract(final, call.Role, validationSchema, adkContext.Refs)
+		if validationErr != nil && visibleReplyCommitted(ctx) {
+			// The visible reply already committed. Do not spend another model call repairing cognition JSON.
+			final = visibleReplyTerminalMessage(nil)
+			loopResult.FinalMessage = final
+			validationErr = nil
+		}
+		if validationErr != nil {
 			// A second, tool-free model call can correct a malformed final DTO.
 			// The original Tool effects are already committed, so the repair loop
 			// must not receive the Tool catalog or execute another ToolCall.
@@ -1438,7 +1544,7 @@ func einoResponseFormat(jsonMode bool, schemaName string, raw map[string]any) (*
 	if strings.TrimSpace(schemaName) == "" || len(raw) == 0 {
 		return &openaiext.ChatCompletionResponseFormat{Type: openaiext.ChatCompletionResponseFormatTypeJSONObject}, nil
 	}
-	encoded, err := json.Marshal(raw)
+	encoded, err := json.Marshal(capabilitycontract.StrictModelSchema(raw))
 	if err != nil {
 		return nil, fmt.Errorf("eino_response_schema_encode: %w", err)
 	}
@@ -1465,6 +1571,7 @@ func einoResponseFormatForRole(role string, jsonMode bool, schemaName string, ra
 }
 
 func capabilityToolInfos(definitions []CapabilityDefinition) ([]*schema.ToolInfo, error) {
+	capabilitycontract.RememberCapabilityWireNames(definitions)
 	tools := make([]*schema.ToolInfo, 0, len(definitions))
 	for _, definition := range definitions {
 		if strings.TrimSpace(definition.Name) == "" {
@@ -1472,7 +1579,7 @@ func capabilityToolInfos(definitions []CapabilityDefinition) ([]*schema.ToolInfo
 		}
 		var params *schema.ParamsOneOf
 		if len(definition.InputSchema) > 0 {
-			encoded, err := json.Marshal(definition.InputSchema)
+			encoded, err := json.Marshal(capabilitycontract.StrictModelSchema(definition.InputSchema))
 			if err != nil {
 				return nil, fmt.Errorf("eino_tool_schema_encode: %w", err)
 			}
@@ -1482,7 +1589,7 @@ func capabilityToolInfos(definitions []CapabilityDefinition) ([]*schema.ToolInfo
 			}
 			params = schema.NewParamsOneOfByJSONSchema(&js)
 		}
-		tools = append(tools, &schema.ToolInfo{Name: definition.Name, Desc: definition.Description, ParamsOneOf: params})
+		tools = append(tools, &schema.ToolInfo{Name: capabilitycontract.CapabilityWireName(definition.Name), Desc: definition.Description, ParamsOneOf: params})
 	}
 	return tools, nil
 }

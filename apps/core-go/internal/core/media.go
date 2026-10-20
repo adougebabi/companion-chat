@@ -88,6 +88,9 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 	}
 	config, err := a.runtimeValue(ctx, "media.comfyui")
 	if err != nil {
+		if !mediaIntentKeepsVisualIdentityProviderError(intent) {
+			err = imageProviderUnavailable(err)
+		}
 		return nil, err
 	}
 	seconds, err := mediaGenerationTimeoutSeconds(config)
@@ -609,6 +612,21 @@ func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent
 		}
 	}
 	return i, err
+}
+
+var errImageProviderNotConfigured = errors.New("图像 provider 未配置")
+
+func imageProviderUnavailable(err error) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errImageProviderNotConfigured
+	}
+	return err
+}
+
+// Visual Identity sessions keep the original missing-row error so their
+// existing terminal classification stays intact.
+func mediaIntentKeepsVisualIdentityProviderError(intent mediaIntent) bool {
+	return stringValue(decodeObject([]byte(intent.Prompt))["purpose"]) == "visual_identity"
 }
 
 func (a *App) runtimeValue(ctx context.Context, key string) (map[string]any, error) {

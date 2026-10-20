@@ -21,12 +21,15 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 	if intentionID == "" {
 		return nil, errors.New("intention_trigger_id_required")
 	}
-	var fluctlightID, ownerActorID string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT i.fluctlight_id,f.created_by_actor_id FROM public.fluctlight_intentions i JOIN public.fluctlights f ON f.id=i.fluctlight_id WHERE i.id=$1`, intentionID).Scan(&fluctlightID, &ownerActorID); err != nil {
+	var fluctlightID, ownerActorID, lifecycleStatus string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT i.fluctlight_id,f.created_by_actor_id,f.status FROM public.fluctlight_intentions i JOIN public.fluctlights f ON f.id=i.fluctlight_id WHERE i.id=$1`, intentionID).Scan(&fluctlightID, &ownerActorID, &lifecycleStatus); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, err
+	}
+	if lifecycleStatus != "active" {
+		return map[string]any{"intention_id": intentionID, "fluctlight_id": fluctlightID, "status": "inactive", "reason": autonomousStopReason(lifecycleStatus)}, nil
 	}
 	result := map[string]any{"intention_id": intentionID, "status": "pending"}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -211,8 +214,16 @@ func loadIntentionAuthorityByIDTx(ctx context.Context, tx pgx.Tx, intentionID st
 
 func syncIntentionTriggerWorkflowTx(ctx context.Context, tx pgx.Tx, intention IntentionAuthority) error {
 	prefix := "intention_trigger_intent:" + intention.EntityID + ":"
-	if intention.Status != IntentionQualified {
-		_, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='cancel_requested',last_error='intention_not_qualified' WHERE intent_type=$1 AND left(intent_id,length($2))=$2 AND status IN ('pending','retry','started')`, intentionTriggerWorkflowType, prefix)
+	blocked, _, blockErr := autonomousActivityBlockedTx(ctx, tx, intention.FluctlightID)
+	if blockErr != nil {
+		return blockErr
+	}
+	if blocked || intention.Status != IntentionQualified {
+		reason := "intention_not_qualified"
+		if blocked {
+			reason = "fluctlight_not_active"
+		}
+		_, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='cancel_requested',last_error=$3 WHERE intent_type=$1 AND left(intent_id,length($2))=$2 AND status IN ('pending','retry','started')`, intentionTriggerWorkflowType, prefix, reason)
 		return err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_intentions SET trigger_cursor_sequence=COALESCE((SELECT last_processed_sequence FROM public.cognition_inbox_heads WHERE fluctlight_id=$2),0) WHERE id=$1 AND fluctlight_id=$2 AND revision=$3`, intention.EntityID, intention.FluctlightID, intention.Revision); err != nil {

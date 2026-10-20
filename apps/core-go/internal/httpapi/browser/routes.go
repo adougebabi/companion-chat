@@ -793,7 +793,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/foundation-revisions", http.MethodPost, map[string]any{"changes": body["changes"], "expected_revision": body["expectedRevision"], "reason": body["reason"], "idempotency_key": body["idempotencyKey"]}, s.readOnlyError(422, "foundation_revision_failed", "Foundation revision could not be proposed"), nil)
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/foundation-revisions", http.MethodPost, map[string]any{"changes": body["changes"], "expected_revision": body["expectedRevision"], "reason": body["reason"], "idempotency_key": body["idempotencyKey"]}, s.surfaceStatusError(422, "foundation_revision_failed", "Foundation revision could not be proposed"), nil)
 		return
 	}
 	if fluctlightID, revisionID, action, ok := foundationAction(path); ok && methodName == http.MethodPost {
@@ -1198,6 +1198,25 @@ func (s *Server) mutationBody(response http.ResponseWriter, request *http.Reques
 
 func (s *Server) readOnlyError(status int, code, message string) routeError {
 	return func(response http.ResponseWriter, _ error) { writeError(response, status, code, message) }
+}
+
+// surfaceStatusError keeps a Core 4xx status, including a stale foundation
+// revision conflict, instead of replacing it with the route fallback.
+func (s *Server) surfaceStatusError(fallback int, code, message string) routeError {
+	return func(response http.ResponseWriter, err error) {
+		var coreErr *CoreError
+		if errors.As(err, &coreErr) && coreErr != nil && coreErr.Status >= http.StatusBadRequest && coreErr.Status < http.StatusInternalServerError {
+			if coreErr.Code != "" {
+				code = coreErr.Code
+			}
+			if coreErr.Message != "" {
+				message = coreErr.Message
+			}
+			writeError(response, coreErr.Status, code, message)
+			return
+		}
+		writeError(response, fallback, code, message)
+	}
 }
 
 func mediaRetryError(response http.ResponseWriter, err error) {

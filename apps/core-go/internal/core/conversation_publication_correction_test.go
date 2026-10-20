@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
@@ -95,9 +96,9 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 					wantCalls, wantResults = 4, 2
 				}
 				if outcome == "reply" || outcome == "corrected_receipt" {
-					wantCalls, wantResults = 4, 2
+					wantCalls, wantResults = 3, 2
 					if outcome == "corrected_receipt" {
-						wantCalls, wantResults = 5, 3
+						wantCalls, wantResults = 4, 3
 					}
 					if err != nil || len(response.ExecutedToolCalls) != wantResults || strings.Contains(response.Message.Content, "Rejected private prose") {
 						t.Fatalf("native success=%#v err=%v", response, err)
@@ -122,7 +123,7 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 				}
 				correction := requests[2]
 				correctionTools := arrayValue(correction["tools"])
-				if len(correctionTools) != 1 || stringValue(mapValue(mapValue(correctionTools[0])["function"])["name"]) != conversationReplyCapabilityName || correction["tool_choice"] != "required" || correction["response_format"] != nil || correction["enable_thinking"] != false {
+				if len(correctionTools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(correctionTools[0])["function"])["name"]), conversationReplyCapabilityName) || correction["tool_choice"] != "required" || correction["response_format"] != nil || correction["enable_thinking"] != false {
 					t.Fatalf("correction wire=%#v", correction)
 				}
 				if strings.Contains(jsonString(correction["messages"]), "Rejected private prose candidate") || !strings.Contains(jsonString(correction["messages"]), "target_kind") {
@@ -141,9 +142,8 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 					}
 				}
 				if outcome == "reply" || outcome == "corrected_receipt" {
-					final := requests[len(requests)-1]
-					if final["tool_choice"] != "auto" || final["response_format"] != nil || len(arrayValue(final["tools"])) != 2 || final["enable_thinking"] != true {
-						t.Fatalf("optional catalog retained final grammar: %#v", final)
+					if len(requests) != wantCalls {
+						t.Fatalf("committed reply continued the turn: requests=%d", len(requests))
 					}
 				}
 			})

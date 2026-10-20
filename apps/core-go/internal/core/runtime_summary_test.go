@@ -114,7 +114,10 @@ func TestRuntimeSummaryFailureDeleteRebuildAndConfiguredOutputBudget(t *testing.
 		if !strings.Contains(string(body), `"enable_thinking":false`) {
 			t.Fatal("summary did not explicitly request no thinking")
 		}
-		if !strings.Contains(string(body), `"maxLength":4096`) {
+		// Strict json_schema cannot carry maxLength. The configured rune budget
+		// still reaches the provider in the task instruction and is enforced
+		// by the source schema on the server.
+		if !strings.Contains(string(body), "最多4096个字符") {
 			t.Fatal("summary schema ignored configured budget")
 		}
 		response := fmt.Sprintf(`{"choices":[{"message":{"content":%q}}]}`, jsonString(map[string]any{"schema_version": conversationSummarySchemaVersion, "summary": responseText}))

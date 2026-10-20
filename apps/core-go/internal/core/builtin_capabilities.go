@@ -987,7 +987,7 @@ func (c capabilityRequestCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 func (a *App) preflightImageCapability(ctx context.Context) error {
 	config, err := a.runtimeValue(ctx, "media.comfyui")
 	if err != nil {
-		return err
+		return imageProviderUnavailable(err)
 	}
 	_, _, err = comfyConfig(config)
 	return err
@@ -996,7 +996,7 @@ func (a *App) preflightImageCapability(ctx context.Context) error {
 func (a *App) preflightImageCapabilityTx(ctx context.Context, tx pgx.Tx) error {
 	var raw string
 	if err := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='media.comfyui'`).Scan(&raw); err != nil {
-		return err
+		return imageProviderUnavailable(err)
 	}
 	var config map[string]any
 	if err := json.Unmarshal([]byte(raw), &config); err != nil {

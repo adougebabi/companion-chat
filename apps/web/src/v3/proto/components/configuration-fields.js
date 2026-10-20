@@ -1,4 +1,9 @@
 const f=(key,label,type='text',extra={})=>({key,label,type,...extra});
+export function conversationReplyDisplayValue(value){
+ const next=value&&typeof value==='object'&&!Array.isArray(value)?{...value}:{};
+ if(next.mode==null||String(next.mode).trim()==='')next.mode='fact_only';
+ return next;
+}
 export const configurationFields={
  'conversation.reply':[
   f('mode','回复模式','select',{options:[{value:'legacy',label:'兼容模式'},{value:'fact_only',label:'Fact-only · 独立回复模型'}]}),f('expression_version','表达协议','select',{options:['fact-only-reply.v5','fact-only-reply.v4']}),f('model_ref','模型绑定角色','select',{options:['conversation_reply']}),
