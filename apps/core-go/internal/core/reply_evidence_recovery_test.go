@@ -37,7 +37,11 @@ func TestReplyEvidenceRecoveryBeforeWriterLease(t *testing.T) {
 			inv := CapabilityInvocation{CallID: "bad-evidence-call", CapabilityName: conversationReplyCapabilityName, SourceFactID: turn.InboxID, ProviderRequestID: "bad-physical", Arguments: json.RawMessage(`{"evidence_refs":["message:unoffered-history"]}`), Metadata: InvocationMetadata{Source: "model_tool", AuthorizationActorID: owner, SubjectActorID: owner, FluctlightID: self, ConversationID: conversation, CorrelationID: "turn:" + turn.TurnID, Surface: CapabilitySurfaceConversation}}
 			service := newFactOnlyReplyService(app)
 			draft, ref, err := service.prepare(ctx, inv, run)
-			if writerCalls != 1 {
+			wantCalls := 1
+			if physicalFailure {
+				wantCalls = upstreamProviderMaxRetries + 1
+			}
+			if writerCalls != wantCalls {
 				t.Fatalf("optional evidence blocked Writer: calls=%d err=%v", writerCalls, err)
 			}
 			if physicalFailure {
@@ -61,7 +65,7 @@ func TestReplyEvidenceRecoveryBeforeWriterLease(t *testing.T) {
 			} else if err != nil {
 				t.Fatal(err)
 			}
-			if writerCalls != 1 {
+			if writerCalls != wantCalls {
 				t.Fatal("replay called Writer again")
 			}
 		})

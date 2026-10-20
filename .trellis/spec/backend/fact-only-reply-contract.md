@@ -23,7 +23,7 @@ Logical reply identity uses inbound source, otherwise the fixed run root, not ph
 
 Child context isolates parent publication/Kev/refresh/diagnostic state while retaining cancellation and logical/source guards. Each physical request shares generated capacity; Writer adds bounded task capacity through the existing queue/Redis lease. Independent route identities must not split the shared generated bucket.
 
-Default failure is explicit. Only recoverable transport errors retry within configured bounds; truncation/input-too-large/OOM are not retried unchanged. Envelope correction is bounded once. Explicit legacy_fallback selects the existing cognitive model for an isolated fallback, uses the same publication key, records actual binding/model and mode, and cannot count as fact-only acceptance. It cannot retry the same failed model or send after parent cancellation.
+Default failure is explicit. Upstream HTTP 500/502/503/504 and gateway get_channel_failed retry at most twice around that physical model call, with exponential backoff, jitter, and the same idempotency key. The reply task itself is not repeated, so tools and other side effects do not run again. 4xx, quota, truncation, input-too-large and OOM stay terminal. Envelope correction is bounded once. Explicit legacy_fallback selects the existing cognitive model for an isolated fallback, uses the same publication key, records actual binding/model and mode, and cannot count as fact-only acceptance. It cannot retry the same failed model or send after parent cancellation.
 
 ## 4. Validation & Error Matrix
 Foreign run scope or actual action/resource ownership: reject. Mismatching

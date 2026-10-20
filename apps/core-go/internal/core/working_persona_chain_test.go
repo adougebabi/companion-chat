@@ -475,7 +475,7 @@ func TestPersonaDetailTraceSurvivesModelContinuationFailure(t *testing.T) {
 	})
 	app := newTestApp(t, repository, router)
 	result, err := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID, RunID: "portrait-continuation-failure", CurrentInput: "说说你自己的背景"})
-	if err == nil || requests != 2 || result.Trace == nil {
+	if err == nil || requests != 1+upstreamProviderMaxRetries+1 || result.Trace == nil {
 		t.Fatalf("continuation failure was not preserved: err=%v requests=%d trace=%#v", err, requests, result.Trace)
 	}
 	invocations, results := result.Trace.Snapshot()

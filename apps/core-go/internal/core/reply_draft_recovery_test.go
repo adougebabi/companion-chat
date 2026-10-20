@@ -210,8 +210,8 @@ func TestReplyDraftRecoveryProviderFailureAndCancellation(t *testing.T) {
 	if _, _, err := service.prepare(ctx, inv, run); err == nil {
 		t.Fatal("failed same-run draft retried")
 	}
-	if writerCalls != 1 {
-		t.Fatalf("terminal Writer retried: %d", writerCalls)
+	if writerCalls != upstreamProviderMaxRetries+1 {
+		t.Fatalf("failed draft called Writer again after upstream retries: %d", writerCalls)
 	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()

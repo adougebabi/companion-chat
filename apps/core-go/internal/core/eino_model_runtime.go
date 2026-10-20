@@ -136,16 +136,23 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	}
 	started := time.Now()
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
-		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
-			// The inner component's raw proposal must not be published as an
-			// Agent event. The outer node will emit only the admitted response;
-			// physical input/output diagnostics remain owned by this adapter.
-			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+		generate := func() (*schema.Message, error) {
+			attemptCtx := runCtx
+			if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
+				// The inner component's raw proposal must not be published as an
+				// Agent event. The outer node will emit only the admitted response;
+				// physical input/output diagnostics remain owned by this adapter.
+				attemptCtx = callbacks.InitCallbacks(attemptCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+			}
+			if err := m.provider.guardVisionInput(attemptCtx, m.assignment, input); err != nil {
+				return nil, err
+			}
+			return m.inner.Generate(attemptCtx, input, opts...)
 		}
-		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
-			return nil, err
+		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
+			return generate()
 		}
-		return m.inner.Generate(runCtx, input, opts...)
+		return retryUpstreamModelCall(runCtx, m.scenario, generate)
 	})
 	err = wrapPhysicalProviderRequestError(err)
 	if m.lastPhysicalResponse != nil {
@@ -267,13 +274,20 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		m.recordUsageComparison(callCtx, full)
 	})
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
-		if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
-			runCtx = callbacks.InitCallbacks(runCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+		open := func() (*schema.StreamReader[*schema.Message], error) {
+			attemptCtx := runCtx
+			if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
+				attemptCtx = callbacks.InitCallbacks(attemptCtx, &callbacks.RunInfo{Name: "kev-proposal"})
+			}
+			if err := m.provider.guardVisionInput(attemptCtx, m.assignment, input); err != nil {
+				return nil, err
+			}
+			return m.inner.Stream(attemptCtx, input, opts...)
 		}
-		if err := m.provider.guardVisionInput(runCtx, m.assignment, input); err != nil {
-			return nil, err
+		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
+			return open()
 		}
-		return m.inner.Stream(runCtx, input, opts...)
+		return retryUpstreamModelCall(runCtx, m.scenario, open)
 	}, observer.observe)
 	if err != nil || stream == nil {
 		return stream, err
@@ -1073,8 +1087,9 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			return einoModelResponse{}, fmt.Errorf("eino_tools_bind: %w", err)
 		}
 	}
-	// ADK itself owns the model/tool/result loop; each underlying model call
-	// still receives the same bounded request identity and no retry policy.
+	// ADK itself owns the model/tool/result loop. Upstream transport retries
+	// stay inside each physical Generate/Stream and reuse that call's request
+	// identity, so a retry cannot execute tools again.
 	loopResult, runErr = RunADKLoop(ctx, ADKLoopConfig{
 		Name: call.Agent.Name, Description: call.Agent.Description,
 		Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations,

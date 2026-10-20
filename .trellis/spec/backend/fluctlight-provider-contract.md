@@ -130,6 +130,7 @@ embed(role, inputs) -> VersionedEmbeddings
 - Settings cannot activate a role until preflight proves required capabilities. Health may later degrade without making Core readiness false.
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
+- Fact-only reply, conversation cognition, initialization, persona compilation, owner life request, and studio text tasks retry one physical model call at most twice when the upstream returns HTTP 500/502/503/504 or get_channel_failed. Backoff is exponential with jitter. The same idempotency key is reused. 4xx and quota errors are terminal. Exhausted retries return the provider error. Tool execution stays outside that retry. Wake-up, reflection, autonomy, and media/visual workflow retries are unchanged.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
 - A direct conversation may contain any mix of capability calls, including an
   action-only response with no `conversation.reply`. Every valid native call is
