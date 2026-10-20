@@ -103,3 +103,23 @@ test('owner persona projection limits legal switch targets and retains bounded h
   const role = snapshot(); role.switchTargetIds = [];
   assert.match(PersonaSection(role, true), /profile-switch-submit" disabled/);
 });
+
+function editableDetail(status) {
+  return { id: 'fixture-role', status, current_revision: 4, identity: { name: '角色', background: '简介' },
+    core_persona: { personality_system: { profiles: [{ id: 'warm', name: '日常人格' }, { id: 'focused', name: '专注人格' }] } },
+    personality_runtime: { active_profile_id: 'warm', revision: 2 } };
+}
+test('retired and archived details disable bio edit and persona switch; active stays writable', async () => {
+  for (const status of ['retired', 'archived', 'active']) {
+    const value = profileSnapshotFromDetail(editableDetail(status));
+    assert.equal(value.status, status);
+    assert.equal(value.readOnly, status !== 'active');
+    const el = surface();
+    await renderProfilePage(el, { charId: 'fixture-role' }, { read: async () => value, editBio: async () => {}, switchPersona: async () => {} });
+    const edit = el.innerHTML.match(/data-test="profile-edit"[^>]*/)?.[0] ?? '';
+    const submit = el.innerHTML.match(/data-test="profile-switch-submit"[^>]*/)?.[0] ?? '';
+    if (status === 'active') { assert.doesNotMatch(edit, /disabled/); assert.doesNotMatch(submit, /disabled/); }
+    else { assert.match(edit, /disabled/); assert.match(submit, /disabled/); }
+  }
+  assert.equal(profileSnapshotFromDetail(editableDetail('paused')).readOnly, false);
+});
