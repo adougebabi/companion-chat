@@ -88,3 +88,31 @@ Correct: render the action error within the modal slot, with retry and cancel re
 - Initialization feedback consumes error code, validation path and correlation
   and links filtered model diagnostics. Malformed warning entries must never
   throw during preview; preserve original values in full JSON.
+
+## Semantic character presentation and preparation progress (2026-10-20)
+
+- A shared renderer is not sufficient if its primary output is raw JSON. Profile
+  and intention components show Chinese domain labels, narrative settings,
+  real lifecycle and linked goals. Keep unmodified source/IDs/hashes/versions
+  under collapsed technical details. Never invent traits for null fields.
+- `SemanticFields` reuses the shared display dictionary. `IntentionRow/List`
+  owns the goal, current-life and promise presentations. Candidate intentions
+  are not accepted executions; unknown states stay unknown. Numeric zero is
+  preserved; null confidence does not become 0%.
+- Persona names resolve from declared profiles; current persona comes only from
+  personality runtime. Effective appearance null never falls back to initial
+  appearance. Switch success/conflict/unknown-result feedback must remain visible
+  even when controls are progressively disclosed.
+- `readInitializationProgress` reads visual identity, avatar, current-session
+  timeline and its actual task independently. `mountInitializationProgress`
+  refreshes only its card, so persona draft and main profile are preserved.
+  Stop on disposal; pause while hidden; bound automatic polling. No read starts
+  a generation. Candidate assets are not accepted references, skipped review is
+  not successful validation, queued is not evidence of Worker execution.
+- Complete reference/sheet/avatar milestones require their real artifacts or
+  readable avatar projection. Optional read failure is explicitly unknown,
+  never a claim of no asset. Keep task/review/recovery navigation available.
+- Settings subsections declare `backHref/backLabel` in the route and expose one
+  shell-owned return control. Normal pages retain history behavior. NPC management
+  uses `/people/npcs`, with `/people/manage` as a same-renderer compatibility URL.
+- Page/card spacing belongs to `stack/grid` parents, not global card margins.

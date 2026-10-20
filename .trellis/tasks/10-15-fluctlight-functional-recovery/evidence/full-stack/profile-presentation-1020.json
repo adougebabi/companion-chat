@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-20",
+  "scope": "seven_semantic_ui_and_preparation_issues",
+  "implementation": "implemented_pending_user_deployed_acceptance",
+  "checks": {
+    "frontendTargeted": {
+      "passed": 29,
+      "failed": 0
+    },
+    "webTypecheck": "passed",
+    "productionBuild": "passed_no_mock_bundle",
+    "diffCheck": "passed"
+  },
+  "componentReuse": {
+    "IntentionRow/IntentionList": [
+      "real-life-goals",
+      "real-life-now",
+      "promise-catalogue"
+    ],
+    "SemanticFields/SemanticValue": [
+      "ProfileGroups",
+      "PersonaSection"
+    ],
+    "ProfileHeader/ProfileGroups/PersonaSection/PersonaHistory": [
+      "real and explicit mock Profile provider"
+    ],
+    "mountInitializationProgress": [
+      "Profile page, real independent read provider"
+    ],
+    "Card/ImageCard": [
+      "existing product cards and initialization artifacts"
+    ],
+    "route backHref/backLabel": [
+      "all eight settings sections and outreach; real/mock share shell"
+    ]
+  },
+  "browserVerification": {
+    "source": "actual production dist, localhost temporary static server, controlled API responses only",
+    "passed": [
+      "Chinese intentions/action/goal/profile and confidence0",
+      "readable profile/personality/voice/preferences before source JSON",
+      "queued visual work remains pending",
+      "artifact/readable-avatar completion reflected independently",
+      "progress refresh preserves persona draft",
+      "optional progress failure retains usable profile",
+      "settings one Return settings and zero generic Back",
+      "NPC management and legacy people/manage resolve same page",
+      "diary parent/card gap12px",
+      "390px profile no horizontal overflow"
+    ],
+    "desktop": {
+      "clientWidth": 1280,
+      "scrollWidth": 1280
+    },
+    "mobileIframe": {
+      "clientWidth": 390,
+      "scrollWidth": 390
+    },
+    "diaryCardGapPx": 12,
+    "modelSettingsBackControls": {
+      "returnSettings": 1,
+      "genericBack": 0
+    },
+    "consoleErrors": [],
+    "screenshots": [
+      "profile-semantic-desktop.png",
+      "profile-preparation-desktop.png",
+      "profile-semantic-mobile.png",
+      "intentions-semantic-desktop.png",
+      "diary-spacing-desktop.png",
+      "settings-single-return.png"
+    ]
+  },
+  "review": "two independent read-only reviews; hidden persona-switch feedback corrected and covered by existing conflict test",
+  "notExecuted": [
+    "actual NAS updated build",
+    "database tests or writes",
+    "backend logic regression",
+    "real LLM/ComfyUI and paid generation"
+  ],
+  "realModelCalls": 0,
+  "migrationRequired": false,
+  "limitations": "Progress follows existing real visual/task endpoints. Controlled artifact transitions verify rendering, not actual generation/Worker execution. Recurring wake-up is not treated as initialization completion.",
+  "excludedFiles": [
+    "apps/web/src/v3/proto/data/profile-types.ts",
+    "temporary harness/server",
+    "dist",
+    "local private logs"
+  ]
+}

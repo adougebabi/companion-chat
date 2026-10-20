@@ -22,6 +22,7 @@ R('/c/:charId/people', 'people.graph.view', '人物关系', 'BP-12', '仅展示'
 R('/c/:charId/people/npc/new', 'people.npc.create', '新建 NPC 定义', 'BP-12/15', '可操作', renderNPCDefinition, '人物', { manualRefresh: true });
 R('/c/:charId/people/npc/:npcId/edit', 'people.npc.edit', '编辑 NPC', 'BP-12', '可操作', renderNPCEditor, '人物', { manualRefresh: true });
 R('/c/:charId/people/npcs', 'people.npc.manage', 'NPC 管理', 'BP-12', '可操作', renderNPCManagement, '人物', { manualRefresh: true });
+R('/c/:charId/people/manage', 'people.npc.manage', 'NPC 管理', 'BP-12', '可操作', renderNPCManagement, '人物', { manualRefresh: true });
 R('/c/:charId/people/npc/:npcId', 'people.npc.detail', 'NPC 详情', 'BP-12', '仅展示', W.renderNpc, '人物', { management: true });
 R('/c/:charId/people/list', 'people.list.view', '人物目录', 'BP-12.1', '可操作', W.renderPeopleList, '人物', { management: true });
 R('/c/:charId/people/owner', 'people.owner.background', '关于你', 'BP-12', '可操作', renderAboutYou, '人物', { manualRefresh: true });

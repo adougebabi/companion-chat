@@ -96,7 +96,8 @@ function renderPage() {
   const state = demoStates[def.key] || '正常';
   ctx.state = state; renderChrome(ctx);
   const showBack = back.length > 1 || ctx.query.from;
-  main.innerHTML = `<div class="pagehead">${showBack ? `<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>` : ''}<h1>${def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
+  const backControl=def.backHref?`<a class="btn sm" href="${esc(def.backHref)}" data-test="back">${icon('back')} ${esc(def.backLabel||'返回')}</a>`:showBack?`<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>`:'';
+  main.innerHTML = `<div class="pagehead">${backControl}<h1>${def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
     ${ui.notesPanel(def)}<div id="page" data-page="${def.key}"></div>`;
   const el = ui.$('#page');
   const bootstrapWarning=store.get('meta')?.bootstrapWarning;if(bootstrapWarning)el.insertAdjacentHTML('beforebegin',`<div class="banner info">${esc(bootstrapWarning)}</div>`);

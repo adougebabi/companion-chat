@@ -266,3 +266,21 @@ mark{background:var(--primary-soft);color:inherit;border-radius:4px;padding:0 2p
 
 .settings-page .configuration-fields>.field:has(textarea),.settings-page .configuration-fields>fieldset{grid-column:1/-1}
 .creation-flow{max-width:900px;margin-inline:auto;min-width:0;width:100%}.creation-flow .btn{white-space:normal;max-width:100%;min-height:40px}.creation-flow pre,.creation-flow dd{overflow-wrap:anywhere;white-space:pre-wrap}.creation-flow .field{min-width:0}
+
+/* Semantic profile, intention and preparation components use the v3 tokens. */
+[data-test="profile-detail"]{container-type:inline-size;min-width:0}
+.profile-sections,.goal-overview{align-items:start}
+.profile-sections>.card,.persona-sheet,.intention-row,.profile-facts dd{min-width:0;overflow-wrap:anywhere}
+.profile-facts{margin:0;display:grid;gap:var(--sp3)}
+.profile-facts>div{display:grid;grid-template-columns:minmax(76px,1fr) minmax(0,3fr);gap:var(--sp3);align-items:baseline}
+.profile-facts dt{color:var(--ink-2);font-size:12px}.profile-facts dd{margin:0}
+.semantic-list{padding-left:18px;margin:0}.semantic-list li+li,.semantic-entry+.semantic-entry{margin-top:var(--sp2)}
+.persona-sheet{padding:var(--sp4);background:var(--surface-2);border-radius:var(--r2)}
+.persona-controls{margin-top:var(--sp4)}.persona-controls>form,.profile-technical>p{margin-top:var(--sp3)}
+.profile-technical pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.preparation-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp4)}
+.preparation-step{display:flex;gap:var(--sp2);align-items:start;min-width:0}.preparation-step p{margin:var(--sp1) 0 0}
+.preparation-dot{width:9px;height:9px;border-radius:var(--rf);background:var(--line);flex:none;margin-top:7px}.preparation-dot.ready{background:var(--ok)}
+.preparation-assets:empty{display:none}.preparation-assets img{height:180px;object-fit:contain;background:var(--surface-2)}
+.intention-row .badge{white-space:normal}.intention-row details{margin-top:var(--sp2)}
+@container (max-width:680px){.profile-sections,.preparation-steps{grid-template-columns:minmax(0,1fr)}.profile-facts>div{grid-template-columns:minmax(70px,1fr) minmax(0,2.5fr)}}

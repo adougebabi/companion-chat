@@ -462,3 +462,16 @@ Web类型检查、正式Vite构建及现有无Mock产物检查通过；diff chec
 最终复核曾发现并已修：reset回到旧端点、换模型残留窗口、改世界复用旧分析、分组后initialOnly永久清空可选资料、缺失字段补人格事实、null warning崩溃、未匹配规则原文被先改写。三名探子只读复核，主线程修改。
 
 检查：定向前端17/17，BrowserClient受控38/38，Web typecheck、正式build/no-Mock、Core build通过。真实浏览器挂当前组件+受控响应：设置A/B上下文/reset/换模型清窗口、交流管理导航、连续向导、字段关联诊断、超时后实际重试恢复通过；桌面1265/1265，390px iframe实际client/scroll均373无横向溢出。截图与范围见evidence/full-stack/workspace-recovery-1020.json。本轮按用户要求不执行DB、后端逻辑、真实LLM/Comfy或部署联调；对应后端用例已补源但未执行。无需迁移。NAS部署需Core/Web同一构建；总任务继续in_progress，真实模型及部署验收待用户继续，不声明全量通过。临时harness/日志及并行profile-types.ts不提交。
+
+
+## 2026-10-20 七项资料展示与进度修复
+
+前轮provider失败用户确认来自输出上限，已收口。本轮生产意向原来使用RecordDetails，实际共享了错误的通用展开；现在IntentionRow/List用于目标、此刻和约定，先显示行动/中文状态/关联目标/人格/有效置信度，原值折叠保留。Goal概览沿已有enum字典翻译状态。
+
+Profile原本Real/Mock已共用组件，但组件直接遍历原字段并把对象作为JSON。现在SemanticFields复用既有display字典，Profile按身份背景、性格、表达生活、当前状态、自我认识、工作画像及各人格的声音/习惯/愿望语义组合；空值不补人格事实，技术ID/hash/revision/原JSON只作折叠来源。保留runtime人格、已清除有效外观、不串初始/当前、受控切换双CAS及原幂等键。切换反馈会展开控制区，409/未知提交结果可见并保稿。
+
+人物准备区真实读取visual management/display-avatar/current session timeline/actual task，源各自有ready/failed状态；局部有限轮询且隐藏暂停/离开清理，刷新不重绘其他资料或草稿。候选≠接受、skipped≠验证、queued≠后台已执行；完成规范图/设定图/头像分别依据真实产物及readable投影。页面只提供既有任务/视觉评审/头像入口，不自动生成或替Owner改选。
+
+日记生产列表用stack拥有12px间距；设置八子页与outreach声明shell单返回，删内容重复返回。人物管理改指已注册people/npcs并兼容旧people/manage，创建/编辑/管理都归管理工作区。没有新增后端/迁移/第二状态源；并行untracked profile-types.ts未改未提交。
+
+实际定向前端29/29、Web类型及正式build/no-Mock通过。浏览器加载实际dist并注入受控响应：意向、中文设定、准备排队→产物完成、进度失败不阻断资料、进度刷新保留切换草稿、设置返回1+0、NPC新/旧路径、日记gap12、桌面1280/1280和实际390px iframe390/390均验证；console errors为空。两名只读探子终审发现的折叠反馈问题已修且原409用例锁定可见性。没有运行数据库/后端逻辑/LLM/Comfy/真实生成/NAS部署验收。证据与截图见evidence/full-stack/profile-presentation-1020.json；台账追加同记录，总任务继续in_progress供用户验收。

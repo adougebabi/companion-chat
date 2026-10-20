@@ -28924,6 +28924,24 @@
         "modelCalls": 0,
         "liveAcceptance": "pending_user_deployed_core_web_and_llm_acceptance",
         "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/workspace-recovery-1020.json"
+      },
+      {
+        "date": "2026-10-20",
+        "feature": "意向/人物资料语义展示、日记间距、组件复用、设置单返回、人物管理路由、真实准备进度",
+        "implementation": "保持当前v3；共享语义组件与独立只读进度；原始JSON折叠保留，真实提交/来源/人格边界不变",
+        "checks": {
+          "frontendTargeted": {
+            "passed": 29,
+            "failed": 0
+          },
+          "webTypecheck": "passed",
+          "productionBuild": "passed_no_mock_bundle",
+          "diffCheck": "passed"
+        },
+        "liveAcceptance": "pending_user_deployed_acceptance",
+        "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/profile-presentation-1020.json",
+        "migrationRequired": false,
+        "modelCalls": 0
       }
     ]
   }

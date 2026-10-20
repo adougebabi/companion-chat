@@ -6,13 +6,13 @@ export const exchangeNavigation = [
 ];
 export const managementNavigation=[
  {k:'profile',label:'角色资料',icon:'user',path:'profile'}, {k:'worlds',label:'世界管理',icon:'globe',path:'worlds'},
- {k:'people',label:'人物管理',icon:'people',path:'people/manage'}, {k:'governance',label:'身份与能力治理',icon:'brain',path:'governance'},
+ {k:'people',label:'人物管理',icon:'people',path:'people/npcs'}, {k:'governance',label:'身份与能力治理',icon:'brain',path:'governance'},
  {k:'autonomy',label:'自治设置',icon:'settings',path:'settings/autonomy'},
 ];
 export function workspaceForPath(path){
  if(path==='/library/create')return '管理';
  if(/^\/(settings|diag|data|studio|setup)(\/|$)/.test(path))return '管理';
- if(/^\/c\/[^/]+\/(worlds|governance|settings)(\/|$)/.test(path)||/\/people\/(manage|new|[^/]+\/edit)(\/|$)/.test(path))return '管理';
+ if(/^\/c\/[^/]+\/(worlds|governance|settings)(\/|$)/.test(path)||/\/people\/(manage|npcs|npc\/new|npc\/[^/]+\/edit)(\/|$)/.test(path))return '管理';
  if(path==='/auth'||path==='/inbox'||path==='/library'||/\/profile$/.test(path))return null;
  return '交流';
 }

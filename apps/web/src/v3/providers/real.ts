@@ -23,6 +23,8 @@ import {installDiagnosticsProvider} from './diagnostics';
 import { viewFromBundle, directoryGroupProjection } from '../contract-map.mjs';
 // @ts-expect-error JS reader
 import { readProduct } from '../read-product.mjs';
+// @ts-expect-error shared optional progress reader
+import {readInitializationProgress} from '../initialization-progress.mjs';
 // @ts-expect-error JS facade
 import { replaceSnapshot, get, configureReadProjection } from '../proto/store.js';
 // @ts-expect-error JS projection
@@ -104,6 +106,7 @@ export const aboutYou = {
   save: (characterId: string, actorId: string, command: BrowserActorContextUpdate) => client.updateActorContext(characterId,actorId,command),
 };
 export const profile = {
+  progress:(id:string)=>readInitializationProgress(client,id),
   async switchPersona(id: string, command: BrowserPersonaSwitchRequest, options?: { signal?: AbortSignal }) {
     let result = await client.switchPersona(id,command);
     if (result.status === 'completed') return result;

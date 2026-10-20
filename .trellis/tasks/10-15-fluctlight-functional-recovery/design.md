@@ -35,3 +35,8 @@ Owner原请求是约定身份，链接表只存窗口/版本/真实执行关联�
 启动先会话+角色目录首屏，可选域后台读取；JSON读取期限覆盖headers和body，模型触发写入保留服务端生命周期，不套短读取期限。Session SQL校验有局部deadline、best-effort last_seen短时限并节流。匿名访问和已登录链路分开记录；没有运行证据不能声称已复现NAS行锁。
 
 世界先作为Owner定义底稿保存/发布，选择精确版本后带入人物向导。人物激活的回执先checkpoint；world apply/active select各自保留原命令与版本并读回，按fid隔离恢复。任何后续失败不重新激活人物；原输入及待补步骤保留，可继续进入人物。初始化恢复只修表示层可选结构，将未解析原文及warnings留在extensions；空模型响应、鉴权或真实引用不能假装成功。错误页直接消费既有correlation/path/code，并给明确空白创建与诊断入口。
+
+
+## 资料展示修复边界（2026-10-20）
+最小差距在展示组合而非业务存储：生产意向页仍用RecordDetails，Profile组件仍遍历原字段、只给对象JSON；导航写错people/manage；settings返回分属shell与内容。主线程在现有v3 cards/profile及公共语义字段组件落实可读行、中文状态和设定分组；原完整数据保留折叠技术详情，不生成未知人格或补假事实。意向同组件用于目标、此刻及约定；日记只调整父容器gap。shell声明式返回策略统一settings子页，人物管理复用既有NPC页并兼容原链接。
+初始化进度复用现有visual identity/avatar/timeline/task只读API，独立局部加载及有限轮询，不能因可选进度失败阻断人物资料或重置切换草稿。canonical、character_sheet、avatar分别按真实产物/读取状态显示；候选不等于接受，跳过视觉检验不等于完成，queued不等于Worker已执行。保留当前人格runtime权威、CAS/来源/受控命令、初始设定与当前有效状态边界。预计仅Web页面/公共组件/投影/provider及测试/文档，无迁移和后端执行器改写。通过组件用例、type/build、真实浏览器受控生产组件的桌面/390px核对验证，真实NAS/LLM仍由用户验收。

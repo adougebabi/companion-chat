@@ -201,3 +201,10 @@ Foundation提议保存完整创建基线、提交事务CAS与持久幂等回执�
 本轮六项修复已在源码实现：连接上下文统一、设置响应式、会话超时恢复、服务→世界底稿→人物向导、初始化可恢复缺项/精确诊断、交流与管理导航。证据与实际执行限制见当前任务 `evidence/full-stack/workspace-recovery-1020.json`，同一功能台账 `deliveryVerification.regressionFixes` 追加记录，不覆盖此前真实回归证据。
 
 本轮只执行编译、定向前端与受控组件浏览器验证，没有数据库/后端逻辑回归或真实模型调用。部署Core/Web同一构建后，用户从 `#/setup`、`#/settings/models`、交流/管理切换继续真实验收；源码修复不等于NAS和模型已通过。
+
+
+## 2026-10-20 意向/人物资料产品展示与准备进度
+
+共享IntentionRow/List用于目标、此刻、约定；共享SemanticFields/Profile组件呈现中文设定，原JSON仅技术展开。角色资料新增真实视觉/头像/任务只读进度，局部失败不阻断人物使用。设置单返回、日记12px容器间距、人物管理规范/兼容路由同步修复。
+
+定向前端29项、type/build/no-Mock及正式dist受控浏览器检查通过；桌面1280与390px iframe无横向溢出。没有真实模型、生成、DB/后端逻辑或NAS部署回归。完整范围与截图：当前任务 `evidence/full-stack/profile-presentation-1020.json`；同一台账 `deliveryVerification.regressionFixes` 追加记录。

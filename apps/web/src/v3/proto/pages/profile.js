@@ -3,6 +3,7 @@ import { randomId } from '../../../random-id.mjs';
 import { Field } from '../components/forms.js';
 import { drawer } from '../components/overlay.js';
 import { ProfileHeader, ProfileGroups, PersonaSection, PersonaHistory } from '../components/profile.js';
+import {mountInitializationProgress} from '../components/initialization-progress.js';
 
 /** @type {import('../data/profile-types.ts').ProfileProvider | null} */
 let configuredProvider = null;
@@ -20,7 +21,8 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
   const token = {}; views.set(el, token);
   const pageKey = el.dataset.page;
   const current = () => !options.signal?.aborted && views.get(el) === token && el.dataset.page === pageKey;
-  let snapshot; let pending = false; let commandKey; let commandFingerprint;
+  let snapshot; let pending = false; let commandKey; let commandFingerprint;let progressView=null;
+  options.signal?.addEventListener('abort',()=>progressView?.dispose(),{once:true});
   let draft = { targetPersonaId: '', reason: '', confirm: false };
   if (!provider) {
     el.innerHTML = '<div class="statebox"><h2>角色资料尚未连接</h2><p class="muted">无法读取当前角色的资料。</p></div>'; return;
@@ -28,12 +30,14 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
   function feedback(message, error = false) {
     if (!current()) return;
     const node = el.querySelector('[data-profile-feedback]');
-    if (node) { node.className = `banner ${error ? 'err' : 'ok'}`; node.textContent = message; }
+    if (node) { node.className = `banner ${error ? 'err' : 'ok'}`; node.textContent = message;const panel=node.closest?.('.persona-controls');if(panel)panel.open=true; }
   }
   function paint() {
     if (!current()) return;
+    progressView?.dispose();progressView=null;
     const id = encodeURIComponent(snapshot.id);
-    el.innerHTML = `<div class="stack" data-test="profile-detail">${ProfileHeader(snapshot, Boolean(provider.editBio))}${PersonaSection(snapshot, Boolean(provider.switchPersona))}${ProfileGroups(snapshot)}${PersonaHistory(snapshot)}<div class="row"><a class="btn" href="#/c/${id}/people/owner">关于你</a>${readStore('ui').identity==='管理'?`<a class="btn" href="#/c/${id}/governance">身份与能力治理</a><a class="btn" href="#/c/${id}/worlds">世界管理</a>`:''}${snapshot.mode!=='mock'?`<a class="btn" href="#/c/${id}/media/avatar">显示头像</a>`:''}</div></div>`;
+    el.innerHTML = `<div class="stack" data-test="profile-detail">${ProfileHeader(snapshot, Boolean(provider.editBio))}${provider.progress?'<section class="card stack" data-initialization-progress></section>':''}${ProfileGroups(snapshot)}${PersonaSection(snapshot, Boolean(provider.switchPersona))}${PersonaHistory(snapshot)}<div class="row"><a class="btn" href="#/c/${id}/people/owner">关于你</a>${readStore('ui').identity==='管理'?`<a class="btn" href="#/c/${id}/governance">身份与能力治理</a><a class="btn" href="#/c/${id}/worlds">世界管理</a>`:''}${snapshot.mode!=='mock'?`<a class="btn" href="#/c/${id}/media/avatar">显示头像</a>`:''}</div></div>`;
+    if(provider.progress)progressView=mountInitializationProgress(el.querySelector('[data-initialization-progress]'),{fid:snapshot.id,read:provider.progress,alive:current});
     const form = el.querySelector('[data-profile-switch]');
     form.elements.targetPersonaId.value = draft.targetPersonaId;
     form.elements.reason.value = draft.reason;

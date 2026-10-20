@@ -48,5 +48,5 @@ R('/data', 'data.tools', '数据工具', 'BP-18', '可操作', G.renderData, { s
 R('/data/revisions', 'data.object.revisions', '对象修订记录', 'BP-18', '仅展示', G.renderRevisions);
 R('/data/rollback', 'data.rollback', '回档说明（P3）', 'BP-18', '占位', G.renderRollback);
 
-configurationSections.forEach(section => R(`/settings/${section.id}`, `settings.${section.id}`, section.title, 'BP-16', '可操作', renderConfiguration, { mockSection: section.id, manualRefresh: true }));
+configurationSections.forEach(section => R(`/settings/${section.id}`, `settings.${section.id}`, section.title, 'BP-16', '可操作', renderConfiguration, { mockSection: section.id, manualRefresh: true, backHref:'#/settings',backLabel:'返回设置' }));
 diagnosticSections.forEach(section => R(`/diag/${section.id}`, `diag.${section.id}`, section.title, 'BP-17', '可操作', renderDiagnosticRecords, { mockSection: section.id, manualRefresh: true }));

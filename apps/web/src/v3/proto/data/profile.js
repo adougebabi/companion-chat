@@ -81,13 +81,14 @@ function groupsFrom(detail, identity, compilation) {
   }
   const personality = plain(detail.personality);
   if (personality && Object.keys(personality).length) push('personality', '人格定义', { ...personality });
+  if(Object.hasOwn(detail,'behavioral_policy'))push('policy','表达与相处',detail.behavioral_policy);
   if (compilation || Array.isArray(detail.working_personas)) push('working', '工作人格', workingValue(detail, compilation));
   const core = plain(detail.core_persona);
   if (core && Object.keys(core).length) push('foundation', '身份核心', { ...core });
   const developing = plain(detail.developing_self);
   if (developing) push('developing', '发展中的自我', { ...developing });
   const life = plain(detail.life_profile);
-  if (life && Object.keys(life).length) push('life', '生活资料', { ...life });
+  if (Object.hasOwn(detail,'life_profile')) push('life', '生活资料', life ? {...life} : detail.life_profile);
   return groups;
 }
 

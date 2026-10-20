@@ -1,5 +1,6 @@
 import { esc, icon, badge } from './controls.js';
 import { attributes } from './forms.js';
+import {JsonDetails} from './records.js';
 
 export function Card({ body = '', title = '', heading, tone = '', attrs = {}, footer = '' } = {}) {
   return `<div class="card${tone ? ` ${esc(tone)}` : ''}" ${attributes(attrs)}>${heading ?? (title ? `<h3>${esc(title)}</h3>` : '')}${body}${footer}</div>`;
@@ -34,4 +35,18 @@ export function ImageCard({ as = 'div', className = 'icard', img, imageHref, cap
 
 export function GoalRow(goal, link, { compact = false, showDue = false, attrs = {} } = {}) {
   return `<div class="lrow${compact ? ' small' : ''}" ${attributes(attrs)}>${badge(goal.type, 'plain')}<span class="grow">${link(goal.id, goal.title)}${showDue ? ` ${goal.due ? `<span class="small muted">${esc(goal.due)}</span>` : ''}` : ''}</span>${badge(goal.state)}</div>`;
+}
+
+const intentionLabels={candidate:'候选意向',qualified:'已具备执行条件',due:'待执行',in_progress:'正在执行',paused:'已暂停',completed:'意向已完成',expired:'已过期',cancelled:'已取消'};
+/** Read-only intention, shared by goals, current life and promise details. */
+export function IntentionRow(intention,{fid,goals=[],profiles=[]}={}){
+ const value=intention&&typeof intention==='object'?intention:{};
+ const action=[value.action_intent,value.action,value.description].find(v=>typeof v==='string'&&v.trim())||'尚未记录意向内容';
+ const goal=goals.find(g=>g.id===value.goal_id),profile=profiles.find(p=>p.id===value.profile_id);
+ const confidence=typeof value.confidence==='number'&&Number.isFinite(value.confidence)&&value.confidence>=0&&value.confidence<=1?`把握 ${Math.round(value.confidence*100)}%`:'';
+ return `<div class="lrow intention-row"><div class="grow"><div class="row"><b class="grow">${esc(action)}</b>${badge(intentionLabels[value.status]||'状态待确认','plain')}</div><div class="row small muted">${value.goal_id&&fid?`<a href="#/c/${encodeURIComponent(fid)}/life/goal/${encodeURIComponent(value.goal_id)}">${esc(goal?.desired_outcome||goal?.description||goal?.title||'查看关联目标')}</a>`:''}${profile?.name?`<span>人格：${esc(profile.name)}</span>`:''}${confidence?`<span>${esc(confidence)}</span>`:''}</div>${JsonDetails(value,'意向来源与技术记录')}</div></div>`;
+}
+export function IntentionList(values,options={}){
+ const rows=Array.isArray(values)?values:[];
+ return rows.length?rows.map(row=>IntentionRow(row,options)).join(''):'<p class="small muted">尚未记录意向。可以从对话提出计划，或请求独立规划。</p>';
 }

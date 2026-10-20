@@ -1,7 +1,7 @@
 import { lifeClient } from '../services.js';
 import { asyncPage, instant } from '../components/async-page.js';
 import { esc,icon,badge } from '../ui.js';
-import { OutfitStrip } from '../components/cards.js';
+import { OutfitStrip,IntentionList } from '../components/cards.js';
 import { JsonDetails } from '../components/records.js';
 
 export function renderRealNow(el,ctx) {
@@ -18,7 +18,7 @@ export function renderRealNow(el,ctx) {
     <div class="grid g3" style="margin-top:16px"><div class="card"><h3>${icon('calendar')} 下一项日程</h3>${plan?(plan.items || []).filter(i=>new Date(i.start_at)>new Date()).map(i=>`<div class="lrow"><b class="small">${esc(instant(i.start_at,zone))}</b><span class="grow">${esc(i.activity)}</span>${badge(i.status)}</div>`).join('')||'<p class="small muted">今天后续无计划</p>':'<p class="small muted">今天尚无已接受日程</p>'}<a class="small" href="#/c/${ctx.charId}/life/schedule">完整日程 →</a></div>
     <div class="card tint-sun"><h3>${icon('heart')} 心情 / 精力</h3><p>心情：${esc(moodLabel?.trim() || '尚未记录')}</p><p>驱动状态：${drives?.length?`已记录 ${drives.length} 项`:'尚无驱动记录'}</p>${drives?.length?JsonDetails(drives,'查看驱动记录'):''}<p class="small muted">内在状态来源，非外部事实</p></div>
     <div class="card tint-teal"><h3>${icon('shirt')} 当前穿着 ${badge(appearance.wearing_state==='known'?'已确认':'未知')}</h3>${OutfitStrip({items:worn.map(i=>({id:i.id||i.item_id,name:i.description || i.id,img:''})),link:i=>`#/c/${ctx.charId}/life/wardrobe?item=${i.id}`})}<a class="small" href="#/c/${ctx.charId}/life/wardrobe">打开衣柜 →</a><p class="small muted">穿着版本 ${esc(wardrobe.revision)}</p></div></div>
-    <div class="grid g2" style="margin-top:16px"><div class="card"><h3>${icon('target')} 待兑现的约定与意向</h3>${intentions.map(i=>`<div class="lrow"><span class="grow">${esc(i.action_intent || i.action || i.description || i.id)}</span>${badge(i.status)}</div>`).join('')||'<p class="small muted">尚未记录意向。可以在对话中提出计划。</p>'}<a href="#/c/${ctx.charId}/life/goals">目标与约定 →</a></div><div class="card"><h3>${icon('people')} 此地附近</h3>${nearby.actors.map(n=>`<div class="lrow"><a href="#/c/${ctx.charId}/people/npc/${n.npc_id}">${esc(n.name)}</a>${badge(n.presence==='confirmed'?'已确认':'预计在场')}</div>`).join('')||`<p class="small muted">${nearby.location_known?'当前地点未读取到在场人物':'地点未知，无法判断附近人物'}</p>`}<a href="#/c/${ctx.charId}/world">远程查看场景 →</a></div></div>`;
+    <div class="grid g2" style="margin-top:16px"><div class="card"><h3>${icon('target')} 待兑现的约定与意向</h3>${IntentionList(intentions,{fid:ctx.charId,goals:detail.goals||[],profiles:detail.core_persona?.personality_system?.profiles||[]})}<a href="#/c/${ctx.charId}/life/goals">目标与约定 →</a></div><div class="card"><h3>${icon('people')} 此地附近</h3>${nearby.actors.map(n=>`<div class="lrow"><a href="#/c/${ctx.charId}/people/npc/${n.npc_id}">${esc(n.name)}</a>${badge(n.presence==='confirmed'?'已确认':'预计在场')}</div>`).join('')||`<p class="small muted">${nearby.location_known?'当前地点未读取到在场人物':'地点未知，无法判断附近人物'}</p>`}<a href="#/c/${ctx.charId}/world">远程查看场景 →</a></div></div>`;
     el.querySelector('[data-now-refresh]').onclick=reload;
   });
 }

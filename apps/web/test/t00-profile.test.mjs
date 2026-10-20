@@ -19,9 +19,10 @@ function snapshot(active = 'warm', runtimeRevision = 2) {
 }
 // Minimal DOM binding harness; markup semantics are checked separately below.
 function surface() {
+  const panel={open:false};
   const fields = Object.fromEntries(['targetPersonaId', 'reason', 'confirm'].map(name => [name, { value: '', checked: false, focus() { this.focused = true; } }]));
-  const nodes = { '[data-profile-switch]': { elements: fields }, '[data-profile-feedback]': {}, '[data-profile-refresh]': {}, '[data-profile-edit]': {}, '[data-profile-retry]': {} };
-  return { dataset: { page: 'profile.char.view' }, innerHTML: '', nodes,
+  const nodes = { '[data-profile-switch]': { elements: fields }, '[data-profile-feedback]': {closest:()=>panel}, '[data-profile-refresh]': {}, '[data-profile-edit]': {}, '[data-profile-retry]': {} };
+  return { dataset: { page: 'profile.char.view' }, innerHTML: '', nodes,panel,
     querySelector(selector) { return nodes[selector]; }, querySelectorAll() { return Object.values(fields); } };
 }
 function draft(el) { const fields = el.nodes['[data-profile-switch]'].elements; fields.targetPersonaId.value = 'focused'; fields.reason.value = '专注完成当前工作'; fields.confirm.checked = true; }
@@ -74,6 +75,7 @@ test('version conflict preserves drafts and does not claim switch success', asyn
   assert.equal(calls, 2); assert.equal(keys[0], keys[1]);
   assert.equal(el.nodes['[data-profile-switch]'].elements.reason.value, '专注完成当前工作');
   assert.match(el.nodes['[data-profile-feedback]'].textContent, /版本已变化/);
+  assert.equal(el.panel.open,true);
   assert.doesNotMatch(el.nodes['[data-profile-feedback]'].textContent, /已生效/);
 });
 
