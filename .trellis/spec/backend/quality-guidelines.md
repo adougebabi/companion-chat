@@ -77,13 +77,16 @@ artifact and generated clients drift-free.
 ## Scenario: Isolated fact-only image publication
 
 ### 1. Scope / Trigger
-Push or dispatch of codex/fact-only-reply-vision publishes the two existing Docker Hub app images; PRs only validate.
+Push or dispatch of `codex/fact-only-reply-vision` or
+`codex/fluctlight-functional-recovery` publishes the two existing Docker Hub app
+images; PRs only validate. Workflow branch filters and both validation job
+conditions must include each supported branch.
 
 ### 2. Signatures
 `python3 infra/release/fact_only_release.py record|promote --output <json>`; promote also requires `--directory` with core.json/web.json. `switch_images.py --env-file <private> --manifest <published-json>` previews, and `--apply` performs an explicit switch.
 
 ### 3. Contracts
-Immutable tags include full source SHA/run/attempt. All image records must share that identity. Promotion checks remote branch HEAD before each alias, copies by digest and verifies the resulting registry digest. Test publication writes only fact-only-latest. Two repositories are not atomic; only status=published is a complete release. Compose switches the actual CORE_GO_IMAGE and WEB_IMAGE variables; worker build ID identifies the artifact.
+Immutable tags include full source SHA/run/attempt. All image records must share that identity. Promotion checks remote branch HEAD before each alias, copies by digest and verifies the resulting registry digest. The exact source-ref allowlist maps to `fact-only` or `functional-recovery`; immutable tags, artifacts, manifests and mutable `<channel>-latest` aliases use that same channel. Cross-channel sets, ref/channel mismatches and unlisted refs fail before publication. Promotion concurrency is scoped to the source branch. Two repositories are not atomic; only status=published is a complete release. Compose switches the actual CORE_GO_IMAGE and WEB_IMAGE variables; worker build ID identifies the artifact and its channel.
 
 ### 4. Validation & Error Matrix
 Missing/mixed records or stale HEAD reject promotion. A partial failure retains promotion_failed plus already promoted component evidence. A changed alias digest fails. No PR release credentials or pull_request_target execution. On rollback, explicitly choose stable refs and restore compatible settings/drain new tasks; skip the old migration command.
@@ -92,7 +95,7 @@ Missing/mixed records or stale HEAD reject promotion. A partial failure retains 
 Good: both immutable images → verified complete manifest → aliases. Base: preview selects refs without deployment. Bad: each matrix member overwrites latest, or rebuild master while deployment still uses fact-only-latest.
 
 ### 6. Tests Required
-Local release tests assert missing/mixed sets, stale head before/after one component, exact digest verification and absence of stable alias writes. User-owned real-environment regression remains not run by the agent; YAML parsing and mocked registry tests do not prove CI publication/deployment.
+Local release tests assert missing/mixed sets, stale head before/after one component, exact digest verification, both channels' isolated tags and deployable digest selections, cross-channel rejection and absence of stable alias writes. User-owned real-environment regression remains not run by the agent; YAML parsing and mocked registry tests do not prove CI publication/deployment.
 
 ### 7. Wrong vs Correct
 Wrong: mutable tags are the release identity. Correct: deploy Core/Web digests from the same complete source/build manifest and check the running containers.

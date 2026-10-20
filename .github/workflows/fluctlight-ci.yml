@@ -7,16 +7,21 @@ on:
       - master
       - 'codex/go-*'
       - codex/fact-only-reply-vision
+      - codex/fluctlight-functional-recovery
   pull_request:
     branches:
       - main
       - master
       - 'codex/go-*'
       - codex/fact-only-reply-vision
+      - codex/fluctlight-functional-recovery
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  TEST_IMAGE_CHANNEL: ${{ github.ref == 'refs/heads/codex/fluctlight-functional-recovery' && 'functional-recovery' || 'fact-only' }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +30,7 @@ concurrency:
 jobs:
   # Parallel validation jobs: Go backend and Web frontend validate concurrently
   validate-go:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -62,6 +67,9 @@ jobs:
       - name: Test Go Core
         working-directory: apps/core-go
         run: go test ./...
+
+      - name: Test image publication contracts
+        run: python3 -m unittest discover -s infra/release -p 'test_*.py'
 
       - name: Test Go Core Concurrency with Race Detector
         working-directory: apps/core-go
@@ -105,7 +113,7 @@ jobs:
         run: docker compose --env-file infra/compose/fluctlight.env.example -f infra/compose/fluctlight.compose.yml config --quiet
 
   validate-web:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -158,8 +166,7 @@ jobs:
           test "$GO_RESULT" = success -o "$GO_RESULT" = skipped
           test "$WEB_RESULT" = success -o "$WEB_RESULT" = skipped
 
-  # The integration branch is the only non-production branch allowed to push
-  # images. Stage branches should merge here before their images are shared.
+  # Image publication is limited to production and explicit test channels.
   compose-smoke:
     if: false # Temporarily skipped for rapid iteration
     runs-on: ubuntu-latest
@@ -235,9 +242,9 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
   # Test images never share a mutable tag with the stable publication jobs.
-  fact-only-build:
+  test-image-build:
     needs: validate
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/codex/fact-only-reply-vision'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -268,7 +275,7 @@ jobs:
           file: ${{ matrix.file }}
           push: true
           build-args: ${{ matrix.build_args }}
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.image }}:fact-only-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.image }}:${{ env.TEST_IMAGE_CHANNEL }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -284,22 +291,22 @@ jobs:
         run: python3 infra/release/fact_only_release.py record --output "${RELEASE_COMPONENT}.json"
       - uses: actions/upload-artifact@v4
         with:
-          name: fact-only-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ env.TEST_IMAGE_CHANNEL }}-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ matrix.name }}.json
           if-no-files-found: error
 
-  fact-only-promote:
-    needs: fact-only-build
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/codex/fact-only-reply-vision'
+  test-image-promote:
+    needs: test-image-build
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery')
     runs-on: ubuntu-latest
     concurrency:
-      group: fact-only-image-promotion
+      group: test-image-promotion-${{ github.ref }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          pattern: fact-only-*-${{ github.run_id }}-${{ github.run_attempt }}
+          pattern: ${{ env.TEST_IMAGE_CHANNEL }}-*-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-images
           merge-multiple: true
       - uses: docker/login-action@v3
@@ -308,13 +315,13 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - uses: docker/setup-buildx-action@v3
       - name: Verify the complete set and promote only the current branch head
-        run: python3 infra/release/fact_only_release.py promote --directory release-images --output fact-only-release.json
+        run: python3 infra/release/fact_only_release.py promote --directory release-images --output "${TEST_IMAGE_CHANNEL}-release.json"
       - name: Preserve complete or partial promotion evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fact-only-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: fact-only-release.json
+          name: ${{ env.TEST_IMAGE_CHANNEL }}-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.TEST_IMAGE_CHANNEL }}-release.json
           if-no-files-found: warn
 
   # Production tags remain protected by the main/master branch boundary.

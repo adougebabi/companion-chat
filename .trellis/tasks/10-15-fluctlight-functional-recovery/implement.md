@@ -421,3 +421,11 @@ ReadSettings/配置catalog使用同一只读repeatable-read快照，值、凭据
 变更边界：新增共享npc-isolation.mjs，由两脚本scope复用，为secondary显式创建/选用独立世界，双边catalog/snapshot读回所有者/绑定，再把主NPC精确source_version应用为第二运行身份，验证NPC/Actor/world/source/历史及双向跨读拒绝。保留原fixture/run-dir/幂等命令。扩展现有Core真实PG用例，分别锁定blank不造world、无绑定422且GET无写、catalog不隐式选用、选用后独立身份/历史/双向ErrNotFound。未改Core生产路径、API状态码、UI创建语义或迁移。
 
 实际执行：脚本自测28/28（新增世界选用顺序/持久化负例/共享Actor及串历史拒绝；受控HTTP不是业务联调）。三项Go真实PG定向用例已编译并尝试执行，默认沙盒连端口被拒；提权后确认15439 connection refused，Docker只读检查发现OrbStack socket不存在，无法执行数据库部分，明确不计通过。未启动业务Worker、未触发LLM或执行L04/L13 --live，用户后续原run-dir续跑。记录见evidence/full-stack/l04-world-initialization-fix.json。
+
+## 2026-10-20 CI分支镜像渠道
+
+用户要求当前分支可在GitHub Actions打包为独立tag。根因是push/PR目标分支过滤、Go/Web验证job条件及镜像发布job条件均未包含当前分支。最小跨文件边界：修改fluctlight-ci.yml纳入精确分支；复用既有fact_only_release.py构建集合/HEAD/digest校验，仅增加source-ref→channel白名单；switch_images.py按同一渠道生成Worker build identity，避免新清单无法消费；补原发布测试及部署文档，不改应用运行逻辑或稳定latest。
+
+当前分支使用functional-recovery-latest及functional-recovery-<SHA>-<runId>-<attempt>两个镜像渠道，Core/Web齐全且验证成功后晋升；旧fact-only渠道和稳定latest分别保留，PR不发布。构建记录及artifact按渠道命名，并发晋升按branch隔离。Context7已查GitHub Actions官方分支过滤/PR目标和手动触发文档。发布契约受控测试5/5通过；实际GitHub构建/推送结果等待本次提交触发，未视为本地检查通过。
+
+本地YAML分支/依赖断言及actionlint1.7.12通过；actionlint仅忽略原有compose-smoke if:false常量条件提示，未改动该禁用状态。独立只读核验未发现真实构建阻断或跨渠道发布问题。未运行应用全套测试、LLM或真实部署；推送本次CI提交后由GitHub实际执行校验和镜像构建。

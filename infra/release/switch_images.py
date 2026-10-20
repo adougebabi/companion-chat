@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import subprocess
 
+from fact_only_release import channel_for_ref
+
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "infra/compose/fluctlight.compose.yml"
@@ -23,13 +25,14 @@ def image_ref(value, component):
 def selection(args):
     if args.manifest:
         manifest = json.loads(Path(args.manifest).read_text())
-        if manifest.get("status") != "published" or manifest.get("channel") != "fact-only":
+        channel = channel_for_ref(manifest.get("source_ref"))
+        if manifest.get("status") != "published" or manifest.get("channel") != channel:
             raise ValueError("test manifest is not a complete published release")
         images = {item["component"]: item for item in manifest["images"]}
         if set(images) != {"core", "web"} or len(manifest["images"]) != 2:
             raise ValueError("manifest must contain exactly Core and Web")
         refs = {key: images[key]["image"] + "@" + images[key]["digest"] for key in images}
-        build_id = "fact-only-" + manifest["source_sha"] + "-" + str(manifest["run_id"]) + "-" + str(manifest["attempt"])
+        build_id = channel + "-" + manifest["source_sha"] + "-" + str(manifest["run_id"]) + "-" + str(manifest["attempt"])
     else:
         if not args.core_image or not args.web_image or not args.worker_build_id:
             raise ValueError("explicit Core/Web references and worker build ID are required")

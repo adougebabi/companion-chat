@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the complete fact-only image set; never touch stable aliases."""
+"""Publish complete, branch-scoped test image sets; never touch stable aliases."""
 
 import argparse
 import json
@@ -10,7 +10,17 @@ import subprocess
 
 
 SOURCE_REF = "refs/heads/codex/fact-only-reply-vision"
+CHANNELS = {
+    SOURCE_REF: "fact-only",
+    "refs/heads/codex/fluctlight-functional-recovery": "functional-recovery",
+}
 COMPONENTS = {"core": "fluctlight-core-go", "web": "fluctlight-web"}
+
+
+def channel_for_ref(source_ref):
+    if source_ref not in CHANNELS:
+        raise ValueError("test channel requires an explicitly allowed branch")
+    return CHANNELS[source_ref]
 
 
 def write_json(path, value):
@@ -31,12 +41,11 @@ def validate_image(value):
         raise ValueError("invalid image digest")
     if not re.fullmatch(r"[0-9a-f]{40}", value.get("source_sha", "")):
         raise ValueError("invalid source revision")
-    if value.get("source_ref") != SOURCE_REF:
-        raise ValueError("test channel requires the exact fact-only branch")
+    channel = channel_for_ref(value.get("source_ref"))
     for field in ("run_id", "attempt"):
         if not re.fullmatch(r"[1-9][0-9]*", str(value.get(field, ""))):
             raise ValueError("invalid build identity")
-    expected = "fact-only-{source_sha}-{run_id}-{attempt}".format(**value)
+    expected = channel + "-{source_sha}-{run_id}-{attempt}".format(**value)
     if value.get("tag") != expected:
         raise ValueError("immutable tag does not match the build")
     return value
@@ -53,7 +62,7 @@ def image_record(environment):
         "attempt": environment["GITHUB_RUN_ATTEMPT"],
         "run_url": "{GITHUB_SERVER_URL}/{GITHUB_REPOSITORY}/actions/runs/{GITHUB_RUN_ID}".format(**environment),
     }
-    value["tag"] = "fact-only-{source_sha}-{run_id}-{attempt}".format(**value)
+    value["tag"] = channel_for_ref(value["source_ref"]) + "-{source_sha}-{run_id}-{attempt}".format(**value)
     return validate_image(value)
 
 
@@ -65,7 +74,7 @@ def complete_manifest(directory):
         raise ValueError("incomplete or duplicate release set")
     if any(any(item.get(key) != first.get(key) for key in identity_fields) for item in records):
         raise ValueError("image source/build identities differ")
-    return {"schema_version": 1, "channel": "fact-only", "status": "built",
+    return {"schema_version": 1, "channel": channel_for_ref(first["source_ref"]), "status": "built",
             **{key: first[key] for key in identity_fields}, "images": records, "promoted": []}
 
 
@@ -73,9 +82,10 @@ def command(arguments):
     return subprocess.check_output(arguments, text=True).strip()
 
 
-def current_head():
-    fields = command(["git", "ls-remote", "--exit-code", "origin", SOURCE_REF]).split()
-    if len(fields) != 2 or fields[1] != SOURCE_REF:
+def current_head(source_ref=SOURCE_REF):
+    channel_for_ref(source_ref)
+    fields = command(["git", "ls-remote", "--exit-code", "origin", source_ref]).split()
+    if len(fields) != 2 or fields[1] != source_ref:
         raise ValueError("branch head could not be verified")
     return fields[0]
 
@@ -91,7 +101,12 @@ def image_digest(reference, run=command):
     return digest
 
 
-def promote(manifest, output, head=current_head, run=command):
+def promote(manifest, output, head=None, run=command):
+    channel = channel_for_ref(manifest["source_ref"])
+    if manifest.get("channel") != channel:
+        raise ValueError("manifest channel does not match its source branch")
+    if head is None:
+        head = lambda: current_head(manifest["source_ref"])
     # A registry cannot make two repository aliases atomic. Keep the immutable
     # references and partial evidence even when the second promotion fails.
     write_json(output, manifest)
@@ -100,7 +115,7 @@ def promote(manifest, output, head=current_head, run=command):
             if head() != manifest["source_sha"]:
                 raise ValueError("stale build: branch head has changed")
             reference = item["image"] + "@" + item["digest"]
-            alias = item["image"] + ":fact-only-latest"
+            alias = item["image"] + ":" + channel + "-latest"
             run(["docker", "buildx", "imagetools", "create", "--prefer-index=false", "--tag", alias, reference])
             actual = image_digest(alias, run)
             if actual != item["digest"]:
