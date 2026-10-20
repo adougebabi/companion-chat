@@ -98,6 +98,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 		t.Skip("GO_CORE_TEST_DATABASE_URL is required for the isolated PostgreSQL adapter E2E")
 	}
 	fixture := newFormalToolAdapterFixture(t)
+	persistConversationReplyMode(t, fixture.ctx, fixture.repository, "legacy")
 	cases := formalToolAdapterCases()
 	if len(cases) != len(formalToolAdapterInventory) {
 		t.Fatalf("formal adapter matrix has %d rows, want fixed %d", len(cases), len(formalToolAdapterInventory))

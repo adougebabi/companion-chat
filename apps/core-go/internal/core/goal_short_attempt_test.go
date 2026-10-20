@@ -18,6 +18,7 @@ func TestQueuedDueRebindsWhenOwnedContactAppearsBeforeExecution(t *testing.T) {
 
 func runShortExpressionScopeScenario(t *testing.T, contactAfterDue bool) {
 	f := seedWardrobeToolFixture(t)
+	persistConversationReplyMode(t, f.ctx, f.repository, "legacy")
 	if !contactAfterDue {
 		if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, f.ownerID, f.fluctlightID, f.conversationID); err != nil {
 			t.Fatal(err)

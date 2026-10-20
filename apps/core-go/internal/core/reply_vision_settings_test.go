@@ -5,10 +5,34 @@ import (
 	"testing"
 )
 
-func TestReplyVisionSettingsAreIndependentAndLegacyByDefault(t *testing.T) {
+func persistConversationReplyMode(t *testing.T, ctx context.Context, repository *PostgresRepository, mode string) {
+	t.Helper()
+	settings := defaultConversationReplySettings()
+	settings.Mode = mode
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value_json=EXCLUDED.value_json`, conversationReplySettingKey, jsonString(settings)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReplyVisionSettingsAreIndependentAndFactOnlyByDefault(t *testing.T) {
+	if got := defaultConversationReplySettings(); got.Mode != "fact_only" {
+		t.Fatalf("default mode = %q", got.Mode)
+	}
+	unset, _, err := (&App{}).conversationReplySettings(context.Background())
+	if err != nil || unset.Mode != "fact_only" {
+		t.Fatalf("missing reply settings: %#v %v", unset, err)
+	}
 	reply, err := decodeConversationReplySettings([]byte(`{}`))
-	if err != nil || reply.Mode != "legacy" || reply.Concurrency != 1 || reply.FailurePolicy != "error" {
-		t.Fatalf("unsafe defaults: %#v %v", reply, err)
+	if err != nil || reply.Mode != "fact_only" || reply.Concurrency != 1 || reply.FailurePolicy != "error" {
+		t.Fatalf("unset reply mode: %#v %v", reply, err)
+	}
+	omitted, err := decodeConversationReplySettings([]byte(`{"temperature":0.2}`))
+	if err != nil || omitted.Mode != "fact_only" || omitted.Temperature != 0.2 {
+		t.Fatalf("omitted mode was not the default: %#v %v", omitted, err)
+	}
+	legacy, err := decodeConversationReplySettings([]byte(`{"mode":"legacy"}`))
+	if err != nil || legacy.Mode != "legacy" || legacy.FailurePolicy != "error" {
+		t.Fatalf("explicit legacy was overwritten: %#v %v", legacy, err)
 	}
 	vision, err := decodeVisionUnderstandingSettings([]byte(`{}`))
 	if err != nil || vision.Enabled {

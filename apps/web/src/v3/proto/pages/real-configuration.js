@@ -6,9 +6,14 @@ import {JsonDetails} from '../components/records.js';
 import {asyncPage} from '../components/async-page.js';
 import {mountConfigurationEditor} from '../components/configuration-editor.js';
 import {mountProviderEditors} from '../components/provider-editor.js';
-import {configurationFields,configurationTitles} from '../components/configuration-fields.js';
+import {configurationFields,configurationTitles,conversationReplyDisplayValue} from '../components/configuration-fields.js';
 
 const sectionKeys={'reply-vision':['conversation.reply','vision.understanding'],kev:['kev'],'media-workflows':['media.comfyui'],runtime:['product.autonomy','product.wakeup','llm.queue','product.summary','product.goal_retry'],notifications:['product.notifications']};
+function editorInitial(key,value){
+ if(key==='media.comfyui')return {...(value||{}),baseUrl:value?.baseUrl||value?.base_url||''};
+ if(key==='conversation.reply')return conversationReplyDisplayValue(value);
+ return value||{};
+}
 export function renderRealSettings(el){return asyncPage(el,()=>configurationClient.read(),snapshot=>{el.innerHTML=`<div class="grid g2">${configurationSections.map(s=>`<a class="card" href="#/settings/${encodeURIComponent(s.id)}"><h3>${esc(s.title)}</h3><p class="small muted">读取、编辑和保存真实配置</p></a>`).join('')}</div><div class="card"><h3>当前能力状态</h3>${JsonDetails(snapshot.effective_values['ai.capability_status'],'模型配置与最近调用')}<p>端点、凭据及工作流来自服务端。系统默认、未配置和失败分别显示；正在运行的任务继续使用其冻结配置。</p></div>`;});}
 export function renderRealConfiguration(el,ctx){
  const section=ctx.def.mockSection,owner=get('session')?.actorId;
@@ -18,7 +23,7 @@ export function renderRealConfiguration(el,ctx){
  return asyncPage(el,async()=>{const saved=await configurationClient.read();if(section==='notifications'&&ctx.query.pack)saved.importedPack=await dataToolsClient.pack(ctx.query.pack);return saved;},(saved,reload,connected)=>{
   const alive=()=>connected()&&get('session')?.actorId===owner,keys=sectionKeys[section];if(!keys)throw new Error('设置分区不存在');
   el.innerHTML=`<a class="btn" href="#/settings">返回设置</a><p class="small muted">全局配置。角色覆盖请在角色自治页调整；模型绑定在“模型与连接”中配置。</p><div class="grid g2">${keys.map(k=>`<div data-editor="${esc(k)}"></div>`).join('')}</div><div data-extra></div>`;
-  const editors=keys.map(key=>mountConfigurationEditor(el.querySelector(`[data-editor="${key}"]`),{slotKey:key,settingKey:key,title:configurationTitles[key],fields:configurationFields[key],initial:key==='media.comfyui'?{...(saved.effective_values[key]||{}),baseUrl:saved.effective_values[key]?.baseUrl||saved.effective_values[key]?.base_url||''}:saved.effective_values[key]||{},versions:saved.versions,source:saved.value_sources[key]||'unconfigured',alive,readCurrent:async()=>{const latest=await configurationClient.read();return {value:latest.effective_values[key]||{},versions:latest.versions,source:latest.value_sources[key]||'unconfigured'};}}));
+  const editors=keys.map(key=>mountConfigurationEditor(el.querySelector(`[data-editor="${key}"]`),{slotKey:key,settingKey:key,title:configurationTitles[key],fields:configurationFields[key],initial:editorInitial(key,saved.effective_values[key]),versions:saved.versions,source:saved.value_sources[key]||'unconfigured',alive,readCurrent:async()=>{const latest=await configurationClient.read();return {value:editorInitial(key,latest.effective_values[key]),versions:latest.versions,source:latest.value_sources[key]||'unconfigured'};}}));
   if(section==='kev')editors.push(mountConfigurationEditor(el.querySelector('[data-extra]'),{slotKey:'secret:kev:systemone',title:'KEV 访问凭据',source:saved.configured_secrets.includes('kev:systemone')?'stored':'unconfigured',fields:[],initial:{configured:saved.configured_secrets.includes('kev:systemone')},versions:saved.versions,secretPurpose:'kev:systemone',alive,buildBody:()=>({values:{},expectedVersions:{}}),readCurrent:async()=>{const latest=await configurationClient.read();return {value:{configured:latest.configured_secrets.includes('kev:systemone')},versions:latest.versions,source:latest.configured_secrets.includes('kev:systemone')?'stored':'unconfigured'};}}));
   const tests=section==='kev'?['kev']:section==='reply-vision'?['vision']:section==='media-workflows'?['media']:[];
   el.insertAdjacentHTML('beforeend',`<div class="card"><h3>已保存配置与连接核验</h3><p>测试仅使用服务端已保存配置。草稿修改不会参与测试；连接可达不等于真实生成成功。</p>${tests.map(k=>`<button class="btn" type="button" data-test-config="${k}">测试已保存的${{kev:' KEV 协议',vision:'视觉图片输入',media:' ComfyUI 连接'}[k]}</button>`).join('')}${JsonDetails(saved.effective_values['ai.capability_status'],'模型绑定和最近调用')}<div data-test-result></div></div>`);

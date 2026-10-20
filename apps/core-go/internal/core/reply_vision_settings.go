@@ -41,7 +41,7 @@ type VisionUnderstandingSettings struct {
 }
 
 func defaultConversationReplySettings() ConversationReplySettings {
-	return ConversationReplySettings{Mode: "legacy", ModelRef: conversationReplyModelRole, ExpressionVersion: factOnlyReplyPromptVersion,
+	return ConversationReplySettings{Mode: "fact_only", ModelRef: conversationReplyModelRole, ExpressionVersion: factOnlyReplyPromptVersion,
 		Temperature: 0.8, TopP: 0.9, MaxTokens: 1024, MaxInputTokens: 8192, TimeoutSeconds: 300,
 		Concurrency: 1, RetryLimit: 1, FailurePolicy: "error", MaxActionHandoffs: 2}
 }

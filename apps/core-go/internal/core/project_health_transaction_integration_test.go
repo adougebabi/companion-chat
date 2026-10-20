@@ -998,6 +998,7 @@ func TestAutonomyCapabilityActionKeepsCommittedSiblingAndFailsRequiredCommand(t 
 
 func TestCapabilityActionBindsMomentPublishToDurableMomentTarget(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
+	persistConversationReplyMode(t, ctx, repository, "legacy")
 	ownerID := "capability-moment-owner"
 	fluctlightID := "capability-moment-fluctlight"
 	actionID := "capability-moment-action"

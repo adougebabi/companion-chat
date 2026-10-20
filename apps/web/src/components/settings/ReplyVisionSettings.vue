@@ -12,7 +12,7 @@ import { displayStatus } from "../../lib/user-feedback";
 const props = defineProps<{kind:"reply"|"vision"}>();
 const emit = defineEmits<{bindModel:[role:"conversation_reply"|"vision_understanding"]}>();
 const store=useControlCenterStore();
-const reply=reactive({mode:"legacy",model_ref:"conversation_reply",expression_version:"fact-only-reply.v5",temperature:0.8,top_p:0.9,max_tokens:1024,max_input_tokens:8192,timeout_seconds:300,concurrency:1,retry_limit:1,failure_policy:"error",max_action_handoffs:2});
+const reply=reactive({mode:"fact_only",model_ref:"conversation_reply",expression_version:"fact-only-reply.v5",temperature:0.8,top_p:0.9,max_tokens:1024,max_input_tokens:8192,timeout_seconds:300,concurrency:1,retry_limit:1,failure_policy:"error",max_action_handoffs:2});
 const vision=reactive({enabled:false,model_ref:"vision_understanding"});
 const notice=ref(""),error=ref(""),testingVision=ref(false);
 const {errors,validate}=useFormErrors();

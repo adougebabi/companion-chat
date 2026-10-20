@@ -11,7 +11,7 @@ and real Provider failures remain failures. `reply.evidence.reconciled` must be
 visible in worker logs before the generation lease, without raw refs or body.
 
 ## 1. Scope / Trigger
-Opt-in conversation.reply in a confirmed direct conversation; ordinary cognition and authorized WakeUp keep the existing native Eino loop. Other channels keep their existing implementation. Missing settings means legacy.
+conversation.reply in a confirmed direct conversation uses fact_only when the setting is absent or the stored object omits mode. A stored mode of legacy or fact_only is kept; runtime_settings rows are not rewritten. Ordinary cognition and authorized WakeUp keep the existing native Eino loop. Other channels keep their existing implementation.
 
 ## 2. Signatures
 `withPrivateReplyRun(ctx,scope,input)` fixes settings/assignment and an immutable registry view. `RunConversationReplyTask(ctx,ConversationReplyTaskInput)` owns the isolated Writer prompt and output decoder. `factOnlyReplyCapability.Prepare` generates outside the mutation transaction; `ExecuteDirectTx` uses existing publication and receipt settlement. Schema head 0061 adds private conversation_reply_drafts and conversation_messages.reply_metadata.

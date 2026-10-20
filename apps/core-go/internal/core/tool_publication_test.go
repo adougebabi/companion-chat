@@ -126,6 +126,7 @@ func TestExecuteToolConversationReplyRejectsUnownedTargetWithoutProduct(t *testi
 
 func TestExecuteToolMomentPublishCommitsOutboxAndReplays(t *testing.T) {
 	ctx, repository, app, ownerID, fluctlightID, _ := setupDirectPublicationToolTest(t, "moment")
+	persistConversationReplyMode(t, ctx, repository, "legacy")
 	request := ToolExecutionRequest{
 		CapabilityName: "moment.publish", OperationID: "moment-operation-1",
 		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,

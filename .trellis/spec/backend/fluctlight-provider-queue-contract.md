@@ -24,7 +24,7 @@ idempotency, and side effects.
 
 ## 3. Contracts: binding and scenario boundary
 
-- Browser settings expose `generic_llm`, `embedding`, and the opt-in independent `conversation_reply` / `vision_understanding` bindings. Missing reply settings defaults to legacy; vision defaults to disabled. Other existing generative roles retain generic_llm.
+- Browser settings expose `generic_llm`, `embedding`, and the independent `conversation_reply` / `vision_understanding` bindings. Missing reply settings, and stored objects that omit mode, default to fact_only at read time. An explicit stored mode is kept; runtime_settings rows are not rewritten. Vision defaults to disabled. Other existing generative roles retain generic_llm.
 - Domain call sites retain explicit scenarios (`reply`,
   `cognitive_assessment`, `native_cognition`, `media_prompt`, `reflection`,
   `wake_up`, `initialization`, `daily_review`, `schedule_generation`, and
