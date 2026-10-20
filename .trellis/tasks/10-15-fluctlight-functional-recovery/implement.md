@@ -429,3 +429,5 @@ ReadSettings/配置catalog使用同一只读repeatable-read快照，值、凭据
 当前分支使用functional-recovery-latest及functional-recovery-<SHA>-<runId>-<attempt>两个镜像渠道，Core/Web齐全且验证成功后晋升；旧fact-only渠道和稳定latest分别保留，PR不发布。构建记录及artifact按渠道命名，并发晋升按branch隔离。Context7已查GitHub Actions官方分支过滤/PR目标和手动触发文档。发布契约受控测试5/5通过；实际GitHub构建/推送结果等待本次提交触发，未视为本地检查通过。
 
 本地YAML分支/依赖断言及actionlint1.7.12通过；actionlint仅忽略原有compose-smoke if:false常量条件提示，未改动该禁用状态。独立只读核验未发现真实构建阻断或跨渠道发布问题。未运行应用全套测试、LLM或真实部署；推送本次CI提交后由GitHub实际执行校验和镜像构建。
+
+用户随后明确“仅保留一个格式之类的校验”，覆盖上述Go/Web全套gate方案。CI现只保留validate中的Go格式检查；移除Go/Web测试、race/vet/独立编译、类型检查、再生成一致性、旧Core路由文本比对、Phase8/fact-only专项、迁移切换残留扫描及原禁用Compose smoke。Docker正常构建及完整集合/来源/digest晋升仍保留；原测试源码和历史手工工具不删除。本次未提交的旧路由提取修补已撤销，只留下流水线收敛改动。打包成功不等于业务或模型验收通过。

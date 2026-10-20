@@ -79,8 +79,11 @@ artifact and generated clients drift-free.
 ### 1. Scope / Trigger
 Push or dispatch of `codex/fact-only-reply-vision` or
 `codex/fluctlight-functional-recovery` publishes the two existing Docker Hub app
-images; PRs only validate. Workflow branch filters and both validation job
-conditions must include each supported branch.
+images; PRs only run the formatting job. Per the user's 2026-10-20 instruction,
+the sole CI validation job is Go formatting; unit/integration tests, type checks,
+client regeneration and historical acceptance gates are not CI prerequisites.
+Workflow branch filters must include each supported branch. Local and user-run
+business acceptance remain separate from image packaging success.
 
 ### 2. Signatures
 `python3 infra/release/fact_only_release.py record|promote --output <json>`; promote also requires `--directory` with core.json/web.json. `switch_images.py --env-file <private> --manifest <published-json>` previews, and `--apply` performs an explicit switch.

@@ -2,14 +2,14 @@
 
 功能分支为 `codex/fact-only-reply-vision`。首次构建使用功能分支 push；仅在分支中的 workflow 存在并不保证默认分支 UI 立刻注册新按钮。已有工作流可选择该分支手动运行，实际 checkout SHA 必须与 run SHA 相同。
 
-`codex/fluctlight-functional-recovery` 也使用同一套校验、构建、完整集合晋升流程，push 自动触发，或在 **Fluctlight CI → Run workflow** 选择该分支。两个测试渠道使用独立 Docker 标签：
+`codex/fluctlight-functional-recovery` 也使用同一套格式检查、构建、完整集合晋升流程，push 自动触发，或在 **Fluctlight CI → Run workflow** 选择该分支。两个测试渠道使用独立 Docker 标签：
 
 | 分支 | 镜像渠道标签 | 不可变版本标签 |
 | --- | --- | --- |
 | `codex/fact-only-reply-vision` | `fact-only-latest` | `fact-only-<完整SHA>-<runId>-<attempt>` |
 | `codex/fluctlight-functional-recovery` | `functional-recovery-latest` | `functional-recovery-<完整SHA>-<runId>-<attempt>` |
 
-每个渠道同时发布 `YOUR_NAMESPACE/fluctlight-core-go` 和 `YOUR_NAMESPACE/fluctlight-web`，沿用现有 Docker Hub secrets。只有 Go/Web 校验及两个不可变镜像都成功，才晋升该渠道标签；主分支仍使用 `latest`。这里的标签是 Docker 镜像标签，不要求新建 Git tag。
+每个渠道同时发布 `YOUR_NAMESPACE/fluctlight-core-go` 和 `YOUR_NAMESPACE/fluctlight-web`，沿用现有 Docker Hub secrets。按2026-10-20用户最新要求，CI前置仅保留Go格式检查，不执行单元/集成测试、类型检查、客户端再生成或历史专项验收。格式检查及两个不可变镜像构建成功后才晋升该渠道标签；主分支仍使用 `latest`。镜像内正常编译和发布来源/digest核验属于打包流程。这里的标签是 Docker 镜像标签，不要求新建 Git tag。
 
 全栈恢复分支的发布清单 artifact 为 `functional-recovery-release-<runId>-<attempt>`，内含 `functional-recovery-release.json`；以下部署工具同时支持该清单，替换示例中的清单路径即可。Worker build ID 随清单渠道、SHA 和实际构建身份生成。没有 `status=published` 的清单不能作为完整版本部署。
 
