@@ -1925,7 +1925,15 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		}
 		count++
 	}
-	return count, rows.Err()
+	if err := rows.Err(); err != nil {
+		return count, err
+	}
+	if d.App != nil {
+		if err := d.App.RepairVisualGenerationQueue(ctx, limit); err != nil {
+			return count, err
+		}
+	}
+	return count, nil
 }
 
 // reconcileVisualIdentityFailure closes a terminal Visual Identity workflow
@@ -2030,6 +2038,15 @@ func (d *Dispatcher) deadLetterVisualIdentityIntent(ctx context.Context, input I
 	defer tx.Rollback(ctx)
 	if before != nil {
 		if err := before(tx); err != nil {
+			return false, err
+		}
+	}
+	var fluctlightID string
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(payload->>'fluctlight_id','') FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&fluctlightID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return false, err
+	}
+	if strings.TrimSpace(fluctlightID) != "" {
+		if err := d.App.ReleaseVisualGenerationQueueTx(ctx, tx, fluctlightID); err != nil {
 			return false, err
 		}
 	}

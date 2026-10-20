@@ -205,9 +205,15 @@ func (a *App) setFluctlightLifecycle(ctx context.Context, actorID, id, status, r
 			if err := cancelCurrentDayScheduleIntentTx(ctx, tx, id, status); err != nil {
 				return err
 			}
+			if err := cancelInFlightVisualSessionsTx(ctx, tx, id, autonomousStopReason(status)); err != nil {
+				return err
+			}
 		}
 		if status == "active" {
 			if err := reopenPausedCurrentDayScheduleIntentTx(ctx, tx, id); err != nil {
+				return err
+			}
+			if err := a.releaseVisualGenerationQueueTx(ctx, tx, id); err != nil {
 				return err
 			}
 		}

@@ -185,41 +185,88 @@ func (a *App) GenerateOwnerVisualIdentity(ctx context.Context, owner, fid string
 	if current != expected || actualBrief != briefRevision {
 		return nil, &SurfaceError{Status: 409, Code: "visual_generation_conflict", Message: "视觉或参考定义已变化，请核对新版本后生成"}
 	}
-	var active, activeStatus string
-	err = tx.QueryRow(ctx, `SELECT id,status FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running','character_sheet_pending','awaiting_review') ORDER BY created_at DESC LIMIT 1 FOR UPDATE`, fid).Scan(&active, &activeStatus)
-	if err == nil {
-		if activeStatus != "awaiting_review" || stringValue(body["supersede_session_id"]) != active {
-			return nil, &SurfaceError{Status: 409, Code: "visual_session_in_progress", Message: "已有视觉任务尚未结束，请先查看该任务与候选结果", Details: map[string]any{"session_id": active}}
-		}
-		if _, e := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='cancelled',updated_at=now() WHERE id=$1 AND status='awaiting_review'`, active); e != nil {
-			return nil, e
-		}
-		if _, e := (postgresSurfaceTx{tx}).Audit(ctx, owner, fid, "visual_session_restart", reason, active); e != nil {
-			return nil, e
-		}
+	key := strings.TrimSpace(stringValue(body["idempotency_key"]))
+	if key == "" || len([]rune(key)) > 256 {
+		return nil, invalid("idempotencyKey is required")
 	}
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if existing, ok, err := readVisualGenerationRequestTx(ctx, tx, fid, key); err != nil {
+		return nil, err
+	} else if ok {
+		return existing, nil
+	}
+	requestID := randomID("visual_generation_request_")
+	var inserted string
+	err = tx.QueryRow(ctx, `INSERT INTO public.fluctlight_visual_generation_requests(id,fluctlight_id,idempotency_key,reason,expected_visual_revision,expected_brief_revision,status) VALUES($1,$2,$3,$4,$5,$6,'pending') ON CONFLICT(fluctlight_id,idempotency_key) DO NOTHING RETURNING id`, requestID, fid, key, reason, expected, briefRevision).Scan(&inserted)
+	if errors.Is(err, pgx.ErrNoRows) {
+		existing, ok, readErr := readVisualGenerationRequestTx(ctx, tx, fid, key)
+		if readErr != nil {
+			return nil, readErr
+		}
+		if !ok {
+			return nil, errors.New("visual_generation_request_not_written")
+		}
+		return existing, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	audit, err := (postgresSurfaceTx{tx}).Audit(ctx, owner, fid, "visual_identity_generate", reason, requestID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_generation_requests SET audit_id=$2 WHERE id=$1`, requestID, audit); err != nil {
 		return nil, err
 	}
 	var raw []byte
 	if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fid).Scan(&raw); err != nil {
 		return nil, err
 	}
-	source := randomID("owner_visual_request_")
-	session, err := a.ensureVisualIdentityInitializationTx(ctx, tx, fid, "owner_request", source, decodeObject(raw))
+	persona := decodeObject(raw)
+	var occupied int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running','character_sheet_pending','awaiting_review')`, fid).Scan(&occupied); err != nil {
+		return nil, err
+	}
+	blocked, _, blockErr := autonomousActivityBlockedTx(ctx, tx, fid)
+	if blockErr != nil {
+		return nil, blockErr
+	}
+	var older int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM public.fluctlight_visual_generation_requests WHERE fluctlight_id=$1 AND status='pending' AND id<>$2`, fid, requestID).Scan(&older); err != nil {
+		return nil, err
+	}
+	status := "pending"
+	var sessionID string
+	if occupied == 0 && !blocked && older == 0 {
+		sessionID, err = a.ensureVisualIdentityInitializationTx(ctx, tx, fid, "owner_request", requestID, persona)
+		if err != nil {
+			return nil, err
+		}
+		status = "queued"
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='active' WHERE fluctlight_id=$1 AND canonical_asset_id IS NOT NULL AND character_sheet_asset_id IS NOT NULL`, fid); err != nil {
+			return nil, err
+		}
+	} else {
+		sessionID, err = a.writeVisualIdentitySessionTx(ctx, tx, fid, "owner_request", requestID, persona, "pending", false)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_generation_requests SET session_id=$2,status=$3,updated_at=now() WHERE id=$1`, requestID, sessionID, status); err != nil {
+		return nil, err
+	}
+	if status == "pending" && occupied == 0 && !blocked {
+		if err := a.releaseVisualGenerationQueueTx(ctx, tx, fid); err != nil {
+			return nil, err
+		}
+	}
+	receipt, ok, err := readVisualGenerationRequestTx(ctx, tx, fid, key)
 	if err != nil {
 		return nil, err
 	}
-	// Regeneration keeps the already accepted canonical available while the new
-	// session progresses. Only the new session's completed Tool promotes it.
-	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='active' WHERE fluctlight_id=$1 AND canonical_asset_id IS NOT NULL AND character_sheet_asset_id IS NOT NULL`, fid); err != nil {
-		return nil, err
+	if !ok {
+		return nil, errors.New("visual_generation_request_not_written")
 	}
-	audit, err := (postgresSurfaceTx{tx}).Audit(ctx, owner, fid, "visual_identity_generate", reason, session)
-	if err != nil {
-		return nil, err
-	}
-	return map[string]any{"fluctlight_id": fid, "session_id": session, "task_id": "visual_identity_intent:" + session, "status": "queued", "brief_revision": actualBrief, "audit_id": audit}, nil
+	return receipt, nil
 }
 func visualBriefModelFields(brief map[string]any) map[string]any {
 	if len(brief) == 0 {

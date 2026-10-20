@@ -49,7 +49,10 @@ func (a *App) settleVisualIdentityMediaFailure(ctx context.Context, state visual
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='failed',updated_at=now() WHERE id=$1 AND active_session_id=$2 AND status<>'active'`, state.ProfileID, state.SessionID); err != nil {
 			return err
 		}
-		return appendVisualIdentityTimelineTx(ctx, tx, state.SessionID, state.AttemptID, state.FluctlightID, visualIdentityStageFailed, "failed", cause.Error(), nil, map[string]any{"media_intent_id": mediaID}, "visual_identity:"+state.SessionID)
+		if err := appendVisualIdentityTimelineTx(ctx, tx, state.SessionID, state.AttemptID, state.FluctlightID, visualIdentityStageFailed, "failed", cause.Error(), nil, map[string]any{"media_intent_id": mediaID}, "visual_identity:"+state.SessionID); err != nil {
+			return err
+		}
+		return a.releaseVisualGenerationQueueTx(ctx, tx, state.FluctlightID)
 	})
 	return err == nil, err
 }

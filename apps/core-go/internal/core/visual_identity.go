@@ -442,7 +442,6 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 		return "", errors.New("visual_identity_fluctlight_required")
 	}
 	normalizeVisualIdentityFoundation(corePersona)
-	profileID := visualIdentityProfileID(fluctlightID)
 	if err := lockEffectiveLifeSnapshotTx(ctx, tx, fluctlightID); err != nil {
 		return "", err
 	}
@@ -454,6 +453,21 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return "", err
 	}
+	return a.writeVisualIdentitySessionTx(ctx, tx, fluctlightID, triggerType, sourceFactID, corePersona, "queued", true)
+}
+
+// writeVisualIdentitySessionTx freezes one session. publish inserts the
+// lifecycle intent and points the profile at it. A pending owner request
+// keeps its own session without taking the single queued/running slot.
+func (a *App) writeVisualIdentitySessionTx(ctx context.Context, tx pgx.Tx, fluctlightID, triggerType, sourceFactID string, corePersona map[string]any, sessionStatus string, publish bool) (string, error) {
+	if strings.TrimSpace(fluctlightID) == "" {
+		return "", errors.New("visual_identity_fluctlight_required")
+	}
+	normalizeVisualIdentityFoundation(corePersona)
+	if err := lockEffectiveLifeSnapshotTx(ctx, tx, fluctlightID); err != nil {
+		return "", err
+	}
+	profileID := visualIdentityProfileID(fluctlightID)
 	current, bodyRevision, wardrobeRevision, err := readEffectiveLifeSnapshotWith(ctx, tx, fluctlightID, a.now().UTC())
 	if err != nil {
 		return "", err
@@ -508,7 +522,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,current_revision,identity_snapshot,renderer_constraints,adapter_version) VALUES($1,$2,$3,0,$4,$5,$6) ON CONFLICT(fluctlight_id) DO NOTHING`, profileID, fluctlightID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 		return "", err
 	}
-	if constraintErr == nil {
+	if publish && constraintErr == nil {
 		// A profile created by an earlier build may still be missing a semantic
 		// cup label because the model placed it under identity.body_type/build.
 		// Repair only the pre-canonical, missing profile and queued attempts; a
@@ -527,20 +541,22 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	}
 	sessionID := visualIdentitySessionID(fluctlightID, triggerType, sourceFactID)
 	workflowID := visualIdentityWorkflowID(sessionID)
-	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_sessions(id,visual_identity_id,fluctlight_id,trigger_type,workflow_id,source_fact_id,max_attempts,current_attempt,status) VALUES($1,$2,$3,$4,$5,$6,$7,1,'queued') ON CONFLICT(id) DO NOTHING`, sessionID, profileID, fluctlightID, triggerType, workflowID, nullableString(sourceFactID), visualIdentityMaxAttempts); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_sessions(id,visual_identity_id,fluctlight_id,trigger_type,workflow_id,source_fact_id,max_attempts,current_attempt,status) VALUES($1,$2,$3,$4,$5,$6,$7,1,$8) ON CONFLICT(id) DO NOTHING`, sessionID, profileID, fluctlightID, triggerType, workflowID, nullableString(sourceFactID), visualIdentityMaxAttempts, sessionStatus); err != nil {
 		return "", err
 	}
 	attemptID := visualIdentityAttemptID(sessionID, 1)
 	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_attempts(id,session_id,visual_identity_id,fluctlight_id,attempt_number,status,input_snapshot,renderer_constraints) VALUES($1,$2,$3,$4,1,'queued',$5,$6) ON CONFLICT(session_id,attempt_number) DO NOTHING`, attemptID, sessionID, profileID, fluctlightID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
 		return "", err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,active_session_id=$3,updated_at=now() WHERE id=$1`, profileID, profileStatus, sessionID); err != nil {
-		return "", err
+	if publish {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,active_session_id=$3,updated_at=now() WHERE id=$1`, profileID, profileStatus, sessionID); err != nil {
+			return "", err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','visual_identity.initialize',$3) ON CONFLICT DO NOTHING`, "visual_identity_intent:"+sessionID, workflowID, jsonBytes(map[string]any{"intent_id": "visual_identity_intent:" + sessionID, "fluctlight_id": fluctlightID, "session_id": sessionID, "correlation_id": "visual_identity:" + sessionID, "causation_id": sourceFactID})); err != nil {
+			return "", err
+		}
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','visual_identity.initialize',$3) ON CONFLICT DO NOTHING`, "visual_identity_intent:"+sessionID, workflowID, jsonBytes(map[string]any{"intent_id": "visual_identity_intent:" + sessionID, "fluctlight_id": fluctlightID, "session_id": sessionID, "correlation_id": "visual_identity:" + sessionID, "causation_id": sourceFactID})); err != nil {
-		return "", err
-	}
-	if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageSessionCreated, "queued", "Visual Identity 初始化已排队", nil, map[string]any{"trigger": triggerType}, workflowID); err != nil {
+	if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageSessionCreated, sessionStatus, "Visual Identity 初始化已排队", nil, map[string]any{"trigger": triggerType}, workflowID); err != nil {
 		return "", err
 	}
 	return sessionID, nil
@@ -1089,7 +1105,11 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		return nil, err
 	}
 	if err == nil && lifecycleStatus != "active" {
-		return map[string]any{"session_id": sessionID, "fluctlight_id": fluctlightID, "status": "cancelled", "reason": autonomousStopReason(lifecycleStatus)}, nil
+		reason := autonomousStopReason(lifecycleStatus)
+		if _, execErr := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='cancelled',last_error=$2,updated_at=now() WHERE id=$1 AND status IN ('queued','running','character_sheet_pending')`, sessionID, reason); execErr != nil {
+			return nil, execErr
+		}
+		return map[string]any{"session_id": sessionID, "fluctlight_id": fluctlightID, "status": "cancelled", "reason": reason}, nil
 	}
 	state, err := a.loadVisualIdentityAgentState(ctx, sessionID)
 	if err != nil {
@@ -1167,8 +1187,20 @@ func (a *App) failVisualIdentitySession(ctx context.Context, sessionID, reason s
 	if a == nil || a.DB == nil || a.DB.Pool() == nil {
 		return errors.New("visual_identity_session_unavailable")
 	}
-	_, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='failed',last_error=$2,updated_at=now() WHERE id=$1 AND status IN ('queued','running','character_sheet_pending')`, sessionID, reason)
-	return err
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var fluctlightID string
+		err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.fluctlight_visual_identity_sessions WHERE id=$1 FOR UPDATE`, sessionID).Scan(&fluctlightID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='failed',last_error=$2,updated_at=now() WHERE id=$1 AND status IN ('queued','running','character_sheet_pending')`, sessionID, reason); err != nil {
+			return err
+		}
+		return a.releaseVisualGenerationQueueTx(ctx, tx, fluctlightID)
+	})
 }
 
 func visualIdentityProviderPending(err error) bool {

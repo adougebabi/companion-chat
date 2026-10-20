@@ -668,6 +668,9 @@ func (a *App) executeVisualIdentityFinalizeTx(ctx context.Context, tx pgx.Tx, in
 	if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, visualIdentityStageCompleted, "completed", "Visual Identity Agent 已完成完整任务", []string{assetID}, nil, "visual_identity:"+sessionID); err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_timeline_failed", true, err.Error()), err
 	}
+	if err := a.releaseVisualGenerationQueueTx(ctx, tx, session.FluctlightID); err != nil {
+		return failedCapabilityResultDetail(invocation, "visual_generation_queue_release_failed", true, err.Error()), err
+	}
 	return visualIdentityToolResult(invocation, "completed", map[string]any{"session_id": sessionID, "attempt": session.Attempt, "status": "completed", "character_sheet_asset_id": assetID, "replayed": false}), nil
 }
 
