@@ -1,0 +1,2078 @@
+{
+  "target": "http://192.168.1.20:13001/",
+  "baseline": "v3, C 鼠尾草青绿",
+  "source": "apps/web/src/v3/proto/modules/* plus service-metadata.js",
+  "routesTotal": 104,
+  "routes": [
+    {
+      "key": "chat.thread.view",
+      "title": "对话",
+      "zone": "相处体验",
+      "template": "/c/:charId/chat",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/chat",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": [
+        "issue-07",
+        "issue-08",
+        "issue-13"
+      ],
+      "followUpEvidence": [
+        {
+          "timestamp": "2026-10-20 22:54 Asia/Shanghai",
+          "actualMessage": "你好，我在做一次功能检查。请用中文简短介绍你自己，并说一件你今天喜欢做的小事。",
+          "messageState": "accepted; reply still processing",
+          "modelRunId": "model_run_508455a5b6bad0e47cca6e63a7ca7fa1",
+          "displayIssue": "Broken image placeholder in character avatar in chat header",
+          "screenshotRelativePath": null,
+          "displayIssues": [
+            "Broken image icon in character avatar; no default avatar rendered",
+            "Processing status appears as plain text in a separate full-width panel below the chat, with cancel button on a separate row"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "chat.history.view",
+      "title": "会话历史与搜索",
+      "zone": "相处体验",
+      "template": "/c/:charId/chat/history",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/chat/history",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "chat.correction.list",
+      "title": "纠错记录",
+      "zone": "相处体验",
+      "template": "/c/:charId/chat/corrections",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/chat/corrections",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "chat.call.view",
+      "title": "语音与通话（P2 占位）",
+      "zone": "相处体验",
+      "template": "/c/:charId/chat/call",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/chat/call",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "chat.media.view",
+      "title": "聊天中的图片",
+      "zone": "相处体验",
+      "template": "/c/:charId/chat/media",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/chat/media",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "feed.post.list",
+      "title": "动态",
+      "zone": "相处体验",
+      "template": "/feed",
+      "parameters": [],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/feed",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "空动态状态及发布表单；未提交",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "feed.post.detail",
+      "title": "动态详情",
+      "zone": "相处体验",
+      "template": "/feed/:postId",
+      "parameters": [
+        "postId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "动态列表中无真实帖子可用于详情。"
+    },
+    {
+      "key": "settings.char.autonomy#outreach",
+      "title": "主动触达设置",
+      "zone": "相处体验",
+      "template": "/settings/outreach",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/settings/outreach",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "读取到真实角色继承策略",
+        "screenshotRelativePath": null
+      },
+      "issueIds": [
+        "issue-02"
+      ]
+    },
+    {
+      "key": "inbox.notice.list",
+      "title": "通知中心",
+      "zone": "相处体验",
+      "template": "/inbox",
+      "parameters": [],
+      "workspace": null,
+      "instantiatedUrl": "http://192.168.1.20:13001/#/inbox",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "已读通知列表与待处理事项",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "life.now",
+      "title": "生活 · 此刻",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/now",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/now",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "life.now",
+      "title": "生活 · 此刻",
+      "zone": "生活成长",
+      "template": "/c/:charId/life",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "items.wardrobe.view",
+      "title": "衣柜与物品",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/wardrobe",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/wardrobe",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": [
+        "issue-12"
+      ]
+    },
+    {
+      "key": "life.schedule",
+      "title": "生活 · 日程",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/schedule",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/schedule",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": [
+        "issue-09",
+        "issue-10"
+      ]
+    },
+    {
+      "key": "goals.list.view",
+      "title": "目标 · 意向 · 约定",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/goals",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/goals",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": [
+        "issue-11"
+      ]
+    },
+    {
+      "key": "diary.list.view",
+      "title": "日记",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/diary",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/diary",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "diary.entry.detail",
+      "title": "日记条目",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/diary/:entryId",
+      "parameters": [
+        "charId",
+        "entryId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "日记列表为空，没有已存在条目。"
+    },
+    {
+      "key": "diary.shared.timeline",
+      "title": "共同经历时间线",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/shared",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/shared",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "growth.memory.list",
+      "title": "记忆库",
+      "zone": "生活成长",
+      "template": "/c/:charId/growth",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/growth",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "growth.memory.item",
+      "title": "记忆条目",
+      "zone": "生活成长",
+      "template": "/c/:charId/growth/memory/:memId",
+      "parameters": [
+        "charId",
+        "memId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "记忆列表为空，没有已存在条目。"
+    },
+    {
+      "key": "growth.reflection.timeline",
+      "title": "反思与成长时间线",
+      "zone": "生活成长",
+      "template": "/c/:charId/growth/reflection",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/growth/reflection",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "growth.reflection.detail",
+      "title": "反思详情",
+      "zone": "生活成长",
+      "template": "/c/:charId/growth/reflection/:refId",
+      "parameters": [
+        "charId",
+        "refId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "反思时间线无记录。"
+    },
+    {
+      "key": "growth.self.view",
+      "title": "自我认知",
+      "zone": "生活成长",
+      "template": "/c/:charId/growth/self",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/growth/self",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "growth.self.claim",
+      "title": "认识详情与修订",
+      "zone": "生活成长",
+      "template": "/c/:charId/growth/self/claim/:claimId",
+      "parameters": [
+        "charId",
+        "claimId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/growth/self/claim/self_claim_initial_2971d0bc9bbf241085ec66554769327b",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "claimId": "self_claim_initial_2971d0bc9bbf241085ec66554769327b"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "从自我认知列表打开的真实 claim"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "profile.char.view",
+      "title": "角色资料",
+      "zone": "生活成长",
+      "template": "/c/:charId/profile",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": null,
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/profile",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": [
+        "issue-03"
+      ]
+    },
+    {
+      "key": "goals.create",
+      "title": "新建目标",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/goal/new",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/goal/new",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "goals.detail",
+      "title": "目标详情与治理",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/goal/:goalId",
+      "parameters": [
+        "charId",
+        "goalId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/goal/goal_initial_fluctlight_99ae495ebe9b41c5188148c53cf6756c_1",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "goalId": "goal_initial_fluctlight_99ae495ebe9b41c5188148c53cf6756c_1"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "从目标列表意向链接打开的真实目标"
+      },
+      "issueIds": [
+        "issue-05"
+      ]
+    },
+    {
+      "key": "goals.planning",
+      "title": "独立目标规划",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/planning",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/planning",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "life.wardrobe.item.detail",
+      "title": "物品详情与历史",
+      "zone": "生活成长",
+      "template": "/c/:charId/life/wardrobe/item/:itemId",
+      "parameters": [
+        "charId",
+        "itemId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/life/wardrobe/item/wardrobe_d3df6638fc5c5c74a913cd183af1b319",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "itemId": "wardrobe_d3df6638fc5c5c74a913cd183af1b319"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "从衣柜打开的真实登记物品"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.map.view",
+      "title": "世界总览",
+      "zone": "世界人物",
+      "template": "/c/:charId/world",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/world",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.place.detail",
+      "title": "地点详情",
+      "zone": "世界人物",
+      "template": "/c/:charId/world/place/:placeId",
+      "parameters": [
+        "charId",
+        "placeId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/world/place/place_0f7d76d87ac9e9dec284c275990d752c",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "placeId": "place_0f7d76d87ac9e9dec284c275990d752c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "专用回归世界中的真实地点"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.event.detail",
+      "title": "事件详情",
+      "zone": "世界人物",
+      "template": "/c/:charId/world/event/:evId",
+      "parameters": [
+        "charId",
+        "evId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "运行世界尚无实际事件。"
+    },
+    {
+      "key": "world.items.list",
+      "title": "世界物品目录",
+      "zone": "世界人物",
+      "template": "/c/:charId/world/items",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/world/items",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.items.detail",
+      "title": "物品定义与取得范围",
+      "zone": "世界人物",
+      "template": "/c/:charId/world/items/:itemId",
+      "parameters": [
+        "charId",
+        "itemId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "运行世界物品定义列表为空；衣柜 item 是不同对象类型。"
+    },
+    {
+      "key": "world.event.list",
+      "title": "世界变化与事件流",
+      "zone": "世界人物",
+      "template": "/c/:charId/world/events",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/world/events",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.scene.view",
+      "title": "当前场景",
+      "zone": "世界人物",
+      "template": "/c/:charId/world/scene",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/world/scene",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.instance.settings",
+      "title": "运行世界设定 · 随机事件",
+      "zone": "世界人物",
+      "template": "/c/:charId/world/settings",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/world/settings",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "people.graph.view",
+      "title": "人物关系",
+      "zone": "世界人物",
+      "template": "/c/:charId/people",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/people",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "people.npc.create",
+      "title": "新建 NPC 定义",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/npc/new",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/people/npc/new",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "people.npc.edit",
+      "title": "编辑 NPC",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/npc/:npcId/edit",
+      "parameters": [
+        "charId",
+        "npcId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "NPC 目录为空。"
+    },
+    {
+      "key": "people.npc.manage",
+      "title": "NPC 管理",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/npcs",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/people/npcs",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "people.npc.manage",
+      "title": "NPC 管理",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/manage",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/people/manage",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "people.npc.detail",
+      "title": "NPC 详情",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/npc/:npcId",
+      "parameters": [
+        "charId",
+        "npcId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "NPC 目录为空。"
+    },
+    {
+      "key": "people.list.view",
+      "title": "人物目录",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/list",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/people/list",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "people.owner.background",
+      "title": "关于你",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/owner",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/people/owner",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "people.relation.edit",
+      "title": "关系修正",
+      "zone": "世界人物",
+      "template": "/c/:charId/people/relation/:relId",
+      "parameters": [
+        "charId",
+        "relId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "没有关系修订 projection 可供安全使用。"
+    },
+    {
+      "key": "media.gallery.view",
+      "title": "媒体库",
+      "zone": "世界人物",
+      "template": "/c/:charId/media",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/media",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "media.identity.view",
+      "title": "视觉身份",
+      "zone": "世界人物",
+      "template": "/c/:charId/media/identity",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/media/identity",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "media.item.generate",
+      "title": "媒体生成",
+      "zone": "世界人物",
+      "template": "/c/:charId/media/generate",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/media/generate",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "media.avatar.manage",
+      "title": "显示头像",
+      "zone": "世界人物",
+      "template": "/c/:charId/media/avatar",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/media/avatar",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "media.item.detail",
+      "title": "媒体详情",
+      "zone": "世界人物",
+      "template": "/c/:charId/media/:mdId",
+      "parameters": [
+        "charId",
+        "mdId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/media/asset_media_intent_fda0d2f1e9e877d4dadff2ec922a4a48",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "mdId": "asset_media_intent_fda0d2f1e9e877d4dadff2ec922a4a48"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "通知链接中的实际人物媒体资产"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.directory",
+      "title": "世界目录",
+      "zone": "世界人物",
+      "template": "/c/:charId/worlds",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/worlds",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.definition.edit",
+      "title": "世界与场景编辑",
+      "zone": "世界人物",
+      "template": "/c/:charId/worlds/:worldId/edit",
+      "parameters": [
+        "charId",
+        "worldId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/worlds/world_7b56c9974eaf9b651bc00e8f8b71045d/edit",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "worldId": "world_7b56c9974eaf9b651bc00e8f8b71045d"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "从当前世界目录打开的真实运行世界"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.place.create",
+      "title": "添加地点",
+      "zone": "世界人物",
+      "template": "/c/:charId/worlds/:worldId/place/new",
+      "parameters": [
+        "charId",
+        "worldId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/worlds/world_7b56c9974eaf9b651bc00e8f8b71045d/place/new",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "worldId": "world_7b56c9974eaf9b651bc00e8f8b71045d"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "正式 UI 地点创建表单，并保存一个专用回归地点"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.place.history",
+      "title": "地点字段与默认基准历史",
+      "zone": "世界人物",
+      "template": "/c/:charId/worlds/:worldId/place/:placeId/history",
+      "parameters": [
+        "charId",
+        "worldId",
+        "placeId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/worlds/world_7b56c9974eaf9b651bc00e8f8b71045d/place/place_0f7d76d87ac9e9dec284c275990d752c/history",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "worldId": "world_7b56c9974eaf9b651bc00e8f8b71045d",
+        "placeId": "place_0f7d76d87ac9e9dec284c275990d752c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "真实地点历史列表"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "world.place.edit",
+      "title": "编辑地点",
+      "zone": "世界人物",
+      "template": "/c/:charId/worlds/:worldId/place/:placeId/edit",
+      "parameters": [
+        "charId",
+        "worldId",
+        "placeId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/worlds/world_7b56c9974eaf9b651bc00e8f8b71045d/place/place_0f7d76d87ac9e9dec284c275990d752c/edit",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+        "worldId": "world_7b56c9974eaf9b651bc00e8f8b71045d",
+        "placeId": "place_0f7d76d87ac9e9dec284c275990d752c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "保存回归地点后由页面跳转到编辑"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "identity.governance",
+      "title": "身份与能力治理",
+      "zone": "世界人物",
+      "template": "/c/:charId/governance",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/governance",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "media.identity.edit",
+      "title": "编辑视觉身份",
+      "zone": "世界人物",
+      "template": "/c/:charId/media/identity/edit",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "交流",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/media/identity/edit",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "identity.governance.detail",
+      "title": "身份与能力治理详情",
+      "zone": "世界人物",
+      "template": "/c/:charId/governance/:governanceKind/:governanceId",
+      "parameters": [
+        "charId",
+        "governanceKind",
+        "governanceId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "无真实 foundation/capability 提案记录。"
+    },
+    {
+      "key": "auth.signin",
+      "title": "登录/注册",
+      "zone": "创作治理",
+      "template": "/auth",
+      "parameters": [],
+      "workspace": null,
+      "instantiatedUrl": "http://192.168.1.20:13001/#/auth",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "已登录 Owner 会话可见",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "library.home",
+      "title": "角色库",
+      "zone": "创作治理",
+      "template": "/library",
+      "parameters": [],
+      "workspace": null,
+      "instantiatedUrl": "http://192.168.1.20:13001/#/library",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "角色库显示专用回归人物",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "library.char.create",
+      "title": "新建角色向导",
+      "zone": "创作治理",
+      "template": "/library/create",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/library/create?worldResourceId=res_1fd8f2e2810e1bea8abee8beaed25c3b&worldVersion=1",
+      "instanceParams": {
+        "worldResourceId": "res_1fd8f2e2810e1bea8abee8beaed25c3b",
+        "worldVersion": "1"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "完成一次分析与激活流程",
+        "screenshotRelativePath": null
+      },
+      "issueIds": [
+        "issue-04"
+      ]
+    },
+    {
+      "key": "setup.home",
+      "title": "初始化向导",
+      "zone": "创作治理",
+      "template": "/setup",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/setup",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "显示已保存模型连接及世界底稿流程",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "studio.npc.edit",
+      "title": "NPC 定义编辑",
+      "zone": "创作治理",
+      "template": "/studio/npc/:resId",
+      "parameters": [
+        "resId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "没有 NPC 定义资源。"
+    },
+    {
+      "key": "studio.material.detail",
+      "title": "创作素材与保留历史",
+      "zone": "创作治理",
+      "template": "/studio/material/:materialId",
+      "parameters": [
+        "materialId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "素材列表没有可用的 material 记录。"
+    },
+    {
+      "key": "studio.media.library",
+      "title": "我的素材库",
+      "zone": "创作治理",
+      "template": "/studio/media",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/studio/media",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "已进入素材库",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "studio.media.detail",
+      "title": "素材详情",
+      "zone": "创作治理",
+      "template": "/studio/media/:mdId",
+      "parameters": [
+        "mdId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/studio/media/asset_media_intent_fda0d2f1e9e877d4dadff2ec922a4a48",
+      "instanceParams": {
+        "mdId": "asset_media_intent_fda0d2f1e9e877d4dadff2ec922a4a48"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "从通知观察到的实际媒体资产 ID"
+      },
+      "issueIds": []
+    },
+    {
+      "key": "studio.home",
+      "title": "创作中心",
+      "zone": "创作治理",
+      "template": "/studio",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/studio",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "列表中显示真实回归世界资源",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "studio.resource.edit",
+      "title": "资源编辑",
+      "zone": "创作治理",
+      "template": "/studio/edit/:resId",
+      "parameters": [
+        "resId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/studio/edit/res_1fd8f2e2810e1bea8abee8beaed25c3b",
+      "instanceParams": {
+        "resId": "res_1fd8f2e2810e1bea8abee8beaed25c3b"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "真实回归世界资源详情",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "studio.preview",
+      "title": "试生成沙盒",
+      "zone": "创作治理",
+      "template": "/studio/preview",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/studio/preview?res=res_1fd8f2e2810e1bea8abee8beaed25c3b",
+      "instanceParams": {
+        "res": "res_1fd8f2e2810e1bea8abee8beaed25c3b"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "真实资源的隔离预览页面",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "studio.apply",
+      "title": "应用到实例",
+      "zone": "创作治理",
+      "template": "/studio/apply",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/studio/apply",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "无实例引用的可理解状态",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "studio.event.template",
+      "title": "事件模板",
+      "zone": "创作治理",
+      "template": "/studio/template",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/studio/template",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "事件模板列表页面",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "settings.global",
+      "title": "系统设置",
+      "zone": "创作治理",
+      "template": "/settings",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.char.autonomy",
+      "title": "角色自治与触达设置",
+      "zone": "创作治理",
+      "template": "/c/:charId/settings/autonomy",
+      "parameters": [
+        "charId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/c/fluctlight_99ae495ebe9b41c5188148c53cf6756c/settings/autonomy",
+      "instanceParams": {
+        "charId": "fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop or 484x674 narrow; varies by route",
+        "observation": "真实人物路由已打开，按页面状态核对。"
+      },
+      "issueIds": [
+        "issue-02"
+      ]
+    },
+    {
+      "key": "diag.home",
+      "title": "运行诊断",
+      "zone": "创作治理",
+      "template": "/diag",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/diag",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop; also 484x674 on key profile/settings/schedule screens",
+        "observation": "首页卡片、近期生命周期与任务状态",
+        "screenshotRelativePath": null
+      },
+      "issueIds": [
+        "issue-01"
+      ]
+    },
+    {
+      "key": "diag.task.detail",
+      "title": "诊断任务详情",
+      "zone": "创作治理",
+      "template": "/diag/task/:taskId",
+      "parameters": [
+        "taskId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/diag/task/visual_identity_intent%3Avisual_identity_session_a41f643287ec944388dd82363150b704",
+      "instanceParams": {
+        "taskId": "visual_identity_intent:visual_identity_session_a41f643287ec944388dd82363150b704"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "初始化任务实际终态"
+      },
+      "issueIds": [],
+      "additionalInstances": [
+        {
+          "url": "http://192.168.1.20:13001/#/diag/task/schedule_intent%3Afluctlight_99ae495ebe9b41c5188148c53cf6756c",
+          "params": {
+            "taskId": "schedule_intent:fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+          },
+          "observation": "实际日程任务，仍运行中"
+        },
+        {
+          "url": "http://192.168.1.20:13001/#/diag/task/schedule_intent%3Afluctlight_99ae495ebe9b41c5188148c53cf6756c",
+          "params": {
+            "taskId": "schedule_intent:fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+          },
+          "observation": "schedule.current_day still started; no terminal result/end time"
+        }
+      ]
+    },
+    {
+      "key": "diag.workflow.detail",
+      "title": "工作流执行与恢复",
+      "zone": "创作治理",
+      "template": "/diag/workflow/:workflowId",
+      "parameters": [
+        "workflowId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/diag/workflow/visual_identity_workflow_66166c6477325b8a39d52204cdccc5b2",
+      "instanceParams": {
+        "workflowId": "visual_identity_workflow_66166c6477325b8a39d52204cdccc5b2"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "初始化实际工作流 execution run"
+      },
+      "issueIds": [],
+      "additionalInstances": [
+        {
+          "url": "http://192.168.1.20:13001/#/diag/workflow/schedule%3Afluctlight_99ae495ebe9b41c5188148c53cf6756c",
+          "params": {
+            "workflowId": "schedule:fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+          },
+          "observation": "实际日程 workflow，仍运行中"
+        },
+        {
+          "url": "http://192.168.1.20:13001/#/diag/workflow/schedule%3Afluctlight_99ae495ebe9b41c5188148c53cf6756c",
+          "params": {
+            "workflowId": "schedule:fluctlight_99ae495ebe9b41c5188148c53cf6756c"
+          },
+          "observation": "Actual Run remained running; no cancellation or pause requested"
+        }
+      ]
+    },
+    {
+      "key": "diag.record.detail",
+      "title": "诊断完整记录",
+      "zone": "创作治理",
+      "template": "/diag/record/:kind/:recordRef",
+      "parameters": [
+        "kind",
+        "recordRef"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/diag/record/lifecycle/WyJsaWZlY3ljbGUiLCJkaWFnbm9zdGljXzhjYzJkZGI4YTE3NDIxOThlNDJmZWM3OWY0YTdiYTYxIl0",
+      "instanceParams": {
+        "kind": "lifecycle",
+        "recordRef": "WyJsaWZlY3ljbGUiLCJkaWFnbm9zdGljXzhjYzJkZGI4YTE3NDIxOThlNDJmZWM3OWY0YTdiYTYxIl0"
+      },
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "来自真实诊断列表的生命周期记录",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "diag.harm",
+      "title": "永久伤害拦截记录",
+      "zone": "创作治理",
+      "template": "/diag/harm",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/diag/harm",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "0 条记录并显示筛选说明",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "diag.request.detail",
+      "title": "请求处理详情",
+      "zone": "创作治理",
+      "template": "/diag/request/:requestId",
+      "parameters": [
+        "requestId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "诊断没有真实 operations request 记录。"
+    },
+    {
+      "key": "diag.audit",
+      "title": "操作审计日志",
+      "zone": "创作治理",
+      "template": "/diag/audit",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.pending.list",
+      "title": "待处理事项",
+      "zone": "创作治理",
+      "template": "/diag/pending",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "data.backup.detail",
+      "title": "业务备份与隔离恢复任务",
+      "zone": "创作治理",
+      "template": "/data/backup/:backupId",
+      "parameters": [
+        "backupId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "没有真实业务备份任务。"
+    },
+    {
+      "key": "data.pack.detail",
+      "title": "导入草稿与来源",
+      "zone": "创作治理",
+      "template": "/data/pack/:packId",
+      "parameters": [
+        "packId"
+      ],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "blocked",
+      "evaluation": null,
+      "issueIds": [],
+      "blockedReason": "没有真实导入包草稿。"
+    },
+    {
+      "key": "data.tools",
+      "title": "数据工具",
+      "zone": "创作治理",
+      "template": "/data",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/data",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "导入/备份为只读页面检查",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "data.object.revisions",
+      "title": "对象修订记录",
+      "zone": "创作治理",
+      "template": "/data/revisions",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/data/revisions",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "进入修订目录；内容加载不稳定",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "data.rollback",
+      "title": "回档说明（P3）",
+      "zone": "创作治理",
+      "template": "/data/rollback",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/data/rollback",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "说明页明确可恢复范围",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "settings.models",
+      "title": "模型与连接",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/models",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.reply-vision",
+      "title": "回复与视觉",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/reply-vision",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.media-workflows",
+      "title": "媒体与工作流",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/media-workflows",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.kev",
+      "title": "KEV 选择与连接",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/kev",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.runtime",
+      "title": "运行与自治策略",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/runtime",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.notifications",
+      "title": "通知与触达偏好",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/notifications",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.owner",
+      "title": "所有者与会话",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/owner",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "settings.capabilities",
+      "title": "能力与权限目录",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/settings/capabilities",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "目录标题有中文，但多数 Agent/Tool disclosure 标签只显示“· ·”"
+      },
+      "issueIds": [
+        "issue-06"
+      ],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.media-recoveries",
+      "title": "媒体恢复尝试",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/media-recoveries",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.turns",
+      "title": "回合诊断",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/turns",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.links",
+      "title": "执行器关联",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/links",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.lifecycle",
+      "title": "生命周期",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/lifecycle",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/diag/lifecycle",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "生命周期真实记录列表",
+        "screenshotRelativePath": null
+      },
+      "issueIds": [
+        "issue-01"
+      ]
+    },
+    {
+      "key": "diag.model-runs",
+      "title": "模型运行",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/model-runs",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": "http://192.168.1.20:13001/#/diag/model-runs",
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "真实 NAS CUA 页面",
+        "observation": "初始化物理模型调用真实记录",
+        "screenshotRelativePath": null
+      },
+      "issueIds": []
+    },
+    {
+      "key": "diag.agent-runs",
+      "title": "Agent 运行",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/agent-runs",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.events",
+      "title": "系统事件",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/events",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.media-prompts",
+      "title": "媒体请求",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/media-prompts",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.workflows",
+      "title": "工作流控制",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/workflows",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    },
+    {
+      "key": "diag.kev",
+      "title": "KEV 决策",
+      "zone": "创作治理",
+      "generated": "service-metadata.js",
+      "template": "/diag/kev",
+      "parameters": [],
+      "workspace": "管理",
+      "instantiatedUrl": null,
+      "instanceParams": {},
+      "status": "evaluated",
+      "evaluation": {
+        "viewport": "1280x720 desktop",
+        "observation": "页面内容完成读取，检查标题、数据/空态、表单层级与主状态"
+      },
+      "issueIds": [],
+      "blockedReason": null
+    }
+  ],
+  "counts": {
+    "evaluated": 89,
+    "blocked": 15,
+    "entered_unassessed": 0,
+    "not_accessed": 0,
+    "issues": 13
+  },
+  "resources": {
+    "character": "fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+    "worldResource": "res_1fd8f2e2810e1bea8abee8beaed25c3b",
+    "worldVersion": 1,
+    "runtimeWorld": "world_7b56c9974eaf9b651bc00e8f8b71045d",
+    "place": "place_0f7d76d87ac9e9dec284c275990d752c",
+    "goal": "goal_initial_fluctlight_99ae495ebe9b41c5188148c53cf6756c_1",
+    "selfClaim": "self_claim_initial_2971d0bc9bbf241085ec66554769327b",
+    "wardrobeItem": "wardrobe_d3df6638fc5c5c74a913cd183af1b319",
+    "mediaAsset": "asset_media_intent_fda0d2f1e9e877d4dadff2ec922a4a48",
+    "visualTask": "visual_identity_intent:visual_identity_session_a41f643287ec944388dd82363150b704",
+    "visualWorkflow": "visual_identity_workflow_66166c6477325b8a39d52204cdccc5b2",
+    "scheduleIntent": "schedule_intent:fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+    "scheduleWorkflow": "schedule:fluctlight_99ae495ebe9b41c5188148c53cf6756c",
+    "dynamicRequest": "req_4a880d15c66f8a3369c9638495147662",
+    "imageRequest": "req_3aff212aaf757dc669914a24a1922504",
+    "dailyDiary": "diary_cebb7ee778012c04d275937c5acc1e15",
+    "scheduleTaskStatus": "failed; schedule Run activity completed then TimerStarted; workflow remained running",
+    "goalIds": [
+      "goal_initial_fluctlight_99ae495ebe9b41c5188148c53cf6756c_0",
+      "goal_initial_fluctlight_99ae495ebe9b41c5188148c53cf6756c_1"
+    ],
+    "chatImageTurn": "turn_360e64a0-d5ce-4450-84d0-05ce70b313aa",
+    "chatImageError": "prompt_tool_result_budget_exceeded"
+  }
+}

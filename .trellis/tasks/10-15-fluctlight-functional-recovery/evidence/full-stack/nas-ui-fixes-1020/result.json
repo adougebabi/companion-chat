@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-20",
+  "scope": "NAS page report UX-01 through UX-06",
+  "sourceReport": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/nas-ux-1020/report.md",
+  "sourceReportSHA256": "7164e631803af3201baeaa0e37088b86d439d33769f3d95c102e2718be55a623",
+  "sourceCoverage": {
+    "routesTotal": 104,
+    "evaluated": 89,
+    "blockedMissingData": 15,
+    "notAccessed": 0,
+    "acceptance": "visual_only_not_functional",
+    "nasBuildSHA": "unknown"
+  },
+  "issueFixes": [
+    {
+      "id": "UX-01",
+      "rootCause": "missing parent/stream stack gap; diagnostic cards exposed machine events/status and raw UTC",
+      "fix": "shared DiagnosticCard/domain label/time helper, scoped 12px gaps; full source folded"
+    },
+    {
+      "id": "UX-02",
+      "rootCause": "nested config-fields lacked layout; inline checkbox groups",
+      "fix": "shared AutonomyFields contact/action/frequency/quiet sections; scoped stacked switches; inherited fields/budget/CAS unchanged"
+    },
+    {
+      "id": "UX-03",
+      "rootCause": "generic recursion flattened real wardrobe boolean/enums and current-state bookkeeping",
+      "fix": "ClothingRecords contextual initial wear/availability; CurrentProfile effective body/wear source; authored open-key narratives preserved"
+    },
+    {
+      "id": "UX-04",
+      "rootCause": "initial goal JSON pre directly in main body; raw warning path labels",
+      "fix": "GoalSummary + folded JsonDetails; Chinese warning names; source/edit/export untouched"
+    },
+    {
+      "id": "UX-05",
+      "rootCause": "goal/editor/planner bypassed semantic status summaries",
+      "fix": "GoalRecords/domain labels; remove unsupported personal scope option; no inline JSON acceptance receipt"
+    },
+    {
+      "id": "UX-06",
+      "rootCause": "Go CapabilityDefinition PascalCase fields read as lowercase",
+      "fix": "configuration provider compatibility projection plus readable RuntimeCatalog; preserve complete original contracts"
+    }
+  ],
+  "timezone": {
+    "observedDisplaySample": "2026-10-20T14:28:40.520+00:00 -> 2026-10-20 22:28:40.520 +08:00 (Asia/Shanghai)",
+    "schedule": "schedule timezone first; cross-midnight range keeps dates; command offsets untouched",
+    "storedScheduleBug": "not_reproduced_no_accepted_NAS_items_in_source_report",
+    "nasAfterDeploy": "not_executed"
+  },
+  "incidentalRegressionFix": "Full frontend tests exposed prior directory projection dropping explicit group_id; full read now preserves directory group while confirmed move still resets memberships. Stale boot source assertion updated to bounded first paint plus background read.",
+  "checks": {
+    "webFull": {
+      "passed": 246,
+      "failed": 0
+    },
+    "finalTargeted": {
+      "passed": 12,
+      "failed": 0
+    },
+    "typecheck": "passed",
+    "productionBuild": "passed_no_mock_bundle",
+    "diffCheck": "passed",
+    "independentStaticReviews": 2
+  },
+  "browserReplay": {
+    "source": "actual production dist + temporary controlled API responses shaped from NAS report and existing complete initialization fixture",
+    "passed": [
+      "diagnostic Chinese lifecycle/failure/time and 12px gap",
+      "autonomy four sections; inherited controls disabled",
+      "real-shaped initial garments vs unknown current wear",
+      "cross-midnight schedule compact range and folded source",
+      "PascalCase catalog readable headings"
+    ],
+    "desktop": {
+      "clientWidth": 1280,
+      "scrollWidth": 1280
+    },
+    "mobileIframe": {
+      "clientWidth": 390,
+      "scrollWidth": 390
+    },
+    "consoleErrors": [],
+    "screenshots": [
+      "diagnostics-desktop.png",
+      "autonomy-desktop.png",
+      "autonomy-mobile.png",
+      "profile-clothing.png",
+      "schedule-midnight.png",
+      "capability-catalog.png"
+    ]
+  },
+  "notExecuted": [
+    "NAS deployment/update",
+    "NAS new-code visual recheck",
+    "functional regression",
+    "database/backend logic regression",
+    "real model/Comfy calls"
+  ],
+  "realModelCalls": 0,
+  "migrationRequired": false,
+  "functionalRegression": "separate_user_test_session_not_claimed_passed",
+  "remaining": "15 typed resource routes blocked in original report remain blocked until actual resources exist; schedule data timezone still needs real accepted-item evidence."
+}

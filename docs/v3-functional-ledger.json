@@ -28942,6 +28942,37 @@
         "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/profile-presentation-1020.json",
         "migrationRequired": false,
         "modelCalls": 0
+      },
+      {
+        "date": "2026-10-20",
+        "feature": "真实NAS页面报告UX-01—06修复",
+        "sourceReport": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/nas-ux-1020/report.md",
+        "sourceVisualCoverage": {
+          "routesTotal": 104,
+          "evaluated": 89,
+          "blockedMissingData": 15,
+          "notAccessed": 0,
+          "acceptance": "visual_only_not_functional",
+          "nasBuildSHA": "unknown"
+        },
+        "checks": {
+          "webFull": {
+            "passed": 246,
+            "failed": 0
+          },
+          "finalTargeted": {
+            "passed": 12,
+            "failed": 0
+          },
+          "typecheck": "passed",
+          "productionBuild": "passed_no_mock_bundle",
+          "diffCheck": "passed",
+          "independentStaticReviews": 2
+        },
+        "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/nas-ui-fixes-1020/result.json",
+        "liveAcceptance": "pending_updated_NAS_recheck_functional_regression_separate",
+        "migrationRequired": false,
+        "modelCalls": 0
       }
     ]
   }

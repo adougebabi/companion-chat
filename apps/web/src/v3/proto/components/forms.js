@@ -50,8 +50,8 @@ export function PreferenceFields(model) {
 export function Toggle({label,name,checked=false,attrs={}}) {
   return `<label class="toggle"><input type="checkbox" ${attributes({name,checked,...attrs})}> ${esc(label)}</label>`;
 }
-export function CheckboxGroup({label,items,value=[],attribute}) {
-  return `<div role="group" aria-label="${esc(label)}"><b>${esc(label)}</b>${items.map(([key,title])=>Toggle({label:title,checked:value.includes(key),attrs:{[`data-${attribute}`]:key}})).join('')}</div>`;
+export function CheckboxGroup({label,items,value=[],attribute,className=''}) {
+  return `<div class="${esc(className)}" role="group" aria-label="${esc(label)}"><b>${esc(label)}</b>${items.map(([key,title])=>Toggle({label:title,checked:value.includes(key),attrs:{[`data-${attribute}`]:key}})).join('')}</div>`;
 }
 export function KeyValueList(entries, { className = 'kv', attrs = {} } = {}) {
   return `<div class="${esc(className)}" ${attributes(attrs)}>${entries.map(([label, content]) => `<dt>${esc(label)}</dt><dd>${content}</dd>`).join('')}</div>`;

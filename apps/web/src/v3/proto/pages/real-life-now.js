@@ -3,12 +3,13 @@ import { asyncPage, instant } from '../components/async-page.js';
 import { esc,icon,badge } from '../ui.js';
 import { OutfitStrip,IntentionList } from '../components/cards.js';
 import { JsonDetails } from '../components/records.js';
+import {displayTimezone} from '../../presentation-time.mjs';
 
 export function renderRealNow(el,ctx) {
   return asyncPage(el,()=>lifeClient.now(ctx.charId),({detail,wardrobe,nearby},reload)=>{
     const c=ctx.store.get('characters',ctx.charId), current=detail.context, appearance=detail.current_state?.appearance;
     if(!current || !appearance)throw new Error('当前生活投影缺失，不能判断此刻状态');
-    const zone=current.timezone, plan=detail.schedule;
+    const plan=detail.schedule,zone=displayTimezone(plan?.timezone,current.timezone);
     const worn=appearance.worn_items || [], intentions=detail.intentions || [];
 	const mood=detail.inner_state?.mood, moodLabel=typeof mood==='string'?mood:mood?.label;
 	if(moodLabel!=null&&typeof moodLabel!=='string')throw new Error('心情投影格式无效，请查看运行诊断');

@@ -4,6 +4,8 @@ import {parseWorkflowTemplate} from '../../lib/configuration-forms';
 import {installBrowserNotifications,browserNotificationState} from './browser-notifications.mjs';
 // @ts-expect-error v3 domain facade
 import {configureDomainService} from '../proto/services.js';
+// @ts-expect-error shared runtime catalog normalization
+import {normalizeRuntimeCatalog} from '../runtime-catalog.mjs';
 export function installConfigurationProvider(client:BrowserClient,refresh:()=>Promise<unknown>){const configuration={
  notificationState:browserNotificationState,
  read:()=>client.configurationCatalog(),
@@ -17,7 +19,7 @@ export function installConfigurationProvider(client:BrowserClient,refresh:()=>Pr
  endpoint:(body:Parameters<BrowserClient['configureProviderEndpoint']>[0])=>client.configureProviderEndpoint(body),
  binding:(body:Parameters<BrowserClient['configureModelRole']>[0])=>client.configureModelRole(body),
  models:(id:string)=>client.providerEndpointModels(id),
- catalog:()=>client.runtimeCapabilityCatalog(),
+ catalog:async()=>normalizeRuntimeCatalog(await client.runtimeCapabilityCatalog()),
  test:(kind:'kev'|'vision'|'media')=>kind==='kev'?client.testKevConnection():kind==='vision'?client.testVisionUnderstanding():client.testSavedMediaConnection(),
  parseWorkflow:parseWorkflowTemplate,
  async password(value:string){await client.changePassword(value);await refresh();},

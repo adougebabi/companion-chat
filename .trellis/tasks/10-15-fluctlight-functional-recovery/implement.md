@@ -475,3 +475,14 @@ Profile原本Real/Mock已共用组件，但组件直接遍历原字段并把对�
 日记生产列表用stack拥有12px间距；设置八子页与outreach声明shell单返回，删内容重复返回。人物管理改指已注册people/npcs并兼容旧people/manage，创建/编辑/管理都归管理工作区。没有新增后端/迁移/第二状态源；并行untracked profile-types.ts未改未提交。
 
 实际定向前端29/29、Web类型及正式build/no-Mock通过。浏览器加载实际dist并注入受控响应：意向、中文设定、准备排队→产物完成、进度失败不阻断资料、进度刷新保留切换草稿、设置返回1+0、NPC新/旧路径、日记gap12、桌面1280/1280和实际390px iframe390/390均验证；console errors为空。两名只读探子终审发现的折叠反馈问题已修且原409用例锁定可见性。没有运行数据库/后端逻辑/LLM/Comfy/真实生成/NAS部署验收。证据与截图见evidence/full-stack/profile-presentation-1020.json；台账追加同记录，总任务继续in_progress供用户验收。
+
+
+## 2026-10-20 NAS页面报告UX-01—06修复
+
+用户先处理独立会话页面报告，功能回归另行开展。原报告104路由/89评估/15缺资源blocked、NAS版本未知，不当功能验收。六项源码修复见evidence/full-stack/nas-ui-fixes-1020/fixes.md与result.json；原报告不修改。
+
+共享诊断卡片/中文领域状态/时间formatter；自治字段按四区组件化且保留原继承、预算、CAS、草稿；真实初始衣物与当前有效外观/穿着用专用组件，unknown/cleared不回退初始，自定义自然语言不丢；初始化目标和记录JSON默认折叠；目标/规划状态翻译，删不支持personal scope；配置provider归一Go PascalCase能力定义，目录用真实可读名称/说明。日程显示统一schedule时区优先、跨午夜日期与短范围，原offset命令/库存时间不变。
+
+完整前端初跑243/246：发现旧分组投影丢显式group_id（两项roundtrip）和旧boot源码断言。主线程修实际投影使完整读取保留已确认目录group，move仍按真实成员重置；断言更新bounded首屏+后台。最终全Web246/246、最后定向12/12、type/build/no-Mock通过；没有DB/后端逻辑/LLM/Comfy调用。两名只读终审：修了未知键自然语言被隐藏的问题，增加voice.speech_style和开放场景说明回归。
+
+实际浏览器加载正式dist回放NAS报告结构与既有完整初始化fixture；诊断/自治/衣物/日程跨午夜/大写目录完成核对并保存6张图，1280/1280与390px真实iframe390/390无横向溢出，console error为空。此为报告结构回放，不是NAS更新后或功能通过。日程数据时区错位源报告无接受项仍未证实。无需迁移，不部署；并行profile-types.ts保持不动，总任务in_progress。

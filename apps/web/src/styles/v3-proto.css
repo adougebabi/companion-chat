@@ -284,3 +284,16 @@ mark{background:var(--primary-soft);color:inherit;border-radius:4px;padding:0 2p
 .preparation-assets:empty{display:none}.preparation-assets img{height:180px;object-fit:contain;background:var(--surface-2)}
 .intention-row .badge{white-space:normal}.intention-row details{margin-top:var(--sp2)}
 @container (max-width:680px){.profile-sections,.preparation-steps{grid-template-columns:minmax(0,1fr)}.profile-facts>div{grid-template-columns:minmax(70px,1fr) minmax(0,2.5fr)}}
+
+/* NAS-reviewed diagnostic, policy and structured life surfaces. */
+.diagnostic-page .grid{align-items:start}.diagnostic-card{min-width:0;overflow-wrap:anywhere}.diagnostic-card>details{margin-block:var(--sp2)}
+.diagnostic-page>[data-records],.diagnostic-page [data-events],.diagnostic-page [data-tasks]{gap:var(--sp3)}
+.autonomy-page,.autonomy-fields,.autonomy-page .field{min-width:0}.autonomy-fields{gap:var(--sp5)}
+.policy-section{padding-top:var(--sp4);border-top:1px solid var(--line)}
+.autonomy-choice-group{display:grid;gap:var(--sp3);padding-block:var(--sp2)}
+.autonomy-page .toggle{display:flex;gap:var(--sp3);align-items:flex-start;min-height:40px;line-height:1.6;white-space:normal}
+.autonomy-page .toggle input{flex:none;margin-top:2px}.autonomy-page .grid{align-items:start}
+.catalog-entry{padding-block:var(--sp3);border-bottom:1px solid var(--line);overflow-wrap:anywhere}.catalog-entry:last-child{border-bottom:0}
+.clothing-record{padding-block:var(--sp2);border-bottom:1px solid var(--line)}.clothing-record:last-child{border-bottom:0}.clothing-record>.row{margin-top:var(--sp2)}
+.goal-summary p,.goal-summary ul{margin-block:0}.current-profile{overflow-wrap:anywhere}
+@media(max-width:640px){.autonomy-page .grid.g2{grid-template-columns:minmax(0,1fr)}}

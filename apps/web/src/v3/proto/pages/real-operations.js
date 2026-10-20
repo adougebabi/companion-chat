@@ -6,10 +6,11 @@ import {CursorPager,bindCursorPager} from '../components/cursor-pager.js';
 import {mountPendingGroups} from '../components/pending-groups.js';
 import {JsonDetails} from '../components/records.js';
 import {Tabs} from '../components/forms.js';
+import {domainName,stateLabel} from '../../domain-presentation.mjs';
 import {esc,badge,confirm} from '../ui.js';
 
 const taskLink=id=>`#/diag/task/${encodeURIComponent(id)}`;
-export function requestTaskLinks(request){return `<p><a href="#/diag/request/${encodeURIComponent(request.id)}">请求详情与执行结果</a></p>${request.tasks_state==='failed'?'<p class="banner warn">请求状态已读取，关联任务读取失败，请重新查询。</p>':request.tasks?.map(t=>`<p><a href="${taskLink(t.task_id)}">${esc(t.kind)} · ${esc(t.status)}</a></p>`).join('')||''}`;}
+export function requestTaskLinks(request){return `<p><a href="#/diag/request/${encodeURIComponent(request.id)}">请求详情与执行结果</a></p>${request.tasks_state==='failed'?'<p class="banner warn">请求状态已读取，关联任务读取失败，请重新查询。</p>':request.tasks?.map(t=>`<p><a href="${taskLink(t.task_id)}">${esc(domainName(t.kind,'关联任务'))} · ${esc(stateLabel(t.status))}</a></p>`).join('')||''}`;}
 async function refreshChrome(box){try{await operationsClient.refresh();}catch(error){if(box.isConnected)box.textContent=`操作已提交；汇总刷新失败：${error.message}`;}}
 
 export function renderRealInbox(el,ctx){
@@ -37,7 +38,7 @@ export function renderRealRequest(el,ctx){
 }
 export function renderRealTask(el,ctx){
   return asyncPage(el,()=>operationsClient.task(ctx.params.taskId),(task,reload,alive)=>{
-    el.innerHTML=`<div class="card"><div class="row"><h2 class="grow">${esc(task.title)} ${badge(task.status)}</h2><button class="btn" data-reload>重新读取</button></div><p class="small muted">任务 ${esc(task.task_id)} · 工作流 ${esc(task.workflow_id)} · 已尝试 ${esc(task.runs)} 次</p><p class="small muted">创建 ${esc(instant(task.created_at))} · 开始 ${esc(instant(task.started_at))} · 结束 ${esc(instant(task.completed_at))}</p>${task.steps.map(s=>`<div class="lrow"><div class="grow"><b>${esc(s.name||s.event_type)}</b><p class="small muted">${esc(s.reason_code)} · ${esc(instant(s.at))}</p></div>${badge(s.status||'已记录')}</div>`).join('')||'<p class="small muted">没有保留的生命周期事件，请同时查询真实工作流历史。没有事件不代表没有执行。</p>'}${task.has_more_steps?'<p class="small muted">此处仅展示最近 100 条事件。完整轨迹请按该任务 ID 查询生命周期诊断。</p>':''}${JsonDetails(task.source,'业务来源')}<div class="row"><a class="btn primary" href="#/diag/workflow/${encodeURIComponent(task.workflow_id)}">执行器状态、真实历史与受控恢复</a>${task.fluctlight_id?`<a class="btn" href="#/c/${encodeURIComponent(task.fluctlight_id)}/life/now">回到此刻</a>`:''}</div><div data-history-result></div><p role="status" data-feedback></p></div>`;
+    el.innerHTML=`<div class="card"><div class="row"><h2 class="grow">${esc(domainName(task.kind||task.type||task.title,'后台任务'))} ${badge(stateLabel(task.status))}</h2><button class="btn" data-reload>重新读取</button></div><p class="small muted">任务 ${esc(task.task_id)} · 工作流 ${esc(task.workflow_id)} · 已尝试 ${esc(task.runs)} 次</p><p class="small muted">创建 ${esc(instant(task.created_at))} · 开始 ${esc(instant(task.started_at))} · 结束 ${esc(instant(task.completed_at))}</p>${task.steps.map(s=>`<div class="lrow"><div class="grow"><b>${esc(domainName(s.event_type||s.name,'执行阶段记录'))}</b><p class="small muted">${esc(instant(s.at))}${s.reason_code?` · ${esc(stateLabel(s.reason_code,'有待核对的执行说明'))}`:''}</p></div>${badge(stateLabel(s.status,'已记录'))}</div>`).join('')||'<p class="small muted">没有保留的生命周期事件，请同时查询真实工作流历史。没有事件不代表没有执行。</p>'}${task.has_more_steps?'<p class="small muted">此处仅展示最近 100 条事件。完整轨迹请按该任务 ID 查询生命周期诊断。</p>':''}${JsonDetails(task,'任务完整状态与来源')}<div class="row"><a class="btn primary" href="#/diag/workflow/${encodeURIComponent(task.workflow_id)}">执行器状态、真实历史与受控恢复</a>${task.fluctlight_id?`<a class="btn" href="#/c/${encodeURIComponent(task.fluctlight_id)}/life/now">回到此刻</a>`:''}</div><div data-history-result></div><p role="status" data-feedback></p></div>`;
     el.querySelector('[data-reload]').onclick=reload;
 
   });

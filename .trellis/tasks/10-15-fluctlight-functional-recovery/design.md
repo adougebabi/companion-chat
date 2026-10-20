@@ -40,3 +40,7 @@ Owner原请求是约定身份，链接表只存窗口/版本/真实执行关联�
 ## 资料展示修复边界（2026-10-20）
 最小差距在展示组合而非业务存储：生产意向页仍用RecordDetails，Profile组件仍遍历原字段、只给对象JSON；导航写错people/manage；settings返回分属shell与内容。主线程在现有v3 cards/profile及公共语义字段组件落实可读行、中文状态和设定分组；原完整数据保留折叠技术详情，不生成未知人格或补假事实。意向同组件用于目标、此刻及约定；日记只调整父容器gap。shell声明式返回策略统一settings子页，人物管理复用既有NPC页并兼容原链接。
 初始化进度复用现有visual identity/avatar/timeline/task只读API，独立局部加载及有限轮询，不能因可选进度失败阻断人物资料或重置切换草稿。canonical、character_sheet、avatar分别按真实产物/读取状态显示；候选不等于接受，跳过视觉检验不等于完成，queued不等于Worker已执行。保留当前人格runtime权威、CAS/来源/受控命令、初始设定与当前有效状态边界。预计仅Web页面/公共组件/投影/provider及测试/文档，无迁移和后端执行器改写。通过组件用例、type/build、真实浏览器受控生产组件的桌面/390px核对验证，真实NAS/LLM仍由用户验收。
+
+
+## NAS报告修复最小边界
+真实差距：页面父容器缺gap、诊断formatter绕过本地时区、profile通用递归丢失衣物布尔语义、runtime catalog读取Go原生大写字段却使用小写、初始化审阅直接展开目标JSON。修复位于现有Web展示组件/provider投影，不修改数据库、已存日程时间或模型/Worker。新增共享时间/领域状态展示与衣物/当前状态组件；保留原始记录供折叠核对，false/zero和unknown/cleared语义不可丢失。日程采用实际schedule.timezone优先，context/设备仅作明确显示后备，建议命令继续原带offset字符串+双CAS。能力在configuration provider集中归一化大小写兼容，不改全局Go JSON契约。自治仅分组排版，继承禁用和保存预算/版本行为不变；删不受后端支持的personal目标选项。所有修复以NAS报告/既有真实schema形状为夹具并保留实测未覆盖项；本地验证不记作NAS修复后或功能回归通过。

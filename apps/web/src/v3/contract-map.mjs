@@ -240,8 +240,8 @@ function itemStatus(item, used) {
   return "拥有";
 }
 
-export function directoryGroupProjection(characters,rows) {
-  const projected=Object.fromEntries(Object.entries(characters).map(([id,character])=>[id,{...character,groupId:'ungrouped'}]));
+export function directoryGroupProjection(characters,rows,{resetMembership=true}={}) {
+  const projected=Object.fromEntries(Object.entries(characters).map(([id,character])=>[id,{...character,groupId:resetMembership?'ungrouped':character.groupId||'ungrouped'}]));
   const groups={};
   for(const group of rows){
     groups[group.id]={id:group.id,name:group.name};
@@ -404,7 +404,7 @@ export function viewFromBundle(bundle) {
       data.messages[message.id] = row;
     }
   }
-  if(bundle.groups)Object.assign(data,directoryGroupProjection(data.characters,bundle.groups));
+  if(bundle.groups)Object.assign(data,directoryGroupProjection(data.characters,bundle.groups,{resetMembership:false}));
   if (Object.values(data.characters).some(c => c.groupId === "ungrouped")) data.groups.ungrouped = { id: "ungrouped", name: "未分组" };
   for (const post of bundle.moments || []) {
     const row = { id: post.id, worldId: post.world_id, author: post.author_actor_id, authorType: post.author_type === "fluctlight" ? "char" : post.author_type, text: post.text, at: post.created_at, likes: post.reaction_count ?? 0, liked: Boolean(post.viewer_reaction), comments: (post.comments || []).map((comment) => ({ id: comment.id, author: comment.author_actor_id, text: comment.text, at: comment.created_at })) };

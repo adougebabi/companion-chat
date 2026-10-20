@@ -4,6 +4,8 @@ import { Field, KeyValueList } from './forms.js';
 import { JsonDetails } from './records.js';
 import { RevisionHistory } from './revisions.js';
 import {SemanticFields,SemanticValue,hasSemanticValue} from './semantic-fields.js';
+import {CurrentProfile} from './current-profile.js';
+import {userInstant} from '../../presentation-time.mjs';
 
 export function ProfileValue(value) {
   if (value === undefined) return '<span class="small muted">尚未提供</span>';
@@ -20,7 +22,7 @@ export function ProfileGroups(snapshot) {
   const add=(key,title,value,options={})=>{if(hasSemanticValue(value))sections.push([key,title,SemanticFields(value,options)]);};
   const identity=Object.fromEntries(Object.entries(group('identity')||{}).filter(([key])=>!['name','background','background_story'].includes(key)));
   add('identity','身份与背景',identity);add('personality','共同性格',group('personality'));add('policy','表达与相处',snapshot.groups.some(g=>g.key==='policy')?group('policy'):core.behavioral_policy);add('life','生活设定',snapshot.groups.some(g=>g.key==='life')?group('life'):core.life_profile);
-  const current=group('current');if(current)sections.push(['current','此刻状态',SemanticFields(current)+(Object.hasOwn(current,'appearance')&&current.appearance===null?'<p class="small muted">有效外观：未记录 / 已清除。不会使用旧初始外观代替。</p>':'')]);
+  const current=group('current');if(current)sections.push(['current','此刻状态',CurrentProfile(current,{zone:group('identity')?.timezone})]);
   const claims=group('developing')?.claims;
   sections.push(['developing','逐渐形成的自我认识',Array.isArray(claims)&&claims.length?claims.map(c=>`<div class="lrow"><div class="grow"><p>${esc(c.claim||c.text||'尚无认识内容')}</p>${SemanticValue(c.value)}<p class="small muted">${esc(({active:'当前认可',uncertain:'仍在探索',forgotten:'已遗忘',superseded:'已有新认识'})[c.status]||'状态待确认')}</p></div></div>`).join(''):'<p class="small muted">还没有形成已记录的自我认识，会随着真实经历逐步积累。</p>']);
   if(portrait)sections.push(['working','当前表达画像',`<p class="memory-content">${esc(portrait)}</p><p class="small muted">来自当前已准备的工作人格。</p>`]);
@@ -48,5 +50,5 @@ export function PersonaSection(snapshot, canSwitch) {
     <div class="row"><button class="btn accent" data-test="profile-switch-submit" ${!enabled ? 'disabled' : ''}>确认切换</button><button class="btn" type="button" data-profile-refresh>重新读取</button></div></form></details>` });
 }
 export function PersonaHistory(snapshot) {
-  return `<details class="card"><summary>人格切换与资料修订历史</summary><div class="grid g2 profile-sections">${Card({ title: '人格切换历史', body: (snapshot.historyHasMore ? '<p class="small muted">显示最近 100 条切换记录，另有更早历史。</p>' : '') + (snapshot.history.length ? snapshot.history.map(entry => `<div class="lrow small"><span class="grow">${esc(personaName(snapshot,entry.from_profile_id))} → ${esc(personaName(snapshot,entry.to_profile_id||entry.target_profile_id))}<div class="muted">${esc(entry.reason || '')}</div>${JsonDetails(entry, '查看切换记录')}</span><time>${esc(entry.created_at || entry.occurred_at || '')}</time></div>`).join('') : '<p class="small muted">暂无切换记录</p>') })}${Card({ title: '身份核心修订', body: RevisionHistory({ entries: snapshot.revisions.map(r => ({ ...r, version: r.revision ?? r.version, at: r.created_at ?? r.at })), renderEntry: r => `${esc(r.reason || r.source || '')} ${badge(r.status || '版本记录')}${JsonDetails(r, '查看修订内容')}` }) })}</div></details>`;
+  return `<details class="card"><summary>人格切换与资料修订历史</summary><div class="grid g2 profile-sections">${Card({ title: '人格切换历史', body: (snapshot.historyHasMore ? '<p class="small muted">显示最近 100 条切换记录，另有更早历史。</p>' : '') + (snapshot.history.length ? snapshot.history.map(entry => `<div class="lrow small"><span class="grow">${esc(personaName(snapshot,entry.from_profile_id))} → ${esc(personaName(snapshot,entry.to_profile_id||entry.target_profile_id))}<div class="muted">${esc(entry.reason || '')}</div>${JsonDetails(entry, '查看切换记录')}</span><time>${esc(userInstant(entry.created_at||entry.occurred_at))}</time></div>`).join('') : '<p class="small muted">暂无切换记录</p>') })}${Card({ title: '身份核心修订', body: RevisionHistory({ entries: snapshot.revisions.map(r => ({ ...r, version: r.revision ?? r.version, at: r.created_at ?? r.at })), renderEntry: r => `${esc(r.reason || r.source || '')} ${badge(r.status || '版本记录')}${JsonDetails(r, '查看修订内容')}` }) })}</div></details>`;
 }

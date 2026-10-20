@@ -208,3 +208,8 @@ Foundation提议保存完整创建基线、提交事务CAS与持久幂等回执�
 共享IntentionRow/List用于目标、此刻、约定；共享SemanticFields/Profile组件呈现中文设定，原JSON仅技术展开。角色资料新增真实视觉/头像/任务只读进度，局部失败不阻断人物使用。设置单返回、日记12px容器间距、人物管理规范/兼容路由同步修复。
 
 定向前端29项、type/build/no-Mock及正式dist受控浏览器检查通过；桌面1280与390px iframe无横向溢出。没有真实模型、生成、DB/后端逻辑或NAS部署回归。完整范围与截图：当前任务 `evidence/full-stack/profile-presentation-1020.json`；同一台账 `deliveryVerification.regressionFixes` 追加记录。
+
+
+## 2026-10-20 真实NAS报告与修复状态
+
+独立NAS页面报告：104条路由，89评估、15因缺少类型资源blocked；不是功能回归。UX-01—06源码修复与定向验证完成，见当前任务 `evidence/full-stack/nas-ui-fixes-1020/result.json`。Web246/246，type/build/no-Mock；本地正式dist按报告结构的桌面/390px复验有截图。未部署NAS、未做新代码NAS复验或功能回归。日程数据是否错位仍需真实已接受条目，当前仅修显示/时区选择链，不能视作全量时区验收。

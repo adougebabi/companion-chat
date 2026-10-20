@@ -126,7 +126,8 @@ test('production entry selects real providers while fixtures are explicit build-
   assert.match(facade,/VITE_PRODUCT_MODE === 'mock'/);
   assert.match(facade,/fixture = isMock \? await import/);
   assert.match(facade,/throw new Error\('此操作尚未连接真实命令/);
-  assert.match(app,/real.registerProviders\(\); await real.refreshProduct\(\)/);
+  assert.match(app,/real.registerProviders\(\); await real.refreshProduct\(\{initialOnly:true\}\)/);
+  assert.match(app,/if\(real&&store.get\('session'\)\)void real.refreshProduct\(\)/);
   assert.doesNotMatch(app,/mountCoreSurface|component-host/);
 });
 

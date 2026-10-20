@@ -116,3 +116,34 @@ Correct: render the action error within the modal slot, with retry and cancel re
   shell-owned return control. Normal pages retain history behavior. NPC management
   uses `/people/npcs`, with `/people/manage` as a same-renderer compatibility URL.
 - Page/card spacing belongs to `stack/grid` parents, not global card margins.
+
+## NAS report regression contracts (2026-10-20)
+
+- Generic recursion cannot replace entity presentation. Initial `wardrobe_items`
+  describes initial availability and initial wear; effective `worn_items` requires
+  known wearing state and verified available rows. Known-empty wear and unknown
+  wear have different copy. Current body uses known/unknown/cleared wrappers and
+  must not fall back to Foundation. Use contextual labels for booleans, not
+  orphaned 是/否 or category/slot tokens. Preserve authored narratives under open
+  or custom keys with a neutral Chinese label; technical fields remain folded.
+- The shared `userInstant` formatter validates zones, preserves milliseconds
+  and numeric offset for diagnostics, and shows the actual chosen zone. Missing
+  zone uses the browser's valid display zone; malformed zones cannot crash pages.
+  Schedule header, range and suggestion context choose schedule.timezone before
+  context.timezone. Compact ranges retain both dates across midnight; raw offset
+  timestamps remain in folded source and unchanged in commands.
+- Diagnostic lifecycle/task labels use the domain presentation helper. Completed
+  model/worker runs are not a claim of completed business effects. Primary cards
+  show readable time/status/name; raw keys, IDs and error codes stay available in
+  source details. Home and cursor streams each need their own stack gap.
+- Autonomy fields have distinct contact/action/frequency/quiet sections. Scoped
+  switch layout must retain names, data selectors, inheritance disablement,
+  budget omission and CAS/pending-draft semantics.
+- Runtime capability definitions currently arrive with Go PascalCase fields;
+  configuration provider normalizes display aliases, preserves sourceContract,
+  and remains compatible with lowercase DTOs. Do not change shared Go JSON tags
+  merely to fix a browser title. Catalog, goal history and creation review default
+  to readable summaries with closed technical JSON.
+- NAS route visual coverage and functional regression are separate evidence.
+  Missing typed resources block detail routes; local report-shaped replay does
+  not upgrade them or prove deployment acceptance. See nas-ui-report.test.mjs.

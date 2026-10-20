@@ -6,6 +6,7 @@ import {JsonDetails} from '../components/records.js';
 import {asyncPage} from '../components/async-page.js';
 import {mountConfigurationEditor} from '../components/configuration-editor.js';
 import {mountProviderEditors} from '../components/provider-editor.js';
+import {RuntimeCatalog} from '../components/runtime-catalog.js';
 import {configurationFields,configurationTitles,conversationReplyDisplayValue} from '../components/configuration-fields.js';
 
 const sectionKeys={'reply-vision':['conversation.reply','vision.understanding'],kev:['kev'],'media-workflows':['media.comfyui'],runtime:['product.autonomy','product.wakeup','llm.queue','product.summary','product.goal_retry'],notifications:['product.notifications']};
@@ -17,7 +18,7 @@ function editorInitial(key,value){
 export function renderRealSettings(el){return asyncPage(el,()=>configurationClient.read(),snapshot=>{el.innerHTML=`<div class="settings-page stack"><a class="banner info" href="#/setup">首次使用？按“服务连接 → 世界底稿 → 创建人物”继续初始化。</a><div class="grid g2 settings-home">${configurationSections.map(s=>`<a class="card" href="#/settings/${encodeURIComponent(s.id)}"><h3>${esc(s.title)}</h3><p class="small muted">读取、编辑和保存真实配置</p></a>`).join('')}</div><div class="card"><h3>当前能力状态</h3>${JsonDetails(snapshot.effective_values['ai.capability_status'],'模型配置与最近调用')}<p>端点、凭据及工作流来自服务端。系统默认、未配置和失败分别显示；正在运行的任务继续使用其冻结配置。</p></div></div>`;});}
 export function renderRealConfiguration(el,ctx){
  const section=ctx.def.mockSection,owner=get('session')?.actorId;
- if(section==='capabilities')return asyncPage(el,()=>configurationClient.catalog(),catalog=>{el.innerHTML=`<div class="card"><h2>已注册的 Agent 与 Tool</h2><p>此目录展示已注册契约，只读；运行时还会按范围、权限和回复模式投影。能力请求审核请进入对应角色治理页；审核不等于安装代码或全局授权。</p>${JsonDetails(catalog.agents,'实际 Agent 定义')}${catalog.capabilities.map(c=>`<details><summary>${esc(c.name)} · ${esc(c.version)} · ${esc(c.type)}</summary><p>${esc(c.description)}</p>${JsonDetails(c,'能力契约与执行边界')}</details>`).join('')}</div>`;});
+ if(section==='capabilities')return asyncPage(el,()=>configurationClient.catalog(),catalog=>{el.innerHTML=RuntimeCatalog(catalog);});
  if(section==='owner')return renderOwnerConfiguration(el,ctx,owner);
  if(section==='models')return asyncPage(el,async()=>{const catalog=await configurationClient.read();return {catalog,endpoints:catalog.endpoints,bindings:catalog.bindings};},(value,reload,alive)=>{el.innerHTML='<div class="settings-page stack"><div data-providers></div></div>';const editor=mountProviderEditors(el.querySelector('[data-providers]'),{...value,alive:()=>alive()&&get('session')?.actorId===owner,onSaved:()=>{}});return()=>editor.dispose();});
  return asyncPage(el,async()=>{const saved=await configurationClient.read();if(section==='notifications'&&ctx.query.pack)saved.importedPack=await dataToolsClient.pack(ctx.query.pack);return saved;},(saved,reload,connected)=>{

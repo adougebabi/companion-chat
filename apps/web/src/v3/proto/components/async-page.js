@@ -1,6 +1,7 @@
 import { esc, drawer } from '../ui.js';
 import {InventoryEffects} from './inventory-effects.js';
 import { lifeClient } from '../services.js';
+import {userInstant} from '../../presentation-time.mjs';
 
 export function asyncPage(el, read, paint) {
   let active=true, epoch=0, dispose;
@@ -18,10 +19,7 @@ export function asyncPage(el, read, paint) {
 }
 
 export function instant(value,zone) {
-  if(!value)return '未记录';
-  const date=new Date(value);
-  if(!Number.isFinite(date.getTime()) || !zone)return String(value);
-  return new Intl.DateTimeFormat('zh-CN',{timeZone:zone,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(date);
+  return userInstant(value,zone);
 }
 const requestLabels={pending:'已受理',processing:'正在判断',accepted:'已接受，履行待证据',completed:'执行已提交',rejected:'未接受',deferred:'暂缓，尚未执行',awaiting_goal:'等待目标规划，尚未接受',cancelled:'已取消，事实与历史保留',failed:'执行失败'};
 // Observation only. Closing the drawer stops polling, never cancels the job.
