@@ -949,8 +949,9 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 			contextWindowTokens = maxInputTokens + budget + margin
 		}
 	} else if !maxInputExplicit {
-		if maxInputTokens+budget+margin > contextWindowTokens && contextWindowTokens-budget-margin > 0 {
-			maxInputTokens = contextWindowTokens - budget - margin
+		maxInputTokens, err = automaticProviderInputBudget(contextWindowTokens, budget, promptBudgetPolicyVersion)
+		if err != nil {
+			return err
 		}
 	}
 	if err := validatePromptBudgetConfiguration(contextWindowTokens, maxInputTokens, budget, promptBudgetPolicyVersion); err != nil {

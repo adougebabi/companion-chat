@@ -27,6 +27,7 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodPost, "/api/workflow-controls/:workflowId/pause"}, {http.MethodPost, "/api/workflow-controls/:workflowId/resume"}, {http.MethodPost, "/api/workflow-controls/:workflowId/cancel"}, {http.MethodPost, "/api/workflow-controls/:workflowId/restart"}, {http.MethodPost, "/api/workflow-controls/:workflowId/reset"},
 	{http.MethodGet, "/api/diagnostic-records/:kind"}, {http.MethodGet, "/api/diagnostic-records/:kind/:recordRef"}, {http.MethodPost, "/api/diagnostic-records/clear"},
 	{http.MethodPost, "/api/configuration-commands/recover"},
+	{http.MethodPost, "/api/configuration-commands/cancel-unaccepted"},
 	{http.MethodGet, "/api/configuration-commands/by-key"},
 	{http.MethodGet, "/api/configuration-catalog"}, {http.MethodPost, "/api/settings/media/test-connection"},
 	{http.MethodGet, "/api/moment-suggestions"},

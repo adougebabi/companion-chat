@@ -148,6 +148,7 @@ export class BrowserClient {
   async logout(): Promise<void> { await this.json("/auth/logout", { method: "POST" }); }
   async changePassword(password: string): Promise<void> { await this.json("/auth/password", { method: "POST", body: { password } }); }
   async recoverConfigurationCommand(key:string):Promise<Record<string,unknown>>{return this.json('/api/configuration-commands/recover',{method:'POST',body:{key}}) as Promise<Record<string,unknown>>;}
+  async cancelUnacceptedConfigurationCommand(key:string):Promise<Record<string,unknown>>{return this.json('/api/configuration-commands/cancel-unaccepted',{method:'POST',body:{key}}) as Promise<Record<string,unknown>>;}
   async ownerWorkflowInspection(workflowId:string):Promise<BrowserWorkflowInspection>{return this.json(\`/api/workflow-controls/\${encodeURIComponent(workflowId)}\`) as Promise<BrowserWorkflowInspection>;}
   async ownerWorkflowHistoryPage(workflowId:string,runId:string,cursor=''):Promise<BrowserWorkflowHistoryPage>{return this.json(\`/api/workflow-controls/\${encodeURIComponent(workflowId)}/history?\${new URLSearchParams({runId,cursor})}\`) as Promise<BrowserWorkflowHistoryPage>;}
   async ownerWorkflowControl(workflowId:string,action:'pause'|'resume'|'cancel'|'restart'|'reset',body:BrowserWorkflowControlBody):Promise<Record<string,unknown>>{return this.json(\`/api/workflow-controls/\${encodeURIComponent(workflowId)}/\${action}\`,{method:'POST',body}) as Promise<Record<string,unknown>>;}

@@ -10,6 +10,7 @@ export function installConfigurationProvider(client:BrowserClient,refresh:()=>Pr
  settings:()=>client.settings(),
  command:(key:string)=>client.configurationCommandByKey(key),
  recover:(key:string)=>client.recoverConfigurationCommand(key),
+ cancelUnaccepted:(key:string)=>client.cancelUnacceptedConfigurationCommand(key),
  save:(body:BrowserConfigurationWrite)=>client.updateSettings(body),
  endpoints:()=>client.providerEndpoints(),
  bindings:()=>client.providerBindings(),

@@ -1265,7 +1265,7 @@ func providerRoleError(response http.ResponseWriter, err error) {
 		"provider_model_not_available":   "Selected model is not available on the provider endpoint",
 		"provider_models_unavailable":    "Provider model list is unavailable",
 		"provider_role_invalid":          "Provider role configuration is invalid",
-		"provider_prompt_budget_invalid": "Provider prompt budget configuration is invalid",
+		"provider_prompt_budget_invalid": "输入预算、输出上限与安全预留之和超过模型上下文窗口，配置未保存",
 		"prompt_budget_policy_unknown":   "Prompt budget policy version is unknown",
 		"provider_preflight_failed":      "Provider preflight failed",
 	}

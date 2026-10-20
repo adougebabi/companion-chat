@@ -8,6 +8,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+const cancelledConfigurationDigest = "configuration-command-cancelled"
+
+func cancelledConfigurationError() error {
+	return &SurfaceError{Status: 409, Code: "configuration_command_cancelled", Message: "原配置提交已停止，请使用当前草稿重新保存"}
+}
+
 func (a *App) configurationReader(ctx context.Context) lifeContextQuerier {
 	if tx, ok := SurfaceDBTx(ctx); ok {
 		return tx
@@ -64,6 +70,9 @@ func beginConfigurationCommandTx(ctx context.Context, tx pgx.Tx, owner, operatio
 	var raw []byte
 	err := tx.QueryRow(ctx, `SELECT digest,response FROM public.owner_surface_idempotency WHERE owner_actor_id=$1 AND idempotency_key=$2`, owner, key).Scan(&prior, &raw)
 	if err == nil {
+		if prior == cancelledConfigurationDigest {
+			return nil, false, cancelledConfigurationError()
+		}
 		if prior != digest {
 			return nil, false, &SurfaceError{Status: 409, Code: "idempotency_conflict", Message: "这个提交身份属于另一份配置内容"}
 		}
@@ -143,7 +152,51 @@ func (a *App) configurationCommandReplayed(ctx context.Context, owner, operation
 		return false, err
 	}
 	if digest != stableDigest(operation+":"+jsonString(payload)) {
+		if digest == cancelledConfigurationDigest {
+			return false, cancelledConfigurationError()
+		}
 		return false, &SurfaceError{Status: 409, Code: "idempotency_conflict", Message: "这个提交身份属于另一份配置内容"}
 	}
 	return true, nil
+}
+
+// Share admission's lock and ledger: a request still in external preflight may
+// not commit after the Owner has explicitly stopped its unaccepted identity.
+func (a *App) CancelUnacceptedConfigurationCommand(ctx context.Context, owner, key string) (map[string]any, error) {
+	if err := a.requireOwner(ctx, owner); err != nil {
+		return nil, err
+	}
+	if key == "" || strings.TrimSpace(key) != key || len(key) > 256 {
+		return nil, invalid("Original configuration command key required")
+	}
+	var result map[string]any
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('owner-configuration',0))`); err != nil {
+			return err
+		}
+		var raw []byte
+		err := tx.QueryRow(ctx, `SELECT response FROM public.owner_surface_idempotency WHERE owner_actor_id=$1 AND idempotency_key=$2`, owner, key).Scan(&raw)
+		if err == nil {
+			prior := decodeObject(raw)
+			if !strings.HasPrefix(stringValue(prior["command_id"]), "configuration_") {
+				return &SurfaceError{Status: 409, Code: "idempotency_conflict", Message: "这个提交身份不属于配置操作"}
+			}
+			result = compactStateMap(prior, []string{"command_id", "resource_keys", "applied_versions", "wake_rearm_required", "status"})
+			if result["status"] != "cancelled" {
+				result["status"] = "committed"
+			}
+			return nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		id := "configuration_" + stableDigest(owner+":"+key)
+		result = map[string]any{"command_id": id, "status": "cancelled"}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.owner_surface_idempotency(owner_actor_id,idempotency_key,digest,response) VALUES($1,$2,$3,$4)`, owner, key, cancelledConfigurationDigest, jsonBytes(result)); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO public.owner_surface_audits(id,owner_actor_id,fluctlight_id,identity,actor,action,reason,record_id) VALUES($1,$2,'','owner_edit','owner','configuration_cancel_unaccepted','停止尚未受理的原配置提交',$3)`, randomID("audit_configuration_"), owner, id)
+		return err
+	})
+	return result, err
 }

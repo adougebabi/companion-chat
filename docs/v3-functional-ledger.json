@@ -28885,6 +28885,22 @@
         "postgresTargeted": "blocked_environment_not_passed",
         "liveExecuted": false,
         "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/l04-world-initialization-fix.json"
+      },
+      {
+        "date": "2026-10-20",
+        "feature": "Provider配置拒绝后恢复保存及输入预算自动计算",
+        "implementation": "明确校验422；未受理原key可原子停止，已提交不撤销；输入只读派生且Core计算最终值",
+        "checks": {
+          "frontendTargeted": 8,
+          "browserClient": 36,
+          "browserBoundaryPackage": "passed",
+          "pureGo": 2,
+          "componentBrowser": "passed_controlled_responses",
+          "postgresTransactions": "not_verified_environment_unavailable_user_requested_no_further_backend_regression"
+        },
+        "migrationRequired": false,
+        "modelCalls": 0,
+        "browserEvidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/provider-configuration-recovery-browser.png"
       }
     ]
   }

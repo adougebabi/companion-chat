@@ -86,6 +86,15 @@ func validatePromptBudgetConfiguration(contextWindow, maxInput, outputReserve in
 	return nil
 }
 
+func automaticProviderInputBudget(window, output int, version string) (int, error) {
+	margin, err := promptSafetyMargin(version)
+	if err != nil {
+		return 0, err
+	}
+	input := window - output - margin
+	return input, validatePromptBudgetConfiguration(window, input, output, version)
+}
+
 func (policy PromptBudgetPolicy) Validate() error {
 	margin, err := promptSafetyMargin(policy.Version)
 	if err != nil {

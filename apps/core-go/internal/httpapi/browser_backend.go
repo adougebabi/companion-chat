@@ -256,6 +256,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		if err == nil {
 			return map[string]any{"role": values["role"], "available": true, "capability_version": "models-v1"}, nil
 		}
+		if validation := browserProviderRoleValidationError(err); validation != nil {
+			return nil, validation
+		}
 	case path == "/internal/actor-groups" && method == http.MethodGet:
 		return b.server.app.ActorGroups(ctx, actorID)
 	case path == "/internal/actor-groups" && method == http.MethodPost:
@@ -651,6 +654,17 @@ func browserInitializationAnalysisError(err error) error {
 		return &browser.CoreError{Status: initializationAnalysisFailureStatus(err), Code: err.Error(), Details: detailed.PublicDetails()}
 	}
 	return err
+}
+
+func browserProviderRoleValidationError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch err.Error() {
+	case "provider_prompt_budget_invalid", "prompt_budget_policy_unknown", "provider_role_invalid", "provider_endpoint_not_found", "provider_model_not_available":
+		return &browser.CoreError{Status: http.StatusUnprocessableEntity, Code: err.Error(), Details: map[string]any{"configuration_admission": "rejected"}}
+	}
+	return nil
 }
 
 func browserBackendError(err error, fallback string) error {

@@ -52,3 +52,32 @@ test('logout cleanup and a replacement command survive late responses from the o
  completeOld({saved:true});await previous;assert.equal(b.pending().idempotencyKey,identity);
  completeNew({saved:true});await replacement;assert.equal(b.pending(),null);
 });
+
+test('known validation rejection unlocks a new save while unknown outcomes require a server fence',async()=>{
+ const storage=memoryStorage();let calls=0;
+ const rejected=persistentCommand({key:'invalid',storage:()=>storage,execute:async()=>{calls++;throw Object.assign(new Error('budget rejected'),{status:422,code:'provider_prompt_budget_invalid'});}});
+ await assert.rejects(rejected.submit({window:1}));assert.equal(rejected.pending(),null);
+ await assert.rejects(rejected.submit({window:2}));assert.equal(calls,2);
+ let cancelled=false;
+ const unknown=persistentCommand({key:'old-unknown',storage:()=>storage,execute:async()=>{throw new TypeError('lost after save');},cancelUnaccepted:async key=>{assert.equal(key,unknown.pending().idempotencyKey);cancelled=true;return {status:'cancelled'};}});
+ await assert.rejects(unknown.submit({window:1}));await assert.rejects(unknown.retry());assert.equal(unknown.pending().attempts,2);
+ assert.deepEqual(await unknown.cancelPending(),{cancelled:true});assert.equal(cancelled,true);assert.equal(unknown.pending(),null);
+});
+
+test('server cancellation recovers committed results and never clears state on an unknown response',async()=>{
+ const storage=memoryStorage();let saved=false;
+ const options={key:'fenced',storage:()=>storage,execute:async()=>{if(!saved)throw new TypeError('response lost');return {id:'committed-receipt'};},cancelUnaccepted:async()=>{saved=true;return {status:'committed'};}};
+ const command=persistentCommand(options);await assert.rejects(command.submit({original:true}));
+ assert.deepEqual(await command.cancelPending(),{committed:true,result:{id:'committed-receipt'}});assert.equal(command.pending(),null);
+ const unknown=persistentCommand({...options,key:'unknown-stop',execute:async()=>{throw new TypeError('offline');},cancelUnaccepted:async()=>{throw new TypeError('lost stop response');}});
+ await assert.rejects(unknown.submit({original:true}));const original=unknown.pending();await assert.rejects(unknown.cancelPending());assert.deepEqual(unknown.pending(),original);
+});
+
+test('a late stop response cannot erase or overwrite another pending identity',async()=>{
+ const storage=memoryStorage();let finishStop;
+ const old=persistentCommand({key:'same-slot',storage:()=>storage,execute:async()=>{throw new TypeError('offline');},cancelUnaccepted:()=>new Promise(resolve=>{finishStop=resolve;})});
+ await assert.rejects(old.submit({old:true}));const stopping=old.cancelPending();storage.removeItem('same-slot');
+ const replacement=persistentCommand({key:'same-slot',storage:()=>storage,execute:async()=>{throw new TypeError('offline');}});
+ await assert.rejects(replacement.submit({new:true}));const record=replacement.pending();finishStop({status:'committed'});
+ assert.equal((await stopping).detached,true);assert.deepEqual(replacement.pending(),record);
+});

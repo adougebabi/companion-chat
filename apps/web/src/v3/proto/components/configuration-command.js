@@ -7,9 +7,9 @@ async function fingerprint(salt,value){const digest=await crypto.subtle.digest('
 // Only command identity, ordinary config and salted credential fingerprints
 // survive refresh. Credential plaintext stays in the current input element.
 export function configurationCommand({slot,alive,readSecret}){
- const command=persistentCommand({key:slot+':command',storage:studioDraftStorage,execute:async(value,key)=>{
+ const command=persistentCommand({key:slot+':command',storage:studioDraftStorage,cancelUnaccepted:key=>{if(!alive())throw new Error('会话已切换');return configurationClient.cancelUnaccepted(key);},execute:async(value,key)=>{
   if(!alive())throw new Error('会话已切换，请回到原配置确认提交');
-  try{let receipt=await configurationClient.command(key);if(!alive())throw new Error('会话已切换');if(receipt.wake_rearm_required)receipt=await configurationClient.recover(key);return {command:receipt,recovered:true,secretProofs:value.secretProofs,submittedBody:value.body};}catch(error){if(error.status!==404)throw error;}
+  try{let receipt=await configurationClient.command(key);if(!alive())throw new Error('会话已切换');if(receipt.status==='cancelled')return {cancelled:true};if(receipt.wake_rearm_required)receipt=await configurationClient.recover(key);return {command:receipt,recovered:true,secretProofs:value.secretProofs,submittedBody:value.body};}catch(error){if(error.status!==404)throw error;}
   const body=structuredClone(value.body),secrets={};
   for(const [purpose,proof]of Object.entries(value.secretProofs||{})){const plain=readSecret(purpose);if(!plain||await fingerprint(proof.salt,plain)!==proof.hash)throw new Error('请重填原提交的访问凭据，再重试原提交；凭据没有保存在浏览器中。');secrets[purpose]=plain;}
   if(!alive())throw new Error('会话已切换，未发送配置');

@@ -18,6 +18,12 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 	if method == "GET" && strings.Join(surfaceParts(path), "/") == "configuration-commands/by-key" {
 		return a.OwnerConfigurationCommand(ctx, owner, query.Get("key"))
 	}
+	if method == "POST" && strings.Join(surfaceParts(path), "/") == "configuration-commands/cancel-unaccepted" {
+		if !eventKeys(body, "key") {
+			return nil, ErrInvalidArguments
+		}
+		return a.CancelUnacceptedConfigurationCommand(ctx, owner, stringValue(body["key"]))
+	}
 	if method == "POST" && strings.Join(surfaceParts(path), "/") == "configuration-commands/recover" {
 		if !eventKeys(body, "key") {
 			return nil, ErrInvalidArguments

@@ -102,6 +102,7 @@ func (a *App) OwnerConfigurationCatalog(ctx context.Context, owner string) (map[
 		return nil, err
 	}
 	saved["endpoints"], saved["bindings"] = endpoints, bindings
+	saved["provider_budget_defaults"] = map[string]any{"policy_version": promptBudgetPolicyVersionV1, "safety_margin_tokens": defaultPromptSafetyMarginTokens, "output_tokens": defaultOutputReserveTokens}
 	saved["effective_values"], saved["value_sources"] = effective, sources
 	return saved, nil
 }
@@ -132,7 +133,7 @@ func (a *App) OwnerConfigurationCommand(ctx context.Context, owner, key string) 
 	if err != nil {
 		return nil, err
 	}
-	return compactStateMap(decodeObject(raw), []string{"command_id", "resource_keys", "applied_versions", "wake_rearm_required"}), nil
+	return compactStateMap(decodeObject(raw), []string{"command_id", "resource_keys", "applied_versions", "wake_rearm_required", "status"}), nil
 }
 
 func (a *App) RecoverOwnerConfigurationCommand(ctx context.Context, owner, key string) (map[string]any, error) {

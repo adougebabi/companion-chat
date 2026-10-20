@@ -2,7 +2,7 @@ import { randomId } from '../../random-id.mjs';
 // This stores a submitted command identity and its immutable input, never a
 // business result. Unknown transport outcomes must replay that exact command
 // before the UI can start another proposal, including after a page refresh.
-export function persistentCommand({key,storage,execute,preAdmissionConflicts=['revision_conflict'],retainedValidationCodes=[]}){
+export function persistentCommand({key,storage,execute,cancelUnaccepted,preAdmissionConflicts=['revision_conflict'],retainedValidationCodes=[]}){
  let running=false;
  function owns(record,exactAttempt=false){
   const raw=storage().getItem(key);if(!raw)return false;
@@ -44,5 +44,17 @@ export function persistentCommand({key,storage,execute,preAdmissionConflicts=['r
    storage().setItem(key,JSON.stringify(record));return run(record);
   },
   async retry(){const record=pending();if(!record)throw new Error('没有等待核对的原提交，请重新读取请求列表。');return run(record);},
+  async cancelPending(){
+   if(running||!cancelUnaccepted)throw new Error('当前无法停止原提交');
+   const record=pending();if(!record)throw new Error('没有等待核对的原提交');
+   running=true;let result;
+   try{
+    result=await cancelUnaccepted(record.idempotencyKey);
+    if(result.status==='cancelled'){if(owns(record))storage().removeItem(key);return {cancelled:true};}
+    if(result.status!=='committed')throw new Error('服务端尚未确认原提交终态，原身份已保留');
+   }finally{running=false;}
+   if(!owns(record))return {committed:true,detached:true};
+   return {committed:true,result:await run(record)};
+  },
  };
 }

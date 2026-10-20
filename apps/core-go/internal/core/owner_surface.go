@@ -204,7 +204,7 @@ func MatchOwnerSurface(method, path string) bool {
 	if matchDiagnosticOperations(method, path) {
 		return true
 	}
-	if method == "POST" && strings.Join(surfaceParts(path), "/") == "configuration-commands/recover" {
+	if method == "POST" && (strings.Join(surfaceParts(path), "/") == "configuration-commands/recover" || strings.Join(surfaceParts(path), "/") == "configuration-commands/cancel-unaccepted") {
 		return true
 	}
 	if method == "GET" && strings.Join(surfaceParts(path), "/") == "configuration-commands/by-key" {

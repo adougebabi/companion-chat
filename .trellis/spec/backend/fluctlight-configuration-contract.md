@@ -112,6 +112,24 @@ must not overwrite an intervening configuration or recreate a cleared secret.
 rearming, with no credential replay. `configuration_revisions(resource_key,revision)`
 retains `secret:purpose`, `endpoint:id`, and `binding:role` versions across deletion.
 
+`POST /api/configuration-commands/cancel-unaccepted {key}` resolves an old pending
+configuration identity under the same admission lock. An existing committed
+receipt returns `status:committed` and is never undone. Otherwise the existing
+Owner-scoped idempotency ledger receives a `configuration-command-cancelled`
+digest and `status:cancelled` receipt atomically with audit; late admission and
+early replay both reject that key with `configuration_command_cancelled`.
+Repeated cancellation returns the same identity. Unknown cancellation responses
+retain the client record; a by-key 404 alone is never proof of non-admission.
+This reuses the existing ledger and requires no schema migration.
+
+Model binding with an explicit real context window and omitted max input uses
+`window - output - policy safety margin`, validated by Core before preflight.
+The configuration catalog supplies `provider_budget_defaults`; existing bindings
+retain their own policy/margin. UI input budget is a derived read-only preview,
+recomputed on edits and source refresh; it is omitted from the write payload.
+The UI does not infer a model's actual loaded window from its name. Explicit
+legacy max input remains supported and validated.
+
 ### 3. Contracts
 
 - Serialize configuration admission and effect under the same advisory lock.
@@ -131,6 +149,10 @@ retains `secret:purpose`, `endpoint:id`, and `binding:role` versions across dele
   clear a newer credential. Effective defaults come from the actual runtime;
   unconfigured and failed configuration are distinct. Saved Comfy connectivity
   checks do not claim that image generation passed.
+- Exact pre-write Provider validation codes, including invalid prompt budget,
+  cross the in-process browser boundary as 422 rather than generic preflight
+  502. Only known first-attempt validation rejection unlocks a new proposal;
+  unknown outcomes require original replay or the explicit server fence above.
 
 ### 4. Validation & Error Matrix
 

@@ -11882,6 +11882,28 @@
               "additionalProperties": true
             }
           },
+          "provider_budget_defaults": {
+            "type": "object",
+            "properties": {
+              "policy_version": {
+                "type": "string"
+              },
+              "safety_margin_tokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "output_tokens": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "policy_version",
+              "safety_margin_tokens",
+              "output_tokens"
+            ],
+            "additionalProperties": false
+          },
           "values": {
             "type": "object",
             "additionalProperties": true
@@ -11913,6 +11935,7 @@
         "required": [
           "endpoints",
           "bindings",
+          "provider_budget_defaults",
           "values",
           "effective_values",
           "value_sources",
@@ -41358,6 +41381,136 @@
             }
           }
         }
+      }
+    },
+    "/internal/configuration-commands/cancel-unaccepted": {
+      "post": {
+        "operationId": "cancelUnacceptedConfigurationCommand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "key"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fence unaccepted configuration identity or return its committed receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
       }
     }
   }

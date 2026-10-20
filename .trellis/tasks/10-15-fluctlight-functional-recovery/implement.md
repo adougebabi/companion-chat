@@ -439,3 +439,11 @@ ReadSettings/配置catalog使用同一只读repeatable-read快照，值、凭据
 新增全src扩展名扫描防止直接调用再次进入；原测试只检查Vue及conversations.ts所以漏检。实际定向24/24通过，覆盖native、HTTP-shaped无randomUUID、1000个安全随机格式/唯一性、无安全RNG失败、创建草稿及未知结果原身份重试；不冒充真实HTTP浏览器或LLM验收。按用户要求保持CI仅格式检查，没有添加测试gate。
 
 Web类型检查、正式Vite构建及现有无Mock产物检查通过；diff check通过。未提交并行的profile-types.ts，不修改其内容。
+
+## 2026-10-20 配置拒绝恢复与自动输入预算
+
+用户报告错误预算提交后永久卡在原提交待核对，并要求输入预算自动计算。根因：Core明确pre-write的预算错误经in-process Browser backend统一变为502，前端把它当未知结果保留冻结请求。修复精确错误映射为422；新错误可直接修改重存。旧unknown提供明确“停止原提交并继续编辑”：服务端同owner-configuration锁下查已提交回执，已保存返回committed；未保存沿既有Owner幂等账本写cancelled fence+审计，旧预检晚到无法再受理。无新表/迁移，不删除既有配置、不凭404解除未知状态；取消响应未知仍保留原身份，晚响应不覆盖新提交。
+
+模型绑定最大输入改只读实时派生，上下文窗口−输出预算−服务端安全预留；新绑定策略默认值由catalog返回，旧v1/v2分别沿原policy/margin。新保存省略maxInputTokens，由Core权威计算；旧显式输入请求继续兼容。读取、reset/rebase/导入与保存回读均重新派生，不重写pending原body或已运行任务快照。
+
+实际验证：相关Node8/8、BrowserClient36/36；Browser API边界包通过；两个纯Go预算/错误映射用例通过。类型/正式构建/无Mock检查通过。真实浏览器挂载当前组件并使用受控配置响应，实测4069→自动16411、422后保存可用、502保留pending、修改草稿→明确停止→保存新稿并回读；截图evidence/full-stack/provider-configuration-recovery-browser.png。这是组件受控回归，不是实际配置库/Provider联调。PG取消事务用例已编译但因专用数据库/OrbStack未启动skip，未计通过。用户随后明确不再运行数据库/后端逻辑回归，完成后直接提交；遵照停止追加此类测试。两名独立只读核验无阻断发现。

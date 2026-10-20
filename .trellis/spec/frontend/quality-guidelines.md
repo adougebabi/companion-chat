@@ -45,6 +45,21 @@ browser source extension to prevent another direct UUID dependency. The old
 Vue/conversation-only source check missed v3 JS pages and TS providers. This
 compatibility adapter does not grant client IDs domain identity or authority.
 
+## Provider configuration recovery and derived input budget
+
+The binding editor derives max input from the explicit loaded context window,
+output limit and server-returned safety margin; it is read-only, recalculates
+without remounting the form, and is omitted from writes so Core owns the result.
+Current bindings and new-binding defaults retain their actual policy source.
+Rebase, reset, saved readback and imported drafts refresh the derived display.
+
+First-attempt 422 validation rejection retains the editable draft and releases
+the failed pending record. Network/5xx outcomes keep the original frozen body.
+The explicit stop button calls the configuration cancellation endpoint: only a
+server-confirmed cancelled identity is discarded; a committed identity recovers
+its receipt and an unknown response retains it. Never erase pending localStorage
+based only on a 404 lookup. A late stop response cannot clear another identity.
+
 ## Scenario: Responsive Glass Detail And Governance Surfaces
 
 ### 1. Scope / Trigger

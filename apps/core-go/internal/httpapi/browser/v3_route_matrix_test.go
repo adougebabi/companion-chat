@@ -69,6 +69,7 @@ func browserV3RouteCases() []browserRouteCase {
 		{name: "clearOwnerDiagnosticRecords", method: "POST", path: "/api/diagnostic-records/clear", body: `{"datasets":["events"],"before":"2026-10-19T00:00:00Z","snapshot":"100:100:","filters":{},"confirm":true,"reason":"Owner clears this diagnostic snapshot","idempotencyKey":"diagnostic-clear"}`},
 		{name: "streamOwnerDiagnosticExport", method: "GET", path: "/api/diagnostic-export"},
 		{name: "recoverConfigurationCommand", method: "POST", path: "/api/configuration-commands/recover", body: `{"key":"configuration-original-key"}`},
+		{name: "cancelUnacceptedConfigurationCommand", method: "POST", path: "/api/configuration-commands/cancel-unaccepted", body: `{"key":"configuration-original-key"}`},
 		{name: "configurationCatalog", method: "GET", path: "/api/configuration-catalog"},
 		{name: "configurationCommandByKey", method: "GET", path: "/api/configuration-commands/by-key?key=fixture-original-key"},
 		{name: "testSavedMediaConnection", method: "POST", path: "/api/settings/media/test-connection", body: `{}`},
