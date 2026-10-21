@@ -111,7 +111,12 @@ export function renderChat(el, ctx) {
   el.innerHTML = ChatPanel({ character: c, summary: summary(c), messages: msgs, messageOptions,
     sidebar: side(c) });
   const stream = el.querySelector('.stream'); stream.scrollTop = 1e9;
-  el.querySelector('form').onsubmit = e => { e.preventDefault(); const i = e.target.t; send(i.value, el); i.value = ''; };
+  const form=el.querySelector('form'), input=form.elements.t;
+  let composing=false;
+  input.oncompositionstart=()=>{composing=true;};
+  input.oncompositionend=()=>{composing=false;};
+  input.onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&!composing&&event.keyCode!==229){event.preventDefault();form.requestSubmit();}};
+  form.onsubmit = e => { e.preventDefault(); if(composing||streaming||!input.value.trim())return; send(input.value, el); input.value = ''; };
   stream.onclick = e => {
     const w = e.target.closest('[data-wrong]'); if (w) return openCorrection(w.dataset.wrong);
     const act = e.target.closest('[data-act]'); if (!act) return; const id = act.closest('[data-action]').dataset.action;

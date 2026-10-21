@@ -23,7 +23,7 @@ function surface() {
   const fields = Object.fromEntries(['targetPersonaId', 'reason', 'confirm'].map(name => [name, { value: '', checked: false, focus() { this.focused = true; } }]));
   const nodes = { '[data-profile-switch]': { elements: fields }, '[data-profile-feedback]': {closest:()=>panel}, '[data-profile-refresh]': {}, '[data-profile-edit]': {}, '[data-profile-retry]': {} };
   return { dataset: { page: 'profile.char.view' }, innerHTML: '', nodes,panel,
-    querySelector(selector) { return nodes[selector]; }, querySelectorAll() { return Object.values(fields); } };
+    querySelector(selector) { return nodes[selector]; }, querySelectorAll(selector) { return selector === '[data-avatar-image]' ? [] : Object.values(fields); } };
 }
 function draft(el) { const fields = el.nodes['[data-profile-switch]'].elements; fields.targetPersonaId.value = 'focused'; fields.reason.value = '专注完成当前工作'; fields.confirm.checked = true; }
 const submit = el => el.nodes['[data-profile-switch]'].onsubmit({ preventDefault() {} });

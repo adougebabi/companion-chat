@@ -1,4 +1,5 @@
 import {exchangeNavigation,managementNavigation,globalNavigation} from '../workspace-navigation.mjs';
+import {Avatar,bindAvatars} from './components/avatar.js';
 import { ApplicationShell } from './components/shell.js';
 import * as store from './store.js';
 import * as ui from './ui.js';
@@ -16,6 +17,17 @@ const demoStates = {}; const keptDrafts = {}; // route key → 演示状态
 let disposePage = null;
 let current = null; const HKEY = 'fluctlight.backstack';
 let back = JSON.parse(sessionStorage.getItem(HKEY) || '[]'); let popping = false;
+const scrollPositions = new Map(); let stopScrollRestore=()=>{};
+function restorePagePosition(top=0){
+  stopScrollRestore();
+  if(!top){window.scrollTo(0,0);return;}
+  let stopped=false,timer;
+  const cancel=()=>{if(stopped)return;stopped=true;observer.disconnect();clearTimeout(timer);for(const type of ['wheel','touchstart','pointerdown','keydown'])document.removeEventListener(type,cancel);};
+  const attempt=()=>{if(stopped)return;window.scrollTo(0,top);if(Math.abs(window.scrollY-top)<1)cancel();};
+  const observer=new ResizeObserver(attempt);observer.observe(ui.$('#main'));
+  for(const type of ['wheel','touchstart','pointerdown','keydown'])document.addEventListener(type,cancel,{once:true,passive:true});
+  timer=setTimeout(cancel,8000);stopScrollRestore=cancel;requestAnimationFrame(attempt);
+}
 
 function parse() {
   const raw = location.hash.slice(1) || '/library';
@@ -48,15 +60,15 @@ function popmenu(anchor, items) {
   const m = document.createElement('div'); m.className = 'popmenu';
   const r = anchor.getBoundingClientRect(); m.style.top = (r.bottom + 6 + scrollY) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - 260)) + 'px';
   m.innerHTML = items.map((it, i) => it === '-' ? '<hr style="border:0;border-top:1px solid var(--line)">' : `<button data-i="${i}" ${it.test ? `data-test="${it.test}"` : ''}>${it.html}</button>`).join('');
-  document.body.append(m);
+  document.body.append(m); bindAvatars(m);
   m.onclick = e => { const b = e.target.closest('[data-i]'); if (b) { m.remove(); items[b.dataset.i].run(); } };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', off); } }), 0);
 }
 function charMenu(a) {
   const groups = store.list('groups');
   const items = [];
-  groups.forEach(g => store.list('characters', c => c.groupId === g.id).forEach(c => items.push({ test: 'switch-' + c.id, html: `<img class="av sm" src="${esc(c.avatar)}" alt=""> <span class="grow">${esc(c.name)} <span class="small muted">· ${esc(g.name)}</span></span>${badge(c.status, c.status === '正常' ? '已确认' : c.status === '异常' ? '失败' : '未知')}`,
-    run: () => { if (c.status === '已退休') ui.toast('星野已退休，仅可在角色库查看归档'); store.setUi({ charId: c.id }); navigate(`#/c/${c.id}/chat`); } })));
+  groups.forEach(g => store.list('characters', c => c.groupId === g.id).forEach(c => items.push({ test: 'switch-' + c.id, html: `${Avatar({src:c.avatar,name:c.name,size:'sm'})} <span class="grow">${esc(c.name)} <span class="small muted">· ${esc(g.name)}</span></span>${badge(c.status, c.status === '正常' ? '已确认' : c.status === '异常' ? '失败' : '未知')}`,
+    run: () => { if (c.status === '已退休') ui.toast(c.name+'已退休，仅可在角色库查看归档'); store.setUi({ charId: c.id }); navigate(`#/c/${c.id}/chat`); } })));
   items.push('-', { html: `${icon('home')} 角色库`, run: () => navigate('#/library') });
   popmenu(a, items);
 }
@@ -71,7 +83,8 @@ function moreMenu(a) {
 }
 function renderChrome(ctx) {
   const st = store.get('ui'); const c = store.get('characters', ctx.charId) || { id: ctx.charId||'', name: ctx.charId?'角色资料待读取':'角色库', avatar: '', worldId: null }; const w = store.get('worlds', c.worldId);
-  ui.$('#charsw').innerHTML = `${c.avatar?`<img class="av" src="${esc(c.avatar)}" alt="">`:`<span class="av" aria-hidden="true" style="display:grid;place-items:center;background:var(--primary-soft)">${esc(c.name.slice(0,1))}</span>`}<b>${esc(c.name)}</b>${icon('more')}`;
+  ui.$('#charsw').innerHTML = `${Avatar({src:c.avatar,name:c.name})}<b>${esc(c.name)}</b>${icon('more')}`;
+  bindAvatars(ui.$('#charsw'));
   ui.$('#scopebar').innerHTML = `<span class="hide-n">${badge(ctx.def?.scope || '角色范围')}</span><span class="hide-n">${esc(c.name)} · ${esc(w?.name || '')}</span>
     <span class="ident" data-test="ident">${['交流', '管理'].map(v => `<button data-v="${v}" class="${st.identity === v ? 'on' : ''}">${v}</button>`).join('')}</span>`;
   ui.$$('#scopebar .ident button').forEach(b => b.onclick = () => { store.setUi({ identity: b.dataset.v }); navigate(b.dataset.v==='管理'?'#/settings':c.id?`#/c/${c.id}/chat`:'#/library'); });
@@ -93,6 +106,7 @@ function renderChrome(ctx) {
 function renderPage() {
   disposePage?.(); disposePage = null;
   const { def, params, ctx } = current; const main = ui.$('#main');
+  main.classList.toggle('chat-page',def.key==='chat.thread.view');
   const state = demoStates[def.key] || '正常';
   ctx.state = state; renderChrome(ctx);
   const showBack = back.length > 1 || ctx.query.from;
@@ -114,27 +128,30 @@ function renderPage() {
     if (state === '正常') { const cleanup = def.render(el, ctx); if (typeof cleanup === 'function') disposePage = cleanup; }
     else if (def.renderState && def.renderState(el, ctx, state) !== false) { /* 页面自定义 */ }
     else el.innerHTML = ui.stateView(state, { zone: def.zone, kept: !!keptDrafts[def.key] });
-  } catch (e) { console.error(e); el.innerHTML = `<div class="banner err">页面渲染出错：${esc(e.message)}</div>`; }
+  } catch (e) { console.error(e); el.innerHTML = `<div class="statebox" role="alert"><h2>页面暂时无法显示</h2><p class="muted">可以重新打开此页，或返回角色库继续。错误详情可用于定位问题。</p><div class="row"><button class="btn" data-render-retry>重新打开此页</button><a class="btn" href="#/library">返回角色库</a></div><details class="small muted"><summary>错误详情</summary><pre>${esc(e.message)}</pre></details></div>`;el.querySelector('[data-render-retry]').onclick=renderPage; }
   renderGuide();
 }
 function route() {
+  stopScrollRestore();
+  if(current){scrollPositions.set(current.ctx.raw,window.scrollY);if(scrollPositions.size>40)scrollPositions.delete(scrollPositions.keys().next().value);}
   // Resolve the initial route before parsing. Replacing an empty URL with
   // /auth does not emit hashchange; parsing /library first leaves main blank.
   if (!location.hash) { history.replaceState(null, '', store.get('session') || store.isMock ? '#/library' : '#/auth'); }
   const { raw, path, query } = parse();
+  const restoreTop=popping?scrollPositions.get(raw)||0:0;
   if (!popping) { if (back[back.length - 1] !== '#' + raw) back.push('#' + raw); if (back.length > 40) back.shift(); sessionStorage.setItem(HKEY, JSON.stringify(back)); }
   popping = false;
   let m = match(path);
-  if (!m) m = { def: { key: 'sys.notfound', title: '页面不存在', zone: '总设计', coverage: '未完成', bp: '—', render: el => el.innerHTML = `<div class="placeholder"><div class="card"><div style="font-size:42px">🧭</div><h2>未完成：没有这个页面</h2><p class="muted">路由 <code>${esc(path)}</code> 尚未在任何分区注册。</p><button class="btn" data-back>返回</button></div></div>` }, params: {} };
+  if (!m) m = { def: { key:'sys.notfound',title:'页面不存在',scope:'全局定义',zone:'总设计',coverage:'未完成',bp:'—',render:el=>el.innerHTML=`<div class="statebox"><h2>没有找到这个页面</h2><p class="muted">链接可能已经变更。可以返回上一页，或从角色库继续。</p><div class="row"><button class="btn" data-back>返回上一页</button><a class="btn primary" href="#/library">回到角色库</a></div><details class="small muted"><summary>链接信息</summary><p>${esc(path)}</p></details></div>` },params:{} };
   const charId = m.params.charId || store.get('ui').charId || '';
   if (m.params.charId && store.get('ui').charId !== charId && store.get('characters', charId)) store.setUi({ charId });
-  current = { ...m, ctx: { params: m.params, query, path, charId, def: m.def, navigate, goBack, refresh: () => renderPage(), store, ui } };
+  current = { ...m, ctx: { params: m.params, query, path, raw, charId, def: m.def, navigate, goBack, refresh: () => renderPage(), store, ui } };
   if(m.def.workspace&&store.get('ui').identity!==m.def.workspace)store.setUi({identity:m.def.workspace});
   ui.closeOverlays(); document.querySelectorAll('.popmenu').forEach(x => x.remove());
   if (!store.isMock && path !== '/auth' && !store.get('session')) { navigate('#/auth'); return; }
   // A stale directory is not an authorization decision. The page's scoped API
   // reads the actual character and supplies the real not-found/permission state.
-  renderPage(); window.scrollTo(0, 0);
+  renderPage(); restorePagePosition(restoreTop);
 }
 export async function mountProduct(host) {
 if (!host) return;
@@ -155,7 +172,7 @@ addEventListener('hashchange', route);
 route();
 if(real&&store.get('session'))void real.refreshProduct().catch(error=>ui.toast(error.message,'err'));
 if (store.isMock) window.__app = { navigate, goBack, routes: allRoutes, get current() { return current; }, demoStates };
-cleanup = () => { unsubscribe(); disposeShell(); removeEventListener('hashchange', route); disposePage?.(); disposePage = null; current = null; ui.closeOverlays(); };
+cleanup = () => { stopScrollRestore(); unsubscribe(); disposeShell(); removeEventListener('hashchange', route); disposePage?.(); disposePage = null; current = null; ui.closeOverlays(); };
 }
 await start();
 return()=>{stopped=true;cleanup?.();};

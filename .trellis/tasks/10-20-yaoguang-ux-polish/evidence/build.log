@@ -1,0 +1,54 @@
+$ vite build && node scripts/verify-product-build.mjs
+vite v7.1.5 building for production...
+transforming...
+✓ 222 modules transformed.
+rendering chunks...
+[plugin vite:reporter]
+(!) /Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/components/place-defaults.js is dynamically imported by /Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/modules/世界人物.js but also statically imported by /Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/pages/world-management.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                               0.69 kB │ gzip:  0.37 kB
+dist/assets/index-CoXQ1CO6.css               43.08 kB │ gzip:  9.44 kB
+dist/assets/governance-tabs-Cpt0pbj4.js       0.30 kB │ gzip:  0.29 kB
+dist/assets/message-time-ySIE50tA.js          0.74 kB │ gzip:  0.46 kB
+dist/assets/real-generate-DCarPSoB.js         1.32 kB │ gzip:  0.87 kB
+dist/assets/real-material-D9grY15E.js         1.55 kB │ gzip:  0.96 kB
+dist/assets/goal-records-B0LwnzjB.js          1.59 kB │ gzip:  0.87 kB
+dist/assets/governance-records-lb0QkjVn.js    2.10 kB │ gzip:  1.19 kB
+dist/assets/real-world-events-DrXY9YwQ.js     3.01 kB │ gzip:  1.67 kB
+dist/assets/real-backups-BN4wD-22.js          3.14 kB │ gzip:  1.93 kB
+dist/assets/business-backups-C_SR75sA.js      3.17 kB │ gzip:  1.86 kB
+dist/assets/real-history-BtKt9sEh.js          3.31 kB │ gzip:  1.56 kB
+dist/assets/runtime-catalog-DXpUXG-e.js       3.59 kB │ gzip:  1.89 kB
+dist/assets/real-life-now-Czcu-gN_.js         3.70 kB │ gzip:  1.93 kB
+dist/assets/real-world-items-hO4pK0gh.js      4.64 kB │ gzip:  2.43 kB
+dist/assets/real-workflow-CUfU2vmq.js         5.34 kB │ gzip:  2.63 kB
+dist/assets/real-goal-planning-usjMnZUC.js    5.42 kB │ gzip:  2.61 kB
+dist/assets/real-reflection-D1_VGT0j.js       6.17 kB │ gzip:  2.85 kB
+dist/assets/real-setup-aAkbSoiT.js            6.34 kB │ gzip:  3.07 kB
+dist/assets/real-goal-editor-BR6aY36G.js      6.91 kB │ gzip:  3.15 kB
+dist/assets/real-avatar-RG0dI-WK.js           7.17 kB │ gzip:  3.31 kB
+dist/assets/real-autonomy-DKP7zmqz.js         7.44 kB │ gzip:  3.47 kB
+dist/assets/real-about-you-CvHETbVf.js        8.15 kB │ gzip:  3.60 kB
+dist/assets/real-operations-9DM2hyOW.js       8.48 kB │ gzip:  3.69 kB
+dist/assets/real-self-D6oer-NM.js             9.27 kB │ gzip:  4.08 kB
+dist/assets/real-governance-C7ZFuN5s.js       9.37 kB │ gzip:  4.26 kB
+dist/assets/real-life-schedule-1cxTXNGZ.js   10.15 kB │ gzip:  4.25 kB
+dist/assets/chat-dWDTDoMC.js                 10.55 kB │ gzip:  4.84 kB
+dist/assets/real-chat-BDr19F-D.js            11.00 kB │ gzip:  4.90 kB
+dist/assets/real-life-goals-DxkqSeSX.js      11.14 kB │ gzip:  4.95 kB
+dist/assets/real-diary-BGLLTfkA.js           11.23 kB │ gzip:  4.78 kB
+dist/assets/real-memory-DGtESEje.js          11.27 kB │ gzip:  4.42 kB
+dist/assets/real-visual-hu9SPmGL.js          11.39 kB │ gzip:  4.79 kB
+dist/assets/real-data-tools-B_0JSLUT.js      11.44 kB │ gzip:  5.20 kB
+dist/assets/real-diagnostics-DPgWoaJJ.js     16.58 kB │ gzip:  6.95 kB
+dist/assets/real-moments-CPsBFtAu.js         17.32 kB │ gzip:  6.57 kB
+dist/assets/real-media-Yq8tnGl5.js           21.49 kB │ gzip:  8.08 kB
+dist/assets/real-life-wardrobe-D8LNBmlH.js   25.69 kB │ gzip:  9.46 kB
+dist/assets/real-core-CUPmyqjc.js            31.61 kB │ gzip: 11.87 kB
+dist/assets/real-configuration-B9ZstQa3.js   38.45 kB │ gzip: 14.33 kB
+dist/assets/profile-Ctrh9ZUw.js             116.81 kB │ gzip: 45.46 kB
+dist/assets/real-ssgcEYw1.js                124.29 kB │ gzip: 33.65 kB
+dist/assets/index-B1zNagf3.js               231.60 kB │ gzip: 76.12 kB
+✓ built in 695ms
+Verified real production bundle: no fixture store, seed, diagnostic samples, debug writers or QA page.

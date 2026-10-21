@@ -31,8 +31,8 @@ export function ProfileGroups(snapshot) {
 }
 export function ProfileHeader(snapshot, canEdit) {
   return Card({ attrs: { 'data-test': `profile-${snapshot.id}` },
-    heading: snapshot.avatar ? EntityHeader({ avatar: snapshot.avatar, title: snapshot.name || '姓名尚未记录', subtitle: snapshot.mode === 'mock' ? '隔离演示资料' : '角色资料', status: badge(({active:'运行中',paused:'已暂停',retired:'已退休',archived:'已归档',created:'准备中',failed:'需要处理'})[snapshot.status]||snapshot.status||'状态未提供') }) : `<div class="row"><h2 class="grow">${esc(snapshot.name || '姓名尚未记录')}</h2>${badge(({active:'运行中',paused:'已暂停',retired:'已退休',archived:'已归档'})[snapshot.status]||snapshot.status||'状态未提供')}</div>`,
-    body: `<p class="memory-content" data-test="profile-bio">${esc(snapshot.bio) || '尚未记录简介'}</p><p class="small muted">当前人格 · ${esc(personaName(snapshot,snapshot.activeProfileId))}</p><details class="mgmt small muted"><summary>资料版本</summary>${KeyValueList([['身份核心版本', ProfileValue(snapshot.foundationRevision)], ['运行版本', ProfileValue(snapshot.runtimeRevision)]])}</details>`,
+    heading: EntityHeader({avatar:snapshot.avatar,title:snapshot.name||'姓名尚未记录',subtitle:`当前人格 · ${esc(personaName(snapshot,snapshot.activeProfileId))}`,status:badge(({active:'运行中',paused:'已暂停',retired:'已退休',archived:'已归档',created:'准备中',failed:'需要处理'})[snapshot.status]||snapshot.status||'状态未提供')}),
+    body: `<p class="memory-content" data-test="profile-bio">${esc(snapshot.bio) || '尚未记录简介'}</p><details class="mgmt small muted"><summary>资料版本</summary>${KeyValueList([['身份核心版本', ProfileValue(snapshot.foundationRevision)], ['运行版本', ProfileValue(snapshot.runtimeRevision)]])}</details>`,
     footer: `<div class="row"><button class="btn" data-profile-edit data-test="profile-edit" ${!canEdit || snapshot.readOnly ? 'disabled' : ''}>编辑简介…</button><a class="btn ghost" href="#/c/${encodeURIComponent(snapshot.id)}/settings/autonomy">自治与触达</a><a class="btn ghost" href="#/c/${encodeURIComponent(snapshot.id)}/growth/self">自我认知</a></div>` });
 }
 export function PersonaSection(snapshot, canSwitch) {

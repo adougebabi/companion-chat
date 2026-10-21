@@ -1,4 +1,5 @@
 // 模块注册表：各分区 js/modules/<分区>.js 调用 register() 挂页面
+import {esc,icon} from '../components/controls.js';
 import {workspaceForPath} from '../../workspace-navigation.mjs';
 const routes = [];
 /**
@@ -23,8 +24,8 @@ export const allRoutes = () => routes.slice();
 export function placeholder({ route, key, title, bp, zone, coverage = '占位', note = '', scope, extra }) {
   return register({ route, key, title, bp, zone, coverage, scope, iface: [['页面', '待核验']], source: note || '主稿 v1.0 附录',
     render(el, ctx) {
-      el.innerHTML = `<div class="placeholder"><div class="card"><div style="font-size:42px">🚧</div><h2>${coverage === '未完成' ? '未完成' : '占位页面'}：${title}</h2>
-      <p class="muted">page key <code>${key}</code> · ${bp} · 归属分区 <b>${zone}</b></p><p class="small muted">${note || '该页由对应分区在 js/modules/' + zone + '.js 中实现。'}</p><div data-extra></div>
+      el.innerHTML = `<div class="placeholder"><div class="card"><div class="empty-state-icon">${icon('info')}</div><h2>${esc(title)}尚未开放</h2>
+      <p class="muted">${esc(note || '这项能力暂时不可用，可以继续使用现有功能。')}</p><div data-extra></div>
       <div class="row" style="justify-content:center;margin-top:12px"><button class="btn" data-back>返回</button><a class="btn primary" href="#/c/${ctx.charId}/chat">回到对话</a></div></div></div>`;
       if (extra) extra(el.querySelector('[data-extra]'), ctx);
     } });

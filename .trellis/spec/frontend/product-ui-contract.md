@@ -147,3 +147,60 @@ Correct: render the action error within the modal slot, with retry and cancel re
 - NAS route visual coverage and functional regression are separate evidence.
   Missing typed resources block detail routes; local report-shaped replay does
   not upgrade them or prove deployment acceptance. See nas-ui-report.test.mjs.
+
+## V3 experience continuity and responsive review (2026-10-21)
+
+The current production owner is `v3/proto/app.js` plus `styles/v3-proto.css`.
+Retain the accepted sage tokens; shared changes belong in native v3 components,
+not the historical Vue views. This pass does not rename API fields or states.
+
+- `Field` supplies independent control IDs and combines caller descriptions with
+  help IDs. Required indicators exclude disabled/readonly controls. TextComposer
+  uses a textarea: Enter sends, Shift+Enter inserts a newline, and composition/
+  keyCode229 never submits. Stream updates must keep the composer mounted.
+- Overlay focus candidates include native `summary` as well as controls and
+  links. A drawer containing only Close and collapsed records must still allow
+  Tab/Shift+Tab to reach every summary. Only the top layer owns focus; lower
+  layers/background are inert, body scrolling stays locked until the last close.
+  Cancel retains outer drafts and returns focus. Async owners disabling a trigger
+  before opening confirmation must restore that actual trigger after re-enabling.
+- Chat has one bounded message scroll owner and a reachable composer. A located
+  historical message belongs inside `.stream`; a long original cannot occupy a
+  sibling flex row that pushes the composer outside the viewport. Pixel reading
+  offsets are reusable only with the same conversation and message ID sequence;
+  re-reading a bounded latest page must not reuse a previous expanded-history
+  offset. History pagination is not a full cached transcript.
+- `zonedInput(instant, zone)` displays the schedule's explicit zone.
+  `zonedInputInstant(local, zone, original)` preserves the original instant string
+  when the displayed minute is unchanged, including its seconds, milliseconds
+  and numeric offset. Exact/local modes have one enabled field pair at a time;
+  switching back records the exact input as the new original. DST gaps/folds
+  require explicit correction or an offset. End <= start focuses the end field,
+  preserves the draft and sends no request. Provider CAS/idempotency stay owners.
+- Reading cards may use `InstantLabel`/`readingInstant` for short dates, retaining
+  the full `userInstant` in title/aria and the original source. Diagnostic time
+  formatting keeps milliseconds, offset and selected IANA zone.
+- At <=760px, sibling tabs and search get their own toolbar rows. Long entity
+  names keep a readable identity row; status and multiple actions wrap below.
+  No horizontal document overflow at390px; additionally check320px controls and
+  an intermediate desktop/sidebar breakpoint. Check actual innerWidth and
+  document scrollWidth, not screenshot scaling. Nonessential motion respects
+  the loaded reduced-motion override; do not claim an OS preference was toggled
+  from CSS inspection alone.
+- Diagnostic filters remain draft inputs until Query. Phone entry with no URL
+  filters may start collapsed so records are visible; supplied URL filters open
+  the panel. Polling/export/pagination still use the applied snapshot. Technical
+  raw fields and low-frequency maintenance stay available through disclosure.
+- Global media uses `ctx.params.charId` only for an explicit character route;
+  the shell's selected character is not global asset authority. A selected
+  character must not silently convert `/studio/media` into that character's list.
+- A failed lazy module import offers an explicit full-page refresh. Retrying the
+  same cached rejected import after deployment cannot recover removed chunks.
+
+Verification: `v3-ux-scope.test.mjs` covers global/character media authority,
+Field identities and fallback character navigation. `zoned-input.test.mjs` covers
+precision/offset preservation, DST gap/fold and invalid dates. Production-image
+CUA checks cover nested cancellation, summary focus, exact/local round trips,
+chat draft/history and reading position, configuration cancellation, responsive
+surfaces and module-refresh recovery. Missing real resources are blocked in the
+route matrix, never counted as real detail-page acceptance.

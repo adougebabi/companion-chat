@@ -1,3 +1,4 @@
+import {Avatar,bindAvatars} from '../components/avatar.js';
 import {renderRealStudioHome,renderRealStudioPreview} from './real-studio.js';
 import { providerPage } from './provider-page.js';
 import { npcApplyDrawer } from './npc-management.js';
@@ -86,7 +87,8 @@ export function renderPreview(el, ctx) {
 export function renderApply(el, ctx) {
   const rows = []; Object.entries(store.get('instances')).forEach(([cid, m]) => Object.entries(m).forEach(([rid, i]) => rows.push({ cid, rid, i, r: store.get('resources', rid) })));
   el.innerHTML = `<p class="small muted">${badge('全局定义')} → ${badge('角色范围')} 发布新版本不会自动改变运行中的角色，需要在这里逐个应用。</p>
-  <div class="card"><div class="list">${rows.map(({ cid, rid, i, r }) => `<div class="lrow" data-test="apply-row-${rid}"><img class="av sm" src="${store.get('characters', cid).avatar}" alt=""><span class="grow"><b>${esc(r.name)}</b> → ${esc(nameOf(cid))}<div class="small muted">运行 ${i.applied} · 最新 ${r.published}${Object.keys(i.overrides || {}).length ? ' · 有实例修正' : ''}</div></span>${i.applied !== r.published ? `<button class="btn teal sm" data-apply="${rid}" data-c="${cid}" data-test="apply-open-${rid}">应用…</button>` : badge('已确认')}</div>`).join('') || '<p class="small muted">当前范围未找到实例引用</p>'}</div></div>`;
+  <div class="card"><div class="list">${rows.map(({ cid, rid, i, r }) => `<div class="lrow" data-test="apply-row-${rid}">${Avatar({src:store.get('characters',cid).avatar,name:nameOf(cid),size:'sm'})}<span class="grow"><b>${esc(r.name)}</b> → ${esc(nameOf(cid))}<div class="small muted">运行 ${i.applied} · 最新 ${r.published}${Object.keys(i.overrides || {}).length ? ' · 有实例修正' : ''}</div></span>${i.applied !== r.published ? `<button class="btn teal sm" data-apply="${rid}" data-c="${cid}" data-test="apply-open-${rid}">应用…</button>` : badge('已确认')}</div>`).join('') || '<p class="small muted">当前范围未找到实例引用</p>'}</div></div>`;
+  bindAvatars(el);
   el.querySelectorAll('[data-apply]').forEach(b => b.onclick = () => store.get('resources', b.dataset.apply).type === 'NPC' ? npcApplyDrawer(b.dataset.apply, b.dataset.c) : applyDrawer(b.dataset.apply, b.dataset.c));
 }
 export function renderTemplate(el, ctx) {

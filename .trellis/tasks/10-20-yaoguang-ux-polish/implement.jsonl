@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "正式 v3 入口及现行边界"}
+{"file": ".trellis/spec/frontend/product-ui-contract.md", "reason": "草稿、反馈、语义状态、布局与真实验证契约"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "正式构建与浏览器证据要求"}
+{"file": ".trellis/tasks/10-20-yaoguang-ux-polish/prd.md", "reason": "全站体验需求及验收"}
+{"file": ".trellis/tasks/10-20-yaoguang-ux-polish/design.md", "reason": "设计边界及运行验证策略"}

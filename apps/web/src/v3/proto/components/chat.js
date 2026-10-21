@@ -27,10 +27,11 @@ export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, charac
   if (m.from === 'sys') return `<div class="sysline">${badge('系统运维')} ${esc(m.text)} ${m.link ? link(m.link, '查看') : ''}</div>`;
   if (m.from === 'action') { const a = actionById(m.actionId); return a ? ActionCard(a, link) : ''; }
   const me = m.from === 'user'; const md = m.mediaId && mediaById(m.mediaId);
+  const timestamp = String(m.at || ''), compactTime = /^\d{2}:\d{2}(?::\d{2})? · /.test(timestamp) ? timestamp.split(' · ')[0] : timestamp;
   const marks = [m.recall ? badge('回忆', 'plain') : '', m.corrected ? `<span class="corrected" data-test="corrected">${icon('check')} 已纠正 · 记忆 #${m.memoryRef}</span>` : '', m.feedback ? `<span class="corrected" style="background:var(--primary-soft);color:var(--primary-strong)">已告诉她</span>` : ''].join('');
   return `<div class="msg ${me ? 'me' : ''}" data-msg="${m.id}">${Avatar({src:me?'/v3/assets/avatars/user.svg':characterAvatar,name:me?'你':characterName})}
    <div><div class="bubble">${esc(m.text)}${mediaUrl ? (m.attachmentRefs || []).map(id => `<div class="genimg"><img src="${esc(mediaUrl(id))}" alt="会话媒体" loading="lazy"></div>`).join('') : ''}${md ? `<div style="margin-top:8px">${GeneratedImage(md)}</div>` : ''}</div>
-   <div class="meta">${m.at || ''} ${m.identity && m.identity !== '交流' ? badge(m.identity) : ''} ${marks}
+   <div class="meta"><time title="${esc(timestamp)}" aria-label="${esc(timestamp)}">${esc(compactTime)}</time> ${m.identity && m.identity !== '交流' ? badge(m.identity) : ''} ${marks}
      <span class="tools">${!me ? `<button class="chip" data-wrong="${m.id}" data-test="wrong-${m.id}">${icon('flag')} 这条不对</button>` : ''}<button class="chip" data-source="${m.id}">来源</button></span></div></div></div>`;
 }
 
@@ -44,7 +45,7 @@ export function TypingMessage(character={}) {
 export function ChatPanel({ character, summary, messages, messageOptions, sidebar }) {
   return `<div class="chatwrap"><section class="chatcol">
     <div class="chathead">${Avatar({src:character.avatar,name:character.name})}<div class="grow"><b>${esc(character.name)}</b><div class="small muted">${badge('交流')} 远程私聊 · 你不在场</div></div>
-      <a class="btn ghost sm" href="#/c/${character.id}/chat/history">历史</a><a class="btn ghost sm" href="#/c/${character.id}/chat/call">${icon('play')} 通话</a></div>
+      <div class="chat-head-actions"><a class="btn ghost sm" href="#/c/${character.id}/chat/history">历史</a><a class="btn ghost sm" href="#/c/${character.id}/chat/call">${icon('play')} 通话</a></div></div>
     ${summary}
     ${MessageLog(messages, messageOptions)}
     ${TextComposer({ placeholder: '和小遥说点什么…' })}

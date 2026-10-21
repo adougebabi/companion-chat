@@ -1,3 +1,5 @@
+import {userInstant} from '../../presentation-time.mjs';
+import {stateLabel} from '../../domain-presentation.mjs';
 import {mockWorld} from '../services.js';
 import {get} from '../store.js';
 import {drawer,esc} from '../ui.js';
@@ -20,7 +22,7 @@ export function placeDefaultsDrawer(fid,wid,pid,{onRestored=()=>{}}={}){
     const restoring=source==='recorded',body={expectedRevision:value.place_revision,expectedDefaultRevision:value.default_revision,operation:restoring?'restore':'capture',source};
     durableCommandDrawer({slot:`place-default:${fid}:${wid}:${pid}`,title:restoring?'恢复地点默认字段':'设定地点恢复基准',body:`<p>${esc(restoring?'恢复将保存这些文本与场景字段，并以实际读回结果替换地点编辑页的未保存草稿；不会移动角色或更改引用身份。':'只记录已核对的恢复基准，不改变地点当前字段，也不保存编辑页尚未提交的草稿。')}</p>${DiffRows(value.diff)}${Field({label:'操作理由',name:'reason',type:'textarea',attrs:{required:true,maxlength:1000}})}`,read:box=>({...body,reason:box.querySelector('[name=reason]').value}),execute:(command,key)=>mockWorld.restorePlace(fid,wid,pid,{...command,idempotencyKey:key}),onSaved:async result=>{if(!alive())return;if(!result){await load();return;}if(result.status==='baseline_saved'){await load();return;}await mockWorld.world(fid,wid);if(!alive())return;d.close();await onRestored(result);}});
    });
-   panel=mountCursorRecords(d.el.querySelector('[data-history]'),{alive,label:'地点历史',read:cursor=>mockWorld.placeDefaultHistory(fid,wid,pid,cursor),render:row=>`<article class="lrow"><div class="grow"><b>${esc(row.operation)} · 地点 v${esc(row.place_revision)} · 基准 v${esc(row.default_revision)}</b><p>${esc(row.reason)} · ${esc(row.created_at)}</p>${JsonDetails(row,'字段前后值、基准来源与审计')}</div></article>`,empty:'没有保留的字段或默认基准历史。没有历史时不会补造初始快照。'});
+   panel=mountCursorRecords(d.el.querySelector('[data-history]'),{alive,label:'地点历史',read:cursor=>mockWorld.placeDefaultHistory(fid,wid,pid,cursor),render:row=>`<article class="lrow"><div class="grow"><b>${esc(stateLabel(row.operation,'字段修订'))} · 地点 v${esc(row.place_revision)} · 基准 v${esc(row.default_revision)}</b><p>${esc(row.reason)} · ${esc(userInstant(row.created_at))}</p>${JsonDetails(row,'字段前后值、基准来源与审计')}</div></article>`,empty:'没有保留的字段或默认基准历史。没有历史时不会补造初始快照。'});
   }catch(error){if(!alive()||token!==epoch)return;d.setBody(`<p role="alert">${esc(error.message)}</p><button class="btn" data-retry>重新读取</button><button class="btn" data-current>核对当前已保存字段</button>`);d.el.querySelector('[data-retry]').onclick=()=>void load(source);d.el.querySelector('[data-current]').onclick=()=>void load('current_saved');}
  }
  void load();return d;
@@ -28,6 +30,6 @@ export function placeDefaultsDrawer(fid,wid,pid,{onRestored=()=>{}}={}){
 
 export function renderPlaceHistory(el,ctx){
  const owner=get('session')?.actorId;let active=true;const alive=()=>active&&el.isConnected&&get('session')?.actorId===owner;
- el.innerHTML=`<div class="row"><a class="btn" href="#/data/revisions">对象修订目录</a><a class="btn" href="#/c/${encodeURIComponent(ctx.charId)}/worlds">当前世界目录</a></div><div class="card"><h2>地点字段与默认基准历史</h2><p class="small muted">地点 ${esc(ctx.params.placeId)} · 原世界 ${esc(ctx.params.worldId)}</p><p>这里展示保留的实际修订，已移除地点的记录也可读取。历史字段不代表角色当前位置或当前世界状态。</p></div><div data-history></div>`;
- const panel=mountCursorRecords(el.querySelector('[data-history]'),{alive,label:'地点历史',read:cursor=>mockWorld.placeDefaultHistory(ctx.charId,ctx.params.worldId,ctx.params.placeId,cursor),render:row=>`<article class="card"><b>${esc(row.operation)} · 地点 v${esc(row.place_revision)} · 基准 v${esc(row.default_revision)}</b><p>${esc(row.reason)} · ${esc(row.created_at)}</p>${JsonDetails(row,'字段前后值与实际来源')}</article>`,empty:'没有保留的地点字段或恢复基准历史。'});return()=>{active=false;panel.dispose();};
+ el.innerHTML=`<div class="stack"><div class="row"><a class="btn" href="#/data/revisions">对象修订目录</a><a class="btn" href="#/c/${encodeURIComponent(ctx.charId)}/worlds">当前世界目录</a></div><div class="card"><h2>地点字段与默认基准历史</h2><p class="small muted">地点 ${esc(ctx.params.placeId)} · 原世界 ${esc(ctx.params.worldId)}</p><p>这里展示保留的实际修订，已移除地点的记录也可读取。历史字段不代表角色当前位置或当前世界状态。</p></div><div class="stack" data-history></div></div>`;
+ const panel=mountCursorRecords(el.querySelector('[data-history]'),{alive,label:'地点历史',read:cursor=>mockWorld.placeDefaultHistory(ctx.charId,ctx.params.worldId,ctx.params.placeId,cursor),render:row=>`<article class="card"><b>${esc(stateLabel(row.operation,'字段修订'))} · 地点 v${esc(row.place_revision)} · 基准 v${esc(row.default_revision)}</b><p>${esc(row.reason)} · ${esc(userInstant(row.created_at))}</p>${JsonDetails(row,'字段前后值与实际来源')}</article>`,empty:'没有保留的地点字段或恢复基准历史。'});return()=>{active=false;panel.dispose();};
 }

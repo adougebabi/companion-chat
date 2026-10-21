@@ -1,0 +1,113 @@
+{
+  "checkedAt": "2026-10-20T23:47:33.297268+08:00",
+  "entry": "http://127.0.0.1:18080/",
+  "project": "fluctlight-v3-delivery-1019",
+  "services": [
+    {
+      "Service": "core",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "fluctlight-core-go:v3-nonllm-1019"
+    },
+    {
+      "Service": "cutover",
+      "State": "exited",
+      "Health": "",
+      "ExitCode": 0,
+      "Image": "fluctlight-core-go:v3-nonllm-1019"
+    },
+    {
+      "Service": "migrate",
+      "State": "exited",
+      "Health": "",
+      "ExitCode": 0,
+      "Image": "fluctlight-core-go:v3-nonllm-1019"
+    },
+    {
+      "Service": "minio",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "fluctlight-minio-source:RELEASE.2025-04-22T22-12-26Z"
+    },
+    {
+      "Service": "minio-init",
+      "State": "exited",
+      "Health": "",
+      "ExitCode": 0,
+      "Image": "fluctlight-mc-source:RELEASE.2025-04-16T18-13-26Z"
+    },
+    {
+      "Service": "postgres",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "pgvector/pgvector:pg16"
+    },
+    {
+      "Service": "redis",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "redis:8.0.4-alpine"
+    },
+    {
+      "Service": "temporal",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "temporalio/auto-setup:1.29.7"
+    },
+    {
+      "Service": "web",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "fluctlight-web:v3-nonllm-1019"
+    },
+    {
+      "Service": "worker",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "fluctlight-core-go:v3-nonllm-1019"
+    }
+  ],
+  "images": {
+    "core": "sha256:6700858103ad1a5630a989e0f09e93f619d8f4b9cce15bf9d252ccda503c82fe",
+    "worker": "sha256:6700858103ad1a5630a989e0f09e93f619d8f4b9cce15bf9d252ccda503c82fe",
+    "web": "sha256:0e6b970f8a74ccf4dfd20eaeeb8328a72de0328d15adc5c22cc152bb2ffacc73"
+  },
+  "bindings": [
+    {
+      "context_window_tokens": 32768,
+      "endpoint_id": "mlx-serve",
+      "endpoint_status": "available",
+      "max_input_tokens": 20480,
+      "model_id": "Huihui-Qwen3.8-27B-3.8bpw",
+      "output_reserve_tokens": 8192,
+      "prompt_budget_policy_version": "prompt-budget.v1",
+      "role": "generic_llm",
+      "safety_margin_tokens": 4096,
+      "timeout_seconds": 1200,
+      "token_budget": 8192
+    }
+  ],
+  "modelRequestObserved": {
+    "source": "Core container wget POST /v1/chat/completions",
+    "endpoint": "http://100.80.75.9:11234/v1",
+    "model": "Huihui-Qwen3.8-27B-3.8bpw",
+    "responseId": "chatcmpl-1792511196301",
+    "assistantContent": "连接正常。",
+    "finishReason": "stop",
+    "promptTokens": 22,
+    "completionTokens": 3
+  },
+  "browserObserved": "CUA loaded Docker frontend at #/library with two existing regression characters",
+  "limits": [
+    "Reused existing 1019 images; current working tree UI edits are not rebuilt or deployed",
+    "This proves Docker startup, saved generic LLM binding and direct container-to-model generation; not a complete chat business flow or full-site UX acceptance",
+    "Other model roles remain unconfigured in this local deployment"
+  ]
+}

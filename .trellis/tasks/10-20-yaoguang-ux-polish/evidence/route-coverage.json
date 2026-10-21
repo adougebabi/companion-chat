@@ -1,0 +1,2887 @@
+{
+  "source": "current registered production modules",
+  "routes": [
+    {
+      "route": "/c/:charId/chat",
+      "key": "chat.thread.view",
+      "title": "对话",
+      "zone": "相处体验",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/chat",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "documentScrollWidth": 390,
+          "method": "CUA actual navigation and screenshot; chat composer bottom767, bottomnav top780; library create-group cancel/focus and draft checks",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/chat",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "documentScrollWidth": 390,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        320,
+        390,
+        820
+      ]
+    },
+    {
+      "route": "/c/:charId/chat/history",
+      "key": "chat.history.view",
+      "title": "会话历史与搜索",
+      "zone": "相处体验",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/chat/history",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "documentScrollWidth": 390,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/chat/history",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "documentScrollWidth": 390,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/chat/corrections",
+      "key": "chat.correction.list",
+      "title": "纠错记录",
+      "zone": "相处体验",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/chat/corrections",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/chat/call",
+      "key": "chat.call.view",
+      "title": "语音与通话（P2 占位）",
+      "zone": "相处体验",
+      "workspace": "交流",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/chat/call",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/chat/media",
+      "key": "chat.media.view",
+      "title": "聊天中的图片",
+      "zone": "相处体验",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/chat/media",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/feed",
+      "key": "feed.post.list",
+      "title": "动态",
+      "zone": "相处体验",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/feed",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/feed/:postId",
+      "key": "feed.post.detail",
+      "title": "动态详情",
+      "zone": "相处体验",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "当前真实动态列表没有帖子，缺少可读取的 postId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/settings/outreach",
+      "key": "settings.char.autonomy#outreach",
+      "title": "主动触达设置",
+      "zone": "相处体验",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/outreach",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/inbox",
+      "key": "inbox.notice.list",
+      "title": "通知中心",
+      "zone": "相处体验",
+      "workspace": null,
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/inbox",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life/now",
+      "key": "life.now",
+      "title": "生活 · 此刻",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/now",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/now",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life",
+      "key": "life.now",
+      "title": "生活 · 此刻",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/life/wardrobe",
+      "key": "items.wardrobe.view",
+      "title": "衣柜与物品",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/wardrobe",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/wardrobe",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life/schedule",
+      "key": "life.schedule",
+      "title": "生活 · 日程",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/schedule",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/schedule",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life/goals",
+      "key": "goals.list.view",
+      "title": "目标 · 意向 · 约定",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/goals",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/goals",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life/diary",
+      "key": "diary.list.view",
+      "title": "日记",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/diary",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/diary",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life/diary/:entryId",
+      "key": "diary.entry.detail",
+      "title": "日记条目",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/diary/diary_e9800c113a93ad46ad7b3dc70ad97760",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/diary/diary_e9800c113a93ad46ad7b3dc70ad97760",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [
+        "另访问 no_content 条目 diary_7d588362332341d8e0082e3975cd4e1f；手机视图已检查。"
+      ],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life/shared",
+      "key": "diary.shared.timeline",
+      "title": "共同经历时间线",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/shared",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/shared",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/growth",
+      "key": "growth.memory.list",
+      "title": "记忆库",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/growth",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/growth",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/growth/memory/:memId",
+      "key": "growth.memory.item",
+      "title": "记忆条目",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "当前角色记忆检索无记录，缺少真实 memId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/growth/reflection",
+      "key": "growth.reflection.timeline",
+      "title": "反思与成长时间线",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/growth/reflection",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/growth/reflection",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/growth/reflection/:refId",
+      "key": "growth.reflection.detail",
+      "title": "反思详情",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "反思列表无实际提案，缺少真实 refId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/growth/self",
+      "key": "growth.self.view",
+      "title": "自我认知",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/growth/self",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/growth/self",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/growth/self/claim/:claimId",
+      "key": "growth.self.claim",
+      "title": "认识详情与修订",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "没有当前自我认识记录，缺少真实 claimId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/profile",
+      "key": "profile.char.view",
+      "title": "角色资料",
+      "zone": "生活成长",
+      "workspace": null,
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/profile",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/profile",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/life/goal/new",
+      "key": "goals.create",
+      "title": "新建目标",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/goal/new",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/life/goal/:goalId",
+      "key": "goals.detail",
+      "title": "目标详情与治理",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_cdd19cb6f8e71b21ccc9b89c27a17274/life/goal/goal_plan_d4773b4000bc24d25479cb76819876c5",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_cdd19cb6f8e71b21ccc9b89c27a17274/life/goal/goal_plan_d4773b4000bc24d25479cb76819876c5",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/life/planning",
+      "key": "goals.planning",
+      "title": "独立目标规划",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/life/planning",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/life/wardrobe/item/:itemId",
+      "key": "life.wardrobe.item.detail",
+      "title": "物品详情与历史",
+      "zone": "生活成长",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "当前库存列表无实际物品，缺少角色 itemId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/world",
+      "key": "world.map.view",
+      "title": "世界总览",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/world/place/:placeId",
+      "key": "world.place.detail",
+      "title": "地点详情",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/place/place_0dde8467f0d9778f209b4b65632cbd6c",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/place/place_0dde8467f0d9778f209b4b65632cbd6c",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/world/event/:evId",
+      "key": "world.event.detail",
+      "title": "事件详情",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "世界事件列表无事件，缺少真实 evId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/world/items",
+      "key": "world.items.list",
+      "title": "世界物品目录",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/items",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/items",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/world/items/:itemId",
+      "key": "world.items.detail",
+      "title": "物品定义与取得范围",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "运行世界物品列表无对象，缺少真实 itemId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/world/events",
+      "key": "world.event.list",
+      "title": "世界变化与事件流",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/events",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/events",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/world/scene",
+      "key": "world.scene.view",
+      "title": "当前场景",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/scene",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/scene",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/world/settings",
+      "key": "world.instance.settings",
+      "title": "运行世界设定 · 随机事件",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "运行世界",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/settings",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/world/settings",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/people",
+      "key": "people.graph.view",
+      "title": "人物关系",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/people/npc/new",
+      "key": "people.npc.create",
+      "title": "新建 NPC 定义",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/npc/new",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/people/npc/:npcId/edit",
+      "key": "people.npc.edit",
+      "title": "编辑 NPC",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/npc/npc_85e737dcb2deb134d7eb5863c997ca05/edit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/npc/npc_85e737dcb2deb134d7eb5863c997ca05/edit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/people/npcs",
+      "key": "people.npc.manage",
+      "title": "NPC 管理",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/npcs",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/npcs",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/people/manage",
+      "key": "people.npc.manage",
+      "title": "NPC 管理",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/manage",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/people/npc/:npcId",
+      "key": "people.npc.detail",
+      "title": "NPC 详情",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/npc/npc_85e737dcb2deb134d7eb5863c997ca05",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/npc/npc_85e737dcb2deb134d7eb5863c997ca05",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/people/list",
+      "key": "people.list.view",
+      "title": "人物目录",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/list",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/list",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/people/owner",
+      "key": "people.owner.background",
+      "title": "关于你",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/owner",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/people/owner",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/people/relation/:relId",
+      "key": "people.relation.edit",
+      "title": "关系修正",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "尚无实际关系修订，缺少真实 relId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/media",
+      "key": "media.gallery.view",
+      "title": "媒体库",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/media/identity",
+      "key": "media.identity.view",
+      "title": "视觉身份",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media/identity",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media/identity",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/media/generate",
+      "key": "media.item.generate",
+      "title": "媒体生成",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media/generate",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media/generate",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/media/avatar",
+      "key": "media.avatar.manage",
+      "title": "显示头像",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media/avatar",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media/avatar",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/media/:mdId",
+      "key": "media.item.detail",
+      "title": "媒体详情",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "角色媒体列表无资产；全局上传素材不冒充角色媒体。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/c/:charId/worlds",
+      "key": "world.directory",
+      "title": "世界目录",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/worlds/:worldId/edit",
+      "key": "world.definition.edit",
+      "title": "世界与场景编辑",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds/world_71b6b9cc3f8b4cd9f100236dec800835/edit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds/world_71b6b9cc3f8b4cd9f100236dec800835/edit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/worlds/:worldId/place/new",
+      "key": "world.place.create",
+      "title": "添加地点",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds/world_71b6b9cc3f8b4cd9f100236dec800835/place/new",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/worlds/:worldId/place/:placeId/history",
+      "key": "world.place.history",
+      "title": "地点字段与默认基准历史",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds/world_71b6b9cc3f8b4cd9f100236dec800835/place/place_0dde8467f0d9778f209b4b65632cbd6c/history",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds/world_71b6b9cc3f8b4cd9f100236dec800835/place/place_0dde8467f0d9778f209b4b65632cbd6c/history",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/worlds/:worldId/place/:placeId/edit",
+      "key": "world.place.edit",
+      "title": "编辑地点",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds/world_71b6b9cc3f8b4cd9f100236dec800835/place/place_0dde8467f0d9778f209b4b65632cbd6c/edit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA real Docker page; visible screenshot and rendered text inspected",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/worlds/world_71b6b9cc3f8b4cd9f100236dec800835/place/place_0dde8467f0d9778f209b4b65632cbd6c/edit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/governance",
+      "key": "identity.governance",
+      "title": "身份与能力治理",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/governance",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/media/identity/edit",
+      "key": "media.identity.edit",
+      "title": "编辑视觉身份",
+      "zone": "世界人物",
+      "workspace": "交流",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/media/identity/edit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/c/:charId/governance/:governanceKind/:governanceId",
+      "key": "identity.governance.detail",
+      "title": "身份与能力治理详情",
+      "zone": "世界人物",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "治理列表无提案或申请，缺少实际治理对象。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/auth",
+      "key": "auth.signin",
+      "title": "登录/注册",
+      "zone": "创作治理",
+      "workspace": null,
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/auth",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/library",
+      "key": "library.home",
+      "title": "角色库",
+      "zone": "创作治理",
+      "workspace": null,
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/library",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "documentScrollWidth": 390,
+          "method": "CUA actual navigation and screenshot; chat composer bottom767, bottomnav top780; library create-group cancel/focus and draft checks",
+          "screenshotPath": null
+        },
+        {
+          "url": "http://127.0.0.1:18080/#/library",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/library/create",
+      "key": "library.char.create",
+      "title": "新建角色向导",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/library/create",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/setup",
+      "key": "setup.home",
+      "title": "初始化向导",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/setup",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/studio/npc/:resId",
+      "key": "studio.npc.edit",
+      "title": "NPC 定义编辑",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio/npc/res_48dc200ec9eedaab9aa83b545100c78a",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/studio/material/:materialId",
+      "key": "studio.material.detail",
+      "title": "创作素材与保留历史",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "创作资源没有已保存任务素材，缺少真实 materialId。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/studio/media",
+      "key": "studio.media.library",
+      "title": "我的素材库",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio/media",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/studio/media/:mdId",
+      "key": "studio.media.detail",
+      "title": "素材详情",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio/media/upload_asset_a8cf6abcfcbe21aceca72c7a64658ed2",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/studio",
+      "key": "studio.home",
+      "title": "创作中心",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/studio/edit/:resId",
+      "key": "studio.resource.edit",
+      "title": "资源编辑",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio/edit/new?kind=event_template",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [
+        "同时实际访问了既有 NPC 的 /studio/edit/res_48dc200ec9eedaab9aa83b545100c78a，确认重定向到同一 NPC 定义页。"
+      ],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/studio/preview",
+      "key": "studio.preview",
+      "title": "试生成沙盒",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio/preview",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/studio/apply",
+      "key": "studio.apply",
+      "title": "应用到实例",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio/apply",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/studio/template",
+      "key": "studio.event.template",
+      "title": "事件模板",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/studio/template",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/settings",
+      "key": "settings.global",
+      "title": "系统设置",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/c/:charId/settings/autonomy",
+      "key": "settings.char.autonomy",
+      "title": "角色自治与触达设置",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "角色范围",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/c/fluctlight_4e84268871302b8493245f8a59df0768/settings/autonomy",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag",
+      "key": "diag.home",
+      "title": "运行诊断",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/task/:taskId",
+      "key": "diag.task.detail",
+      "title": "诊断任务详情",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/task/visual_identity_intent%3Avisual_identity_session_7c7debb4f3dfa3f312def168fd95a17c",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/diag/workflow/:workflowId",
+      "key": "diag.workflow.detail",
+      "title": "工作流执行与恢复",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/workflow/visual_identity_workflow_ea2aa3dc26cec6a3d4867093f4dd3e67",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [
+        "从真实 task 的执行状态与恢复按钮连续进入裸 workflow ID，真实页面读取成功；也访问过 go: 控制标识。"
+      ],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/diag/record/:kind/:recordRef",
+      "key": "diag.record.detail",
+      "title": "诊断完整记录",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/record/model-runs/WyJtb2RlbC1ydW5zIiwibW9kZWxfcnVuXzA3NDQ0Zjk3ZTVmODMwNzRmMzdkYWMyMmZiYzM1ZTAyIl0",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/diag/harm",
+      "key": "diag.harm",
+      "title": "永久伤害拦截记录",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/harm",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/diag/request/:requestId",
+      "key": "diag.request.detail",
+      "title": "请求处理详情",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "当前待处理来源没有可用于该页的真实 owner request ID。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/diag/audit",
+      "key": "diag.audit",
+      "title": "操作审计日志",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/audit",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/diag/pending",
+      "key": "diag.pending.list",
+      "title": "待处理事项",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/pending",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/data/backup/:backupId",
+      "key": "data.backup.detail",
+      "title": "业务备份与隔离恢复任务",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/data/backup/backup_40cdb377e67152dde0bdbba1c0c4c602",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [
+        "另访问已实际核验的 restore_7866681113b78869262e378bdd0887af；不执行新的备份或恢复。"
+      ],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/data/pack/:packId",
+      "key": "data.pack.detail",
+      "title": "导入草稿与来源",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "blocked_missing_real_resource",
+      "visits": [],
+      "observations": [
+        "没有可用的真实导入草稿 ID；/api/studio/packs GET 为404，未将404写成空列表。",
+        "源码和共享呈现规则已纳入审查；没有将缺数据详情写成真实实画通过。"
+      ]
+    },
+    {
+      "route": "/data",
+      "key": "data.tools",
+      "title": "数据工具",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/data",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/data/revisions",
+      "key": "data.object.revisions",
+      "title": "对象修订记录",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/data/revisions",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/data/rollback",
+      "key": "data.rollback",
+      "title": "回档说明（P3）",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/data/rollback",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280
+      ]
+    },
+    {
+      "route": "/settings/models",
+      "key": "settings.models",
+      "title": "模型与连接",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/models",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        320,
+        390,
+        820,
+        1280
+      ]
+    },
+    {
+      "route": "/settings/reply-vision",
+      "key": "settings.reply-vision",
+      "title": "回复与视觉",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/reply-vision",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/settings/media-workflows",
+      "key": "settings.media-workflows",
+      "title": "媒体与工作流",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/media-workflows",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/settings/kev",
+      "key": "settings.kev",
+      "title": "KEV 选择与连接",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/kev",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/settings/runtime",
+      "key": "settings.runtime",
+      "title": "运行与自治策略",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/runtime",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/settings/notifications",
+      "key": "settings.notifications",
+      "title": "通知与触达偏好",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/notifications",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/settings/owner",
+      "key": "settings.owner",
+      "title": "所有者与会话",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/owner",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/settings/capabilities",
+      "key": "settings.capabilities",
+      "title": "能力与权限目录",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/settings/capabilities",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/media-recoveries",
+      "key": "diag.media-recoveries",
+      "title": "媒体恢复尝试",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/media-recoveries",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/turns",
+      "key": "diag.turns",
+      "title": "回合诊断",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/turns",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/links",
+      "key": "diag.links",
+      "title": "执行器关联",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/links",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/lifecycle",
+      "key": "diag.lifecycle",
+      "title": "生命周期",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/lifecycle",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/model-runs",
+      "key": "diag.model-runs",
+      "title": "模型运行",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/model-runs",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        320,
+        390,
+        820,
+        1280
+      ]
+    },
+    {
+      "route": "/diag/agent-runs",
+      "key": "diag.agent-runs",
+      "title": "Agent 运行",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/agent-runs",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/events",
+      "key": "diag.events",
+      "title": "系统事件",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/events",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/media-prompts",
+      "key": "diag.media-prompts",
+      "title": "媒体请求",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/media-prompts",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/workflows",
+      "key": "diag.workflows",
+      "title": "工作流控制",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/workflows",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    },
+    {
+      "route": "/diag/kev",
+      "key": "diag.kev",
+      "title": "KEV 决策",
+      "zone": "创作治理",
+      "workspace": "管理",
+      "scope": "全局定义",
+      "status": "reviewed_actual",
+      "visits": [
+        {
+          "url": "http://127.0.0.1:18080/#/diag/kev",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "documentScrollWidth": 1280,
+          "method": "CUA actual page navigation, rendered text and screenshot inspected; widths in verifiedWidths summarize separate observations. Production Docker Web with real API.",
+          "screenshotPath": null
+        }
+      ],
+      "observations": [],
+      "verifiedWidths": [
+        1280,
+        390
+      ]
+    }
+  ],
+  "notes": [
+    "截图像素已在 CUA 工具输出中逐页查看。当前浏览器接口没有提供截图文件导出，screenshotPath=null 不代表不存在画面检查。",
+    "reviewed_actual 表示至少一次真实页面画面走查；不等同于该页每个分支或每项写入都已真实执行。主要页面族另有手机和连续操作复看。",
+    "本轮没有通过造对象或伪造ID将缺数据详情升级为通过。",
+    "开发中容器更新使旧标签页的懒加载资源失效；已实际验证“刷新并重新打开”能恢复，最终视图用最新构建重新加载。"
+  ],
+  "summary": {
+    "registeredRoutePatterns": 104,
+    "reviewedActual": 91,
+    "blockedMissingRealResource": 13,
+    "unclassified": 0
+  }
+}

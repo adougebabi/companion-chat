@@ -45,8 +45,8 @@ export function renderCorrections(el, ctx) {
 /* chat.media.view —— 多模态（展示部分） */
 export function renderChatMedia(el, ctx) {
   const imgs = store.list('messages', m => m.charId === ctx.charId && m.mediaId).map(m => ({ m, md: store.get('media', m.mediaId) })).filter(x => x.md);
-  el.innerHTML = `<div class="banner info">${icon('info')} 聊天里收到的图片都在这里。<b>发送图片 / 语音给她</b>还没接入（接口待核验），输入框里的附件按钮是灰的。</div>
-   <div class="wgrid" style="margin-top:12px">${imgs.map(({ m, md }) => `<a class="card" style="padding:8px" href="#/c/${ctx.charId}/media/${md.id}">${genImg(md)}<div class="small" style="margin-top:6px">${esc(m.text || md.title)}<div class="muted">${m.at}</div></div></a>`).join('') || '<div class="statebox"><h2>当前范围未找到聊天图片</h2></div>'}</div>`;
+  el.innerHTML = `<div class="banner info">${icon('info')} 这里汇总当前已读取会话中的图片。可前往角色媒体库查看其他素材。</div>
+   <div class="wgrid" style="margin-top:12px">${imgs.map(({ m, md }) => `<a class="card" style="padding:8px" href="#/c/${ctx.charId}/media/${md.id}">${genImg(md)}<div class="small" style="margin-top:6px">${esc(m.text || md.title)}<div class="muted">${m.at}</div></div></a>`).join('') || '<div class="statebox"><h2>当前已读取的会话中没有图片</h2><a class="btn" href="#/c/${ctx.charId}/media">查看角色媒体库</a></div>'}</div>`;
 }
 
 /* feed.post.list —— 动态（用户以自己身份发；或建议她发；不能代她发） */

@@ -38,15 +38,15 @@ R('/diag/task/:taskId', 'diag.task.detail', '诊断任务详情', 'BP-17', '可�
 }, { manualRefresh: true });
 R('/diag/workflow/:workflowId','diag.workflow.detail','工作流执行与恢复','BP-17','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-workflow.js'),'renderRealWorkflow',el,ctx),{manualRefresh:true});
 R('/diag/record/:kind/:recordRef','diag.record.detail','诊断完整记录','BP-17','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-diagnostics.js'),'renderRealDiagnosticRecord',el,ctx),{manualRefresh:true});
-R('/diag/harm','diag.harm','永久伤害拦截记录','BP-17','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-diagnostics.js'),'renderRealDiagnosticRecords',el,{...ctx,def:{...ctx.def,mockSection:'harm'}}),{manualRefresh:true});
+R('/diag/harm','diag.harm','永久伤害拦截记录','BP-17','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-diagnostics.js'),'renderRealDiagnosticRecords',el,{...ctx,def:{...ctx.def,mockSection:'harm'}}),{manualRefresh:true,backHref:'#/diag',backLabel:'返回诊断'});
 R('/diag/request/:requestId', 'diag.request.detail', '请求处理详情', 'BP-17', '可操作', (el,ctx) => providerPage(() => import('../pages/real-operations.js'), 'renderRealRequest',el,ctx), { manualRefresh: true });
-R('/diag/audit', 'diag.audit', '操作审计日志', 'BP-17', '仅展示', G.renderAudit);
+R('/diag/audit', 'diag.audit', '操作审计日志', 'BP-17', '仅展示', G.renderAudit,{backHref:'#/diag',backLabel:'返回诊断'});
 R('/diag/pending', 'diag.pending.list', '待处理事项', 'BP-17.7', '仅展示', G.renderPending, { source: '由各领域真实状态派生，不另存', manualRefresh: true });
 R('/data/backup/:backupId','data.backup.detail','业务备份与隔离恢复任务','BP-18','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-backups.js'),'renderRealBackup',el,ctx),{manualRefresh:true});
 R('/data/pack/:packId','data.pack.detail','导入草稿与来源','BP-18','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-data-tools.js'),'renderRealPack',el,ctx),{manualRefresh:true});
 R('/data', 'data.tools', '数据工具', 'BP-18', '可操作', G.renderData, { source: '配置包可导出/导入为草稿；业务备份 P2 未完成；回档 P3 只有说明' });
 R('/data/revisions', 'data.object.revisions', '对象修订记录', 'BP-18', '仅展示', G.renderRevisions);
-R('/data/rollback', 'data.rollback', '回档说明（P3）', 'BP-18', '占位', G.renderRollback);
+R('/data/rollback', 'data.rollback', '时间线回档说明', 'BP-18', '占位', G.renderRollback);
 
 configurationSections.forEach(section => R(`/settings/${section.id}`, `settings.${section.id}`, section.title, 'BP-16', '可操作', renderConfiguration, { mockSection: section.id, manualRefresh: true, backHref:'#/settings',backLabel:'返回设置' }));
-diagnosticSections.forEach(section => R(`/diag/${section.id}`, `diag.${section.id}`, section.title, 'BP-17', '可操作', renderDiagnosticRecords, { mockSection: section.id, manualRefresh: true }));
+diagnosticSections.forEach(section => R(`/diag/${section.id}`, `diag.${section.id}`, section.title, 'BP-17', '可操作', renderDiagnosticRecords, { mockSection: section.id, manualRefresh: true, backHref:'#/diag',backLabel:'返回诊断' }));

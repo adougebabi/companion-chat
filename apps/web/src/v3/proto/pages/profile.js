@@ -2,6 +2,7 @@ import {get as readStore} from '../store.js';
 import { randomId } from '../../../random-id.mjs';
 import { Field } from '../components/forms.js';
 import { drawer } from '../components/overlay.js';
+import {bindAvatars} from '../components/avatar.js';
 import { ProfileHeader, ProfileGroups, PersonaSection, PersonaHistory } from '../components/profile.js';
 import {mountInitializationProgress} from '../components/initialization-progress.js';
 
@@ -37,6 +38,7 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
     progressView?.dispose();progressView=null;
     const id = encodeURIComponent(snapshot.id);
     el.innerHTML = `<div class="stack" data-test="profile-detail">${ProfileHeader(snapshot, Boolean(provider.editBio))}${provider.progress?'<section class="card stack" data-initialization-progress></section>':''}${ProfileGroups(snapshot)}${PersonaSection(snapshot, Boolean(provider.switchPersona))}${PersonaHistory(snapshot)}<div class="row"><a class="btn" href="#/c/${id}/people/owner">关于你</a>${readStore('ui').identity==='管理'?`<a class="btn" href="#/c/${id}/governance">身份与能力治理</a><a class="btn" href="#/c/${id}/worlds">世界管理</a>`:''}${snapshot.mode!=='mock'?`<a class="btn" href="#/c/${id}/media/avatar">显示头像</a>`:''}</div></div>`;
+    bindAvatars(el);
     if(provider.progress)progressView=mountInitializationProgress(el.querySelector('[data-initialization-progress]'),{fid:snapshot.id,read:provider.progress,alive:current});
     const form = el.querySelector('[data-profile-switch]');
     form.elements.targetPersonaId.value = draft.targetPersonaId;

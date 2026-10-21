@@ -1,12 +1,13 @@
 import { esc, icon, badge } from './controls.js';
 import { attributes } from './forms.js';
 import {JsonDetails} from './records.js';
+import {Avatar} from './avatar.js';
 
 export function Card({ body = '', title = '', heading, tone = '', attrs = {}, footer = '' } = {}) {
   return `<div class="card${tone ? ` ${esc(tone)}` : ''}" ${attributes(attrs)}>${heading ?? (title ? `<h3>${esc(title)}</h3>` : '')}${body}${footer}</div>`;
 }
 export function EntityHeader({ avatar, title, subtitle = '', status = '', size = 'lg' }) {
-  return `<div class="row"><img class="av ${esc(size)}" src="${esc(avatar)}" alt=""><div class="grow"><h2 style="margin:0">${esc(title)}</h2><div class="small muted">${subtitle}</div></div>${status}</div>`;
+  return `<div class="row">${Avatar({src:avatar,name:title,size})}<div class="grow"><h2 style="margin:0">${esc(title)}</h2><div class="small muted">${subtitle}</div></div>${status}</div>`;
 }
 export function OutfitStrip({ items, link, attrs = {} }) {
   return `<div class="outfit" ${attributes(attrs)}>${items.map(item => {
@@ -15,7 +16,7 @@ export function OutfitStrip({ items, link, attrs = {} }) {
   }).join('')}</div>`;
 }
 export function NPCRow(npc, link) {
-  return `<div class="lrow"><img class="av sm" src="${esc(npc.avatar)}" alt="">${link(npc.id)}<span class="small muted">${esc(npc.role)}</span></div>`;
+  return `<div class="lrow">${Avatar({src:npc.avatar,name:npc.name,size:'sm'})}${link(npc.id)}<span class="small muted">${esc(npc.role)}</span></div>`;
 }
 export function PreviewCard(preview, { resourceName = '', includeResource = false } = {}) {
   return `<div class="card" data-test="preview-item"><div class="row">${badge('创作预览·不进入生活')}<span class="small muted grow">${includeResource ? `${esc(resourceName)} · ${esc(preview.at)}` : `${esc(preview.id)} · ${esc(preview.at)}`}</span><button class="btn ghost sm" data-del="${esc(preview.id)}">丢弃</button></div>${preview.img ? `<img src="${esc(preview.img)}" alt="虚构创作图片预览" data-preview-image style="width:100%;border-radius:10px;margin:6px 0"><p class="small muted" data-preview-image-error hidden>图片读取失败，请核对素材权限与任务状态后刷新。</p>` : ''}${preview.text ? `<p class="small">${esc(preview.text)}</p>` : ''}</div>`;
