@@ -184,7 +184,10 @@ func validatePlaceDetails(ctx context.Context, q lifeContextQuerier, world, id s
 	}
 	for _, key := range []string{"furniture", "connections", "room_items"} {
 		if value, ok := body[key]; ok {
-			if value==nil{delete(details,key);continue}
+			if value == nil {
+				delete(details, key)
+				continue
+			}
 			if !boundedWorldCollectionOrText(value) {
 				return nil, invalid(key + " must be bounded text or an array")
 			}
