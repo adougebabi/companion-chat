@@ -7,7 +7,8 @@
     "语音输入/实时通话/群聊/共享世界/摄像头维持说明",
     "角色时间线回档执行排除；业务备份/隔离恢复保留",
     "2026-10-16最新节奏：先补齐功能，最后统一测试；agent停止发起真实LLM验证，所有LLM用例整理文档由用户集中测试；已有失败/未验证不改为通过。",
-    "2026-10-19明确：全部任务完成后由用户逐个执行真实LLM回归脚本；后续新增LLM消费者同步扩展脚本和操作册。"
+    "2026-10-19明确：全部任务完成后由用户逐个执行真实LLM回归脚本；后续新增LLM消费者同步扩展脚本和操作册。",
+    "2026-10-21：穿搭方案与场景标签多对多；补三Tab/标准衣物/独立初始化Agent、世界固定分类与地点框架；全局hover无下划线。"
   ],
   "countsMeaning": "基础研究条目470+明确UI要求2，后续新增动作继续按稳定ID保留在同一台账；含多入口/纯UI分支，尚待按同一领域命令去重，不能作为最终Feature总数或通过百分比。53旧Feature全部保留映射。",
   "legacyMapping": [
@@ -28675,6 +28676,281 @@
         "用户要求先完成功能，17个E2E脚本及新增用例统一阶段再补",
         "源码Head0091；实际数据库最后验证0066，未执行新迁移"
       ]
+    },
+    {
+      "id": "ACT-WARDROBE-COMPOSE-01",
+      "legacyIds": [],
+      "bp": [],
+      "workPackages": [
+        "WP-04"
+      ],
+      "endToEndCases": [
+        "E04"
+      ],
+      "entry": {
+        "file_line": "apps/web/src/v3/proto/components/outfit-composer.js",
+        "symbol": "按8类搭配、多个配饰、保存/编辑/预览方案",
+        "routes": [
+          "/c/:fid/life/wardrobe"
+        ]
+      },
+      "operation": "按8类搭配、多个配饰、保存/编辑/预览方案",
+      "identityScope": "认证Owner/fid；衣物共享、方案人格归属；世界与地点真实范围",
+      "requirementSource": "2026-10-21用户明确补充",
+      "scope": "已确认范围",
+      "implementation": "源码完成；隔离PG/受控/前端检查通过；NAS/实际模型与本轮浏览器视觉未验收",
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json"
+      ],
+      "producerConsumer": "角色库存→人格方案；保存不改变穿着",
+      "backendEvidence": {
+        "locations": [
+          "apps/web/src/v3/proto/components/outfit-composer.js"
+        ],
+        "level": "isolated PostgreSQL/controlled Provider and component tests, no live model"
+      },
+      "dependencies": [
+        "0096_wardrobe_world_structure"
+      ],
+      "blockers": [
+        "本轮浏览器CUA transport closed；待用户NAS/LLM验收"
+      ],
+      "boundaries": [
+        "不部署NAS、不执行真实模型、不重置用户库",
+        "原L01—L17保留，追加L18/L19"
+      ],
+      "llmRegressionCases": [
+        "L18"
+      ]
+    },
+    {
+      "id": "ACT-WARDROBE-TAGS-01",
+      "legacyIds": [],
+      "bp": [],
+      "workPackages": [
+        "WP-04"
+      ],
+      "endToEndCases": [
+        "E04"
+      ],
+      "entry": {
+        "file_line": "apps/core-go/internal/core/wardrobe_tags.go",
+        "symbol": "多对多场景标签维护、同步修订、方案改名",
+        "routes": [
+          "/c/:fid/life/wardrobe"
+        ]
+      },
+      "operation": "多对多场景标签维护、同步修订、方案改名",
+      "identityScope": "认证Owner/fid；衣物共享、方案人格归属；世界与地点真实范围",
+      "requirementSource": "2026-10-21用户明确补充",
+      "scope": "已确认范围",
+      "implementation": "源码完成；隔离PG/受控/前端检查通过；NAS/实际模型与本轮浏览器视觉未验收",
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json"
+      ],
+      "producerConsumer": "标签目录CAS→所有受影响方案/history",
+      "backendEvidence": {
+        "locations": [
+          "apps/core-go/internal/core/wardrobe_tags.go"
+        ],
+        "level": "isolated PostgreSQL/controlled Provider and component tests, no live model"
+      },
+      "dependencies": [
+        "0096_wardrobe_world_structure"
+      ],
+      "blockers": [
+        "本轮浏览器CUA transport closed；待用户NAS/LLM验收"
+      ],
+      "boundaries": [
+        "不部署NAS、不执行真实模型、不重置用户库",
+        "原L01—L17保留，追加L18/L19"
+      ],
+      "llmRegressionCases": [
+        "L18"
+      ]
+    },
+    {
+      "id": "ACT-WARDROBE-CLOTHING-01",
+      "legacyIds": [],
+      "bp": [],
+      "workPackages": [
+        "WP-04"
+      ],
+      "endToEndCases": [
+        "E04"
+      ],
+      "entry": {
+        "file_line": "apps/web/src/v3/proto/components/inventory-editor.js",
+        "symbol": "标准衣物类型/多季节真实CRUD",
+        "routes": [
+          "/c/:fid/life/wardrobe"
+        ]
+      },
+      "operation": "标准衣物类型/多季节真实CRUD",
+      "identityScope": "认证Owner/fid；衣物共享、方案人格归属；世界与地点真实范围",
+      "requirementSource": "2026-10-21用户明确补充",
+      "scope": "已确认范围",
+      "implementation": "源码完成；隔离PG/受控/前端检查通过；NAS/实际模型与本轮浏览器视觉未验收",
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json"
+      ],
+      "producerConsumer": "Owner已知登记→真实inventory→方案/模型消费者",
+      "backendEvidence": {
+        "locations": [
+          "apps/web/src/v3/proto/components/inventory-editor.js"
+        ],
+        "level": "isolated PostgreSQL/controlled Provider and component tests, no live model"
+      },
+      "dependencies": [
+        "0096_wardrobe_world_structure"
+      ],
+      "blockers": [
+        "本轮浏览器CUA transport closed；待用户NAS/LLM验收"
+      ],
+      "boundaries": [
+        "不部署NAS、不执行真实模型、不重置用户库",
+        "原L01—L17保留，追加L18/L19"
+      ],
+      "llmRegressionCases": [
+        "L18"
+      ]
+    },
+    {
+      "id": "ACT-WARDROBE-PREPARATION-01",
+      "legacyIds": [],
+      "bp": [],
+      "workPackages": [
+        "WP-04"
+      ],
+      "endToEndCases": [
+        "E04"
+      ],
+      "entry": {
+        "file_line": "apps/core-go/internal/core/wardrobe_preparation.go",
+        "symbol": "独立正式Agent初始准备→真实wear→结果读回",
+        "routes": [
+          "/c/:fid/life/wardrobe"
+        ]
+      },
+      "operation": "独立正式Agent初始准备→真实wear→结果读回",
+      "identityScope": "认证Owner/fid；衣物共享、方案人格归属；世界与地点真实范围",
+      "requirementSource": "2026-10-21用户明确补充",
+      "scope": "已确认范围",
+      "implementation": "源码完成；隔离PG/受控/前端检查通过；NAS/实际模型与本轮浏览器视觉未验收",
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json"
+      ],
+      "producerConsumer": "激活/显式补全→持久任务→库存/方案→选择fence→真实Tool→完成",
+      "backendEvidence": {
+        "locations": [
+          "apps/core-go/internal/core/wardrobe_preparation.go"
+        ],
+        "level": "isolated PostgreSQL/controlled Provider and component tests, no live model"
+      },
+      "dependencies": [
+        "0096_wardrobe_world_structure"
+      ],
+      "blockers": [
+        "本轮浏览器CUA transport closed；待用户NAS/LLM验收"
+      ],
+      "boundaries": [
+        "不部署NAS、不执行真实模型、不重置用户库",
+        "原L01—L17保留，追加L18/L19"
+      ],
+      "llmRegressionCases": [
+        "L18"
+      ]
+    },
+    {
+      "id": "ACT-WORLD-FRAMEWORK-01",
+      "legacyIds": [],
+      "bp": [],
+      "workPackages": [
+        "WP-04",
+        "WP-14"
+      ],
+      "endToEndCases": [
+        "E16"
+      ],
+      "entry": {
+        "file_line": "apps/core-go/internal/core/world_framework.go",
+        "symbol": "主题生成→固定分类→真实地点、重复应用保留编辑",
+        "routes": [
+          "/c/:fid/worlds/:wid/edit"
+        ]
+      },
+      "operation": "主题生成→固定分类→真实地点、重复应用保留编辑",
+      "identityScope": "认证Owner/fid；衣物共享、方案人格归属；世界与地点真实范围",
+      "requirementSource": "2026-10-21用户明确补充",
+      "scope": "已确认范围",
+      "implementation": "源码完成；隔离PG/受控/前端检查通过；NAS/实际模型与本轮浏览器视觉未验收",
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json"
+      ],
+      "producerConsumer": "Studio模型提案→采用/发布→来源幂等物化→具体地点编辑",
+      "backendEvidence": {
+        "locations": [
+          "apps/core-go/internal/core/world_framework.go"
+        ],
+        "level": "isolated PostgreSQL/controlled Provider and component tests, no live model"
+      },
+      "dependencies": [
+        "0096_wardrobe_world_structure"
+      ],
+      "blockers": [
+        "本轮浏览器CUA transport closed；待用户NAS/LLM验收"
+      ],
+      "boundaries": [
+        "不部署NAS、不执行真实模型、不重置用户库",
+        "原L01—L17保留，追加L18/L19"
+      ],
+      "llmRegressionCases": [
+        "L19"
+      ]
+    },
+    {
+      "id": "ACT-UI-HOVER-01",
+      "legacyIds": [],
+      "bp": [],
+      "workPackages": [
+        "WP-04"
+      ],
+      "endToEndCases": [
+        "E04"
+      ],
+      "entry": {
+        "file_line": "apps/web/src/styles/v3-proto.css",
+        "symbol": "全局hover取消下划线并保留焦点提示",
+        "routes": [
+          "/c/:fid/life/wardrobe"
+        ]
+      },
+      "operation": "全局hover取消下划线并保留焦点提示",
+      "identityScope": "认证Owner/fid；衣物共享、方案人格归属；世界与地点真实范围",
+      "requirementSource": "2026-10-21用户明确补充",
+      "scope": "已确认范围",
+      "implementation": "源码完成；隔离PG/受控/前端检查通过；NAS/实际模型与本轮浏览器视觉未验收",
+      "completionEvidence": [
+        ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json"
+      ],
+      "producerConsumer": "共享链接样式；无业务写入",
+      "backendEvidence": {
+        "locations": [
+          "apps/web/src/styles/v3-proto.css"
+        ],
+        "level": "isolated PostgreSQL/controlled Provider and component tests, no live model"
+      },
+      "dependencies": [
+        "0096_wardrobe_world_structure"
+      ],
+      "blockers": [
+        "本轮浏览器CUA transport closed；待用户NAS/LLM验收"
+      ],
+      "boundaries": [
+        "不部署NAS、不执行真实模型、不重置用户库",
+        "原L01—L17保留，追加L18/L19"
+      ],
+      "llmRegressionCases": []
     }
   ],
   "workPackageStatus": {
@@ -29026,7 +29302,80 @@
         },
         "migrationRequired": false,
         "modelCalls": 0
+      },
+      {
+        "date": "2026-10-21",
+        "feature": "穿搭与世界结构补全",
+        "schemaHead": "0096_wardrobe_world_structure",
+        "evidence": ".trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json",
+        "checks": {
+          "web": {
+            "passed": 265,
+            "failed": 0,
+            "skipped": 0
+          },
+          "browserClient": {
+            "passed": 39,
+            "failed": 0,
+            "skipped": 0
+          },
+          "scriptSelfTests": {
+            "passed": 28,
+            "failed": 0,
+            "live": false
+          },
+          "selectedPostgresAndWorkflow": {
+            "rootPassed": 23,
+            "failed": 0,
+            "skipped": 0,
+            "cases": [
+              "TestV3PlaceDefaultsPostgresRestoreCASCaptureHistoryAndScope",
+              "TestV3InventoryArchiveUseInvalidationSQL",
+              "TestWardrobeBorrowWearReturnUsesExistingInventoryAuthority",
+              "TestWardrobeReturnRejectsOwnedItemsAndForeignOwner",
+              "TestWardrobePartialConflictExplainsReplacementCorrection",
+              "TestWardrobeIndependentToolKeepsItemsAndWearingDistinct",
+              "TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner",
+              "TestWardrobePreparedWearRejectsConcurrentRevision",
+              "TestWardrobeSavedOutfitReferencesExistingItemWithoutChangingWearing",
+              "TestWardrobeStandardMetadataAndBodyCoverage",
+              "TestWardrobeTagsSeasonsAndMultipleAccessoriesPersist",
+              "TestWardrobePreparationCommitAndExplicitRecoveryKeepOriginalFailure",
+              "TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays",
+              "TestWorldFrameworkPublicationMaterializesAndLocksNames",
+              "TestWardrobeSelectionFenceRejectsStaleAndReplaysCommittedReceipt",
+              "TestWardrobeCompleteInventoryRejectsExtraStarterStock",
+              "TestWardrobeRemovedProfileRetiresOnlyUncommittedSelection",
+              "TestWardrobeRemovedProfileStillReplaysExistingWearEffect",
+              "TestWardrobePreparationCannotCommitAfterCharacterPause",
+              "TestInventoryUpgradeRepairsLegacyEligibilityOnceAndRetainsUnknownWornOwnership",
+              "TestWardrobeWorld0095UpgradePreservesOldDataAndReruns",
+              "TestWardrobePreparationWorkflowWaitsDurablyAndDoesNotPollModel",
+              "TestWardrobePreparationWorkflowReturnsActualCompletedResult"
+            ]
+          },
+          "fullPackages": [
+            "migrations",
+            "httpapi/browser",
+            "workflow"
+          ],
+          "controlledFormalAgent": "2 fake HTTP model completions -> real PostgreSQL -> real wardrobe.wear -> persisted completed readback and replay",
+          "externalModelCalls": 0,
+          "browserVisual": {
+            "status": "blocked",
+            "reason": "CUA transport closed on rewriteDocumentation and getState; new desktop/390px replay not executed"
+          },
+          "NASDeployment": "not_executed",
+          "realTemporal": "not_executed_for_this_change",
+          "webTypecheck": "passed",
+          "productionBuild": "passed_no_mock_bundle",
+          "coreBuildAll": "passed",
+          "goVetChangedPackages": "passed",
+          "diffCheck": "passed"
+        },
+        "liveAcceptance": "pending_user_L18_L19_and_browser_visual"
       }
-    ]
+    ],
+    "currentSourceSchemaHead": "0096_wardrobe_world_structure"
   }
 }

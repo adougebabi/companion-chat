@@ -91,7 +91,7 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 
 func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 	definitions := FormalAgentDefinitions()
-	expected := []FormalAgentID{
+	expected := []FormalAgentID{FormalAgentWardrobePreparation,
 		FormalAgentConversationCognition, FormalAgentConversationReply, FormalAgentWakeUp,
 		FormalAgentTakeoverJudge, FormalAgentTakeoverReply, FormalAgentInitialization,
 		FormalAgentPersonaCompilation, FormalAgentMediaPrompt, FormalAgentMediaQuality,
@@ -123,7 +123,7 @@ func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 			t.Errorf("formal Agent %q missing from registry", id)
 		}
 	}
-	for _, id := range []FormalAgentID{FormalAgentStudioAssistant, FormalAgentStudioTextPreview, FormalAgentNPCResponse, FormalAgentDiaryMaterial, FormalAgentDiaryExpression} {
+	for _, id := range []FormalAgentID{FormalAgentWardrobePreparation, FormalAgentStudioAssistant, FormalAgentStudioTextPreview, FormalAgentNPCResponse, FormalAgentDiaryMaterial, FormalAgentDiaryExpression} {
 		d, _ := FormalAgentDefinitionByID(id)
 		if len(d.MandatoryTools) != 0 || d.DefaultSurface != "" {
 			t.Errorf("isolated Agent %q unexpectedly grants Tools: %#v", id, d)

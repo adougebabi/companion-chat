@@ -10,27 +10,42 @@ import {inventoryEditor} from '../components/inventory-editor.js';
 import {mountCursorRecords} from '../components/cursor-records.js';
 import {CursorPager,bindCursorPager} from '../components/cursor-pager.js';
 import {governanceCommand} from '../components/governance-command.js';
-import {Field,SearchForm} from '../components/forms.js';
+import {mountWardrobePreparation} from '../components/wardrobe-preparation.js';
+import {mountOutfitComposer} from '../components/outfit-composer.js';
+import {mountOutfitLibrary} from '../components/outfit-library.js';
+import {Field,SearchForm,Tabs} from '../components/forms.js';
 import {drawer,esc,badge} from '../ui.js';
 const retired=fid=>get('characters',fid)?.status==='已退休';
 const usable=item=>!item.archived_at&&item.source_verified&&item.availability==='available'&&['owned','borrowed'].includes(item.ownership);
 export function renderRealWardrobe(el,ctx){
+ const fid=ctx.charId;if(ctx.query.item){ctx.navigate(`#/c/${fid}/life/wardrobe/item/${encodeURIComponent(ctx.query.item)}`);return;}
+ const tab=['compose','plans','clothes'].includes(ctx.query.tab)?ctx.query.tab:'compose';
+ return asyncPage(el,()=>lifeClient.wardrobe(fid),(wardrobe,reload,alive)=>{
+  el.innerHTML=`<div class="stack wardrobe-workspace">${Tabs({value:tab,items:[['compose','为她搭配'],['plans','方案库'],['clothes','全部衣服']].map(([value,label])=>({value,label,href:`#/c/${encodeURIComponent(fid)}/life/wardrobe?tab=${value}`}))})}${tab!=='clothes'?CurrentInventory(wardrobe.worn_items,wardrobe.used_items):''}<div data-preparation></div><div data-wardrobe-panel></div></div>`;
+  const box=el.querySelector('[data-wardrobe-panel]');
+  const preparation=mountWardrobePreparation(el.querySelector('[data-preparation]'),{fid,alive,onCompleted:reload});
+  if(tab==='clothes'){const dispose=renderRealWardrobeInventory(box,ctx);return()=>{preparation.dispose();dispose?.();};}
+  const child=tab==='compose'?mountOutfitComposer(box,{fid,outfitId:ctx.query.outfit||'',alive,navigate:ctx.navigate,onSaved:()=>ctx.navigate(`#/c/${encodeURIComponent(fid)}/life/wardrobe?tab=plans`)}):mountOutfitLibrary(box,{fid,alive,navigate:ctx.navigate,onSaved:reload});
+  return()=>{preparation.dispose();child.dispose();};
+ });
+}
+function renderRealWardrobeInventory(el,ctx){
  const fid=ctx.charId;
  if(ctx.query.item){ctx.navigate(`#/c/${fid}/life/wardrobe/item/${encodeURIComponent(ctx.query.item)}`);return;}
- const options={q:ctx.query.q||'',kind:ctx.query.kind||'',ownership:ctx.query.ownership||'',availability:ctx.query.availability||'',state:ctx.query.state||'current'},cursors=[ctx.query.cursor||''];let at=0;
- const listHash=()=>`#/c/${fid}/life/wardrobe?${new URLSearchParams({...options,...(cursors[at]?{cursor:cursors[at]}:{})})}`;
+ const options={q:ctx.query.q||'',kind:ctx.query.kind===undefined?'wearable':ctx.query.kind,ownership:ctx.query.ownership||'',availability:ctx.query.availability||'',state:ctx.query.state||'current'},cursors=[ctx.query.cursor||''];let at=0;
+ const listHash=()=>`#/c/${fid}/life/wardrobe?${new URLSearchParams({tab:'clothes',...options,...(cursors[at]?{cursor:cursors[at]}:{})})}`;
  const updatePage=()=>{history.replaceState(null,'',listHash());};
  return asyncPage(el,()=>inventoryClient.list(fid,{...options,cursor:cursors[at]}),(page,reload,alive)=>{
-  el.innerHTML=`<div class="stack wardrobe-page"><div class="grid wtop">${CurrentInventory(page.worn_items,page.used_items)}<div class="card"><h3>拍一张</h3><p class="small muted">${badge('生成图·非事实')} 生成画面不改变穿着、位置或拥有关系。</p><button class="btn primary" data-photoall ${retired(fid)?'disabled':''}>拍照</button><button class="btn" data-add ${retired(fid)?'disabled':''}>补录物品</button><button class="btn" data-borrow ${retired(fid)?'disabled':''}>提出借入请求</button><p class="small muted">衣柜版本 ${esc(page.revision)}</p></div></div><div class="card">${SearchForm({value:options.q,placeholder:'搜索全部登记物品',attrs:{'data-search':true}})}<div class="row" style="margin-top:8px">${[['state','范围',[['current','当前物品'],['worn','正在穿着'],['used','正在使用'],['archived','已归档']]],['kind','类型',[['','全部'],['wearable','服饰'],['object','普通物品']]],['ownership','拥有关系',[['','全部'],['owned','已拥有'],['borrowed','借用'],['unknown','未确认']]],['availability','可用状态',[['','全部'],['available','可用'],['unavailable','不可用'],['lost','遗失']]]].map(([name,label,items])=>Field({name,label,type:'select',value:options[name],options:items.map(([value,label])=>({value,label}))})).join('')}</div><button class="btn sm" data-reload>重新读取</button></div>${page.items.length?`<div class="wgrid">${page.items.map(item=>InventoryCard(item,{returnTo:listHash()})).join('')}</div>`:'<div class="statebox"><h2>当前筛选没有物品</h2><p>可调整筛选、补录已知物品，或通过真实交流提出取得意向；尚未登记不证明不存在。</p><a class="btn" href="#/c/${fid}/chat">提出取得意向</a></div>'}${CursorPager({more:!!page.next_cursor,previous:at>0,label:'物品'})}${cursors[0]?'<button class="btn" data-first>返回第一页</button>':''}<p class="small muted">${page.inventory_complete?'物品登记已标为完整':'物品登记可能不完整'}；穿着、使用、拥有与可用状态分别显示。</p><div data-outfit-catalogue></div><div data-wearing-history></div></div>`;
-  const navigate=()=>ctx.navigate(`#/c/${fid}/life/wardrobe?${new URLSearchParams(Object.fromEntries(Object.keys(options).map(name=>[name,el.querySelector(`[name=${name}]`).value])))}`);
+  el.innerHTML=`<div class="stack wardrobe-page"><div class="grid wtop">${CurrentInventory(page.worn_items,page.used_items)}<div class="card"><h3>拍一张</h3><p class="small muted">${badge('生成图·非事实')} 生成画面不改变穿着、位置或拥有关系。</p><button class="btn primary" data-photoall ${retired(fid)?'disabled':''}>拍照</button><button class="btn" data-add ${retired(fid)?'disabled':''}>新增服装</button><button class="btn" data-borrow ${retired(fid)?'disabled':''}>提出借入请求</button><p class="small muted">衣柜版本 ${esc(page.revision)}</p></div></div><div class="card">${SearchForm({value:options.q,placeholder:'搜索全部登记物品',attrs:{'data-search':true}})}<div class="row" style="margin-top:8px">${[['state','范围',[['current','当前物品'],['worn','正在穿着'],['used','正在使用'],['archived','已归档']]],['kind','类型',[['','全部'],['wearable','服饰'],['object','普通物品']]],['ownership','拥有关系',[['','全部'],['owned','已拥有'],['borrowed','借用'],['unknown','未确认']]],['availability','可用状态',[['','全部'],['available','可用'],['unavailable','不可用'],['lost','遗失']]]].map(([name,label,items])=>Field({name,label,type:'select',value:options[name],options:items.map(([value,label])=>({value,label}))})).join('')}</div><button class="btn sm" data-reload>重新读取</button></div>${page.items.length?`<div class="wgrid">${page.items.map(item=>InventoryCard(item,{returnTo:listHash()})).join('')}</div>`:'<div class="statebox"><h2>当前筛选没有物品</h2><p>可调整筛选、补录已知物品，或通过真实交流提出取得意向；尚未登记不证明不存在。</p><a class="btn" href="#/c/${fid}/chat">提出取得意向</a></div>'}${CursorPager({more:!!page.next_cursor,previous:at>0,label:'物品'})}${cursors[0]?'<button class="btn" data-first>返回第一页</button>':''}<p class="small muted">${page.inventory_complete?'物品登记已标为完整':'物品登记可能不完整'}；穿着、使用、拥有与可用状态分别显示。</p><div data-wearing-history></div></div>`;
+  const navigate=()=>ctx.navigate(`#/c/${fid}/life/wardrobe?${new URLSearchParams({tab:'clothes',...Object.fromEntries(Object.keys(options).map(name=>[name,el.querySelector(`[name=${name}]`).value]))})}`);
   el.querySelector('[data-search]').onsubmit=e=>{e.preventDefault();navigate();};el.querySelectorAll('select').forEach(select=>select.onchange=navigate);el.querySelector('[data-reload]').onclick=reload;
   el.querySelector('[data-add]').onclick=()=>{if(!retired(fid))inventoryEditor(fid,null,page.revision,reload);};
   el.querySelector('[data-borrow]').onclick=()=>borrowInventoryForm(fid,reload,alive);
-  const outfits=mountOutfitCatalogue(el.querySelector('[data-outfit-catalogue]'),{fid,revision:page.revision,worn:page.worn_items,alive,onSaved:reload});
+
   const wearing=mountWearingHistory(el.querySelector('[data-wearing-history]'),{fid,alive});
   el.querySelector('[data-photoall]').onclick=()=>{if(!retired(fid))photoDrawer(fid);};
   el.querySelector('[data-first]')?.addEventListener('click',()=>{cursors.length=1;cursors[0]='';at=0;updatePage();void reload();});
-  bindCursorPager(el,{next:()=>{cursors[++at]=page.next_cursor;updatePage();void reload();},previous:()=>{at--;updatePage();void reload();}});return()=>{outfits.dispose();wearing.dispose();};
+  bindCursorPager(el,{next:()=>{cursors[++at]=page.next_cursor;updatePage();void reload();},previous:()=>{at--;updatePage();void reload();}});return()=>{wearing.dispose();};
  });
 }
 export function renderRealInventoryItem(el,ctx){

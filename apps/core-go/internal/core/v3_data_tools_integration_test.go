@@ -138,7 +138,7 @@ func TestV3PlaceDefaultsPostgresRestoreCASCaptureHistoryAndScope(t *testing.T) {
 	if baseline["source_kind"] != "initial_saved" || intValue(first["default_revision"]) != 1 || len(arrayValue(first["diff"])) != 0 {
 		t.Fatal("initial saved baseline missing", first)
 	}
-	worldCall("PUT", base+"/world/places/"+pid, map[string]any{"name": "Changed room", "description": "Changed description", "alias": "Edited", "expected_revision": 1, "parent_place_id": parent["id"], "connection_place_ids": []any{parent["id"]}})
+	worldCall("PUT", base+"/world/places/"+pid, map[string]any{"name": "Original room", "description": "Changed description", "alias": "Edited", "expected_revision": 1, "parent_place_id": parent["id"], "connection_place_ids": []any{parent["id"]}})
 	if len(arrayValue(read()["diff"])) == 0 {
 		t.Fatal("changed fields have no preview")
 	}

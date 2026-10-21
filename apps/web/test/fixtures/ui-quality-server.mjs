@@ -1,6 +1,7 @@
 // Task-owned same-origin fixture for production-build UI verification.
 // Binds loopback only; never proxies to a real Core/Provider or persists user data.
 import http from 'node:http';
+import {wardrobeWorldFixture} from './wardrobe-world-fixture.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -13,6 +14,7 @@ let actorReads=0,diagnosticClears=0;
 const telemetryPath='/private/tmp/fluctlight-ui-fixture-telemetry.json';
 const owner='human-fixture-owner',instance='fluctlight-fixture-one';
 const date='2026-10-13T01:00:00.123Z';
+const wardrobeWorld=process.env.FLUCTLIGHT_UI_FIXTURE_WARDROBE_WORLD==='1'?wardrobeWorldFixture({fid:instance,owner,date}):null;
 const clone=value=>JSON.parse(JSON.stringify(value));
 const instances=[{id:instance,status:'active',identity:{name:'林岚 · 验收样本',age:26,timezone:'Asia/Shanghai'},unread_count:2,last_conversation_at:date},{id:'fluctlight-fixture-two',status:'paused',identity:{name:'季川 · 验收样本',timezone:'Asia/Shanghai'},unread_count:0,last_conversation_at:date}];
 const groups=[{id:'group-fixture',name:'默认',actor_ids:instances.map(value=>value.id),owner_actor_id:owner}];
@@ -50,6 +52,7 @@ const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1'),path=url.pathname,method=req.method ?? 'GET';
   let body={};if(!['GET','HEAD'].includes(method)){let raw='';for await(const chunk of req)raw+=chunk;if(raw)body=JSON.parse(raw);requests.push({method,path,query:Object.fromEntries(url.searchParams),body:{...body,...(body.secrets ? {secrets:'fixture-redacted'} : {})}});}
   else if(path.startsWith('/api/'))requests.push({method,path,query:Object.fromEntries(url.searchParams)});
+  if(wardrobeWorld?.({path,method,body,url,json,res}))return;
   if(path==='/fixture/status')return json(res,{requests,settings,background,goals});
   if(path==='/runtime-config.js'){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});res.end('window.__FLUCTLIGHT_RUNTIME_CONFIG__={apiOrigin:window.location.origin};');return;}
   if(path==='/auth/session'||path==='/auth/login')return json(res,{authenticated:true,actorId:owner});

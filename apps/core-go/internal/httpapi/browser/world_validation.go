@@ -77,7 +77,7 @@ func validWorldSurfaceBody(method, path string, body map[string]any) bool {
 		if len(p) > 4 && p[4] == "active" {
 			fields = []string{"worldId"}
 		} else if len(p) > 4 && p[4] == "places" {
-			fields = []string{"worldId", "name", "description", "parentPlaceId", "status", "alias", "group", "floor", "scene", "atmosphere", "furniture", "layout", "connections", "connectionPlaceIds", "roomItems"}
+			fields = []string{"worldId", "name", "description", "parentPlaceId", "status", "alias", "venueCategoryId", "group", "floor", "scene", "atmosphere", "furniture", "layout", "connections", "connectionPlaceIds", "roomItems"}
 		} else {
 			fields = []string{"name", "background", "rules", "description", "flavor", "itemPool"}
 		}
@@ -112,7 +112,7 @@ func validWorldSurfaceBody(method, path string, body map[string]any) bool {
 	} else if !(domain == "npcs" && len(p) > 5 && p[5] == "encounters") && method != http.MethodPost {
 		return false
 	}
-	for key, limit := range map[string]int{"name": 256, "role": 512, "background": 16000, "description": 8000, "rules": 8000, "flavor": 1000, "alias": 256, "group": 256, "floor": 128, "scene": 1000, "atmosphere": 2000, "layout": 8000, "summary": 2000, "startAt": 128, "endAt": 128, "positionMode": 32, "worldId": 128, "status": 16} {
+	for key, limit := range map[string]int{"name": 256, "role": 512, "background": 16000, "description": 8000, "rules": 8000, "flavor": 1000, "alias": 256, "venueCategoryId": 80, "group": 256, "floor": 128, "scene": 1000, "atmosphere": 2000, "layout": 8000, "summary": 2000, "startAt": 128, "endAt": 128, "positionMode": 32, "worldId": 128, "status": 16} {
 		if !text(key, limit, false) {
 			return false
 		}
@@ -198,7 +198,7 @@ func validWorldStudioBody(operation string, body map[string]any) bool {
 	}
 	allowed := map[string]bool{"reason": true, "idempotencyKey": true, "expectedRevision": true}
 	if operation != "publish" {
-		for _, key := range []string{"fluctlightId", "resourceVersion", "expectedInstanceRevision", "expectedRuntimeRevision", "expectedWardrobeRevision", "expectedWorldRevision", "profileId", "worldId", "memberItems", "homePlaceId", "parentPlaceId", "routine", "choices"} {
+		for _, key := range []string{"fluctlightId", "runtimeWorldId", "resourceVersion", "expectedInstanceRevision", "expectedRuntimeRevision", "expectedWardrobeRevision", "expectedWorldRevision", "profileId", "worldId", "memberItems", "homePlaceId", "parentPlaceId", "routine", "choices"} {
 			allowed[key] = true
 		}
 	}

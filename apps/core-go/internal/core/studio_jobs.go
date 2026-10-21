@@ -25,6 +25,11 @@ func validateStudioDraft(kind, name string, body map[string]any, allowIncomplete
 	if containsPermanentHarm(map[string]any{"name": name, "body": body}) {
 		return harmError()
 	}
+	if kind == "world" && !allowIncomplete {
+		if err := validateWorldFramework(body); err != nil {
+			return err
+		}
+	}
 	if kind == "visual_style" && !allowIncomplete {
 		return validateVisualStyle(body)
 	}

@@ -16,4 +16,6 @@ export const cases=[
  ['L15','studio-text','创作助手及隔离文本预览',['fixture','assistant','preparation','outfit-assistant','preview','material','isolation','guards']],
  ['L16','studio-image','Studio真实图片、参考与恢复',['fixture','image','asset','material','reference','uploaded-reference','person-reference','revoke-reference','outfit-image','isolation','guards']],
  ['L17','creation-catalog','创建来源、模板及资源管理',['template','exact-version','analysis','activation','copy','archive','guards']],
+ ['L18','wardrobe-preparation','初始穿搭准备、场景标签与实际穿着',['fixture','preparation','plans','wear','guards']],
+ ['L19','world-framework','世界主题、固定分类与真实地点框架',['fixture','generation','apply','places','isolation','guards']],
 ].map(([id,slug,title,steps])=>({id,slug,title,steps,file:`${id.toLowerCase()}-${slug}.mjs`}));

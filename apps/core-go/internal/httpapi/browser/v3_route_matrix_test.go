@@ -4,6 +4,11 @@ package browser
 // request admission and dispatch; they do not certify database or model results.
 func browserV3RouteCases() []browserRouteCase {
 	return []browserRouteCase{
+		{name: "renameInventoryOutfit", method: "PATCH", path: "/api/fluctlights/fl-1/inventory/outfits/outfit-1", body: `{"expectedRevision":1,"expectedOutfitRevision":1,"profileId":"profile-1","name":"Renamed outfit","reason":"Rename without changing composition","idempotencyKey":"rename-fixture"}`},
+		{name: "inventoryPreparation", method: "GET", path: "/api/fluctlights/fl-1/inventory/preparation"},
+		{name: "prepareInventory", method: "POST", path: "/api/fluctlights/fl-1/inventory/preparation", body: `{"expectedRevision":1,"reason":"Prepare starter outfit","idempotencyKey":"prepare-fixture"}`},
+		{name: "inventoryTags", method: "GET", path: "/api/fluctlights/fl-1/inventory/tags"},
+		{name: "saveInventoryTags", method: "PUT", path: "/api/fluctlights/fl-1/inventory/tags", body: `{"expectedRevision":1,"reason":"Maintain tags","idempotencyKey":"tags-fixture","tags":["居家","外出"],"renames":{"在家":"居家"}}`},
 		{name: "foundationRevisionPage", method: "GET", path: "/api/fluctlights/fl-1/foundation-revisions"},
 		{name: "readDiary", method: "GET", path: "/api/fluctlights/fl-1/diary/entry-1"},
 		{name: "npcEncounters", method: "GET", path: "/api/fluctlights/fl-1/npcs/npc-1/encounters"},

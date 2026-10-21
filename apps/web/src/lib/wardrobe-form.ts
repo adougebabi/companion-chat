@@ -1,6 +1,11 @@
-export type WardrobeItemDraft = { itemKind: "wearable" | "object"; category: string; slot: string; description: string; ownership: string; availability: string };
+export type WardrobeItemDraft = { itemKind: "wearable" | "object"; category: string; slot: string; description: string; ownership: string; availability: string; clothingType?:string; seasons?:string[] };
 
+export const clothingTypeOptions=[{value:"outer",label:"外套"},{value:"upper_body",label:"上衣"},{value:"underwear",label:"内衣"},{value:"panties",label:"内裤"},{value:"lower_body",label:"下衣"},{value:"socks",label:"袜子"},{value:"shoes",label:"鞋子"},{value:"accessory",label:"配饰"}];
+export const clothingSeasons=[{value:"spring",label:"春"},{value:"summer",label:"夏"},{value:"autumn",label:"秋"},{value:"winter",label:"冬"}];
+export function clothingTypeOf(item:Record<string,unknown>):string{return String(item.clothing_type||({outerwear:"outer",accessories:"accessory",head:"accessory",neck:"accessory",wrist:"accessory",top:"upper_body",bottom:"lower_body"} as Record<string,string>)[String(item.slot)]||item.slot||"");}
+export function clothingTypeLabel(item:Record<string,unknown>):string{return clothingTypeOptions.find(t=>t.value===clothingTypeOf(item))?.label||wardrobeSlotLabel(item.slot);}
 export const wardrobeSlots = [
+ {value:"underwear",label:"内衣"},{value:"panties",label:"内裤"},
  {value:"upper_body",label:"上装"},{value:"lower_body",label:"下装"},{value:"outer",label:"外套"},
  {value:"full_body",label:"连身服装"},{value:"shoes",label:"鞋履"},{value:"socks",label:"袜子"},
  {value:"head",label:"帽子与头饰"},{value:"accessory",label:"配饰"},
@@ -8,6 +13,7 @@ export const wardrobeSlots = [
 // Category/slot are extensible backend names. These are safe UI presets, not
 // a new domain enum; advanced imports retain existing custom vocabularies.
 export const wardrobeCategories = [
+ {kind:"wearable",value:"underwear",label:"内衣",slots:["underwear"]},{kind:"wearable",value:"panties",label:"内裤",slots:["panties"]},
  {kind:"wearable",value:"top",label:"上装",slots:["upper_body"]},
  {kind:"wearable",value:"bottom",label:"下装",slots:["lower_body"]},
  {kind:"wearable",value:"coat",label:"外套",slots:["outer"]},
@@ -28,7 +34,7 @@ export const wardrobeCategories = [
 ];
 export const wardrobeOwnershipOptions = [{value:"owned",label:"已拥有"},{value:"borrowed",label:"借用"},{value:"unknown",label:"所有权未确认"}];
 export const wardrobeAvailabilityOptions = [{value:"available",label:"可用"},{value:"unavailable",label:"不可用"},{value:"lost",label:"已遗失"}];
-export function newWardrobeItemDraft(): WardrobeItemDraft { return {itemKind:"wearable",category:"top",slot:"upper_body",description:"",ownership:"owned",availability:"available"}; }
+export function newWardrobeItemDraft(): WardrobeItemDraft { return {itemKind:"wearable",category:"top",slot:"upper_body",clothingType:"upper_body",seasons:[],description:"",ownership:"owned",availability:"available"}; }
 export function wardrobeCategoryOptions(kind:string) {return wardrobeCategories.filter(item=>item.kind===kind);}
 export function wardrobeSlotOptions(kind:string,category:string) {
  if(kind==="object") return [{value:"",label:"不适用（普通物品）"}];

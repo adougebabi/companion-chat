@@ -1,0 +1,74 @@
+=== RUN   TestV3PlaceDefaultsPostgresRestoreCASCaptureHistoryAndScope
+--- PASS: TestV3PlaceDefaultsPostgresRestoreCASCaptureHistoryAndScope (0.42s)
+=== RUN   TestV3InventoryArchiveUseInvalidationSQL
+--- PASS: TestV3InventoryArchiveUseInvalidationSQL (0.31s)
+=== RUN   TestWardrobeBorrowWearReturnUsesExistingInventoryAuthority
+2026/10/21 10:59:33 WARN tool.call.handled capability=wardrobe.return call_id=direct_call_69d44966cdca8296256092278fad9ede warning_code=wardrobe_item_not_found disposition=no_results effect_applied=false
+2026/10/21 10:59:33 WARN tool.call.handled capability=wardrobe.return call_id=direct_call_5a5d4e93dfb42443c39cd076d58984fd warning_code=wardrobe_return_already_recorded disposition=no_change effect_applied=false
+2026/10/21 10:59:33 WARN tool.call.handled capability=wardrobe.wear call_id=direct_call_5043f31d018711c16c1c9a84baa3cd81 warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+--- PASS: TestWardrobeBorrowWearReturnUsesExistingInventoryAuthority (0.29s)
+=== RUN   TestWardrobeReturnRejectsOwnedItemsAndForeignOwner
+2026/10/21 10:59:33 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_02936f53f4e3e4525f6026a5529da0da type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/10/21 10:59:33 WARN tool.call.handled capability=wardrobe.return call_id=direct_call_cd1e2ca8228c6b8a09164d0726430660 warning_code=borrowed_item_not_returnable disposition=awaiting_state effect_applied=false
+--- PASS: TestWardrobeReturnRejectsOwnedItemsAndForeignOwner (0.31s)
+=== RUN   TestWardrobePartialConflictExplainsReplacementCorrection
+2026/10/21 10:59:34 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_4a5191d4ff85517b0047cf5428fe885f type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/10/21 10:59:34 WARN tool.call.handled capability=wardrobe.wear call_id=direct_call_726a6cf0d1a02be7248c55886aaf640f warning_code=wearing_unchanged disposition=no_change effect_applied=false
+--- PASS: TestWardrobePartialConflictExplainsReplacementCorrection (0.34s)
+=== RUN   TestWardrobeIndependentToolKeepsItemsAndWearingDistinct
+2026/10/21 10:59:34 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_e6a4cb1c1a186b96473d386fab141956 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/10/21 10:59:34 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_78892a85d26f0b3cd7439f048e9c8420 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/10/21 10:59:34 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_05c375e912aa48e580ab2887dcf8bfa3 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestWardrobeIndependentToolKeepsItemsAndWearingDistinct (0.36s)
+=== RUN   TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner
+2026/10/21 10:59:34 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_017740388c252d8556a278a4833f316c type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/10/21 10:59:34 WARN tool.call.handled capability=wardrobe.wear call_id=direct_call_03950fbd801bde3b2a1bba301d0e17c9 warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/10/21 10:59:34 WARN capability lifecycle capability=wardrobe.inspect call_id=direct_call_a6030541249522fa451776e635f1560c type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=false intent_present=false intent_runes=0 error_code=wardrobe_item_not_found
+2026/10/21 10:59:34 WARN tool.call.handled capability=wardrobe.inspect call_id=direct_call_a6030541249522fa451776e635f1560c warning_code=wardrobe_item_not_found disposition=no_results effect_applied=false
+--- PASS: TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner (0.22s)
+=== RUN   TestWardrobePreparedWearRejectsConcurrentRevision
+--- PASS: TestWardrobePreparedWearRejectsConcurrentRevision (0.31s)
+=== RUN   TestWardrobeSavedOutfitReferencesExistingItemWithoutChangingWearing
+2026/10/21 10:59:35 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_d811c4fcbb20887838cd87cd936dfe99 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/10/21 10:59:35 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_74c0cc341612107649fcafa2fb4f28dd type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestWardrobeSavedOutfitReferencesExistingItemWithoutChangingWearing (0.35s)
+=== RUN   TestWardrobeStandardMetadataAndBodyCoverage
+--- PASS: TestWardrobeStandardMetadataAndBodyCoverage (0.00s)
+=== RUN   TestWardrobeTagsSeasonsAndMultipleAccessoriesPersist
+2026/10/21 10:59:35 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_2319cbe63939cc86fba7da6b02c2cb7a type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestWardrobeTagsSeasonsAndMultipleAccessoriesPersist (0.38s)
+=== RUN   TestWardrobePreparationCommitAndExplicitRecoveryKeepOriginalFailure
+--- PASS: TestWardrobePreparationCommitAndExplicitRecoveryKeepOriginalFailure (0.33s)
+=== RUN   TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays
+--- PASS: TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays (0.36s)
+=== RUN   TestWorldFrameworkPublicationMaterializesAndLocksNames
+--- PASS: TestWorldFrameworkPublicationMaterializesAndLocksNames (0.34s)
+=== RUN   TestWardrobeSelectionFenceRejectsStaleAndReplaysCommittedReceipt
+2026/10/21 10:59:37 WARN tool.call.handled capability=wardrobe.wear call_id=direct_call_7226351cc27a4bae20b7dc24890b5f50 warning_code=wardrobe_selection_stale disposition=awaiting_state effect_applied=false
+--- PASS: TestWardrobeSelectionFenceRejectsStaleAndReplaysCommittedReceipt (0.33s)
+=== RUN   TestWardrobeCompleteInventoryRejectsExtraStarterStock
+--- PASS: TestWardrobeCompleteInventoryRejectsExtraStarterStock (0.21s)
+=== RUN   TestWardrobeRemovedProfileRetiresOnlyUncommittedSelection
+--- PASS: TestWardrobeRemovedProfileRetiresOnlyUncommittedSelection (0.33s)
+=== RUN   TestWardrobeRemovedProfileStillReplaysExistingWearEffect
+--- PASS: TestWardrobeRemovedProfileStillReplaysExistingWearEffect (0.33s)
+=== RUN   TestWardrobePreparationCannotCommitAfterCharacterPause
+2026/10/21 10:59:38 WARN tool.call.handled capability=wardrobe.wear call_id=direct_call_1decb3841547c962db054a0371bb81b5 warning_code=wardrobe_selection_stale disposition=awaiting_state effect_applied=false
+--- PASS: TestWardrobePreparationCannotCommitAfterCharacterPause (0.32s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.539s
+=== RUN   TestInventoryUpgradeRepairsLegacyEligibilityOnceAndRetainsUnknownWornOwnership
+--- PASS: TestInventoryUpgradeRepairsLegacyEligibilityOnceAndRetainsUnknownWornOwnership (0.38s)
+=== RUN   TestWardrobeWorld0095UpgradePreservesOldDataAndReruns
+--- PASS: TestWardrobeWorld0095UpgradePreservesOldDataAndReruns (0.37s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	1.126s
+=== RUN   TestWardrobePreparationWorkflowWaitsDurablyAndDoesNotPollModel
+2026/10/21 10:59:32 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType ProcessWardrobePreparationActivity
+2026/10/21 10:59:32 DEBUG Auto fire timer TimerID 2 TimerDuration 1m0s TimeSkipped 1m0s
+--- PASS: TestWardrobePreparationWorkflowWaitsDurablyAndDoesNotPollModel (0.04s)
+=== RUN   TestWardrobePreparationWorkflowReturnsActualCompletedResult
+2026/10/21 10:59:32 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType ProcessWardrobePreparationActivity
+--- PASS: TestWardrobePreparationWorkflowReturnsActualCompletedResult (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	0.524s

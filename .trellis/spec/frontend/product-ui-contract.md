@@ -204,3 +204,27 @@ CUA checks cover nested cancellation, summary focus, exact/local round trips,
 chat draft/history and reading position, configuration cancellation, responsive
 surfaces and module-refresh recovery. Missing real resources are blocked in the
 route matrix, never counted as real detail-page acceptance.
+
+## 2026-10-21 wardrobe and world workspace
+
+Wardrobe uses shared composer/library/preview/preparation components, with tabs
+为她搭配/方案库/全部衣服. Actual wearing is its own authoritative read, separate
+from saved plans. Compose one ordinary garment per slot and multiple accessories;
+selected archived accessories stay removable. New standard types and seasons
+use Chinese choices; old custom garments stay visible. Plan/tag drafts and
+commands use stable Owner/fid/profile/operation identity. Store only presentation
+input and frozen pending commands in session storage, never a second business
+snapshot. Closing/remounting/refresh preserves unknown commands for exact replay;
+a first explicit CAS rejection needs actual reread and explicit rebase. Old
+acknowledgement clears only the exact submitted draft, preserving newer edits.
+Name-only PATCH does not resubmit archived members. Logout/Owner change clears
+wardrobe, world-framework and runtime-framework draft/command prefixes.
+
+World editor reuses the fixed category directory and concrete-point preview.
+Categories have no location link or edit control; existing canonical point name
+is readonly, alias and descriptive fields are editable. Raw objects are folded
+and must never show [object Object]. Generating a framework first produces a
+reviewable proposal, then saves/applies through the owning existing commands.
+Global hover links have no underline per the latest user decision; keyboard
+focus outlines remain. Browser fixture replay and real NAS/model acceptance must
+be recorded separately; unavailable browser transport is an unverified check.

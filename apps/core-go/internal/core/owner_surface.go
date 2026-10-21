@@ -85,64 +85,68 @@ type WardrobeOwnerEditResult struct {
 // SurfaceHooks are read-only or explicitly owner-attributed adapters.
 // Nil hooks mean that capability is not connected.
 type SurfaceHooks struct {
-	Promises               func(context.Context, string, string, url.Values) (map[string]any, error)
-	Promise                func(context.Context, string, string, string) (map[string]any, error)
-	PromiseHistory         func(context.Context, string, string, string, url.Values) (map[string]any, error)
-	PromiseCommand         func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
-	WearingHistory         func(context.Context, string, string, url.Values) (map[string]any, error)
-	SaveInventoryOutfit    func(context.Context, string, string, string, map[string]any) (map[string]any, error)
-	InventoryOutfitHistory func(context.Context, string, string, string, url.Values) (map[string]any, error)
-	InventoryOutfit        func(context.Context, string, string, string) (map[string]any, error)
-	InventoryOutfits       func(context.Context, string, string, url.Values) (map[string]any, error)
-	InventoryList          func(context.Context, string, string, url.Values) (map[string]any, error)
-	InventoryItem          func(context.Context, string, string, string) (map[string]any, error)
-	InventoryHistory       func(context.Context, string, string, string, url.Values) (map[string]any, error)
-	InventoryCommand       func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
-	VisualTimeline         func(context.Context, string, string, url.Values) (map[string]any, error)
-	VisualBrief            func(context.Context, string, string) (map[string]any, error)
-	VisualBriefHistory     func(context.Context, string, string, url.Values) (map[string]any, error)
-	SaveVisualBrief        func(context.Context, string, string, map[string]any) (map[string]any, error)
-	VisualIdentity         func(context.Context, string, string) (map[string]any, error)
-	GenerateVisualIdentity func(context.Context, string, string, map[string]any) (map[string]any, error)
-	GovernanceCatalog      func(context.Context, string, string, string, url.Values) (map[string]any, error)
-	GovernanceObject       func(context.Context, string, string, string, string) (map[string]any, error)
-	GovernanceHistory      func(context.Context, string, string, string, string, url.Values) (map[string]any, error)
-	CapabilityReview       func(context.Context, string, string, string, map[string]any) (map[string]any, error)
-	Notifications          func(context.Context, string, url.Values) (map[string]any, error)
-	UnreadNotifications    func(context.Context, string) (map[string]any, error)
-	ReadNotification       func(context.Context, string, string, map[string]any) (map[string]any, error)
-	ReadAllNotifications   func(context.Context, string, map[string]any) (map[string]any, error)
-	Pending                func(context.Context, string, url.Values, bool) (map[string]any, error)
-	Task                   func(context.Context, string, string) (map[string]any, error)
-	RequestTasks           func(context.Context, string, string, string, string) ([]any, error)
-	AutonomyPolicy         func(context.Context, string, string) (map[string]any, error)
-	UpdateAutonomyPolicy   func(context.Context, string, string, map[string]any) (map[string]any, error)
-	DiaryList              func(context.Context, string, string, url.Values) (map[string]any, error)
-	DiaryDetail            func(context.Context, string, string, string) (map[string]any, error)
-	DiaryReplies           func(context.Context, string, string, string, url.Values) (map[string]any, error)
-	SharedExperiences      func(context.Context, string, string, url.Values) (map[string]any, error)
-	GenerateDiary          func(context.Context, string, string, map[string]any) (map[string]any, error)
-	AnnotateDiary          func(context.Context, string, string, string, map[string]any) (map[string]any, error)
-	SelfClaims             func(context.Context, string, string, url.Values) (map[string]any, error)
-	SelfClaim              func(context.Context, string, string, string) (map[string]any, error)
-	SelfHistory            func(context.Context, string, string, string, string, url.Values) (map[string]any, error)
-	SelfCommand            func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
-	ReflectionCatalog      func(context.Context, string, string, url.Values) (map[string]any, error)
-	ReflectionDetail       func(context.Context, string, string, string) (map[string]any, error)
-	ReflectionFeedback     func(context.Context, string, string, string, url.Values) (map[string]any, error)
-	EnqueueFeedback        func(context.Context, string, string, string, string, map[string]any) (string, error)
-	EnqueueLifeRequest     func(context.Context, string, string, string, string, map[string]any) (string, error)
-	ApplyPersonaSwitch     func(context.Context, string, string, map[string]any) (map[string]any, error)
-	Now                    func() time.Time
-	Authorize              func(ctx context.Context, owner, fid string) error
-	DeleteGroup            func(ctx context.Context, owner, groupID string) error
-	PublishMoment          func(ctx context.Context, owner string, moment map[string]any) error
-	CapabilityItems        func(ctx context.Context, owner, fid string) ([]map[string]any, error)
-	ListMedia              func(ctx context.Context, owner, fid, cursor string, limit int) ([]map[string]any, any, error)
-	Sidebar                func(ctx context.Context, owner, fid string) (map[string]any, error)
-	MemoryRevision         func(ctx context.Context, owner, memoryID string) (int, bool, error)
-	InstanceRevision       func(ctx context.Context, owner, fid string) (int, error)
-	ApplyWardrobeEdit      func(ctx context.Context, owner, fid string, edit WardrobeOwnerEdit) (WardrobeOwnerEditResult, error)
+	WardrobePreparation        func(context.Context, string, string) (map[string]any, error)
+	RequestWardrobePreparation func(context.Context, string, string, map[string]any) (map[string]any, error)
+	WardrobeTags               func(context.Context, string, string) (map[string]any, error)
+	SaveWardrobeTags           func(context.Context, string, string, map[string]any) (map[string]any, error)
+	Promises                   func(context.Context, string, string, url.Values) (map[string]any, error)
+	Promise                    func(context.Context, string, string, string) (map[string]any, error)
+	PromiseHistory             func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	PromiseCommand             func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
+	WearingHistory             func(context.Context, string, string, url.Values) (map[string]any, error)
+	SaveInventoryOutfit        func(context.Context, string, string, string, map[string]any) (map[string]any, error)
+	InventoryOutfitHistory     func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	InventoryOutfit            func(context.Context, string, string, string) (map[string]any, error)
+	InventoryOutfits           func(context.Context, string, string, url.Values) (map[string]any, error)
+	InventoryList              func(context.Context, string, string, url.Values) (map[string]any, error)
+	InventoryItem              func(context.Context, string, string, string) (map[string]any, error)
+	InventoryHistory           func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	InventoryCommand           func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
+	VisualTimeline             func(context.Context, string, string, url.Values) (map[string]any, error)
+	VisualBrief                func(context.Context, string, string) (map[string]any, error)
+	VisualBriefHistory         func(context.Context, string, string, url.Values) (map[string]any, error)
+	SaveVisualBrief            func(context.Context, string, string, map[string]any) (map[string]any, error)
+	VisualIdentity             func(context.Context, string, string) (map[string]any, error)
+	GenerateVisualIdentity     func(context.Context, string, string, map[string]any) (map[string]any, error)
+	GovernanceCatalog          func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	GovernanceObject           func(context.Context, string, string, string, string) (map[string]any, error)
+	GovernanceHistory          func(context.Context, string, string, string, string, url.Values) (map[string]any, error)
+	CapabilityReview           func(context.Context, string, string, string, map[string]any) (map[string]any, error)
+	Notifications              func(context.Context, string, url.Values) (map[string]any, error)
+	UnreadNotifications        func(context.Context, string) (map[string]any, error)
+	ReadNotification           func(context.Context, string, string, map[string]any) (map[string]any, error)
+	ReadAllNotifications       func(context.Context, string, map[string]any) (map[string]any, error)
+	Pending                    func(context.Context, string, url.Values, bool) (map[string]any, error)
+	Task                       func(context.Context, string, string) (map[string]any, error)
+	RequestTasks               func(context.Context, string, string, string, string) ([]any, error)
+	AutonomyPolicy             func(context.Context, string, string) (map[string]any, error)
+	UpdateAutonomyPolicy       func(context.Context, string, string, map[string]any) (map[string]any, error)
+	DiaryList                  func(context.Context, string, string, url.Values) (map[string]any, error)
+	DiaryDetail                func(context.Context, string, string, string) (map[string]any, error)
+	DiaryReplies               func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	SharedExperiences          func(context.Context, string, string, url.Values) (map[string]any, error)
+	GenerateDiary              func(context.Context, string, string, map[string]any) (map[string]any, error)
+	AnnotateDiary              func(context.Context, string, string, string, map[string]any) (map[string]any, error)
+	SelfClaims                 func(context.Context, string, string, url.Values) (map[string]any, error)
+	SelfClaim                  func(context.Context, string, string, string) (map[string]any, error)
+	SelfHistory                func(context.Context, string, string, string, string, url.Values) (map[string]any, error)
+	SelfCommand                func(context.Context, string, string, string, string, map[string]any) (map[string]any, error)
+	ReflectionCatalog          func(context.Context, string, string, url.Values) (map[string]any, error)
+	ReflectionDetail           func(context.Context, string, string, string) (map[string]any, error)
+	ReflectionFeedback         func(context.Context, string, string, string, url.Values) (map[string]any, error)
+	EnqueueFeedback            func(context.Context, string, string, string, string, map[string]any) (string, error)
+	EnqueueLifeRequest         func(context.Context, string, string, string, string, map[string]any) (string, error)
+	ApplyPersonaSwitch         func(context.Context, string, string, map[string]any) (map[string]any, error)
+	Now                        func() time.Time
+	Authorize                  func(ctx context.Context, owner, fid string) error
+	DeleteGroup                func(ctx context.Context, owner, groupID string) error
+	PublishMoment              func(ctx context.Context, owner string, moment map[string]any) error
+	CapabilityItems            func(ctx context.Context, owner, fid string) ([]map[string]any, error)
+	ListMedia                  func(ctx context.Context, owner, fid, cursor string, limit int) ([]map[string]any, any, error)
+	Sidebar                    func(ctx context.Context, owner, fid string) (map[string]any, error)
+	MemoryRevision             func(ctx context.Context, owner, memoryID string) (int, bool, error)
+	InstanceRevision           func(ctx context.Context, owner, fid string) (int, error)
+	ApplyWardrobeEdit          func(ctx context.Context, owner, fid string, edit WardrobeOwnerEdit) (WardrobeOwnerEditResult, error)
 }
 
 // OwnerSurface implements browser routes that sit outside the agent runtime.
@@ -444,6 +448,33 @@ func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall
 			return s.hooks.WearingHistory(ctx, owner, op.fid, query)
 		}
 		return notImplemented(nil), nil
+	case "wardrobe_preparation":
+		if s.hooks.WardrobePreparation != nil {
+			return s.hooks.WardrobePreparation(ctx, owner, op.fid)
+		}
+		return nil, ErrNotFound
+	case "wardrobe_preparation_request":
+		if s.hooks.RequestWardrobePreparation != nil {
+			return s.hooks.RequestWardrobePreparation(ctx, owner, op.fid, body)
+		}
+		return nil, ErrNotFound
+	case "wardrobe_tags":
+		if s.hooks.WardrobeTags != nil {
+			return s.hooks.WardrobeTags(ctx, owner, op.fid)
+		}
+		return nil, ErrNotFound
+	case "wardrobe_tags_save":
+		if s.hooks.SaveWardrobeTags != nil {
+			return s.hooks.SaveWardrobeTags(ctx, owner, op.fid, body)
+		}
+		return nil, ErrNotFound
+	case "inventory_outfit_rename":
+		if s.hooks.SaveInventoryOutfit != nil {
+			value := cloneMap(body)
+			value["metadata_only"] = true
+			return s.hooks.SaveInventoryOutfit(ctx, owner, op.fid, op.a, value)
+		}
+		return nil, ErrNotFound
 	case "inventory_outfit_save":
 		if s.hooks.SaveInventoryOutfit != nil {
 			return s.hooks.SaveInventoryOutfit(ctx, owner, op.fid, op.a, body)
@@ -1814,11 +1845,25 @@ func surfaceParts(path string) []string {
 func matchSurface(method string, parts []string) (surfaceCall, bool) {
 	call := surfaceCall{success: 200, needsKey: method != "GET" && method != "HEAD"}
 	switch {
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "preparation" && (method == "GET" || method == "POST"):
+		call.fid, call.read = parts[1], method == "GET"
+		call.name = "wardrobe_preparation"
+		if method == "POST" {
+			call.name = "wardrobe_preparation_request"
+		}
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "tags" && (method == "GET" || method == "PUT"):
+		call.fid, call.read = parts[1], method == "GET"
+		call.name = "wardrobe_tags"
+		if method == "PUT" {
+			call.name = "wardrobe_tags_save"
+		}
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "wearing-history" && method == "GET":
 		call.name, call.fid, call.read = "wearing_history", parts[1], true
 
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && method == "POST":
 		call.name, call.fid = "inventory_outfit_save", parts[1]
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && method == "PATCH":
+		call.name, call.fid, call.a = "inventory_outfit_rename", parts[1], parts[4]
 	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && method == "PUT":
 		call.name, call.fid, call.a = "inventory_outfit_save", parts[1], parts[4]
 	case len(parts) == 6 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "outfits" && parts[5] == "revisions" && method == "GET":

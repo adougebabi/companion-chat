@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-21",
+  "scope": "衣柜三Tab、真实初始穿搭准备、世界主题/固定分类/具体地点、全局hover",
+  "schemaHead": "0096_wardrobe_world_structure",
+  "checks": {
+    "web": {
+      "passed": 265,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browserClient": {
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0
+    },
+    "scriptSelfTests": {
+      "passed": 28,
+      "failed": 0,
+      "live": false
+    },
+    "selectedPostgresAndWorkflow": {
+      "rootPassed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "cases": [
+        "TestV3PlaceDefaultsPostgresRestoreCASCaptureHistoryAndScope",
+        "TestV3InventoryArchiveUseInvalidationSQL",
+        "TestWardrobeBorrowWearReturnUsesExistingInventoryAuthority",
+        "TestWardrobeReturnRejectsOwnedItemsAndForeignOwner",
+        "TestWardrobePartialConflictExplainsReplacementCorrection",
+        "TestWardrobeIndependentToolKeepsItemsAndWearingDistinct",
+        "TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner",
+        "TestWardrobePreparedWearRejectsConcurrentRevision",
+        "TestWardrobeSavedOutfitReferencesExistingItemWithoutChangingWearing",
+        "TestWardrobeStandardMetadataAndBodyCoverage",
+        "TestWardrobeTagsSeasonsAndMultipleAccessoriesPersist",
+        "TestWardrobePreparationCommitAndExplicitRecoveryKeepOriginalFailure",
+        "TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays",
+        "TestWorldFrameworkPublicationMaterializesAndLocksNames",
+        "TestWardrobeSelectionFenceRejectsStaleAndReplaysCommittedReceipt",
+        "TestWardrobeCompleteInventoryRejectsExtraStarterStock",
+        "TestWardrobeRemovedProfileRetiresOnlyUncommittedSelection",
+        "TestWardrobeRemovedProfileStillReplaysExistingWearEffect",
+        "TestWardrobePreparationCannotCommitAfterCharacterPause",
+        "TestInventoryUpgradeRepairsLegacyEligibilityOnceAndRetainsUnknownWornOwnership",
+        "TestWardrobeWorld0095UpgradePreservesOldDataAndReruns",
+        "TestWardrobePreparationWorkflowWaitsDurablyAndDoesNotPollModel",
+        "TestWardrobePreparationWorkflowReturnsActualCompletedResult"
+      ]
+    },
+    "fullPackages": [
+      "migrations",
+      "httpapi/browser",
+      "workflow"
+    ],
+    "controlledFormalAgent": "2 fake HTTP model completions -> real PostgreSQL -> real wardrobe.wear -> persisted completed readback and replay",
+    "externalModelCalls": 0,
+    "browserVisual": {
+      "status": "blocked",
+      "reason": "CUA transport closed on rewriteDocumentation and getState; new desktop/390px replay not executed"
+    },
+    "NASDeployment": "not_executed",
+    "realTemporal": "not_executed_for_this_change",
+    "webTypecheck": "passed",
+    "productionBuild": "passed_no_mock_bundle",
+    "coreBuildAll": "passed",
+    "goVetChangedPackages": "passed",
+    "diffCheck": "passed"
+  },
+  "review": {
+    "readOnlyScouts": 2,
+    "fixed": [
+      "Removed profile could trap an unexecuted frozen selection; missing receipt now retires only that choice",
+      "L19 adoption uses expectedVersion=draft_version",
+      "Logout cleanup includes runtime-framework prefix",
+      "Paused character cannot accept late initializer inventory or wear writes; regression added"
+    ],
+    "additionalMigrationFix": "Run released 0073 eligibility repair before adding 0096 item identity uniqueness; old migration SQL unchanged"
+  },
+  "liveAcceptance": {
+    "status": "pending_user",
+    "L18": "scripts/e2e/v3-regression/l18-wardrobe-preparation.mjs",
+    "L19": "scripts/e2e/v3-regression/l19-world-framework.mjs"
+  },
+  "environment": {
+    "database": "Disposable pgvector PostgreSQL 16, tmpfs, unique test databases; no user DB/NAS migration",
+    "cleanup": "temporary container removed at completion"
+  },
+  "limitations": [
+    "Current browser visual replay not executed",
+    "Actual LLM quality, daily contextual selection and NAS worker deployment await user validation"
+  ],
+  "evidenceFiles": [
+    "browser-client-tests.txt",
+    "platform-packages.txt",
+    "regression-script-self-tests.txt",
+    "selected-postgres-and-workflow.txt",
+    "web-tests.txt"
+  ]
+}

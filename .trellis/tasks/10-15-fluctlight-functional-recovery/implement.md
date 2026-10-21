@@ -497,3 +497,22 @@ Profile原本Real/Mock已共用组件，但组件直接遍历原字段并把对�
 共享Avatar、SchedulePlanItem/planWindow、RequestFailureLink分别承接空/破头像、时钟半开窗口/历史/实际状态边界、真实请求失败诊断。聊天反馈紧凑、cancel/retry由store决定、草稿不重挂；仅状态文案翻译，用户消息原文保留。衣柜已登记穿着空态与局部card hover；outdoor_clothing沿前次共享字典。日程地点保留真实历史，未来生成提示不默认home且未知允许省略，不以关键词改旧记录。
 
 验收证据与剩余限制见evidence/full-stack/nas-additions-1020/result.json与fixes.md；不把本机受控回放当NAS部署后或实际模型/数据库事务通过。
+
+
+## 2026-10-21 当前实施序列
+- [x] 0096兼容迁移/类型与季节/tags/多配饰真实writer；公共API与客户端同步。
+- [x] 衣柜三Tab/按部位选物品/方案预览编辑回跳/标签维护/衣物CRUD。
+- [x] 独立穿搭准备Agent+持久任务/初始化排队/既有角色显式补全/真实wear与情境tag消费/结果进度。
+- [x] 世界framework生成、发布、来源幂等物化/只读分类/地点可编辑字段及名称保护。
+- [ ] 全局hover去下划线；定向纯/受控及浏览器检查；真实模型补统一验收脚本，不执行。
+- [ ] 只读终审、主线程修正、同一台账与spec、提交推送；不归档未验收总任务。
+
+2026-10-21 实施中间接点：0096新增元数据/多配饰PK与body-slot唯一索引/穿搭准备任务/世界分类；已接三Tab、标签维护、方案组合/预览/改名、服装属性、FormalAgentWardrobePreparation+Workflow+读回恢复、setup/运行世界framework生成与来源幂等应用、中央地点名称保护。已发现并修：旧wear owner修正ON CONFLICT目标、多配饰移除用例缺item_ids、initializer SQL同参text/varchar推导、旧默认恢复误清group。
+已执行：Web260/260、Browser Go边界定向通过；PG新多配饰/tags/准备commit+恢复/world框架及旧库存/CAS通过，旧PlaceDefaults group修复后需重跑。正式准备Agent受控Provider→真实PG→wear Tool→完成/重放已过（2次受控调用，真实外部模型0）。本轮隔离PG容器fluctlight-wardrobe-world-verify-1021，15441，tmpfs/--rm，最终须清理。
+仍需：补新组件/边界/工作流/迁移升级用例和运行；至少两名只读终审后主线程修正；正式产物浏览器宽/390px（扩展ui-quality-server明确夹具，不触发模型）；L18/L19用户手动LLM脚本与操作册；同一台账/spec/最终证据；提交推送（排除profile-types.ts），关闭临时浏览器/服务及测试PG。未部署NAS、未跑实际模型。日志/private/tmp/fluctlight-wardrobe-world-*.log与fluctlight-wardrobe-agent-controlled.log。
+
+2026-10-21 最终收敛：方案多标签/标签多方案按用户裁定落地。metadata-only PATCH改名不会校验/重写归档成员；新穿搭/tag/rename draft按Owner/fid/profile稳定scope持久，未知请求刷新后原身份重放，旧A回执不清新B草稿。移除人格前未执行的选择，仅在无receipt后退休选择；已提交receipt仍精确重放。暂停期间不接受后台晚到库存/穿衣效果。旧0073库存纠错先于0096新identity唯一约束执行，已发布SQL未改。
+真实PG+受控FormalAgent+真实wear定向通过，完整迁移/BFF/Workflow通过；Web265/BrowserClient39/脚本28与type/build/no-Mock/Go build/vet通过。新增L18/L19，只做self-test/--help，不执行--live。两名只读终审发现的问题已修。证据与各层限制见evidence/full-stack/wardrobe-world-1021/result.json。
+CUA rewriteDocumentation/getState均Transport closed，当前新页面桌面/390px浏览器视觉未验证；未部署NAS/跑外部模型/真实Temporal业务工作流。不把本机PG/SDK Workflow测试当真实模型或NAS通过。总任务继续in_progress等待用户验收；提交排除profile-types.ts与临时产物；关闭本轮tmpfs PG容器。
+
+最终定向23个根通过/0skip，包括暂停晚到保护；完整迁移/BFF/Workflow均通过。Web265/39/脚本28与最终Go build/vet通过。页面视觉待CUA恢复，真实NAS/LLM待用户L18/L19；不记为全量通过。

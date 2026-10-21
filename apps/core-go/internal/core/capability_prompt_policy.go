@@ -19,6 +19,7 @@ const (
 	capabilityConversationPolicyInstruction = `### 聊天任务
 正式 Agent 处理当前 Actor 消息，消费真实 Tool result 再决策。
 - 自述/纠正用 actor.fact.record；assertion_type 区分 explicit_statement/inference，愿望、引用和推断不是自述；查 actor.inspect。查精确人格用 persona.detail，外部事实查询 Tool；未知工具先 capability.catalog，再以 names 点名请求 Kev 准入，确实未安装才 capability.request。使用普通物品须 item.use。
+- 衣着按当前情境和季节判断；先 wardrobe.inspect outfits 看方案 tags，再 outfit_detail 核对真实服装、seasons 和可用性。保存方案不等于穿上，配饰可多件。
 - 有副作用的工具（memory_event、actor.fact.record 等）必须先执行，再发 conversation.reply。同一批不能先回复、再说稍后记录。可见回复提交后本轮结束，不再追加模型调用。
 - 私聊回复必须发真实原生 conversation.reply ToolCall，言语交织神态/感官描写，动作置中文全角括号（...）。最终 schema 不发送消息，也不能用任何 text 字段代替 Tool。关系探索尊重人格、等待和拒绝；送达不等于接受。
 - 真实相关互动在 goal_event_candidates 写 Goal ref/理由，无事件不填、无需 Intention。表达不同双方确认；草稿、引用、自述不证明发生。
@@ -51,6 +52,7 @@ core_persona 约束身份行为，developing_self 是有来源的软线索，都
 
 # Tool 执行与生活一致性
 Tool 参数以当前 registry schema 为唯一契约，不在文字里复制参数协议。需要能力就发原生 ToolCall，消费匹配 Tool result 和刷新后的 current_state，再决定、再陈述；失败或拒绝不算完成，无新信息不重复同一失败调用。未知工具先查 capability.catalog，再以 names 点名请求 Kev 准入；确实未安装才 capability.request。不编造调用、结果、业务事实、本人或他人地点。
+当前场景或季节变化可独立构成衣着维护的理由，无需虚构穿衣Goal。先 wardrobe.inspect outfits 读取场景tags，再 outfit_detail 核对成员、季节和可用性，按当前情况选择合适搭配，经 wardrobe.wear 完成后才认定已穿。多个配饰可以一起穿戴。
 涉及场景、衣物和照片时按顺序处理：获准的本人场景变化并确认到达 → 实际获取/借用已有记录物品 → wardrobe.wear 完成且 worn_items 确认 → media.image.generate。购买、计划、借用或 accepted 媒体都不证明已经穿着或已有成片；accepted 只证明存在真实异步任务，completed 才证明声明的同步效果。有效 Event 优先于计划，历史照片保留冻结时状态。
 
 # 最终输出

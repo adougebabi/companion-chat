@@ -178,11 +178,11 @@ export type StudioPreview = { preview_id: string; text: string; label: "创作�
 
 export type StudioPreviewBody = { resourceId?: string; text: string; idempotencyKey: string };
 
-export type ApplyPreviewBody = { fluctlightId: string; resourceVersion: string };
+export type ApplyPreviewBody = { fluctlightId: string; resourceVersion: string; runtimeWorldId?:string };
 
 export type ApplyPreviewResponse = { target_kind?:"visual_brief"|"foundation"|"world_item"|"wardrobe_outfit"; preparation_required?:boolean; world_id?:string; world_binding_revision?:number; profile_id?:string; wardrobe_revision?:number; members?:Array<{resource_id:string;resource_version:string;name:string;slot:string;description:string;more_candidates:boolean;candidates:Array<{item_id:string;description:string;ownership:string;availability:string;exact_source:boolean|null;source_verified:boolean}>}>; available?:boolean; semantics?:string; diff: Array<{ field: string; from: unknown; to: unknown }>; conflicts: unknown[]; instance_revision: number; runtime_revision?: number; runtime_id?: string | null };
 
-export type ApplyResourceBody = { fluctlightId: string; resourceVersion: string; expectedInstanceRevision: number; expectedRuntimeRevision?: number; worldId?:string; expectedWorldRevision?:number; profileId?:string; expectedWardrobeRevision?:number; memberItems?:Array<{resourceId:string;resourceVersion:string;itemId:string}>; homePlaceId?: string | null; routine?: NPCRoutineSlot[]; choices: Array<{ field: string; decision: "keep" | "override" }>; reason: string; idempotencyKey: string };
+export type ApplyResourceBody = { runtimeWorldId?:string; fluctlightId: string; resourceVersion: string; expectedInstanceRevision: number; expectedRuntimeRevision?: number; worldId?:string; expectedWorldRevision?:number; profileId?:string; expectedWardrobeRevision?:number; memberItems?:Array<{resourceId:string;resourceVersion:string;itemId:string}>; homePlaceId?: string | null; routine?: NPCRoutineSlot[]; choices: Array<{ field: string; decision: "keep" | "override" }>; reason: string; idempotencyKey: string };
 
 export type ApplyResourceResponse = { target_kind?:"visual_brief"|"foundation"|"world_item"|"wardrobe_outfit"; brief?:Record<string,unknown>; life_write?:boolean; semantics?:string;
   status: "recorded_not_applied" | "applied" | "proposed";

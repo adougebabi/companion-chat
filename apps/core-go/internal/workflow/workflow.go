@@ -1305,6 +1305,8 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 		})
 		switch queue {
 		case LifecycleQueue:
+			w.RegisterWorkflow(WardrobePreparationWorkflow)
+			w.RegisterActivity(ProcessWardrobePreparationActivity)
 			w.RegisterWorkflow(StudioWorkflow)
 			w.RegisterActivity(ProcessStudioActivity)
 			w.RegisterWorkflow(DiaryWorkflow)
@@ -2181,7 +2183,7 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 		// cycle idempotent even when a terminal execution is replayed.
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
 	}
-	if intentType == "visual_identity.initialize" {
+	if intentType == "visual_identity.initialize" || intentType == "wardrobe.initialize" {
 		// Reconciliation retries only a terminal failed Visual Identity workflow.
 		// The stable workflow ID must therefore admit a new run after failure but
 		// must not reopen a successfully completed identity workflow.
@@ -2366,6 +2368,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			}
 			workflowFn = MediaWorkflow
 			taskQueue = MediaQueue
+		case "wardrobe.initialize":
+			workflowFn = WardrobePreparationWorkflow
+			taskQueue = LifecycleQueue
 		case "schedule.current_day":
 			workflowFn = CurrentDayScheduleWorkflow
 			taskQueue = LifecycleQueue

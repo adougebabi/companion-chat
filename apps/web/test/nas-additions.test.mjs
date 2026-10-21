@@ -60,9 +60,9 @@ test('failed assessment links the original diagnostic without replaying or misla
  assert.match(requestDecisionText(request),/未能完成判断/);assert.match(RequestFailureLink(request),/eventType=owner.life.request.assessment_failed&q=req-123%26x/);assert.doesNotMatch(RequestFailureLink(request),/data-retry|已恢复|已完成/);
  assert.equal(RequestFailureLink({...request,status:'deferred'}),'');assert.equal(requestDecisionText({...request,status:'deferred',decision_reason:'先休息'}),'先休息');
 });
-test('chat feedback retains protocol-owned cancellation and mounted drafts; card links scope hover',async()=>{
+test('chat feedback retains protocol-owned cancellation and mounted drafts; global hover follows the current no-underline design',async()=>{
  const source=await readFile(new URL('../src/v3/proto/pages/real-chat.js',import.meta.url),'utf8');
  assert.match(source,/state.canCancel\?/);assert.match(source,/feedback.className='chat-feedback'/);
  const update=source.slice(source.indexOf('const update='),source.indexOf('const readScope='));assert.doesNotMatch(update,/form\.innerHTML|form\.elements\.t\.value\s*=/);
- const css=await readFile(new URL('../src/styles/v3-proto.css',import.meta.url),'utf8');assert.match(css,/a\.icard:hover,a\.card:hover\{text-decoration:none\}/);assert.match(css,/a:hover\{text-decoration:underline\}/);
+ const css=await readFile(new URL('../src/styles/v3-proto.css',import.meta.url),'utf8');assert.match(css,/a\.icard:hover,a\.card:hover\{text-decoration:none\}/);assert.match(css,/a:hover\{text-decoration:none\}/);
 });

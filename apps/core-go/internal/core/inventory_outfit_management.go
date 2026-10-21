@@ -12,7 +12,7 @@ func (a *App) SaveOwnerInventoryOutfit(ctx context.Context, owner, fid, id strin
 	if !ok {
 		return nil, errors.New("outfit_transaction_required")
 	}
-	allowed := map[string]bool{"name": true, "item_ids": true, "profile_id": true, "expected_revision": true, "expected_outfit_revision": true, "reason": true, "idempotency_key": true}
+	allowed := map[string]bool{"metadata_only": true, "tags": true, "name": true, "item_ids": true, "profile_id": true, "expected_revision": true, "expected_outfit_revision": true, "reason": true, "idempotency_key": true}
 	for key := range body {
 		if !allowed[key] {
 			return nil, invalid("unexpected outfit field")
@@ -24,8 +24,17 @@ func (a *App) SaveOwnerInventoryOutfit(ctx context.Context, owner, fid, id strin
 	if !ok || !previousOK || expected < 0 || previous < 0 || (id == "" && previous != 0) || (id != "" && previous < 1) || name == "" || len([]rune(name)) > 128 || reason == "" || len([]rune(reason)) > 1024 {
 		return nil, invalid("outfit fields and versions required")
 	}
+	tags, err := normalizedOutfitTags(body["tags"])
+	if err != nil {
+		return nil, err
+	}
+	_, tagsSet := body["tags"]
+	metadataOnly := body["metadata_only"] == true
+	if metadataOnly && (id == "" || tagsSet) {
+		return nil, invalid("name-only updates need an existing outfit and preserve tags")
+	}
 	ids := decisionServiceRefValues(body["item_ids"])
-	if len(ids) < 1 || len(ids) > 16 || len(ids) != len(arrayValue(body["item_ids"])) {
+	if !metadataOnly && (len(ids) < 1 || len(ids) > 16 || len(ids) != len(arrayValue(body["item_ids"]))) {
 		return nil, invalid("1–16 concrete item IDs required")
 	}
 	if err := lockLifeContextTx(ctx, tx, fid); err != nil {
@@ -48,7 +57,7 @@ func (a *App) SaveOwnerInventoryOutfit(ctx context.Context, owner, fid, id strin
 	if _, err := tx.Exec(ctx, `SELECT set_config('fluctlight.inventory.audit_id',$1,true)`, audit); err != nil {
 		return nil, err
 	}
-	result, err := newWardrobeService(a).saveOutfitTx(ctx, tx, wardrobeOutfitWrite{FluctlightID: fid, ProfileID: profile, OutfitID: id, Name: name, ItemIDs: ids, OperationID: "owner-outfit:" + stringValue(body["idempotency_key"]), SourceRef: audit, ExpectedWardrobeRevision: expected, ExpectedOutfitRevision: previous})
+	result, err := newWardrobeService(a).saveOutfitTx(ctx, tx, wardrobeOutfitWrite{FluctlightID: fid, ProfileID: profile, OutfitID: id, Name: name, ItemIDs: ids, Tags: tags, TagsSet: tagsSet, MetadataOnly: metadataOnly, OperationID: "owner-outfit:" + stringValue(body["idempotency_key"]), SourceRef: audit, ExpectedWardrobeRevision: expected, ExpectedOutfitRevision: previous})
 	if err != nil {
 		return nil, err
 	}

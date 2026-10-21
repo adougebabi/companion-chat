@@ -24,7 +24,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;scroll-padding-top:calc(var(--topbar) + 16px)}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.55}
-a{color:var(--primary-strong);text-decoration:none} a:hover{text-decoration:underline}
+a{color:var(--primary-strong);text-decoration:none} a:hover{text-decoration:none}
 a.icard:hover,a.card:hover{text-decoration:none}
 h1,h2,h3,h4{margin:0 0 var(--sp2);line-height:1.4} h1{font-size:24px;letter-spacing:-.025em} h2{font-size:19px} h3{font-size:15px}
 p{line-height:1.75}
@@ -511,3 +511,19 @@ figure.card{margin:0}
 @media(max-width:760px){.row>.tabs{flex:1 0 100%;width:100%}.row>form[role=search]{flex:1 1 100%}}
 
 @media(max-width:760px){.diary-entry-head>h2{flex:1 0 100%;white-space:nowrap}}
+
+/* Wardrobe uses the shared sage cards, with a dedicated slot grid for composition. */
+.outfit-slot-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.outfit-slot{min-width:0;padding:14px;border:1px solid var(--line);border-radius:var(--r3);background:var(--surface)}
+.outfit-slot h3,.outfit-slot h4{margin:0 0 10px}.outfit-slot p{margin:6px 0}.outfit-slot p>span{display:block}
+.outfit-choice{display:flex;align-items:start;gap:8px;padding:8px;border:1px solid var(--line);border-radius:var(--r2);cursor:pointer;overflow-wrap:anywhere}
+.outfit-choice small{display:block;color:var(--ink-3);margin-top:4px}
+.outfit-tags,.clothing-season-field{border:1px solid var(--line);border-radius:var(--r3);padding:12px;min-width:0}
+.outfit-tags legend,.clothing-season-field legend{padding:0 6px;color:var(--ink-2)}
+.wardrobe-workspace input,.wardrobe-workspace select{max-width:100%;min-width:0}
+@media(max-width:600px){.outfit-slot-grid{grid-template-columns:minmax(0,1fr)}}
+
+.world-venue-places{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+.world-framework-point{padding:12px 0;border-top:1px solid var(--line)}.world-framework-point h4{margin:0 0 8px}
+.world-framework-point dl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:6px 12px;margin:12px 0 0;font-size:13px}
+.world-framework-point dt{color:var(--ink-3)}.world-framework-point dd{margin:0;overflow-wrap:anywhere}

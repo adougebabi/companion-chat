@@ -3,12 +3,13 @@ package core
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
 
 func (a *App) worldCatalog(ctx context.Context, fid string) (map[string]any, error) {
-	items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',w.id,'fluctlight_id',w.fluctlight_id,'name',w.name,'background',w.background,'rules',w.rules,'flavor',w.flavor,'description',w.description,'item_pool',w.item_pool,'revision',w.revision,'source_resource_id',w.source_resource_id,'source_version',w.source_version,'active',COALESCE(b.world_id=w.id,false)) FROM public.life_worlds w LEFT JOIN public.fluctlight_world_bindings b ON b.fluctlight_id=w.fluctlight_id WHERE w.fluctlight_id=$1 ORDER BY w.created_at,w.id`, fid)
+	items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',w.id,'fluctlight_id',w.fluctlight_id,'name',w.name,'background',w.background,'rules',w.rules,'flavor',w.flavor,'description',w.description,'item_pool',w.item_pool,'venue_categories',w.venue_categories,'revision',w.revision,'source_resource_id',w.source_resource_id,'source_version',w.source_version,'active',COALESCE(b.world_id=w.id,false)) FROM public.life_worlds w LEFT JOIN public.fluctlight_world_bindings b ON b.fluctlight_id=w.fluctlight_id WHERE w.fluctlight_id=$1 ORDER BY w.created_at,w.id`, fid)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +153,26 @@ func validatePlaceDetails(ctx context.Context, q lifeContextQuerier, world, id s
 		}
 		details = decodeObject(raw)
 	}
+	if raw, present := body["venue_category_id"]; present {
+		category, ok := raw.(string)
+		if !ok {
+			return nil, invalid("place venue category must be text")
+		}
+		category = strings.TrimSpace(category)
+		if previous := stringValue(details["venue_category_id"]); previous != "" && previous != category {
+			return nil, &SurfaceError{Status: 422, Code: "place_category_immutable", Message: "地点所属场地分类固定，不能改名或移动分类。"}
+		}
+		if category != "" {
+			var exists bool
+			if err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_worlds w,jsonb_array_elements(w.venue_categories) c WHERE w.id=$1 AND c->>'id'=$2)`, world, category).Scan(&exists); err != nil {
+				return nil, err
+			}
+			if !exists {
+				return nil, invalid("place venue category is outside this world")
+			}
+		}
+		details["venue_category_id"] = category
+	}
 	for key, limit := range map[string]int{"alias": 256, "group": 256, "floor": 128, "scene": 1000, "atmosphere": 2000, "layout": 8000} {
 		if _, ok := body[key]; ok {
 			v, err := boundedWorldText(body, key, limit, false)
@@ -163,6 +184,7 @@ func validatePlaceDetails(ctx context.Context, q lifeContextQuerier, world, id s
 	}
 	for _, key := range []string{"furniture", "connections", "room_items"} {
 		if value, ok := body[key]; ok {
+			if value==nil{delete(details,key);continue}
 			if !boundedWorldCollectionOrText(value) {
 				return nil, invalid(key + " must be bounded text or an array")
 			}

@@ -164,3 +164,26 @@ Source resource/version FK and derived overrides are stored on the saved outfit 
 Studio assistants may use only exact garment references verified at admission, frozen with kind/id/version/slot/description. Outfit image planning and normalization receive these verified garment semantics, not just reference IDs, and still no character Life/private context. Model/image consumers are tested by user-run L15 outfit-assistant and L16 outfit-image; actual pixels remain a separate manual fidelity review. L08 includes deterministic source-to-concrete-outfit application. L05 has a separate actual outfit request and reports legal refusal/deferral without fabricating wear. None of these live steps have been run by the agent.
 
 New outfit publication and new Studio job admission check member catalogue availability under the same short Owner reference-graph advisory as archive, before acquiring parent rows. Member rows are locked active; ordinary historical source recalculation remains allowed after archive. Frozen slot uniqueness is enforced on assistant proposals, and image admission rejects nonwearable references. A source resource referencing its own older immutable typed version does not by itself block its own archive; other active published parents and actual saved instances still protect it.
+
+## 0096: world definition framework and immutable location identity
+
+World assistant proposals include framework.schema=world-framework.v1 with
+venues[{key,name,places:[{key,name,alias,floor,description,atmosphere,furniture,layout}]}].
+These are definition-local keys, never runtime location/NPC IDs. Legacy shell
+publications remain readable. Publish validates bounds, canonical trimmed keys
+and optional collections; optional null means unknown. Runtime application of
+an exact publication materializes the fixed venue directory and concrete places
+in the same CAS/idempotent command. Category rows are metadata, not world_places.
+Each point has a stable [category_key,place_key] framework_key in its world.
+Reapply appends missing keys and preserves existing IDs, category names, point
+names and local edits. runtimeWorldId is an explicit owned world target, never
+an implicit switch. Browsing/materialization never moves a character.
+
+Central place writes keep canonical names fixed; aliases/floor/description/
+atmosphere/furniture/layout remain editable, with manual creation allowed.
+Definition reapply and default restoration also preserve the canonical name.
+Initial world generation is an isolated Studio task and becomes a runtime only
+after explicit adoption/save/publication/application. Studio draft PUT retains
+expectedVersion=draft_version (string), distinct from job and runtime revisions.
+User-run L19 verifies actual model generation and materialization; controlled
+Provider/PG checks do not prove model quality or deployment acceptance.

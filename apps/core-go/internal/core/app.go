@@ -2049,6 +2049,9 @@ func validateInitializationSourceReplayTx(ctx context.Context, tx pgx.Tx, ownerA
 }
 
 func ensureCreationLifecycleIntentsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, intervalSeconds int, now time.Time) error {
+	if _, err := ensureWardrobePreparationTx(ctx, tx, fluctlightID, "initialization:"+fluctlightID); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO public.platform_workflow_intents(
 			intent_id,workflow_id,task_queue,intent_type,payload

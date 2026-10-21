@@ -216,13 +216,16 @@ func (a *App) OwnerInventoryCommand(ctx context.Context, owner, fid, id, operati
 	return map[string]any{"item": updated, "revision": current, "audit_id": audit, "operation": operation}, nil
 }
 func validateOwnerInventoryItem(item map[string]any) error {
+	if _, _, err := wardrobeMetadata(item); err != nil {
+		return err
+	}
 	for _, key := range []string{"item_kind", "category", "slot", "description", "ownership", "availability"} {
 		if _, ok := item[key].(string); !ok {
 			return invalid("all inventory fields must be explicit text")
 		}
 	}
 	for key := range item {
-		if key != "item_kind" && key != "category" && key != "slot" && key != "description" && key != "ownership" && key != "availability" {
+		if key != "item_kind" && key != "category" && key != "slot" && key != "description" && key != "ownership" && key != "availability" && key != "clothing_type" && key != "seasons" {
 			return invalid("unsupported inventory field")
 		}
 	}

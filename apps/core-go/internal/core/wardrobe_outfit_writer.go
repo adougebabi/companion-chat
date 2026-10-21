@@ -12,6 +12,9 @@ import (
 type wardrobeOutfitWrite struct {
 	FluctlightID, ProfileID, OutfitID, Name, OperationID, SourceRef string
 	ItemIDs                                                         []string
+	Tags                                                            []string
+	MetadataOnly                                                    bool
+	TagsSet                                                         bool
 	ExpectedWardrobeRevision, ExpectedOutfitRevision                int
 	DefinitionSource                                                *worldPublication
 }
@@ -37,7 +40,7 @@ func (s *WardrobeService) saveOutfitTx(ctx context.Context, tx pgx.Tx, cmd wardr
 		return nil, newCapabilityError(code, retry, err)
 	}
 	name := strings.TrimSpace(cmd.Name)
-	if name == "" || len([]rune(name)) > 128 || len(cmd.ItemIDs) < 1 || len(cmd.ItemIDs) > 16 {
+	if name == "" || len([]rune(name)) > 128 || (!cmd.MetadataOnly && (len(cmd.ItemIDs) < 1 || len(cmd.ItemIDs) > 16)) || (cmd.MetadataOnly && (cmd.OutfitID == "" || cmd.ExpectedOutfitRevision < 1)) {
 		return fail("outfit_fields_invalid", false, ErrInvalidArguments)
 	}
 	var wardrobeRevision int
@@ -53,7 +56,12 @@ func (s *WardrobeService) saveOutfitTx(ctx context.Context, tx pgx.Tx, cmd wardr
 	}
 	items := map[string]string{}
 	seen := map[string]bool{}
-	for _, id := range cmd.ItemIDs {
+	for _, id := range func() []string {
+		if cmd.MetadataOnly {
+			return nil
+		}
+		return cmd.ItemIDs
+	}() {
 		if seen[id] {
 			return fail("outfit_item_duplicate", false, ErrInvalidArguments)
 		}
@@ -69,14 +77,18 @@ func (s *WardrobeService) saveOutfitTx(ctx context.Context, tx pgx.Tx, cmd wardr
 		if kind != "wearable" {
 			return fail("item_not_wearable", false, ErrInvalidArguments)
 		}
-		if _, duplicate := items[slot]; duplicate {
+		if _, duplicate := items[wardrobeSlotKey(slot, id)]; duplicate {
 			return fail("outfit_slot_duplicate", false, ErrInvalidArguments)
 		}
-		items[slot] = id
+		items[wardrobeSlotKey(slot, id)] = id
+	}
+	tags, err := normalizedOutfitTags(cmd.Tags)
+	if err != nil {
+		return nil, err
 	}
 	var before map[string]any
 	if cmd.ExpectedOutfitRevision == 0 {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_outfits(id,fluctlight_id,profile_id,name,revision)VALUES($1,$2,$3,$4,1)`, outfitID, cmd.FluctlightID, cmd.ProfileID, name); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_outfits(id,fluctlight_id,profile_id,name,revision,tags)VALUES($1,$2,$3,$4,1,$5)`, outfitID, cmd.FluctlightID, cmd.ProfileID, name, tags); err != nil {
 			return fail("outfit_insert_failed", true, err)
 		}
 	} else {
@@ -96,16 +108,23 @@ func (s *WardrobeService) saveOutfitTx(ctx context.Context, tx pgx.Tx, cmd wardr
 		if err != nil {
 			return nil, err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_outfits SET name=$3,revision=revision+1,updated_at=now() WHERE fluctlight_id=$1 AND id=$2`, cmd.FluctlightID, outfitID, name); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_outfits SET name=$3,tags=CASE WHEN $4 THEN $5::text[] ELSE tags END,revision=revision+1,updated_at=now() WHERE fluctlight_id=$1 AND id=$2`, cmd.FluctlightID, outfitID, name, cmd.TagsSet, tags); err != nil {
 			return fail("outfit_update_failed", true, err)
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM public.fluctlight_wardrobe_outfit_items WHERE fluctlight_id=$1 AND outfit_id=$2`, cmd.FluctlightID, outfitID); err != nil {
-			return fail("outfit_update_failed", true, err)
+		if !cmd.MetadataOnly {
+			if _, err := tx.Exec(ctx, `DELETE FROM public.fluctlight_wardrobe_outfit_items WHERE fluctlight_id=$1 AND outfit_id=$2`, cmd.FluctlightID, outfitID); err != nil {
+				return fail("outfit_update_failed", true, err)
+			}
 		}
 	}
 	for slot, id := range items {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_outfit_items(fluctlight_id,outfit_id,slot,item_id)VALUES($1,$2,$3,$4)`, cmd.FluctlightID, outfitID, slot, id); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_outfit_items(fluctlight_id,outfit_id,slot,item_id)VALUES($1,$2,$3,$4)`, cmd.FluctlightID, outfitID, wardrobeStoredSlot(slot), id); err != nil {
 			return fail("outfit_item_insert_failed", true, err)
+		}
+	}
+	if cmd.TagsSet && len(tags) > 0 {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_states SET outfit_tags=ARRAY(SELECT DISTINCT unnest(outfit_tags||$2::text[]) ORDER BY 1) WHERE fluctlight_id=$1`, cmd.FluctlightID, tags); err != nil {
+			return nil, err
 		}
 	}
 	if err := refreshOutfitDefinitionSourceTx(ctx, tx, cmd.FluctlightID, outfitID, cmd.DefinitionSource); err != nil {
@@ -129,7 +148,7 @@ func (s *WardrobeService) saveOutfitTx(ctx context.Context, tx pgx.Tx, cmd wardr
 	if err := appendOutboxTx(ctx, tx, "wardrobe.outfit.saved", "wardrobe_outfit", outfitID, cmd.FluctlightID, cmd.SourceRef, "wardrobe-outfit:"+outfitID, "wardrobe-outfit-save:"+outfitID+":"+fmt.Sprint(cmd.ExpectedOutfitRevision+1), map[string]any{"outfit_id": outfitID, "revision": cmd.ExpectedOutfitRevision + 1}); err != nil {
 		return fail("outfit_event_failed", true, err)
 	}
-	return map[string]any{"outfit_id": outfitID, "revision": cmd.ExpectedOutfitRevision + 1, "wardrobe_revision": next, "item_count": len(items)}, nil
+	return map[string]any{"outfit_id": outfitID, "revision": cmd.ExpectedOutfitRevision + 1, "wardrobe_revision": next, "item_count": len(arrayValue(after["items"]))}, nil
 }
 
 func recordWearingTransitionTx(ctx context.Context, tx pgx.Tx, fid, sourceKind, sourceRef string, revision int, before []map[string]any, at time.Time) error {

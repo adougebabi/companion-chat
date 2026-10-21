@@ -8,6 +8,11 @@ func TestInventoryUpgradeRepairsLegacyEligibilityOnceAndRetainsUnknownWornOwners
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
+ -- Reconstruct the old worn relation before seeding the legacy double-slot
+ -- corruption. The new 0096 identity correctly forbids it on a current schema.
+ DROP INDEX public.wardrobe_single_body_slot;
+ ALTER TABLE public.fluctlight_worn_items DROP CONSTRAINT wardrobe_worn_item_identity;
+ ALTER TABLE public.fluctlight_worn_items ADD CONSTRAINT fluctlight_worn_items_pkey PRIMARY KEY(fluctlight_id,slot);
  INSERT INTO public.actors(id,actor_type,status)VALUES('inventory-migration-owner','human','active'),('inventory-migration-role','fluctlight','active');
  INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance)VALUES('inventory-migration-role','inventory-migration-owner','blank_slate','active','{}','{}','{}','{}','{}','{}');
  INSERT INTO public.fluctlight_wardrobe_states(fluctlight_id,revision)VALUES('inventory-migration-role',10);

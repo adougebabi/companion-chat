@@ -220,3 +220,26 @@ Foundation提议保存完整创建基线、提交事务CAS与持久幂等回执�
 目标当前/终态分区修正；目录无names仅短用途列表、按名完整schema；failed日程账本只在真实RUNNING观察下恢复started；共享头像、紧凑等待/失败、日程历史/当前窗口/操作折叠、衣柜登记空态与card hover。Web253/253、type/build/no-Mock、Core纯/受控10根、Workflow纯/受控7根与Core全包编译通过。390px正式产物夹具回放width/scroll=390，非NAS部署验收。
 
 真实NAS只读诊断确认动态失败为Provider连接拒绝，原请求failed保留；海边活动地点家保留历史值，仅修未来模型提示；日记未日终pending未算故障。本轮无模型/DB事务/真实Temporal回归、无部署。完整证据与限制见当前任务evidence/full-stack/nas-additions-1020/result.json，仍由用户继续统一功能验收。
+
+## 2026-10-21 穿搭与世界结构补全
+
+衣柜入口 `#/c/<角色ID>/life/wardrobe` 提供“为她搭配/方案库/全部衣服”。
+方案支持8类、多个配饰和多个场景标签；方案库可预览/编辑回跳/改名，标签可维护；
+衣物支持真实CRUD及四季多选。保存方案不直接穿上，实际穿着仍读取同一权威。
+新角色激活排队独立穿搭准备Agent，既有角色可点“让她准备初始穿搭”；
+先提交真实库存与方案，再以当前人格/衣柜/Life版本选择并调用既有wear Tool，
+完成/等待/失败/恢复和诊断有独立显示。已完成后脱衣不重新初始化。
+
+世界底稿可生成主题适配的固定场地分类和具体地点，经采用/发布后物化；
+现有世界在 `#/c/<角色ID>/worlds/<世界ID>/edit` 使用同一生成/应用面板补框架。
+分类只读，地点正式名固定，别名/楼层/描述/氛围/陈设/布局可修改并可手动新增。
+重应用保留已有地点ID及手工编辑，浏览不移动角色。全局hover去下划线，键盘焦点保留。
+
+迁移为0096。请按现有部署流程将Core/Web/业务Worker升级到同一构建并运行migrate；
+本次只在tmpfs隔离PG验证，没有在NAS或用户数据库执行迁移/部署。
+新角色会触发额外穿搭模型任务，需要可用的cognitive_assessment绑定和生命周期Worker。
+纯/受控/真实PG结果与未验收项见
+`.trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/wardrobe-world-1021/result.json`。
+Web265/265、BrowserClient39/39、脚本自测28/28通过；完整迁移、浏览器边界和工作流包通过。
+本轮CUA两次调用均Transport closed，新页面桌面/390px视觉未执行，不能记作通过。
+实际LLM、NAS部署及日常情境选衣效果仍由用户验收，新增L18/L19独立脚本，原17项保留。

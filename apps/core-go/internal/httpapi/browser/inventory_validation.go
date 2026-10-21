@@ -19,7 +19,7 @@ func validInventoryCommand(method string, body map[string]any) bool {
 		return !has
 	}
 	item := objectValue(body["item"])
-	if !onlyKeys(item, "itemKind", "item_kind", "category", "slot", "description", "ownership", "availability") {
+	if !onlyKeys(item, "itemKind", "item_kind", "category", "slot", "description", "ownership", "availability", "clothingType", "clothing_type", "seasons") {
 		return false
 	}
 	kind := stringValue(item["itemKind"])
@@ -39,6 +39,16 @@ func validInventoryCommand(method string, body map[string]any) bool {
 	slot := stringValue(item["slot"])
 	if (kind == "object" && slot != "") || (kind == "wearable" && slot == "") {
 		return false
+	}
+	if raw, ok := item["seasons"]; ok {
+		if !isStringArray(raw) || len(array(raw)) > 4 {
+			return false
+		}
+		for _, v := range array(raw) {
+			if stringValue(v) != "spring" && stringValue(v) != "summer" && stringValue(v) != "autumn" && stringValue(v) != "winter" {
+				return false
+			}
+		}
 	}
 	ownership, availability := stringValue(item["ownership"]), stringValue(item["availability"])
 	return (ownership == "owned" || ownership == "borrowed" || ownership == "unknown") && (availability == "available" || availability == "unavailable" || availability == "lost")
@@ -87,7 +97,13 @@ func validInventoryAction(body map[string]any) bool {
 }
 
 func validInventoryOutfitSave(method string, body map[string]any) bool {
-	if !onlyKeys(body, "name", "itemIds", "profileId", "expectedRevision", "expectedOutfitRevision", "reason", "idempotencyKey") || !validateRevisionReason(body) || !validateString(body["idempotencyKey"], 1, 256) || !validateString(body["name"], 1, 128) || !validateString(body["profileId"], 1, 128) || !validateInteger(body["expectedOutfitRevision"], 0) || !isStringArray(body["itemIds"]) || len(array(body["itemIds"])) < 1 || len(array(body["itemIds"])) > 16 {
+	if method == http.MethodPatch {
+		return onlyKeys(body, "name", "profileId", "expectedRevision", "expectedOutfitRevision", "reason", "idempotencyKey") && validateRevisionReason(body) && validateString(body["idempotencyKey"], 1, 256) && validateString(body["name"], 1, 128) && validateString(body["profileId"], 1, 128) && validateInteger(body["expectedOutfitRevision"], 1)
+	}
+	if !onlyKeys(body, "name", "itemIds", "profileId", "expectedRevision", "expectedOutfitRevision", "reason", "idempotencyKey", "tags") || !validateRevisionReason(body) || !validateString(body["idempotencyKey"], 1, 256) || !validateString(body["name"], 1, 128) || !validateString(body["profileId"], 1, 128) || !validateInteger(body["expectedOutfitRevision"], 0) || !isStringArray(body["itemIds"]) || len(array(body["itemIds"])) < 1 || len(array(body["itemIds"])) > 16 {
+		return false
+	}
+	if tags, ok := body["tags"]; ok && (!isStringArray(tags) || len(array(tags)) > 32) {
 		return false
 	}
 	if method == http.MethodPost {

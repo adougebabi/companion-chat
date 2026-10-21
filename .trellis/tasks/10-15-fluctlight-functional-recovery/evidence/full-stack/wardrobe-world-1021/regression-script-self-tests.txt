@@ -1,0 +1,39 @@
+$ node scripts/e2e/v3-regression/run.mjs --self-test
+✔ Diary isolation ignores scheduler pending placeholders and keeps written rows (0.5885ms)
+✔ Promise reschedule acceptance verifies both authorities instead of any terminal result (0.282ms)
+✔ Live Promise fulfillment requires an actual accepted message source and Commitment evaluation (0.130916ms)
+✔ NPC isolation initializes the blank secondary world and verifies bindings before cross reads (17.59125ms)
+✔ NPC isolation cannot mistake an unpersisted selection for cross-world isolation (2.305916ms)
+✔ NPC isolation rejects shared Actor identity, copied encounters and missing definition provenance (6.641792ms)
+✔ preflight treats the actual anonymous 401 as login and retains its CSRF cookie (1.12275ms)
+✔ preflight imports a supplied private cookie before its first authenticated check (1.172875ms)
+✔ multipart replay preserves real bytes, filename, CSRF and original identity without a JSON content type (1.804667ms)
+✔ live execution is opt-in and runner never drops reordered flags (0.209ms)
+✔ redaction drops credential fields and hashes the actual byte representation (0.292083ms)
+✔ NDJSON handles split UTF-8 and enforces source, sequence and one terminal (1.330458ms)
+✔ unknown HTTP outcome keeps immutable original payload/key on retry (1.9615ms)
+✔ non-idempotent analysis cannot replay an unknown response or rerun a confirmed stage (1.826666ms)
+✔ cyclic pagination and failed/timed-out jobs remain explicit errors (2.966916ms)
+✔ isolated/model authorization gates run before any business or model request (0.550125ms)
+✔ missing deployment is blocked and does not become a successful empty scenario (0.498208ms)
+[L00] intentional-failure: The actual value must be one
+[L00] intentional-failure: failed ACTUAL_MISMATCH: [redacted]
+✔ report preserves failed expected/actual and redacts secrets from nested errors/log values (1.380166ms)
+✔ Go compile/no-tests/skip results can never certify executed integration coverage (0.168ms)
+✔ unexpected child exit or stale previous report cannot become success in the serial summary (0.077416ms)
+✔ cookie imports only matching root application cookies with domain/security/expiry validation (0.095833ms)
+✔ external observer signal does not disable the configured request deadline (5.619708ms)
+✔ a hung process family keeping inherited pipes is terminated within a bounded deadline (253.517667ms)
+✔ model family follows stored parent IDs and does not count unrelated prompt text (0.187833ms)
+✔ an old canonical cannot stand in for the selected visual generation session (0.065958ms)
+✔ a failed product cannot pass merely because a loose predicate accepts every terminal state (0.874708ms)
+✔ all seventeen declared scripts resolve and --help performs no API/model operations (546.317916ms)
+✔ selected Go tests and component files actually exist in their owning packages (84.861792ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 971.918209

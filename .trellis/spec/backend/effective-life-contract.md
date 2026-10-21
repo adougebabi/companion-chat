@@ -272,3 +272,31 @@ Wrong: remove shared authority as redundant while short runtime omits it; flatte
 scene-before-borrow instructions and let historical ending_state act as current.
 Correct: embed domain authority in the emitted runtime protocol, preserve action
 sections, label history and decide from refreshed current place and wearing.
+
+## 0096: tagged outfits, multiple accessories and initial preparation
+
+Inventory remains Fluctlight scoped; plans remain profile scoped (legacy shared
+plans are copied before editing). New clothing metadata is the eight standard
+clothing_type values plus a multi-season array; old full_body/custom slots stay
+readable. Worn and outfit-member identities use actual item IDs, with partial
+unique indexes for non-accessory slots. Never restore the old (fid,slot) upsert.
+Tags are a Fluctlight directory; one plan has multiple tags and one tag has many
+plans. Directory rename/removal updates all affected plans and their revisions
+atomically under wardrobe CAS. Metadata-only PATCH rename preserves members,
+including archived ones; a full combination save still validates its members.
+
+FormalAgentWardrobePreparation uses cognitive_assessment with no Tool grants.
+Activation queues one durable preparation; existing characters request it
+explicitly. Generation commits sourced initial stock and tagged plans, without
+wearing. Existing complete usable clothing forbids extra starter stock in the
+domain writer as well as the prompt. The second stage reads actual Life/persona,
+selects recorded usable IDs and calls the existing wardrobe.wear Tool. Selection
+stores profile/wardrobe/Life revision and immutable operation before execution.
+A new effect checks that fence under locks; an existing exact receipt replays,
+even if its speaking profile was subsequently removed. A missing receipt under
+the serialized preparation plus a removed profile, or a durable handled/no-effect
+receipt, permits retiring only that old selection and selecting again. Never
+change the payload under an existing operation. Failure recovery creates a new
+workflow intent attempt, preserving the previous failed Run and ledger. Sleep
+uses a durable timer; completed preparation never regenerates after undressing.
+Real external model behavior is accepted separately through user-run L18.

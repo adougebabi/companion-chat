@@ -125,6 +125,9 @@ func (a *App) OwnerPlaceDefaults(ctx context.Context, owner, fid, id string, q u
 	if baseline != nil {
 		fields := mapValue(baseline["definition"])
 		for _, key := range placeDefaultFields {
+			if key == "name" {
+				continue
+			}
 			if jsonString(current[key]) != jsonString(fields[key]) {
 				diff = append(diff, map[string]any{"field": key, "from": current[key], "to": fields[key]})
 			}
@@ -175,6 +178,7 @@ func (a *App) OwnerPlaceDefaultCommand(ctx context.Context, owner, fid, id strin
 		fields := cloneMap(mapValue(baseline["definition"]))
 		fields["world_id"] = place["world_id"]
 		fields["expected_revision"] = expected
+		fields["name"] = place["name"]
 		fields["parent_place_id"] = place["parent_place_id"]
 		fields["status"] = place["status"]
 		result, err := a.writeWorldPlaceTx(context.WithValue(ctx, placeDefaultRestoreKey{}, true), tx, fid, id, "PUT", fields)

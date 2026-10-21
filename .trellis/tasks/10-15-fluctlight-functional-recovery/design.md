@@ -50,3 +50,8 @@ Owner原请求是约定身份，链接表只存窗口/版本/真实执行关联�
 当前目标API history为互斥分区，life provider误传true；改false并锁客户端真实query，不回退detail数组。Schedule failed账本仅当stable Runtime Describe确认当前RUNNING时作观察修复，completed_at与当前error清空但历史事件保留、不计新attempt、不重派failed Run。catalog无names按已有说明只列name/purpose，有names保留完整parameters及现有披露，不截已有Tool收据、不加窗口/取消guard。前端新增共享Avatar/聊天失败显示、紧凑可取消进度；不改正文与原retry identity。日程按[start,end)标当前计划、过去段标历史计划，不推导实际执行；操作折叠，保留完整24小时及地点原字段。衣柜只说无登记，不声称未穿衣；card hover局部修复，普通链接下划线保留。动态失败只桥接既有真实诊断，实际端点依赖由后续功能验收核实，不重放已终结Owner请求。
 
 目录实测补充：仅去schema仍8752估算token，故将49个内置能力的用途概览显式维护在capability_catalog_purposes.go（非截断规则/事实），目录只返回name/purpose；有names时仍完整Description+schema，不改native工具说明。内置覆盖测试要求每项有概览；自定义工具保留原说明。实际会话38项目录4080估算token，硬预算不改。
+
+
+## 2026-10-21 衣柜与世界结构边界
+沿用真实Inventory/Outfit writer与v3组件。迁移0096追加衣物标准类型/季节、方案tags、角色标签目录、初始化任务和世界固定分类元数据；旧数据不改名、不删除、不推断拥有。多配饰修真实关系表cardinality与writer，其他部位保留单件，旧full_body/head/custom slot兼容可见。标签作用于同一摇光，方案继续既有人格归属；维护标签原子同步方案修订与衣柜版本。准备Agent复用FormalAgent/现有模型角色，Temporal持久任务/结果读回；补衣与穿上分开，实际wear用原Tool。
+世界分类作为只读目录，不充当可在场的place；新LLM定义包含versioned framework/local keys，发布验证后按来源key幂等物化为真实place ID；手动新增选既有分类。canonical place name由central writer保护，默认恢复保留当前正式名，Studio diff不提供改名路径。已有旧世界/层级保留，未归类明确显示，不猜分类或移动角色。所有用户文案与页面复用现有sage token/公共组件；真实写入不退Mock。

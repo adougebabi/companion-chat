@@ -39,6 +39,11 @@ func (a *App) publishWorldResource(ctx context.Context, owner, id string, body m
 		if containsPermanentHarm(definition) {
 			return nil, harmError()
 		}
+		if kind == "world" {
+			if err := validateWorldFramework(definition); err != nil {
+				return nil, err
+			}
+		}
 		if kind == "event_template" {
 			if err := validateWorldEventDefinition(definition); err != nil {
 				return nil, err
@@ -182,7 +187,7 @@ func (a *App) DispatchWorldApply(ctx context.Context, owner, id string, body map
 		return nil, harmError()
 	}
 	if preview {
-		current, err := a.worldApplyCurrent(ctx, a.DB.Pool(), fid, publication)
+		current, err := a.worldApplyTarget(ctx, a.DB.Pool(), fid, publication, body)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +212,7 @@ func (a *App) DispatchWorldApply(ctx context.Context, owner, id string, body map
 		if !ok || expected != instanceRevision {
 			return nil, conflict("fluctlight", expected, instanceRevision)
 		}
-		current, err := a.worldApplyCurrent(ctx, tx, fid, publication)
+		current, err := a.worldApplyTarget(ctx, tx, fid, publication, body)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +224,7 @@ func (a *App) DispatchWorldApply(ctx context.Context, owner, id string, body map
 		for _, key := range []string{"background", "rules", "description", "role"} {
 			values[key] = stringValue(publication.Body[key])
 		}
-		for _, key := range []string{"flavor", "item_pool", "alias", "group", "floor", "scene", "atmosphere", "furniture", "layout", "connections", "connection_place_ids", "room_items"} {
+		for _, key := range []string{"framework", "flavor", "item_pool", "alias", "venue_category_id", "group", "floor", "scene", "atmosphere", "furniture", "layout", "connections", "connection_place_ids", "room_items"} {
 			if value, ok := publication.Body[key]; ok {
 				values[key] = value
 			}
@@ -248,6 +253,9 @@ func (a *App) DispatchWorldApply(ctx context.Context, owner, id string, body map
 				}
 			}
 		}
+		if publication.Kind == "place" && current["id"] != nil {
+			values["name"] = current["name"]
+		}
 		var result map[string]any
 		switch publication.Kind {
 		case "world":
@@ -261,6 +269,16 @@ func (a *App) DispatchWorldApply(ctx context.Context, owner, id string, body map
 			}
 			if err == nil {
 				_, err = tx.Exec(ctx, `UPDATE public.life_worlds SET source_resource_id=$2,source_version=$3 WHERE id=$1`, result["id"], id, publication.Version)
+			}
+			if err == nil && values["framework"] != nil {
+				source := publication
+				source.Body = cloneMap(publication.Body)
+				source.Body["framework"] = values["framework"]
+				var frameResult map[string]any
+				frameResult, err = a.materializeWorldFrameworkTx(ctx, tx, fid, stringValue(result["id"]), source)
+				if err == nil {
+					result["framework_result"] = frameResult
+				}
 			}
 		case "place":
 			values["expected_revision"] = runtimeExpected
@@ -353,11 +371,14 @@ func worldApplyDiff(current map[string]any, p worldPublication) []any {
 	if current["id"] == nil {
 		return []any{}
 	}
-	fields := []string{"name"}
+	fields := []string{}
+	if p.Kind != "place" {
+		fields = append(fields, "name")
+	}
 	switch p.Kind {
 	case "world":
 		fields = append(fields, "background", "rules")
-		for _, key := range []string{"description", "flavor", "item_pool"} {
+		for _, key := range []string{"description", "flavor", "item_pool", "framework"} {
 			if _, ok := p.Body[key]; ok {
 				fields = append(fields, key)
 			}

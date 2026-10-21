@@ -139,7 +139,7 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 }
 
 func (a *App) surfaceHooks() SurfaceHooks {
-	return SurfaceHooks{
+	return SurfaceHooks{WardrobePreparation: a.OwnerWardrobePreparation, RequestWardrobePreparation: a.RequestOwnerWardrobePreparation, WardrobeTags: a.OwnerWardrobeTags, SaveWardrobeTags: a.SaveOwnerWardrobeTags,
 		Promises: a.OwnerPromises, Promise: a.OwnerPromise, PromiseHistory: a.OwnerPromiseHistory, PromiseCommand: a.OwnerPromiseCommand,
 		WearingHistory:      a.OwnerWearingHistory,
 		SaveInventoryOutfit: a.SaveOwnerInventoryOutfit, InventoryOutfitHistory: a.OwnerInventoryOutfitHistory,
@@ -238,7 +238,7 @@ func (a *App) ApplyWardrobeOwnerEdit(ctx context.Context, owner, fid string, edi
 		if slot != edit.Slot || itemKind != "wearable" {
 			return WardrobeOwnerEditResult{}, &SurfaceError{Status: 422, Code: "wardrobe_slot_mismatch", Message: "Wardrobe item does not belong to this slot"}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_worn_items(fluctlight_id,slot,item_id,changed_at) VALUES($1,$2,$3,$4) ON CONFLICT(fluctlight_id,slot) DO UPDATE SET item_id=EXCLUDED.item_id,changed_at=EXCLUDED.changed_at`, fid, edit.Slot, edit.ItemID, at); err != nil {
+		if err := putWornItemTx(ctx, tx, fid, edit.Slot, edit.ItemID); err != nil {
 			return WardrobeOwnerEditResult{}, err
 		}
 	case "item_use":

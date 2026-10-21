@@ -1,0 +1,48 @@
+$ tsx --test test/*.test.ts
+✔ BrowserClient resolves an empty base URL against the browser origin (12.266708ms)
+✔ BrowserClient maps an unauthenticated session response without treating it as a platform failure (0.636375ms)
+✔ BrowserClient pages the recorded wardrobe using an encoded cursor (0.2075ms)
+✔ BrowserClient requires an explicit base URL outside the browser (0.2255ms)
+✔ BrowserClient preserves safe API failure codes (0.225458ms)
+✔ BrowserClient preserves structured diagnostics details (0.172291ms)
+✔ BrowserClient preserves a non-2xx conversation turn error code (0.203917ms)
+✔ BrowserClient transports initialization analysis authority and typed detail source (5.056959ms)
+✔ BrowserClient requests the bounded media prompt diagnostics module (0.279625ms)
+✔ BrowserClient exposes media prompt retry (0.187833ms)
+✔ BrowserClient exposes immediate Fluctlight wake-up (0.12225ms)
+✔ BrowserClient serializes every lifecycle diagnostics filter for query and export (0.3125ms)
+✔ BrowserClient serializes the schema-derived Life Context command contracts (0.299416ms)
+✔ diagnostic pages preserve the envelope and encode cursor/filter for both sources (0.213125ms)
+✔ actor user initialization and owner background update keep unknown values and scope (0.132417ms)
+✔ Goal client preserves scope, cursor, revision and replay key across governance operations (0.288459ms)
+✔ Goal evidence cursor uses its scoped read endpoint (0.092667ms)
+✔ goal set and Actor context commands preserve versions, idempotency and scoped URLs (0.189916ms)
+✔ direct directory, persistent selection, full search and exact source use explicit contracts (9.214125ms)
+✔ Kev client preserves filter/cursor identity and raw per-question response (8.812125ms)
+✔ Kev connection test uses an explicit mutation without business data (0.407583ms)
+✔ reference first-page reads omit undefined cursor and retain exact target scope (8.994625ms)
+✔ the shared v3 client extension provides the typed item-photo transport and real request envelope (0.494958ms)
+✔ Owner persona switch preserves both CAS authorities and reads a terminal receipt (9.054875ms)
+✔ generated BrowserClient methods follow accepted Owner persona request to typed terminal (0.437292ms)
+✔ session timeout aborts an unresponsive read and never becomes a logged-out result (6.658ms)
+✔ JSON deadline includes a body that stalls after successful headers (13.770458ms)
+✔ creation template and raw inputs use the shared client transport without field rewriting (9.797916ms)
+✔ wardrobe wear returns the 202 owner request and does not imply success (9.313625ms)
+✔ 409 current revision is read from details and is absent for other errors (0.072792ms)
+✔ createMoment refuses a character author before the request is sent (0.229042ms)
+✔ multipart upload puts the idempotency key in the header (0.438667ms)
+✔ studio apply stays unfinished when the choice was recorded and not applied (0.077334ms)
+✔ timeline rollback is not a client method (0.043209ms)
+✔ vision probe is an explicit authenticated mutation without an uploaded image (10.149ms)
+✔ structured wardrobe operations preserve scope, metadata, CAS and explicit command identity (9.153375ms)
+✔ world catalog methods execute on BrowserClient with scoped URLs and camelCase mutation bodies (12.389667ms)
+✔ world reads preserve catalog binding, full snapshot, and evidence-based nearby presence (0.55925ms)
+✔ world mutation conflicts remain errors and OpenAPI declares real request/response schemas (7.93175ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 173.94175

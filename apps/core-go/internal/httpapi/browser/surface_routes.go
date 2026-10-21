@@ -66,9 +66,14 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodPost, "/api/fluctlights/:fluctlightId/promises/:promiseId/reschedule"},
 	{http.MethodPost, "/api/fluctlights/:fluctlightId/promises/:promiseId/cancel"},
 	{http.MethodPost, "/api/fluctlights/:fluctlightId/promises/:promiseId/retry"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/inventory/preparation"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/inventory/preparation"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/inventory/tags"},
+	{http.MethodPut, "/api/fluctlights/:fluctlightId/inventory/tags"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/inventory/wearing-history"},
 	{http.MethodPost, "/api/fluctlights/:fluctlightId/inventory/outfits"},
 	{http.MethodPut, "/api/fluctlights/:fluctlightId/inventory/outfits/:outfitId"},
+	{http.MethodPatch, "/api/fluctlights/:fluctlightId/inventory/outfits/:outfitId"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/inventory/outfits/:outfitId/revisions"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/inventory/outfits/:outfitId"},
 	{http.MethodPost, "/api/fluctlights/:fluctlightId/inventory/requests"},
@@ -308,6 +313,14 @@ func (s *Server) dispatchSurface(response http.ResponseWriter, request *http.Req
 			writeError(response, 400, "invalid_request", "Invalid inventory action request")
 			return
 		}
+		if strings.HasSuffix(request.URL.Path, "/inventory/preparation") && (!onlyKeys(parsed, "expectedRevision", "reason", "idempotencyKey") || !validateRevisionReason(parsed) || !validateString(parsed["idempotencyKey"], 1, 256)) {
+			writeError(response, 400, "invalid_request", "Invalid wardrobe preparation")
+			return
+		}
+		if strings.HasSuffix(request.URL.Path, "/inventory/tags") && (!onlyKeys(parsed, "tags", "renames", "expectedRevision", "reason", "idempotencyKey") || !validateRevisionReason(parsed) || !isStringArray(parsed["tags"]) || !validateString(parsed["idempotencyKey"], 1, 256)) {
+			writeError(response, 400, "invalid_request", "Invalid wardrobe tags")
+			return
+		}
 		if strings.Contains(request.URL.Path, "/inventory/outfits") && !validInventoryOutfitSave(request.Method, parsed) {
 			writeError(response, 400, "invalid_request", "Invalid outfit definition")
 			return
@@ -452,6 +465,11 @@ func surfacePathMatches(path, pattern string) bool {
 // Definition content is an opaque schema; only transport envelope keys change.
 func surfaceCommandBody(path string, parsed map[string]any) map[string]any {
 	body := snakeMap(parsed)
+	if strings.HasSuffix(path, "/inventory/tags") {
+		if value, ok := parsed["renames"]; ok {
+			body["renames"] = value
+		}
+	}
 	if path == "/api/studio/packs" || path == "/api/studio/packs/validate" {
 		body["pack"] = parsed["pack"]
 	}

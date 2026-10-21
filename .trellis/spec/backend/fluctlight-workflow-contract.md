@@ -911,3 +911,14 @@ PostgreSQL concurrent updates or NAS Temporal acceptance; record those separatel
 ### 7. Wrong vs Correct
 Wrong: generic failed → retry/completed repair. Correct: narrow failed daily-ledger
 repair only after actual current RUNNING; preserve genuine terminal failures.
+
+## Wardrobe preparation lifecycle (0096)
+
+wardrobe.initialize maps to WardrobePreparationWorkflow on lifecycle workers.
+One activity performs one staged preparation or actual wear attempt. awaiting_wear
+uses a one-minute durable timer then ContinueAsNew, not an activity busy loop or
+an extra model call while asleep. Preparation state/result belongs to the domain
+row, and workflow execution state belongs to the workflow ledger. Explicit retry
+rotates the intent to an attempt-specific identity, preserving the failed ledger
+and Run so reconciliation cannot close the new attempt using the old terminal
+Run. UI task links read real execution; queued/awaiting/failed is never completion.

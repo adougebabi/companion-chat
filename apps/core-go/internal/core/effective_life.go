@@ -98,10 +98,10 @@ func initializeEffectiveLifeTx(ctx context.Context, tx pgx.Tx, fluctlightID stri
 				return fmt.Errorf("initial_wardrobe_item_%d_unavailable_but_worn", index)
 			}
 			if worn {
-				if _, duplicate := wornSlots[slot]; duplicate {
+				if _, duplicate := wornSlots[wardrobeSlotKey(slot, fmt.Sprint(index))]; duplicate {
 					return fmt.Errorf("initial_wardrobe_slot_%s_duplicate", slot)
 				}
-				wornSlots[slot] = struct{}{}
+				wornSlots[wardrobeSlotKey(slot, fmt.Sprint(index))] = struct{}{}
 			}
 			key := fmt.Sprintf("%d", index)
 			itemID := "wardrobe_" + stableDigest(fluctlightID+"\x1f"+sourceRef+"\x1f"+key)
@@ -113,7 +113,7 @@ func initializeEffectiveLifeTx(ctx context.Context, tx pgx.Tx, fluctlightID stri
 				return err
 			}
 			if worn && newWardrobeState {
-				if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_worn_items(fluctlight_id,slot,item_id) VALUES($1,$2,$3) ON CONFLICT(fluctlight_id,slot) DO NOTHING`, fluctlightID, slot, itemID); err != nil {
+				if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_worn_items(fluctlight_id,slot,item_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`, fluctlightID, slot, itemID); err != nil {
 					return err
 				}
 			}

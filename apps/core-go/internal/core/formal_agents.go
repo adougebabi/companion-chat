@@ -20,6 +20,7 @@ const (
 	FormalAgentWakeUp                FormalAgentID = "wake_up"
 	FormalAgentTakeoverJudge         FormalAgentID = "takeover_judge"
 	FormalAgentTakeoverReply         FormalAgentID = "takeover_reply"
+	FormalAgentWardrobePreparation   FormalAgentID = "wardrobe_preparation"
 	FormalAgentInitialization        FormalAgentID = "initialization"
 	FormalAgentPersonaCompilation    FormalAgentID = "persona_compilation"
 	FormalAgentMediaPrompt           FormalAgentID = "media_prompt"
@@ -71,6 +72,7 @@ type FormalAgentDefinition struct {
 }
 
 var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
+	FormalAgentWardrobePreparation:   {ID: FormalAgentWardrobePreparation, Name: "fluctlight-wardrobe-preparation", Description: "Prepare persona-appropriate sourced starter clothing and select a tagged outfit for the current situation; actual wear remains a separate Tool effect.", Role: "cognitive_assessment", Scenario: "wardrobe_preparation", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
 	FormalAgentStudioAssistant:       {ID: FormalAgentStudioAssistant, Name: "fluctlight-studio-assistant", Description: "Suggest a complete definition from an isolated Owner draft without life access or tools.", Role: "cognitive_assessment", Scenario: "studio_assistant", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
 	FormalAgentStudioTextPreview:     {ID: FormalAgentStudioTextPreview, Name: "fluctlight-studio-text-preview", Description: "Express an explicitly fictional isolated resource preview without life access or tools.", Role: conversationReplyModelRole, Scenario: "studio_text_preview", OutputKind: FormalAgentOutputText, MandatoryTools: []string{}},
 	FormalAgentNPCResponse:           {ID: FormalAgentNPCResponse, Name: "fluctlight-npc-response", Description: "Resolve one virtual NPC response from its own private definition without changing life state or exposing biography to the character.", Role: "cognitive_assessment", Scenario: "npc_response", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
@@ -116,6 +118,8 @@ func FormalAgentDefinitionByID(id FormalAgentID) (FormalAgentDefinition, bool) {
 
 func formalAgentForSchema(schemaName string) (FormalAgentID, bool) {
 	switch strings.TrimSpace(schemaName) {
+	case "wardrobe_preparation_v1":
+		return FormalAgentWardrobePreparation, true
 	case "studio_assistant_v1":
 		return FormalAgentStudioAssistant, true
 	case "studio_preview_text":

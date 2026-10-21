@@ -27,7 +27,7 @@ export function installStudioProvider(client:BrowserClient){
   resource:(id:string)=>client.studioResource(id),
   save:(id:string|null,fields:{kind:StudioResource['kind'];name:string;body:Record<string,unknown>;expectedVersion?:string;reason:string;idempotencyKey:string})=>id?client.updateStudioResource(id,fields):client.createStudioResource(fields),
   async publish(id:string,revision:number,key:string){await client.publishStudioResource(id,{expectedRevision:revision,reason:'所有者发布保存的资源定义',idempotencyKey:key});return client.studioResource(id);},
-  preview:(fid:string,id:string,version:string):Promise<ApplyPreviewResponse>=>client.previewStudioApply(id,{fluctlightId:fid,resourceVersion:version}),
+  preview:(fid:string,id:string,version:string,runtimeWorldId?:string):Promise<ApplyPreviewResponse>=>client.previewStudioApply(id,{fluctlightId:fid,resourceVersion:version,...(runtimeWorldId?{runtimeWorldId}:{})}),
   apply:(id:string,body:ApplyResourceBody)=>{const character=get('characters',body.fluctlightId);if(!character||character.status==='已退休')throw new Error('目标角色不可写；请保留原提交并核对角色状态');return client.applyStudioResource(id,body);},
  };
  configureDomainService('studio',studio);return studio;

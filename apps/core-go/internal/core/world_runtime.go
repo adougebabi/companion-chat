@@ -235,7 +235,7 @@ func (a *App) worldSnapshot(ctx context.Context, owner, fid, selected string) (m
 	}
 	result := map[string]any{"available": true, "world": nil, "places": []any{}, "npcs": []any{}, "scenes": []any{}}
 	var raw []byte
-	err := a.DB.Pool().QueryRow(ctx, `SELECT jsonb_build_object('id',id,'fluctlight_id',fluctlight_id,'name',name,'background',background,'rules',rules,'flavor',flavor,'description',description,'item_pool',item_pool,'revision',revision,'source_resource_id',source_resource_id,'source_version',source_version) FROM public.life_worlds WHERE fluctlight_id=$1 AND id=COALESCE(NULLIF($2,''),(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1))`, fid, selected).Scan(&raw)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT jsonb_build_object('id',id,'fluctlight_id',fluctlight_id,'name',name,'background',background,'rules',rules,'flavor',flavor,'description',description,'item_pool',item_pool,'venue_categories',venue_categories,'revision',revision,'source_resource_id',source_resource_id,'source_version',source_version) FROM public.life_worlds WHERE fluctlight_id=$1 AND id=COALESCE(NULLIF($2,''),(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1))`, fid, selected).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if selected != "" {
 			return nil, ErrNotFound
@@ -390,6 +390,20 @@ func (a *App) writeWorldPlaceTx(ctx context.Context, tx pgx.Tx, fid, id, method 
 	description, err := boundedWorldText(body, "description", 8000, false)
 	if err != nil {
 		return nil, err
+	}
+	if id != "" {
+		var existingName string
+		var existingParent *string
+		if err := tx.QueryRow(ctx, `SELECT name,parent_place_id FROM public.world_places WHERE id=$1 AND world_id=$2`, id, world).Scan(&existingName, &existingParent); err != nil {
+			return nil, err
+		}
+		if name != existingName {
+			return nil, &SurfaceError{Status: 422, Code: "place_name_immutable", Message: "地点正式名称固定，请修改别名。"}
+		}
+		if _, present := body["parent_place_id"]; !present && existingParent != nil {
+			body = cloneMap(body)
+			body["parent_place_id"] = *existingParent
+		}
 	}
 	parent := stringValue(body["parent_place_id"])
 	if parent != "" {
