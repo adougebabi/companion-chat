@@ -1208,3 +1208,60 @@ Runtime newline tests, surface-aware budget/wire equality, dangling-history pres
 ### 7. Wrong vs Correct
 Wrong: append yet another rule to generic chat instructions and concatenate trimmed context sections.
 Correct: a dedicated compact Wake protocol, labeled historical evidence, honest result classification and actual physical-budget accounting.
+
+## Scenario: Per-call deadlines and consolidated budget recovery (2026-10-22)
+
+### 1. Scope / Trigger
+
+Multi-round native Agent execution, malformed final evidence, and upgrades from
+0097 with a legacy-derived generic model binding.
+
+### 2. Signatures
+
+`providerCompletionContext(ctx, timeout, adk)`; `normalizeAbsentAppraisalEvidence(value, schema)`;
+0098 `genericModelBudgetRepairSQL`; `ownerRequestFailureReason(error)`.
+
+### 3. Contracts
+
+ADK keeps the caller's cancellation/deadline; each physical Generate/Stream owns
+the configured timeout, including queueing. A single-call task retains its outer
+timeout. Missing/null influences become an empty list only when declared by the
+final schema; malformed objects/strings and invalid references still fail and
+enter the existing tool-free repair. Preparation and final validation use the
+same strict-wrapper/null preparation before decoding references. Native model
+callbacks may already observe a returned message: canonical tool-name conversion
+clones the message and ToolCalls slice before writing, including stream chunks.
+
+Generic-role seeding copies context window, max input and policy along with the
+other binding fields. 0098 restores an accidentally defaulted 65536/49152/v1
+binding only when every copied field matches the selected legacy source, its
+configuration revision is 1 and no explicit generic-binding audit exists. Other
+limits remain authoritative. The configuration revision trigger fences stale UI
+saves. Request/wardrobe failure reasons are fixed categories; provider payloads,
+SQL errors and secrets stay in diagnostics. Failure notices carry that reason.
+
+### 4. Validation & Error Matrix
+
+Two individually timely calls may exceed one request timeout in aggregate. A
+slow physical call or cancelled parent still fails. Nonempty malformed evidence
+cannot become an empty successful judgment. Revised/audited/different-model
+bindings retain their input limits; repeated migration is idempotent.
+
+### 5. Good / Base / Bad Cases
+
+Good: a delayed final correction has its own request time. Base: an untouched
+legacy consolidation recovers its original budget. Bad: remove all deadlines,
+erase invalid evidence, or replace an explicit smaller input limit.
+
+### 6. Tests Required
+
+`ux_request_recovery_test.go` executes two controlled HTTP calls, parent
+cancellation, empty/malformed evidence and failure notice redaction.
+`generic_model_budget_test.go` uses disposable PostgreSQL for recovery,
+explicit-binding preservation and rerun; missing DB configuration is SKIP,
+never migration acceptance. Live model/service availability is separate.
+
+### 7. Wrong vs Correct
+
+Wrong: give the entire native loop one physical-request deadline. Correct:
+retain the business context and independently bound every physical request.

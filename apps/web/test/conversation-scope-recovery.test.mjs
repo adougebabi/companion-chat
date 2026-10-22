@@ -18,3 +18,14 @@ test('leaving a source page while its conversation read is pending cannot replac
     assert.equal(store.fluctlightId,'role-B');assert.equal(store.conversation.id,'conversation-B');assert.deepEqual(store.messages.map(m=>m.id),['message-B']);assert.equal(store.error,'');assert.equal(store.loading,false);assert.equal([...saved.values()].includes('role-A'),false);
   }finally{await vite.close();globalThis.window=old.window;globalThis.fetch=old.fetch;globalThis.localStorage=old.storage;}
 });
+
+test('explicit progress read closes a stuck observer only for its confirmed terminal turn',async()=>{
+ const old={window:globalThis.window,fetch:globalThis.fetch,localStorage:globalThis.localStorage};const saved=new Map();globalThis.window={location:{origin:'http://scope.test'}};globalThis.localStorage={getItem:k=>saved.get(k)??null,setItem:(k,v)=>saved.set(k,String(v)),removeItem:k=>saved.delete(k)};
+ let status='running';const user={id:'saved-user',kind:'user',conversationId:'conversation',sequence:1,authorActorId:'owner',text:'hello',turnId:'turn',idempotencyKey:'same',turnRetryable:true,createdAt:'2026-10-22T00:00:00Z',attachmentRefs:[]};
+ globalThis.fetch=async()=>Response.json({conversation:{id:'conversation'},messages:[{...user,turnStatus:status,turnErrorCode:status==='failed'?'request_timeout':undefined}]});
+ const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+ try{setActivePinia(createPinia());const {useConversationStore}=await vite.ssrLoadModule('/src/stores/conversations.ts');const state=useConversationStore();state.fluctlightId='role';state.conversation={id:'conversation'};state.activeTurnId='turn';state.sending=true;state.abortController=new AbortController();const signal=state.abortController.signal;state.messages=[{...user,turnStatus:'running'},{id:'stream-one',kind:'assistant',text:'partial'}];
+  await state.refreshActiveTurn(true);assert.equal(state.sending,true);assert.equal(signal.aborted,false);assert.equal(state.messages.at(-1).text,'partial');
+  status='failed';await state.refreshActiveTurn(true);assert.equal(signal.aborted,true);assert.equal(state.sending,false);assert.equal(state.retryTurn.turnId,'turn');assert.equal(state.retryTurn.idempotencyKey,'same');assert.match(state.error,/request_timeout/);assert.equal(state.messages.some(m=>m.id==='stream-one'),false);
+ }finally{await vite.close();Object.assign(globalThis,old);}
+});

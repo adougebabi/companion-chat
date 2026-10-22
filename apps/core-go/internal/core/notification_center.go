@@ -34,6 +34,14 @@ func notificationContent(event NotificationSource) (title, body, link string, ha
 	case "capability.requested":
 		return "新的能力请求", "角色提出了一项需要审查的能力请求。", base + "/governance?tab=capabilities", true
 	case "owner.request.settled":
+		if event.Payload["status"] == "failed" {
+			body = "这次处理没有完成，请打开查看原因与恢复入口。"
+			if reason := strings.TrimSpace(stringValue(event.Payload["failure_reason"])); reason != "" {
+				runes := []rune(reason)
+				body = string(runes[:min(len(runes), 300)])
+			}
+			return "请求未完成", body, "#/diag/request/" + url.PathEscape(stringValue(event.Payload["request_id"])), true
+		}
 		return "请求有了结果", "请查看实际处理状态与来源；接受不等于履行。", "#/diag/request/" + url.PathEscape(stringValue(event.Payload["request_id"])), true
 	case "media.asset.ready":
 		return "媒体资产已入库", "资产已经保存；生成图不会自动改变生活事实。", base + "/media?asset=" + url.QueryEscape(stringValue(event.Payload["asset_id"])), true
@@ -219,6 +227,10 @@ func (a *App) MarkAllOwnerNotificationsRead(ctx context.Context, owner string, b
 	return map[string]any{"updated": tag.RowsAffected(), "before": before.Format(time.RFC3339Nano)}, nil
 }
 
-func appendOwnerRequestNotificationTx(ctx context.Context, tx pgx.Tx, fid, id, kind, status, source string) error {
-	return appendOutboxTx(ctx, tx, "owner.request.settled", "owner_request", id, fid, source, "owner-request:"+id, "owner-request-settled:"+id+":"+status+":"+stableDigest(source), map[string]any{"request_id": id, "request_kind": kind, "status": status})
+func appendOwnerRequestNotificationTx(ctx context.Context, tx pgx.Tx, fid, id, kind, status, source string, failureReason ...string) error {
+	payload := map[string]any{"request_id": id, "request_kind": kind, "status": status}
+	if status == "failed" && len(failureReason) > 0 {
+		payload["failure_reason"] = failureReason[0]
+	}
+	return appendOutboxTx(ctx, tx, "owner.request.settled", "owner_request", id, fid, source, "owner-request:"+id, "owner-request-settled:"+id+":"+status+":"+stableDigest(source), payload)
 }

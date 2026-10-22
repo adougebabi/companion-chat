@@ -552,6 +552,7 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 		refs = noChangeRefs
 	case runErr != nil:
 		code = "owner_life_assessment_failed"
+		reason = ownerRequestFailureReason(runErr)
 	case decision["decision"] == "rejected":
 		status, code, reason = "rejected", "owner_life_request_declined", stringValue(decision["reason"])
 	case decision["decision"] == "deferred":
@@ -586,9 +587,28 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 		if err := settleOwnerLifeInboxTx(settleCtx, tx, inbox, result); err != nil {
 			return err
 		}
-		return appendOwnerRequestNotificationTx(settleCtx, tx, fid, id, kind, status, inbox)
+		return appendOwnerRequestNotificationTx(settleCtx, tx, fid, id, kind, status, inbox, reason)
 	})
 	return result, err
+}
+
+// User-visible categories only; raw provider/SQL errors remain in diagnostics.
+func ownerRequestFailureReason(err error) string {
+	text := err.Error()
+	switch {
+	case strings.Contains(text, "budget_exceeded"):
+		return "需要读取的资料超过模型输入上限，请核对模型的上下文设置后重试。"
+	case errors.Is(err, context.DeadlineExceeded), strings.Contains(text, "timeout"), strings.Contains(text, "deadline exceeded"):
+		return "模型服务响应超时，请检查服务后重试。"
+	case errors.Is(err, context.Canceled):
+		return "本次处理已中断，请刷新进度核对结果。"
+	case strings.Contains(text, "adk_final_"), strings.Contains(text, "structured_response_invalid"):
+		return "模型返回的内容格式不完整，请检查模型服务后重试。"
+	case errors.Is(err, ErrConflict):
+		return "处理期间资料发生了变化，请刷新后重试。"
+	default:
+		return "本次请求未能完成判断，请查看关联诊断并检查模型服务。"
+	}
 }
 
 func settleOwnerLifeInboxTx(ctx context.Context, tx pgx.Tx, inbox string, result map[string]any) error {

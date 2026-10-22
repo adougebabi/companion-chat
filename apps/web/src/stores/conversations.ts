@@ -564,16 +564,26 @@ export const useConversationStore = defineStore("conversations", {
 		}
 		this.error = "";
 	},
-	async refreshActiveTurn() {
+	async refreshActiveTurn(explicit = false) {
 		const conversationId = this.conversation?.id;
-		if (!conversationId || (!this.hasPendingTurn && !this.hasSettlingTurn) || this.sending) return;
+		const fluctlightId = this.fluctlightId, epoch = this.requestEpoch, turnId = this.activeTurnId;
+		if (!conversationId || (!explicit && (!this.hasPendingTurn && !this.hasSettlingTurn || this.sending))) return;
 		try {
 			const page = await client.messages(conversationId);
-			if (this.conversation?.id !== conversationId) return;
-			this.messages = mergeConversationMessages(page.messages, this.messages);
+			if (this.conversation?.id !== conversationId || this.fluctlightId !== fluctlightId || this.requestEpoch !== epoch) return;
+			if (this.sending) {
+				const confirmed = page.messages.find(message => message.kind === "user" && message.turnId === turnId);
+				// An explicit read may finish a stuck observer only after the server
+				// confirms a terminal turn. Pending reads preserve incremental text.
+				if (!confirmed || !["completed", "failed", "cancelled"].includes(confirmed.turnStatus ?? "")) return confirmed?.turnStatus;
+				this.invalidateRequest();
+				this.messages = mergeConversationMessages(page.messages, this.messages.filter(message => !message.id.startsWith("stream-") && !(message.id.startsWith("local-") && message.turnId === turnId)));
+			} else this.messages = mergeConversationMessages(page.messages, this.messages);
 			this.syncServerTurnState();
-		} catch {
+			return page.messages.findLast(message => message.kind === "user")?.turnStatus;
+		} catch (error) {
 			// A read failure cannot change an accepted turn's server state.
+			if (explicit) throw error;
 		}
 	},
 	async send(text: string, retry = false, queuedRequest: QueuedTurn | null = null) {

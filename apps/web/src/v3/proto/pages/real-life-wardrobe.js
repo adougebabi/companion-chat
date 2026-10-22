@@ -15,6 +15,8 @@ import {mountOutfitComposer} from '../components/outfit-composer.js';
 import {mountOutfitLibrary} from '../components/outfit-library.js';
 import {Field,SearchForm,Tabs} from '../components/forms.js';
 import {drawer,esc,badge} from '../ui.js';
+import {errorMessage} from '../../domain-presentation.mjs';
+import {requestDecisionText} from '../components/request-failure.js';
 const retired=fid=>get('characters',fid)?.status==='已退休';
 const usable=item=>!item.archived_at&&item.source_verified&&item.availability==='available'&&['owned','borrowed'].includes(item.ownership);
 export function renderRealWardrobe(el,ctx){
@@ -22,13 +24,14 @@ export function renderRealWardrobe(el,ctx){
  let preparationExpanded=false;
  const tab=['compose','plans','clothes'].includes(ctx.query.tab)?ctx.query.tab:'compose';
  return asyncPage(el,()=>lifeClient.wardrobe(fid),(wardrobe,reload,alive)=>{
-  el.innerHTML=`<div class="stack wardrobe-workspace"><div class="row"><h2 class="page-title grow">衣柜</h2><button class="btn" data-current-wear>查看当前穿着</button></div>${Tabs({value:tab,items:[['compose','为她搭配'],['plans','方案库'],['clothes','全部衣服']].map(([value,label])=>({value,label,href:`#/c/${encodeURIComponent(fid)}/life/wardrobe?tab=${value}`}))})}<div data-preparation></div><div data-wardrobe-panel></div></div>`;
-  el.querySelector('[data-current-wear]').onclick=()=>drawer({title:'当前穿着',body:CurrentInventory(wardrobe.worn_items,[],{showUsed:false})+'<p class="small muted">当前登记与方案保存分别成立；未登记不等于没有穿衣。</p>'});
+  el.innerHTML=`<div class="stack wardrobe-workspace"><div class="row"><h2 class="page-title grow">衣柜</h2><button class="btn" data-current-wear>查看当前穿着</button></div>${Tabs({value:tab,items:[['compose','为她搭配'],['plans','方案库'],['clothes','全部衣服']].map(([value,label])=>({value,label,href:`#/c/${encodeURIComponent(fid)}/life/wardrobe?tab=${value}`}))})}<div data-wardrobe-requests></div><div data-preparation></div><div data-wardrobe-panel></div></div>`;
+  el.querySelector('[data-current-wear]').onclick=async()=>{const d=drawer({title:'当前穿着',body:'<p role="status">正在读取最新穿着…</p>'});try{const current=await lifeClient.wardrobe(fid);if(alive()&&d.el.isConnected)d.setBody(CurrentInventory(current.worn_items,[],{showUsed:false})+'<p class="small muted">这是最新登记的实际穿着，保存搭配方案不会自动换装。</p>');}catch(error){if(alive()&&d.el.isConnected)d.setBody(`<p role="alert">${esc(errorMessage(error))}</p>`);}};
   const box=el.querySelector('[data-wardrobe-panel]');
+  const requests=mountCursorRecords(el.querySelector('[data-wardrobe-requests]'),{alive,label:'换装建议',read:async cursor=>{const page=await lifeClient.requests(fid,cursor);return {...page,items:page.items.filter(r=>['inventory_outfit','wardrobe_wear'].includes(r.kind)&&['pending','processing','failed','rejected'].includes(r.status))};},render:r=>`<section class="card schedule-suggestion"><h3>${['pending','processing'].includes(r.status)?'正在等她确认换装':r.status==='rejected'?'她没有接受这次换装':'这次换装没有完成'}</h3><p>${esc(requestDecisionText(r)||'她会根据场合决定是否换上，完成后当前穿着会更新。')}</p><a class="btn ghost" href="#/diag/request/${encodeURIComponent(r.id)}">查看换装进度与结果</a></section>`,empty:'当前读取范围没有待确认或未完成的换装。'});
   const preparation=mountWardrobePreparation(el.querySelector('[data-preparation]'),{fid,alive,onCompleted:reload,expanded:preparationExpanded,onToggle:open=>{preparationExpanded=open;}});
-  if(tab==='clothes'){const dispose=renderRealWardrobeInventory(box,ctx);return()=>{preparation.dispose();dispose?.();};}
+  if(tab==='clothes'){const dispose=renderRealWardrobeInventory(box,ctx);return()=>{requests.dispose();preparation.dispose();dispose?.();};}
   const child=tab==='compose'?mountOutfitComposer(box,{fid,outfitId:ctx.query.outfit||'',alive,navigate:ctx.navigate,onSaved:()=>ctx.navigate(`#/c/${encodeURIComponent(fid)}/life/wardrobe?tab=plans`)}):mountOutfitLibrary(box,{fid,alive,navigate:ctx.navigate,onSaved:reload});
-  return()=>{preparation.dispose();child.dispose();};
+  return()=>{requests.dispose();preparation.dispose();child.dispose();};
  });
 }
 function renderRealWardrobeInventory(el,ctx){

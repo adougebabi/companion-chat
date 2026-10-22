@@ -11,12 +11,12 @@ import {MessageBubble} from '../src/v3/proto/components/chat.js';
 test('readable failures preserve Chinese business meaning and leave raw values untouched',()=>{
  const error=new Error('Browser request failed: 401');assert.match(errorMessage(error),/检查密码/);assert.equal(error.message,'Browser request failed: 401');
  assert.equal(errorMessage('请先保存世界，再继续创建'),'请先保存世界，再继续创建');
- assert.match(chatFailureText('回复未完成：request_timeout'),/查询原请求/);assert.doesNotMatch(chatFailureText('回复未完成：request_timeout'),/request_timeout/);
+ assert.match(chatFailureText('回复未完成：request_timeout'),/刷新进度/);assert.doesNotMatch(chatFailureText('回复未完成：request_timeout'),/request_timeout/);
  assert.equal(errorMessage('unmapped_code','读取失败，请重试'),'读取失败，请重试');
 });
 test('long waiting remains observable processing after thirty seconds without a fake failure',()=>{
  const state={hasPendingTurn:true};const text=chatWaitText(state,1000,126000);
- assert.match(text,/已等待 2 分 5 秒/);assert.match(text,/查询原请求/);assert.match(text,/不代表失败/);
+ assert.match(text,/已等待 2 分 5 秒/);assert.match(text,/刷新进度/);assert.match(text,/检查模型服务/);assert.doesNotMatch(text,/已失败|不代表失败|查询原请求/);
  assert.equal(chatWaitText({},1000,126000),'');assert.match(chatWaitText({hasSettlingTurn:true},1000,3000),/正在结束本次生成/);
 });
 test('switching characters keeps list context and filters but never copies object or request identity',()=>{

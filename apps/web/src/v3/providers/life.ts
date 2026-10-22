@@ -34,7 +34,32 @@ export function createLifeProvider(client: BrowserClient) {
     if(!channel){channel=persistentCommand<ScheduleDraft,BrowserScheduleRequestView>({key,storage:()=>globalThis.sessionStorage,execute:(value,idempotencyKey)=>{writable(fid);if(get('session')?.actorId!==owner)throw new Error('所有者已经变化，请回原账户查看请求');return client.requestSchedule(fid,{...value,idempotencyKey});}});scheduleChannels.set(key,channel);}
     return channel;
   }
+  type ItemRequest=Omit<Parameters<BrowserClient['suggestScheduleItem']>[2],'idempotencyKey'>;
+  type ItemDraft={scheduleId:string;itemId?:string;operation:string;request:ItemRequest};
+  const itemChannels=new Map<string,ReturnType<typeof persistentCommand<ItemDraft,Awaited<ReturnType<BrowserClient['suggestScheduleItem']>>>>>();
+  function itemChannel(fid:string){
+    const owner=get('session')?.actorId;if(typeof owner!=='string'||!owner)throw new Error('请先登录再提出日程建议');
+    const key='fluctlight:pending-schedule:'+JSON.stringify([owner,fid,'item']);let channel=itemChannels.get(key);
+    if(!channel){channel=persistentCommand<ItemDraft,Awaited<ReturnType<BrowserClient['suggestScheduleItem']>>>({key,storage:()=>globalThis.sessionStorage,execute:(value,idempotencyKey)=>{
+      writable(fid);if(get('session')?.actorId!==owner)throw new Error('所有者已经变化，请回原账户查看建议');
+      const body={...value.request,idempotencyKey};
+      if(value.operation==='cancel')return client.deleteScheduleItem(fid,value.scheduleId,String(value.itemId),{expectedRevision:body.expectedRevision,expectedLifeContextRevision:body.expectedLifeContextRevision,reason:body.reason,idempotencyKey});
+      return value.itemId?client.updateScheduleItem(fid,value.scheduleId,value.itemId,body):client.suggestScheduleItem(fid,value.scheduleId,body);
+    }});itemChannels.set(key,channel);}return channel;
+  }
   const life = {
+    scheduleItemPending:(fid:string)=>itemChannel(fid).pending(),
+    retryScheduleItem:(fid:string)=>itemChannel(fid).retry(),
+    releaseScheduleItem:(fid:string)=>itemChannel(fid).releaseRejected(),
+    async rebaseScheduleItem(fid:string,detail:Data,expectedKey:string){
+      const channel=itemChannel(fid),pending=channel.pending();
+      if(!pending?.rejection||pending.idempotencyKey!==expectedKey)throw new Error('上次建议的状态已经变化，请重新核对。');
+      const schedule=object(detail.schedule),context=object(detail.context),original=pending.value;
+      if(schedule.id!==original.scheduleId||!Number.isSafeInteger(schedule.revision)||typeof context.context_revision!=='string')throw new Error('上次建议对应的日程已变化，请先查看原日程；不会改成另一份安排。');
+      if(original.itemId&&(!Array.isArray(schedule.items)||!schedule.items.some(item=>object(item).id===original.itemId)))throw new Error('原日程条目已不存在，请核对后放弃上次未接受的建议，再重新选择。');
+      const value={...original,request:{...original.request,expectedRevision:Number(schedule.revision),expectedLifeContextRevision:context.context_revision}};
+      channel.releaseRejected();return channel.submit(value);
+    },
     schedules:(fid:string,options:{from?:string;to?:string}={})=>client.schedules(fid,options),
     scheduleRequest:(fid:string,id:string)=>client.scheduleRequest(fid,id),
     schedulePending:(fid:string,date:string,promiseId='')=>scheduleChannel(fid,date,promiseId).pending(),
@@ -79,12 +104,8 @@ export function createLifeProvider(client: BrowserClient) {
       const schedule=object(detail.schedule), context=object(detail.context);
       if(typeof schedule.id!=='string' || !Number.isSafeInteger(schedule.revision) || typeof context.context_revision!=='string')throw new Error('当前日程或生活版本缺失，请重新读取后再建议');
       const scheduleId=schedule.id,lifeRevision=context.context_revision;
-      return mutate(fid,'schedule-item',{scheduleId,itemId:item?.id,operation,...body,revision:schedule.revision,lifeRevision},idempotencyKey=>{
-        const common={expectedRevision:Number(schedule.revision),expectedLifeContextRevision:lifeRevision,reason:String(body.reason),idempotencyKey};
-        if(operation==='cancel')return client.deleteScheduleItem(fid,scheduleId,String(item?.id),common);
-        const request={...common,activity:String(body.activity),scene:String(body.scene),location:String(body.location || ''),startAt:String(body.startAt),endAt:String(body.endAt),evidenceRefs:[`owner:${get('session')?.actorId}`],...(body.placeId?{placeId:String(body.placeId)}:{})};
-        return item?client.updateScheduleItem(fid,scheduleId,String(item.id),request):client.suggestScheduleItem(fid,scheduleId,request);
-      });
+      const request={expectedRevision:Number(schedule.revision),expectedLifeContextRevision:String(lifeRevision),reason:String(body.reason),activity:String(body.activity||''),scene:String(body.scene||''),location:String(body.location||''),startAt:String(body.startAt||''),endAt:String(body.endAt||''),evidenceRefs:[`owner:${get('session')?.actorId}`],...(body.placeId?{placeId:String(body.placeId)}:{})};
+      return itemChannel(fid).submit({scheduleId,itemId:typeof item?.id==='string'?item.id:undefined,operation,request});
     },
   };
   return life;

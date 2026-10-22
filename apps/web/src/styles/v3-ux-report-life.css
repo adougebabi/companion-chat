@@ -11,3 +11,5 @@
  .calendar-reading .reading-sidebar { position: static; }
  .story-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.schedule-suggestion { border-style: dashed; margin-block: 12px; }

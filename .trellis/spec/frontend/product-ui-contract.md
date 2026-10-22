@@ -286,3 +286,71 @@ not evidence of browser 250%/300% zoom or real Provider success.
 Wrong: `if (worker.status==='completed') showSuccess(); retry(newId);`.
 Correct: inspect the original business result/artifact, display its readable
 failure or unknown state, and query/retry only the captured original identity.
+
+## Scenario: New-user continuation and visible request progress (2026-10-22)
+
+### 1. Scope / Trigger
+
+Home/creation continuation, chat observer recovery, suggestions, wardrobe and diary.
+
+### 2. Signatures
+
+`requestReceipt(fid,envelope,onTerminal,{container,alive,onRetry})`;
+`refreshActiveTurn(explicit=false)`; `scheduleItemPending/retryScheduleItem`;
+Owner-scoped `creationDraft` and persistent schedule-item command channels.
+
+### 3. Contracts
+
+A suggestion may render progress inline without opening a drawer. Observe the
+same request ID; preserve successful reads on errors, pause while hidden, stop
+on disposal/Owner change, and explain bounded observation pauses. Translate task
+names/statuses; keep raw data in collapsed source details. Retry is an explicit
+caller action and requires a newly read failed request with mutation_committed
+false. A declined or deferred request is not a technical failure.
+
+Chat automatic polling remains disabled during a send. Explicit progress reads
+preserve incremental text while the server says pending/running. Only the same
+scope/epoch and a confirmed terminal active turn may abort local observation,
+remove its transient messages, merge saved records and restore the original
+retry identity. A timer alone cannot mark a turn failed or create a new turn.
+
+The library exposes saved creation drafts and never hides a server character
+because its group has not loaded. Auto-select a sole published world only on the
+complete first result page. Outfit choice reads the current inventory/outfit
+versions before opening confirmation; optional user text has a meaningful audit
+default. Explicitly adopted governance baselines survive drawer remount.
+
+Schedule-item unknown outcomes retain the frozen payload, revisions and
+idempotency key across provider recreation. Proposed cards remain distinct from
+accepted schedule items. Beijing editors retain the existing precision contract.
+Diary generation explains ended-day restrictions before opening the form;
+pending entries observe without discarding saved notes or successful content.
+
+### 4. Validation & Error Matrix
+
+Hidden/disposed/changed Owner: no late repaint. Failed read: retain the previous
+status. Changed stream epoch: ignore late data. Unknown submission: replay the
+original body before accepting another proposal. Missing inventory registration
+must not fabricate clothing or completed wear.
+
+### 5. Good / Base / Bad Cases
+
+Good: return to an initialization card and resume its saved creation identity.
+Base: wait, leave and later read a suggestion's actual result. Bad: automatically
+resubmit a pending request, overwrite streaming text with an ordinary poll, or
+count a submitted suggestion as an accepted schedule.
+
+### 6. Tests Required
+
+`ux-recovery-flows.test.mjs` exercises actual inline progress, read failure,
+Owner isolation, draft continuation and fresh outfit versions.
+`conversation-scope-recovery.test.mjs` checks pending vs terminal observer reads.
+`v3-life-provider.test.mjs` checks transport loss → provider recreation → identical
+request body/key and original update/cancel target through conflict recovery.
+A slow previous-receipt read cannot replace a newer suggestion observer. Keep
+previous explicit rebase tests passing.
+
+### 7. Wrong vs Correct
+
+Wrong: show only an internal accepted code and require users to locate a request
+ID. Correct: show progress/results in context and expose concrete recovery actions.

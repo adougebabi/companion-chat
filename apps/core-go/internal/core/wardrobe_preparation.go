@@ -145,7 +145,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 		if runErr != nil {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 			defer cancel()
-			_, _ = a.DB.Pool().Exec(cleanup, `UPDATE public.fluctlight_wardrobe_preparations SET status='failed',error_code=$2,updated_at=now() WHERE id=$1 AND status<>'completed'`, id, "wardrobe_preparation_failed")
+			_, _ = a.DB.Pool().Exec(cleanup, `UPDATE public.fluctlight_wardrobe_preparations SET status='failed',error_code=$2,result=result||jsonb_build_object('failure_reason',$3::text),updated_at=now() WHERE id=$1 AND status<>'completed'`, id, "wardrobe_preparation_failed", ownerRequestFailureReason(runErr))
 			a.recordDiagnosticEvent(cleanup, "wardrobe.preparation.failed", "error", fid, id, "wardrobe-preparation:"+id, map[string]any{"safe_cause": boundedOperationalCause(runErr.Error()), "error_code": "wardrobe_preparation_failed"})
 		}
 	}()

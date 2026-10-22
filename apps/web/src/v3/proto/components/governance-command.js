@@ -7,14 +7,14 @@ import {persistentCommand} from '../../providers/persistent-command.mjs';
 import {studioDraftStorage} from './studio-draft-storage.js';
 
 const drafts=new Map();subscribe(()=>{if(!get('session'))drafts.clear();});
-export function governanceCommand({scope,title,note,revision,read,execute,onSaved=()=>{},onRebase=()=>{},maxReason=1024,target,rebaseTarget,successMessage='操作已提交并保存',snapshot,defaultReason='',persistent=false}){
+export function governanceCommand({scope,title,note,revision,read,execute,onSaved=()=>{},onRebase=()=>{},maxReason=1024,target,rebaseTarget,successMessage='操作已提交并保存',snapshot,defaultReason='',reasonOptional=false,persistent=false}){
  const key=JSON.stringify([get('session')?.actorId,scope]);if(!drafts.has(key))drafts.set(key,{reason:defaultReason,base:revision,target:structuredClone(target),pending:{}});
  const storage=()=>studioDraftStorage(),storageKey=`fluctlight-wardrobe:${get('session')?.actorId}:governance:${key}`;
  if(persistent&&!drafts.get(key).restored){const saved=storage().getItem(storageKey);if(saved){const value=JSON.parse(saved);Object.assign(drafts.get(key),value,{pending:{}});}drafts.get(key).restored=true;}
  const draft=drafts.get(key),persist=()=>{if(persistent)storage().setItem(storageKey,JSON.stringify({reason:draft.reason,base:draft.base,target:draft.target}));},command=persistent?persistentCommand({key:storageKey+':command',storage,preAdmissionConflicts:['revision_conflict','wardrobe_revision_conflict','outfit_revision_conflict','outfit_profile_changed'],execute:(value,idempotencyKey)=>{const {target,...body}=value;return execute({...body,idempotencyKey},target);}}):null;
  if(persistent&&!draft.pending.command&&!command?.pending()){draft.target=structuredClone(target);persist();}
  const value=()=>({expectedRevision:draft.base,reason:draft.reason,target:draft.target});
- const d=drawer({title,body:`<p>${esc(note)}</p><p class="small muted" data-version>当前对象 v${esc(draft.base)}</p><div data-snapshot>${draft.target!==undefined?JsonDetails({target:draft.target,page_snapshot:snapshot},'实际提交目标与页面资料'):snapshot?JsonDetails(snapshot,'核对当前对象'):''}</div>${Field({label:'理由',name:'reason',type:'textarea',value:draft.reason,attrs:{required:true,maxlength:maxReason}})}<p role="alert" data-error></p>`,footer:'<button class="btn" data-close>关闭</button><button class="btn" data-rebase hidden>读取最新版本并保留理由</button><button class="btn primary" data-submit>确认提交</button>'});
+ const d=drawer({title,body:`<p>${esc(note)}</p><p class="small muted" data-version>当前对象 v${esc(draft.base)}</p><div data-snapshot>${draft.target!==undefined?JsonDetails({target:draft.target,page_snapshot:snapshot},'实际提交目标与页面资料'):snapshot?JsonDetails(snapshot,'核对当前对象'):''}</div>${Field({label:reasonOptional?'想对她说的话（选填）':'理由',name:'reason',type:'textarea',value:reasonOptional&&draft.reason===defaultReason?'':draft.reason,attrs:{required:!reasonOptional,maxlength:maxReason}})}<p role="alert" data-error></p>`,footer:'<button class="btn" data-close>关闭</button><button class="btn" data-rebase hidden>读取最新版本并保留理由</button><button class="btn primary" data-submit>确认提交</button>'});
  const field=d.el.querySelector('[name=reason]'),submit=d.el.querySelector('[data-submit]'),rebase=d.el.querySelector('[data-rebase]'),errorBox=d.el.querySelector('[data-error]');
  field.oninput=()=>{draft.reason=field.value;persist();};
  d.el.querySelector('[data-close]').onclick=()=>d.close();
@@ -34,7 +34,7 @@ export function governanceCommand({scope,title,note,revision,read,execute,onSave
  };
  submit.onclick=async()=>{
   if(draft.pending.command||!field.reportValidity())return;
-  draft.reason=field.value;const submission=beginDraftSubmission(draft,'command',value());draft.onSettled?.();
+  draft.reason=field.value.trim()||(reasonOptional?defaultReason:'');const submission=beginDraftSubmission(draft,'command',value());draft.onSettled?.();
   try{
    const {target:submittedTarget,...body}=submission.value;const original=command?.pending()?.value;const result=command?(original?await command.retry():await command.submit(submission.value)):await execute(body,submittedTarget);const acknowledgedTarget=original?.target??submittedTarget;if(drafts.get(key)!==draft)return;
    const acknowledged=settleDraftSubmission(draft,submission,value());if(!acknowledged)return;acknowledged.unchanged&&=JSON.stringify(original||submission.value)===JSON.stringify(value());

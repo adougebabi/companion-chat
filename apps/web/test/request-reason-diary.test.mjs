@@ -9,7 +9,7 @@ import {userInstant} from '../src/v3/presentation-time.mjs';
 import {stateLabel,domainName} from '../src/v3/domain-presentation.mjs';
 
 const failed={id:'original-request',status:'failed',decision_reason:'The request did not produce a committed result',created_at:'2026-10-20T15:01:58.000+00:00',payload:{text:'我的建议',stance:'agree'},result:{error_code:'owner_life_request_not_applied',disposition:'not_applied'}};
-const bindings={esc,badge,JsonDetails,userInstant,instant:userInstant,domainStateLabel:stateLabel,requestDecisionText,RequestDecisionSource,RequestFailureLink};
+const bindings={get:()=>({actorId:"owner"}),errorMessage:()=>"读取暂不可用",domainName,esc,badge,JsonDetails,userInstant,instant:userInstant,domainStateLabel:stateLabel,requestDecisionText,RequestDecisionSource,RequestFailureLink};
 function load(path,names,extras={}){
  const source=readFileSync(new URL('../src/v3/proto/'+path,import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replaceAll('export ','');
  const args={...bindings,...extras};return Function(...Object.keys(args),source+`\nreturn {${names.join(',')}};`)(...Object.values(args));
@@ -66,7 +66,7 @@ test('actual reflection feedback and promise details share localized decisions a
 
 test('terminal request receipt keeps original identity and exposes raw diagnostic record without resubmission',async()=>{
  const d={el:element(),close(){}};let observed;const queries=[];
- const {requestReceipt}=load('components/async-page.js',['requestReceipt'],{drawer:()=>d,InventoryEffects:()=>'',lifeClient:{request:async(fid,id)=>{queries.push([fid,id]);return failed;}}});
+ const {requestReceipt}=load('components/async-page.js',['requestReceipt'],{stateLabel,drawer:()=>d,InventoryEffects:()=>'',lifeClient:{request:async(fid,id)=>{queries.push([fid,id]);return failed;}}});
  requestReceipt('role',{request:failed},r=>{observed=r;});checkDecision(d.el.querySelector('[data-request]').innerHTML);
  await d.el.querySelector('[data-query]').onclick();assert.deepEqual(queries,[['role','original-request']]);
  requestReceipt('role',{request:{...failed,result:{disposition:'no_change'}}});

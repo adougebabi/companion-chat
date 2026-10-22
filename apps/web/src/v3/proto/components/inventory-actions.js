@@ -4,19 +4,19 @@ import {Field} from './forms.js';
 import {governanceCommand} from './governance-command.js';
 import {requestReceipt} from './async-page.js';
 import {JsonDetails} from './records.js';
-import {drawer,esc} from '../ui.js';
+import {drawer,esc,toast} from '../ui.js';
 import {newWardrobeItemDraft,wardrobeCategoryOptions,wardrobeSlotOptions} from '../../../lib/wardrobe-form.ts';
 const drafts=new Map();subscribe(()=>{if(!get('session'))drafts.clear();});
 const readOnly=fid=>get('characters',fid)?.status==='已退休';
 export function requestInventoryAction(fid,kind,payload,revision,onSaved,observe=()=>true){
  if(readOnly(fid))return;
  const origin=window.location.hash;
- const titles={borrow:'提出借入请求',return:'提出归还请求',remove:'提出脱下请求',outfit:'提出整套换装请求'};
- governanceCommand({scope:[fid,'inventory-action',kind,payload],title:titles[kind],maxReason:500,note:kind==='borrow'?'借入请求不证明出借方已同意或已经交付。她会根据实际情境决定；借到后另行穿着或使用。':kind==='return'?'归还仅针对这些真实借入物品。实际归还后清除穿用关联，保留借入和使用历史。':kind==='remove'?'只请求移除选定部位，不换上其他物品，不改变拥有关系。':'按当前人格范围内的指定套装提出整套换装；不会取得未持有物品。',revision,snapshot:payload,target:payload,successMessage:result=>`请求 ${result.request.id} 已受理；实际结果见待处理或通知`,
+ const titles={borrow:'提出借入请求',return:'提出归还请求',remove:'提出脱下请求',outfit:'请她换上这套'};
+ governanceCommand({scope:[fid,'inventory-action',kind,payload],title:titles[kind],defaultReason:kind==='outfit'?'想请你试试这套搭配':'',reasonOptional:kind==='outfit',maxReason:500,note:kind==='borrow'?'借入请求不证明出借方已同意或已经交付。她会根据实际情境决定；借到后另行穿着或使用。':kind==='return'?'归还仅针对这些真实借入物品。实际归还后清除穿用关联，保留借入和使用历史。':kind==='remove'?'只请求移除选定部位，不换上其他物品，不改变拥有关系。':'请她换上这套搭配。她可能根据场合和自己的想法婉拒，结果会在处理进度中说明。',revision,snapshot:payload,target:payload,successMessage:result=>`请求 ${result.request.id} 已受理；实际结果见待处理或通知`,
   read:async()=>({...(await inventoryClient.current(fid)),...(kind==='outfit'?{outfit:await inventoryClient.outfit(fid,payload.outfitId)}:{})}),
   rebaseTarget:(latest,target)=>kind==='outfit'?{...target,expectedOutfitRevision:latest.outfit.revision,profileId:latest.outfit.active_profile_id}:target,
   execute:(body,target)=>inventoryClient.action(fid,{kind,...target,expectedRevision:body.expectedRevision,reason:body.reason}),
-  onSaved:envelope=>{if(observe()&&window.location.hash===origin)return requestReceipt(fid,envelope,onSaved);},
+  onSaved:envelope=>{if(observe()&&window.location.hash===origin){const receipt=requestReceipt(fid,envelope,onSaved);Promise.resolve().then(()=>onSaved()).catch(error=>toast('建议已提交，页面更新暂未完成：'+error.message,'err'));return receipt;}},
  });
 }
 function loanItemDraft(){const {itemKind,category,slot,description}=newWardrobeItemDraft();return {itemKind,category,slot,description};}

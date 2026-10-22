@@ -358,7 +358,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 				p.runtimeSupport().UpdateModelRunPromptMetrics(ctx, diagnosticID, usage, time.Since(requestStarted))
 			}
 		}()
-		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
+		requestCtx, cancel := providerCompletionContext(runCtx, assignment.Timeout, adkEnabled)
 		defer cancel()
 		response, err := p.generateWithEino(requestCtx, EinoModelCall{
 			Assignment: assignment, Role: role, Scenario: scenario, Priority: priority, DiagnosticID: diagnosticID, CorrelationID: correlationID,
@@ -474,7 +474,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			// An omitted evidence list asserts no evidence. The domain normalizer
 			// already gives it this meaning; make the shape explicit before the
 			// Provider schema gate, without inventing a reference.
-			normalizeAbsentAppraisalEvidence(parsedStructured)
+			normalizeAbsentAppraisalEvidence(parsedStructured, structuredSchema)
 			content = jsonString(parsedStructured)
 		}
 		if !adkEnabled && parsedStructuredOK && len(toolCallArrayValue(parsedStructured["tool_calls"])) > 0 {
@@ -649,14 +649,28 @@ func parseStructuredCandidate(candidate string, _ int) (map[string]any, bool) {
 	return nil, false
 }
 
-func normalizeAbsentAppraisalEvidence(structured map[string]any) {
+func normalizeAbsentAppraisalEvidence(structured, outputSchema map[string]any) {
+	// Missing/null evidence means no cited evidence, never a fabricated influence.
+	// Keep non-array values intact so the contract gate requests a real repair.
+	if _, declared := mapValue(outputSchema["properties"])["influences"]; declared && structured["influences"] == nil {
+		structured["influences"] = []any{}
+	}
 	appraisal, ok := structured["appraisal"].(map[string]any)
 	if !ok || appraisal == nil {
 		return
 	}
-	if _, exists := appraisal["evidence_refs"]; !exists {
+	if appraisal["evidence_refs"] == nil {
 		appraisal["evidence_refs"] = []any{}
 	}
+}
+
+func providerCompletionContext(ctx context.Context, timeout time.Duration, adk bool) (context.Context, context.CancelFunc) {
+	if adk {
+		// Each physical model call already owns its timeout, including queueing.
+		// Tools and later rounds share only the caller's business deadline.
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, timeout)
 }
 
 func providerResponseDiagnostic(message map[string]any, candidates []string, toolCallCount int) map[string]any {

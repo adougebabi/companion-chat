@@ -200,7 +200,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 		result = m.toolCallFallback
 	}
-	canonicalizeModelToolNames(result)
+	result = canonicalizeModelToolNames(result)
 	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
 		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
 		if adkContext.Trace != nil {
@@ -305,7 +305,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		if full != nil && len(full.ToolCalls) > 0 {
 			full = m.toolCallFallback
 		}
-		canonicalizeModelToolNames(full)
+		full = canonicalizeModelToolNames(full)
 		reader, writer := schema.Pipe[*schema.Message](1)
 		writer.Send(full, nil)
 		writer.Close()
@@ -341,7 +341,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 				return m.Stream(context.WithValue(ctx, conversationPublicationCorrectionKey{}, true), conversationPublicationCorrectionInput(originalInput), originalOpts...)
 			}
 		}
-		canonicalizeModelToolNames(candidate)
+		candidate = canonicalizeModelToolNames(candidate)
 		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
 			bridge.Refresh.noteModelToolCalls(sequence, candidate.ToolCalls)
 			bridge.Trace.RecordModelToolCalls(callRequestID, sequence, candidate.ToolCalls)
@@ -359,7 +359,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	// soon as Eino exposes it. Later chunks may repeat/complete the same call;
 	// the trace map is an idempotent overwrite for the same physical request.
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
-		canonicalizeModelToolNames(message)
+		message = canonicalizeModelToolNames(message)
 		if message != nil {
 			adkContext.Refresh.noteModelToolCalls(sequence, message.ToolCalls)
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, message.ToolCalls)
@@ -800,13 +800,18 @@ func cloneWireToolInfos(tools []*schema.ToolInfo) []*schema.ToolInfo {
 	return cloned
 }
 
-func canonicalizeModelToolNames(message *schema.Message) {
-	if message == nil {
-		return
+func canonicalizeModelToolNames(message *schema.Message) *schema.Message {
+	if message == nil || len(message.ToolCalls) == 0 {
+		return message
 	}
-	for index := range message.ToolCalls {
-		message.ToolCalls[index].Function.Name = capabilitycontract.CanonicalCapabilityName(message.ToolCalls[index].Function.Name)
+	// Native model callbacks can publish the original message before Generate
+	// returns. Canonicalization must not mutate that concurrently observed value.
+	owned := *message
+	owned.ToolCalls = append([]schema.ToolCall(nil), message.ToolCalls...)
+	for index := range owned.ToolCalls {
+		owned.ToolCalls[index].Function.Name = capabilitycontract.CanonicalCapabilityName(owned.ToolCalls[index].Function.Name)
 	}
+	return &owned
 }
 
 func canonicalizeToolStream(stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[*schema.Message] {
@@ -814,7 +819,7 @@ func canonicalizeToolStream(stream *schema.StreamReader[*schema.Message]) *schem
 		return nil
 	}
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
-		canonicalizeModelToolNames(message)
+		message = canonicalizeModelToolNames(message)
 		return message, nil
 	})
 }
@@ -1180,6 +1185,9 @@ func validateADKFinalContract(message *schema.Message, role string, outputSchema
 	if err != nil || !ok {
 		return errors.New("adk_final_output_missing")
 	}
+	if prepared, ok := prepareModelValue(parsed, outputSchema).(map[string]any); ok {
+		parsed = prepared
+	}
 	if refs != nil {
 		decoded, decodeErr := refs.decode(parsed)
 		if decodeErr != nil {
@@ -1187,7 +1195,7 @@ func validateADKFinalContract(message *schema.Message, role string, outputSchema
 		}
 		parsed = decoded.(map[string]any)
 	}
-	normalizeAbsentAppraisalEvidence(parsed)
+	normalizeAbsentAppraisalEvidence(parsed, outputSchema)
 	if role != "initialization" {
 		if err := capabilitycontract.ValidateCapabilitySchemaValue(parsed, outputSchema); err != nil {
 			return fmt.Errorf("adk_final_output_invalid: %w", err)
