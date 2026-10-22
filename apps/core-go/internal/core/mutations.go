@@ -200,6 +200,9 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 				linkedEntries[intentionID] = struct{}{}
 			}
 		}
+		if err := a.preserveSchedulePromises(ctx, tx, currentID, arrayValue(payload["items"]), applyAt); err != nil {
+			return err
+		}
 		if found {
 			var activeScheduledRun bool
 			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_schedule_items item JOIN public.fluctlight_life_activity_runs run ON run.fluctlight_id=$2 AND run.result_json #>> '{request,schedule_item_id}'=item.id JOIN public.fluctlight_intentions intention ON intention.id=run.intention_id AND intention.fluctlight_id=run.fluctlight_id WHERE item.schedule_id=$1 AND run.status IN ('in_progress','deferred') AND intention.status='in_progress')`, currentID, fluctlightID).Scan(&activeScheduledRun); err != nil {
@@ -280,11 +283,19 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 					return errors.New("schedule_intention_not_active")
 				}
 			}
+			if promiseID := stringValue(item["promise_request_id"]); promiseID != "" {
+				if intentionID != "" {
+					return errors.New("schedule_promise_action_link_invalid")
+				}
+				if err := a.validateSchedulePromiseLink(ctx, tx, actorID, fluctlightID, currentID, promiseID, start, end); err != nil {
+					return err
+				}
+			}
 			if err := validateLifePlaceTx(ctx, tx, fluctlightID, stringValue(item["place_id"])); err != nil {
 				return err
 			}
 			itemID := randomID("schedule_item_")
-			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost,intention_id,action_plan,place_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`, itemID, scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5), nullableString(intentionID), nullableJSON(actionPlan), nullableString(stringValue(item["place_id"]))); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost,intention_id,action_plan,place_id,promise_request_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`, itemID, scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5), nullableString(intentionID), nullableJSON(actionPlan), nullableString(stringValue(item["place_id"])), nullableString(stringValue(item["promise_request_id"]))); err != nil {
 				return err
 			}
 			if intentionID != "" && start.After(applyAt) {
@@ -506,7 +517,7 @@ func findScheduleItemWithFields(items []any, want map[string]any, wantStart, wan
 }
 
 func sameScheduleItemSemantics(left, right map[string]any) bool {
-	for _, key := range []string{"activity", "scene", "location", "place_id", "item_type", "status"} {
+	for _, key := range []string{"activity", "scene", "location", "place_id", "item_type", "status", "promise_request_id"} {
 		if strings.TrimSpace(stringValue(left[key])) != strings.TrimSpace(stringValue(right[key])) {
 			return false
 		}

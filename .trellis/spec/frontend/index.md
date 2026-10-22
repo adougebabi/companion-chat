@@ -12,6 +12,7 @@ as a compatibility entry point.
 
 | Guide | Use it for |
 | --- | --- |
+| [Confirmed Pen Interactions](./pen-interaction-contract.md) | Production Pen renderer, reading snapshots, automatic observation, draft adoption and independent configuration slots |
 | [Directory Structure](./directory-structure.md) | Adding UI features or assets |
 | [Component Guidelines](./component-guidelines.md) | DOM rendering, events, and accessibility |
 | [State Management](./state-management.md) | Local/server state and refresh behavior |

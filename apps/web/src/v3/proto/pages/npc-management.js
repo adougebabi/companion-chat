@@ -44,7 +44,7 @@ async function renderNPCDefinitionPage(el, ctx) {
   Object.defineProperties(draft,{role:{get:()=>draft.body.role||'',set:value=>{draft.body.role=value;}},bio:{get:()=>draft.body.background||'',set:value=>{draft.body.background=value;}},draftVersion:{get:()=>draft.expectedVersion,set:value=>{draft.expectedVersion=value;}}});
   draft.charId??=ctx.charId;draft.placeId??='';
   draft.dirty=!!resource&&(draft.name!==resource.name||JSON.stringify(draft.body)!==JSON.stringify(resource.body||{}));
-  const persist=()=>{if(live())writeStudioDraft(actor,resourceId||key,draft);};
+  const persist=()=>{if(live()){writeStudioDraft(actor,resourceId||key,draft);panel?.updateDraft();}};
   const submitted=persistentCommand({key:`fluctlight-studio:${actor}:${key}:npc-command`,storage:studioDraftStorage,execute:(value,idempotencyKey)=>{
    if(!live())throw new Error('Owner或资源范围已切换，请返回原范围核对原提交');
    if(value.operation==='publish')return mockClient.publishNPCDraft(value.id,value.revision,idempotencyKey);

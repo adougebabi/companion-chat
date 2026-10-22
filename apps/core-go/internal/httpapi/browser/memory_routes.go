@@ -8,11 +8,11 @@ import (
 
 func (s *Server) memoryRoutes(w http.ResponseWriter, r *http.Request) bool {
 	if fid, ok := match(r.URL.Path, "/api/fluctlights/:fluctlightId/memories"); ok && r.Method == http.MethodGet {
-		q, valid := memoryPageQuery(w, r, "q", "type", "status")
+		q, valid := memoryPageQuery(w, r, "q", "type", "status", "aboutOwner")
 		if !valid {
 			return true
 		}
-		if !memoryFilter(q.Get("type"), "episodic", "semantic", "relationship", "autobiographical") || !memoryFilter(q.Get("status"), "active", "superseded", "deprecated", "forgotten") {
+		if !memoryFilter(q.Get("aboutOwner"), "true", "false") || !memoryFilter(q.Get("type"), "episodic", "semantic", "relationship", "autobiographical") || !memoryFilter(q.Get("status"), "active", "superseded", "deprecated", "forgotten") {
 			writeError(w, 400, "memory_query_invalid", "Invalid memory filter")
 			return true
 		}

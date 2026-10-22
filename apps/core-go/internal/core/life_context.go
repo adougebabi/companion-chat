@@ -123,7 +123,7 @@ func readScheduleAtWith(ctx context.Context, query lifeContextQuerier, fluctligh
 	if err != nil {
 		return nil, err
 	}
-	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,''),COALESCE(item.place_id,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
+	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,''),COALESCE(item.place_id,''),COALESCE(item.promise_request_id,''),COALESCE(p.cancelled_at IS NULL AND pc.status NOT IN ('completed','cancelled','paused','blocked') AND item.start_at>=p.window_start AND item.end_at<=p.window_end,false),CASE WHEN p.cancelled_at IS NOT NULL THEN 'cancelled' WHEN pc.status='completed' THEN 'fulfilled' WHEN item.start_at<p.window_start OR item.end_at>p.window_end THEN 'window_changed' ELSE COALESCE(pc.status,'unknown') END FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id LEFT JOIN public.owner_promise_links p ON p.request_id=item.promise_request_id LEFT JOIN public.goal_commitments pc ON pc.id=p.commitment_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +133,20 @@ func readScheduleAtWith(ctx context.Context, query lifeContextQuerier, fluctligh
 		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost, intentionID, actionStatus string
 		var itemLocation *string
 		var actionPlan []byte
-		var placeID string
+		var placeID, promiseID, promiseState string
+		var promiseValid bool
 		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus, &placeID); err != nil {
+		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus, &placeID, &promiseID, &promiseValid, &promiseState); err != nil {
 			return nil, err
 		}
 		entry := map[string]any{
 			"id": itemID, "start_at": start.UTC().Format(instantLayout), "end_at": end.UTC().Format(instantLayout),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": scheduleContextNumber(priority), "flexibility": scheduleContextNumber(flexibility), "interruption_cost": scheduleContextNumber(interruptionCost),
+		}
+		if promiseID != "" {
+			entry["promise_request_id"] = promiseID
+			entry["promise_schedule_valid"], entry["promise_state"] = promiseValid, promiseState
 		}
 		if placeID != "" {
 			entry["place_id"] = placeID
@@ -276,6 +281,9 @@ func scheduleItemAt(schedule map[string]any, at time.Time) map[string]any {
 	}
 	for _, raw := range arrayValue(schedule["items"]) {
 		item := mapValue(raw)
+		if stringValue(item["promise_request_id"]) != "" && item["promise_schedule_valid"] == false {
+			continue
+		}
 		start, startErr := time.Parse(time.RFC3339Nano, stringValue(item["start_at"]))
 		end, endErr := time.Parse(time.RFC3339Nano, stringValue(item["end_at"]))
 		if startErr == nil && endErr == nil && !at.Before(start) && at.Before(end) {

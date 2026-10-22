@@ -7018,6 +7018,40 @@
       "CoreInventoryItem": {
         "type": "object",
         "properties": {
+          "clothing_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "outer",
+                  "upper_body",
+                  "underwear",
+                  "panties",
+                  "lower_body",
+                  "socks",
+                  "shoes",
+                  "accessory"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "seasons": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "enum": [
+                "spring",
+                "summer",
+                "autumn",
+                "winter"
+              ]
+            }
+          },
           "id": {
             "type": "string"
           },
@@ -7441,6 +7475,33 @@
               "unavailable",
               "lost"
             ]
+          },
+          "clothing_type": {
+            "type": "string",
+            "enum": [
+              "outer",
+              "upper_body",
+              "underwear",
+              "panties",
+              "lower_body",
+              "socks",
+              "shoes",
+              "accessory"
+            ]
+          },
+          "seasons": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "enum": [
+                "spring",
+                "summer",
+                "autumn",
+                "winter"
+              ]
+            }
           }
         },
         "required": [
@@ -7698,6 +7759,13 @@
       "CoreInventoryOutfit": {
         "type": "object",
         "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32
+          },
           "id": {
             "type": "string"
           },
@@ -7808,6 +7876,13 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 256
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32
           },
           "name": {
             "type": "string",
@@ -8077,6 +8152,44 @@
                 "type": "null"
               }
             ]
+          },
+          "scheduled_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "schedule_id": {
+                  "type": "string"
+                },
+                "schedule_item_id": {
+                  "type": "string"
+                },
+                "local_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "start_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "end_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "valid": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "schedule_id",
+                "schedule_item_id",
+                "local_date",
+                "start_at",
+                "end_at",
+                "valid"
+              ],
+              "additionalProperties": false
+            }
           },
           "evaluations": {
             "type": "array",
@@ -11606,6 +11719,10 @@
               }
             ]
           },
+          "like_count": {
+            "type": "integer",
+            "minimum": 0
+          },
           "reaction_count": {
             "type": "integer",
             "minimum": 0
@@ -11640,6 +11757,7 @@
           "created_at",
           "request_id",
           "source_event_id",
+          "like_count",
           "reaction_count",
           "viewer_reaction",
           "comment_count"
@@ -13239,6 +13357,592 @@
         "required": [
           "items",
           "next_cursor"
+        ],
+        "additionalProperties": false
+      },
+      "CoreScheduledItemView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "scene": {
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "item_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "number"
+          },
+          "flexibility": {
+            "type": "number"
+          },
+          "interruption_cost": {
+            "type": "number"
+          },
+          "place_id": {
+            "type": "string"
+          },
+          "intention_id": {
+            "type": "string"
+          },
+          "action_status": {
+            "type": "string"
+          },
+          "promise_request_id": {
+            "type": "string"
+          },
+          "promise_schedule_valid": {
+            "type": "boolean"
+          },
+          "promise_state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "start_at",
+          "end_at",
+          "activity",
+          "scene",
+          "location",
+          "item_type",
+          "status",
+          "priority",
+          "flexibility",
+          "interruption_cost"
+        ],
+        "additionalProperties": false
+      },
+      "CoreScheduleView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "local_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "accepted"
+            ]
+          },
+          "reschedule_policy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoreScheduledItemView"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "local_date",
+          "timezone",
+          "revision",
+          "status",
+          "reschedule_policy",
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "CoreScheduleRequestView": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "fluctlight_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "promise"
+            ]
+          },
+          "local_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "conflict"
+            ]
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "request_id",
+          "fluctlight_id",
+          "kind",
+          "local_date",
+          "timezone",
+          "status",
+          "result",
+          "error_code",
+          "task_id",
+          "created_at",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      },
+      "CoreScheduleCalendar": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string"
+          },
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "context_revision": {
+            "type": "string"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "local_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "schedule": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CoreScheduleView"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "request": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CoreScheduleRequestView"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "local_date",
+                "schedule",
+                "request"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "timezone",
+          "today",
+          "from",
+          "to",
+          "context_revision",
+          "days"
+        ],
+        "additionalProperties": false
+      },
+      "CoreOwnerScheduleBody": {
+        "type": "object",
+        "properties": {
+          "local_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_life_context_revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "promise_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_promise_revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "local_date",
+          "expected_revision",
+          "expected_life_context_revision",
+          "idempotency_key",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "CoreInventoryPreparation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "fluctlight_id": {
+            "type": "string"
+          },
+          "can_recover": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "profile_id": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "fluctlight_id"
+        ],
+        "additionalProperties": false
+      },
+      "CoreInventoryPreparationBody": {
+        "type": "object",
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "expected_revision",
+          "reason",
+          "idempotency_key"
+        ],
+        "additionalProperties": false
+      },
+      "CoreInventoryTags": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "tags",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "CoreInventoryTagsBody": {
+        "type": "object",
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32
+          },
+          "renames": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "expected_revision",
+          "reason",
+          "idempotency_key",
+          "tags"
+        ],
+        "additionalProperties": false
+      },
+      "CoreInventoryOutfitRenameBody": {
+        "type": "object",
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "profile_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_outfit_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "expected_revision",
+          "reason",
+          "idempotency_key",
+          "name",
+          "profile_id",
+          "expected_outfit_revision"
+        ],
+        "additionalProperties": false
+      },
+      "CoreStoryOverview": {
+        "type": "object",
+        "properties": {
+          "as_of": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "fluctlight_id": {
+            "type": "string"
+          },
+          "actor_id": {
+            "type": "string"
+          },
+          "profile_id": {
+            "type": "string"
+          },
+          "first_communication_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "value": {},
+                "available": {
+                  "type": "boolean"
+                },
+                "complete": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "value",
+                "available",
+                "complete"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "footprints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "footprints_complete": {
+            "type": "boolean"
+          },
+          "semantics": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "as_of",
+          "timezone",
+          "fluctlight_id",
+          "actor_id",
+          "profile_id",
+          "first_communication_at",
+          "metrics",
+          "footprints",
+          "footprints_complete",
+          "semantics"
         ],
         "additionalProperties": false
       }
@@ -17232,7 +17936,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/CoreGoalError"
                 }
               }
             },
@@ -17240,6 +17944,139 @@
           }
         },
         "summary": "Accept Life Schedule"
+      },
+      "get": {
+        "operationId": "readScheduleCalendar",
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accepted schedules in the character authoritative timezone; absence is explicit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreScheduleCalendar"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/internal/fluctlights/{fluctlight_id}/schedules/{schedule_id}/cancel": {
@@ -21108,6 +21945,13 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "aboutOwner",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -27641,6 +28485,143 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CoreInventoryOutfitWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actual inventory authority or immutable history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreInventoryOutfitWriteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "outfit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "renameInventoryOutfit",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoreInventoryOutfitRenameBody"
               }
             }
           }
@@ -41511,6 +42492,885 @@
           }
         },
         "parameters": []
+      }
+    },
+    "/internal/fluctlights/{fluctlight_id}/schedules/requests": {
+      "post": {
+        "operationId": "requestOwnerSchedule",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoreOwnerScheduleBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing accepted schedule preserved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreScheduleRequestView"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Durable planning request accepted; schedule not yet produced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreScheduleRequestView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/internal/fluctlights/{fluctlight_id}/schedules/requests/{request_id}": {
+      "get": {
+        "operationId": "readOwnerScheduleRequest",
+        "responses": {
+          "200": {
+            "description": "Original request and actual persisted result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreScheduleRequestView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/internal/fluctlights/{fluctlight_id}/inventory/preparation": {
+      "get": {
+        "operationId": "inventoryPreparation",
+        "responses": {
+          "200": {
+            "description": "Actual inventory authority or immutable history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreInventoryPreparation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "prepareInventory",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoreInventoryPreparationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actual inventory authority or immutable history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreInventoryPreparation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/internal/fluctlights/{fluctlight_id}/inventory/tags": {
+      "get": {
+        "operationId": "inventoryTags",
+        "responses": {
+          "200": {
+            "description": "Actual inventory authority or immutable history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreInventoryTags"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "saveInventoryTags",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoreInventoryTagsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actual inventory authority or immutable history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreInventoryTags"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/internal/fluctlights/{fluctlight_id}/shared-experiences/overview": {
+      "get": {
+        "operationId": "storyOverview",
+        "responses": {
+          "200": {
+            "description": "Authoritative diary state; acceptance is not generation completion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreStoryOverview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
       }
     }
   }

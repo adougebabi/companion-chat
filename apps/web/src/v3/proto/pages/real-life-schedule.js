@@ -1,9 +1,13 @@
+import {LifeNavigation} from '../components/life-navigation.js';
 import { lifeClient } from '../services.js';
 import { asyncPage,requestReceipt } from '../components/async-page.js';
-import { Field } from '../components/forms.js';
+import { Field,Tabs } from '../components/forms.js';
+import {IntentionList} from '../components/cards.js';
+import {mountPromiseCatalogue,promiseForm,openPromise} from '../components/promise-catalogue.js';
+import {scheduleRequestForm,observeScheduleRequest} from '../components/schedule-request.js';
 import {displayTimezone} from '../../presentation-time.mjs';
 import {zonedInput,zonedInputInstant} from '../../zoned-input.mjs';
-import {SchedulePlanItem,refreshPlanWindows} from '../components/schedule-records.js';
+import {SchedulePlanItem,ScheduleTimelineItem,refreshPlanWindows} from '../components/schedule-records.js';
 import { esc,badge,drawer,toast } from '../ui.js';
 
 export async function suggestRealSchedule(fid,{detail,item=null,placeId='',title='',reload=()=>{}}={}) {
@@ -40,12 +44,38 @@ export async function suggestRealSchedule(fid,{detail,item=null,placeId='',title
   } catch(error) {toast(error.message,'err');}
 }
 
+const scheduleViews=new Map();
+const nextDate=(value,days)=>{const date=new Date(value+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10);};
 export function renderRealSchedule(el,ctx) {
-  return asyncPage(el,()=>lifeClient.detail(ctx.charId),(detail,reload,alive)=>{
-    const schedule=detail.schedule,zone=displayTimezone(schedule?.timezone,detail.context?.timezone);
-    el.innerHTML=`<div class="row" style="margin-bottom:12px"><span class="grow small muted">${esc(schedule?.local_date || detail.context?.local_date || '')} · ${esc(zone || '')} · 计划与实际分开记录</span><button class="btn" data-reload>重新读取</button><button class="btn primary" data-suggest>建议一项日程</button></div><div class="card"><div class="planfact schedule-head small muted"><b>时间</b><b>计划</b><b>实际</b></div>${schedule?`<div class="list">${schedule.items.map(item=>SchedulePlanItem(item,zone)).join('')}</div>`:'<div class="statebox"><h2>今天尚无已接受日程</h2><p>初始日程由真实任务生成，等待不代表已经发生。</p><a class="btn" href="#/diag">查看初始化任务</a><a class="btn" href="#/c/'+ctx.charId+'/chat">与她安排日程</a></div>'}</div><p class="small muted">当前时段仅表示计划时间，实际发生的事情单独记录。经过时段不代表已经完成；“—”表示尚无执行结果。</p><p data-error role="alert"></p>`;
+  const key=JSON.stringify([ctx.store.get('session')?.actorId,ctx.charId]);
+  const view=scheduleViews.get(key)||{section:'today',expanded:new Set()};scheduleViews.set(key,view);
+  return asyncPage(el,async()=>{
+    const detail=await lifeClient.detail(ctx.charId);let calendar;
+    try{calendar=await lifeClient.schedules(ctx.charId,ctx.query.date?{from:ctx.query.date,to:ctx.query.date}:{});}
+    catch(error){if(![404,405].includes(error.status))throw error;const date=detail.schedule?.local_date||detail.context?.local_date;calendar={timezone:displayTimezone(detail.schedule?.timezone,detail.context?.timezone),today:date,from:date,to:date,days:[{local_date:date,schedule:detail.schedule,request:null}],context_revision:detail.context?.context_revision,unavailable:true};}
+    return {detail,calendar};
+  },({detail,calendar},reload,alive)=>{
+    const selected=calendar.days[0],schedule=selected?.schedule,zone=calendar.timezone;
+    const editable=calendar.from===calendar.today;
+    const habits=detail.core_persona?.personality_system?.profiles?.find(p=>p.id===detail.personality_runtime?.active_profile_id)?.habits;
+    el.innerHTML=`<div class="stack schedule-workspace"><div class="row"><div class="grow"><h2 class="page-title">她的日程</h2><p class="small muted">${esc(zone)} · 计划与实际分别记录</p></div><button class="btn" data-reload>刷新</button></div>${LifeNavigation(ctx)}${Tabs({value:view.section,attribute:'schedule-section',attrs:{'aria-label':'日程分区'},items:[['today','当天安排'],['upcoming','接下来几天'],['intentions','意向'],['promises','约定'],['habits','生活倾向']].map(([value,label])=>({value,label}))})}<form class="row schedule-date-query" data-date-query>${Field({label:'查看日期',name:'date',type:'date',value:calendar.from||'',attrs:{required:true,disabled:calendar.unavailable}})}<button class="btn" ${calendar.unavailable?'disabled':''}>查找</button><button type="button" class="btn ghost" data-today>回到今天</button><span class="spacer"></span><button type="button" class="btn primary" data-generate ${calendar.unavailable?'disabled':''}>生成日程</button>${editable?'<button type="button" class="btn" data-suggest>建议一项日程</button>':''}</form>${calendar.unavailable?'<p class="banner info">当前服务尚未升级日程接口，先显示已读取的今天。跨日查阅与生成需要运行本次 Core 构建。</p>':''}${selected?.request?`<p class="small muted">最近的安排请求：${esc(({queued:'等待规划',running:'正在规划',completed:'已完成处理',failed:'未完成',conflict:'资料变化'})[selected.request.status]||'状态待核对')} <button class="btn ghost sm" data-original-request>查看进度与结果</button></p>`:''}<section data-section="today"><h3>${esc(calendar.from||'当前日期')}</h3><div class="schedule-timeline">${schedule?schedule.items.map(item=>ScheduleTimelineItem({...item,charId:ctx.charId},zone,{expanded:view.expanded.has(item.id),editable})).join(''):'<div class="statebox"><h3>这一天尚无已接受日程</h3><p>可请求为缺失日期规划；已有安排会受到保护。</p></div>'}</div></section><section data-section="upcoming" hidden><div data-upcoming></div></section><section data-section="intentions" hidden><h3>她的意向</h3>${IntentionList(detail.intentions||[],{fid:ctx.charId,goals:detail.goals||[],profiles:detail.core_persona?.personality_system?.profiles||[]})}<p class="small muted">意向仍需实际执行，不能据此视为已完成。</p></section><section data-section="promises" hidden><div class="row"><h3 class="grow">我们的约定</h3><button class="btn primary" data-propose>和她约定</button></div><div data-promises></div></section><section data-section="habits" hidden><h3>生活倾向</h3><p class="reading-prose">${esc(typeof habits==='string'&&habits.trim()?habits:'当前人格尚未记录生活倾向。')}</p><p class="small muted">这些是生活中的软倾向，具体安排仍以实际日程为准。</p></section><p data-error role="alert"></p></div>`;
+    const promises=mountPromiseCatalogue(el.querySelector('[data-promises]'),{fid:ctx.charId,alive,onSaved:reload});
+    el.querySelector('[data-propose]').onclick=()=>promiseForm(ctx.charId,{onSaved:envelope=>{if(alive())requestReceipt(ctx.charId,envelope,reload);}});
+    el.querySelectorAll('[data-schedule-expand]').forEach(row=>row.addEventListener('toggle',()=>{if(row.open)view.expanded.add(row.dataset.scheduleExpand);else view.expanded.delete(row.dataset.scheduleExpand);}));
+    let upcomingLoaded=false;
+    async function show(section){
+      view.section=section;el.querySelectorAll('[data-section]').forEach(box=>box.hidden=box.dataset.section!==section);
+      el.querySelectorAll('[data-schedule-section]').forEach(button=>{button.classList.toggle('on',button.dataset.scheduleSection===section);button.setAttribute('aria-pressed',String(button.dataset.scheduleSection===section));});
+      if(section==='upcoming'&&!upcomingLoaded){const box=el.querySelector('[data-upcoming]');if(calendar.unavailable){box.innerHTML='<p>跨日服务尚未升级，当前不能读取接下来几天。</p>';return;}box.innerHTML='<p role="status">正在读取接下来的安排…</p>';try{const page=await lifeClient.schedules(ctx.charId,{from:nextDate(calendar.from,1),to:nextDate(calendar.from,7)});if(!alive())return;upcomingLoaded=true;box.innerHTML=page.days.map(day=>`<section class="schedule-day"><h3>${esc(day.local_date)}</h3>${day.schedule?day.schedule.items.map(item=>ScheduleTimelineItem({...item,charId:ctx.charId},zone,{editable:false})).join(''):'<p class="small muted">这一天尚无已接受日程。</p>'}</section>`).join('');box.querySelectorAll('[data-promise-id]').forEach(button=>button.onclick=()=>openPromise(ctx.charId,button.dataset.promiseId,reload,alive));}catch(error){if(alive())box.innerHTML=`<p class="banner err" role="alert">${esc(error.message)}</p><button class="btn" data-upcoming-retry>重新读取</button>`;box.querySelector('[data-upcoming-retry]')?.addEventListener('click',()=>void show('upcoming'));}}
+    }
+    el.querySelectorAll('[data-schedule-section]').forEach(button=>button.onclick=()=>void show(button.dataset.scheduleSection));void show(view.section);
+    el.querySelector('[data-date-query]').onsubmit=event=>{event.preventDefault();if(event.target.reportValidity())ctx.navigate(`#/c/${encodeURIComponent(ctx.charId)}/life/schedule?date=${event.target.elements.date.value}`);};
+    el.querySelector('[data-today]').onclick=()=>ctx.navigate(`#/c/${encodeURIComponent(ctx.charId)}/life/schedule`);
+    el.querySelector('[data-generate]').onclick=()=>scheduleRequestForm(ctx.charId,{calendar,schedule,onCompleted:reload});
+    el.querySelector('[data-original-request]')?.addEventListener('click',()=>observeScheduleRequest(ctx.charId,selected.request,reload));
+    el.querySelectorAll('[data-promise-id]').forEach(button=>button.onclick=()=>openPromise(ctx.charId,button.dataset.promiseId,reload,alive));
     el.querySelector('[data-reload]').onclick=reload;
-    el.querySelector('[data-suggest]').onclick=()=>suggestRealSchedule(ctx.charId,{detail,reload});
+    el.querySelector('[data-suggest]')?.addEventListener('click',()=>suggestRealSchedule(ctx.charId,{detail:{...detail,schedule},reload}));
     el.querySelectorAll('[data-edit]').forEach(button=>button.onclick=()=>suggestRealSchedule(ctx.charId,{detail,item:schedule.items.find(i=>i.id===button.dataset.edit),reload}));
     el.querySelectorAll('[data-cancel]').forEach(button=>button.onclick=()=>{
       const item=schedule.items.find(i=>i.id===button.dataset.cancel);
@@ -55,6 +85,6 @@ export function renderRealSchedule(el,ctx) {
     });
     const refreshWindows=()=>{if(alive()&&!document.hidden&&schedule)refreshPlanWindows(el,schedule.items);};
     const timer=setInterval(refreshWindows,30000);document.addEventListener('visibilitychange',refreshWindows);
-    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',refreshWindows);};
+    return()=>{promises.dispose();clearInterval(timer);document.removeEventListener('visibilitychange',refreshWindows);};
   });
 }

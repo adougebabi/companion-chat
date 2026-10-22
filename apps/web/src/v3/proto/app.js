@@ -1,4 +1,4 @@
-import {exchangeNavigation,managementNavigation,globalNavigation} from '../workspace-navigation.mjs';
+import {exchangeNavigation,globalNavigation} from '../workspace-navigation.mjs';
 import {Avatar,bindAvatars} from './components/avatar.js';
 import { ApplicationShell } from './components/shell.js';
 import * as store from './store.js';
@@ -18,6 +18,7 @@ let disposePage = null;
 let current = null; const HKEY = 'fluctlight.backstack';
 let back = JSON.parse(sessionStorage.getItem(HKEY) || '[]'); let popping = false;
 const scrollPositions = new Map(); let stopScrollRestore=()=>{};
+const navigationExpansion=new Map();
 function restorePagePosition(top=0){
   stopScrollRestore();
   if(!top){window.scrollTo(0,0);return;}
@@ -49,7 +50,7 @@ function shell(host) {
   const onDocumentClick = e => {
     const kd = e.target.closest('[data-keep-draft]'); if (kd && current) { keptDrafts[current.def.key] = true; ui.toast('草稿已保留（未提交）', 'ok'); renderPage(); return; }
     const s = e.target.closest('[data-demo-state]'); if (s) { demoStates[current.def.key] = s.dataset.demoState; renderPage(); return; }
-    if (e.target.closest('[data-back]')) { e.preventDefault(); goBack(); return; }
+    if (e.target.closest('[data-back]')) { e.preventDefault(); if(current?.ctx.query.returnTo?.startsWith('#/'))navigate(current.ctx.query.returnTo);else if(e.target.closest('#narrowBack')&&current?.def.backHref)navigate(current.def.backHref);else goBack(); return; }
     const src = e.target.closest('[data-source]'); if (src) { e.preventDefault(); ui.sourceDrawer(src.dataset.source); }
   };
   document.addEventListener('click', onDocumentClick);
@@ -83,6 +84,9 @@ function moreMenu(a) {
 }
 function renderChrome(ctx) {
   const st = store.get('ui'); const c = store.get('characters', ctx.charId) || { id: ctx.charId||'', name: ctx.charId?'角色资料待读取':'角色库', avatar: '', worldId: null }; const w = store.get('worlds', c.worldId);
+  ui.$('#narrowPageTitle').textContent=ctx.def.title.replace(/^生活 · /,'');
+  ui.$('#narrowPageScope').textContent=c.id?c.name+(w?.name?' · '+w.name:''):ctx.def.scope||'';
+  ui.$('#narrowBack').hidden=!ctx.def.backHref&&back.length<=1&&!ctx.query.from;
   ui.$('#charsw').innerHTML = `${Avatar({src:c.avatar,name:c.name})}<b>${esc(c.name)}</b>${icon('more')}`;
   bindAvatars(ui.$('#charsw'));
   ui.$('#scopebar').innerHTML = `<span class="hide-n">${badge(ctx.def?.scope || '角色范围')}</span><span class="hide-n">${esc(c.name)} · ${esc(w?.name || '')}</span>
@@ -96,12 +100,17 @@ function renderChrome(ctx) {
   ui.$('#notesT').checked = store.isMock && st.notes; document.body.classList.toggle('show-notes', store.isMock && !!st.notes);
   const p = ctx.path; const base = `#/c/${c.id}/`;
   const on = path => p === '/c/' + c.id + '/' + path || p.startsWith('/c/' + c.id + '/' + path + '/');
-  ui.$('#sidenav').innerHTML = `<div class="sec">角色工作区 · ${esc(c.name)}</div>` + (c.id ? (st.identity==='管理'?managementNavigation:exchangeNavigation) : []).map(n => `<a class="navlink ${n.subs ? (p.includes('/life/') ? 'on' : '') : on(n.path) ? 'on' : ''}" href="${base}${n.path}">${icon(n.icon)} ${n.label}</a>` +
-    (n.subs ? n.subs.map(([l, sp, ic]) => `<a class="navlink sub ${on(sp) ? 'on' : ''}" href="${base}${sp}">${icon(ic)} ${l}</a>`).join('') : '')).join('') +
-    `<div class="sec">全局</div>` + globalNavigation(st.identity).map(([l, h, i]) => `<a class="navlink ${('#' + p).startsWith(h) ? 'on' : ''}" href="${h}">${icon(i)} ${l}</a>`).join('');
-  const bb = st.identity==='管理' ? [['角色资料','profile','user'],['世界管理','worlds','globe'],['自治设置','settings/autonomy','settings']] : [['对话', 'chat', 'chat'], ['此刻', 'life/now', 'now'], ['衣柜', 'life/wardrobe', 'shirt'], ['记忆', 'growth', 'brain']];
-  ui.$('#bottombar').innerHTML = (c.id ? bb : []).map(([l, sp, i]) => `<a href="${base}${sp}" class="${on(sp) ? 'on' : ''}">${icon(i)}${l}</a>`).join('') + `<button id="navDrawer" data-test="nav-drawer">${icon('menu')}全部</button>`;
-  ui.$('#navDrawer').onclick = () => { const d = ui.drawer({ title: '导航', body: ui.$('#sidenav').innerHTML }); d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
+  const navigation=(c.id?exchangeNavigation:[]).map(n=>{
+    if(!n.subs)return `<a class="navlink ${on(n.path)?'on':''}" href="${base}${n.path}" ${on(n.path)?'aria-current="page"':''}>${icon(n.icon)} ${n.label}</a>`;
+    const key=JSON.stringify([c.id,n.k]);
+    const expanded=navigationExpansion.get(key)??p.includes('/life/');
+    return `<details class="nav-group" data-nav-group="${esc(key)}" ${expanded?'open':''}><summary class="navlink ${p.includes('/life/')?'on':''}">${icon(n.icon)} ${n.label}<span class="spacer"></span><span class="nav-chevron" aria-hidden="true">⌄</span></summary>${n.subs.map(([l,sp,ic])=>`<a class="navlink sub ${on(sp)?'on':''}" href="${base}${sp}" ${on(sp)?'aria-current="page"':''}>${icon(ic)} ${l}</a>`).join('')}</details>`;
+  }).join('');
+  const globalItems=[['动态','#/feed','feed'],['通知与待处理','#/inbox','inbox'],['角色库','#/library','home'],['创作工坊','#/studio','studio'],['管理中心','#/settings','settings']];
+  ui.$('#sidenav').innerHTML = `<div class="sec">${esc(w?.name||'角色空间')}</div>${navigation}<div class="sec navigation-other">其他空间</div>${globalItems.map(([l,h,i])=>`<a class="navlink ${('#'+p).startsWith(h)?'on':''}" href="${h}">${icon(i)} ${l}</a>`).join('')}`;
+  const bindNavigation=root=>root.querySelectorAll('[data-nav-group]').forEach(details=>details.addEventListener('toggle',()=>navigationExpansion.set(details.dataset.navGroup,details.open)));
+  bindNavigation(ui.$('#sidenav'));
+  ui.$('#navDrawer').onclick = () => { const d = ui.drawer({ title: '全部页面', body: `<div class="row"><b class="grow">${esc(c.name)}</b><button class="btn sm" data-switch-character>切换角色</button></div>`+ui.$('#sidenav').innerHTML }); bindNavigation(d.body);d.body.querySelector('[data-switch-character]').onclick=()=>{d.close();charMenu(ui.$('#navDrawer'));};d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
 }
 function renderPage() {
   disposePage?.(); disposePage = null;
@@ -109,16 +118,17 @@ function renderPage() {
   main.classList.toggle('chat-page',def.key==='chat.thread.view');
   const state = demoStates[def.key] || '正常';
   ctx.state = state; renderChrome(ctx);
+  const returnTo=typeof ctx.query.returnTo==='string'&&ctx.query.returnTo.startsWith('#/')?ctx.query.returnTo:null;
   const showBack = back.length > 1 || ctx.query.from;
-  const backControl=def.backHref?`<a class="btn sm" href="${esc(def.backHref)}" data-test="back">${icon('back')} ${esc(def.backLabel||'返回')}</a>`:showBack?`<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>`:'';
-  main.innerHTML = `<div class="pagehead">${backControl}<h1>${def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
+  const backControl=returnTo?`<a class="btn sm" href="${esc(returnTo)}" data-test="back">${icon('back')} ${esc(ctx.query.returnLabel||'返回来源')}</a>`:def.backHref?`<a class="btn sm" href="${esc(def.backHref)}" data-test="back">${icon('back')} ${esc(def.backLabel||'返回')}</a>`:showBack?`<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>`:'';
+  main.innerHTML = `<div class="pagehead">${backControl}<h1>${ctx.path.includes('/life/')?'生活':def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
     ${ui.notesPanel(def)}<div id="page" data-page="${def.key}"></div>`;
   const el = ui.$('#page');
   const bootstrapWarning=store.get('meta')?.bootstrapWarning;if(bootstrapWarning)el.insertAdjacentHTML('beforebegin',`<div class="banner info">${esc(bootstrapWarning)}</div>`);
   if (!store.isMock) {
     const section = ctx.path.split('/').slice(3).join('/');
     const reads = ctx.path === '/library' ? ['global:groups'] : ctx.path === '/inbox' ? ['global:notifications'] : ctx.path.startsWith('/studio') ? ['global:resources'] : section.startsWith('world') ? [`${ctx.charId}:worlds`] : section.startsWith('life/wardrobe') ? [`${ctx.charId}:wardrobes`] : section.startsWith('media') ? [`${ctx.charId}:media`] : section.startsWith('life/diary') ? [`${ctx.charId}:diaries`] : [];
-    const failures = reads.map(key => store.get('meta').surfaces?.[key]).filter(value => value && value.status !== 'ready');
+    const failures = reads.map(key => store.get('meta').surfaces?.[key]).filter(value => value && !['ready','loading'].includes(value.status));
     if (failures.length) {
       el.insertAdjacentHTML('beforebegin',`<div class="banner info" role="status">${failures.map(value => esc(value.message || '部分资料暂未读到')).join('；')}。其他入口仍可使用。 <button class="btn sm" data-read-retry>重新读取</button></div>`);
       main.querySelector('[data-read-retry]').onclick = async () => { try { await real.refreshProduct(); } catch(error) { ui.toast(error.message,'err'); } };
@@ -138,7 +148,9 @@ function route() {
   // /auth does not emit hashchange; parsing /library first leaves main blank.
   if (!location.hash) { history.replaceState(null, '', store.get('session') || store.isMock ? '#/library' : '#/auth'); }
   const { raw, path, query } = parse();
-  const restoreTop=popping?scrollPositions.get(raw)||0:0;
+  const prior=back.lastIndexOf('#'+raw);
+  if(!popping&&prior>=0&&prior<back.length-1){back=back.slice(0,prior+1);popping=true;sessionStorage.setItem(HKEY,JSON.stringify(back));}
+  const restoreTop=(popping||current?.ctx.query.returnTo==='#'+raw)?scrollPositions.get(raw)||0:0;
   if (!popping) { if (back[back.length - 1] !== '#' + raw) back.push('#' + raw); if (back.length > 40) back.shift(); sessionStorage.setItem(HKEY, JSON.stringify(back)); }
   popping = false;
   let m = match(path);

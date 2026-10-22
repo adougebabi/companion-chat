@@ -1,3 +1,5 @@
+import {sourceHref,sourceReturn} from '../components/source-navigation.js';
+import {mountCalendarReading,localDate,reconcileReadingRecord} from '../components/calendar-reading.js';
 import { memoryClient } from '../services.js';
 import { asyncPage,instant } from '../components/async-page.js';
 import { CursorPager,bindCursorPager } from '../components/cursor-pager.js';
@@ -7,30 +9,30 @@ import { JsonDetails } from '../components/records.js';
 import { esc,badge,drawer,toast,requireOwner } from '../ui.js';
 import { get } from '../store.js';
 
-const types={'':'全部',episodic:'经历',semantic:'认知',relationship:'关系',autobiographical:'自传'};
-const statuses={'':'全部状态',active:'有效',superseded:'被替代',deprecated:'已停用',forgotten:'已忘却'};
+const types={'':'全部',episodic:'经历',semantic:'知识',relationship:'关系',autobiographical:'自我'};
+const statuses={'':'全部状态',active:'有效',superseded:'已替代',deprecated:'已废弃',forgotten:'已忘却'};
 const memoryHref=(fid,id)=>`#/c/${encodeURIComponent(fid)}/growth/memory/${encodeURIComponent(id)}`;
 // Unsaved form data only; no second copy of authoritative memory state.
 const drafts=new Map();
 const draftKey=memory=>JSON.stringify([get('session')?.actorId,memory.owner_fluctlight_id,memory.id]);
 
 export function renderRealMemoryList(el,ctx) {
-  const cursors=[''];let index=0;
-  const type=Object.hasOwn(types,ctx.query.type)?ctx.query.type:'',status=Object.hasOwn(statuses,ctx.query.status)?ctx.query.status:'',q=ctx.query.q||'';
-  return asyncPage(el,()=>memoryClient.list(ctx.charId,{type,status,q,cursor:cursors[index],limit:30}),(page,reload)=>{
-    const link=(value)=>`#/c/${ctx.charId}/growth?${new URLSearchParams({type:value,status,q})}`;
-    el.innerHTML=`<div class="stack"><div class="row">${Tabs({value:type,items:Object.entries(types).map(([value,label])=>({value,label,href:link(value)})),className:'tabs grow'})}${SearchForm({value:q,placeholder:'搜索记忆',attrs:{'data-memory-search':true},inputAttrs:{'data-test':'mem-search'}})}</div><div class="row">${Field({label:'状态',name:'status',type:'select',value:status,options:Object.entries(statuses).map(([value,label])=>({value,label}))})}<span class="grow small muted">按当前角色检索完整记忆记录，包括历史状态；不会调用模型或改变记忆。</span></div><div class="card"><div class="list">${page.items.map(m=>`<a class="lrow click" href="${memoryHref(ctx.charId,m.id)}" data-test="mem-${esc(m.id)}"><span class="grow">${esc(m.content)}<div class="small muted">${esc(types[m.type]||m.type)} · 第 ${esc(m.revision)} 版 · ${esc(m.revision_count)} 条修订 · 来源 ${esc(m.provenance_status)}</div></span>${badge(statuses[m.status]||m.status)}</a>`).join('')||'<p class="small muted">当前筛选未找到记忆。可以调整筛选，或继续交流和生活积累经历。</p>'}</div></div>${CursorPager({more:!!page.next_cursor,previous:index>0,label:'记忆'})}<div class="row"><a class="btn" href="#/c/${ctx.charId}/chat">去交流</a><a class="btn" href="#/c/${ctx.charId}/growth/reflection">反思与成长</a><a class="btn" href="#/c/${ctx.charId}/growth/self">自我认知</a></div></div>`;
-    bindCursorPager(el,{next:()=>{cursors[++index]=page.next_cursor;void reload();},previous:()=>{index--;void reload();}});
-    el.querySelector('[data-memory-search]').onsubmit=event=>{event.preventDefault();ctx.navigate(`#/c/${ctx.charId}/growth?${new URLSearchParams({type,status,q:event.target.q.value})}`);};
-    el.querySelector('[name=status]').onchange=event=>ctx.navigate(`#/c/${ctx.charId}/growth?${new URLSearchParams({type,q,status:event.target.value})}`);
-  });
+  const aboutOwner=ctx.query.aboutOwner==='true';
+  const type=Object.hasOwn(types,ctx.query.type)?ctx.query.type:'',status=aboutOwner?'active':Object.hasOwn(statuses,ctx.query.status)?ctx.query.status:'active',q=ctx.query.q||'',zone=get('characters',ctx.charId)?.timezone;
+  const params={type,status,q,...(aboutOwner?{aboutOwner:'true'}:{}),month:ctx.query.month||'',date:ctx.query.date||''};
+  const link=patch=>`#/c/${ctx.charId}/growth?${new URLSearchParams({...params,...patch})}`;
+  return mountCalendarReading(el,{scope:[ctx.charId,'memory',type,status,q,aboutOwner],zone,initialDate:params.date,initialMonth:params.month,onView:view=>{Object.assign(params,view);ctx.raw=ctx.path+'?'+new URLSearchParams(params);history.replaceState(null,'','#'+ctx.raw);el.querySelectorAll('[data-memory-type]').forEach(a=>a.href=link({type:a.dataset.memoryType}));el.querySelectorAll('[data-memory-status]').forEach(a=>a.href=link({status:a.dataset.memoryStatus}));},read:cursor=>memoryClient.list(ctx.charId,{type,status,q,aboutOwner,cursor,limit:30}),dateOf:m=>localDate(m.created_at,zone),label:'记忆',
+   toolbar:`<div class="stack">${aboutOwner?'<h2>关于你的记忆</h2><p class="small muted">只读取提及当前所有者且来源仍有效的当前记忆。</p>':''}${Tabs({value:type,items:Object.entries(types).map(([value,label])=>({value,label,href:link({type:value}),attrs:{'data-memory-type':value}}))})}${aboutOwner?'':Tabs({value:status,items:Object.entries(statuses).map(([value,label])=>({value,label,href:link({status:value}),attrs:{'data-memory-status':value}}))})}${SearchForm({value:q,placeholder:'搜索记忆正文',attrs:{'data-memory-search':true},inputAttrs:{'data-test':'mem-search'}})}<div class="row"><a href="#/c/${ctx.charId}/growth/reflection">反思与成长</a><a href="#/c/${ctx.charId}/growth/self">成长认识</a></div></div>`,
+   bindToolbar:box=>{box.querySelector('[data-memory-search]').onsubmit=e=>{e.preventDefault();ctx.navigate(link({q:e.target.q.value}));};},
+   render:(m,date)=>`<article class="reading-paper" data-test="mem-${esc(m.id)}"><div class="row"><span class="paper-date grow">${date?'记于 '+esc(date):'记忆时间未记录'}</span>${badge(statuses[m.status]||m.status,'plain')}</div><p class="small muted">${esc(types[m.type]||m.type)} · 第 ${esc(m.revision)} 版 · 来源 ${esc(m.provenance_status)}</p><p class="paper-body">${esc(m.content)}</p><a class="btn" href="${esc(sourceHref(memoryHref(ctx.charId,m.id),ctx,aboutOwner?'返回关于你的记忆':'返回她的记忆'))}">阅读与来源</a></article>`});
 }
 
 export function renderRealMemory(el,ctx) {
   const id=ctx.params.memId;
   return asyncPage(el,()=>memoryClient.read(ctx.charId,id),(memory,reload,alive)=>{
+    reconcileReadingRecord(ctx.charId,'memory',memory,(scope,row)=>(!scope[2]||scope[2]===row.type)&&(!scope[3]||scope[3]===row.status)&&(!scope[4]||row.content.toLocaleLowerCase().includes(scope[4].toLocaleLowerCase()))&&(!scope[5]||(!['pending','invalid'].includes(row.provenance_status)&&row.actor_refs?.includes(get('session')?.actorId))));
     let disposed=false;
-    el.innerHTML=`<div class="stack"><div class="card"><div class="row"><span class="grow small muted">${esc(types[memory.type])}</span>${badge(statuses[memory.status])}<span class="small muted">第 ${esc(memory.revision)} 版</span></div><p class="memory-content" data-test="memory-content">${esc(memory.content)}</p><p class="small muted">来源状态 ${esc(memory.provenance_status)} · 可见范围 ${esc(memory.visibility)} · 发生时间 ${esc(instant(memory.occurred_at))}</p>${memory.provenance_status==='invalid'||memory.provenance_status==='pending'?'<p class="banner warn">来源尚未有效，不能将这条记忆当作当前已确认事实。</p>':''}<div class="row"><button class="btn" data-tell data-test="mem-tell">告诉她</button>${memory.status==='active'?'<button class="btn accent" data-edit data-test="mem-edit">所有者修改…</button><button class="btn" data-forget>忘却…</button>':''}<button class="btn" data-reload>重新读取</button></div><div data-editor></div>${JsonDetails({actor_refs:memory.actor_refs,event_refs:memory.event_refs,personality_perspectives:memory.personality_perspectives,confidence:memory.confidence,importance:memory.importance,emotional_significance:memory.emotional_significance,supersedes_memory_id:memory.supersedes_memory_id,superseded_by_memory_id:memory.superseded_by_memory_id},'范围、人格理解与谱系')}</div><div class="card"><h3>来源</h3><div data-sources role="status">正在读取来源…</div></div><div class="card"><h3>修订记录</h3><div data-revisions role="status">正在读取修订…</div></div><div class="row"><a class="btn" href="#/c/${ctx.charId}/growth">返回记忆库</a><a class="btn" href="#/c/${ctx.charId}/people/owner">关于你</a></div></div>`;
+    el.innerHTML=`<div class="stack"><div class="reading-paper"><div class="row"><span class="grow small muted">${esc(types[memory.type])}</span>${badge(statuses[memory.status])}<span class="small muted">第 ${esc(memory.revision)} 版</span></div><p class="memory-content" data-test="memory-content">${esc(memory.content)}</p><p class="small muted">来源状态 ${esc(memory.provenance_status)} · 可见范围 ${esc(memory.visibility)} · 发生时间 ${esc(instant(memory.occurred_at))}</p>${memory.provenance_status==='invalid'||memory.provenance_status==='pending'?'<p class="banner warn">来源尚未有效，不能将这条记忆当作当前已确认事实。</p>':''}<div class="row">${memory.status==='active'?'<button class="btn accent" data-edit data-test="mem-edit">所有者修改…</button><button class="btn" data-forget>忘却…</button>':''}<button class="btn" data-reload>重新读取</button></div><div data-editor></div>${JsonDetails({actor_refs:memory.actor_refs,event_refs:memory.event_refs,personality_perspectives:memory.personality_perspectives,confidence:memory.confidence,importance:memory.importance,emotional_significance:memory.emotional_significance,supersedes_memory_id:memory.supersedes_memory_id,superseded_by_memory_id:memory.superseded_by_memory_id},'范围、人格理解与谱系')}</div><div class="card"><h3>来源</h3><div data-sources role="status">正在读取来源…</div></div><div class="card"><h3>修订记录</h3><div data-revisions role="status">正在读取修订…</div></div><div class="row"><a class="btn" href="${esc(sourceReturn(ctx,`#/c/${ctx.charId}/growth`))}">${esc(ctx.query.returnLabel||'返回记忆库')}</a><a class="btn" href="#/c/${ctx.charId}/people/owner">关于你</a></div></div>`;
     const current=()=>!disposed&&alive();
     const sourceBox=el.querySelector('[data-sources]'),revisionBox=el.querySelector('[data-revisions]');
     function sourceLink(source){if(source.source_kind==='message'&&source.conversation_id)return `<a href="#/c/${ctx.charId}/chat?${new URLSearchParams({conversation:source.conversation_id,message:source.source_id})}">查看原消息</a>`;return `<span class="small muted">${esc(source.source_ref)}</span>`;}
@@ -42,7 +44,6 @@ export function renderRealMemory(el,ctx) {
       box.querySelectorAll('[data-source-revision]').forEach(button=>button.onclick=()=>{sourceRevision=Number(button.dataset.sourceRevision);sourceLabel.textContent=`第 ${sourceRevision} 版的来源`;void sources.reload({reset:true});});
     }});
     el.querySelector('[data-reload]').onclick=reload;
-    el.querySelector('[data-tell]').onclick=()=>tellMemory(memory);
     el.querySelector('[data-edit]')?.addEventListener('click',()=>editMemory(el.querySelector('[data-editor]'),memory,reload));
     if(drafts.has(draftKey(memory)))editMemory(el.querySelector('[data-editor]'),memory,reload);
     el.querySelector('[data-forget]')?.addEventListener('click',()=>governMemory(memory,'forget',null,reload));
@@ -60,12 +61,6 @@ function editMemory(box,memory,reload) {
   box.querySelector('[data-cancel]').onclick=()=>{drafts.delete(key);box.innerHTML='';};
   if(memory.status!=='active'){form.querySelector('[data-test=mem-save]').disabled=true;box.insertAdjacentHTML('afterbegin','<p class="banner warn">当前记忆已不处于有效状态，草稿仍保留。请先核对其生命周期和恢复记录。</p>');}
   form.onsubmit=async event=>{event.preventDefault();if(needsReview()||memory.status!=='active'||!(await requireOwner()))return;const button=form.querySelector('[data-test=mem-save]');button.disabled=true;try{await memoryClient.revise(memory.owner_fluctlight_id,memory,draft.content,draft.reason);drafts.delete(key);toast('记忆已修订并读回；原消息保留','ok');await reload();}catch(error){const message=box.querySelector('[data-error]');message.hidden=false;message.textContent=error.status===409?'记忆版本已变化，草稿已保留。重新读取并核对后再保存。':error.message;button.disabled=false;}};
-}
-
-function tellMemory(memory) {
-  const d=drawer({title:'告诉她',body:`<p class="small muted">发送真实交流，由她决定是否修订记忆。原事实不会直接改变。</p>${Field({label:'想告诉她',name:'text',type:'textarea',attrs:{required:true,maxlength:2000}})}<p role="alert" data-error></p>`,footer:'<button class="btn" data-close>关闭</button><button class="btn primary" data-send>发送</button>'});
-  d.el.querySelector('[data-close]').onclick=()=>d.close();
-  d.el.querySelector('[data-send]').onclick=async event=>{const text=d.el.querySelector('[name=text]');if(!text.reportValidity())return;event.target.disabled=true;try{await memoryClient.tell(memory.owner_fluctlight_id,memory.id,text.value);d.close();toast('真实交流已提交，请在对话中查看回应','ok');}catch(error){if(d.el.isConnected){d.el.querySelector('[data-error]').textContent=error.message;event.target.disabled=false;}}};
 }
 
 function governMemory(memory,operation,target,reload) {

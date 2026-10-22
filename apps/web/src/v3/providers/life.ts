@@ -1,6 +1,6 @@
 import { randomId } from '../../random-id.mjs';
 import {persistentCommand} from './persistent-command.mjs';
-import type { BrowserClient, BrowserGoalCommand, BrowserPromiseCommandBody, BrowserPromiseRescheduleBody } from '@fluctlight/browser-client';
+import type { BrowserClient, BrowserGoalCommand, BrowserPromiseCommandBody, BrowserPromiseRescheduleBody, BrowserOwnerScheduleBody, BrowserScheduleRequestView } from '@fluctlight/browser-client';
 // @ts-expect-error JS service facade
 import { configureDomainService } from '../proto/services.js';
 // @ts-expect-error JS snapshot facade
@@ -26,7 +26,21 @@ export function createLifeProvider(client: BrowserClient) {
     let channel=proposalChannels.get(key);if(!channel){channel=persistentCommand<PromiseDraft,Awaited<ReturnType<BrowserClient['proposePromise']>>>({key,storage:()=>{if(!globalThis.sessionStorage)throw new Error('无法保留提交身份，请检查浏览器会话存储后再提交。');return globalThis.sessionStorage;},execute:(value,idempotencyKey)=>{writable(fid);if(get('session')?.actorId!==actor)throw new Error('登录身份已经变化，请回到原账户查询提交结果');return client.proposePromise(fid,{...value,idempotencyKey});}});proposalChannels.set(key,channel);}
     return channel;
   }
+  type ScheduleDraft=Omit<BrowserOwnerScheduleBody,'idempotencyKey'>;
+  const scheduleChannels=new Map<string,ReturnType<typeof persistentCommand<ScheduleDraft,BrowserScheduleRequestView>>>();
+  function scheduleChannel(fid:string,localDate:string,promiseId=''){
+    const owner=get('session')?.actorId;if(typeof owner!=='string'||!owner)throw new Error('请先登录再安排日程');
+    const key='fluctlight:pending-schedule:'+JSON.stringify([owner,fid,localDate,promiseId]);let channel=scheduleChannels.get(key);
+    if(!channel){channel=persistentCommand<ScheduleDraft,BrowserScheduleRequestView>({key,storage:()=>globalThis.sessionStorage,execute:(value,idempotencyKey)=>{writable(fid);if(get('session')?.actorId!==owner)throw new Error('所有者已经变化，请回原账户查看请求');return client.requestSchedule(fid,{...value,idempotencyKey});}});scheduleChannels.set(key,channel);}
+    return channel;
+  }
   const life = {
+    schedules:(fid:string,options:{from?:string;to?:string}={})=>client.schedules(fid,options),
+    scheduleRequest:(fid:string,id:string)=>client.scheduleRequest(fid,id),
+    schedulePending:(fid:string,date:string,promiseId='')=>scheduleChannel(fid,date,promiseId).pending(),
+    submitSchedule:(fid:string,body:ScheduleDraft)=>scheduleChannel(fid,body.localDate,body.promiseId).submit(body),
+    retrySchedule:(fid:string,date:string,promiseId='')=>scheduleChannel(fid,date,promiseId).retry(),
+    nearby: (fid:string)=>client.nearby(fid),
     detail: (fid:string) => client.detail(fid),
     async now(fid:string) {
       const [detail,wardrobe,nearby] = await Promise.all([client.detail(fid),client.wardrobe(fid),client.nearby(fid)]);

@@ -1,8 +1,9 @@
+import {StudioComparison,studioChanges} from './studio-comparison.js';
 import {studioMaterialRetention} from './studio-material-retention.js';
 import {referenceFromGrant,mediaReferencePurposes} from './media-reference-grants.js';
 import {studioClient} from '../services.js';
 import {esc,confirm,requireOwner,toast} from '../ui.js';
-import {Field,TextComposer,PromptChips,DiffRows} from './forms.js';
+import {Field,TextComposer,PromptChips} from './forms.js';
 import {MessageLog} from './chat.js';
 import {PreviewCard} from './cards.js';
 import {JsonDetails} from './records.js';
@@ -18,7 +19,7 @@ const json=v=>JSON.stringify(v,null,2);
 // current draft; accepted snapshots and generated suggestions stay separate.
 export function mountStudioJobs(el,{actor,resource,readDraft,adopt,alive,jobId='',linkBase='',onSelect=()=>{},initialKind='assistant'}){
  const slot=`fluctlight-studio:${actor}:${resource?.id||'new'}:jobs`,storage=studioDraftStorage();
- let active=true,epoch=0,directoryEpoch=0,materialsEpoch=0,mounted=false,grantEpoch=0,referenceGrants=[],grantNext='',timer=null,busy=false,error='',job=null,list=[],materials=[],next='',materialNext='',reading=false;
+ let active=true,epoch=0,directoryEpoch=0,materialsEpoch=0,mounted=false,grantEpoch=0,referenceGrants=[],grantNext='',timer=null,busy=false,error='',job=null,list=[],materials=[],next='',materialNext='',reading=false,adopting=false,resultMarkup='';
  const readErrors={detail:'',directory:'',materials:'',references:''};
  let ui={instruction:'',kind:initialKind,selected:jobId,referenceAssetId:'',referencePurpose:'',referenceGrant:null,materialReleased:false};
  try{ui={...ui,...JSON.parse(storage.getItem(slot+':draft')||'{}')};if(jobId)ui.selected=jobId;}catch{error='工作室面板草稿不可读取，请核对原提交';}
@@ -56,7 +57,7 @@ export function mountStudioJobs(el,{actor,resource,readDraft,adopt,alive,jobId='
  async function directory(append=false){
   if(!resource||!live())return;const token=++directoryEpoch,cursor=append?next:undefined;
   try{const page=await studioClient.jobs({resource_id:resource.id,cursor});if(!live()||token!==directoryEpoch)return;
-   list=append?[...list,...page.items.filter(item=>!list.some(old=>old.id===item.id))]:page.items;next=page.next_cursor||'';readErrors.directory='';
+   list=append?[...list,...page.items.filter(item=>!list.some(old=>old.id===item.id))]:page.items;next=page.next_cursor||'';readErrors.directory='';if(!ui.selected){const running=list.find(item=>['queued','running'].includes(item.status));if(running){ui.selected=running.id;onSelect(running.id);persist();void observe();}}
   }catch(e){if(live()&&token===directoryEpoch)readErrors.directory=e.message;}finally{if(live()&&token===directoryEpoch)paint();}
  }
  async function readMaterials(append=false){
@@ -74,7 +75,7 @@ export function mountStudioJobs(el,{actor,resource,readDraft,adopt,alive,jobId='
  function visibility(){clearTimeout(timer);if(!document.hidden&&!busy)void observe();}
  document.addEventListener('visibilitychange',visibility);
  function paint(){
-  if(!live())return;let pending=null;try{pending=command.pending();}catch(e){error=e.message;}
+  if(!live()||adopting)return;let pending=null;try{pending=command.pending();}catch(e){error=e.message;}
   const displayError=[error,...Object.values(readErrors)].filter(Boolean).join('；');
   const out=job?.result||{},draft=readDraft();
   const messages=job?[{u:job.snapshot?.instruction||''},...(job.kind==='assistant'&&job.status==='completed'?[{a:String(out.reply||'')}]:[])]:[];
@@ -102,13 +103,18 @@ export function mountStudioJobs(el,{actor,resource,readDraft,adopt,alive,jobId='
   el.querySelector('[data-more-grants]').hidden=!grantNext;el.querySelector('[data-more-grants]').onclick=()=>void readReferenceGrants(true);
   el.querySelector('[data-job-messages]').innerHTML=MessageLog(messages,{variant:'assistant'});
   el.querySelector('[data-job-feedback]').innerHTML=`<p role="alert" class="banner err" ${displayError?'':'hidden'}>${esc(displayError)}</p>${pending?`<div class="banner info">原提交结果尚未确认；当前输入单独保留。${JsonDetails(pending.value,'原提交内容')}<button class="btn" data-replay ${busy||pending.rejection?'disabled':''}>重试原提交</button>${pending.rejection?'<button class="btn" data-release>核对后解除已明确拒绝的原提交</button>':''}</div>`:''}`;
-  el.querySelector('[data-job-result]').innerHTML=`${job?`<div class="card stack"><div class="row"><b class="grow">${esc(status[job.status]||job.status)}</b><a href="${esc(deepLink(job.id))}">任务永久链接</a></div><p class="small muted">${esc(job.id)} · 尝试 ${esc(job.latest_attempt)} · v${esc(job.revision)} · ${esc(errorLabel[job.error_code]||job.error_code||'')}</p>${job.kind==='assistant'&&job.status==='completed'&&out.disposition==='needs_input'?`<p class="banner info">需要补充创作输入，当前草稿保持。${esc(out.reply)}</p>${JsonDetails(out.warnings,'需要补充的信息')}`:''}${job.kind==='assistant'&&job.status==='completed'&&out.disposition==='proposal'?`${JsonDetails(out.warnings,'生成警告')}<h3>当前工作草稿 → 生成建议</h3>${DiffRows([{field:'name',before:draft.name,after:out.name},{field:'body',before:json(draft.body),after:json(out.body)}])}<button class="btn accent" data-adopt>明确采用完整建议到当前草稿</button>`:''}${job.kind==='text_preview'&&job.status==='completed'?PreviewCard({id:job.id,at:job.updated_at,text:out.text}):''}${job.kind==='image_preview'&&job.status==='completed'&&out.asset_id?PreviewCard({id:job.id,at:job.updated_at,img:studioClient.mediaUrl(out.asset_id),text:out.label}):''}${job.kind==='image_preview'?`<div class="stack"><h3>图片实际执行状态</h3>${(job.media_requests||[]).map(m=>`<div class="lrow"><div><b>${esc(mediaStatus[m.status]||m.status)}</b><p class="small muted">媒体任务 ${esc(m.id)} · 工作流 ${esc(m.workflow_id||'尚未分配')} · 生成任务 ${esc(m.provider_job_id||'尚未分配')}</p>${(m.workflows||[]).map(w=>`<p class="small">${esc(w.workflow_id)} · ${esc(mediaStatus[w.status]||status[w.status]||w.status)} ${esc(errorLabel[w.error_code]||w.error_code||'')}</p>`).join('')}</div></div>`).join('')||'<p class="small muted">尚无已受理的媒体执行记录；任务受理不代表图片完成。</p>'}</div>`:''}<div class="row">${job.status==='failed'?'<button class="btn" data-retry>重试失败任务（复用已完成阶段）</button>':''}${job.status==='completed'&&(job.kind==='text_preview'||(job.kind==='image_preview'&&out.asset_id))?`<button class="btn teal" data-material>存为资源${job.kind==='image_preview'?'图片':'文本'}素材</button>`:''}${job.status!=='discarded'?'<button class="btn danger" data-discard>丢弃任务结果</button>':''}<button class="btn" data-regenerate ${busy?'disabled':''}>按当前草稿重新生成新任务</button></div>${JsonDetails(job.attempts||[],'实际执行尝试与工作流状态')}${JsonDetails(job.snapshot,'本次冻结输入')}</div>`:''}`;
+  const nextResultMarkup=`${job?`<div class="card stack"><div class="row"><b class="grow">${esc(status[job.status]||job.status)}</b><a href="${esc(deepLink(job.id))}">任务永久链接</a></div><p class="small muted">${esc(job.id)} · 尝试 ${esc(job.latest_attempt)} · v${esc(job.revision)} · ${esc(errorLabel[job.error_code]||job.error_code||'')}</p>${job.kind==='assistant'&&job.status==='completed'&&out.disposition==='needs_input'?`<p class="banner info">需要补充创作输入，当前草稿保持。${esc(out.reply)}</p>${JsonDetails(out.warnings,'需要补充的信息')}`:''}${job.kind==='assistant'&&job.status==='completed'&&out.disposition==='proposal'?`${JsonDetails(out.warnings,'生成警告')}${StudioComparison(draft,out)}`:''}${job.kind==='text_preview'&&job.status==='completed'?PreviewCard({id:job.id,at:job.updated_at,text:out.text}):''}${job.kind==='image_preview'&&job.status==='completed'&&out.asset_id?PreviewCard({id:job.id,at:job.updated_at,img:studioClient.mediaUrl(out.asset_id),text:out.label}):''}${job.kind==='image_preview'?`<div class="stack"><h3>图片实际执行状态</h3>${(job.media_requests||[]).map(m=>`<div class="lrow"><div><b>${esc(mediaStatus[m.status]||m.status)}</b><p class="small muted">媒体任务 ${esc(m.id)} · 工作流 ${esc(m.workflow_id||'尚未分配')} · 生成任务 ${esc(m.provider_job_id||'尚未分配')}</p>${(m.workflows||[]).map(w=>`<p class="small">${esc(w.workflow_id)} · ${esc(mediaStatus[w.status]||status[w.status]||w.status)} ${esc(errorLabel[w.error_code]||w.error_code||'')}</p>`).join('')}</div></div>`).join('')||'<p class="small muted">尚无已受理的媒体执行记录；任务受理不代表图片完成。</p>'}</div>`:''}<div class="row">${job.status==='failed'?'<button class="btn" data-retry>重试失败任务（复用已完成阶段）</button>':''}${job.status==='completed'&&(job.kind==='text_preview'||(job.kind==='image_preview'&&out.asset_id))?`<button class="btn teal" data-material>存为资源${job.kind==='image_preview'?'图片':'文本'}素材</button>`:''}${job.status!=='discarded'?'<button class="btn danger" data-discard>丢弃任务结果</button>':''}<button class="btn" data-regenerate ${busy?'disabled':''}>按当前草稿重新生成新任务</button></div>${JsonDetails(job.attempts||[],'实际执行尝试与工作流状态')}${JsonDetails(job.snapshot,'本次冻结输入')}</div>`:''}`;
+  if(!adopting&&resultMarkup!==nextResultMarkup){
+   const box=el.querySelector('[data-job-result]'),open=[...box.querySelectorAll('details')].map((n,i)=>n.open?i:-1),focus=box.contains(document.activeElement)?document.activeElement?.dataset:null;
+   resultMarkup=nextResultMarkup;const scroll=box.scrollTop;box.innerHTML=nextResultMarkup;box.scrollTop=scroll;
+   box.querySelectorAll('details').forEach((n,i)=>{n.open=open.includes(i);});if(focus&&Object.hasOwn(focus,'adopt'))box.querySelector('[data-adopt]')?.focus({preventScroll:true});
+  }
   el.querySelector('[data-job-directory]').innerHTML=`<div class="card"><h3>任务记录</h3>${list.map(item=>`<button class="lrow btn ghost" data-job="${esc(item.id)}"><span class="grow">${esc(kindLabel[item.kind]||item.kind)} · ${esc(item.created_at)}</span>${esc(status[item.status]||item.status)}</button>`).join('')||'<p class="small muted">尚无实际任务</p>'}${next?'<button class="btn" data-more>更多任务</button>':''}</div>`;
   el.querySelector('[data-job-materials]').innerHTML=`<div class="card"><h3>此资源的创作素材</h3><label class="toggle"><input type="checkbox" data-released-materials ${ui.materialReleased?'checked':''}>查看已取消保留的素材</label>${materials.map(m=>`<div class="lrow"><div><b>${esc(m.label)}</b><p class="small">${esc(m.text||'')}</p>${m.asset_id?`<img class="scene-img" data-preview-image src="${esc(studioClient.mediaUrl(m.asset_id))}" alt="已保存的虚构创作素材" loading="lazy"><p class="small muted" data-preview-image-error hidden>图片读取失败，请核对素材权限与任务状态后刷新。</p>`:''}<a href="${esc(deepLink(m.job_id))}">查看原任务</a><a class="btn" href="#/studio/material/${encodeURIComponent(m.id)}">来源与保留历史</a><button class="btn" type="button" data-material-retention="${esc(m.id)}">${m.released_at?'恢复保留':'取消保留'}</button></div></div>`).join('')||'<p class="small muted">尚无已保存素材</p>'}${materialNext?'<button class="btn" data-material-more>更多素材</button>':''}</div>`;
   el.querySelectorAll('[data-preview-image]').forEach(img=>{img.onerror=()=>{img.hidden=true;const notice=img.nextElementSibling;if(notice)notice.hidden=false;};});
   el.querySelector('[data-refresh]').disabled=reading||busy;
   el.querySelector('[data-studio-compose]').querySelector('button').disabled=busy||!resource;
-  el.querySelector('[data-regenerate]')?.addEventListener('click',()=>void create());
+  if(el.querySelector('[data-regenerate]'))el.querySelector('[data-regenerate]').onclick=()=>void create();
   
   el.querySelectorAll('[data-job]').forEach(b=>b.onclick=()=>select(b.dataset.job));
   el.querySelector('[data-more]')?.addEventListener('click',()=>void directory(true));
@@ -117,13 +123,21 @@ export function mountStudioJobs(el,{actor,resource,readDraft,adopt,alive,jobId='
   el.querySelector('[data-material-more]')?.addEventListener('click',()=>void readMaterials(true));
   el.querySelector('[data-replay]')?.addEventListener('click',()=>void submit(pending.value,true));
   el.querySelector('[data-release]')?.addEventListener('click',async()=>{if(!(await confirm({title:'解除已拒绝提交',text:'该首次提交已明确因版本冲突拒绝且无效果。核对最新资源或任务状态后解除；当前草稿保留。'}))||!live())return;try{command.releaseRejected();await refresh();}catch(e){error=e.message;paint();}});
-  for(const [attr,op,reason] of [['retry','retry','所有者显式重试失败创作任务'],['discard','discard','所有者丢弃创作任务'],['material','save-material','所有者保存虚构创作结果为定义素材']])el.querySelector(`[data-${attr}]`)?.addEventListener('click',()=>void operate(op,reason));
-  el.querySelector('[data-del]')?.addEventListener('click',()=>void operate('discard','所有者丢弃创作预览'));
-  el.querySelector('[data-adopt]')?.addEventListener('click',async()=>{
-   const selected=job;if(!adopt||!selected||selected.result?.disposition!=='proposal'||selected.resource_id!==resource.id)return;
-   if(!(await confirm({title:'采用完整定义建议',text:'将以生成建议替换当前表单中的名称与完整定义。期间的新修改也会被此操作替换，请先比较差异。采用后仍须单独保存。'}))||!live()||job?.id!==selected.id)return;
-   adopt({name:selected.result.name,body:structuredClone(selected.result.body)});
-  });
+  for(const [attr,op,reason] of [['retry','retry','所有者显式重试失败创作任务'],['discard','discard','所有者丢弃创作任务'],['material','save-material','所有者保存虚构创作结果为定义素材']]){const button=el.querySelector(`[data-${attr}]`);if(button)button.onclick=()=>void operate(op,reason);}
+  if(el.querySelector('[data-del]'))el.querySelector('[data-del]').onclick=()=>void operate('discard','所有者丢弃创作预览');
+  const adoptButton=el.querySelector('[data-adopt]');if(adoptButton)adoptButton.onclick=async()=>{
+   const selected=job;if(adopting||!adopt||!selected||selected.result?.disposition!=='proposal'||selected.resource_id!==resource.id)return;
+   const reviewed=structuredClone({name:readDraft().name,body:readDraft().body}),proposal=structuredClone({name:selected.result.name,body:selected.result.body});
+   const changes=studioChanges(reviewed,proposal);if(!changes.changed.length)return;
+   adopting=true;
+   const accepted=await confirm({title:'采用完整建议到工作草稿',identity:'工作草稿',okText:'采用到草稿',text:`将替换当前名称和完整定义，共 ${changes.changed.length} 项改变。采用后尚未保存；保存、发布和应用仍分别进行。`});
+   adopting=false;
+   if(!live())return;
+   if(!accepted){schedule();return;}
+   if(job?.id!==selected.id||json(reviewed)!==json({name:readDraft().name,body:readDraft().body})||json(proposal)!==json({name:job.result.name,body:job.result.body})){error='比较内容已经变化，草稿与建议均保留。请核对新的比较后再采用。';paint();return;}
+   adopt(proposal);
+  };
+
  }
  async function create(){
   if(!resource||!ui.instruction.trim()) {error='请先保存资源，并填写创作指令';paint();return;}
@@ -132,5 +146,5 @@ export function mountStudioJobs(el,{actor,resource,readDraft,adopt,alive,jobId='
   const d=readDraft();await submit({op:'create',body:{resourceId:resource.id,resourceRevision:resource.revision,kind:ui.kind,...(referenceAsset?{referenceAsset}:{}),name:d.name,body:structuredClone(d.body),instruction:ui.instruction,reason:'所有者提交隔离创作任务'}});
  }
  async function operate(op,reason){const target=job;if(!target||busy)return;if(op==='discard'&&!(await confirm({title:'丢弃创作结果',text:'丢弃后该任务的迟到结果不能重新发布。已明确保存的资源素材仍保留。'})))return;if(!live()||job?.id!==target.id)return;await submit({op,id:target.id,revision:target.revision,reason});}
- paint();void refresh();return {dispose(){active=false;epoch++;directoryEpoch++;materialsEpoch++;grantEpoch++;clearTimeout(timer);document.removeEventListener('visibilitychange',visibility);}};
+ paint();void refresh();return {updateDraft(){if(live()&&!adopting)paint();},dispose(){active=false;epoch++;directoryEpoch++;materialsEpoch++;grantEpoch++;clearTimeout(timer);document.removeEventListener('visibilitychange',visibility);}};
 }

@@ -1,5 +1,38 @@
 # Frontend Quality Guidelines
 
+## Current Design Review Gate (2026-10-21)
+
+The user currently requires function-map / information-architecture / journey
+review before detailed UI or production Vue changes. Design files now live
+outside the repository at `/Users/vinson/Documents/文档/个人/设计/摇光`.
+Preserve `yaoguang-ux-vnext.pen`; the separate review artifact under that
+design home is `ia-review/yaoguang-ia-review.pen`. The task's `design/README.md`
+is only a migration index; do not recreate a second design copy in the repo.
+Sage Teal remains the visual direction. Historical glass/presentation examples
+below do not override the latest explicit design baseline.
+
+- The external design home's `design-status.json` must keep `approved:false` and
+  `productionMigrationAllowed:false` until the user explicitly confirms a
+  concrete Pen version and scope. A route count, image export or successful
+  isolated click prototype cannot change those flags.
+- Preserve original BP / Feature / action / page identifiers. The product map
+  may explain corrected ownership without overwriting implementation evidence
+  in `docs/v3-functional-ledger.json`. Shared page keys do not imply shared
+  domain commands: capability review, Foundation revision and Developing Self
+  review have distinct ownership.
+- Check coverage with
+  `python3 /Users/vinson/Documents/文档/个人/设计/摇光/ia-review/build-map.py`.
+  It reads the migrated reference snapshots by default; pass `--repo` only
+  when explicitly choosing a new implementation source for reconciliation.
+  Its identifier checks and semantic anchors are traceability checks only;
+  actual task completion, feedback, return, scope and source behavior require
+  their own UX review and later real integration evidence.
+
+Wrong: derive a menu from every API/table/route, mark all pages mapped, and
+start Vue migration. Correct: retain the function IDs, map the user tasks,
+review navigation and complete journeys in the independent Pen artifact, and
+wait for the explicit design baseline confirmation.
+
 ## Required Checks
 
 - Run `pnpm --filter @fluctlight/web typecheck`, `pnpm --filter

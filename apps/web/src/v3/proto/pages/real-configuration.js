@@ -1,3 +1,4 @@
+import {SavedReplySummary} from '../components/configuration-summary.js';
 import {get,list} from '../store.js';
 import {configurationClient,configurationSections,dataToolsClient} from '../services.js';
 import {esc,confirm} from '../ui.js';
@@ -5,7 +6,7 @@ import {Field} from '../components/forms.js';
 import {JsonDetails} from '../components/records.js';
 import {asyncPage} from '../components/async-page.js';
 import {mountConfigurationEditor} from '../components/configuration-editor.js';
-import {mountProviderEditors} from '../components/provider-editor.js';
+import {mountProviderEditors,mountModelPurposeEditor} from '../components/provider-editor.js';
 import {RuntimeCatalog,bindRuntimeCatalog} from '../components/runtime-catalog.js';
 import {configurationFields,configurationTitles,conversationReplyDisplayValue} from '../components/configuration-fields.js';
 
@@ -24,8 +25,12 @@ export function renderRealConfiguration(el,ctx){
  if(section==='models')return asyncPage(el,async()=>{const catalog=await configurationClient.read();return {catalog,endpoints:catalog.endpoints,bindings:catalog.bindings};},(value,reload,alive)=>{el.innerHTML='<div class="settings-page stack"><div data-providers></div></div>';const editor=mountProviderEditors(el.querySelector('[data-providers]'),{...value,alive:()=>alive()&&get('session')?.actorId===owner,onSaved:()=>{}});return()=>editor.dispose();});
  return asyncPage(el,async()=>{const saved=await configurationClient.read();if(section==='notifications'&&ctx.query.pack)saved.importedPack=await dataToolsClient.pack(ctx.query.pack);return saved;},(saved,reload,connected)=>{
   const alive=()=>connected()&&get('session')?.actorId===owner,keys=sectionKeys[section];if(!keys)throw new Error('设置分区不存在');
-  el.innerHTML=`<div class="settings-page stack"><p class="small muted">全局配置。角色覆盖请在角色自治页调整；模型绑定在“模型与连接”中配置。</p><div class="grid g2">${keys.map(k=>`<div data-editor="${esc(k)}"></div>`).join('')}</div><div data-extra></div></div>`;
-  const editors=keys.map(key=>mountConfigurationEditor(el.querySelector(`[data-editor="${key}"]`),{slotKey:key,settingKey:key,title:configurationTitles[key],fields:configurationFields[key],initial:editorInitial(key,saved.effective_values[key]),versions:saved.versions,source:saved.value_sources[key]||'unconfigured',alive,readCurrent:async()=>{const latest=await configurationClient.read();return {value:editorInitial(key,latest.effective_values[key]),versions:latest.versions,source:latest.value_sources[key]||'unconfigured'};}}));
+  el.innerHTML=`<div class="settings-page stack"><p class="small muted">全局配置。角色覆盖请在角色自治页调整；模型绑定在“模型与连接”中配置。</p>${section==='reply-vision'?'<div data-effective-summary></div><div data-reply-purpose></div>':''}<div class="grid g2">${keys.map(k=>`<div data-editor="${esc(k)}"></div>`).join('')}</div><div data-extra></div></div>`;
+  let summaryCatalog=saved;
+  const updateSummary=async()=>{const latest=await configurationClient.read();if(!alive())return;summaryCatalog=latest;if(section==='reply-vision')el.querySelector('[data-effective-summary]').innerHTML=SavedReplySummary(latest);};
+  if(section==='reply-vision')el.querySelector('[data-effective-summary]').innerHTML=SavedReplySummary(summaryCatalog);
+  const editors=keys.map(key=>mountConfigurationEditor(el.querySelector(`[data-editor="${key}"]`),{slotKey:key,settingKey:key,saveLabel:key==='conversation.reply'?'保存回复参数':key==='vision.understanding'?'保存视觉开关':'保存本区配置',description:key==='conversation.reply'?'日常表达的长度与等待时间在这里调整。独立回复同时受模型用途和本区的输入、输出限制；总超时包含排队。':key==='vision.understanding'?'这个开关决定是否使用已经绑定的视觉模型理解图片，单独保存。':key==='product.autonomy'?'暂停新自治行动与屏蔽自治外发都会阻止新的自治外部行动。通知静音单独设置。':'',onSaved:updateSummary,title:configurationTitles[key],fields:configurationFields[key],initial:editorInitial(key,saved.effective_values[key]),versions:saved.versions,source:saved.value_sources[key]||'unconfigured',alive,readCurrent:async()=>{const latest=await configurationClient.read();return {value:editorInitial(key,latest.effective_values[key]),versions:latest.versions,source:latest.value_sources[key]||'unconfigured'};}}));
+  if(section==='reply-vision')editors.push(mountModelPurposeEditor(el.querySelector('[data-reply-purpose]'),{catalog:saved,alive,onSaved:updateSummary}));
   if(section==='kev')editors.push(mountConfigurationEditor(el.querySelector('[data-extra]'),{slotKey:'secret:kev:systemone',title:'KEV 访问凭据',source:saved.configured_secrets.includes('kev:systemone')?'stored':'unconfigured',fields:[],initial:{configured:saved.configured_secrets.includes('kev:systemone')},versions:saved.versions,secretPurpose:'kev:systemone',alive,buildBody:()=>({values:{},expectedVersions:{}}),readCurrent:async()=>{const latest=await configurationClient.read();return {value:{configured:latest.configured_secrets.includes('kev:systemone')},versions:latest.versions,source:latest.configured_secrets.includes('kev:systemone')?'stored':'unconfigured'};}}));
   const tests=section==='kev'?['kev']:section==='reply-vision'?['vision']:section==='media-workflows'?['media']:[];
   el.querySelector('.settings-page').insertAdjacentHTML('beforeend',`<div class="card"><h3>已保存配置与连接核验</h3><p>测试仅使用服务端已保存配置。草稿修改不会参与测试；连接可达不等于真实生成成功。</p>${tests.map(k=>`<button class="btn" type="button" data-test-config="${k}">测试已保存的${{kev:' KEV 协议',vision:'视觉图片输入',media:' ComfyUI 连接'}[k]}</button>`).join('')}${JsonDetails(saved.effective_values['ai.capability_status'],'模型绑定和最近调用')}<div data-test-result></div></div>`);

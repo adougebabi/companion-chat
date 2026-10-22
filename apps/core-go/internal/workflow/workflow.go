@@ -51,7 +51,7 @@ const (
 
 func workflowIntentMaximumAttempts(intentType string) int {
 	switch strings.TrimSpace(intentType) {
-	case "studio.generate", "diary.generate", "media.delete":
+	case "studio.generate", "diary.generate", "media.delete", "schedule.owner":
 		return 1
 	case "goal.plan":
 		return goalEvaluationMaximumAttempts
@@ -1305,6 +1305,8 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 		})
 		switch queue {
 		case LifecycleQueue:
+			w.RegisterWorkflow(OwnerScheduleWorkflow)
+			w.RegisterActivity(ProcessOwnerScheduleActivity)
 			w.RegisterWorkflow(WardrobePreparationWorkflow)
 			w.RegisterActivity(ProcessWardrobePreparationActivity)
 			w.RegisterWorkflow(StudioWorkflow)
@@ -2370,6 +2372,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = MediaQueue
 		case "wardrobe.initialize":
 			workflowFn = WardrobePreparationWorkflow
+			taskQueue = LifecycleQueue
+		case "schedule.owner":
+			workflowFn = OwnerScheduleWorkflow
 			taskQueue = LifecycleQueue
 		case "schedule.current_day":
 			workflowFn = CurrentDayScheduleWorkflow

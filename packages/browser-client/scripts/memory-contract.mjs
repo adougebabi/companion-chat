@@ -13,7 +13,7 @@ export const memorySchemas={
  BrowserManagedMemoryPage:page('BrowserManagedMemory'),BrowserMemoryRevisionPage:page('BrowserMemoryRevision'),BrowserMemorySourcePage:page('BrowserMemorySource'),
 };
 export const memoryPaths={
- '/api/fluctlights/{fluctlightId}/memories':{get:{operationId:'listManagedMemories',parameters:[...limits,{name:'q',in:'query',schema:{type:'string',maxLength:500}},{name:'type',in:'query',schema:{type:'string',enum:['episodic','semantic','relationship','autobiographical']}},{name:'status',in:'query',schema:{type:'string',enum:['active','superseded','deprecated','forgotten']}}],...response('BrowserManagedMemoryPage')}},
+ '/api/fluctlights/{fluctlightId}/memories':{get:{operationId:'listManagedMemories',parameters:[...limits,{name:'aboutOwner',in:'query',schema:{type:'boolean'}},{name:'q',in:'query',schema:{type:'string',maxLength:500}},{name:'type',in:'query',schema:{type:'string',enum:['episodic','semantic','relationship','autobiographical']}},{name:'status',in:'query',schema:{type:'string',enum:['active','superseded','deprecated','forgotten']}}],...response('BrowserManagedMemoryPage')}},
  '/api/memories/{memoryId}/revisions':{get:{operationId:'memoryRevisions',parameters:limits,...response('BrowserMemoryRevisionPage')}},
  '/api/memories/{memoryId}/sources':{get:{operationId:'memorySources',parameters:[...limits,{name:'revision',in:'query',schema:integer}],...response('BrowserMemorySourcePage')}},
  '/api/memories/{memoryId}/rollback':{post:{operationId:'rollbackMemory',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserMemoryRollback')}}},responses:{200:{description:'Appended compensation revision; existing lifecycle authority'}}}},

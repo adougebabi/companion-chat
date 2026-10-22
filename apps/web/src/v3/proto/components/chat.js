@@ -22,7 +22,7 @@ export function ActionCard(a, link) {
    <div class="small muted">阶段：<b data-test="act-phase">${a.phase}</b> · 关联 ${link(a.goalId || a.taskId || a.id, a.goalId ? '目标 ' + a.goalId : a.taskId)} · ${a.scheduleId ? link(a.scheduleId, '日程 ' + a.scheduleId) : ''}</div>
    <div class="row" style="margin-top:8px">${btns}<span class="spacer"></span><button class="btn ghost sm" data-act="detail">详情</button></div></div>`;
 }
-export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, characterAvatar, characterName='对方' }) {
+export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, characterAvatar, characterName='对方',senderName='你',viewMode='交流' }) {
   if (m.from === 'divider') return `<div class="divider">${esc(m.text)}</div>`;
   if (m.from === 'sys') return `<div class="sysline">${badge('系统运维')} ${esc(m.text)} ${m.link ? link(m.link, '查看') : ''}</div>`;
   if (m.from === 'action') { const a = actionById(m.actionId); return a ? ActionCard(a, link) : ''; }
@@ -30,9 +30,9 @@ export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, charac
   const timestamp = String(m.at || ''), compactTime = /^\d{2}:\d{2}(?::\d{2})? · /.test(timestamp) ? timestamp.split(' · ')[0] : timestamp;
   const marks = [m.recall ? badge('回忆', 'plain') : '', m.corrected ? `<span class="corrected" data-test="corrected">${icon('check')} 已纠正 · 记忆 #${m.memoryRef}</span>` : '', m.feedback ? `<span class="corrected" style="background:var(--primary-soft);color:var(--primary-strong)">已告诉她</span>` : ''].join('');
   return `<div class="msg ${me ? 'me' : ''}" data-msg="${m.id}">${Avatar({src:me?'/v3/assets/avatars/user.svg':characterAvatar,name:me?'你':characterName})}
-   <div><div class="bubble">${esc(m.text)}${mediaUrl ? (m.attachmentRefs || []).map(id => `<div class="genimg"><img src="${esc(mediaUrl(id))}" alt="会话媒体" loading="lazy"></div>`).join('') : ''}${md ? `<div style="margin-top:8px">${GeneratedImage(md)}</div>` : ''}</div>
+   <div class="message-content"><div class="message-identity">${esc(me?senderName:characterName)}</div><div class="bubble">${esc(m.text)}${mediaUrl ? (m.attachmentRefs || []).map(id => `<div class="genimg"><img src="${esc(mediaUrl(id))}" alt="会话媒体" loading="lazy"></div>`).join('') : ''}${md ? `<div style="margin-top:8px">${GeneratedImage(md)}</div>` : ''}</div>
    <div class="meta"><time title="${esc(timestamp)}" aria-label="${esc(timestamp)}">${esc(compactTime)}</time> ${m.identity && m.identity !== '交流' ? badge(m.identity) : ''} ${marks}
-     <span class="tools">${!me ? `<button class="chip" data-wrong="${m.id}" data-test="wrong-${m.id}">${icon('flag')} 这条不对</button>` : ''}<button class="chip" data-source="${m.id}">来源</button></span></div></div></div>`;
+     ${!me&&viewMode==='管理'?`<span class="tools"><button class="chip" data-source="${esc(m.id)}">${icon('link')} 查看来源</button></span>`:''}</div></div></div>`;
 }
 
 export function MessageLog(messages, options = {}) {
@@ -42,12 +42,12 @@ export function MessageLog(messages, options = {}) {
 export function TypingMessage(character={}) {
   return `${Avatar({src:character.avatar,name:character.name})}<div><div class="bubble typing"></div><div class="meta">正在输入…</div></div>`;
 }
-export function ChatPanel({ character, summary, messages, messageOptions, sidebar }) {
+export function ChatPanel({ character, summary='', messages, messageOptions, sidebar,viewMode='交流',senderName='你',worldName='' }) {
   return `<div class="chatwrap"><section class="chatcol">
-    <div class="chathead">${Avatar({src:character.avatar,name:character.name})}<div class="grow"><b>${esc(character.name)}</b><div class="small muted">${badge('交流')} 远程私聊 · 你不在场</div></div>
-      <div class="chat-head-actions"><a class="btn ghost sm" href="#/c/${character.id}/chat/history">历史</a><a class="btn ghost sm" href="#/c/${character.id}/chat/call">${icon('play')} 通话</a></div></div>
+    <div class="chathead"><div class="grow"><h2>和${esc(character.name)}聊聊</h2><div class="small muted">以 ${esc(senderName)} 的身份私聊${worldName?` · ${esc(worldName)}`:''}</div></div>
+      <div class="chat-head-actions"><a class="btn ghost sm" href="#/c/${character.id}/chat/history">历史与搜索</a><a class="btn ghost sm" href="#/c/${character.id}/people/owner">关于你</a><div class="ident" role="group" aria-label="聊天查看方式">${['交流','管理'].map(mode=>`<button type="button" data-chat-view="${mode}" aria-pressed="${mode===viewMode}" class="${mode===viewMode?'on':''}">${mode}</button>`).join('')}</div></div></div>
     ${summary}
-    ${MessageLog(messages, messageOptions)}
+    <div class="message-area">${MessageLog(messages, messageOptions)}<button class="latest-messages btn" data-latest hidden aria-label="回到最新消息">⇊ <span data-new-count></span></button></div>
     ${TextComposer({ placeholder: '和小遥说点什么…' })}
   </section>
   ${sidebar}</div>`;

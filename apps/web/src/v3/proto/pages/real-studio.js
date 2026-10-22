@@ -40,7 +40,7 @@ export function renderRealStudioEdit(el,ctx){
   if(value.operation==='apply')return studioClient.apply(value.id,{...value.body,idempotencyKey:key});
   throw new Error('未知创作命令');
  }});
- const persist=()=>{writeStudioDraft(life.actor,ctx.params.resId,draft);const pub=el.querySelector('[data-publish]');if(pub)pub.disabled=busy||!resource?.draft_version||draft.name!==resource.name||json(draft.body)!==json(resource.body||{});const diff=el.querySelector('[data-draft-diff]');if(diff)diff.innerHTML=DiffRows(['name','body'].filter(k=>json(k==='name'?(resource?.name||''):resource?.body)!==json(draft[k])).map(field=>({field:field==='name'?'名称':'定义内容',before:json(field==='name'?(resource?.name||''):resource?.body),after:json(draft[field])})));};
+ const persist=()=>{writeStudioDraft(life.actor,ctx.params.resId,draft);jobPanel?.updateDraft();const pub=el.querySelector('[data-publish]');if(pub)pub.disabled=busy||!resource?.draft_version||draft.name!==resource.name||json(draft.body)!==json(resource.body||{});const diff=el.querySelector('[data-draft-diff]');if(diff)diff.innerHTML=DiffRows(['name','body'].filter(k=>json(k==='name'?(resource?.name||''):resource?.body)!==json(draft[k])).map(field=>({field:field==='name'?'名称':'定义内容',before:json(field==='name'?(resource?.name||''):resource?.body),after:json(draft[field])})));};
  const fail=error=>{if(!life.alive())return;conflict=!!command.pending()?.rejection;paint(error.message);};
  async function submit(value,retry=false){
   if(busy||!(await requireOwner())||!life.alive())return;busy=true;errorText='';paint();

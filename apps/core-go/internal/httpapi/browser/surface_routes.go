@@ -16,6 +16,9 @@ type surfaceRoute struct {
 }
 
 var surfaceRoutes = []surfaceRoute{
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/schedules"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/schedules/requests"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/schedules/requests/:requestId"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/world/places/:placeId/defaults"}, {http.MethodPost, "/api/fluctlights/:fluctlightId/world/places/:placeId/defaults"}, {http.MethodGet, "/api/fluctlights/:fluctlightId/world/places/:placeId/defaults/history"},
 	{http.MethodGet, "/api/ops/backups/:backupId"}, {http.MethodPost, "/api/ops/backups/:backupId/retry"}, {http.MethodPost, "/api/ops/backups/:backupId/cancel"},
 	{http.MethodPost, "/api/studio/packs/:packId/groups/:index/adopt"},
@@ -103,6 +106,7 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/nearby"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/diary"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/shared-experiences"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/shared-experiences/overview"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/self-claims"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/self-claims/:claimId"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/self-claims/:claimId/revisions"},
@@ -219,10 +223,18 @@ func (s *Server) dispatchSurface(response http.ResponseWriter, request *http.Req
 		s.uploadOwnerMedia(response, request, session)
 		return
 	}
+	if request.Method == http.MethodGet && strings.HasSuffix(request.URL.Path, "/schedules") && !validScheduleQuery(request.URL.Query()) {
+		writeError(response, 400, "invalid_request", "Invalid schedule date range")
+		return
+	}
 	var body map[string]any
 	if request.Method != http.MethodGet && request.Method != http.MethodHead {
 		parsed, valid := surfaceBody(response, request)
 		if !valid {
+			return
+		}
+		if strings.HasSuffix(request.URL.Path, "/schedules/requests") && !validScheduleOwnerCommand(parsed) {
+			writeError(response, 400, "invalid_request", "Invalid schedule request")
 			return
 		}
 		if (strings.HasSuffix(request.URL.Path, "/display-avatar") || strings.HasSuffix(request.URL.Path, "/visual-identity")) && !validDisplayAvatar(parsed) {
@@ -464,6 +476,16 @@ func surfacePathMatches(path, pattern string) bool {
 
 // Definition content is an opaque schema; only transport envelope keys change.
 func surfaceCommandBody(path string, parsed map[string]any) map[string]any {
+	if strings.HasSuffix(path, "/schedules/requests") {
+		names := map[string]string{"localDate": "local_date", "expectedRevision": "expected_revision", "expectedLifeContextRevision": "expected_life_context_revision", "idempotencyKey": "idempotency_key", "reason": "reason", "promiseId": "promise_id", "expectedPromiseRevision": "expected_promise_revision", "startAt": "start_at", "endAt": "end_at"}
+		out := map[string]any{}
+		for from, to := range names {
+			if value, ok := parsed[from]; ok {
+				out[to] = value
+			}
+		}
+		return out
+	}
 	body := snakeMap(parsed)
 	if strings.HasSuffix(path, "/inventory/tags") {
 		if value, ok := parsed["renames"]; ok {

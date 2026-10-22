@@ -18,3 +18,10 @@ export function refreshPlanWindows(root,items,now=Date.now()){
   row.querySelector('[data-window-label]').textContent=planWindowLabel(window);
  });
 }
+
+export function ScheduleTimelineItem(item,zone,{expanded=false,editable=true}={}){
+ const window=planWindow(item.start_at,item.end_at);
+ const promise=item.promise_request_id;
+ const canEdit=editable&&window==='future'&&!['in_progress','completed'].includes(item.action_status);
+ return `<details class="schedule-timeline-item ${window==='current'?'is-current':''}" data-schedule-expand="${esc(item.id)}" ${expanded?'open':''}><summary><span class="schedule-time">${esc(formatZonedRange(item.start_at,item.end_at,zone))}</span><span class="grow"><b>${esc(item.activity)}</b><span class="small muted">${esc(item.location||item.scene||'地点未记录')}</span></span><span aria-hidden="true">⌄</span></summary><div class="schedule-timeline-body" data-schedule-slot="${esc(item.id)}"><p class="small muted" data-window-label>${esc(planWindowLabel(window))}</p><div class="row">${item.status?badge(stateLabel(item.status)):badge('计划状态未知')}${item.action_status?badge(stateLabel(item.action_status)):badge(promise?'实际履行另行记录':'执行未知','plain')}</div><p>${esc(item.scene||'场景未记录')}</p>${promise?`<p class="small muted">${item.promise_schedule_valid===false?'这项约定已取消、完成或改变时段；此处保留原安排记录。':'这是已接受约定的时间安排，排入不代表执行或履约。'}</p><button class="btn" data-promise-id="${esc(promise)}">查看原约定与证据</button>`:''}${item.place_id?`<a class="btn ghost sm" href="${esc('#/c/'+item.charId+'/world/place/'+encodeURIComponent(item.place_id))}">查看地点</a>`:''}${canEdit?`<div class="row"><button class="btn" data-edit="${esc(item.id)}">建议调整</button><button class="btn ghost" data-cancel="${esc(item.id)}">建议取消</button></div>`:''}${JsonDetails(item,'安排来源与原记录')}</div></details>`;
+}

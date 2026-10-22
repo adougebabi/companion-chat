@@ -516,3 +516,15 @@ Profile原本Real/Mock已共用组件，但组件直接遍历原字段并把对�
 CUA rewriteDocumentation/getState均Transport closed，当前新页面桌面/390px浏览器视觉未验证；未部署NAS/跑外部模型/真实Temporal业务工作流。不把本机PG/SDK Workflow测试当真实模型或NAS通过。总任务继续in_progress等待用户验收；提交排除profile-types.ts与临时产物；关闭本轮tmpfs PG容器。
 
 最终定向23个根通过/0skip，包括暂停晚到保护；完整迁移/BFF/Workflow均通过。Web265/39/脚本28与最终Go build/vet通过。页面视觉待CUA恢复，真实NAS/LLM待用户L18/L19；不记为全量通过。
+
+2026-10-21设计阶段：Quasar公开样稿已由用户明确为https://narminp.github.io/quasar-mockup/#memory。只选择性借鉴导航、渐进披露、跨页草稿、连接故障定位、使用后果说明、发布应用分离；模拟任务/配额等不当作后端成熟证据。用户中途从Figma改用pen.dev，主产物为design/yaoguang-ux-vnext.pen；48桌面状态/6窄屏、研究/IA/8旅程、4公共组件、7现状快照；独立HTML点击演示在127.0.0.1:4199/prototype。当前104路由映射保持，未改正式前端/Core/DB、未跑模型。当前确认门仍关闭。详见design/README.md、browser-verification.json；浏览器连接发生中断，执行记录与静态/画布检查区分，不宣称NAS或业务验收通过。
+
+设计只读终审修复：全局素材与角色媒体分开、增加正常记忆修订页、通用冲突携带业务来源、位置样例一致、服装属性/多选草稿保存、提议采用当前搭配、连接/诊断返回保留原业务。新增原型状态并同步.pen；当前48桌面+6窄屏，确认门保持关闭。
+
+设计最终复核：Pen原生浏览器已实际通过48入口×1440/390两视口检查（96次页面检查）和14项关键交互断言；画布54原型状态无裁切。CLI历史连接问题保留说明，最终证据见design/browser-verification.json。正式前端与后端仍未修改，等待用户设计确认。
+
+2026-10-21 用户方向纠偏：前述页面/路由数量不代表任务体验正确。主线程已实际操作Quasar聊天摘要/日程/衣柜草稿/世界地点编辑/NPC筛选、记忆来源维护和设置分组；NAS恢复后实际登录并操作聊天、此刻、日程、衣柜物品、世界地点、管理编辑及人物空态。地点到聊天预填与返回已验证，未发模型消息、未保存生产数据。证据design/interaction-mapping.md与experience-1021；NAS无NPC/方案/完整穿搭，相关有数据分支不计实测。
+
+随后用户明确功能地图与IA优先，暂停逐页UI扩展。保留原Pen及中间试画，新建design/ia-review独立评审区：完整蓝图BP子功能与当前台账/旧Feature/page key映射、用户目标/操作者/关联/体验层/Quasar及差异、导航与共用对象编辑/返回规则、核心及后续J旅程。原唯一动作台账未重写，历史缺BP/错配/孤立STU-03引用/模板式测试记录保留解释，不因旧分类排除能力。当前approved=false、productionMigrationAllowed=false；独立点击样例尚未按最新完整结构验收。正式Vue/Core/DB未改，代码推送/部署不在本阶段执行。
+
+2026-10-21设计目录迁移：按用户要求将完整design资料以同文件系统重命名迁至 `/Users/vinson/Documents/文档/个人/设计/摇光`，保持原相对结构及两份Pen内容；原文件尺寸与非Pen摘要核对通过，Pen通过MCP另核。有用UX研究一并迁至sources/research，补原蓝图/v3规范/历史审计/NAS报告/实现台账快照。仓库design目录只保留README索引；实际功能台账仍留docs维护。外部build-map.py改读同目录快照，可显式--repo重新对账，不再假定身处Git目录。原任务书与规范明确外部目录为唯一设计位置，不将迁移当设计验收或正式Vue实施授权。迁移明细见外部migration-manifest.json。

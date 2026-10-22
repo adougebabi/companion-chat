@@ -1,6 +1,6 @@
 export const exchangeNavigation = [
  {k:'chat',label:'对话',icon:'chat',path:'chat'},
- {k:'life',label:'生活',icon:'life',path:'life/now',subs:[['此刻','life/now','now'],['日程','life/schedule','calendar'],['目标','life/goals','target'],['衣柜','life/wardrobe','shirt'],['日记','life/diary','book']]},
+ {k:'life',label:'生活',icon:'life',path:'life/now',subs:[['此刻','life/now','now'],['日程','life/schedule','calendar'],['目标','life/goals','target'],['衣柜','life/wardrobe','shirt'],['日记','life/diary','book'],['共同经历','life/shared','heart']]},
  {k:'world',label:'世界',icon:'globe',path:'world'}, {k:'people',label:'人物关系',icon:'people',path:'people'},
  {k:'growth',label:'记忆成长',icon:'brain',path:'growth'}, {k:'media',label:'媒体',icon:'image',path:'media'}, {k:'profile',label:'角色资料',icon:'user',path:'profile'},
 ];

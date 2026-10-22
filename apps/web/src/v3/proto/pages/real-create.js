@@ -1,137 +1,104 @@
+import {CreationPreview,bindCreationPreview} from '../components/creation-preview.js';
 import {finishCreationWorld} from '../../creation-world.mjs';
 import {creationFeedback} from '../../creation-feedback.mjs';
-import { randomId } from '../../../random-id.mjs';
+import {readCreationProgress} from '../../initialization-progress.mjs';
+import {randomId} from '../../../random-id.mjs';
 import * as store from '../store.js';
 import {directory,activationFromAnalysis,client} from '../../providers/real.ts';
-import {esc,requireOwner,toast} from '../ui.js';
+import {esc,requireOwner,drawer} from '../ui.js';
 import {Field} from '../components/forms.js';
 import {JsonDetails} from '../components/records.js';
 import {mountCursorRecords} from '../components/cursor-records.js';
-import {CreationPreview,bindCreationPreview} from '../components/creation-preview.js';
 import {studioDraftStorage} from '../components/studio-draft-storage.js';
-import {parseCreationAnalysis,creationAnalysisRequest} from '../../creation-json.mjs';
+import {parseCreationAnalysis,parseCreationInput,creationAnalysisRequest} from '../../creation-json.mjs';
 import {creationDraft,checkpointCreation,selectCreationWorld} from '../../creation-draft.mjs';
 import {persistentCommand} from '../../providers/persistent-command.mjs';
+import {localDate} from '../components/calendar-reading.js';
 
 export function renderRealCreate(el,ctx){
- const actor=store.get('session')?.actorId;let alive=true,busy=false,epoch=0,picker=null,errorText='',errorDetails=null,search='';
- let groupRows=store.list('groups').filter(g=>g.id!=='ungrouped');
- const groupOptions=value=>[{value:'',label:'未分组'},...(value&&!groupRows.some(g=>g.id===value)?[{value,label:'原选择分组已不可用，请重新选择'}]:[]),...groupRows.map(g=>({value:g.id,label:g.name}))];
- const current=()=>alive&&el.isConnected&&store.get('session')?.actorId===actor;
- if(!actor){el.innerHTML='<div class="statebox"><p>请先登录所有者会话。</p><a href="#/auth">登录</a></div>';return;}
- const recovery=creationDraft({owner:actor,storage:studioDraftStorage()});let draft;
+ const owner=store.get('session')?.actorId;
+ if(!owner){el.innerHTML='<p>请先登录所有者会话。</p><a href="#/auth">登录</a>';return;}
+ const storage=studioDraftStorage(),recovery=creationDraft({owner,storage});
+ let active=true,busy=false,epoch=0,picker=null,timer=null,reads=0,progress=null,error='',draft=recovery.read();
+ const live=()=>active&&el.isConnected&&store.get('session')?.actorId===owner;
  const command=persistentCommand({key:recovery.commandKey,storage:studioDraftStorage,preAdmissionConflicts:['activation_analysis_stale'],execute:async value=>{
-  if(!current())throw new Error('所有者会话已切换，请返回原范围核对创建请求');
-  const result=await directory.activate(value.body);
-  checkpointCreation(recovery,value,result,()=>store.get('session')?.actorId===actor);
-  return result;
+  if(!live())throw new Error('所有者会话已切换，请回原范围确认创建请求');
+  const result=await directory.activate(value.body);checkpointCreation(recovery,value,result,()=>store.get('session')?.actorId===owner);return result;
  }});
- const chooseLinkedTemplate=()=>{if(ctx.query.template&&ctx.query.version){draft.mode='template';draft.templateId=ctx.query.template;draft.templateVersion=ctx.query.version;draft.templateName=ctx.query.template;}};
- const chooseLinkedWorld=()=>{if(selectCreationWorld(draft,{resourceId:ctx.query.worldResourceId,version:ctx.query.worldVersion,pending:!!command.pending()}))save();};
- const save=()=>{if(current())recovery.save(draft);};
- const changed=()=>{draft.requestId=randomId();save();};
- const fail=error=>{if(!error){errorDetails=null;errorText='';const box=el.querySelector('[data-result]');if(box)box.replaceChildren();return;}errorDetails=creationFeedback(error);errorText=errorDetails.message;if(current()){const box=el.querySelector('[data-result]');if(box)box.innerHTML=feedbackMarkup();}};
- function feedbackMarkup(){return `${esc(errorText)}${errorDetails?`<details class="mgmt"><summary>查看本次初始化诊断</summary><dl><dt>错误代码</dt><dd>${esc(errorDetails.code)}</dd><dt>字段</dt><dd>${esc(errorDetails.path||'未提供具体字段')}</dd><dt>关联记录</dt><dd>${esc(errorDetails.correlationId||'本次尚未形成模型记录')}</dd></dl>${errorDetails.correlationId?`<a class="btn" href="#/diag/model-runs?correlationId=${encodeURIComponent(errorDetails.correlationId)}">打开本次模型诊断</a>`:''}<a class="btn" href="#/settings/models">核对初始化模型连接</a></details>`:''}`;}
- function capture(form){
-  for(const name of ['name','bio','traits','world','groupId','mode','json','timezone'])if(form.elements[name])draft[name]=form.elements[name].value;
-  save();
- }
- function sourceFields(){
-  if(draft.mode==='blank')return '<p class="small muted">不预设身份经历、人格或世界；生活内容从真实互动逐步建立。</p>';
-  if(draft.mode==='analysis')return Field({label:'同一所有者的分析预览 JSON',name:'json',value:draft.json,type:'textarea',rows:10,hint:'保留原分析来源，不再发起分析。激活仍核验所有者、最新来源与是否已使用。'});
-  if(draft.mode==='json')return Field({label:'原始初始化 JSON',name:'json',value:draft.json,type:'textarea',rows:10,hint:'导入结构化定义，经 Core 校验并保存新分析来源；不是恢复运行存档。全部输入最多 60000 UTF-8 字节。'});
-  if(draft.mode==='template')return `<p class="small muted">选择已发布的角色模板。新角色获得独立生活；读取该精确发布版本重新初始化。</p>${draft.templateId?`<div class="card"><b>${esc(draft.templateName||draft.templateId)}</b><p>发布版本 ${esc(draft.templateVersion)}</p><button class="btn" type="button" data-template-read>读取所选发布内容</button><div data-template-body></div></div>`:''}<div data-template-search>${Field({label:'搜索已发布角色模板',name:'templateSearch',value:search})}<button class="btn" type="button" data-search-templates>搜索</button></div><div data-template-picker></div><a href="#/studio/edit/new?kind=character_template">创作角色模板</a>`;
-  return Field({label:'完整角色描述',name:'bio',value:draft.bio,type:'textarea',rows:6,hint:'描述身份、背景、生活、性格和世界。之后请求认知模型分析，确认页审阅结果。',attrs:{required:true}});
+ const save=()=>{if(live())recovery.save(draft);};
+ if(draft.wizardVersion!==2){draft.wizardVersion=2;draft.wizardStep=draft.activatedId||command.pending()?2:draft.worldResourceId?1:0;draft.modeDrafts={};}
+ if(selectCreationWorld(draft,{resourceId:ctx.query.worldResourceId,version:ctx.query.worldVersion,pending:!!command.pending()}))draft.wizardStep=draft.activatedId?2:1;
+ if(!draft.activatedId&&!command.pending()&&ctx.query.template&&ctx.query.version){draft.mode='template';draft.templateId=ctx.query.template;draft.templateVersion=ctx.query.version;draft.wizardStep=draft.worldResourceId?1:0;}
+ draft.modeDrafts||={};if(draft.mode==='json'&&draft.json&&!draft.jsonValidation){try{parseCreationInput(draft.json);draft.jsonValid=true;draft.jsonValidation='已恢复并校验原 JSON 草稿';}catch(cause){draft.jsonValid=false;draft.jsonValidation=cause.message;}}save();
+ const invalidate=()=>{draft.templateReviewed=false;draft.analysis=null;draft.analysisText='';draft.requestId=randomId();save();};
+ const fail=cause=>{error=creationFeedback(cause).message;paint();};
+ function capture(form){for(const name of ['name','bio','traits','world','groupId','timezone','json'])if(form.elements[name])draft[name]=form.elements[name].value;save();}
+ function modeFields(){
+  if(draft.mode==='json')return `<a class="btn" href="/templates/yaoguang-character-init-template.v2.json" download>下载 JSON 模板</a><label class="field">选择或更换 JSON 文件<input class="input" type="file" accept="application/json,.json" data-json-file></label><p class="small muted">${esc(draft.fileName||'尚未选择文件')}</p>${draft.json?`<p>${esc(draft.jsonValidation||'等待校验')}</p><details><summary>查看导入内容</summary><pre>${esc(draft.json)}</pre></details>`:''}`;
+  if(draft.mode==='template')return `<p>使用精确角色模板 ${esc(draft.templateId)} · ${esc(draft.templateVersion)}</p><p class="small muted">这是从创作资源继续的模板分支。</p>${draft.analysis?CreationPreview(draft):''}`;
+  if(draft.mode==='analysis')return Field({label:'当前所有者的分析预览',name:'json',value:draft.json,type:'textarea',rows:8});
+  return draft.mode==='description'?Field({label:'一段完整描述',name:'bio',value:draft.bio,type:'textarea',rows:8,attrs:{required:true},hint:'身份、性格、背景和生活可以在同一段描述中说明。'}):'<p class="small muted">从姓名开始，保留空白人物的初始化语义；经历与认识在后续真实互动中形成。</p>';
  }
  function paint(){
-  if(!current())return;picker?.dispose();picker=null;
+  if(!live())return;picker?.dispose();picker=null;clearTimeout(timer);
   const pending=command.pending(),locked=busy||!!pending||!!draft.activatedId;
-  let body;
-  if(draft.activatedId)body=`<h3>角色已激活</h3><p>标识：${esc(draft.activatedId)}</p><p>继续核对分组选择后进入角色。此步骤只操作已激活角色。</p>${Field({label:'角色分组',name:'activationGroupId',value:draft.activationGroupId||'',type:'select',options:groupOptions(draft.activationGroupId)})}<button class="btn" type="button" data-refresh-groups>重新读取分组</button><a class="btn" href="#/c/${encodeURIComponent(draft.activatedId)}/profile">查看已激活角色</a>`;
-  else if(draft.step===0)body=`${Field({label:'创建方式',name:'mode',value:draft.mode,type:'select',options:[{value:'description',label:'描述并分析'},{value:'blank',label:'空白开始'},{value:'json',label:'导入原始初始化 JSON'},{value:'template',label:'从已发布角色模板创建'},{value:'analysis',label:'恢复当前所有者分析预览'}]})}${Field({label:'名字',name:'name',value:draft.name,attrs:{required:true,maxlength:200,'data-test':'wiz-name'}})}${sourceFields()}`;
-  else if(draft.step===1)body=`<p>补充期望的性格特征（可留空）。</p>${Field({label:'性格描述',name:'traits',value:draft.traits,type:'textarea'})}`;
-  else if(draft.step===2)body=`${draft.mode==='description'?Field({label:'世界与初始生活',name:'world',value:draft.world,type:'textarea',hint:'加入创建描述；不与其他角色共享运行世界。'}):'<p class="small muted">初始资料由所选创建来源决定。所有创建方式都可选择分组与生活时区。</p>'}${Field({label:'分组',name:'groupId',value:draft.groupId,type:'select',options:groupOptions(draft.groupId)})}${Field({label:'初始生活时区',name:'timezone',value:draft.timezone,hint:'使用 IANA 时区，例如 Asia/Shanghai。'})}`;
-  else body=`<h3>${esc(draft.name)}</h3><p>分组：${esc(store.get('groups',draft.groupId)?.name||'未分组')} · 时区 ${esc(draft.timezone)}</p><div class="banner info">确认后激活独立角色，生活与自治任务按真实配置启动。</div>${CreationPreview(draft)}`;
-  el.innerHTML=`<div class="stack creation-flow"><div class="banner info"><a href="#/setup">初始化流程：服务连接 → 世界底稿 → 人物</a><p>${draft.worldResourceId?`已选择世界底稿 ${esc(draft.worldResourceId)} · ${esc(draft.worldResourceVersion)}。人物激活后会创建并选用独立世界。${draft.worldContextWarning?esc(draft.worldContextWarning):''}`:'尚未选择世界底稿。可以返回初始化向导选择，或先保存人物草稿。'}</p></div><div class="card" style="max-width:760px;width:100%;margin:auto"><div class="wizsteps">${['基础','性格','世界','确认'].map((label,i)=>`<span class="${i===draft.step?'on':''}">${i+1}. ${label}</span>`).join('')}</div><form class="stack" data-wf>${body}</form><div role="alert" data-result>${feedbackMarkup()}</div>${errorText&&!draft.activatedId?'<button class="btn" data-continue-blank>保留原描述，先以空白人物继续</button>':''}${pending?`<div class="banner info"><p>原激活请求结果尚未确认。保留原内容与请求身份，先重试核对；不会使用新内容创建第二个角色。</p>${JsonDetails(pending.value,'原激活提交')}${pending.rejection?'<p>本次原提交已被明确拒绝，尚未激活。可保留输入重新取得分析来源。</p><button class="btn" data-release-analysis>保留输入并重新分析</button>':`<button class="btn primary" data-original ${busy?'disabled':''}>查询或重试原激活</button>`}</div>`:''}<div class="row" style="margin-top:16px"><button class="btn" data-cancel>保留草稿并返回</button><span class="spacer"></span>${draft.step&&!draft.activatedId?`<button class="btn" data-prev ${locked?'disabled':''}>上一步</button>`:''}<button class="btn primary" data-next data-test="${draft.step===3?'wiz-done':'wiz-next'}" ${busy||pending?'disabled':''}>${draft.activatedId?'保存所选分组并进入角色':draft.step===2?(draft.mode==='blank'||draft.mode==='analysis'?'审阅创建内容':'解析并审阅'):draft.step===3?'确认并激活':'下一步'}</button></div>${!pending&&!draft.activatedId?'<button class="btn ghost" data-reset>清除本地创建草稿</button>':''}</div></div>`;
-  const form=el.querySelector('form');if(draft.timezoneWarning)form.insertAdjacentHTML('afterbegin',`<p class="banner info">${esc(draft.timezoneWarning)}</p>`);form.querySelectorAll('input,textarea,select,button').forEach(control=>control.disabled=locked);
-  if(draft.activatedId&&!busy&&!pending){form.elements.activationGroupId.disabled=false;form.elements.activationGroupId.onchange=e=>{draft.activationGroupId=e.target.value;save();};el.querySelector('[data-refresh-groups]').disabled=false;el.querySelector('[data-refresh-groups]').onclick=async()=>{const token=++epoch;try{const latest=await directory.groups();if(!current()||token!==epoch)return;groupRows=latest;paint();}catch(error){if(current()&&token===epoch)fail(error);}};}
-  form.oninput=e=>{if(locked)return;capture(form);if(['bio','traits','world','json'].includes(e.target.name)){draft.analysis=null;draft.analysisText='';}changed();};
-  form.elements.mode?.addEventListener('change',()=>{capture(form);draft.analysis=null;draft.analysisText='';changed();paint();});
-  form.onsubmit=e=>{e.preventDefault();el.querySelector('[data-next]').click();};
-  if(draft.step===3&&!locked)bindCreationPreview(form,draft,{changed,error:fail});
-  el.querySelector('[data-cancel]').onclick=()=>{save();ctx.navigate('#/library');};
-  el.querySelector('[data-reset]')?.addEventListener('click',()=>{if(busy)return;draft=recovery.read();if(draft.activatedId){paint();return;}recovery.clear();draft=recovery.read();chooseLinkedTemplate();errorText='';paint();});
-  el.querySelector('[data-prev]')?.addEventListener('click',()=>{capture(form);draft.step=draft.step===3?2:draft.step===2&&draft.mode!=='description'?0:draft.step-1;save();errorText='';paint();});
+  if(draft.activatedId||pending)draft.wizardStep=progress?.complete?3:2;
+  draft.step=draft.wizardStep;save();
+  const step=draft.wizardStep;
+  let body='';
+  if(step===0)body=`<h2>选择世界</h2><p>选择已发布的世界底稿，为新人物建立独立运行世界。</p><div data-world-picker></div><a class="btn ghost" href="#/studio?type=${encodeURIComponent('世界')}">管理世界资源</a>`;
+  else if(step===1)body=`<h2>选择创建方式</h2><p class="small muted">已选世界：${esc(draft.worldName||draft.worldResourceId)} · ${esc(draft.worldResourceVersion)}</p>${['template','analysis'].includes(draft.mode)?'':`<div class="creation-choices">${[['blank','空白创建','从姓名开始'],['description','一段描述','分析并整理你的描述'],['json','JSON 导入','校验结构化人物定义']].map(([value,label,note])=>`<button type="button" class="creation-choice ${draft.mode===value?'on':''}" data-mode="${value}" aria-pressed="${draft.mode===value}"><b>${label}</b><span>${note}</span></button>`).join('')}</div>`}<form class="stack" data-source>${Field({label:'姓名',name:'name',value:draft.name,attrs:{required:true,maxlength:200}})}${modeFields()}<details><summary>分组与生活时区</summary>${Field({label:'角色分组',name:'groupId',type:'select',value:draft.groupId,options:[{value:'',label:'未分组'},...store.list('groups').filter(g=>g.id!=='ungrouped').map(g=>({value:g.id,label:g.name}))]})}${Field({label:'初始生活时区',name:'timezone',value:draft.timezone,attrs:{required:true}})}</details></form>`;
+  else if(step===2){
+   const stages=progress?.stages||[{title:'分析与整理设定',state:draft.activatedId||draft.analysis||draft.mode==='blank'?'ready':busy?'running':'unknown',note:busy?'正在处理本次创建资料':'资料与原请求已保留'},...['初始化设定图','初始化头像','初始化日程'].map(title=>({title,state:'pending',note:'等待人物资料确认'}))],done=stages.filter(s=>s.state==='ready').length;
+   body=`<h2>正在初始化${esc(draft.name||'人物')}</h2><p>${done}/4 项已确认完成</p><progress class="creation-progress" max="4" value="${done}" aria-label="已确认完成的初始化项目"></progress><ol class="preparation-steps">${stages.map(stage=>`<li class="preparation-step"><div class="grow"><b>${esc(stage.title)}</b><p class="small muted">${esc(stage.note||'')}</p>${stage.href?`<a href="${esc(stage.href)}">查看原任务与结果</a>`:''}</div><span>${esc({ready:'完成',running:'处理中',pending:'等待',unknown:'状态待确认',failed:'需要处理'}[stage.state]||'状态待确认')}</span></li>`).join('')}</ol>${draft.activatedId?`<p class="small muted">世界：${progress?.worldConfirmed?'已读回所选独立世界':'仍待确认；已有角色和请求身份保留'}</p><div class="row"><button class="btn" data-refresh-progress>重新读取进度</button><button class="btn ghost" data-world-recover>继续原世界与分组步骤</button><button class="btn ghost" data-read-settings>查看已整理的设定</button></div>`:pending?'<p>原激活结果尚未确认，请查询原提交。</p>':'<button class="btn" data-start-again>继续本次初始化</button>'}`;
+  }else body=`<h2>初始化完成</h2><p>${esc(draft.name)} · ${esc(draft.worldName||'所选世界')}</p><p>4/4 项已确认完成，独立世界已读回。</p><div class="row"><a class="btn primary" href="#/c/${encodeURIComponent(draft.activatedId)}/chat">开始相处</a><a class="btn" href="#/c/${encodeURIComponent(draft.activatedId)}/profile">查看角色</a><button class="btn ghost" data-new-creation>开始新的创建草稿</button></div>`;
+  el.innerHTML=`<div class="creation-flow stack"><div class="wizsteps">${['选择世界','选择方式','初始化进度','完成'].map((label,i)=>`<span class="${step===i?'on':''}" ${step===i?'aria-current="step"':''}>${i+1}. ${label}</span>`).join('')}</div><section class="card stack creation-main">${body}<p role="alert" data-error>${esc(error)}</p>${pending?`<div class="banner info">原创建请求已保留，当前内容不会创建第二个人物。${JsonDetails(pending.value,'查看原提交')}<button class="btn" data-original ${busy||pending.rejection?'disabled':''}>查询或重试原激活</button>${pending.rejection?'<button class="btn" data-reanalyze>保留输入并重新整理</button>':''}</div>`:''}<div class="row"><button class="btn ghost" data-return>保留草稿并返回</button>${step===0?`<button class="btn primary" data-world-next ${draft.worldResourceId&&draft.worldResourceVersion?'':'disabled'}>下一步</button>`:''}${step===1?`<button class="btn" data-prev ${locked?'disabled':''}>上一步</button><button class="btn primary" data-start ${locked||draft.mode==='json'&&!draft.jsonValid?'disabled':''}>${draft.mode==='template'?(draft.templateReviewed?'确认并激活':'解析并审阅模板'):'开始初始化'}</button>`:''}</div></section></div>`;
+  if(step===0){picker=mountCursorRecords(el.querySelector('[data-world-picker]'),{alive:live,label:'已发布世界',read:cursor=>client.listStudioResources({kind:'world',published:true,cursor}),render:w=>`<button class="card world-choice ${w.id===draft.worldResourceId&&w.published_version===draft.worldResourceVersion?'on':''}" data-world="${esc(w.id)}" data-version="${esc(w.published_version)}" data-name="${esc(w.name)}"><b>${esc(w.name)}</b><span class="small muted">发布版本 ${esc(w.published_version)}</span></button>`,empty:'还没有已发布的世界。可以先在世界资源中创建并发布底稿。',bind:box=>box.querySelectorAll('[data-world]').forEach(button=>button.onclick=()=>{selectCreationWorld(draft,{resourceId:button.dataset.world,version:button.dataset.version,pending:!!command.pending()});draft.worldName=button.dataset.name;save();paint();})});}
+  el.querySelector('[data-world-next]')?.addEventListener('click',()=>{if(!draft.worldResourceId||!draft.worldResourceVersion)return;draft.wizardStep=1;save();paint();});
+  el.querySelector('[data-return]').onclick=()=>{save();ctx.navigate('#/library');};
+  el.querySelector('[data-prev]')?.addEventListener('click',()=>{draft.wizardStep=0;save();paint();});
+  const form=el.querySelector('[data-source]');if(form){if(draft.mode==='template'&&draft.analysis)bindCreationPreview(form,draft,{changed:()=>{draft.templateReviewed=true;save();},error:cause=>{error=typeof cause==='string'?cause:cause?.message||'';}});form.querySelectorAll('input,textarea,select,button').forEach(n=>n.disabled=locked);form.oninput=e=>{capture(form);if(!['groupId','timezone','analysisText','includeGoals'].includes(e.target.name))invalidate();};form.onsubmit=e=>{e.preventDefault();void start();};}
+  el.querySelectorAll('[data-mode]').forEach(button=>{button.disabled=locked;button.onclick=()=>{if(form)capture(form);draft.modeDrafts[draft.mode]={name:draft.name,bio:draft.bio,json:draft.json,fileName:draft.fileName,jsonValid:draft.jsonValid,jsonValidation:draft.jsonValidation};draft.mode=button.dataset.mode;Object.assign(draft,{name:'',bio:'',json:'',fileName:'',jsonValid:false,jsonValidation:''},draft.modeDrafts[draft.mode]);invalidate();paint();};});
+  el.querySelector('[data-json-file]')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const token=++epoch;try{if(file.size>60000)throw new Error('JSON 文件超过 60000 UTF-8 字节上限');const text=await file.text();if(!live()||token!==epoch)return;const value=parseCreationInput(text);draft.json=text;draft.fileName=file.name;draft.jsonValid=true;draft.jsonValidation='文件校验通过';const name=value.core_persona?.identity?.name;if(typeof name==='string')draft.name=name;invalidate();error='';paint();}catch(cause){draft.jsonValid=false;draft.fileName=file.name;draft.jsonValidation=cause.message;save();fail(cause);}});
+  el.querySelector('[data-start]')?.addEventListener('click',()=>void start());el.querySelector('[data-start-again]')?.addEventListener('click',()=>void start());
   el.querySelector('[data-original]')?.addEventListener('click',()=>void activate(true));
-  el.querySelector('[data-release-analysis]')?.addEventListener('click',()=>{command.releaseRejected();draft.step=draft.mode==='analysis'?0:2;draft.analysis=null;draft.analysisText='';changed();errorText='原输入已保留，请重新分析或导入最新分析预览。';paint();});
-  el.querySelector('[data-next]').onclick=()=>void next();
-  el.querySelector('[data-continue-blank]')?.addEventListener('click',()=>{draft.mode='blank';draft.analysis=null;draft.analysisText='';draft.step=3;errorText='原描述已保留。本次明确以空白人物创建，不将它标为模型分析成功。';errorDetails=null;changed();paint();});
-  if(draft.mode==='template'&&draft.step===0&&!locked)bindTemplates();
+  el.querySelector('[data-reanalyze]')?.addEventListener('click',()=>{command.releaseRejected();draft.wizardStep=1;invalidate();error='原输入已保留，请重新整理后继续。';paint();});
+  el.querySelector('[data-refresh-progress]')?.addEventListener('click',()=>{reads=0;void queryProgress();});
+  el.querySelector('[data-world-recover]')?.addEventListener('click',()=>void finishWorld());
+  el.querySelector('[data-read-settings]')?.addEventListener('click',()=>drawer({title:'本次已整理的设定',body:JsonDetails(draft.analysis||{name:draft.name,mode:'blank_slate'},'本次资料（只读）')}));
+  if(draft.activatedId&&!progress?.complete&&!busy&&!document.hidden&&reads<60)timer=setTimeout(queryProgress,5000);
+  el.querySelector('[data-new-creation]')?.addEventListener('click',()=>{if(progress?.complete){recovery.clear();draft=recovery.read();draft.wizardVersion=2;draft.wizardStep=0;progress=null;save();paint();}});
  }
- function bindTemplates(){
-  const box=el.querySelector('[data-template-picker]');
-  picker=mountCursorRecords(box,{alive:current,read:cursor=>directory.templates({q:search,cursor}),label:'已发布模板',empty:'没有匹配的已发布角色模板。可先在创作中心保存并发布模板。',render:r=>`<div class="card"><b>${esc(r.name)}</b><p class="small muted">已发布 ${esc(r.published_version)}</p><button type="button" class="btn" data-template="${esc(r.id)}" data-version="${esc(r.published_version)}" data-name="${esc(r.name)}">选择此版本</button></div>`,bind:panel=>panel.querySelectorAll('[data-template]').forEach(button=>button.onclick=()=>{
-   draft.templateId=button.dataset.template;draft.templateVersion=button.dataset.version;draft.templateName=button.dataset.name;draft.analysis=null;epoch++;changed();paint();
-  })});
-  el.querySelector('[data-search-templates]').onclick=()=>{search=el.querySelector('[name=templateSearch]').value.trim();void picker.reload({reset:true});};
-  el.querySelector('[data-template-read]')?.addEventListener('click',async()=>{
-   const id=draft.templateId,version=draft.templateVersion,token=++epoch;
-   try{const publication=await directory.publication(id,version);if(!current()||epoch!==token||draft.templateId!==id||draft.templateVersion!==version)return;el.querySelector('[data-template-body]').innerHTML=JsonDetails(publication,'精确发布内容');}catch(error){if(current()&&epoch===token)fail(error);}
-  });
- }
- async function next(){
-  if(busy)return;const saved=recovery.read();if(saved.activatedId){draft=saved;return activate(false);}const form=el.querySelector('form');capture(form);errorText='';
-  if(draft.activatedId||draft.step===3)return activate(false);
-  try{
-   if(!draft.name.trim())throw new Error('请填写角色名字');
-   if(draft.step===0){
-    if(draft.mode==='description'&&!draft.bio.trim())throw new Error('请填写完整角色描述');
-    if(draft.mode==='analysis'){draft.analysis=parseCreationAnalysis(draft.json);draft.analysisText=JSON.stringify(draft.analysis,null,2);}
-    if(draft.mode==='json'||draft.mode==='template')creationAnalysisRequest(draft);
-    draft.step=draft.mode==='description'?1:2;
-   }else if(draft.step===1)draft.step=2;
-   else {
-    try{new Intl.DateTimeFormat('zh-CN',{timeZone:draft.timezone}).format();draft.timezoneWarning='';}
-    catch{draft.originalTimezone=draft.timezone;draft.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';draft.timezoneWarning=`时区“${draft.originalTimezone}”暂不能识别，已保留原输入，本次使用设备时区 ${draft.timezone}，可继续创建后修改。`;toast(draft.timezoneWarning,'info');}
-    if(draft.mode==='analysis'){draft.analysis=parseCreationAnalysis(draft.json);draft.analysisText=JSON.stringify(draft.analysis,null,2);}
-    if(draft.mode!=='blank'&&draft.mode!=='analysis'){
-     busy=true;draft.analysis=null;draft.analysisText='';save();paint();const token=++epoch;
-     const request=creationAnalysisRequest(draft);
-     if(request.description&&draft.worldResourceId&&draft.worldResourceVersion){try{const publication=await directory.publication(draft.worldResourceId,draft.worldResourceVersion);const context='\n\n人物将使用以下已选世界底稿（定义背景，不代表已经发生的经历）：\n'+JSON.stringify({name:publication.name,body:publication.body});if(new TextEncoder().encode(request.description+context).byteLength<=60000)request.description+=context;else draft.worldContextWarning='世界底稿内容较长，原人物描述完整保留；运行世界将在激活后独立应用。';}catch(error){draft.worldContextWarning='世界底稿暂未读到，已保留选择；可在人物创建后继续应用。'+error.message;}}
-     const result=await directory.analyze(request);
-     if(!current()||token!==epoch)return;
-     draft.analysis=parseCreationAnalysis(JSON.stringify(result));draft.analysisText=JSON.stringify(draft.analysis,null,2);draft.includeGoals=true;
-    }
-    draft.step=3;draft.requestId=randomId();
-   }
-   save();
-  }catch(error){fail(error);}finally{busy=false;if(current())paint();}
- }
- async function finishGrouping(){
-  const warnings=[];
-  try{await directory.move(draft.activatedId,draft.activationGroupId||'');}catch(error){warnings.push('分组仍待核对：'+error.message);}
-  try{const world=await finishCreationWorld({client,recovery,storage:studioDraftStorage(),owner:actor});if(!world.configured)warnings.push(world.warning);}catch(error){warnings.push('人物已创建，世界步骤可稍后续接：'+error.message);}
-  if(!current())return;
-  const id=draft.activatedId;if(!warnings.length)recovery.clear();
-  toast(warnings.length?warnings.join('；'):'人物与独立世界初始化完成，分组已确认',warnings.length?'info':'ok');
-  ctx.navigate(`#/c/${encodeURIComponent(id)}/profile`);
+ async function start(){
+  if(busy||!live())return;if(draft.activatedId){void queryProgress();return;}if(command.pending()){void activate(true);return;}
+  const form=el.querySelector('[data-source]');if(form){if(!form.reportValidity())return;capture(form);}
+  try{if(!draft.worldResourceId||!draft.worldResourceVersion)throw new Error('请先选择已发布的世界');if(!draft.name.trim())throw new Error('请填写姓名');new Intl.DateTimeFormat('zh-CN',{timeZone:draft.timezone}).format();if(draft.mode==='json'&&!draft.jsonValid)throw new Error('请先选择并校验 JSON 文件');
+   busy=true;error='';draft.wizardStep=2;save();paint();
+   if(draft.mode==='analysis')draft.analysis=parseCreationAnalysis(draft.json);
+   else if(draft.mode!=='blank'&&!draft.analysis){const request=creationAnalysisRequest(draft);if(request.description){const world=await directory.publication(draft.worldResourceId,draft.worldResourceVersion);request.description+='\n所选世界底稿：'+JSON.stringify({name:world.name,body:world.body});if(new TextEncoder().encode(request.description).length>60000)throw new Error('人物描述与所选世界内容合计超过 60000 UTF-8 字节，请缩短描述或世界底稿');}const value=await directory.analyze(request);if(!live())return;draft.analysis=parseCreationAnalysis(JSON.stringify(value));draft.analysisText=JSON.stringify(draft.analysis,null,2);save();}
+   if(draft.mode==='template'&&!draft.templateReviewed){draft.templateReviewed=true;draft.wizardStep=1;save();busy=false;paint();return;}
+   busy=false;await activate(false);
+  }catch(cause){busy=false;fail(cause);}
  }
  async function activate(retry){
-  if(busy||!(await requireOwner())||!current())return;
-  try{
-   draft=recovery.read();
-   let submitted=retry?command.pending()?.value:null;
-   if(!draft.activatedId&&!retry){
-    if(draft.mode!=='blank')draft.analysis=parseCreationAnalysis(draft.analysisText);
-    const analysis=draft.includeGoals?draft.analysis:{...draft.analysis,initial_goals:[],initial_intentions:[]};
-    const body=draft.mode==='blank'?{requestId:draft.requestId,initializationMode:'blank_slate',name:draft.name,initializationTimezone:draft.timezone}:activationFromAnalysis(analysis,draft.name,draft.requestId,draft.timezone);
-    submitted={body,groupId:draft.groupId,worldResourceId:draft.worldResourceId||null,worldResourceVersion:draft.worldResourceVersion||null};
-   }
-   busy=true;errorText='';save();paint();
-   if(!draft.activatedId){const result=retry?await command.retry():await command.submit(submitted);if(!current())return;if(typeof result.id!=='string'||!result.id)throw new Error('激活响应缺少角色标识；保留原请求身份，请重新核对');draft.activatedId=result.id;draft.activationGroupId=submitted.groupId;save();}
-   await finishGrouping();
-  }catch(error){fail(error);}finally{busy=false;if(current())paint();}
+  if(busy||!live()||!(await requireOwner()))return;busy=true;error='';paint();
+  try{draft=recovery.read();if(!draft.activatedId){const value=retry?command.pending()?.value:{body:draft.mode==='blank'?{requestId:draft.requestId,initializationMode:'blank_slate',name:draft.name,initializationTimezone:draft.timezone}:activationFromAnalysis(draft.includeGoals===false?{...draft.analysis,initial_goals:[],initial_intentions:[]}:draft.analysis,draft.name,draft.requestId,draft.timezone),groupId:draft.groupId,worldResourceId:draft.worldResourceId,worldResourceVersion:draft.worldResourceVersion};if(!value)throw new Error('原提交身份尚未读到，请保留草稿核对');const result=retry?await command.retry():await command.submit(value);if(!live())return;draft=recovery.read();draft.activatedId=result.id;draft.activationGroupId=value.groupId;draft.activationDate=localDate(new Date().toISOString(),draft.timezone);save();}
+   busy=false;await finishWorld();
+  }catch(cause){busy=false;fail(cause);}finally{busy=false;if(live())paint();}
  }
- try{const existing=studioDraftStorage().getItem(recovery.key);draft=recovery.read();chooseLinkedWorld();if(!existing)chooseLinkedTemplate();else if(ctx.query.template&&ctx.query.template!==draft.templateId)errorText='已保留原创建草稿。若改用链接中的模板，请先核对原提交，再清除本地草稿。';paint();}catch(error){el.innerHTML=`<div class="statebox"><p role="alert">${esc(error.message)}</p><a href="#/library">返回角色库，保留原记录</a></div>`;}
- return()=>{alive=false;epoch++;picker?.dispose();};
+ async function finishWorld(){
+  if(busy||!draft.activatedId||!live())return;busy=true;error='';paint();
+  try{if(!draft.groupConfirmed){await directory.move(draft.activatedId,draft.activationGroupId||'');draft.groupConfirmed=true;save();}const result=await finishCreationWorld({client,recovery,storage,owner});if(!live())return;draft=recovery.read();if(!result.configured)error=result.warning;}
+  catch(cause){error='人物已经建立，原世界步骤仍可继续：'+cause.message;}
+  finally{busy=false;if(live())await queryProgress();}
+ }
+ async function queryProgress(){
+  if(!draft.activatedId||!live()||busy)return;busy=true;const token=++epoch;clearTimeout(timer);
+  try{const value=await readCreationProgress(client,draft.activatedId,{localDate:draft.activationDate||localDate(new Date().toISOString(),draft.timezone),worldId:draft.worldRuntimeId});if(!live()||token!==epoch)return;value.complete=value.complete&&!!draft.groupConfirmed;progress=value;draft.wizardStep=value.complete?3:2;save();}
+  catch(cause){if(live())error='进度读取失败，原人物与任务保留：'+cause.message;}
+  finally{busy=false;if(live()){paint();reads++;}}
+ }
+ const visibility=()=>{clearTimeout(timer);if(!document.hidden&&draft.activatedId&&reads<60)void queryProgress();};document.addEventListener('visibilitychange',visibility);
+ paint();if(draft.activatedId)void queryProgress();
+ return()=>{active=false;epoch++;clearTimeout(timer);picker?.dispose();document.removeEventListener('visibilitychange',visibility);};
 }

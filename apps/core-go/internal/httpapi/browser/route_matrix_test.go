@@ -35,6 +35,9 @@ func TestBrowserScheduleWriteCannotCreateExecutableActionLink(t *testing.T) {
 
 func browserRouteCases() []browserRouteCase {
 	return append([]browserRouteCase{
+		{name: "schedule local calendar", method: http.MethodGet, path: "/api/fluctlights/fl-1/schedules?from=2026-10-22&to=2026-10-23"},
+		{name: "schedule original request", method: http.MethodGet, path: "/api/fluctlights/fl-1/schedules/requests/request-1"},
+		{name: "request non-overwriting schedule", method: http.MethodPost, path: "/api/fluctlights/fl-1/schedules/requests", body: `{"localDate":"2026-10-22","expectedRevision":0,"expectedLifeContextRevision":"life_ctx_original","reason":"missing day","idempotencyKey":"schedule-original"}`},
 		{name: "publication versions", method: http.MethodGet, path: "/api/studio/resources/res-1/versions"},
 		{name: "copy resource", method: http.MethodPost, path: "/api/studio/resources/res-1/copy", body: `{"expectedRevision":1,"source":"published","sourceVersion":"1","name":"Copy","reason":"Owner test","idempotencyKey":"copy-test"}`},
 		{name: "archive resource", method: http.MethodDelete, path: "/api/studio/resources/res-1", body: `{"expectedRevision":1,"reason":"Owner test","idempotencyKey":"archive-test"}`},

@@ -14,6 +14,7 @@ export function createDiaryProvider(client:BrowserClient){
   annotate:(fid:string,id:string,body:Omit<BrowserDiaryAnnotationBody,'idempotencyKey'>)=>write([fid,id,'annotation',body],key=>client.annotateDiary(fid,id,{...body,idempotencyKey:key})),
   replies:(fid:string,id:string,cursor='')=>client.diaryReplies(fid,id,cursor),
   reply:(fid:string,id:string,text:string,expectedRevision:number)=>write([fid,id,'reply',text,expectedRevision],key=>client.replyToDiary(fid,id,{text,expectedRevision,idempotencyKey:key})),
+  overview:(fid:string)=>client.storyOverview(fid),
   shared:(fid:string,cursor='')=>client.sharedExperiences(fid,cursor),
  };
 }

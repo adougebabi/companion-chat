@@ -12,7 +12,7 @@ export function renderRealSetup(el,ctx){
  const owner=store.get('session')?.actorId,storage=studioDraftStorage(),key=`fluctlight-setup:${owner}`;
  let alive=true,busy=false,catalog=null,worlds=null,warning='',generator=null;
  let draft;try{draft=JSON.parse(storage.getItem(key)||'null');}catch{warning='原向导草稿暂不可读，可以继续核对已保存定义。';}draft||={name:'',background:'',rules:'',resourceId:null,resourceVersion:null};
- const save=()=>storage.setItem(key,JSON.stringify(draft)),live=()=>alive&&el.isConnected&&store.get('session')?.actorId===owner;
+ const save=()=>{storage.setItem(key,JSON.stringify(draft));generator?.updateDraft();},live=()=>alive&&el.isConnected&&store.get('session')?.actorId===owner;
  const command=persistentCommand({key:key+':command',storage:()=>storage,execute:async(value,idempotencyKey)=>{
   const result=value.operation==='create'?await client.createStudioResource({...value.body,idempotencyKey}):value.operation==='update'?await client.updateStudioResource(value.id,{...value.body,idempotencyKey}):await client.publishStudioResource(value.id,{expectedRevision:value.revision,reason:'发布初始化世界底稿',idempotencyKey});
   if(value.operation!=='publish'){draft.resourceId=result.id;draft.resourceRevision=result.revision;draft.resourceVersion=null;}else draft.resourceVersion=result.published_version;

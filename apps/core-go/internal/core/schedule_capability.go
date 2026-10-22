@@ -117,7 +117,7 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 	schedule := compactStateMap(input.Schedule, []string{"local_date", "timezone", "completed_before", "reschedule_policy"})
 	items := make([]map[string]any, 0)
 	for _, raw := range arrayValue(input.Schedule["items"]) {
-		fields := []string{"start_at", "end_at", "activity", "scene", "location", "place_id", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id"}
+		fields := []string{"start_at", "end_at", "activity", "scene", "location", "place_id", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "intention_id", "promise_request_id", "promise_schedule_valid", "promise_state"}
 		if len(input.TargetEdit) > 0 {
 			fields = append(fields, "id")
 		}
@@ -149,6 +149,7 @@ func schedulePlannerOutputSchema() map[string]any {
 		"start_at": stringSchema(), "end_at": stringSchema(), "activity": stringSchema(), "scene": stringSchema(), "location": stringSchema(), "place_id": stringSchema(),
 		"item_type": stringSchema(), "status": stringSchema(), "priority": unitNumberSchema(), "flexibility": unitNumberSchema(), "interruption_cost": unitNumberSchema(),
 		"intention_id":        stringSchema(),
+		"promise_request_id":  stringSchema(),
 		"source_item_id":      stringSchema(),
 		"planned_action_slot": map[string]any{"type": "boolean"},
 	}, []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"}, false)
@@ -165,9 +166,13 @@ func schedulePlannerOutputSchemaForInput(input SchedulePlanInput) map[string]any
 	item := mapValue(mapValue(schema["properties"])["items"])
 	itemProperties := mapValue(mapValue(item["items"])["properties"])
 	links := []any{""}
+	promises := []any{""}
 	selections := []any{""}
 	for _, raw := range arrayValue(input.Schedule["items"]) {
 		current := mapValue(raw)
+		if id := stringValue(current["promise_request_id"]); id != "" {
+			promises = append(promises, id)
+		}
 		if id := strings.TrimSpace(stringValue(current["intention_id"])); id != "" {
 			links = append(links, id)
 		}
@@ -177,6 +182,7 @@ func schedulePlannerOutputSchemaForInput(input SchedulePlanInput) map[string]any
 			}
 		}
 	}
+	itemProperties["promise_request_id"] = map[string]any{"type": "string", "enum": promises}
 	itemProperties["intention_id"] = map[string]any{"type": "string", "enum": links}
 	if len(input.TargetEdit) > 0 {
 		itemProperties["source_item_id"] = map[string]any{"type": "string", "enum": selections}
@@ -195,9 +201,13 @@ func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
 	if len(input.TargetEdit) > 0 {
 		instruction += " Apply target_edit to exactly the selected existing item. For move or revise, include source_item_id equal to target_edit.item_id on exactly one resulting item and satisfy every requested field. For cancel, omit that source_item_id and its intention_id, replacing its time with a sensible explicit activity. Preserve all other executable links. Do not copy or invent source_item_id for other items."
 	}
-	if len(input.OwnerRequest) > 0 {
+	if input.OwnerRequest["purpose"] == "accepted_promise_appointment" {
+		instruction = strings.ReplaceAll(instruction, "current local day", "supplied target local day")
+		instruction += " This promise is already accepted and bound to actual execution objects. Use the supplied target local date, including a future date. Keep the exact Owner-requested interval and original promise meaning. Do not claim execution or fulfillment, invent an executable action link, or move any existing promise appointment."
+	} else if len(input.OwnerRequest) > 0 {
 		instruction += " The character has chosen to assess this Owner request with this Tool. Preserve its exact requested interval and semantic fields including explicit place_id; Core verifies it before commit. Acceptance is not completion. Never infer a place_id from a location name."
 	}
+	instruction += " Preserve every existing promise_request_id on its unchanged appointment interval. Never invent or drop promise references; these are accepted appointments, not executable action plans."
 	instruction += " Retain explicit stable place_id on unchanged intervals. Location text alone does not identify a place; omit place_id when unknown."
 	return instruction
 }
@@ -402,7 +412,7 @@ func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, flu
 		LIMIT 1`, fluctlightID, currentDate).Scan(&id, &localDate, &timezone, &revision, &policy); err != nil {
 		return nil, err
 	}
-	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,''),COALESCE(item.place_id,'') FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
+	rows, err := query.Query(ctx, `SELECT item.id,item.start_at,item.end_at,item.activity,item.scene,item.location,item.item_type,item.status,item.priority,item.flexibility,item.interruption_cost,COALESCE(item.intention_id,''),item.action_plan,COALESCE(i.status,''),COALESCE(item.place_id,''),COALESCE(item.promise_request_id,''),COALESCE(p.cancelled_at IS NULL AND pc.status NOT IN ('completed','cancelled','paused','blocked') AND item.start_at>=p.window_start AND item.end_at<=p.window_end,false),CASE WHEN p.cancelled_at IS NOT NULL THEN 'cancelled' WHEN pc.status='completed' THEN 'fulfilled' WHEN item.start_at<p.window_start OR item.end_at>p.window_end THEN 'window_changed' ELSE COALESCE(pc.status,'unknown') END FROM public.life_schedule_items item LEFT JOIN public.fluctlight_intentions i ON i.id=item.intention_id LEFT JOIN public.owner_promise_links p ON p.request_id=item.promise_request_id LEFT JOIN public.goal_commitments pc ON pc.id=p.commitment_id WHERE item.schedule_id=$1 ORDER BY item.start_at`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -412,15 +422,20 @@ func currentAcceptedScheduleWith(ctx context.Context, query scheduleQuerier, flu
 		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost, intentionID, actionStatus string
 		var itemLocation *string
 		var actionPlan []byte
-		var placeID string
+		var placeID, promiseID, promiseState string
+		var promiseValid bool
 		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus, &placeID); err != nil {
+		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemLocation, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost, &intentionID, &actionPlan, &actionStatus, &placeID, &promiseID, &promiseValid, &promiseState); err != nil {
 			return nil, err
 		}
 		entry := map[string]any{
 			"id": itemID, "start_at": formatInstant(start), "end_at": formatInstant(end),
 			"activity": activity, "scene": scene, "location": nullablePointerValue(itemLocation), "item_type": itemType, "status": itemStatus,
 			"priority": priority, "flexibility": flexibility, "interruption_cost": interruptionCost,
+		}
+		if promiseID != "" {
+			entry["promise_request_id"] = promiseID
+			entry["promise_schedule_valid"], entry["promise_state"] = promiseValid, promiseState
 		}
 		if placeID != "" {
 			entry["place_id"] = placeID

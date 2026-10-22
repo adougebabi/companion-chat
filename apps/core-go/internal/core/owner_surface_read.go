@@ -139,7 +139,7 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 }
 
 func (a *App) surfaceHooks() SurfaceHooks {
-	return SurfaceHooks{WardrobePreparation: a.OwnerWardrobePreparation, RequestWardrobePreparation: a.RequestOwnerWardrobePreparation, WardrobeTags: a.OwnerWardrobeTags, SaveWardrobeTags: a.SaveOwnerWardrobeTags,
+	return SurfaceHooks{OwnerSchedules: a.OwnerSchedules, OwnerScheduleRequest: a.OwnerScheduleRequest, RequestOwnerSchedule: a.RequestOwnerSchedule, WardrobePreparation: a.OwnerWardrobePreparation, RequestWardrobePreparation: a.RequestOwnerWardrobePreparation, WardrobeTags: a.OwnerWardrobeTags, SaveWardrobeTags: a.SaveOwnerWardrobeTags,
 		Promises: a.OwnerPromises, Promise: a.OwnerPromise, PromiseHistory: a.OwnerPromiseHistory, PromiseCommand: a.OwnerPromiseCommand,
 		WearingHistory:      a.OwnerWearingHistory,
 		SaveInventoryOutfit: a.SaveOwnerInventoryOutfit, InventoryOutfitHistory: a.OwnerInventoryOutfitHistory,
@@ -162,6 +162,7 @@ func (a *App) surfaceHooks() SurfaceHooks {
 		DiaryDetail:          a.OwnerDiary,
 		DiaryReplies:         a.OwnerDiaryReplies,
 		SharedExperiences:    a.OwnerSharedExperiences,
+		StoryOverview:        a.OwnerStoryOverview,
 		GenerateDiary:        a.RequestOwnerDiary,
 		AnnotateDiary:        a.AnnotateOwnerDiary,
 		SelfClaims:           a.OwnerSelfClaims,

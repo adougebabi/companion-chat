@@ -290,6 +290,8 @@ func workflowFunction(intentType string) (any, error) {
 	switch intentType {
 	case "media.delete":
 		return MediaDeletionWorkflow, nil
+	case "schedule.owner":
+		return OwnerScheduleWorkflow, nil
 	case "wardrobe.initialize":
 		return WardrobePreparationWorkflow, nil
 	case "studio.generate":

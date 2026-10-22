@@ -18,6 +18,7 @@ var ErrMemoryQueryInvalid = errors.New("memory_query_invalid")
 type MemoryBrowseQuery struct {
 	Query, Type, Status, Cursor string
 	Limit                       int
+	AboutOwner                  bool
 }
 
 type MemoryBrowsePage struct {
@@ -75,7 +76,11 @@ func (s *MemoryService) Browse(ctx context.Context, owner, fid string, q MemoryB
 	if _, err := s.app.DB.GetFluctlight(ctx, fid, owner); err != nil {
 		return out, err
 	}
-	scope := stableDigest(jsonString([]any{"owner_memory", owner, fid, q.Query, q.Type, q.Status}))
+	scopeFields := []any{"owner_memory", owner, fid, q.Query, q.Type, q.Status}
+	if q.AboutOwner {
+		scopeFields = append(scopeFields, "about_owner_effective")
+	}
+	scope := stableDigest(jsonString(scopeFields))
 	c, err := decodeMemoryBrowseCursor(q.Cursor, scope)
 	if err != nil || (q.Cursor != "" && (c.ID == "" || c.Time.IsZero())) {
 		return out, ErrMemoryQueryInvalid
@@ -84,7 +89,8 @@ func (s *MemoryService) Browse(ctx context.Context, owner, fid string, q MemoryB
  FROM public.memories m JOIN public.fluctlights f ON f.id=m.owner_fluctlight_id
  WHERE f.created_by_actor_id=$1 AND m.owner_fluctlight_id=$2
  AND ($3='' OR strpos(lower(m.content),lower($3))>0) AND ($4='' OR m.type=$4) AND ($5='' OR m.status=$5)
- AND ($6='' OR (m.created_at,m.id)<($7,$6)) ORDER BY m.created_at DESC,m.id DESC LIMIT $8`, owner, fid, q.Query, q.Type, q.Status, c.ID, c.Time, limit+1)
+ AND (NOT $9::boolean OR (m.actor_refs ? $1 AND `+storyEffectiveMemorySQL+`))
+ AND ($6='' OR (m.created_at,m.id)<($7,$6)) ORDER BY m.created_at DESC,m.id DESC LIMIT $8`, owner, fid, q.Query, q.Type, q.Status, c.ID, c.Time, limit+1, q.AboutOwner)
 	if err != nil {
 		return out, err
 	}

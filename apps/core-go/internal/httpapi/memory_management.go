@@ -23,7 +23,10 @@ func (b *browserBackend) memoryCommand(ctx context.Context, method, path string,
 		if e != nil {
 			return nil, true, memoryBoundaryError(e)
 		}
-		value, err = b.server.app.Memory.Browse(ctx, owner, p[2], core.MemoryBrowseQuery{Query: q.Get("q"), Type: q.Get("type"), Status: q.Get("status"), Cursor: q.Get("cursor"), Limit: limit})
+		if raw := q.Get("aboutOwner"); raw != "" && raw != "true" && raw != "false" {
+			return nil, true, memoryBoundaryError(core.ErrMemoryQueryInvalid)
+		}
+		value, err = b.server.app.Memory.Browse(ctx, owner, p[2], core.MemoryBrowseQuery{Query: q.Get("q"), Type: q.Get("type"), Status: q.Get("status"), Cursor: q.Get("cursor"), Limit: limit, AboutOwner: q.Get("aboutOwner") == "true"})
 	} else if len(p) >= 3 && len(p) <= 4 && p[0] == "internal" && p[1] == "memories" {
 		id := p[2]
 		switch {

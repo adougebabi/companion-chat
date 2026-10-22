@@ -15,7 +15,7 @@ type scheduleEntry struct {
 	end   time.Time
 }
 
-func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID, localDate, timezone, expectedLifeContextRevision string, identity, lifeProfile map[string]any) (map[string]any, error) {
+func (a *App) initialSchedulePayload(ctx context.Context, fluctlightID, localDate, timezone string, identity, lifeProfile map[string]any) (map[string]any, error) {
 	// Schedule semantics are owned by the cognitive-assessment role. Reflection
 	// consumes an evidence window after the plan is accepted; using it here
 	// returns a reflection proposal shape instead of the required {items,...}
@@ -72,6 +72,15 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 			payload, err = normalizeScheduleResponse(retryResult, localDate, timezone)
 		}
 	}
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
+// Keep the automatic current-day lifecycle on its existing acceptance path.
+func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID, localDate, timezone, expectedLifeContextRevision string, identity, lifeProfile map[string]any) (map[string]any, error) {
+	payload, err := a.initialSchedulePayload(ctx, fluctlightID, localDate, timezone, identity, lifeProfile)
 	if err != nil {
 		return nil, err
 	}

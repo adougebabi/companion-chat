@@ -51,3 +51,8 @@ export function IntentionList(values,options={}){
  const rows=Array.isArray(values)?values:[];
  return rows.length?rows.map(row=>IntentionRow(row,options)).join(''):'<p class="small muted">尚未记录意向。可以从对话提出计划，或请求独立规划。</p>';
 }
+
+// One action per person; browsing never selects a character or creates a relation.
+export function PersonCard({name,avatar='',description='',status='',href,label='查看人物',attrs={}}) {
+  return `<article class="person-card" ${attributes(attrs)}><div class="person-portrait">${Avatar({src:avatar,name,size:'lg'})}</div><div class="person-card-body"><h3>${esc(name)}</h3><p class="small muted">${esc(description)}</p><p class="small">${esc(status)}</p><a class="btn" href="${esc(href)}">${esc(label)}</a></div></article>`;
+}

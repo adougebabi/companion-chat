@@ -11,6 +11,7 @@ boundaries described below.
 
 | Guide | Use it for |
 | --- | --- |
+| [Owner Schedule / Story Contracts](./owner-schedule-story-contract.md) | Durable non-overwriting schedule requests, accepted-promise associations and authoritative read-only story totals |
 | [Directory Structure](./directory-structure.md) | Adding routes, helpers, or runtime assets |
 | [Kev Decisions](./kev-decision-contract.md) | Seven selection gates, reliable raw audit, dynamic tool disclosure, pre-effect persona admission and fallback |
 | [Independent Goal Planner](./goal-planner-contract.md) | Set capacity, native Planner, Actor edits, policy/fact fences, scope-safe events, migration and acceptance |

@@ -1,3 +1,4 @@
+import {scheduleOwnerSchemas,scheduleOwnerPaths} from './schedule-owner-contract.mjs';
 import {placeDefaultSchemas,placeDefaultPaths} from './place-default-contract.mjs';
 import {dataToolsSchemas,dataToolsPaths} from './data-tools-contract.mjs';
 import {diagnosticRecordSchemas,diagnosticRecordPaths} from './diagnostic-record-contract.mjs';
@@ -520,6 +521,7 @@ for(const [path,methods]of Object.entries(studioCatalogPaths))schema.paths[path]
 
 Object.assign(schema.components.schemas,dataToolsSchemas);for(const [path,methods]of Object.entries(dataToolsPaths))schema.paths[path]={...schema.paths[path],...methods};
 Object.assign(schema.components.schemas,placeDefaultSchemas);for(const [path,methods]of Object.entries(placeDefaultPaths))schema.paths[path]={...schema.paths[path],...methods};
+Object.assign(schema.components.schemas,scheduleOwnerSchemas);for(const [path,methods]of Object.entries(scheduleOwnerPaths))schema.paths[path]={...schema.paths[path],...methods};
 await writeFile(
   new URL("../openapi.json", import.meta.url),
   `${JSON.stringify(schema, null, 2)}\n`,

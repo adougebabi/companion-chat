@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "core_persona": {
+    "schema_version": 1,
+    "identity": {
+      "name": "雨禾",
+      "nickname": null,
+      "gender": null,
+      "age": null,
+      "occupation": null,
+      "background_story": null,
+      "notes": null
+    },
+    "personality": {},
+    "behavioral_policy": {},
+    "life_profile": {
+      "appearance": {
+        "description": null
+      },
+      "social_background": {},
+      "preferences": {},
+      "life_habits": [],
+      "recurring_commitments": [],
+      "relationship_seeds": [],
+      "character_constraints": [],
+      "media_preferences": {}
+    },
+    "personality_system": {
+      "mode": "single"
+    },
+    "extensions": {}
+  },
+  "developing_self": {
+    "claims": []
+  },
+  "initial_relationships": [],
+  "initial_goals": [],
+  "initial_intentions": [],
+  "extensions": {}
+}

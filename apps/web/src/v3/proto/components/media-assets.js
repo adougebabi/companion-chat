@@ -10,7 +10,11 @@ export function MediaPreview(asset,url){
  if(asset.kind==='audio')return `<audio class="media-preview" src="${esc(url)}" controls preload="metadata" aria-label="${esc(asset.title||'音频素材')}" data-media-content></audio>`;
  throw new Error('无法识别媒体类型');
 }
-export function MediaAssetCard(asset,{fid='',url,targetId=''}={}){return `<article class="card media-asset-card">${MediaPreview(asset,url)}<div class="small"><a href="${esc(mediaDetailPath(asset,fid)+(targetId?'?target='+encodeURIComponent(targetId):''))}"><b>${esc(asset.title||'未命名素材')}</b></a><p>${badge(asset.label)} ${asset.hidden?badge('已在库中隐藏'):''}</p><p class="muted">${esc(({image:'图片',video:'视频',audio:'音频'})[asset.kind]||'素材')} · ${esc(stateLabel(asset.status))}<br>${InstantLabel(asset.created_at)}</p></div></article>`;}
-export function bindMediaFailures(host){host.querySelectorAll('[data-media-content]').forEach(media=>media.addEventListener('error',()=>{
+export function MediaAssetCard(asset,{fid='',url,targetId='',returnTo=''}={}){
+ const params=new URLSearchParams();if(targetId)params.set('target',targetId);if(returnTo){params.set('returnTo',returnTo);params.set('returnLabel','返回媒体库');}const href=mediaDetailPath(asset,fid)+(params.size?'?'+params:'');
+ const cover=asset.kind==='image'&&asset.readable?`<img src="${esc(url)}" alt="" loading="lazy" data-media-cover>`:`<div class="media-kind-cover" aria-hidden="true">${asset.kind==='audio'?'♫':asset.kind==='video'?'▷':'▧'}</div>`;
+ return `<article class="card media-asset-card"><div class="media-card-cover">${cover}<span class="small muted" data-cover-failure hidden>封面暂不可用</span></div><div class="media-card-body"><h3>${esc(asset.title||'未命名素材')}</h3><p class="small">${esc(asset.label)} ${asset.hidden?badge('已隐藏'):''}</p><p class="small muted">${esc(({image:'图片',video:'视频',audio:'音频'})[asset.kind]||'素材')} · ${esc(stateLabel(asset.status))}${asset.kind!=='image'?' · 时长未记录':''}<br>${InstantLabel(asset.created_at)}</p><a class="btn" href="${esc(href)}">${asset.kind==='audio'?'播放预览':'查看详情'}</a></div></article>`;
+}
+export function bindMediaFailures(host){host.querySelectorAll('[data-media-cover]').forEach(img=>{const fail=()=>{img.hidden=true;img.parentElement.querySelector('[data-cover-failure]').hidden=false;};img.addEventListener('error',fail,{once:true});if(img.complete&&!img.naturalWidth)fail();});host.querySelectorAll('[data-media-content]').forEach(media=>media.addEventListener('error',()=>{
  const error=document.createElement('p');error.className='banner err';error.setAttribute('role','alert');error.textContent='媒体字节读取失败，请重新查询素材状态或检查存储连接。';media.replaceWith(error);
  },{once:true}));}

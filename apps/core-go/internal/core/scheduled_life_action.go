@@ -69,14 +69,21 @@ func nullableJSON(value map[string]any) any {
 
 func preserveScheduledActionPlans(planned, current map[string]any) error {
 	links := make(map[string]map[string]any)
+	promises := make(map[string]bool)
 	for _, raw := range arrayValue(current["items"]) {
 		item := mapValue(raw)
+		if id := stringValue(item["promise_request_id"]); id != "" {
+			promises[id] = true
+		}
 		if id := strings.TrimSpace(stringValue(item["intention_id"])); id != "" {
 			links[id] = mapValue(item["action_plan"])
 		}
 	}
 	for _, raw := range arrayValue(planned["items"]) {
 		item := mapValue(raw)
+		if id := stringValue(item["promise_request_id"]); id != "" && !promises[id] {
+			return errors.New("schedule_replan_promise_link_unknown")
+		}
 		id := strings.TrimSpace(stringValue(item["intention_id"]))
 		if id == "" {
 			continue

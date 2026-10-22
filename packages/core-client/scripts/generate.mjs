@@ -1,3 +1,4 @@
+import {scheduleOwnerSchemas,scheduleOwnerPaths} from '../../browser-client/scripts/schedule-owner-contract.mjs';
 import {placeDefaultSchemas,placeDefaultPaths} from '../../browser-client/scripts/place-default-contract.mjs';
 import {dataToolsSchemas,dataToolsPaths} from '../../browser-client/scripts/data-tools-contract.mjs';
 import {diagnosticRecordSchemas,diagnosticRecordPaths} from '../../browser-client/scripts/diagnostic-record-contract.mjs';
@@ -22,6 +23,8 @@ import {selfSchemas,selfPaths} from '../../browser-client/scripts/self-contract.
 
 const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
+const memoryRead=schema.paths["/internal/fluctlights/{fluctlight_id}/memories"]?.get;
+if(memoryRead&&!memoryRead.parameters.some(p=>p.name==="aboutOwner"))memoryRead.parameters.push({name:"aboutOwner",in:"query",schema:{type:"boolean"}});
 schema.components.schemas.DiagnosticModelRunResponse.properties.parent_run_id={type:'string'};
 const snake=value=>value.replace(/[A-Z]/g,ch=>'_'+ch.toLowerCase());
 const coreShape=(value,request=false)=>{
@@ -29,9 +32,9 @@ const coreShape=(value,request=false)=>{
  if(!value||typeof value!=='object')return typeof value==='string'&&value.startsWith('#/components/schemas/Browser')?value.replace('/Browser','/Core'):value;
  return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,key==='properties'&&request?Object.fromEntries(Object.entries(v).map(([field,shape])=>[snake(field),coreShape(shape,request)])):key==='required'&&request?v.map(snake):coreShape(v,request)]));
 };
-const deliverySchemas={...placeDefaultSchemas,...dataToolsSchemas,...diagnosticRecordSchemas,...configurationSchemas,...momentSchemas,...mediaLibrarySchemas,...worldItemSchemas,...studioCatalogSchemas,...operationsSchemas,...diarySchemas,...selfSchemas,...governanceSchemas,...visualBriefSchemas,...inventorySchemas,...promiseSchemas,...npcRuntimeSchemas,...worldEventSchemas,...studioJobSchemas, BrowserRuntimeNPC:worldSchemas.BrowserRuntimeNPC,BrowserNPCRoutineSlot:worldSchemas.BrowserNPCRoutineSlot,BrowserNearbyActors:worldSchemas.BrowserNearbyActors};
+const deliverySchemas={...scheduleOwnerSchemas,...placeDefaultSchemas,...dataToolsSchemas,...diagnosticRecordSchemas,...configurationSchemas,...momentSchemas,...mediaLibrarySchemas,...worldItemSchemas,...studioCatalogSchemas,...operationsSchemas,...diarySchemas,...selfSchemas,...governanceSchemas,...visualBriefSchemas,...inventorySchemas,...promiseSchemas,...npcRuntimeSchemas,...worldEventSchemas,...studioJobSchemas, BrowserRuntimeNPC:worldSchemas.BrowserRuntimeNPC,BrowserNPCRoutineSlot:worldSchemas.BrowserNPCRoutineSlot,BrowserNearbyActors:worldSchemas.BrowserNearbyActors};
 for(const [name,value]of Object.entries(deliverySchemas))schema.components.schemas[name.replace(/^Browser/,'Core')]=coreShape(value,name.endsWith('Body')||name.endsWith('Request')||name==='BrowserConfigurationWrite'||name==='BrowserConfigurationSaved');
-for(const [path,methods]of Object.entries({...placeDefaultPaths,...dataToolsPaths,...diagnosticRecordPaths,...configurationPaths,...momentPaths,...mediaLibraryPaths,...worldItemPaths,...studioCatalogPaths,...operationsPaths,...diaryPaths,...selfPaths,...governancePaths,...visualBriefPaths,...inventoryPaths,...promisePaths,...npcRuntimePaths,...worldEventPaths,...studioJobPaths})){
+for(const [path,methods]of Object.entries({...scheduleOwnerPaths,...placeDefaultPaths,...dataToolsPaths,...diagnosticRecordPaths,...configurationPaths,...momentPaths,...mediaLibraryPaths,...worldItemPaths,...studioCatalogPaths,...operationsPaths,...diaryPaths,...selfPaths,...governancePaths,...visualBriefPaths,...inventoryPaths,...promisePaths,...npcRuntimePaths,...worldEventPaths,...studioJobPaths})){
  const nativePath=path.replace('/api/','/internal/').replace(/\{([^}]+)\}/g,(_,name)=>'{'+snake(name)+'}');
  schema.paths[nativePath]={...schema.paths[nativePath],...coreShape(methods)};
  for(const operation of Object.values(schema.paths[nativePath]))if(operation.parameters)for(const parameter of operation.parameters)parameter.name=snake(parameter.name);
@@ -228,6 +231,9 @@ export class CoreClient {
   async createLifeEvent(humanSession: string, fluctlightId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/events\`, humanSession, "POST", body) as Promise<Record<string, unknown>>; }
   async cancelLifeEvent(humanSession: string, fluctlightId: string, eventId: string, body: object): Promise<void> { await this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/events/\${encodeURIComponent(eventId)}/cancel\`, humanSession, "POST", body); }
   async setLifePresence(humanSession: string, fluctlightId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/presence\`, humanSession, "PUT", body) as Promise<Record<string, unknown>>; }
+  async schedules(humanSession:string,fid:string,options:{from?:string;to?:string}={}):Promise<CoreScheduleCalendar>{const q=new URLSearchParams();for(const [key,value]of Object.entries(options))if(value)q.set(key,value);return this.json(\`/internal/fluctlights/\${encodeURIComponent(fid)}/schedules?\${q}\`,humanSession) as Promise<CoreScheduleCalendar>;}
+  async requestSchedule(humanSession:string,fid:string,body:CoreOwnerScheduleBody):Promise<CoreScheduleRequestView>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fid)}/schedules/requests\`,humanSession,"POST",body) as Promise<CoreScheduleRequestView>;}
+  async scheduleRequest(humanSession:string,fid:string,id:string):Promise<CoreScheduleRequestView>{return this.json(\`/internal/fluctlights/\${encodeURIComponent(fid)}/schedules/requests/\${encodeURIComponent(id)}\`,humanSession) as Promise<CoreScheduleRequestView>;}
   async acceptLifeSchedule(humanSession: string, fluctlightId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules\`, humanSession, "POST", body) as Promise<Record<string, unknown>>; }
   async cancelLifeSchedule(humanSession: string, fluctlightId: string, scheduleId: string, body: object): Promise<void> { await this.json(\`/internal/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules/\${encodeURIComponent(scheduleId)}/cancel\`, humanSession, "POST", body); }
   async listWorkflows(humanSession: string, query = ""): Promise<Array<Record<string, unknown>>> { return this.json(\`/internal/diagnostics/workflows?query=\${encodeURIComponent(query)}\`, humanSession, "GET") as Promise<Array<Record<string, unknown>>>; }

@@ -1,3 +1,4 @@
+import {SavedBindingSummary} from './configuration-summary.js';
 import {bindingValues,deriveProviderBudget,providerBindingBody} from '../../provider-budget.mjs';
 import {configurationClient} from '../services.js';
 import {Field} from './forms.js';
@@ -24,9 +25,8 @@ export function mountProviderEditors(host,{catalog,endpoints,bindings,alive=()=>
  function binding(){
   bindingEditor?.dispose();const box=host.querySelector('[data-binding-editor]');if(!box||!selectedEndpointId)return;
   const bound=bindings.find(b=>b.role===selectedRole),value=bindingValues(selectedRole,bound,catalog.provider_budget_defaults);
-  value.endpointId=selectedEndpointId;if(bound&&bound.endpoint_id!==selectedEndpointId){value.modelId='';value.contextWindowTokens='';value.maxInputTokens='';}
   host.querySelector('[data-binding-context]').innerHTML=bound&&bound.endpoint_id!==selectedEndpointId?`<p class="banner info">此用途当前绑定 ${esc(bound.endpoint_id)}。在这里保存，会明确改为使用当前连接 ${esc(selectedEndpointId)}；可以先从下方模型目录选择准确标识。</p>`:'';
-  bindingEditor=mountConfigurationEditor(box,{slotKey:'binding:'+selectedRole,saveLabel:'保存模型用途',title:roles.find(r=>r.value===selectedRole).label,source:bound?'stored':'unconfigured',initial:value,versions:catalog.versions,operation:'binding',alive:live,derive:deriveProviderBudget,contextFields:['modelId','contextWindowTokens'],
+  bindingEditor=mountConfigurationEditor(box,{slotKey:'binding:'+selectedRole,savedSummary:SavedBindingSummary,description:'用途容量与回复长度分开保存。切换连接会清空模型与实际窗口，请重新核对。',saveLabel:'保存模型用途',title:roles.find(r=>r.value===selectedRole).label,source:bound?'stored':'unconfigured',initial:value,versions:catalog.versions,operation:'binding',alive:live,derive:deriveProviderBudget,contextFields:['modelId','contextWindowTokens'],
    fields:[{key:'role',label:'用途',type:'select',fixed:selectedRole,options:roles.filter(r=>r.value===selectedRole)},{key:'endpointId',label:'使用当前连接',type:'text',fixed:selectedEndpointId,attrs:{readonly:true}},{key:'modelId',label:'模型精确标识',type:'text',resetOnChange:['contextWindowTokens'],hint:'可从此连接的模型目录点选，也可直接填写。更换模型后请核对实际加载的窗口。'},{key:'tokenBudget',label:'输出 Token 上限',type:'number',min:1},{key:'contextWindowTokens',label:'服务实际加载的上下文窗口',type:'number',min:1},{key:'maxInputTokens',label:'最大输入预算（自动计算）',type:'number',derived:true,attrs:{readonly:true},hint:'实际窗口减去输出上限和系统安全预留；不需要手算。'},{key:'timeoutSeconds',label:'请求超时（秒）',type:'number',min:1}],
    buildBody:providerBindingBody,readCurrent:async()=>{const next=await configurationClient.read(),b=next.bindings.find(v=>v.role===selectedRole);return {value:bindingValues(selectedRole,b,next.provider_budget_defaults),versions:next.versions,source:b?'stored':'unconfigured'};},onSaved:saved});
  }
@@ -52,4 +52,12 @@ export function mountProviderEditors(host,{catalog,endpoints,bindings,alive=()=>
  host.querySelector('[data-new-endpoint]').onclick=()=>selectEndpoint('');
  selectEndpoint(selectedEndpointId);
  return {dispose(){active=false;lookupEpoch++;endpointEditor?.dispose();bindingEditor?.dispose();credentialEditor?.dispose();}};
+}
+
+// Q06 uses the same per-role save slot as the connection workspace.
+export function mountModelPurposeEditor(host,{catalog,role='conversation_reply',alive=()=>true,onSaved=()=>{}}){
+ const bound=catalog.bindings.find(b=>b.role===role),value=bindingValues(role,bound,catalog.provider_budget_defaults);
+ return mountConfigurationEditor(host,{slotKey:'binding:'+role,title:'模型用途 · '+(roles.find(r=>r.value===role)?.label||role),saveLabel:'保存模型用途',description:'更换服务、模型或实际加载窗口时修改这里。每个用途保留一份草稿；更换连接会清空模型、窗口与派生输入预算。',source:bound?'stored':'unconfigured',initial:value,versions:catalog.versions,operation:'binding',alive,derive:deriveProviderBudget,savedSummary:SavedBindingSummary,
+  fields:[{key:'role',label:'用途',type:'select',fixed:role,options:roles.filter(r=>r.value===role)},{key:'endpointId',label:'模型连接',type:'select',options:[{value:'',label:'请选择连接'},...catalog.endpoints.map(e=>({value:e.id,label:e.id}))],resetOnChange:['modelId','contextWindowTokens','maxInputTokens']},{key:'modelId',label:'模型精确标识',type:'text',resetOnChange:['contextWindowTokens'],hint:'可在模型与连接页面查阅服务返回的模型目录。'},{key:'tokenBudget',label:'用途输出 Token 上限',type:'number',min:1},{key:'contextWindowTokens',label:'服务实际加载窗口',type:'number',min:1},{key:'maxInputTokens',label:'用途输入预算（自动计算）',type:'number',derived:true,attrs:{readonly:true},hint:'实际窗口减去用途输出上限和服务提供的安全预留。'},{key:'timeoutSeconds',label:'用途请求超时（秒）',type:'number',min:1}],
+  buildBody:providerBindingBody,readCurrent:async()=>{const next=await configurationClient.read(),binding=next.bindings.find(b=>b.role===role);return {value:bindingValues(role,binding,next.provider_budget_defaults),versions:next.versions,source:binding?'stored':'unconfigured'};},onSaved});
 }

@@ -4,7 +4,7 @@ const command={expectedRevision:integer,reason:{type:'string',minLength:1,maxLen
 export const momentSchemas={
  BrowserMomentNPCPage:object({items:{type:'array',items:data},next_cursor:text}),
  BrowserMomentSuggestions:object({items:{type:'array',items:ref('BrowserOwnerRequest')},next_cursor:text}),
- BrowserMomentRecord:object({id:text,owner_fluctlight_id:nullable(text),author_actor_id:text,author_type:text,author_name:nullable(text),text,status:{type:'string',enum:['visible','hidden']},visibility:text,revision:integer,media_asset_ids:{type:'array',items:text},media:{type:'array',items:data},created_at:text,request_id:nullable(text),source_event_id:nullable(text),reaction_count:{type:'integer',minimum:0},viewer_reaction:nullable(text),comment_count:{type:'integer',minimum:0}}),
+ BrowserMomentRecord:object({id:text,owner_fluctlight_id:nullable(text),author_actor_id:text,author_type:text,author_name:nullable(text),text,status:{type:'string',enum:['visible','hidden']},visibility:text,revision:integer,media_asset_ids:{type:'array',items:text},media:{type:'array',items:data},created_at:text,request_id:nullable(text),source_event_id:nullable(text),like_count:{type:'integer',minimum:0},reaction_count:{type:'integer',minimum:0},viewer_reaction:nullable(text),comment_count:{type:'integer',minimum:0}}),
  BrowserMomentPage:object({items:{type:'array',items:ref('BrowserMomentRecord')},next_cursor:text}),
  BrowserMomentComments:object({items:{type:'array',items:object({id:text,moment_id:text,author_actor_id:text,author_type:text,author_name:nullable(text),text,created_at:text,source_interaction_id:nullable(text)})},next_cursor:text}),
  BrowserMomentCommentBody:object({...command,text:{type:'string',minLength:1,maxLength:2000}}),

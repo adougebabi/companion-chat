@@ -85,6 +85,9 @@ type WardrobeOwnerEditResult struct {
 // SurfaceHooks are read-only or explicitly owner-attributed adapters.
 // Nil hooks mean that capability is not connected.
 type SurfaceHooks struct {
+	OwnerSchedules             func(context.Context, string, string, url.Values) (map[string]any, error)
+	OwnerScheduleRequest       func(context.Context, string, string, string) (map[string]any, error)
+	RequestOwnerSchedule       func(context.Context, string, string, map[string]any) (map[string]any, error)
 	WardrobePreparation        func(context.Context, string, string) (map[string]any, error)
 	RequestWardrobePreparation func(context.Context, string, string, map[string]any) (map[string]any, error)
 	WardrobeTags               func(context.Context, string, string) (map[string]any, error)
@@ -125,6 +128,7 @@ type SurfaceHooks struct {
 	DiaryDetail                func(context.Context, string, string, string) (map[string]any, error)
 	DiaryReplies               func(context.Context, string, string, string, url.Values) (map[string]any, error)
 	SharedExperiences          func(context.Context, string, string, url.Values) (map[string]any, error)
+	StoryOverview              func(context.Context, string, string, url.Values) (map[string]any, error)
 	GenerateDiary              func(context.Context, string, string, map[string]any) (map[string]any, error)
 	AnnotateDiary              func(context.Context, string, string, string, map[string]any) (map[string]any, error)
 	SelfClaims                 func(context.Context, string, string, url.Values) (map[string]any, error)
@@ -390,6 +394,22 @@ func errorPayload(err *SurfaceError) map[string]any {
 
 func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall, query url.Values, owner string, body map[string]any) (map[string]any, error) {
 	switch op.name {
+	case "owner_schedules":
+		if s.hooks.OwnerSchedules != nil {
+			return s.hooks.OwnerSchedules(ctx, owner, op.fid, query)
+		}
+		return nil, ErrNotFound
+	case "owner_schedule_request":
+		if s.hooks.OwnerScheduleRequest != nil {
+			return s.hooks.OwnerScheduleRequest(ctx, owner, op.fid, op.a)
+		}
+		return nil, ErrNotFound
+	case "owner_schedule_generate":
+		if s.hooks.RequestOwnerSchedule != nil {
+			return s.hooks.RequestOwnerSchedule(ctx, owner, op.fid, body)
+		}
+		return nil, ErrNotFound
+
 	case "media_list":
 		return s.mediaList(ctx, op, query, owner)
 	case "sidebar":
@@ -609,6 +629,11 @@ func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall
 	case "self_command":
 		if s.hooks.SelfCommand != nil {
 			return s.hooks.SelfCommand(ctx, owner, op.fid, op.a, op.c, body)
+		}
+		return notImplemented(nil), nil
+	case "story_overview":
+		if s.hooks.StoryOverview != nil {
+			return s.hooks.StoryOverview(ctx, owner, op.fid, query)
 		}
 		return notImplemented(nil), nil
 	case "shared_experiences":
@@ -1845,6 +1870,13 @@ func surfaceParts(path string) []string {
 func matchSurface(method string, parts []string) (surfaceCall, bool) {
 	call := surfaceCall{success: 200, needsKey: method != "GET" && method != "HEAD"}
 	switch {
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "schedules" && method == "GET":
+		call.name, call.fid, call.read = "owner_schedules", parts[1], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "schedules" && parts[3] == "requests" && method == "POST":
+		call.name, call.fid, call.success = "owner_schedule_generate", parts[1], 202
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "schedules" && parts[3] == "requests" && method == "GET":
+		call.name, call.fid, call.a, call.read = "owner_schedule_request", parts[1], parts[4], true
+
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "preparation" && (method == "GET" || method == "POST"):
 		call.fid, call.read = parts[1], method == "GET"
 		call.name = "wardrobe_preparation"
@@ -1941,6 +1973,8 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		call.name, call.fid, call.a, call.c, call.read = "self_history", parts[1], parts[3], parts[4], true
 	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "self-claims" && method == "POST" && (parts[4] == "review" || parts[4] == "forget" || parts[4] == "restore"):
 		call.name, call.fid, call.a, call.c = "self_command", parts[1], parts[3], parts[4]
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "shared-experiences" && parts[3] == "overview" && method == "GET":
+		call.name, call.fid, call.read = "story_overview", parts[1], true
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "shared-experiences" && method == "GET":
 		call.name, call.fid, call.read = "shared_experiences", parts[1], true
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "diary" && parts[3] == "generate" && method == "POST":

@@ -504,7 +504,6 @@ export const useConversationStore = defineStore("conversations", {
 			this.ensureRetryMessageVisible();
 			this.ensureQueuedMessageVisible();
 	        persistSelection(fluctlightId);
-	        await this.reportReadPosition();
 			if (!this.retryTurn && this.queuedTurn?.conversationId === this.conversation?.id && this.queuedTurn.fluctlightId === this.fluctlightId) {
 				await this.sendQueuedTurn();
 			}
@@ -774,7 +773,6 @@ export const useConversationStore = defineStore("conversations", {
 		this.messages = mergeConversationMessages(page.messages, this.messages, true);
 		this.syncServerTurnState();
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
-        await this.reportReadPosition();
         this.attachmentRef = "";
 			if (this.retryTurn?.idempotencyKey === request.idempotencyKey || retry) {
 				this.retryTurn = null;
@@ -982,9 +980,10 @@ export const useConversationStore = defineStore("conversations", {
         this.historyLoading = false;
       }
     },
-    async reportReadPosition() {
+    async reportReadPosition(visibleSequence?: number) {
       if (!this.conversation) return;
-      const sequence = lastSequence(this.messages);
+      const sequence = visibleSequence;
+      if (!Number.isSafeInteger(sequence) || sequence! <= 0 || sequence! > lastSequence(this.messages)) return;
       if (!sequence) return;
       try {
         await client.markRead(this.conversation.id, {

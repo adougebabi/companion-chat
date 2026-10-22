@@ -41,7 +41,7 @@ export type ManagedMemory = {
 };
 export type MemoryRevision = { revision: number; base_revision: number|null; operation: string; content: string; status: string; actor_id: string; evidence_refs: string[]; source_window: string|null; proposal_id: string|null; semantic_reason: string; related_memory_ids: string[]; reason_code: string|null; schema_version: string; created_at: string };
 export type MemorySource = { memory_revision: number; source_ref: string; source_kind: string; source_id: string|null; source_revision: number|null; occurred_at: string|null; recorded_at: string; status: string; live: boolean; superseded_by_ref: string|null; conversation_id: string|null };
-export type MemoryBrowseOptions = { q?: string; type?: ManagedMemory['type']|''; status?: ManagedMemory['status']|''; cursor?: string; limit?: number };
+export type MemoryBrowseOptions = { aboutOwner?: boolean; q?: string; type?: ManagedMemory['type']|''; status?: ManagedMemory['status']|''; cursor?: string; limit?: number };
 
 export type FactLabel = { factual: false; label: "生成图·非事实" | "插画" };
 
@@ -274,6 +274,7 @@ export function currentRevision(error: { status?: number; details?: Record<strin
 }
 
 export const v3ContractMethods = {
+  async storyOverview(this: object, fluctlightId: string): Promise<import('./index.js').BrowserStoryOverview> { return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/shared-experiences/overview`) as Promise<import('./index.js').BrowserStoryOverview>; },
   async managedMemories(this: object, fluctlightId: string, options: MemoryBrowseOptions = {}): Promise<CursorPage<ManagedMemory>> {
     return clientOf(this).json(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/memories${q(options)}`) as Promise<CursorPage<ManagedMemory>>;
   },
@@ -558,6 +559,7 @@ export function applyV3Contract(ctor: { prototype: object }): void {
 
 declare module "./index.ts" {
   interface BrowserClient {
+    storyOverview(fluctlightId:string):Promise<import('./index.js').BrowserStoryOverview>;
     managedMemories(fluctlightId:string,options?:MemoryBrowseOptions):Promise<CursorPage<ManagedMemory>>;
     managedMemory(memoryId:string):Promise<ManagedMemory>;
     memoryRevisions(memoryId:string,options?:{cursor?:string;limit?:number}):Promise<CursorPage<MemoryRevision>>;
