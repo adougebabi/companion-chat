@@ -1,3 +1,4 @@
+import {errorMessage} from './domain-presentation.mjs';
 // Presentation only: the conversation store retains the original failure and retry identity.
 export function chatFailureText(value) {
   const text=String(value || '');
@@ -5,7 +6,7 @@ export function chatFailureText(value) {
   if(text.includes('agent_partial_committed'))return '本次回复未全部完成，但已有操作提交。请先核对已显示的结果和诊断记录。';
   if(text.includes('owner_life_assessment_failed'))return '本次请求未能完成判断。请查看关联诊断，确认模型服务恢复后再决定是否重新发出建议。';
   if(/agent_run_failed|provider_[a-z_]+|turn_failed/.test(text))return '本次回复未能完成。原消息已保留，请查看关联诊断；确认服务恢复后可重试。';
-  return text;
+  return text?errorMessage(text,'本次回复未能完成，原消息已保留，请查看关联诊断。'):'';
 }
 
 export function chatDiagnosticTurn(state){
@@ -18,4 +19,11 @@ export function chatDiagnosticTurn(state){
   if(state.activeTurnId&&state.activeTurnId!==state.queuedTurn?.turnId)return state.activeTurnId;
   const failed=state.messages.findLast(message=>message.kind==='user'&&!/^(?:local-|stream-)/.test(message.id)&&['failed','cancelled'].includes(message.turnStatus));
   return failed?.turnId&&failed.turnErrorCode&&error.includes(failed.turnErrorCode)?failed.turnId:null;
+}
+
+export function chatWaitText(state, startedAt, now=Date.now()) {
+ if(!state.sending&&!state.hasPendingTurn&&!state.hasSettlingTurn)return '';
+ const seconds=Math.max(0,Math.floor((now-startedAt)/1000));
+ const elapsed=seconds<60?`${seconds} 秒`:`${Math.floor(seconds/60)} 分 ${seconds%60} 秒`;
+ return `${state.hasSettlingTurn?'正在结束本次生成':state.sending?'正在连接或等待回复':'后台正在处理回复'} · 已等待 ${elapsed}。${seconds>=30?'仍未收到完成回执，可查询原请求状态；等待时长不代表失败。':''}`;
 }

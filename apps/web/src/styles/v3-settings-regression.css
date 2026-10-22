@@ -1,0 +1,18 @@
+/* Management presentation keeps the existing configuration and save owners. */
+.settings-heading h1{margin:0;font-size:28px;line-height:1.35;font-weight:600;color:var(--ink)}
+.management-navigation{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:4px}
+.management-navigation .tab{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;white-space:normal}
+.saved-reply-summary{display:grid;gap:12px}
+.saved-summary-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px}
+.saved-summary-heading h3,.saved-reply-summary p{margin:0}
+.saved-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:8px 24px;margin:0}
+.saved-summary-grid dt{font-size:12px;color:var(--ink-2);margin:0;align-self:end}
+.saved-summary-grid dd{font-size:14px;line-height:1.6;margin:0;overflow-wrap:anywhere}
+.saved-summary-grid>div{min-width:0}
+.saved-summary-explanation summary,.configuration-quiet-hours summary{cursor:pointer;min-height:40px;display:flex;align-items:center;font-size:13px;color:var(--ink-2)}
+.saved-summary-explanation p{padding-top:8px;line-height:1.7}
+.configuration-action-types p,.configuration-quiet-hours>.toggle,.configuration-quiet-hours>.grid,.configuration-quiet-hours>.field,.configuration-quiet-hours>details{grid-column:1/-1}
+.configuration-action-types .toggle{overflow-wrap:anywhere}
+.configuration-structured{grid-column:1/-1;min-width:0}
+@container(max-width:780px){.saved-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container(max-width:520px){.saved-summary-grid{grid-template-columns:minmax(0,1fr);gap:12px}.saved-summary-heading{gap:4px}.settings-heading h1{font-size:28px}}

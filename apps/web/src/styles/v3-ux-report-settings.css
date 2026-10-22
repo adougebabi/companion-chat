@@ -1,0 +1,9 @@
+.configuration-actions { align-items: flex-start; }
+.configuration-fields > fieldset { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.configuration-fields > fieldset > legend { font-weight: 600; padding: 0 6px; }
+.configuration-fields > details > summary { cursor: pointer; padding-block: 10px; }
+.settings-page [data-test-result] { margin-top: 12px; }
+.pending-item { align-items: flex-start; flex-wrap: wrap; }
+.pending-item .grow { min-width: min(100%, 220px); overflow-wrap: anywhere; }
+.inbox-workspace > .card { min-width: 0; }
+@media (max-width: 1100px) { .inbox-workspace.grid { grid-template-columns: minmax(0, 1fr); } }

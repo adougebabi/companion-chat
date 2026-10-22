@@ -1,10 +1,11 @@
+import {errorMessage} from '../../domain-presentation.mjs';
 import { esc, drawer } from '../ui.js';
 import {InventoryEffects} from './inventory-effects.js';
 import { lifeClient } from '../services.js';
 import {userInstant} from '../../presentation-time.mjs';
 import {requestDecisionText,RequestFailureLink} from './request-failure.js';
 
-export function asyncPage(el, read, paint) {
+export function asyncPage(el, read, paint, {backHref='',backLabel='返回',errorTitle='读取失败',errorFallback='暂时无法读取，请重新尝试。'}={}) {
   let active=true, epoch=0, dispose;
   const alive=()=>active && el.isConnected;
   async function reload() {
@@ -13,7 +14,7 @@ export function asyncPage(el, read, paint) {
     dispose?.(); dispose=null;
     el.innerHTML='<div class="statebox" role="status">正在读取…</div>';
     try {const value=await read();if(alive() && version===epoch)dispose=paint(value,reload,()=>alive()&&version===epoch);}
-    catch(error) {if(!alive() || version!==epoch)return;el.innerHTML=`<div class="statebox" role="alert"><h2>读取失败</h2><p>${esc(error.message)}</p><button class="btn" data-read-retry>重新读取</button></div>`;el.querySelector('[data-read-retry]').onclick=reload;}
+    catch(error) {if(!alive() || version!==epoch)return;el.innerHTML=`<div class="statebox" role="alert"><h2>${esc(errorTitle)}</h2><p>${esc(errorMessage(error,errorFallback))}</p>${backHref?`<a class="btn" href="${esc(backHref)}">${esc(backLabel)}</a>`:''}<button class="btn" data-read-retry>重新读取</button></div>`;el.querySelector('[data-read-retry]').onclick=reload;}
   }
   void reload();
   return()=>{active=false;epoch++;dispose?.();};

@@ -12,9 +12,9 @@ import {CurrentProfile} from '../src/v3/proto/components/current-profile.js';
 import {CreationPreview} from '../src/v3/proto/components/creation-preview.js';
 import {GoalRecords} from '../src/v3/proto/components/goal-records.js';
 
-test('NAS UTC sample is localized with explicit zone/offset, including cross-day and midnight',()=>{
- assert.equal(userInstant('2026-10-20T14:28:40.520+00:00','Asia/Shanghai'),'2026-10-20 22:28:40.520 +08:00（Asia/Shanghai）');
- assert.match(userInstant('2026-10-20T16:00:00Z','Asia/Shanghai'),/2026-10-21 00:00:00/);
+test('NAS instant reads use Beijing time including cross-day and midnight',()=>{
+ assert.equal(userInstant('2026-10-20T14:28:40.520+00:00','Asia/Shanghai'),'2026-10-20 22:28 (北京时间)');
+ assert.match(userInstant('2026-10-20T16:00:00Z','Asia/Shanghai'),/2026-10-21 00:00/);
  assert.equal(displayTimezone('Asia/Tokyo','Asia/Shanghai'),'Asia/Tokyo');
  assert.doesNotThrow(()=>userInstant('2026-10-20T14:00:00Z','not-a-zone'));
  assert.equal(userInstant('not-a-date'),'时间未知');
@@ -45,7 +45,7 @@ test('actual initialization clothing shape has contextual availability/wear labe
 });
 test('current profile distinguishes unknown/cleared body and known-empty wear, preserving initial boundary',()=>{
  const current={inner_state:{mood:{label:'平静',source:'server_default',intensity:0}},context:{source:'pending',timezone:'Asia/Shanghai',instant:'2026-10-20T14:28:40.520Z'},appearance:{body_fields:{hair_color:{status:'cleared',value:'stale'},hair_length:{status:'unknown'}},wearing_state:'known',worn_items:[]}};
- const known=CurrentProfile(current);assert.match(known,/已清除，当前未记录/);assert.match(known,/当前没有已登记的穿着/);assert.match(known,/22:28:40/);assert.doesNotMatch(known,/server_default|stale|T14:28/);
+ const known=CurrentProfile(current);assert.match(known,/已清除，当前未记录/);assert.match(known,/当前没有已登记的穿着/);assert.match(known,/2026-10-20 22:28 \(北京时间\)/);assert.doesNotMatch(known,/server_default|stale|T14:28/);
  const unknown=CurrentProfile({...current,appearance:{...current.appearance,wearing_state:'unknown'}});assert.match(unknown,/当前穿着尚未确认/);assert.doesNotMatch(unknown,/当前没有已登记的穿着/);
 });
 test('initial goal review keeps all JSON under closed disclosures and uses actual goal vocabulary',()=>{

@@ -1,10 +1,11 @@
+import {errorMessage,stateLabel} from '../../domain-presentation.mjs';
 import { randomId } from '../../../random-id.mjs';
 import * as store from '../store.js';
 import { openConversation, conversation, client } from '../../providers/real.ts';
 import { esc, badge, drawer, toast, objLink, requireOwner } from '../ui.js';
 import { ChatPanel, MessageBubble } from '../components/chat.js';
 import {bindAvatars} from '../components/avatar.js';
-import {chatFailureText,chatDiagnosticTurn} from '../../chat-feedback.mjs';
+import {chatFailureText,chatDiagnosticTurn,chatWaitText} from '../../chat-feedback.mjs';
 import { messageTimeLabel } from '../../../lib/message-time';
 import {mountChatLifeSummary} from '../components/chat-life-summary.js';
 const options={actionById:id=>store.get('actions',id),mediaById:id=>store.get('media',id),link:objLink};
@@ -25,6 +26,8 @@ export function renderChat(el,ctx){
   const current=()=>alive&&localViews.get(el)===token;
   if(c.status!=='正常'){el.innerHTML=`<div class="statebox"><h2>${esc(c.name)}${esc(c.status)}</h2><p>${esc(c.statusNote||'当前状态无法发送对话')}</p><a class="btn" href="#/c/${c.id}/profile">查看资料</a></div>`;return;}
   el.innerHTML='<div class="card" role="status">正在读取真实会话…</div>';
+  let waitStarted=0,waitIdentity='',waitTimer;
+  const updateWait=()=>{if(!current()||!status)return;const state=conversation();const pending=state.sending||state.hasPendingTurn||state.hasSettlingTurn;const original=state.messages.findLast(message=>message.turnId===state.activeTurnId)||state.messages.findLast(message=>message.kind==='user'&&['pending','running'].includes(message.turnStatus));const identity=state.activeTurnId||original?.turnId||state.retryTurn?.turnId||'';if(pending&&(!waitStarted||waitIdentity!==identity)){waitIdentity=identity;waitStarted=Date.parse(original?.createdAt||'')||Date.now();}if(!pending)waitStarted=0;status.textContent=[chatFailureText(state.error),chatWaitText(state,waitStarted)].filter(Boolean).join(' ');};
   let stream,form,status,controls,feedback,locatedMessagePanel,composing=false,lastSignature='',summaryPane,scope='',viewMode='交流',unreadIds=new Set(),knownIds=new Set(),readyToRead=false,readFrame=0,lastReported=0;
   const scopeOf=state=>JSON.stringify([store.get('session')?.actorId,c.id,c.worldId,state.conversation?.id,state.senderActorId||state.authenticatedActorId]);
   const messageOptions=()=>({...options,viewMode,senderName:store.get('user')?.name||'你',characterAvatar:c.avatar,characterName:c.name,mediaUrl:id=>`/api/media/${encodeURIComponent(id)}`});
@@ -43,14 +46,18 @@ export function renderChat(el,ctx){
     const messages=state.messages.map(message=>projected(message,c.id));
     const signature=JSON.stringify(messages);
     if(signature!==lastSignature){const oldHeight=stream.scrollHeight,oldTop=stream.scrollTop,near=oldHeight-oldTop-stream.clientHeight<72;if(readyToRead&&!near)for(const message of messages)if(!knownIds.has(message.id)&&message.from==='char')unreadIds.add(message.id);knownIds=new Set(messages.map(message=>message.id));stream.innerHTML=messages.map(message=>MessageBubble(message,messageOptions())).join('');if(locatedMessagePanel)stream.prepend(locatedMessagePanel);bindAvatars(stream);if(near)stream.scrollTop=stream.scrollHeight;else stream.scrollTop=oldTop;lastSignature=signature;updateLatest();reportVisible();}
-    status.textContent=chatFailureText(state.error)||((state.sending||state.hasPendingTurn)?'正在处理回复…':state.hasSettlingTurn?'正在结束本次生成…':'');
-    controls.innerHTML=`${state.nextBeforeSequence?'<button class="btn sm" data-older>加载更早消息</button>':''}${state.canCancel?'<button class="btn sm" data-cancel>取消生成</button>':''}${state.canRetry?`<button class="btn sm" data-retry>${state.retryIsModelFailure?'重试生成':'确认后重发'}</button>`:''}`;
+    updateWait();
+    controls.innerHTML=`${state.nextBeforeSequence?'<button class="btn sm" data-older>加载更早消息</button>':''}${state.canCancel?'<button class="btn sm" data-cancel>取消生成</button>':''}${state.sending||state.hasPendingTurn||state.hasSettlingTurn?'<button class="btn sm" data-query-turn>查询原请求状态</button>':''}${state.canRetry?`<button class="btn sm" data-retry>${state.retryIsModelFailure?'重试生成':'确认后重发'}</button>`:''}`;
     const failedTurn=chatDiagnosticTurn(state);
-    if(failedTurn){const link=document.createElement('a');link.className='btn ghost sm';link.href='#/diag/events?correlationId='+encodeURIComponent('turn:'+failedTurn);link.textContent='查看关联诊断';controls.append(link);}
+    if(failedTurn){const link=document.createElement('a');link.className='btn ghost sm';link.href='#/diag/events?correlationId='+encodeURIComponent('turn:'+failedTurn)+'&returnTo='+encodeURIComponent('#'+ctx.raw)+'&returnLabel='+encodeURIComponent('返回对话');link.textContent='查看关联诊断';controls.append(link);}
+    if(state.error){const detail=document.createElement('details');detail.className='small muted';const summary=document.createElement('summary');summary.textContent='技术详情';const pre=document.createElement('pre');pre.textContent=state.error;detail.append(summary,pre);controls.append(detail);}
     feedback.hidden=!status.textContent&&!controls.children.length;
     feedback.classList.toggle('is-pending',!!(state.sending||state.hasPendingTurn||state.hasSettlingTurn));
     form.querySelector('[data-test="chat-send"]').disabled=state.sending;
+    el.querySelectorAll('[data-attach],[data-remove-attachment]').forEach(button=>button.disabled=state.sending);
+    if(!state.attachmentRef&&el.querySelector('[data-attachment-name]')){draftText.delete(scope+':attachment');el.querySelector('[data-attachment-name]').textContent='';el.querySelector('[data-remove-attachment]').hidden=true;}
     controls.querySelector('[data-older]')?.addEventListener('click',async()=>{const before=stream.scrollHeight,top=stream.scrollTop;await state.loadOlder();update();stream.scrollTop=top+stream.scrollHeight-before;});
+    controls.querySelector('[data-query-turn]')?.addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;const conversationId=state.conversation?.id,turnId=state.activeTurnId||state.retryTurn?.turnId;try{const page=await client.messages(conversationId);if(!current()||conversation().conversation?.id!==conversationId)return;const message=page.messages.findLast(row=>row.turnId===turnId&&row.kind==='user');toast(message?'原请求状态：'+stateLabel(message.turnStatus):'尚未读取到原请求回执，继续保留等待状态',message?.turnStatus==='failed'?'err':'info');}catch(error){if(current())toast(errorMessage(error),'err');}finally{if(button.isConnected)button.disabled=false;}});
     controls.querySelector('[data-cancel]')?.addEventListener('click',()=>void state.cancel());
     controls.querySelector('[data-retry]')?.addEventListener('click',()=>void state.retry());
     // The composer remains mounted through every stream/poll update.
@@ -64,44 +71,60 @@ export function renderChat(el,ctx){
     bindAvatars(el);
     const newSession=document.createElement('button');newSession.className='btn ghost sm';newSession.textContent='新会话';el.querySelector('.chat-head-actions').append(newSession);
     const related=document.createElement('button');related.className='btn ghost sm chat-related-button';related.textContent='生活摘要';el.querySelector('.chat-head-actions').append(related);
+    const replySettings=document.createElement('a');replySettings.className='btn ghost sm';replySettings.textContent='回复设置';replySettings.href='#/settings/reply-vision?returnTo='+encodeURIComponent('#'+ctx.raw)+'&returnLabel='+encodeURIComponent('返回对话');el.querySelector('.chat-head-actions').append(replySettings);
     related.onclick=()=>{summaryPane.open();el.querySelector('[data-summary-close]')?.focus();};
-    el.querySelectorAll('[data-chat-view]').forEach(button=>button.onclick=()=>{viewMode=button.dataset.chatView;viewModes.set(scope,viewMode);el.querySelectorAll('[data-chat-view]').forEach(item=>{item.classList.toggle('on',item===button);item.setAttribute('aria-pressed',String(item===button));});lastSignature='';update();});
-    newSession.onclick=async()=>{newSession.disabled=true;const requestScope=scope;if(!newSessionKeys.has(requestScope))newSessionKeys.set(requestScope,randomId());try{draftText.set(scope,form.elements.t.value);await client.newDirectConversation(c.id,{idempotencyKey:newSessionKeys.get(requestScope)});newSessionKeys.delete(requestScope);await openConversation(c.id);scope=scopeOf(state);form.elements.t.value=draftText.get(scope)||'';knownIds=new Set();unreadIds.clear();lastReported=0;update();}catch(error){status.textContent=chatFailureText(error.message);feedback.hidden=false;}finally{newSession.disabled=false;}};
+    el.querySelectorAll('[data-chat-view]').forEach(button=>button.onclick=()=>{viewMode=button.dataset.chatView;viewModes.set(scope,viewMode);el.querySelector('[data-chat-view-help]').hidden=viewMode!=='管理';el.querySelectorAll('[data-chat-view]').forEach(item=>{item.classList.toggle('on',item===button);item.setAttribute('aria-pressed',String(item===button));});lastSignature='';update();});
+    newSession.onclick=async()=>{newSession.disabled=true;const requestScope=scope;if(!newSessionKeys.has(requestScope))newSessionKeys.set(requestScope,randomId());try{draftText.set(scope,form.elements.t.value);await client.newDirectConversation(c.id,{idempotencyKey:newSessionKeys.get(requestScope)});newSessionKeys.delete(requestScope);await openConversation(c.id);scope=scopeOf(state);state.attachmentRef=draftText.get(scope+':attachment');form.elements.t.value=draftText.get(scope)||'';knownIds=new Set();unreadIds.clear();lastReported=0;update();toast('已开始新会话，可以发送第一条消息','ok');}catch(error){status.textContent=chatFailureText(error.message);feedback.hidden=false;}finally{newSession.disabled=false;}};
     stream=el.querySelector('.stream');form=el.querySelector('form');
     feedback=document.createElement('div');feedback.className='chat-feedback';feedback.innerHTML='<p class="small muted chat-feedback-text" role="status" data-chat-status></p><div class="row chat-feedback-controls" data-chat-controls></div>';form.before(feedback);status=feedback.querySelector('[data-chat-status]');controls=feedback.querySelector('[data-chat-controls]');
+    const attachment=document.createElement('div');attachment.className='row chat-attachment';attachment.innerHTML='<button type="button" class="btn sm" data-attach>添加图片</button><span class="small" data-attachment-name></span><button type="button" class="btn ghost sm" data-remove-attachment hidden>移除图片</button>';form.before(attachment);
+    state.attachmentRef=draftText.get(scope+':attachment');
+    const attachmentName=attachment.querySelector('[data-attachment-name]'),removeAttachment=attachment.querySelector('[data-remove-attachment]');
+    if(state.attachmentRef){attachmentName.textContent='已选图片';removeAttachment.hidden=false;}
+    removeAttachment.onclick=()=>{if(state.sending)return;state.attachmentRef='';draftText.delete(scope+':attachment');attachmentName.textContent='';removeAttachment.hidden=true;};
+    attachment.querySelector('[data-attach]').onclick=async()=>{
+      if(state.sending)return toast('本条消息正在提交，完成后可选择下一张图片');
+      const d=drawer({title:'选择聊天图片',body:'<p role="status">正在读取可用图片…</p>'});
+      try{const page=await client.ownerMediaLibrary({scope:'all',kind:'image',hidden:false,limit:30});if(!current()||!d.el.isConnected)return;
+       const rows=page.items.filter(row=>row.readable&&row.status==='ready');
+       d.setBody(`<p class="small muted">选择已有图片随下一条文字消息发送。图片不作为已发生事件的证明。</p><div class="stack">${rows.map(row=>`<button type="button" class="btn" data-choose-attachment="${esc(row.id)}">${esc(row.title||row.source_filename||'未命名图片')}</button>`).join('')||'<p>尚无可发送的图片，请先在素材库上传。</p>'}</div><a class="btn" href="#/studio/media?returnTo=${encodeURIComponent('#'+ctx.raw)}">打开素材库</a>`);
+       d.body.querySelectorAll('[data-choose-attachment]').forEach(button=>button.onclick=()=>{if(!current()||state.sending)return;const row=rows.find(row=>row.id===button.dataset.chooseAttachment);state.attachmentRef=row.id;draftText.set(scope+':attachment',row.id);attachmentName.textContent=row.title||row.source_filename||'已选图片';removeAttachment.hidden=false;d.close();});
+      }catch(error){if(d.el.isConnected)d.setBody(`<p role="alert">${esc(errorMessage(error))}</p>`);}
+    };
     form.elements.t.value=draftText.get(scope)||'';form.elements.t.placeholder=`和${c.name}说点什么…`;
     const resizeComposer=()=>{form.elements.t.style.height='auto';form.elements.t.style.height=Math.min(form.elements.t.scrollHeight,120)+'px';};
     form.elements.t.oninput=()=>{draftText.set(scope,form.elements.t.value);resizeComposer();};
     form.elements.t.oncompositionstart=()=>{composing=true;};form.elements.t.oncompositionend=()=>{composing=false;};
     form.elements.t.onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&!composing&&event.keyCode!==229){event.preventDefault();form.requestSubmit();}};
-    form.onsubmit=event=>{event.preventDefault();if(composing)return;const text=form.elements.t.value.trim();if(!text||state.sending)return;form.elements.t.value='';resizeComposer();draftText.delete(scope);stream.scrollTop=stream.scrollHeight;void state.send(text).then(update);};
+    form.onsubmit=event=>{event.preventDefault();if(composing)return;const text=form.elements.t.value.trim();if(!text){toast('请先输入消息','err');form.elements.t.focus();return;}if(state.sending)return;form.elements.t.value='';resizeComposer();draftText.delete(scope);stream.scrollTop=stream.scrollHeight;void state.send(text).then(update);};
     resizeComposer();
     stream.addEventListener('scroll',reportVisible,{passive:true});
-    stream.onclick=event=>{const button=event.target.closest('[data-source]');if(!button)return;event.stopPropagation();const message=state.messages.find(row=>row.id===button.dataset.source);if(!message)return;drawer({title:'消息来源与依据',body:`<p>${esc(message.text)}</p><div class="stack">${message.memoryRef?`<a class="btn" href="#/c/${encodeURIComponent(c.id)}/growth/memory/${encodeURIComponent(message.memoryRef)}">查看关联记忆</a>`:''}${message.sourceRef?`<p>来源记录：${esc(message.sourceRef)}</p>`:'<p class="muted">这条消息尚无可直接查阅的来源引用。</p>'}<details class="mgmt"><summary>原消息与处理记录</summary><pre>${esc(JSON.stringify({conversationId:state.conversation.id,messageId:message.id,turnId:message.turnId,sourceRef:message.sourceRef,attachmentRefs:message.attachmentRefs},null,2))}</pre></details></div>`});};
+    stream.onclick=async event=>{const copy=event.target.closest('[data-copy-message]');if(copy){const message=state.messages.find(row=>row.id===copy.dataset.copyMessage);if(!message)return;try{await navigator.clipboard.writeText(message.text||'');toast('消息已复制','ok');}catch{drawer({title:'复制消息',body:`<p>自动复制不可用，可选择下方文本复制。</p><textarea class="input" readonly rows="6">${esc(message.text)}</textarea>`});}return;}const button=event.target.closest('[data-source]');if(!button)return;event.stopPropagation();const message=state.messages.find(row=>row.id===button.dataset.source);if(!message)return;drawer({title:'消息来源与依据',body:`<p>${esc(message.text)}</p><div class="stack">${message.memoryRef?`<a class="btn" href="#/c/${encodeURIComponent(c.id)}/growth/memory/${encodeURIComponent(message.memoryRef)}">查看关联记忆</a>`:''}${message.sourceRef?`<p>来源记录：${esc(message.sourceRef)}</p>`:'<p class="muted">这条消息尚无可直接查阅的来源引用。</p>'}<details class="mgmt"><summary>原消息与处理记录</summary><pre>${esc(JSON.stringify({conversationId:state.conversation.id,messageId:message.id,turnId:message.turnId,sourceRef:message.sourceRef,attachmentRefs:message.attachmentRefs},null,2))}</pre></details></div>`});};
     el.querySelector('[data-latest]').onclick=()=>{stream.scrollTop=stream.scrollHeight;reportVisible();};
+    waitTimer=setInterval(()=>{const state=conversation();if(state.sending||state.hasPendingTurn||state.hasSettlingTurn)updateWait();},1000);
     unsubscribe=state.$subscribe(update,{flush:'sync',detached:true});update();
     const position=readingPositions.get(JSON.stringify([c.id,state.conversation.id]));
     stream.scrollTop=!ctx.query.message&&position&&!position.latest&&position.messageIds===JSON.stringify(state.messages.map(message=>message.id))?position.top:stream.scrollHeight;
     readyToRead=!ctx.query.message;if(readyToRead)reportVisible();
     if(ctx.query.message){
-      const focus=document.createElement('section');focus.className='card';focus.setAttribute('aria-label','定位到的原消息');locatedMessagePanel=focus;stream.prepend(focus);
+      const focus=document.createElement('section');focus.className='card located-message';focus.setAttribute('aria-label','定位到的原消息');locatedMessagePanel=focus;stream.prepend(focus);
       const locate=async()=>{
         focus.innerHTML='<p role="status">正在定位原消息…</p>';
         try {
           const message=await client.conversationMessage(state.conversation.id,ctx.query.message);
           if(!current())return;
           const existing=stream.querySelector(`[data-msg="${CSS.escape(message.id)}"]`);
-          if(existing){locatedMessagePanel=null;focus.remove();existing.scrollIntoView({block:'center'});return;}
+          if(existing){locatedMessagePanel=null;focus.remove();existing.classList.add('located-message');existing.scrollIntoView({block:'center'});return;}
           focus.innerHTML=`<p class="small muted">定位到的原消息</p>${MessageBubble(projected(message,c.id),messageOptions())}`;
           bindAvatars(focus);
           focus.scrollIntoView({block:'center'});
-        } catch(error) {if(current()){focus.innerHTML=`<p class="banner err" role="alert">原消息定位失败：${esc(error.message)}</p><button class="btn" data-locate-retry>重新定位</button>`;focus.querySelector('[data-locate-retry]').onclick=locate;}}
+        } catch(error) {if(current()){focus.innerHTML=`<p class="banner err" role="alert">原消息定位失败：${esc(errorMessage(error))}</p><button class="btn" data-locate-retry>重新定位</button>`;focus.querySelector('[data-locate-retry]').onclick=locate;}}
       };
       void locate();
     }
-  }).catch(error=>{if(current()){el.innerHTML=`<div class="statebox" role="alert"><h2>对话读取失败</h2><p>${esc(error.message)}</p><button class="btn" data-chat-read-retry>重新读取会话</button></div>`;el.querySelector('[data-chat-read-retry]').onclick=()=>ctx.refresh();}});
+  }).catch(error=>{if(current()){el.innerHTML=`<div class="statebox" role="alert"><h2>对话读取失败</h2><p>${esc(errorMessage(error))}</p><button class="btn" data-chat-read-retry>重新读取会话</button></div>`;el.querySelector('[data-chat-read-retry]').onclick=()=>ctx.refresh();}});
   const timer=setInterval(()=>{if(current()&&!document.hidden)void conversation().refreshActiveTurn();},2000);
-  return()=>{if(stream&&conversation().fluctlightId===c.id){readingPositions.set(JSON.stringify([c.id,conversation().conversation?.id]),{top:stream.scrollTop,messageIds:JSON.stringify(conversation().messages.map(message=>message.id)),latest:stream.scrollHeight-stream.scrollTop-stream.clientHeight<72});if(readingPositions.size>40)readingPositions.delete(readingPositions.keys().next().value);}alive=false;summaryPane?.dispose();cancelAnimationFrame(readFrame);unsubscribe?.();clearInterval(timer);if(conversation().fluctlightId===c.id)conversation().invalidateRequest();};
+  return()=>{if(stream&&conversation().fluctlightId===c.id){readingPositions.set(JSON.stringify([c.id,conversation().conversation?.id]),{top:stream.scrollTop,messageIds:JSON.stringify(conversation().messages.map(message=>message.id)),latest:stream.scrollHeight-stream.scrollTop-stream.clientHeight<72});if(readingPositions.size>40)readingPositions.delete(readingPositions.keys().next().value);}alive=false;summaryPane?.dispose();cancelAnimationFrame(readFrame);unsubscribe?.();clearInterval(waitTimer);clearInterval(timer);if(conversation().fluctlightId===c.id)conversation().invalidateRequest();};
 }
 export function openCorrection(messageId){
   const state=conversation(), message=state.messages.find(row=>row.id===messageId)||store.get('messages',messageId);

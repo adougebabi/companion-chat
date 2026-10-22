@@ -64,11 +64,11 @@ export const drawer = opts => overlay('drawer', opts);
 /** 居中弹窗 */
 export const modal = opts => overlay('modal', opts);
 /** 二次确认：返回 Promise<boolean> */
-export function confirm({ title = '确认', text, okText = '确认', identity = '所有者修改' }) {
+export function confirm({ title = '确认', text, okText = '确认', identity = '所有者修改', type = 'default' }) {
   return new Promise(res => {
     let done = false;
-    const m = modal({ title: `${badge(identity)} ${esc(title)}`, body: `<p>${text}</p><p class="small muted">${identity === '所有者修改' ? '此操作将记入运行诊断 · 操作审计（diag.audit）。' : ''}</p>`,
-      footer: `<button class="btn" data-no>取消</button><button class="btn accent" data-ok data-test="confirm-ok">${esc(okText)}</button>`, onClose: () => { if (!done) res(false); } });
+    const m = modal({ title: `${badge(identity)} ${esc(title)}`, body: `<p>${text}</p><p class="small muted">${identity === '所有者修改' ? '此操作将记入运行诊断中的操作审计。' : ''}</p>`,
+      footer: `<button class="btn" data-no>取消</button><button class="btn ${type==='danger'?'danger':'accent'}" data-ok data-test="confirm-ok">${esc(okText)}</button>`, onClose: () => { if (!done) res(false); } });
     m.el.querySelector('[data-no]').onclick = () => m.close();
     m.el.querySelector('[data-ok]').onclick = () => { done = true; m.close(); res(true); };
   });

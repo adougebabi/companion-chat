@@ -30,9 +30,10 @@ export function ProfileGroups(snapshot) {
   return `<div class="grid g2 profile-sections">${sections.map(([key,title,body])=>Card({title,body,attrs:{'data-profile-group':key}})).join('')}</div><details class="card profile-technical"><summary>完整设定与来源（技术详情）</summary><p class="small muted">原始字段、版本与来源保留在这里，供核对和排查。</p>${snapshot.groups.map(g=>JsonDetails(g.value,g.title)).join('')}</details>`;
 }
 export function ProfileHeader(snapshot, canEdit) {
+ const bio=[...(snapshot.bio||'')],bioBody=bio.length>280?`<p class="memory-content">${esc(bio.slice(0,280).join(''))}…</p><details><summary>阅读完整简介 · ${bio.length} 字</summary><p class="memory-content" data-test="profile-bio">${esc(snapshot.bio)}</p></details>`:`<p class="memory-content" data-test="profile-bio">${esc(snapshot.bio)||(snapshot.groups.find(g=>g.key==='identity')?.value?.biography?'尚未填写简介；已有完整经历保留在下方身份资料中。':'尚未填写简介。')}</p>`;
   return Card({ attrs: { 'data-test': `profile-${snapshot.id}` },
     heading: EntityHeader({avatar:snapshot.avatar,title:snapshot.name||'姓名尚未记录',subtitle:`当前人格 · ${esc(personaName(snapshot,snapshot.activeProfileId))}`,status:badge(({active:'运行中',paused:'已暂停',retired:'已退休',archived:'已归档',created:'准备中',failed:'需要处理'})[snapshot.status]||snapshot.status||'状态未提供')}),
-    body: `<p class="memory-content" data-test="profile-bio">${esc(snapshot.bio) || '尚未记录简介'}</p><details class="mgmt small muted"><summary>资料版本</summary>${KeyValueList([['身份核心版本', ProfileValue(snapshot.foundationRevision)], ['运行版本', ProfileValue(snapshot.runtimeRevision)]])}</details>`,
+    body: `${bioBody}<details class="mgmt small muted"><summary>资料版本</summary>${KeyValueList([['身份核心版本', ProfileValue(snapshot.foundationRevision)], ['运行版本', ProfileValue(snapshot.runtimeRevision)]])}</details>`,
     footer: `<div class="row"><button class="btn" data-profile-edit data-test="profile-edit" ${!canEdit || snapshot.readOnly ? 'disabled' : ''}>编辑简介…</button><a class="btn ghost" href="#/c/${encodeURIComponent(snapshot.id)}/settings/autonomy">自治与触达</a><a class="btn ghost" href="#/c/${encodeURIComponent(snapshot.id)}/growth/self">自我认知</a></div>` });
 }
 export function PersonaSection(snapshot, canSwitch) {
@@ -42,7 +43,7 @@ export function PersonaSection(snapshot, canSwitch) {
     <p class="small muted">人格切换由受控命令执行。生活状态、有效外观和已有经历继续保留。</p>
     <div class="grid g2 profile-sections">${snapshot.profiles.map((profile,index)=>`<section class="persona-sheet"><div class="row"><h4 class="grow">${esc(profile.name||`人格档案 ${index+1}（未命名）`)}</h4>${profile.id===snapshot.activeProfileId?badge('当前人格'):badge('人格档案','plain')}</div>${SemanticFields(profile,{exclude:['name'],empty:'这个人格尚未补充具体设定。'})}${JsonDetails(profile,'此人格的完整设定记录')}</section>`).join('') || '<p class="small muted">尚未提供人格档案</p>'}</div>
     ${!canSwitch ? '<p class="small muted" data-test="profile-switch-unavailable">人格切换尚未连接受控命令，当前不能提交。</p>' : ''}
-    <details class="persona-controls"><summary>切换当前人格</summary><form class="stack" data-profile-switch novalidate>
+    ${!enabled?`<p class="banner info">${snapshot.readOnly?'角色已停止运行，当前资料只读。':!choices.length?'目前没有可切换的其他人格。需要已有其他人格档案，并完成支持切换的人格评估后才会出现目标。':'当前人格或版本尚未完整读取，请重新读取后确认。'}</p>`:''}<details class="persona-controls"><summary>切换当前人格</summary><form class="stack" data-profile-switch novalidate>
     ${Field({ label: '目标人格', name: 'targetPersonaId', type: 'select', value: '', options: [{ value: '', label: '请选择目标人格' }, ...choices.map(p => ({ value: p.id, label: personaName(snapshot,p.id) }))], attrs: { disabled: !enabled, required: true } })}
     ${Field({ label: '切换原因', name: 'reason', type: 'textarea', hint: '说明这次切换的原因，提交前需确认。', attrs: { disabled: !enabled, required: true, maxlength: 1000 } })}
     <label class="toggle"><input type="checkbox" name="confirm" ${!enabled ? 'disabled' : ''}> 我确认切换到所选人格</label>

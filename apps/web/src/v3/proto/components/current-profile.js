@@ -12,7 +12,7 @@ export function CurrentProfile(current,{zone}={}){
  if(mood?.source==='server_default')body+='<p class="small muted">心情采用初始化记录，尚无后续更新。</p>';
  if(appearance===null)return body+'<p class="small muted">有效外观：未记录 / 已清除。不会使用旧初始外观代替。</p>';
  if(appearance&&typeof appearance==='object'){
-  const fields=Object.entries(appearance.body_fields||{}).filter(([key])=>['hair_length','hair_color','hair_style','chest_cup','injuries'].includes(key));
+  const fields=['hair_length','hair_color','hair_style','injuries','chest_cup'].filter(key=>Object.hasOwn(appearance.body_fields||{},key)).map(key=>[key,appearance.body_fields[key]]);
   if(fields.length)body+=`<h4>当前外观</h4><dl class="profile-facts">${fields.map(([key,record])=>`<div><dt>${esc(semanticLabel(key))}</dt><dd>${record?.status==='known'&&record.value!=null?SemanticValue(record.value,key):record?.status==='cleared'?'已清除，当前未记录':'尚未确定'}</dd></div>`).join('')}</dl>`;
   const worn=appearance.worn_items,known=appearance.wearing_state==='known'&&Array.isArray(worn)&&worn.every(i=>i.source_verified===true&&i.availability==='available');
   body+='<h4>当前穿着</h4>'+(known?(worn.length?ClothingRecords(worn,{mode:'current'}):'<p class="small muted">当前没有已登记的穿着。</p>'):'<p class="small muted">当前穿着尚未确认，不使用初始穿衣设定代替。</p>');

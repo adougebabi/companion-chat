@@ -2,7 +2,7 @@
 
 ## 1. Scope / Trigger
 
-Apply to the production renderer `main.ts → App.vue → v3/proto/app.js` when implementing the confirmed `ux-round2-closure-2026-10-22` design. The directory name `proto` does not authorize a second demo implementation. The user owns unified visual/business acceptance for the 2026-10-22 implementation; syntax, type and build results do not imply that acceptance.
+Apply to the production renderer `main.ts → App.vue → v3/proto/app.js` when implementing the confirmed `ux-round2-closure-2026-10-22` design. The directory name `proto` does not authorize a second demo implementation. The user's latest 2026-10-22 instruction requires agent-led Pen and production-preview regression as well as implementation. Syntax, type and build results do not imply visual or business acceptance; record the actual inspected states and data-dependent gaps.
 
 ## 2. Signatures
 
@@ -24,6 +24,11 @@ Apply to the production renderer `main.ts → App.vue → v3/proto/app.js` when 
 - UI reading caches retain cursor/loaded data/source routes. Refresh failures preserve prior content, and failed pagination keeps the visible page's cursor. Detail reads reconcile cached record revisions. Logout clears Owner-scoped drafts and reading snapshots.
 - The creation main flow is world → blank/description/JSON → four independent stages → completion. Template creation remains a separate linked resource branch with review. A durable activated checkpoint prohibits a second activation. Four completed stages plus the selected world readback are required for completion. Progress order is presentation, not a claim of serial backend execution.
 - Ordinary-object borrowing/returning and cross-object draft-to-chat chains remain cancelled. Do not add `?say=` links or infer a physical encounter from browsing/media/remote communication.
+- The latest PC review removes the repeated horizontal life-module navigation; the stable sidebar owns 此刻 / 日程 / 目标 / 衣柜 / 日记 / 共同经历. Genuine within-page schedule sections, wardrobe views and diary filters remain. 共同经历 is a separate action beside diary filters, with the same name in the sidebar.
+- Ordinary full timestamps use `formatBeijingInstant` / `userInstant` / `InstantLabel`: `YYYY-MM-DD HH:mm (北京时间)`. Convert the actual instant to Asia/Shanghai; do not relabel the original clock. Business local-day keys, IANA timezone settings, machine `datetime` attributes and original diagnostic records retain their semantics. Ordinary instant editors use Beijing `datetime-local` controls and a readable preview. `zonedInputInstant(value,'Asia/Shanghai',original)` preserves original precision/offset when the displayed minute is unchanged. Frozen pending commands are never reformatted or regenerated for presentation.
+- Disclosure summaries are full-row controls with title, secondary state, status and chevron. Expanded details use neutral/sage surfaces and structured labels. Reading pages show saved content first; annotation, generation, provenance and maintenance have explicit entries or optional disclosures.
+- World presentation follows the user's latest catalogue / searchable left tree / right form references, using real DTO data and the existing sage palette. Background and description remain independent fields; the 世界观 editor changes `background` and omits an untouched `description`. Unchanged, invalid, stale, busy and retired saves are disabled in both UI and submit handler.
+- `sidebarSectionPath` maps editor and support routes to their visible sidebar owner without changing the actual route or backend workspace. World editors remain under 世界, goal editor/planning under 目标, diagnostics/data/setup under 管理中心.
 
 ## 4. Validation & Error Matrix
 

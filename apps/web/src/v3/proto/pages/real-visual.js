@@ -1,3 +1,4 @@
+import {MediaWorkspaceHeader} from './real-media.js';
 import {Avatar,bindAvatars} from '../components/avatar.js';
 import {visualReview} from '../components/visual-review.js';
 import {visualClient,mediaClient} from '../services.js';
@@ -7,17 +8,17 @@ import {mountCursorRecords} from '../components/cursor-records.js';
 import {mountVersionedFields} from '../components/versioned-fields.js';
 import {visualBriefFields,VisualIdentityState,VisualTimeline,bindVisualAssetErrors,VisualBriefSource} from '../components/visual-identity-records.js';
 import {governanceCommand} from '../components/governance-command.js';
-import {GovernanceHistory} from '../components/governance-records.js';
 import {JsonDetails} from '../components/records.js';
 import {esc} from '../ui.js';
+import {VisualBriefDiff} from '../components/visual-identity-records.js';
 export function renderRealVisualEditor(el,ctx){
  const fid=ctx.charId;
  return asyncPage(el,()=>visualClient.read(fid),(snapshot,reload,alive)=>{
-  el.innerHTML=`<div class="row" style="margin-bottom:12px"><a class="btn" href="#/c/${fid}/media/identity">视觉身份与生成结果</a><button class="btn" data-reload>重新读取</button></div><div class="card"><h2>视觉定义草稿</h2><p>本页编辑参考约束，不改变此刻身体与穿搭。保存会留下真实版本记录，并在新的视觉生成会话中使用。</p>${snapshot.brief?'':'<p class="small muted">尚未保存参考定义。下面是你的未提交输入。</p>'}<div data-brief-source>${VisualBriefSource(snapshot.brief)}</div><div data-editor></div></div><div class="card" style="margin-top:12px"><h3>定义修订</h3><div data-history></div></div>`;
+  el.innerHTML=`${MediaWorkspaceHeader(ctx,{title:'视觉定义',active:'identity'})}<div class="row" style="margin-bottom:12px"><a class="btn" href="#/c/${fid}/media/identity">视觉身份与生成结果</a><button class="btn" data-reload>重新读取</button></div><div class="card"><h2>视觉定义草稿</h2><p>本页编辑参考约束，不改变此刻身体与穿搭。保存会留下真实版本记录，并在新的视觉生成会话中使用。</p><p class="small muted" data-brief-status>${snapshot.brief?'已保存参考定义 v'+esc(snapshot.revision)+'；规范参考图需另行生成与评审。':'尚未保存参考定义。下面是你的未提交输入。'}</p><div data-brief-source>${VisualBriefSource(snapshot.brief)}</div><div data-editor></div></div><div class="card" style="margin-top:12px"><h3>定义修订</h3><div data-history></div></div>`;
   el.querySelector('[data-reload]').onclick=reload;
   const fields=Object.fromEntries(visualBriefFields.map(([name])=>[name,snapshot.brief?.[name]??'']));let history;
-  const editor=mountVersionedFields(el.querySelector('[data-editor]'),{scope:[fid,'visual-brief'],snapshot,values:fields,fields:visualBriefFields,read:()=>visualClient.read(fid),save:body=>visualClient.save(fid,body),readOnly:get('characters',fid)?.status==='已退休',onSaved:saved=>{if(alive())el.querySelector('[data-brief-source]').innerHTML=VisualBriefSource(saved.brief);return history.reload({reset:true});}});
-  history=mountCursorRecords(el.querySelector('[data-history]'),{alive,label:'定义修订',read:cursor=>visualClient.history(fid,cursor),render:r=>`<div class="card"><h3>参考定义 v${esc(r.revision)}</h3>${GovernanceHistory(r)}${JsonDetails(r.before_value,'修改前')}${JsonDetails(r.after_value,'修改后')}</div>`,empty:'尚无已保存定义。填写后保存即可建立首个版本。'});
+  const editor=mountVersionedFields(el.querySelector('[data-editor]'),{scope:[fid,'visual-brief'],snapshot,values:fields,fields:visualBriefFields,read:()=>visualClient.read(fid),save:body=>visualClient.save(fid,body),readOnly:get('characters',fid)?.status==='已退休',onSaved:saved=>{if(alive()){el.querySelector('[data-brief-source]').innerHTML=VisualBriefSource(saved.brief);el.querySelector('[data-brief-status]').textContent=`已保存参考定义 v${saved.revision}；规范参考图需另行生成与评审。`;}return history.reload({reset:true});}});
+  history=mountCursorRecords(el.querySelector('[data-history]'),{alive,label:'定义修订',read:cursor=>visualClient.history(fid,cursor),render:r=>`<div class="card"><h3>参考定义 v${esc(r.revision)}</h3>${VisualBriefDiff(r.before_value,r.after_value)}${JsonDetails(r,'完整修订与审核记录')}</div>`,empty:'尚无已保存定义。填写后保存即可建立首个版本。'});
   return()=>{editor();history.dispose();};
  });
 }
@@ -25,7 +26,7 @@ export function renderRealVisualIdentity(el,ctx){
  const fid=ctx.charId,owner=get('session')?.actorId;
  let active=true,identity=null,avatar=null,timer=null,reads=0,epoch=0,sessionId='',busy=false,refreshAgain=false;
  const errors={identity:'',avatar:'',observer:''},live=()=>active&&el.isConnected&&get('session')?.actorId===owner;
- el.innerHTML=`<div class="stack"><div class="row"><a class="btn" href="#/c/${fid}/media/identity/edit">编辑视觉定义</a><a class="btn ghost" href="#/c/${fid}/media/avatar">设置显示头像</a><button class="btn ghost" data-reload>重新读取</button><button class="btn" data-generate ${get('characters',fid)?.status==='已退休'?'disabled':''}>生成视觉身份</button></div><div class="grid visual-identity-layout"><div class="card" data-identity role="status">正在读取规范参考与候选…</div><aside class="card" data-avatar role="status">正在读取显示头像…</aside></div><p role="status" data-observer-status></p><p role="alert" data-generation-error></p><details class="card"><summary>完整生成与评审记录</summary><button class="btn ghost sm" data-timeline-refresh>读取最新记录</button><div data-timeline></div></details></div>`;
+ el.innerHTML=`<div class="stack">${MediaWorkspaceHeader(ctx,{title:'视觉身份与头像',active:'identity'})}<div class="row"><a class="btn" href="#/c/${fid}/media/identity/edit">编辑视觉定义</a><a class="btn ghost" href="#/c/${fid}/media/avatar">设置显示头像</a><button class="btn ghost" data-reload>重新读取</button><button class="btn" data-generate ${get('characters',fid)?.status==='已退休'?'disabled':''}>生成视觉身份</button></div><div class="grid visual-identity-layout"><div class="card" data-identity role="status">正在读取规范参考与候选…</div><aside class="card" data-avatar role="status">正在读取显示头像…</aside></div><p role="status" data-observer-status></p><p role="alert" data-generation-error></p><details class="card"><summary>完整生成与评审记录</summary><button class="btn ghost sm" data-timeline-refresh>读取最新记录</button><div data-timeline></div></details></div>`;
  function patch(host,markup){
   if(host.dataset.markup===markup)return;
   const open=[...host.querySelectorAll('details')].map((n,i)=>n.open?i:-1),focus=document.activeElement?.matches('[data-manual-review]');
@@ -40,7 +41,7 @@ export function renderRealVisualIdentity(el,ctx){
   if(avatar){patch(el.querySelector('[data-avatar]'),`<h3>当前显示头像</h3>${Avatar({src:avatar.avatar?.url?mediaClient.url(avatar.avatar.asset_id):'',name:get('characters',fid)?.name||'角色',size:'lg'})}<p class="small muted">${avatar.mode==='asset'?'使用选定素材':avatar.mode==='canonical'?'跟随规范参考':'显示方式待确认'}</p><p class="small muted">显示头像与规范参考分别保存。</p>`);bindAvatars(el.querySelector('[data-avatar]'));}
   else if(errors.avatar)el.querySelector('[data-avatar]').innerHTML='<h3>显示头像</h3><p>读取失败，可重新读取。</p>';
   el.querySelector('[data-generation-error]').textContent=Object.values(errors).filter(Boolean).join('；');
-  el.querySelector('[data-observer-status]').textContent=busy?'正在读取已有状态…':pending()?reads>=60?'自动跟进已暂停，可以重新读取。':'正在自动跟进这次视觉准备。':'';
+  el.querySelector('[data-observer-status]').textContent=busy?'正在读取已有状态…':pending()?reads>=60?'自动跟进已暂停；原任务仍保留，不代表超时失败。可以重新读取。':'正在自动跟进这次视觉准备。':'';
  }
  const pending=()=>['queued','running','character_sheet_pending'].includes(identity?.session?.status);
  const timeline=mountCursorRecords(el.querySelector('[data-timeline]'),{alive:live,label:'视觉记录',read:cursor=>visualClient.timeline(fid,cursor),render:VisualTimeline,empty:'尚无视觉任务记录。',bind:bindVisualAssetErrors});

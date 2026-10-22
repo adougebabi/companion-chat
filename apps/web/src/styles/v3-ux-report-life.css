@@ -1,0 +1,13 @@
+/* Reading feedback and source excerpts retain the accepted sage palette. */
+.reflection-progress-summary { padding-block: 8px; }
+[data-reflection-progress] .banner { margin-block: 12px; }
+[data-disabled-reason]:not(:empty) { padding: 10px 12px; border-radius: 8px; background: var(--surface-2, #eef4f1); }
+.story-source-excerpt { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.story-metric .story-relationship-value { font-size: 1rem; line-height: 1.5; }
+.story-metrics { grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); }
+.calendar-reading [data-month] { min-width: 44px; min-height: 44px; }
+[data-reading-status]:not(:empty) { padding-block: 8px; }
+@media (max-width: 760px) {
+ .calendar-reading .reading-sidebar { position: static; }
+ .story-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

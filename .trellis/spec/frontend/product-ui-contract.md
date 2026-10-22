@@ -126,12 +126,12 @@ Correct: render the action error within the modal slot, with retry and cancel re
   must not fall back to Foundation. Use contextual labels for booleans, not
   orphaned 是/否 or category/slot tokens. Preserve authored narratives under open
   or custom keys with a neutral Chinese label; technical fields remain folded.
-- The shared `userInstant` formatter validates zones, preserves milliseconds
-  and numeric offset for diagnostics, and shows the actual chosen zone. Missing
-  zone uses the browser's valid display zone; malformed zones cannot crash pages.
-  Schedule header, range and suggestion context choose schedule.timezone before
-  context.timezone. Compact ranges retain both dates across midnight; raw offset
-  timestamps remain in folded source and unchanged in commands.
+- Ordinary `userInstant` output follows the latest confirmed Beijing format in
+  `pen-interaction-contract.md`. Business local-day calculations still choose
+  schedule.timezone before context.timezone; ordinary instant inputs display
+  Beijing wall time without changing that business zone. Compact ranges retain
+  both dates across midnight. Precise diagnostic/source timestamps retain raw
+  precision and offsets in their own technical context and unchanged commands.
 - Diagnostic lifecycle/task labels use the domain presentation helper. Completed
   model/worker runs are not a claim of completed business effects. Primary cards
   show readable time/status/name; raw keys, IDs and error codes stay available in
@@ -228,3 +228,61 @@ reviewable proposal, then saves/applies through the owning existing commands.
 Global hover links have no underline per the latest user decision; keyboard
 focus outlines remain. Browser fixture replay and real NAS/model acceptance must
 be recorded separately; unavailable browser transport is an unverified check.
+
+## Scenario: UX report errors, validation and recovery (2026-10-22)
+
+### 1. Scope / Trigger
+Production v3 forms, asynchronous reads, configuration tests, long-running
+requests and world-definition composition. Source report9989026 predates the PC
+corrections; reconcile current behavior before reimplementing an item.
+
+### 2. Signatures
+- `errorMessage(error,fallback?)` from `v3/domain-presentation.mjs` supplies the ordinary error summary.
+- `installFieldValidation(root=document)` returns event-listener cleanup; native constraints and page `reportValidity()` remain active.
+- `asyncPage(el,read,paint,{backHref,backLabel,errorTitle?,errorFallback?}={})` keeps the original three arguments compatible.
+- `mountCursorRecords(box,{...,errorFallback?,onError?})` owns its independent epoch, cursor and last successful page.
+- `durableCommandDrawer({...options,originalOnly?,onPendingChange?})` can expose only recovery of an existing pending identity.
+- `configurationTestSummary(result)` classifies actual test evidence; `diagnosticTimeFilter(text)` converts ordinary Beijing input to an explicit instant.
+- `worldDefinitionError(body)` validates current ordinary world fields and optional `world-framework.v1` using Core's real types and limits.
+
+### 3. Contracts
+- Keep Chinese business errors; map known HTTP/network/error codes for ordinary reading. Raw source remains optional technical data, never interpolated unescaped.
+- Capture native invalid feedback as Chinese inline errors and focus the first actual control. Synchronize whitespace-required constraints before footer click/Enter/reportValidity; clear only the shared layer's own constraint when repaired, retaining page-specific errors.
+- Initial read failure removes loading and provides retry/explicit business return. Cursor refresh failure retains its last successful records and position. Disposed/old-scope reads do not repaint.
+- A healthy saved configuration is not evidence of a successful test. Failed call/error/last_error takes priority; completed worker execution is not an image, reflection, publication or applied effect.
+- Long waiting presents actual elapsed time and available original-request query/cancel. Never invent a 30-second terminal failure or generate a replacement identity. Recovery-only UI with no pending command cannot admit a new command.
+- Bell badge counts unread notifications only; pending counts remain separately labelled. Global NPC definition creation is Owner-authorized resource creation and does not require a runtime character. Runtime apply still requires its real target, versions and changed fields; existing runtime+empty diff disables and guards submit.
+- World resources cannot save/publish an empty ordinary definition in the editor. Optional framework keys/names must be strings before length/uniqueness checks. Keep unknown fields and historical server publications; do not synthesize a default world or change backend legacy compatibility.
+
+### 4. Validation & Error Matrix
+| Input / state | Required result |
+|---|---|
+| Pure whitespace required field, footer action | Chinese inline error, focus, no command |
+| Page-specific custom validity exists | Shared repair does not erase it |
+| First read rejects | No permanent loading, visible retry and business return |
+| Later page refresh rejects | Last successful page/cursor remains |
+| Test nested last_error with healthy configuration | Visible failed summary near test |
+| Existing runtime NPC has no diff | Disabled button and handler guard |
+| Original-only recovery has no identity | No new submit or empty-body command |
+| World framework key/name is numeric | Reject, do not coerce with String |
+
+### 5. Good / Base / Bad Cases
+Good: original turn is still processing, show elapsed time and query that exact
+turn. Base: unavailable image Provider displays actual failure without clearing
+an existing accepted reference. Bad: worker completed is presented as image
+success, or empty recovery creates a new mutation.
+
+### 6. Tests Required
+`ux-report-shell-chat.test.mjs` covers footer whitespace, repair and custom-error
+ownership, valid route metadata and scoped navigation. `ux-settings-support.test.mjs`
+covers failure precedence, Beijing parsing, initial/later read failure, bounded
+download and original-only recovery. `ux-report-creation.test.mjs` validates real
+framework field types and constraints. World/provider tests cover global creation
+without a runtime fid and unchanged wire request identity. Browser checks record
+actual 850px reflow and narrow-drawer to desktop inert cleanup; viewport reflow is
+not evidence of browser 250%/300% zoom or real Provider success.
+
+### 7. Wrong vs Correct
+Wrong: `if (worker.status==='completed') showSuccess(); retry(newId);`.
+Correct: inspect the original business result/artifact, display its readable
+failure or unknown state, and query/retry only the captured original identity.

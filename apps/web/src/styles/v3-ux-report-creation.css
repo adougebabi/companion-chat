@@ -1,0 +1,13 @@
+/* Resource composition owns its result reading space; input stays in place. */
+.studio-job-transcript { min-width: 0; }
+.studio-job-transcript > [data-job-messages] { max-height: 20rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.studio-job-panels [data-job-result] { min-width: 0; overflow-wrap: anywhere; }
+.studio [data-definition] fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.studio [data-definition] legend { padding-inline: 6px; font-weight: 600; }
+.studio .card > a.primary { align-self: flex-start; }
+.library-management { flex: 1 1 100%; min-width: 0; }
+.library-management > .stack { padding-block: 12px; }
+.library-management > summary { cursor: pointer; text-decoration: underline; text-underline-offset: .2em; }
+.library-card-actions { flex-wrap: wrap; }
+[data-library-search] { margin-block: 16px; align-items: end; }
+@media (max-width: 760px) { [data-library-search] { flex-wrap: wrap; } .studio-job-panels .chips { flex-wrap: wrap; } }

@@ -51,7 +51,7 @@ test('chat diagnosis follows the failed retry identity, not a newer queued messa
  assert.equal(chatDiagnosticTurn({...state,retryTurn:null,messages:[{...failed,id:'local-old'},state.messages[1]]}),null);
 });
 test('empty inventory is explicit without claiming nakedness; actual categories use shared labels',()=>{
- const html=CurrentInventory([],[]);assert.match(html,/当前没有已登记的穿着物品/);assert.doesNotMatch(html,/未穿衣|没有衣服/);
+ const html=CurrentInventory([],[]);assert.match(html,/当前没有已登记的穿着衣物/);assert.doesNotMatch(html,/未穿衣|没有衣服/);
  const card=InventoryCard({id:'one',fluctlight_id:'fl-one',description:'外套',category:'outdoor_clothing',slot:'outerwear',ownership:'unknown',availability:'available'});
  assert.match(card,/户外服装/);assert.doesNotMatch(card,/outdoor_clothing/);
 });

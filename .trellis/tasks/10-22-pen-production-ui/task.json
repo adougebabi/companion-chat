@@ -2,7 +2,7 @@
   "id": "pen-production-ui",
   "name": "pen-production-ui",
   "title": "按确认 Pen 设计实施正式前端",
-  "description": "按确认 Pen 直接修改正式组件与必要契约；本轮集中实施，画面与业务验收由用户统一进行",
+  "description": "按确认Pen实施正式组件；已接回PC设计回归及UX验收报告修复，等待用户重新部署验收",
   "status": "in_progress",
   "dev_type": null,
   "scope": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "实现交接见 delivery.md。G0—G7及四项收尾已落盘；仅必要静态/构建检查，等待用户统一验收，未提交/未部署。",
+  "notes": "最新见 ux-report-remediation.md。G0—G7、PC回归及UX报告修复已落盘；304项Web测试/类型/build/noMock通过，主会话有限本地复看。真实部署和条件状态待用户验收；未提交/未部署/未归档。",
   "meta": {}
 }

@@ -1,4 +1,5 @@
-import {exchangeNavigation,globalNavigation} from '../workspace-navigation.mjs';
+import {installFieldValidation} from './components/forms.js';
+import {exchangeNavigation,globalNavigation,sidebarSectionPath,characterSwitchHref} from '../workspace-navigation.mjs';
 import {Avatar,bindAvatars} from './components/avatar.js';
 import { ApplicationShell } from './components/shell.js';
 import * as store from './store.js';
@@ -43,6 +44,7 @@ export function goBack() {
 
 function shell(host) {
   host.innerHTML = ApplicationShell();
+  const stopValidation=installFieldValidation();
   ui.$('#notesT').onchange = e => store.setUi({ notes: e.target.checked });
   ui.$('#charsw').onclick = e => charMenu(e.currentTarget);
   if (store.isMock) ui.$('#demoBtn').onclick = e => demoMenu(e.currentTarget);
@@ -54,22 +56,23 @@ function shell(host) {
     const src = e.target.closest('[data-source]'); if (src) { e.preventDefault(); ui.sourceDrawer(src.dataset.source); }
   };
   document.addEventListener('click', onDocumentClick);
-  return () => document.removeEventListener('click', onDocumentClick);
+  return () => {stopValidation();document.removeEventListener('click', onDocumentClick);};
 }
 function popmenu(anchor, items) {
   document.querySelector('.popmenu')?.remove();
   const m = document.createElement('div'); m.className = 'popmenu';
-  const r = anchor.getBoundingClientRect(); m.style.top = (r.bottom + 6 + scrollY) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - 260)) + 'px';
+  const r = anchor.getBoundingClientRect(); m.style.position='fixed'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - 260)) + 'px';
   m.innerHTML = items.map((it, i) => it === '-' ? '<hr style="border:0;border-top:1px solid var(--line)">' : `<button data-i="${i}" ${it.test ? `data-test="${it.test}"` : ''}>${it.html}</button>`).join('');
   document.body.append(m); bindAvatars(m);
+  const height=m.getBoundingClientRect().height;m.style.top=Math.max(8,Math.min(r.bottom+6,innerHeight-height-8))+'px';
   m.onclick = e => { const b = e.target.closest('[data-i]'); if (b) { m.remove(); items[b.dataset.i].run(); } };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', off); } }), 0);
 }
 function charMenu(a) {
   const groups = store.list('groups');
   const items = [];
-  groups.forEach(g => store.list('characters', c => c.groupId === g.id).forEach(c => items.push({ test: 'switch-' + c.id, html: `${Avatar({src:c.avatar,name:c.name,size:'sm'})} <span class="grow">${esc(c.name)} <span class="small muted">· ${esc(g.name)}</span></span>${badge(c.status, c.status === '正常' ? '已确认' : c.status === '异常' ? '失败' : '未知')}`,
-    run: () => { if (c.status === '已退休') ui.toast(c.name+'已退休，仅可在角色库查看归档'); store.setUi({ charId: c.id }); navigate(`#/c/${c.id}/chat`); } })));
+  groups.forEach(g => store.list('characters', c => c.groupId === g.id).forEach(c => items.push({ test: 'switch-' + c.id, html: `${Avatar({src:c.avatar,name:c.name,size:'sm'})} <span class="grow">${esc(c.name)}${c.id===store.get('ui').charId?' · 当前':''} <span class="small muted">· ${esc(g.name)}</span></span>${badge(c.status, c.status === '正常' ? '已确认' : c.status === '异常' ? '失败' : '未知')}`,
+    run: () => { if (c.status === '已退休') ui.toast(c.name+'已退休，仅可在角色库查看归档'); store.setUi({ charId: c.id }); navigate(characterSwitchHref(current?.ctx.raw,c.id)); } })));
   items.push('-', { html: `${icon('home')} 角色库`, run: () => navigate('#/library') });
   popmenu(a, items);
 }
@@ -83,8 +86,10 @@ function moreMenu(a) {
     { html: `${icon('info')} ${store.get('ui').notes ? '隐藏' : '显示'}原型说明`, run: () => store.setUi({ notes: !store.get('ui').notes }) }] : [])]);
 }
 function renderChrome(ctx) {
+  const authenticated=store.isMock||!!store.get('session');
+  document.querySelector('.layout').classList.toggle('is-unauthenticated',!authenticated);
   const st = store.get('ui'); const c = store.get('characters', ctx.charId) || { id: ctx.charId||'', name: ctx.charId?'角色资料待读取':'角色库', avatar: '', worldId: null }; const w = store.get('worlds', c.worldId);
-  ui.$('#narrowPageTitle').textContent=ctx.def.title.replace(/^生活 · /,'');
+  ui.$('#narrowPageTitle').textContent=(ctx.path==='/auth'?'所有者登录':ctx.def.title).replace(/^生活 · /,'');
   ui.$('#narrowPageScope').textContent=c.id?c.name+(w?.name?' · '+w.name:''):ctx.def.scope||'';
   ui.$('#narrowBack').hidden=!ctx.def.backHref&&back.length<=1&&!ctx.query.from;
   ui.$('#charsw').innerHTML = `${Avatar({src:c.avatar,name:c.name})}<b>${esc(c.name)}</b>${icon('more')}`;
@@ -94,12 +99,16 @@ function renderChrome(ctx) {
   ui.$$('#scopebar .ident button').forEach(b => b.onclick = () => { store.setUi({ identity: b.dataset.v }); navigate(b.dataset.v==='管理'?'#/settings':c.id?`#/c/${c.id}/chat`:'#/library'); });
   const pending=store.pending(ctx.charId);
   const meta=store.get('meta');
-  const unread = store.isMock ? (pending===null ? null : store.get('notices').filter(n => !n.read).length + pending.length) : (typeof meta.alertCount==='number' && typeof meta.pendingCount==='number' && meta.pendingPartial===false ? meta.alertCount+meta.pendingCount : null);
+  const unread = store.isMock ? store.get('notices').filter(n => !n.read).length : (typeof meta.alertCount==='number' ? meta.alertCount : null);
+  const pendingCount=store.isMock?pending?.length:meta.pendingPartial===false?meta.pendingCount:null;
+  const notificationSummary=`${unread===null?'未读通知数量待更新':`${unread} 条未读通知`}；${typeof pendingCount==='number'?`${pendingCount} 项待处理`:'待处理数量待更新'}。通知已读不会处理待办。`;
   ui.$('#bellc').textContent = unread===null?'?':unread; ui.$('#bellc').style.display = unread===null || unread ? '' : 'none';
-  ui.$('#bellc').title=unread===null?'部分待处理来源尚未读取，不能判断是否全部处理完':'';
+  ui.$('#bellc').title=notificationSummary;
+  ui.$('[data-test="bell"]').setAttribute('aria-label',notificationSummary);
+  ui.$('[data-test="bell"]').title=notificationSummary;
   ui.$('#notesT').checked = store.isMock && st.notes; document.body.classList.toggle('show-notes', store.isMock && !!st.notes);
-  const p = ctx.path; const base = `#/c/${c.id}/`;
-  const on = path => p === '/c/' + c.id + '/' + path || p.startsWith('/c/' + c.id + '/' + path + '/');
+  const p = ctx.path; const sectionPath=sidebarSectionPath(p); const base = `#/c/${c.id}/`;
+  const on = path => sectionPath === '/c/' + c.id + '/' + path || sectionPath.startsWith('/c/' + c.id + '/' + path + '/');
   const navigation=(c.id?exchangeNavigation:[]).map(n=>{
     if(!n.subs)return `<a class="navlink ${on(n.path)?'on':''}" href="${base}${n.path}" ${on(n.path)?'aria-current="page"':''}>${icon(n.icon)} ${n.label}</a>`;
     const key=JSON.stringify([c.id,n.k]);
@@ -107,10 +116,10 @@ function renderChrome(ctx) {
     return `<details class="nav-group" data-nav-group="${esc(key)}" ${expanded?'open':''}><summary class="navlink ${p.includes('/life/')?'on':''}">${icon(n.icon)} ${n.label}<span class="spacer"></span><span class="nav-chevron" aria-hidden="true">⌄</span></summary>${n.subs.map(([l,sp,ic])=>`<a class="navlink sub ${on(sp)?'on':''}" href="${base}${sp}" ${on(sp)?'aria-current="page"':''}>${icon(ic)} ${l}</a>`).join('')}</details>`;
   }).join('');
   const globalItems=[['动态','#/feed','feed'],['通知与待处理','#/inbox','inbox'],['角色库','#/library','home'],['创作工坊','#/studio','studio'],['管理中心','#/settings','settings']];
-  ui.$('#sidenav').innerHTML = `<div class="sec">${esc(w?.name||'角色空间')}</div>${navigation}<div class="sec navigation-other">其他空间</div>${globalItems.map(([l,h,i])=>`<a class="navlink ${('#'+p).startsWith(h)?'on':''}" href="${h}">${icon(i)} ${l}</a>`).join('')}`;
+  ui.$('#sidenav').innerHTML = `<div class="sec">${esc(w?.name||'角色空间')}</div>${navigation}<div class="sec navigation-other">其他空间</div>${globalItems.map(([l,h,i])=>`<a class="navlink ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'on':''}" href="${h}" ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'aria-current="page"':''}>${icon(i)} ${l}</a>`).join('')}`;
   const bindNavigation=root=>root.querySelectorAll('[data-nav-group]').forEach(details=>details.addEventListener('toggle',()=>navigationExpansion.set(details.dataset.navGroup,details.open)));
   bindNavigation(ui.$('#sidenav'));
-  ui.$('#navDrawer').onclick = () => { const d = ui.drawer({ title: '全部页面', body: `<div class="row"><b class="grow">${esc(c.name)}</b><button class="btn sm" data-switch-character>切换角色</button></div>`+ui.$('#sidenav').innerHTML }); bindNavigation(d.body);d.body.querySelector('[data-switch-character]').onclick=()=>{d.close();charMenu(ui.$('#navDrawer'));};d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
+  ui.$('#navDrawer').onclick = () => { const wide=matchMedia('(min-width:761px)'); const closeOnWide=()=>{if(wide.matches)d.close();}; const d = ui.drawer({onClose:()=>wide.removeEventListener('change',closeOnWide), title: '全部页面', body: `<div class="row"><b class="grow">${esc(c.name)}</b><button class="btn sm" data-switch-character>切换角色</button></div>`+ui.$('#sidenav').innerHTML }); wide.addEventListener('change',closeOnWide);bindNavigation(d.body);d.body.querySelector('[data-switch-character]').onclick=()=>{d.close();charMenu(ui.$('#navDrawer'));};d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
 }
 function renderPage() {
   disposePage?.(); disposePage = null;
@@ -120,8 +129,8 @@ function renderPage() {
   ctx.state = state; renderChrome(ctx);
   const returnTo=typeof ctx.query.returnTo==='string'&&ctx.query.returnTo.startsWith('#/')?ctx.query.returnTo:null;
   const showBack = back.length > 1 || ctx.query.from;
-  const backControl=returnTo?`<a class="btn sm" href="${esc(returnTo)}" data-test="back">${icon('back')} ${esc(ctx.query.returnLabel||'返回来源')}</a>`:def.backHref?`<a class="btn sm" href="${esc(def.backHref)}" data-test="back">${icon('back')} ${esc(def.backLabel||'返回')}</a>`:showBack?`<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>`:'';
-  main.innerHTML = `<div class="pagehead">${backControl}<h1>${ctx.path.includes('/life/')?'生活':def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
+  const backControl=ctx.path==='/auth'&&!store.get('session')&&!store.isMock?'':returnTo?`<a class="btn sm" href="${esc(returnTo)}" data-test="back">${icon('back')} ${esc(ctx.query.returnLabel||'返回来源')}</a>`:def.backHref?`<a class="btn sm" href="${esc(def.backHref)}" data-test="back">${icon('back')} ${esc(def.backLabel||'返回')}</a>`:showBack?`<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>`:'';
+  main.innerHTML = `<div class="pagehead">${backControl}<h1>${ctx.path==='/auth'?'所有者登录':ctx.path.includes('/life/')?'生活':def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
     ${ui.notesPanel(def)}<div id="page" data-page="${def.key}"></div>`;
   const el = ui.$('#page');
   const bootstrapWarning=store.get('meta')?.bootstrapWarning;if(bootstrapWarning)el.insertAdjacentHTML('beforebegin',`<div class="banner info">${esc(bootstrapWarning)}</div>`);

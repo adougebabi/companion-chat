@@ -23,3 +23,17 @@ export function domainName(value,fallback='运行记录'){
 
 const visualStages={session_created:'生成任务已登记',seed_requested:'正在整理外观设定',seed_ready:'外观设定已整理',image_requested:'正在生成候选图',image_ready:'候选图已生成',vision_requested:'正在检查形象一致性',vision_ready:'形象检查已返回',patch_requested:'正在整理修正',patch_ready:'修正内容已准备',regenerate:'正在重新生成',accepted:'规范参考图已接受',character_sheet_requested:'正在生成角色设定图',character_sheet_ready:'角色设定图已生成',completed:'视觉准备已完成',failed:'本次生成失败'};
 export function visualStageLabel(value,fallback='生成阶段记录'){return visualStages[value]||fallback;}
+
+// A user-facing summary only. Callers retain the original value in technical details.
+export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
+ const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
+ const source=code+' '+text;
+ if(error?.status===401||/\b401\b|invalid_password|invalid_credentials/.test(source))return '登录未成功，请检查密码并重新登录。';
+ if(error?.status===403||/\b403\b|forbidden/.test(source))return '当前账户没有执行此操作的权限。';
+ if(error?.status===404||/resource not found|could not be read|not_found/.test(source))return '没有找到这条记录，请返回列表核对。';
+ if(error?.status===409||/current_facts_stale|actor_context_stale|version_conflict/.test(source))return '资料版本已变化，草稿已保留，请重新读取后核对。';
+ if(/request_timeout|timed? ?out|TimeoutError/.test(source))return '等待服务响应超时，结果尚需核对；请查询原请求，避免重复提交。';
+ if(/request_failed|Failed to fetch|NetworkError|fetch failed|unavailable/.test(source))return '服务暂时无法连接，请稍后重新读取。';
+ if(/[\u3400-\u9fff]/u.test(text))return text.replace(/\b[a-z][a-z0-9]*_[a-z0-9_]+\b/gi,'（详情见技术记录）');
+ return fallback;
+}

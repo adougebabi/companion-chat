@@ -1,3 +1,5 @@
+import { formatBeijingInstant } from "./instant.ts";
+
 type JsonRecord = Record<string, unknown>;
 
 const labels: Record<string, string> = {
@@ -408,66 +410,17 @@ export function resolveTimezone(...candidates: Array<string | undefined>): strin
   return "Asia/Shanghai";
 }
 
-function dateParts(value: string, timezone: string): { day: string; text: string } | null {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const formatter = new Intl.DateTimeFormat("zh-CN", {
-    timeZone: timezone,
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
-  return { day: `${parts.month}-${parts.day}`, text: `${parts.hour}:${parts.minute}` };
+// Keep the existing signatures for callers that also use business timezones.
+// These functions only render text and never convert command/input values.
+export function formatZonedRange(start: unknown, end: unknown, ..._timezones: Array<string | undefined>): string {
+  if (typeof start !== "string" || typeof end !== "string" || !Number.isFinite(Date.parse(start)) || !Number.isFinite(Date.parse(end))) return "时间未设定";
+  return `${formatBeijingInstant(start)} – ${formatBeijingInstant(end)}`;
 }
 
-export function formatZonedRange(start: unknown, end: unknown, ...timezones: Array<string | undefined>): string {
-  if (typeof start !== "string" || typeof end !== "string") return "时间未设定";
-  const timezone = resolveTimezone(...timezones);
-  const startParts = dateParts(start, timezone);
-  const endParts = dateParts(end, timezone);
-  if (!startParts || !endParts) return "时间未设定";
-  const prefix = startParts.day === endParts.day ? "" : `${startParts.day} `;
-  const endPrefix = startParts.day === endParts.day ? "" : `${endParts.day} `;
-  return `${prefix}${startParts.text} – ${endPrefix}${endParts.text}`;
+export function formatZonedTime(value: unknown, ..._timezones: Array<string | undefined>): string {
+  return formatBeijingInstant(value);
 }
 
-export function formatZonedTime(value: unknown, ...timezones: Array<string | undefined>): string {
-  if (typeof value !== "string") return "时间未设定";
-  const parts = dateParts(value, resolveTimezone(...timezones));
-  return parts ? parts.text : "时间未设定";
-}
-
-export function formatTimelineTime(value: unknown, ...timezones: Array<string | undefined>): string {
-  if (typeof value !== "string") return "时间未设定";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "时间未设定";
-  const timezone = resolveTimezone(...timezones);
-  const formatter = new Intl.DateTimeFormat("zh-CN", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
-  const current = new Date();
-  const currentParts = Object.fromEntries(formatter.formatToParts(current).map((part) => [part.type, part.value]));
-  const previous = new Date(current.getTime() - 86_400_000);
-  const previousParts = Object.fromEntries(formatter.formatToParts(previous).map((part) => [part.type, part.value]));
-  const key = `${parts.year}-${parts.month}-${parts.day}`;
-  const currentKey = `${currentParts.year}-${currentParts.month}-${currentParts.day}`;
-  const previousKey = `${previousParts.year}-${previousParts.month}-${previousParts.day}`;
-  const dayLabel = key === currentKey
-    ? "今天"
-    : key === previousKey
-      ? "昨天"
-      : parts.year === currentParts.year
-        ? `${parts.month}月${parts.day}日`
-        : `${parts.year}年${parts.month}月${parts.day}日`;
-  return `${dayLabel} ${parts.hour}:${parts.minute}`;
+export function formatTimelineTime(value: unknown, ..._timezones: Array<string | undefined>): string {
+  return formatBeijingInstant(value);
 }

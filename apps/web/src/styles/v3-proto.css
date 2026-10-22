@@ -640,3 +640,21 @@ html,body{scroll-padding-top:96px}
 .media-page [data-media-list]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}.media-asset-card{padding:0;overflow:hidden;min-width:0;display:flex;flex-direction:column}.media-card-cover{height:176px;display:grid;place-items:center;background:var(--primary-soft,#e5efeb);overflow:hidden}.media-card-cover img{width:100%;height:100%;object-fit:cover}.media-kind-cover{font-size:40px;color:var(--primary,#36756b)}.media-card-body{padding:16px;display:flex;flex:1;flex-direction:column;gap:10px;overflow-wrap:anywhere}.media-card-body h3,.media-card-body p{margin:0}.media-card-body .btn{margin-top:auto;min-height:44px;justify-content:center}.moment-workspace{max-width:760px;margin:20px auto}.moment-compose-actions{margin-bottom:20px}.moment-post{display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;background:var(--surface,#fff);padding:24px 16px;border-bottom:1px solid var(--line)}.moment-body{min-width:0}.moment-body>p{white-space:pre-wrap;overflow-wrap:anywhere}.moment-media{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.moment-media .media-preview{width:100%;max-height:280px;object-fit:cover;border-radius:8px}.moment-actions>.btn,.moment-more>summary{min-height:44px}.moment-more{position:relative}.moment-more>summary{display:flex;align-items:center;cursor:pointer;padding:0 12px}.moment-more-menu{position:absolute;right:0;z-index:5;min-width:160px;display:flex;flex-direction:column;background:var(--surface,#fff);padding:8px;box-shadow:0 8px 24px #19362b22;border:1px solid var(--line);border-radius:8px}
 @media(max-width:1100px){.media-page [data-media-list]{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.media-page [data-media-list]{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.media-card-cover{height:120px}.media-card-body{padding:12px}.moment-post{grid-template-columns:40px minmax(0,1fr);gap:12px;padding:20px 0}.moment-avatar .av{width:40px;height:40px}.moment-compose-actions>.btn{flex:1}}
+
+/* UX report: bounded menus, intermediate chat width, honest validation. */
+.popmenu{max-height:calc(100dvh - 16px);max-width:calc(100vw - 16px);overflow:auto}.popmenu button{min-height:44px}
+.field-error{display:block;color:var(--err);font-size:13px;line-height:1.6;margin-top:4px}
+.input[aria-invalid="true"],.select[aria-invalid="true"]{border-color:var(--err);outline-color:var(--err)}
+.msg.me .bubble{text-align:left}.located-message{outline:2px solid var(--primary);outline-offset:4px;border-radius:8px}
+.chat-view-help{margin:0;padding:8px 28px;background:var(--primary-soft)}.chat-view-help[hidden]{display:none}
+.chat-attachment{margin:0 28px 8px;flex-wrap:wrap}.chat-feedback-text{overflow-wrap:anywhere}
+.stable-navigation .charsw b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.stable-navigation .sidenav{margin-bottom:64px;padding-bottom:8px}
+.is-unauthenticated .stable-navigation,.is-unauthenticated~.bottombar{display:none}.is-unauthenticated{padding-top:0}.is-unauthenticated>.main{width:100%;min-height:100dvh}
+@media(min-width:761px) and (max-width:1100px){
+ .chatwrap,.chatwrap.summary-folded{grid-template-columns:minmax(0,1fr);position:relative}
+ .chat-page .chatside{display:none}.chat-related-button{display:inline-flex}
+ .chat-page .chatside.is-open{display:flex;position:absolute;inset:0;z-index:5;border:0}
+ .chatwrap:has(.chatside.is-open) .chatcol{visibility:hidden}.summary-mobile-back{display:inline-flex}
+}
+@media(max-width:760px){.chat-attachment{margin:0 20px 8px}.is-unauthenticated .main>.pagehead{display:flex;position:static;margin:0 0 20px;padding:0;border:0}}

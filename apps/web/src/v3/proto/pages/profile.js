@@ -1,3 +1,5 @@
+import {errorMessage} from '../../domain-presentation.mjs';
+import {toast} from '../ui.js';
 import {get as readStore} from '../store.js';
 import { randomId } from '../../../random-id.mjs';
 import { Field } from '../components/forms.js';
@@ -22,8 +24,9 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
   const token = {}; views.set(el, token);
   const pageKey = el.dataset.page;
   const current = () => !options.signal?.aborted && views.get(el) === token && el.dataset.page === pageKey;
-  let snapshot; let pending = false; let commandKey; let commandFingerprint;let progressView=null;
+  let snapshot; let pending = false; let commandKey; let commandFingerprint;let progressView=null;let preparationOpen=false;
   options.signal?.addEventListener('abort',()=>progressView?.dispose(),{once:true});
+  let bioDraft=null;
   let draft = { targetPersonaId: '', reason: '', confirm: false };
   if (!provider) {
     el.innerHTML = '<div class="statebox"><h2>角色资料尚未连接</h2><p class="muted">无法读取当前角色的资料。</p></div>'; return;
@@ -35,9 +38,12 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
   }
   function paint() {
     if (!current()) return;
+    const expanded=[...el.querySelectorAll('details')].map((node,index)=>node.open?index:-1);
+    const preparation=el.querySelector('[data-profile-preparation]');if(preparation)preparationOpen=preparation.open;
     progressView?.dispose();progressView=null;
     const id = encodeURIComponent(snapshot.id);
-    el.innerHTML = `<div class="stack" data-test="profile-detail">${ProfileHeader(snapshot, Boolean(provider.editBio))}${provider.progress?'<section class="card stack" data-initialization-progress></section>':''}${ProfileGroups(snapshot)}${PersonaSection(snapshot, Boolean(provider.switchPersona))}${PersonaHistory(snapshot)}<div class="row"><a class="btn" href="#/c/${id}/people/owner">关于你</a>${readStore('ui').identity==='管理'?`<a class="btn" href="#/c/${id}/governance">身份与能力治理</a><a class="btn" href="#/c/${id}/worlds">世界管理</a>`:''}${snapshot.mode!=='mock'?`<a class="btn" href="#/c/${id}/media/avatar">显示头像</a>`:''}</div></div>`;
+    el.innerHTML = `<div class="stack" data-test="profile-detail">${ProfileHeader(snapshot, Boolean(provider.editBio))}${ProfileGroups(snapshot)}${provider.progress?`<details class="card profile-preparation" data-profile-preparation ${preparationOpen?'open':''}><summary><span>人物准备进度</span><span class="small muted">头像、规范参考与设定图</span></summary><div class="stack profile-preparation-body" data-initialization-progress></div></details>`:''}${PersonaSection(snapshot, Boolean(provider.switchPersona))}${PersonaHistory(snapshot)}<div class="row"><a class="btn" href="#/c/${id}/people/owner">关于你</a>${readStore('ui').identity==='管理'?`<a class="btn" href="#/c/${id}/governance">身份与能力治理</a><a class="btn" href="#/c/${id}/worlds">世界管理</a>`:''}${snapshot.mode!=='mock'?`<a class="btn" href="#/c/${id}/media/avatar">显示头像</a>`:''}</div></div>`;
+    el.querySelectorAll('details').forEach((node,index)=>{if(expanded.includes(index))node.open=true;});
     bindAvatars(el);
     if(provider.progress)progressView=mountInitializationProgress(el.querySelector('[data-initialization-progress]'),{fid:snapshot.id,read:provider.progress,alive:current});
     const form = el.querySelector('[data-profile-switch]');
@@ -108,14 +114,15 @@ export async function renderProfilePage(el, ctx, provider = configuredProvider, 
   function formField(name) { return el.querySelector('[data-profile-switch]').elements[name]; }
   function editBio() {
     if (pending || !provider.editBio || snapshot.readOnly) return;
-    const d = drawer({ title: '编辑简介 · 所有者修改', body: `${Field({ label: '简介', name: 'bio', value: snapshot.bio, type: 'textarea', rows: 4, attrs: { 'data-test': 'bio-input' } })}<p class="small muted">修改角色范围的资料，会写入审计。</p><div data-bio-error role="alert"></div>`, footer: '<button class="btn" data-c data-test="bio-cancel">取消</button><button class="btn accent" data-ok data-test="bio-save">保存</button>' });
+    const d = drawer({ title: '编辑简介 · 所有者修改', body: `${Field({ label: '简介', name: 'bio', value: bioDraft??snapshot.bio, type: 'textarea', rows: 4, attrs: { 'data-test': 'bio-input' } })}<p class="small muted">这里编辑简介（背景摘要），不会覆盖完整经历。已有经历与其他隐藏资料保持原样；保存会写入审计。</p><div data-bio-error role="alert"></div>`, footer: '<button class="btn" data-c data-test="bio-cancel">取消</button><button class="btn accent" data-ok data-test="bio-save">保存</button>' });
+    const input=d.el.querySelector('[name=bio]'),count=document.createElement('p');count.className='small muted';input.after(count);const update=()=>{bioDraft=input.value;count.textContent=`当前 ${[...input.value].length} 字；长简介在资料卡中折叠阅读。`;};input.oninput=update;update();
     d.el.querySelector('[data-c]').onclick = () => d.close();
     d.el.querySelector('[data-ok]').onclick = async () => {
       const bio = d.el.querySelector('[name=bio]').value.trim();
       if (!bio) { d.el.querySelector('[data-bio-error]').textContent = '请填写简介'; return; }
       const button = d.el.querySelector('[data-ok]'); button.disabled = true;
-      try { await provider.editBio(ctx.charId, bio, snapshot.foundationRevision); d.close(); if (current()) await load(true); }
-      catch (error) { d.el.querySelector('[data-bio-error]').textContent = error?.message || '简介保存未确认成功，内容已保留，请重试。'; }
+      try { await provider.editBio(ctx.charId, bio, snapshot.foundationRevision); if(!current())return;if(input.value.trim()===bio){bioDraft=null;d.close();}else{d.el.querySelector('[data-bio-error]').textContent='已保存刚才提交的简介，期间新增编辑已保留。';}await load(true);toast('简介已保存并读取最新资料','ok'); }
+      catch (error) { d.el.querySelector('[data-bio-error]').textContent = errorMessage(error,'简介保存未确认成功，内容已保留，请重试。'); }
       finally { button.disabled = false; }
     };
   }

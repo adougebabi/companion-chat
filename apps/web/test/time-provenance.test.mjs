@@ -4,10 +4,12 @@ import test from "node:test";
 import { messageTimeLabel } from "../src/lib/message-time.ts";
 import { zonedLocalInputToISO } from "../src/lib/zoned-local-input.ts";
 
-test("message wall clock remains at the original sender offset", () => {
+test("message reading uses Beijing time while preserving sender provenance", () => {
   const message = { createdAt: "2026-07-01T12:00:05Z", senderTimezone: "America/New_York", senderUtcOffsetMinutes: -240, senderSentAt: "2026-07-01T12:00:00Z" };
-  assert.equal(messageTimeLabel(message), "08:00 · America/New_York (UTC−04:00)");
-  assert.match(messageTimeLabel({ createdAt: "2026-07-01T12:00:00Z" }), /旧消息，发送时区未知/);
+  assert.equal(messageTimeLabel(message), "2026-07-01 20:00 (北京时间)");
+  assert.equal(messageTimeLabel({ createdAt: "2026-07-01T12:00:00Z" }), "2026-07-01 20:00 (北京时间)");
+  assert.equal(message.senderUtcOffsetMinutes, -240);
+  assert.equal(message.senderTimezone, "America/New_York");
 });
 
 test("datetime-local is interpreted in Fluctlight timezone with explicit DST policy", () => {

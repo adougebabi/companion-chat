@@ -18,7 +18,7 @@ R('/c/:charId/world/items/:itemId','world.items.detail','物品定义与取得�
 R('/c/:charId/world/events', 'world.event.list', '世界变化与事件流', 'BP-11', '仅展示', W.renderEvents, '世界事件', { scope: '运行世界' });
 R('/c/:charId/world/scene', 'world.scene.view', '当前场景', 'BP-10.3', '可操作', W.renderScene, '场景', { scope: '运行世界', source: '默认远程查看，无“进入场景”按钮' });
 R('/c/:charId/world/settings', 'world.instance.settings', '运行世界设定 · 随机事件', 'BP-10/11', '可操作', W.renderWorldSettings, '世界设定', { scope: '运行世界', source: '永久伤害类事件系统强制禁用，不可绕过' });
-R('/c/:charId/people', 'people.graph.view', '人物关系', 'BP-12', '仅展示', W.renderGraph, '人物关系');
+R('/c/:charId/people', 'people.graph.view', '人物关系', 'BP-12', '仅展示', W.renderPeople, '人物关系');
 R('/c/:charId/people/npc/new', 'people.npc.create', '新建 NPC 定义', 'BP-12/15', '可操作', renderNPCDefinition, '人物', { manualRefresh: true });
 R('/c/:charId/people/npc/:npcId/edit', 'people.npc.edit', '编辑 NPC', 'BP-12', '可操作', renderNPCEditor, '人物', { manualRefresh: true });
 R('/c/:charId/people/npcs', 'people.npc.manage', 'NPC 管理', 'BP-12', '可操作', renderNPCManagement, '人物', { manualRefresh: true });

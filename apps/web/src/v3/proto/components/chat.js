@@ -29,10 +29,10 @@ export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, charac
   const me = m.from === 'user'; const md = m.mediaId && mediaById(m.mediaId);
   const timestamp = String(m.at || ''), compactTime = /^\d{2}:\d{2}(?::\d{2})? · /.test(timestamp) ? timestamp.split(' · ')[0] : timestamp;
   const marks = [m.recall ? badge('回忆', 'plain') : '', m.corrected ? `<span class="corrected" data-test="corrected">${icon('check')} 已纠正 · 记忆 #${m.memoryRef}</span>` : '', m.feedback ? `<span class="corrected" style="background:var(--primary-soft);color:var(--primary-strong)">已告诉她</span>` : ''].join('');
-  return `<div class="msg ${me ? 'me' : ''}" data-msg="${m.id}">${Avatar({src:me?'/v3/assets/avatars/user.svg':characterAvatar,name:me?'你':characterName})}
+  return `<div class="msg ${me ? 'me' : ''}" data-msg="${esc(m.id)}">${Avatar({src:me?'/v3/assets/avatars/user.svg':characterAvatar,name:me?'你':characterName})}
    <div class="message-content"><div class="message-identity">${esc(me?senderName:characterName)}</div><div class="bubble">${esc(m.text)}${mediaUrl ? (m.attachmentRefs || []).map(id => `<div class="genimg"><img src="${esc(mediaUrl(id))}" alt="会话媒体" loading="lazy"></div>`).join('') : ''}${md ? `<div style="margin-top:8px">${GeneratedImage(md)}</div>` : ''}</div>
    <div class="meta"><time title="${esc(timestamp)}" aria-label="${esc(timestamp)}">${esc(compactTime)}</time> ${m.identity && m.identity !== '交流' ? badge(m.identity) : ''} ${marks}
-     ${!me&&viewMode==='管理'?`<span class="tools"><button class="chip" data-source="${esc(m.id)}">${icon('link')} 查看来源</button></span>`:''}</div></div></div>`;
+     <button type="button" class="chip" data-copy-message="${esc(m.id)}" aria-label="复制消息">复制</button>${!me&&viewMode==='管理'?`<span class="tools"><button class="chip" data-source="${esc(m.id)}">${icon('link')} 查看来源</button></span>`:''}</div></div></div>`;
 }
 
 export function MessageLog(messages, options = {}) {
@@ -46,6 +46,7 @@ export function ChatPanel({ character, summary='', messages, messageOptions, sid
   return `<div class="chatwrap"><section class="chatcol">
     <div class="chathead"><div class="grow"><h2>和${esc(character.name)}聊聊</h2><div class="small muted">以 ${esc(senderName)} 的身份私聊${worldName?` · ${esc(worldName)}`:''}</div></div>
       <div class="chat-head-actions"><a class="btn ghost sm" href="#/c/${character.id}/chat/history">历史与搜索</a><a class="btn ghost sm" href="#/c/${character.id}/people/owner">关于你</a><div class="ident" role="group" aria-label="聊天查看方式">${['交流','管理'].map(mode=>`<button type="button" data-chat-view="${mode}" aria-pressed="${mode===viewMode}" class="${mode===viewMode?'on':''}">${mode}</button>`).join('')}</div></div></div>
+    <p class="small muted chat-view-help" data-chat-view-help ${viewMode==='管理'?'':'hidden'}>管理视图可查看每条回复的来源与处理记录。</p>
     ${summary}
     <div class="message-area">${MessageLog(messages, messageOptions)}<button class="latest-messages btn" data-latest hidden aria-label="回到最新消息">⇊ <span data-new-count></span></button></div>
     ${TextComposer({ placeholder: '和小遥说点什么…' })}

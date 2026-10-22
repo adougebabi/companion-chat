@@ -1,17 +1,21 @@
+import {errorMessage} from '../src/v3/domain-presentation.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {userInstant} from '../src/v3/presentation-time.mjs';
 import {persistentCommand} from '../src/v3/providers/persistent-command.mjs';
 
+const comparisonSource=readFileSync(new URL('../src/v3/proto/components/studio-comparison.js',import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replaceAll('export function ','function ');
+const {StudioComparison,studioChanges}=Function('esc','DiffRows','semanticLabel',comparisonSource+'\nreturn {StudioComparison,studioChanges};')(String,JSON.stringify,key=>key);
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function storage(){const values=new Map();return {values,getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};}
-function host(){const nodes=new Map();return {isConnected:true,innerHTML:'',nodes,querySelector(selector){if(!nodes.has(selector)){const events=new Map();const node={value:'',disabled:false,events,addEventListener:(type,fn)=>events.set(type,fn),querySelector:()=>({disabled:false})};nodes.set(selector,node);}return nodes.get(selector);},querySelectorAll:()=>[]};}
+function host(){const nodes=new Map();return {isConnected:true,innerHTML:'',nodes,querySelector(selector){if(!nodes.has(selector)){const events=new Map();const node={value:'',disabled:false,events,addEventListener:(type,fn)=>events.set(type,fn),querySelector:()=>({disabled:false}),querySelectorAll:()=>[],contains:()=>false};nodes.set(selector,node);}return nodes.get(selector);},querySelectorAll:()=>[]};}
 function component(bindings){
  const source=readFileSync(new URL('../src/v3/proto/components/studio-jobs.js',import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replaceAll('export function ','function ');
  return Function(...Object.keys(bindings),`${source}\nreturn mountStudioJobs;`)(...Object.values(bindings));
 }
 function fixture(client){
- const saved=storage(),timers=[],listeners=new Map(),document={hidden:false,addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name)=>listeners.delete(name)};const mount=component({studioClient:{referenceGrants:async()=>({items:[],next_cursor:''}),...client},referenceFromGrant:g=>({assetId:g.asset_id,purpose:g.purpose,grantId:g.id,grantRevision:g.revision}),mediaReferencePurposes:{person:'人物',object:'物品'},esc:String,confirm:async()=>true,requireOwner:async()=>true,toast:()=>{},Field:()=>'',TextComposer:()=>'',PromptChips:()=>'',DiffRows:JSON.stringify,MessageLog:()=>'',PreviewCard:p=>JSON.stringify(p),JsonDetails:JSON.stringify,persistentCommand,studioDraftStorage:()=>saved,history:{replaceState(){}},document,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout:()=>{}});
+ const saved=storage(),timers=[],listeners=new Map(),document={hidden:false,addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name)=>listeners.delete(name)};const mount=component({studioClient:{referenceGrants:async()=>({items:[],next_cursor:''}),...client},referenceFromGrant:g=>({assetId:g.asset_id,purpose:g.purpose,grantId:g.id,grantRevision:g.revision}),StudioComparison,studioChanges,userInstant,errorMessage,mediaReferencePurposes:{person:'人物',object:'物品'},esc:String,confirm:async()=>true,requireOwner:async()=>true,toast:()=>{},Field:()=>'',TextComposer:()=>'',PromptChips:()=>'',DiffRows:JSON.stringify,MessageLog:()=>'',PreviewCard:p=>JSON.stringify(p),JsonDetails:JSON.stringify,persistentCommand,studioDraftStorage:()=>saved,history:{replaceState(){}},document,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout:()=>{}});
  return {saved,mount,timers,listeners,document};
 }
 test('late assistant completion displays a separate suggestion and preserves newer form edits until explicit adoption',async()=>{
@@ -23,7 +27,7 @@ test('late assistant completion displays a separate suggestion and preserves new
  draft.name='Newer form edit';draft.body.description='Typed while model ran';
  finish({id:'job',resource_id:'resource',status:'completed',kind:'assistant',revision:3,latest_attempt:1,snapshot:{instruction:'Original request'},result:{disposition:'proposal',reply:'Suggested definition',name:'Generated name',body:{description:'Generated definition'},warnings:[]},attempts:[]});
  await tick();assert.equal(adopted,0);assert.equal(draft.name,'Newer form edit');assert.equal(draft.body.description,'Typed while model ran');
- await el.querySelector('[data-adopt]').events.get('click')();assert.equal(adopted,1);assert.equal(draft.name,'Generated name');panel.dispose();
+ await el.querySelector('[data-adopt]').onclick();assert.equal(adopted,1);assert.equal(draft.name,'Generated name');panel.dispose();
 });
 test('late accepted job after disposal and Owner storage cleanup cannot repaint or recreate the previous Owner draft',async()=>{
  let finish;const receipt=new Promise(resolve=>{finish=resolve;});
@@ -54,7 +58,7 @@ test('needs_input never exposes an adoption action or mutates the working draft'
  let adopted=0;const {mount}=fixture({job:async()=>({id:'j',resource_id:'resource',kind:'assistant',status:'completed',result:{disposition:'needs_input',reply:'请选择地点',warnings:[]}}),jobs:async()=>({items:[]}),materials:async()=>({items:[]})});
  const el=host(),draft={name:'Keep',body:{}};const panel=mount(el,{actor:'owner',resource:{id:'resource'},jobId:'j',readDraft:()=>draft,adopt:()=>adopted++,alive:()=>true});await tick();
  assert.match(el.querySelector('[data-job-result]').innerHTML,/需要补充创作输入/);assert.doesNotMatch(el.querySelector('[data-job-result]').innerHTML,/data-adopt/);
- await el.querySelector('[data-adopt]').events.get('click')();assert.equal(adopted,0);assert.equal(draft.name,'Keep');panel.dispose();
+ await el.querySelector('[data-adopt]').onclick();assert.equal(adopted,0);assert.equal(draft.name,'Keep');panel.dispose();
 });
 test('background observation preserves older task pages, composer node and selection, and pauses while hidden',async()=>{
  let jobs=0,materials=0,details=0;
@@ -89,7 +93,7 @@ test('image pending state shows actual workflow evidence and only ready result e
  const el=host(),panel=f.mount(el,{actor:'owner',resource:{id:'resource'},jobId:'j',readDraft:()=>({name:'Scene',body:{}}),alive:()=>true});await tick();
  let result=el.querySelector('[data-job-result]').innerHTML;assert.match(result,/actual-workflow/);assert.match(result,/actual-provider-job/);assert.match(result,/actual-child/);assert.doesNotMatch(result,/data-material|"img"/);
  ready=true;el.querySelector('[data-refresh]').onclick();await tick();await tick();result=el.querySelector('[data-job-result]').innerHTML;assert.match(result,/"img":"\/api\/media\/asset-ready"/);assert.match(result,/存为资源图片素材/);
- await el.querySelector('[data-material]').events.get('click')();await tick();await tick();assert.equal(saves,1);assert.match(el.querySelector('[data-job-materials]').innerHTML,/\/api\/media\/asset-ready/);assert.match(el.querySelector('[data-job-materials]').innerHTML,/查看原任务/);assert.match(el.querySelector('[name=referenceAsset]').innerHTML,/asset-ready/);panel.dispose();
+ await el.querySelector('[data-material]').onclick();await tick();await tick();assert.equal(saves,1);assert.match(el.querySelector('[data-job-materials]').innerHTML,/\/api\/media\/asset-ready/);assert.match(el.querySelector('[data-job-materials]').innerHTML,/查看原任务/);assert.match(el.querySelector('[name=referenceAsset]').innerHTML,/asset-ready/);panel.dispose();
 });
 
 test('unconfigured image failure shows actionable status without fabricated image or save action',async()=>{

@@ -1,3 +1,4 @@
+import {userInstant} from '../../presentation-time.mjs';
 import { esc, icon, badge } from './controls.js';
 import { attributes } from './forms.js';
 import {JsonDetails} from './records.js';
@@ -19,7 +20,7 @@ export function NPCRow(npc, link) {
   return `<div class="lrow">${Avatar({src:npc.avatar,name:npc.name,size:'sm'})}${link(npc.id)}<span class="small muted">${esc(npc.role)}</span></div>`;
 }
 export function PreviewCard(preview, { resourceName = '', includeResource = false } = {}) {
-  return `<div class="card" data-test="preview-item"><div class="row">${badge('创作预览·不进入生活')}<span class="small muted grow">${includeResource ? `${esc(resourceName)} · ${esc(preview.at)}` : `${esc(preview.id)} · ${esc(preview.at)}`}</span><button class="btn ghost sm" data-del="${esc(preview.id)}">丢弃</button></div>${preview.img ? `<img src="${esc(preview.img)}" alt="虚构创作图片预览" data-preview-image style="width:100%;border-radius:10px;margin:6px 0"><p class="small muted" data-preview-image-error hidden>图片读取失败，请核对素材权限与任务状态后刷新。</p>` : ''}${preview.text ? `<p class="small">${esc(preview.text)}</p>` : ''}</div>`;
+  return `<div class="card" data-test="preview-item"><div class="row">${badge('创作预览·不进入生活')}<span class="small muted grow">${includeResource ? `${esc(resourceName)} · ${esc(userInstant(preview.at))}` : `${esc(preview.id)} · ${esc(userInstant(preview.at))}`}</span><button class="btn ghost sm" data-del="${esc(preview.id)}">丢弃</button></div>${preview.img ? `<img src="${esc(preview.img)}" alt="虚构创作图片预览" data-preview-image style="width:100%;border-radius:10px;margin:6px 0"><p class="small muted" data-preview-image-error hidden>图片读取失败，请核对素材权限与任务状态后刷新。</p>` : ''}${preview.text ? `<p class="small">${esc(preview.text)}</p>` : ''}</div>`;
 }
 export function ResourceCard(resource, { pending = false } = {}) {
   return `<a class="card" href="#/studio/${resource.type === 'NPC' ? 'npc' : 'edit'}/${esc(resource.id)}" data-test="res-${esc(resource.id)}"><div class="row"><b class="grow">${esc(resource.name)}</b>${badge(resource.type, 'plain')}</div><div class="small muted">已发布 ${esc(resource.published || '尚未发布')}${resource.draft ? ' · 有草稿' : ''}${pending ? ' · 有实例待应用' : ''}</div></a>`;

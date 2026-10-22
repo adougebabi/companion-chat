@@ -60,3 +60,52 @@ export function CheckboxGroup({label,items,value=[],attribute,className=''}) {
 export function KeyValueList(entries, { className = 'kv', attrs = {} } = {}) {
   return `<div class="${esc(className)}" ${attributes(attrs)}>${entries.map(([label, content]) => `<dt>${esc(label)}</dt><dd>${content}</dd>`).join('')}</div>`;
 }
+
+export function constraintMessage(control) {
+ const validity=control.validity||{};
+ if(validity.valueMissing || (control.required && typeof control.value==='string' && !control.value.trim()))return '请填写此项。';
+ if(validity.typeMismatch)return control.type==='email'?'请输入有效的邮箱地址。':'请输入有效的网址。';
+ if(validity.rangeUnderflow)return `请输入不小于 ${control.min} 的数值。`;
+ if(validity.rangeOverflow)return `请输入不大于 ${control.max} 的数值。`;
+ if(validity.tooShort)return `请至少填写 ${control.minLength} 个字符。`;
+ if(validity.tooLong)return `请最多填写 ${control.maxLength} 个字符。`;
+ if(validity.badInput || validity.stepMismatch)return '请输入符合要求的数值。';
+ if(validity.patternMismatch)return '请按字段要求填写。';
+ if(validity.customError && /[\u3400-\u9fff]/u.test(control.validationMessage))return control.validationMessage;
+ return '请检查此项的填写格式。';
+}
+// Capture native validation, including explicit reportValidity(), without changing
+// native prototypes or relaxing constraints. Form owners keep their submit logic.
+export function installFieldValidation(root=document) {
+ let firstInvalid=null, scheduled=false;
+ const errors=new WeakMap(), whitespaceErrors=new WeakSet();
+ const syncRequired=control=>{
+  if(typeof control?.setCustomValidity!=='function')return;
+  // Only clear the constraint installed here; page-owned custom errors survive.
+  if(whitespaceErrors.has(control)){
+   if(control.validationMessage==='请填写此项。')control.setCustomValidity('');
+   whitespaceErrors.delete(control);
+  }
+  if(control.willValidate&&control.required&&typeof control.value==='string'&&control.value&&!control.value.trim()&&!control.validity.customError){
+   control.setCustomValidity('请填写此项。');whitespaceErrors.add(control);
+  }
+ };
+ const syncAll=()=>root.querySelectorAll?.('input,textarea,select').forEach(syncRequired);
+ // Footer actions often call reportValidity without dispatching submit. Capture
+ // their activation before their handler and before native constraint checks.
+ const activate=event=>{if(event.type==='click'||event.key==='Enter')syncAll();};
+ const show=control=>{
+  let error=errors.get(control);
+  if(!error){error=document.createElement('span');error.className='field-error';error.id=`constraint-${++fieldSequence}`;error.setAttribute('role','alert');control.after(error);errors.set(control,error);}
+  error.textContent=constraintMessage(control);error.hidden=false;
+  control.setAttribute('aria-invalid','true');
+  const ids=new Set((control.getAttribute('aria-describedby')||'').split(/\s+/).filter(Boolean));ids.add(error.id);control.setAttribute('aria-describedby',[...ids].join(' '));
+  firstInvalid??=control;
+  if(!scheduled){scheduled=true;queueMicrotask(()=>{scheduled=false;const field=firstInvalid;firstInvalid=null;if(field?.isConnected){field.focus();field.scrollIntoView?.({block:'center',behavior:'auto'});}});}
+ };
+ const invalid=event=>{event.preventDefault();show(event.target);};
+ const input=event=>{const control=event.target;syncRequired(control);const error=errors.get(control);if(error){error.hidden=true;control.removeAttribute('aria-invalid');const ids=(control.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id!==error.id);if(ids.length)control.setAttribute('aria-describedby',ids.join(' '));else control.removeAttribute('aria-describedby');}};
+ const submit=event=>{const controls=[...(event.target.elements||[])].filter(control=>control.willValidate&&control.required&&typeof control.value==='string'&&!control.value.trim());if(controls.length){event.preventDefault();event.stopImmediatePropagation();controls.forEach(show);}};
+ root.addEventListener('click',activate,true);root.addEventListener('keydown',activate,true);root.addEventListener('invalid',invalid,true);root.addEventListener('input',input,true);root.addEventListener('change',input,true);root.addEventListener('submit',submit,true);
+ return()=>{root.removeEventListener('click',activate,true);root.removeEventListener('keydown',activate,true);root.removeEventListener('invalid',invalid,true);root.removeEventListener('input',input,true);root.removeEventListener('change',input,true);root.removeEventListener('submit',submit,true);};
+}

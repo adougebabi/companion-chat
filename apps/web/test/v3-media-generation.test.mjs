@@ -1,14 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {errorMessage,stateLabel} from '../src/v3/domain-presentation.mjs';
 import {persistentCommand} from '../src/v3/providers/persistent-command.mjs';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(client,{inventory={}}={}){
  const values=new Map(),storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},listeners=new Map();let owner='owner',previews=0,confirmations=0;
  const elements={prompt:{value:''},reason:{value:''},place:{value:'',innerHTML:''}};
- function host(){const nodes=new Map();return {isConnected:true,innerHTML:'',nodes,querySelector(selector){if(!nodes.has(selector))nodes.set(selector,selector==='form'?{elements,reportValidity:()=>true}:host());return nodes.get(selector);},querySelectorAll:()=>[],disabled:false,textContent:''};}
+ function host(){const nodes=new Map();return {isConnected:true,innerHTML:'',nodes,querySelector(selector){if(!nodes.has(selector))nodes.set(selector,selector==='form'?{elements,reportValidity:()=>true}:host());return nodes.get(selector);},querySelectorAll:()=>[],disabled:false,textContent:'',setAttribute(){}};}
  const source=readFileSync(new URL('../src/v3/proto/components/media-generation.js',import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replaceAll('export function ','function ');
- const bindings={mountReferenceGrantPicker:()=>({value(){},dispose(){}}),referenceFromGrant:g=>({assetId:g.asset_id,purpose:g.purpose,grantId:g.id,grantRevision:g.revision}),get:key=>key==='session'?{actorId:owner}:{status:'正常'},mediaClient:{locations:async()=>({available:true,places:[]}),generation:async()=>({fluctlight_id:'role',request:{id:'actual-request',status:'accepted',tasks:[]},media:{id:'actual-intent',status:'pending'},asset:null}),...client},inventoryClient:inventory,esc:String,confirm:async()=>{confirmations++;return true;},Field:()=>'',SearchForm:()=>'',JsonDetails:JSON.stringify,MediaPreview:()=>{previews++;return 'actual-preview';},bindMediaFailures:()=>{},mediaDetailPath:()=>'',mountCursorRecords:()=>({dispose(){},reload:async()=>{}}),persistentCommand,studioDraftStorage:()=>storage,document:{hidden:false,addEventListener:(k,v)=>listeners.set(k,v),removeEventListener:k=>listeners.delete(k)},setTimeout:()=>1,clearTimeout:()=>{}};
+ const bindings={errorMessage,stateLabel,mountReferenceGrantPicker:()=>({value(){},dispose(){}}),referenceFromGrant:g=>({assetId:g.asset_id,purpose:g.purpose,grantId:g.id,grantRevision:g.revision}),get:key=>key==='session'?{actorId:owner}:{status:'正常'},mediaClient:{locations:async()=>({available:true,places:[]}),generation:async()=>({fluctlight_id:'role',request:{id:'actual-request',status:'accepted',tasks:[]},media:{id:'actual-intent',status:'pending'},asset:null}),...client},inventoryClient:inventory,esc:String,confirm:async()=>{confirmations++;return true;},Field:()=>'',SearchForm:()=>'',JsonDetails:JSON.stringify,MediaPreview:()=>{previews++;return 'actual-preview';},bindMediaFailures:()=>{},mediaDetailPath:()=>'',mountCursorRecords:()=>({dispose(){},reload:async()=>{}}),persistentCommand,studioDraftStorage:()=>storage,document:{hidden:false,addEventListener:(k,v)=>listeners.set(k,v),removeEventListener:k=>listeners.delete(k)},setTimeout:()=>1,clearTimeout:()=>{}};
  const mount=Function(...Object.keys(bindings),source+'\nreturn mountOwnerMediaRequest;')(...Object.values(bindings));return {values,storage,elements,mount,host:host(),owner(value){owner=value;},previews:()=>previews,confirmations:()=>confirmations,listeners};
 }
 test('original image acceptance retry preserves a newer draft and never presents an intent as image pixels',async()=>{
@@ -36,4 +37,10 @@ test('a delayed source rebase cannot restore an item that the user cleared while
 
 test('resetting the current image draft does not erase an unknown original command identity',async()=>{
  const f=fixture({}),slot='fluctlight-media:owner:role:request:general';f.storage.setItem(slot+':draft',JSON.stringify({prompt:'Newer',reason:'New reason',item:null,place:null}));f.storage.setItem(slot+':command',JSON.stringify({version:1,idempotencyKey:'still-original',attempts:1,value:{prompt:'Original',reason:'Original reason'}}));const panel=f.mount(f.host,{fid:'role'});f.host.querySelector('[data-reset]').onclick();assert.equal(JSON.parse(f.storage.getItem(slot+':command')).idempotencyKey,'still-original');assert.equal(JSON.parse(f.storage.getItem(slot+':draft')).prompt,'');assert.match(f.host.querySelector('[data-error]').textContent,/原提交身份/);panel.dispose();
+});
+
+test('worker completion cannot hide a failed business image result near the submission',async()=>{
+ const f=fixture({generation:async()=>({fluctlight_id:'role',request:{id:'failed-request',status:'completed',tasks:[{task_id:'worker',status:'completed'}],result:{disposition:'not_applied',error_code:'media_generation_unavailable'},decision_reason:'当前无法调用图像生成能力'},media:null,asset:null})});
+ const panel=f.mount(f.host,{fid:'role',requestId:'failed-request'});await tick();
+ const summary=f.host.querySelector('[data-business-result]');assert.equal(summary.className,'banner err');assert.match(summary.textContent,/当前无法调用图像生成能力/);assert.match(f.host.querySelector('[data-result]').innerHTML,/执行已结束（图片结果另行核对）/);assert.equal(f.previews(),0);panel.dispose();
 });

@@ -1,3 +1,4 @@
+import {errorMessage} from '../../domain-presentation.mjs';
 import {SavedBindingSummary} from './configuration-summary.js';
 import {bindingValues,deriveProviderBudget,providerBindingBody} from '../../provider-budget.mjs';
 import {configurationClient} from '../services.js';
@@ -5,7 +6,7 @@ import {Field} from './forms.js';
 import {esc,confirm} from '../ui.js';
 import {mountConfigurationEditor} from './configuration-editor.js';
 
-const roles=[{value:'generic_llm',label:'认知与通用 LLM · Qwen'},{value:'conversation_reply',label:'交流表达 · Cydonia'},{value:'embedding',label:'记忆向量'},{value:'vision_understanding',label:'视觉理解'}];
+const roles=[{value:'generic_llm',label:'认知与通用模型'},{value:'conversation_reply',label:'交流表达'},{value:'embedding',label:'记忆向量'},{value:'vision_understanding',label:'视觉理解'}];
 export function mountProviderEditors(host,{catalog,endpoints,bindings,alive=()=>true,onSaved=()=>{}}){
  let endpointEditor,bindingEditor,credentialEditor,active=true,lookupEpoch=0;
  let selectedEndpointId=endpoints[0]?.id||'',selectedRole='generic_llm';
@@ -19,7 +20,7 @@ export function mountProviderEditors(host,{catalog,endpoints,bindings,alive=()=>
  async function saved(result,latest){if(!await refreshCatalog())return;await onSaved(result,latest);}
  function roleChoices(){
   const target=host.querySelector('[data-role-choices]');if(!target)return;
-  target.innerHTML=roles.map(r=>{const b=bindings.find(b=>b.role===r.value);return `<button class="provider-role ${r.value===selectedRole?'on':''}" data-select-role="${r.value}"><b>${r.label}</b><span>${b?'当前连接：'+esc(b.endpoint_id):'尚未绑定'}</span></button>`;}).join('');
+  target.innerHTML=roles.map(r=>{const b=bindings.find(b=>b.role===r.value);return `<button class="provider-role ${r.value===selectedRole?'on':''}" data-select-role="${r.value}"><b>${r.label}</b><span>${b?'当前模型：'+esc(b.model_id)+' · 连接 '+esc(b.endpoint_id):'尚未绑定'}</span></button>`;}).join('');
   target.querySelectorAll('[data-select-role]').forEach(b=>b.onclick=()=>{selectedRole=b.dataset.selectRole;roleChoices();binding();});
  }
  function binding(){
@@ -33,7 +34,7 @@ export function mountProviderEditors(host,{catalog,endpoints,bindings,alive=()=>
  function selectEndpoint(id){
   selectedEndpointId=id;lookupEpoch++;endpointEditor?.dispose();bindingEditor?.dispose();credentialEditor?.dispose();
   const selected=endpoints.find(e=>e.id===id),workspace=host.querySelector('[data-connection-workspace]');
-  workspace.innerHTML=`<div class="row"><h2 class="grow">${selected?'连接：'+esc(selected.id):'新建模型连接'}</h2></div><p class="small muted">${selected?'此处的访问凭据、模型目录和用途绑定都属于当前连接。':'保存服务地址后，会接着显示凭据与模型用途。未配置的能力会提示准备状态，不妨碍浏览和准备草稿。'}</p><div data-endpoint-editor></div><details class="provider-credentials" ${selected?'':'hidden'}><summary>访问凭据 <span class="small muted">${selected?.secret_configured?'已配置':'服务需要时填写'}</span></summary><div data-credential-editor></div></details>${selected?'<section class="stack"><h3>选择此连接的模型用途</h3><div class="provider-role-list" data-role-choices></div><div data-binding-context></div><div class="stack"><button class="btn" type="button" data-models>读取此连接的模型目录</button><div data-model-list></div></div><div data-binding-editor></div></section>':''}`;
+  workspace.innerHTML=`<div class="row"><h2 class="grow">${selected?'连接：'+esc(selected.id):'新建模型连接'}</h2>${!selected&&endpoints.length?'<button class="btn" type="button" data-cancel-endpoint>取消新建</button>':''}</div><p class="small muted">${selected?'此处的访问凭据、模型目录和用途绑定都属于当前连接。':'保存服务地址后，会接着显示凭据与模型用途。未配置的能力会提示准备状态，不妨碍浏览和准备草稿。'}</p><div data-endpoint-editor></div><details class="provider-credentials" ${selected?'open':'hidden'}><summary>访问凭据 <span class="small muted">${selected?.secret_configured?'已配置':'服务需要时填写'}</span></summary><div data-credential-editor></div></details>${selected?'<section class="stack"><h3>选择此连接的模型用途</h3><div class="provider-role-list" data-role-choices></div><div data-binding-context></div><div class="stack"><button class="btn" type="button" data-models>读取此连接的模型目录</button><div data-model-list></div></div><div data-binding-editor></div></section>':''}`;
   const values=e=>({endpointId:e.id,kind:e.kind,baseUrl:e.base_url,secretPurpose:e.secret_purpose});
   endpointEditor=mountConfigurationEditor(workspace.querySelector('[data-endpoint-editor]'),{slotKey:'endpoint:'+id,title:'服务地址',saveLabel:'保存服务地址',source:selected?'stored':'unconfigured',initial:selected?values(selected):{endpointId:'',kind:'openai-compatible',baseUrl:'',secretPurpose:''},versions:catalog.versions,operation:'endpoint',alive:live,
    fields:[{key:'endpointId',label:'连接名称 / 标识',type:'text',fixed:selected?.id,attrs:{readonly:!!selected}},{key:'baseUrl',label:'API 服务地址',type:'url',hint:'填写模型 API 的根路径，例如 http://主机:端口/v1。'}],
@@ -45,8 +46,9 @@ export function mountProviderEditors(host,{catalog,endpoints,bindings,alive=()=>
    credentialEditor=mountConfigurationEditor(workspace.querySelector('[data-credential-editor]'),{slotKey:'credential:'+selected.secret_purpose,title:'访问凭据（服务需要时填写）',saveLabel:'保存访问凭据',source:catalog.configured_secrets.includes(selected.secret_purpose)?'stored':'unconfigured',initial:{configured:catalog.configured_secrets.includes(selected.secret_purpose)},versions:catalog.versions,fields:[],secretPurpose:selected.secret_purpose,alive:live,
     readCurrent:async()=>{const next=await configurationClient.read();return {value:{configured:next.configured_secrets.includes(selected.secret_purpose)},versions:next.versions,source:next.configured_secrets.includes(selected.secret_purpose)?'stored':'unconfigured'};},buildBody:()=>({values:{},expectedVersions:{}}),onSaved:saved});
    roleChoices();binding();
-   workspace.querySelector('[data-models]').onclick=async event=>{const epoch=++lookupEpoch,box=workspace.querySelector('[data-model-list]');event.target.disabled=true;box.textContent='正在读取当前连接的模型目录…';try{const result=await configurationClient.models(id);if(!live()||epoch!==lookupEpoch)return;box.innerHTML=result.models.length?result.models.map(model=>`<button class="btn sm" data-use-model="${esc(model)}">${esc(model)}</button>`).join(''):'<p class="banner info">连接返回了空目录，可核对服务中加载的模型；已填草稿保留。</p>';box.querySelectorAll('[data-use-model]').forEach(button=>button.onclick=()=>bindingEditor.adoptDraft({modelId:button.dataset.useModel},'已选择当前连接的模型。请核对实际窗口，保存后绑定才生效。'));}catch(error){if(live()&&epoch===lookupEpoch)box.innerHTML=`<p class="banner info">${esc(error.message)}。可以继续保留草稿并核对当前连接地址与访问凭据。</p>`;}finally{if(live()&&epoch===lookupEpoch)event.target.disabled=false;}};
+   workspace.querySelector('[data-models]').onclick=async event=>{const epoch=++lookupEpoch,box=workspace.querySelector('[data-model-list]');event.target.disabled=true;box.textContent='正在读取当前连接的模型目录…';try{const result=await configurationClient.models(id);if(!live()||epoch!==lookupEpoch)return;box.innerHTML=result.models.length?result.models.map(model=>`<button class="btn sm" data-use-model="${esc(model)}">${esc(model)}</button>`).join(''):'<p class="banner info">连接返回了空目录，可核对服务中加载的模型；已填草稿保留。</p>';box.querySelectorAll('[data-use-model]').forEach(button=>button.onclick=()=>bindingEditor.adoptDraft({modelId:button.dataset.useModel},'已选择当前连接的模型。请核对实际窗口，保存后绑定才生效。'));}catch(error){if(live()&&epoch===lookupEpoch)box.innerHTML=`<p class="banner info">${esc(errorMessage(error))}。可以继续保留草稿并核对当前连接地址与访问凭据。</p>`;}finally{if(live()&&epoch===lookupEpoch)event.target.disabled=false;}};
   }
+  workspace.querySelector('[data-cancel-endpoint]')?.addEventListener('click',()=>selectEndpoint(endpoints[0].id));
   directory();
  }
  host.querySelector('[data-new-endpoint]').onclick=()=>selectEndpoint('');

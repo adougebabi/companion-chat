@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {workspaceForPath,globalNavigation} from '../src/v3/workspace-navigation.mjs';
+import {workspaceForPath,globalNavigation,sidebarSectionPath} from '../src/v3/workspace-navigation.mjs';
 import {readProduct} from '../src/v3/read-product.mjs';
 import {creationFeedback,initializationWarnings} from '../src/v3/creation-feedback.mjs';
 import {selectCreationWorld} from '../src/v3/creation-draft.mjs';
@@ -11,6 +11,14 @@ test('management tools stay in management navigation and direct URLs choose thei
  assert.ok(!globalNavigation('交流').some(([,href])=>href.startsWith('#/settings')||href.startsWith('#/diag')));
  assert.ok(globalNavigation('管理').some(([,href])=>href==='#/data'));
  assert.equal(workspaceForPath('/c/character/chat'),'交流');assert.equal(workspaceForPath('/inbox'),null);
+});
+test('editor and support routes retain their visible sidebar section without changing routes',()=>{
+ assert.equal(sidebarSectionPath('/c/role/worlds/world/edit'),'/c/role/world/world/edit');
+ assert.equal(sidebarSectionPath('/c/role/life/goal/new'),'/c/role/life/goals/new');
+ assert.equal(sidebarSectionPath('/c/role/life/planning'),'/c/role/life/goals');
+ assert.equal(sidebarSectionPath('/c/role/life'),'/c/role/life/now');
+ for(const path of ['/diag','/diag/task/original','/data/backup/original','/setup'])assert.ok(sidebarSectionPath(path).startsWith('/settings/'));
+ for(const path of ['/c/role/people/npc/original','/c/role/media/identity','/c/role/life/goals','/studio/edit/original','/library/create','/c/worlds/profile'])assert.equal(sidebarSectionPath(path),path);
 });
 test('first paint uses session and directory without waiting for optional modules',async()=>{
  const calls=[],client=new Proxy({session:async()=>({authenticated:true,actorId:'owner'}),listFluctlights:async()=>[{id:'character'}]},{get:(target,key)=>target[key]||(()=>{calls.push(key);return new Promise(()=>{});})});
