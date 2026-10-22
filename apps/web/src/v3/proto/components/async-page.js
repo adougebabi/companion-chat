@@ -3,7 +3,7 @@ import { esc, drawer } from '../ui.js';
 import {InventoryEffects} from './inventory-effects.js';
 import { lifeClient } from '../services.js';
 import {userInstant} from '../../presentation-time.mjs';
-import {requestDecisionText,RequestFailureLink} from './request-failure.js';
+import {requestDecisionText,RequestFailureLink,RequestDecisionSource} from './request-failure.js';
 
 export function asyncPage(el, read, paint, {backHref='',backLabel='返回',errorTitle='读取失败',errorFallback='暂时无法读取，请重新尝试。'}={}) {
   let active=true, epoch=0, dispose;
@@ -31,7 +31,7 @@ export function requestReceipt(fid,envelope,onTerminal=()=>{},options={}) {
   const terminal=()=>!['pending','processing'].includes(request.status);
   function paint(error='') {
     if(!d.el.isConnected)return;
-    d.el.querySelector('[data-request]').innerHTML=`<p><b>${esc(options.labels?.[request.status] || (request.result?.disposition==='no_change'?'目标状态已满足，无新增动作':requestLabels[request.status]) || request.status)}</b></p><p>${esc(requestDecisionText(request))}</p><p class="small muted">请求 ${esc(request.id)}</p>${request.result_refs?.length?`<p class="small">结果来源 ${request.result_refs.map(esc).join('、')}</p>`:''}<p class="small muted">${esc(options.note||'受理不代表执行完成。关闭后请求继续处理。')}</p><p><a href="#/diag/request/${encodeURIComponent(request.id)}">请求详情与关联任务</a></p>${RequestFailureLink(request)}${InventoryEffects(fid,request.result?.effects)}${request.tasks_state==='failed'?'<p class="banner warn">关联任务读取失败，请重新查询。</p>':request.tasks?.map(t=>`<p><a href="#/diag/task/${encodeURIComponent(t.task_id)}">${esc(t.kind)} · ${esc(t.status)}</a></p>`).join('')||''}${error?`<p class="banner err" role="alert">${esc(error)}</p>`:''}`;
+    d.el.querySelector('[data-request]').innerHTML=`<p><b>${esc(options.labels?.[request.status] || (request.status==='completed'&&request.result?.disposition==='no_change'?'目标状态已满足，无新增动作':requestLabels[request.status]) || request.status)}</b></p><p>${esc(requestDecisionText(request))}</p><p class="small muted">请求 ${esc(request.id)}</p>${request.result_refs?.length?`<p class="small">结果来源 ${request.result_refs.map(esc).join('、')}</p>`:''}<p class="small muted">${esc(options.note||'受理不代表执行完成。关闭后请求继续处理。')}</p><p><a href="#/diag/request/${encodeURIComponent(request.id)}">请求详情与关联任务</a></p>${RequestFailureLink(request)}${RequestDecisionSource(request)}${InventoryEffects(fid,request.result?.effects)}${request.tasks_state==='failed'?'<p class="banner warn">关联任务读取失败，请重新查询。</p>':request.tasks?.map(t=>`<p><a href="#/diag/task/${encodeURIComponent(t.task_id)}">${esc(t.kind)} · ${esc(t.status)}</a></p>`).join('')||''}${error?`<p class="banner err" role="alert">${esc(error)}</p>`:''}`;
     if(terminal()&&!terminalNotified){terminalNotified=true;void onTerminal(request);}
   }
   async function query() {

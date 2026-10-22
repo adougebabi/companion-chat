@@ -11,6 +11,7 @@ import './styles/v3-settings-regression.css';
 import './styles/v3-ux-report-life.css';
 import './styles/v3-ux-report-creation.css';
 import './styles/v3-ux-report-settings.css';
+import './styles/v3-chat-summary-review.css';
 const bookmarkedPage = acceptancePath(location.pathname, location.search);
 if (!location.hash && bookmarkedPage) history.replaceState(null, '', '/#' + bookmarkedPage);
 createApp(App).mount('#app');

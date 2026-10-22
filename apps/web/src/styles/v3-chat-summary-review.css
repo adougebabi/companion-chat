@@ -1,0 +1,37 @@
+/* Chat summary owns its density; inventory and schedule workspaces keep theirs. */
+.chatside .summary-pane-head{padding:12px 16px;min-height:60px;background:var(--surface)}
+.chatside .summary-pane-head h2{font-size:14px;font-weight:600}
+.chatside .summary-pane-body{padding:0 16px 20px}
+.summary-overview{display:grid;gap:12px;min-width:0;font-size:13px}
+.summary-identity{display:flex;align-items:center;gap:10px;width:100%;padding:4px 0;border:0;background:transparent;color:var(--ink);text-align:left;font:inherit;cursor:pointer;min-height:52px}
+.summary-identity-copy{display:grid;gap:3px;min-width:0;flex:1;overflow-wrap:anywhere}
+.summary-identity-copy>b{font-size:14px}.summary-identity-copy>span{color:var(--ink-2);font-size:12px}
+.summary-identity-arrow{display:grid;place-items:center;min-width:40px;min-height:40px;border:1px solid var(--line);border-radius:8px;color:var(--primary-strong)}
+.summary-situation{display:flex;flex-wrap:wrap;gap:4px 16px;background:var(--bg);border-radius:6px;padding:7px 10px;color:var(--ink-2);font-size:11px;overflow-wrap:anywhere}
+.summary-situation>span{min-width:0;flex:1 1 90px}
+.summary-situation button{background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0;min-height:40px;cursor:pointer;overflow-wrap:anywhere}
+.summary-situation:has(button){padding-block:0}
+.summary-compact-card{background:var(--bg);padding:10px 12px;border-radius:8px;min-width:0}
+.summary-card-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;min-height:32px}
+.summary-card-heading h3{font-size:12px;font-weight:500;margin:0;color:var(--ink-2)}
+.summary-card-heading .btn{font-size:11px;padding:0 4px;min-height:40px}
+.summary-agenda{display:grid;gap:0}
+.summary-agenda-item{display:grid;gap:3px;width:100%;min-height:56px;padding:8px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-width:0}
+.summary-agenda-item:last-child{border-bottom:0}
+.summary-agenda-time{font-size:10px;color:var(--ink-2);overflow-wrap:anywhere;line-height:1.4}
+.summary-agenda-line{display:flex;gap:8px;justify-content:space-between;align-items:baseline;min-width:0}
+.summary-agenda-line b{font-weight:500;overflow-wrap:anywhere;min-width:0}
+.summary-agenda-state{font-size:10px;color:var(--ink-2);flex:0 1 auto;text-align:right;overflow-wrap:anywhere}
+.summary-compact-card>.btn{font-size:11px;padding:2px 0;min-height:40px}
+.summary-wear .wearing-summary{margin:4px 0 0;display:grid;gap:5px}
+.summary-wear .wearing-summary-row{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;padding:0;border:0;font-size:12px;line-height:1.5}
+.summary-wear .wearing-summary-row dt{font-size:11px;color:var(--ink-2)}
+.summary-wear .wearing-summary-row dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.summary-wear .wearing-garment{margin:0;padding:0;border:0;background:none}
+.summary-wear .wearing-garment p{font-size:12px}
+.summary-nearby{font-size:12px;color:var(--ink-2)}
+.summary-nearby>summary{cursor:pointer;min-height:40px;align-content:center}
+.summary-nearby-person{display:flex;justify-content:space-between;gap:8px;min-height:44px;width:100%;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;text-align:left;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.summary-about a{display:inline-flex;align-items:center;min-height:40px;font-size:12px;color:var(--primary-strong)}
+.summary-overview button:focus-visible,.summary-overview a:focus-visible,.summary-nearby>summary:focus-visible{outline:2px solid var(--primary-strong);outline-offset:2px}
+@media(max-width:760px){.chatside .summary-pane-head{flex-wrap:wrap}.chatside .summary-mobile-back{display:inline-flex}}

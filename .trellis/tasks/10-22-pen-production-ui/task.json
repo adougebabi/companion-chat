@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "最新见 ux-report-remediation.md。G0—G7、PC回归及UX报告修复已落盘；304项Web测试/类型/build/noMock通过，主会话有限本地复看。真实部署和条件状态待用户验收；未提交/未部署/未归档。",
+  "notes": "最新见 chat-summary-followup.md：聊天摘要按新图补改、日记独立故事按钮移除、系统理由中文化；311项Web测试/类型/build/noMock通过，并做桌面/390px实际复看。本地日程/世界用户确认正常，NAS由用户查；本轮未提交/部署/归档。",
   "meta": {}
 }

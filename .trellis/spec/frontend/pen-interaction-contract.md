@@ -12,6 +12,7 @@ Apply to the production renderer `main.ts → App.vue → v3/proto/app.js` when 
 - Configuration save slots are `binding:<role>`, `conversation.reply`, `vision.understanding`.
 - `sourceHref(href,ctx,label)` captures the actual source route. `sourceReturn` accepts local `#/` routes only.
 - `readCreationProgress(client,fid,{localDate,worldId})` reads independent setting-sheet, display-avatar, accepted-schedule and world authorities.
+- `requestDecisionText(request)` renders status/effect-qualified system reasons; `RequestDecisionSource(request)` retains a safely escaped, default-collapsed original request.
 
 ## 3. Contracts
 
@@ -24,7 +25,9 @@ Apply to the production renderer `main.ts → App.vue → v3/proto/app.js` when 
 - UI reading caches retain cursor/loaded data/source routes. Refresh failures preserve prior content, and failed pagination keeps the visible page's cursor. Detail reads reconcile cached record revisions. Logout clears Owner-scoped drafts and reading snapshots.
 - The creation main flow is world → blank/description/JSON → four independent stages → completion. Template creation remains a separate linked resource branch with review. A durable activated checkpoint prohibits a second activation. Four completed stages plus the selected world readback are required for completion. Progress order is presentation, not a claim of serial backend execution.
 - Ordinary-object borrowing/returning and cross-object draft-to-chat chains remain cancelled. Do not add `?say=` links or infer a physical encounter from browsing/media/remote communication.
-- The latest PC review removes the repeated horizontal life-module navigation; the stable sidebar owns 此刻 / 日程 / 目标 / 衣柜 / 日记 / 共同经历. Genuine within-page schedule sections, wardrobe views and diary filters remain. 共同经历 is a separate action beside diary filters, with the same name in the sidebar.
+- The latest PC review removes the repeated horizontal life-module navigation; the stable sidebar owns 此刻 / 日程 / 目标 / 衣柜 / 日记 / 共同经历. Genuine within-page schedule sections, wardrobe views and diary filters remain. The user's subsequent instruction removes the separate story/shared-experiences button beside diary filters; keep the sidebar route and real shared-experiences capability.
+- The latest chat-summary reference requires a compact avatar/name/activity identity row, a single context strip, a schedule block and a slot-grouped wear block. Nearby people remain an optional secondary disclosure; 关于你 is a light footer entry. Use actual DTO values only, do not infer completion from a plan window, and omit unknown source-update timestamps. Ordinary schedule start instants retain complete Beijing labels; full ranges and original machine datetime remain available in details/title/aria. Fold/day/object-stack and scroll state stay scoped by Owner and character.
+- Fixed English owner-life settlement reasons are presentation inputs, not ordinary copy. Map them using the actual status/error/disposition; preserve meaningful Chinese decisions and the original object. Unknown English reasons get an honest summary and source disclosure. Failed/unknown judgments cannot claim zero side effects or committed success; `no_change` success requires completed status. Rendering must not rewrite DTOs, historical data, request identity or retry semantics.
 - Ordinary full timestamps use `formatBeijingInstant` / `userInstant` / `InstantLabel`: `YYYY-MM-DD HH:mm (北京时间)`. Convert the actual instant to Asia/Shanghai; do not relabel the original clock. Business local-day keys, IANA timezone settings, machine `datetime` attributes and original diagnostic records retain their semantics. Ordinary instant editors use Beijing `datetime-local` controls and a readable preview. `zonedInputInstant(value,'Asia/Shanghai',original)` preserves original precision/offset when the displayed minute is unchanged. Frozen pending commands are never reformatted or regenerated for presentation.
 - Disclosure summaries are full-row controls with title, secondary state, status and chevron. Expanded details use neutral/sage surfaces and structured labels. Reading pages show saved content first; annotation, generation, provenance and maintenance have explicit entries or optional disclosures.
 - World presentation follows the user's latest catalogue / searchable left tree / right form references, using real DTO data and the existing sage palette. Background and description remain independent fields; the 世界观 editor changes `background` and omits an untouched `description`. Unchanged, invalid, stale, busy and retired saves are disabled in both UI and submit handler.
@@ -42,6 +45,9 @@ Apply to the production renderer `main.ts → App.vue → v3/proto/app.js` when 
 | Date not covered by loaded cursors | State range is incomplete; allow bounded continuation |
 | Activation response unknown | Query/replay original identity; never create a new character |
 | Display avatar/sheet/schedule unreadable | Show pending/unknown/failed independently, not complete |
+| Failed request carries no_change disposition | Keep failure; never title it already satisfied |
+| Unknown English decision_reason | Readable summary; original remains in technical disclosure |
+| planned status has no actual action_status | Show plan only; never infer completion from elapsed time |
 
 ## 5. Good / Base / Bad Cases
 
@@ -52,6 +58,8 @@ Apply to the production renderer `main.ts → App.vue → v3/proto/app.js` when 
 ## 6. Tests Required
 
 Assertion points for unified acceptance: live editor input updates comparison; cancellation preserves caret/scroll/disclosures; no duplicate adoption handlers after polling; endpoint X→Y→X does not restore a second per-endpoint draft; three save slots preserve independent in-flight changes; old data survives read failures; memory created/source dates remain distinct; returned cursor/filters/date/record revisions match their source; progress cannot complete without actual readable artifacts and schedule/world readback. Existing task evidence is partial and must not be generalized to all groups.
+
+`chat-life-summary.test.mjs` executes the real mount renderer and actions for compact hierarchy, plan/actual separation, avatar fallback, all-day/object stack/reading restoration and Owner/fid isolation. `request-reason-diary.test.mjs` executes actual dynamic, reflection, promise, receipt and detail renderers: the exact UTC sample `2026-10-20T15:01:58.000+00:00` must read `2026-10-20 23:01 (北京时间)` in ordinary output, with raw reason/status/time only in default-collapsed source. Diary toolbar contains only all/favorite filters; shared sidebar/route remains.
 
 ## 7. Wrong vs Correct
 

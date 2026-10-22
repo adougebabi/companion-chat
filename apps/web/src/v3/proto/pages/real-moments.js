@@ -1,3 +1,4 @@
+import {requestDecisionText,RequestDecisionSource} from '../components/request-failure.js';
 import {stateLabel,errorMessage} from '../../domain-presentation.mjs';
 import {userInstant} from '../../presentation-time.mjs';
 import {bindAvatars} from '../components/avatar.js';
@@ -19,7 +20,7 @@ export function renderRealFeed(el,ctx){
 
  async function refresh(){if(!alive())return;await Promise.all([feed.reload({reset:true}),suggestions.reload({reset:true})]);}
  el.querySelector('[data-feed]').insertAdjacentHTML('afterend','<details class="card moment-suggestion-results"><summary>我的建议与实际结果</summary><div data-suggestions></div></details>');
- const suggestions=mountCursorRecords(el.querySelector('[data-suggestions]'),{alive,label:'动态建议',read:cursor=>momentsClient.suggestions(filter.fluctlightId,cursor),render:r=>`<div class="lrow"><div><b>${esc(r.payload?.text)}</b><p class="small muted">${esc(stateLabel(r.status))} · ${esc(r.decision_reason||'等待角色判断')} · ${esc(userInstant(r.created_at))}</p><a href="#/diag/request/${encodeURIComponent(r.id)}">请求详情与实际任务</a>${(r.result?.effects||[]).filter(e=>e.output?.target_kind==='moment'&&e.output?.target_ref).map(e=>`<a class="btn" href="#/feed/${encodeURIComponent(e.output.target_ref)}">查看角色实际发布</a>`).join('')}</div></div>`,empty:'当前范围尚未提出动态建议。发出建议后可以在这里持续查阅结果。'});
+ const suggestions=mountCursorRecords(el.querySelector('[data-suggestions]'),{alive,label:'动态建议',read:cursor=>momentsClient.suggestions(filter.fluctlightId,cursor),render:r=>`<div class="lrow"><div><b>${esc(r.payload?.text)}</b><p class="small muted">${esc(stateLabel(r.status))} · ${esc(requestDecisionText(r)||'等待角色判断')} · ${esc(userInstant(r.created_at))}</p><a href="#/diag/request/${encodeURIComponent(r.id)}">请求详情与实际任务</a>${RequestDecisionSource(r)}${(r.result?.effects||[]).filter(e=>e.output?.target_kind==='moment'&&e.output?.target_ref).map(e=>`<a class="btn" href="#/feed/${encodeURIComponent(e.output.target_ref)}">查看角色实际发布</a>`).join('')}</div></div>`,empty:'当前范围尚未提出动态建议。发出建议后可以在这里持续查阅结果。'});
  el.querySelectorAll('[data-toggle-composer]').forEach(button=>button.onclick=()=>{const box=el.querySelector(`[data-${button.dataset.toggleComposer}]`);box.hidden=!box.hidden;button.setAttribute('aria-expanded',String(!box.hidden));if(!box.hidden)box.querySelector('textarea')?.focus();});
  const publish=mountMomentComposer(el.querySelector('[data-publish]'),{fid:filter.fluctlightId,alive,onSaved:async receipt=>{await refresh();if(alive()&&receipt?.id)location.hash=`#/feed/${encodeURIComponent(receipt.id)}?returnTo=${encodeURIComponent(location.hash)}`;}});
  const suggest=mountMomentComposer(el.querySelector('[data-suggest]'),{mode:'suggest',fid:ctx.charId||'',alive,onSaved:refresh});
