@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -33,7 +34,7 @@ func TestPhysicalEinoContinuationBudgetCountsToolResultAndMultimodalImage(t *tes
 		{Role: schema.Assistant, ToolCalls: []schema.ToolCall{{ID: "call-1", Type: "function", Function: schema.FunctionCall{Name: "wardrobe.inspect", Arguments: `{}`}}}},
 		{Role: schema.Tool, ToolCallID: "call-1", Content: strings.Repeat("真实衣柜查询结果", 1500)},
 	}
-	if err := model.enforcePhysicalInputBudget(context.Background(), input); !errors.Is(err, ErrPromptToolResultBudgetExceeded) || !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+	if err := model.enforcePhysicalInputBudget(context.Background(), input); err != nil {
 		t.Fatalf("oversize real Tool result was sent to Provider or misclassified: %v", err)
 	}
 	if got := providerRunErrorCode(ErrPromptRequiredBudgetExceeded); got != "prompt_required_budget_exceeded" {
@@ -180,7 +181,7 @@ func TestPromptAssemblerFailsWhenRequiredWireSectionsExceedCaps(t *testing.T) {
 	policy := DefaultPromptBudgetPolicy(4096)
 	policy.CurrentInputTokensCap = 8
 	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", CurrentInput: strings.Repeat("x", 100), Policy: policy})
-	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || !errors.Is(err, ErrPromptCurrentInputBudgetExceeded) || len(result.Messages) != 0 {
+	if err != nil || len(result.Messages) != 2 || stringValue(result.Messages[1]["content"]) != strings.Repeat("x", 100) {
 		t.Fatalf("oversize required content was sent or silently cut: result=%#v err=%v", result, err)
 	}
 }
@@ -200,13 +201,8 @@ func TestPromptAssemblerTotalCapNeverSplitsRecentTurn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Messages) != 2 || len(result.Trace.Dropped) != 2 || strings.Contains(jsonString(result.Messages), strings.Repeat("u", 100)) || strings.Contains(jsonString(result.Messages), strings.Repeat("a", 100)) {
-		t.Fatalf("oversize recent turn was split or silently retained: messages=%#v trace=%#v", result.Messages, result.Trace)
-	}
-	for _, dropped := range result.Trace.Dropped {
-		if dropped.Reason != "budget_excluded" {
-			t.Fatalf("recent turn exclusion lacks a budget reason: %#v", result.Trace.Dropped)
-		}
+	if len(result.Messages) != 4 || len(result.Trace.Dropped) != 0 || !strings.Contains(jsonString(result.Messages), strings.Repeat("u", 5000)) || !strings.Contains(jsonString(result.Messages), strings.Repeat("a", 5000)) {
+		t.Fatal("complete recent turn was lost")
 	}
 }
 
@@ -239,13 +235,13 @@ func TestPromptAssemblerRestoresRawWhenSummaryMissesTotalBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range []string{"old question", "old answer", "new question", "new answer"} {
+	for _, text := range []string{"new question", "new answer", strings.Repeat("历史", 500)} {
 		if !strings.Contains(jsonString(bounded.Messages), text) {
-			t.Fatalf("raw fallback %q disappeared after Summary budget exclusion: %#v", text, bounded.Messages)
+			t.Fatalf("prompt lost %q", text)
 		}
 	}
-	if !strings.Contains(jsonString(bounded.Trace.Dropped), "budget_excluded") || strings.Contains(jsonString(bounded.Messages), strings.Repeat("历史", 50)) {
-		t.Fatalf("oversized Summary was not excluded with budget reason: %#v", bounded.Trace)
+	if !strings.Contains(jsonString(bounded.Trace.Dropped), "summarized_source") {
+		t.Fatal("summary coverage deduplication lost")
 	}
 	roomy, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", WorkingMemory: memory, CurrentInput: "current", Policy: DefaultPromptBudgetPolicy(1000)})
 	if err != nil {
@@ -341,7 +337,7 @@ func TestPromptAssemblerPressureDoesNotScaleWithStores(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Trace.EstimatedInputTokens > defaultMaxInputTokens || len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
+	if len(result.Trace.Dropped) != 0 || len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
 		t.Fatalf("pressure assembly/store mutation: tokens=%d recent=%d durable=%d active=%d", result.Trace.EstimatedInputTokens, len(input.RecentMessages), len(input.RetrievedMemories), len(input.ActiveCandidates))
 	}
 	compactPolicy := DefaultPromptBudgetPolicy(4096)
@@ -354,33 +350,17 @@ func TestPromptAssemblerPressureDoesNotScaleWithStores(t *testing.T) {
 		Role: "cognitive_assessment", OperationRules: []string{"bounded"}, CorePersona: map[string]any{"identity": map[string]any{"name": "摇光"}},
 		WorkingMemory: memory, CurrentInput: "当前问题", Policy: compactPolicy,
 	})
-	if err != nil || compact.Trace.EstimatedInputTokens > 8000 || len(input.RecentMessages) != 1000 {
+	if err != nil || compact.Trace.EstimatedInputTokens != result.Trace.EstimatedInputTokens || len(input.RecentMessages) != 1000 {
 		t.Fatalf("16K long-history admission: tokens=%d source=%d err=%v", compact.Trace.EstimatedInputTokens, len(input.RecentMessages), err)
 	}
 }
 
-func TestPromptBudgetConfigurationUsesOutputReserveAndSafetyMargin(t *testing.T) {
-	if err := validatePromptBudgetConfiguration(65536, 49152, 4096, promptBudgetPolicyVersionV1); err != nil {
-		t.Fatal(err)
-	}
-	if err := validatePromptBudgetConfiguration(55000, 49152, 4096, promptBudgetPolicyVersionV1); !errors.Is(err, ErrPromptOutputReserveConflict) {
-		t.Fatalf("capacity formula accepted insufficient context window or lost category: %v", err)
-	}
-	if err := validatePromptBudgetConfiguration(65536, 49152, 4096, "unknown"); err == nil || err.Error() != "prompt_budget_policy_unknown" {
-		t.Fatalf("unknown policy error = %v", err)
-	}
-	if err := validatePromptBudgetConfiguration(16384, 11776, 4096, promptBudgetPolicyVersionV2); err != nil {
-		t.Fatalf("16K policy rejected its exact boundary: %v", err)
-	}
-	if err := validatePromptBudgetConfiguration(16384, 11777, 4096, promptBudgetPolicyVersionV2); err == nil {
-		t.Fatal("16K policy accepted one token beyond the input boundary")
-	}
-	if category, code, retryable := classifyProviderPreflightError("assignment", promptBudgetConfigError{cause: ErrPromptOutputReserveConflict}); category != "budget" || code != "prompt_output_reserve_conflict" || retryable {
-		t.Fatalf("output conflict diagnostic = %s/%s retryable=%t", category, code, retryable)
-	}
-	policy, err := promptBudgetPolicyForAssignment(providerAssignment{TokenBudget: 4096, ContextWindowTokens: 16384, MaxInputTokens: 11776, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV2})
-	if err != nil || policy.SafetyMarginTokens != 512 || policy.OutputReserveTokens != 4096 {
-		t.Fatalf("16K policy=%#v err=%v", policy, err)
+func TestPromptAssignmentsIgnoreLegacyTokenBudgetMetadata(t *testing.T) {
+	for _, assignment := range []providerAssignment{{}, {TokenBudget: 1, ContextWindowTokens: 2, MaxInputTokens: 1000000, PromptBudgetPolicyVersion: "obsolete"}} {
+		policy, err := promptBudgetPolicyForAssignment(assignment)
+		if err != nil || policy.Version != "prompt-unlimited.v1" || policy.MaxInputTokens != 0 || policy.OutputReserveTokens != 0 {
+			t.Fatal(policy, err)
+		}
 	}
 }
 
@@ -405,7 +385,7 @@ func TestConversationSoftInputTargetLeavesRoomWithoutDroppingRequiredInput(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Trace.EstimatedInputTokens > 8000 || len(result.Trace.Dropped) == 0 || result.Trace.OptionalInputTargetTokens != 8000 || !strings.Contains(jsonString(result.Messages), "当前短发") {
+	if len(result.Trace.Dropped) != 0 || result.Trace.OptionalInputTargetTokens != 0 || !strings.Contains(jsonString(result.Messages), "当前短发") {
 		t.Fatalf("optional target did not bound the first turn: %#v", result.Trace)
 	}
 	policy.OptionalInputTargetTokens = 0
@@ -413,7 +393,7 @@ func TestConversationSoftInputTargetLeavesRoomWithoutDroppingRequiredInput(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if roomy.Trace.EstimatedInputTokens <= result.Trace.EstimatedInputTokens || len(roomy.Trace.Selected) == 0 {
+	if roomy.Trace.EstimatedInputTokens != result.Trace.EstimatedInputTokens || len(roomy.Trace.Selected) == 0 {
 		t.Fatalf("soft target did not distinguish optional admission: target=%#v roomy=%#v", result.Trace, roomy.Trace)
 	}
 	t.Logf("controlled full-request estimate without/with 8K soft target: %d / %d tokens; system=%d tools=%d schema=%d current=%d summary_before=%d summary_after=%d",
@@ -482,20 +462,40 @@ func TestPromptEstimatorHandlesMultimodalImages(t *testing.T) {
 	}
 }
 
-func TestOrdinaryStructuredAndStreamRejectOversizeInputBeforeHTTP(t *testing.T) {
-	router := newFakeProviderRouter()
-	provider := &ProviderClient{HTTP: &http.Client{Transport: router}}
-	assignment := providerAssignment{TokenBudget: 1000, ContextWindowTokens: 12000, MaxInputTokens: 5000, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1}
-	messages := []map[string]any{{"role": "system", "content": "约束"}, {"role": "user", "content": strings.Repeat("真实对话", 6000)}}
-	_, err := provider.generateWithEino(context.Background(), EinoModelCall{
-		Assignment: assignment, Role: "generic", Messages: messages, JSONMode: true,
-		SchemaName: "bounded_result", ResponseSchema: objectSchema(map[string]any{"result": map[string]any{"type": "string"}}, []string{"result"}, false),
-	})
-	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || router.totalRequests() != 0 {
-		t.Fatalf("structured over-budget request reached HTTP: err=%v requests=%d", err, router.totalRequests())
+func TestOrdinaryStructuredAndStreamSendFullInputWithoutOutputCaps(t *testing.T) {
+	requests := []map[string]any{}
+	provider := &ProviderClient{HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		var payload map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		requests = append(requests, payload)
+		if payload["stream"] == true {
+			response := embeddingHTTPResponse(request, http.StatusOK, "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
+			response.Header.Set("Content-Type", "text/event-stream")
+			return response, nil
+		}
+		return embeddingHTTPResponse(request, http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":"{\"result\":\"ok\"}"},"finish_reason":"stop"}]}`), nil
+	})}}
+	assignment := providerAssignment{ModelID: "model", BaseURL: "http://controlled.invalid", TokenBudget: 1, ContextWindowTokens: 2, MaxInputTokens: 3, PromptBudgetPolicyVersion: "obsolete"}
+	content := strings.Repeat("真实对话", 6000)
+	messages := []map[string]any{{"role": "system", "content": "约束"}, {"role": "user", "content": content}}
+	_, err := provider.generateWithEino(context.Background(), EinoModelCall{Assignment: assignment, Role: "generic", Messages: messages, JSONMode: true, SchemaName: "full_result", ResponseSchema: objectSchema(map[string]any{"result": stringSchema()}, []string{"result"}, false)})
+	if err != nil {
+		t.Fatal(err)
 	}
-	_, err = provider.streamWithEino(context.Background(), assignment, messages, "oversize-stream", func(string) error { return nil })
-	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) || router.totalRequests() != 0 {
-		t.Fatalf("stream over-budget request reached HTTP: err=%v requests=%d", err, router.totalRequests())
+	_, err = provider.streamWithEino(context.Background(), assignment, messages, "full-stream", func(string) error { return nil })
+	if err != nil || len(requests) != 2 {
+		t.Fatal(err, len(requests))
+	}
+	for _, request := range requests {
+		if stringValue(mapValue(arrayValue(request["messages"])[1])["content"]) != content {
+			t.Fatal("input truncated")
+		}
+		for _, key := range []string{"max_tokens", "max_completion_tokens"} {
+			if _, ok := request[key]; ok {
+				t.Fatalf("unexpected output cap %s", key)
+			}
+		}
 	}
 }

@@ -21,7 +21,7 @@ func TestAutomaticMemoryCuesAreBoundedAndNeverEnableEmbedding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if EstimatePromptTokens(plan.Query) > maxMemoryQueryTokens || plan.EmbeddingQuery != "" || plan.Mode != "lexical_salience" {
+	if plan.EmbeddingQuery != "" || plan.Mode != "lexical_salience" {
 		t.Fatalf("automatic query escaped bounds/egress: tokens=%d plan=%#v", EstimatePromptTokens(plan.Query), plan)
 	}
 }
@@ -254,12 +254,12 @@ func TestMemoryRetrievalFiltersAudienceAndConversationBeforeCandidateLimit(t *te
 	for _, item := range result.Items {
 		ids[stringValue(item["id"])] = struct{}{}
 	}
-	for _, required := range []string{"authorized-old", "global-participant"} {
+	for _, required := range []string{"authorized-old", "global-participant", "oversized"} {
 		if _, exists := ids[required]; !exists {
 			t.Fatalf("authorized Memory %q was crowded out: items=%#v trace=%#v", required, ids, result.Trace)
 		}
 	}
-	for _, forbidden := range []string{"wrong-conversation", "self-only", "owner-private", "oversized", "private-205"} {
+	for _, forbidden := range []string{"wrong-conversation", "self-only", "owner-private", "private-205"} {
 		if _, exists := ids[forbidden]; exists {
 			t.Fatalf("unauthorized/out-of-budget Memory %q entered ranking result: %#v", forbidden, ids)
 		}

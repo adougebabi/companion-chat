@@ -165,9 +165,6 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		return PromptAssemblyResult{}, projection, err
 	}
 	workingPolicy := DefaultWorkingMemoryPolicy()
-	if assignment.MaxInputTokens > 0 {
-		workingPolicy.ResidentTokens = min(workingPolicy.ResidentTokens, max(128, assignment.MaxInputTokens/12))
-	}
 	workingPolicy, err = reserveRequiredWorkingMemory(workingInput, workingPolicy, policy.MaxInputTokens)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
@@ -178,9 +175,6 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	}
 	if err := a.attachDailyMemoryMessageRefs(ctx, projection, &workingMemory); err != nil {
 		return PromptAssemblyResult{}, projection, err
-	}
-	if surface == ProviderContextSurfaceConversationMain && policy.Version == promptBudgetPolicyVersionV2 && policy.ContextWindowTokens == 16384 {
-		policy.OptionalInputTargetTokens = min(conversationFirstTurnTargetTokens, policy.MaxInputTokens)
 	}
 	composer, composerErr := NewPromptComposer(policy)
 	if composerErr != nil {

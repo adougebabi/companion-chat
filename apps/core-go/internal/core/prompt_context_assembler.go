@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -50,15 +49,7 @@ type PromptBudgetPolicy struct {
 }
 
 func DefaultPromptBudgetPolicy(outputReserve int) PromptBudgetPolicy {
-	if outputReserve <= 0 {
-		outputReserve = defaultOutputReserveTokens
-	}
-	return PromptBudgetPolicy{
-		Version: promptBudgetPolicyVersionV1, ContextWindowTokens: defaultContextWindowTokens,
-		MaxInputTokens: defaultMaxInputTokens, OutputReserveTokens: outputReserve,
-		SafetyMarginTokens: defaultPromptSafetyMarginTokens, SystemTokensCap: defaultSystemTokensCap,
-		ToolsSchemaTokensCap: defaultToolsSchemaTokensCap, CurrentInputTokensCap: defaultCurrentInputTokensCap,
-	}
+	return PromptBudgetPolicy{Version: "prompt-unlimited.v1"}
 }
 
 func promptSafetyMargin(policyVersion string) (int, error) {
@@ -72,57 +63,12 @@ func promptSafetyMargin(policyVersion string) (int, error) {
 	}
 }
 
-func validatePromptBudgetConfiguration(contextWindow, maxInput, outputReserve int, policyVersion string) error {
-	margin, err := promptSafetyMargin(policyVersion)
-	if err != nil {
-		return err
-	}
-	if contextWindow <= 0 || maxInput <= 0 || outputReserve <= 0 {
-		return errors.New("provider_prompt_budget_invalid")
-	}
-	if maxInput > contextWindow || maxInput+outputReserve+margin > contextWindow {
-		return promptBudgetConfigError{cause: ErrPromptOutputReserveConflict}
-	}
-	return nil
-}
-
-func automaticProviderInputBudget(window, output int, version string) (int, error) {
-	margin, err := promptSafetyMargin(version)
-	if err != nil {
-		return 0, err
-	}
-	input := window - output - margin
-	return input, validatePromptBudgetConfiguration(window, input, output, version)
-}
-
-func (policy PromptBudgetPolicy) Validate() error {
-	margin, err := promptSafetyMargin(policy.Version)
-	if err != nil {
-		return err
-	}
-	if policy.SystemTokensCap <= 0 || policy.ToolsSchemaTokensCap <= 0 || policy.CurrentInputTokensCap <= 0 || policy.SafetyMarginTokens != margin || policy.OptionalInputTargetTokens < 0 || policy.OptionalInputTargetTokens > policy.MaxInputTokens {
-		return errors.New("prompt_budget_policy_invalid")
-	}
-	return validatePromptBudgetConfiguration(policy.ContextWindowTokens, policy.MaxInputTokens, policy.OutputReserveTokens, policy.Version)
-}
+// Legacy token settings remain decodable for existing bindings. Token estimates
+// are diagnostic only; neither logical assembly nor physical requests cap them.
+func (policy PromptBudgetPolicy) Validate() error { return nil }
 
 func promptBudgetPolicyForAssignment(assignment providerAssignment) (PromptBudgetPolicy, error) {
-	policy := DefaultPromptBudgetPolicy(assignment.TokenBudget)
-	if assignment.ContextWindowTokens > 0 {
-		policy.ContextWindowTokens = assignment.ContextWindowTokens
-	}
-	if assignment.MaxInputTokens > 0 {
-		policy.MaxInputTokens = assignment.MaxInputTokens
-	}
-	if assignment.PromptBudgetPolicyVersion != "" {
-		policy.Version = assignment.PromptBudgetPolicyVersion
-	}
-	margin, err := promptSafetyMargin(policy.Version)
-	if err != nil {
-		return PromptBudgetPolicy{}, err
-	}
-	policy.SafetyMarginTokens = margin
-	return policy, policy.Validate()
+	return PromptBudgetPolicy{Version: "prompt-unlimited.v1"}, nil
 }
 
 var dataImageRegex = regexp.MustCompile(`data:image/[a-zA-Z0-9.+_-]+;base64,[A-Za-z0-9+/=\r\n]+`)
@@ -331,27 +277,11 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	if err != nil {
 		return PromptAssemblyResult{}, err
 	}
-	systemTokens := estimateProviderMessageTokens(system)
-	stableTokens := 0
-	if stable != nil {
-		stableTokens = estimateProviderMessageTokens(stable)
-	}
-	currentTokens := estimateProviderMessageTokens(current)
-	toolsTokens := EstimatePromptTokens(input.Tools)
-	schemaTokens := EstimatePromptTokens(wireFormat)
-	if currentTokens > input.Policy.CurrentInputTokensCap {
-		return PromptAssemblyResult{}, fmt.Errorf("%w: %w: current=%d cap=%d", ErrPromptRequiredBudgetExceeded, ErrPromptCurrentInputBudgetExceeded, currentTokens, input.Policy.CurrentInputTokensCap)
-	}
-	if systemTokens > input.Policy.SystemTokensCap || toolsTokens+schemaTokens > input.Policy.ToolsSchemaTokensCap {
-		return PromptAssemblyResult{}, fmt.Errorf("%w: required section cap exceeded system=%d stable_task_context=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, systemTokens, stableTokens, currentTokens, toolsTokens, schemaTokens)
-	}
 	selected := make([]promptOptionalCandidate, 0, len(candidates))
 	optional := make([]promptOptionalCandidate, 0, len(candidates))
 	trace := PromptAssemblyTrace{
 		ResponseFormatOmitted: wireFormat == nil && input.ResponseFormat != nil,
-		PolicyVersion:         input.Policy.Version, ContextWindowTokens: input.Policy.ContextWindowTokens,
-		MaxInputTokens: input.Policy.MaxInputTokens, OptionalInputTargetTokens: input.Policy.OptionalInputTargetTokens, OutputReserveTokens: input.Policy.OutputReserveTokens,
-		SafetyMarginTokens: input.Policy.SafetyMarginTokens, SectionTokens: map[string]int{},
+		PolicyVersion:         "prompt-unlimited.v1", SectionTokens: map[string]int{},
 		Selected: []PromptAssemblyDecision{}, Dropped: []PromptAssemblyDecision{},
 	}
 	for index, candidate := range candidates {
@@ -364,15 +294,6 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		} else {
 			optional = append(optional, candidate)
 		}
-	}
-	orderedSelected := orderedPromptCandidates(selected)
-	requiredTotal := estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, orderedSelected), input.Tools, wireFormat)
-	if requiredTotal > input.Policy.MaxInputTokens {
-		return PromptAssemblyResult{}, fmt.Errorf("%w: required wire estimate=%d max=%d system=%d stable_task_context=%d current=%d tools=%d schema=%d", ErrPromptRequiredBudgetExceeded, requiredTotal, input.Policy.MaxInputTokens, systemTokens, stableTokens, currentTokens, toolsTokens, schemaTokens)
-	}
-	selectionLimit := input.Policy.MaxInputTokens
-	if target := input.Policy.OptionalInputTargetTokens; target > 0 && target < selectionLimit {
-		selectionLimit = max(requiredTotal, target)
 	}
 	type optionalUnit struct {
 		items []promptOptionalCandidate
@@ -413,7 +334,6 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		}
 		return units[i].last < units[j].last
 	})
-	recentGap := false
 	summarizedSources := make(map[string]struct{})
 	for _, candidate := range selected {
 		if candidate.fragment.Kind == PromptFragmentSummary {
@@ -423,7 +343,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		}
 	}
 	for _, unit := range units {
-		reason := "budget_excluded"
+		reason := "summarized_source"
 		summarized := unit.kind == PromptFragmentRecentMessage && len(unit.items) > 0
 		if unit.kind == PromptFragmentRecentMessage {
 			for _, candidate := range unit.items {
@@ -442,24 +362,16 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		}
 		if summarized {
 			reason = "summarized_source"
-		} else if unit.kind == PromptFragmentRecentMessage && recentGap {
-			reason = "recent_contiguity_excluded"
 		} else {
-			trial := orderedPromptCandidates(append(append([]promptOptionalCandidate(nil), selected...), unit.items...))
-			if estimatePromptWireInput(assemblePromptMessagesForSurface(surface, system, stable, current, trial), input.Tools, wireFormat) <= selectionLimit {
-				selected = append(selected, unit.items...)
-				if unit.kind == PromptFragmentSummary || unit.kind == PromptFragmentRetrievedMemory || unit.kind == PromptFragmentResidentMemory {
-					for _, candidate := range unit.items {
-						for _, ref := range candidate.fragment.SourceRefs {
-							summarizedSources[ref] = struct{}{}
-						}
+			selected = append(selected, unit.items...)
+			if unit.kind == PromptFragmentSummary || unit.kind == PromptFragmentRetrievedMemory || unit.kind == PromptFragmentResidentMemory {
+				for _, candidate := range unit.items {
+					for _, ref := range candidate.fragment.SourceRefs {
+						summarizedSources[ref] = struct{}{}
 					}
 				}
-				continue
 			}
-			if unit.kind == PromptFragmentRecentMessage {
-				recentGap = true
-			}
+			continue
 		}
 		for _, candidate := range unit.items {
 			trace.Dropped = append(trace.Dropped, promptAssemblyDecision(candidate.fragment, reason))

@@ -379,7 +379,7 @@ test("extracted app replaces page branches repeatedly without stale block refere
       simulateFailure: ref(false),
       toast: ref(null),
       outfitTab: ref("为她搭配"),
-      ChatPage: surface("actual-chat"),
+      CharacterAvatar: {props:["initial"],render(){return h("span",this.initial);}},ChatPage: surface("actual-chat"),LibraryPage:surface("actual-library"),CharacterWizardPage:surface("actual-creation"),CharacterDetailPage:surface("actual-profile"),
       WardrobePage: surface("actual-wardrobe"),
       WorldPage: surface("actual-world"),
       LifePage: surface("actual-life"),
@@ -396,7 +396,7 @@ test("extracted app replaces page branches repeatedly without stale block refere
   for (const [next, label] of [
     ["聊天", "actual-chat"],
     ["此刻", "actual-life"],
-    ["角色库", "actual-browse"],
+    ["角色库", "actual-library"],
     ["管理中心", "actual-management"],
     ["世界", "actual-world"],
     ["衣柜", "actual-wardrobe"],

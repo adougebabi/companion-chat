@@ -104,7 +104,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		correlationID = "tool-operation:" + stableDigest(command.OperationID)
 	}
 	correlationID = canonicalConversationPublicationCorrelation(correlationID)
-	turnID, sourceFactID, err := resolveConversationPublicationSourceTx(ctx, tx, command.FluctlightID, command.ConversationID, correlationID)
+	turnID, sourceFactID, err := resolveConversationPublicationSourceTx(ctx, tx, command.FluctlightID, command.ConversationID, correlationID, service.app.now)
 	if err != nil {
 		return publishedResource{}, err
 	}
@@ -280,7 +280,7 @@ func canonicalConversationPublicationCorrelation(correlationID string) string {
 	return correlationID
 }
 
-func resolveConversationPublicationSourceTx(ctx context.Context, tx pgx.Tx, fluctlightID, conversationID, correlationID string) (string, string, error) {
+func resolveConversationPublicationSourceTx(ctx context.Context, tx pgx.Tx, fluctlightID, conversationID, correlationID string, checkAt ...func() time.Time) (string, string, error) {
 	if !strings.HasPrefix(correlationID, "turn:") {
 		return "", "", nil
 	}
@@ -294,6 +294,13 @@ func resolveConversationPublicationSourceTx(ctx context.Context, tx pgx.Tx, fluc
 		return "", "", fmt.Errorf("%w: conversation reply source fact does not exist", ErrConflict)
 	}
 	if err != nil {
+		return "", "", err
+	}
+	now := time.Now().UTC()
+	if len(checkAt) > 0 {
+		now = checkAt[0]()
+	}
+	if err := requireConversationBudgetTx(ctx, tx, sourceFactID, now, true, true); err != nil {
 		return "", "", err
 	}
 	if status == "waiting_reply" {

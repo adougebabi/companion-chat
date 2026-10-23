@@ -47,7 +47,7 @@ func TestGoalEvaluationInputDoesNotEmbedInspectionSnapshotsOrFactAudit(t *testin
 	}
 }
 
-func TestGoalEvaluationSourceBudgetRetainsPriorAndRecommendationWithoutConsumingLargeSource(t *testing.T) {
+func TestGoalEvaluationSourcesRetainFullLargeEvidenceAndRecommendation(t *testing.T) {
 	input := goalEvaluationSnapshot{Goals: []goalEvaluationGoal{{Goal: GoalAuthority{EntityID: "novel", CriterionIDs: []string{"criterion"}, SuccessCriteria: []string{"recommend a novel"}}, CurrentJudgments: []GoalCriterionJudgment{{EvidenceRefs: []string{"source:1"}}}}}, Sources: []GoalSource{
 		{EventID: 1, Ref: "source:1", Kind: "message", Data: map[string]any{"text": "我喜欢科幻"}},
 		{EventID: 2, Ref: "source:2", Kind: "outcome", Data: map[string]any{"capability": "domain.query", "observed": map[string]any{"large": strings.Repeat("domain evidence", 15000)}}},
@@ -62,10 +62,10 @@ func TestGoalEvaluationSourceBudgetRetainsPriorAndRecommendationWithoutConsuming
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(wire, "我喜欢科幻") || !strings.Contains(wire, "推荐《你一生的故事》") || strings.Contains(wire, "domain evidence") {
+	if !strings.Contains(wire, "我喜欢科幻") || !strings.Contains(wire, "推荐《你一生的故事》") || !strings.Contains(wire, strings.Repeat("domain evidence", 15000)) {
 		t.Fatalf("source priority/admission failed: %v", selected.ProviderSourceIDs)
 	}
-	if len(selected.Sources) != 3 || EstimatePromptTokens(rendered) > goalEvaluationSourceInputBudget {
+	if len(selected.Sources) != 3 || EstimatePromptTokens(rendered) < 12000 {
 		t.Fatal("durable snapshot lost a source or offered input exceeds bound")
 	}
 }
@@ -81,7 +81,7 @@ func TestGoalEvaluationSourceAdmissionUsesRecordedTimeBeforeEventID(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(selected.ProviderSourceIDs) != 1 || selected.ProviderSourceIDs[0] != 1 {
+	if len(selected.ProviderSourceIDs) != 2 || selected.ProviderSourceIDs[0] != 100 || selected.ProviderSourceIDs[1] != 1 {
 		t.Fatalf("arrival ID displaced newer evidence: %v", selected.ProviderSourceIDs)
 	}
 }

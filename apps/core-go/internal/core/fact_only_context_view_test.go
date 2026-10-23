@@ -287,8 +287,8 @@ func TestFactOnlyCognitionViewIsIndependentFromLegacy(t *testing.T) {
 func TestFactOnlyRequiredHistoryOverflowIsExplicit(t *testing.T) {
 	input := morningReplyFixture(t)
 	input.Projection.RecentMessages[0]["text"] = strings.Repeat("原始触发内容不可静默截断", 5000)
-	_, err := buildFactOnlyReplyContext(input, providerAssignment{TokenBudget: 1024, ContextWindowTokens: 16384, MaxInputTokens: 8192, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1})
-	if err == nil || !strings.Contains(err.Error(), "budget_exceeded") {
+	result, err := buildFactOnlyReplyContext(input, providerAssignment{TokenBudget: 1024, ContextWindowTokens: 16384, MaxInputTokens: 8192, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1})
+	if err != nil || !strings.Contains(jsonString(result.Messages), strings.Repeat("原始触发内容不可静默截断", 5000)) {
 		t.Fatal("protected triggering user silently truncated", err)
 	}
 }

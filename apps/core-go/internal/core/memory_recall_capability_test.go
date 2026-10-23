@@ -69,7 +69,7 @@ func TestMemoryRecallServiceCombinesDeepAuthoritiesWithOpaqueBoundedOutput(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capturedPlan.ResultLimit != 50 || capturedPlan.Budget != maxMemoryRetrievalBudget || len(items) != 4 {
+	if capturedPlan.ResultLimit != 50 || capturedPlan.Budget != 0 || len(items) != 4 {
 		t.Fatalf("deep recall plan=%#v items=%#v", capturedPlan, items)
 	}
 	encoded := jsonString(items)

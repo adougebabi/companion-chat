@@ -892,70 +892,13 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		return errors.New("provider_role_invalid")
 	}
 	bindingRole := providerBindingRole(role)
-	budget := intValue(payload["token_budget"])
+	// Historical positive columns remain for database/client compatibility only.
+	// Changing a binding no longer accepts or enforces application token caps.
+	budget, contextWindowTokens, maxInputTokens := defaultOutputReserveTokens, defaultContextWindowTokens, defaultMaxInputTokens
+	promptBudgetPolicyVersion := promptBudgetPolicyVersionV1
 	timeout := intValue(payload["timeout_seconds"])
-	if budget <= 0 {
-		budget = 4096
-	}
 	if timeout <= 0 {
 		timeout = 120
-	}
-	contextWindowTokens := 0
-	maxInputTokens := 0
-	promptBudgetPolicyVersion := ""
-	_ = a.DB.Pool().QueryRow(ctx, `SELECT context_window_tokens,max_input_tokens,prompt_budget_policy_version FROM public.model_roles WHERE role=$1`, bindingRole).Scan(&contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion)
-	contextWindowExplicit := false
-	if raw, present := payload["context_window_tokens"]; present {
-		contextWindowTokens = intValue(raw)
-		contextWindowExplicit = true
-		if contextWindowTokens <= 0 {
-			return errors.New("provider_prompt_budget_invalid")
-		}
-	} else if contextWindowTokens < defaultContextWindowTokens {
-		contextWindowTokens = defaultContextWindowTokens
-	}
-	maxInputExplicit := false
-	if raw, present := payload["max_input_tokens"]; present {
-		maxInputTokens = intValue(raw)
-		maxInputExplicit = true
-		if maxInputTokens <= 0 {
-			return errors.New("provider_prompt_budget_invalid")
-		}
-	} else if maxInputTokens < defaultMaxInputTokens {
-		maxInputTokens = defaultMaxInputTokens
-	}
-	if raw, present := payload["prompt_budget_policy_version"]; present {
-		promptBudgetPolicyVersion = strings.TrimSpace(stringValue(raw))
-		if promptBudgetPolicyVersion == "" {
-			return errors.New("prompt_budget_policy_unknown")
-		}
-	} else if strings.TrimSpace(promptBudgetPolicyVersion) == "" {
-		promptBudgetPolicyVersion = promptBudgetPolicyVersionV1
-	}
-	margin, err := promptSafetyMargin(promptBudgetPolicyVersion)
-	if err != nil {
-		return err
-	}
-	if !contextWindowExplicit && !maxInputExplicit {
-		if maxInputTokens+budget+margin > contextWindowTokens {
-			if contextWindowTokens-budget-margin >= 32768 {
-				maxInputTokens = contextWindowTokens - budget - margin
-			} else {
-				contextWindowTokens = maxInputTokens + budget + margin
-			}
-		}
-	} else if !contextWindowExplicit {
-		if maxInputTokens+budget+margin > contextWindowTokens {
-			contextWindowTokens = maxInputTokens + budget + margin
-		}
-	} else if !maxInputExplicit {
-		maxInputTokens, err = automaticProviderInputBudget(contextWindowTokens, budget, promptBudgetPolicyVersion)
-		if err != nil {
-			return err
-		}
-	}
-	if err := validatePromptBudgetConfiguration(contextWindowTokens, maxInputTokens, budget, promptBudgetPolicyVersion); err != nil {
-		return err
 	}
 	var endpointExists bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.provider_endpoints WHERE id=$1)`, endpoint).Scan(&endpointExists); err != nil {

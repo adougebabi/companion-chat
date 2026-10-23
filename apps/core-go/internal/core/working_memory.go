@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -64,61 +63,15 @@ type WorkingMemory struct {
 }
 
 func DefaultWorkingMemoryPolicy() WorkingMemoryPolicy {
-	return WorkingMemoryPolicy{RuntimeFactTokens: 8144, ActiveTokens: 2048, ResidentTokens: 1024, RecentTokens: 12288, RetrievedTokens: 3072, SummaryTokens: 2048}
+	return WorkingMemoryPolicy{}
 }
 
-// Section quotas guide optional selection. Required state may borrow spare
-// capacity from the total wire budget; the final composer still enforces that
-// budget including system instructions, Tools and the current input.
+// Compatibility policy values no longer exclude prompt content by token count.
 func reserveRequiredWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy, maxInput int) (WorkingMemoryPolicy, error) {
-	sections := []struct {
-		fragments []PromptFragment
-		cap       *int
-		recent    bool
-	}{
-		{input.RuntimeFacts, &policy.RuntimeFactTokens, false},
-		{input.ActiveCandidates, &policy.ActiveTokens, false},
-		{input.ResidentCandidates, &policy.ResidentTokens, false},
-		{input.Summaries, &policy.SummaryTokens, false},
-		{input.RecentMessages, &policy.RecentTokens, true},
-		{input.RetrievedMemories, &policy.RetrievedTokens, false},
-	}
-	for _, section := range sections {
-		requiredTokens := 0
-		requiredTail := len(section.fragments)
-		if section.recent {
-			for index, fragment := range section.fragments {
-				if fragment.Required {
-					requiredTail = index
-					for requiredTail > 0 && fragment.GroupKey != "" && section.fragments[requiredTail-1].GroupKey == fragment.GroupKey {
-						requiredTail--
-					}
-					break
-				}
-			}
-		}
-		for index, fragment := range section.fragments {
-			if !fragment.Required && !(section.recent && index >= requiredTail) {
-				continue
-			}
-			normalized, err := normalizePromptFragment(fragment)
-			if err != nil {
-				return policy, err
-			}
-			requiredTokens += normalized.EstimatedTokens
-		}
-		if requiredTokens > maxInput {
-			return policy, fmt.Errorf("%w: required section=%d max_input=%d", ErrPromptRequiredBudgetExceeded, requiredTokens, maxInput)
-		}
-		*section.cap = max(*section.cap, requiredTokens)
-	}
 	return policy, nil
 }
 
 func ResolveWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy) (WorkingMemory, error) {
-	if policy.RuntimeFactTokens <= 0 || policy.ActiveTokens <= 0 || policy.ResidentTokens <= 0 || policy.RecentTokens <= 0 || policy.RetrievedTokens <= 0 || policy.SummaryTokens <= 0 {
-		return WorkingMemory{}, errors.New("working_memory_policy_invalid")
-	}
 	result := WorkingMemory{Trace: WorkingMemoryTrace{Selected: []WorkingMemoryDecision{}, Dropped: []WorkingMemoryDecision{}}}
 	seen := make(map[string]struct{})
 	var err error
@@ -140,7 +93,7 @@ func ResolveWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy) 
 	}
 	// A selected Episode covers its original message refs. Select summaries
 	// before raw turns, but preserve covered raw candidates until the final
-	// Prompt assembler knows whether the Summary fits the total wire budget.
+	// Prompt assembler applies exact source-coverage deduplication.
 	result.Summaries, err = selectRankedPromptFragments(input.Summaries, policy.SummaryTokens, seen, &result.Trace)
 	if err != nil {
 		return WorkingMemory{}, err
@@ -197,12 +150,8 @@ func selectRankedPromptFragments(input []PromptFragment, capTokens int, seen map
 		return jsonString(fragments[i].SourceRefs) < jsonString(fragments[j].SourceRefs)
 	})
 	selected := make([]PromptFragment, 0, len(fragments))
-	used := 0
 	for _, fragment := range fragments {
 		reason := duplicatePromptFragmentReason(fragment, seen)
-		if reason == "" && used+fragment.EstimatedTokens > capTokens {
-			reason = "section_cap"
-		}
 		if reason != "" {
 			if fragment.Required {
 				return nil, errors.New("working_memory_required_budget_exceeded")
@@ -210,7 +159,6 @@ func selectRankedPromptFragments(input []PromptFragment, capTokens int, seen map
 			trace.Dropped = append(trace.Dropped, workingMemoryDecision(fragment, false, reason))
 			continue
 		}
-		used += fragment.EstimatedTokens
 		selected = append(selected, fragment)
 		markPromptFragmentSources(fragment, seen)
 		trace.Selected = append(trace.Selected, workingMemoryDecision(fragment, true, "selected"))
@@ -257,8 +205,6 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 		index = end
 	}
 	selectedGroups := make([]group, 0, len(groups))
-	used := 0
-	budgetGap := false
 	for index := len(groups) - 1; index >= 0; index-- {
 		value := groups[index]
 		reason := ""
@@ -266,14 +212,6 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 			if duplicate := duplicatePromptFragmentReason(fragment, seen); duplicate != "" {
 				reason = duplicate
 				break
-			}
-		}
-		if reason == "" {
-			if budgetGap {
-				reason = "recent_contiguity_excluded"
-			} else if used+value.tokens > capTokens {
-				reason = "section_cap"
-				budgetGap = true
 			}
 		}
 		if reason != "" {
@@ -285,7 +223,6 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 			}
 			continue
 		}
-		used += value.tokens
 		selectedGroups = append(selectedGroups, value)
 		for _, fragment := range value.fragments {
 			markPromptFragmentSources(fragment, seen)

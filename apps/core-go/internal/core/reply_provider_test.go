@@ -38,7 +38,7 @@ func TestReplyProviderUsesFrozenModelSamplingAndIsolatedMessages(t *testing.T) {
 			} else if err != nil || draft.Text != "那就约定周六一起讨论。🙂" || draft.Mode != "fact_only" {
 				t.Fatalf("reply failed: %#v %v", draft, err)
 			}
-			if received["model"] != "cydonia-frozen" || received["temperature"] != temp || received["top_p"] != top || received["max_completion_tokens"] != float64(333) {
+			if received["model"] != "cydonia-frozen" || received["temperature"] != temp || received["top_p"] != top || received["max_completion_tokens"] != nil || received["max_tokens"] != nil {
 				t.Fatalf("frozen transport lost: %#v", received)
 			}
 			if len(arrayValue(received["tools"])) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(arrayValue(received["tools"])[0])["function"])["name"]), replyImageRequestName) || received["tool_choice"] != "auto" || received["response_format"] != nil {

@@ -32,7 +32,7 @@ func nativeCognitionCycleGuarded(depth int) bool {
 // ProcessCognitionInbox is the Worker-owned entry point for a committed
 // conversation fact. HandleTurn is idempotent on the inbox/message keys, so a
 // retry resumes the same fact instead of consuming another turn.
-func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[string]any, error) {
+func (a *App) processCognitionInbox(ctx context.Context, inboxID string) (map[string]any, error) {
 	if inboxID == "" {
 		return nil, errors.New("cognition_inbox_id_required")
 	}
@@ -203,6 +203,9 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 			}
 			return err
 		}
+		if !conversationBudgetMatches(ctx, inboxID, decodeObject(payload)) {
+			return ErrConflict
+		}
 		if status == "processed" || status == "failed" || status == "waiting_reply" {
 			return nil
 		}
@@ -358,7 +361,19 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		if existingText != text || stringValue(existingData["conversation_id"]) != conversationID || stringValue(existingData["actor_id"]) != actorID {
 			return "", nil, ErrConflict
 		}
-		if existingStatus == "failed" && partialHasCommittedMutation(existingData["agent_partial"], a.capabilityRegistry()) {
+		if existingStatus == "failed" {
+			ledger, err := a.turnLedgerHasCommittedEffectsTx(ctx, tx, existing)
+			if err != nil {
+				return "", nil, err
+			}
+			if ledger {
+				existingError = "agent_partial_committed"
+				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET error_code=$2 WHERE id=$1`, existing, existingError); err != nil {
+					return "", nil, err
+				}
+			}
+		}
+		if existingStatus == "failed" && (existingError == "agent_partial_committed" || turnHasCommittedEffects(existingData, a.capabilityRegistry())) {
 			return existing, nil, nil
 		}
 		if claimOwner == "" && existingStatus == "failed" && existingError != "superseded_by_newer_turn" {
@@ -381,7 +396,11 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 					}
 				}
 				retryCount := intValue(existingData["retry_count"]) + 1
-				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',error_code=NULL,processed_at=NULL,claimed_by=NULL,claimed_at=NULL,attempt_count=attempt_count+1,payload=jsonb_set(payload,'{retry_count}',to_jsonb($2::int),true) WHERE id=$1`, existing, retryCount); err != nil {
+				budget, err := a.newConversationTurnBudget(ctx, retryCount)
+				if err != nil {
+					return "", nil, err
+				}
+				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',error_code=NULL,processed_at=NULL,claimed_by=NULL,claimed_at=NULL,attempt_count=0,payload=jsonb_set(jsonb_set(payload,'{retry_count}',to_jsonb($2::int),true),'{reply_budget}',$3::jsonb,true) WHERE id=$1`, existing, retryCount, jsonBytes(budget)); err != nil {
 					return "", nil, err
 				}
 				if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',workflow_id=$2,attempt_count=0,next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, "cognition_intent:"+existing, fmt.Sprintf("cognition:%s:retry:%d", existing, retryCount)); err != nil {
@@ -454,6 +473,11 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		attachmentRefs = []any{}
 	}
 	payload := map[string]any{"actor_id": actorID, "authorization_actor_id": authorizationActorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
+	budget, budgetErr := a.newConversationTurnBudget(ctx, 0)
+	if budgetErr != nil {
+		return "", nil, budgetErr
+	}
+	payload["reply_budget"] = budget
 	if snapshot.zone != nil {
 		snapshot.addToPayload(payload)
 	}

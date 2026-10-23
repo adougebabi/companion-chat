@@ -27,9 +27,9 @@ test('historical corrupt moment uses an explicit reading projection without chan
  for(const text of ['Gujarati 例句。ાન્ય','她提到的名字是 અન્ય','今天很好。✨'])assert.equal(momentReading({author_type:'fluctlight',text}).corrected,false);
  assert.equal(momentReading({...post,author_type:'user'}).corrected,false);
 });
-test('diagnostics show gateway reason and the actual effective input budget on the first card',()=>{
+test('diagnostics show gateway reason and measured token usage without obsolete caps',()=>{
  const html=DiagnosticCard({id:'run',ref:'ref',kind:'model-runs',data:{model_id:'writer',status:'failed',error_code:'provider_gateway_timeout',binding_role:'conversation_reply',metrics:{prompt_budget:{estimated_input_tokens:48000,max_input_tokens:49152}}}});
- assert.match(html,/中转服务等待超时/);assert.match(html,/估算输入 48000/);assert.match(html,/有效输入上限 49152/);
+ assert.match(html,/中转服务等待超时/);assert.match(html,/估算输入 48000/);assert.doesNotMatch(html,/有效输入上限/);
  assert.doesNotMatch(errorMessage(new Error('INSERT INTO fluctlight_wardrobe_outfit_items constraint failed')),/INSERT|fluctlight_/);
 });
 test('diary readable count and calendar use the same visible rows, with generation status shown separately',async()=>{

@@ -85,19 +85,14 @@ export function configurationPlan({
         role: binding.role,
         endpointId,
         modelId: binding.model.trim(),
-        tokenBudget: Number(binding.tokens),
         timeoutSeconds: Number(binding.timeout),
-        contextWindowTokens: Number(binding.window),
-        safetyMarginTokens: binding.safetyMargin,
       };
     if (
       !normalized.modelId ||
-      !Number.isSafeInteger(normalized.tokenBudget) ||
-      normalized.tokenBudget < 1 ||
       !Number.isSafeInteger(normalized.timeoutSeconds) ||
       normalized.timeoutSeconds < 1
     )
-      throw Error(binding.name + "：请核对模型、输出预算和超时");
+      throw Error(binding.name + "：请核对模型和超时");
     const body = providerBindingBody(normalized, catalog.versions);
     delete body.expectedVersions;
     if (
@@ -105,9 +100,7 @@ export function configurationPlan({
       !changedEndpoints.has(endpointId) &&
       source.endpoint_id === endpointId &&
       source.model_id === normalized.modelId &&
-      source.token_budget === normalized.tokenBudget &&
-      source.timeout_seconds === normalized.timeoutSeconds &&
-      source.context_window_tokens === normalized.contextWindowTokens
+      source.timeout_seconds === normalized.timeoutSeconds
     )
       continue;
     writes.push({

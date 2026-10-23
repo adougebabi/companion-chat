@@ -258,7 +258,7 @@ function renderManagementPageBody(__view) {
   }, null, 8, B1), [[$e, h.secret]])]), o("label", K1, [$[19] || ($[19] = Z("清除已存密钥", -1)), pe(o("input", {
     "onUpdate:modelValue": k => h.clearSecret = k,
     type: "checkbox"
-  }, null, 8, W1), [[ss, h.clearSecret]])])]), o("p", q1, "可用模型：" + v(h.models.join("、") || "暂未读取，可在用途配置中手填模型 ID"), 1), approvedButtonVNode({
+  }, null, 8, W1), [[ss, h.clearSecret]])])]), me(__view.ModelDirectory,{models:h.models},null,8,["models"]), approvedButtonVNode({
     type: "button",
     class: "text-button",
     onClick: k => __view.x(h.name)
@@ -269,46 +269,17 @@ function renderManagementPageBody(__view) {
     class: "card settings-group"
   }, [$[27] || ($[27] = o("h2", null, "各用途对应的模型配置", -1)), $[28] || ($[28] = o("p", {
     class: "muted"
-  }, "只有以下四个用途可独立选模型。安全余量使用当前模型配置，输出预留采用用途预算。", -1)), (p(!0), g(O, null, oe(__view.i.value, h => {
+  }, "四个用途可分别选择模型。应用不设置输入、输出 Token 上限，容量由模型服务决定。", -1)), (p(!0), g(O, null, oe(__view.i.value, h => {
     var b;
-    return p(), g("details", {
-      key: h.name,
-      class: "management-block",
-      open: ""
-    }, [o("summary", null, v(h.name), 1), o("div", J1, [o("label", null, [$[21] || ($[21] = Z("使用服务", -1)), pe(o("select", {
-      "onUpdate:modelValue": k => h.endpoint = k,
-      required: ""
-    }, [(p(!0), g(O, null, oe(__view.l.value, k => (p(), g("option", {
-      value: k.id
-    }, v(k.name), 9, Z1))), 256))], 8, Y1), [[Et, h.endpoint]])]), o("label", null, [$[22] || ($[22] = Z("模型 ID", -1)), pe(o("input", {
-      "onUpdate:modelValue": k => h.model = k,
-      list: "models-" + h.role,
-      required: ""
-    }, null, 8, Q1), [[$e, h.model]]), o("datalist", {
-      id: "models-" + h.role
-    }, [(p(!0), g(O, null, oe((b = __view.l.value.find(k => k.id === h.endpoint)) == null ? void 0 : b.models, k => (p(), g("option", {
-      value: k
-    }, null, 8, em))), 256))], 8, X1)]), o("label", null, [$[23] || ($[23] = Z("Token 预算", -1)), pe(o("input", {
-      "onUpdate:modelValue": k => h.tokens = k,
-      type: "number",
-      min: "1",
-      required: ""
-    }, null, 8, tm), [[$e, h.tokens, void 0, {
-      number: !0
-    }]])]), o("label", null, [$[24] || ($[24] = Z("超时（秒）", -1)), pe(o("input", {
-      "onUpdate:modelValue": k => h.timeout = k,
-      type: "number",
-      min: "1",
-      required: ""
-    }, null, 8, sm), [[$e, h.timeout, void 0, {
-      number: !0
-    }]])]), o("label", null, [$[25] || ($[25] = Z("上下文窗口", -1)), pe(o("input", {
-      "onUpdate:modelValue": k => h.window = k,
-      type: "number",
-      min: h.tokens + (h.safetyMargin || 0)
-    }, null, 8, nm), [[$e, h.window, void 0, {
-      number: !0
-    }]])]), o("p", lm, "可用输入预算：" + v(h.window ? Math.max(0, h.window - h.tokens - (h.safetyMargin || 0)) : "自动") + " token", 1)])]);
+    return o("details", { key: h.name, class: "management-block", open: "" }, [
+      o("summary", null, h.name), o("div", J1, [
+        o("label", null, ["使用服务", pe(o("select", {"onUpdate:modelValue": value => h.endpoint = value, required: ""},
+          __view.l.value.map(endpoint => o("option", {value: endpoint.id}, endpoint.name))), [[Et, h.endpoint]])]),
+        o("label", null, ["模型 ID", pe(o("input", {"onUpdate:modelValue": value => h.model = value, list: "models-" + h.role, required: ""}), [[$e, h.model]]),
+          o("datalist", {id: "models-" + h.role}, (__view.l.value.find(endpoint => endpoint.id === h.endpoint)?.models || []).map(model => o("option", {value: model})))]),
+        o("label", null, ["超时（秒）", pe(o("input", {"onUpdate:modelValue": value => h.timeout = value, type: "number", min: "1", required: ""}), [[$e, h.timeout, void 0, {number: true}]] )])
+      ])
+    ]);
   }), 128)), o("details", om, [o("summary", null, "共用通用模型的场景 · " + v(M(__view.sharedScenarios).length) + " 项", 1), (p(!0), g(O, null, oe(M(__view.sharedScenarios), h => (p(), g("div", im, [o("span", null, v(h), 1), $[26] || ($[26] = o("small", null, "使用：通用模型", -1))]))), 256))])]), approvedSurfaceVNode("section", {
     id: __view._("安静时段"),
     class: "card settings-group"
@@ -411,7 +382,7 @@ function renderManagementPageBody(__view) {
       class: "spacer"
     }, null, -1)), o("span", {
       class: ge(["call-status", h.status])
-    }, v(__view.I(h.status)), 3), o("small", null, v(h.duration) + " 秒", 1)]), o("p", Lm, v(h.status === "error" ? h.reason : h.status === "pending" ? "正在等待服务回应" : h.kind === "媒体调用" ? (b = h.media) == null ? void 0 : b.output : h.response), 1)]), h.status === "error" ? (p(), approvedButtonBlock({
+    }, v(__view.I(h.status)), 3), o("small", null, v(h.durationLabel), 1)]), o("p", Lm, v(h.summary), 1)]), h.status === "error" ? (p(), approvedButtonBlock({
       key: 0,
       class: "text-button diagnostic-retry",
       "data-testid": "diag-retry-" + h.id,
@@ -427,7 +398,7 @@ function renderManagementPageBody(__view) {
     "test-id": "diagnostic-drawer",
     onClose: $[9] || ($[9] = h => __view.d.value = null)
   }, {
-    default: Ht(() => [o("div", Fm, [o("span", Rm, v(__view.S.value.kind), 1), o("p", null, v(__view.S.value.character) + " · " + v(__view.he(__view.S.value)) + " · 用时 " + v(__view.S.value.duration) + " 秒", 1), o("span", {
+    default: Ht(() => [o("div", Fm, [o("span", Rm, v(__view.S.value.kind), 1), o("p", null, v(__view.S.value.character) + " · " + v(__view.he(__view.S.value)) + " · " + v(__view.S.value.durationLabel), 1), o("span", {
       class: ge(["call-status", __view.S.value.status])
     }, v(__view.I(__view.S.value.status)), 3)]), __view.S.value.status === "error" ? (p(), g("p", Dm, [Z(v(__view.S.value.category) + "：" + v(__view.S.value.reason) + " ", 1), approvedButtonVNode({
       class: "text-button",
@@ -448,7 +419,7 @@ function renderManagementPageBody(__view) {
       key: 2
     }, [o("p", Jm, [Z("模型 · " + v(__view.S.value.model), 1), __view.S.value.tokens ? (p(), g(O, {
       key: 0
-    }, [Z(" · " + v(__view.S.value.tokens) + " token", 1)], 64)) : X("", !0)]), o("section", Ym, [$[49] || ($[49] = o("h3", null, "请求提示词 / Prompt", -1)), o("pre", null, v(__view.S.value.input), 1)]), o("section", Zm, [$[50] || ($[50] = o("h3", null, "响应内容", -1)), o("pre", null, v(__view.S.value.status === "success" ? __view.S.value.response : "尚未收到响应"), 1)])], 64)), o("details", Qm, [$[52] || ($[52] = o("summary", null, "技术详情", -1)), o("p", null, [Z("失败码：" + v(__view.S.value.status === "error" ? __view.S.value.code : "无"), 1), $[51] || ($[51] = o("br", null, null, -1)), Z("关联 ID：demo" + v(__view.S.value.id), 1)])])]),
+    }, [Z(" · " + v(__view.S.value.tokens) + " token", 1)], 64)) : X("", !0)]), o("section", Ym, [$[49] || ($[49] = o("h3", null, "请求提示词 / Prompt", -1)), o("pre", null, v(__view.S.value.input), 1)]), o("section", Zm, [$[50] || ($[50] = o("h3", null, "响应内容", -1)), o("pre", null, v(__view.S.value.status === "success" ? __view.S.value.response : "尚未收到响应"), 1)])], 64)), o("details", Qm, [$[52] || ($[52] = o("summary", null, "技术详情", -1)), o("p", null, [Z("失败码：" + v(__view.S.value.status === "error" ? __view.S.value.code : "无"), 1), $[51] || ($[51] = o("br", null, null, -1)), Z("关联记录：" + v(__view.S.value.correlationId), 1)])])]),
     _: 1
   }, 8, ["title"])) : X("", !0), o("div", Xm, [$[54] || ($[54] = o("small", null, "其它诊断", -1)), o("div", ev, [(p(!0), g(O, null, oe(M(__view.referenceSections), h => (p(), approvedButtonBlock({
     class: "text-button",
@@ -460,8 +431,8 @@ function renderManagementPageBody(__view) {
   }, "关闭")]), (p(!0), g(O, null, oe(__view.j.value.rows, h => (p(), g("p", null, v(h), 1))), 256)), ["后台任务", "待处理事项 / 重试耗尽"].includes(__view.B.value) ? (p(), approvedButtonBlock({
     key: 0,
     class: "text-button",
-    onClick: $[11] || ($[11] = h => __view.x("任务重试"))
-  }, "重试")) : X("", !0), o("p", lv, v(__view.te.value), 1)])) : X("", !0)])], 64))], 64));
+    onClick: __view.openTaskDiagnostics
+  }, "查看原任务与恢复")) : X("", !0), o("p", lv, v(__view.te.value), 1)])) : X("", !0)])], 64))], 64));
 }
 
 export const renderManagementPage = unoptimizedRenderer(renderManagementPageBody);

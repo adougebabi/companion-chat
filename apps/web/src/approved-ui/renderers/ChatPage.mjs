@@ -77,7 +77,7 @@ function renderChatPageBody(__view) {
       })
     }, v(M(__view.character).initial), 5), o("div", null, [o("strong", null, v(M(__view.character).name), 1), o("small", null, [d[3] || (d[3] = o("i", {
       class: "online-dot"
-    }, null, -1)), Z(M(__view.character).status==='正常'?" 运行中 ":M(__view.character).status||" 状态未读取 ",1), o("span", null, "· " + v(M(__view.character).job), 1)])]), d[6] || (d[6] = o("span", {
+    }, null, -1)), Z(M(__view.character).status==='正常'?" 运行中 ":M(__view.character).status||" 状态未读取 ",1), M(__view.character).job?o("span", null, "· " + v(M(__view.character).job), 1):X("",!0)])]), d[6] || (d[6] = o("span", {
       class: "spacer"
     }, null, -1)), o("span", kc, [me(M(tc), {
       size: 13
@@ -103,8 +103,8 @@ function renderChatPageBody(__view) {
         onClick: se => A.action.run()
       }, [me(M(Qu), {
         size: 12
-      }), d[7] || (d[7] = Z("重试", -1))])])) : X("", !0)])], 2);
-    }), 128)), __view.f.value ? (p(), g("div", Tc, [Z(v(M(__view.character).name) + " 正在输入 ", 1), d[8] || (d[8] = o("span", null, "•••", -1))])) : X("", !0)], 512), o("div", Mc, [pe(o("textarea", {
+      }), Z(v(A.action.label||"重试"),1)])])) : X("", !0)])], 2);
+    }), 128)), __view.f.value ? (p(), g("div", Tc, [Z(v(M(__view.waitText)), 1), o("span", {"aria-hidden":"true"}, "•••"),approvedButtonVNode({class:"text-button",onClick:__view.readStatus},"核对进度"),o("a",{class:"text-button",href:M(__view.diagnosticHref)},"查看本次运行 ↗"),approvedButtonVNode({class:"text-button",onClick:__view.cancel},"停止本次生成")])) : X("", !0)], 512), o("div", Mc, [pe(o("textarea", {
       "onUpdate:modelValue": d[0] || (d[0] = A => __view.l.value = A),
       "aria-label": "聊天消息",onCompositionstart:()=>__view.composition(true),onCompositionend:()=>__view.composition(false),
       placeholder: "说点什么，分享你的今天…",
@@ -127,7 +127,7 @@ function renderChatPageBody(__view) {
       class: "scene-desk"
     }, null, -1)), o("div", Pc, [d[13] || (d[13] = o("span", {
       class: "scene-tag"
-    }, "A LITTLE MOMENT", -1)), o("p", null, v(M(__view.character).location || M(__view.character).activity || "此刻"), 1)])]), o("div", Lc, [o("b", null, v(M(__view.character).name) + " · " + v(M(__view.character).job), 1), o("p", null, v(M(__view.character).bio), 1), o("small", null, v(M(__view.character).mood) + " · " + v(M(__view.character).location), 1)]), me(__view.CurrentOutfit), o("div", Uc, [o("div", null, [d[19] || (d[19] = o("span", null, "接下来的安排", -1)), approvedButtonVNode({
+    }, "A LITTLE MOMENT", -1)), o("p", null, v(M(__view.character).location || M(__view.character).activity || "此刻"), 1)])]), o("div", Lc, [o("b", null, v(__view.joined(M(__view.character).name,M(__view.character).job)), 1), o("p", null, v(M(__view.character).bio), 1), o("small", null, v(__view.joined(M(__view.character).mood,M(__view.character).location)), 1)]), me(__view.CurrentOutfit), o("div", Uc, [o("div", null, [d[19] || (d[19] = o("span", null, "接下来的安排", -1)), approvedButtonVNode({
       onClick: d[2] || (d[2] = A => __view.n("go", "日程"))
     }, [d[18] || (d[18] = Z("查看全部 ", -1)), me(M(Ji), {
       size: 12

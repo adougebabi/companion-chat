@@ -30,10 +30,8 @@ test("detail display has safe object formatting and Chinese field labels", () =>
   assert.match(governanceSource, /字段名：\{\{ String\(slot\.key\) \}\}/);
 });
 
-test("provider role defaults preserve enough output budget for initialization", () => {
-  assert.match(settingsSource, /roleTokenBudget = ref\(4096\)/);
-  assert.match(settingsSource, /binding\?\.token_budget \?\? 4096/);
-  assert.doesNotMatch(settingsSource, /roleTokenBudget = ref\(2048\)/);
+test("provider role settings no longer expose an application output budget", () => {
+  assert.doesNotMatch(settingsSource, /roleTokenBudget|role-budget/);
 });
 
 test("detail owns read-only life-world sections and uses timezone-aware timeline formatting", () => {

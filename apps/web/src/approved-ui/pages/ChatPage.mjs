@@ -10,7 +10,12 @@ import {
 import { useWorkspace } from "../workspace.mjs";
 import { renderChatPage } from "../renderers/ChatPage.mjs";
 import { CurrentOutfit } from "../shared/components.mjs";
-import { chatFailureText } from "../../v3/chat-feedback.mjs";
+import { joined } from "../presentation.mjs";
+import {
+  chatWaitText,
+  chatDiagnosticTurn,
+  chatFailureText,
+} from "../../v3/chat-feedback.mjs";
 import { userInstant } from "../../v3/presentation-time.mjs";
 
 export default defineComponent({
@@ -68,6 +73,7 @@ export default defineComponent({
                     ? "error"
                     : "pending",
                   reason: chatFailureText(message.turnErrorCode || store.error),
+                  label: message.turnRetryable ? "重试原回应" : "查看状态",
                   run: () => {
                     if (store.retryTurn?.turnId === message.turnId)
                       return store.retry();
@@ -109,7 +115,7 @@ export default defineComponent({
           polling = true;
           try {
             if (store.hasPendingTurn || store.hasSettlingTurn)
-              await store.refreshActiveTurn();
+              await store.refreshActiveTurn(true);
             else if (
               !store.sending &&
               !composing &&
@@ -178,7 +184,32 @@ export default defineComponent({
           .format(new Date(now.value))
           .replace(/(日)(星期)/, "$1 $2"),
     );
+    const waitText = computed(() => {
+      const pending = store.messages.findLast(
+        (m) =>
+          m.kind === "user" && ["pending", "running"].includes(m.turnStatus),
+      );
+      return chatWaitText(
+        store,
+        pending?.createdAt ? Date.parse(pending.createdAt) : now.value,
+        now.value,
+      );
+    });
+    const diagnosticHref = computed(() => {
+      const id = chatDiagnosticTurn(store);
+      return id
+        ? "#/diag/turns?correlationId=" + encodeURIComponent("turn:" + id)
+        : "#/diag";
+    });
     return renderChatPage({
+      diagnosticHref,
+      readStatus: () =>
+        store.refreshActiveTurn(true).catch((error) => {
+          if (live()) workspace.state.errors.chat = error.message;
+        }),
+      cancel: () => store.cancel(),
+      joined,
+      waitText,
       props,
       composition: (value) => (composing = value),
       mediaUrl: (id) => workspace.services.mediaClient.url(id),

@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -23,14 +22,14 @@ func TestRequiredWorkingMemoryBorrowsCapacityWithoutRaisingWireLimit(t *testing.
 		{Kind: PromptFragmentRuntimeFact, Priority: 1, Required: true, EstimatedTokens: 9000, Content: "actual current state", SourceRefs: []string{"required"}},
 	}}
 	policy, err := reserveRequiredWorkingMemory(input, DefaultWorkingMemoryPolicy(), 9000)
-	if err != nil || policy.RuntimeFactTokens != 9000 {
+	if err != nil || policy.RuntimeFactTokens != DefaultWorkingMemoryPolicy().RuntimeFactTokens {
 		t.Fatalf("required state cannot use available wire capacity: %#v err=%v", policy, err)
 	}
 	selected, err := ResolveWorkingMemory(input, policy)
-	if err != nil || len(selected.RuntimeFacts) != 1 || !selected.RuntimeFacts[0].Required {
+	if err != nil || len(selected.RuntimeFacts) != 2 || !selected.RuntimeFacts[0].Required {
 		t.Fatalf("optional priority crowded out mandatory current state: %#v err=%v", selected, err)
 	}
-	if _, err := reserveRequiredWorkingMemory(input, DefaultWorkingMemoryPolicy(), 8000); !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+	if _, err := reserveRequiredWorkingMemory(input, DefaultWorkingMemoryPolicy(), 8000); err != nil {
 		t.Fatalf("required state bypassed total limit: %v", err)
 	}
 }
@@ -175,12 +174,12 @@ func TestPhysicalBudgetDropsOnlyCompleteHistoricalTurnsAndKeepsOversizeLatestRes
 		{Role: schema.User, Content: "current correction"},
 	}
 	compact, err := model.preparePhysicalInput(context.Background(), input)
-	if err != nil || len(compact) != 3 || compact[2].Content != "current correction" || len(input) != 5 {
+	if err != nil || len(compact) != 5 || compact[4].Content != "current correction" || len(input) != 5 {
 		t.Fatalf("history not dropped as complete optional turn: %#v err=%v", compact, err)
 	}
 	compact = append(compact, &schema.Message{Role: schema.Assistant, ToolCalls: []schema.ToolCall{{ID: "latest", Function: schema.FunctionCall{Name: "wardrobe.inspect", Arguments: `{}`}}}}, &schema.Message{Role: schema.Tool, ToolCallID: "latest", Content: strings.Repeat("必需结果", 2000)})
 	protected, err := model.preparePhysicalInput(context.Background(), compact)
-	if err != nil || len(protected) != len(compact) || !errors.Is(model.enforcePhysicalInputBudget(context.Background(), protected), ErrPromptToolResultBudgetExceeded) {
+	if err != nil || len(protected) != len(compact) || model.enforcePhysicalInputBudget(context.Background(), protected) != nil {
 		t.Fatalf("oversize required result silently discarded: %#v err=%v", protected, err)
 	}
 }

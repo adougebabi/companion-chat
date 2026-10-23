@@ -12309,7 +12309,6 @@
           "role",
           "endpoint_id",
           "model_id",
-          "token_budget",
           "timeout_seconds",
           "expected_versions",
           "idempotency_key"

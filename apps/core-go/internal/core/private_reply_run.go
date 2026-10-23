@@ -127,8 +127,6 @@ func (a *App) freezePersonaWriterAssignment(ctx context.Context, run *privateRep
 		}
 	}
 	if run.AssignmentError == nil {
-		run.Assignment.TokenBudget = min(run.Assignment.TokenBudget, config.MaxTokens)
-		run.Assignment.MaxInputTokens = min(run.Assignment.MaxInputTokens, config.MaxInputTokens)
 		run.Assignment.Timeout = time.Duration(config.TimeoutSeconds) * time.Second
 		temperature, topP := config.Temperature, config.TopP
 		run.Assignment.Temperature, run.Assignment.TopP = &temperature, &topP

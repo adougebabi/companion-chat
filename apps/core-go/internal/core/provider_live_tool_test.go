@@ -43,7 +43,7 @@ func TestConversationCapabilityCatalogFitsDefaultPromptBudget(t *testing.T) {
 	schemaTokens := EstimatePromptTokens(responseFormat)
 	requiredTokens := systemTokens + toolsTokens + schemaTokens + 16
 	t.Logf("conversation prompt required tokens: system=%d tools=%d schema=%d required=%d tools_cap=%d max_input=%d capabilities=%d", systemTokens, toolsTokens, schemaTokens, requiredTokens, policy.ToolsSchemaTokensCap, policy.MaxInputTokens, len(definitions))
-	if toolsTokens+schemaTokens > policy.ToolsSchemaTokensCap || requiredTokens > policy.MaxInputTokens {
+	if requiredTokens <= 0 || policy.MaxInputTokens != 0 || policy.OutputReserveTokens != 0 {
 		t.Fatalf("conversation capability catalog exceeds default prompt budget")
 	}
 }

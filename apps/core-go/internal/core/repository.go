@@ -205,7 +205,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	participantRows.Close()
 	query := `SELECT m.id, m.conversation_id, m.sequence, m.author_actor_id, m.kind, m.text, m.attachment_refs, m.created_at,
 		m.sender_timezone,m.sender_utc_offset_minutes,m.sender_sent_at,
-		COALESCE(m.turn_id,''), COALESCE(m.idempotency_key,''), COALESCE(i.status,''), COALESCE(i.error_code,''),COALESCE(w.status,''),COALESCE(i.payload->'agent_partial','{}'::jsonb),
+		COALESCE(m.turn_id,''), COALESCE(m.idempotency_key,''), COALESCE(i.status,''), COALESCE(i.error_code,''),COALESCE(w.status,''),COALESCE(i.payload,'{}'::jsonb),
 		CASE WHEN m.kind='user' AND m.turn_id IS NOT NULL THEN EXISTS(
 			SELECT 1 FROM public.conversation_messages a
 			WHERE a.conversation_id=m.conversation_id AND a.kind='assistant' AND a.turn_id=m.turn_id
@@ -241,7 +241,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 			switch {
 			case assistantExists || inboxStatus == "processed" || (inboxStatus == "failed" && inboxError == "superseded_by_newer_turn"):
 				item.TurnStatus = "completed"
-			case inboxStatus == "claimed":
+			case inboxStatus == "claimed" || inboxStatus == "waiting_reply":
 				item.TurnStatus = "running"
 			case inboxStatus == "pending":
 				item.TurnStatus = "pending"
@@ -257,7 +257,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 				}
 				item.TurnRetryable = workflowStatus != "started" && workflowStatus != "running" && workflowStatus != "cancel_requested"
 			}
-			if (item.TurnStatus == "failed" || item.TurnStatus == "cancelled") && !assistantExists && partialHasCommittedMutation(decodeObject(partialJSON), registry) {
+			if (item.TurnStatus == "failed" || item.TurnStatus == "cancelled") && !assistantExists && (inboxError == "agent_partial_committed" || turnHasCommittedEffects(decodeObject(partialJSON), registry)) {
 				item.TurnErrorCode = "agent_partial_committed"
 				item.TurnRetryable = false
 			}

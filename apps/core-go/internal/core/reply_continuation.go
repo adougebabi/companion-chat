@@ -45,6 +45,28 @@ func (a *App) ProcessReplyContinuation(ctx context.Context, ref string) (map[str
 	if status == "published" {
 		return map[string]any{"status": "completed", "draft_ref": ref}, a.CompleteReplyContinuation(ctx, ref)
 	}
+	if source != "" {
+		deadline, budget, limited, deadlineErr := a.cognitionTurnDeadline(ctx, source)
+		if deadlineErr != nil {
+			return nil, deadlineErr
+		}
+		if limited {
+			remaining := deadline.Sub(a.now())
+			if remaining <= 0 {
+				return a.expireConversationTurn(ctx, source, budget)
+			}
+			ctx = context.WithValue(ctx, conversationBudgetKey{}, conversationBudgetScope{source, budget})
+			var cancel context.CancelFunc
+			timeoutAt := time.Now().Add(remaining)
+			ctx, cancel = context.WithTimeout(ctx, remaining)
+			defer cancel()
+			defer func() {
+				if errors.Is(ctx.Err(), context.DeadlineExceeded) && !time.Now().Before(timeoutAt) {
+					_, _ = a.expireConversationTurn(context.WithoutCancel(ctx), source, budget)
+				}
+			}()
+		}
+	}
 	var stored struct {
 		Scope        ToolExecutionRequest `json:"scope"`
 		CurrentInput string               `json:"current_input"`

@@ -24,6 +24,8 @@ import {
 import { persistentCommand } from "../v3/providers/persistent-command.mjs";
 import { randomId } from "../random-id.mjs";
 import { errorMessage } from "../v3/domain-presentation.mjs";
+import { profileSnapshotFromDetail } from "../v3/proto/data/profile.js";
+import { scheduleProjection } from "./presentation.mjs";
 import { userInstant } from "../v3/presentation-time.mjs";
 export const WorkspaceKey = Symbol("approved-workspace");
 export const useWorkspace = () => {
@@ -77,7 +79,7 @@ export const day = (value = new Date(), zone = "Asia/Shanghai") => {
     .join("-");
 };
 export const clock = (value, zone = "Asia/Shanghai") =>
-  value
+  value && Number.isFinite(Date.parse(value))
     ? new Intl.DateTimeFormat("en-GB", {
         timeZone: zone,
         hour: "2-digit",
@@ -127,7 +129,10 @@ export function memoryView(row) {
   return {
     id: row.id,
     text: row.content,
-    date: day(row.created_at),
+    date:
+      row.created_at && Number.isFinite(Date.parse(row.created_at))
+        ? day(row.created_at)
+        : "",
     source: row.source_type || row.source_kind || "真实记忆记录",
     importance: Number.isFinite(row.importance)
       ? Math.round(row.importance * 5)
@@ -281,11 +286,11 @@ export function createWorkspace() {
       const raw = await client.detail(fid);
       if (!live()) return;
       const persona = raw.core_persona || {},
-        identity = persona.identity || raw.identity || {},
+        identity = raw.identity || persona.identity || {},
         context = raw.context || {};
       Object.assign(current.value, {
         detail: raw,
-        bio: identity.background || identity.bio || current.value.bio,
+        bio: profileSnapshotFromDetail(raw).bio,
         job: identity.occupation || identity.profession || "",
         activity: context.activity || "",
         location: context.location || "",
@@ -294,12 +299,13 @@ export function createWorkspace() {
             ? raw.inner_state.mood
             : raw.inner_state?.mood?.label || "",
         world: raw.world?.name || "",
-        schedule: (raw.schedule?.items || []).map((item) => ({
-          time: clock(item.start_at, identity.timezone || "Asia/Shanghai"),
-          text: item.activity,
-          _source: item,
-          _schedule: raw.schedule,
-        })),
+        schedule: (raw.schedule?.items || []).map((item) =>
+          scheduleProjection(
+            item,
+            { ...raw.schedule, timezone: identity.timezone || "Asia/Shanghai" },
+            clock,
+          ),
+        ),
         timezone: identity.timezone || "Asia/Shanghai",
       });
       return raw;
@@ -337,12 +343,13 @@ export function createWorkspace() {
               d.local_date === (value.today || day(new Date(), value.timezone)),
           )
           .flatMap((d) =>
-            (d.schedule?.items || []).map((item) => ({
-              time: clock(item.start_at, value.timezone),
-              text: item.activity,
-              _source: item,
-              _schedule: d.schedule,
-            })),
+            (d.schedule?.items || []).map((item) =>
+              scheduleProjection(
+                item,
+                { ...d.schedule, timezone: value.timezone },
+                clock,
+              ),
+            ),
           );
       });
       accept(
@@ -582,7 +589,9 @@ export function createWorkspace() {
         ]);
         if (!live()) return;
         state.notifications = notices.items;
-        state.pending = pending.groups.flatMap((g) => g.items || []);
+        state.pending = pending.groups.flatMap((g) =>
+          (g.items || []).map((item) => ({ ...item, kind: g.kind })),
+        );
       } else if (page === "创作中心") {
         const rows = await studioClient.list();
         if (live()) state.resources = rows.items;
@@ -616,6 +625,7 @@ export function createWorkspace() {
       onSaved,
       success = "已保存",
       multiStage = false,
+      preAdmissionConflicts,
     } = {},
   ) {
     const owner = state.session?.actorId,
@@ -627,6 +637,7 @@ export function createWorkspace() {
       channel = persistentCommand({
         key: "fluctlight:approved-command:" + scope,
         storage: () => sessionStorage,
+        preAdmissionConflicts,
         execute: async (body, key) => {
           if (!isCurrent(owner, fid))
             throw Error("账号或角色已变化，请回到原范围核对提交");
@@ -844,7 +855,17 @@ export function createWorkspace() {
   document.addEventListener("visibilitychange", resumeRequests);
   async function load(page = state.page) {
     state.page = page;
-    if (!state.selectedId) return;
+    if (
+      !state.selectedId &&
+      ![
+        "管理中心",
+        "角色库",
+        "通知与待处理",
+        "创作中心",
+        "初始化角色",
+      ].includes(page)
+    )
+      return;
     resumeRequests();
     try {
       if (page === "聊天") {
@@ -852,6 +873,7 @@ export function createWorkspace() {
         await loadWardrobe();
       } else if (["此刻", "日程", "目标", "日记", "记忆"].includes(page))
         await loadLife();
+      else if (page === "角色详情") await detail();
       else if (page === "衣柜") await loadWardrobe();
       else if (page === "世界") await loadWorlds();
       else if (page === "角色库")
@@ -859,11 +881,14 @@ export function createWorkspace() {
           for (const c of state.characters) {
             const raw = await client.detail(c.id);
             if (!live()) return;
-            const identity = raw.core_persona?.identity || raw.identity || {};
+            const identity = raw.identity || raw.core_persona?.identity || {};
             Object.assign(c, {
-              bio: identity.background || identity.bio || "",
+              bio: profileSnapshotFromDetail(raw).bio,
               job: identity.occupation || identity.profession || "",
-              hobby: (identity.interests || []).join?.("、") || "",
+              hobby:
+                raw.life_profile?.preferences?.likes?.join?.("、") ||
+                identity.interests?.join?.("、") ||
+                "",
               tags: identity.tags || [],
               detail: raw,
             });
@@ -889,6 +914,7 @@ export function createWorkspace() {
     conversation,
     openConversation,
     bootstrap,
+    refreshDirectory: () => refreshProduct({ initialOnly: true }),
     detail,
     load,
     loadLife,

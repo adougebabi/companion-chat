@@ -24,7 +24,7 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 		}
 	}
 	// These genuine domain query results remain semantically available, but
-	// their combined size requires more than one offered source batch.
+	// they must not be discarded by an application token threshold.
 	for i := 0; i < 16; i++ {
 		action := fmt.Sprintf("domain-backlog-%d-%s", i, f.suffix)
 		results := []CapabilityResult{{CallID: "domain-query", CapabilityName: wardrobeInspectCapabilityName, Status: "completed", Output: map[string]any{"notes": strings.Repeat("domain information ", 160)}}}
@@ -41,8 +41,8 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	waitingID := stringValue(waiting["goal_id"])
-	var omittedID, admittedID int64
+	_ = waiting
+	var admittedID int64
 	messageID := "novel-recommendation-" + f.suffix
 	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
 		for _, m := range []struct {
@@ -69,8 +69,8 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 		if err != nil {
 			t.Fatal(err)
 		}
-		if EstimatePromptTokens(input) > goalEvaluationSourceInputBudget {
-			t.Fatal("provider offered an oversized current input")
+		if input == "" {
+			t.Fatal("provider input missing")
 		}
 		entry := goalEvaluationGoal{}
 		for _, candidate := range snapshot.Goals {
@@ -151,9 +151,6 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 						offered = true
 					}
 				}
-				if !offered && omittedID == 0 {
-					omittedID = source.EventID
-				}
 				if offered && source.ID == messageID {
 					admittedID = source.EventID
 				}
@@ -168,13 +165,7 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 		if calls == 1 && proof == "" {
 			t.Fatal("recent recommendation starved behind old inspection receipts")
 		}
-		if calls == 1 {
-			// A new explicit association arrives after input admission. Keep that
-			// unoffered source pending and queue it for the unfinished Goal.
-			if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.goal_evidence_links(id,fluctlight_id,goal_id,source_event_id,status,reason) VALUES($1,$2,$3,$4,'candidate','explicit relevant source arriving after snapshot admission') ON CONFLICT DO NOTHING`, "remainder_"+f.suffix, f.fluctlightID, waitingID, omittedID); err != nil {
-				t.Fatal(err)
-			}
-		}
+
 		candidates := []GoalEvaluationCandidate{}
 		for _, target := range snapshot.Goals {
 			candidate := GoalEvaluationCandidate{GoalID: target.GoalID, ExpectedRevision: target.Goal.Revision, CriteriaVersion: target.Goal.CriteriaVersion, Impact: "needs_evidence", WaitCondition: "await separate result", Judgments: []GoalCriterionJudgment{}}
@@ -191,33 +182,15 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err != nil {
 		t.Fatal(err)
 	}
-	if omittedID == 0 || admittedID == 0 {
-		t.Fatalf("test did not exercise within-snapshot admission: omitted=%d admitted=%d", omittedID, admittedID)
+	if admittedID == 0 {
+		t.Fatal("recommendation evidence was not offered")
 	}
-	var omittedProcessed, admittedProcessed bool
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT processed_at IS NOT NULL FROM public.goal_source_events WHERE id=$1`, omittedID).Scan(&omittedProcessed); err != nil {
-		t.Fatal(err)
-	}
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT processed_at IS NOT NULL FROM public.goal_source_events WHERE id=$1`, admittedID).Scan(&admittedProcessed); err != nil {
-		t.Fatal(err)
-	}
-	if omittedProcessed || !admittedProcessed {
-		t.Fatalf("unoffered proof was consumed: omitted=%v offered=%v", omittedProcessed, admittedProcessed)
-	}
-	var remainder string
-	var pendingCount int
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*),min(id) FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND status='pending' AND reason='assessment_source_remainder' AND goal_ids ? $2`, f.fluctlightID, waitingID).Scan(&pendingCount, &remainder); err != nil || pendingCount != 1 {
-		t.Fatalf("source remainder not queued once: %d %v", pendingCount, err)
-	}
-	advanceGoalEvaluationCycleForTest(t, f, remainder)
-	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, remainder); err != nil {
-		t.Fatal(err)
-	}
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT processed_at IS NOT NULL FROM public.goal_source_events WHERE id=$1`, omittedID).Scan(&omittedProcessed); err != nil || !omittedProcessed {
-		t.Fatalf("admissible remainder did not advance: %v %v", omittedProcessed, err)
+	var admittedProcessed bool
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT processed_at IS NOT NULL FROM public.goal_source_events WHERE id=$1`, admittedID).Scan(&admittedProcessed); err != nil || !admittedProcessed {
+		t.Fatal("offered evidence not processed", admittedProcessed, err)
 	}
 	var state string
-	var resolutions, attempts, unprocessed int
+	var resolutions, attempts int
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&state); err != nil {
 		t.Fatal(err)
 	}
@@ -227,10 +200,7 @@ func TestRecommendationEvaluationReachesProviderAfterLargeInspectionBacklog(t *t
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.fluctlight_intention_attempts WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&attempts); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_source_events WHERE fluctlight_id=$1 AND processed_at IS NULL`, f.fluctlightID).Scan(&unprocessed); err != nil {
-		t.Fatal(err)
-	}
-	if state != "completed" || resolutions != 1 || attempts != 0 || calls != 2 || unprocessed == 0 {
-		t.Fatalf("recommendation closure/source preservation failed: %s resolutions=%d attempts=%d calls=%d unprocessed=%d", state, resolutions, attempts, calls, unprocessed)
+	if state != "completed" || resolutions != 1 || attempts != 0 || calls != 1 {
+		t.Fatalf("recommendation closure failed: %s resolutions=%d attempts=%d calls=%d", state, resolutions, attempts, calls)
 	}
 }

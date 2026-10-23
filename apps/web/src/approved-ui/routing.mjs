@@ -1,4 +1,12 @@
-export const lifePages = ["此刻", "日程", "目标", "衣柜", "日记", "记忆"];
+export const lifePages = [
+  "此刻",
+  "日程",
+  "目标",
+  "衣柜",
+  "日记",
+  "记忆",
+  "角色详情",
+];
 export const workspacePages = [
   "聊天",
   ...lifePages,
@@ -9,6 +17,7 @@ export const workspacePages = [
   "通知与待处理",
   "角色库",
   "创作中心",
+  "初始化角色",
   "管理中心",
 ];
 const modules = {
@@ -22,6 +31,7 @@ const modules = {
   world: "世界",
   people: "人物关系",
   media: "媒体",
+  profile: "角色详情",
 };
 export function approvedRoute(hash) {
   let value;
@@ -42,6 +52,7 @@ export function approvedRoute(hash) {
     "/feed": "动态",
     "/inbox": "通知与待处理",
     "/library": "角色库",
+    "/library/create": "初始化角色",
     "/studio": "创作中心",
     "/settings": "管理中心",
     "/diag": "管理中心",
@@ -66,6 +77,7 @@ export function approvedHref(page, fid) {
       动态: "#/feed" + (fid ? "?fid=" + encodeURIComponent(fid) : ""),
       通知与待处理: "#/inbox",
       角色库: "#/library",
+      初始化角色: "#/library/create",
       创作中心: "#/studio",
       管理中心: "#/settings",
     }[page] || "#/library"

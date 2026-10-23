@@ -168,8 +168,6 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 	if assignment.EndpointID == input.Assignment.EndpointID && assignment.ModelID == input.Assignment.ModelID {
 		return draft, newCapabilityError("reply_legacy_fallback_same_model", false, errors.New("fallback would repeat the same failed model"))
 	}
-	assignment.TokenBudget = min(assignment.TokenBudget, run.Settings.MaxTokens)
-	assignment.MaxInputTokens = min(assignment.MaxInputTokens, run.Settings.MaxInputTokens)
 	input.Assignment = assignment
 	input.Mode = "legacy_fallback"
 	input.CorrelationID = "reply-fallback:" + stableDigest(input.CorrelationID)

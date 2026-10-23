@@ -132,9 +132,6 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 	if timeoutSeconds <= 0 {
 		timeoutSeconds = 120
 	}
-	if err := validatePromptBudgetConfiguration(contextWindowTokens, maxInputTokens, tokenBudget, promptBudgetPolicyVersion); err != nil {
-		return providerAssignment{}, err
-	}
 	return providerAssignment{
 		Role: bindingRole, EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID,
 		Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second, TokenBudget: tokenBudget,
@@ -807,7 +804,7 @@ func providerChatPayload(model string, messages []map[string]any, tokenBudget in
 }
 
 func providerStreamingPayload(model string, messages []map[string]any, outputReserve int) map[string]any {
-	payload := map[string]any{"model": model, "messages": messages, "temperature": 0.7, "stream": true, "max_completion_tokens": outputReserve}
+	payload := map[string]any{"model": model, "messages": messages, "temperature": 0.7, "stream": true}
 	return payload
 }
 
@@ -816,12 +813,9 @@ func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, too
 	if result == nil {
 		result = map[string]any{}
 	}
-	result["policy_version"] = assignment.PromptBudgetPolicyVersion
-	result["context_window_tokens"] = assignment.ContextWindowTokens
-	result["max_input_tokens"] = assignment.MaxInputTokens
-	result["output_reserve_tokens"] = assignment.TokenBudget
-	if margin, err := promptSafetyMargin(assignment.PromptBudgetPolicyVersion); err == nil {
-		result["safety_margin_tokens"] = margin
+	result["policy_version"] = "prompt-unlimited.v1"
+	for _, key := range []string{"context_window_tokens", "max_input_tokens", "output_reserve_tokens", "safety_margin_tokens", "optional_input_target_tokens"} {
+		delete(result, key)
 	}
 	result["count_mode"] = "estimated"
 	result["estimated_input_tokens"] = wireEstimate
@@ -858,11 +852,10 @@ func providerChatPayloadForRole(model string, messages []map[string]any, tokenBu
 func providerChatPayloadWithSchema(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition, role, schemaName string, schema map[string]any, enableThinking bool) map[string]any {
 	definitionList := definitions
 	payload := map[string]any{
-		"model":                 model,
-		"messages":              messages,
-		"temperature":           0.7,
-		"stream":                false,
-		"max_completion_tokens": tokenBudget,
+		"model":       model,
+		"messages":    messages,
+		"temperature": 0.7,
+		"stream":      false,
 	}
 	if len(definitionList) > 0 {
 		payload["tools"] = RenderCapabilityTools(definitionList)

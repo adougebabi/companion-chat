@@ -54,7 +54,7 @@ func TestGoalEvidenceInterpretationUnitIsAtomicPrivateAndVersioned(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if slices.Contains(selected.ProviderSourceIDs, int64(1)) || !slices.Contains(selected.ProviderSourceIDs, int64(2)) {
+	if !slices.Contains(selected.ProviderSourceIDs, int64(1)) || !slices.Contains(selected.ProviderSourceIDs, int64(2)) {
 		t.Fatal("over-budget interpretation unit was partially admitted", selected.ProviderSourceIDs)
 	}
 }
@@ -69,7 +69,7 @@ func TestGoalHistoricalCoverageOrderSurvivesInputAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(selected.ProviderSourceIDs) != 1 || selected.ProviderSourceIDs[0] != 1 {
+	if len(selected.ProviderSourceIDs) != 2 || selected.ProviderSourceIDs[0] != 1 {
 		t.Fatal("newest-first admission starved historical recovery", selected.ProviderSourceIDs)
 	}
 }

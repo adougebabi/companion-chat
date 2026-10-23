@@ -43,14 +43,10 @@ export function acknowledgeConfiguration(
       role: body.role,
       endpoint_id: body.endpointId,
       model_id: body.modelId,
-      token_budget: body.tokenBudget,
       timeout_seconds: body.timeoutSeconds,
-      context_window_tokens: body.contextWindowTokens,
-      safety_margin_tokens: body.safetyMarginTokens,
     };
     const field = bindings.find((b) => b.role === source.role);
     if (field) {
-      source.safety_margin_tokens = field.safetyMargin;
       field._source = source;
     }
     catalog.bindings = catalog.bindings

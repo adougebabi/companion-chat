@@ -1,5 +1,63 @@
 # Fluctlight Provider Contract
 
+## Scenario: Application token limits removed (2026-10-23)
+
+### 1. Scope / Trigger
+The Owner explicitly cancelled prompt input/output limits. This section
+supersedes every earlier token capacity, reserve, section-cap, optional-target,
+compaction and binding-budget requirement in this document and related specs.
+
+### 2. Signatures
+`AssemblePromptContext`, `ResolveWorkingMemory`, `preparePhysicalInput`,
+`enforcePhysicalInputBudget`, `generateWithEino`, `generateWithADK`,
+`streamWithEino`, raw Provider payload builders. Browser role writes require
+role/endpointId/modelId/timeoutSeconds/expectedVersions/idempotencyKey;
+legacy token fields are optional compatibility inputs and are ignored.
+
+### 3. Contracts
+Do not send max_tokens/max_completion_tokens on production model requests.
+Do not reject, drop, trim or compact a prompt/Tool result based on token estimates.
+Both ordinary and native Generate/Stream retain supplied content, including
+required state and complete unsummarized turns. Preserve source deduplication,
+summary coverage, semantic projections and query result-count contracts.
+Goal evaluation admits every source in its frozen authorized snapshot, without
+the former 12K token threshold. Memory retrieval no longer excludes authorized
+results by its former character budget or query token budget; query scope,
+semantic cues and result counts retain their existing contracts.
+Keep estimated/actual usage metrics with policy_version=prompt-unlimited.v1;
+do not describe old budget metadata as an effective request limit.
+
+Remove binding/reply token controls from active and compatibility editors. Existing
+model_roles positive columns and catalog metadata remain compatible storage only;
+no migration is required. Old conversation.reply max_tokens/max_input_tokens
+decode, then normalize to zero/omitted; they cannot reject configuration or clamp
+the Writer. Service/model preflight, CAS, timeout, cancellation, queue concurrency,
+media limits and structured/authority validation remain independent contracts.
+An upstream context/length failure stays a real Provider failure.
+
+### 4. Validation & Error Matrix
+Old tiny/conflicting token metadata → request still admitted. Large valid current
+input/schema/Tool result → complete physical request. Provider length stop →
+existing truncation/contract error. Missing model or invalid timeout → existing
+configuration failure. Old binding JSON → readable without recreating limits.
+
+### 5. Good/Base/Bad Cases
+Good: a third native Tool result exceeds a legacy 5K limit and reaches the fourth
+model request intact, once. Base: ordinary structured/streaming requests omit
+both output cap keys. Bad: hide form fields while Eino still sends a default cap.
+
+### 6. Tests Required
+Actual captured HTTP payloads for ordinary, streaming, formal Agent and Writer
+paths; full-content assertions; legacy-setting decode and disposable PG binding
+save; source deduplication/history ordering; generated schema/client parity;
+timeout/cancel regression. Finite fixtures must end explicitly instead of relying
+on a removed token-budget error to stop an infinite test model.
+
+### 7. Wrong vs Correct
+Wrong: use zero in positive legacy database columns as a new unlimited sentinel.
+Correct: keep compatible storage, ignore those values in selection/admission,
+and omit the output limit from the actual Provider request.
+
 ## Scenario: Explicit Model Roles With Capability Validation
 
 ### 1. Scope / Trigger

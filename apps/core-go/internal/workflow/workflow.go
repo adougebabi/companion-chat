@@ -385,7 +385,8 @@ func CognitionProcessingWorkflow(ctx workflow.Context, input Input) (map[string]
 	if err := workflow.ExecuteActivity(ctx, ProcessCognitionActivity, input).Get(ctx, &result); err != nil {
 		return nil, err
 	}
-	if stringValue(result["status"]) == "waiting_for_agent" {
+	watchReply := workflow.GetVersion(ctx, "cognition-reply-deadline-v1", workflow.DefaultVersion, 1)
+	if stringValue(result["status"]) == "waiting_for_agent" || watchReply >= 1 && stringValue(result["status"]) == "waiting_reply" {
 		if err := workflow.Sleep(ctx, 5*time.Second); err != nil {
 			return nil, err
 		}

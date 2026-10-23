@@ -195,7 +195,7 @@ const vf = {
 function renderLifePageBody(__view) {
   return (h, b) => (p(), g(O, null, [__view.props.page === "此刻" ? (p(), g(O, {
     key: 0
-  }, [approvedSurfaceVNode("div", Qc, [o("span", {class:"eyebrow"}, v(M(__view.todayLabel)),1), o("h2", null, v(M(__view.character).activity), 1), o("p", null, v(M(__view.character).location) + " · " + v(M(__view.character).mood), 1), o("p", null, v(M(__view.character).world), 1)]), o("div", Xc, [approvedSurfaceVNode("div", ed, [me(__view.CurrentOutfit, {
+  }, [approvedSurfaceVNode("div", Qc, [o("span", {class:"eyebrow"}, v(M(__view.todayLabel)),1), o("h2", null, v(M(__view.character).activity||"此刻状态尚未更新"), 1), o("p", null, v(__view.joined(M(__view.character).location,M(__view.character).mood)), 1), o("p", null, v(M(__view.character).world), 1)]), o("div", Xc, [approvedSurfaceVNode("div", ed, [me(__view.CurrentOutfit, {
     compact: ""
   })]), approvedSurfaceVNode("section", td, [o("div", sd, [b[17] || (b[17] = o("h2", null, "约定", -1)), b[18] || (b[18] = o("span", {
     class: "spacer"
@@ -244,7 +244,7 @@ function renderLifePageBody(__view) {
     "aria-label": "日程操作",
     "data-testid": "schedule-menu-" + k.time
   }, "⋯", 8, dd), o("div", fd, [approvedButtonVNode({
-    disabled: M(__view.r),
+    disabled: M(__view.r)||k.editable===false,
     onClick: ve => __view.A(k, ve)
   }, "编辑")])])) : X("", !0)], 64))], 10, od))), 128)), (__view.props.page === "此刻" ? __view.c.value : __view.u.value).length ? X("", !0) : (p(), g("p", md, "暂时没有安排，留一点自由时间。"))])], 64)) : X("", !0), __view.props.page === "目标" ? (p(), g(O, {
     key: 2
@@ -324,7 +324,7 @@ function renderLifePageBody(__view) {
       class: "diary-paper",
       "data-testid": "diary-entry",
       "data-date": __view.x.value.date
-    }, [o("small", null, v(__view.x.value.date) + " · " + v(__view.x.value.time), 1), o("h2", null, v(__view.x.value.title), 1), o("div", Od, [o("span", null, "天气 · " + v(__view.x.value.weather), 1), o("span", null, "心情 · " + v(__view.x.value.mood), 1)]), o("p", Vd, v(__view.x.value.text), 1), o("p", Pd, "— " + v(M(__view.character).name), 1)], 8, Id)) : (p(), g("div", Ld, [...(b[29] || (b[29] = [o("p", null, "这一页，等着今天的故事。", -1)]))]))]),
+    }, [o("small", null, v(__view.joined(__view.x.value.date,__view.x.value.time)), 1), o("h2", null, v(__view.x.value.title), 1), o("div", Od, [__view.x.value.weather?o("span", null, "天气 · " + v(__view.x.value.weather), 1):X("",!0), __view.x.value.mood?o("span", null, "心情 · " + v(__view.x.value.mood), 1):X("",!0)]), o("p", Vd, v(__view.x.value.text), 1), o("p", Pd, "— " + v(M(__view.character).name), 1)], 8, Id)) : (p(), g("div", Ld, [...(b[29] || (b[29] = [o("p", null, "这一页，等着今天的故事。", -1)]))]))]),
     _: 1
   }, 8, ["name"]), o("footer", Ud, [approvedButtonVNode({
     class: "text-button",

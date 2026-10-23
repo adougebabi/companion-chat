@@ -104,6 +104,9 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if err != nil || replayed {
 			return err
 		}
+		if err := requireConversationBudgetTx(ctx, tx, request.EvidenceID, a.now().UTC(), true); err != nil {
+			return err
+		}
 		allowed, policyReason, err := a.authorizeToolPolicyTx(ctx, tx, request)
 		if err != nil {
 			return err
@@ -177,6 +180,9 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		invocation.ContextSnapshot = mapValue(boundedSnapshotValue(request.FrozenContextSnapshot))
 		invocationRecord := mapValue(decodeJSONValue(jsonBytes(invocation)))
 		invocationRecord["authority_revisions"] = authority
+		if err := requireConversationBudgetTx(ctx, tx, request.EvidenceID, a.now().UTC(), true); err != nil {
+			return err
+		}
 		_, err = tx.Exec(ctx, `INSERT INTO public.tool_executions(fluctlight_id,capability_name,operation_id,authorization_actor_id,request_digest,result,agent_id,run_id,invocation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, request.FluctlightID, request.CapabilityName, request.OperationID, request.AuthorizationActorID, toolExecutionDigest(request), jsonBytes(result), request.AgentID, request.RunID, jsonBytes(invocationRecord))
 		return err
 	})

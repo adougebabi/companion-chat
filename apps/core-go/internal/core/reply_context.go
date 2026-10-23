@@ -87,7 +87,6 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 		return PromptAssemblyResult{}, err
 	}
 	viewVersion := firstString(input.ViewVersion, contract.ViewVersion)
-	policy.OptionalInputTargetTokens = min(factOnlyReplyInputTargetTokens, policy.MaxInputTokens)
 	var workingInput WorkingMemoryInput
 	var viewDiagnostics map[string]any
 	if input.Scene == replySceneMoment {
@@ -117,8 +116,6 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 		viewDiagnostics["memory"] = memories.Diagnostics
 	}
 	workingPolicy := DefaultWorkingMemoryPolicy()
-	workingPolicy.RecentTokens = factOnlyReplyRecentTokens
-	workingPolicy.RetrievedTokens = 512
 	workingPolicy, err = reserveRequiredWorkingMemory(workingInput, workingPolicy, policy.MaxInputTokens)
 	if err != nil {
 		return PromptAssemblyResult{}, err

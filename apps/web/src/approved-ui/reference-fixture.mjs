@@ -1,12 +1,17 @@
-// Isolated approved-demo-fixture. Never included in a real production build.
-import {h as vn,ref as G,computed as _e,defineComponent as nt,openBlock as p,createElementBlock as g,normalizeClass as ge,createElementVNode as o,Fragment as O,renderList as oe,unref as M,toDisplayString as v,nextTick as ls,watch as it,normalizeStyle as yt,createTextVNode as Z,createVNode as me,createCommentVNode as X,withDirectives as pe,withKeys as Gi,withModifiers as Ve,vModelText as $e,onMounted as wl,onUnmounted as Ks,createBlock as Ae,Teleport as ea,renderSlot as ha,vModelCheckbox as ss,Transition as ru,withCtx as Ht,vModelSelect as Et,resolveDynamicComponent as as,vModelDynamic as Vu,isRef as Re} from 'vue';
-const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+// Isolated v6.2 approved-demo-fixture; selected only at build time.
+import {h as Il,ref as z,computed as ye,reactive as Hl,defineComponent as je,openBlock as c,createElementBlock as v,normalizeClass as ke,createElementVNode as n,Fragment as I,renderList as te,unref as h,toDisplayString as m,nextTick as Qt,watch as vt,normalizeStyle as at,createTextVNode as K,createVNode as ae,createCommentVNode as J,withDirectives as re,withKeys as pr,withModifiers as Ue,vModelText as he,onMounted as Wl,onUnmounted as ll,createBlock as Se,Teleport as Ma,renderSlot as Ka,vModelCheckbox as Ft,Transition as Pu,withCtx as Gt,vModelSelect as pt,resolveDynamicComponent as hs,vModelDynamic as rd,mergeProps as qa,useModel as ys,isRef as Fe} from 'vue';
 /**
  * @license lucide-vue-next v0.468.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ var en = {
+ */ const gd = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+/**
+ * @license lucide-vue-next v0.468.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ var pl = {
   xmlns: "http://www.w3.org/2000/svg",
   width: 24,
   height: 24,
@@ -22,47 +27,55 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Ku = (
+ */ const yd = (
   {
     size: e,
     strokeWidth: t = 2,
     absoluteStrokeWidth: s,
-    color: n,
-    iconNode: l,
+    color: l,
+    iconNode: o,
     name: i,
     class: r,
-    ...a
+    ...u
   },
-  { slots: u },
+  { slots: d },
 ) =>
-  vn(
+  Il(
     "svg",
     {
-      ...en,
-      width: e || en.width,
-      height: e || en.height,
-      stroke: n || en.stroke,
+      ...pl,
+      width: e || pl.width,
+      height: e || pl.height,
+      stroke: l || pl.stroke,
       "stroke-width": s ? (Number(t) * 24) / Number(e) : t,
-      class: ["lucide", `lucide-${Bu(i ?? "icon")}`],
-      ...a,
+      class: ["lucide", `lucide-${gd(i ?? "icon")}`],
+      ...u,
     },
-    [...l.map((f) => vn(...f)), ...(u.default ? [u.default()] : [])],
+    [...o.map((f) => Il(...f)), ...(d.default ? [d.default()] : [])],
   );
 /**
  * @license lucide-vue-next v0.468.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Oe =
+ */ const Pe =
   (e, t) =>
-  (s, { slots: n }) =>
-    vn(Ku, { ...s, iconNode: t, name: e }, n);
+  (s, { slots: l }) =>
+    Il(yd, { ...s, iconNode: t, name: e }, l);
 /**
  * @license lucide-vue-next v0.468.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const wo = Oe("ChevronDownIcon", [
+ */ const bd = Pe("CheckIcon", [
+  ["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }],
+]);
+/**
+ * @license lucide-vue-next v0.468.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ const Ko = Pe("ChevronDownIcon", [
   ["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }],
 ]);
 /**
@@ -70,7 +83,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Ji = Oe("ChevronRightIcon", [
+ */ const Jn = Pe("ChevronRightIcon", [
   ["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }],
 ]);
 /**
@@ -78,7 +91,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Wu = Oe("EarthIcon", [
+ */ const kd = Pe("EarthIcon", [
   ["path", { d: "M21.54 15H17a2 2 0 0 0-2 2v4.54", key: "1djwo0" }],
   [
     "path",
@@ -101,7 +114,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const $o = Oe("ImageIcon", [
+ */ const Sn = Pe("ImageIcon", [
   [
     "rect",
     {
@@ -122,7 +135,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const qu = Oe("ImagesIcon", [
+ */ const _d = Pe("ImagesIcon", [
   ["path", { d: "M18 22H4a2 2 0 0 1-2-2V6", key: "pblm9e" }],
   [
     "path",
@@ -139,7 +152,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const zu = Oe("InboxIcon", [
+ */ const wd = Pe("InboxIcon", [
   ["polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12", key: "o97t9d" }],
   [
     "path",
@@ -154,7 +167,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Tl = Oe("LeafIcon", [
+ */ const Gn = Pe("LeafIcon", [
   [
     "path",
     {
@@ -172,7 +185,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Gu = Oe("LibraryIcon", [
+ */ const $d = Pe("LibraryIcon", [
   ["path", { d: "m16 6 4 14", key: "ji33uf" }],
   ["path", { d: "M12 6v14", key: "1n7gus" }],
   ["path", { d: "M8 8v12", key: "1gg7y9" }],
@@ -183,7 +196,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Ju = Oe("MessageCircleIcon", [
+ */ const Cd = Pe("MessageCircleIcon", [
   ["path", { d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z", key: "vv11sd" }],
 ]);
 /**
@@ -191,7 +204,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Yu = Oe("PanelRightCloseIcon", [
+ */ const xd = Pe("PanelRightCloseIcon", [
   [
     "rect",
     { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" },
@@ -204,7 +217,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Zu = Oe("PanelRightOpenIcon", [
+ */ const Sd = Pe("PanelRightOpenIcon", [
   [
     "rect",
     { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" },
@@ -217,7 +230,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Qu = Oe("RotateCcwIcon", [
+ */ const Td = Pe("RotateCcwIcon", [
   [
     "path",
     { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" },
@@ -229,7 +242,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Xu = Oe("SendIcon", [
+ */ const Md = Pe("SendIcon", [
   [
     "path",
     {
@@ -244,7 +257,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const ec = Oe("SettingsIcon", [
+ */ const Id = Pe("SettingsIcon", [
   [
     "path",
     {
@@ -259,7 +272,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const tc = Oe("ShieldCheckIcon", [
+ */ const Ed = Pe("ShieldCheckIcon", [
   [
     "path",
     {
@@ -274,7 +287,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const Co = Oe("SproutIcon", [
+ */ const Tn = Pe("SproutIcon", [
   ["path", { d: "M7 20h10", key: "e6iznv" }],
   ["path", { d: "M10 20c5.5-2.5.8-6.4 3-10", key: "161w41" }],
   [
@@ -297,7 +310,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const sc = Oe("UsersIcon", [
+ */ const Ad = Pe("UsersIcon", [
   ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
   ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
   ["path", { d: "M22 21v-2a4 4 0 0 0-3-3.87", key: "kshegd" }],
@@ -308,7 +321,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const xo = Oe("VideoIcon", [
+ */ const zo = Pe("VideoIcon", [
   [
     "path",
     {
@@ -326,7 +339,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const So = Oe("Volume2Icon", [
+ */ const qo = Pe("Volume2Icon", [
   [
     "path",
     {
@@ -342,7 +355,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */ const nc = Oe("WandSparklesIcon", [
+ */ const Vd = Pe("WandSparklesIcon", [
     [
       "path",
       {
@@ -358,7 +371,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
     ["path", { d: "M21 16h-4", key: "1cnmox" }],
     ["path", { d: "M11 3H9", key: "1obp7u" }],
   ]),
-  lc = [
+  Od = [
     {
       name: "林晚晴",
       initial: "晴",
@@ -464,16 +477,16 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
     ],
     permissions: { post: !0, diary: !0, schedule: !1 },
   })),
-  fe = (e, t, s = "text", n, l) => ({
+  ve = (e, t, s = "text", l, o) => ({
     label: e,
     value: t,
     type: s,
-    min: n,
-    max: l,
+    min: l,
+    max: o,
   }),
-  ks = (e, t, s) => ({ label: e, value: t, type: "select", options: s }),
-  oc = ["思考与通用分析", "聊天回复", "看图理解", "记忆检索向量"],
-  As = [
+  As = (e, t, s) => ({ label: e, value: t, type: "select", options: s }),
+  Ud = ["思考与通用分析", "聊天回复", "看图理解", "记忆检索向量"],
+  Ds = [
     "聊天理解",
     "聊天回复",
     "人格接管判断",
@@ -501,16 +514,16 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
     "记忆提取",
     "动态生成",
   ],
-  To = [
-    ...As.slice(0, 23).filter(
+  Wo = [
+    ...Ds.slice(0, 23).filter(
       (e) => !["聊天回复", "看图理解", "记忆向量化"].includes(e),
     ),
     "穿搭准备",
     "动态（朋友圈）",
     "世界 / NPC 相遇",
   ],
-  hn = ["聊天照片", "动态配图", "物品照", "换装照", "形象定妆 / 设定图"],
-  ic = [
+  El = ["聊天照片", "动态配图", "物品照", "换装照", "形象定妆 / 设定图"],
+  Pd = [
     "超时",
     "被取消/中断",
     "服务连不上/报错",
@@ -521,7 +534,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
     "角色已暂停/停用而跳过",
     "工具执行失败",
   ],
-  Mo = [
+  Jo = [
     { code: "provider_timeout", reason: "服务没有在等待上限内返回。" },
     { code: "request_cancelled", reason: "这次请求已被取消或中断。" },
     {
@@ -553,8 +566,8 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
       reason: "准备工具时失败，本次任务未能完成。",
     },
   ],
-  Yi = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-  Eo = G([
+  mr = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+  Go = z([
     {
       id: "primary",
       name: "primary",
@@ -566,8 +579,8 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
       status: "就绪",
     },
   ]),
-  Ao = G(
-    oc.map((e, t) => ({
+  Yo = z(
+    Ud.map((e, t) => ({
       name: e,
       role: [
         "generic_llm",
@@ -582,96 +595,96 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
       window: 32768,
     })),
   ),
-  Io = G({
+  Zo = z({
     enabled: !0,
     start: "23:00",
     end: "08:00",
-    days: [...Yi],
+    days: [...mr],
     behavior: "暂停主动联系",
     character: "全部角色",
   }),
-  Oo = G([
+  Qo = z([
     {
       title: "图片（ComfyUI）",
       fields: [
-        fe("服务地址", "http://localhost:8188", "url"),
-        fe("图片生成等待上限（秒）", 1200, "number", 30, 1200),
-        fe("图片工作流", '{"prompt":"{{prompt}}","seed":"{{seed}}"}', "json"),
-        fe("视觉身份工作流", "{}", "json"),
+        ve("服务地址", "http://localhost:8188", "url"),
+        ve("图片生成等待上限（秒）", 1200, "number", 30, 1200),
+        ve("图片工作流", '{"prompt":"{{prompt}}","seed":"{{seed}}"}', "json"),
+        ve("视觉身份工作流", "{}", "json"),
         ...["人物", "场景", "动物", "物品", "肖像"].map((e) =>
-          fe(e + "工作流", "{}", "json"),
+          ve(e + "工作流", "{}", "json"),
         ),
       ],
     },
     {
       title: "聊天回复",
       fields: [
-        ks("回复模式", "独立回复模型（Fact-only）", [
+        As("回复模式", "独立回复模型（Fact-only）", [
           "独立回复模型（Fact-only）",
           "旧模式",
         ]),
-        ks("表达版本", "v5", ["v5", "v4"]),
-        fe("温度", 0.8, "number", 0, 2),
-        fe("Top P", 0.9, "number", 0.01, 1),
-        fe("单条回复长度上限", 1024, "number", 1, 32768),
-        fe("回复可读上下文", 8192, "number", 1024, 131072),
-        fe("回复总超时（秒）", 300, "number", 1, 3600),
-        fe("同时生成回复数", 1, "number", 1, 8),
-        fe("出错自动重试次数", 1, "number", 0, 2),
-        fe("媒体动作回交上限", 2, "number", 1, 2),
-        ks("回复模型失败时", "直接报错", ["直接报错", "改用思考模型兜底"]),
+        As("表达版本", "v5", ["v5", "v4"]),
+        ve("温度", 0.8, "number", 0, 2),
+        ve("Top P", 0.9, "number", 0.01, 1),
+        ve("单条回复长度上限", 1024, "number", 1, 32768),
+        ve("回复可读上下文", 8192, "number", 1024, 131072),
+        ve("回复总超时（秒）", 300, "number", 1, 3600),
+        ve("同时生成回复数", 1, "number", 1, 8),
+        ve("出错自动重试次数", 1, "number", 0, 2),
+        ve("媒体动作回交上限", 2, "number", 1, 2),
+        As("回复模型失败时", "直接报错", ["直接报错", "改用思考模型兜底"]),
       ],
     },
-    { title: "看图理解", fields: [fe("启用看图理解", !1, "checkbox")] },
+    { title: "看图理解", fields: [ve("启用看图理解", !1, "checkbox")] },
     {
       title: "角色自主与主动联系",
       fields: [
-        ks("自主模式", "允许自主行动", ["允许自主行动", "暂停"]),
+        As("自主模式", "允许自主行动", ["允许自主行动", "暂停"]),
         ...["主动发消息", "发动态", "请求新能力", "请求生成图片"].map((e) =>
-          fe("允许" + e, e !== "请求生成图片", "checkbox"),
+          ve("允许" + e, e !== "请求生成图片", "checkbox"),
         ),
-        fe("剩余行动额度", 100, "number", 0),
-        fe("重复话题冷却（秒）", 300, "number", 300, 604800),
-        fe("冷却到", "", "datetime-local"),
-        fe("同时进行的自主行动数", 1, "number", 1),
-        fe("暂停主动联系", !1, "checkbox"),
-        fe("需要我确认的行动", "请求生成图片"),
+        ve("剩余行动额度", 100, "number", 0),
+        ve("重复话题冷却（秒）", 300, "number", 300, 604800),
+        ve("冷却到", "", "datetime-local"),
+        ve("同时进行的自主行动数", 1, "number", 1),
+        ve("暂停主动联系", !1, "checkbox"),
+        ve("需要我确认的行动", "请求生成图片"),
       ],
     },
     {
       title: "作息与后台节奏",
       fields: [
-        fe("定时醒来（固定间隔 600 秒）", !0, "checkbox"),
-        fe("对话摘要间隔（秒）", 300, "number", 300, 600),
-        fe("摘要长度（字）", 2048, "number", 512, 4096),
-        fe("目标重试次数", 5, "number", 1, 20),
-        fe("重试起始间隔（秒）", 60, "number", 30),
-        fe("重试间隔上限（秒）", 3600, "number", 60),
+        ve("定时醒来（固定间隔 600 秒）", !0, "checkbox"),
+        ve("对话摘要间隔（秒）", 300, "number", 300, 600),
+        ve("摘要长度（字）", 2048, "number", 512, 4096),
+        ve("目标重试次数", 5, "number", 1, 20),
+        ve("重试起始间隔（秒）", 60, "number", 30),
+        ve("重试间隔上限（秒）", 3600, "number", 60),
       ],
     },
     {
       title: "资源与预算",
       fields: [
-        fe("思考模型同时请求数", 1, "number", 1, 8),
-        fe("向量模型同时请求数", 1, "number", 1, 8),
+        ve("思考模型同时请求数", 1, "number", 1, 8),
+        ve("向量模型同时请求数", 1, "number", 1, 8),
       ],
     },
     {
       title: "通知",
       fields: ["新消息", "目标进展", "媒体完成"].map((e) =>
-        fe(e, !0, "checkbox"),
+        ve(e, !0, "checkbox"),
       ),
     },
     {
       title: "高级",
       fields: [
-        fe("启用 Kev", !1, "checkbox"),
-        fe("Kev 地址", "http://127.0.0.1:8010/v1/systemone", "url"),
-        fe("Kev 凭据", "", "password"),
-        fe("清除 Kev 凭据", !1, "checkbox"),
-        fe("请求超时（ms）", 1500, "number", 50, 6e4),
-        fe("阶段总预算（ms）", 3e3, "number", 50, 12e4),
-        fe("媒体方案补充", !0, "checkbox"),
+        ve("启用 Kev", !1, "checkbox"),
+        ve("Kev 地址", "http://127.0.0.1:8010/v1/systemone", "url"),
+        ve("Kev 凭据", "", "password"),
+        ve("清除 Kev 凭据", !1, "checkbox"),
+        ve("请求超时（ms）", 1500, "number", 50, 6e4),
+        ve("阶段总预算（ms）", 3e3, "number", 50, 12e4),
+        ve("媒体方案补充", !0, "checkbox"),
         ...[
           "自动唤醒",
           "自动反思",
@@ -683,17 +696,17 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
           "媒体入镜范围",
           "媒体拍摄方式",
           "媒体视图构图",
-        ].map((e) => fe(e, !0, "checkbox")),
-        ks("策略", "直接采用", ["直接采用", "加置信门槛"]),
-        fe("最低概率", 0.7, "number", 0, 1),
-        fe("前两名差距", 0.1, "number", 0, 1),
-        fe("最多连续延后", 3, "number", 1, 100),
-        fe("延后秒数", 60, "number", 1),
-        fe("记录保留（天）", 7, "number", 1, 90),
+        ].map((e) => ve(e, !0, "checkbox")),
+        As("策略", "直接采用", ["直接采用", "加置信门槛"]),
+        ve("最低概率", 0.7, "number", 0, 1),
+        ve("前两名差距", 0.1, "number", 0, 1),
+        ve("最多连续延后", 3, "number", 1, 100),
+        ve("延后秒数", 60, "number", 1),
+        ve("记录保留（天）", 7, "number", 1, 90),
       ],
     },
   ]),
-  Vo = [
+  Xo = [
     {
       title: "逻辑运行",
       rows: [
@@ -740,7 +753,7 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
     },
     { title: "安全拦截", rows: ["今天未发生永久伤害拦截"] },
   ],
-  rc = {
+  Ld = {
     聊天理解: {
       prompt:
         "分析用户消息：“明天十点一起去旧书店吧，记得带上次那本画集。”识别意图、日期、地点及待确认事项，只输出结构化事实。当前日期：2026-10-23。",
@@ -898,8 +911,8 @@ const Bu = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
         "傍晚沿着河岸多走了一段，长椅旁落了一圈银杏叶。风一吹，河面把天空揉成碎金。拍下来的那一刻，觉得今天可以慢慢收尾了。",
     },
   };
-function ac(e, t) {
-  const s = rc[e];
+function Nd(e, t) {
+  const s = Ld[e];
   return {
     input: `用途：${e}
 角色：${t}
@@ -907,7 +920,7 @@ ${s.prompt}`,
     response: s.response,
   };
 }
-const uc = [
+const Rd = [
     {
       workflow: "人物照片 / portrait-photo-v2",
       prompt:
@@ -957,20 +970,20 @@ const uc = [
         "形象设定图已生成：正侧背三视图，面部、发型与体态比例一致，可作后续出图参考。",
     },
   ],
-  cc = [...As.slice(0, 23), ...hn, ...As.slice(0, 9), ...As.slice(23), hn[1]],
-  Zi = G(
-    cc.map((e, t) => {
-      const s = hn.indexOf(e),
-        n = s >= 0,
-        l = ["林晚晴", "陈屿", "苏念安"][t % 3],
+  Fd = [...Ds.slice(0, 23), ...El, ...Ds.slice(0, 9), ...Ds.slice(23), El[1]],
+  vr = z(
+    Fd.map((e, t) => {
+      const s = El.indexOf(e),
+        l = s >= 0,
+        o = ["林晚晴", "陈屿", "苏念安"][t % 3],
         i = t < 9 || t === 24 ? "error" : "success",
-        r = n ? uc[s] : void 0,
-        a = r
+        r = l ? Rd[s] : void 0,
+        u = r
           ? {
               type: e,
               workflow: r.workflow,
               prompt: `用途：${e}
-角色参考：${l}
+角色参考：${o}
 ${r.prompt}`,
               negativePrompt: r.negativePrompt,
               params: {
@@ -985,33 +998,33 @@ ${r.prompt}`,
 本地模拟 · comfy-demo-${42 + t} · ${r.width} × ${r.height} PNG`,
             }
           : void 0,
-        u = a ? { input: a.prompt, response: a.output } : ac(e, l);
+        d = u ? { input: u.prompt, response: u.output } : Nd(e, o);
       return {
         id: -100 - t,
         label: e,
-        kind: n ? "媒体调用" : "模型调用",
-        character: l,
+        kind: l ? "媒体调用" : "模型调用",
+        character: o,
         start: t * 4,
-        duration: n ? 18 + (t % 12) : 2 + (t % 7),
+        duration: l ? 18 + (t % 12) : 2 + (t % 7),
         status: i,
-        ...u,
+        ...d,
         reason:
           i === "success"
             ? ""
-            : n
+            : l
               ? "图片服务暂时无法连接，请确认 ComfyUI 已启动。"
-              : Mo[t % 9].reason,
-        category: n ? "服务连不上/报错" : ic[t % 9],
-        model: n ? "ComfyUI" : "Qwen",
-        tokens: n ? void 0 : 846 + t * 17,
-        code: n ? "media_connection_failed" : Mo[t % 9].code,
-        media: a,
+              : Jo[t % 9].reason,
+        category: l ? "服务连不上/报错" : Pd[t % 9],
+        model: l ? "ComfyUI" : "Qwen",
+        tokens: l ? void 0 : 846 + t * 17,
+        code: l ? "media_connection_failed" : Jo[t % 9].code,
+        media: u,
         run() {},
       };
     }),
   ),
-  At = ["外套", "上衣", "内衣", "内裤", "下衣", "袜子", "鞋子", "配饰"],
-  dc = [
+  xt = ["外套", "上衣", "内衣", "内裤", "下衣", "袜子", "鞋子", "配饰"],
+  jd = [
     [
       "陈思远",
       "书店店员",
@@ -1121,7 +1134,7 @@ ${r.prompt}`,
       "15:00 检查家中的旧台灯",
     ],
   ],
-  fc = [
+  Dd = [
     [
       "卧室",
       "休息与睡前阅读的私人房间",
@@ -1186,9 +1199,17 @@ ${r.prompt}`,
       "跑道环绕草坪，看台位于西侧",
     ],
   ],
-  et = G(
-    lc.map((e) => ({
+  Ae = z(
+    Od.map((e) => ({
       ...e,
+      age: [26, 28, 24][e.id],
+      traits: e.id === 1 ? ["沉稳", "细致"] : ["温柔", "好奇"],
+      speakingStyle: "自然、温和，愿意分享日常的小事。",
+      coreValues: "真诚相待，尊重彼此的节奏。",
+      avatarMode: "initial",
+      worldId: e.id,
+      homeLocation: "家",
+      wardrobeStyles: ["舒适日常"],
       tags:
         e.id === 0
           ? ["温柔", "创作"]
@@ -1201,9 +1222,9 @@ ${r.prompt}`,
           { name: e.friend, text: "这样的午后真好。", time: "今天 13:42" },
         ],
       })),
-      garments: At.flatMap((t, s) =>
-        [0, 1].map((n) => ({
-          id: s * 2 + n + 1,
+      garments: xt.flatMap((t, s) =>
+        [0, 1].map((l) => ({
+          id: s * 2 + l + 1,
           name: [
             ["燕麦风衣", "牛仔外套"],
             [e.outfit, "白色棉麻衬衫"],
@@ -1213,9 +1234,9 @@ ${r.prompt}`,
             ["白色棉袜", "灰色短袜"],
             ["帆布鞋", "皮质便鞋"],
             ["银色手表", "帆布包"],
-          ][s][n],
+          ][s][l],
           type: t,
-          seasons: n ? ["春", "夏"] : ["春", "秋", "冬"],
+          seasons: l ? ["春", "夏"] : ["春", "秋", "冬"],
         })),
       ),
       outfitTags: ["日常", "散步", "工作"],
@@ -1224,28 +1245,26 @@ ${r.prompt}`,
           id: 1,
           name: "秋日散步",
           tag: "散步",
-          items: Object.fromEntries(At.map((t, s) => [t, [s * 2 + 1]])),
+          items: Object.fromEntries(xt.map((t, s) => [t, [s * 2 + 1]])),
         },
       ],
-      wearing: Object.fromEntries(At.map((t, s) => [t, [s * 2 + 1]])),
+      wearing: Object.fromEntries(xt.map((t, s) => [t, [s * 2 + 1]])),
       genre: "现代都市",
       sites: ["家", "商店街", "学校"].map((t, s) => ({
         name: t,
-        places: fc
-          .slice(s * 3, s * 3 + 3)
-          .map(([n, l, i, r, a], u) => ({
-            id: s * 10 + u,
-            name: n,
-            alias: "",
-            floor: "1F",
-            description: l,
-            atmosphere: i,
-            furniture: r,
-            layout: a,
-            custom: !1,
-          })),
+        places: Dd.slice(s * 3, s * 3 + 3).map(([l, o, i, r, u], d) => ({
+          id: s * 10 + d,
+          name: l,
+          alias: "",
+          floor: "1F",
+          description: o,
+          atmosphere: i,
+          furniture: r,
+          layout: u,
+          custom: !1,
+        })),
       })),
-      people: dc.map(([t, s, n, l], i) => ({
+      people: jd.map(([t, s, l, o], i) => ({
         id: i,
         name: i === 0 ? e.friend : t,
         identity: s,
@@ -1270,102 +1289,103 @@ ${r.prompt}`,
           "商店街",
           "家",
         ][i],
-        bio: n,
-        schedule: l,
+        bio: l,
+        schedule: o,
         tag: ["日常", "工作", "旧友"][Math.floor(i / 2) % 3],
         type: i === 1 ? "用户" : "世界中的人",
         status: i % 4 === 0 ? "暂未联系" : "活跃",
       })),
     })),
   ),
-  cs = G(0),
-  W = _e(() => et.value[cs.value]);
-function Rt(e, t) {
+  lt = z(0),
+  U = ye(() => Ae.value[lt.value]);
+function qt(e, t) {
   return Object.fromEntries(
-    At.map((s) => [
+    xt.map((s) => [
       s,
-      (t[s] || []).filter((n) =>
-        e.garments.some((l) => l.id === n && l.type === s),
+      (t[s] || []).filter((l) =>
+        e.garments.some((o) => o.id === l && o.type === s),
       ),
     ]),
   );
 }
-function pc(e, t) {
+function Hd(e, t) {
   ((e.garments = e.garments.filter((s) => s.id !== t)),
-    (e.wearing = Rt(e, e.wearing)),
-    e.outfits.forEach((s) => (s.items = Rt(e, s.items))));
+    (e.wearing = qt(e, e.wearing)),
+    e.outfits.forEach((s) => (s.items = qt(e, s.items))));
 }
-const Is = G(null);
-let Qi,
-  il = 0;
-function mc() {
-  (il++, rl());
+const Hs = z(null);
+let hr,
+  Mn = 0;
+function Bd() {
+  (Mn++, Xs());
 }
-function rl() {
-  (clearTimeout(Qi), (Is.value = null));
+function Xs() {
+  (clearTimeout(hr), (Hs.value = null));
 }
-function Ml(e, t) {
-  (rl(), (Is.value = { text: e, link: t }), (Qi = setTimeout(rl, 2500)));
+function el(e, t) {
+  (Xs(), (Hs.value = { text: e, link: t }), (hr = setTimeout(Xs, 2500)));
 }
-const ns = G(!1),
-  vs = G([]);
-let vc = 0;
-function Je(e, t, s, n = t, l) {
-  const i = il,
+const Yt = z(!1),
+  $s = z([]);
+let Kd = 0;
+function Xe(e, t, s, l = t, o) {
+  var f;
+  const i = Mn,
     r = {
-      id: ++vc,
+      id: ++Kd,
       label: e,
       input: t,
       status: "pending",
-      character: W.value.name,
+      character: ((f = U.value) == null ? void 0 : f.name) || "角色工作区",
       start: Math.round((Date.now() % 12e4) / 1e3),
       duration: 1,
       response: "请求已完成。",
       run: () => {},
     };
-  vs.value.push(r);
-  const a = vs.value.at(-1);
-  let u = !1;
+  $s.value.push(r);
+  const u = $s.value.at(-1);
+  let d = !1;
   return (
-    (a.run = () => {
-      u ||
-        ((u = !0),
-        (a.status = "pending"),
-        (a.reason = ""),
+    (u.run = () => {
+      d ||
+        ((d = !0),
+        (u.status = "pending"),
+        (u.reason = ""),
         setTimeout(() => {
-          (ns.value || t.includes("失败")
-            ? ((a.status = "error"),
-              (a.reason = t.includes("失败")
+          (Yt.value || t.includes("失败")
+            ? ((u.status = "error"),
+              (u.reason = t.includes("失败")
                 ? "输入包含“失败”，本次操作未完成，请修改输入后重新提交。"
                 : "模拟失败已开启，本次操作未完成，关闭后可重试。"))
             : (s(),
-              (a.status = "success"),
-              i === il &&
-                Ml(
-                  l || "已保存「" + n.slice(0, 32) + "」",
+              (u.status = "success"),
+              i === Mn &&
+                el(
+                  o || "已保存「" + l.slice(0, 32) + "」",
                   e === "衣柜" ? "方案库" : void 0,
                 )),
-            (u = !1));
+            (d = !1));
         }, 800));
     }),
-    a.run(),
-    a
+    u.run(),
+    u
   );
 }
-function hc(e, t) {
+function zd(e, t) {
   return (
     (e.wearing[t] || [])
       .map((s) => {
-        var n;
-        return (n = e.garments.find((l) => l.id === s)) == null
+        var l;
+        return (l = e.garments.find((o) => o.id === s)) == null
           ? void 0
-          : n.name;
+          : l.name;
       })
       .filter(Boolean)
       .join("、") || "未穿戴"
   );
 }
-const gc = [
+const qd = [
     [
       ["图片", "日常", "窗边的午后"],
       ["图片", "日常", "一杯热茶"],
@@ -1409,17 +1429,17 @@ const gc = [
       ["视频", "创作", "秋叶拓印小实验"],
     ],
   ],
-  Po = et.value.flatMap((e) =>
-    gc[e.id].map(([t, s, n], l) => ({
-      id: e.id * 100 + l,
+  ei = Ae.value.flatMap((e) =>
+    qd[e.id].map(([t, s, l], o) => ({
+      id: e.id * 100 + o,
       character: e.name,
       type: t,
       tag: s,
-      title: n,
-      time: "10月" + (23 - l) + "日",
+      title: l,
+      time: "10月" + (23 - o) + "日",
     })),
   );
-et.value.forEach((e) => {
+Ae.value.forEach((e) => {
   ((e.memories = [
     "偏好 · 从聊天里记住你喜欢秋天和雨声。",
     "相处变化 · 从日常问候到主动分享创作，越来越愿意表达自己的感受。",
@@ -1439,16 +1459,16 @@ et.value.forEach((e) => {
       })),
     ));
 });
-const El = G("为她搭配"),
-  ds = (e) =>
-    _e(() =>
-      vs.value.some((t) => e.includes(t.label) && t.status === "pending"),
+const Yn = z("为她搭配"),
+  fs = (e) =>
+    ye(() =>
+      $s.value.some((t) => e.includes(t.label) && t.status === "pending"),
     ),
-  Xi = G("配置中心"),
-  al = G(null),
-  tn = G(!1),
-  gn = "2026-10-23",
-  yc = [
+  Zn = z("配置中心"),
+  In = z(null),
+  ml = z(!1),
+  Al = "2026-10-23",
+  Wd = [
     {
       title: "给秋天留个位置",
       weather: "晴",
@@ -1498,14 +1518,14 @@ const El = G("为她搭配"),
       text: "今天的事情没有全做完，但也不想责怪自己。收工后沿着河岸走了一小段，风把疲倦吹散了。明天还有新的光，会慢慢来。",
     },
   ],
-  er = G(
-    et.value.map((e) => ({
+  Cs = z(
+    Ae.value.map((e) => ({
       appointments: [
         { date: "2026-10-24", time: "10:00", text: "一起去旧书店" },
         { date: "2026-10-24", time: "16:30", text: "河边散步" },
         { date: "2026-10-26", time: "18:00", text: "分享一顿晚餐" },
       ],
-      diaries: yc.map((t, s) => ({
+      diaries: Wd.map((t, s) => ({
         ...t,
         id: e.id * 100 + s,
         date: "2026-10-" + String(2 + s * 3).padStart(2, "0"),
@@ -1527,16 +1547,16 @@ const El = G("为她搭配"),
       })),
     })),
   );
-function tr(e, t) {
-  const s = er.value[e].diaries,
-    n = s.find((l) => l.date === gn);
-  if (n) {
-    ((n.text = t), (n.time = "21:40"));
+function gr(e, t) {
+  const s = Cs.value[e].diaries,
+    l = s.find((o) => o.date === Al);
+  if (l) {
+    ((l.text = t), (l.time = "21:40"));
     return;
   }
   s.push({
     id: Date.now(),
-    date: gn,
+    date: Al,
     time: "21:40",
     title: "今天的小小回响",
     weather: "晴",
@@ -1544,8 +1564,8 @@ function tr(e, t) {
     text: t,
   });
 }
-const Ut = G(
-    et.value.map((e) => ({
+const Oe = z(
+    Ae.value.map((e) => ({
       id: e.id,
       name: e.world.split(" · ")[0],
       genre: e.genre,
@@ -1553,42 +1573,359 @@ const Ut = G(
       sites: JSON.parse(JSON.stringify(e.sites)),
     })),
   ),
-  sr = nt({
+  ft = (e) => JSON.parse(JSON.stringify(e)),
+  yr = ft(Ae.value),
+  Jd = ft(Cs.value),
+  Gd = ft(Oe.value),
+  br = ["#e4ede4", "#e0e8ef", "#eee5df", "#eee8d5", "#e9e2ed"],
+  Yd = ["温柔", "沉稳", "好奇", "坦率", "细致", "独立", "幽默", "创作"],
+  Zd = ["舒适日常", "简约", "自然系", "复古", "轻运动"],
+  kr = [
+    { id: 1, name: "燕麦色风衣", type: "外套", seasons: ["春", "秋"] },
+    { id: 2, name: "白色棉麻衬衫", type: "上衣", seasons: ["春", "夏", "秋"] },
+    {
+      id: 3,
+      name: "棉质内衣",
+      type: "内衣",
+      seasons: ["春", "夏", "秋", "冬"],
+    },
+    {
+      id: 4,
+      name: "舒适内裤",
+      type: "内裤",
+      seasons: ["春", "夏", "秋", "冬"],
+    },
+    { id: 5, name: "直筒长裤", type: "下衣", seasons: ["春", "秋", "冬"] },
+    {
+      id: 6,
+      name: "白色棉袜",
+      type: "袜子",
+      seasons: ["春", "夏", "秋", "冬"],
+    },
+    { id: 7, name: "帆布鞋", type: "鞋子", seasons: ["春", "夏", "秋"] },
+    { id: 8, name: "帆布包", type: "配饰", seasons: ["春", "夏", "秋", "冬"] },
+  ];
+function _r() {
+  var e;
+  return {
+    name: "",
+    age: 26,
+    intro: "",
+    initial: "",
+    color: br[0],
+    avatarMode: "initial",
+    traits: ["温柔"],
+    speakingStyle: "自然、温和，像日常聊天一样。",
+    coreValues: "真诚相待，尊重彼此。",
+    worldId: ((e = Oe.value[0]) == null ? void 0 : e.id) ?? "new",
+    worldName: "",
+    genre: "现代都市",
+    homeLocation: "家",
+    wardrobeStyles: ["舒适日常"],
+    garmentIds: [2, 3, 4, 5, 6, 7],
+  };
+}
+const fe = z(_r()),
+  ts = z(!1),
+  Ne = z(1),
+  Ke = z("editing"),
+  Bs = z(!0),
+  wr = z(null),
+  xs = Hl([
+    {
+      key: "profile",
+      name: "人物资料",
+      state: "等待中",
+      reason: "",
+      attempts: 0,
+    },
+    {
+      key: "personality",
+      name: "人格与关系设定",
+      state: "等待中",
+      reason: "",
+      attempts: 0,
+    },
+    {
+      key: "world",
+      name: "世界与地点",
+      state: "等待中",
+      reason: "",
+      attempts: 0,
+    },
+    {
+      key: "wardrobe",
+      name: "初始衣柜",
+      state: "等待中",
+      reason: "",
+      attempts: 0,
+    },
+    {
+      key: "reference",
+      name: "规范参考图",
+      state: "等待中",
+      reason: "",
+      attempts: 0,
+    },
+    {
+      key: "avatar",
+      name: "显示头像",
+      state: "等待中",
+      reason: "",
+      attempts: 0,
+    },
+  ]),
+  Qd = ye(() => xs.some((e) => e.state === "进行中"));
+let En = 0,
+  $r;
+function Qn() {
+  (En++,
+    clearTimeout($r),
+    (ts.value = !1),
+    (Ne.value = 1),
+    (Ke.value = "editing"),
+    (fe.value = _r()),
+    (Bs.value = !0),
+    (wr.value = null),
+    xs.forEach((e) =>
+      Object.assign(e, { state: "等待中", reason: "", attempts: 0 }),
+    ));
+}
+function Cr() {
+  (Qn(),
+    (Ae.value = []),
+    (Cs.value = []),
+    (lt.value = 0),
+    Oe.value.forEach((e) => (e.residents = [])),
+    Xs());
+}
+function vl() {
+  if (
+    Ae.value.some((e) => !yr.some((o) => o.name === e.name)) &&
+    !confirm(
+      "恢复示例角色会替换当前角色列表，你新建的角色将被移除。确定继续吗？",
+    )
+  )
+    return;
+  ((Ae.value = ft(yr)),
+    (Cs.value = ft(Jd)),
+    (Oe.value = ft(Gd)),
+    (lt.value = 0),
+    Qn(),
+    Xs(),
+    (location.hash = encodeURIComponent("角色库")));
+}
+function Ps() {
+  ((!ts.value || Ke.value === "complete") && Qn(),
+    (ts.value = !0),
+    (location.hash = encodeURIComponent("创建角色")));
+}
+function Vl(e) {
+  const t = fe.value;
+  if (e === 1) {
+    if (!t.name.trim()) return "请先给角色起一个名字。";
+    if (!Number.isInteger(t.age) || t.age < 1 || t.age > 150)
+      return "请填写 1–150 岁之间的整数年龄。";
+    if (!t.intro.trim()) return "写一句简短的介绍，让相识有个开始。";
+  }
+  if (
+    e === 2 &&
+    (!t.traits.length || !t.speakingStyle.trim() || !t.coreValues.trim())
+  )
+    return "请选择至少一个性格特质，并补充说话方式和核心价值观。";
+  if (e === 3) {
+    if (t.worldId === "new" && !t.worldName.trim())
+      return "请为新世界起一个名字。";
+    if (t.worldId !== "new" && !Oe.value.some((s) => s.id === t.worldId))
+      return "请选择一个可用世界，或创建新世界。";
+    if (!t.homeLocation.trim()) return "请填写角色居住的地点。";
+  }
+  return e === 4 && (!t.wardrobeStyles.length || !t.garmentIds.length)
+    ? "请选择穿衣风格和至少一件初始衣物。"
+    : "";
+}
+function Xd() {
+  var r;
+  if (Ke.value === "complete") return;
+  const e = ft(fe.value),
+    t = Ae.value.length;
+  let s = Oe.value.find((u) => u.id === e.worldId);
+  if (e.worldId === "new") {
+    const u = {
+      id: Date.now(),
+      name: e.homeLocation.trim(),
+      alias: "",
+      floor: "1F",
+      description: "日常生活与休息的地方。",
+      atmosphere: "安静、舒适",
+      furniture: "基础家具",
+      layout: "等待一起慢慢布置",
+      custom: !0,
+    };
+    ((s = {
+      id: Math.max(-1, ...Oe.value.map((d) => d.id)) + 1,
+      name: e.worldName.trim(),
+      genre: e.genre.trim() || "现代都市",
+      residents: [],
+      sites: [{ name: "家", places: [u] }],
+    }),
+      Oe.value.push(s));
+  }
+  if (!s) {
+    Object.assign(xs[2], {
+      state: "失败",
+      reason: "所选世界已被移除，请返回世界与地点重新选择。",
+    });
+    return;
+  }
+  const l = ft(kr.filter((u) => e.garmentIds.includes(u.id))),
+    o = Object.fromEntries(
+      xt.map((u) => [
+        u,
+        l
+          .filter((d) => d.type === u)
+          .slice(0, 1)
+          .map((d) => d.id),
+      ]),
+    ),
+    i = {
+      ...ft(yr[0]),
+      id: t,
+      name: e.name.trim(),
+      age: e.age,
+      bio: e.intro.trim(),
+      subtitle: e.intro.trim(),
+      job: "新来的生活伙伴",
+      initial: e.initial.trim() || Array.from(e.name.trim()).at(-1),
+      color: e.color,
+      avatarMode: e.avatarMode,
+      traits: e.traits,
+      tags: [...e.traits],
+      speakingStyle: e.speakingStyle.trim(),
+      coreValues: e.coreValues.trim(),
+      worldId: s.id,
+      world: s.name,
+      genre: s.genre,
+      sites: ft(s.sites),
+      homeLocation: e.homeLocation.trim(),
+      location: e.homeLocation.trim(),
+      mood: "平静 · 期待新的相识",
+      activity: "熟悉新的生活",
+      outfit:
+        ((r = l.find((u) => u.type === "上衣")) == null ? void 0 : r.name) ||
+        l[0].name,
+      wardrobeStyles: e.wardrobeStyles,
+      wardrobe: l.map((u) => u.name),
+      garments: l,
+      wearing: o,
+      outfits: [{ id: 1, name: "初次见面", tag: "日常", items: ft(o) }],
+      outfitTags: ["日常"],
+      friend: "",
+      hobby: "慢慢发现生活里的喜欢",
+      people: [],
+      posts: [],
+      memories: [],
+      goals: [],
+      diary: [],
+      messages: [
+        {
+          text: `你好，我是${e.name.trim()}。很高兴从今天开始，和你分享日常。`,
+          time: "刚刚",
+        },
+      ],
+      schedule: [
+        { time: "09:00", text: "早餐与整理" },
+        { time: "14:00", text: "熟悉新的生活" },
+        { time: "18:30", text: "晚餐与休息" },
+      ],
+    };
+  ((Cs.value[t] = { appointments: [], diaries: [], memories: [] }),
+    Ae.value.push(i),
+    s.residents.push(t),
+    (lt.value = t),
+    (wr.value = t),
+    (Ke.value = "complete"));
+}
+function Ol(e) {
+  const t = xs[e];
+  if (!t) {
+    Xd();
+    return;
+  }
+  if (t.state === "已完成") {
+    Ol(e + 1);
+    return;
+  }
+  const s = En;
+  ((t.state = "进行中"),
+    (t.reason = ""),
+    t.attempts++,
+    ($r = setTimeout(() => {
+      if (s !== En) return;
+      const l = t.key === "world" ? Vl(3) : "",
+        o = Yt.value
+          ? "模拟失败已开启，请关闭顶栏的“模拟失败”后重试。"
+          : t.key === "reference" && Bs.value && t.attempts === 1
+            ? "图像模型未配置"
+            : l;
+      if (o) {
+        ((t.state = "失败"), (t.reason = o));
+        return;
+      }
+      ((t.state = "已完成"), Ol(e + 1));
+    }, 700)));
+}
+function ec() {
+  if (Ke.value === "editing") {
+    for (let e = 1; e <= 4; e++)
+      if (Vl(e)) {
+        Ne.value = e;
+        return;
+      }
+    ((ts.value = !0), (Ke.value = "preparing"), Ol(0));
+  }
+}
+function tc(e) {
+  if (Qd.value || Ke.value !== "preparing") return;
+  const t = xs.findIndex((s) => s.key === e && s.state === "失败");
+  t >= 0 && Ol(t);
+}
+const xr = je({
     __name: "CurrentOutfit",
     props: { compact: { type: Boolean } },
     setup(e) {
       function t() {
-        ((El.value = "为她搭配"), (location.hash = encodeURIComponent("衣柜")));
+        ((Yn.value = "为她搭配"), (location.hash = encodeURIComponent("衣柜")));
       }
-      return (s, n) => (
-        p(),
-        g(
+      return (s, l) => (
+        c(),
+        v(
           "section",
           {
-            class: ge(["outfit-block", { "outfit-compact": e.compact }]),
+            class: ke(["outfit-block", { "outfit-compact": e.compact }]),
             "data-testid": "current-outfit",
           },
           [
-            o("div", { class: "row" }, [
-              n[0] || (n[0] = o("b", null, "今日穿着", -1)),
-              n[1] || (n[1] = o("span", { class: "spacer" }, null, -1)),
-              o("button", { class: "text-button", onClick: t }, "去编辑 ↗"),
+            n("div", { class: "row" }, [
+              l[0] || (l[0] = n("b", null, "今日穿着", -1)),
+              l[1] || (l[1] = n("span", { class: "spacer" }, null, -1)),
+              n("button", { class: "text-button", onClick: t }, "去编辑 ↗"),
             ]),
-            o(
+            n(
               "div",
-              { class: ge(e.compact ? "outfit-tags" : "outfit-lines") },
+              { class: ke(e.compact ? "outfit-tags" : "outfit-lines") },
               [
-                (p(!0),
-                g(
-                  O,
+                (c(!0),
+                v(
+                  I,
                   null,
-                  oe(
-                    M(At),
-                    (l) => (
-                      p(),
-                      g("div", { key: l }, [
-                        o("small", null, v(l), 1),
-                        o("span", null, v(M(hc)(M(W), l)), 1),
+                  te(
+                    h(xt),
+                    (o) => (
+                      c(),
+                      v("div", { key: o }, [
+                        n("small", null, m(o), 1),
+                        n("span", null, m(h(zd)(h(U), o)), 1),
                       ])
                     ),
                   ),
@@ -1603,49 +1940,49 @@ const Ut = G(
       );
     },
   }),
-  bc = { class: "chat-panel" },
-  _c = { class: "chat-header" },
-  kc = { class: "chat-private" },
-  wc = { class: "message-body" },
-  $c = { class: "message-meta" },
-  Cc = { class: "bubble" },
-  xc = { key: 0, class: "error", role: "alert" },
-  Sc = ["onClick"],
-  Tc = { key: 0, class: "typing" },
-  Mc = { class: "composer" },
-  Ec = { class: "composer-bottom" },
-  Ac = ["disabled"],
-  Ic = { key: 0, class: "preview" },
-  Oc = { class: "preview-heading" },
-  Vc = { class: "scene" },
-  Pc = { class: "scene-caption" },
-  Lc = { class: "compact-bio" },
-  Uc = { class: "schedule-preview" },
-  Nc = { class: "next-item" },
-  Fc = { class: "preview-tip" },
-  Rc = nt({
+  sc = { class: "chat-panel" },
+  lc = { class: "chat-header" },
+  nc = { class: "chat-private" },
+  oc = { class: "message-body" },
+  ic = { class: "message-meta" },
+  rc = { class: "bubble" },
+  ac = { key: 0, class: "error", role: "alert" },
+  uc = ["onClick"],
+  dc = { key: 0, class: "typing" },
+  cc = { class: "composer" },
+  fc = { class: "composer-bottom" },
+  pc = ["disabled"],
+  mc = { key: 0, class: "preview" },
+  vc = { class: "preview-heading" },
+  hc = { class: "scene" },
+  gc = { class: "scene-caption" },
+  yc = { class: "compact-bio" },
+  bc = { class: "schedule-preview" },
+  kc = { class: "next-item" },
+  _c = { class: "preview-tip" },
+  wc = je({
     __name: "ChatPage",
     props: { preview: { type: Boolean } },
     emits: ["go"],
     setup(e, { emit: t }) {
       const s = t,
-        n = (c) => s("go", c),
-        l = G(""),
-        i = G();
+        l = (a) => s("go", a),
+        o = z(""),
+        i = z();
       function r() {
-        ls(() => {
-          var c;
-          return (c = i.value) == null
+        Qt(() => {
+          var a;
+          return (a = i.value) == null
             ? void 0
-            : c.scrollTo({ top: i.value.scrollHeight, behavior: "smooth" });
+            : a.scrollTo({ top: i.value.scrollHeight, behavior: "smooth" });
         });
       }
-      function a(c, d) {
-        if (/动态|发帖/.test(d))
+      function u(a, p) {
+        if (/动态|发帖/.test(p))
           return (
-            c.posts.unshift({
+            a.posts.unshift({
               text:
-                d.replace(/.*?(发一条动态|发动态|发布动态)[：:，,]?/, "") ||
+                p.replace(/.*?(发一条动态|发动态|发布动态)[：:，,]?/, "") ||
                 "今天也在认真感受生活，记录此刻的小美好。",
               time: "刚刚",
               likes: 0,
@@ -1654,166 +1991,166 @@ const Ut = G(
             }),
             "好呀，已经把这一刻写成动态了。去动态里看看吧。"
           );
-        if (/换|穿|衣服/.test(d)) {
-          const C = c.garments.find((w) => d.includes(w.name));
-          return C
-            ? ((c.wearing[C.type] = [C.id]),
-              (c.outfit = C.name),
-              `换上${c.outfit}了，你觉得怎么样？`)
+        if (/换|穿|衣服/.test(p)) {
+          const _ = a.garments.find((b) => p.includes(b.name));
+          return _
+            ? ((a.wearing[_.type] = [_.id]),
+              (a.outfit = _.name),
+              `换上${a.outfit}了，你觉得怎么样？`)
             : "想换哪件衣服？可以去衣柜里挑选。";
         }
-        return /世界|天气|下雨/.test(d)
-          ? ((c.world = d),
-            (c.location = d.includes("海边") ? "海边" : c.location),
+        return /世界|天气|下雨/.test(p)
+          ? ((a.world = p),
+            (a.location = p.includes("海边") ? "海边" : a.location),
             "好，世界设定已经调整了。新的风景也让人有一点期待。")
-          : /日程|安排/.test(d)
-            ? (c.schedule.push({ time: "20:00", text: d }),
+          : /日程|安排/.test(p)
+            ? (a.schedule.push({ time: "20:00", text: p }),
               "已经把这件事加入日程，今晚会留出时间的。")
-            : /日记|补写/.test(d)
-              ? (tr(c.id, `${d}。今天的这些小事，都想认真记下来。`),
+            : /日记|补写/.test(p)
+              ? (gr(a.id, `${p}。今天的这些小事，都想认真记下来。`),
                 "日记补写好了。有些小事，记下来才发现很珍贵。")
-              : /累|烦|难过|压力/.test(d)
+              : /累|烦|难过|压力/.test(p)
                 ? "听起来今天有些辛苦。愿意和我说说发生了什么吗？我陪你慢慢聊。"
-                : /你好|早安|晚安|晚上好/.test(d)
-                  ? d.includes("晚安")
+                : /你好|早安|晚安|晚上好/.test(p)
+                  ? p.includes("晚安")
                     ? "晚安，愿你今晚睡得安稳。明天再聊。"
                     : "你好呀，见到你很开心。今天过得怎么样？"
-                  : /吃|饭|饿/.test(d)
+                  : /吃|饭|饿/.test(p)
                     ? "说到吃饭，我也想来一碗热汤面。你现在想吃什么？"
-                    : /书|读/.test(d)
+                    : /书|读/.test(p)
                       ? "最近在读什么书？想听听你喜欢它的地方。"
-                      : /开心|高兴|喜欢/.test(d)
+                      : /开心|高兴|喜欢/.test(p)
                         ? "听起来是件让人开心的事。愿意多和我分享一点吗？"
-                        : /[?？]|怎么|什么/.test(d)
+                        : /[?？]|怎么|什么/.test(p)
                           ? "我们可以一起想想。你更在意哪一方面？告诉我一些细节吧。"
                           : "我在听，愿意再和我说说吗？也想知道你当时的感受。";
       }
-      function u() {
-        const c = l.value.trim();
-        if (!c || f.value) return;
-        const d = W.value;
-        l.value = "";
-        const C = { text: c, user: !0, time: "刚刚", action: void 0 };
-        d.messages.push(C);
-        const w = d.messages[d.messages.length - 1];
-        ((w.action = Je("聊天回复", c, () =>
-          d.messages.push({ text: a(d, c), time: "刚刚" }),
+      function d() {
+        const a = o.value.trim();
+        if (!a || f.value) return;
+        const p = U.value;
+        o.value = "";
+        const _ = { text: a, user: !0, time: "刚刚", action: void 0 };
+        p.messages.push(_);
+        const b = p.messages[p.messages.length - 1];
+        ((b.action = Xe("聊天回复", a, () =>
+          p.messages.push({ text: u(p, a), time: "刚刚" }),
         )),
           r());
       }
-      const f = _e(() =>
-        W.value.messages.some((c) => {
-          var d;
-          return ((d = c.action) == null ? void 0 : d.status) === "pending";
+      const f = ye(() =>
+        U.value.messages.some((a) => {
+          var p;
+          return ((p = a.action) == null ? void 0 : p.status) === "pending";
         }),
       );
       return (
-        it(() => W.value.messages.length, r),
-        it(f, r),
-        (c, d) => {
-          var C, w;
+        vt(() => U.value.messages.length, r),
+        vt(f, r),
+        (a, p) => {
+          var _, b;
           return (
-            p(),
-            g(
+            c(),
+            v(
               "div",
-              { class: ge(["chat-layout", { collapsed: !e.preview }]) },
+              { class: ke(["chat-layout", { collapsed: !e.preview }]) },
               [
-                o("section", bc, [
-                  o("header", _c, [
-                    o(
+                n("section", sc, [
+                  n("header", lc, [
+                    n(
                       "span",
                       {
                         class: "avatar",
-                        style: yt({ background: M(W).color }),
+                        style: at({ background: h(U).color }),
                       },
-                      v(M(W).initial),
+                      m(h(U).initial),
                       5,
                     ),
-                    o("div", null, [
-                      o("strong", null, v(M(W).name), 1),
-                      o("small", null, [
-                        d[3] ||
-                          (d[3] = o("i", { class: "online-dot" }, null, -1)),
-                        d[4] || (d[4] = Z(" 在线 ", -1)),
-                        o("span", null, "· " + v(M(W).job), 1),
+                    n("div", null, [
+                      n("strong", null, m(h(U).name), 1),
+                      n("small", null, [
+                        p[3] ||
+                          (p[3] = n("i", { class: "online-dot" }, null, -1)),
+                        p[4] || (p[4] = K(" 在线 ", -1)),
+                        n("span", null, "· " + m(h(U).job), 1),
                       ]),
                     ]),
-                    d[6] || (d[6] = o("span", { class: "spacer" }, null, -1)),
-                    o("span", kc, [
-                      me(M(tc), { size: 13 }),
-                      d[5] || (d[5] = Z("只属于你们的对话", -1)),
+                    p[6] || (p[6] = n("span", { class: "spacer" }, null, -1)),
+                    n("span", nc, [
+                      ae(h(Ed), { size: 13 }),
+                      p[5] || (p[5] = K("只属于你们的对话", -1)),
                     ]),
                   ]),
-                  o(
+                  n(
                     "div",
                     { ref_key: "timeline", ref: i, class: "timeline" },
                     [
-                      d[9] ||
-                        (d[9] = o(
+                      p[9] ||
+                        (p[9] = n(
                           "div",
                           { class: "date-divider" },
-                          [o("span", null, "今天 · 10月23日 星期五")],
+                          [n("span", null, "今天 · 10月23日 星期五")],
                           -1,
                         )),
-                      d[10] ||
-                        (d[10] = o(
+                      p[10] ||
+                        (p[10] = n(
                           "div",
                           { class: "conversation-note" },
                           "从一句问候开始，让陪伴慢慢发生。",
                           -1,
                         )),
-                      (p(!0),
-                      g(
-                        O,
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(M(W).messages, (A, B) => {
-                          var te;
+                        te(h(U).messages, (A, P) => {
+                          var V;
                           return (
-                            p(),
-                            g(
+                            c(),
+                            v(
                               "div",
                               {
-                                key: B,
-                                class: ge(["message", { mine: A.user }]),
+                                key: P,
+                                class: ke(["message", { mine: A.user }]),
                               },
                               [
-                                o(
+                                n(
                                   "span",
                                   {
                                     class: "avatar message-avatar",
-                                    style: yt({
+                                    style: at({
                                       background: A.user
                                         ? "#e9eae6"
-                                        : M(W).color,
+                                        : h(U).color,
                                     }),
                                   },
-                                  v(A.user ? "我" : M(W).initial),
+                                  m(A.user ? "我" : h(U).initial),
                                   5,
                                 ),
-                                o("div", wc, [
-                                  o("div", $c, [
-                                    Z(v(A.user ? "我" : M(W).name), 1),
-                                    o("time", null, v(A.time), 1),
+                                n("div", oc, [
+                                  n("div", ic, [
+                                    K(m(A.user ? "我" : h(U).name), 1),
+                                    n("time", null, m(A.time), 1),
                                   ]),
-                                  o("div", Cc, v(A.text), 1),
-                                  ((te = A.action) == null
+                                  n("div", rc, m(A.text), 1),
+                                  ((V = A.action) == null
                                     ? void 0
-                                    : te.status) === "error"
-                                    ? (p(),
-                                      g("div", xc, [
-                                        Z(v(A.action.reason), 1),
-                                        o(
+                                    : V.status) === "error"
+                                    ? (c(),
+                                      v("div", ac, [
+                                        K(m(A.action.reason), 1),
+                                        n(
                                           "button",
-                                          { onClick: (se) => A.action.run() },
+                                          { onClick: (le) => A.action.run() },
                                           [
-                                            me(M(Qu), { size: 12 }),
-                                            d[7] || (d[7] = Z("重试", -1)),
+                                            ae(h(Td), { size: 12 }),
+                                            p[7] || (p[7] = K("重试", -1)),
                                           ],
                                           8,
-                                          Sc,
+                                          uc,
                                         ),
                                       ]))
-                                    : X("", !0),
+                                    : J("", !0),
                                 ]),
                               ],
                               2,
@@ -1823,29 +2160,29 @@ const Ut = G(
                         128,
                       )),
                       f.value
-                        ? (p(),
-                          g("div", Tc, [
-                            Z(v(M(W).name) + " 正在输入 ", 1),
-                            d[8] || (d[8] = o("span", null, "•••", -1)),
+                        ? (c(),
+                          v("div", dc, [
+                            K(m(h(U).name) + " 正在输入 ", 1),
+                            p[8] || (p[8] = n("span", null, "•••", -1)),
                           ]))
-                        : X("", !0),
+                        : J("", !0),
                     ],
                     512,
                   ),
-                  o("div", Mc, [
-                    pe(
-                      o(
+                  n("div", cc, [
+                    re(
+                      n(
                         "textarea",
                         {
                           "onUpdate:modelValue":
-                            d[0] || (d[0] = (A) => (l.value = A)),
+                            p[0] || (p[0] = (A) => (o.value = A)),
                           "aria-label": "聊天消息",
                           placeholder: "说点什么，分享你的今天…",
                           onKeydown:
-                            d[1] ||
-                            (d[1] = Gi(
-                              Ve(
-                                (A) => !A.isComposing && u(),
+                            p[1] ||
+                            (p[1] = pr(
+                              Ue(
+                                (A) => !A.isComposing && d(),
                                 ["exact", "prevent"],
                               ),
                               ["enter"],
@@ -1854,131 +2191,131 @@ const Ut = G(
                         null,
                         544,
                       ),
-                      [[$e, l.value]],
+                      [[he, o.value]],
                     ),
-                    o("div", Ec, [
-                      d[11] ||
-                        (d[11] = o(
+                    n("div", fc, [
+                      p[11] ||
+                        (p[11] = n(
                           "small",
                           null,
                           "Enter 发送 · Shift + Enter 换行",
                           -1,
                         )),
-                      o(
+                      n(
                         "button",
                         {
                           class: "button primary",
-                          disabled: !l.value.trim() || f.value,
-                          onClick: u,
+                          disabled: !o.value.trim() || f.value,
+                          onClick: d,
                         },
                         [
-                          Z(v(f.value ? "回应中" : "发送"), 1),
-                          me(M(Xu), { size: 14 }),
+                          K(m(f.value ? "回应中" : "发送"), 1),
+                          ae(h(Md), { size: 14 }),
                         ],
                         8,
-                        Ac,
+                        pc,
                       ),
                     ]),
                   ]),
                 ]),
                 e.preview
-                  ? (p(),
-                    g("aside", Ic, [
-                      o("div", Oc, [
-                        o(
+                  ? (c(),
+                    v("aside", mc, [
+                      n("div", vc, [
+                        n(
                           "span",
                           null,
-                          v(M(W).id === 1 ? "他的此刻" : "她的此刻"),
+                          m(h(U).id === 1 ? "他的此刻" : "她的此刻"),
                           1,
                         ),
-                        d[12] ||
-                          (d[12] = o(
+                        p[12] ||
+                          (p[12] = n(
                             "span",
                             { class: "pill" },
                             "实时预览",
                             -1,
                           )),
                       ]),
-                      o("div", Vc, [
-                        d[14] ||
-                          (d[14] = o(
+                      n("div", hc, [
+                        p[14] ||
+                          (p[14] = n(
                             "div",
                             { class: "scene-window" },
-                            [o("i"), o("i")],
+                            [n("i"), n("i")],
                             -1,
                           )),
-                        d[15] ||
-                          (d[15] = o("div", { class: "scene-sun" }, null, -1)),
-                        d[16] ||
-                          (d[16] = o("div", { class: "scene-vase" }, "♧", -1)),
-                        d[17] ||
-                          (d[17] = o("div", { class: "scene-desk" }, null, -1)),
-                        o("div", Pc, [
-                          d[13] ||
-                            (d[13] = o(
+                        p[15] ||
+                          (p[15] = n("div", { class: "scene-sun" }, null, -1)),
+                        p[16] ||
+                          (p[16] = n("div", { class: "scene-vase" }, "♧", -1)),
+                        p[17] ||
+                          (p[17] = n("div", { class: "scene-desk" }, null, -1)),
+                        n("div", gc, [
+                          p[13] ||
+                            (p[13] = n(
                               "span",
                               { class: "scene-tag" },
                               "A LITTLE MOMENT",
                               -1,
                             )),
-                          o("p", null, v(M(W).location) + "的午后", 1),
+                          n("p", null, m(h(U).location) + "的午后", 1),
                         ]),
                       ]),
-                      o("div", Lc, [
-                        o("b", null, v(M(W).name) + " · " + v(M(W).job), 1),
-                        o("p", null, v(M(W).bio), 1),
-                        o(
+                      n("div", yc, [
+                        n("b", null, m(h(U).name) + " · " + m(h(U).job), 1),
+                        n("p", null, m(h(U).bio), 1),
+                        n(
                           "small",
                           null,
-                          v(M(W).mood) + " · " + v(M(W).location),
+                          m(h(U).mood) + " · " + m(h(U).location),
                           1,
                         ),
                       ]),
-                      me(sr),
-                      o("div", Uc, [
-                        o("div", null, [
-                          d[19] ||
-                            (d[19] = o("span", null, "接下来的安排", -1)),
-                          o(
+                      ae(xr),
+                      n("div", bc, [
+                        n("div", null, [
+                          p[19] ||
+                            (p[19] = n("span", null, "接下来的安排", -1)),
+                          n(
                             "button",
-                            { onClick: d[2] || (d[2] = (A) => n("日程")) },
+                            { onClick: p[2] || (p[2] = (A) => l("日程")) },
                             [
-                              d[18] || (d[18] = Z("查看全部 ", -1)),
-                              me(M(Ji), { size: 12 }),
+                              p[18] || (p[18] = K("查看全部 ", -1)),
+                              ae(h(Jn), { size: 12 }),
                             ],
                           ),
                         ]),
-                        o("div", Nc, [
-                          d[21] ||
-                            (d[21] = o(
+                        n("div", kc, [
+                          p[21] ||
+                            (p[21] = n(
                               "span",
                               { class: "schedule-dot" },
                               null,
                               -1,
                             )),
-                          o("div", null, [
-                            o(
+                          n("div", null, [
+                            n(
                               "small",
                               null,
-                              v(
-                                (C = M(W).schedule[1]) == null
+                              m(
+                                (_ = h(U).schedule[1]) == null
                                   ? void 0
-                                  : C.time,
+                                  : _.time,
                               ) + " — 16:00",
                               1,
                             ),
-                            o(
+                            n(
                               "p",
                               null,
-                              v(
-                                (w = M(W).schedule[1]) == null
+                              m(
+                                (b = h(U).schedule[1]) == null
                                   ? void 0
-                                  : w.text,
+                                  : b.text,
                               ),
                               1,
                             ),
-                            d[20] ||
-                              (d[20] = o(
+                            p[20] ||
+                              (p[20] = n(
                                 "span",
                                 { class: "pill" },
                                 "进行中",
@@ -1987,17 +2324,17 @@ const Ut = G(
                           ]),
                         ]),
                       ]),
-                      o("div", Fc, [
-                        me(M(Tl), { size: 16 }),
-                        o("p", null, [
-                          d[22] ||
-                            (d[22] = Z("生活在继续，故事也在慢慢生长。", -1)),
-                          d[23] || (d[23] = o("br", null, null, -1)),
-                          Z("这里是 " + v(M(W).name) + " 的小小世界。", 1),
+                      n("div", _c, [
+                        ae(h(Gn), { size: 16 }),
+                        n("p", null, [
+                          p[22] ||
+                            (p[22] = K("生活在继续，故事也在慢慢生长。", -1)),
+                          p[23] || (p[23] = n("br", null, null, -1)),
+                          K("这里是 " + m(h(U).name) + " 的小小世界。", 1),
                         ]),
                       ]),
                     ]))
-                  : X("", !0),
+                  : J("", !0),
               ],
               2,
             )
@@ -2006,47 +2343,47 @@ const Ut = G(
       );
     },
   }),
-  Dc = { key: 0, class: "inline-error", role: "alert" },
-  It = nt({
+  $c = { key: 0, class: "inline-error", role: "alert" },
+  St = je({
     __name: "ActionFeedback",
     props: { labels: {} },
     setup(e) {
       const t = e,
-        s = _e(() =>
-          vs.value
+        s = ye(() =>
+          $s.value
             .filter(
-              (n) => t.labels.includes(n.label) && n.character === W.value.name,
+              (l) => t.labels.includes(l.label) && l.character === U.value.name,
             )
             .at(-1),
         );
-      return (n, l) => {
+      return (l, o) => {
         var i;
         return ((i = s.value) == null ? void 0 : i.status) === "error"
-          ? (p(),
-            g("p", Dc, [
-              Z(v(s.value.reason) + " ", 1),
-              o(
+          ? (c(),
+            v("p", $c, [
+              K(m(s.value.reason) + " ", 1),
+              n(
                 "button",
                 {
                   class: "text-button",
                   onClick:
-                    l[0] || (l[0] = (...r) => s.value.run && s.value.run(...r)),
+                    o[0] || (o[0] = (...r) => s.value.run && s.value.run(...r)),
                 },
                 "重试",
               ),
             ]))
-          : X("", !0);
+          : J("", !0);
       };
     },
   }),
-  jc = ["data-testid"],
-  Hc = { class: "filter-search-row" },
-  Bc = ["value", "placeholder", "aria-label", "data-testid"],
-  Kc = ["data-testid"],
-  Wc = ["aria-label"],
-  qc = ["aria-pressed", "data-testid", "onClick"],
-  zc = ["aria-pressed", "data-testid", "onClick"],
-  Os = nt({
+  Cc = ["data-testid"],
+  xc = { class: "filter-search-row" },
+  Sc = ["value", "placeholder", "aria-label", "data-testid"],
+  Tc = ["data-testid"],
+  Mc = ["aria-label"],
+  Ic = ["aria-pressed", "data-testid", "onClick"],
+  Ec = ["aria-pressed", "data-testid", "onClick"],
+  bs = je({
     __name: "FilterChips",
     props: {
       search: {},
@@ -2058,29 +2395,29 @@ const Ut = G(
     emits: ["update:search", "update:filters", "clear"],
     setup(e, { emit: t }) {
       const s = e,
-        n = t,
-        l = _e(
+        l = t,
+        o = ye(
           () => !!s.search.trim() || Object.values(s.filters).some(Boolean),
         );
-      function i(a, u) {
-        n("update:filters", { ...s.filters, [a]: s.filters[a] === u ? "" : u });
+      function i(u, d) {
+        l("update:filters", { ...s.filters, [u]: s.filters[u] === d ? "" : d });
       }
       function r() {
-        (n("update:search", ""),
-          n(
+        (l("update:search", ""),
+          l(
             "update:filters",
-            Object.fromEntries(s.groups.map((a) => [a.key, ""])),
+            Object.fromEntries(s.groups.map((u) => [u.key, ""])),
           ),
-          n("clear"));
+          l("clear"));
       }
-      return (a, u) => (
-        p(),
-        g(
+      return (u, d) => (
+        c(),
+        v(
           "section",
           { class: "filter-chips", "data-testid": e.testId },
           [
-            o("div", Hc, [
-              o(
+            n("div", xc, [
+              n(
                 "input",
                 {
                   value: e.search,
@@ -2089,15 +2426,15 @@ const Ut = G(
                   "aria-label": e.placeholder,
                   "data-testid": `${e.testId}-search`,
                   onInput:
-                    u[0] || (u[0] = (f) => n("update:search", f.target.value)),
+                    d[0] || (d[0] = (f) => l("update:search", f.target.value)),
                 },
                 null,
                 40,
-                Bc,
+                Sc,
               ),
-              l.value
-                ? (p(),
-                  g(
+              o.value
+                ? (c(),
+                  v(
                     "button",
                     {
                       key: 0,
@@ -2108,19 +2445,19 @@ const Ut = G(
                     },
                     "清除",
                     8,
-                    Kc,
+                    Tc,
                   ))
-                : X("", !0),
+                : J("", !0),
             ]),
-            (p(!0),
-            g(
-              O,
+            (c(!0),
+            v(
+              I,
               null,
-              oe(
+              te(
                 e.groups,
                 (f) => (
-                  p(),
-                  g(
+                  c(),
+                  v(
                     "div",
                     {
                       key: f.key,
@@ -2129,47 +2466,47 @@ const Ut = G(
                       "aria-label": f.label,
                     },
                     [
-                      o("small", null, v(f.label), 1),
-                      o(
+                      n("small", null, m(f.label), 1),
+                      n(
                         "button",
                         {
                           type: "button",
-                          class: ge([
+                          class: ke([
                             "filter-chip",
                             { active: !e.filters[f.key] },
                           ]),
                           "aria-pressed": !e.filters[f.key],
                           "data-testid": `${e.testId}-${f.key}-all`,
-                          onClick: (c) => i(f.key, ""),
+                          onClick: (a) => i(f.key, ""),
                         },
                         "全部",
                         10,
-                        qc,
+                        Ic,
                       ),
-                      (p(!0),
-                      g(
-                        O,
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(
+                        te(
                           f.options,
-                          (c) => (
-                            p(),
-                            g(
+                          (a) => (
+                            c(),
+                            v(
                               "button",
                               {
-                                key: c,
+                                key: a,
                                 type: "button",
-                                class: ge([
+                                class: ke([
                                   "filter-chip",
-                                  { active: e.filters[f.key] === c },
+                                  { active: e.filters[f.key] === a },
                                 ]),
-                                "aria-pressed": e.filters[f.key] === c,
-                                "data-testid": `${e.testId}-${f.key}-${c}`,
-                                onClick: (d) => i(f.key, c),
+                                "aria-pressed": e.filters[f.key] === a,
+                                "data-testid": `${e.testId}-${f.key}-${a}`,
+                                onClick: (p) => i(f.key, a),
                               },
-                              v(c),
+                              m(a),
                               11,
-                              zc,
+                              Ec,
                             )
                           ),
                         ),
@@ -2177,7 +2514,7 @@ const Ut = G(
                       )),
                     ],
                     8,
-                    Wc,
+                    Mc,
                   )
                 ),
               ),
@@ -2185,70 +2522,70 @@ const Ut = G(
             )),
           ],
           8,
-          jc,
+          Cc,
         )
       );
     },
   }),
-  Gc = ["data-testid"],
-  Jc = ["aria-label", "data-testid"],
-  Yc = { class: "drawer-heading" },
-  Zc = ["data-testid"],
-  Vs = nt({
+  Ac = ["data-testid"],
+  Vc = ["aria-label", "data-testid"],
+  Oc = { class: "drawer-heading" },
+  Uc = ["data-testid"],
+  Ks = je({
     __name: "DetailDrawer",
     props: { title: {}, testId: {} },
     emits: ["close"],
     setup(e, { emit: t }) {
       const s = t,
-        n = G();
-      let l = null;
+        l = z();
+      let o = null;
       function i(r) {
-        var c;
+        var a;
         if ((r.key === "Escape" && s("close"), r.key !== "Tab")) return;
-        const a =
-          (c = n.value) == null
+        const u =
+          (a = l.value) == null
             ? void 0
-            : c.querySelectorAll(
+            : a.querySelectorAll(
                 'button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],summary,[tabindex="0"]',
               );
-        if (!(a != null && a.length)) return;
-        const u = a[0],
-          f = a[a.length - 1];
-        r.shiftKey && document.activeElement === u
+        if (!(u != null && u.length)) return;
+        const d = u[0],
+          f = u[u.length - 1];
+        r.shiftKey && document.activeElement === d
           ? (r.preventDefault(), f.focus())
           : !r.shiftKey &&
             document.activeElement === f &&
-            (r.preventDefault(), u.focus());
+            (r.preventDefault(), d.focus());
       }
       return (
-        wl(() => {
-          ((l = document.activeElement),
+        Wl(() => {
+          ((o = document.activeElement),
             document.addEventListener("keydown", i),
-            ls(() => {
+            Qt(() => {
               var r;
-              return (r = n.value) == null ? void 0 : r.focus();
+              return (r = l.value) == null ? void 0 : r.focus();
             }));
         }),
-        Ks(() => {
+        ll(() => {
           (document.removeEventListener("keydown", i),
-            l == null || l.focus({ preventScroll: !0 }));
+            o == null || o.focus({ preventScroll: !0 }));
         }),
-        (r, a) => (
-          p(),
-          Ae(ea, { to: "body" }, [
-            o(
+        (r, u) => (
+          c(),
+          Se(Ma, { to: "body" }, [
+            n(
               "div",
               {
                 class: "drawer-backdrop",
                 "data-testid": `${e.testId}-overlay`,
-                onClick: a[1] || (a[1] = Ve((u) => s("close"), ["self"])),
+                onClick: u[1] || (u[1] = Ue((d) => s("close"), ["self"])),
               },
               [
-                o(
+                n(
                   "aside",
                   {
                     ref_key: "panel",
-                    ref: n,
+                    ref: l,
                     class: "detail-drawer",
                     role: "dialog",
                     "aria-modal": "true",
@@ -2257,166 +2594,166 @@ const Ut = G(
                     "data-testid": e.testId,
                   },
                   [
-                    o("header", Yc, [
-                      o("h2", null, v(e.title), 1),
-                      o(
+                    n("header", Oc, [
+                      n("h2", null, m(e.title), 1),
+                      n(
                         "button",
                         {
                           type: "button",
                           class: "text-button",
                           "data-testid": `${e.testId}-close`,
-                          onClick: a[0] || (a[0] = (u) => s("close")),
+                          onClick: u[0] || (u[0] = (d) => s("close")),
                         },
                         "关闭",
                         8,
-                        Zc,
+                        Uc,
                       ),
                     ]),
-                    ha(r.$slots, "default"),
+                    Ka(r.$slots, "default"),
                   ],
                   8,
-                  Jc,
+                  Vc,
                 ),
               ],
               8,
-              Gc,
+              Ac,
             ),
           ])
         )
       );
     },
   }),
-  Qc = { class: "card now-card" },
-  Xc = { class: "grid now-grid" },
-  ed = { class: "card" },
-  td = { class: "card now-appointments" },
-  sd = { class: "row" },
-  nd = { key: 0, class: "muted" },
-  ld = { class: "card schedule-list", "data-testid": "schedule-list" },
-  od = ["data-testid"],
-  id = ["disabled"],
-  rd = ["disabled"],
-  ad = { class: "schedule-text" },
-  ud = { key: 0, class: "pill", "data-testid": "schedule-current" },
-  cd = { key: 1, class: "actions-menu" },
-  dd = ["data-testid"],
-  fd = { class: "scroll-lock-list", "data-scroll-lock": "" },
-  pd = ["disabled", "onClick"],
-  md = { key: 0, class: "muted" },
-  vd = { class: "small-card-grid", "data-testid": "goal-grid" },
-  hd = { class: "row" },
-  gd = { class: "pill" },
-  yd = { class: "goal" },
-  bd = ["onUpdate:modelValue", "data-testid"],
-  _d = ["aria-label", "aria-valuenow"],
-  kd = ["data-testid"],
-  wd = { class: "small-card-grid", "data-testid": "appointment-grid" },
-  $d = { class: "row" },
-  Cd = ["disabled"],
-  xd = { class: "diary-layout" },
-  Sd = { class: "card calendar" },
-  Td = { class: "calendar-grid" },
-  Md = ["disabled", "aria-label", "aria-pressed", "data-testid", "onClick"],
-  Ed = { key: 0 },
-  Ad = {
+  Pc = { class: "card now-card" },
+  Lc = { class: "grid now-grid" },
+  Nc = { class: "card" },
+  Rc = { class: "card now-appointments" },
+  Fc = { class: "row" },
+  jc = { key: 0, class: "muted" },
+  Dc = { class: "card schedule-list", "data-testid": "schedule-list" },
+  Hc = ["data-testid"],
+  Bc = ["disabled"],
+  Kc = ["disabled"],
+  zc = { class: "schedule-text" },
+  qc = { key: 0, class: "pill", "data-testid": "schedule-current" },
+  Wc = { key: 1, class: "actions-menu" },
+  Jc = ["data-testid"],
+  Gc = { class: "scroll-lock-list", "data-scroll-lock": "" },
+  Yc = ["disabled", "onClick"],
+  Zc = { key: 0, class: "muted" },
+  Qc = { class: "small-card-grid", "data-testid": "goal-grid" },
+  Xc = { class: "row" },
+  ef = { class: "pill" },
+  tf = { class: "goal" },
+  sf = ["onUpdate:modelValue", "data-testid"],
+  lf = ["aria-label", "aria-valuenow"],
+  nf = ["data-testid"],
+  of = { class: "small-card-grid", "data-testid": "appointment-grid" },
+  rf = { class: "row" },
+  af = ["disabled"],
+  uf = { class: "diary-layout" },
+  df = { class: "card calendar" },
+  cf = { class: "calendar-grid" },
+  ff = ["disabled", "aria-label", "aria-pressed", "data-testid", "onClick"],
+  pf = { key: 0 },
+  mf = {
     class: "diary-book",
     "data-testid": "diary-book",
     "aria-label": "日记簿",
   },
-  Id = ["data-date"],
-  Od = { class: "row diary-attributes" },
-  Vd = { class: "diary-text" },
-  Pd = { class: "diary-signature" },
-  Ld = { key: 1, class: "diary-paper empty-state" },
-  Ud = { class: "book-controls" },
-  Nd = ["disabled"],
-  Fd = { "aria-live": "polite", "data-testid": "diary-page-indicator" },
-  Rd = ["disabled"],
-  Dd = { class: "memory-list" },
-  jd = ["data-testid"],
-  Hd = ["aria-expanded", "aria-controls", "data-testid", "onClick"],
-  Bd = { class: "memory-chevron" },
-  Kd = { class: "memory-content" },
-  Wd = { class: "pill" },
-  qd = ["id"],
-  zd = ["aria-label"],
-  Gd = { key: 0, class: "muted" },
-  Jd = { class: "row" },
-  Yd = ["data-testid", "onClick"],
-  Zd = ["data-testid", "onClick"],
-  Qd = { key: 0, class: "card empty-state" },
-  Xd = { key: 0, class: "inline-error" },
-  ef = { class: "chip-field" },
-  tf = { class: "star-control", role: "group", "aria-label": "重要度" },
-  sf = ["aria-label", "aria-pressed", "data-testid", "onClick"],
-  nf = { class: "chip-field" },
-  lf = { class: "chip-options scroll-lock-list", "data-scroll-lock": "" },
-  of = ["aria-pressed", "onClick"],
-  rf = { class: "chip-field" },
-  af = { class: "chip-options scroll-lock-list", "data-scroll-lock": "" },
-  uf = ["aria-pressed", "data-testid", "onClick"],
-  cf = { class: "input-row" },
-  df = ["disabled"],
-  ff = ["disabled"],
-  pf = { key: 2, class: "modal-backdrop" },
-  mf = {
+  vf = ["data-date"],
+  hf = { class: "row diary-attributes" },
+  gf = { class: "diary-text" },
+  yf = { class: "diary-signature" },
+  bf = { key: 1, class: "diary-paper empty-state" },
+  kf = { class: "book-controls" },
+  _f = ["disabled"],
+  wf = { "aria-live": "polite", "data-testid": "diary-page-indicator" },
+  $f = ["disabled"],
+  Cf = { class: "memory-list" },
+  xf = ["data-testid"],
+  Sf = ["aria-expanded", "aria-controls", "data-testid", "onClick"],
+  Tf = { class: "memory-chevron" },
+  Mf = { class: "memory-content" },
+  If = { class: "pill" },
+  Ef = ["id"],
+  Af = ["aria-label"],
+  Vf = { key: 0, class: "muted" },
+  Of = { class: "row" },
+  Uf = ["data-testid", "onClick"],
+  Pf = ["data-testid", "onClick"],
+  Lf = { key: 0, class: "card empty-state" },
+  Nf = { key: 0, class: "inline-error" },
+  Rf = { class: "chip-field" },
+  Ff = { class: "star-control", role: "group", "aria-label": "重要度" },
+  jf = ["aria-label", "aria-pressed", "data-testid", "onClick"],
+  Df = { class: "chip-field" },
+  Hf = { class: "chip-options scroll-lock-list", "data-scroll-lock": "" },
+  Bf = ["aria-pressed", "onClick"],
+  Kf = { class: "chip-field" },
+  zf = { class: "chip-options scroll-lock-list", "data-scroll-lock": "" },
+  qf = ["aria-pressed", "data-testid", "onClick"],
+  Wf = { class: "input-row" },
+  Jf = ["disabled"],
+  Gf = ["disabled"],
+  Yf = { key: 2, class: "modal-backdrop" },
+  Zf = {
     class: "card confirm-dialog",
     role: "alertdialog",
     "aria-modal": "true",
     "aria-label": "遗忘这段记忆？",
     "data-testid": "memory-forget-confirm",
   },
-  vf = { class: "row" },
-  hf = nt({
+  Qf = { class: "row" },
+  Xf = je({
     __name: "LifePage",
     props: { page: {} },
     emits: ["go"],
     setup(e, { emit: t }) {
-      var $;
+      var S;
       const s = e,
-        n = t,
-        l = _e(() => er.value[cs.value]),
-        i = ds(["日记"]),
-        r = ds(["日程"]),
-        a = ds(["记忆"]),
-        u = _e(() =>
-          [...W.value.schedule].sort((h, b) => h.time.localeCompare(b.time)),
+        l = t,
+        o = ye(() => Cs.value[lt.value]),
+        i = fs(["日记"]),
+        r = fs(["日程"]),
+        u = fs(["记忆"]),
+        d = ye(() =>
+          [...U.value.schedule].sort((y, $) => y.time.localeCompare($.time)),
         ),
-        f = _e(() => u.value.filter((h) => h.time <= "14:30").at(-1)),
-        c = _e(() => u.value.filter((h) => h === f.value || h.time > "14:30")),
-        d = G(null),
-        C = G(""),
-        w = G("");
-      function A(h, b) {
-        var k;
-        ((k = b.target.closest("details")) == null || k.removeAttribute("open"),
-          (d.value = W.value.schedule.indexOf(h)),
-          (C.value = h.time),
-          (w.value = h.text));
+        f = ye(() => d.value.filter((y) => y.time <= "14:30").at(-1)),
+        a = ye(() => d.value.filter((y) => y === f.value || y.time > "14:30")),
+        p = z(null),
+        _ = z(""),
+        b = z("");
+      function A(y, $) {
+        var x;
+        ((x = $.target.closest("details")) == null || x.removeAttribute("open"),
+          (p.value = U.value.schedule.indexOf(y)),
+          (_.value = y.time),
+          (b.value = y.text));
       }
-      function B() {
-        if (d.value === null || r.value || !C.value || !w.value.trim()) return;
-        const h = W.value,
-          b = d.value,
-          k = C.value,
-          ve = w.value.trim();
-        Je("日程", k + " " + ve, () => {
-          ((h.schedule[b] = { time: k, text: ve }), (d.value = null));
+      function P() {
+        if (p.value === null || r.value || !_.value || !b.value.trim()) return;
+        const y = U.value,
+          $ = p.value,
+          x = _.value,
+          ge = b.value.trim();
+        Xe("日程", x + " " + ge, () => {
+          ((y.schedule[$] = { time: x, text: ge }), (p.value = null));
         });
       }
-      const te = G(""),
-        se = G({ category: "", tag: "" }),
-        ne = _e(() => {
-          var h;
+      const V = z(""),
+        le = z({ category: "", tag: "" }),
+        ne = ye(() => {
+          var y;
           return [
             ...new Set(
-              l.value.memories
-                .flatMap((b) => b.tags)
-                .concat(((h = K.value) == null ? void 0 : h.tags) || []),
+              o.value.memories
+                .flatMap(($) => $.tags)
+                .concat(((y = G.value) == null ? void 0 : y.tags) || []),
             ),
           ];
         }),
-        ue = _e(() => [
+        ce = ye(() => [
           {
             key: "category",
             label: "类型",
@@ -2424,458 +2761,458 @@ const Ut = G(
           },
           { key: "tag", label: "标签", options: ne.value },
         ]),
-        S = _e(() =>
-          l.value.memories.filter(
-            (h) =>
-              [h.text, h.source, ...h.tags]
+        w = ye(() =>
+          o.value.memories.filter(
+            (y) =>
+              [y.text, y.source, ...y.tags]
                 .join(" ")
                 .toLowerCase()
-                .includes(te.value.trim().toLowerCase()) &&
-              (!se.value.category || h.category === se.value.category) &&
-              (!se.value.tag || h.tags.includes(se.value.tag)),
+                .includes(V.value.trim().toLowerCase()) &&
+              (!le.value.category || y.category === le.value.category) &&
+              (!le.value.tag || y.tags.includes(le.value.tag)),
           ),
         ),
-        I = G(null),
-        K = G(null),
-        le = G(null),
-        H = G("");
-      function q() {
-        ((te.value = ""), (se.value = { category: "", tag: "" }));
+        O = z(null),
+        G = z(null),
+        oe = z(null),
+        W = z("");
+      function Y() {
+        ((V.value = ""), (le.value = { category: "", tag: "" }));
       }
-      function V(h) {
-        K.value &&
-          (K.value.tags = K.value.tags.includes(h)
-            ? K.value.tags.filter((b) => b !== h)
-            : [...K.value.tags, h]);
-      }
-      function U() {
-        const h = H.value.trim().replace(/^#\s*/, "");
-        !h ||
-          !K.value ||
-          (K.value.tags.includes(h) || K.value.tags.push(h), (H.value = ""));
-      }
-      function _() {
-        var k;
-        if (!((k = K.value) != null && k.text.trim()) || a.value) return;
-        const h = l.value,
-          b = { ...K.value, tags: [...K.value.tags] };
-        Je("记忆", [b.text, b.date, b.category, ...b.tags].join(" "), () => {
-          const ve = h.memories.findIndex((Ye) => Ye.id === b.id);
-          (ve >= 0 && (h.memories[ve] = b), (K.value = null));
-        });
-      }
-      const ee = _e(() =>
-          [...l.value.diaries].sort((h, b) => h.date.localeCompare(b.date)),
-        ),
-        he = G((($ = ee.value.at(-1)) == null ? void 0 : $.date) || ""),
-        j = G("page-next"),
-        T = _e(() => ee.value.findIndex((h) => h.date === he.value)),
-        x = _e(() => ee.value[T.value]);
-      function R(h) {
-        !ee.value.some((b) => b.date === h) ||
-          h === he.value ||
-          ((j.value = h > he.value ? "page-next" : "page-prev"),
-          (he.value = h));
-      }
-      function ye(h) {
-        const b = ee.value[T.value + h];
-        b && R(b.date);
+      function L(y) {
+        G.value &&
+          (G.value.tags = G.value.tags.includes(y)
+            ? G.value.tags.filter(($) => $ !== y)
+            : [...G.value.tags, y]);
       }
       function F() {
+        const y = W.value.trim().replace(/^#\s*/, "");
+        !y ||
+          !G.value ||
+          (G.value.tags.includes(y) || G.value.tags.push(y), (W.value = ""));
+      }
+      function C() {
+        var x;
+        if (!((x = G.value) != null && x.text.trim()) || u.value) return;
+        const y = o.value,
+          $ = { ...G.value, tags: [...G.value.tags] };
+        Xe("记忆", [$.text, $.date, $.category, ...$.tags].join(" "), () => {
+          const ge = y.memories.findIndex((nt) => nt.id === $.id);
+          (ge >= 0 && (y.memories[ge] = $), (G.value = null));
+        });
+      }
+      const se = ye(() =>
+          [...o.value.diaries].sort((y, $) => y.date.localeCompare($.date)),
+        ),
+        be = z(((S = se.value.at(-1)) == null ? void 0 : S.date) || ""),
+        q = z("page-next"),
+        M = ye(() => se.value.findIndex((y) => y.date === be.value)),
+        T = ye(() => se.value[M.value]);
+      function H(y) {
+        !se.value.some(($) => $.date === y) ||
+          y === be.value ||
+          ((q.value = y > be.value ? "page-next" : "page-prev"),
+          (be.value = y));
+      }
+      function _e(y) {
+        const $ = se.value[M.value + y];
+        $ && H($.date);
+      }
+      function D() {
         if (i.value) return;
-        const h = W.value,
-          b = l.value.diaries.some((k) => k.date === gn);
-        Je(
+        const y = U.value,
+          $ = o.value.diaries.some((x) => x.date === Al);
+        Xe(
           "日记",
-          "生成" + h.name + "的日记",
+          "生成" + y.name + "的日记",
           () => {
-            (tr(
-              h.id,
-              `今天在${h.location}${h.activity}，窗外的光一点点移过桌面。忙完后给自己泡了一杯茶，也想起与你聊天的片刻。那些平常的小事，原来一直在心里留下回响。`,
+            (gr(
+              y.id,
+              `今天在${y.location}${y.activity}，窗外的光一点点移过桌面。忙完后给自己泡了一杯茶，也想起与你聊天的片刻。那些平常的小事，原来一直在心里留下回响。`,
             ),
-              R(gn));
+              H(Al));
           },
-          h.name + "的今日日记",
-          b ? "今日日记已更新" : "今日日记已写好",
+          y.name + "的今日日记",
+          $ ? "今日日记已更新" : "今日日记已写好",
         );
       }
       return (
-        it(
+        vt(
           () => s.page,
-          async (h) => {
-            var b;
-            ((d.value = null),
-              (K.value = null),
-              (le.value = null),
-              h === "目标" && tn.value
-                ? (await ls(),
-                  (b = document.getElementById("appointments")) == null ||
-                    b.scrollIntoView({ behavior: "smooth", block: "center" }))
-                : h !== "目标" && (tn.value = !1));
+          async (y) => {
+            var $;
+            ((p.value = null),
+              (G.value = null),
+              (oe.value = null),
+              y === "目标" && ml.value
+                ? (await Qt(),
+                  ($ = document.getElementById("appointments")) == null ||
+                    $.scrollIntoView({ behavior: "smooth", block: "center" }))
+                : y !== "目标" && (ml.value = !1));
           },
           { immediate: !0 },
         ),
-        (h, b) => (
-          p(),
-          g(
-            O,
+        (y, $) => (
+          c(),
+          v(
+            I,
             null,
             [
               e.page === "此刻"
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 0 },
                     [
-                      o("div", Qc, [
-                        b[16] ||
-                          (b[16] = o(
+                      n("div", Pc, [
+                        $[16] ||
+                          ($[16] = n(
                             "span",
                             { class: "eyebrow" },
                             "FRIDAY, OCTOBER 23",
                             -1,
                           )),
-                        o("h2", null, v(M(W).activity), 1),
-                        o(
+                        n("h2", null, m(h(U).activity), 1),
+                        n(
                           "p",
                           null,
-                          v(M(W).location) + " · " + v(M(W).mood),
+                          m(h(U).location) + " · " + m(h(U).mood),
                           1,
                         ),
-                        o("p", null, v(M(W).world), 1),
+                        n("p", null, m(h(U).world), 1),
                       ]),
-                      o("div", Xc, [
-                        o("div", ed, [me(sr, { compact: "" })]),
-                        o("section", td, [
-                          o("div", sd, [
-                            b[17] || (b[17] = o("h2", null, "约定", -1)),
-                            b[18] ||
-                              (b[18] = o(
+                      n("div", Lc, [
+                        n("div", Nc, [ae(xr, { compact: "" })]),
+                        n("section", Rc, [
+                          n("div", Fc, [
+                            $[17] || ($[17] = n("h2", null, "约定", -1)),
+                            $[18] ||
+                              ($[18] = n(
                                 "span",
                                 { class: "spacer" },
                                 null,
                                 -1,
                               )),
-                            o(
+                            n(
                               "button",
                               {
                                 class: "text-button",
                                 "data-testid": "now-appointments",
                                 onClick:
-                                  b[0] ||
-                                  (b[0] = (k) => {
-                                    ((tn.value = !0), n("go", "目标"));
+                                  $[0] ||
+                                  ($[0] = (x) => {
+                                    ((ml.value = !0), l("go", "目标"));
                                   }),
                               },
                               "查看全部 ↗",
                             ),
                           ]),
-                          (p(!0),
-                          g(
-                            O,
+                          (c(!0),
+                          v(
+                            I,
                             null,
-                            oe(
-                              l.value.appointments.slice(0, 2),
-                              (k) => (
-                                p(),
-                                g(
+                            te(
+                              o.value.appointments.slice(0, 2),
+                              (x) => (
+                                c(),
+                                v(
                                   "div",
                                   {
-                                    key: k.date + k.time,
+                                    key: x.date + x.time,
                                     class: "appointment-row",
                                   },
                                   [
-                                    o("time", null, [
-                                      Z(
-                                        v(k.date.slice(5).replace("-", "月")) +
+                                    n("time", null, [
+                                      K(
+                                        m(x.date.slice(5).replace("-", "月")) +
                                           "日",
                                         1,
                                       ),
-                                      b[19] ||
-                                        (b[19] = o("br", null, null, -1)),
-                                      Z(v(k.time), 1),
+                                      $[19] ||
+                                        ($[19] = n("br", null, null, -1)),
+                                      K(m(x.time), 1),
                                     ]),
-                                    o("span", null, v(k.text), 1),
+                                    n("span", null, m(x.text), 1),
                                   ],
                                 )
                               ),
                             ),
                             128,
                           )),
-                          l.value.appointments.length
-                            ? X("", !0)
-                            : (p(),
-                              g("p", nd, "还没有约定，留一些期待给明天。")),
+                          o.value.appointments.length
+                            ? J("", !0)
+                            : (c(),
+                              v("p", jc, "还没有约定，留一些期待给明天。")),
                         ]),
                       ]),
                     ],
                     64,
                   ))
-                : X("", !0),
+                : J("", !0),
               e.page === "此刻" || e.page === "日程"
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 1 },
                     [
-                      o(
+                      n(
                         "h2",
                         null,
-                        v(e.page === "此刻" ? "此刻与接下来" : "今天的安排"),
+                        m(e.page === "此刻" ? "此刻与接下来" : "今天的安排"),
                         1,
                       ),
-                      o("section", ld, [
-                        (p(!0),
-                        g(
-                          O,
+                      n("section", Dc, [
+                        (c(!0),
+                        v(
+                          I,
                           null,
-                          oe(
-                            e.page === "此刻" ? c.value : u.value,
-                            (k) => (
-                              p(),
-                              g(
+                          te(
+                            e.page === "此刻" ? a.value : d.value,
+                            (x) => (
+                              c(),
+                              v(
                                 "div",
                                 {
-                                  key: k.time + k.text,
-                                  class: ge([
+                                  key: x.time + x.text,
+                                  class: ke([
                                     "schedule-row",
-                                    { "is-current": k === f.value },
+                                    { "is-current": x === f.value },
                                   ]),
-                                  "data-testid": "schedule-" + k.time,
+                                  "data-testid": "schedule-" + x.time,
                                 },
                                 [
-                                  d.value === M(W).schedule.indexOf(k) &&
+                                  p.value === h(U).schedule.indexOf(x) &&
                                   e.page === "日程"
-                                    ? (p(),
-                                      g(
+                                    ? (c(),
+                                      v(
                                         "form",
                                         {
                                           key: 0,
                                           class: "schedule-editor",
-                                          onSubmit: Ve(B, ["prevent"]),
+                                          onSubmit: Ue(P, ["prevent"]),
                                         },
                                         [
-                                          pe(
-                                            o(
+                                          re(
+                                            n(
                                               "input",
                                               {
                                                 "onUpdate:modelValue":
-                                                  b[1] ||
-                                                  (b[1] = (ve) =>
-                                                    (C.value = ve)),
+                                                  $[1] ||
+                                                  ($[1] = (ge) =>
+                                                    (_.value = ge)),
                                                 type: "time",
                                                 "aria-label": "时间",
                                               },
                                               null,
                                               512,
                                             ),
-                                            [[$e, C.value]],
+                                            [[he, _.value]],
                                           ),
-                                          pe(
-                                            o(
+                                          re(
+                                            n(
                                               "input",
                                               {
                                                 "onUpdate:modelValue":
-                                                  b[2] ||
-                                                  (b[2] = (ve) =>
-                                                    (w.value = ve)),
+                                                  $[2] ||
+                                                  ($[2] = (ge) =>
+                                                    (b.value = ge)),
                                                 "aria-label": "日程内容",
                                               },
                                               null,
                                               512,
                                             ),
-                                            [[$e, w.value]],
+                                            [[he, b.value]],
                                           ),
-                                          o(
+                                          n(
                                             "button",
                                             {
                                               class: "button",
                                               disabled:
-                                                M(r) ||
-                                                !w.value.trim() ||
-                                                !C.value,
+                                                h(r) ||
+                                                !b.value.trim() ||
+                                                !_.value,
                                               "data-testid": "schedule-save",
                                             },
-                                            v(M(r) ? "处理中…" : "保存"),
+                                            m(h(r) ? "处理中…" : "保存"),
                                             9,
-                                            id,
+                                            Bc,
                                           ),
-                                          o(
+                                          n(
                                             "button",
                                             {
                                               type: "button",
                                               class: "text-button",
-                                              disabled: M(r),
+                                              disabled: h(r),
                                               onClick:
-                                                b[3] ||
-                                                (b[3] = (ve) =>
-                                                  (d.value = null)),
+                                                $[3] ||
+                                                ($[3] = (ge) =>
+                                                  (p.value = null)),
                                             },
                                             "取消",
                                             8,
-                                            rd,
+                                            Kc,
                                           ),
                                         ],
                                         32,
                                       ))
-                                    : (p(),
-                                      g(
-                                        O,
+                                    : (c(),
+                                      v(
+                                        I,
                                         { key: 1 },
                                         [
-                                          o("time", null, v(k.time), 1),
-                                          b[20] ||
-                                            (b[20] = o(
+                                          n("time", null, m(x.time), 1),
+                                          $[20] ||
+                                            ($[20] = n(
                                               "span",
                                               { class: "schedule-dot" },
                                               null,
                                               -1,
                                             )),
-                                          o("span", ad, v(k.text), 1),
-                                          k === f.value
-                                            ? (p(), g("span", ud, "进行中"))
-                                            : X("", !0),
+                                          n("span", zc, m(x.text), 1),
+                                          x === f.value
+                                            ? (c(), v("span", qc, "进行中"))
+                                            : J("", !0),
                                           e.page === "日程"
-                                            ? (p(),
-                                              g("details", cd, [
-                                                o(
+                                            ? (c(),
+                                              v("details", Wc, [
+                                                n(
                                                   "summary",
                                                   {
                                                     "aria-label": "日程操作",
                                                     "data-testid":
-                                                      "schedule-menu-" + k.time,
+                                                      "schedule-menu-" + x.time,
                                                   },
                                                   "⋯",
                                                   8,
-                                                  dd,
+                                                  Jc,
                                                 ),
-                                                o("div", fd, [
-                                                  o(
+                                                n("div", Gc, [
+                                                  n(
                                                     "button",
                                                     {
-                                                      disabled: M(r),
-                                                      onClick: (ve) => A(k, ve),
+                                                      disabled: h(r),
+                                                      onClick: (ge) => A(x, ge),
                                                     },
                                                     "编辑",
                                                     8,
-                                                    pd,
+                                                    Yc,
                                                   ),
                                                 ]),
                                               ]))
-                                            : X("", !0),
+                                            : J("", !0),
                                         ],
                                         64,
                                       )),
                                 ],
                                 10,
-                                od,
+                                Hc,
                               )
                             ),
                           ),
                           128,
                         )),
-                        (e.page === "此刻" ? c.value : u.value).length
-                          ? X("", !0)
-                          : (p(), g("p", md, "暂时没有安排，留一点自由时间。")),
+                        (e.page === "此刻" ? a.value : d.value).length
+                          ? J("", !0)
+                          : (c(), v("p", Zc, "暂时没有安排，留一点自由时间。")),
                       ]),
                     ],
                     64,
                   ))
-                : X("", !0),
+                : J("", !0),
               e.page === "目标"
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 2 },
                     [
-                      b[24] ||
-                        (b[24] = o(
+                      $[24] ||
+                        ($[24] = n(
                           "p",
                           { class: "muted" },
                           "想做的事慢慢来，约好的事认真记住。",
                           -1,
                         )),
-                      o("div", vd, [
-                        (p(!0),
-                        g(
-                          O,
+                      n("div", Qc, [
+                        (c(!0),
+                        v(
+                          I,
                           null,
-                          oe(
-                            M(W).goals,
-                            (k, ve) => (
-                              p(),
-                              g(
+                          te(
+                            h(U).goals,
+                            (x, ge) => (
+                              c(),
+                              v(
                                 "article",
-                                { key: k.text, class: "card goal-card" },
+                                { key: x.text, class: "card goal-card" },
                                 [
-                                  o("div", hd, [
-                                    o("span", gd, v(ve ? "生活" : "创作"), 1),
-                                    b[21] ||
-                                      (b[21] = o(
+                                  n("div", Xc, [
+                                    n("span", ef, m(ge ? "生活" : "创作"), 1),
+                                    $[21] ||
+                                      ($[21] = n(
                                         "span",
                                         { class: "spacer" },
                                         null,
                                         -1,
                                       )),
-                                    o(
+                                    n(
                                       "small",
                                       null,
-                                      v(k.done ? 100 : k.progress) + "%",
+                                      m(x.done ? 100 : x.progress) + "%",
                                       1,
                                     ),
                                   ]),
-                                  o("label", yd, [
-                                    pe(
-                                      o(
+                                  n("label", tf, [
+                                    re(
+                                      n(
                                         "input",
                                         {
-                                          "onUpdate:modelValue": (Ye) =>
-                                            (k.done = Ye),
+                                          "onUpdate:modelValue": (nt) =>
+                                            (x.done = nt),
                                           type: "checkbox",
-                                          "data-testid": "goal-toggle-" + ve,
+                                          "data-testid": "goal-toggle-" + ge,
                                         },
                                         null,
                                         8,
-                                        bd,
+                                        sf,
                                       ),
-                                      [[ss, k.done]],
+                                      [[Ft, x.done]],
                                     ),
-                                    o(
+                                    n(
                                       "span",
-                                      { class: ge({ done: k.done }) },
-                                      v(k.text),
+                                      { class: ke({ done: x.done }) },
+                                      m(x.text),
                                       3,
                                     ),
                                   ]),
-                                  o(
+                                  n(
                                     "div",
                                     {
                                       class: "progress",
                                       role: "progressbar",
-                                      "aria-label": k.text,
-                                      "aria-valuenow": k.done
+                                      "aria-label": x.text,
+                                      "aria-valuenow": x.done
                                         ? 100
-                                        : k.progress,
+                                        : x.progress,
                                       "aria-valuemin": 0,
                                       "aria-valuemax": 100,
                                     },
                                     [
-                                      o(
+                                      n(
                                         "i",
                                         {
-                                          style: yt({
+                                          style: at({
                                             width:
-                                              (k.done ? 100 : k.progress) + "%",
+                                              (x.done ? 100 : x.progress) + "%",
                                           }),
-                                          "data-testid": "goal-progress-" + ve,
+                                          "data-testid": "goal-progress-" + ge,
                                         },
                                         null,
                                         12,
-                                        kd,
+                                        nf,
                                       ),
                                     ],
                                     8,
-                                    _d,
+                                    lf,
                                   ),
                                 ],
                               )
@@ -2884,46 +3221,46 @@ const Ut = G(
                           128,
                         )),
                       ]),
-                      o(
+                      n(
                         "section",
-                        { id: "appointments", class: ge({ highlight: M(tn) }) },
+                        { id: "appointments", class: ke({ highlight: h(ml) }) },
                         [
-                          b[23] ||
-                            (b[23] = o(
+                          $[23] ||
+                            ($[23] = n(
                               "h2",
                               { class: "section-heading" },
                               "约定",
                               -1,
                             )),
-                          o("div", wd, [
-                            (p(!0),
-                            g(
-                              O,
+                          n("div", of, [
+                            (c(!0),
+                            v(
+                              I,
                               null,
-                              oe(
-                                [...l.value.appointments].sort((k, ve) =>
-                                  (k.date + k.time).localeCompare(
-                                    ve.date + ve.time,
+                              te(
+                                [...o.value.appointments].sort((x, ge) =>
+                                  (x.date + x.time).localeCompare(
+                                    ge.date + ge.time,
                                   ),
                                 ),
-                                (k) => (
-                                  p(),
-                                  g(
+                                (x) => (
+                                  c(),
+                                  v(
                                     "article",
                                     {
-                                      key: k.date + k.time,
+                                      key: x.date + x.time,
                                       class: "card appointment-card",
                                     },
                                     [
-                                      o(
+                                      n(
                                         "small",
                                         null,
-                                        v(k.date) + " · " + v(k.time),
+                                        m(x.date) + " · " + m(x.time),
                                         1,
                                       ),
-                                      o("h3", null, v(k.text), 1),
-                                      b[22] ||
-                                        (b[22] = o(
+                                      n("h3", null, m(x.text), 1),
+                                      $[22] ||
+                                        ($[22] = n(
                                           "span",
                                           { class: "muted" },
                                           "留一个位置，给共同的期待。",
@@ -2942,21 +3279,21 @@ const Ut = G(
                     ],
                     64,
                   ))
-                : X("", !0),
+                : J("", !0),
               e.page === "日记"
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 3 },
                     [
-                      o("div", $d, [
-                        b[25] ||
-                          (b[25] = o(
+                      n("div", rf, [
+                        $[25] ||
+                          ($[25] = n(
                             "div",
                             null,
                             [
-                              o("h2", null, "写给自己的时光"),
-                              o(
+                              n("h2", null, "写给自己的时光"),
+                              n(
                                 "p",
                                 { class: "muted" },
                                 "有些心事，留在纸页之间。",
@@ -2964,146 +3301,146 @@ const Ut = G(
                             ],
                             -1,
                           )),
-                        b[26] ||
-                          (b[26] = o("span", { class: "spacer" }, null, -1)),
-                        o(
+                        $[26] ||
+                          ($[26] = n("span", { class: "spacer" }, null, -1)),
+                        n(
                           "button",
                           {
                             class: "button primary",
-                            disabled: M(i),
+                            disabled: h(i),
                             "data-testid": "diary-generate",
-                            onClick: F,
+                            onClick: D,
                           },
-                          v(M(i) ? "处理中…" : "生成日记"),
+                          m(h(i) ? "处理中…" : "生成日记"),
                           9,
-                          Cd,
+                          af,
                         ),
                       ]),
-                      o("div", xd, [
-                        o("section", Sd, [
-                          b[27] || (b[27] = o("h3", null, "2026 年 10 月", -1)),
-                          o("div", Td, [
-                            (p(),
-                            g(
-                              O,
+                      n("div", uf, [
+                        n("section", df, [
+                          $[27] || ($[27] = n("h3", null, "2026 年 10 月", -1)),
+                          n("div", cf, [
+                            (c(),
+                            v(
+                              I,
                               null,
-                              oe(
+                              te(
                                 ["一", "二", "三", "四", "五", "六", "日"],
-                                (k) => o("small", { key: k }, v(k), 1),
+                                (x) => n("small", { key: x }, m(x), 1),
                               ),
                               64,
                             )),
-                            (p(),
-                            g(
-                              O,
+                            (c(),
+                            v(
+                              I,
                               null,
-                              oe(3, (k) => o("span", { key: "blank" + k })),
+                              te(3, (x) => n("span", { key: "blank" + x })),
                               64,
                             )),
-                            (p(),
-                            g(
-                              O,
+                            (c(),
+                            v(
+                              I,
                               null,
-                              oe(31, (k) =>
-                                o(
+                              te(31, (x) =>
+                                n(
                                   "button",
                                   {
-                                    key: k,
-                                    class: ge({
-                                      marked: ee.value.some(
-                                        (ve) => Number(ve.date.slice(-2)) === k,
+                                    key: x,
+                                    class: ke({
+                                      marked: se.value.some(
+                                        (ge) => Number(ge.date.slice(-2)) === x,
                                       ),
                                       selected:
-                                        he.value ===
-                                        `2026-10-${String(k).padStart(2, "0")}`,
+                                        be.value ===
+                                        `2026-10-${String(x).padStart(2, "0")}`,
                                     }),
-                                    disabled: !ee.value.some(
-                                      (ve) => Number(ve.date.slice(-2)) === k,
+                                    disabled: !se.value.some(
+                                      (ge) => Number(ge.date.slice(-2)) === x,
                                     ),
-                                    "aria-label": `2026年10月${k}日`,
+                                    "aria-label": `2026年10月${x}日`,
                                     "aria-pressed":
-                                      he.value ===
-                                      `2026-10-${String(k).padStart(2, "0")}`,
-                                    "data-testid": `calendar-day-2026-10-${String(k).padStart(2, "0")}`,
-                                    onClick: (ve) =>
-                                      R(
-                                        `2026-10-${String(k).padStart(2, "0")}`,
+                                      be.value ===
+                                      `2026-10-${String(x).padStart(2, "0")}`,
+                                    "data-testid": `calendar-day-2026-10-${String(x).padStart(2, "0")}`,
+                                    onClick: (ge) =>
+                                      H(
+                                        `2026-10-${String(x).padStart(2, "0")}`,
                                       ),
                                   },
                                   [
-                                    Z(v(k), 1),
-                                    ee.value.some(
-                                      (ve) => Number(ve.date.slice(-2)) === k,
+                                    K(m(x), 1),
+                                    se.value.some(
+                                      (ge) => Number(ge.date.slice(-2)) === x,
                                     )
-                                      ? (p(), g("i", Ed))
-                                      : X("", !0),
+                                      ? (c(), v("i", pf))
+                                      : J("", !0),
                                   ],
                                   10,
-                                  Md,
+                                  ff,
                                 ),
                               ),
                               64,
                             )),
                           ]),
-                          b[28] ||
-                            (b[28] = o(
+                          $[28] ||
+                            ($[28] = n(
                               "p",
                               { class: "calendar-note muted" },
                               "有圆点的日子，藏着一页故事。",
                               -1,
                             )),
                         ]),
-                        o("section", Ad, [
-                          me(
-                            ru,
-                            { name: j.value, mode: "out-in" },
+                        n("section", mf, [
+                          ae(
+                            Pu,
+                            { name: q.value, mode: "out-in" },
                             {
-                              default: Ht(() => [
-                                x.value
-                                  ? (p(),
-                                    g(
+                              default: Gt(() => [
+                                T.value
+                                  ? (c(),
+                                    v(
                                       "article",
                                       {
-                                        key: x.value.date,
+                                        key: T.value.date,
                                         class: "diary-paper",
                                         "data-testid": "diary-entry",
-                                        "data-date": x.value.date,
+                                        "data-date": T.value.date,
                                       },
                                       [
-                                        o(
+                                        n(
                                           "small",
                                           null,
-                                          v(x.value.date) +
+                                          m(T.value.date) +
                                             " · " +
-                                            v(x.value.time),
+                                            m(T.value.time),
                                           1,
                                         ),
-                                        o("h2", null, v(x.value.title), 1),
-                                        o("div", Od, [
-                                          o(
+                                        n("h2", null, m(T.value.title), 1),
+                                        n("div", hf, [
+                                          n(
                                             "span",
                                             null,
-                                            "天气 · " + v(x.value.weather),
+                                            "天气 · " + m(T.value.weather),
                                             1,
                                           ),
-                                          o(
+                                          n(
                                             "span",
                                             null,
-                                            "心情 · " + v(x.value.mood),
+                                            "心情 · " + m(T.value.mood),
                                             1,
                                           ),
                                         ]),
-                                        o("p", Vd, v(x.value.text), 1),
-                                        o("p", Pd, "— " + v(M(W).name), 1),
+                                        n("p", gf, m(T.value.text), 1),
+                                        n("p", yf, "— " + m(h(U).name), 1),
                                       ],
                                       8,
-                                      Id,
+                                      vf,
                                     ))
-                                  : (p(),
-                                    g("div", Ld, [
-                                      ...(b[29] ||
-                                        (b[29] = [
-                                          o(
+                                  : (c(),
+                                    v("div", bf, [
+                                      ...($[29] ||
+                                        ($[29] = [
+                                          n(
                                             "p",
                                             null,
                                             "这一页，等着今天的故事。",
@@ -3117,39 +3454,39 @@ const Ut = G(
                             8,
                             ["name"],
                           ),
-                          o("footer", Ud, [
-                            o(
+                          n("footer", kf, [
+                            n(
                               "button",
                               {
                                 class: "text-button",
-                                disabled: T.value <= 0,
+                                disabled: M.value <= 0,
                                 "data-testid": "diary-prev",
-                                onClick: b[4] || (b[4] = (k) => ye(-1)),
+                                onClick: $[4] || ($[4] = (x) => _e(-1)),
                               },
                               "← 上一页",
                               8,
-                              Nd,
+                              _f,
                             ),
-                            o(
+                            n(
                               "small",
-                              Fd,
-                              v(x.value ? T.value + 1 : 0) +
+                              wf,
+                              m(T.value ? M.value + 1 : 0) +
                                 " / " +
-                                v(ee.value.length),
+                                m(se.value.length),
                               1,
                             ),
-                            o(
+                            n(
                               "button",
                               {
                                 class: "text-button",
                                 disabled:
-                                  T.value < 0 || T.value >= ee.value.length - 1,
+                                  M.value < 0 || M.value >= se.value.length - 1,
                                 "data-testid": "diary-next",
-                                onClick: b[5] || (b[5] = (k) => ye(1)),
+                                onClick: $[5] || ($[5] = (x) => _e(1)),
                               },
                               "下一页 →",
                               8,
-                              Rd,
+                              $f,
                             ),
                           ]),
                         ]),
@@ -3157,30 +3494,30 @@ const Ut = G(
                     ],
                     64,
                   ))
-                : X("", !0),
+                : J("", !0),
               e.page === "记忆"
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 4 },
                     [
-                      b[41] ||
-                        (b[41] = o(
+                      $[41] ||
+                        ($[41] = n(
                           "p",
                           { class: "muted" },
                           "把相处留下的细节，慢慢收进记忆。",
                           -1,
                         )),
-                      me(
-                        Os,
+                      ae(
+                        bs,
                         {
-                          search: te.value,
+                          search: V.value,
                           "onUpdate:search":
-                            b[6] || (b[6] = (k) => (te.value = k)),
-                          filters: se.value,
+                            $[6] || ($[6] = (x) => (V.value = x)),
+                          filters: le.value,
                           "onUpdate:filters":
-                            b[7] || (b[7] = (k) => (se.value = k)),
-                          groups: ue.value,
+                            $[7] || ($[7] = (x) => (le.value = x)),
+                          groups: ce.value,
                           "test-id": "memory-filters",
                           placeholder: "搜索记忆 / 标签",
                         },
@@ -3188,246 +3525,246 @@ const Ut = G(
                         8,
                         ["search", "filters", "groups"],
                       ),
-                      o("section", Dd, [
-                        (p(!0),
-                        g(
-                          O,
+                      n("section", Cf, [
+                        (c(!0),
+                        v(
+                          I,
                           null,
-                          oe(
-                            S.value,
-                            (k) => (
-                              p(),
-                              g(
+                          te(
+                            w.value,
+                            (x) => (
+                              c(),
+                              v(
                                 "article",
                                 {
-                                  key: k.id,
-                                  class: ge([
+                                  key: x.id,
+                                  class: ke([
                                     "memory-item",
-                                    { expanded: I.value === k.id },
+                                    { expanded: O.value === x.id },
                                   ]),
-                                  "data-testid": "memory-row-" + k.id,
+                                  "data-testid": "memory-row-" + x.id,
                                 },
                                 [
-                                  o(
+                                  n(
                                     "button",
                                     {
                                       class: "memory-summary",
-                                      "aria-expanded": I.value === k.id,
-                                      "aria-controls": "memory-details-" + k.id,
-                                      "data-testid": "memory-toggle-" + k.id,
-                                      onClick: (ve) =>
-                                        (I.value =
-                                          I.value === k.id ? null : k.id),
+                                      "aria-expanded": O.value === x.id,
+                                      "aria-controls": "memory-details-" + x.id,
+                                      "data-testid": "memory-toggle-" + x.id,
+                                      onClick: (ge) =>
+                                        (O.value =
+                                          O.value === x.id ? null : x.id),
                                     },
                                     [
-                                      o(
+                                      n(
                                         "span",
-                                        Bd,
-                                        v(I.value === k.id ? "−" : "+"),
+                                        Tf,
+                                        m(O.value === x.id ? "−" : "+"),
                                         1,
                                       ),
-                                      o("span", Kd, v(k.text), 1),
-                                      o("time", null, v(k.date), 1),
-                                      o("span", Wd, v(k.category), 1),
+                                      n("span", Mf, m(x.text), 1),
+                                      n("time", null, m(x.date), 1),
+                                      n("span", If, m(x.category), 1),
                                     ],
                                     8,
-                                    Hd,
+                                    Sf,
                                   ),
-                                  I.value === k.id
-                                    ? (p(),
-                                      g(
+                                  O.value === x.id
+                                    ? (c(),
+                                      v(
                                         "div",
                                         {
                                           key: 0,
-                                          id: "memory-details-" + k.id,
+                                          id: "memory-details-" + x.id,
                                           class: "memory-details",
                                         },
                                         [
-                                          o("dl", null, [
-                                            o("div", null, [
-                                              b[30] ||
-                                                (b[30] = o(
+                                          n("dl", null, [
+                                            n("div", null, [
+                                              $[30] ||
+                                                ($[30] = n(
                                                   "dt",
                                                   null,
                                                   "来源",
                                                   -1,
                                                 )),
-                                              o(
+                                              n(
                                                 "dd",
                                                 null,
-                                                v(k.source) + " · " + v(k.date),
+                                                m(x.source) + " · " + m(x.date),
                                                 1,
                                               ),
                                             ]),
-                                            o("div", null, [
-                                              b[31] ||
-                                                (b[31] = o(
+                                            n("div", null, [
+                                              $[31] ||
+                                                ($[31] = n(
                                                   "dt",
                                                   null,
                                                   "重要度",
                                                   -1,
                                                 )),
-                                              o(
+                                              n(
                                                 "dd",
                                                 {
                                                   class: "memory-stars",
                                                   "aria-label":
-                                                    k.importance + "星，共5星",
+                                                    x.importance + "星，共5星",
                                                 },
                                                 [
-                                                  Z(
-                                                    v("★".repeat(k.importance)),
+                                                  K(
+                                                    m("★".repeat(x.importance)),
                                                     1,
                                                   ),
-                                                  o(
+                                                  n(
                                                     "span",
                                                     null,
-                                                    v(
+                                                    m(
                                                       "☆".repeat(
-                                                        5 - k.importance,
+                                                        5 - x.importance,
                                                       ),
                                                     ),
                                                     1,
                                                   ),
                                                 ],
                                                 8,
-                                                zd,
+                                                Af,
                                               ),
                                             ]),
-                                            o("div", null, [
-                                              b[32] ||
-                                                (b[32] = o(
+                                            n("div", null, [
+                                              $[32] ||
+                                                ($[32] = n(
                                                   "dt",
                                                   null,
                                                   "标签",
                                                   -1,
                                                 )),
-                                              o("dd", null, [
-                                                (p(!0),
-                                                g(
-                                                  O,
+                                              n("dd", null, [
+                                                (c(!0),
+                                                v(
+                                                  I,
                                                   null,
-                                                  oe(
-                                                    k.tags,
-                                                    (ve) => (
-                                                      p(),
-                                                      g(
+                                                  te(
+                                                    x.tags,
+                                                    (ge) => (
+                                                      c(),
+                                                      v(
                                                         "span",
                                                         {
-                                                          key: ve,
+                                                          key: ge,
                                                           class: "pill",
                                                         },
-                                                        "# " + v(ve),
+                                                        "# " + m(ge),
                                                         1,
                                                       )
                                                     ),
                                                   ),
                                                   128,
                                                 )),
-                                                k.tags.length
-                                                  ? X("", !0)
-                                                  : (p(),
-                                                    g("span", Gd, "暂无标签")),
+                                                x.tags.length
+                                                  ? J("", !0)
+                                                  : (c(),
+                                                    v("span", Vf, "暂无标签")),
                                               ]),
                                             ]),
                                           ]),
-                                          o("div", Jd, [
-                                            o(
+                                          n("div", Of, [
+                                            n(
                                               "button",
                                               {
                                                 class: "text-button",
                                                 "data-testid":
-                                                  "memory-edit-" + k.id,
-                                                onClick: (ve) => {
-                                                  ((K.value = {
-                                                    ...k,
-                                                    tags: [...k.tags],
+                                                  "memory-edit-" + x.id,
+                                                onClick: (ge) => {
+                                                  ((G.value = {
+                                                    ...x,
+                                                    tags: [...x.tags],
                                                   }),
-                                                    (H.value = ""));
+                                                    (W.value = ""));
                                                 },
                                               },
                                               "编辑",
                                               8,
-                                              Yd,
+                                              Uf,
                                             ),
-                                            o(
+                                            n(
                                               "button",
                                               {
                                                 class: "text-button",
                                                 "data-testid":
-                                                  "memory-forget-" + k.id,
-                                                onClick: (ve) => (le.value = k),
+                                                  "memory-forget-" + x.id,
+                                                onClick: (ge) => (oe.value = x),
                                               },
                                               "遗忘",
                                               8,
-                                              Zd,
+                                              Pf,
                                             ),
                                           ]),
                                         ],
                                         8,
-                                        qd,
+                                        Ef,
                                       ))
-                                    : X("", !0),
+                                    : J("", !0),
                                 ],
                                 10,
-                                jd,
+                                xf,
                               )
                             ),
                           ),
                           128,
                         )),
                       ]),
-                      S.value.length
-                        ? X("", !0)
-                        : (p(),
-                          g("div", Qd, [
-                            b[33] ||
-                              (b[33] = o(
+                      w.value.length
+                        ? J("", !0)
+                        : (c(),
+                          v("div", Lf, [
+                            $[33] ||
+                              ($[33] = n(
                                 "p",
                                 null,
                                 "没有符合条件的记忆。",
                                 -1,
                               )),
-                            o(
+                            n(
                               "button",
                               {
                                 class: "button",
                                 "data-testid": "memory-empty-clear",
-                                onClick: q,
+                                onClick: Y,
                               },
                               "清除筛选",
                             ),
                           ])),
-                      K.value
-                        ? (p(),
-                          Ae(
-                            Vs,
+                      G.value
+                        ? (c(),
+                          Se(
+                            Ks,
                             {
                               key: 1,
                               title: "编辑记忆",
                               "test-id": "memory-drawer",
                               onClose:
-                                b[13] || (b[13] = (k) => (K.value = null)),
+                                $[13] || ($[13] = (x) => (G.value = null)),
                             },
                             {
-                              default: Ht(() => [
-                                o(
+                              default: Gt(() => [
+                                n(
                                   "form",
                                   {
                                     class: "form-grid",
-                                    onSubmit: Ve(_, ["prevent"]),
+                                    onSubmit: Ue(C, ["prevent"]),
                                   },
                                   [
-                                    o("label", null, [
-                                      b[34] || (b[34] = Z("内容", -1)),
-                                      pe(
-                                        o(
+                                    n("label", null, [
+                                      $[34] || ($[34] = K("内容", -1)),
+                                      re(
+                                        n(
                                           "textarea",
                                           {
                                             "onUpdate:modelValue":
-                                              b[8] ||
-                                              (b[8] = (k) =>
-                                                (K.value.text = k)),
+                                              $[8] ||
+                                              ($[8] = (x) =>
+                                                (G.value.text = x)),
                                             rows: "4",
                                             "data-testid":
                                               "memory-edit-content",
@@ -3435,193 +3772,193 @@ const Ut = G(
                                           null,
                                           512,
                                         ),
-                                        [[$e, K.value.text]],
+                                        [[he, G.value.text]],
                                       ),
-                                      K.value.text.trim()
-                                        ? X("", !0)
-                                        : (p(),
-                                          g("small", Xd, "请填写记忆内容")),
+                                      G.value.text.trim()
+                                        ? J("", !0)
+                                        : (c(),
+                                          v("small", Nf, "请填写记忆内容")),
                                     ]),
-                                    o("label", null, [
-                                      b[35] || (b[35] = Z("来源", -1)),
-                                      pe(
-                                        o(
+                                    n("label", null, [
+                                      $[35] || ($[35] = K("来源", -1)),
+                                      re(
+                                        n(
                                           "input",
                                           {
                                             "onUpdate:modelValue":
-                                              b[9] ||
-                                              (b[9] = (k) =>
-                                                (K.value.source = k)),
+                                              $[9] ||
+                                              ($[9] = (x) =>
+                                                (G.value.source = x)),
                                           },
                                           null,
                                           512,
                                         ),
-                                        [[$e, K.value.source]],
+                                        [[he, G.value.source]],
                                       ),
                                     ]),
-                                    o("label", null, [
-                                      b[36] || (b[36] = Z("来源日期", -1)),
-                                      pe(
-                                        o(
+                                    n("label", null, [
+                                      $[36] || ($[36] = K("来源日期", -1)),
+                                      re(
+                                        n(
                                           "input",
                                           {
                                             "onUpdate:modelValue":
-                                              b[10] ||
-                                              (b[10] = (k) =>
-                                                (K.value.date = k)),
+                                              $[10] ||
+                                              ($[10] = (x) =>
+                                                (G.value.date = x)),
                                             type: "date",
                                           },
                                           null,
                                           512,
                                         ),
-                                        [[$e, K.value.date]],
+                                        [[he, G.value.date]],
                                       ),
                                     ]),
-                                    o("fieldset", ef, [
-                                      b[37] ||
-                                        (b[37] = o(
+                                    n("fieldset", Rf, [
+                                      $[37] ||
+                                        ($[37] = n(
                                           "legend",
                                           null,
                                           "重要度",
                                           -1,
                                         )),
-                                      o("div", tf, [
-                                        (p(),
-                                        g(
-                                          O,
+                                      n("div", Ff, [
+                                        (c(),
+                                        v(
+                                          I,
                                           null,
-                                          oe(5, (k) =>
-                                            o(
+                                          te(5, (x) =>
+                                            n(
                                               "button",
                                               {
-                                                key: k,
+                                                key: x,
                                                 type: "button",
-                                                "aria-label": k + "星",
+                                                "aria-label": x + "星",
                                                 "aria-pressed":
-                                                  K.value.importance === k,
+                                                  G.value.importance === x,
                                                 "data-testid":
-                                                  "memory-star-" + k,
-                                                class: ge({
+                                                  "memory-star-" + x,
+                                                class: ke({
                                                   filled:
-                                                    k <= K.value.importance,
+                                                    x <= G.value.importance,
                                                 }),
-                                                onClick: (ve) =>
-                                                  (K.value.importance = k),
+                                                onClick: (ge) =>
+                                                  (G.value.importance = x),
                                               },
                                               "★",
                                               10,
-                                              sf,
+                                              jf,
                                             ),
                                           ),
                                           64,
                                         )),
-                                        o(
+                                        n(
                                           "small",
                                           null,
-                                          v(K.value.importance) + " / 5",
+                                          m(G.value.importance) + " / 5",
                                           1,
                                         ),
                                       ]),
                                     ]),
-                                    o("fieldset", nf, [
-                                      b[38] ||
-                                        (b[38] = o("legend", null, "类型", -1)),
-                                      o("div", lf, [
-                                        (p(),
-                                        g(
-                                          O,
+                                    n("fieldset", Df, [
+                                      $[38] ||
+                                        ($[38] = n("legend", null, "类型", -1)),
+                                      n("div", Hf, [
+                                        (c(),
+                                        v(
+                                          I,
                                           null,
-                                          oe(
+                                          te(
                                             [
                                               "长期记忆",
                                               "发生过的事情",
                                               "最近在想",
                                             ],
-                                            (k) =>
-                                              o(
+                                            (x) =>
+                                              n(
                                                 "button",
                                                 {
-                                                  key: k,
+                                                  key: x,
                                                   type: "button",
-                                                  class: ge([
+                                                  class: ke([
                                                     "filter-chip",
                                                     {
                                                       active:
-                                                        K.value.category === k,
+                                                        G.value.category === x,
                                                     },
                                                   ]),
                                                   "aria-pressed":
-                                                    K.value.category === k,
-                                                  onClick: (ve) =>
-                                                    (K.value.category = k),
+                                                    G.value.category === x,
+                                                  onClick: (ge) =>
+                                                    (G.value.category = x),
                                                 },
-                                                v(k),
+                                                m(x),
                                                 11,
-                                                of,
+                                                Bf,
                                               ),
                                           ),
                                           64,
                                         )),
                                       ]),
                                     ]),
-                                    o("fieldset", rf, [
-                                      b[39] ||
-                                        (b[39] = o("legend", null, "标签", -1)),
-                                      o("div", af, [
-                                        (p(!0),
-                                        g(
-                                          O,
+                                    n("fieldset", Kf, [
+                                      $[39] ||
+                                        ($[39] = n("legend", null, "标签", -1)),
+                                      n("div", zf, [
+                                        (c(!0),
+                                        v(
+                                          I,
                                           null,
-                                          oe(
+                                          te(
                                             ne.value,
-                                            (k) => (
-                                              p(),
-                                              g(
+                                            (x) => (
+                                              c(),
+                                              v(
                                                 "button",
                                                 {
-                                                  key: k,
+                                                  key: x,
                                                   type: "button",
-                                                  class: ge([
+                                                  class: ke([
                                                     "filter-chip",
                                                     {
                                                       active:
-                                                        K.value.tags.includes(
-                                                          k,
+                                                        G.value.tags.includes(
+                                                          x,
                                                         ),
                                                     },
                                                   ]),
                                                   "aria-pressed":
-                                                    K.value.tags.includes(k),
+                                                    G.value.tags.includes(x),
                                                   "data-testid":
-                                                    "memory-tag-" + k,
-                                                  onClick: (ve) => V(k),
+                                                    "memory-tag-" + x,
+                                                  onClick: (ge) => L(x),
                                                 },
-                                                "# " + v(k),
+                                                "# " + m(x),
                                                 11,
-                                                uf,
+                                                qf,
                                               )
                                             ),
                                           ),
                                           128,
                                         )),
                                       ]),
-                                      o("div", cf, [
-                                        pe(
-                                          o(
+                                      n("div", Wf, [
+                                        re(
+                                          n(
                                             "input",
                                             {
                                               "onUpdate:modelValue":
-                                                b[11] ||
-                                                (b[11] = (k) => (H.value = k)),
+                                                $[11] ||
+                                                ($[11] = (x) => (W.value = x)),
                                               "aria-label": "新标签",
                                               placeholder: "添加一个新标签",
                                               "data-testid": "memory-new-tag",
                                               onKeydown:
-                                                b[12] ||
-                                                (b[12] = Gi(
-                                                  Ve(
-                                                    (k) =>
-                                                      !k.isComposing && U(),
+                                                $[12] ||
+                                                ($[12] = pr(
+                                                  Ue(
+                                                    (x) =>
+                                                      !x.isComposing && F(),
                                                     ["prevent"],
                                                   ),
                                                   ["enter"],
@@ -3630,34 +3967,34 @@ const Ut = G(
                                             null,
                                             544,
                                           ),
-                                          [[$e, H.value]],
+                                          [[he, W.value]],
                                         ),
-                                        o(
+                                        n(
                                           "button",
                                           {
                                             type: "button",
                                             class: "text-button",
-                                            disabled: !H.value.trim(),
+                                            disabled: !W.value.trim(),
                                             "data-testid": "memory-add-tag",
-                                            onClick: U,
+                                            onClick: F,
                                           },
                                           "添加",
                                           8,
-                                          df,
+                                          Jf,
                                         ),
                                       ]),
                                     ]),
-                                    me(It, { labels: ["记忆"] }),
-                                    o(
+                                    ae(St, { labels: ["记忆"] }),
+                                    n(
                                       "button",
                                       {
                                         class: "button primary",
-                                        disabled: M(a) || !K.value.text.trim(),
+                                        disabled: h(u) || !G.value.text.trim(),
                                         "data-testid": "memory-save",
                                       },
-                                      v(M(a) ? "处理中…" : "保存"),
+                                      m(h(u) ? "处理中…" : "保存"),
                                       9,
-                                      ff,
+                                      Gf,
                                     ),
                                   ],
                                   32,
@@ -3666,44 +4003,44 @@ const Ut = G(
                               _: 1,
                             },
                           ))
-                        : X("", !0),
-                      le.value
-                        ? (p(),
-                          g("div", pf, [
-                            o("section", mf, [
-                              b[40] ||
-                                (b[40] = o("h2", null, "遗忘这段记忆？", -1)),
-                              o("p", null, v(le.value.text), 1),
-                              o("div", vf, [
-                                o(
+                        : J("", !0),
+                      oe.value
+                        ? (c(),
+                          v("div", Yf, [
+                            n("section", Zf, [
+                              $[40] ||
+                                ($[40] = n("h2", null, "遗忘这段记忆？", -1)),
+                              n("p", null, m(oe.value.text), 1),
+                              n("div", Qf, [
+                                n(
                                   "button",
                                   {
                                     class: "button",
                                     onClick:
-                                      b[14] ||
-                                      (b[14] = (k) => (le.value = null)),
+                                      $[14] ||
+                                      ($[14] = (x) => (oe.value = null)),
                                   },
                                   "取消",
                                 ),
-                                o(
+                                n(
                                   "button",
                                   {
                                     class: "button primary",
                                     "data-testid": "memory-confirm-forget",
                                     onClick:
-                                      b[15] ||
-                                      (b[15] = (k) => {
-                                        ((l.value.memories =
-                                          l.value.memories.filter((ve) => {
-                                            var Ye;
+                                      $[15] ||
+                                      ($[15] = (x) => {
+                                        ((o.value.memories =
+                                          o.value.memories.filter((ge) => {
+                                            var nt;
                                             return (
-                                              ve.id !==
-                                              ((Ye = le.value) == null
+                                              ge.id !==
+                                              ((nt = oe.value) == null
                                                 ? void 0
-                                                : Ye.id)
+                                                : nt.id)
                                             );
                                           })),
-                                          (le.value = null));
+                                          (oe.value = null));
                                       }),
                                   },
                                   "确认遗忘",
@@ -3711,16 +4048,16 @@ const Ut = G(
                               ]),
                             ]),
                           ]))
-                        : X("", !0),
+                        : J("", !0),
                     ],
                     64,
                   ))
-                : X("", !0),
-              K.value
-                ? X("", !0)
-                : (p(),
-                  Ae(
-                    It,
+                : J("", !0),
+              G.value
+                ? J("", !0)
+                : (c(),
+                  Se(
+                    St,
                     {
                       key: e.page,
                       labels: [e.page === "此刻" ? "日程" : e.page],
@@ -3736,7 +4073,7 @@ const Ut = G(
       );
     },
   }),
-  gf = {
+  ep = {
     viewBox: "0 0 100 100",
     width: "84",
     height: "84",
@@ -3746,22 +4083,22 @@ const Ut = G(
     "stroke-linejoin": "round",
     "aria-hidden": "true",
   },
-  yf = { key: 0, d: "M50 28v56M34 18l8 26 8-9 8 9 8-26" },
-  bf = nt({
+  tp = { key: 0, d: "M50 28v56M34 18l8 26 8-9 8 9 8-26" },
+  sp = je({
     __name: "GarmentArt",
     props: { type: {} },
     setup(e) {
       return (t, s) => (
-        p(),
-        g("svg", gf, [
+        c(),
+        v("svg", ep, [
           e.type === "鞋子"
-            ? (p(),
-              g(
-                O,
+            ? (c(),
+              v(
+                I,
                 { key: 0 },
                 [
                   s[0] ||
-                    (s[0] = o(
+                    (s[0] = n(
                       "path",
                       {
                         d: "M18 55l15-25 16 11 8 17 25 8v13H16V62z",
@@ -3772,7 +4109,7 @@ const Ut = G(
                       -1,
                     )),
                   s[1] ||
-                    (s[1] = o(
+                    (s[1] = n(
                       "path",
                       {
                         d: "M18 55l15-25 16 11 8 17 25 8v13H16V62zM17 72h65M39 47l12-4M43 54l12-4",
@@ -3784,13 +4121,13 @@ const Ut = G(
                 64,
               ))
             : e.type === "下衣"
-              ? (p(),
-                g(
-                  O,
+              ? (c(),
+                v(
+                  I,
                   { key: 1 },
                   [
                     s[2] ||
-                      (s[2] = o(
+                      (s[2] = n(
                         "path",
                         {
                           d: "M28 15h44l7 70H55L50 47 45 85H21z",
@@ -3801,7 +4138,7 @@ const Ut = G(
                         -1,
                       )),
                     s[3] ||
-                      (s[3] = o(
+                      (s[3] = n(
                         "path",
                         {
                           d: "M28 15h44l7 70H55L50 47 45 85H21zM28 25h44M50 25v22",
@@ -3813,20 +4150,20 @@ const Ut = G(
                   64,
                 ))
               : e.type === "配饰"
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 2 },
                     [
                       s[4] ||
-                        (s[4] = o(
+                        (s[4] = n(
                           "circle",
                           { cx: "50", cy: "50", r: "21" },
                           null,
                           -1,
                         )),
                       s[5] ||
-                        (s[5] = o(
+                        (s[5] = n(
                           "path",
                           { d: "M39 30V10h22v20M39 70v20h22V70M50 36v16l10 7" },
                           null,
@@ -3836,13 +4173,13 @@ const Ut = G(
                     64,
                   ))
                 : e.type === "袜子"
-                  ? (p(),
-                    g(
-                      O,
+                  ? (c(),
+                    v(
+                      I,
                       { key: 3 },
                       [
                         s[6] ||
-                          (s[6] = o(
+                          (s[6] = n(
                             "path",
                             {
                               d: "M37 14h28v45l-22 25c-13 9-31-4-20-17l14-13z",
@@ -3853,7 +4190,7 @@ const Ut = G(
                             -1,
                           )),
                         s[7] ||
-                          (s[7] = o(
+                          (s[7] = n(
                             "path",
                             {
                               d: "M37 14h28v45l-22 25c-13 9-31-4-20-17l14-13zM37 25h28M26 64l22 15",
@@ -3865,13 +4202,13 @@ const Ut = G(
                       64,
                     ))
                   : e.type === "内裤"
-                    ? (p(),
-                      g(
-                        O,
+                    ? (c(),
+                      v(
+                        I,
                         { key: 4 },
                         [
                           s[8] ||
-                            (s[8] = o(
+                            (s[8] = n(
                               "path",
                               {
                                 d: "M18 28h64l-15 40H33z",
@@ -3882,7 +4219,7 @@ const Ut = G(
                               -1,
                             )),
                           s[9] ||
-                            (s[9] = o(
+                            (s[9] = n(
                               "path",
                               {
                                 d: "M18 28h64l-15 40H33zM20 37h60M22 42l22 26M78 42L56 68",
@@ -3893,13 +4230,13 @@ const Ut = G(
                         ],
                         64,
                       ))
-                    : (p(),
-                      g(
-                        O,
+                    : (c(),
+                      v(
+                        I,
                         { key: 5 },
                         [
                           s[10] ||
-                            (s[10] = o(
+                            (s[10] = n(
                               "path",
                               {
                                 d: "M34 18l-21 13 10 24 12-6v35h30V49l12 6 10-24-21-13c-4 13-28 13-32 0z",
@@ -3910,7 +4247,7 @@ const Ut = G(
                               -1,
                             )),
                           s[11] ||
-                            (s[11] = o(
+                            (s[11] = n(
                               "path",
                               {
                                 d: "M34 18l-21 13 10 24 12-6v35h30V49l12 6 10-24-21-13c-4 13-28 13-32 0z",
@@ -3918,7 +4255,7 @@ const Ut = G(
                               null,
                               -1,
                             )),
-                          e.type === "外套" ? (p(), g("path", yf)) : X("", !0),
+                          e.type === "外套" ? (c(), v("path", tp)) : J("", !0),
                         ],
                         64,
                       )),
@@ -3926,392 +4263,395 @@ const Ut = G(
       );
     },
   }),
-  _f = { class: "tabs" },
-  kf = ["onClick"],
-  wf = { class: "toolbar" },
-  $f = { class: "card slot-picker scroll-lock-list", "data-scroll-lock": "" },
-  Cf = { key: 0, class: "muted", role: "status" },
-  xf = { class: "slot-accordion" },
-  Sf = { class: "slot-row scroll-lock-list", "data-scroll-lock": "" },
-  Tf = ["disabled", "title", "onClick"],
-  Mf = { key: 0 },
-  Ef = { class: "card" },
-  Af = { class: "slot-summary" },
-  If = { key: 0, class: "inline-error" },
-  Of = { key: 1, class: "muted" },
-  Vf = ["disabled"],
-  Pf = { class: "card" },
-  Lf = { class: "tag-list" },
-  Uf = { class: "pill" },
-  Nf = ["onClick"],
-  Ff = ["onClick"],
-  Rf = ["placeholder"],
-  Df = ["disabled"],
-  jf = { class: "row" },
-  Hf = ["onSubmit"],
-  Bf = ["disabled"],
-  Kf = { key: 1 },
-  Wf = { class: "pill" },
-  qf = { class: "scroll-lock-list", "data-scroll-lock": "" },
-  zf = ["onClick"],
-  Gf = ["onClick"],
-  Jf = ["onClick"],
-  Yf = ["onClick"],
-  Zf = ["disabled", "onClick"],
-  Qf = { key: 0, class: "slot-summary" },
-  Xf = { key: 0, class: "muted" },
-  ep = { class: "toolbar" },
-  tp = { class: "garment-grid" },
-  sp = { class: "row" },
-  np = { class: "scroll-lock-list", "data-scroll-lock": "" },
-  lp = ["onClick"],
-  op = ["onClick"],
-  ip = { key: 0, class: "muted" },
-  rp = { key: 0, class: "inline-error" },
-  ap = { class: "row" },
-  up = ["value"],
-  cp = { class: "row" },
-  dp = ["disabled"],
-  fp = ["aria-label"],
-  pp = { class: "row" },
-  mp = nt({
+  lp = { class: "tabs" },
+  np = ["onClick"],
+  op = { class: "toolbar" },
+  ip = { class: "card slot-picker scroll-lock-list", "data-scroll-lock": "" },
+  rp = { key: 0, class: "muted", role: "status" },
+  ap = { class: "slot-accordion" },
+  up = { class: "slot-row scroll-lock-list", "data-scroll-lock": "" },
+  dp = ["disabled", "title", "onClick"],
+  cp = { key: 0 },
+  fp = { class: "card" },
+  pp = { class: "slot-summary" },
+  mp = { key: 0, class: "inline-error" },
+  vp = { key: 1, class: "muted" },
+  hp = ["disabled"],
+  gp = { class: "card" },
+  yp = { class: "tag-list" },
+  bp = { class: "pill" },
+  kp = ["onClick"],
+  _p = ["onClick"],
+  wp = ["placeholder"],
+  $p = ["disabled"],
+  Cp = { class: "row" },
+  xp = ["onSubmit"],
+  Sp = ["disabled"],
+  Tp = { key: 1 },
+  Mp = { class: "pill" },
+  Ip = { class: "scroll-lock-list", "data-scroll-lock": "" },
+  Ep = ["onClick"],
+  Ap = ["onClick"],
+  Vp = ["onClick"],
+  Op = ["onClick"],
+  Up = ["disabled", "onClick"],
+  Pp = { key: 0, class: "slot-summary" },
+  Lp = { key: 0, class: "muted" },
+  Np = { class: "toolbar" },
+  Rp = { class: "garment-grid" },
+  Fp = { class: "row" },
+  jp = { class: "scroll-lock-list", "data-scroll-lock": "" },
+  Dp = ["onClick"],
+  Hp = ["onClick"],
+  Bp = { key: 0, class: "muted" },
+  Kp = { key: 0, class: "inline-error" },
+  zp = { class: "row" },
+  qp = ["value"],
+  Wp = { class: "row" },
+  Jp = ["disabled"],
+  Gp = ["aria-label"],
+  Yp = { class: "row" },
+  Zp = je({
     __name: "WardrobePage",
     setup(e) {
-      const t = G(""),
-        s = G(null),
-        n = ds(["衣柜", "换装"]),
-        l = _e(() =>
-          W.value.outfits.some(
-            (j) => j.name === a.value.trim() && j.id !== f.value,
+      const t = z(""),
+        s = z(null),
+        l = fs(["衣柜", "换装"]),
+        o = ye(() =>
+          U.value.outfits.some(
+            (q) => q.name === u.value.trim() && q.id !== f.value,
           ),
         ),
-        i = El,
-        r = G(W.value.outfitTags[0] ?? ""),
-        a = G(""),
-        u = G(JSON.parse(JSON.stringify(W.value.wearing))),
-        f = G(null),
-        c = G(null),
-        d = G(""),
-        C = G(""),
-        w = G(""),
-        A = G(""),
-        B = G(null),
-        te = G(""),
-        se = G(null);
-      function ne(j, T, x) {
-        se.value = { title: j, message: T, run: x };
+        i = Yn,
+        r = z(U.value.outfitTags[0] ?? ""),
+        u = z(""),
+        d = z(JSON.parse(JSON.stringify(U.value.wearing))),
+        f = z(null),
+        a = z(null),
+        p = z(""),
+        _ = z(""),
+        b = z(""),
+        A = z(""),
+        P = z(null),
+        V = z(""),
+        le = z(null);
+      function ne(q, M, T) {
+        le.value = { title: q, message: M, run: T };
       }
-      function ue(j) {
-        const T = W.value,
-          x = te.value.trim();
-        if (!(!x || n.value)) {
-          if (T.outfits.some((R) => R.id !== j.id && R.name === x)) {
-            Ml("方案名称已存在，请换一个名称");
+      function ce(q) {
+        const M = U.value,
+          T = V.value.trim();
+        if (!(!T || l.value)) {
+          if (M.outfits.some((H) => H.id !== q.id && H.name === T)) {
+            el("方案名称已存在，请换一个名称");
             return;
           }
           ((t.value = "rename"),
-            Je("衣柜", x, () => {
-              ((j.name = x), (B.value = null));
+            Xe("衣柜", T, () => {
+              ((q.name = T), (P.value = null));
             }));
         }
       }
-      (it(
-        () => W.value.garments.map((j) => j.id).join(","),
+      (vt(
+        () => U.value.garments.map((q) => q.id).join(","),
         () => {
-          u.value = Rt(W.value, u.value);
+          d.value = qt(U.value, d.value);
         },
       ),
-        it(
-          () => W.value.id,
+        vt(
+          () => U.value.id,
           () => {
-            ((r.value = W.value.outfitTags[0] ?? ""),
-              (u.value = {}),
-              (a.value = ""),
+            ((r.value = U.value.outfitTags[0] ?? ""),
+              (d.value = {}),
+              (u.value = ""),
               (f.value = null));
           },
         ));
-      const S = G(null),
-        I = _e(() =>
-          W.value.garments.filter(
-            (j) =>
-              (!w.value || j.type === w.value) &&
-              (!A.value || j.seasons.includes(A.value)),
+      const w = z(null),
+        O = ye(() =>
+          U.value.garments.filter(
+            (q) =>
+              (!b.value || q.type === b.value) &&
+              (!A.value || q.seasons.includes(A.value)),
           ),
         );
-      function K() {
-        if (n.value || l.value || !a.value.trim() || !r.value) return;
-        const j = W.value,
-          T = {
+      function G() {
+        if (l.value || o.value || !u.value.trim() || !r.value) return;
+        const q = U.value,
+          M = {
             id: f.value ?? Date.now(),
-            name: a.value.trim(),
+            name: u.value.trim(),
             tag: r.value,
-            items: Rt(j, u.value),
+            items: qt(q, d.value),
           };
         ((t.value = "save"),
-          Je("衣柜", T.name, () => {
-            T.items = Rt(j, T.items);
-            const x = j.outfits.findIndex((R) => R.id === T.id);
-            (x < 0 ? j.outfits.push(T) : (j.outfits[x] = T),
-              (a.value = ""),
-              (u.value = {}),
+          Xe("衣柜", M.name, () => {
+            M.items = qt(q, M.items);
+            const T = q.outfits.findIndex((H) => H.id === M.id);
+            (T < 0 ? q.outfits.push(M) : (q.outfits[T] = M),
+              (u.value = ""),
+              (d.value = {}),
               (f.value = null));
           }));
       }
-      function le(j, T, x = !1) {
+      function oe(q, M, T = !1) {
         if (!r.value) return;
-        const R = u.value[j] || [];
-        u.value[j] = x
-          ? R.includes(T)
-            ? R.filter((ye) => ye !== T)
-            : [...R, T]
-          : R.includes(T)
+        const H = d.value[q] || [];
+        d.value[q] = T
+          ? H.includes(M)
+            ? H.filter((_e) => _e !== M)
+            : [...H, M]
+          : H.includes(M)
             ? []
-            : [T];
+            : [M];
       }
-      function H(j) {
-        ((f.value = j.id),
-          (a.value = j.name),
-          (r.value = j.tag),
-          (u.value = JSON.parse(JSON.stringify(j.items))),
+      function W(q) {
+        ((f.value = q.id),
+          (u.value = q.name),
+          (r.value = q.tag),
+          (d.value = JSON.parse(JSON.stringify(q.items))),
           (i.value = "为她搭配"));
       }
-      function q(j) {
-        return At.map(
-          (T) =>
-            T +
-            "：" +
-            ((j.items[T] || [])
-              .map((x) => {
-                var R;
-                return (R = W.value.garments.find((ye) => ye.id === x)) == null
-                  ? void 0
-                  : R.name;
-              })
-              .filter(Boolean)
-              .join("、") || "未选"),
-        ).join(" / ");
-      }
-      function V(j) {
-        if (n.value) return;
-        const T = W.value;
-        ((t.value = "wear"),
-          (s.value = j.id),
-          Je("换装", j.name, () => {
-            var x;
-            ((T.wearing = Rt(T, j.items)),
-              (T.outfit =
-                ((x = T.garments.find((R) => {
-                  var ye;
-                  return (ye = j.items.上衣) == null
+      function Y(q) {
+        return xt
+          .map(
+            (M) =>
+              M +
+              "：" +
+              ((q.items[M] || [])
+                .map((T) => {
+                  var H;
+                  return (H = U.value.garments.find((_e) => _e.id === T)) ==
+                    null
                     ? void 0
-                    : ye.includes(R.id);
+                    : H.name;
+                })
+                .filter(Boolean)
+                .join("、") || "未选"),
+          )
+          .join(" / ");
+      }
+      function L(q) {
+        if (l.value) return;
+        const M = U.value;
+        ((t.value = "wear"),
+          (s.value = q.id),
+          Xe("换装", q.name, () => {
+            var T;
+            ((M.wearing = qt(M, q.items)),
+              (M.outfit =
+                ((T = M.garments.find((H) => {
+                  var _e;
+                  return (_e = q.items.上衣) == null
+                    ? void 0
+                    : _e.includes(H.id);
                 })) == null
                   ? void 0
-                  : x.name) || j.name));
+                  : T.name) || q.name));
           }));
       }
-      function U() {
-        var R;
-        if (n.value || !((R = S.value) != null && R.name.trim())) return;
-        const j = W.value,
-          T = JSON.parse(JSON.stringify(S.value)),
-          x = j.garments.some((ye) => ye.id === T.id);
+      function F() {
+        var H;
+        if (l.value || !((H = w.value) != null && H.name.trim())) return;
+        const q = U.value,
+          M = JSON.parse(JSON.stringify(w.value)),
+          T = q.garments.some((_e) => _e.id === M.id);
         ((t.value = "garment"),
-          Je("衣柜", T.name, () => {
-            const ye = j.garments.findIndex((F) => F.id === T.id);
-            (ye < 0 ? x || j.garments.push(T) : (j.garments[ye] = T),
-              (j.wearing = Rt(j, j.wearing)),
-              j.outfits.forEach((F) => (F.items = Rt(j, F.items))),
-              (S.value = null));
+          Xe("衣柜", M.name, () => {
+            const _e = q.garments.findIndex((D) => D.id === M.id);
+            (_e < 0 ? T || q.garments.push(M) : (q.garments[_e] = M),
+              (q.wearing = qt(q, q.wearing)),
+              q.outfits.forEach((D) => (D.items = qt(q, D.items))),
+              (w.value = null));
           }));
       }
-      function _(j) {
-        const T = W.value,
-          x = T.outfits
-            .filter((R) => Object.values(R.items).some((ye) => ye.includes(j)))
-            .map((R) => "「" + R.name + "」");
+      function C(q) {
+        const M = U.value,
+          T = M.outfits
+            .filter((H) => Object.values(H.items).some((_e) => _e.includes(q)))
+            .map((H) => "「" + H.name + "」");
         ne(
           "删除衣服",
-          x.length
+          T.length
             ? "以下方案引用了这件衣服：" +
-                x.join("、") +
+                T.join("、") +
                 "。确认后将从这些方案和当前穿着中移除。"
             : "确定删除这件衣服吗？",
-          () => pc(T, j),
+          () => Hd(M, q),
         );
       }
-      function ee() {
-        const j = d.value.trim(),
-          T = W.value;
-        if (!(!j || T.outfitTags.includes(j))) {
-          if (C.value) {
-            const x = C.value;
-            ((T.outfitTags = T.outfitTags.map((R) => (R === x ? j : R))),
-              T.outfits.forEach((R) => {
-                R.tag === x && (R.tag = j);
+      function se() {
+        const q = p.value.trim(),
+          M = U.value;
+        if (!(!q || M.outfitTags.includes(q))) {
+          if (_.value) {
+            const T = _.value;
+            ((M.outfitTags = M.outfitTags.map((H) => (H === T ? q : H))),
+              M.outfits.forEach((H) => {
+                H.tag === T && (H.tag = q);
               }),
-              r.value === x && (r.value = j));
-          } else T.outfitTags.push(j);
-          ((d.value = ""), (C.value = ""));
+              r.value === T && (r.value = q));
+          } else M.outfitTags.push(q);
+          ((p.value = ""), (_.value = ""));
         }
       }
-      function he(j) {
-        ne("删除标签", "删除「" + j + "」？方案将保留。", () => {
-          const T = W.value;
-          ((T.outfitTags = T.outfitTags.filter((x) => x !== j)),
-            T.outfits.forEach((x) => {
-              x.tag === j && (x.tag = "");
+      function be(q) {
+        ne("删除标签", "删除「" + q + "」？方案将保留。", () => {
+          const M = U.value;
+          ((M.outfitTags = M.outfitTags.filter((T) => T !== q)),
+            M.outfits.forEach((T) => {
+              T.tag === q && (T.tag = "");
             }),
-            r.value === j && (r.value = ""));
+            r.value === q && (r.value = ""));
         });
       }
-      return (j, T) => (
-        p(),
-        g(
-          O,
+      return (q, M) => (
+        c(),
+        v(
+          I,
           null,
           [
-            o("div", _f, [
-              (p(),
-              g(
-                O,
+            n("div", lp, [
+              (c(),
+              v(
+                I,
                 null,
-                oe(["为她搭配", "方案库", "全部衣服"], (x) =>
-                  o(
+                te(["为她搭配", "方案库", "全部衣服"], (T) =>
+                  n(
                     "button",
                     {
-                      class: ge({ active: M(i) === x }),
-                      onClick: (R) => (i.value = x),
+                      class: ke({ active: h(i) === T }),
+                      onClick: (H) => (i.value = T),
                     },
-                    v(x === "为她搭配" && M(W).id === 1 ? "为他搭配" : x),
+                    m(T === "为她搭配" && h(U).id === 1 ? "为他搭配" : T),
                     11,
-                    kf,
+                    np,
                   ),
                 ),
                 64,
               )),
             ]),
-            M(i) === "为她搭配"
-              ? (p(),
-                g(
-                  O,
+            h(i) === "为她搭配"
+              ? (c(),
+                v(
+                  I,
                   { key: 0 },
                   [
-                    o("div", wf, [
-                      o("label", null, [
-                        T[20] || (T[20] = Z("先选标签 ", -1)),
-                        pe(
-                          o(
+                    n("div", op, [
+                      n("label", null, [
+                        M[20] || (M[20] = K("先选标签 ", -1)),
+                        re(
+                          n(
                             "select",
                             {
                               "onUpdate:modelValue":
-                                T[0] || (T[0] = (x) => (r.value = x)),
+                                M[0] || (M[0] = (T) => (r.value = T)),
                             },
                             [
-                              T[19] ||
-                                (T[19] = o(
+                              M[19] ||
+                                (M[19] = n(
                                   "option",
                                   { value: "" },
                                   "请选择",
                                   -1,
                                 )),
-                              (p(!0),
-                              g(
-                                O,
+                              (c(!0),
+                              v(
+                                I,
                                 null,
-                                oe(
-                                  M(W).outfitTags,
-                                  (x) => (p(), g("option", null, v(x), 1)),
+                                te(
+                                  h(U).outfitTags,
+                                  (T) => (c(), v("option", null, m(T), 1)),
                                 ),
                                 256,
                               )),
                             ],
                             512,
                           ),
-                          [[Et, r.value]],
+                          [[pt, r.value]],
                         ),
                       ]),
-                      T[21] ||
-                        (T[21] = o(
+                      M[21] ||
+                        (M[21] = n(
                           "small",
                           null,
                           "标签可在方案库维护 · 每个部位选一件，配饰可多选",
                           -1,
                         )),
                     ]),
-                    o("div", $f, [
-                      r.value ? X("", !0) : (p(), g("p", Cf, "请先选择标签")),
-                      (p(!0),
-                      g(
-                        O,
+                    n("div", ip, [
+                      r.value ? J("", !0) : (c(), v("p", rp, "请先选择标签")),
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(
-                          M(At),
-                          (x) => (
-                            p(),
-                            g("details", xf, [
-                              o("summary", null, [
-                                Z(v(x) + " ", 1),
-                                o(
+                        te(
+                          h(xt),
+                          (T) => (
+                            c(),
+                            v("details", ap, [
+                              n("summary", null, [
+                                K(m(T) + " ", 1),
+                                n(
                                   "small",
                                   null,
-                                  v(
-                                    (u.value[x] || [])
-                                      .map((R) => {
-                                        var ye;
-                                        return (ye = M(W).garments.find(
-                                          (F) => F.id === R,
+                                  m(
+                                    (d.value[T] || [])
+                                      .map((H) => {
+                                        var _e;
+                                        return (_e = h(U).garments.find(
+                                          (D) => D.id === H,
                                         )) == null
                                           ? void 0
-                                          : ye.name;
+                                          : _e.name;
                                       })
                                       .join("、") || "未选择",
                                   ),
                                   1,
                                 ),
                               ]),
-                              o("div", Sf, [
-                                (p(!0),
-                                g(
-                                  O,
+                              n("div", up, [
+                                (c(!0),
+                                v(
+                                  I,
                                   null,
-                                  oe(
-                                    M(W).garments.filter((R) => R.type === x),
-                                    (R) => {
-                                      var ye;
+                                  te(
+                                    h(U).garments.filter((H) => H.type === T),
+                                    (H) => {
+                                      var _e;
                                       return (
-                                        p(),
-                                        g(
+                                        c(),
+                                        v(
                                           "button",
                                           {
                                             disabled: !r.value,
                                             title: r.value
                                               ? void 0
                                               : "请先选择标签",
-                                            class: ge([
+                                            class: ke([
                                               "choice",
                                               {
                                                 chosen:
-                                                  (ye = u.value[x]) == null
+                                                  (_e = d.value[T]) == null
                                                     ? void 0
-                                                    : ye.includes(R.id),
+                                                    : _e.includes(H.id),
                                               },
                                             ]),
-                                            onClick: (F) =>
-                                              le(x, R.id, x === "配饰"),
+                                            onClick: (D) =>
+                                              oe(T, H.id, T === "配饰"),
                                           },
-                                          v(R.name),
+                                          m(H.name),
                                           11,
-                                          Tf,
+                                          dp,
                                         )
                                       );
                                     },
                                   ),
                                   256,
                                 )),
-                                M(W).garments.some((R) => R.type === x)
-                                  ? X("", !0)
-                                  : (p(), g("small", Mf, "暂无衣服")),
+                                h(U).garments.some((H) => H.type === T)
+                                  ? J("", !0)
+                                  : (c(), v("small", cp, "暂无衣服")),
                               ]),
                             ])
                           ),
@@ -4319,67 +4659,67 @@ const Ut = G(
                         256,
                       )),
                     ]),
-                    o("div", Ef, [
-                      T[22] || (T[22] = o("h3", null, "当前搭配", -1)),
-                      o(
+                    n("div", fp, [
+                      M[22] || (M[22] = n("h3", null, "当前搭配", -1)),
+                      n(
                         "p",
-                        Af,
-                        v(q({ name: a.value, tag: r.value, items: u.value })),
+                        pp,
+                        m(Y({ name: u.value, tag: r.value, items: d.value })),
                         1,
                       ),
                     ]),
-                    l.value
-                      ? (p(), g("p", If, "方案名称已存在，请换一个名称。"))
-                      : X("", !0),
-                    a.value.trim()
-                      ? X("", !0)
-                      : (p(), g("p", Of, "请填写方案名称后保存。")),
-                    o(
+                    o.value
+                      ? (c(), v("p", mp, "方案名称已存在，请换一个名称。"))
+                      : J("", !0),
+                    u.value.trim()
+                      ? J("", !0)
+                      : (c(), v("p", vp, "请填写方案名称后保存。")),
+                    n(
                       "form",
-                      { class: "input-row", onSubmit: Ve(K, ["prevent"]) },
+                      { class: "input-row", onSubmit: Ue(G, ["prevent"]) },
                       [
-                        pe(
-                          o(
+                        re(
+                          n(
                             "input",
                             {
                               "onUpdate:modelValue":
-                                T[1] || (T[1] = (x) => (a.value = x)),
+                                M[1] || (M[1] = (T) => (u.value = T)),
                               placeholder: "方案名称",
                               "aria-label": "方案名称",
                             },
                             null,
                             512,
                           ),
-                          [[$e, a.value]],
+                          [[he, u.value]],
                         ),
-                        o(
+                        n(
                           "button",
                           {
                             class: "button primary",
                             disabled:
-                              M(n) || l.value || !r.value || !a.value.trim(),
+                              h(l) || o.value || !r.value || !u.value.trim(),
                           },
-                          v(
-                            M(n) && t.value === "save"
+                          m(
+                            h(l) && t.value === "save"
                               ? "处理中…"
                               : f.value
                                 ? "保存修改"
                                 : "保存为方案",
                           ),
                           9,
-                          Vf,
+                          hp,
                         ),
-                        o(
+                        n(
                           "button",
                           {
                             type: "button",
                             class: "button",
                             onClick:
-                              T[2] ||
-                              (T[2] = (x) => {
+                              M[2] ||
+                              (M[2] = (T) => {
                                 ((f.value = null),
-                                  (u.value = {}),
-                                  (a.value = ""));
+                                  (d.value = {}),
+                                  (u.value = ""));
                               }),
                           },
                           "重新搭配",
@@ -4390,51 +4730,51 @@ const Ut = G(
                   ],
                   64,
                 ))
-              : M(i) === "方案库"
-                ? (p(),
-                  g(
-                    O,
+              : h(i) === "方案库"
+                ? (c(),
+                  v(
+                    I,
                     { key: 1 },
                     [
-                      o("div", Pf, [
-                        T[23] ||
-                          (T[23] = o(
+                      n("div", gp, [
+                        M[23] ||
+                          (M[23] = n(
                             "div",
                             { class: "row" },
                             [
-                              o("b", null, "标签管理"),
-                              o("small", null, "删除标签保留方案"),
+                              n("b", null, "标签管理"),
+                              n("small", null, "删除标签保留方案"),
                             ],
                             -1,
                           )),
-                        o("div", Lf, [
-                          (p(!0),
-                          g(
-                            O,
+                        n("div", yp, [
+                          (c(!0),
+                          v(
+                            I,
                             null,
-                            oe(
-                              M(W).outfitTags,
-                              (x) => (
-                                p(),
-                                g("span", Uf, [
-                                  Z(v(x) + " ", 1),
-                                  o(
+                            te(
+                              h(U).outfitTags,
+                              (T) => (
+                                c(),
+                                v("span", bp, [
+                                  K(m(T) + " ", 1),
+                                  n(
                                     "button",
                                     {
-                                      onClick: (R) => {
-                                        ((C.value = x), (d.value = x));
+                                      onClick: (H) => {
+                                        ((_.value = T), (p.value = T));
                                       },
                                     },
                                     "改名",
                                     8,
-                                    Nf,
+                                    kp,
                                   ),
-                                  o(
+                                  n(
                                     "button",
-                                    { onClick: (R) => he(x) },
+                                    { onClick: (H) => be(T) },
                                     "删除",
                                     8,
-                                    Ff,
+                                    _p,
                                   ),
                                 ])
                               ),
@@ -4442,295 +4782,295 @@ const Ut = G(
                             256,
                           )),
                         ]),
-                        o(
+                        n(
                           "form",
-                          { class: "input-row", onSubmit: Ve(ee, ["prevent"]) },
+                          { class: "input-row", onSubmit: Ue(se, ["prevent"]) },
                           [
-                            pe(
-                              o(
+                            re(
+                              n(
                                 "input",
                                 {
                                   "onUpdate:modelValue":
-                                    T[3] || (T[3] = (x) => (d.value = x)),
-                                  placeholder: C.value
+                                    M[3] || (M[3] = (T) => (p.value = T)),
+                                  placeholder: _.value
                                     ? "新标签名"
                                     : "添加标签",
                                   "aria-label": "标签名称",
                                 },
                                 null,
                                 8,
-                                Rf,
+                                wp,
                               ),
-                              [[$e, d.value]],
+                              [[he, p.value]],
                             ),
-                            o(
+                            n(
                               "button",
-                              { class: "button", disabled: !d.value.trim() },
-                              v(C.value ? "保存标签" : "添加"),
+                              { class: "button", disabled: !p.value.trim() },
+                              m(_.value ? "保存标签" : "添加"),
                               9,
-                              Df,
+                              $p,
                             ),
                           ],
                           32,
                         ),
                       ]),
-                      (p(!0),
-                      g(
-                        O,
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(
-                          M(W).outfits,
-                          (x) => (
-                            p(),
-                            g("article", { key: x.id, class: "card compact" }, [
-                              o("div", jf, [
-                                B.value === x.id
-                                  ? (p(),
-                                    g(
+                        te(
+                          h(U).outfits,
+                          (T) => (
+                            c(),
+                            v("article", { key: T.id, class: "card compact" }, [
+                              n("div", Cp, [
+                                P.value === T.id
+                                  ? (c(),
+                                    v(
                                       "form",
                                       {
                                         key: 0,
                                         class: "input-row",
-                                        onSubmit: Ve((R) => ue(x), ["prevent"]),
+                                        onSubmit: Ue((H) => ce(T), ["prevent"]),
                                       },
                                       [
-                                        pe(
-                                          o(
+                                        re(
+                                          n(
                                             "input",
                                             {
                                               "onUpdate:modelValue":
-                                                T[4] ||
-                                                (T[4] = (R) => (te.value = R)),
+                                                M[4] ||
+                                                (M[4] = (H) => (V.value = H)),
                                               "aria-label": "方案新名称",
                                               autofocus: "",
                                             },
                                             null,
                                             512,
                                           ),
-                                          [[$e, te.value]],
+                                          [[he, V.value]],
                                         ),
-                                        o(
+                                        n(
                                           "button",
                                           {
                                             class: "button",
-                                            disabled: M(n) || !te.value.trim(),
+                                            disabled: h(l) || !V.value.trim(),
                                           },
-                                          v(
-                                            M(n) && t.value === "rename"
+                                          m(
+                                            h(l) && t.value === "rename"
                                               ? "处理中…"
                                               : "保存",
                                           ),
                                           9,
-                                          Bf,
+                                          Sp,
                                         ),
-                                        o(
+                                        n(
                                           "button",
                                           {
                                             type: "button",
                                             class: "text-button",
                                             onClick:
-                                              T[5] ||
-                                              (T[5] = (R) => (B.value = null)),
+                                              M[5] ||
+                                              (M[5] = (H) => (P.value = null)),
                                           },
                                           "取消",
                                         ),
                                       ],
                                       40,
-                                      Hf,
+                                      xp,
                                     ))
-                                  : (p(), g("b", Kf, v(x.name), 1)),
-                                o("span", Wf, v(x.tag || "未分类"), 1),
-                                T[25] ||
-                                  (T[25] = o(
+                                  : (c(), v("b", Tp, m(T.name), 1)),
+                                n("span", Mp, m(T.tag || "未分类"), 1),
+                                M[25] ||
+                                  (M[25] = n(
                                     "span",
                                     { class: "spacer" },
                                     null,
                                     -1,
                                   )),
-                                o(
+                                n(
                                   "details",
                                   {
                                     class: "actions-menu",
                                     onClick:
-                                      T[6] ||
-                                      (T[6] = (R) =>
-                                        R.target.closest("button") &&
-                                        R.currentTarget.removeAttribute(
+                                      M[6] ||
+                                      (M[6] = (H) =>
+                                        H.target.closest("button") &&
+                                        H.currentTarget.removeAttribute(
                                           "open",
                                         )),
                                   },
                                   [
-                                    T[24] ||
-                                      (T[24] = o(
+                                    M[24] ||
+                                      (M[24] = n(
                                         "summary",
                                         { "aria-label": "方案操作" },
                                         "⋯",
                                         -1,
                                       )),
-                                    o("div", qf, [
-                                      o(
+                                    n("div", Ip, [
+                                      n(
                                         "button",
                                         {
-                                          onClick: (R) =>
-                                            (c.value =
-                                              c.value === x.id ? null : x.id),
+                                          onClick: (H) =>
+                                            (a.value =
+                                              a.value === T.id ? null : T.id),
                                         },
                                         "预览",
                                         8,
-                                        zf,
+                                        Ep,
                                       ),
-                                      o(
+                                      n(
                                         "button",
-                                        { onClick: (R) => H(x) },
+                                        { onClick: (H) => W(T) },
                                         "编辑搭配",
                                         8,
-                                        Gf,
+                                        Ap,
                                       ),
-                                      o(
+                                      n(
                                         "button",
                                         {
-                                          onClick: (R) => {
-                                            ((B.value = x.id),
-                                              (te.value = x.name));
+                                          onClick: (H) => {
+                                            ((P.value = T.id),
+                                              (V.value = T.name));
                                           },
                                         },
                                         "重命名",
                                         8,
-                                        Jf,
+                                        Vp,
                                       ),
-                                      o(
+                                      n(
                                         "button",
                                         {
-                                          onClick: (R) =>
+                                          onClick: (H) =>
                                             ne(
                                               "删除方案",
-                                              "确定删除「" + x.name + "」？",
+                                              "确定删除「" + T.name + "」？",
                                               () =>
-                                                (M(W).outfits = M(
-                                                  W,
+                                                (h(U).outfits = h(
+                                                  U,
                                                 ).outfits.filter(
-                                                  (ye) => ye.id !== x.id,
+                                                  (_e) => _e.id !== T.id,
                                                 )),
                                             ),
                                         },
                                         "删除",
                                         8,
-                                        Yf,
+                                        Op,
                                       ),
                                     ]),
                                   ],
                                 ),
-                                o(
+                                n(
                                   "button",
                                   {
                                     class: "button",
-                                    disabled: M(n),
-                                    onClick: (R) => V(x),
+                                    disabled: h(l),
+                                    onClick: (H) => L(T),
                                   },
-                                  v(
-                                    M(n) &&
+                                  m(
+                                    h(l) &&
                                       t.value === "wear" &&
-                                      s.value === x.id
+                                      s.value === T.id
                                       ? "处理中…"
-                                      : M(W).id === 1
+                                      : h(U).id === 1
                                         ? "请他换上"
                                         : "请她换上",
                                   ),
                                   9,
-                                  Zf,
+                                  Up,
                                 ),
                               ]),
-                              c.value === x.id
-                                ? (p(), g("p", Qf, v(q(x)), 1))
-                                : X("", !0),
+                              a.value === T.id
+                                ? (c(), v("p", Pp, m(Y(T)), 1))
+                                : J("", !0),
                             ])
                           ),
                         ),
                         128,
                       )),
-                      M(W).outfits.length
-                        ? X("", !0)
-                        : (p(), g("p", Xf, "还没有方案，去搭配一套吧。")),
+                      h(U).outfits.length
+                        ? J("", !0)
+                        : (c(), v("p", Lp, "还没有方案，去搭配一套吧。")),
                     ],
                     64,
                   ))
-                : (p(),
-                  g(
-                    O,
+                : (c(),
+                  v(
+                    I,
                     { key: 2 },
                     [
-                      o("div", ep, [
-                        pe(
-                          o(
+                      n("div", Np, [
+                        re(
+                          n(
                             "select",
                             {
                               "onUpdate:modelValue":
-                                T[7] || (T[7] = (x) => (w.value = x)),
+                                M[7] || (M[7] = (T) => (b.value = T)),
                               "aria-label": "按类型筛选",
                             },
                             [
-                              T[26] ||
-                                (T[26] = o(
+                              M[26] ||
+                                (M[26] = n(
                                   "option",
                                   { value: "" },
                                   "全部类型",
                                   -1,
                                 )),
-                              (p(!0),
-                              g(
-                                O,
+                              (c(!0),
+                              v(
+                                I,
                                 null,
-                                oe(
-                                  M(At),
-                                  (x) => (p(), g("option", null, v(x), 1)),
+                                te(
+                                  h(xt),
+                                  (T) => (c(), v("option", null, m(T), 1)),
                                 ),
                                 256,
                               )),
                             ],
                             512,
                           ),
-                          [[Et, w.value]],
+                          [[pt, b.value]],
                         ),
-                        pe(
-                          o(
+                        re(
+                          n(
                             "select",
                             {
                               "onUpdate:modelValue":
-                                T[8] || (T[8] = (x) => (A.value = x)),
+                                M[8] || (M[8] = (T) => (A.value = T)),
                               "aria-label": "按季节筛选",
                             },
                             [
-                              T[27] ||
-                                (T[27] = o(
+                              M[27] ||
+                                (M[27] = n(
                                   "option",
                                   { value: "" },
                                   "全部季节",
                                   -1,
                                 )),
-                              (p(),
-                              g(
-                                O,
+                              (c(),
+                              v(
+                                I,
                                 null,
-                                oe(["春", "夏", "秋", "冬"], (x) =>
-                                  o("option", null, v(x), 1),
+                                te(["春", "夏", "秋", "冬"], (T) =>
+                                  n("option", null, m(T), 1),
                                 ),
                                 64,
                               )),
                             ],
                             512,
                           ),
-                          [[Et, A.value]],
+                          [[pt, A.value]],
                         ),
-                        T[28] ||
-                          (T[28] = o("span", { class: "spacer" }, null, -1)),
-                        o(
+                        M[28] ||
+                          (M[28] = n("span", { class: "spacer" }, null, -1)),
+                        n(
                           "button",
                           {
                             class: "button",
                             onClick:
-                              T[9] ||
-                              (T[9] = (x) =>
-                                (S.value = {
+                              M[9] ||
+                              (M[9] = (T) =>
+                                (w.value = {
                                   id: Date.now(),
                                   name: "",
                                   type: "上衣",
@@ -4740,91 +5080,91 @@ const Ut = G(
                           "添加衣服",
                         ),
                       ]),
-                      o("div", tp, [
-                        (p(!0),
-                        g(
-                          O,
+                      n("div", Rp, [
+                        (c(!0),
+                        v(
+                          I,
                           null,
-                          oe(
-                            I.value,
-                            (x) => (
-                              p(),
-                              g(
+                          te(
+                            O.value,
+                            (T) => (
+                              c(),
+                              v(
                                 "article",
-                                { key: x.id, class: "card garment-card" },
+                                { key: T.id, class: "card garment-card" },
                                 [
-                                  o(
+                                  n(
                                     "div",
                                     {
-                                      class: ge([
+                                      class: ke([
                                         "garment-thumb",
-                                        "garment-type-" + x.type,
+                                        "garment-type-" + T.type,
                                       ]),
                                     },
                                     [
-                                      me(bf, { type: x.type }, null, 8, [
+                                      ae(sp, { type: T.type }, null, 8, [
                                         "type",
                                       ]),
-                                      o("small", null, v(x.type), 1),
+                                      n("small", null, m(T.type), 1),
                                     ],
                                     2,
                                   ),
-                                  o("div", sp, [
-                                    o("div", null, [
-                                      o("h3", null, v(x.name), 1),
-                                      o(
+                                  n("div", Fp, [
+                                    n("div", null, [
+                                      n("h3", null, m(T.name), 1),
+                                      n(
                                         "small",
                                         null,
-                                        v(x.seasons.join(" / ")),
+                                        m(T.seasons.join(" / ")),
                                         1,
                                       ),
                                     ]),
-                                    T[30] ||
-                                      (T[30] = o(
+                                    M[30] ||
+                                      (M[30] = n(
                                         "span",
                                         { class: "spacer" },
                                         null,
                                         -1,
                                       )),
-                                    o(
+                                    n(
                                       "details",
                                       {
                                         class: "actions-menu",
                                         onClick:
-                                          T[10] ||
-                                          (T[10] = (R) =>
-                                            R.target.closest("button") &&
-                                            R.currentTarget.removeAttribute(
+                                          M[10] ||
+                                          (M[10] = (H) =>
+                                            H.target.closest("button") &&
+                                            H.currentTarget.removeAttribute(
                                               "open",
                                             )),
                                       },
                                       [
-                                        T[29] ||
-                                          (T[29] = o(
+                                        M[29] ||
+                                          (M[29] = n(
                                             "summary",
                                             { "aria-label": "衣服操作" },
                                             "⋯",
                                             -1,
                                           )),
-                                        o("div", np, [
-                                          o(
+                                        n("div", jp, [
+                                          n(
                                             "button",
                                             {
-                                              onClick: (R) =>
-                                                (S.value = JSON.parse(
-                                                  JSON.stringify(x),
+                                              onClick: (H) =>
+                                                (w.value = JSON.parse(
+                                                  JSON.stringify(T),
                                                 )),
                                             },
                                             "编辑",
                                             8,
-                                            lp,
+                                            Dp,
                                           ),
-                                          o(
+                                          n(
                                             "button",
-                                            { onClick: (R) => _(x.id) },
+                                            { onClick: (H) => C(T.id) },
                                             "删除",
                                             8,
-                                            op,
+                                            Hp,
                                           ),
                                         ]),
                                       ],
@@ -4836,25 +5176,25 @@ const Ut = G(
                           ),
                           128,
                         )),
-                        I.value.length
-                          ? X("", !0)
-                          : (p(), g("p", ip, "没有符合条件的衣服。")),
+                        O.value.length
+                          ? J("", !0)
+                          : (c(), v("p", Bp, "没有符合条件的衣服。")),
                       ]),
                     ],
                     64,
                   )),
-            S.value
-              ? (p(),
-                g(
+            w.value
+              ? (c(),
+                v(
                   "div",
                   {
                     key: 3,
                     class: "drawer-backdrop",
                     onClick:
-                      T[15] || (T[15] = Ve((x) => (S.value = null), ["self"])),
+                      M[15] || (M[15] = Ue((T) => (w.value = null), ["self"])),
                   },
                   [
-                    o(
+                    n(
                       "form",
                       {
                         "data-testid": "garment-drawer",
@@ -4862,18 +5202,18 @@ const Ut = G(
                         role: "dialog",
                         "aria-modal": "true",
                         "aria-label": "衣服",
-                        onSubmit: Ve(U, ["prevent"]),
+                        onSubmit: Ue(F, ["prevent"]),
                       },
                       [
-                        me(It, { labels: ["衣柜"] }),
-                        o(
+                        ae(St, { labels: ["衣柜"] }),
+                        n(
                           "h2",
                           null,
-                          v(
-                            M(W).garments.some((x) => {
-                              var R;
+                          m(
+                            h(U).garments.some((T) => {
+                              var H;
                               return (
-                                x.id === ((R = S.value) == null ? void 0 : R.id)
+                                T.id === ((H = w.value) == null ? void 0 : H.id)
                               );
                             })
                               ? "编辑衣服"
@@ -4881,101 +5221,101 @@ const Ut = G(
                           ),
                           1,
                         ),
-                        o("label", null, [
-                          T[31] || (T[31] = Z("名称", -1)),
-                          pe(
-                            o(
+                        n("label", null, [
+                          M[31] || (M[31] = K("名称", -1)),
+                          re(
+                            n(
                               "input",
                               {
                                 "onUpdate:modelValue":
-                                  T[11] || (T[11] = (x) => (S.value.name = x)),
+                                  M[11] || (M[11] = (T) => (w.value.name = T)),
                               },
                               null,
                               512,
                             ),
-                            [[$e, S.value.name]],
+                            [[he, w.value.name]],
                           ),
-                          S.value.name.trim()
-                            ? X("", !0)
-                            : (p(), g("small", rp, "请填写衣服名称。")),
+                          w.value.name.trim()
+                            ? J("", !0)
+                            : (c(), v("small", Kp, "请填写衣服名称。")),
                         ]),
-                        o("label", null, [
-                          T[32] || (T[32] = Z("类型", -1)),
-                          pe(
-                            o(
+                        n("label", null, [
+                          M[32] || (M[32] = K("类型", -1)),
+                          re(
+                            n(
                               "select",
                               {
                                 "onUpdate:modelValue":
-                                  T[12] || (T[12] = (x) => (S.value.type = x)),
+                                  M[12] || (M[12] = (T) => (w.value.type = T)),
                               },
                               [
-                                (p(!0),
-                                g(
-                                  O,
+                                (c(!0),
+                                v(
+                                  I,
                                   null,
-                                  oe(
-                                    M(At),
-                                    (x) => (p(), g("option", null, v(x), 1)),
+                                  te(
+                                    h(xt),
+                                    (T) => (c(), v("option", null, m(T), 1)),
                                   ),
                                   256,
                                 )),
                               ],
                               512,
                             ),
-                            [[Et, S.value.type]],
+                            [[pt, w.value.type]],
                           ),
                         ]),
-                        o("div", ap, [
-                          (p(),
-                          g(
-                            O,
+                        n("div", zp, [
+                          (c(),
+                          v(
+                            I,
                             null,
-                            oe(["春", "夏", "秋", "冬"], (x) =>
-                              o("label", null, [
-                                pe(
-                                  o(
+                            te(["春", "夏", "秋", "冬"], (T) =>
+                              n("label", null, [
+                                re(
+                                  n(
                                     "input",
                                     {
                                       "onUpdate:modelValue":
-                                        T[13] ||
-                                        (T[13] = (R) => (S.value.seasons = R)),
+                                        M[13] ||
+                                        (M[13] = (H) => (w.value.seasons = H)),
                                       type: "checkbox",
-                                      value: x,
+                                      value: T,
                                     },
                                     null,
                                     8,
-                                    up,
+                                    qp,
                                   ),
-                                  [[ss, S.value.seasons]],
+                                  [[Ft, w.value.seasons]],
                                 ),
-                                Z(v(x), 1),
+                                K(m(T), 1),
                               ]),
                             ),
                             64,
                           )),
                         ]),
-                        o("div", cp, [
-                          o(
+                        n("div", Wp, [
+                          n(
                             "button",
                             {
                               class: "button primary",
-                              disabled: M(n) || !S.value.name.trim(),
+                              disabled: h(l) || !w.value.name.trim(),
                             },
-                            v(
-                              M(n) && t.value === "garment"
+                            m(
+                              h(l) && t.value === "garment"
                                 ? "处理中…"
                                 : "保存衣服",
                             ),
                             9,
-                            dp,
+                            Jp,
                           ),
-                          o(
+                          n(
                             "button",
                             {
                               type: "button",
                               class: "button",
                               onClick:
-                                T[14] || (T[14] = (x) => (S.value = null)),
+                                M[14] || (M[14] = (T) => (w.value = null)),
                             },
                             "取消",
                           ),
@@ -4985,47 +5325,47 @@ const Ut = G(
                     ),
                   ],
                 ))
-              : X("", !0),
-            se.value
-              ? (p(),
-                g(
+              : J("", !0),
+            le.value
+              ? (c(),
+                v(
                   "div",
                   {
                     key: 4,
                     class: "modal-backdrop",
                     onClick:
-                      T[18] || (T[18] = Ve((x) => (se.value = null), ["self"])),
+                      M[18] || (M[18] = Ue((T) => (le.value = null), ["self"])),
                   },
                   [
-                    o(
+                    n(
                       "section",
                       {
                         class: "card confirm-dialog",
                         role: "alertdialog",
                         "aria-modal": "true",
-                        "aria-label": se.value.title,
+                        "aria-label": le.value.title,
                       },
                       [
-                        o("h2", null, v(se.value.title), 1),
-                        o("p", null, v(se.value.message), 1),
-                        o("div", pp, [
-                          o(
+                        n("h2", null, m(le.value.title), 1),
+                        n("p", null, m(le.value.message), 1),
+                        n("div", Yp, [
+                          n(
                             "button",
                             {
                               class: "button",
                               onClick:
-                                T[16] || (T[16] = (x) => (se.value = null)),
+                                M[16] || (M[16] = (T) => (le.value = null)),
                             },
                             "取消",
                           ),
-                          o(
+                          n(
                             "button",
                             {
                               class: "button primary",
                               onClick:
-                                T[17] ||
-                                (T[17] = (x) => {
-                                  (se.value.run(), (se.value = null));
+                                M[17] ||
+                                (M[17] = (T) => {
+                                  (le.value.run(), (le.value = null));
                                 }),
                             },
                             "确认删除",
@@ -5033,70 +5373,70 @@ const Ut = G(
                         ]),
                       ],
                       8,
-                      fp,
+                      Gp,
                     ),
                   ],
                 ))
-              : X("", !0),
-            S.value
-              ? X("", !0)
-              : (p(), Ae(It, { key: 5, labels: ["衣柜", "换装"] })),
+              : J("", !0),
+            w.value
+              ? J("", !0)
+              : (c(), Se(St, { key: 5, labels: ["衣柜", "换装"] })),
           ],
           64,
         )
       );
     },
   }),
-  vp = { class: "world-list" },
-  hp = { class: "row" },
-  gp = { key: 0, class: "pill" },
-  yp = { class: "muted" },
-  bp = { class: "row" },
-  _p = ["onClick"],
-  kp = ["onClick"],
-  wp = ["onClick"],
-  $p = { class: "row" },
-  Cp = { class: "card world-header" },
-  xp = { class: "row" },
-  Sp = { class: "toolbar" },
-  Tp = ["disabled"],
-  Mp = {
+  Qp = { class: "world-list" },
+  Xp = { class: "row" },
+  em = { key: 0, class: "pill" },
+  tm = { class: "muted" },
+  sm = { class: "row" },
+  lm = ["onClick"],
+  nm = ["onClick"],
+  om = ["onClick"],
+  im = { class: "row" },
+  rm = { class: "card world-header" },
+  am = { class: "row" },
+  um = { class: "toolbar" },
+  dm = ["disabled"],
+  cm = {
     key: 0,
     class: "card empty-state",
     "data-testid": "world-empty-sites",
   },
-  Ep = { class: "row" },
-  Ap = ["onClick"],
-  Ip = { key: 0, class: "muted" },
-  Op = { class: "place-grid" },
-  Vp = { class: "row" },
-  Pp = ["onClick"],
-  Lp = { key: 0, class: "inline-error" },
-  Up = ["onUpdate:modelValue"],
-  Np = ["disabled"],
-  Fp = { key: 0, class: "inline-error" },
-  Rp = ["disabled"],
-  Dp = { key: 0 },
-  jp = ["disabled"],
-  Hp = { key: 5, class: "modal-backdrop" },
-  Bp = { class: "card confirm-dialog" },
-  Kp = nt({
+  fm = { class: "row" },
+  pm = ["onClick"],
+  mm = { key: 0, class: "muted" },
+  vm = { class: "place-grid" },
+  hm = { class: "row" },
+  gm = ["onClick"],
+  ym = { key: 0, class: "inline-error" },
+  bm = ["onUpdate:modelValue"],
+  km = ["disabled"],
+  _m = { key: 0, class: "inline-error" },
+  wm = ["disabled"],
+  $m = { key: 0 },
+  Cm = ["disabled"],
+  xm = { key: 5, class: "modal-backdrop" },
+  Sm = { class: "card confirm-dialog" },
+  Tm = je({
     __name: "WorldPage",
     setup(e) {
-      const t = G(null),
-        s = _e(() => Ut.value.find((S) => S.id === t.value)),
-        n = G(!1),
-        l = G(""),
-        i = G(null),
-        r = G(0),
-        a = G(""),
-        u = G(!1),
-        f = ds(["世界"]),
-        c = G(null),
-        d = G(null),
-        C = G("");
-      function w() {
-        c.value = { id: Date.now(), name: "", genre: "现代都市" };
+      const t = z(null),
+        s = ye(() => Oe.value.find((w) => w.id === t.value)),
+        l = z(!1),
+        o = z(""),
+        i = z(null),
+        r = z(0),
+        u = z(""),
+        d = z(!1),
+        f = fs(["世界"]),
+        a = z(null),
+        p = z(null),
+        _ = z("");
+      function b() {
+        a.value = { id: Date.now(), name: "", genre: "现代都市" };
       }
       const A = [
         ["alias", "别名"],
@@ -5106,34 +5446,34 @@ const Ut = G(
         ["furniture", "固定陈设"],
         ["layout", "布局描述"],
       ];
-      function B() {
-        var I;
-        if (!((I = c.value) != null && I.name.trim()) || f.value) return;
-        const S = { ...c.value };
-        ((C.value = "world"),
-          Je(
+      function P() {
+        var O;
+        if (!((O = a.value) != null && O.name.trim()) || f.value) return;
+        const w = { ...a.value };
+        ((_.value = "world"),
+          Xe(
             "世界",
-            S.name + " " + S.genre,
+            w.name + " " + w.genre,
             () => {
-              const K = Ut.value.find((le) => le.id === S.id);
-              (K
-                ? Object.assign(K, S)
-                : Ut.value.push({ ...S, residents: [], sites: [] }),
-                (t.value = S.id),
-                (n.value = !0),
-                (c.value = null));
+              const G = Oe.value.find((oe) => oe.id === w.id);
+              (G
+                ? Object.assign(G, w)
+                : Oe.value.push({ ...w, residents: [], sites: [] }),
+                (t.value = w.id),
+                (l.value = !0),
+                (a.value = null));
             },
-            S.name,
+            w.name,
           ));
       }
-      function te() {
-        const S = s.value;
-        !S ||
+      function V() {
+        const w = s.value;
+        !w ||
           f.value ||
-          ((C.value = "expand"),
-          Je("世界", l.value || "河岸茶馆", () => {
-            (S.sites.length || S.sites.push({ name: "街区", places: [] }),
-              S.sites[0].places.push({
+          ((_.value = "expand"),
+          Xe("世界", o.value || "河岸茶馆", () => {
+            (w.sites.length || w.sites.push({ name: "街区", places: [] }),
+              w.sites[0].places.push({
                 id: Date.now(),
                 name: "河岸茶馆",
                 alias: "",
@@ -5146,93 +5486,93 @@ const Ut = G(
               }));
           }));
       }
-      function se(S, I) {
-        ((r.value = I), (i.value = { ...S }));
+      function le(w, O) {
+        ((r.value = O), (i.value = { ...w }));
       }
       function ne() {
-        var K;
-        if (!((K = i.value) != null && K.name.trim()) || f.value) return;
-        const S = { ...i.value },
-          I = s.value.sites[r.value];
-        ((C.value = "place"),
-          Je(
+        var G;
+        if (!((G = i.value) != null && G.name.trim()) || f.value) return;
+        const w = { ...i.value },
+          O = s.value.sites[r.value];
+        ((_.value = "place"),
+          Xe(
             "世界",
-            Object.values(S).join(" "),
+            Object.values(w).join(" "),
             () => {
-              const le = I.places.findIndex((H) => H.id === S.id);
-              (le < 0 ? I.places.push(S) : (I.places[le] = S),
+              const oe = O.places.findIndex((W) => W.id === w.id);
+              (oe < 0 ? O.places.push(w) : (O.places[oe] = w),
                 (i.value = null));
             },
-            S.name,
+            w.name,
           ));
       }
-      function ue() {
-        const S = s.value,
-          I = a.value.trim();
-        !S ||
-          !I ||
+      function ce() {
+        const w = s.value,
+          O = u.value.trim();
+        !w ||
+          !O ||
           f.value ||
-          ((C.value = "site"),
-          Je("世界", I, () => {
-            (S.sites.push({ name: I, places: [] }),
-              (a.value = ""),
-              (u.value = !1));
+          ((_.value = "site"),
+          Xe("世界", O, () => {
+            (w.sites.push({ name: O, places: [] }),
+              (u.value = ""),
+              (d.value = !1));
           }));
       }
-      return (S, I) => {
-        var K, le;
+      return (w, O) => {
+        var G, oe;
         return (
-          p(),
-          g(
-            O,
+          c(),
+          v(
+            I,
             null,
             [
               s.value
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 1 },
                     [
-                      o("div", $p, [
-                        o(
+                      n("div", im, [
+                        n(
                           "button",
                           {
                             class: "text-button",
-                            onClick: I[0] || (I[0] = (H) => (t.value = null)),
+                            onClick: O[0] || (O[0] = (W) => (t.value = null)),
                           },
                           "世界列表",
                         ),
-                        o("span", null, " / " + v(s.value.name), 1),
-                        I[16] ||
-                          (I[16] = o("span", { class: "spacer" }, null, -1)),
-                        o(
+                        n("span", null, " / " + m(s.value.name), 1),
+                        O[16] ||
+                          (O[16] = n("span", { class: "spacer" }, null, -1)),
+                        n(
                           "button",
                           {
                             class: "button",
-                            onClick: I[1] || (I[1] = (H) => (u.value = !0)),
+                            onClick: O[1] || (O[1] = (W) => (d.value = !0)),
                           },
                           "新增场地",
                         ),
                       ]),
-                      o("div", Cp, [
-                        o("div", xp, [
-                          I[17] ||
-                            (I[17] = o(
+                      n("div", rm, [
+                        n("div", am, [
+                          O[17] ||
+                            (O[17] = n(
                               "span",
                               { class: "eyebrow" },
                               "A WORLD OF YOUR OWN",
                               -1,
                             )),
-                          I[18] ||
-                            (I[18] = o("span", { class: "spacer" }, null, -1)),
-                          o(
+                          O[18] ||
+                            (O[18] = n("span", { class: "spacer" }, null, -1)),
+                          n(
                             "button",
                             {
                               class: "button",
                               onClick:
-                                I[2] ||
-                                (I[2] = (H) =>
-                                  (c.value = {
+                                O[2] ||
+                                (O[2] = (W) =>
+                                  (a.value = {
                                     id: s.value.id,
                                     name: s.value.name,
                                     genre: s.value.genre,
@@ -5240,80 +5580,80 @@ const Ut = G(
                             },
                             "编辑世界信息",
                           ),
-                          o(
+                          n(
                             "button",
                             {
                               class: "button",
                               onClick:
-                                I[3] || (I[3] = (H) => (n.value = !n.value)),
+                                O[3] || (O[3] = (W) => (l.value = !l.value)),
                             },
-                            v(n.value ? "结束编辑" : "编辑地点"),
+                            m(l.value ? "结束编辑" : "编辑地点"),
                             1,
                           ),
                         ]),
-                        o("h2", null, v(s.value.name), 1),
-                        o("p", null, v(s.value.genre), 1),
+                        n("h2", null, m(s.value.name), 1),
+                        n("p", null, m(s.value.genre), 1),
                       ]),
-                      o("div", Sp, [
-                        pe(
-                          o(
+                      n("div", um, [
+                        re(
+                          n(
                             "input",
                             {
                               "onUpdate:modelValue":
-                                I[4] || (I[4] = (H) => (l.value = H)),
+                                O[4] || (O[4] = (W) => (o.value = W)),
                               placeholder: "补充扩展方向，例如：河岸书店",
                             },
                             null,
                             512,
                           ),
-                          [[$e, l.value]],
+                          [[he, o.value]],
                         ),
-                        o(
+                        n(
                           "button",
-                          { class: "button", disabled: M(f), onClick: te },
-                          v(
-                            M(f) && C.value === "expand"
+                          { class: "button", disabled: h(f), onClick: V },
+                          m(
+                            h(f) && _.value === "expand"
                               ? "处理中…"
                               : "AI 扩展世界",
                           ),
                           9,
-                          Tp,
+                          dm,
                         ),
                       ]),
                       s.value.sites.length
-                        ? X("", !0)
-                        : (p(),
-                          g("div", Mp, [
-                            ...(I[19] ||
-                              (I[19] = [o("p", null, "暂无场地", -1)])),
+                        ? J("", !0)
+                        : (c(),
+                          v("div", cm, [
+                            ...(O[19] ||
+                              (O[19] = [n("p", null, "暂无场地", -1)])),
                           ])),
-                      (p(!0),
-                      g(
-                        O,
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(
+                        te(
                           s.value.sites,
-                          (H, q) => (
-                            p(),
-                            g("section", { key: q, class: "card compact" }, [
-                              o("div", Ep, [
-                                o("h3", null, "场地 · " + v(H.name), 1),
-                                I[20] ||
-                                  (I[20] = o(
+                          (W, Y) => (
+                            c(),
+                            v("section", { key: Y, class: "card compact" }, [
+                              n("div", fm, [
+                                n("h3", null, "场地 · " + m(W.name), 1),
+                                O[20] ||
+                                  (O[20] = n(
                                     "span",
                                     { class: "spacer" },
                                     null,
                                     -1,
                                   )),
-                                n.value
-                                  ? (p(),
-                                    g(
+                                l.value
+                                  ? (c(),
+                                    v(
                                       "button",
                                       {
                                         key: 0,
                                         class: "text-button",
-                                        onClick: (V) => {
-                                          ((r.value = q),
+                                        onClick: (L) => {
+                                          ((r.value = Y),
                                             (i.value = {
                                               id: Date.now(),
                                               name: "",
@@ -5329,69 +5669,69 @@ const Ut = G(
                                       },
                                       "添加地点",
                                       8,
-                                      Ap,
+                                      pm,
                                     ))
-                                  : X("", !0),
+                                  : J("", !0),
                               ]),
-                              H.places.length
-                                ? X("", !0)
-                                : (p(), g("p", Ip, "暂无地点")),
-                              o("div", Op, [
-                                (p(!0),
-                                g(
-                                  O,
+                              W.places.length
+                                ? J("", !0)
+                                : (c(), v("p", mm, "暂无地点")),
+                              n("div", vm, [
+                                (c(!0),
+                                v(
+                                  I,
                                   null,
-                                  oe(
-                                    H.places,
-                                    (V) => (
-                                      p(),
-                                      g(
+                                  te(
+                                    W.places,
+                                    (L) => (
+                                      c(),
+                                      v(
                                         "article",
-                                        { key: V.id, class: "place" },
+                                        { key: L.id, class: "place" },
                                         [
-                                          o("div", Vp, [
-                                            o(
+                                          n("div", hm, [
+                                            n(
                                               "b",
                                               null,
-                                              v(V.alias || V.name),
+                                              m(L.alias || L.name),
                                               1,
                                             ),
-                                            o("small", null, v(V.floor), 1),
+                                            n("small", null, m(L.floor), 1),
                                           ]),
-                                          o(
+                                          n(
                                             "p",
                                             null,
-                                            v(V.description) +
+                                            m(L.description) +
                                               " · " +
-                                              v(V.atmosphere),
+                                              m(L.atmosphere),
                                             1,
                                           ),
-                                          o(
+                                          n(
                                             "small",
                                             null,
-                                            "固定陈设：" + v(V.furniture),
+                                            "固定陈设：" + m(L.furniture),
                                             1,
                                           ),
-                                          o(
+                                          n(
                                             "small",
                                             null,
-                                            "布局：" + v(V.layout),
+                                            "布局：" + m(L.layout),
                                             1,
                                           ),
-                                          n.value
-                                            ? (p(),
-                                              g(
+                                          l.value
+                                            ? (c(),
+                                              v(
                                                 "button",
                                                 {
                                                   key: 0,
                                                   class: "button edit-place",
-                                                  onClick: (U) => se(V, q),
+                                                  onClick: (F) => le(L, Y),
                                                 },
                                                 "编辑地点",
                                                 8,
-                                                Pp,
+                                                gm,
                                               ))
-                                            : X("", !0),
+                                            : J("", !0),
                                         ],
                                       )
                                     ),
@@ -5407,19 +5747,19 @@ const Ut = G(
                     ],
                     64,
                   ))
-                : (p(),
-                  g(
-                    O,
+                : (c(),
+                  v(
+                    I,
                     { key: 0 },
                     [
-                      o("div", { class: "row" }, [
-                        I[14] ||
-                          (I[14] = o(
+                      n("div", { class: "row" }, [
+                        O[14] ||
+                          (O[14] = n(
                             "div",
                             null,
                             [
-                              o("h2", null, "世界列表"),
-                              o(
+                              n("h2", null, "世界列表"),
+                              n(
                                 "p",
                                 { class: "muted" },
                                 "每个人，都在自己的风景里生活。",
@@ -5427,102 +5767,102 @@ const Ut = G(
                             ],
                             -1,
                           )),
-                        I[15] ||
-                          (I[15] = o("span", { class: "spacer" }, null, -1)),
-                        o(
+                        O[15] ||
+                          (O[15] = n("span", { class: "spacer" }, null, -1)),
+                        n(
                           "button",
                           {
                             class: "button",
                             "data-testid": "world-add",
-                            onClick: w,
+                            onClick: b,
                           },
                           "添加世界",
                         ),
                       ]),
-                      o("div", vp, [
-                        (p(!0),
-                        g(
-                          O,
+                      n("div", Qp, [
+                        (c(!0),
+                        v(
+                          I,
                           null,
-                          oe(
-                            M(Ut),
-                            (H) => (
-                              p(),
-                              g(
+                          te(
+                            h(Oe),
+                            (W) => (
+                              c(),
+                              v(
                                 "article",
                                 {
-                                  key: H.id,
-                                  class: ge([
+                                  key: W.id,
+                                  class: ke([
                                     "card",
-                                    { current: H.residents.includes(M(W).id) },
+                                    { current: W.residents.includes(h(U).id) },
                                   ]),
                                 },
                                 [
-                                  o("div", hp, [
-                                    o("h2", null, v(H.name), 1),
-                                    H.residents.includes(M(W).id)
-                                      ? (p(), g("span", gp, "当前"))
-                                      : X("", !0),
+                                  n("div", Xp, [
+                                    n("h2", null, m(W.name), 1),
+                                    W.residents.includes(h(U).id)
+                                      ? (c(), v("span", em, "当前"))
+                                      : J("", !0),
                                   ]),
-                                  o(
+                                  n(
                                     "p",
                                     null,
-                                    v(H.genre) +
+                                    m(W.genre) +
                                       " · " +
-                                      v(H.sites.length) +
+                                      m(W.sites.length) +
                                       " 处场地",
                                     1,
                                   ),
-                                  o(
+                                  n(
                                     "p",
-                                    yp,
+                                    tm,
                                     "居住在这里：" +
-                                      v(
-                                        H.residents
-                                          .map((q) => {
-                                            var V;
-                                            return (V = M(et)[q]) == null
+                                      m(
+                                        W.residents
+                                          .map((Y) => {
+                                            var L;
+                                            return (L = h(Ae)[Y]) == null
                                               ? void 0
-                                              : V.name;
+                                              : L.name;
                                           })
                                           .join("、") || "暂无角色",
                                       ),
                                     1,
                                   ),
-                                  o("div", bp, [
-                                    o(
+                                  n("div", sm, [
+                                    n(
                                       "button",
                                       {
                                         class: "button primary",
-                                        onClick: (q) => {
-                                          ((t.value = H.id), (n.value = !1));
+                                        onClick: (Y) => {
+                                          ((t.value = W.id), (l.value = !1));
                                         },
                                       },
                                       "进入",
                                       8,
-                                      _p,
+                                      lm,
                                     ),
-                                    o(
+                                    n(
                                       "button",
                                       {
                                         class: "text-button",
-                                        onClick: (q) => {
-                                          ((t.value = H.id), (n.value = !0));
+                                        onClick: (Y) => {
+                                          ((t.value = W.id), (l.value = !0));
                                         },
                                       },
                                       "编辑",
                                       8,
-                                      kp,
+                                      nm,
                                     ),
-                                    o(
+                                    n(
                                       "button",
                                       {
                                         class: "text-button",
-                                        onClick: (q) => (d.value = H.id),
+                                        onClick: (Y) => (p.value = W.id),
                                       },
                                       "删除",
                                       8,
-                                      wp,
+                                      om,
                                     ),
                                   ]),
                                 ],
@@ -5537,89 +5877,89 @@ const Ut = G(
                     64,
                   )),
               i.value
-                ? (p(),
-                  Ae(
-                    Vs,
+                ? (c(),
+                  Se(
+                    Ks,
                     {
                       key: 2,
                       title:
-                        (K = s.value) != null &&
-                        K.sites.some((H) =>
-                          H.places.some((q) => {
-                            var V;
+                        (G = s.value) != null &&
+                        G.sites.some((W) =>
+                          W.places.some((Y) => {
+                            var L;
                             return (
-                              q.id === ((V = i.value) == null ? void 0 : V.id)
+                              Y.id === ((L = i.value) == null ? void 0 : L.id)
                             );
                           }),
                         )
                           ? "编辑地点"
                           : "添加地点",
                       "test-id": "place-drawer",
-                      onClose: I[6] || (I[6] = (H) => (i.value = null)),
+                      onClose: O[6] || (O[6] = (W) => (i.value = null)),
                     },
                     {
-                      default: Ht(() => [
-                        o(
+                      default: Gt(() => [
+                        n(
                           "form",
-                          { class: "form-grid", onSubmit: Ve(ne, ["prevent"]) },
+                          { class: "form-grid", onSubmit: Ue(ne, ["prevent"]) },
                           [
-                            me(It, { labels: ["世界"] }),
-                            o("label", null, [
-                              I[21] || (I[21] = Z("地点名称", -1)),
-                              pe(
-                                o(
+                            ae(St, { labels: ["世界"] }),
+                            n("label", null, [
+                              O[21] || (O[21] = K("地点名称", -1)),
+                              re(
+                                n(
                                   "input",
                                   {
                                     "onUpdate:modelValue":
-                                      I[5] ||
-                                      (I[5] = (H) => (i.value.name = H)),
+                                      O[5] ||
+                                      (O[5] = (W) => (i.value.name = W)),
                                   },
                                   null,
                                   512,
                                 ),
-                                [[$e, i.value.name]],
+                                [[he, i.value.name]],
                               ),
                               i.value.name.trim()
-                                ? X("", !0)
-                                : (p(), g("small", Lp, "请填写地点名称。")),
+                                ? J("", !0)
+                                : (c(), v("small", ym, "请填写地点名称。")),
                             ]),
-                            (p(),
-                            g(
-                              O,
+                            (c(),
+                            v(
+                              I,
                               null,
-                              oe(A, ([H, q]) =>
-                                o("label", { key: H }, [
-                                  Z(v(q), 1),
-                                  pe(
-                                    o(
+                              te(A, ([W, Y]) =>
+                                n("label", { key: W }, [
+                                  K(m(Y), 1),
+                                  re(
+                                    n(
                                       "input",
                                       {
-                                        "onUpdate:modelValue": (V) =>
-                                          (i.value[H] = V),
+                                        "onUpdate:modelValue": (L) =>
+                                          (i.value[W] = L),
                                       },
                                       null,
                                       8,
-                                      Up,
+                                      bm,
                                     ),
-                                    [[$e, i.value[H]]],
+                                    [[he, i.value[W]]],
                                   ),
                                 ]),
                               ),
                               64,
                             )),
-                            o(
+                            n(
                               "button",
                               {
                                 class: "button primary",
-                                disabled: M(f) || !i.value.name.trim(),
+                                disabled: h(f) || !i.value.name.trim(),
                               },
-                              v(
-                                M(f) && C.value === "place"
+                              m(
+                                h(f) && _.value === "place"
                                   ? "处理中…"
                                   : "保存地点",
                               ),
                               9,
-                              Np,
+                              km,
                             ),
                           ],
                           32,
@@ -5630,80 +5970,80 @@ const Ut = G(
                     8,
                     ["title"],
                   ))
-                : X("", !0),
-              c.value
-                ? (p(),
-                  Ae(
-                    Vs,
+                : J("", !0),
+              a.value
+                ? (c(),
+                  Se(
+                    Ks,
                     {
                       key: 3,
-                      title: M(Ut).some((H) => {
-                        var q;
-                        return H.id === ((q = c.value) == null ? void 0 : q.id);
+                      title: h(Oe).some((W) => {
+                        var Y;
+                        return W.id === ((Y = a.value) == null ? void 0 : Y.id);
                       })
                         ? "编辑世界"
                         : "添加世界",
                       "test-id": "world-drawer",
-                      onClose: I[9] || (I[9] = (H) => (c.value = null)),
+                      onClose: O[9] || (O[9] = (W) => (a.value = null)),
                     },
                     {
-                      default: Ht(() => [
-                        o(
+                      default: Gt(() => [
+                        n(
                           "form",
-                          { class: "form-grid", onSubmit: Ve(B, ["prevent"]) },
+                          { class: "form-grid", onSubmit: Ue(P, ["prevent"]) },
                           [
-                            me(It, { labels: ["世界"] }),
-                            o("label", null, [
-                              I[22] || (I[22] = Z("世界名称", -1)),
-                              pe(
-                                o(
+                            ae(St, { labels: ["世界"] }),
+                            n("label", null, [
+                              O[22] || (O[22] = K("世界名称", -1)),
+                              re(
+                                n(
                                   "input",
                                   {
                                     "onUpdate:modelValue":
-                                      I[7] ||
-                                      (I[7] = (H) => (c.value.name = H)),
+                                      O[7] ||
+                                      (O[7] = (W) => (a.value.name = W)),
                                     "data-testid": "world-name",
                                   },
                                   null,
                                   512,
                                 ),
-                                [[$e, c.value.name]],
+                                [[he, a.value.name]],
                               ),
-                              c.value.name.trim()
-                                ? X("", !0)
-                                : (p(), g("small", Fp, "请填写世界名称。")),
+                              a.value.name.trim()
+                                ? J("", !0)
+                                : (c(), v("small", _m, "请填写世界名称。")),
                             ]),
-                            o("label", null, [
-                              I[23] || (I[23] = Z("世界类型", -1)),
-                              pe(
-                                o(
+                            n("label", null, [
+                              O[23] || (O[23] = K("世界类型", -1)),
+                              re(
+                                n(
                                   "input",
                                   {
                                     "onUpdate:modelValue":
-                                      I[8] ||
-                                      (I[8] = (H) => (c.value.genre = H)),
+                                      O[8] ||
+                                      (O[8] = (W) => (a.value.genre = W)),
                                     "data-testid": "world-genre",
                                   },
                                   null,
                                   512,
                                 ),
-                                [[$e, c.value.genre]],
+                                [[he, a.value.genre]],
                               ),
                             ]),
-                            o(
+                            n(
                               "button",
                               {
                                 class: "button primary",
-                                disabled: M(f) || !c.value.name.trim(),
+                                disabled: h(f) || !a.value.name.trim(),
                                 "data-testid": "world-save",
                               },
-                              v(
-                                M(f) && C.value === "world"
+                              m(
+                                h(f) && _.value === "world"
                                   ? "处理中…"
                                   : "保存世界",
                               ),
                               9,
-                              Rp,
+                              wm,
                             ),
                           ],
                           32,
@@ -5714,55 +6054,55 @@ const Ut = G(
                     8,
                     ["title"],
                   ))
-                : X("", !0),
-              u.value
-                ? (p(),
-                  Ae(
-                    Vs,
+                : J("", !0),
+              d.value
+                ? (c(),
+                  Se(
+                    Ks,
                     {
                       key: 4,
                       title: "添加场地",
                       "test-id": "site-drawer",
-                      onClose: I[11] || (I[11] = (H) => (u.value = !1)),
+                      onClose: O[11] || (O[11] = (W) => (d.value = !1)),
                     },
                     {
-                      default: Ht(() => [
-                        o(
+                      default: Gt(() => [
+                        n(
                           "form",
-                          { class: "form-grid", onSubmit: Ve(ue, ["prevent"]) },
+                          { class: "form-grid", onSubmit: Ue(ce, ["prevent"]) },
                           [
-                            me(It, { labels: ["世界"] }),
-                            o("label", null, [
-                              I[24] || (I[24] = Z("名称", -1)),
-                              pe(
-                                o(
+                            ae(St, { labels: ["世界"] }),
+                            n("label", null, [
+                              O[24] || (O[24] = K("名称", -1)),
+                              re(
+                                n(
                                   "input",
                                   {
                                     "onUpdate:modelValue":
-                                      I[10] || (I[10] = (H) => (a.value = H)),
+                                      O[10] || (O[10] = (W) => (u.value = W)),
                                   },
                                   null,
                                   512,
                                 ),
-                                [[$e, a.value]],
+                                [[he, u.value]],
                               ),
-                              a.value.trim()
-                                ? X("", !0)
-                                : (p(), g("small", Dp, "请填写场地名称。")),
+                              u.value.trim()
+                                ? J("", !0)
+                                : (c(), v("small", $m, "请填写场地名称。")),
                             ]),
-                            o(
+                            n(
                               "button",
                               {
                                 class: "button primary",
-                                disabled: M(f) || !a.value.trim(),
+                                disabled: h(f) || !u.value.trim(),
                               },
-                              v(
-                                M(f) && C.value === "site"
+                              m(
+                                h(f) && _.value === "site"
                                   ? "处理中…"
                                   : "保存场地",
                               ),
                               9,
-                              jp,
+                              Cm,
                             ),
                           ],
                           32,
@@ -5771,53 +6111,53 @@ const Ut = G(
                       _: 1,
                     },
                   ))
-                : X("", !0),
-              d.value !== null
-                ? (p(),
-                  g("div", Hp, [
-                    o("section", Bp, [
-                      I[25] || (I[25] = o("h2", null, "删除世界？", -1)),
-                      o(
+                : J("", !0),
+              p.value !== null
+                ? (c(),
+                  v("div", xm, [
+                    n("section", Sm, [
+                      O[25] || (O[25] = n("h2", null, "删除世界？", -1)),
+                      n(
                         "p",
                         null,
                         "「" +
-                          v(
-                            (le = M(Ut).find((H) => H.id === d.value)) == null
+                          m(
+                            (oe = h(Oe).find((W) => W.id === p.value)) == null
                               ? void 0
-                              : le.name,
+                              : oe.name,
                           ) +
                           "」及其中的场地将被移除。",
                         1,
                       ),
-                      o(
+                      n(
                         "button",
                         {
                           class: "button",
-                          onClick: I[12] || (I[12] = (H) => (d.value = null)),
+                          onClick: O[12] || (O[12] = (W) => (p.value = null)),
                         },
                         "取消",
                       ),
-                      o(
+                      n(
                         "button",
                         {
                           class: "button primary",
                           onClick:
-                            I[13] ||
-                            (I[13] = (H) => {
-                              ((Ut.value = M(Ut).filter(
-                                (q) => q.id !== d.value,
+                            O[13] ||
+                            (O[13] = (W) => {
+                              ((Oe.value = h(Oe).filter(
+                                (Y) => Y.id !== p.value,
                               )),
-                                (d.value = null));
+                                (p.value = null));
                             }),
                         },
                         "确认删除",
                       ),
                     ]),
                   ]))
-                : X("", !0),
-              !i.value && !c.value && !u.value
-                ? (p(), Ae(It, { key: 6, labels: ["世界"] }))
-                : X("", !0),
+                : J("", !0),
+              !i.value && !a.value && !d.value
+                ? (c(), Se(St, { key: 6, labels: ["世界"] }))
+                : J("", !0),
             ],
             64,
           )
@@ -5825,319 +6165,319 @@ const Ut = G(
       };
     },
   }),
-  Wp = { class: "row" },
-  qp = { class: "avatar small" },
-  zp = { class: "post-art" },
-  Gp = { class: "row" },
-  Jp = ["onClick"],
-  Yp = ["data-testid", "onClick"],
-  Zp = { key: 0, class: "comments" },
-  Qp = { class: "avatar small" },
-  Xp = ["onSubmit"],
-  e1 = ["onUpdate:modelValue", "data-testid", "onKeydown"],
-  t1 = ["disabled"],
-  s1 = { class: "muted" },
-  n1 = { class: "people-grid" },
-  l1 = ["onClick"],
-  o1 = { class: "avatar" },
-  i1 = { key: 0, class: "card empty-state" },
-  r1 = ["aria-label"],
-  a1 = { class: "muted" },
-  u1 = { class: "media-grid" },
-  c1 = { class: "card media-tile" },
-  d1 = ["onClick"],
-  f1 = { key: 0, class: "audio-control" },
-  p1 = ["onClick"],
-  m1 = ["value"],
-  v1 = {
+  Mm = { class: "row" },
+  Im = { class: "avatar small" },
+  Em = { class: "post-art" },
+  Am = { class: "row" },
+  Vm = ["onClick"],
+  Om = ["data-testid", "onClick"],
+  Um = { key: 0, class: "comments" },
+  Pm = { class: "avatar small" },
+  Lm = ["onSubmit"],
+  Nm = ["onUpdate:modelValue", "data-testid", "onKeydown"],
+  Rm = ["disabled"],
+  Fm = { class: "muted" },
+  jm = { class: "people-grid" },
+  Dm = ["onClick"],
+  Hm = { class: "avatar" },
+  Bm = { key: 0, class: "card empty-state" },
+  Km = ["aria-label"],
+  zm = { class: "muted" },
+  qm = { class: "media-grid" },
+  Wm = { class: "card media-tile" },
+  Jm = ["onClick"],
+  Gm = { key: 0, class: "audio-control" },
+  Ym = ["onClick"],
+  Zm = ["value"],
+  Qm = {
     "data-testid": "media-preview-drawer",
     class: "card media-modal",
     role: "dialog",
     "aria-modal": "true",
     "aria-label": "媒体预览",
   },
-  h1 = { class: "row" },
-  g1 = { key: 1, class: "card empty-state" },
-  y1 = { class: "row" },
-  b1 = { class: "pill" },
-  _1 = ["onClick"],
-  k1 = { key: 0, class: "pill current-badge" },
-  w1 = ["onClick"],
-  $1 = { key: 0, class: "inline-profile" },
-  C1 = { key: 0 },
-  x1 = { key: 4, class: "card placeholder" },
-  S1 = ["onClick"],
-  T1 = { class: "pill" },
-  M1 = ["data-testid", "onClick"],
-  E1 = { key: 0, class: "muted" },
-  A1 = nt({
+  Xm = { class: "row" },
+  e1 = { key: 1, class: "card empty-state" },
+  t1 = { class: "row" },
+  s1 = { class: "pill" },
+  l1 = ["onClick"],
+  n1 = { key: 0, class: "pill current-badge" },
+  o1 = ["onClick"],
+  i1 = { key: 0, class: "inline-profile" },
+  r1 = { key: 0 },
+  a1 = { key: 4, class: "card placeholder" },
+  u1 = ["onClick"],
+  d1 = { class: "pill" },
+  c1 = ["data-testid", "onClick"],
+  f1 = { key: 0, class: "muted" },
+  p1 = je({
     __name: "BrowsePage",
     props: { page: {} },
     setup(e) {
-      const t = ds(["动态"]),
-        s = G(null),
-        n = G({}),
-        l = setInterval(() => {
+      const t = fs(["动态"]),
+        s = z(null),
+        l = z({}),
+        o = setInterval(() => {
           if (s.value === null) return;
-          const V = s.value;
-          ((n.value[V] = (n.value[V] || 0) + 2),
-            n.value[V] >= 100 && ((n.value[V] = 0), (s.value = null)));
+          const L = s.value;
+          ((l.value[L] = (l.value[L] || 0) + 2),
+            l.value[L] >= 100 && ((l.value[L] = 0), (s.value = null)));
         }, 500);
-      Ks(() => clearInterval(l));
-      const i = _e(() =>
-        [...Zi.value, ...vs.value].filter((V) => V.status === "error"),
+      ll(() => clearInterval(o));
+      const i = ye(() =>
+        [...vr.value, ...$s.value].filter((L) => L.status === "error"),
       );
-      function r(V) {
-        ((Xi.value = "运行诊断"),
-          (al.value = V),
+      function r(L) {
+        ((Zn.value = "运行诊断"),
+          (In.value = L),
           (location.hash = encodeURIComponent("管理中心")));
       }
-      function a(V) {
-        ((cs.value = V), (location.hash = encodeURIComponent("聊天")));
+      function u(L) {
+        ((lt.value = L), (location.hash = encodeURIComponent("聊天")));
       }
-      const u = e,
-        f = G(""),
-        c = G({
+      const d = e,
+        f = z(""),
+        a = z({
           status: "",
           tag: "",
           scene: "",
           type: "",
-          who: u.page === "媒体" ? W.value.name : "",
+          who: d.page === "媒体" ? U.value.name : "",
         }),
-        d = G(null),
-        C = G({}),
-        w = G({}),
-        A = _e(() => [
+        p = z(null),
+        _ = z({}),
+        b = z({}),
+        A = ye(() => [
           { key: "status", label: "状态", options: ["活跃", "暂未联系"] },
           { key: "tag", label: "标签", options: ["日常", "工作", "旧友"] },
           {
             key: "scene",
             label: "场景",
-            options: W.value.sites.map((V) => V.name),
+            options: U.value.sites.map((L) => L.name),
           },
         ]),
-        B = _e(() => [
+        P = ye(() => [
           { key: "type", label: "类型", options: ["图片", "语音", "视频"] },
           { key: "tag", label: "标签", options: ["日常", "风景", "创作"] },
-          { key: "who", label: "角色", options: et.value.map((V) => V.name) },
+          { key: "who", label: "角色", options: Ae.value.map((L) => L.name) },
         ]),
-        te = [
+        V = [
           {
             key: "tag",
             label: "标签",
             options: ["温柔", "创作", "沉稳", "城市", "自然"],
           },
         ];
-      function se() {
+      function le() {
         ((f.value = ""),
-          (c.value = { status: "", tag: "", scene: "", type: "", who: "" }));
+          (a.value = { status: "", tag: "", scene: "", type: "", who: "" }));
       }
-      const ne = G(null);
-      function ue(V, U) {
-        V.key === "Enter" &&
-          !V.shiftKey &&
-          !V.isComposing &&
-          (V.preventDefault(), q(U));
+      const ne = z(null);
+      function ce(L, F) {
+        L.key === "Enter" &&
+          !L.shiftKey &&
+          !L.isComposing &&
+          (L.preventDefault(), Y(F));
       }
-      const S = (V) => V.toLowerCase().includes(f.value.trim().toLowerCase()),
-        I = _e(() =>
-          W.value.people.filter(
-            (V) =>
-              S(V.name + " " + V.identity) &&
-              (!c.value.status || V.status === c.value.status) &&
-              (!c.value.tag || V.tag === c.value.tag) &&
-              (!c.value.scene || V.location === c.value.scene),
+      const w = (L) => L.toLowerCase().includes(f.value.trim().toLowerCase()),
+        O = ye(() =>
+          U.value.people.filter(
+            (L) =>
+              w(L.name + " " + L.identity) &&
+              (!a.value.status || L.status === a.value.status) &&
+              (!a.value.tag || L.tag === a.value.tag) &&
+              (!a.value.scene || L.location === a.value.scene),
           ),
         ),
-        K = _e(() => W.value.people.find((V) => V.id === d.value)),
-        le = _e(() =>
-          et.value.filter(
-            (V) =>
-              S(V.name + " " + V.job + " " + V.bio) &&
-              (!c.value.tag || V.tags.includes(c.value.tag)),
+        G = ye(() => U.value.people.find((L) => L.id === p.value)),
+        oe = ye(() =>
+          Ae.value.filter(
+            (L) =>
+              w(L.name + " " + L.job + " " + L.bio) &&
+              (!a.value.tag || L.tags.includes(a.value.tag)),
           ),
         ),
-        H = _e(() =>
-          Po.filter(
-            (V) =>
-              S(V.title + " " + V.character) &&
-              (!c.value.type || V.type === c.value.type) &&
-              (!c.value.who || V.character === c.value.who) &&
-              (!c.value.tag || V.tag === c.value.tag),
+        W = ye(() =>
+          ei.filter(
+            (L) =>
+              w(L.title + " " + L.character) &&
+              (!a.value.type || L.type === a.value.type) &&
+              (!a.value.who || L.character === a.value.who) &&
+              (!a.value.tag || L.tag === a.value.tag),
           ),
         );
-      function q(V) {
-        var ee;
-        const U = (ee = C.value[V]) == null ? void 0 : ee.trim();
-        if (!U || t.value) return;
-        ne.value = V;
-        const _ = W.value.posts[V];
-        (Je("动态", U, () =>
-          _.comments.push({ name: "我", text: U, time: "刚刚" }),
+      function Y(L) {
+        var se;
+        const F = (se = _.value[L]) == null ? void 0 : se.trim();
+        if (!F || t.value) return;
+        ne.value = L;
+        const C = U.value.posts[L];
+        (Xe("动态", F, () =>
+          C.comments.push({ name: "我", text: F, time: "刚刚" }),
         ),
-          (C.value[V] = ""));
+          (_.value[L] = ""));
       }
-      return (V, U) =>
+      return (L, F) =>
         e.page === "动态"
-          ? (p(),
-            g(
-              O,
+          ? (c(),
+            v(
+              I,
               { key: 0 },
               [
-                U[13] ||
-                  (U[13] = o(
+                F[13] ||
+                  (F[13] = n(
                     "p",
                     { class: "muted" },
                     "生活的切片，留一点位置给彼此的回应。",
                     -1,
                   )),
-                (p(!0),
-                g(
-                  O,
+                (c(!0),
+                v(
+                  I,
                   null,
-                  oe(M(W).posts, (_, ee) => {
-                    var he;
+                  te(h(U).posts, (C, se) => {
+                    var be;
                     return (
-                      p(),
-                      g("article", { key: ee, class: "card post compact" }, [
-                        o("div", Wp, [
-                          o("span", qp, v(M(W).initial), 1),
-                          o("b", null, v(M(W).name), 1),
-                          o("small", null, v(_.time), 1),
+                      c(),
+                      v("article", { key: se, class: "card post compact" }, [
+                        n("div", Mm, [
+                          n("span", Im, m(h(U).initial), 1),
+                          n("b", null, m(h(U).name), 1),
+                          n("small", null, m(C.time), 1),
                         ]),
-                        o("p", null, v(_.text), 1),
-                        o("div", zp, [
-                          me(M(Tl), { size: 36 }),
-                          U[10] ||
-                            (U[10] = o("span", null, "把日子过成一首小诗", -1)),
+                        n("p", null, m(C.text), 1),
+                        n("div", Em, [
+                          ae(h(Gn), { size: 36 }),
+                          F[10] ||
+                            (F[10] = n("span", null, "把日子过成一首小诗", -1)),
                         ]),
-                        o("div", Gp, [
-                          o(
+                        n("div", Am, [
+                          n(
                             "button",
                             {
                               class: "text-button",
-                              onClick: (j) => {
-                                ((_.liked = !_.liked),
-                                  (_.likes += _.liked ? 1 : -1));
+                              onClick: (q) => {
+                                ((C.liked = !C.liked),
+                                  (C.likes += C.liked ? 1 : -1));
                               },
                             },
-                            v(_.liked ? "♥" : "♡") + " " + v(_.likes) + " 喜欢",
+                            m(C.liked ? "♥" : "♡") + " " + m(C.likes) + " 喜欢",
                             9,
-                            Jp,
+                            Vm,
                           ),
-                          o(
+                          n(
                             "button",
                             {
-                              "data-testid": "comment-toggle-" + ee,
+                              "data-testid": "comment-toggle-" + se,
                               class: "text-button",
-                              onClick: (j) => (w.value[ee] = !w.value[ee]),
+                              onClick: (q) => (b.value[se] = !b.value[se]),
                             },
                             "评论 " +
-                              v(_.comments.length) +
+                              m(C.comments.length) +
                               " " +
-                              v(w.value[ee] ? "收起" : "展开"),
+                              m(b.value[se] ? "收起" : "展开"),
                             9,
-                            Yp,
+                            Om,
                           ),
                         ]),
-                        w.value[ee]
-                          ? (p(),
-                            g("div", Zp, [
-                              (p(!0),
-                              g(
-                                O,
+                        b.value[se]
+                          ? (c(),
+                            v("div", Um, [
+                              (c(!0),
+                              v(
+                                I,
                                 null,
-                                oe(
-                                  _.comments,
-                                  (j, T) => (
-                                    p(),
-                                    g("p", { key: T }, [
-                                      o("span", Qp, v(j.name.slice(0, 1)), 1),
-                                      o("span", null, [
-                                        o("b", null, v(j.name), 1),
-                                        U[11] || (U[11] = Z()),
-                                        o("small", null, v(j.time), 1),
-                                        U[12] ||
-                                          (U[12] = o("br", null, null, -1)),
-                                        Z(v(j.text), 1),
+                                te(
+                                  C.comments,
+                                  (q, M) => (
+                                    c(),
+                                    v("p", { key: M }, [
+                                      n("span", Pm, m(q.name.slice(0, 1)), 1),
+                                      n("span", null, [
+                                        n("b", null, m(q.name), 1),
+                                        F[11] || (F[11] = K()),
+                                        n("small", null, m(q.time), 1),
+                                        F[12] ||
+                                          (F[12] = n("br", null, null, -1)),
+                                        K(m(q.text), 1),
                                       ]),
                                     ])
                                   ),
                                 ),
                                 128,
                               )),
-                              o(
+                              n(
                                 "form",
                                 {
                                   class: "input-row",
-                                  onSubmit: Ve((j) => q(ee), ["prevent"]),
+                                  onSubmit: Ue((q) => Y(se), ["prevent"]),
                                 },
                                 [
-                                  pe(
-                                    o(
+                                  re(
+                                    n(
                                       "textarea",
                                       {
-                                        "onUpdate:modelValue": (j) =>
-                                          (C.value[ee] = j),
+                                        "onUpdate:modelValue": (q) =>
+                                          (_.value[se] = q),
                                         placeholder: "留下一句回应…",
                                         "aria-label": "评论内容",
                                         rows: "2",
-                                        "data-testid": "comment-input-" + ee,
-                                        onKeydown: (j) => ue(j, ee),
+                                        "data-testid": "comment-input-" + se,
+                                        onKeydown: (q) => ce(q, se),
                                       },
                                       null,
                                       40,
-                                      e1,
+                                      Nm,
                                     ),
-                                    [[$e, C.value[ee]]],
+                                    [[he, _.value[se]]],
                                   ),
-                                  o(
+                                  n(
                                     "button",
                                     {
                                       class: "button",
                                       disabled:
-                                        M(t) ||
+                                        h(t) ||
                                         !(
-                                          (he = C.value[ee]) != null &&
-                                          he.trim()
+                                          (be = _.value[se]) != null &&
+                                          be.trim()
                                         ),
                                     },
-                                    v(
-                                      M(t) && ne.value === ee
+                                    m(
+                                      h(t) && ne.value === se
                                         ? "处理中…"
                                         : "发表评论",
                                     ),
                                     9,
-                                    t1,
+                                    Rm,
                                   ),
                                 ],
                                 40,
-                                Xp,
+                                Lm,
                               ),
                             ]))
-                          : X("", !0),
+                          : J("", !0),
                       ])
                     );
                   }),
                   128,
                 )),
-                me(It, { labels: ["动态"] }),
+                ae(St, { labels: ["动态"] }),
               ],
               64,
             ))
           : e.page === "人物关系"
-            ? (p(),
-              g(
-                O,
+            ? (c(),
+              v(
+                I,
                 { key: 1 },
                 [
-                  me(
-                    Os,
+                  ae(
+                    bs,
                     {
                       search: f.value,
-                      "onUpdate:search": U[0] || (U[0] = (_) => (f.value = _)),
-                      filters: c.value,
-                      "onUpdate:filters": U[1] || (U[1] = (_) => (c.value = _)),
+                      "onUpdate:search": F[0] || (F[0] = (C) => (f.value = C)),
+                      filters: a.value,
+                      "onUpdate:filters": F[1] || (F[1] = (C) => (a.value = C)),
                       groups: A.value,
                       "test-id": "people-filters",
                       placeholder: "搜索姓名 / 身份",
@@ -6146,137 +6486,137 @@ const Ut = G(
                     8,
                     ["search", "filters", "groups"],
                   ),
-                  o("small", s1, v(I.value.length) + " 位相识", 1),
-                  o("div", n1, [
-                    (p(!0),
-                    g(
-                      O,
+                  n("small", Fm, m(O.value.length) + " 位相识", 1),
+                  n("div", jm, [
+                    (c(!0),
+                    v(
+                      I,
                       null,
-                      oe(
-                        I.value,
-                        (_) => (
-                          p(),
-                          g(
+                      te(
+                        O.value,
+                        (C) => (
+                          c(),
+                          v(
                             "button",
                             {
-                              key: _.id,
+                              key: C.id,
                               class: "card person-card",
-                              onClick: (ee) => (d.value = _.id),
+                              onClick: (se) => (p.value = C.id),
                             },
                             [
-                              o("span", o1, v(_.name.slice(0, 1)), 1),
-                              o("h3", null, v(_.name), 1),
-                              o(
+                              n("span", Hm, m(C.name.slice(0, 1)), 1),
+                              n("h3", null, m(C.name), 1),
+                              n(
                                 "p",
                                 null,
-                                v(_.identity) + " · " + v(_.relation),
+                                m(C.identity) + " · " + m(C.relation),
                                 1,
                               ),
-                              o(
+                              n(
                                 "small",
                                 null,
-                                v(_.location) + " · " + v(_.tag),
+                                m(C.location) + " · " + m(C.tag),
                                 1,
                               ),
                             ],
                             8,
-                            l1,
+                            Dm,
                           )
                         ),
                       ),
                       128,
                     )),
                   ]),
-                  I.value.length
-                    ? X("", !0)
-                    : (p(),
-                      g("div", i1, [
-                        U[14] || (U[14] = o("p", null, "暂无匹配人物", -1)),
-                        o(
+                  O.value.length
+                    ? J("", !0)
+                    : (c(),
+                      v("div", Bm, [
+                        F[14] || (F[14] = n("p", null, "暂无匹配人物", -1)),
+                        n(
                           "button",
-                          { class: "button", onClick: se },
+                          { class: "button", onClick: le },
                           "清除筛选",
                         ),
                       ])),
-                  K.value
-                    ? (p(),
-                      g(
+                  G.value
+                    ? (c(),
+                      v(
                         "div",
                         {
                           key: 1,
                           "data-testid": "person-drawer-overlay",
                           class: "drawer-backdrop",
                           onClick:
-                            U[3] ||
-                            (U[3] = Ve((_) => (d.value = null), ["self"])),
+                            F[3] ||
+                            (F[3] = Ue((C) => (p.value = null), ["self"])),
                         },
                         [
-                          o(
+                          n(
                             "aside",
                             {
                               "data-testid": "person-drawer",
                               class: "detail-drawer",
                               role: "dialog",
                               "aria-modal": "true",
-                              "aria-label": K.value.name,
+                              "aria-label": G.value.name,
                             },
                             [
-                              o(
+                              n(
                                 "button",
                                 {
                                   class: "button",
                                   onClick:
-                                    U[2] || (U[2] = (_) => (d.value = null)),
+                                    F[2] || (F[2] = (C) => (p.value = null)),
                                 },
                                 "关闭",
                               ),
-                              o("h2", null, v(K.value.name), 1),
-                              o(
+                              n("h2", null, m(G.value.name), 1),
+                              n(
                                 "p",
                                 null,
-                                v(K.value.identity) +
+                                m(G.value.identity) +
                                   " · " +
-                                  v(K.value.type) +
+                                  m(G.value.type) +
                                   " · " +
-                                  v(K.value.status),
+                                  m(G.value.status),
                                 1,
                               ),
-                              o("p", null, v(K.value.bio), 1),
-                              o("p", null, [
-                                Z("关系：" + v(K.value.relation), 1),
-                                U[15] || (U[15] = o("br", null, null, -1)),
-                                Z("位置：" + v(K.value.location), 1),
-                                U[16] || (U[16] = o("br", null, null, -1)),
-                                Z("日程：" + v(K.value.schedule), 1),
-                                U[17] || (U[17] = o("br", null, null, -1)),
-                                Z("标签：" + v(K.value.tag), 1),
+                              n("p", null, m(G.value.bio), 1),
+                              n("p", null, [
+                                K("关系：" + m(G.value.relation), 1),
+                                F[15] || (F[15] = n("br", null, null, -1)),
+                                K("位置：" + m(G.value.location), 1),
+                                F[16] || (F[16] = n("br", null, null, -1)),
+                                K("日程：" + m(G.value.schedule), 1),
+                                F[17] || (F[17] = n("br", null, null, -1)),
+                                K("标签：" + m(G.value.tag), 1),
                               ]),
                             ],
                             8,
-                            r1,
+                            Km,
                           ),
                         ],
                       ))
-                    : X("", !0),
+                    : J("", !0),
                 ],
                 64,
               ))
             : e.page === "媒体"
-              ? (p(),
-                g(
-                  O,
+              ? (c(),
+                v(
+                  I,
                   { key: 2 },
                   [
-                    me(
-                      Os,
+                    ae(
+                      bs,
                       {
                         search: f.value,
                         "onUpdate:search":
-                          U[4] || (U[4] = (_) => (f.value = _)),
-                        filters: c.value,
+                          F[4] || (F[4] = (C) => (f.value = C)),
+                        filters: a.value,
                         "onUpdate:filters":
-                          U[5] || (U[5] = (_) => (c.value = _)),
-                        groups: B.value,
+                          F[5] || (F[5] = (C) => (a.value = C)),
+                        groups: P.value,
                         "test-id": "media-filters",
                         placeholder: "搜索媒体 / 角色",
                       },
@@ -6284,193 +6624,193 @@ const Ut = G(
                       8,
                       ["search", "filters", "groups"],
                     ),
-                    o("small", a1, v(H.value.length) + " 项", 1),
-                    o("div", u1, [
-                      (p(!0),
-                      g(
-                        O,
+                    n("small", zm, m(W.value.length) + " 项", 1),
+                    n("div", qm, [
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(
-                          H.value,
-                          (_) => (
-                            p(),
-                            g("article", c1, [
-                              o(
+                        te(
+                          W.value,
+                          (C) => (
+                            c(),
+                            v("article", Wm, [
+                              n(
                                 "button",
                                 {
                                   class: "media-open",
-                                  onClick: (ee) => (d.value = _.id),
+                                  onClick: (se) => (p.value = C.id),
                                 },
                                 [
-                                  o(
+                                  n(
                                     "div",
                                     {
-                                      class: ge([
+                                      class: ke([
                                         "media-preview",
-                                        "media-art-" + (_.id % 6),
-                                        "media-type-" + _.type,
-                                        _.type === "图片" ? "photo" : "",
+                                        "media-art-" + (C.id % 6),
+                                        "media-type-" + C.type,
+                                        C.type === "图片" ? "photo" : "",
                                       ]),
                                     },
                                     [
-                                      (p(),
-                                      Ae(
-                                        as(
-                                          _.type === "图片"
-                                            ? M($o)
-                                            : _.type === "语音"
-                                              ? M(So)
-                                              : M(xo),
+                                      (c(),
+                                      Se(
+                                        hs(
+                                          C.type === "图片"
+                                            ? h(Sn)
+                                            : C.type === "语音"
+                                              ? h(qo)
+                                              : h(zo),
                                         ),
                                         { size: 30 },
                                       )),
                                     ],
                                     2,
                                   ),
-                                  o("b", null, v(_.title), 1),
-                                  o(
+                                  n("b", null, m(C.title), 1),
+                                  n(
                                     "small",
                                     null,
-                                    v(_.character) +
+                                    m(C.character) +
                                       " · " +
-                                      v(_.type) +
+                                      m(C.type) +
                                       " · " +
-                                      v(_.time),
+                                      m(C.time),
                                     1,
                                   ),
                                 ],
                                 8,
-                                d1,
+                                Jm,
                               ),
-                              _.type === "语音"
-                                ? (p(),
-                                  g("div", f1, [
-                                    o(
+                              C.type === "语音"
+                                ? (c(),
+                                  v("div", Gm, [
+                                    n(
                                       "button",
                                       {
                                         class: "button",
-                                        onClick: (ee) =>
+                                        onClick: (se) =>
                                           (s.value =
-                                            s.value === _.id ? null : _.id),
+                                            s.value === C.id ? null : C.id),
                                       },
-                                      v(s.value === _.id ? "暂停" : "播放"),
+                                      m(s.value === C.id ? "暂停" : "播放"),
                                       9,
-                                      p1,
+                                      Ym,
                                     ),
-                                    o(
+                                    n(
                                       "progress",
-                                      { value: n.value[_.id] || 0, max: "100" },
+                                      { value: l.value[C.id] || 0, max: "100" },
                                       null,
                                       8,
-                                      m1,
+                                      Zm,
                                     ),
-                                    o(
+                                    n(
                                       "small",
                                       null,
-                                      v(
-                                        Math.floor((n.value[_.id] || 0) * 0.3),
+                                      m(
+                                        Math.floor((l.value[C.id] || 0) * 0.3),
                                       ) + " / 30 秒",
                                       1,
                                     ),
                                   ]))
-                                : X("", !0),
+                                : J("", !0),
                             ])
                           ),
                         ),
                         256,
                       )),
                     ]),
-                    d.value !== null
-                      ? (p(),
-                        g(
+                    p.value !== null
+                      ? (c(),
+                        v(
                           "div",
                           {
                             key: 0,
                             class: "modal-backdrop",
                             onClick:
-                              U[7] ||
-                              (U[7] = Ve((_) => (d.value = null), ["self"])),
+                              F[7] ||
+                              (F[7] = Ue((C) => (p.value = null), ["self"])),
                           },
                           [
-                            o("section", v1, [
-                              (p(!0),
-                              g(
-                                O,
+                            n("section", Qm, [
+                              (c(!0),
+                              v(
+                                I,
                                 null,
-                                oe(
-                                  M(Po).filter((_) => _.id === d.value),
-                                  (_) => (
-                                    p(),
-                                    g(
-                                      O,
+                                te(
+                                  h(ei).filter((C) => C.id === p.value),
+                                  (C) => (
+                                    c(),
+                                    v(
+                                      I,
                                       null,
                                       [
-                                        o("div", h1, [
-                                          o("h2", null, v(_.title), 1),
-                                          U[18] ||
-                                            (U[18] = o(
+                                        n("div", Xm, [
+                                          n("h2", null, m(C.title), 1),
+                                          F[18] ||
+                                            (F[18] = n(
                                               "span",
                                               { class: "spacer" },
                                               null,
                                               -1,
                                             )),
-                                          o(
+                                          n(
                                             "button",
                                             {
                                               class: "button",
                                               onClick:
-                                                U[6] ||
-                                                (U[6] = (ee) =>
-                                                  (d.value = null)),
+                                                F[6] ||
+                                                (F[6] = (se) =>
+                                                  (p.value = null)),
                                             },
                                             "关闭预览",
                                           ),
                                         ]),
-                                        o(
+                                        n(
                                           "div",
                                           {
-                                            class: ge([
+                                            class: ke([
                                               "media-preview",
                                               "large-media",
-                                              "media-art-" + (_.id % 6),
-                                              "media-type-" + _.type,
+                                              "media-art-" + (C.id % 6),
+                                              "media-type-" + C.type,
                                             ]),
                                           },
                                           [
-                                            (p(),
-                                            Ae(
-                                              as(
-                                                _.type === "图片"
-                                                  ? M($o)
-                                                  : _.type === "语音"
-                                                    ? M(So)
-                                                    : M(xo),
+                                            (c(),
+                                            Se(
+                                              hs(
+                                                C.type === "图片"
+                                                  ? h(Sn)
+                                                  : C.type === "语音"
+                                                    ? h(qo)
+                                                    : h(zo),
                                               ),
                                               { size: 72 },
                                             )),
-                                            o(
+                                            n(
                                               "span",
                                               null,
-                                              v(
-                                                _.type === "语音"
+                                              m(
+                                                C.type === "语音"
                                                   ? "▂ ▅ ▃ ▇ ▄ ▂ ▆"
-                                                  : _.type === "视频"
+                                                  : C.type === "视频"
                                                     ? "▶"
-                                                    : _.title,
+                                                    : C.title,
                                               ),
                                               1,
                                             ),
                                           ],
                                           2,
                                         ),
-                                        o(
+                                        n(
                                           "p",
                                           null,
-                                          v(_.character) +
+                                          m(C.character) +
                                             " · " +
-                                            v(_.time) +
+                                            m(C.time) +
                                             " · " +
-                                            v(_.tag),
+                                            m(C.tag),
                                           1,
                                         ),
                                       ],
@@ -6483,18 +6823,18 @@ const Ut = G(
                             ]),
                           ],
                         ))
-                      : X("", !0),
-                    H.value.length
-                      ? X("", !0)
-                      : (p(),
-                        g("div", g1, [
-                          U[19] || (U[19] = o("p", null, "暂无匹配媒体。", -1)),
-                          o(
+                      : J("", !0),
+                    W.value.length
+                      ? J("", !0)
+                      : (c(),
+                        v("div", e1, [
+                          F[19] || (F[19] = n("p", null, "暂无匹配媒体。", -1)),
+                          n(
                             "button",
                             {
                               class: "button",
                               "data-testid": "media-empty-clear",
-                              onClick: se,
+                              onClick: le,
                             },
                             "清除筛选",
                           ),
@@ -6503,21 +6843,21 @@ const Ut = G(
                   64,
                 ))
               : e.page === "角色库"
-                ? (p(),
-                  g(
-                    O,
+                ? (c(),
+                  v(
+                    I,
                     { key: 3 },
                     [
-                      me(
-                        Os,
+                      ae(
+                        bs,
                         {
                           search: f.value,
                           "onUpdate:search":
-                            U[8] || (U[8] = (_) => (f.value = _)),
-                          filters: c.value,
+                            F[8] || (F[8] = (C) => (f.value = C)),
+                          filters: a.value,
                           "onUpdate:filters":
-                            U[9] || (U[9] = (_) => (c.value = _)),
-                          groups: te,
+                            F[9] || (F[9] = (C) => (a.value = C)),
+                          groups: V,
                           "test-id": "library-filters",
                           placeholder: "搜索角色 / 职业",
                         },
@@ -6525,327 +6865,327 @@ const Ut = G(
                         8,
                         ["search", "filters"],
                       ),
-                      (p(!0),
-                      g(
-                        O,
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(
-                          le.value,
-                          (_) => (
-                            p(),
-                            g("article", { key: _.id, class: "card compact" }, [
-                              o("div", y1, [
-                                o(
+                        te(
+                          oe.value,
+                          (C) => (
+                            c(),
+                            v("article", { key: C.id, class: "card compact" }, [
+                              n("div", t1, [
+                                n(
                                   "span",
                                   {
                                     class: "avatar",
-                                    style: yt({ background: _.color }),
+                                    style: at({ background: C.color }),
                                   },
-                                  v(_.initial),
+                                  m(C.initial),
                                   5,
                                 ),
-                                o("div", null, [
-                                  o("b", null, v(_.name) + " · " + v(_.job), 1),
-                                  o("p", null, v(_.subtitle), 1),
-                                  (p(!0),
-                                  g(
-                                    O,
+                                n("div", null, [
+                                  n("b", null, m(C.name) + " · " + m(C.job), 1),
+                                  n("p", null, m(C.subtitle), 1),
+                                  (c(!0),
+                                  v(
+                                    I,
                                     null,
-                                    oe(
-                                      _.tags,
-                                      (ee) => (p(), g("span", b1, v(ee), 1)),
+                                    te(
+                                      C.tags,
+                                      (se) => (c(), v("span", s1, m(se), 1)),
                                     ),
                                     256,
                                   )),
                                 ]),
-                                U[20] ||
-                                  (U[20] = o(
+                                F[20] ||
+                                  (F[20] = n(
                                     "span",
                                     { class: "spacer" },
                                     null,
                                     -1,
                                   )),
-                                o(
+                                n(
                                   "button",
                                   {
                                     class: "text-button",
-                                    onClick: (ee) =>
-                                      (d.value =
-                                        d.value === _.id ? null : _.id),
+                                    onClick: (se) =>
+                                      (p.value =
+                                        p.value === C.id ? null : C.id),
                                   },
-                                  v(d.value === _.id ? "收起详情" : "角色详情"),
+                                  m(p.value === C.id ? "收起详情" : "角色详情"),
                                   9,
-                                  _1,
+                                  l1,
                                 ),
-                                M(cs) === _.id
-                                  ? (p(), g("span", k1, "当前"))
-                                  : (p(),
-                                    g(
+                                h(lt) === C.id
+                                  ? (c(), v("span", n1, "当前"))
+                                  : (c(),
+                                    v(
                                       "button",
                                       {
                                         key: 1,
                                         class: "button primary",
-                                        onClick: (ee) => (cs.value = _.id),
+                                        onClick: (se) => (lt.value = C.id),
                                       },
                                       "切换角色",
                                       8,
-                                      w1,
+                                      o1,
                                     )),
                               ]),
-                              d.value === _.id
-                                ? (p(),
-                                  g("div", $1, [
-                                    o("h2", null, v(_.name), 1),
-                                    o("p", null, v(_.bio), 1),
-                                    o("p", null, [
-                                      Z("职业：" + v(_.job), 1),
-                                      U[21] ||
-                                        (U[21] = o("br", null, null, -1)),
-                                      Z("兴趣：" + v(_.hobby), 1),
-                                      U[22] ||
-                                        (U[22] = o("br", null, null, -1)),
-                                      Z("心情：" + v(_.mood), 1),
-                                      U[23] ||
-                                        (U[23] = o("br", null, null, -1)),
-                                      Z("位置：" + v(_.location), 1),
-                                      U[24] ||
-                                        (U[24] = o("br", null, null, -1)),
-                                      Z("世界：" + v(_.world), 1),
+                              p.value === C.id
+                                ? (c(),
+                                  v("div", i1, [
+                                    n("h2", null, m(C.name), 1),
+                                    n("p", null, m(C.bio), 1),
+                                    n("p", null, [
+                                      K("职业：" + m(C.job), 1),
+                                      F[21] ||
+                                        (F[21] = n("br", null, null, -1)),
+                                      K("兴趣：" + m(C.hobby), 1),
+                                      F[22] ||
+                                        (F[22] = n("br", null, null, -1)),
+                                      K("心情：" + m(C.mood), 1),
+                                      F[23] ||
+                                        (F[23] = n("br", null, null, -1)),
+                                      K("位置：" + m(C.location), 1),
+                                      F[24] ||
+                                        (F[24] = n("br", null, null, -1)),
+                                      K("世界：" + m(C.world), 1),
                                     ]),
                                   ]))
-                                : X("", !0),
+                                : J("", !0),
                             ])
                           ),
                         ),
                         128,
                       )),
-                      le.value.length
-                        ? X("", !0)
-                        : (p(), g("p", C1, "暂无匹配角色。")),
+                      oe.value.length
+                        ? J("", !0)
+                        : (c(), v("p", r1, "暂无匹配角色。")),
                     ],
                     64,
                   ))
                 : e.page === "创作中心"
-                  ? (p(), g("div", x1, "即将重新设计"))
+                  ? (c(), v("div", a1, "即将重新设计"))
                   : e.page === "通知与待处理"
-                    ? (p(),
-                      g(
-                        O,
+                    ? (c(),
+                      v(
+                        I,
                         { key: 5 },
                         [
-                          U[29] || (U[29] = o("h2", null, "未读消息", -1)),
-                          (p(!0),
-                          g(
-                            O,
+                          F[29] || (F[29] = n("h2", null, "未读消息", -1)),
+                          (c(!0),
+                          v(
+                            I,
                             null,
-                            oe(M(et), (_, ee) => {
-                              var he;
+                            te(h(Ae), (C, se) => {
+                              var be;
                               return (
-                                p(),
-                                g(
+                                c(),
+                                v(
                                   "button",
                                   {
                                     class: "card row notification-card",
-                                    onClick: (j) => a(_.id),
+                                    onClick: (q) => u(C.id),
                                   },
                                   [
-                                    o(
+                                    n(
                                       "span",
                                       {
                                         class: "avatar",
-                                        style: yt({ background: _.color }),
+                                        style: at({ background: C.color }),
                                       },
-                                      v(_.initial),
+                                      m(C.initial),
                                       5,
                                     ),
-                                    o("div", null, [
-                                      o("b", null, v(_.name) + " 在找你", 1),
-                                      o(
+                                    n("div", null, [
+                                      n("b", null, m(C.name) + " 在找你", 1),
+                                      n(
                                         "p",
                                         null,
-                                        v(
-                                          (he = _.messages
-                                            .filter((j) => !j.user)
+                                        m(
+                                          (be = C.messages
+                                            .filter((q) => !q.user)
                                             .at(-1)) == null
                                             ? void 0
-                                            : he.text.slice(0, 60),
+                                            : be.text.slice(0, 60),
                                         ),
                                         1,
                                       ),
                                     ]),
-                                    U[25] ||
-                                      (U[25] = o(
+                                    F[25] ||
+                                      (F[25] = n(
                                         "span",
                                         { class: "spacer" },
                                         null,
                                         -1,
                                       )),
-                                    o("span", T1, v(ee + 1) + " 条未读", 1),
+                                    n("span", d1, m(se + 1) + " 条未读", 1),
                                   ],
                                   8,
-                                  S1,
+                                  u1,
                                 )
                               );
                             }),
                             256,
                           )),
-                          o("h2", null, [
-                            U[26] || (U[26] = Z("异常检查 ", -1)),
-                            o("small", null, v(i.value.length) + " 项", 1),
+                          n("h2", null, [
+                            F[26] || (F[26] = K("异常检查 ", -1)),
+                            n("small", null, m(i.value.length) + " 项", 1),
                           ]),
-                          (p(!0),
-                          g(
-                            O,
+                          (c(!0),
+                          v(
+                            I,
                             null,
-                            oe(
+                            te(
                               i.value,
-                              (_) => (
-                                p(),
-                                g(
+                              (C) => (
+                                c(),
+                                v(
                                   "button",
                                   {
                                     "data-testid":
-                                      "notification-diagnostic-" + _.id,
+                                      "notification-diagnostic-" + C.id,
                                     class: "card row notification-card",
-                                    onClick: (ee) => r(_.id),
+                                    onClick: (se) => r(C.id),
                                   },
                                   [
-                                    o("b", null, v(_.label), 1),
-                                    o("span", null, v(_.reason), 1),
-                                    U[27] ||
-                                      (U[27] = o(
+                                    n("b", null, m(C.label), 1),
+                                    n("span", null, m(C.reason), 1),
+                                    F[27] ||
+                                      (F[27] = n(
                                         "span",
                                         { class: "spacer" },
                                         null,
                                         -1,
                                       )),
-                                    U[28] || (U[28] = Z("查看诊断 ↗", -1)),
+                                    F[28] || (F[28] = K("查看诊断 ↗", -1)),
                                   ],
                                   8,
-                                  M1,
+                                  c1,
                                 )
                               ),
                             ),
                             256,
                           )),
                           i.value.length
-                            ? X("", !0)
-                            : (p(), g("p", E1, "目前没有异常。")),
+                            ? J("", !0)
+                            : (c(), v("p", f1, "目前没有异常。")),
                         ],
                         64,
                       ))
-                    : X("", !0);
+                    : J("", !0);
     },
   }),
-  I1 = { class: "tabs" },
-  O1 = ["onClick"],
-  V1 = { key: 0, class: "configuration-layout" },
-  P1 = {
+  m1 = { class: "tabs" },
+  v1 = ["onClick"],
+  h1 = { key: 0, class: "configuration-layout" },
+  g1 = {
     class: "configuration-nav",
     "aria-label": "配置章节",
     "data-testid": "config-section-nav",
   },
-  L1 = ["href", "data-testid", "onClick"],
-  U1 = ["id"],
-  N1 = { class: "row" },
-  F1 = ["onClick"],
-  R1 = { class: "form-grid" },
-  D1 = ["onUpdate:modelValue"],
-  j1 = ["onUpdate:modelValue"],
-  H1 = ["onUpdate:modelValue"],
-  B1 = ["onUpdate:modelValue"],
-  K1 = { class: "check-field" },
-  W1 = ["onUpdate:modelValue"],
-  q1 = { class: "muted" },
-  z1 = ["onClick"],
-  G1 = ["id"],
+  y1 = ["href", "data-testid", "onClick"],
+  b1 = ["id"],
+  k1 = { class: "row" },
+  _1 = ["onClick"],
+  w1 = { class: "form-grid" },
+  $1 = ["onUpdate:modelValue"],
+  C1 = ["onUpdate:modelValue"],
+  x1 = ["onUpdate:modelValue"],
+  S1 = ["onUpdate:modelValue"],
+  T1 = { class: "check-field" },
+  M1 = ["onUpdate:modelValue"],
+  I1 = { class: "muted" },
+  E1 = ["onClick"],
+  A1 = ["id"],
+  V1 = { class: "form-grid" },
+  O1 = ["onUpdate:modelValue"],
+  U1 = ["value"],
+  P1 = ["onUpdate:modelValue", "list"],
+  L1 = ["id"],
+  N1 = ["value"],
+  R1 = ["onUpdate:modelValue"],
+  F1 = ["onUpdate:modelValue"],
+  j1 = ["onUpdate:modelValue", "min"],
+  D1 = { class: "muted" },
+  H1 = { class: "management-block" },
+  B1 = { class: "shared-scenario" },
+  K1 = ["id"],
+  z1 = { class: "form-grid" },
+  q1 = { class: "check-field" },
+  W1 = ["disabled"],
   J1 = { class: "form-grid" },
-  Y1 = ["onUpdate:modelValue"],
-  Z1 = ["value"],
-  Q1 = ["onUpdate:modelValue", "list"],
-  X1 = ["id"],
-  em = ["value"],
-  tm = ["onUpdate:modelValue"],
-  sm = ["onUpdate:modelValue"],
-  nm = ["onUpdate:modelValue", "min"],
-  lm = { class: "muted" },
-  om = { class: "management-block" },
-  im = { class: "shared-scenario" },
-  rm = ["id"],
-  am = { class: "form-grid" },
-  um = { class: "check-field" },
-  cm = ["disabled"],
-  dm = { class: "form-grid" },
-  fm = { class: "quiet-days" },
-  pm = ["value"],
-  mm = { key: 0 },
-  vm = { key: 1 },
-  hm = { key: 2, class: "muted" },
-  gm = { class: "form-grid" },
-  ym = ["onUpdate:modelValue"],
-  bm = ["value", "onInput"],
-  _m = ["onUpdate:modelValue", "type", "min", "max", "step", "placeholder"],
-  km = ["onClick"],
-  wm = { key: 0, role: "status", class: "muted" },
-  $m = { class: "settings-save-bar", "data-testid": "config-save-bar" },
-  Cm = { key: 0, role: "alert", class: "inline-error" },
-  xm = { key: 1, class: "muted" },
-  Sm = ["disabled"],
-  Tm = { class: "tabs" },
-  Mm = ["data-testid", "onClick"],
-  Em = { class: "muted" },
-  Am = { class: "diagnostic-feed", "data-testid": "diagnostic-feed" },
-  Im = ["id", "data-testid"],
-  Om = ["data-testid", "onClick"],
-  Vm = { class: "diagnostic-meta" },
-  Pm = { class: "pill" },
-  Lm = { class: "diagnostic-summary" },
-  Um = ["data-testid", "onClick"],
-  Nm = { key: 0, class: "card empty-state" },
-  Fm = { class: "detail-meta" },
-  Rm = { class: "pill" },
-  Dm = { key: 0, class: "inline-error" },
-  jm = { class: "media-call-attributes", "data-testid": "media-call-details" },
-  Hm = { class: "detail-section" },
-  Bm = { class: "detail-section" },
-  Km = { class: "detail-section" },
-  Wm = { class: "media-call-attributes" },
-  qm = { class: "detail-section", "data-testid": "media-call-output" },
-  zm = { key: 0, class: "mock-image-output" },
-  Gm = { key: 1, class: "muted" },
-  Jm = { class: "muted" },
-  Ym = { class: "detail-section" },
-  Zm = { class: "detail-section" },
-  Qm = { class: "detail-section" },
-  Xm = { class: "secondary-diagnostics" },
-  ev = { class: "quiet-days" },
-  tv = ["onClick"],
-  sv = { key: 0, class: "card" },
-  nv = { class: "row" },
-  lv = { role: "status" },
-  ov = nt({
+  G1 = { class: "quiet-days" },
+  Y1 = ["value"],
+  Z1 = { key: 0 },
+  Q1 = { key: 1 },
+  X1 = { key: 2, class: "muted" },
+  ev = { class: "form-grid" },
+  tv = ["onUpdate:modelValue"],
+  sv = ["value", "onInput"],
+  lv = ["onUpdate:modelValue", "type", "min", "max", "step", "placeholder"],
+  nv = ["onClick"],
+  ov = { key: 0, role: "status", class: "muted" },
+  iv = { class: "settings-save-bar", "data-testid": "config-save-bar" },
+  rv = { key: 0, role: "alert", class: "inline-error" },
+  av = { key: 1, class: "muted" },
+  uv = ["disabled"],
+  dv = { class: "tabs" },
+  cv = ["data-testid", "onClick"],
+  fv = { class: "muted" },
+  pv = { class: "diagnostic-feed", "data-testid": "diagnostic-feed" },
+  mv = ["id", "data-testid"],
+  vv = ["data-testid", "onClick"],
+  hv = { class: "diagnostic-meta" },
+  gv = { class: "pill" },
+  yv = { class: "diagnostic-summary" },
+  bv = ["data-testid", "onClick"],
+  kv = { key: 0, class: "card empty-state" },
+  _v = { class: "detail-meta" },
+  wv = { class: "pill" },
+  $v = { key: 0, class: "inline-error" },
+  Cv = { class: "media-call-attributes", "data-testid": "media-call-details" },
+  xv = { class: "detail-section" },
+  Sv = { class: "detail-section" },
+  Tv = { class: "detail-section" },
+  Mv = { class: "media-call-attributes" },
+  Iv = { class: "detail-section", "data-testid": "media-call-output" },
+  Ev = { key: 0, class: "mock-image-output" },
+  Av = { key: 1, class: "muted" },
+  Vv = { class: "muted" },
+  Ov = { class: "detail-section" },
+  Uv = { class: "detail-section" },
+  Pv = { class: "detail-section" },
+  Lv = { class: "secondary-diagnostics" },
+  Nv = { class: "quiet-days" },
+  Rv = ["onClick"],
+  Fv = { key: 0, class: "card" },
+  jv = { class: "row" },
+  Dv = { role: "status" },
+  Hv = je({
     __name: "ManagementPage",
     setup(e) {
       let t = !0;
-      Ks(() => {
+      ll(() => {
         t = !1;
       });
-      const s = (F) => JSON.parse(JSON.stringify(F)),
-        n = G(s(Oo.value)),
-        l = G(s(Eo.value)),
-        i = G(s(Ao.value)),
-        r = G(s(Io.value)),
-        a = Xi,
-        u = G("模型调用"),
-        f = G(""),
-        c = G({ type: "", who: "", status: "" }),
-        d = G(null),
-        C = G(null),
-        w = G(!1),
-        A = G(""),
-        B = G(""),
-        te = G(""),
-        se = {
+      const s = (D) => JSON.parse(JSON.stringify(D)),
+        l = z(s(Qo.value)),
+        o = z(s(Go.value)),
+        i = z(s(Yo.value)),
+        r = z(s(Zo.value)),
+        u = Zn,
+        d = z("模型调用"),
+        f = z(""),
+        a = z({ type: "", who: "", status: "" }),
+        p = z(null),
+        _ = z(null),
+        b = z(!1),
+        A = z(""),
+        P = z(""),
+        V = z(""),
+        le = {
           聊天回复: {
             prompt:
               "回应用户本次消息，使用角色已知事实与自然口吻，先回应感受，不编造共同经历。",
@@ -6881,199 +7221,199 @@ const Ut = G(
             summary: "已保存世界与场地信息",
           },
         },
-        ne = _e(() =>
-          vs.value.map((F, $) => {
-            const h = se[F.label];
+        ne = ye(() =>
+          $s.value.map((D, S) => {
+            const y = le[D.label];
             return {
-              ...F,
+              ...D,
               kind: "模型调用",
-              start: F.start ?? $ * 4,
-              duration: F.duration ?? 1,
+              start: D.start ?? S * 4,
+              duration: D.duration ?? 1,
               model: "通用模型",
               category: "工具执行失败",
               code: "capability_prepare_failed",
               response:
-                F.response && F.response !== "请求已完成。"
-                  ? F.response
-                  : `${(h == null ? void 0 : h.summary) || F.label + "已完成"}：${F.input}`,
-              reason: F.reason || "",
-              character: F.character || "",
-              input: `用途：${F.label}
-角色：${F.character}
-${(h == null ? void 0 : h.prompt) || ""}
-本次请求：${F.input}`,
+                D.response && D.response !== "请求已完成。"
+                  ? D.response
+                  : `${(y == null ? void 0 : y.summary) || D.label + "已完成"}：${D.input}`,
+              reason: D.reason || "",
+              character: D.character || "",
+              input: `用途：${D.label}
+角色：${D.character}
+${(y == null ? void 0 : y.prompt) || ""}
+本次请求：${D.input}`,
             };
           }),
         ),
-        ue = _e(() => [...Zi.value, ...ne.value]),
-        S = _e(() => ue.value.find((F) => F.id === d.value)),
-        I = (F) =>
-          F === "error" ? "失败" : F === "pending" ? "处理中" : "完成",
-        K = _e(() =>
-          ue.value
-            .filter((F) => {
-              var $, h, b;
+        ce = ye(() => [...vr.value, ...ne.value]),
+        w = ye(() => ce.value.find((D) => D.id === p.value)),
+        O = (D) =>
+          D === "error" ? "失败" : D === "pending" ? "处理中" : "完成",
+        G = ye(() =>
+          ce.value
+            .filter((D) => {
+              var S, y, $;
               return (
-                F.kind === u.value &&
-                (!c.value.type || F.label === c.value.type) &&
-                (!c.value.who || F.character === c.value.who) &&
-                (!c.value.status || I(F.status) === c.value.status) &&
+                D.kind === d.value &&
+                (!a.value.type || D.label === a.value.type) &&
+                (!a.value.who || D.character === a.value.who) &&
+                (!a.value.status || O(D.status) === a.value.status) &&
                 [
-                  F.label,
-                  F.input,
-                  F.character,
-                  F.model,
-                  F.reason,
-                  ($ = F.media) == null ? void 0 : $.workflow,
-                  (h = F.media) == null ? void 0 : h.negativePrompt,
-                  (b = F.media) == null ? void 0 : b.output,
+                  D.label,
+                  D.input,
+                  D.character,
+                  D.model,
+                  D.reason,
+                  (S = D.media) == null ? void 0 : S.workflow,
+                  (y = D.media) == null ? void 0 : y.negativePrompt,
+                  ($ = D.media) == null ? void 0 : $.output,
                 ]
                   .join(" ")
                   .toLowerCase()
                   .includes(f.value.trim().toLowerCase())
               );
             })
-            .sort((F, $) => $.start - F.start),
+            .sort((D, S) => S.start - D.start),
         ),
-        le = _e(() => [
+        oe = ye(() => [
           {
             key: "type",
             label: "类型",
             options: [
               ...new Set([
-                ...(u.value === "模型调用" ? As : hn),
-                ...ue.value
-                  .filter((F) => F.kind === u.value)
-                  .map((F) => F.label),
+                ...(d.value === "模型调用" ? Ds : El),
+                ...ce.value
+                  .filter((D) => D.kind === d.value)
+                  .map((D) => D.label),
               ]),
             ],
           },
-          { key: "who", label: "角色", options: et.value.map((F) => F.name) },
+          { key: "who", label: "角色", options: Ae.value.map((D) => D.name) },
           { key: "status", label: "状态", options: ["完成", "失败", "处理中"] },
         ]);
-      function H() {
-        ((f.value = ""), (c.value = { type: "", who: "", status: "" }));
+      function W() {
+        ((f.value = ""), (a.value = { type: "", who: "", status: "" }));
       }
-      function q(F) {
-        ((u.value = F), H(), (d.value = null), (C.value = null));
+      function Y(D) {
+        ((d.value = D), W(), (p.value = null), (_.value = null));
       }
-      function V(F) {
-        ((d.value = F.id), (C.value = F.id));
+      function L(D) {
+        ((p.value = D.id), (_.value = D.id));
       }
-      (it(
-        al,
-        async (F) => {
-          if (F === null) return;
-          const $ = ue.value.find((h) => h.id === F);
-          $ &&
-            ((a.value = "运行诊断"),
-            (u.value = $.kind),
-            H(),
-            V($),
-            (al.value = null),
-            await ls(),
+      (vt(
+        In,
+        async (D) => {
+          if (D === null) return;
+          const S = ce.value.find((y) => y.id === D);
+          S &&
+            ((u.value = "运行诊断"),
+            (d.value = S.kind),
+            W(),
+            L(S),
+            (In.value = null),
+            await Qt(),
             requestAnimationFrame(() => {
-              var h;
-              return (h = document.getElementById("diag-record-" + F)) == null
+              var y;
+              return (y = document.getElementById("diag-record-" + D)) == null
                 ? void 0
-                : h.scrollIntoView({ behavior: "smooth", block: "center" });
+                : y.scrollIntoView({ behavior: "smooth", block: "center" });
             }));
         },
         { immediate: !0 },
       ),
-        it(a, (F) => {
-          F === "配置中心" && (d.value = null);
+        vt(u, (D) => {
+          D === "配置中心" && (p.value = null);
         }));
-      const U = _e(() => [
+      const F = ye(() => [
           "服务地址",
           "模型用途",
           "安静时段",
-          ...n.value.map((F) => F.title),
+          ...l.value.map((D) => D.title),
         ]),
-        _ = (F) => "config-" + F;
-      function ee(F) {
-        const $ = document.getElementById(_(F));
-        (($ == null ? void 0 : $.tagName) === "DETAILS" &&
-          $.setAttribute("open", ""),
-          $ == null ||
-            $.scrollIntoView({ behavior: "smooth", block: "start" }));
+        C = (D) => "config-" + D;
+      function se(D) {
+        const S = document.getElementById(C(D));
+        ((S == null ? void 0 : S.tagName) === "DETAILS" &&
+          S.setAttribute("open", ""),
+          S == null ||
+            S.scrollIntoView({ behavior: "smooth", block: "start" }));
       }
-      const he = (F) =>
+      const be = (D) =>
           "14:" +
-          String(Math.floor(F.start / 60)).padStart(2, "0") +
+          String(Math.floor(D.start / 60)).padStart(2, "0") +
           ":" +
-          String(F.start % 60).padStart(2, "0"),
-        j = _e(() => Vo.find((F) => F.title === B.value));
-      function T(F) {
-        if (F.status !== "pending") {
-          if (F.id > 0) {
-            F.run();
+          String(D.start % 60).padStart(2, "0"),
+        q = ye(() => Xo.find((D) => D.title === P.value));
+      function M(D) {
+        if (D.status !== "pending") {
+          if (D.id > 0) {
+            D.run();
             return;
           }
-          ((F.status = "pending"),
+          ((D.status = "pending"),
             setTimeout(() => {
-              var h;
-              const $ = ns.value || F.input.includes("失败");
-              ((F.status = $ ? "error" : "success"),
-                $
-                  ? (F.reason = F.input.includes("失败")
+              var y;
+              const S = Yt.value || D.input.includes("失败");
+              ((D.status = S ? "error" : "success"),
+                S
+                  ? (D.reason = D.input.includes("失败")
                       ? "输入包含“失败”，请修改输入后重新提交。"
                       : "模拟失败已开启，关闭后可重试。")
-                  : ((F.reason = ""),
-                    (F.response =
-                      ((h = F.media) == null ? void 0 : h.output) ||
-                      F.response)));
+                  : ((D.reason = ""),
+                    (D.response =
+                      ((y = D.media) == null ? void 0 : y.output) ||
+                      D.response)));
             }, 900));
         }
       }
-      async function x(F) {
-        ((te.value = F + "：测试中…"),
-          await new Promise(($) => setTimeout($, 700)),
-          (te.value =
-            F +
+      async function T(D) {
+        ((V.value = D + "：测试中…"),
+          await new Promise((S) => setTimeout(S, 700)),
+          (V.value =
+            D +
             "：" +
-            (ns.value
+            (Yt.value
               ? "连接失败，请检查地址。"
               : "模拟测试通过（仅检查可达性）。")));
       }
-      async function R() {
-        if (w.value) return;
+      async function H() {
+        if (b.value) return;
         A.value = "";
-        for (const h of n.value)
-          for (const b of h.fields) {
-            if (b.type === "json")
+        for (const y of l.value)
+          for (const $ of y.fields) {
+            if ($.type === "json")
               try {
-                const k = JSON.parse(String(b.value));
-                if (!k || typeof k != "object" || Array.isArray(k))
+                const x = JSON.parse(String($.value));
+                if (!x || typeof x != "object" || Array.isArray(x))
                   throw Error();
               } catch {
-                A.value = b.label + "：请填写有效 JSON 对象。";
+                A.value = $.label + "：请填写有效 JSON 对象。";
                 return;
               }
             if (
-              b.type === "number" &&
-              (!Number.isFinite(+b.value) ||
-                (b.min !== void 0 && +b.value < b.min) ||
-                (b.max !== void 0 && +b.value > b.max))
+              $.type === "number" &&
+              (!Number.isFinite(+$.value) ||
+                ($.min !== void 0 && +$.value < $.min) ||
+                ($.max !== void 0 && +$.value > $.max))
             ) {
-              A.value = b.label + "：数值超出范围。";
+              A.value = $.label + "：数值超出范围。";
               return;
             }
           }
-        for (const h of l.value)
+        for (const y of o.value)
           try {
-            const b = new URL(h.url);
+            const $ = new URL(y.url);
             if (
-              !["http:", "https:"].includes(b.protocol) ||
-              b.username ||
-              b.password
+              !["http:", "https:"].includes($.protocol) ||
+              $.username ||
+              $.password
             )
               throw Error();
           } catch {
             A.value = "服务地址必须是不带账号密码的 http(s) URL。";
             return;
           }
-        if (i.value.some((h) => !l.value.some((b) => b.id === h.endpoint))) {
+        if (i.value.some((y) => !o.value.some(($) => $.id === y.endpoint))) {
           A.value = "请为四个用途选择有效的服务地址。";
           return;
         }
@@ -7087,53 +7427,53 @@ ${(h == null ? void 0 : h.prompt) || ""}
           A.value = "请完整设置安静时段，开始与结束时间需不同。";
           return;
         }
-        const F = n.value.find((h) => h.title === "高级");
+        const D = l.value.find((y) => y.title === "高级");
         if (
-          Number(F.fields.find((h) => h.label === "阶段总预算（ms）").value) <
-          Number(F.fields.find((h) => h.label === "请求超时（ms）").value)
+          Number(D.fields.find((y) => y.label === "阶段总预算（ms）").value) <
+          Number(D.fields.find((y) => y.label === "请求超时（ms）").value)
         ) {
           A.value = "Kev 阶段总预算不能小于请求超时。";
           return;
         }
-        const $ = [
-          ...l.value.flatMap((h) => [h.name, h.protocol, h.url, h.secret]),
-          ...i.value.map((h) => h.model),
-          ...n.value.flatMap((h) => h.fields.map((b) => String(b.value))),
-        ].some((h) => h.includes("失败"));
+        const S = [
+          ...o.value.flatMap((y) => [y.name, y.protocol, y.url, y.secret]),
+          ...i.value.map((y) => y.model),
+          ...l.value.flatMap((y) => y.fields.map(($) => String($.value))),
+        ].some((y) => y.includes("失败"));
         if (
-          ((w.value = !0),
-          await new Promise((h) => setTimeout(h, 800)),
-          (w.value = !1),
-          $)
+          ((b.value = !0),
+          await new Promise((y) => setTimeout(y, 800)),
+          (b.value = !1),
+          S)
         ) {
           A.value = "输入包含“失败”，请修改后重新提交。";
           return;
         }
-        if (ns.value) {
+        if (Yt.value) {
           A.value = "模拟保存失败，请关闭模拟失败后重试。";
           return;
         }
-        ((Oo.value = s(
-          n.value.map((h) => ({
-            ...h,
-            fields: h.fields.map((b) =>
-              b.type === "password" ? { ...b, value: "" } : b,
+        ((Qo.value = s(
+          l.value.map((y) => ({
+            ...y,
+            fields: y.fields.map(($) =>
+              $.type === "password" ? { ...$, value: "" } : $,
             ),
           })),
         )),
-          (Eo.value = s(l.value.map((h) => ({ ...h, secret: "" })))),
-          (Ao.value = s(i.value)),
-          (Io.value = s(r.value)),
-          l.value.forEach((h) => (h.secret = "")),
-          n.value.forEach((h) =>
-            h.fields.forEach((b) => {
-              b.type === "password" && (b.value = "");
+          (Go.value = s(o.value.map((y) => ({ ...y, secret: "" })))),
+          (Yo.value = s(i.value)),
+          (Zo.value = s(r.value)),
+          o.value.forEach((y) => (y.secret = "")),
+          l.value.forEach((y) =>
+            y.fields.forEach(($) => {
+              $.type === "password" && ($.value = "");
             }),
           ),
-          t && Ml("设置已保存（本地模拟）。"));
+          t && el("设置已保存（本地模拟）。"));
       }
-      function ye() {
-        l.value.push({
+      function _e() {
+        o.value.push({
           id: "service-" + Date.now(),
           name: "新服务",
           protocol: "openai-compatible",
@@ -7144,193 +7484,193 @@ ${(h == null ? void 0 : h.prompt) || ""}
           status: "未配置",
         });
       }
-      return (F, $) => (
-        p(),
-        g(
-          O,
+      return (D, S) => (
+        c(),
+        v(
+          I,
           null,
           [
-            o("div", I1, [
-              (p(),
-              g(
-                O,
+            n("div", m1, [
+              (c(),
+              v(
+                I,
                 null,
-                oe(["配置中心", "运行诊断"], (h) =>
-                  o(
+                te(["配置中心", "运行诊断"], (y) =>
+                  n(
                     "button",
                     {
-                      key: h,
-                      class: ge({ active: M(a) === h }),
-                      onClick: (b) => (a.value = h),
+                      key: y,
+                      class: ke({ active: h(u) === y }),
+                      onClick: ($) => (u.value = y),
                     },
-                    v(h),
+                    m(y),
                     11,
-                    O1,
+                    v1,
                   ),
                 ),
                 64,
               )),
             ]),
-            M(a) === "配置中心"
-              ? (p(),
-                g("div", V1, [
-                  o("nav", P1, [
-                    (p(!0),
-                    g(
-                      O,
+            h(u) === "配置中心"
+              ? (c(),
+                v("div", h1, [
+                  n("nav", g1, [
+                    (c(!0),
+                    v(
+                      I,
                       null,
-                      oe(
-                        U.value,
-                        (h) => (
-                          p(),
-                          g(
+                      te(
+                        F.value,
+                        (y) => (
+                          c(),
+                          v(
                             "a",
                             {
-                              key: h,
+                              key: y,
                               href: "#" + encodeURIComponent("管理中心"),
-                              "data-testid": "config-anchor-" + h,
-                              onClick: Ve((b) => ee(h), ["prevent"]),
+                              "data-testid": "config-anchor-" + y,
+                              onClick: Ue(($) => se(y), ["prevent"]),
                             },
-                            v(h),
+                            m(y),
                             9,
-                            L1,
+                            y1,
                           )
                         ),
                       ),
                       128,
                     )),
                   ]),
-                  o(
+                  n(
                     "form",
                     {
                       class: "settings-form management-form",
-                      onSubmit: Ve(R, ["prevent"]),
+                      onSubmit: Ue(H, ["prevent"]),
                     },
                     [
-                      o(
+                      n(
                         "section",
-                        { id: _("服务地址"), class: "card settings-group" },
+                        { id: C("服务地址"), class: "card settings-group" },
                         [
-                          o("div", { class: "row" }, [
-                            $[12] || ($[12] = o("h2", null, "服务地址", -1)),
-                            $[13] ||
-                              ($[13] = o(
+                          n("div", { class: "row" }, [
+                            S[12] || (S[12] = n("h2", null, "服务地址", -1)),
+                            S[13] ||
+                              (S[13] = n(
                                 "span",
                                 { class: "spacer" },
                                 null,
                                 -1,
                               )),
-                            o(
+                            n(
                               "button",
                               {
                                 type: "button",
                                 class: "text-button",
-                                onClick: ye,
+                                onClick: _e,
                               },
                               "添加服务",
                             ),
                           ]),
-                          (p(!0),
-                          g(
-                            O,
+                          (c(!0),
+                          v(
+                            I,
                             null,
-                            oe(
-                              l.value,
-                              (h, b) => (
-                                p(),
-                                g(
+                            te(
+                              o.value,
+                              (y, $) => (
+                                c(),
+                                v(
                                   "div",
-                                  { key: h.id, class: "management-block" },
+                                  { key: y.id, class: "management-block" },
                                   [
-                                    o("div", N1, [
-                                      o("b", null, v(h.name), 1),
-                                      o(
+                                    n("div", k1, [
+                                      n("b", null, m(y.name), 1),
+                                      n(
                                         "small",
                                         null,
-                                        v(h.status) + " · 模拟状态",
+                                        m(y.status) + " · 模拟状态",
                                         1,
                                       ),
-                                      $[14] ||
-                                        ($[14] = o(
+                                      S[14] ||
+                                        (S[14] = n(
                                           "span",
                                           { class: "spacer" },
                                           null,
                                           -1,
                                         )),
-                                      o(
+                                      n(
                                         "button",
                                         {
                                           type: "button",
                                           class: "text-button",
-                                          onClick: (k) => l.value.splice(b, 1),
+                                          onClick: (x) => o.value.splice($, 1),
                                         },
                                         "移除",
                                         8,
-                                        F1,
+                                        _1,
                                       ),
                                     ]),
-                                    o("div", R1, [
-                                      o("label", null, [
-                                        $[15] || ($[15] = Z("服务名称", -1)),
-                                        pe(
-                                          o(
+                                    n("div", w1, [
+                                      n("label", null, [
+                                        S[15] || (S[15] = K("服务名称", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.name = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.name = x),
                                               required: "",
                                               maxlength: "128",
                                             },
                                             null,
                                             8,
-                                            D1,
+                                            $1,
                                           ),
-                                          [[$e, h.name]],
+                                          [[he, y.name]],
                                         ),
                                       ]),
-                                      o("label", null, [
-                                        $[16] || ($[16] = Z("接口协议", -1)),
-                                        pe(
-                                          o(
+                                      n("label", null, [
+                                        S[16] || (S[16] = K("接口协议", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.protocol = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.protocol = x),
                                               required: "",
                                             },
                                             null,
                                             8,
-                                            j1,
+                                            C1,
                                           ),
-                                          [[$e, h.protocol]],
+                                          [[he, y.protocol]],
                                         ),
                                       ]),
-                                      o("label", null, [
-                                        $[17] || ($[17] = Z("服务地址", -1)),
-                                        pe(
-                                          o(
+                                      n("label", null, [
+                                        S[17] || (S[17] = K("服务地址", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.url = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.url = x),
                                               required: "",
                                               type: "url",
                                             },
                                             null,
                                             8,
-                                            H1,
+                                            x1,
                                           ),
-                                          [[$e, h.url]],
+                                          [[he, y.url]],
                                         ),
                                       ]),
-                                      o("label", null, [
-                                        $[18] || ($[18] = Z("访问密钥", -1)),
-                                        pe(
-                                          o(
+                                      n("label", null, [
+                                        S[18] || (S[18] = K("访问密钥", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.secret = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.secret = x),
                                               type: "password",
                                               placeholder:
                                                 "留空保留原值 · 只写不读",
@@ -7338,50 +7678,50 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                             },
                                             null,
                                             8,
-                                            B1,
+                                            S1,
                                           ),
-                                          [[$e, h.secret]],
+                                          [[he, y.secret]],
                                         ),
                                       ]),
-                                      o("label", K1, [
-                                        $[19] ||
-                                          ($[19] = Z("清除已存密钥", -1)),
-                                        pe(
-                                          o(
+                                      n("label", T1, [
+                                        S[19] ||
+                                          (S[19] = K("清除已存密钥", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.clearSecret = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.clearSecret = x),
                                               type: "checkbox",
                                             },
                                             null,
                                             8,
-                                            W1,
+                                            M1,
                                           ),
-                                          [[ss, h.clearSecret]],
+                                          [[Ft, y.clearSecret]],
                                         ),
                                       ]),
                                     ]),
-                                    o(
+                                    n(
                                       "p",
-                                      q1,
+                                      I1,
                                       "可用模型：" +
-                                        v(
-                                          h.models.join("、") ||
+                                        m(
+                                          y.models.join("、") ||
                                             "暂未读取，可在用途配置中手填模型 ID",
                                         ),
                                       1,
                                     ),
-                                    o(
+                                    n(
                                       "button",
                                       {
                                         type: "button",
                                         class: "text-button",
-                                        onClick: (k) => x(h.name),
+                                        onClick: (x) => T(y.name),
                                       },
                                       "测试连接",
                                       8,
-                                      z1,
+                                      E1,
                                     ),
                                   ],
                                 )
@@ -7389,8 +7729,8 @@ ${(h == null ? void 0 : h.prompt) || ""}
                             ),
                             128,
                           )),
-                          $[20] ||
-                            ($[20] = o(
+                          S[20] ||
+                            (S[20] = n(
                               "p",
                               { class: "muted" },
                               "服务地址修改并保存后，其用途绑定需要重新确认；本原型保留选择供检查。",
@@ -7398,64 +7738,64 @@ ${(h == null ? void 0 : h.prompt) || ""}
                             )),
                         ],
                         8,
-                        U1,
+                        b1,
                       ),
-                      o(
+                      n(
                         "section",
-                        { id: _("模型用途"), class: "card settings-group" },
+                        { id: C("模型用途"), class: "card settings-group" },
                         [
-                          $[27] ||
-                            ($[27] = o("h2", null, "各用途对应的模型配置", -1)),
-                          $[28] ||
-                            ($[28] = o(
+                          S[27] ||
+                            (S[27] = n("h2", null, "各用途对应的模型配置", -1)),
+                          S[28] ||
+                            (S[28] = n(
                               "p",
                               { class: "muted" },
                               "只有以下四个用途可独立选模型。默认安全余量 512 token，输出预留采用用途预算。",
                               -1,
                             )),
-                          (p(!0),
-                          g(
-                            O,
+                          (c(!0),
+                          v(
+                            I,
                             null,
-                            oe(i.value, (h) => {
-                              var b;
+                            te(i.value, (y) => {
+                              var $;
                               return (
-                                p(),
-                                g(
+                                c(),
+                                v(
                                   "details",
                                   {
-                                    key: h.name,
+                                    key: y.name,
                                     class: "management-block",
                                     open: "",
                                   },
                                   [
-                                    o("summary", null, v(h.name), 1),
-                                    o("div", J1, [
-                                      o("label", null, [
-                                        $[21] || ($[21] = Z("使用服务", -1)),
-                                        pe(
-                                          o(
+                                    n("summary", null, m(y.name), 1),
+                                    n("div", V1, [
+                                      n("label", null, [
+                                        S[21] || (S[21] = K("使用服务", -1)),
+                                        re(
+                                          n(
                                             "select",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.endpoint = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.endpoint = x),
                                               required: "",
                                             },
                                             [
-                                              (p(!0),
-                                              g(
-                                                O,
+                                              (c(!0),
+                                              v(
+                                                I,
                                                 null,
-                                                oe(
-                                                  l.value,
-                                                  (k) => (
-                                                    p(),
-                                                    g(
+                                                te(
+                                                  o.value,
+                                                  (x) => (
+                                                    c(),
+                                                    v(
                                                       "option",
-                                                      { value: k.id },
-                                                      v(k.name),
+                                                      { value: x.id },
+                                                      m(x.name),
                                                       9,
-                                                      Z1,
+                                                      U1,
                                                     )
                                                   ),
                                                 ),
@@ -7463,50 +7803,50 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                               )),
                                             ],
                                             8,
-                                            Y1,
+                                            O1,
                                           ),
-                                          [[Et, h.endpoint]],
+                                          [[pt, y.endpoint]],
                                         ),
                                       ]),
-                                      o("label", null, [
-                                        $[22] || ($[22] = Z("模型 ID", -1)),
-                                        pe(
-                                          o(
+                                      n("label", null, [
+                                        S[22] || (S[22] = K("模型 ID", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.model = k),
-                                              list: "models-" + h.role,
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.model = x),
+                                              list: "models-" + y.role,
                                               required: "",
                                             },
                                             null,
                                             8,
-                                            Q1,
+                                            P1,
                                           ),
-                                          [[$e, h.model]],
+                                          [[he, y.model]],
                                         ),
-                                        o(
+                                        n(
                                           "datalist",
-                                          { id: "models-" + h.role },
+                                          { id: "models-" + y.role },
                                           [
-                                            (p(!0),
-                                            g(
-                                              O,
+                                            (c(!0),
+                                            v(
+                                              I,
                                               null,
-                                              oe(
-                                                (b = l.value.find(
-                                                  (k) => k.id === h.endpoint,
+                                              te(
+                                                ($ = o.value.find(
+                                                  (x) => x.id === y.endpoint,
                                                 )) == null
                                                   ? void 0
-                                                  : b.models,
-                                                (k) => (
-                                                  p(),
-                                                  g(
+                                                  : $.models,
+                                                (x) => (
+                                                  c(),
+                                                  v(
                                                     "option",
-                                                    { value: k },
+                                                    { value: x },
                                                     null,
                                                     8,
-                                                    em,
+                                                    N1,
                                                   )
                                                 ),
                                               ),
@@ -7514,96 +7854,96 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                             )),
                                           ],
                                           8,
-                                          X1,
+                                          L1,
                                         ),
                                       ]),
-                                      o("label", null, [
-                                        $[23] || ($[23] = Z("Token 预算", -1)),
-                                        pe(
-                                          o(
+                                      n("label", null, [
+                                        S[23] || (S[23] = K("Token 预算", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.tokens = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.tokens = x),
                                               type: "number",
                                               min: "1",
                                               required: "",
                                             },
                                             null,
                                             8,
-                                            tm,
+                                            R1,
                                           ),
                                           [
                                             [
-                                              $e,
-                                              h.tokens,
+                                              he,
+                                              y.tokens,
                                               void 0,
                                               { number: !0 },
                                             ],
                                           ],
                                         ),
                                       ]),
-                                      o("label", null, [
-                                        $[24] || ($[24] = Z("超时（秒）", -1)),
-                                        pe(
-                                          o(
+                                      n("label", null, [
+                                        S[24] || (S[24] = K("超时（秒）", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.timeout = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.timeout = x),
                                               type: "number",
                                               min: "1",
                                               required: "",
                                             },
                                             null,
                                             8,
-                                            sm,
+                                            F1,
                                           ),
                                           [
                                             [
-                                              $e,
-                                              h.timeout,
+                                              he,
+                                              y.timeout,
                                               void 0,
                                               { number: !0 },
                                             ],
                                           ],
                                         ),
                                       ]),
-                                      o("label", null, [
-                                        $[25] ||
-                                          ($[25] = Z("上下文窗口（可选）", -1)),
-                                        pe(
-                                          o(
+                                      n("label", null, [
+                                        S[25] ||
+                                          (S[25] = K("上下文窗口（可选）", -1)),
+                                        re(
+                                          n(
                                             "input",
                                             {
-                                              "onUpdate:modelValue": (k) =>
-                                                (h.window = k),
+                                              "onUpdate:modelValue": (x) =>
+                                                (y.window = x),
                                               type: "number",
-                                              min: h.tokens + 512,
+                                              min: y.tokens + 512,
                                             },
                                             null,
                                             8,
-                                            nm,
+                                            j1,
                                           ),
                                           [
                                             [
-                                              $e,
-                                              h.window,
+                                              he,
+                                              y.window,
                                               void 0,
                                               { number: !0 },
                                             ],
                                           ],
                                         ),
                                       ]),
-                                      o(
+                                      n(
                                         "p",
-                                        lm,
+                                        D1,
                                         "可用输入预算：" +
-                                          v(
-                                            h.window
+                                          m(
+                                            y.window
                                               ? Math.max(
                                                   0,
-                                                  h.window - h.tokens - 512,
+                                                  y.window - y.tokens - 512,
                                                 )
                                               : "自动",
                                           ) +
@@ -7617,25 +7957,25 @@ ${(h == null ? void 0 : h.prompt) || ""}
                             }),
                             128,
                           )),
-                          o("details", om, [
-                            o(
+                          n("details", H1, [
+                            n(
                               "summary",
                               null,
-                              "共用通用模型的场景 · " + v(M(To).length) + " 项",
+                              "共用通用模型的场景 · " + m(h(Wo).length) + " 项",
                               1,
                             ),
-                            (p(!0),
-                            g(
-                              O,
+                            (c(!0),
+                            v(
+                              I,
                               null,
-                              oe(
-                                M(To),
-                                (h) => (
-                                  p(),
-                                  g("div", im, [
-                                    o("span", null, v(h), 1),
-                                    $[26] ||
-                                      ($[26] = o(
+                              te(
+                                h(Wo),
+                                (y) => (
+                                  c(),
+                                  v("div", B1, [
+                                    n("span", null, m(y), 1),
+                                    S[26] ||
+                                      (S[26] = n(
                                         "small",
                                         null,
                                         "使用：通用模型",
@@ -7649,59 +7989,59 @@ ${(h == null ? void 0 : h.prompt) || ""}
                           ]),
                         ],
                         8,
-                        G1,
+                        A1,
                       ),
-                      o(
+                      n(
                         "section",
-                        { id: _("安静时段"), class: "card settings-group" },
+                        { id: C("安静时段"), class: "card settings-group" },
                         [
-                          $[37] || ($[37] = o("h2", null, "安静时段", -1)),
-                          o("div", am, [
-                            o("label", um, [
-                              $[29] || ($[29] = Z("启用安静时段", -1)),
-                              pe(
-                                o(
+                          S[37] || (S[37] = n("h2", null, "安静时段", -1)),
+                          n("div", z1, [
+                            n("label", q1, [
+                              S[29] || (S[29] = K("启用安静时段", -1)),
+                              re(
+                                n(
                                   "input",
                                   {
                                     "onUpdate:modelValue":
-                                      $[0] ||
-                                      ($[0] = (h) => (r.value.enabled = h)),
+                                      S[0] ||
+                                      (S[0] = (y) => (r.value.enabled = y)),
                                     class: "switch",
                                     type: "checkbox",
                                   },
                                   null,
                                   512,
                                 ),
-                                [[ss, r.value.enabled]],
+                                [[Ft, r.value.enabled]],
                               ),
                             ]),
-                            o("label", null, [
-                              $[31] || ($[31] = Z("适用角色", -1)),
-                              pe(
-                                o(
+                            n("label", null, [
+                              S[31] || (S[31] = K("适用角色", -1)),
+                              re(
+                                n(
                                   "select",
                                   {
                                     "onUpdate:modelValue":
-                                      $[1] ||
-                                      ($[1] = (h) => (r.value.character = h)),
+                                      S[1] ||
+                                      (S[1] = (y) => (r.value.character = y)),
                                   },
                                   [
-                                    $[30] ||
-                                      ($[30] = o(
+                                    S[30] ||
+                                      (S[30] = n(
                                         "option",
                                         null,
                                         "全部角色",
                                         -1,
                                       )),
-                                    (p(!0),
-                                    g(
-                                      O,
+                                    (c(!0),
+                                    v(
+                                      I,
                                       null,
-                                      oe(
-                                        M(et),
-                                        (h) => (
-                                          p(),
-                                          g("option", null, v(h.name), 1)
+                                      te(
+                                        h(Ae),
+                                        (y) => (
+                                          c(),
+                                          v("option", null, m(y.name), 1)
                                         ),
                                       ),
                                       256,
@@ -7709,70 +8049,70 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                   ],
                                   512,
                                 ),
-                                [[Et, r.value.character]],
+                                [[pt, r.value.character]],
                               ),
                             ]),
                           ]),
-                          o(
+                          n(
                             "fieldset",
                             { disabled: !r.value.enabled },
                             [
-                              o("div", dm, [
-                                o("label", null, [
-                                  $[32] || ($[32] = Z("开始时间", -1)),
-                                  pe(
-                                    o(
+                              n("div", J1, [
+                                n("label", null, [
+                                  S[32] || (S[32] = K("开始时间", -1)),
+                                  re(
+                                    n(
                                       "input",
                                       {
                                         "onUpdate:modelValue":
-                                          $[2] ||
-                                          ($[2] = (h) => (r.value.start = h)),
+                                          S[2] ||
+                                          (S[2] = (y) => (r.value.start = y)),
                                         type: "time",
                                       },
                                       null,
                                       512,
                                     ),
-                                    [[$e, r.value.start]],
+                                    [[he, r.value.start]],
                                   ),
                                 ]),
-                                o("label", null, [
-                                  $[33] || ($[33] = Z("结束时间", -1)),
-                                  pe(
-                                    o(
+                                n("label", null, [
+                                  S[33] || (S[33] = K("结束时间", -1)),
+                                  re(
+                                    n(
                                       "input",
                                       {
                                         "onUpdate:modelValue":
-                                          $[3] ||
-                                          ($[3] = (h) => (r.value.end = h)),
+                                          S[3] ||
+                                          (S[3] = (y) => (r.value.end = y)),
                                         type: "time",
                                       },
                                       null,
                                       512,
                                     ),
-                                    [[$e, r.value.end]],
+                                    [[he, r.value.end]],
                                   ),
                                 ]),
-                                o("label", null, [
-                                  $[35] || ($[35] = Z("行为", -1)),
-                                  pe(
-                                    o(
+                                n("label", null, [
+                                  S[35] || (S[35] = K("行为", -1)),
+                                  re(
+                                    n(
                                       "select",
                                       {
                                         "onUpdate:modelValue":
-                                          $[4] ||
-                                          ($[4] = (h) =>
-                                            (r.value.behavior = h)),
+                                          S[4] ||
+                                          (S[4] = (y) =>
+                                            (r.value.behavior = y)),
                                       },
                                       [
-                                        ...($[34] ||
-                                          ($[34] = [
-                                            o(
+                                        ...(S[34] ||
+                                          (S[34] = [
+                                            n(
                                               "option",
                                               null,
                                               "暂停主动联系",
                                               -1,
                                             ),
-                                            o(
+                                            n(
                                               "option",
                                               null,
                                               "延后至安静时段结束",
@@ -7782,45 +8122,45 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                       ],
                                       512,
                                     ),
-                                    [[Et, r.value.behavior]],
+                                    [[pt, r.value.behavior]],
                                   ),
                                 ]),
                               ]),
-                              $[36] ||
-                                ($[36] = o(
+                              S[36] ||
+                                (S[36] = n(
                                   "p",
                                   null,
                                   "生效日期（Asia/Shanghai，支持跨夜）",
                                   -1,
                                 )),
-                              o("div", fm, [
-                                (p(!0),
-                                g(
-                                  O,
+                              n("div", G1, [
+                                (c(!0),
+                                v(
+                                  I,
                                   null,
-                                  oe(
-                                    M(Yi),
-                                    (h) => (
-                                      p(),
-                                      g("label", null, [
-                                        pe(
-                                          o(
+                                  te(
+                                    h(mr),
+                                    (y) => (
+                                      c(),
+                                      v("label", null, [
+                                        re(
+                                          n(
                                             "input",
                                             {
                                               "onUpdate:modelValue":
-                                                $[5] ||
-                                                ($[5] = (b) =>
-                                                  (r.value.days = b)),
+                                                S[5] ||
+                                                (S[5] = ($) =>
+                                                  (r.value.days = $)),
                                               type: "checkbox",
-                                              value: h,
+                                              value: y,
                                             },
                                             null,
                                             8,
-                                            pm,
+                                            Y1,
                                           ),
-                                          [[ss, r.value.days]],
+                                          [[Ft, r.value.days]],
                                         ),
-                                        Z(v(h), 1),
+                                        K(m(y), 1),
                                       ])
                                     ),
                                   ),
@@ -7829,85 +8169,85 @@ ${(h == null ? void 0 : h.prompt) || ""}
                               ]),
                             ],
                             8,
-                            cm,
+                            W1,
                           ),
                         ],
                         8,
-                        rm,
+                        K1,
                       ),
-                      (p(!0),
-                      g(
-                        O,
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(
-                          n.value,
-                          (h) => (
-                            p(),
-                            Ae(
-                              as(h.title === "高级" ? "details" : "section"),
+                        te(
+                          l.value,
+                          (y) => (
+                            c(),
+                            Se(
+                              hs(y.title === "高级" ? "details" : "section"),
                               {
-                                key: h.title,
-                                id: _(h.title),
+                                key: y.title,
+                                id: C(y.title),
                                 class: "card settings-group",
                               },
                               {
-                                default: Ht(() => [
-                                  h.title === "高级"
-                                    ? (p(),
-                                      g("summary", mm, "高级 · Kev 决策服务"))
-                                    : (p(), g("h2", vm, v(h.title), 1)),
-                                  h.title === "图片（ComfyUI）"
-                                    ? (p(),
-                                      g(
+                                default: Gt(() => [
+                                  y.title === "高级"
+                                    ? (c(),
+                                      v("summary", Z1, "高级 · Kev 决策服务"))
+                                    : (c(), v("h2", Q1, m(y.title), 1)),
+                                  y.title === "图片（ComfyUI）"
+                                    ? (c(),
+                                      v(
                                         "p",
-                                        hm,
+                                        X1,
                                         "图片已接入 ComfyUI · 语音：未接入 · 视频：未接入",
                                       ))
-                                    : X("", !0),
-                                  o("div", gm, [
-                                    (p(!0),
-                                    g(
-                                      O,
+                                    : J("", !0),
+                                  n("div", ev, [
+                                    (c(!0),
+                                    v(
+                                      I,
                                       null,
-                                      oe(
-                                        h.fields,
-                                        (b) => (
-                                          p(),
-                                          g(
+                                      te(
+                                        y.fields,
+                                        ($) => (
+                                          c(),
+                                          v(
                                             "label",
                                             {
-                                              key: b.label,
-                                              class: ge({
+                                              key: $.label,
+                                              class: ke({
                                                 "check-field":
-                                                  b.type === "checkbox",
+                                                  $.type === "checkbox",
                                               }),
                                             },
                                             [
-                                              o("span", null, v(b.label), 1),
-                                              b.type === "select"
-                                                ? pe(
-                                                    (p(),
-                                                    g(
+                                              n("span", null, m($.label), 1),
+                                              $.type === "select"
+                                                ? re(
+                                                    (c(),
+                                                    v(
                                                       "select",
                                                       {
                                                         key: 0,
                                                         "onUpdate:modelValue": (
-                                                          k,
-                                                        ) => (b.value = k),
+                                                          x,
+                                                        ) => ($.value = x),
                                                       },
                                                       [
-                                                        (p(!0),
-                                                        g(
-                                                          O,
+                                                        (c(!0),
+                                                        v(
+                                                          I,
                                                           null,
-                                                          oe(
-                                                            b.options,
-                                                            (k) => (
-                                                              p(),
-                                                              g(
+                                                          te(
+                                                            $.options,
+                                                            (x) => (
+                                                              c(),
+                                                              v(
                                                                 "option",
                                                                 null,
-                                                                v(k),
+                                                                m(x),
                                                                 1,
                                                               )
                                                             ),
@@ -7916,58 +8256,58 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                                         )),
                                                       ],
                                                       8,
-                                                      ym,
+                                                      tv,
                                                     )),
-                                                    [[Et, b.value]],
+                                                    [[pt, $.value]],
                                                   )
-                                                : b.type === "json"
-                                                  ? (p(),
-                                                    g(
+                                                : $.type === "json"
+                                                  ? (c(),
+                                                    v(
                                                       "textarea",
                                                       {
                                                         key: 1,
-                                                        value: String(b.value),
-                                                        onInput: (k) =>
-                                                          (b.value =
-                                                            k.target.value),
+                                                        value: String($.value),
+                                                        onInput: (x) =>
+                                                          ($.value =
+                                                            x.target.value),
                                                         rows: "3",
                                                       },
                                                       null,
                                                       40,
-                                                      bm,
+                                                      sv,
                                                     ))
-                                                  : pe(
-                                                      (p(),
-                                                      g(
+                                                  : re(
+                                                      (c(),
+                                                      v(
                                                         "input",
                                                         {
                                                           key: 2,
                                                           "onUpdate:modelValue":
-                                                            (k) =>
-                                                              (b.value = k),
-                                                          type: b.type,
-                                                          min: b.min,
-                                                          max: b.max,
+                                                            (x) =>
+                                                              ($.value = x),
+                                                          type: $.type,
+                                                          min: $.min,
+                                                          max: $.max,
                                                           step:
-                                                            b.type === "number"
+                                                            $.type === "number"
                                                               ? "any"
                                                               : void 0,
-                                                          class: ge({
+                                                          class: ke({
                                                             switch:
-                                                              b.type ===
+                                                              $.type ===
                                                               "checkbox",
                                                           }),
                                                           placeholder:
-                                                            b.type ===
+                                                            $.type ===
                                                             "password"
                                                               ? "留空保留原值 · 只写不读"
                                                               : void 0,
                                                         },
                                                         null,
                                                         10,
-                                                        _m,
+                                                        lv,
                                                       )),
-                                                      [[Vu, b.value]],
+                                                      [[rd, $.value]],
                                                     ),
                                             ],
                                             2,
@@ -7981,25 +8321,25 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                     "图片（ComfyUI）",
                                     "高级",
                                     "看图理解",
-                                  ].includes(h.title)
-                                    ? (p(),
-                                      g(
+                                  ].includes(y.title)
+                                    ? (c(),
+                                      v(
                                         "button",
                                         {
                                           key: 3,
                                           type: "button",
                                           class: "text-button",
-                                          onClick: (b) => x(h.title),
+                                          onClick: ($) => T(y.title),
                                         },
-                                        v(
-                                          h.title === "看图理解"
+                                        m(
+                                          y.title === "看图理解"
                                             ? "测试看图（使用已保存配置）"
                                             : "测试连接",
                                         ),
                                         9,
-                                        km,
+                                        nv,
                                       ))
-                                    : X("", !0),
+                                    : J("", !0),
                                 ]),
                                 _: 2,
                               },
@@ -8010,71 +8350,71 @@ ${(h == null ? void 0 : h.prompt) || ""}
                         ),
                         128,
                       )),
-                      te.value ? (p(), g("p", wm, v(te.value), 1)) : X("", !0),
-                      o("div", $m, [
+                      V.value ? (c(), v("p", ov, m(V.value), 1)) : J("", !0),
+                      n("div", iv, [
                         A.value
-                          ? (p(), g("p", Cm, v(A.value), 1))
-                          : (p(), g("span", xm, "让相处的节奏，更合心意。")),
-                        o(
+                          ? (c(), v("p", rv, m(A.value), 1))
+                          : (c(), v("span", av, "让相处的节奏，更合心意。")),
+                        n(
                           "button",
                           {
                             class: "button primary",
-                            disabled: w.value,
+                            disabled: b.value,
                             "data-testid": "config-save",
                           },
-                          v(w.value ? "保存中…" : "保存设置"),
+                          m(b.value ? "保存中…" : "保存设置"),
                           9,
-                          Sm,
+                          uv,
                         ),
                       ]),
                     ],
                     32,
                   ),
                 ]))
-              : (p(),
-                g(
-                  O,
+              : (c(),
+                v(
+                  I,
                   { key: 1 },
                   [
-                    $[55] ||
-                      ($[55] = o(
+                    S[55] ||
+                      (S[55] = n(
                         "p",
                         { class: "muted" },
                         "每次回应背后的记录。模型与媒体的运行情况，都在这里。",
                         -1,
                       )),
-                    o("div", Tm, [
-                      (p(),
-                      g(
-                        O,
+                    n("div", dv, [
+                      (c(),
+                      v(
+                        I,
                         null,
-                        oe(["模型调用", "媒体调用"], (h) =>
-                          o(
+                        te(["模型调用", "媒体调用"], (y) =>
+                          n(
                             "button",
                             {
-                              key: h,
-                              class: ge({ active: u.value === h }),
-                              "data-testid": "diag-tab-" + h,
-                              onClick: (b) => q(h),
+                              key: y,
+                              class: ke({ active: d.value === y }),
+                              "data-testid": "diag-tab-" + y,
+                              onClick: ($) => Y(y),
                             },
-                            v(h),
+                            m(y),
                             11,
-                            Mm,
+                            cv,
                           ),
                         ),
                         64,
                       )),
                     ]),
-                    me(
-                      Os,
+                    ae(
+                      bs,
                       {
                         search: f.value,
                         "onUpdate:search":
-                          $[6] || ($[6] = (h) => (f.value = h)),
-                        filters: c.value,
+                          S[6] || (S[6] = (y) => (f.value = y)),
+                        filters: a.value,
                         "onUpdate:filters":
-                          $[7] || ($[7] = (h) => (c.value = h)),
-                        groups: le.value,
+                          S[7] || (S[7] = (y) => (a.value = y)),
+                        groups: oe.value,
                         "test-id": "diag-filters",
                         placeholder: "搜索调用 / 提示词 / 工作流 / 角色",
                       },
@@ -8082,288 +8422,288 @@ ${(h == null ? void 0 : h.prompt) || ""}
                       8,
                       ["search", "filters", "groups"],
                     ),
-                    o(
+                    n(
                       "small",
-                      Em,
-                      v(K.value.length) + " 条记录 · 最近的记录在前",
+                      fv,
+                      m(G.value.length) + " 条记录 · 最近的记录在前",
                       1,
                     ),
-                    o("section", Am, [
-                      (p(!0),
-                      g(
-                        O,
+                    n("section", pv, [
+                      (c(!0),
+                      v(
+                        I,
                         null,
-                        oe(K.value, (h) => {
-                          var b;
+                        te(G.value, (y) => {
+                          var $;
                           return (
-                            p(),
-                            g(
+                            c(),
+                            v(
                               "article",
                               {
-                                id: "diag-record-" + h.id,
-                                key: h.id,
-                                class: ge([
+                                id: "diag-record-" + y.id,
+                                key: y.id,
+                                class: ke([
                                   "diagnostic-record",
-                                  { highlighted: C.value === h.id },
+                                  { highlighted: _.value === y.id },
                                 ]),
-                                "data-testid": "diag-record-" + h.id,
+                                "data-testid": "diag-record-" + y.id,
                               },
                               [
-                                o(
+                                n(
                                   "button",
                                   {
                                     class: "diagnostic-open",
-                                    "data-testid": "diag-open-" + h.id,
-                                    onClick: (k) => V(h),
+                                    "data-testid": "diag-open-" + y.id,
+                                    onClick: (x) => L(y),
                                   },
                                   [
-                                    o("div", Vm, [
-                                      o("time", null, v(he(h)), 1),
-                                      o("span", Pm, v(h.label), 1),
-                                      o("span", null, v(h.character), 1),
-                                      $[38] ||
-                                        ($[38] = o(
+                                    n("div", hv, [
+                                      n("time", null, m(be(y)), 1),
+                                      n("span", gv, m(y.label), 1),
+                                      n("span", null, m(y.character), 1),
+                                      S[38] ||
+                                        (S[38] = n(
                                           "span",
                                           { class: "spacer" },
                                           null,
                                           -1,
                                         )),
-                                      o(
+                                      n(
                                         "span",
                                         {
-                                          class: ge(["call-status", h.status]),
+                                          class: ke(["call-status", y.status]),
                                         },
-                                        v(I(h.status)),
+                                        m(O(y.status)),
                                         3,
                                       ),
-                                      o(
+                                      n(
                                         "small",
                                         null,
-                                        v(h.duration) + " 秒",
+                                        m(y.duration) + " 秒",
                                         1,
                                       ),
                                     ]),
-                                    o(
+                                    n(
                                       "p",
-                                      Lm,
-                                      v(
-                                        h.status === "error"
-                                          ? h.reason
-                                          : h.status === "pending"
+                                      yv,
+                                      m(
+                                        y.status === "error"
+                                          ? y.reason
+                                          : y.status === "pending"
                                             ? "正在等待服务回应"
-                                            : h.kind === "媒体调用"
-                                              ? (b = h.media) == null
+                                            : y.kind === "媒体调用"
+                                              ? ($ = y.media) == null
                                                 ? void 0
-                                                : b.output
-                                              : h.response,
+                                                : $.output
+                                              : y.response,
                                       ),
                                       1,
                                     ),
                                   ],
                                   8,
-                                  Om,
+                                  vv,
                                 ),
-                                h.status === "error"
-                                  ? (p(),
-                                    g(
+                                y.status === "error"
+                                  ? (c(),
+                                    v(
                                       "button",
                                       {
                                         key: 0,
                                         class: "text-button diagnostic-retry",
-                                        "data-testid": "diag-retry-" + h.id,
-                                        onClick: (k) => T(h),
+                                        "data-testid": "diag-retry-" + y.id,
+                                        onClick: (x) => M(y),
                                       },
                                       "重试",
                                       8,
-                                      Um,
+                                      bv,
                                     ))
-                                  : X("", !0),
+                                  : J("", !0),
                               ],
                               10,
-                              Im,
+                              mv,
                             )
                           );
                         }),
                         128,
                       )),
-                      K.value.length
-                        ? X("", !0)
-                        : (p(),
-                          g("div", Nm, [
-                            $[39] ||
-                              ($[39] = o(
+                      G.value.length
+                        ? J("", !0)
+                        : (c(),
+                          v("div", kv, [
+                            S[39] ||
+                              (S[39] = n(
                                 "p",
                                 null,
                                 "暂无符合条件的调用。",
                                 -1,
                               )),
-                            o(
+                            n(
                               "button",
                               {
                                 class: "button",
                                 "data-testid": "diag-empty-clear",
-                                onClick: H,
+                                onClick: W,
                               },
                               "清除筛选",
                             ),
                           ])),
                     ]),
-                    S.value
-                      ? (p(),
-                        Ae(
-                          Vs,
+                    w.value
+                      ? (c(),
+                        Se(
+                          Ks,
                           {
                             key: 0,
-                            title: S.value.label + " · 调用详情",
+                            title: w.value.label + " · 调用详情",
                             "test-id": "diagnostic-drawer",
-                            onClose: $[9] || ($[9] = (h) => (d.value = null)),
+                            onClose: S[9] || (S[9] = (y) => (p.value = null)),
                           },
                           {
-                            default: Ht(() => [
-                              o("div", Fm, [
-                                o("span", Rm, v(S.value.kind), 1),
-                                o(
+                            default: Gt(() => [
+                              n("div", _v, [
+                                n("span", wv, m(w.value.kind), 1),
+                                n(
                                   "p",
                                   null,
-                                  v(S.value.character) +
+                                  m(w.value.character) +
                                     " · " +
-                                    v(he(S.value)) +
+                                    m(be(w.value)) +
                                     " · 用时 " +
-                                    v(S.value.duration) +
+                                    m(w.value.duration) +
                                     " 秒",
                                   1,
                                 ),
-                                o(
+                                n(
                                   "span",
                                   {
-                                    class: ge(["call-status", S.value.status]),
+                                    class: ke(["call-status", w.value.status]),
                                   },
-                                  v(I(S.value.status)),
+                                  m(O(w.value.status)),
                                   3,
                                 ),
                               ]),
-                              S.value.status === "error"
-                                ? (p(),
-                                  g("p", Dm, [
-                                    Z(
-                                      v(S.value.category) +
+                              w.value.status === "error"
+                                ? (c(),
+                                  v("p", $v, [
+                                    K(
+                                      m(w.value.category) +
                                         "：" +
-                                        v(S.value.reason) +
+                                        m(w.value.reason) +
                                         " ",
                                       1,
                                     ),
-                                    o(
+                                    n(
                                       "button",
                                       {
                                         class: "text-button",
                                         "data-testid": "diag-drawer-retry",
                                         onClick:
-                                          $[8] || ($[8] = (h) => T(S.value)),
+                                          S[8] || (S[8] = (y) => M(w.value)),
                                       },
                                       "重试",
                                     ),
                                   ]))
-                                : X("", !0),
-                              S.value.kind === "媒体调用" && S.value.media
-                                ? (p(),
-                                  g(
-                                    O,
+                                : J("", !0),
+                              w.value.kind === "媒体调用" && w.value.media
+                                ? (c(),
+                                  v(
+                                    I,
                                     { key: 1 },
                                     [
-                                      o("dl", jm, [
-                                        o("div", null, [
-                                          $[40] ||
-                                            ($[40] = o("dt", null, "角色", -1)),
-                                          o(
+                                      n("dl", Cv, [
+                                        n("div", null, [
+                                          S[40] ||
+                                            (S[40] = n("dt", null, "角色", -1)),
+                                          n(
                                             "dd",
                                             null,
-                                            v(S.value.character),
+                                            m(w.value.character),
                                             1,
                                           ),
                                         ]),
-                                        o("div", null, [
-                                          $[41] ||
-                                            ($[41] = o(
+                                        n("div", null, [
+                                          S[41] ||
+                                            (S[41] = n(
                                               "dt",
                                               null,
                                               "媒体类型",
                                               -1,
                                             )),
-                                          o(
+                                          n(
                                             "dd",
                                             null,
-                                            v(S.value.media.type) + " · 图片",
+                                            m(w.value.media.type) + " · 图片",
                                             1,
                                           ),
                                         ]),
-                                        o("div", null, [
-                                          $[42] ||
-                                            ($[42] = o(
+                                        n("div", null, [
+                                          S[42] ||
+                                            (S[42] = n(
                                               "dt",
                                               null,
                                               "工作流",
                                               -1,
                                             )),
-                                          o(
+                                          n(
                                             "dd",
                                             null,
-                                            v(S.value.media.workflow),
+                                            m(w.value.media.workflow),
                                             1,
                                           ),
                                         ]),
                                       ]),
-                                      o("section", Hm, [
-                                        $[43] ||
-                                          ($[43] = o(
+                                      n("section", xv, [
+                                        S[43] ||
+                                          (S[43] = n(
                                             "h3",
                                             null,
                                             "提示词 / Prompt",
                                             -1,
                                           )),
-                                        o(
+                                        n(
                                           "pre",
                                           null,
-                                          v(S.value.media.prompt),
+                                          m(w.value.media.prompt),
                                           1,
                                         ),
                                       ]),
-                                      o("section", Bm, [
-                                        $[44] ||
-                                          ($[44] = o(
+                                      n("section", Sv, [
+                                        S[44] ||
+                                          (S[44] = n(
                                             "h3",
                                             null,
                                             "负面提示词 / Negative prompt",
                                             -1,
                                           )),
-                                        o(
+                                        n(
                                           "pre",
                                           null,
-                                          v(S.value.media.negativePrompt),
+                                          m(w.value.media.negativePrompt),
                                           1,
                                         ),
                                       ]),
-                                      o("section", Km, [
-                                        $[45] ||
-                                          ($[45] = o(
+                                      n("section", Tv, [
+                                        S[45] ||
+                                          (S[45] = n(
                                             "h3",
                                             null,
                                             "生成参数",
                                             -1,
                                           )),
-                                        o("dl", Wm, [
-                                          (p(!0),
-                                          g(
-                                            O,
+                                        n("dl", Mv, [
+                                          (c(!0),
+                                          v(
+                                            I,
                                             null,
-                                            oe(
-                                              S.value.media.params,
-                                              (h, b) => (
-                                                p(),
-                                                g("div", { key: b }, [
-                                                  o(
+                                            te(
+                                              w.value.media.params,
+                                              (y, $) => (
+                                                c(),
+                                                v("div", { key: $ }, [
+                                                  n(
                                                     "dt",
                                                     null,
-                                                    v(
+                                                    m(
                                                       {
                                                         width: "宽度",
                                                         height: "高度",
@@ -8371,11 +8711,11 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                                         cfg: "CFG",
                                                         seed: "种子",
                                                         sampler: "采样器",
-                                                      }[b],
+                                                      }[$],
                                                     ),
                                                     1,
                                                   ),
-                                                  o("dd", null, v(h), 1),
+                                                  n("dd", null, m(y), 1),
                                                 ])
                                               ),
                                             ),
@@ -8383,39 +8723,39 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                           )),
                                         ]),
                                       ]),
-                                      o("section", qm, [
-                                        $[48] ||
-                                          ($[48] = o("h3", null, "输出", -1)),
-                                        S.value.status === "success"
-                                          ? (p(),
-                                            g("div", zm, [
-                                              $[46] ||
-                                                ($[46] = o(
+                                      n("section", Iv, [
+                                        S[48] ||
+                                          (S[48] = n("h3", null, "输出", -1)),
+                                        w.value.status === "success"
+                                          ? (c(),
+                                            v("div", Ev, [
+                                              S[46] ||
+                                                (S[46] = n(
                                                   "span",
                                                   null,
                                                   "◇",
                                                   -1,
                                                 )),
-                                              o(
+                                              n(
                                                 "p",
                                                 null,
-                                                v(S.value.media.output),
+                                                m(w.value.media.output),
                                                 1,
                                               ),
-                                              $[47] ||
-                                                ($[47] = o(
+                                              S[47] ||
+                                                (S[47] = n(
                                                   "small",
                                                   null,
                                                   "图片占位预览 · 本地模拟",
                                                   -1,
                                                 )),
                                             ]))
-                                          : (p(),
-                                            g(
+                                          : (c(),
+                                            v(
                                               "p",
-                                              Gm,
-                                              v(
-                                                S.value.status === "pending"
+                                              Av,
+                                              m(
+                                                w.value.status === "pending"
                                                   ? "等待图片工作流完成"
                                                   : "未生成输出，请重试。",
                                               ),
@@ -8425,54 +8765,54 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                     ],
                                     64,
                                   ))
-                                : (p(),
-                                  g(
-                                    O,
+                                : (c(),
+                                  v(
+                                    I,
                                     { key: 2 },
                                     [
-                                      o("p", Jm, [
-                                        Z("模型 · " + v(S.value.model), 1),
-                                        S.value.tokens
-                                          ? (p(),
-                                            g(
-                                              O,
+                                      n("p", Vv, [
+                                        K("模型 · " + m(w.value.model), 1),
+                                        w.value.tokens
+                                          ? (c(),
+                                            v(
+                                              I,
                                               { key: 0 },
                                               [
-                                                Z(
+                                                K(
                                                   " · " +
-                                                    v(S.value.tokens) +
+                                                    m(w.value.tokens) +
                                                     " token",
                                                   1,
                                                 ),
                                               ],
                                               64,
                                             ))
-                                          : X("", !0),
+                                          : J("", !0),
                                       ]),
-                                      o("section", Ym, [
-                                        $[49] ||
-                                          ($[49] = o(
+                                      n("section", Ov, [
+                                        S[49] ||
+                                          (S[49] = n(
                                             "h3",
                                             null,
                                             "请求提示词 / Prompt",
                                             -1,
                                           )),
-                                        o("pre", null, v(S.value.input), 1),
+                                        n("pre", null, m(w.value.input), 1),
                                       ]),
-                                      o("section", Zm, [
-                                        $[50] ||
-                                          ($[50] = o(
+                                      n("section", Uv, [
+                                        S[50] ||
+                                          (S[50] = n(
                                             "h3",
                                             null,
                                             "响应内容",
                                             -1,
                                           )),
-                                        o(
+                                        n(
                                           "pre",
                                           null,
-                                          v(
-                                            S.value.status === "success"
-                                              ? S.value.response
+                                          m(
+                                            w.value.status === "success"
+                                              ? w.value.response
                                               : "尚未收到响应",
                                           ),
                                           1,
@@ -8481,21 +8821,21 @@ ${(h == null ? void 0 : h.prompt) || ""}
                                     ],
                                     64,
                                   )),
-                              o("details", Qm, [
-                                $[52] ||
-                                  ($[52] = o("summary", null, "技术详情", -1)),
-                                o("p", null, [
-                                  Z(
+                              n("details", Pv, [
+                                S[52] ||
+                                  (S[52] = n("summary", null, "技术详情", -1)),
+                                n("p", null, [
+                                  K(
                                     "失败码：" +
-                                      v(
-                                        S.value.status === "error"
-                                          ? S.value.code
+                                      m(
+                                        w.value.status === "error"
+                                          ? w.value.code
                                           : "无",
                                       ),
                                     1,
                                   ),
-                                  $[51] || ($[51] = o("br", null, null, -1)),
-                                  Z("关联 ID：demo" + v(S.value.id), 1),
+                                  S[51] || (S[51] = n("br", null, null, -1)),
+                                  K("关联 ID：demo" + m(w.value.id), 1),
                                 ]),
                               ]),
                             ]),
@@ -8504,84 +8844,84 @@ ${(h == null ? void 0 : h.prompt) || ""}
                           8,
                           ["title"],
                         ))
-                      : X("", !0),
-                    o("div", Xm, [
-                      $[54] || ($[54] = o("small", null, "其它诊断", -1)),
-                      o("div", ev, [
-                        (p(!0),
-                        g(
-                          O,
+                      : J("", !0),
+                    n("div", Lv, [
+                      S[54] || (S[54] = n("small", null, "其它诊断", -1)),
+                      n("div", Nv, [
+                        (c(!0),
+                        v(
+                          I,
                           null,
-                          oe(
-                            M(Vo),
-                            (h) => (
-                              p(),
-                              g(
+                          te(
+                            h(Xo),
+                            (y) => (
+                              c(),
+                              v(
                                 "button",
                                 {
                                   class: "text-button",
-                                  onClick: (b) =>
-                                    (B.value =
-                                      B.value === h.title ? "" : h.title),
+                                  onClick: ($) =>
+                                    (P.value =
+                                      P.value === y.title ? "" : y.title),
                                 },
-                                v(h.title),
+                                m(y.title),
                                 9,
-                                tv,
+                                Rv,
                               )
                             ),
                           ),
                           256,
                         )),
                       ]),
-                      j.value
-                        ? (p(),
-                          g("div", sv, [
-                            o("div", nv, [
-                              o("b", null, v(j.value.title) + " · 模拟记录", 1),
-                              $[53] ||
-                                ($[53] = o(
+                      q.value
+                        ? (c(),
+                          v("div", Fv, [
+                            n("div", jv, [
+                              n("b", null, m(q.value.title) + " · 模拟记录", 1),
+                              S[53] ||
+                                (S[53] = n(
                                   "span",
                                   { class: "spacer" },
                                   null,
                                   -1,
                                 )),
-                              o(
+                              n(
                                 "button",
                                 {
                                   onClick:
-                                    $[10] || ($[10] = (h) => (B.value = "")),
+                                    S[10] || (S[10] = (y) => (P.value = "")),
                                 },
                                 "关闭",
                               ),
                             ]),
-                            (p(!0),
-                            g(
-                              O,
+                            (c(!0),
+                            v(
+                              I,
                               null,
-                              oe(
-                                j.value.rows,
-                                (h) => (p(), g("p", null, v(h), 1)),
+                              te(
+                                q.value.rows,
+                                (y) => (c(), v("p", null, m(y), 1)),
                               ),
                               256,
                             )),
                             ["后台任务", "待处理事项 / 重试耗尽"].includes(
-                              B.value,
+                              P.value,
                             )
-                              ? (p(),
-                                g(
+                              ? (c(),
+                                v(
                                   "button",
                                   {
                                     key: 0,
                                     class: "text-button",
                                     onClick:
-                                      $[11] || ($[11] = (h) => x("任务重试")),
+                                      S[11] || (S[11] = (y) => T("任务重试")),
                                   },
                                   "重试",
                                 ))
-                              : X("", !0),
-                            o("p", lv, v(te.value), 1),
+                              : J("", !0),
+                            n("p", Dv, m(V.value), 1),
                           ]))
-                        : X("", !0),
+                        : J("", !0),
                     ]),
                   ],
                   64,
@@ -8592,417 +8932,2408 @@ ${(h == null ? void 0 : h.prompt) || ""}
       );
     },
   }),
-  iv = (e, t) => {
+  Bv = (e, t) => {
     const s = e.__vccOpts || e;
-    for (const [n, l] of t) s[n] = l;
+    for (const [l, o] of t) s[l] = o;
     return s;
   },
-  rv = iv(ov, [["__scopeId", "data-v-5bb367ad"]]),
-  av = { class: "shell" },
-  uv = { class: "topbar" },
-  cv = { class: "brand-mark" },
-  dv = { class: "failure-toggle" },
-  fv = {
-    key: 0,
-    class: "switch-menu scroll-lock-list",
-    "data-scroll-lock": "",
-  },
-  pv = ["onClick"],
-  mv = { class: "layout" },
-  vv = { class: "sidebar" },
-  hv = { class: "workspace-label" },
-  gv = ["aria-current"],
-  yv = ["aria-expanded"],
-  bv = { key: 0, class: "life-nav" },
-  _v = ["data-testid", "aria-current", "onClick"],
-  kv = ["data-testid", "aria-current", "onClick"],
-  wv = ["data-testid", "aria-current", "onClick"],
-  $v = { class: "page-heading" },
-  Cv = { class: "breadcrumb" },
-  xv = { key: 0, class: "heading-caption" },
-  Sv = { key: 1, class: "page-content" },
-  Tv = { key: 0, "data-testid": "toast", class: "toast", role: "status" },
-  Mv = nt({
-    __name: "App",
+  Kv = Bv(Hv, [["__scopeId", "data-v-5bb367ad"]]),
+  zv = ["aria-label"],
+  ss = je({
+    __name: "CharacterAvatar",
+    props: {
+      name: {},
+      initial: {},
+      color: {},
+      avatarMode: {},
+      small: { type: Boolean },
+    },
     setup(e) {
-      const t = ["此刻", "日程", "目标", "衣柜", "日记", "记忆"],
-        s = [
-          ["世界", Wu],
-          ["动态", Co],
-          ["人物关系", sc],
-          ["媒体", qu],
-        ],
-        n = [
-          ["通知与待处理", zu],
-          ["角色库", Gu],
-          ["创作中心", nc],
-          ["管理中心", ec],
-        ],
-        l = ["聊天", ...t, ...s.map((C) => C[0]), ...n.map((C) => C[0])];
-      function i() {
-        try {
-          const C = decodeURIComponent(location.hash.slice(1));
-          return l.includes(C) ? C : "聊天";
-        } catch {
-          return "聊天";
-        }
+      return (t, s) => (
+        c(),
+        v(
+          "span",
+          {
+            class: ke(["avatar", { small: e.small }]),
+            style: at({ background: e.color }),
+            "aria-label":
+              e.avatarMode === "image" ? "图片头像占位" : e.name + "的头像",
+          },
+          [
+            e.avatarMode === "image"
+              ? (c(),
+                Se(h(Sn), { key: 0, size: e.small ? 16 : 24 }, null, 8, [
+                  "size",
+                ]))
+              : (c(),
+                v(
+                  I,
+                  { key: 1 },
+                  [K(m(e.initial || Array.from(e.name).at(-1) || "你"), 1)],
+                  64,
+                )),
+          ],
+          14,
+          zv,
+        )
+      );
+    },
+  }),
+  qv = { class: "row library-toolbar" },
+  Wv = { class: "muted" },
+  Jv = { class: "actions-menu library-demo-menu" },
+  Gv = {
+    key: 0,
+    class: "card library-first-use",
+    "data-testid": "library-empty-guide",
+  },
+  Yv = { key: 0, class: "muted" },
+  Zv = { class: "row" },
+  Qv = { class: "library-character-copy" },
+  Xv = { key: 0, class: "pill current-badge" },
+  eh = { class: "actions-menu" },
+  th = ["aria-label"],
+  sh = ["onClick"],
+  lh = ["onClick"],
+  nh = { key: 0, class: "card empty-state" },
+  oh = je({
+    __name: "LibraryPage",
+    setup(e) {
+      const t = z(""),
+        s = z({ tag: "" }),
+        l = ye(() => [
+          {
+            key: "tag",
+            label: "标签",
+            options: [
+              ...new Set([
+                "温柔",
+                "创作",
+                "沉稳",
+                "城市",
+                "自然",
+                ...Ae.value.flatMap((u) => u.tags),
+              ]),
+            ],
+          },
+        ]),
+        o = ye(() =>
+          Ae.value.filter(
+            (u) =>
+              (u.name + " " + u.job + " " + u.bio)
+                .toLowerCase()
+                .includes(t.value.trim().toLowerCase()) &&
+              (!s.value.tag || u.tags.includes(s.value.tag)),
+          ),
+        );
+      function i(u) {
+        ((lt.value = u), (location.hash = encodeURIComponent("角色详情")));
       }
-      const r = G(i()),
-        a = G(!0),
-        u = G(!1),
-        f = G(!0);
-      window.addEventListener("hashchange", () => (r.value = i()));
-      const c = G();
-      it(r, () => {
-        (mc(),
-          ls(() => {
-            var C;
-            return (C = c.value) == null ? void 0 : C.scrollTo({ top: 0 });
-          }));
-      });
-      function d(C) {
-        ((r.value = C), (location.hash = encodeURIComponent(C)));
+      function r() {
+        (Cr(),
+          (t.value = ""),
+          (s.value = { tag: "" }),
+          (location.hash = encodeURIComponent("角色库")));
       }
-      return (C, w) => (
-        p(),
-        g("div", av, [
-          o("header", uv, [
-            o(
-              "button",
-              { class: "brand", onClick: w[0] || (w[0] = (A) => d("聊天")) },
-              [
-                o("span", cv, [me(M(Tl), { size: 19 })]),
-                w[7] || (w[7] = Z("摇光", -1)),
-                w[8] ||
-                  (w[8] = o("span", { class: "brand-en" }, "FLUCTLIGHT", -1)),
-              ],
-            ),
-            w[10] || (w[10] = o("span", { class: "top-divider" }, null, -1)),
-            o(
-              "button",
-              {
-                class: "character-switch",
-                onClick: w[1] || (w[1] = (A) => (u.value = !u.value)),
-              },
-              [
-                o(
-                  "span",
-                  {
-                    class: "avatar small",
-                    style: yt({ background: M(W).color }),
-                  },
-                  v(M(W).initial),
-                  5,
+      return (u, d) => (
+        c(),
+        v(
+          I,
+          null,
+          [
+            n("div", qv, [
+              n(
+                "p",
+                Wv,
+                m(
+                  h(Ae).length
+                    ? "在这里，遇见和你一起生活的人。"
+                    : "相识，可以从一句简单的介绍开始。",
                 ),
-                o("b", null, v(M(W).name), 1),
-                me(M(wo), { size: 14 }),
-              ],
+                1,
+              ),
+              d[8] || (d[8] = n("span", { class: "spacer" }, null, -1)),
+              h(Ae).length
+                ? (c(),
+                  v(
+                    "button",
+                    {
+                      key: 0,
+                      class: "button primary",
+                      onClick: d[0] || (d[0] = (...f) => h(Ps) && h(Ps)(...f)),
+                    },
+                    m(h(ts) && h(Ke) !== "complete" ? "继续创建" : "创建角色"),
+                    1,
+                  ))
+                : J("", !0),
+              n("details", Jv, [
+                d[7] ||
+                  (d[7] = n(
+                    "summary",
+                    { "aria-label": "角色库演示选项" },
+                    "⋯",
+                    -1,
+                  )),
+                n("div", null, [
+                  n(
+                    "button",
+                    { "data-testid": "library-demo-empty", onClick: r },
+                    "演示：清空角色（首次使用）",
+                  ),
+                  h(Ae).length
+                    ? (c(),
+                      v(
+                        "button",
+                        {
+                          key: 0,
+                          "data-testid": "library-restore",
+                          onClick:
+                            d[1] || (d[1] = (...f) => h(vl) && h(vl)(...f)),
+                        },
+                        "恢复示例角色",
+                      ))
+                    : J("", !0),
+                ]),
+              ]),
+            ]),
+            h(Ae).length
+              ? (c(),
+                v(
+                  I,
+                  { key: 1 },
+                  [
+                    ae(
+                      bs,
+                      {
+                        search: t.value,
+                        "onUpdate:search":
+                          d[4] || (d[4] = (f) => (t.value = f)),
+                        filters: s.value,
+                        "onUpdate:filters":
+                          d[5] || (d[5] = (f) => (s.value = f)),
+                        groups: l.value,
+                        "test-id": "library-filters",
+                        placeholder: "搜索角色 / 职业",
+                      },
+                      null,
+                      8,
+                      ["search", "filters", "groups"],
+                    ),
+                    (c(!0),
+                    v(
+                      I,
+                      null,
+                      te(
+                        o.value,
+                        (f) => (
+                          c(),
+                          v(
+                            "article",
+                            {
+                              key: f.id,
+                              class: "card compact library-character",
+                            },
+                            [
+                              n("div", Zv, [
+                                ae(
+                                  ss,
+                                  {
+                                    name: f.name,
+                                    initial: f.initial,
+                                    color: f.color,
+                                    "avatar-mode": f.avatarMode,
+                                  },
+                                  null,
+                                  8,
+                                  ["name", "initial", "color", "avatar-mode"],
+                                ),
+                                n("div", Qv, [
+                                  n("b", null, m(f.name) + " · " + m(f.job), 1),
+                                  n("p", null, m(f.subtitle), 1),
+                                  (c(!0),
+                                  v(
+                                    I,
+                                    null,
+                                    te(
+                                      f.tags,
+                                      (a) => (
+                                        c(),
+                                        v(
+                                          "span",
+                                          { key: a, class: "pill" },
+                                          m(a),
+                                          1,
+                                        )
+                                      ),
+                                    ),
+                                    128,
+                                  )),
+                                ]),
+                                d[11] ||
+                                  (d[11] = n(
+                                    "span",
+                                    { class: "spacer" },
+                                    null,
+                                    -1,
+                                  )),
+                                h(lt) === f.id
+                                  ? (c(), v("span", Xv, "当前"))
+                                  : J("", !0),
+                                n("details", eh, [
+                                  n(
+                                    "summary",
+                                    { "aria-label": f.name + "的操作" },
+                                    "⋯",
+                                    8,
+                                    th,
+                                  ),
+                                  n("div", null, [
+                                    n(
+                                      "button",
+                                      { onClick: (a) => i(f.id) },
+                                      "角色详情",
+                                      8,
+                                      sh,
+                                    ),
+                                    h(lt) !== f.id
+                                      ? (c(),
+                                        v(
+                                          "button",
+                                          {
+                                            key: 0,
+                                            onClick: (a) => (lt.value = f.id),
+                                          },
+                                          "切换角色",
+                                          8,
+                                          lh,
+                                        ))
+                                      : J("", !0),
+                                  ]),
+                                ]),
+                              ]),
+                            ],
+                          )
+                        ),
+                      ),
+                      128,
+                    )),
+                    o.value.length
+                      ? J("", !0)
+                      : (c(),
+                        v("div", nh, [
+                          d[12] || (d[12] = n("p", null, "暂无匹配角色。", -1)),
+                          n(
+                            "button",
+                            {
+                              class: "button",
+                              onClick:
+                                d[6] ||
+                                (d[6] = (f) => {
+                                  ((t.value = ""), (s.value = { tag: "" }));
+                                }),
+                            },
+                            "清除筛选",
+                          ),
+                        ])),
+                  ],
+                  64,
+                ))
+              : (c(),
+                v("section", Gv, [
+                  ae(h(Tn), { size: 30, "aria-hidden": "true" }),
+                  d[9] || (d[9] = n("h2", null, "还没有一起生活的人", -1)),
+                  d[10] ||
+                    (d[10] = n(
+                      "p",
+                      null,
+                      [
+                        K(
+                          "给一个名字，聊聊性格，再为对方准备一个世界和几件日常衣物。",
+                        ),
+                        n("br"),
+                        K("我们会一步步陪你准备，慢慢开启新的生活。"),
+                      ],
+                      -1,
+                    )),
+                  n(
+                    "button",
+                    {
+                      class: "button primary",
+                      "data-testid": "library-create-first",
+                      onClick: d[2] || (d[2] = (...f) => h(Ps) && h(Ps)(...f)),
+                    },
+                    "创建第一个角色",
+                  ),
+                  h(ts) && h(Ke) !== "complete"
+                    ? (c(), v("p", Yv, "上次的资料和准备进度已经为你保留。"))
+                    : J("", !0),
+                  n(
+                    "button",
+                    {
+                      class: "text-button library-restore",
+                      "data-testid": "library-restore",
+                      onClick: d[3] || (d[3] = (...f) => h(vl) && h(vl)(...f)),
+                    },
+                    "恢复示例角色",
+                  ),
+                ])),
+          ],
+          64,
+        )
+      );
+    },
+  }),
+  ih = { class: "character-fieldset" },
+  rh = { class: "row avatar-settings" },
+  ah = { class: "character-stack" },
+  uh = { class: "chip-options", "aria-label": "头像形式" },
+  dh = ["aria-pressed"],
+  ch = ["aria-pressed"],
+  fh = { key: 0 },
+  ph = { key: 1, class: "character-inline-label" },
+  mh = ["placeholder"],
+  vh = { class: "avatar-colors", "aria-label": "头像底色" },
+  hh = ["aria-label", "aria-pressed", "onClick"],
+  Sr = je({
+    __name: "AvatarSettings",
+    props: qa(
+      { name: {} },
+      {
+        color: { required: !0 },
+        colorModifiers: {},
+        initial: { required: !0 },
+        initialModifiers: {},
+        mode: { required: !0 },
+        modeModifiers: {},
+      },
+    ),
+    emits: ["update:color", "update:initial", "update:mode"],
+    setup(e) {
+      const t = ys(e, "color"),
+        s = ys(e, "initial"),
+        l = ys(e, "mode");
+      return (o, i) => (
+        c(),
+        v("fieldset", ih, [
+          i[4] || (i[4] = n("legend", null, "头像", -1)),
+          n("div", rh, [
+            ae(
+              ss,
+              {
+                name: e.name,
+                initial: s.value,
+                color: t.value,
+                "avatar-mode": l.value,
+              },
+              null,
+              8,
+              ["name", "initial", "color", "avatar-mode"],
             ),
-            w[11] || (w[11] = o("span", { class: "scope" }, "角色工作区", -1)),
-            w[12] || (w[12] = o("span", { class: "spacer" }, null, -1)),
-            w[13] ||
-              (w[13] = o(
-                "span",
-                { class: "local" },
-                [o("i"), Z("相伴此刻")],
-                -1,
-              )),
-            o("label", dv, [
-              pe(
-                o(
-                  "input",
+            n("div", ah, [
+              n("div", uh, [
+                n(
+                  "button",
                   {
-                    "data-testid": "simulate-failure",
+                    type: "button",
+                    class: "filter-chip",
+                    "aria-pressed": l.value === "initial",
+                    onClick: i[0] || (i[0] = (r) => (l.value = "initial")),
+                  },
+                  "颜色与文字",
+                  8,
+                  dh,
+                ),
+                n(
+                  "button",
+                  {
+                    type: "button",
+                    class: "filter-chip",
+                    "aria-pressed": l.value === "image",
+                    onClick: i[1] || (i[1] = (r) => (l.value = "image")),
+                  },
+                  "图片占位",
+                  8,
+                  ch,
+                ),
+              ]),
+              l.value === "image"
+                ? (c(), v("small", fh, "头像上传占位 · 本原型使用本地占位图。"))
+                : (c(),
+                  v("label", ph, [
+                    i[3] || (i[3] = K("头像文字", -1)),
+                    re(
+                      n(
+                        "input",
+                        {
+                          "onUpdate:modelValue":
+                            i[2] || (i[2] = (r) => (s.value = r)),
+                          maxlength: "2",
+                          placeholder:
+                            Array.from(e.name).at(-1) || "自动取名字末字",
+                        },
+                        null,
+                        8,
+                        mh,
+                      ),
+                      [[he, s.value]],
+                    ),
+                  ])),
+            ]),
+          ]),
+          n("div", vh, [
+            (c(!0),
+            v(
+              I,
+              null,
+              te(
+                h(br),
+                (r, u) => (
+                  c(),
+                  v(
+                    "button",
+                    {
+                      key: r,
+                      type: "button",
+                      style: at({ background: r }),
+                      "aria-label": [
+                        "鼠尾草绿",
+                        "雾蓝",
+                        "暖杏",
+                        "米黄",
+                        "淡紫",
+                      ][u],
+                      "aria-pressed": t.value === r,
+                      onClick: (d) => (t.value = r),
+                    },
+                    m(t.value === r ? "✓" : ""),
+                    13,
+                    hh,
+                  )
+                ),
+              ),
+              128,
+            )),
+          ]),
+        ])
+      );
+    },
+  }),
+  gh = { class: "character-fieldset" },
+  yh = { class: "chip-options" },
+  bh = ["aria-pressed", "onClick"],
+  Tr = je({
+    __name: "PersonalityFields",
+    props: {
+      traits: { required: !0 },
+      traitsModifiers: {},
+      style: { required: !0 },
+      styleModifiers: {},
+      values: { required: !0 },
+      valuesModifiers: {},
+    },
+    emits: ["update:traits", "update:style", "update:values"],
+    setup(e) {
+      const t = ys(e, "traits"),
+        s = ys(e, "style"),
+        l = ys(e, "values");
+      function o(i) {
+        t.value = t.value.includes(i)
+          ? t.value.filter((r) => r !== i)
+          : [...t.value, i];
+      }
+      return (i, r) => (
+        c(),
+        v(
+          I,
+          null,
+          [
+            n("fieldset", gh, [
+              r[2] || (r[2] = n("legend", null, "性格特质", -1)),
+              n("div", yh, [
+                (c(!0),
+                v(
+                  I,
+                  null,
+                  te(
+                    [...new Set([...h(Yd), ...t.value])],
+                    (u) => (
+                      c(),
+                      v(
+                        "button",
+                        {
+                          key: u,
+                          type: "button",
+                          class: "filter-chip",
+                          "aria-pressed": t.value.includes(u),
+                          onClick: (d) => o(u),
+                        },
+                        m(u),
+                        9,
+                        bh,
+                      )
+                    ),
+                  ),
+                  128,
+                )),
+              ]),
+            ]),
+            n("label", null, [
+              r[3] || (r[3] = K("说话方式", -1)),
+              re(
+                n(
+                  "textarea",
+                  {
                     "onUpdate:modelValue":
-                      w[2] || (w[2] = (A) => (Re(ns) ? (ns.value = A) : null)),
-                    type: "checkbox",
+                      r[0] || (r[0] = (u) => (s.value = u)),
+                    rows: "2",
+                    maxlength: "500",
+                    required: "",
+                    placeholder: "例如：温和直接，喜欢分享生活里的小发现。",
                   },
                   null,
                   512,
                 ),
-                [[ss, M(ns)]],
+                [[he, s.value]],
               ),
-              w[9] || (w[9] = Z("模拟失败", -1)),
             ]),
-            w[14] || (w[14] = o("span", { class: "self-avatar" }, "我", -1)),
-            u.value
-              ? (p(),
-                g("div", fv, [
-                  (p(!0),
-                  g(
-                    O,
-                    null,
-                    oe(
-                      M(et),
-                      (A) => (
-                        p(),
-                        g(
-                          "button",
-                          {
-                            key: A.id,
-                            onClick: (B) => {
-                              ((cs.value = A.id), (u.value = !1));
-                            },
-                          },
-                          [
-                            o(
-                              "span",
-                              {
-                                class: "avatar small",
-                                style: yt({ background: A.color }),
-                              },
-                              v(A.initial),
-                              5,
-                            ),
-                            Z(v(A.name), 1),
-                          ],
-                          8,
-                          pv,
-                        )
-                      ),
-                    ),
-                    128,
-                  )),
-                ]))
-              : X("", !0),
-          ]),
-          o("div", mv, [
-            o("aside", vv, [
-              o("div", hv, [
-                w[15] || (w[15] = Z("角色工作区 ", -1)),
-                o("span", null, v(M(W).name), 1),
-              ]),
-              (p(),
-              g("nav", { key: "workspace-" + r.value }, [
-                o(
-                  "button",
+            n("label", null, [
+              r[4] || (r[4] = K("核心价值观", -1)),
+              re(
+                n(
+                  "textarea",
                   {
-                    "data-testid": "nav-聊天",
-                    "aria-current": r.value === "聊天" ? "page" : void 0,
-                    class: ge(["nav-item", { active: r.value === "聊天" }]),
-                    onClick: w[3] || (w[3] = (A) => d("聊天")),
+                    "onUpdate:modelValue":
+                      r[1] || (r[1] = (u) => (l.value = u)),
+                    rows: "2",
+                    maxlength: "500",
+                    required: "",
+                    placeholder: "例如：真诚、尊重边界，认真对待每一次相处。",
                   },
-                  [
-                    me(M(Ju), { size: 17 }),
-                    w[16] || (w[16] = o("span", null, "聊天", -1)),
-                  ],
-                  10,
-                  gv,
+                  null,
+                  512,
                 ),
-                o(
-                  "button",
-                  {
-                    class: "nav-item",
-                    onClick: w[4] || (w[4] = (A) => (a.value = !a.value)),
-                    "aria-expanded": a.value,
-                  },
+                [[he, l.value]],
+              ),
+            ]),
+          ],
+          64,
+        )
+      );
+    },
+  }),
+  kh = { class: "character-workflow" },
+  _h = { class: "row" },
+  wh = { class: "wizard-steps", "aria-label": "创建角色步骤" },
+  $h = ["aria-current"],
+  Ch = ["data-testid"],
+  xh = { class: "muted" },
+  Sh = { class: "form-grid" },
+  Th = ["value"],
+  Mh = { key: 0, class: "form-grid" },
+  Ih = { id: "wizard-home-locations" },
+  Eh = ["value"],
+  Ah = { class: "character-fieldset" },
+  Vh = { class: "chip-options" },
+  Oh = ["aria-pressed", "onClick"],
+  Uh = { class: "character-fieldset" },
+  Ph = { class: "starter-garments" },
+  Lh = ["value"],
+  Nh = { class: "wizard-review" },
+  Rh = { key: 0, role: "alert", class: "inline-error" },
+  Fh = { class: "wizard-footer" },
+  jh = ["disabled"],
+  Dh = { key: 0, class: "button primary", "data-testid": "wizard-next" },
+  Hh = { key: 1, class: "button primary", "data-testid": "wizard-submit" },
+  Bh = { key: 1, class: "card character-preparation" },
+  Kh = { class: "muted" },
+  zh = { class: "preparation-list", "aria-label": "角色准备进度" },
+  qh = ["data-testid", "data-state"],
+  Wh = { class: "preparation-number" },
+  Jh = { class: "preparation-copy" },
+  Gh = { class: "row" },
+  Yh = { key: 0, class: "preparation-error" },
+  Zh = { role: "alert" },
+  Qh = { class: "row" },
+  Xh = ["href"],
+  eg = ["data-testid", "onClick"],
+  tg = { key: 0, class: "row preparation-done" },
+  sg = { key: 2, class: "wizard-demo-toggle" },
+  lg = je({
+    __name: "CharacterWizardPage",
+    setup(e) {
+      ts.value = !0;
+      const t = ["基本资料", "人格", "世界与地点", "衣柜初始化"],
+        s = z(""),
+        l = ye(() => Oe.value.find((f) => f.id === fe.value.worldId));
+      function o() {
+        ((s.value = Vl(Ne.value)), s.value || Ne.value++);
+      }
+      function i() {
+        ((s.value = Vl(4)), s.value || ec());
+      }
+      function r(f) {
+        const a = fe.value.wardrobeStyles;
+        fe.value.wardrobeStyles = a.includes(f)
+          ? a.filter((p) => p !== f)
+          : [...a, f];
+      }
+      function u() {
+        location.hash = encodeURIComponent("角色库");
+      }
+      function d() {
+        ((Zn.value = "配置中心"),
+          (location.hash =
+            encodeURIComponent("管理中心") +
+            "?section=" +
+            encodeURIComponent("图片（ComfyUI）")));
+      }
+      return (f, a) => {
+        var p, _;
+        return (
+          c(),
+          v("div", kh, [
+            n("div", _h, [
+              n("button", { class: "text-button", onClick: u }, "角色库"),
+              ae(h(Jn), { size: 13 }),
+              n(
+                "small",
+                null,
+                m(h(Ke) === "editing" ? "新的相识" : "为新的生活做准备"),
+                1,
+              ),
+            ]),
+            h(Ke) === "editing"
+              ? (c(),
+                v(
+                  I,
+                  { key: 0 },
                   [
-                    me(M(Co), { size: 17 }),
-                    w[17] || (w[17] = o("span", null, "生活", -1)),
-                    me(M(wo), { size: 13 }),
-                  ],
-                  8,
-                  yv,
-                ),
-                a.value
-                  ? (p(),
-                    g("div", bv, [
-                      (p(),
-                      g(
-                        O,
+                    n("ol", wh, [
+                      (c(),
+                      v(
+                        I,
                         null,
-                        oe(t, (A) =>
-                          o(
-                            "button",
+                        te(t, (b, A) =>
+                          n(
+                            "li",
                             {
-                              key: A,
-                              "data-testid": "nav-" + A,
-                              "aria-current": r.value === A ? "page" : void 0,
-                              class: ge([
-                                "nav-item",
-                                { active: r.value === A },
-                              ]),
-                              onClick: (B) => d(A),
+                              key: b,
+                              "aria-current": h(Ne) === A + 1 ? "step" : void 0,
+                              class: ke({
+                                active: h(Ne) === A + 1,
+                                complete: h(Ne) > A + 1,
+                              }),
                             },
-                            v(A),
-                            11,
-                            _v,
+                            [n("span", null, m(A + 1), 1), K(m(b), 1)],
+                            10,
+                            $h,
                           ),
                         ),
                         64,
                       )),
-                    ]))
-                  : X("", !0),
-                (p(),
-                g(
-                  O,
-                  null,
-                  oe(s, ([A, B]) =>
-                    o(
-                      "button",
+                    ]),
+                    n(
+                      "form",
                       {
-                        key: A,
-                        "data-testid": "nav-" + A,
-                        "aria-current": r.value === A ? "page" : void 0,
-                        class: ge(["nav-item", { active: r.value === A }]),
-                        onClick: (te) => d(A),
+                        class: "card character-form",
+                        onSubmit:
+                          a[15] ||
+                          (a[15] = Ue(
+                            (b) => (h(Ne) < 4 ? o() : i()),
+                            ["prevent"],
+                          )),
                       },
                       [
-                        (p(), Ae(as(B), { size: 17 })),
-                        o("span", null, v(A), 1),
+                        (c(),
+                        v(
+                          "section",
+                          {
+                            key: h(Ne),
+                            "data-testid": "wizard-step-" + h(Ne),
+                            class: "character-stack",
+                          },
+                          [
+                            n("header", null, [
+                              n("small", null, "第 " + m(h(Ne)) + " / 4 步", 1),
+                              n("h2", null, m(t[h(Ne) - 1]), 1),
+                              n(
+                                "p",
+                                xh,
+                                m(
+                                  [
+                                    "先从一个名字和一点日常开始。",
+                                    "每一种性格，都有自己的相处节奏。",
+                                    "给日常安放一个温柔的起点。",
+                                    "挑几件日常衣物，以后再慢慢添置。",
+                                  ][h(Ne) - 1],
+                                ),
+                                1,
+                              ),
+                            ]),
+                            h(Ne) === 1
+                              ? (c(),
+                                v(
+                                  I,
+                                  { key: 0 },
+                                  [
+                                    n("div", Sh, [
+                                      n("label", null, [
+                                        a[18] || (a[18] = K("名字", -1)),
+                                        re(
+                                          n(
+                                            "input",
+                                            {
+                                              "onUpdate:modelValue":
+                                                a[0] ||
+                                                (a[0] = (b) =>
+                                                  (h(fe).name = b)),
+                                              "data-testid": "wizard-name",
+                                              required: "",
+                                              maxlength: "30",
+                                              placeholder: "你想怎么称呼对方？",
+                                            },
+                                            null,
+                                            512,
+                                          ),
+                                          [[he, h(fe).name]],
+                                        ),
+                                      ]),
+                                      n("label", null, [
+                                        a[19] || (a[19] = K("年龄", -1)),
+                                        re(
+                                          n(
+                                            "input",
+                                            {
+                                              "onUpdate:modelValue":
+                                                a[1] ||
+                                                (a[1] = (b) => (h(fe).age = b)),
+                                              "data-testid": "wizard-age",
+                                              type: "number",
+                                              min: "1",
+                                              max: "150",
+                                              step: "1",
+                                              required: "",
+                                            },
+                                            null,
+                                            512,
+                                          ),
+                                          [
+                                            [
+                                              he,
+                                              h(fe).age,
+                                              void 0,
+                                              { number: !0 },
+                                            ],
+                                          ],
+                                        ),
+                                      ]),
+                                    ]),
+                                    n("label", null, [
+                                      a[20] || (a[20] = K("简短介绍", -1)),
+                                      re(
+                                        n(
+                                          "textarea",
+                                          {
+                                            "onUpdate:modelValue":
+                                              a[2] ||
+                                              (a[2] = (b) => (h(fe).intro = b)),
+                                            "data-testid": "wizard-intro",
+                                            rows: "3",
+                                            maxlength: "500",
+                                            required: "",
+                                            placeholder:
+                                              "喜欢什么、怎样生活，或是你期待的初次相识。",
+                                          },
+                                          null,
+                                          512,
+                                        ),
+                                        [[he, h(fe).intro]],
+                                      ),
+                                    ]),
+                                    ae(
+                                      Sr,
+                                      {
+                                        color: h(fe).color,
+                                        "onUpdate:color":
+                                          a[3] ||
+                                          (a[3] = (b) => (h(fe).color = b)),
+                                        initial: h(fe).initial,
+                                        "onUpdate:initial":
+                                          a[4] ||
+                                          (a[4] = (b) => (h(fe).initial = b)),
+                                        mode: h(fe).avatarMode,
+                                        "onUpdate:mode":
+                                          a[5] ||
+                                          (a[5] = (b) =>
+                                            (h(fe).avatarMode = b)),
+                                        name: h(fe).name,
+                                      },
+                                      null,
+                                      8,
+                                      ["color", "initial", "mode", "name"],
+                                    ),
+                                  ],
+                                  64,
+                                ))
+                              : h(Ne) === 2
+                                ? (c(),
+                                  Se(
+                                    Tr,
+                                    {
+                                      key: 1,
+                                      traits: h(fe).traits,
+                                      "onUpdate:traits":
+                                        a[6] ||
+                                        (a[6] = (b) => (h(fe).traits = b)),
+                                      style: at(h(fe).speakingStyle),
+                                      "onUpdate:style":
+                                        a[7] ||
+                                        (a[7] = (b) =>
+                                          (h(fe).speakingStyle = b)),
+                                      values: h(fe).coreValues,
+                                      "onUpdate:values":
+                                        a[8] ||
+                                        (a[8] = (b) => (h(fe).coreValues = b)),
+                                    },
+                                    null,
+                                    8,
+                                    ["traits", "style", "values"],
+                                  ))
+                                : h(Ne) === 3
+                                  ? (c(),
+                                    v(
+                                      I,
+                                      { key: 2 },
+                                      [
+                                        n("label", null, [
+                                          a[22] || (a[22] = K("所在世界", -1)),
+                                          re(
+                                            n(
+                                              "select",
+                                              {
+                                                "onUpdate:modelValue":
+                                                  a[9] ||
+                                                  (a[9] = (b) =>
+                                                    (h(fe).worldId = b)),
+                                                "data-testid": "wizard-world",
+                                              },
+                                              [
+                                                (c(!0),
+                                                v(
+                                                  I,
+                                                  null,
+                                                  te(
+                                                    h(Oe),
+                                                    (b) => (
+                                                      c(),
+                                                      v(
+                                                        "option",
+                                                        {
+                                                          key: b.id,
+                                                          value: b.id,
+                                                        },
+                                                        m(b.name),
+                                                        9,
+                                                        Th,
+                                                      )
+                                                    ),
+                                                  ),
+                                                  128,
+                                                )),
+                                                a[21] ||
+                                                  (a[21] = n(
+                                                    "option",
+                                                    { value: "new" },
+                                                    "创建一个新世界…",
+                                                    -1,
+                                                  )),
+                                              ],
+                                              512,
+                                            ),
+                                            [[pt, h(fe).worldId]],
+                                          ),
+                                        ]),
+                                        h(fe).worldId === "new"
+                                          ? (c(),
+                                            v("div", Mh, [
+                                              n("label", null, [
+                                                a[23] ||
+                                                  (a[23] = K("世界名称", -1)),
+                                                re(
+                                                  n(
+                                                    "input",
+                                                    {
+                                                      "onUpdate:modelValue":
+                                                        a[10] ||
+                                                        (a[10] = (b) =>
+                                                          (h(fe).worldName =
+                                                            b)),
+                                                      required: "",
+                                                      maxlength: "60",
+                                                      placeholder:
+                                                        "例如：有风的小城",
+                                                    },
+                                                    null,
+                                                    512,
+                                                  ),
+                                                  [[he, h(fe).worldName]],
+                                                ),
+                                              ]),
+                                              n("label", null, [
+                                                a[24] ||
+                                                  (a[24] = K("世界类型", -1)),
+                                                re(
+                                                  n(
+                                                    "input",
+                                                    {
+                                                      "onUpdate:modelValue":
+                                                        a[11] ||
+                                                        (a[11] = (b) =>
+                                                          (h(fe).genre = b)),
+                                                      maxlength: "40",
+                                                      placeholder: "现代都市",
+                                                    },
+                                                    null,
+                                                    512,
+                                                  ),
+                                                  [[he, h(fe).genre]],
+                                                ),
+                                              ]),
+                                            ]))
+                                          : J("", !0),
+                                        n("label", null, [
+                                          a[25] || (a[25] = K("居住地点", -1)),
+                                          re(
+                                            n(
+                                              "input",
+                                              {
+                                                "onUpdate:modelValue":
+                                                  a[12] ||
+                                                  (a[12] = (b) =>
+                                                    (h(fe).homeLocation = b)),
+                                                list: "wizard-home-locations",
+                                                required: "",
+                                                maxlength: "100",
+                                                placeholder:
+                                                  "例如：河岸公寓 · 卧室",
+                                              },
+                                              null,
+                                              512,
+                                            ),
+                                            [[he, h(fe).homeLocation]],
+                                          ),
+                                          n("datalist", Ih, [
+                                            (c(!0),
+                                            v(
+                                              I,
+                                              null,
+                                              te(
+                                                ((p = l.value) == null
+                                                  ? void 0
+                                                  : p.sites.flatMap(
+                                                      (b) => b.places,
+                                                    )) || [],
+                                                (b) => (
+                                                  c(),
+                                                  v(
+                                                    "option",
+                                                    {
+                                                      key: b.id,
+                                                      value: b.name,
+                                                    },
+                                                    null,
+                                                    8,
+                                                    Eh,
+                                                  )
+                                                ),
+                                              ),
+                                              128,
+                                            )),
+                                          ]),
+                                        ]),
+                                      ],
+                                      64,
+                                    ))
+                                  : (c(),
+                                    v(
+                                      I,
+                                      { key: 3 },
+                                      [
+                                        n("fieldset", Ah, [
+                                          a[26] ||
+                                            (a[26] = n(
+                                              "legend",
+                                              null,
+                                              "穿衣风格",
+                                              -1,
+                                            )),
+                                          n("div", Vh, [
+                                            (c(!0),
+                                            v(
+                                              I,
+                                              null,
+                                              te(
+                                                h(Zd),
+                                                (b) => (
+                                                  c(),
+                                                  v(
+                                                    "button",
+                                                    {
+                                                      key: b,
+                                                      type: "button",
+                                                      class: "filter-chip",
+                                                      "aria-pressed":
+                                                        h(
+                                                          fe,
+                                                        ).wardrobeStyles.includes(
+                                                          b,
+                                                        ),
+                                                      onClick: (A) => r(b),
+                                                    },
+                                                    m(b),
+                                                    9,
+                                                    Oh,
+                                                  )
+                                                ),
+                                              ),
+                                              128,
+                                            )),
+                                          ]),
+                                        ]),
+                                        n("fieldset", Uh, [
+                                          a[27] ||
+                                            (a[27] = n(
+                                              "legend",
+                                              null,
+                                              "初始衣物 · 可多选",
+                                              -1,
+                                            )),
+                                          n("div", Ph, [
+                                            (c(!0),
+                                            v(
+                                              I,
+                                              null,
+                                              te(
+                                                h(kr),
+                                                (b) => (
+                                                  c(),
+                                                  v("label", { key: b.id }, [
+                                                    re(
+                                                      n(
+                                                        "input",
+                                                        {
+                                                          "onUpdate:modelValue":
+                                                            a[13] ||
+                                                            (a[13] = (A) =>
+                                                              (h(
+                                                                fe,
+                                                              ).garmentIds =
+                                                                A)),
+                                                          type: "checkbox",
+                                                          value: b.id,
+                                                        },
+                                                        null,
+                                                        8,
+                                                        Lh,
+                                                      ),
+                                                      [[Ft, h(fe).garmentIds]],
+                                                    ),
+                                                    n(
+                                                      "span",
+                                                      null,
+                                                      m(b.name),
+                                                      1,
+                                                    ),
+                                                    n(
+                                                      "small",
+                                                      null,
+                                                      m(b.type),
+                                                      1,
+                                                    ),
+                                                  ])
+                                                ),
+                                              ),
+                                              128,
+                                            )),
+                                          ]),
+                                        ]),
+                                        n("div", Nh, [
+                                          ae(
+                                            ss,
+                                            {
+                                              name: h(fe).name,
+                                              initial: h(fe).initial,
+                                              color: h(fe).color,
+                                              "avatar-mode": h(fe).avatarMode,
+                                            },
+                                            null,
+                                            8,
+                                            [
+                                              "name",
+                                              "initial",
+                                              "color",
+                                              "avatar-mode",
+                                            ],
+                                          ),
+                                          n("div", null, [
+                                            n(
+                                              "b",
+                                              null,
+                                              m(h(fe).name) +
+                                                " · " +
+                                                m(h(fe).age) +
+                                                " 岁",
+                                              1,
+                                            ),
+                                            n(
+                                              "p",
+                                              null,
+                                              m(h(fe).traits.join("、")) +
+                                                " · " +
+                                                m(
+                                                  h(fe).worldId === "new"
+                                                    ? h(fe).worldName
+                                                    : (_ = l.value) == null
+                                                      ? void 0
+                                                      : _.name,
+                                                ) +
+                                                " · " +
+                                                m(h(fe).homeLocation),
+                                              1,
+                                            ),
+                                            a[28] ||
+                                              (a[28] = n(
+                                                "small",
+                                                null,
+                                                "确认后，将按下面六个环节逐步准备。",
+                                                -1,
+                                              )),
+                                          ]),
+                                        ]),
+                                      ],
+                                      64,
+                                    )),
+                          ],
+                          8,
+                          Ch,
+                        )),
+                        s.value ? (c(), v("p", Rh, m(s.value), 1)) : J("", !0),
+                        n("footer", Fh, [
+                          n(
+                            "button",
+                            {
+                              type: "button",
+                              class: "button",
+                              "data-testid": "wizard-prev",
+                              disabled: h(Ne) === 1,
+                              onClick:
+                                a[14] ||
+                                (a[14] = (b) => {
+                                  (Ne.value--, (s.value = ""));
+                                }),
+                            },
+                            "上一步",
+                            8,
+                            jh,
+                          ),
+                          a[29] ||
+                            (a[29] = n("span", { class: "spacer" }, null, -1)),
+                          h(Ne) < 4
+                            ? (c(), v("button", Dh, "下一步"))
+                            : (c(), v("button", Hh, "确认并开始准备")),
+                        ]),
                       ],
-                      10,
-                      kv,
+                      32,
                     ),
-                  ),
-                  64,
-                )),
-              ])),
-              w[18] || (w[18] = o("hr", { class: "nav-divider" }, null, -1)),
-              (p(),
-              g("nav", { key: "global-" + r.value }, [
-                (p(),
-                g(
-                  O,
-                  null,
-                  oe(n, ([A, B]) =>
-                    o(
-                      "button",
-                      {
-                        key: A,
-                        "data-testid": "nav-" + A,
-                        "aria-current": r.value === A ? "page" : void 0,
-                        class: ge(["nav-item", { active: r.value === A }]),
-                        onClick: (te) => d(A),
-                      },
-                      [
-                        (p(), Ae(as(B), { size: 17 })),
-                        o("span", null, v(A), 1),
-                      ],
-                      10,
-                      wv,
-                    ),
-                  ),
-                  64,
-                )),
-              ])),
-              w[19] ||
-                (w[19] = o(
-                  "div",
-                  { class: "sidebar-footer" },
-                  [
-                    Z("每一个世界，都有回响 "),
-                    o("small", null, "Fluctlight · v6"),
                   ],
-                  -1,
-                )),
-            ]),
-            o(
-              "main",
-              {
-                ref_key: "main",
-                ref: c,
-                class: ge({ "chat-main": r.value === "聊天" }),
-              },
-              [
-                o("div", $v, [
-                  o("div", null, [
-                    o("div", Cv, [
-                      Z(v(M(W).name) + " 的工作区 ", 1),
-                      me(M(Ji), { size: 12 }),
-                      Z(v(r.value), 1),
-                    ]),
-                    o("h1", null, [
-                      Z(v(r.value), 1),
-                      r.value === "聊天"
-                        ? (p(), g("span", xv, "日常的片刻，与你分享。"))
-                        : X("", !0),
-                    ]),
-                  ]),
-                  r.value === "聊天"
-                    ? (p(),
-                      g(
-                        "button",
-                        {
-                          key: 0,
-                          class: "button",
-                          onClick: w[5] || (w[5] = (A) => (f.value = !f.value)),
-                        },
-                        [
-                          (p(), Ae(as(f.value ? M(Yu) : M(Zu)), { size: 15 })),
-                          Z(v(f.value ? "收起预览" : "展开预览"), 1),
-                        ],
-                      ))
-                    : X("", !0),
-                ]),
-                r.value === "聊天"
-                  ? (p(),
-                    Ae(
-                      Rc,
-                      { key: M(W).id, preview: f.value, onGo: d },
+                  64,
+                ))
+              : (c(),
+                v("section", Bh, [
+                  n("header", null, [
+                    n("small", null, m(h(fe).name) + "的新生活", 1),
+                    n(
+                      "h2",
                       null,
-                      8,
-                      ["preview"],
-                    ))
-                  : (p(),
-                    g("div", Sv, [
-                      r.value === "衣柜"
-                        ? (p(), Ae(mp, { key: "w" + M(W).id }))
-                        : r.value === "世界"
-                          ? (p(), Ae(Kp, { key: "world" + M(W).id }))
-                          : t.includes(r.value)
-                            ? (p(),
-                              Ae(
-                                hf,
-                                { page: r.value, key: M(W).id, onGo: d },
-                                null,
-                                8,
-                                ["page"],
-                              ))
-                            : r.value === "管理中心"
-                              ? (p(), Ae(rv, { key: 3 }))
-                              : (p(),
-                                Ae(
-                                  A1,
-                                  { page: r.value, key: r.value + M(W).id },
-                                  null,
-                                  8,
-                                  ["page"],
-                                )),
-                    ])),
-              ],
-              2,
-            ),
-          ]),
-          M(Is)
-            ? (p(),
-              g("div", Tv, [
-                Z(v(M(Is).text) + " ", 1),
-                M(Is).link
-                  ? (p(),
-                    g(
-                      "a",
+                      m(
+                        h(Ke) === "complete"
+                          ? "准备好了，很高兴遇见你"
+                          : "一点点，准备好相遇",
+                      ),
+                      1,
+                    ),
+                    n(
+                      "p",
+                      Kh,
+                      m(
+                        h(Ke) === "complete"
+                          ? "资料和初始衣柜已保存，接下来一起走进日常。"
+                          : "进度会为你保留。遇到问题时，可以单独重试未完成的环节。",
+                      ),
+                      1,
+                    ),
+                  ]),
+                  n("ol", zh, [
+                    (c(!0),
+                    v(
+                      I,
+                      null,
+                      te(
+                        h(xs),
+                        (b, A) => (
+                          c(),
+                          v(
+                            "li",
+                            {
+                              key: b.key,
+                              "data-testid": "prep-step-" + b.key,
+                              "data-state": b.state,
+                            },
+                            [
+                              n("span", Wh, [
+                                b.state === "已完成"
+                                  ? (c(), Se(h(bd), { key: 0, size: 15 }))
+                                  : (c(),
+                                    v(I, { key: 1 }, [K(m(A + 1), 1)], 64)),
+                              ]),
+                              n("div", Jh, [
+                                n("div", Gh, [
+                                  n("b", null, m(b.name), 1),
+                                  a[30] ||
+                                    (a[30] = n(
+                                      "span",
+                                      { class: "spacer" },
+                                      null,
+                                      -1,
+                                    )),
+                                  n(
+                                    "span",
+                                    {
+                                      class: ke([
+                                        "preparation-state",
+                                        {
+                                          "is-failed": b.state === "失败",
+                                          "is-current": b.state === "进行中",
+                                        },
+                                      ]),
+                                      role: "status",
+                                    },
+                                    m(b.state),
+                                    3,
+                                  ),
+                                ]),
+                                b.state === "失败"
+                                  ? (c(),
+                                    v("div", Yh, [
+                                      n("p", Zh, m(b.reason), 1),
+                                      n("div", Qh, [
+                                        b.key === "reference"
+                                          ? (c(),
+                                            v(
+                                              "a",
+                                              {
+                                                key: 0,
+                                                class: "text-button",
+                                                "data-testid":
+                                                  "prep-goto-config",
+                                                href:
+                                                  "#" +
+                                                  encodeURIComponent(
+                                                    "管理中心",
+                                                  ) +
+                                                  "?section=" +
+                                                  encodeURIComponent(
+                                                    "图片（ComfyUI）",
+                                                  ),
+                                                onClick: Ue(d, ["prevent"]),
+                                              },
+                                              "去配置中心 ↗",
+                                              8,
+                                              Xh,
+                                            ))
+                                          : J("", !0),
+                                        n(
+                                          "button",
+                                          {
+                                            class: "button",
+                                            "data-testid":
+                                              "prep-retry-" + b.key,
+                                            onClick: (P) => h(tc)(b.key),
+                                          },
+                                          "重试",
+                                          8,
+                                          eg,
+                                        ),
+                                      ]),
+                                      b.key === "world"
+                                        ? (c(),
+                                          v(
+                                            "button",
+                                            {
+                                              key: 0,
+                                              class: "text-button",
+                                              onClick:
+                                                a[16] ||
+                                                (a[16] = (P) => {
+                                                  ((Ke.value = "editing"),
+                                                    (Ne.value = 3));
+                                                }),
+                                            },
+                                            "返回世界与地点",
+                                          ))
+                                        : J("", !0),
+                                    ]))
+                                  : J("", !0),
+                              ]),
+                            ],
+                            8,
+                            qh,
+                          )
+                        ),
+                      ),
+                      128,
+                    )),
+                  ]),
+                  h(Ke) === "complete"
+                    ? (c(),
+                      v("div", tg, [
+                        ae(
+                          ss,
+                          {
+                            name: h(fe).name,
+                            initial: h(fe).initial,
+                            color: h(fe).color,
+                            "avatar-mode": h(fe).avatarMode,
+                          },
+                          null,
+                          8,
+                          ["name", "initial", "color", "avatar-mode"],
+                        ),
+                        a[31] ||
+                          (a[31] = n("span", { class: "spacer" }, null, -1)),
+                        a[32] ||
+                          (a[32] = n(
+                            "a",
+                            {
+                              class: "button primary",
+                              "data-testid": "prep-done-now",
+                              href: "#此刻",
+                            },
+                            "去此刻",
+                            -1,
+                          )),
+                        a[33] ||
+                          (a[33] = n(
+                            "a",
+                            {
+                              class: "button",
+                              "data-testid": "prep-done-detail",
+                              href: "#角色详情",
+                            },
+                            "角色详情",
+                            -1,
+                          )),
+                      ]))
+                    : J("", !0),
+                ])),
+            h(Ke) !== "complete"
+              ? (c(),
+                v("label", sg, [
+                  re(
+                    n(
+                      "input",
+                      {
+                        "onUpdate:modelValue":
+                          a[17] ||
+                          (a[17] = (b) => (Fe(Bs) ? (Bs.value = b) : null)),
+                        type: "checkbox",
+                        "data-testid": "wizard-fail-toggle",
+                      },
+                      null,
+                      512,
+                    ),
+                    [[Ft, h(Bs)]],
+                  ),
+                  a[34] || (a[34] = K("演示：某一步失败 ", -1)),
+                  a[35] ||
+                    (a[35] = n(
+                      "small",
+                      null,
+                      "首次准备规范参考图时提示未配置；再次重试可完成。",
+                      -1,
+                    )),
+                ]))
+              : J("", !0),
+          ])
+        );
+      };
+    },
+  }),
+  ng = { class: "character-detail character-workflow" },
+  og = { class: "card" },
+  ig = { class: "row character-profile-heading" },
+  rg = ["disabled"],
+  ag = ["disabled"],
+  ug = ["value"],
+  dg = ["value"],
+  cg = { key: 0, class: "inline-error", role: "alert" },
+  fg = { class: "wizard-footer" },
+  pg = ["disabled"],
+  mg = ["disabled"],
+  vg = { key: 1, class: "character-detail-sections" },
+  hg = { "data-testid": "detail-intro" },
+  gg = { class: "chip-options" },
+  yg = { class: "row" },
+  bg = { "data-testid": "detail-world" },
+  kg = { class: "character-more" },
+  _g = je({
+    __name: "CharacterDetailPage",
+    setup(e) {
+      const t = z(!1),
+        s = z(""),
+        l = fs(["角色详情"]);
+      function o() {
+        const f = U.value;
+        return {
+          intro: f.bio,
+          traits: [...f.traits],
+          style: f.speakingStyle,
+          values: f.coreValues,
+          color: f.color,
+          initial: f.initial,
+          avatarMode: f.avatarMode,
+          worldId: f.worldId,
+        };
+      }
+      const i = z(o());
+      function r() {
+        ((i.value = o()), (s.value = ""), (t.value = !0));
+      }
+      function u() {
+        ((i.value = o()), (s.value = ""), (t.value = !1));
+      }
+      function d() {
+        if (l.value) return;
+        s.value = "";
+        const f = i.value;
+        if (!f.intro.trim()) {
+          s.value = "请填写角色简介。";
+          return;
+        }
+        if (!f.traits.length || !f.style.trim() || !f.values.trim()) {
+          s.value = "请选择性格特质，并补充说话方式和核心价值观。";
+          return;
+        }
+        if (!Oe.value.some((_) => _.id === f.worldId)) {
+          s.value = "请选择一个可用世界。";
+          return;
+        }
+        const a = JSON.parse(JSON.stringify(f)),
+          p = U.value;
+        Xe(
+          "角色详情",
+          [a.intro, a.style, a.values, a.initial, ...a.traits].join(" "),
+          () => {
+            var b, A;
+            const _ = Oe.value.find((P) => P.id === a.worldId);
+            _ &&
+              (p.worldId !== _.id &&
+                (Oe.value.forEach(
+                  (P) => (P.residents = P.residents.filter((V) => V !== p.id)),
+                ),
+                _.residents.push(p.id),
+                (p.world = _.name),
+                (p.worldId = _.id),
+                (p.genre = _.genre),
+                (p.sites = JSON.parse(JSON.stringify(_.sites))),
+                (p.homeLocation =
+                  ((A = (b = _.sites[0]) == null ? void 0 : b.places[0]) == null
+                    ? void 0
+                    : A.name) || _.name),
+                (p.location = p.homeLocation)),
+              Object.assign(p, {
+                bio: a.intro.trim(),
+                subtitle: a.intro.trim(),
+                traits: a.traits,
+                tags: [...a.traits],
+                speakingStyle: a.style.trim(),
+                coreValues: a.values.trim(),
+                color: a.color,
+                initial: a.initial.trim() || Array.from(p.name).at(-1),
+                avatarMode: a.avatarMode,
+              }),
+              (t.value = !1));
+          },
+          p.name,
+          "角色资料已保存。",
+        );
+      }
+      return (f, a) => {
+        var p;
+        return (
+          c(),
+          v("div", ng, [
+            n("section", og, [
+              n("header", ig, [
+                ae(
+                  ss,
+                  {
+                    name: h(U).name,
+                    initial: h(U).initial,
+                    color: h(U).color,
+                    "avatar-mode": h(U).avatarMode,
+                  },
+                  null,
+                  8,
+                  ["name", "initial", "color", "avatar-mode"],
+                ),
+                n("div", null, [
+                  n("h2", null, m(h(U).name), 1),
+                  n("small", null, m(h(U).age) + " 岁 · " + m(h(U).job), 1),
+                ]),
+                a[10] || (a[10] = n("span", { class: "spacer" }, null, -1)),
+                t.value
+                  ? J("", !0)
+                  : (c(),
+                    v(
+                      "button",
                       {
                         key: 0,
-                        href: "#衣柜",
-                        onClick:
-                          w[6] ||
-                          (w[6] = (A) => {
-                            (d("衣柜"), (El.value = "方案库"));
-                          }),
+                        class: "button",
+                        "data-testid": "detail-edit",
+                        disabled: h(l),
+                        onClick: r,
                       },
-                      "去方案库 ↗",
-                    ))
-                  : X("", !0),
-              ]))
-            : X("", !0),
-        ])
-      );
+                      "编辑资料",
+                      8,
+                      rg,
+                    )),
+              ]),
+              t.value
+                ? (c(),
+                  v(
+                    "form",
+                    {
+                      key: 0,
+                      class: "character-form detail-form",
+                      onSubmit: Ue(d, ["prevent"]),
+                    },
+                    [
+                      n(
+                        "fieldset",
+                        {
+                          disabled: h(l),
+                          class: "character-fieldset character-stack",
+                        },
+                        [
+                          n("label", null, [
+                            a[11] || (a[11] = K("简介", -1)),
+                            re(
+                              n(
+                                "textarea",
+                                {
+                                  "onUpdate:modelValue":
+                                    a[0] || (a[0] = (_) => (i.value.intro = _)),
+                                  "data-testid": "detail-intro",
+                                  rows: "4",
+                                  required: "",
+                                  maxlength: "500",
+                                },
+                                null,
+                                512,
+                              ),
+                              [[he, i.value.intro]],
+                            ),
+                          ]),
+                          a[13] || (a[13] = n("h3", null, "人格", -1)),
+                          ae(
+                            Tr,
+                            {
+                              traits: i.value.traits,
+                              "onUpdate:traits":
+                                a[1] || (a[1] = (_) => (i.value.traits = _)),
+                              style: at(i.value.style),
+                              "onUpdate:style":
+                                a[2] || (a[2] = (_) => (i.value.style = _)),
+                              values: i.value.values,
+                              "onUpdate:values":
+                                a[3] || (a[3] = (_) => (i.value.values = _)),
+                            },
+                            null,
+                            8,
+                            ["traits", "style", "values"],
+                          ),
+                          ae(
+                            Sr,
+                            {
+                              color: i.value.color,
+                              "onUpdate:color":
+                                a[4] || (a[4] = (_) => (i.value.color = _)),
+                              initial: i.value.initial,
+                              "onUpdate:initial":
+                                a[5] || (a[5] = (_) => (i.value.initial = _)),
+                              mode: i.value.avatarMode,
+                              "onUpdate:mode":
+                                a[6] ||
+                                (a[6] = (_) => (i.value.avatarMode = _)),
+                              name: h(U).name,
+                            },
+                            null,
+                            8,
+                            ["color", "initial", "mode", "name"],
+                          ),
+                          n("label", null, [
+                            a[12] || (a[12] = K("所在世界", -1)),
+                            re(
+                              n(
+                                "select",
+                                {
+                                  "onUpdate:modelValue":
+                                    a[7] ||
+                                    (a[7] = (_) => (i.value.worldId = _)),
+                                  "data-testid": "detail-world",
+                                  required: "",
+                                },
+                                [
+                                  h(Oe).some((_) => _.id === i.value.worldId)
+                                    ? J("", !0)
+                                    : (c(),
+                                      v(
+                                        "option",
+                                        {
+                                          key: 0,
+                                          value: i.value.worldId,
+                                          disabled: "",
+                                        },
+                                        "原世界已移除，请重新选择",
+                                        8,
+                                        ug,
+                                      )),
+                                  (c(!0),
+                                  v(
+                                    I,
+                                    null,
+                                    te(
+                                      h(Oe),
+                                      (_) => (
+                                        c(),
+                                        v(
+                                          "option",
+                                          { key: _.id, value: _.id },
+                                          m(_.name),
+                                          9,
+                                          dg,
+                                        )
+                                      ),
+                                    ),
+                                    128,
+                                  )),
+                                ],
+                                512,
+                              ),
+                              [[pt, i.value.worldId]],
+                            ),
+                          ]),
+                        ],
+                        8,
+                        ag,
+                      ),
+                      s.value ? (c(), v("p", cg, m(s.value), 1)) : J("", !0),
+                      ae(St, { labels: ["角色详情"] }),
+                      n("footer", fg, [
+                        n(
+                          "button",
+                          {
+                            type: "button",
+                            class: "button",
+                            "data-testid": "detail-cancel",
+                            disabled: h(l),
+                            onClick: u,
+                          },
+                          "取消",
+                          8,
+                          pg,
+                        ),
+                        a[14] ||
+                          (a[14] = n("span", { class: "spacer" }, null, -1)),
+                        n(
+                          "button",
+                          {
+                            class: "button primary",
+                            "data-testid": "detail-save",
+                            disabled: h(l),
+                          },
+                          m(h(l) ? "保存中…" : "保存"),
+                          9,
+                          mg,
+                        ),
+                      ]),
+                    ],
+                    32,
+                  ))
+                : (c(),
+                  v("div", vg, [
+                    n("section", null, [
+                      a[15] || (a[15] = n("h3", null, "简介", -1)),
+                      n("p", hg, m(h(U).bio), 1),
+                    ]),
+                    n("section", null, [
+                      a[18] || (a[18] = n("h3", null, "人格", -1)),
+                      n("div", gg, [
+                        (c(!0),
+                        v(
+                          I,
+                          null,
+                          te(
+                            h(U).traits,
+                            (_) => (
+                              c(),
+                              v("span", { key: _, class: "pill" }, m(_), 1)
+                            ),
+                          ),
+                          128,
+                        )),
+                      ]),
+                      n("dl", null, [
+                        n("div", null, [
+                          a[16] || (a[16] = n("dt", null, "说话方式", -1)),
+                          n("dd", null, m(h(U).speakingStyle), 1),
+                        ]),
+                        n("div", null, [
+                          a[17] || (a[17] = n("dt", null, "核心价值观", -1)),
+                          n("dd", null, m(h(U).coreValues), 1),
+                        ]),
+                      ]),
+                    ]),
+                    n("section", null, [
+                      a[19] || (a[19] = n("h3", null, "头像", -1)),
+                      n("div", yg, [
+                        ae(
+                          ss,
+                          {
+                            name: h(U).name,
+                            initial: h(U).initial,
+                            color: h(U).color,
+                            "avatar-mode": h(U).avatarMode,
+                          },
+                          null,
+                          8,
+                          ["name", "initial", "color", "avatar-mode"],
+                        ),
+                        n(
+                          "small",
+                          null,
+                          m(
+                            h(U).avatarMode === "image"
+                              ? "图片头像 · 本地占位"
+                              : "文字头像 · " + h(U).initial,
+                          ),
+                          1,
+                        ),
+                      ]),
+                    ]),
+                    n("section", null, [
+                      a[20] || (a[20] = n("h3", null, "所在世界", -1)),
+                      n(
+                        "p",
+                        bg,
+                        m(
+                          ((p = h(Oe).find((_) => _.id === h(U).worldId)) ==
+                          null
+                            ? void 0
+                            : p.name) || "原世界已移除，可编辑后重新选择",
+                        ),
+                        1,
+                      ),
+                      n("small", null, "居住地点 · " + m(h(U).homeLocation), 1),
+                    ]),
+                  ])),
+            ]),
+            n("p", kg, [
+              a[21] || (a[21] = n("small", null, "更多：", -1)),
+              n(
+                "button",
+                {
+                  class: "text-button",
+                  onClick:
+                    a[8] ||
+                    (a[8] = (_) =>
+                      h(el)(
+                        "能力申请：之后可以在这里查看与确认，目前为演示占位。",
+                      )),
+                },
+                "能力申请",
+              ),
+              a[22] || (a[22] = n("span", null, "·", -1)),
+              n(
+                "button",
+                {
+                  class: "text-button",
+                  onClick:
+                    a[9] ||
+                    (a[9] = (_) =>
+                      h(el)(
+                        "发展中的自我：记录相处中慢慢发生的变化，目前为演示占位。",
+                      )),
+                },
+                "发展中的自我",
+              ),
+            ]),
+          ])
+        );
+      };
+    },
+  }),
+  wg = { class: "shell" },
+  $g = { class: "topbar" },
+  Cg = { class: "brand-mark" },
+  xg = ["aria-expanded"],
+  Sg = { key: 1, class: "avatar small" },
+  Tg = { class: "failure-toggle" },
+  Mg = {
+    key: 0,
+    class: "switch-menu scroll-lock-list",
+    "data-scroll-lock": "",
+  },
+  Ig = ["onClick"],
+  Eg = { class: "layout" },
+  Ag = { class: "sidebar" },
+  Vg = { class: "workspace-label" },
+  Og = ["aria-current"],
+  Ug = ["aria-expanded"],
+  Pg = { key: 0, class: "life-nav" },
+  Lg = ["data-testid", "aria-current", "onClick"],
+  Ng = ["data-testid", "aria-current", "onClick"],
+  Rg = ["data-testid", "aria-current", "onClick"],
+  Fg = { class: "page-heading" },
+  jg = { class: "breadcrumb" },
+  Dg = { key: 0, class: "heading-caption" },
+  Hg = { key: 1, class: "page-content" },
+  Bg = { key: 0, "data-testid": "toast", class: "toast", role: "status" },
+  Kg = je({
+    __name: "App",
+    setup(e) {
+      const t = ["此刻", "角色详情", "日程", "目标", "衣柜", "日记", "记忆"],
+        s = [
+          ["世界", kd],
+          ["动态", Tn],
+          ["人物关系", Ad],
+          ["媒体", _d],
+        ],
+        l = [
+          ["通知与待处理", wd],
+          ["角色库", $d],
+          ["创作中心", Vd],
+          ["管理中心", Id],
+        ],
+        o = [
+          "聊天",
+          ...t,
+          ...s.map((P) => P[0]),
+          ...l.map((P) => P[0]),
+          "创建角色",
+        ];
+      function i() {
+        try {
+          const [P, V = ""] = decodeURIComponent(location.hash.slice(1)).split(
+            "?",
+          );
+          return (
+            P === "角色库" &&
+              new URLSearchParams(V).get("empty") === "1" &&
+              Cr(),
+            o.includes(P) ? P : "聊天"
+          );
+        } catch {
+          return "聊天";
+        }
+      }
+      const r = z(i()),
+        u = z(!0),
+        d = z(!1),
+        f = z(!0),
+        a = z(),
+        p = ye(
+          () =>
+            r.value === "聊天" ||
+            t.includes(r.value) ||
+            s.some(([P]) => P === r.value),
+        ),
+        _ = ye(() => !Ae.value.length && p.value);
+      async function b() {
+        if ((await Qt(), r.value !== "管理中心")) return;
+        const P = location.hash.split("?")[1] || "",
+          V = new URLSearchParams(P).get("section");
+        V &&
+          requestAnimationFrame(() => {
+            var le;
+            return (le = document.getElementById("config-" + V)) == null
+              ? void 0
+              : le.scrollIntoView({ block: "start" });
+          });
+      }
+      (window.addEventListener("hashchange", () => {
+        ((r.value = i()), b());
+      }),
+        Wl(b),
+        vt(r, () => {
+          (Bd(),
+            (d.value = !1),
+            Qt(() => {
+              var P;
+              return (P = a.value) == null ? void 0 : P.scrollTo({ top: 0 });
+            }));
+        }));
+      function A(P) {
+        ((d.value = !1),
+          (r.value = P),
+          (location.hash = encodeURIComponent(P)));
+      }
+      return (P, V) => {
+        var le, ne, ce;
+        return (
+          c(),
+          v("div", wg, [
+            n("header", $g, [
+              n(
+                "button",
+                { class: "brand", onClick: V[0] || (V[0] = (w) => A("聊天")) },
+                [
+                  n("span", Cg, [ae(h(Gn), { size: 19 })]),
+                  V[10] || (V[10] = K("摇光", -1)),
+                  V[11] ||
+                    (V[11] = n(
+                      "span",
+                      { class: "brand-en" },
+                      "FLUCTLIGHT",
+                      -1,
+                    )),
+                ],
+              ),
+              V[14] || (V[14] = n("span", { class: "top-divider" }, null, -1)),
+              n(
+                "button",
+                {
+                  class: "character-switch",
+                  "aria-expanded": d.value,
+                  "aria-label": "切换角色",
+                  onClick: V[1] || (V[1] = (w) => (d.value = !d.value)),
+                },
+                [
+                  h(U)
+                    ? (c(),
+                      Se(
+                        ss,
+                        {
+                          key: 0,
+                          name: h(U).name,
+                          initial: h(U).initial,
+                          color: h(U).color,
+                          "avatar-mode": h(U).avatarMode,
+                          small: "",
+                        },
+                        null,
+                        8,
+                        ["name", "initial", "color", "avatar-mode"],
+                      ))
+                    : (c(), v("span", Sg, "·")),
+                  n(
+                    "b",
+                    null,
+                    m(
+                      ((le = h(U)) == null ? void 0 : le.name) ||
+                        "等待初次相识",
+                    ),
+                    1,
+                  ),
+                  ae(h(Ko), { size: 14 }),
+                ],
+                8,
+                xg,
+              ),
+              V[15] ||
+                (V[15] = n("span", { class: "scope" }, "角色工作区", -1)),
+              V[16] || (V[16] = n("span", { class: "spacer" }, null, -1)),
+              V[17] ||
+                (V[17] = n(
+                  "span",
+                  { class: "local" },
+                  [n("i"), K("相伴此刻")],
+                  -1,
+                )),
+              n("label", Tg, [
+                re(
+                  n(
+                    "input",
+                    {
+                      "data-testid": "simulate-failure",
+                      "onUpdate:modelValue":
+                        V[2] ||
+                        (V[2] = (w) => (Fe(Yt) ? (Yt.value = w) : null)),
+                      type: "checkbox",
+                    },
+                    null,
+                    512,
+                  ),
+                  [[Ft, h(Yt)]],
+                ),
+                V[12] || (V[12] = K("模拟失败", -1)),
+              ]),
+              V[18] || (V[18] = n("span", { class: "self-avatar" }, "我", -1)),
+              d.value
+                ? (c(),
+                  v("div", Mg, [
+                    h(Ae).length
+                      ? (c(!0),
+                        v(
+                          I,
+                          { key: 0 },
+                          te(
+                            h(Ae),
+                            (w) => (
+                              c(),
+                              v(
+                                "button",
+                                {
+                                  key: w.id,
+                                  onClick: (O) => {
+                                    ((lt.value = w.id), (d.value = !1));
+                                  },
+                                },
+                                [
+                                  ae(
+                                    ss,
+                                    {
+                                      name: w.name,
+                                      initial: w.initial,
+                                      color: w.color,
+                                      "avatar-mode": w.avatarMode,
+                                      small: "",
+                                    },
+                                    null,
+                                    8,
+                                    ["name", "initial", "color", "avatar-mode"],
+                                  ),
+                                  K(m(w.name), 1),
+                                ],
+                                8,
+                                Ig,
+                              )
+                            ),
+                          ),
+                          128,
+                        ))
+                      : (c(),
+                        v(
+                          I,
+                          { key: 1 },
+                          [
+                            V[13] ||
+                              (V[13] = n(
+                                "p",
+                                { class: "muted switch-empty" },
+                                "还没有一起生活的人",
+                                -1,
+                              )),
+                            n(
+                              "button",
+                              {
+                                onClick:
+                                  V[3] ||
+                                  (V[3] = (w) => {
+                                    ((d.value = !1), h(Ps)());
+                                  }),
+                              },
+                              "创建第一个角色",
+                            ),
+                            n(
+                              "button",
+                              { onClick: V[4] || (V[4] = (w) => A("角色库")) },
+                              "前往角色库",
+                            ),
+                          ],
+                          64,
+                        )),
+                  ]))
+                : J("", !0),
+            ]),
+            n("div", Eg, [
+              n("aside", Ag, [
+                n("div", Vg, [
+                  V[19] || (V[19] = K("角色工作区 ", -1)),
+                  n(
+                    "span",
+                    null,
+                    m(((ne = h(U)) == null ? void 0 : ne.name) || "初次使用"),
+                    1,
+                  ),
+                ]),
+                (c(),
+                v("nav", { key: "workspace-" + r.value }, [
+                  n(
+                    "button",
+                    {
+                      "data-testid": "nav-聊天",
+                      "aria-current": r.value === "聊天" ? "page" : void 0,
+                      class: ke(["nav-item", { active: r.value === "聊天" }]),
+                      onClick: V[5] || (V[5] = (w) => A("聊天")),
+                    },
+                    [
+                      ae(h(Cd), { size: 17 }),
+                      V[20] || (V[20] = n("span", null, "聊天", -1)),
+                    ],
+                    10,
+                    Og,
+                  ),
+                  n(
+                    "button",
+                    {
+                      class: "nav-item",
+                      onClick: V[6] || (V[6] = (w) => (u.value = !u.value)),
+                      "aria-expanded": u.value,
+                    },
+                    [
+                      ae(h(Tn), { size: 17 }),
+                      V[21] || (V[21] = n("span", null, "生活", -1)),
+                      ae(h(Ko), { size: 13 }),
+                    ],
+                    8,
+                    Ug,
+                  ),
+                  u.value
+                    ? (c(),
+                      v("div", Pg, [
+                        (c(),
+                        v(
+                          I,
+                          null,
+                          te(t, (w) =>
+                            n(
+                              "button",
+                              {
+                                key: w,
+                                "data-testid": "nav-" + w,
+                                "aria-current": r.value === w ? "page" : void 0,
+                                class: ke([
+                                  "nav-item",
+                                  { active: r.value === w },
+                                ]),
+                                onClick: (O) => A(w),
+                              },
+                              m(w),
+                              11,
+                              Lg,
+                            ),
+                          ),
+                          64,
+                        )),
+                      ]))
+                    : J("", !0),
+                  (c(),
+                  v(
+                    I,
+                    null,
+                    te(s, ([w, O]) =>
+                      n(
+                        "button",
+                        {
+                          key: w,
+                          "data-testid": "nav-" + w,
+                          "aria-current": r.value === w ? "page" : void 0,
+                          class: ke(["nav-item", { active: r.value === w }]),
+                          onClick: (G) => A(w),
+                        },
+                        [
+                          (c(), Se(hs(O), { size: 17 })),
+                          n("span", null, m(w), 1),
+                        ],
+                        10,
+                        Ng,
+                      ),
+                    ),
+                    64,
+                  )),
+                ])),
+                V[22] || (V[22] = n("hr", { class: "nav-divider" }, null, -1)),
+                (c(),
+                v("nav", { key: "global-" + r.value }, [
+                  (c(),
+                  v(
+                    I,
+                    null,
+                    te(l, ([w, O]) =>
+                      n(
+                        "button",
+                        {
+                          key: w,
+                          "data-testid": "nav-" + w,
+                          "aria-current": r.value === w ? "page" : void 0,
+                          class: ke(["nav-item", { active: r.value === w }]),
+                          onClick: (G) => A(w),
+                        },
+                        [
+                          (c(), Se(hs(O), { size: 17 })),
+                          n("span", null, m(w), 1),
+                        ],
+                        10,
+                        Rg,
+                      ),
+                    ),
+                    64,
+                  )),
+                ])),
+                V[23] ||
+                  (V[23] = n(
+                    "div",
+                    { class: "sidebar-footer" },
+                    [
+                      K("每一个世界，都有回响 "),
+                      n("small", null, "Fluctlight · v6.2"),
+                    ],
+                    -1,
+                  )),
+              ]),
+              n(
+                "main",
+                {
+                  ref_key: "main",
+                  ref: a,
+                  class: ke({ "chat-main": r.value === "聊天" && !_.value }),
+                },
+                [
+                  n("div", Fg, [
+                    n("div", null, [
+                      n("div", jg, [
+                        K(
+                          m(h(U) ? h(U).name + " 的工作区" : "初次相识") + " ",
+                          1,
+                        ),
+                        ae(h(Jn), { size: 12 }),
+                        K(m(_.value ? "角色库" : r.value), 1),
+                      ]),
+                      n("h1", null, [
+                        K(m(_.value ? "角色库" : r.value), 1),
+                        r.value === "聊天" && !_.value
+                          ? (c(), v("span", Dg, "日常的片刻，与你分享。"))
+                          : J("", !0),
+                      ]),
+                    ]),
+                    r.value === "聊天" && !_.value
+                      ? (c(),
+                        v(
+                          "button",
+                          {
+                            key: 0,
+                            class: "button",
+                            onClick:
+                              V[7] || (V[7] = (w) => (f.value = !f.value)),
+                          },
+                          [
+                            (c(),
+                            Se(hs(f.value ? h(xd) : h(Sd)), { size: 15 })),
+                            K(m(f.value ? "收起预览" : "展开预览"), 1),
+                          ],
+                        ))
+                      : J("", !0),
+                    r.value === "管理中心" && h(ts) && h(Ke) !== "complete"
+                      ? (c(),
+                        v(
+                          "button",
+                          {
+                            key: 1,
+                            class: "text-button",
+                            onClick: V[8] || (V[8] = (w) => A("创建角色")),
+                          },
+                          "返回角色准备 ↗",
+                        ))
+                      : J("", !0),
+                  ]),
+                  r.value === "聊天" && h(U)
+                    ? (c(),
+                      Se(
+                        wc,
+                        { key: h(U).id, preview: f.value, onGo: A },
+                        null,
+                        8,
+                        ["preview"],
+                      ))
+                    : (c(),
+                      v("div", Hg, [
+                        r.value === "角色库" || _.value
+                          ? (c(), Se(oh, { key: 0 }))
+                          : r.value === "创建角色"
+                            ? (c(), Se(lg, { key: 1 }))
+                            : r.value === "角色详情" && h(U)
+                              ? (c(), Se(_g, { key: "detail" + h(U).id }))
+                              : r.value === "衣柜" && h(U)
+                                ? (c(), Se(Zp, { key: "w" + h(U).id }))
+                                : r.value === "世界" && h(U)
+                                  ? (c(), Se(Tm, { key: "world" + h(U).id }))
+                                  : t.includes(r.value) && h(U)
+                                    ? (c(),
+                                      Se(
+                                        Xf,
+                                        {
+                                          page: r.value,
+                                          key: h(U).id,
+                                          onGo: A,
+                                        },
+                                        null,
+                                        8,
+                                        ["page"],
+                                      ))
+                                    : r.value === "管理中心"
+                                      ? (c(), Se(Kv, { key: 6 }))
+                                      : (c(),
+                                        Se(
+                                          p1,
+                                          {
+                                            page: r.value,
+                                            key:
+                                              r.value +
+                                              (((ce = h(U)) == null
+                                                ? void 0
+                                                : ce.id) ?? "empty"),
+                                          },
+                                          null,
+                                          8,
+                                          ["page"],
+                                        )),
+                      ])),
+                ],
+                2,
+              ),
+            ]),
+            h(Hs)
+              ? (c(),
+                v("div", Bg, [
+                  K(m(h(Hs).text) + " ", 1),
+                  h(Hs).link
+                    ? (c(),
+                      v(
+                        "a",
+                        {
+                          key: 0,
+                          href: "#衣柜",
+                          onClick:
+                            V[9] ||
+                            (V[9] = (w) => {
+                              (A("衣柜"), (Yn.value = "方案库"));
+                            }),
+                        },
+                        "去方案库 ↗",
+                      ))
+                    : J("", !0),
+                ]))
+              : J("", !0),
+          ])
+        );
+      };
     },
   });
-Mv.__approvedFixture='approved-demo-fixture';
-export const approvedReferenceData={characters:et,worlds:Ut,life:er,media:Po,endpoints:Eo,bindings:Ao,quiet:Io,settings:Oo};
-export default Mv;
+Kg.__approvedFixture='approved-demo-fixture';
+export const approvedReferenceData={characters:Ae.value,worlds:Oe.value,life:ml.value,media:ei.value};
+export default Kg;
 document.addEventListener(
   "wheel",
   (e) => {
@@ -9016,15 +11347,15 @@ document.addEventListener(
       return;
     const s = t.closest(".scroll-lock-list, [data-scroll-lock]");
     if (!s) return;
-    const n = getComputedStyle(s),
-      l =
+    const l = getComputedStyle(s),
+      o =
         !!s.closest("details[open], .switch-menu") &&
         s.getClientRects().length > 0 &&
-        n.visibility === "visible" &&
+        l.visibility === "visible" &&
         s.clientHeight > 0 &&
         s.scrollHeight > s.clientHeight &&
-        ["auto", "scroll"].includes(n.overflowY);
-    if (((s.style.overscrollBehavior = l ? "contain" : "auto"), !l)) return;
+        ["auto", "scroll"].includes(l.overflowY);
+    if (((s.style.overscrollBehavior = o ? "contain" : "auto"), !o)) return;
     const i = s.scrollTop <= 0,
       r = s.scrollTop + s.clientHeight >= s.scrollHeight;
     ((e.deltaY < 0 && i) || (e.deltaY > 0 && r)) && e.preventDefault();

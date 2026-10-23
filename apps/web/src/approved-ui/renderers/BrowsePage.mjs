@@ -237,7 +237,7 @@ function renderBrowsePageBody(__view) {
     onClick: ee => __view.selectedId.value = _.id
   }, "切换角色"))]), __view.d.value === _.id ? (p(), g("div", $1, [o("h2", null, v(_.name), 1), o("p", null, v(_.bio), 1), o("p", null, [Z("职业：" + v(_.job), 1), U[21] || (U[21] = o("br", null, null, -1)), Z("兴趣：" + v(_.hobby), 1), U[22] || (U[22] = o("br", null, null, -1)), Z("心情：" + v(_.mood), 1), U[23] || (U[23] = o("br", null, null, -1)), Z("位置：" + v(_.location), 1), U[24] || (U[24] = o("br", null, null, -1)), Z("世界：" + v(_.world), 1)])])) : X("", !0)]))), 128)), __view.le.value.length ? X("", !0) : (p(), g("p", C1, "暂无匹配角色。"))], 64)) : __view.props.page === "创作中心" ? (p(), approvedSurfaceBlock("div", x1, [o("p",null,"即将重新设计"),approvedButtonVNode({class:"button",onClick:__view.openStudio},"打开创作工作台")])) : __view.props.page === "通知与待处理" ? (p(), g(O, {
     key: 5
-  }, [U[29] || (U[29] = o("h2", null, "未读消息", -1)), (p(!0), g(O, null, oe(M(__view.characters), (_, ee) => {
+  }, [U[29] || (U[29] = o("h2", null, "未读消息", -1)),M(__view.characters).length?X("",!0):o("p",{class:"muted"},"暂时没有未读消息。"), (p(!0), g(O, null, oe(M(__view.characters), (_, ee) => {
     var he;
     return p(), approvedButtonBlock({
       class: "card row notification-card",

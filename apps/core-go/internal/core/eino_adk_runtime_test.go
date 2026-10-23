@@ -166,12 +166,12 @@ func TestStreamWithEinoAggregatesChunksAndPropagatesCallback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if text != "hello" || len(chunks) != 2 || completionLimit != 64 {
+	if text != "hello" || len(chunks) != 2 || completionLimit != 0 {
 		t.Fatalf("text=%q chunks=%#v completion_limit=%d", text, chunks, completionLimit)
 	}
 }
 
-func TestDirectEinoRequestUsesBudgetedCompletionLimit(t *testing.T) {
+func TestDirectEinoRequestOmitsApplicationCompletionLimit(t *testing.T) {
 	var completionLimit int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -189,7 +189,7 @@ func TestDirectEinoRequestUsesBudgetedCompletionLimit(t *testing.T) {
 		Assignment: providerAssignment{BaseURL: server.URL, ModelID: "fake", Timeout: 5 * time.Second, TokenBudget: 96},
 		Role:       "generic_llm", Messages: []map[string]any{{"role": "user", "content": "hello"}},
 	})
-	if err != nil || response.Message == nil || response.Message.Content != "ok" || completionLimit != 96 {
+	if err != nil || response.Message == nil || response.Message.Content != "ok" || completionLimit != 0 {
 		t.Fatalf("direct response=%#v completion_limit=%d err=%v", response, completionLimit, err)
 	}
 }
@@ -561,7 +561,7 @@ func TestProviderFormalAgentStreamingUsesTheSameRunnerStream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !sawStream || completionLimit != 64 || response.Message == nil || response.Message.Content != `{"answer":"streamed"}` {
+	if !sawStream || completionLimit != 0 || response.Message == nil || response.Message.Content != `{"answer":"streamed"}` {
 		t.Fatalf("stream=%t completion_limit=%d response=%#v", sawStream, completionLimit, response.Message)
 	}
 }
@@ -905,7 +905,7 @@ func TestProviderADKLoopContinuesAfterDeferredResultsAndPreservesEveryCall(t *te
 	}
 }
 
-func TestProviderADKChecksThirdToolContinuationBeforeHTTP(t *testing.T) {
+func TestProviderADKSendsFullThirdToolContinuationWithoutTokenCap(t *testing.T) {
 	var mu sync.Mutex
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -914,7 +914,21 @@ func TestProviderADKChecksThirdToolContinuationBeforeHTTP(t *testing.T) {
 		requests++
 		sequence := requests
 		mu.Unlock()
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+		}
+		if payload["max_completion_tokens"] != nil || payload["max_tokens"] != nil {
+			t.Error("output token cap was emitted")
+		}
 		w.Header().Set("Content-Type", "application/json")
+		if sequence >= 4 {
+			if !strings.Contains(jsonString(payload["messages"]), strings.Repeat("真实结果", 3000)) {
+				t.Error("third Tool result was truncated")
+			}
+			_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"{}"}}]}`))
+			return
+		}
 		_, _ = fmt.Fprintf(w, `{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"","tool_calls":[{"id":"budget-call-%d","type":"function","function":{"name":"test.tool","arguments":"{}"}}]}}]}`, sequence)
 	}))
 	defer server.Close()
@@ -933,13 +947,13 @@ func TestProviderADKChecksThirdToolContinuationBeforeHTTP(t *testing.T) {
 		JSONMode:    true, SchemaName: "wake_up_response", ResponseSchema: map[string]any{"type": "object"},
 		ProviderRequestID: "budget-third-result", CorrelationID: "wake:budget-third-result",
 	})
-	if !errors.Is(err, ErrPromptToolResultBudgetExceeded) || !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+	if err != nil {
 		t.Fatalf("third result budget error = %v", err)
 	}
 	mu.Lock()
 	requestCount := requests
 	mu.Unlock()
-	if requestCount != 3 || len(invoker.calls) != 3 || len(trace.Results) != 0 {
+	if requestCount != 4 || len(invoker.calls) != 3 || len(trace.Results) != 0 {
 		// adkResultInvoker is a test-only Tool adapter; its calls prove the
 		// budget check never re-ran a Tool to prepare the fourth request.
 		t.Fatalf("requests=%d tool_calls=%#v trace=%#v", requestCount, invoker.calls, trace)

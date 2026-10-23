@@ -1,3 +1,4 @@
+import { joined } from "../presentation.mjs";
 import { defineComponent, ref, computed, watch, nextTick } from "vue";
 import { useWorkspace, slots, day } from "../workspace.mjs";
 import { zonedInputInstant } from "../../v3/zoned-input.mjs";
@@ -317,6 +318,7 @@ export default defineComponent({
         .toUpperCase(),
     );
     const bindings = {
+      joined,
       props,
       todayLabel,
       calendarMonth,

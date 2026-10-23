@@ -276,13 +276,16 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, errCognitionTurnSuperseded
 	}
 
-	var attemptCount int
-	_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(attempt_count,0) FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&attemptCount)
+	var attemptCount, retryCount int
+	_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(attempt_count,0),COALESCE((payload->>'retry_count')::int,0) FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&attemptCount, &retryCount)
 	runID := "turn:" + turnID
 	if attemptCount > 0 {
 		runID = fmt.Sprintf("turn:%s:attempt:%d", turnID, attemptCount)
 	}
 
+	if retryCount > 0 {
+		runID = fmt.Sprintf("%s:retry:%d", runID, retryCount)
+	}
 	run, err := a.RunConversationCognitionAgent(WithProviderCorrelation(ctx, "turn:"+turnID), ConversationCognitionAgentInput{
 		AuthorizationActorID: authorizationActorID, SpeakerActorID: actorID, FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: inboxID, RunID: runID, CorrelationID: "turn:" + turnID, CurrentInput: text, EnableStreaming: claimStream,
@@ -489,6 +492,9 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,COALESCE(correlation_id,''),payload FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &correlationID, &payload); err != nil {
 			return err
 		}
+		if !conversationBudgetMatches(ctx, inboxID, decodeObject(payload)) {
+			return ErrConflict
+		}
 		if err := a.settleDueAgentFailureTx(ctx, tx, inboxID, fluctlightID, payload, outcome, code); err != nil {
 			return err
 		}
@@ -554,6 +560,9 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 
 func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, fluctlightID, actorID string, projection ContextProjection, decision, responsePlan, assistant map[string]any, mediaIntentID string, outcome agentCommittedOutcome) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := requireConversationBudgetTx(ctx, tx, inboxID, a.now().UTC(), true); err != nil {
+			return err
+		}
 		var inboxStatus, inboxError string
 		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&inboxStatus, &inboxError); err != nil {
 			return err

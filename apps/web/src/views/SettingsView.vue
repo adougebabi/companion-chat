@@ -39,7 +39,7 @@ const providerRoles = [
   { value: "conversation_reply", label: "私聊回复" }, { value: "vision_understanding", label: "视觉理解" },
 ] as const;
 const selectedProviderRole = ref<(typeof providerRoles)[number]["value"]>("generic_llm");
-const roleEndpointId = ref(""); const roleModelId = ref(""); const roleTokenBudget = ref(4096); const roleTimeoutSeconds = ref(60);
+const roleEndpointId = ref(""); const roleModelId = ref(""); const roleTimeoutSeconds = ref(60);
 const endpointPickerId = ref(""); const endpointId = ref("primary"); const endpointUrl = ref(""); const endpointSecret = ref(""); const providerKind = ref("openai-compatible");
 const changedOwnerPassword = ref("");
 const roleModelCopied = ref(false);
@@ -47,11 +47,10 @@ watch(selectedProviderRole, () => { resetFeedback(); roleModelCopied.value=false
 const manualEndpointValue = "__new_manual_endpoint__";
 
 function selectEndpoint(id: string) { endpointPickerId.value = id; const endpoint = controlCenter.providerEndpoints.find((item) => item.id === id); if (!endpoint) return; endpointId.value = endpoint.id; endpointUrl.value = endpoint.base_url; providerKind.value = endpoint.kind; endpointSecret.value = ""; }
-async function selectRole(role: (typeof providerRoles)[number]["value"]) { selectedProviderRole.value = role; const binding = controlCenter.providerBindings.find((item) => item.role === role); roleEndpointId.value = binding?.endpoint_id ?? controlCenter.providerEndpoints.find((item) => item.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; roleModelId.value = binding?.model_id ?? ""; roleTokenBudget.value = binding?.token_budget ?? 4096; roleTimeoutSeconds.value = binding?.timeout_seconds ?? 60; await controlCenter.loadProviderModels(roleEndpointId.value); }
+async function selectRole(role: (typeof providerRoles)[number]["value"]) { selectedProviderRole.value = role; const binding = controlCenter.providerBindings.find((item) => item.role === role); roleEndpointId.value = binding?.endpoint_id ?? controlCenter.providerEndpoints.find((item) => item.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; roleModelId.value = binding?.model_id ?? ""; roleTimeoutSeconds.value = binding?.timeout_seconds ?? 60; await controlCenter.loadProviderModels(roleEndpointId.value); }
 function handleRoleChange(value: string | number) { if (typeof value !== "string") return; const role = providerRoles.find((item) => item.value === value)?.value; if (role) void selectRole(role); }
 function handleRoleEndpointChange(value: unknown) { if (typeof value !== "string") return; roleEndpointId.value = value; void controlCenter.loadProviderModels(value); }
 function handleEndpointPickerChange(value: unknown) { if (typeof value !== "string") return; if (value === manualEndpointValue) { endpointPickerId.value = ""; endpointId.value=""; endpointUrl.value=""; endpointSecret.value=""; providerKind.value="openai-compatible"; return; } selectEndpoint(value); }
-function updateRoleTokenBudget(value: string | number) { roleTokenBudget.value = typeof value === "number" ? value : Number(value); }
 function updateRoleTimeout(value: string | number) { roleTimeoutSeconds.value = typeof value === "number" ? value : Number(value); }
 async function load() {
   ready.value=false; loadError.value='';
@@ -72,10 +71,9 @@ async function saveRole() {
   if (!await validate([
     {id:'role-endpoint',label:'Endpoint',value:roleEndpointId.value,required:true},
     {id:'role-model',label:'模型ID',value:roleModelId.value,required:true,maxLength:256},
-    {id:'role-budget',label:'Token预算',value:roleTokenBudget.value,required:true,kind:'number',integer:true,min:1},
     {id:'role-timeout',label:'超时',value:roleTimeoutSeconds.value,required:true,kind:'number',integer:true,min:1}
   ]))return;
-  await settingsAction(()=>controlCenter.configureModelRole({role:selectedProviderRole.value,endpointId:roleEndpointId.value,modelId:roleModelId.value.trim(),tokenBudget:roleTokenBudget.value,timeoutSeconds:roleTimeoutSeconds.value}),'模型角色绑定已保存。');
+  await settingsAction(()=>controlCenter.configureModelRole({role:selectedProviderRole.value,endpointId:roleEndpointId.value,modelId:roleModelId.value.trim(),timeoutSeconds:roleTimeoutSeconds.value}),'模型角色绑定已保存。');
 }
 async function saveEndpoint() {
   if(controlCenter.saving)return;
@@ -134,7 +132,7 @@ onMounted(() => void load());
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="settings-accordion">
       <AccordionItem v-if="currentSection === 'model-role'" value="model-role" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
-          <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为认知、私聊回复、视觉理解或 Embedding 选择模型和预算</small></div>
+          <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为认知、私聊回复、视觉理解或 Embedding 选择模型和超时</small></div>
         </AccordionTrigger>
         <AccordionContent>
           <div class="settings-drawer-body model-role-config">
@@ -169,7 +167,6 @@ onMounted(() => void load());
                     </span>
                   </FormField>
                   <div class="form-grid">
-                    <FormField id="role-budget" label="Token 预算" v-model:error="errors['role-budget']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" :model-value="roleTokenBudget" type="number" min="1" step="1" @update:model-value="updateRoleTokenBudget" /></FormField>
                     <FormField id="role-timeout" label="超时（秒）" v-model:error="errors['role-timeout']" v-slot="{controlAttrs}"><Input v-bind="controlAttrs" :model-value="roleTimeoutSeconds" type="number" min="1" step="1" @update:model-value="updateRoleTimeout" /></FormField>
                   </div>
                   <Button class="primary-button" type="submit" :disabled="controlCenter.saving">{{ controlCenter.saving ? "正在保存..." : "保存当前角色绑定" }}</Button>

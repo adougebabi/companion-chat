@@ -1,0 +1,199 @@
+import { readInitializationProgress } from "../v3/initialization-progress.mjs";
+import { errorMessage, stateLabel } from "../v3/domain-presentation.mjs";
+async function part(run) {
+  try {
+    return { state: "ready", value: await run() };
+  } catch (error) {
+    return { state: "unknown", error, errorMessage: errorMessage(error) };
+  }
+}
+const failed = (status) =>
+  ["failed", "cancelled", "dead_letter", "deadletter"].includes(status);
+const statusOf = (status) =>
+  failed(status)
+    ? "failed"
+    : ["running", "started", "generating", "character_sheet_pending"].includes(
+          status,
+        )
+      ? "running"
+      : "pending";
+export async function readApprovedCreationProgress(client, draft) {
+  const fid = draft.activatedId;
+  const [visual, wardrobe, schedule, lifecycle, world] = await Promise.all([
+    readInitializationProgress(client, fid),
+    part(() => client.inventoryPreparation(fid)),
+    part(() =>
+      client.schedules(fid, {
+        from: draft.activationDate,
+        to: draft.activationDate,
+      }),
+    ),
+    part(() => client.lifecycleDiagnostics({ fluctlightId: fid, limit: 100 })),
+    part(() => client.world(fid)),
+  ]);
+  const identity =
+      visual.identity.state === "ready" ? visual.identity.value : null,
+    session = identity?.session,
+    task = visual.task.state === "ready" ? visual.task.value : null,
+    visualState = statusOf(session?.status || task?.status),
+    visualReason =
+      failed(session?.status) || failed(task?.status)
+        ? errorMessage(
+            {
+              code:
+                session?.error_code ||
+                session?.last_error ||
+                task?.lastError ||
+                task?.error_code,
+            },
+            "形象准备尚未完成，请检查图片服务后恢复。",
+          )
+        : visual.identity.state === "failed"
+          ? visual.identity.message
+          : "";
+  const [reference, sheet] = await Promise.all([
+    identity?.canonical_asset_id
+      ? part(() => client.ownerMediaAsset(identity.canonical_asset_id, fid))
+      : null,
+    identity?.character_sheet_asset_id
+      ? part(() =>
+          client.ownerMediaAsset(identity.character_sheet_asset_id, fid),
+        )
+      : null,
+  ]);
+  const imageStage = (key, title, asset) => ({
+    key,
+    title,
+    state: asset?.value?.readable
+      ? "ready"
+      : asset?.state === "unknown"
+        ? "unknown"
+        : visual.identity.state === "failed"
+          ? "unknown"
+          : visualState,
+    note: asset?.value?.readable
+      ? "已读回可以显示的图片"
+      : asset?.errorMessage || visualReason || "等待实际图片任务与产物",
+    href: `#/c/${encodeURIComponent(fid)}/media/identity`,
+    configSection: "图片（ComfyUI）",
+    retryable: visualState === "failed" && !!identity,
+  });
+  const scheduleTask = lifecycle.value?.workflowIntents
+      ?.filter((t) => t.intentType === "schedule.current_day")
+      .sort(
+        (a, b) =>
+          Date.parse(b.createdAt || b.startedAt || 0) -
+          Date.parse(a.createdAt || a.startedAt || 0),
+      )[0],
+    accepted = schedule.value?.days?.find(
+      (d) => d.local_date === draft.activationDate,
+    )?.schedule;
+  const preparation = wardrobe.value;
+  const stages = [
+    {
+      key: "analysis",
+      title: draft.mode === "blank" ? "确认空白角色资料" : "整理人物设定",
+      state: "ready",
+      note:
+        draft.mode === "blank"
+          ? "使用服务端空白初始设定"
+          : "已确认本次审阅的资料",
+    },
+    {
+      key: "world",
+      title: "创建角色与生活世界",
+      state:
+        world.state === "unknown"
+          ? "unknown"
+          : world.value?.world?.id === draft.worldRuntimeId &&
+              draft.groupConfirmed
+            ? "ready"
+            : "pending",
+      note:
+        world.errorMessage ||
+        (!draft.groupConfirmed
+          ? "原角色已建立，正在核对世界与分组"
+          : "以实际选用的独立世界为准"),
+      retryable: !(
+        world.value?.world?.id === draft.worldRuntimeId && draft.groupConfirmed
+      ),
+    },
+    {
+      key: "wardrobe",
+      title: "初始衣柜",
+      state:
+        wardrobe.state === "unknown"
+          ? "unknown"
+          : preparation?.status === "completed"
+            ? "ready"
+            : preparation?.can_recover
+              ? "failed"
+              : statusOf(preparation?.status),
+      note:
+        wardrobe.errorMessage ||
+        (failed(preparation?.status) || preparation?.can_recover
+          ? errorMessage(
+              { code: preparation.error_code },
+              "初始穿搭准备未完成，可检查模型设置后恢复。",
+            )
+          : stateLabel(preparation?.status, "等待后台准备")),
+      retryable:
+        preparation?.can_recover || preparation?.status === "not_started",
+      configSection: "模型用途",
+      href: preparation?.task_id
+        ? "#/diag/task/" + encodeURIComponent(preparation.task_id)
+        : undefined,
+    },
+    imageStage("reference", "形象参考图", reference),
+    imageStage("sheet", "角色设定图", sheet),
+    {
+      key: "avatar",
+      title: "显示头像",
+      state:
+        visual.avatar.state === "failed"
+          ? "unknown"
+          : visual.avatar.value?.avatar?.url
+            ? "ready"
+            : visualState,
+      note:
+        visual.avatar.state === "failed"
+          ? visual.avatar.message
+          : visual.avatar.value?.avatar?.url
+            ? "已读回可显示头像"
+            : visualReason || "等待头像生成并读回",
+      href: `#/c/${encodeURIComponent(fid)}/media/avatar`,
+      configSection: "图片（ComfyUI）",
+    },
+    {
+      key: "schedule",
+      title: "初始日程",
+      state: accepted
+        ? "ready"
+        : schedule.state === "unknown"
+          ? "unknown"
+          : statusOf(scheduleTask?.status),
+      note: accepted
+        ? "已读回这一天的日程"
+        : schedule.errorMessage || failed(scheduleTask?.status)
+          ? schedule.errorMessage ||
+            errorMessage(
+              { code: scheduleTask?.lastError },
+              "日程准备未完成，请查看原任务并恢复。",
+            )
+          : "等待已登记的日程任务",
+      href: scheduleTask
+        ? "#/diag/task/" + encodeURIComponent(scheduleTask.intentId)
+        : undefined,
+      configSection: "模型用途",
+    },
+  ];
+  return {
+    fid,
+    stages,
+    complete: stages.every((s) => s.state === "ready"),
+    visual,
+    wardrobe,
+    schedule,
+    world,
+  };
+}

@@ -11,7 +11,6 @@ import (
 
 const (
 	memoryRecallResultLimit = 12
-	memoryRecallTokenBudget = 3072
 )
 
 func memoryRecallCapabilityDefinition() CapabilityDefinition {
@@ -91,7 +90,7 @@ func (service *memoryRecallService) Recall(ctx context.Context, request MemoryRe
 	if service == nil || service.retrieveMemory == nil || service.retrieveActive == nil || service.searchRaw == nil || service.retrieveSummaries == nil || request.AuthorizationActorID == "" || request.FluctlightID == "" || request.Intent == "" {
 		return nil, false, errors.New("memory_recall_request_invalid")
 	}
-	plan, err := buildMemoryQueryPlan(MemoryForCapabilityPlanner, request.ViewerActorIDs, request.ConversationMode, request.ConversationID, nil, request.ActiveProfileID, []MemoryQueryCue{{Kind: "recall_intent", Text: request.Intent}}, 50, maxMemoryRetrievalBudget)
+	plan, err := buildMemoryQueryPlan(MemoryForCapabilityPlanner, request.ViewerActorIDs, request.ConversationMode, request.ConversationID, nil, request.ActiveProfileID, []MemoryQueryCue{{Kind: "recall_intent", Text: request.Intent}}, 50, 0)
 	if err != nil {
 		return nil, false, err
 	}
@@ -147,7 +146,6 @@ func (service *memoryRecallService) Recall(ctx context.Context, request MemoryRe
 		return stringValue(candidates[i].item["ref"]) < stringValue(candidates[j].item["ref"])
 	})
 	items := make([]map[string]any, 0, memoryRecallResultLimit)
-	used := 0
 	truncated := false
 	seen := map[string]struct{}{}
 	for _, candidate := range candidates {
@@ -155,13 +153,11 @@ func (service *memoryRecallService) Recall(ctx context.Context, request MemoryRe
 		if _, duplicate := seen[ref]; duplicate {
 			continue
 		}
-		cost := EstimatePromptTokens(candidate.item)
-		if len(items) >= memoryRecallResultLimit || used+cost > memoryRecallTokenBudget {
+		if len(items) >= memoryRecallResultLimit {
 			truncated = true
 			continue
 		}
 		seen[ref] = struct{}{}
-		used += cost
 		items = append(items, candidate.item)
 	}
 	return items, truncated, nil

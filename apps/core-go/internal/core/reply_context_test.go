@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -20,7 +19,7 @@ func replyContextFixture() ReplyContextInput {
 		CapabilityFacts: map[string]any{"image_generation_registered": true, "sticker_attachments": false, "vision_understanding": "disabled"}}
 }
 
-func TestFactOnlyReplyHistoryIsBoundedAndUsesExistingSummary(t *testing.T) {
+func TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap(t *testing.T) {
 	for _, prose := range []string{"旧轮对话内容，需要从候选窗口中裁掉。", "Older conversational material should be trimmed as whole turns. "} {
 		t.Run(prose[:6], func(t *testing.T) {
 			input := replyContextFixture()
@@ -42,7 +41,7 @@ func TestFactOnlyReplyHistoryIsBoundedAndUsesExistingSummary(t *testing.T) {
 				t.Fatal(err)
 			}
 			wire := jsonString(prompt.Messages)
-			if prompt.Trace.EstimatedInputTokens > factOnlyReplyInputTargetTokens {
+			if prompt.Trace.MaxInputTokens != 0 || prompt.Trace.OutputReserveTokens != 0 {
 				t.Fatalf("Writer input not bounded: %+v", prompt.Trace)
 			}
 			for _, required := range []string{"最近明确拒绝", "不要安排我参加活动", "历史约定", "双方明确确认讨论时间", "严谨直白"} {
@@ -54,7 +53,7 @@ func TestFactOnlyReplyHistoryIsBoundedAndUsesExistingSummary(t *testing.T) {
 				t.Fatal("history trim/current-input/isolation contract lost")
 			}
 			selection := mapValue(prompt.Diagnostics["reply_context_selection"])
-			if len(prompt.Trace.Dropped) == 0 || intValue(selection["history_selected_chars"])*5 >= intValue(selection["history_candidate_chars"]) {
+			if len(prompt.Trace.Dropped) != 2 || intValue(selection["history_selected_chars"])*5 < intValue(selection["history_candidate_chars"])*4 {
 				t.Fatalf("history not reduced: %v", selection)
 			}
 			t.Logf("history chars %d -> %d; final wire chars=%d estimated tokens=%d", intValue(selection["history_candidate_chars"]), intValue(selection["history_selected_chars"]), prompt.Trace.WireChars, prompt.Trace.EstimatedInputTokens)
@@ -115,8 +114,8 @@ func TestFactOnlyReplyContextUsesAuthorityAndOriginalHistory(t *testing.T) {
 func TestFactOnlyRequiredGoalOverflowIsExplicit(t *testing.T) {
 	input := replyContextFixture()
 	input.Projection.Goals[0]["success_criteria"] = []any{strings.Repeat("不可丢失的原始完成条件", 3000)}
-	_, err := buildFactOnlyReplyContext(input, providerAssignment{TokenBudget: 1024, ContextWindowTokens: 16384, MaxInputTokens: 2048, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1})
-	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+	result, err := buildFactOnlyReplyContext(input, providerAssignment{TokenBudget: 1024, ContextWindowTokens: 16384, MaxInputTokens: 2048, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1})
+	if err != nil || !strings.Contains(jsonString(result.Messages), strings.Repeat("不可丢失的原始完成条件", 3000)) {
 		t.Fatalf("required goal silently omitted: %v", err)
 	}
 }

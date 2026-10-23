@@ -103,6 +103,12 @@ test("approved workspace drops late reads, recovers original commands after swit
       ),
       "a later-stage validation cannot release the parent identity",
     );
+    const stale = workspace.command("角色详情", "profile:A", { expectedRevision: 1 }, async () => {
+      throw Object.assign(new Error("stale proposal"), { status: 409, code: "foundation_proposal_stale" });
+    }, { preAdmissionConflicts: ["revision_conflict", "foundation_proposal_stale"] });
+    await assert.rejects(stale.completion, /stale proposal/);
+    const staleKey = [...values.keys()].find((key) => key.includes('approved-command:') && key.includes('profile:A'));
+    assert.equal(JSON.parse(values.get(staleKey)).rejection.code, "foundation_proposal_stale");
     services.configureDomainService("life", {
       request: async () => {
         reads++;

@@ -816,7 +816,7 @@ func safeStreamTurnErrorCode(value string) string {
 		"conversation_unauthorized", "decision_effect_invalid", "frozen_context_projection_missing",
 		"life_context_stale", "media_arguments_invalid", "media_capability_unavailable",
 		"media_context_stale", "media_intent_failed", "media_intent_invalid", "media_prepare_required",
-		"personality_decision_plan_invalid", "request_cancelled", "request_timeout",
+		"personality_decision_plan_invalid", "request_cancelled", "request_timeout", "agent_partial_committed",
 		"prompt_required_budget_exceeded", "prompt_current_input_budget_exceeded", "prompt_tool_result_budget_exceeded", "prompt_output_reserve_conflict",
 		"required_capability_failed", "structured_turn_settlement_failed", "takeover_failed",
 		"takeover_frozen_turn_missing", "takeover_reply_budget_exhausted", "takeover_resume_decision_invalid",

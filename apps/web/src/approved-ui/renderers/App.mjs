@@ -72,12 +72,7 @@ function renderAppBody(__view) {
   }, null, -1)), approvedButtonVNode({
     class: "character-switch",
     onClick: w[1] || (w[1] = A => __view.u.value = !__view.u.value)
-  }, [o("span", {
-    class: "avatar small",
-    style: yt({
-      background: M(__view.character).color
-    })
-  }, v(M(__view.character).initial), 5), o("b", null, v(M(__view.character).name), 1), me(M(wo), {
+  }, [me(__view.CharacterAvatar,{class:"small",name:M(__view.character).name,initial:M(__view.character).initial,color:M(__view.character).color,src:M(__view.character)._directory?.avatar},null,8,["name","initial","color","src"]), o("b", null, v(M(__view.character).name), 1), me(M(wo), {
     size: 14
   })]), w[11] || (w[11] = o("span", {
     class: "scope"
@@ -105,6 +100,7 @@ function renderAppBody(__view) {
     key: "workspace-" + __view.r.value
   }, [approvedButtonVNode({
     "data-testid": "nav-聊天",
+    disabled: !M(__view.character).id,
     "aria-current": __view.r.value === "聊天" ? "page" : void 0,
     class: ge(["nav-item", {
       active: __view.r.value === "聊天"
@@ -113,7 +109,7 @@ function renderAppBody(__view) {
   }, [me(M(Ju), {
     size: 17
   }), w[16] || (w[16] = o("span", null, "聊天", -1))]), approvedButtonVNode({
-    class: "nav-item",
+    class: "nav-item",disabled:!M(__view.character).id,
     onClick: w[4] || (w[4] = A => __view.a.value = !__view.a.value),
     "aria-expanded": __view.a.value
   }, [me(M(Co), {
@@ -123,6 +119,7 @@ function renderAppBody(__view) {
   })]), __view.a.value ? (p(), g("div", bv, [(p(), g(O, null, oe(__view.t, A => approvedButtonVNode({
     key: A,
     "data-testid": "nav-" + A,
+    disabled:!M(__view.character).id,
     "aria-current": __view.r.value === A ? "page" : void 0,
     class: ge(["nav-item", {
       active: __view.r.value === A
@@ -131,6 +128,7 @@ function renderAppBody(__view) {
   }, v(A))), 64))])) : X("", !0), (p(), g(O, null, oe(__view.s, ([A, B]) => approvedButtonVNode({
     key: A,
     "data-testid": "nav-" + A,
+    disabled:!M(__view.character).id,
     "aria-current": __view.r.value === A ? "page" : void 0,
     class: ge(["nav-item", {
       active: __view.r.value === A
@@ -160,7 +158,7 @@ function renderAppBody(__view) {
     class: ge({
       "chat-main": __view.r.value === "聊天"
     })
-  }, [o("div", $v, [o("div", null, [o("div", Cv, [Z(v(M(__view.character).name) + " 的工作区 ", 1), me(M(Ji), {
+  }, [o("div", $v, [o("div", null, [o("div", Cv, [Z(v(M(__view.character).id?M(__view.character).name+" 的工作区 ":"新的相识 "), 1), me(M(Ji), {
     size: 12
   }), Z(v(__view.r.value), 1)]), o("h1", null, [Z(v(__view.r.value), 1), __view.r.value === "聊天" ? (p(), g("span", xv, "日常的片刻，与你分享。")) : X("", !0)])]), __view.r.value === "聊天" ? (p(), approvedButtonBlock({
     key: 0,
@@ -176,13 +174,13 @@ function renderAppBody(__view) {
     key: "w" + M(__view.character).id
   })) : __view.r.value === "世界" ? (p(), Ae(__view.WorldPage, {
     key: "world" + M(__view.character).id
-  })) : __view.t.includes(__view.r.value) ? (p(), Ae(__view.LifePage, {
+  })) : __view.r.value === "角色详情" ? (p(), Ae(__view.CharacterDetailPage,{key:"profile"+M(__view.character).id})) : __view.t.includes(__view.r.value) ? (p(), Ae(__view.LifePage, {
     page: __view.r.value,
     key: M(__view.character).id,
     onGo: __view.d
   }, null, 8, ["page"])) : __view.r.value === "管理中心" ? (p(), Ae(__view.ManagementPage, {
     key: 3
-  })) : (p(), Ae(__view.BrowsePage, {
+  })) : __view.r.value === "角色库" ? (p(), Ae(__view.LibraryPage,{key:"library"})) : __view.r.value === "初始化角色" ? (p(), Ae(__view.CharacterWizardPage,{key:"creation"})) : (p(), Ae(__view.BrowsePage, {
     page: __view.r.value,
     key: __view.r.value + M(__view.character).id
   }, null, 8, ["page"]))]))], 2)]), M(__view.toast) ? (p(), g("div", Tv, [Z(v(M(__view.toast).text) + " ", 1), M(__view.toast).link ? (p(), g("a", {

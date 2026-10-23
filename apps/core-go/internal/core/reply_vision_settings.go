@@ -26,8 +26,8 @@ type ConversationReplySettings struct {
 	ModelRef          string  `json:"model_ref"`
 	Temperature       float64 `json:"temperature"`
 	TopP              float64 `json:"top_p"`
-	MaxTokens         int     `json:"max_tokens"`
-	MaxInputTokens    int     `json:"max_input_tokens"`
+	MaxTokens         int     `json:"max_tokens,omitempty"`
+	MaxInputTokens    int     `json:"max_input_tokens,omitempty"`
 	TimeoutSeconds    int     `json:"timeout_seconds"`
 	Concurrency       int     `json:"concurrency"`
 	RetryLimit        int     `json:"retry_limit"`
@@ -42,7 +42,7 @@ type VisionUnderstandingSettings struct {
 
 func defaultConversationReplySettings() ConversationReplySettings {
 	return ConversationReplySettings{Mode: "fact_only", ModelRef: conversationReplyModelRole, ExpressionVersion: factOnlyReplyPromptVersion,
-		Temperature: 0.8, TopP: 0.9, MaxTokens: 1024, MaxInputTokens: 8192, TimeoutSeconds: 300,
+		Temperature: 0.8, TopP: 0.9, TimeoutSeconds: 300,
 		Concurrency: 1, RetryLimit: 1, FailurePolicy: "error", MaxActionHandoffs: 2}
 }
 
@@ -80,11 +80,11 @@ func decodeConversationReplySettings(raw []byte) (ConversationReplySettings, err
 		(value.FailurePolicy != "error" && value.FailurePolicy != "legacy_fallback") ||
 		math.IsNaN(value.Temperature) || math.IsInf(value.Temperature, 0) || value.Temperature < 0 || value.Temperature > 2 ||
 		math.IsNaN(value.TopP) || math.IsInf(value.TopP, 0) || value.TopP <= 0 || value.TopP > 1 ||
-		value.MaxTokens < 1 || value.MaxTokens > 32768 || value.MaxInputTokens < 1024 || value.MaxInputTokens > 131072 ||
 		value.TimeoutSeconds < 1 || value.TimeoutSeconds > 3600 || value.Concurrency < 1 || value.Concurrency > 8 ||
 		value.RetryLimit < 0 || value.RetryLimit > 2 || value.MaxActionHandoffs < 1 || value.MaxActionHandoffs > 2 {
 		return value, errors.New("conversation_reply_config_invalid")
 	}
+	value.MaxTokens, value.MaxInputTokens = 0, 0
 	return value, nil
 }
 

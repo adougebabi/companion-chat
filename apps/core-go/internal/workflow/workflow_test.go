@@ -865,6 +865,27 @@ func TestBusyCognitionWaitsDurablyAndPreservesInput(t *testing.T) {
 	}
 	env.AssertExpectations(t)
 }
+func TestCognitionReplyObservationPreservesOldWorkflowVersion(t *testing.T) {
+	for _, version := range []workflow.Version{workflow.DefaultVersion, 1} {
+		t.Run(fmt.Sprint(version), func(t *testing.T) {
+			var suite testsuite.WorkflowTestSuite
+			env := suite.NewTestWorkflowEnvironment()
+			input := Input{InboxID: "waiting-reply-inbox", IntentID: "same-intent"}
+			env.OnGetVersion("cognition-reply-deadline-v1", workflow.DefaultVersion, 1).Return(version)
+			env.OnActivity(ProcessCognitionActivity, mock.Anything, input).Return(map[string]any{"status": "waiting_reply"}, nil).Once()
+			env.ExecuteWorkflow(CognitionProcessingWorkflow, input)
+			var continued *workflow.ContinueAsNewError
+			if version == workflow.DefaultVersion {
+				if err := env.GetWorkflowError(); err != nil {
+					t.Fatal("old history changed", err)
+				}
+			} else if !errors.As(env.GetWorkflowError(), &continued) {
+				t.Fatal("new waiting reply stopped observation", env.GetWorkflowError())
+			}
+			env.AssertExpectations(t)
+		})
+	}
+}
 func TestReconciliationUsesRotatingKeysetInsteadOfOldestRunningBatch(t *testing.T) {
 	if !strings.Contains(reconcileIntentQuery, "intent_id > $2") || !strings.Contains(reconcileIntentQuery, "ORDER BY intent_id LIMIT $1") || strings.Contains(reconcileIntentQuery, "ORDER BY started_at") {
 		t.Fatal("reconciliation can starve later workflows", reconcileIntentQuery)

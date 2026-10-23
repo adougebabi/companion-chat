@@ -1,5 +1,6 @@
-import { defineComponent, ref, computed, watch } from "vue";
+import { defineComponent, ref, computed, watch, h, Fragment } from "vue";
 import { useWorkspace, slots } from "../workspace.mjs";
+import WardrobePreparation from "../shared/WardrobePreparation.vue";
 import { renderWardrobePage } from "../renderers/WardrobePage.mjs";
 import { GarmentArt, ActionFeedback } from "../shared/components.mjs";
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -320,7 +321,7 @@ export default defineComponent({
         /* Retain the tag draft and its original command. */
       }
     }
-    return renderWardrobePage({
+    const render = renderWardrobePage({
       character,
       i: tab,
       r: tag,
@@ -364,5 +365,7 @@ export default defineComponent({
       ActionFeedback,
       se: confirmation,
     });
+    return (context, cache) =>
+      h(Fragment, [h(WardrobePreparation), render(context, cache)]);
   },
 });

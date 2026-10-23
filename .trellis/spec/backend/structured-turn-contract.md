@@ -1,5 +1,59 @@
 # Structured Turn And Independent Agent / Tool Contract
 
+Current amendment: application token input/output limits were removed on
+2026-10-23; see [Provider contract](./fluctlight-provider-contract.md). Earlier
+token-cap requirements below are historical. Time and authority fences remain.
+
+## Scenario: Durable total conversation reply deadline (2026-10-23)
+
+### 1. Scope / Trigger
+A direct conversation previously stayed pending for minutes without a terminal
+reply. Core now owns total expiry independently of browser observers.
+
+### 2. Signatures
+`conversationTurnBudget`, `ProcessCognitionInbox`, `ExpireDueConversationTurns`,
+`requireConversationBudgetTx`; cognition payload.reply_budget stores admitted_at,
+deadline_at, timeout_seconds, config_version and explicit retry attempt.
+
+### 3. Contracts
+Admission freezes conversation.reply.timeout_seconds including queueing,
+cognition, Writer and media continuation. Worker supervision sweeps due rows.
+Old facts use occurred_at plus configured timeout, including publication fences.
+Check budget identity under the source row lock before mutations/publication and
+failure settlement. Old attempts cannot alter a newer explicit retry. Final
+publication reads app.now after acquiring the source lock. Unbound standalone
+Tools retain their own authority; conversation publication explicitly forces the
+budget fence. Existing committed receipt replay remains permitted.
+
+Expiry closes the original inbox and unpublished drafts; retain committed outputs.
+Settled agent_result, committed partial mutation or Tool ledger effects produce
+agent_partial_committed and prohibit rerunning cognition. A safe explicit retry
+keeps the turn identity, increments retry_count/budget attempt and resets execution
+attempt_count. RunID includes retry_count. Waiting replies never reclaim cognition.
+Temporal waiting_reply observation is versioned by cognition-reply-deadline-v1.
+
+### 4. Validation & Error Matrix
+Expired uncommitted turn → request_timeout, retry eligible. Committed effect →
+agent_partial_committed, no model rerun. Stale budget → conflict/no cleanup of new
+attempt. Expired historical fact → publication rejected before sweep. Browser
+disconnect → existing durable work continues under original deadline.
+
+### 5. Good/Base/Bad Cases
+Good: blocked physical request cancels at the configured total timeout and the
+same inbox becomes failed. Base: timely reply commits once. Bad: fabricate a
+browser timeout and submit a second turn identity while the first can publish.
+
+### 6. Tests Required
+Disposable PG race tests for queue expiry, actual blocked HTTP cancellation,
+publication lock/fallback deadline, explicit retry and stale execution, and
+settled waiting_reply. Durable/continuation/Tool regressions and old/new Temporal
+version-branch tests. Live deployment history replay remains separate evidence.
+
+### 7. Wrong vs Correct
+Wrong: reset all attempt counters and reuse a prior Agent RunID, or expire after
+publication without fencing the publishing transaction. Correct: explicit retry
+identity plus locked deadline/budget checks and preservation of committed facts.
+
 ## Scenario: Formal tasks share one native Eino loop
 
 ### 1. Scope / Trigger

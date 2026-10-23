@@ -26,7 +26,7 @@ func TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat(t *testing.T) {
 	}
 	query := url.Values{"correlationId": {"turn:diagnostic-turn"}}
 	for _, state := range []string{"pending", "claimed", "failed", "processed"} {
-		if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status=$2,error_code=CASE WHEN $2='failed' THEN 'provider_gateway_timeout' ELSE NULL END WHERE id=$1`, accepted.InboxID, state); err != nil {
+		if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status=$2::varchar,error_code=CASE WHEN $2::varchar='failed' THEN 'provider_gateway_timeout' ELSE NULL END WHERE id=$1`, accepted.InboxID, state); err != nil {
 			t.Fatal(err)
 		}
 		page, err := app.OwnerDiagnosticRecords(ctx, owner, "turns", query)
@@ -62,6 +62,9 @@ func TestStaleProviderRecoveryNeverFailsARunningDurableIntentByAge(t *testing.T)
 func durableReplyFixture(t *testing.T, suffix string) (context.Context, *PostgresRepository, *App, string, string, string) {
 	t.Helper()
 	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurn(t, suffix, fakeProviderResult{ToolCalls: mixedImageReplyToolCalls()})
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'hash','revision-1') ON CONFLICT(human_actor_id) DO NOTHING`, ownerID); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := app.EnsureWakeUpIntents(ctx); err != nil {
 		t.Fatal(err)
 	}

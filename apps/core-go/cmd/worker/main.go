@@ -150,6 +150,9 @@ func main() {
 	defer os.Remove(healthFile)
 	dispatcher := &coreworkflow.Dispatcher{App: application, Client: temporalClient, Started: map[string]struct{}{}}
 	stopDispatch := startWorkerLoop(ctx, time.Second, func(ctx context.Context) {
+		if _, err := application.ExpireDueConversationTurns(ctx, 50); err != nil {
+			logger.Warn("Go Worker reply deadline recovery retry", "error", err)
+		}
 		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
 			_, err := dispatcher.DispatchOnce(operationCtx, 20)
 			return err

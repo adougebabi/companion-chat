@@ -155,9 +155,9 @@ function renderWorldPageBody(__view) {
       class: ge(["card", {
         current: H.residents.includes(M(__view.character).id)
       }])
-    }, [o("div", hp, [o("h2", null, v(H.name), 1), H.residents.includes(M(__view.character).id) ? (p(), g("span", gp, "当前")) : X("", !0)]), o("p", null, v(H.genre) + " · " + v(H.sites.length) + " 处场地", 1), o("p", yp, "居住在这里：" + v(H.residents.map(q => {
+    }, [o("div", hp, [o("h2", null, v(H.name), 1), H.residents.includes(M(__view.character).id) ? (p(), g("span", gp, "当前")) : X("", !0)]), o("p", null, (H.genre?v(H.genre)+" · ":"") + v(H.sites.length) + " 处场地", 1), o("p", yp, "居住在这里：" + v(H.residents.map(q => {
       var V;
-      return (V = M(__view.characters)[q]) == null ? void 0 : V.name;
+      return (V = M(__view.characters).find(c=>c.id===q)) == null ? void 0 : V.name;
     }).join("、") || "暂无角色"), 1), o("div", bp, [approvedButtonVNode({
       class: "button primary",
       onClick: q => {

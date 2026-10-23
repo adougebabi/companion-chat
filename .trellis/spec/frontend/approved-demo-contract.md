@@ -1,5 +1,14 @@
 # Approved HTML demo migration (2026-10-23)
 
+Current source is the supplied **v6.2** demo. Its appearance is the reference;
+field names/types/ownership follow the current Core schemas, including fields
+omitted by the acceptance report. The Owner confirmed readable initialization
+preview before activation, grouped identity/behavior/life editing, read-only
+personality dimensions, and secondary links to existing governance.
+
+The 2026-10-23 token-limit removal in the Provider contract supersedes all
+earlier binding input/output budget controls and validation instructions.
+
 ## 1. Scope / Trigger
 
 The user supplied `index.html` and explicitly requested its one-to-one migration,
@@ -101,3 +110,60 @@ Wrong: move a compiled native card's children inside a component and retain its
 old `dynamicChildren` list, then rely only on a successful Vite build.
 Correct: disable obsolete compiler block tracking for the retained render bodies,
 keep component native DOM parity, and execute repeated route/data updates.
+
+## Scenario: v6.2 initialization and character details
+
+### 1. Scope / Trigger
+New/empty library, `#/library/create`, `#/c/:fid/profile`, and report feedback.
+
+### 2. Signatures
+`createCreationController`, `readApprovedCreationProgress`, `profileFields`,
+`profileChanges`, `rebaseProfileFields`, `profileSaveCommand`; shared Vue
+`CharacterAvatar`, `ProfileForm`, `SemanticTree`, `PreparationSteps` and
+`ModelDirectory`. Existing analysis/activation and Foundation APIs remain owners.
+
+### 3. Contracts
+Select a published world/version or the default world before description,
+JSON, blank or published-template creation. Timezone is required; age is optional.
+Analysis stops at preview. Store editable preview UI values separately and clear
+them when source/world/mode/analysis changes. Activation freezes the reviewed
+typed body and original request ID; unknown outcomes replay exactly that body.
+Checkpoint activation before releasing identity; returning restores progress.
+
+Seven preparation rows read independent authorities: analysis, character/world,
+wardrobe, canonical reference, character sheet, display avatar, first-day schedule.
+Failed reads are unknown, never ready. Wardrobe uses dedicated preparation
+recovery. Visual recovery reads identity.current_revision and visualBrief.revision.
+
+Profile forms derive existing nested fields from real records; canonical nullable
+identity/behavior controls retain schema types. Patch only changed leaves; array
+edits preserve untouched array elements. Personality/Current State/Developing Self
+stay read-only. Save means original proposal plus acceptance with baseline CAS.
+Known stale proposals permit explicit reread/rebase; unknown writes retain identity.
+Readback preserves edits made after submission, including returning to the original
+value. A failed readback retains the editor and rereads rather than re-proposing.
+
+### 4. Validation & Error Matrix
+Empty description/invalid timezone → Chinese inline error, no write. Owner/role
+change → discard late projection. Lost activation/acceptance → same request/body.
+CAS/stale proposal → keep edits, reread and confirm new baseline. Missing values
+→ hide separator/label; midnight remains valid when explicitly recorded. Explicit
+unscheduled placeholders → readable pending row. Duplicate wardrobe failure →
+latest attempt per role. Raw model JSON stays in diagnostic details.
+
+### 5. Good/Base/Bad Cases
+Good: submit Bob, type Alice while saving, read back committed Bob, retain Alice
+as unsaved input. Base: first-use welcome links model setup and new creation.
+Bad: replace the role with demo fields, or declare preparation complete from a
+task status without reading its real result.
+
+### 6. Tests Required
+`approved-v62.test.mjs`, workspace conflict/recovery tests, full workspace checks,
+production fixture exclusion, isolated mock build, desktop/390px browser flows.
+Disposable PG timeout/retry tests prove SQL behavior; controlled browser fixtures
+prove rendering/transport shape only, and do not certify a user's live models.
+
+### 7. Wrong vs Correct
+Wrong: resubmit edited live fields after an unknown activation, or compare newer
+save-time input only against the original edit-session baseline. Correct: replay
+the frozen command; preserve post-submit edits against the submitted snapshot.

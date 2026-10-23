@@ -389,18 +389,10 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 }
 
 func (m *queuedToolCallingChatModel) finishPhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
-	prepared, err := m.compactPhysicalInput(ctx, factOnlyPhaseInput(ctx, input))
-	if err != nil {
-		return nil, err
-	}
-	return cloneWireToolNames(prepared), nil
+	return cloneWireToolNames(factOnlyPhaseInput(ctx, input)), nil
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
-	policy, err := promptBudgetPolicyForAssignment(m.assignment)
-	if err != nil {
-		return err
-	}
 	messages := make([]map[string]any, 0, len(input))
 	for _, message := range input {
 		if message != nil {
@@ -432,26 +424,14 @@ func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Cont
 		iteration = m.sequence.Load() + 1
 	}
 	if m.provider != nil && m.provider.DB != nil {
-		status := "within_budget"
-		if estimated > policy.MaxInputTokens {
-			status = "required_budget_exceeded"
-		}
 		m.provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.input_budget", "info", "", "", m.correlationID, map[string]any{
-			"status": status, "count_mode": "estimated", "estimated_input_tokens": estimated, "cumulative_estimated_input_tokens": cumulative,
-			"context_window_tokens": policy.ContextWindowTokens, "max_input_tokens": policy.MaxInputTokens,
-			"generation_reserve_tokens": policy.OutputReserveTokens, "safety_margin_tokens": policy.SafetyMarginTokens,
+			"status": "measured", "policy_version": "prompt-unlimited.v1", "count_mode": "estimated", "estimated_input_tokens": estimated, "cumulative_estimated_input_tokens": cumulative,
 			"model": m.assignment.ModelID, "agent": m.agentName, "run_id": firstString(stringValue(diagnostics["run_id"]), m.correlationID),
 			"conversation_id": stringValue(diagnostics["conversation_id"]), "iteration": iteration,
 			"wire_bytes": len(encoded), "wire_chars": len([]rune(string(encoded))),
 			"message_count": len(messages), "tool_count": len(tools), "tool_schema_tokens": EstimatePromptTokens(tools),
 			"tool_result_tokens": toolResultTokens, "schema_tokens": EstimatePromptTokens(m.responseFormat),
 		})
-	}
-	if estimated > policy.MaxInputTokens {
-		if toolResultTokens > 0 && estimated-toolResultTokens <= policy.MaxInputTokens {
-			return fmt.Errorf("%w: %w: physical request estimate=%d tool_results=%d max=%d", ErrPromptRequiredBudgetExceeded, ErrPromptToolResultBudgetExceeded, estimated, toolResultTokens, policy.MaxInputTokens)
-		}
-		return fmt.Errorf("%w: physical request estimate=%d max=%d", ErrPromptRequiredBudgetExceeded, estimated, policy.MaxInputTokens)
 	}
 	return nil
 }
@@ -979,7 +959,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: call.Assignment.Secret, BaseURL: call.Assignment.BaseURL,
 		Model: call.Assignment.ModelID, Timeout: call.Assignment.Timeout,
-		MaxCompletionTokens: DefaultPromptBudgetPolicy(call.Assignment.TokenBudget).OutputReserveTokens, HTTPClient: p.HTTP,
+		HTTPClient:     p.HTTP,
 		ResponseFormat: responseFormat, ExtraFields: extra,
 	})
 	if err != nil {
@@ -1057,7 +1037,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: call.Assignment.Secret, BaseURL: call.Assignment.BaseURL,
 		Model: call.Assignment.ModelID, Timeout: call.Assignment.Timeout,
-		MaxCompletionTokens: DefaultPromptBudgetPolicy(call.Assignment.TokenBudget).OutputReserveTokens, HTTPClient: requestHTTP,
+		HTTPClient:     requestHTTP,
 		ResponseFormat: responseFormat, ExtraFields: extra,
 	})
 	if err != nil {
@@ -1352,7 +1332,7 @@ func (p *ProviderClient) streamWithEino(ctx context.Context, assignment provider
 	factory := NewEinoModelFactory(p.HTTP)
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: assignment.Secret, BaseURL: assignment.BaseURL, Model: assignment.ModelID,
-		Timeout: assignment.Timeout, MaxCompletionTokens: DefaultPromptBudgetPolicy(assignment.TokenBudget).OutputReserveTokens, HTTPClient: p.HTTP,
+		Timeout: assignment.Timeout, HTTPClient: p.HTTP,
 	})
 	if err != nil {
 		return "", err

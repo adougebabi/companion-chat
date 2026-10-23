@@ -1,4 +1,5 @@
-import { defineComponent, ref, computed, onUnmounted, h } from "vue";
+import { defineComponent, ref, computed, onUnmounted, h, Fragment } from "vue";
+import { pendingIssues } from "../presentation.mjs";
 import { useWorkspace } from "../workspace.mjs";
 import { renderBrowsePage } from "../renderers/BrowsePage.mjs";
 import { FilterChips, ActionFeedback } from "../shared/components.mjs";
@@ -219,14 +220,7 @@ export default defineComponent({
     const errors = computed(() =>
       [...w.state.operations, ...w.state.diagnostics]
         .filter((r) => r.status === "error")
-        .concat(
-          w.state.pending.map((r) => ({
-            id: r.id,
-            label: r.title,
-            reason: r.status,
-            _pending: r,
-          })),
-        ),
+        .concat(pendingIssues(w.state.pending, w.state.characters)),
     );
     const peopleFilters = computed(() => [
       { key: "status", label: "状态", options: ["活跃", "暂未联系"] },
@@ -338,6 +332,17 @@ export default defineComponent({
       reactPost,
       playMedia,
     };
-    return renderBrowsePage(bindings);
+    const render = renderBrowsePage(bindings);
+    return (context, cache) =>
+      h(Fragment, [
+        render(context, cache),
+        props.page === "动态" && !character.value.posts.length
+          ? h(
+              "p",
+              { class: "muted approved-empty-feed" },
+              "这里还没有动态，真实生活里的片刻会慢慢留下来。",
+            )
+          : null,
+      ]);
   },
 });

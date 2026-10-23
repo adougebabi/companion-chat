@@ -12,7 +12,7 @@ import { displayStatus } from "../../lib/user-feedback";
 const props = defineProps<{kind:"reply"|"vision"}>();
 const emit = defineEmits<{bindModel:[role:"conversation_reply"|"vision_understanding"]}>();
 const store=useControlCenterStore();
-const reply=reactive({mode:"fact_only",model_ref:"conversation_reply",expression_version:"fact-only-reply.v5",temperature:0.8,top_p:0.9,max_tokens:1024,max_input_tokens:8192,timeout_seconds:300,concurrency:1,retry_limit:1,failure_policy:"error",max_action_handoffs:2});
+const reply=reactive({mode:"fact_only",model_ref:"conversation_reply",expression_version:"fact-only-reply.v5",temperature:0.8,top_p:0.9,timeout_seconds:300,concurrency:1,retry_limit:1,failure_policy:"error",max_action_handoffs:2});
 const vision=reactive({enabled:false,model_ref:"vision_understanding"});
 const notice=ref(""),error=ref(""),testingVision=ref(false);
 const {errors,validate}=useFormErrors();
@@ -30,8 +30,6 @@ const stateLabels:Record<string,string>={disabled:"已关闭",unconfigured:"配�
 const fields=[
   {key:"temperature",label:"温度",min:0,max:2,integer:false,step:0.05},
   {key:"top_p",label:"Top P",min:0.01,max:1,integer:false,step:0.01},
-  {key:"max_tokens",label:"回复输出上限",min:1,max:32768,integer:true,step:1},
-  {key:"max_input_tokens",label:"回复上下文预算",min:1024,max:131072,integer:true,step:1024},
   {key:"timeout_seconds",label:"回复总超时（秒）",min:1,max:3600,integer:true,step:1},
   {key:"concurrency",label:"回复生成并发",min:1,max:8,integer:true,step:1},
   {key:"retry_limit",label:"可恢复错误重试次数",min:0,max:2,integer:true,step:1},

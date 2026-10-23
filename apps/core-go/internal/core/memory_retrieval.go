@@ -15,8 +15,6 @@ const (
 	memoryCandidateLimit       = 200
 	maxMemoryQueryCues         = 32
 	maxMemoryQueryCueRunes     = 1000
-	maxMemoryQueryTokens       = 1024
-	maxMemoryRetrievalBudget   = 16000
 )
 
 type MemoryRetrievalOperation string
@@ -256,12 +254,7 @@ func buildMemoryQueryPlan(operation MemoryRetrievalOperation, viewers []string, 
 	if limit > 50 {
 		limit = 50
 	}
-	if budget < 128 {
-		budget = 128
-	}
-	if budget > maxMemoryRetrievalBudget {
-		budget = maxMemoryRetrievalBudget
-	}
+	budget = 0 // Retained diagnostic field; result selection has no size budget.
 	if len(cues) > maxMemoryQueryCues {
 		cues = cues[:maxMemoryQueryCues]
 	}
@@ -285,10 +278,6 @@ func buildMemoryQueryPlan(operation MemoryRetrievalOperation, viewers []string, 
 			continue
 		}
 		cueSeen[identity] = struct{}{}
-		candidateQuery := strings.Join(append(append([]string(nil), queryParts...), cue.Text), "\n")
-		if EstimatePromptTokens(candidateQuery) > maxMemoryQueryTokens {
-			continue
-		}
 		cleanCues = append(cleanCues, cue)
 		queryParts = append(queryParts, cue.Text)
 		if cue.AllowEmbedding {
@@ -528,12 +517,6 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 			"importance": item.value["importance"], "emotional_significance": item.value["emotional_significance"],
 			"created_at": item.value["created_at"], "personality_perspectives": item.value["personality_perspectives"],
 		}))))
-		if used+cost > plan.Budget {
-			trace.TruncatedReason = "budget"
-			disposition, reason = "dropped", "budget"
-			trace.Ranking = append(trace.Ranking, MemoryRankTrace{MemoryID: stringValue(item.value["id"]), Components: item.components, Score: item.score, Disposition: disposition, Reason: reason})
-			continue
-		}
 		used += cost
 		items = append(items, item.value)
 		trace.Ranking = append(trace.Ranking, MemoryRankTrace{MemoryID: stringValue(item.value["id"]), Components: item.components, Score: item.score, Disposition: disposition, Reason: reason})

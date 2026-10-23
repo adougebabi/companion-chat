@@ -7,10 +7,16 @@ import {
   watch,
   h,
   Fragment,
+  onMounted as mount,
+  onUnmounted as unmount,
+  nextTick,
 } from "vue";
 import { useWorkspace } from "../workspace.mjs";
 import { renderManagementPage } from "../renderers/ManagementPage.mjs";
 import { FilterChips, DetailDrawer } from "../shared/components.mjs";
+import { diagnosticProjection } from "../presentation.mjs";
+import { catalogLabel } from "../../v3/runtime-catalog.mjs";
+import ModelDirectory from "../shared/ModelDirectory.vue";
 import { configurationFields } from "../../v3/proto/components/configuration-fields.js";
 import {
   acknowledgeConfiguration,
@@ -253,11 +259,15 @@ export default defineComponent({
       if (node?.tagName === "DETAILS") node.open = true;
       node?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
-    const sharedScenarios = computed(
-      () =>
-        w.state.runtimeCatalog?.scenarios?.map(
-          (s) => s.label || s.name || s.id,
-        ) || [],
+    const sharedScenarios = computed(() =>
+      (w.state.runtimeCatalog?.agents || [])
+        .filter(
+          (a) =>
+            a.role === "cognitive_assessment" ||
+            a.role === "generic_llm" ||
+            a.role === "media_prompt",
+        )
+        .map((a) => catalogLabel("agent", a.name, a.description)),
     );
     async function readCatalog() {
       const snapshot = await config.read();
@@ -292,12 +302,7 @@ export default defineComponent({
           role,
           endpoint: b?.endpoint_id || "",
           model: b?.model_id || "",
-          tokens: b?.token_budget ?? "",
           timeout: b?.timeout_seconds ?? "",
-          window: b?.context_window_tokens ?? "",
-          safetyMargin:
-            b?.safety_margin_tokens ??
-            snapshot.provider_budget_defaults?.safety_margin_tokens,
           _source: b,
         };
       });
@@ -326,6 +331,9 @@ export default defineComponent({
           if (live()) w.state.runtimeCatalog = value;
         })
         .catch(() => {});
+      await nextTick();
+      if (live() && w.state.managementSection)
+        scrollTo(w.state.managementSection);
     }
     async function loadDiagnostics() {
       const [models, media] = await Promise.allSettled([
@@ -340,68 +348,7 @@ export default defineComponent({
           continue;
         }
         for (const record of result.value.items) {
-          const d = record.data,
-            created = Date.parse(record.occurred_at) || 0,
-            completed = Date.parse(d.completed_at || "");
-          const role = d.binding_role || d.role;
-          projected.push({
-            id: record.ref,
-            kind: index ? "媒体调用" : "模型调用",
-            label: index
-              ? "媒体生成"
-              : domainName(d.scenario || role, "模型调用"),
-            character:
-              characters.value.find(
-                (c) => c.id === (d.fluctlight_id || d.metrics?.fluctlight_id),
-              )?.name || "",
-            status: ["failed", "cancelled", "timeout", "dead_letter"].includes(
-              d.status,
-            )
-              ? "error"
-              : ["queued", "running", "pending", "started"].includes(d.status)
-                ? "pending"
-                : ["completed", "ready", "succeeded"].includes(d.status)
-                  ? "success"
-                  : "unknown",
-            start: created,
-            duration:
-              created && Number.isFinite(completed)
-                ? Math.max(0, (completed - created) / 1000)
-                : "—",
-            model: d.model_id || "",
-            input:
-              typeof d.prompt === "string"
-                ? d.prompt
-                : JSON.stringify(d.prompt || {}, null, 2),
-            response:
-              typeof d.response === "string"
-                ? d.response
-                : JSON.stringify(d.response || {}, null, 2),
-            reason: d.error_code
-              ? errorMessage({ code: d.error_code }, d.error_code)
-              : "",
-            category: d.error_code ? "执行失败" : "",
-            code: d.error_code || "",
-            _record: record,
-            media: index
-              ? {
-                  type: d.kind || "图片",
-                  workflow: d.workflow_id || "",
-                  prompt:
-                    typeof d.provider_prompt === "string"
-                      ? d.provider_prompt
-                      : JSON.stringify(
-                          d.provider_prompt || d.prompt || {},
-                          null,
-                          2,
-                        ),
-                  negativePrompt: d.negative_prompt || "",
-                  params: d.parameters || {},
-                  output: d.result?.summary || d.result?.asset_id || "",
-                  assetId: d.result?.asset_id,
-                }
-              : null,
-          });
+          projected.push(diagnosticProjection(record, index, characters.value));
         }
       }
       records.value = projected;
@@ -763,7 +710,32 @@ export default defineComponent({
         endpoints.value.splice(index, 1);
       },
       sharedScenarios,
+      ModelDirectory,
+      openTaskDiagnostics: () => w.navigatePath("/diag/pending"),
     });
+    const clockTimer = setInterval(() => {
+      if (
+        live() &&
+        !document.hidden &&
+        records.value.some((r) => r.status === "pending")
+      )
+        records.value = records.value.map((r) =>
+          r.status === "pending"
+            ? diagnosticProjection(
+                r._record,
+                r.kind === "媒体调用" ? 1 : 0,
+                characters.value,
+              )
+            : r,
+        );
+    }, 1000);
+    onUnmounted(() => clearInterval(clockTimer));
+    onMounted(
+      () =>
+        void nextTick(() => {
+          if (w.state.managementSection) scrollTo(w.state.managementSection);
+        }),
+    );
     return (context, cache) =>
       h(Fragment, [
         render(context, cache),

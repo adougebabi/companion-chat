@@ -1,13 +1,8 @@
 package core
 
 import (
-	"errors"
 	"slices"
 )
-
-// Leave room below the existing 16384 current-input ceiling. This bounds only
-// the provider view; the complete source/CAS snapshot remains durable.
-const goalEvaluationSourceInputBudget = 12000
 
 func renderedGoalEvaluationProviderInput(snapshot goalEvaluationSnapshot) (string, error) {
 	_, stable, current, err := goalEvaluationWireInput(snapshot)
@@ -97,103 +92,15 @@ func interleaveGoalRecoveryLanes(linked, unlinked []int64) []int64 {
 	return result
 }
 
+// All sources in the authorized frozen snapshot reach the Provider. Token
+// estimates cannot exclude goal definitions, required evidence or query results.
 func admitGoalEvaluationSourceInput(snapshot goalEvaluationSnapshot) (goalEvaluationSnapshot, error) {
-	mandatory := map[string]bool{}
-	for _, goal := range snapshot.Goals {
-		for _, judgment := range goal.CurrentJudgments {
-			for _, ref := range judgment.EvidenceRefs {
-				mandatory[ref] = true
-			}
-		}
-	}
-	sources := append([]GoalSource(nil), snapshot.Sources...)
-	priority := func(source GoalSource) int {
-		if mandatory[source.Ref] {
-			return 0
-		}
-		if slices.Contains(snapshot.UnprocessedSourceIDs, source.EventID) {
-			return 1
-		}
-		if slices.Contains(snapshot.RecoverySourceIDs, source.EventID) {
-			return 2
-		}
-		if source.Kind == "message" {
-			return 3
-		}
-		if source.Valid && source.CanSupportSuccess {
-			return 4
-		}
-		return 5
-	}
-	slices.SortStableFunc(sources, func(a, b GoalSource) int {
-		if priority(a) != priority(b) {
-			return priority(a) - priority(b)
-		}
-		if priority(a) == 2 {
-			return slices.Index(snapshot.RecoverySourceIDs, a.EventID) - slices.Index(snapshot.RecoverySourceIDs, b.EventID)
-		}
-		if !a.RecordedAt.Equal(b.RecordedAt) {
-			if a.RecordedAt.After(b.RecordedAt) {
-				return -1
-			}
-			return 1
-		}
-		if a.EventID > b.EventID {
-			return -1
-		}
-		if a.EventID < b.EventID {
-			return 1
-		}
-		return 0
-	})
-	// Interleave fresh and recovering evidence units so a steady stream of new
-	// messages cannot consume the whole budget before old complementary proof.
-	required, fresh, recovering, other := []GoalSource{}, []GoalSource{}, []GoalSource{}, []GoalSource{}
-	for _, source := range sources {
-		switch priority(source) {
-		case 0:
-			required = append(required, source)
-		case 1:
-			fresh = append(fresh, source)
-		case 2:
-			recovering = append(recovering, source)
-		default:
-			other = append(other, source)
-		}
-	}
-	sources = required
-	for i := 0; i < max(len(fresh), len(recovering)); i++ {
-		if i < len(fresh) {
-			sources = append(sources, fresh[i])
-		}
-		if i < len(recovering) {
-			sources = append(sources, recovering[i])
-		}
-	}
-	sources = append(sources, other...)
-	snapshot.ProviderSourceIDs = []int64{}
-	rendered, err := renderedGoalEvaluationProviderInput(snapshot)
-	if err != nil {
-		return snapshot, err
-	}
-	if EstimatePromptTokens(rendered) > goalEvaluationSourceInputBudget {
-		return snapshot, errors.New("goal_evaluation_goal_input_budget_exceeded")
-	}
-	for _, source := range sources {
+	snapshot.ProviderSourceIDs = make([]int64, 0, len(snapshot.Sources))
+	for _, source := range snapshot.Sources {
 		snapshot.ProviderSourceIDs = append(snapshot.ProviderSourceIDs, source.EventID)
-		rendered, err = renderedGoalEvaluationProviderInput(snapshot)
-		if err != nil {
-			return snapshot, err
-		}
-		if EstimatePromptTokens(rendered) > goalEvaluationSourceInputBudget {
-			snapshot.ProviderSourceIDs = snapshot.ProviderSourceIDs[:len(snapshot.ProviderSourceIDs)-1]
-			if mandatory[source.Ref] {
-				return snapshot, errors.New("goal_evaluation_required_evidence_budget_exceeded")
-			}
-		}
 	}
-	if len(snapshot.Sources) > 0 && len(snapshot.ProviderSourceIDs) == 0 {
-		return snapshot, errors.New("goal_evaluation_source_input_budget_exceeded")
+	if _, err := renderedGoalEvaluationProviderInput(snapshot); err != nil {
+		return snapshot, err
 	}
 	return snapshot, nil
 }

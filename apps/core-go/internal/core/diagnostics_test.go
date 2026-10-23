@@ -176,7 +176,7 @@ func TestProviderUsageAndWireBudgetDiagnosticsNormalizeActuals(t *testing.T) {
 	tools := []map[string]any{{"type": "function"}}
 	schema := map[string]any{"type": "json_schema"}
 	metrics := mergeProviderPromptBudgetDiagnostics(nil, messages, tools, schema, assignment, 321)
-	if intValue(metrics["estimated_input_tokens"]) != 321 || intValue(metrics["output_reserve_tokens"]) != 4096 || intValue(mapValue(metrics["section_counts"])["runtime"]) != 1 || intValue(mapValue(metrics["section_counts"])["recent"]) != 1 || intValue(mapValue(metrics["section_counts"])["tools"]) != 1 || intValue(mapValue(metrics["section_counts"])["response_schema"]) != 1 {
+	if intValue(metrics["estimated_input_tokens"]) != 321 || metrics["output_reserve_tokens"] != nil || metrics["policy_version"] != "prompt-unlimited.v1" || intValue(mapValue(metrics["section_counts"])["runtime"]) != 1 || intValue(mapValue(metrics["section_counts"])["recent"]) != 1 || intValue(mapValue(metrics["section_counts"])["tools"]) != 1 || intValue(mapValue(metrics["section_counts"])["response_schema"]) != 1 {
 		t.Fatalf("wire metrics = %#v", metrics)
 	}
 }

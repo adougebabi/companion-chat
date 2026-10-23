@@ -20,10 +20,10 @@ func TestWorkingMemorySelectsNewestWholeRecentTurnsChronologically(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Recent) != 2 || stringValue(mapValue(result.Recent[0].Content)["content"]) != "user-3" || stringValue(mapValue(result.Recent[1].Content)["content"]) != "assistant-3" {
+	if len(result.Recent) != 6 || stringValue(mapValue(result.Recent[0].Content)["content"]) != "user-1" || stringValue(mapValue(result.Recent[5].Content)["content"]) != "assistant-3" {
 		t.Fatalf("recent selection = %#v", result.Recent)
 	}
-	if len(result.Trace.Dropped) != 4 {
+	if len(result.Trace.Dropped) != 0 {
 		t.Fatalf("dropped decisions = %#v", result.Trace.Dropped)
 	}
 }
@@ -40,10 +40,10 @@ func TestWorkingMemoryDoesNotSelectOlderTurnAfterRecentBudgetGap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Recent) != 1 || result.Recent[0].SourceRefs[0] != "message:new" {
+	if len(result.Recent) != 3 || result.Recent[0].SourceRefs[0] != "message:old" {
 		t.Fatalf("older turn crossed a budget gap: %#v", result.Recent)
 	}
-	if len(result.Trace.Dropped) != 2 || result.Trace.Dropped[0].Reason != "section_cap" || result.Trace.Dropped[1].Reason != "recent_contiguity_excluded" {
+	if len(result.Trace.Dropped) != 0 {
 		t.Fatalf("gap reasons were not preserved: %#v", result.Trace.Dropped)
 	}
 }
@@ -88,7 +88,7 @@ func TestWorkingMemoryPressureIsBoundedWithoutDeletingSources(t *testing.T) {
 	if len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
 		t.Fatal("resolver mutated source collections")
 	}
-	if len(result.Recent) >= len(input.RecentMessages) || len(result.Retrieved) >= len(input.RetrievedMemories) || len(result.Trace.Dropped) == 0 {
+	if len(result.Recent) != len(input.RecentMessages) || len(result.Retrieved) != len(input.RetrievedMemories) || len(result.Trace.Dropped) != 0 {
 		t.Fatalf("pressure selection is not bounded: recent=%d retrieved=%d active=%d dropped=%d", len(result.Recent), len(result.Retrieved), len(result.Active), len(result.Trace.Dropped))
 	}
 }
@@ -110,13 +110,13 @@ func TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Resident) != 1 || len(result.Retrieved) != 1 || len(input.ResidentCandidates) != 2 || len(input.RetrievedMemories) != 2 {
+	if len(result.Resident) != 2 || len(result.Retrieved) != 1 || len(input.ResidentCandidates) != 2 || len(input.RetrievedMemories) != 2 {
 		t.Fatalf("resident projection duplicated or deleted underlying candidates: result=%#v input=%#v", result, input)
 	}
 	if stringValue(mapValue(result.Retrieved[0].Content)["content"]) != "可进一步检索" {
 		t.Fatalf("deep candidate became unavailable: %#v", result.Retrieved)
 	}
-	if len(result.Trace.Dropped) != 2 || result.Trace.Dropped[0].Reason != "section_cap" || result.Trace.Dropped[1].Reason != "deduplicated" {
+	if len(result.Trace.Dropped) != 1 || result.Trace.Dropped[0].Reason != "deduplicated" {
 		t.Fatalf("resident selection trace=%#v", result.Trace.Dropped)
 	}
 }

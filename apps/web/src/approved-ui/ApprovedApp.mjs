@@ -19,6 +19,10 @@ import WardrobePage from "./pages/WardrobePage.mjs";
 import WorldPage from "./pages/WorldPage.mjs";
 import BrowsePage from "./pages/BrowsePage.mjs";
 import ManagementPage from "./pages/ManagementPage.mjs";
+import CharacterAvatar from "./shared/CharacterAvatar.vue";
+import LibraryPage from "./pages/LibraryPage.vue";
+import CharacterWizardPage from "./pages/CharacterWizardPage.vue";
+import CharacterDetailPage from "./pages/CharacterDetailPage.vue";
 import LegacySurface from "./LegacySurface.vue";
 import { chatSummaryPreference } from "../v3/chat-summary-preference.mjs";
 import { Wu, Co, sc, qu, zu, Gu, nc, ec } from "./shared/icons.mjs";
@@ -63,7 +67,15 @@ export default defineComponent({
       const value = route.value;
       if (value.fid && state.characters.some((c) => c.id === value.fid))
         workspace.select(value.fid);
+      if (
+        !state.selectedId &&
+        ["聊天", ...lifePages, "世界", "人物关系", "媒体"].includes(value.page)
+      ) {
+        navigate("角色库");
+        return;
+      }
       state.page = value.page;
+      state.managementSection = value.query.get("section") || "";
       if (value.diagnostics) state.managementTab = "运行诊断";
       state.feedScope = value.query.get("fid") || null;
       const preference = chatSummaryPreference({
@@ -149,6 +161,10 @@ export default defineComponent({
       LifePage,
       ManagementPage,
       BrowsePage,
+      CharacterAvatar,
+      LibraryPage,
+      CharacterWizardPage,
+      CharacterDetailPage,
       toast: computed(() => state.toast),
       outfitTab: computed({
         get: () => state.outfitTab,

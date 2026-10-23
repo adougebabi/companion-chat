@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 )
@@ -129,10 +128,10 @@ func TestStableTaskContextIsRequiredWithoutRuntimeAndCopiedFromContext(t *testin
 	policy := DefaultPromptBudgetPolicy(1000)
 	policy.ContextWindowTokens = 10000
 	policy.MaxInputTokens = 3000
-	_, err = AssemblePromptContext(PromptAssemblyInput{
+	result, err = AssemblePromptContext(PromptAssemblyInput{
 		Role: "cognitive_assessment", StableTaskContext: map[string]any{"definitions": strings.Repeat("定义", 10000)}, CurrentInput: "current", Policy: policy,
 	})
-	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
+	if err != nil || !strings.Contains(jsonString(result.Messages), strings.Repeat("定义", 10000)) {
 		t.Fatalf("oversize stable facts were pruned or admitted: %v", err)
 	}
 }

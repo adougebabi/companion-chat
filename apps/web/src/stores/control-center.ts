@@ -1148,7 +1148,7 @@ export const useControlCenterStore = defineStore("control-center", {
       role: string;
       endpointId: string;
       modelId: string;
-      tokenBudget: number;
+      tokenBudget?: number;
       timeoutSeconds: number;
       contextWindowTokens?: number;
       maxInputTokens?: number;
@@ -1161,10 +1161,7 @@ export const useControlCenterStore = defineStore("control-center", {
           endpointId: input.endpointId,
           expectedVersions:{...this.settings?.versions,["binding:"+input.role]:this.settings?.versions?.["binding:"+input.role]??0,["endpoint:"+input.endpointId]:this.settings?.versions?.["endpoint:"+input.endpointId]??0},idempotencyKey:randomId(),
           modelId: input.modelId,
-          tokenBudget: input.tokenBudget,
           timeoutSeconds: input.timeoutSeconds,
-          ...(input.contextWindowTokens ? { contextWindowTokens: input.contextWindowTokens } : {}),
-          ...(input.maxInputTokens ? { maxInputTokens: input.maxInputTokens } : {}),
         });
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
