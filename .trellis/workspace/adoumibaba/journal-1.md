@@ -1866,3 +1866,36 @@ Implemented all six deliverables on isolated feature branch. Local Go race, vet/
 ### Next Steps
 
 - 用户使用b024f35对应不可变Core/Web测试镜像统一验收。
+
+
+## Session 58: v6.2 初始化与角色详情及取消提示词限额
+<!-- trellis-session: v=2 fp=759dbdb11f6a2ec5 -->
+
+**Date**: 2026-10-23
+**Task**: v6.2 初始化与角色详情及取消提示词限额
+**Branch**: `codex/fluctlight-functional-recovery`
+
+### Summary
+
+按 v6.2 demo 完善初始化预览确认、角色详情及公共组件；字段以真实 Core 为准；处理回复总超时与 UX 反馈；取消应用输入输出 token 及目标和记忆输入预算。未创建新任务。
+
+### Main Changes
+
+- 初始化草稿和冻结请求恢复，资料提议 CAS 与保存中新输入保护，七项真实准备进度
+- 原回合总期限及旧执行隔离，保留已提交效果；移除生产模型输出 cap 和输入预算裁剪
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bea62002` | feat: complete v6.2 onboarding and profiles and remove token caps |
+
+### Testing
+
+- [OK] Web 373/373、客户端测试、typecheck、生产及隔离 Mock build、Go vet/build 通过
+- [OK] 隔离 PostgreSQL race：超时重试、工具续写、目标完整证据与记忆权限过滤通过；全模块 race 仅 6 项既有失败，详见 docs/design/approved-v62-implementation.md
+- [OK] 静态生产前端受控 fixture：预览恢复、冲突后重新保存、保存中新输入、目录搜索、通知去重；320/390px 无水平溢出
+
+### Status
+
+[OK] **Completed**
