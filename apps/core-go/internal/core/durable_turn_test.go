@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -16,6 +17,47 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 )
+
+func TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat(t *testing.T) {
+	ctx, repository, app, owner, fid, conversation := durableReplyFixture(t, "diagnostic-source")
+	accepted, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "诊断必须找到这一条", "turn_id": "diagnostic-turn", "idempotency_key": "diagnostic-key"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := url.Values{"correlationId": {"turn:diagnostic-turn"}}
+	for _, state := range []string{"pending", "claimed", "failed", "processed"} {
+		if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status=$2,error_code=CASE WHEN $2='failed' THEN 'provider_gateway_timeout' ELSE NULL END WHERE id=$1`, accepted.InboxID, state); err != nil {
+			t.Fatal(err)
+		}
+		page, err := app.OwnerDiagnosticRecords(ctx, owner, "turns", query)
+		if err != nil || len(arrayValue(page["items"])) != 1 {
+			t.Fatal(page, err)
+		}
+		data := mapValue(mapValue(arrayValue(page["items"])[0])["data"])
+		want := map[string]string{"pending": "pending", "claimed": "running", "failed": "failed", "processed": "completed"}[state]
+		if data["status"] != want || data["turn_id"] != "diagnostic-turn" {
+			t.Fatal(state, data)
+		}
+	}
+}
+
+func TestStaleProviderRecoveryNeverFailsARunningDurableIntentByAge(t *testing.T) {
+	ctx, repository, app, owner, fid, conversation := durableReplyFixture(t, "stale-intent")
+	accepted, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "仍在执行", "turn_id": "still-running", "idempotency_key": "still-running"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=now()-interval '2 hours' WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.RecoverStaleModelRuns(ctx, time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	var status string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.platform_workflow_intents WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID).Scan(&status); err != nil || status != "started" {
+		t.Fatal(status, err)
+	}
+}
 
 func durableReplyFixture(t *testing.T, suffix string) (context.Context, *PostgresRepository, *App, string, string, string) {
 	t.Helper()

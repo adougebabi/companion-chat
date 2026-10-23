@@ -15,6 +15,16 @@ import (
 
 type providerErrorTestTransport func(*http.Request) (*http.Response, error)
 
+func TestGatewayTimeoutClassificationSurvivesCancelledErrorBody(t *testing.T) {
+	err := &providerHTTPResponseError{StatusCode: 524, Detail: "gateway timeout", readErr: context.Canceled}
+	if got := providerRunErrorCode(err); got != "provider_gateway_timeout" {
+		t.Fatal("received HTTP timeout relabelled", got)
+	}
+	if got := replyErrorCode(err); got != "reply_gateway_timeout" {
+		t.Fatal("reply lost gateway timeout", got)
+	}
+}
+
 func (f providerErrorTestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 func TestEinoProviderHTTPErrorSurvivesNativeBoundary(t *testing.T) {

@@ -13,14 +13,14 @@ import (
 )
 
 type ownerWorkflowIntent struct {
-	ID, Workflow, Queue, Kind, Status string
-	Payload                           []byte
-	Revision                          int64
+	ID, Workflow, Queue, Kind, Status, LastError string
+	Payload                                      []byte
+	Revision                                     int64
 }
 
 func (a *App) ownerWorkflowIntent(ctx context.Context, owner, wf string) (ownerWorkflowIntent, error) {
 	var i ownerWorkflowIntent
-	err := a.DB.Pool().QueryRow(ctx, `SELECT intent_id,workflow_id,task_queue,intent_type,status,payload,intent_revision FROM public.platform_workflow_intents WHERE workflow_id=$1 OR 'go:'||workflow_id=$1 ORDER BY CASE WHEN workflow_id=$1 THEN 0 ELSE 1 END LIMIT 1`, wf).Scan(&i.ID, &i.Workflow, &i.Queue, &i.Kind, &i.Status, &i.Payload, &i.Revision)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT intent_id,workflow_id,task_queue,intent_type,status,payload,intent_revision,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE workflow_id=$1 OR 'go:'||workflow_id=$1 ORDER BY CASE WHEN workflow_id=$1 THEN 0 ELSE 1 END LIMIT 1`, wf).Scan(&i.ID, &i.Workflow, &i.Queue, &i.Kind, &i.Status, &i.Payload, &i.Revision, &i.LastError)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return i, ErrNotFound
 	}
@@ -119,7 +119,7 @@ func (a *App) OwnerWorkflowInspection(ctx context.Context, owner, wf string) (ma
 		}
 		input["studio_resource_id"] = resource
 	}
-	result := map[string]any{"intent": map[string]any{"intent_id": i.ID, "workflow_id": i.Workflow, "intent_type": i.Kind, "status": i.Status, "revision": i.Revision, "task_queue": i.Queue, "payload": redactDiagnostic(input)}, "recovery": workflowRecovery(i.Kind, input), "runtime": nil, "runtime_state": "unavailable", "allowed_actions": []string{}, "control_semantics": "暂停在已有检查点生效，不中断正在运行的Activity；取消请求也不撤销已提交副作用；Runtime终态和业务结果独立核对"}
+	result := map[string]any{"intent": map[string]any{"intent_id": i.ID, "workflow_id": i.Workflow, "intent_type": i.Kind, "status": i.Status, "last_error": boundedLifecycleCause(i.LastError), "revision": i.Revision, "task_queue": i.Queue, "payload": redactDiagnostic(input)}, "recovery": workflowRecovery(i.Kind, input), "runtime": nil, "runtime_state": "unavailable", "allowed_actions": []string{}, "control_semantics": "暂停在已有检查点生效，不中断正在运行的Activity；取消请求也不撤销已提交副作用；Runtime终态和业务结果独立核对"}
 	commands, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',id,'source_run_id',source_run_id,'intent_revision',intent_revision,'action',action,'reason',reason,'status',status,'result',result,'created_at',created_at,'updated_at',updated_at) FROM public.workflow_control_commands WHERE owner_actor_id=$1 AND workflow_id=$2 ORDER BY created_at DESC,id DESC LIMIT 51`, owner, i.Workflow)
 	if err != nil {
 		return nil, err

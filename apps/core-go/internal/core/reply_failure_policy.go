@@ -13,6 +13,10 @@ func replyErrorCode(err error) string {
 	if errors.Is(err, errReplyQualityRepair) {
 		return "reply_quality_repair_failed"
 	}
+	var gateway *providerHTTPResponseError
+	if errors.As(err, &gateway) && (gateway.StatusCode == 524 || gateway.StatusCode == 504) {
+		return "reply_gateway_timeout"
+	}
 	if code, _ := capabilityErrorInfo(err, "", false); code != "" {
 		return code
 	}

@@ -596,6 +596,8 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 func ownerRequestFailureReason(err error) string {
 	text := err.Error()
 	switch {
+	case strings.Contains(text, "524"), strings.Contains(text, "gateway_timeout"):
+		return "模型中转服务等待超时，请检查模型通道后重新提出请求。"
 	case strings.Contains(text, "budget_exceeded"):
 		return "需要读取的资料超过模型输入上限，请核对模型的上下文设置后重试。"
 	case errors.Is(err, context.DeadlineExceeded), strings.Contains(text, "timeout"), strings.Contains(text, "deadline exceeded"):

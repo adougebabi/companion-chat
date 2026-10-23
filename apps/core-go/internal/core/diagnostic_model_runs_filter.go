@@ -36,7 +36,7 @@ func (a *App) modelRunsQuery(ctx context.Context, actorID string, limit int, cor
 	where := make([]string, 0, 2)
 	if strings.TrimSpace(correlationID) != "" {
 		args = append(args, strings.TrimSpace(correlationID))
-		where = append(where, fmt.Sprintf("correlation_id=$%d", len(args)))
+		where = append(where, fmt.Sprintf("(correlation_id=$%[1]d OR metrics->>'parent_run_id'=$%[1]d)", len(args)))
 	}
 	if strings.TrimSpace(runID) != "" {
 		args = append(args, strings.TrimSpace(runID))

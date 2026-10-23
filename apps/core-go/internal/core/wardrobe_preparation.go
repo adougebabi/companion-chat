@@ -103,7 +103,7 @@ func (a *App) RequestOwnerWardrobePreparation(ctx context.Context, owner, fid st
 // Manual recovery may explicitly resume a cancelled/exhausted initializer.
 // Automatic recovery is bounded, delayed and never reverses cancellation.
 func resumeWardrobePreparationTx(ctx context.Context, tx pgx.Tx, id string, explicit bool) (bool, error) {
-	tag, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations p SET status=CASE WHEN result ? 'inventory_committed' THEN 'awaiting_wear' ELSE 'queued' END,error_code=NULL,attempt=attempt+1,intent_id='wardrobe_initialize:'||fluctlight_id||':attempt:'||(attempt+1)::text,updated_at=now() WHERE id=$1 AND status<>'completed' AND (status='failed' OR EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('failed','cancelled','dead_letter'))) AND ($2 OR (attempt<3 AND updated_at<now()-GREATEST(attempt,1)*interval '1 minute' AND NOT EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('cancelled','cancel_requested'))))`, id, explicit)
+	tag, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations p SET status=CASE WHEN result->'inventory_committed'='true'::jsonb THEN 'awaiting_wear' ELSE 'queued' END,error_code=NULL,attempt=attempt+1,intent_id='wardrobe_initialize:'||fluctlight_id||':attempt:'||(attempt+1)::text,updated_at=now() WHERE id=$1 AND status<>'completed' AND (status='failed' OR EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('failed','cancelled','dead_letter'))) AND ($2 OR (attempt<3 AND updated_at<now()-GREATEST(attempt,1)*interval '1 minute' AND NOT EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('cancelled','cancel_requested'))))`, id, explicit)
 	return err == nil && tag.RowsAffected() == 1, err
 }
 func (a *App) RepairWardrobePreparations(ctx context.Context, limit int) (int, error) {
@@ -201,7 +201,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 		if errors.Is(runErr, ErrConflict) {
 			recoverCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 			defer cancel()
-			if _, err := a.DB.Pool().Exec(recoverCtx, `UPDATE public.fluctlight_wardrobe_preparations SET status=CASE WHEN result ? 'inventory_committed' THEN 'awaiting_wear' ELSE 'queued' END,updated_at=now() WHERE id=$1 AND status<>'completed'`, id); err == nil {
+			if _, err := a.DB.Pool().Exec(recoverCtx, `UPDATE public.fluctlight_wardrobe_preparations SET status=CASE WHEN result->'inventory_committed'='true'::jsonb THEN 'awaiting_wear' ELSE 'queued' END,updated_at=now() WHERE id=$1 AND status<>'completed'`, id); err == nil {
 				result = map[string]any{"status": "awaiting_wear", "reason": "资料或衣柜已变化，将按最新状态继续准备"}
 				runErr = nil
 			} else {

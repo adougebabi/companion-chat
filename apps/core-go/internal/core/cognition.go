@@ -468,6 +468,9 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,claimed_by,claimed_at) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),$8,$9,$10)`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency, status, claimedBy, claimedAt); err != nil {
 		return "", nil, err
 	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.diagnostic_turns(id,fluctlight_id,conversation_id,source_event_id,correlation_id,status) VALUES($1,$2,$3,$1,$4,$5) ON CONFLICT DO NOTHING`, inboxID, fluctlightID, conversationID, "turn:"+turnID, status); err != nil {
+		return "", nil, err
+	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','cognition.processing',$3) ON CONFLICT DO NOTHING`, "cognition_intent:"+inboxID, "cognition:"+inboxID, jsonBytes(map[string]any{"inbox_id": inboxID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "idempotency_key": idempotency})); err != nil {
 		return "", nil, err
 	}

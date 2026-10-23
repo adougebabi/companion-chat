@@ -468,7 +468,7 @@ func (c wardrobeWearCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 		return failedCapabilityResult(invocation, "wearing_event_failed", true), err
 	}
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
-		Output:            map[string]any{"revision": newRevision, "items": worn, "mode": mode, "ignored_redundant_removals": ignoredRemovals},
+		Output:            map[string]any{"revision": newRevision, "before_items": current, "items": worn, "mode": mode, "ignored_redundant_removals": ignoredRemovals},
 		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: fmt.Sprintf("wardrobe:%s:%d", fluctlightID, newRevision)}, nil
 }
 

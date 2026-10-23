@@ -81,7 +81,7 @@ func ownerDiagnosticSourceSnapshot(kind, visible string) (string, error) {
 	case "harm":
 		return `SELECT t.id AS key,t.created_at AS at,t.recorded_xid AS born,to_jsonb(t)-'recorded_xid' AS data FROM public.permanent_harm_rejections t WHERE t.owner_actor_id=$1`, nil
 	case "turns":
-		return `SELECT t.id AS key,t.created_at AS at,t.recorded_xid AS born,to_jsonb(t)-'recorded_xid' AS data FROM public.diagnostic_turns t WHERE $1::text<>''`, nil
+		return `SELECT t.id AS key,t.created_at AS at,t.recorded_xid AS born,(to_jsonb(t)-'recorded_xid')||CASE WHEN i.id IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('turn_id',i.payload->>'turn_id','status',CASE WHEN i.status='claimed' THEN 'running' WHEN i.status='waiting_reply' THEN 'running' WHEN i.status='processed' THEN 'completed' WHEN i.error_code='user_cancelled' THEN 'cancelled' ELSE i.status END,'error_code',i.error_code,'attempt_count',i.attempt_count,'intent_id','cognition_intent:'||i.id,'workflow_id','cognition:'||i.id) END AS data FROM public.diagnostic_turns t LEFT JOIN public.cognition_inbox i ON i.id=t.source_event_id WHERE $1::text<>''`, nil
 	case "links":
 		return `SELECT t.id AS key,t.created_at AS at,t.recorded_xid AS born,to_jsonb(t)-'recorded_xid' AS data FROM public.diagnostic_workflow_links t WHERE $1::text<>''`, nil
 	}
@@ -103,7 +103,11 @@ func appendOwnerDiagnosticFilter(sql string, args []any, f ownerDiagnosticFilter
 	for _, key := range []string{"fluctlightId", "correlationId", "runId", "intentId", "workflowId", "surface", "status", "eventType", "severity", "role", "identity", "action"} {
 		if f[key] != "" {
 			args = append(args, f[key])
-			sql += fmt.Sprintf(" AND %s=$%d::text", expressions[key], len(args))
+			if key == "correlationId" {
+				sql += fmt.Sprintf(" AND (%s=$%[2]d::text OR data->>'parent_run_id'=$%[2]d::text OR data->'metrics'->>'parent_run_id'=$%[2]d::text OR data->'payload'->>'parent_run_id'=$%[2]d::text)", expressions[key], len(args))
+			} else {
+				sql += fmt.Sprintf(" AND %s=$%d::text", expressions[key], len(args))
+			}
 		}
 	}
 	for _, key := range []string{"from", "to"} {

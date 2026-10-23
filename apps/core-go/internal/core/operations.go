@@ -2330,9 +2330,8 @@ func (a *App) RecoverStaleModelRuns(ctx context.Context, olderThan time.Duration
 		total += cognitionClaims.RowsAffected()
 	}
 
-	if workflowIntents, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error='stale_workflow_timeout',completed_at=COALESCE(completed_at,now()) WHERE status IN ('started','running','cancel_requested') AND COALESCE(started_at,next_attempt_at,created_at) < now()-$1::interval`, interval); err == nil {
-		total += workflowIntents.RowsAffected()
-	}
+	// Temporal reconciliation owns durable intent terminal states. Age alone
+	// cannot prove that a still-running Workflow failed.
 
 	if _, err := a.DB.Pool().Exec(ctx, `DELETE FROM public.tool_policy_reservations p WHERE created_at < now()-$1::interval OR NOT EXISTS (SELECT 1 FROM public.agent_runs r WHERE r.fluctlight_id=p.fluctlight_id AND r.agent_id=p.agent_id AND r.run_id=p.run_id AND r.status='running')`, interval); err != nil {
 		// ignore reservation cleanup failure if table doesn't exist

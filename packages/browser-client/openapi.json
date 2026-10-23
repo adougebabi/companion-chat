@@ -10417,6 +10417,9 @@
               "status": {
                 "type": "string"
               },
+              "last_error": {
+                "type": "string"
+              },
               "revision": {
                 "type": "integer",
                 "minimum": 1

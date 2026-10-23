@@ -12,12 +12,12 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 	if err := a.requireOwner(ctx, owner); err != nil {
 		return nil, err
 	}
-	var intent, workflow, kind, status string
+	var intent, workflow, kind, status, lastError string
 	var payload []byte
 	var attempts int
 	var created time.Time
 	var started, completed, next *time.Time
-	err := a.DB.Pool().QueryRow(ctx, `SELECT i.intent_id,i.workflow_id,i.intent_type,i.status,i.payload,i.attempt_count,i.created_at,i.started_at,i.completed_at,i.next_attempt_at FROM public.platform_workflow_intents i LEFT JOIN public.fluctlights f ON f.id=i.payload->>'fluctlight_id' WHERE (i.intent_id=$1 OR i.workflow_id=$1 OR 'go:'||i.workflow_id=$1) AND (f.created_by_actor_id=$2 OR (COALESCE(i.payload->>'fluctlight_id','')='' AND (COALESCE(i.payload->>'owner_actor_id','')='' OR i.payload->>'owner_actor_id'=$2)))`, id, owner).Scan(&intent, &workflow, &kind, &status, &payload, &attempts, &created, &started, &completed, &next)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT i.intent_id,i.workflow_id,i.intent_type,i.status,i.payload,i.attempt_count,i.created_at,i.started_at,i.completed_at,i.next_attempt_at,COALESCE(i.last_error,'') FROM public.platform_workflow_intents i LEFT JOIN public.fluctlights f ON f.id=i.payload->>'fluctlight_id' WHERE (i.intent_id=$1 OR i.workflow_id=$1 OR 'go:'||i.workflow_id=$1) AND (f.created_by_actor_id=$2 OR (COALESCE(i.payload->>'fluctlight_id','')='' AND (COALESCE(i.payload->>'owner_actor_id','')='' OR i.payload->>'owner_actor_id'=$2)))`, id, owner).Scan(&intent, &workflow, &kind, &status, &payload, &attempts, &created, &started, &completed, &next, &lastError)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, &SurfaceError{Status: 404, Code: "task_not_found", Message: "Task is unavailable"}
 	}
@@ -26,6 +26,9 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 	}
 	input := decodeObject(payload)
 	source := compactStateMap(input, []string{"deletion_id", "asset_id", "inbox_id", "request_id", "source_fact_id", "action_id", "media_intent_id", "goal_id", "local_date", "correlation_id", "diary_attempt_id"})
+	if lastError != "" {
+		source["last_error"] = boundedLifecycleCause(lastError)
+	}
 	if kind == "cognition.processing" && stringValue(input["inbox_id"]) != "" {
 		var raw []byte
 		if err := a.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, input["inbox_id"], input["fluctlight_id"]).Scan(&raw); err != nil {

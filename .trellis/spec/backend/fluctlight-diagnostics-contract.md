@@ -795,3 +795,49 @@ best-effort sink and continue the valid internal context without data loss.
 
 ## Independent model parent provenance (v3 regression)
 Physical model rows expose stored metrics.parent_run_id as optional parent_run_id, Browser parentRunId. Missing legacy provenance stays empty; never fill it from current correlation. A reply keeps its own reply: correlation and purpose role conversation_reply, while its stored parent refers to the originating logical run/turn. Cognitive purpose role cognitive_assessment may legitimately bind generic_llm. Cross-model verification follows those actual parent IDs and checks completed physical calls; prompt text mentioning a turn cannot establish a parent. Owner authorization, existing paging, and prompt redaction remain intact. Tests include Core PG projection (authored, not executed in this slice), actual pure Browser DTO test, and controlled regression-harness family traversal.
+
+
+## Scenario: Durable Chat Trace And Current-State Reads
+
+### 1. Scope / Trigger
+A durable browser turn is accepted, observed after disconnect, or searched by its
+parent correlation; a physical model receives HTTP 524/504 before body cancellation.
+
+### 2. Signatures
+`enqueueTurnFactTx` inserts `diagnostic_turns` with inbox ID as stable trace ID;
+`OwnerDiagnosticRecords(owner,"turns",filters)` joins the original inbox;
+`OwnerTask.source.last_error` and `OwnerWorkflowInspection.intent.last_error`
+expose bounded diagnostic causes. Migration `0099_durable_turn_diagnostics`
+backfills only trace identity for existing conversation inbox rows.
+
+### 3. Contracts
+Trace creation shares the fact/intent transaction. Read current status from the
+same inbox as chat: claimed/waiting_reply→running, processed→completed; only actual
+user_cancelled becomes user cancellation. The trace does not invent message text
+or claim a Provider result. Correlation filters include stored parent_run_id for
+model rows, event payloads and common record/export paths. Preserve actual child
+correlation and Owner/snapshot/page boundaries. Received HTTP gateway status wins
+over an error-body cancellation; classify provider_gateway_timeout/reply_gateway_timeout
+without adding unbounded retries. Store safe causes, keep arbitrary SQL out of
+ordinary product error areas, and show actual effective prompt_budget fields.
+
+### 4. Validation & Error Matrix
+Observer disconnect: accepted turn remains queryable. Cancel transport unknown:
+no fabricated terminal state. Parent query: returns independently correlated
+Writer. Stale model cleanup: never terminally settles a live durable intent by age.
+DB failure during accept: trace/fact/intent roll back together.
+
+### 5. Good / Base / Bad Cases
+Good: chat and diagnostics report the same inbox result. Base: legacy rows without
+an inbox retain stored status. Bad: infer user cancellation from context.Canceled,
+or hide a failed task reason behind a payload that never included it.
+
+### 6. Tests Required
+Gateway classification (including cancelled error reader), durable turn diagnostic
+state projection, parent model query, previous-head backfill/idempotency and live
+workflow-age exclusion. PostgreSQL-gated tests must run with disposable PG before
+claiming SQL/upgrade acceptance; skipped cases are not positive evidence.
+
+### 7. Wrong vs Correct
+Wrong: `age > cutoff => intent.failed`. Correct: model metadata cleanup is separate;
+Temporal reconciliation owns durable terminal status and current run observation.

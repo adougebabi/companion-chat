@@ -17,4 +17,8 @@ func TestModelRunReadKeepsIndependentReplyParentProvenance(t *testing.T) {
 	if err != nil || len(page.Items) != 1 || page.Items[0]["parent_run_id"] != "turn:original" || page.Items[0]["logical_run_id"] != "reply:child" {
 		t.Fatal("Independent parent provenance did not survive the actual read projection", page, err)
 	}
+	page, err = (&App{DB: repository}).ModelRunsPage(ctx, owner, 10, "turn:original", "")
+	if err != nil || len(page.Items) != 1 || page.Items[0]["correlation_id"] != "reply:child" {
+		t.Fatal("parent turn query lost its independent Writer", page, err)
+	}
 }

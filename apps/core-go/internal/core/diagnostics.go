@@ -453,6 +453,13 @@ func providerRunErrorCode(err error) string {
 	if providerToolCallInvalidError(err) {
 		return "tool_call_invalid"
 	}
+	var response *providerHTTPResponseError
+	if errors.As(err, &response) {
+		if response.StatusCode == 524 || response.StatusCode == 504 {
+			return "provider_gateway_timeout"
+		}
+		return "provider_request_failed"
+	}
 	if errors.Is(err, errProviderPaused) {
 		return "fluctlight_paused"
 	}
