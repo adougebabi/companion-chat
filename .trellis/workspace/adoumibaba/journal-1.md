@@ -1926,3 +1926,25 @@ Kev 默认 timeout_ms 和阶段 budget_ms 均改为 10000；新增 0100 单次�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 60: 统一 LLM 提示词构造与最小必要上下文
+<!-- trellis-session: v=2 fp=c7978fbecd8909f0 -->
+
+**Date**: 2026-10-23
+**Task**: 统一 LLM 提示词构造与最小必要上下文
+**Branch**: `codex/fluctlight-functional-recovery`
+
+### Summary
+
+统一 28 个正式 Agent 及辅助入口的 JSON 数据与协议构造，修复重复目标、日程与工具证据，保留独立事件及用户原文；将禁止恢复 prompt/response token 上限写入规范。样本重建 57020→24447 字符，减少 57.1%，32 个证据事件保留。Core/AI 1739 项测试/子测试通过，658 项跳过；4 项既有失败在干净 HEAD 复现并单列，vet/格式检查通过。真实 Provider/PostgreSQL 未运行。当前分支提交并归档，未推送，未包含前端 session 文件。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2d82c94e73e823b8001f6cb9d1f3195cbbae9b66` | refactor: unify LLM prompt composition and semantic inputs |
+
+### Status
+
+[OK] **Completed**
