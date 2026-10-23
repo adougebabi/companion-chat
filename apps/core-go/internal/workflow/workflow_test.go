@@ -848,3 +848,59 @@ func TestCognitionDispatchPreemptsWakeUpAndReflection(t *testing.T) {
 		}
 	}
 }
+
+func TestBusyCognitionWaitsDurablyAndPreservesInput(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	input := Input{InboxID: "original-inbox", FluctlightID: "original-role", IntentID: "original-intent"}
+	env.OnActivity(ProcessCognitionActivity, mock.Anything, input).Return(map[string]any{"status": "waiting_for_agent"}, nil).Once()
+	env.ExecuteWorkflow(CognitionProcessingWorkflow, input)
+	var continued *workflow.ContinueAsNewError
+	if !errors.As(env.GetWorkflowError(), &continued) {
+		t.Fatal("busy cognition was completed or failed", env.GetWorkflowError())
+	}
+	var next Input
+	if err := converter.GetDefaultDataConverter().FromPayloads(continued.Input, &next); err != nil || next.InboxID != input.InboxID || next.FluctlightID != input.FluctlightID || next.IntentID != input.IntentID {
+		t.Fatal(next, err)
+	}
+	env.AssertExpectations(t)
+}
+func TestReconciliationUsesRotatingKeysetInsteadOfOldestRunningBatch(t *testing.T) {
+	if !strings.Contains(reconcileIntentQuery, "intent_id > $2") || !strings.Contains(reconcileIntentQuery, "ORDER BY intent_id LIMIT $1") || strings.Contains(reconcileIntentQuery, "ORDER BY started_at") {
+		t.Fatal("reconciliation can starve later workflows", reconcileIntentQuery)
+	}
+}
+
+func TestBusyCognitionSleepHonorsCancellationAndPause(t *testing.T) {
+	for _, mode := range []string{"cancel", "pause"} {
+		t.Run(mode, func(t *testing.T) {
+			var suite testsuite.WorkflowTestSuite
+			env := suite.NewTestWorkflowEnvironment()
+			input := Input{InboxID: "same-inbox", IntentID: "same-intent"}
+			env.OnActivity(ProcessCognitionActivity, mock.Anything, input).Return(map[string]any{"status": "waiting_for_agent"}, nil).Once()
+			observed := ""
+			if mode == "cancel" {
+				env.RegisterDelayedCallback(func() { env.CancelWorkflow() }, time.Second)
+			} else {
+				env.RegisterDelayedCallback(func() { env.SignalWorkflow("pause", nil) }, 2*time.Second)
+				env.RegisterDelayedCallback(func() {
+					value, err := env.QueryWorkflow("status")
+					if err == nil {
+						_ = value.Get(&observed)
+					}
+				}, 7*time.Second)
+				env.RegisterDelayedCallback(func() { env.SignalWorkflow("resume", nil) }, 8*time.Second)
+			}
+			env.ExecuteWorkflow(CognitionProcessingWorkflow, input)
+			var continued *workflow.ContinueAsNewError
+			if mode == "cancel" {
+				if env.GetWorkflowError() == nil || errors.As(env.GetWorkflowError(), &continued) {
+					t.Fatal("cancelled wait continued", env.GetWorkflowError())
+				}
+			} else if observed != "paused" || !errors.As(env.GetWorkflowError(), &continued) {
+				t.Fatal("pause was lost before continuation", observed, env.GetWorkflowError())
+			}
+			env.AssertExpectations(t)
+		})
+	}
+}

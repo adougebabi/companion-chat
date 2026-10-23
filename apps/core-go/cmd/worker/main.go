@@ -149,16 +149,136 @@ func main() {
 	}
 	defer os.Remove(healthFile)
 	dispatcher := &coreworkflow.Dispatcher{App: application, Client: temporalClient, Started: map[string]struct{}{}}
-	dispatchTicker := time.NewTicker(time.Second)
-	defer dispatchTicker.Stop()
+	stopDispatch := startWorkerLoop(ctx, time.Second, func(ctx context.Context) {
+		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+			_, err := dispatcher.DispatchOnce(operationCtx, 20)
+			return err
+		}); err != nil {
+			logger.Warn("Go Worker dispatcher retry", "error", err)
+		}
+		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+			_, err := dispatcher.DispatchReplyContinuations(operationCtx, 20)
+			return err
+		}); err != nil {
+			logger.Warn("Go Worker reply continuation retry", "error", err)
+		}
+		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+			_, err := dispatcher.ReconcileOnce(operationCtx, 50)
+			return err
+		}); err != nil {
+			logger.Warn("Go Worker intent reconciliation retry", "error", err)
+		}
+	})
+	defer stopDispatch()
+	stopDelivery := startWorkerLoop(ctx, time.Second, func(ctx context.Context) {
+		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+			_, err := application.ReleaseDueWakeUpIntents(operationCtx, 50)
+			return err
+		}); err != nil {
+			logger.Warn("Go Worker due WakeUp release retry", "error", err)
+		}
+		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+			_, err := application.Provider.ReconcileRedisQueue(operationCtx, "generic_llm")
+			return err
+		}); err != nil {
+			logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "generic_llm", "error", err)
+		}
+		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+			_, err := application.Provider.ReconcileRedisQueue(operationCtx, "embedding")
+			return err
+		}); err != nil {
+			logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "embedding", "error", err)
+		}
+		if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+			_, err := publisher.PublishOnce(operationCtx, 50)
+			return err
+		}); err != nil {
+			logger.Warn("Go Worker outbox publisher retry", "error", err)
+		}
+		for _, consumer := range consumers {
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := consumer.ConsumeOnce(operationCtx, 25)
+				return err
+			}); err != nil {
+				logger.Warn("Go Worker event consumer retry", "group", consumer.Group, "error", err)
+			}
+		}
+
+	})
+	defer stopDelivery()
+	stopRetention := startWorkerLoop(ctx, 15*time.Minute, func(ctx context.Context) {
+		if err := application.MaintainKevDiagnostics(ctx); err != nil {
+			logger.Warn("Kev diagnostics maintenance failed")
+		}
+		if recovered, err := application.RecoverStaleModelRuns(ctx, 15*time.Minute); err != nil {
+			logger.Warn("Go Worker stale model-run recovery retry", "error", err)
+		} else if recovered > 0 {
+			logger.Info("Go Worker recovered stale model runs", "count", recovered)
+		}
+		if _, err := application.PruneDiagnostics(ctx, 30*24*time.Hour, 10000); err != nil {
+			logger.Warn("Go Worker diagnostics retention retry", "error", err)
+		}
+		if audited, err := application.AuditWakeUpClocks(ctx, 50); err != nil {
+			logger.Warn("Go Worker WakeUp clock audit retry", "error", err)
+		} else if audited > 0 {
+			logger.Warn("Go Worker found unhealthy WakeUp clocks", "count", audited)
+		}
+	})
+	defer stopRetention()
+	stopSupervision := startWorkerLoop(ctx, 30*time.Minute, func(ctx context.Context) {
+		if reconciled, err := application.ReconcileWakeUpIntents(ctx); err != nil {
+			logger.Warn("Go Worker periodic 30m WakeUp supervision retry", "error", err)
+		} else if reconciled > 0 {
+			logger.Info("Go Worker periodic 30m WakeUp supervision reconciled intents", "count", reconciled)
+		}
+	})
+	defer stopSupervision()
+	stopRepair := startWorkerLoop(ctx, time.Minute, func(ctx context.Context) {
+		if _, err := application.RepairWardrobePreparations(ctx, 20); err != nil {
+			logger.Warn("Go Worker wardrobe recovery retry", "error", err)
+		}
+		if reconciled, err := application.ReconcileGoalAttempts(ctx, 50); err != nil {
+			logger.Warn("Go Worker Goal attempt reconciliation retry", "error", err)
+		} else if reconciled > 0 {
+			logger.Info("Go Worker reconciled Goal attempts", "count", reconciled)
+		}
+		if reconciled, err := application.ReconcileLegacyConversationSummaries(ctx, 100); err != nil {
+			logger.Warn("Go Worker legacy conversation summary reconciliation retry", "error", err)
+		} else if reconciled > 0 {
+			logger.Info("Go Worker reconciled legacy conversation summaries", "count", reconciled)
+		}
+		if ensured, err := application.EnsureConversationSegmentIntents(ctx, 100); err != nil {
+			logger.Warn("Go Worker conversation segment repair retry", "error", err)
+		} else if ensured > 0 {
+			logger.Info("Go Worker repaired conversation segment intents", "count", ensured)
+		}
+		if _, err := application.RepairWorldEvents(ctx, 20); err != nil {
+			logger.Error("World event recovery failed", "error", err)
+		}
+		if _, err := application.RepairWorldNPCPresence(ctx, 20); err != nil {
+			logger.Error("NPC presence recovery failed", "error", err)
+		}
+		if _, err := application.RepairNPCOpportunities(ctx, 50); err != nil {
+			logger.Error("NPC opportunity recovery failed", "error", err)
+		}
+		if _, err := application.RepairOwnerPromiseDeadlines(ctx, 20); err != nil {
+			logger.Error("promise deadline recovery failed", "error", err)
+		}
+		if _, err := application.RepairGoalEvaluationCadence(ctx, 20); err != nil {
+			logger.Error("goal evaluation cadence recovery failed", "error", err)
+		}
+		if _, err := application.RepairGoalPlanning(ctx, 20); err != nil {
+			logger.Error("goal planner recovery failed", "error", err)
+		}
+		if repaired, err := application.RepairWakeUpClocks(ctx); err != nil {
+			logger.Warn("Go Worker WakeUp clock repair retry", "error", err)
+		} else if repaired > 0 {
+			logger.Info("Go Worker repaired WakeUp clocks", "count", repaired)
+		}
+	})
+	defer stopRepair()
 	healthTicker := time.NewTicker(5 * time.Second)
 	defer healthTicker.Stop()
-	retentionTicker := time.NewTicker(15 * time.Minute)
-	defer retentionTicker.Stop()
-	wakeUpRepairTicker := time.NewTicker(time.Minute)
-	defer wakeUpRepairTicker.Stop()
-	wakeUpSupervisionTicker := time.NewTicker(30 * time.Minute)
-	defer wakeUpSupervisionTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -173,121 +293,32 @@ func main() {
 				logger.Error("Go Worker health signal failed", "error", err)
 				return
 			}
-		case <-retentionTicker.C:
-			if err := application.MaintainKevDiagnostics(ctx); err != nil {
-				logger.Warn("Kev diagnostics maintenance failed")
-			}
-			if recovered, err := application.RecoverStaleModelRuns(ctx, 15*time.Minute); err != nil {
-				logger.Warn("Go Worker stale model-run recovery retry", "error", err)
-			} else if recovered > 0 {
-				logger.Info("Go Worker recovered stale model runs", "count", recovered)
-			}
-			if _, err := application.PruneDiagnostics(ctx, 30*24*time.Hour, 10000); err != nil {
-				logger.Warn("Go Worker diagnostics retention retry", "error", err)
-			}
-			if audited, err := application.AuditWakeUpClocks(ctx, 50); err != nil {
-				logger.Warn("Go Worker WakeUp clock audit retry", "error", err)
-			} else if audited > 0 {
-				logger.Warn("Go Worker found unhealthy WakeUp clocks", "count", audited)
-			}
-		case <-wakeUpSupervisionTicker.C:
-			if reconciled, err := application.ReconcileWakeUpIntents(ctx); err != nil {
-				logger.Warn("Go Worker periodic 30m WakeUp supervision retry", "error", err)
-			} else if reconciled > 0 {
-				logger.Info("Go Worker periodic 30m WakeUp supervision reconciled intents", "count", reconciled)
-			}
-		case <-wakeUpRepairTicker.C:
-			if reconciled, err := application.ReconcileGoalAttempts(ctx, 50); err != nil {
-				logger.Warn("Go Worker Goal attempt reconciliation retry", "error", err)
-			} else if reconciled > 0 {
-				logger.Info("Go Worker reconciled Goal attempts", "count", reconciled)
-			}
-			if reconciled, err := application.ReconcileLegacyConversationSummaries(ctx, 100); err != nil {
-				logger.Warn("Go Worker legacy conversation summary reconciliation retry", "error", err)
-			} else if reconciled > 0 {
-				logger.Info("Go Worker reconciled legacy conversation summaries", "count", reconciled)
-			}
-			if ensured, err := application.EnsureConversationSegmentIntents(ctx, 100); err != nil {
-				logger.Warn("Go Worker conversation segment repair retry", "error", err)
-			} else if ensured > 0 {
-				logger.Info("Go Worker repaired conversation segment intents", "count", ensured)
-			}
-			if _, err := application.RepairWorldEvents(ctx, 20); err != nil {
-				logger.Error("World event recovery failed", "error", err)
-			}
-			if _, err := application.RepairWorldNPCPresence(ctx, 20); err != nil {
-				logger.Error("NPC presence recovery failed", "error", err)
-			}
-			if _, err := application.RepairNPCOpportunities(ctx, 50); err != nil {
-				logger.Error("NPC opportunity recovery failed", "error", err)
-			}
-			if _, err := application.RepairOwnerPromiseDeadlines(ctx, 20); err != nil {
-				logger.Error("promise deadline recovery failed", "error", err)
-			}
-			if _, err := application.RepairGoalEvaluationCadence(ctx, 20); err != nil {
-				logger.Error("goal evaluation cadence recovery failed", "error", err)
-			}
-			if _, err := application.RepairGoalPlanning(ctx, 20); err != nil {
-				logger.Error("goal planner recovery failed", "error", err)
-			}
-			if repaired, err := application.RepairWakeUpClocks(ctx); err != nil {
-				logger.Warn("Go Worker WakeUp clock repair retry", "error", err)
-			} else if repaired > 0 {
-				logger.Info("Go Worker repaired WakeUp clocks", "count", repaired)
-			}
-		case <-dispatchTicker.C:
-			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-				_, err := application.ReleaseDueWakeUpIntents(operationCtx, 50)
-				return err
-			}); err != nil {
-				logger.Warn("Go Worker due WakeUp release retry", "error", err)
-			}
-			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-				_, err := application.Provider.ReconcileRedisQueue(operationCtx, "generic_llm")
-				return err
-			}); err != nil {
-				logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "generic_llm", "error", err)
-			}
-			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-				_, err := application.Provider.ReconcileRedisQueue(operationCtx, "embedding")
-				return err
-			}); err != nil {
-				logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "embedding", "error", err)
-			}
-			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-				_, err := publisher.PublishOnce(operationCtx, 50)
-				return err
-			}); err != nil {
-				logger.Warn("Go Worker outbox publisher retry", "error", err)
-			}
-			for _, consumer := range consumers {
-				if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-					_, err := consumer.ConsumeOnce(operationCtx, 25)
-					return err
-				}); err != nil {
-					logger.Warn("Go Worker event consumer retry", "group", consumer.Group, "error", err)
-				}
-			}
-			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-				_, err := dispatcher.DispatchOnce(operationCtx, 20)
-				return err
-			}); err != nil {
-				logger.Warn("Go Worker dispatcher retry", "error", err)
-			}
-			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-				_, err := dispatcher.DispatchReplyContinuations(operationCtx, 20)
-				return err
-			}); err != nil {
-				logger.Warn("Go Worker reply continuation retry", "error", err)
-			}
-			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
-				_, err := dispatcher.ReconcileOnce(operationCtx, 50)
-				return err
-			}); err != nil {
-				logger.Warn("Go Worker intent reconciliation retry", "error", err)
-			}
 		}
 	}
+}
+
+// Independent, internally serialized infrastructure lanes. A slow Redis
+// consumer or maintenance pass must not block conversation dispatch/readiness.
+func startWorkerLoop(parent context.Context, interval time.Duration, work func(context.Context)) func() {
+	ctx, cancel := context.WithCancel(parent)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if ctx.Err() != nil {
+					return
+				}
+				work(ctx)
+			}
+		}
+	}()
+	return func() { cancel(); <-done }
 }
 
 func runWorkerTickOperation(parent context.Context, operation func(context.Context) error) error {

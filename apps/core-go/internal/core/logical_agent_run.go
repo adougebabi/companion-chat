@@ -12,6 +12,7 @@ import (
 )
 
 var errLogicalAgentLeaseLost = errors.New("logical_agent_lease_lost")
+var errLogicalAgentBusy = errors.New("logical_agent_busy")
 
 type logicalAgentLeaseStore interface {
 	TryAcquire(context.Context, string, string, string) (bool, error)
@@ -56,6 +57,10 @@ type logicalAgentLease struct {
 // settlement across processes. The independent physical Provider queue remains
 // released between calls, so nested Agents can use it without self-deadlock.
 func enterLogicalAgentRun(ctx context.Context, store logicalAgentLeaseStore, owner, kind string) (context.Context, func(), error) {
+	return enterLogicalAgentRunWithWait(ctx, store, owner, kind, true)
+}
+
+func enterLogicalAgentRunWithWait(ctx context.Context, store logicalAgentLeaseStore, owner, kind string, wait bool) (context.Context, func(), error) {
 	if err := ctx.Err(); err != nil {
 		return ctx, nil, context.Cause(ctx)
 	}
@@ -70,6 +75,9 @@ func enterLogicalAgentRun(ctx context.Context, store logicalAgentLeaseStore, own
 		}
 		if acquired {
 			break
+		}
+		if !wait {
+			return ctx, nil, errLogicalAgentBusy
 		}
 		timer := time.NewTimer(250 * time.Millisecond)
 		select {
@@ -120,13 +128,17 @@ func enterLogicalAgentRun(ctx context.Context, store logicalAgentLeaseStore, own
 	return child, release, nil
 }
 func (a *App) enterLogicalRun(ctx context.Context, owner, kind string) (context.Context, func(), error) {
+	return a.enterLogicalRunWithWait(ctx, owner, kind, true)
+}
+
+func (a *App) enterLogicalRunWithWait(ctx context.Context, owner, kind string, wait bool) (context.Context, func(), error) {
 	if a != nil && a.logicalAgentLeases != nil {
-		return enterLogicalAgentRun(ctx, a.logicalAgentLeases, owner, kind)
+		return enterLogicalAgentRunWithWait(ctx, a.logicalAgentLeases, owner, kind, wait)
 	}
 	if a == nil || a.DB == nil || a.DB.Pool() == nil {
 		return ctx, func() {}, ctx.Err()
 	}
-	return enterLogicalAgentRun(ctx, postgresLogicalAgentLeases{a.DB.Pool()}, owner, kind)
+	return enterLogicalAgentRunWithWait(ctx, postgresLogicalAgentLeases{a.DB.Pool()}, owner, kind, wait)
 }
 
 func (a *App) runBackgroundLogicalWork(ctx context.Context, owner, kind string, work func(context.Context) (map[string]any, error)) (map[string]any, error) {

@@ -301,3 +301,19 @@ PG cases against a task-owned disposable instance; SKIP cannot certify effects.
 Wrong: draft_ref mismatch -> ErrUnauthorized -> no current reply.
 Correct: ignore the optional hint with a safe warning; resolve only the Core-owned
 canonical draft, then keep the existing generation/publication/effect checks.
+
+## Output quality: isolated unexpected script tail (2026-10-23)
+
+The observed short Gujarati suffix on otherwise Chinese prose is checked before
+publication. Names/quotes present in authoritative input, explicit language
+requests, emoji, and genuinely multilingual output remain intact. A detected
+isolated suffix requests one same-model, same-facts, tool-free correction through
+the existing output-correction channel. Repair does not publish the candidate,
+run tools again, change speaker/settings, or silently strip characters. A repeated
+invalid suffix or failed correction returns `reply_quality_repair_failed` with
+the original draft/media requests retained. Failure policy must return this
+typed error before format correction or legacy fallback; physical transport
+retries remain inside the same tool-free call. It cannot reopen Writer tools
+or replace the original media request. `reply_output_quality_test.go` verifies successful
+and exhausted repair plus valid contextual multilingual text. This narrow guard
+is not a blanket language ban or evidence of a specific Provider's root cause.

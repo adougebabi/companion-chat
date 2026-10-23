@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -176,6 +177,30 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	draft, err := decodeReplyCompletion(result.Completion, input.Context, imageTool.requests, input.Assignment.Secret)
 	if err != nil {
 		return draft, err
+	}
+	if unexpectedReplyScriptTail(draft.Text, replyQualitySource(input.Context)) {
+		if input.Context.StyleRepair {
+			return draft, errReplyQualityRepair
+		}
+		repair := input
+		repair.Context.StyleRepair = true
+		repair.Context.OutputCorrection = "只修复正文末尾无来由的乱码残片。保留有语境的姓名、引语、外语和表情；不增加事实、不改变原意、不执行工具。只返回修复后的完整正文。"
+		repair.Context.ToolFacts = []map[string]any{}
+		for _, fact := range input.Context.ToolFacts {
+			if fact["kind"] != "private_candidate_text" {
+				repair.Context.ToolFacts = append(repair.Context.ToolFacts, fact)
+			}
+		}
+		repair.Context.ToolFacts = append(repair.Context.ToolFacts, map[string]any{"kind": "private_candidate_text", "value": draft.Text})
+		for _, request := range draft.MediaRequests {
+			repair.Context.ToolFacts = append(repair.Context.ToolFacts, map[string]any{"kind": "media_action_result", "value": map[string]any{"kind": request.Kind, "intent": request.Intent, "status": "requested_not_generated"}})
+		}
+		repaired, repairErr := a.RunConversationReplyTask(ctx, repair)
+		if repairErr != nil {
+			return draft, fmt.Errorf("%w: %w", errReplyQualityRepair, repairErr)
+		}
+		repaired.MediaRequests = append([]ReplyMediaRequest(nil), draft.MediaRequests...)
+		draft = repaired
 	}
 	draft.ExpressionVersion, draft.Expression = contract.Version, contract
 	if !input.Context.StyleRepair && input.Context.Scene != replySceneMoment && contract.Version == factOnlyReplyPromptVersion {

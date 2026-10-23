@@ -10,6 +10,9 @@ import (
 )
 
 func replyErrorCode(err error) string {
+	if errors.Is(err, errReplyQualityRepair) {
+		return "reply_quality_repair_failed"
+	}
 	if code, _ := capabilityErrorInfo(err, "", false); code != "" {
 		return code
 	}
@@ -55,6 +58,9 @@ func replyErrorCode(err error) string {
 }
 
 func replyTransportRetryable(err error) bool {
+	if errors.Is(err, errReplyQualityRepair) {
+		return false
+	}
 	if code := replyErrorCode(err); strings.HasPrefix(code, "reply_style_") || code == "reply_model_oom" {
 		return false
 	}
@@ -132,6 +138,9 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 			input.CorrelationID = "reply-correction:" + stableDigest(input.CorrelationID)
 			draft, err = a.RunConversationReplyTask(ctx, input)
 		}
+	}
+	if errors.Is(err, errReplyQualityRepair) {
+		return draft, err
 	}
 	if err == nil {
 		return draft, nil

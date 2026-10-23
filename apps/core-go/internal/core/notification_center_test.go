@@ -90,3 +90,33 @@ func TestOwnerNotificationsDurableDedupScopePagingMuteAndObservedReadAll(t *test
 		t.Fatalf("foreign owner %v", err)
 	}
 }
+
+func TestHistoricalFailedPromiseNoticeDoesNotReappearAfterAcceptance(t *testing.T) {
+	ctx, repo, app, owner, fid, _ := setupDirectPublicationToolTest(t, "notice-settlement-identity")
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'test','test')`, owner); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_surface_records(id,owner_actor_id,fluctlight_id,kind,status,payload) VALUES('retried-promise',$1,$2,'owner_request','accepted','{"kind":"promise","status":"accepted"}')`, owner, fid); err != nil {
+		t.Fatal(err)
+	}
+	for _, status := range []string{"failed", "accepted"} {
+		key := "legacy-promise-" + status
+		if err := withTransaction(ctx, repo.Pool(), func(tx pgx.Tx) error {
+			if err := appendOutboxTx(ctx, tx, "owner.request.settled", "owner_request", "retried-promise", fid, "source", "correlation", key, map[string]any{"request_kind": "promise", "request_id": "retried-promise", "status": status}); err != nil {
+				return err
+			}
+			_, err := tx.Exec(ctx, `INSERT INTO public.owner_notifications(id,owner_actor_id,fluctlight_id,source_event_id,source_kind,source_id,source_occurred_at,title,body,link,quiet,metadata) VALUES($1,$2,$3,$4,'owner.request.settled','retried-promise',now(),$5,'legacy body','#/diag/request/retried-promise',false,'{}')`, key, owner, fid, "outbox_"+stableDigest(key), status)
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	count, err := app.OwnerUnreadNotifications(ctx, owner)
+	if err != nil || intValue(count["count"]) != 1 {
+		t.Fatal(count, err)
+	}
+	page, err := app.OwnerNotifications(ctx, owner, url.Values{})
+	if err != nil || len(arrayValue(page["items"])) != 1 || mapValue(arrayValue(page["items"])[0])["title"] != "accepted" {
+		t.Fatal(page, err)
+	}
+}

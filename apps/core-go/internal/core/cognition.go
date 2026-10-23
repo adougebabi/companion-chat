@@ -40,13 +40,19 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if logicalErr != nil {
 		return nil, logicalErr
 	}
-	ctx, releaseLogical, logicalErr := a.enterLogicalRun(ctx, logicalOwner, "cognition")
+	ctx, releaseLogical, logicalErr := a.enterLogicalRunWithWait(ctx, logicalOwner, "cognition", false)
+	if errors.Is(logicalErr, errLogicalAgentBusy) {
+		return map[string]any{"inbox_id": inboxID, "status": "waiting_for_agent"}, nil
+	}
 	if logicalErr != nil {
 		return nil, logicalErr
 	}
 	defer releaseLogical()
 	claimOwner := "go-cognition:" + randomID("worker_")
 	payload, status, err := a.claimCognitionInbox(ctx, inboxID, claimOwner)
+	if errors.Is(err, ErrConflict) {
+		return map[string]any{"inbox_id": inboxID, "status": "waiting_for_agent"}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

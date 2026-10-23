@@ -46,7 +46,7 @@ const (
 	minWakeUpIntervalSeconds      = 10 * 60
 	maxWakeUpIntervalSeconds      = 10 * 60
 	dispatcherIntentOrder         = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','schedule.current_day','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','conversation.segment','conversation.daily_memory')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE intent_id > $2 AND ((status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','schedule.current_day','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','conversation.segment','conversation.daily_memory'))) ORDER BY intent_id LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
@@ -384,6 +384,15 @@ func CognitionProcessingWorkflow(ctx workflow.Context, input Input) (map[string]
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessCognitionActivity, input).Get(ctx, &result); err != nil {
 		return nil, err
+	}
+	if stringValue(result["status"]) == "waiting_for_agent" {
+		if err := workflow.Sleep(ctx, 5*time.Second); err != nil {
+			return nil, err
+		}
+		if err := control.waitUntilResumed(ctx); err != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, CognitionProcessingWorkflow, input)
 	}
 	return result, nil
 }
@@ -1396,9 +1405,10 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 }
 
 type Dispatcher struct {
-	App     *core.App
-	Client  client.Client
-	Started map[string]struct{}
+	App             *core.App
+	Client          client.Client
+	Started         map[string]struct{}
+	reconcileCursor string
 }
 
 // ReconcileOnce reflects Temporal terminal states back into the durable intent
@@ -1408,19 +1418,39 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 	if limit < 1 {
 		limit = 1
 	}
-	rows, err := d.App.DB.Pool().Query(ctx, reconcileIntentQuery, limit)
+	rows, err := d.App.DB.Pool().Query(ctx, reconcileIntentQuery, limit, d.reconcileCursor)
 	if err != nil {
 		return 0, err
 	}
-	defer rows.Close()
-	count := 0
+	// Release the DB connection before contacting Temporal. Advance a stable
+	// keyset cursor even for healthy long-lived workflows, then wrap once.
+	type candidate struct {
+		id, workflowID, kind, status string
+		payload                      []byte
+		attempts                     int
+	}
+	batch := []candidate{}
 	for rows.Next() {
-		var intentID, workflowID, intentType, currentIntentStatus string
-		var payload []byte
-		var attemptCount int
-		if err := rows.Scan(&intentID, &workflowID, &intentType, &payload, &currentIntentStatus, &attemptCount); err != nil {
-			return count, err
+		var item candidate
+		if err := rows.Scan(&item.id, &item.workflowID, &item.kind, &item.payload, &item.status, &item.attempts); err != nil {
+			rows.Close()
+			return 0, err
 		}
+		batch = append(batch, item)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return 0, err
+	}
+	if len(batch) == 0 && d.reconcileCursor != "" {
+		d.reconcileCursor = ""
+		return d.ReconcileOnce(ctx, limit)
+	}
+	count := 0
+	for _, item := range batch {
+		d.reconcileCursor = item.id
+		intentID, workflowID, intentType, currentIntentStatus, payload, attemptCount := item.id, item.workflowID, item.kind, item.status, item.payload, item.attempts
 		var input Input
 		if err := json.Unmarshal(payload, &input); err != nil {
 			input = Input{IntentID: intentID}
@@ -1946,9 +1976,6 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			delete(d.Started, intentID)
 		}
 		count++
-	}
-	if err := rows.Err(); err != nil {
-		return count, err
 	}
 	if d.App != nil {
 		if err := d.App.RepairVisualGenerationQueue(ctx, limit); err != nil {

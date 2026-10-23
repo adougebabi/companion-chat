@@ -84,7 +84,7 @@ func (a *App) RequestOwnerWardrobePreparation(ctx context.Context, owner, fid st
 	// Explicit recovery receives a new execution identity. The previous failed
 	// Run and ledger remain terminal; reconciliation cannot close a newly
 	// reopened intent using the previous Run's terminal state.
-	if _, err = tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations p SET status=CASE WHEN result ? 'inventory_committed' THEN 'awaiting_wear' ELSE 'queued' END,error_code=NULL,attempt=attempt+1,intent_id='wardrobe_initialize:'||fluctlight_id||':attempt:'||(attempt+1)::text,updated_at=now() WHERE id=$1 AND status<>'completed' AND (status='failed' OR EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('failed','cancelled','dead_letter')))`, id); err != nil {
+	if _, err = resumeWardrobePreparationTx(ctx, tx, id, true); err != nil {
 		return nil, err
 	}
 	if err = insertWardrobePreparationIntentTx(ctx, tx, id); err != nil {
@@ -98,6 +98,72 @@ func (a *App) RequestOwnerWardrobePreparation(ctx context.Context, owner, fid st
 	out := decodeObject(raw)
 	out["task_id"] = out["intent_id"]
 	return out, nil
+}
+
+// Manual recovery may explicitly resume a cancelled/exhausted initializer.
+// Automatic recovery is bounded, delayed and never reverses cancellation.
+func resumeWardrobePreparationTx(ctx context.Context, tx pgx.Tx, id string, explicit bool) (bool, error) {
+	tag, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations p SET status=CASE WHEN result ? 'inventory_committed' THEN 'awaiting_wear' ELSE 'queued' END,error_code=NULL,attempt=attempt+1,intent_id='wardrobe_initialize:'||fluctlight_id||':attempt:'||(attempt+1)::text,updated_at=now() WHERE id=$1 AND status<>'completed' AND (status='failed' OR EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('failed','cancelled','dead_letter'))) AND ($2 OR (attempt<3 AND updated_at<now()-GREATEST(attempt,1)*interval '1 minute' AND NOT EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('cancelled','cancel_requested'))))`, id, explicit)
+	return err == nil && tag.RowsAffected() == 1, err
+}
+func (a *App) RepairWardrobePreparations(ctx context.Context, limit int) (int, error) {
+	rows, err := a.DB.Pool().Query(ctx, `SELECT p.id,p.fluctlight_id,f.created_by_actor_id FROM public.fluctlight_wardrobe_preparations p JOIN public.fluctlights f ON f.id=p.fluctlight_id WHERE f.status='active' AND p.status<>'completed' AND p.attempt<3 AND p.updated_at<now()-GREATEST(p.attempt,1)*interval '1 minute' AND NOT EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('cancelled','cancel_requested')) AND (p.status='failed' OR EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('failed','dead_letter'))) ORDER BY p.updated_at,p.id LIMIT $1`, max(1, min(limit, 50)))
+	if err != nil {
+		return 0, err
+	}
+	type candidate struct{ id, fid, owner string }
+	items := []candidate{}
+	for rows.Next() {
+		var item candidate
+		if err := rows.Scan(&item.id, &item.fid, &item.owner); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		items = append(items, item)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for _, item := range items {
+		resumed := false
+		err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			// Match the manual writer's lock order and recheck lifecycle before a new
+			// attempt. Never hold a DB connection over Provider work.
+			if err := lockLifeContextTx(ctx, tx, item.fid); err != nil {
+				return err
+			}
+			var status string
+			if err := tx.QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR SHARE`, item.fid, item.owner).Scan(&status); errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			} else if err != nil {
+				return err
+			}
+			if status != "active" {
+				return nil
+			}
+			var err error
+			resumed, err = resumeWardrobePreparationTx(ctx, tx, item.id, false)
+			if err != nil {
+				return err
+			}
+			if resumed {
+				if err := insertWardrobePreparationIntentTx(ctx, tx, item.id); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return count, err
+		}
+		if resumed {
+			count++
+		}
+	}
+	return count, nil
 }
 
 func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result map[string]any, runErr error) {

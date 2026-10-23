@@ -89,7 +89,7 @@ func TestOwnerRequestFailureReasonAndNotificationDoNotExposeRawErrors(t *testing
 			t.Fatal(reason)
 		}
 		title, body, _, handled := notificationContent(NotificationSource{Kind: "owner.request.settled", Payload: map[string]any{"status": "failed", "request_id": "req", "failure_reason": reason}})
-		if !handled || title != "请求未完成" || body != reason {
+		if handled || title != "" || body != "" {
 			t.Fatal(title, body, handled)
 		}
 	}

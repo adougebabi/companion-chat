@@ -349,3 +349,29 @@ func TestPostgresLogicalAgentRunCoordinatesIndependentApps(t *testing.T) {
 		t.Fatal("waiter did not resume")
 	}
 }
+
+func TestBusyCognitionAdmissionYieldsWithoutBlockingOtherOwners(t *testing.T) {
+	store := newMemoryLogicalLeases()
+	_, release, err := enterLogicalAgentRun(context.Background(), store, "a", "goal_evaluation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	waiting, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, done, err := enterLogicalAgentRunWithWait(waiting, store, "a", "cognition", false)
+	if !errors.Is(err, errLogicalAgentBusy) || done != nil || waiting.Err() != nil {
+		t.Fatalf("busy admission err=%v ctx=%v", err, waiting.Err())
+	}
+	_, otherRelease, err := enterLogicalAgentRunWithWait(context.Background(), store, "b", "cognition", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherRelease()
+	release()
+	_, nextRelease, err := enterLogicalAgentRunWithWait(context.Background(), store, "a", "cognition", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nextRelease()
+}

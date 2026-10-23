@@ -922,3 +922,66 @@ row, and workflow execution state belongs to the workflow ledger. Explicit retry
 rotates the intent to an attempt-specific identity, preserving the failed ledger
 and Run so reconciliation cannot close the new attempt using the old terminal
 Run. UI task links read real execution; queued/awaiting/failed is never completion.
+
+## Scenario: Responsive cognition admission and fair supervision (2026-10-23)
+
+### 1. Scope / Trigger
+A busy character, more running workflows than the reconciliation batch, or slow
+Redis/maintenance must not strand unrelated conversations.
+
+### 2. Signatures
+`enterLogicalAgentRunWithWait(...,wait)`; cognition result
+`{inbox_id,status:"waiting_for_agent"}`;
+`Dispatcher.reconcileCursor`; `startWorkerLoop(parent,interval,work)`.
+
+### 3. Contracts
+Cognition attempts the same fenced per-character lease without waiting inside an
+Activity slot. Busy lease or pre-claim predecessor conflict returns a distinct
+waiting result before consuming a cognition attempt. The workflow sleeps five
+seconds, honors pause/cancel, and continues under the same workflow/intent/inbox
+identity. Business deferred decisions remain terminal results of their own task.
+Other logical callers retain serialization and lease renewal/fencing.
+
+Reconciliation keyset-pages eligible intents by unique intent_id and wraps after
+the last page. It advances across healthy long-lived executions and closes the
+DB row cursor before any Temporal/network call. Restart resets observation only;
+SQL remains state authority. Dispatch/reply/reconciliation share one serialized
+lane and its Started map; delivery, maintenance, repairs and readiness run in
+independent internally serialized lanes. Shutdown cancels/joins lanes before
+closing shared clients.
+
+`RepairWardrobePreparations(ctx,limit)` automatically retries only active
+characters with failed/dead-letter wardrobe preparation, attempt < 3 and
+attempt-based minute backoff. Exclude cancelled/cancel_requested intents both
+before LIMIT and in the atomic update; otherwise cancelled rows starve later
+work. Lock life context then character lifecycle (`FOR SHARE`), recheck active,
+then resume with a new attempt-specific intent. Preserve committed inventory and
+old failure ledgers; count a retry only after commit. Explicit Owner recovery
+retains its separate ability to resume cancelled/exhausted work.
+
+### 4. Validation & Error Matrix
+Busy owner: durable wait, no claimed inbox/attempt spend. Different owner:
+admitted. Cancelled parent: no new activity/continuation. Paused during the wait:
+wait for resume before continuation. Batch exhausted: wrap, never permanently
+re-read the oldest 50 running workflows. Maintenance delay: dispatch and health
+continue independently.
+
+### 5. Good / Base / Bad Cases
+Good: one character's background thought waits while another conversation runs.
+Base: an ordinary completed activity retains existing workflow commands. Bad:
+remove per-character serialization, spin inside all Activity slots, or use a
+healthy running workflow as the fixed front of every recovery batch.
+
+### 6. Tests Required
+`TestBusyCognitionAdmissionYieldsWithoutBlockingOtherOwners` validates the lease;
+`TestBusyCognitionWaitsDurablyAndPreservesInput` validates the native Temporal
+timer/continuation; worker lane test injects blocked maintenance. Cursor query
+shape is checked, but SQL backlog/concurrency acceptance still requires a
+disposable PostgreSQL/Temporal environment.
+`TestAutomaticWardrobeRecoverySkipsCancelledAndPausedWithoutStarvingBatch`
+checks LIMIT fairness, lifecycle exclusion, receipt/history preservation and
+retry exhaustion under the PostgreSQL integration gate.
+
+### 7. Wrong vs Correct
+Wrong: an Activity blocks on another actor task for its whole ten-minute budget.
+Correct: yield the Activity slot and wait durably without changing fact identity.
