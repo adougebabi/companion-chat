@@ -33,21 +33,17 @@ func factOnlyActorBackgroundWire(value any) any {
 		group := mapValue(groups[len(groups)-1])
 		group["facts"] = append(arrayValue(group["facts"]), fact)
 	}
+	if len(groups) == len(rows) {
+		return value
+	}
 	return map[string]any{"encoding": "each_fact_inherits_common_fields", "groups": groups}
 }
 
+// Factor repeated Actor provenance deterministically, without token policy.
 func renderFactOnlyRuntimeContext(value map[string]any) string {
-	original := renderProviderRuntimeContext(value)
-	background, exists := value["actor_background"]
-	if !exists {
-		return original
+	copy := cloneMap(value)
+	if background, ok := copy["actor_background"]; ok {
+		copy["actor_background"] = factOnlyActorBackgroundWire(background)
 	}
-	copyValue := mapValue(factOnlyCopyValue(value))
-	copyValue["actor_background"] = factOnlyActorBackgroundWire(background)
-	encoded := renderProviderRuntimeContext(copyValue)
-	// Compare the actual transmitted representation, not a JSON size proxy.
-	if EstimatePromptTokens(encoded) >= EstimatePromptTokens(original) {
-		return original
-	}
-	return encoded
+	return renderProviderRuntimeContext(copy)
 }

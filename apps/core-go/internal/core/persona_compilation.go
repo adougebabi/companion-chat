@@ -239,7 +239,7 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("persona_compilation", []map[string]any{
 		{"role": "system", "content": personaCompilationInstruction},
-		{"role": "user", "content": jsonString(personaCompilationModelPayload(input, source))},
+		{"role": "user", "content": promptTaskData(personaCompilationModelPayload(input, source))},
 	})
 	for attempt := 0; attempt < 2; attempt++ {
 		// Compilation is an independent Tool-free model task. Parent publication
@@ -259,7 +259,7 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt == 1 {
 			return CompiledWorkingPersona{}, validationErr
 		}
-		messages = append(messages, map[string]any{"role": "user", "content": fmt.Sprintf("The portrait text was unusable (%v). Return only a JSON object with one non-empty portrait_text string for the same supplied source and profile. Keep it within the stated rune budget; do not include fact arrays or source paths.", validationErr)})
+		messages = append(messages, map[string]any{"role": "user", "content": renderProviderJSON(map[string]any{"validation_feedback": validationErr.Error(), "instruction": "Return only a JSON object with one non-empty portrait_text string for the same supplied source and profile. Keep it within the stated rune budget; do not include fact arrays or source paths."})})
 	}
 	return CompiledWorkingPersona{}, errors.New("persona_compilation_retry_exhausted")
 }

@@ -388,3 +388,7 @@ wire estimates do not certify an external model turn or media result.
 ### 7. Wrong vs Correct
 Wrong: an unfiltered catalog eagerly adds parameters to every item. Correct:
 list deliberate purposes; disclose full instructions/schema only for requested names.
+
+The historical directory <=4608 estimated-token assertion is a static fixture
+size-regression measurement only. It is never a runtime admission, truncation,
+output cap or permission rule; follow the Prompt Composition contract.

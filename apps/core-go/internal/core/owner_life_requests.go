@@ -385,7 +385,7 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 	if kind == "moment_suggestion" {
 		rules = append(rules, "This request only suggests publishing a feed Moment. You may reject or defer. To accept call moment.publish once; the independent persona Writer decides its own text. Suggested text is a topic, never a factual claim or a mandatory draft. Core binds the request and selected attachments. It does not create a conversation, move anyone or establish acquaintance.")
 	}
-	input := jsonString(map[string]any{"event_type": ownerLifeRequestFactType, "kind": kind, "request": request})
+	input := jsonString(map[string]any{"event_type": ownerLifeRequestFactType, "kind": kind, "request": ownerLifePromptView(kind, request)})
 	definitions := capabilityCatalog(registry, CapabilitySurfaceNativeCognition)
 	schema := ownerLifeDecisionSchema()
 	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceNativeCognition, projection, "cognitive_assessment", rules, input, definitions, "owner_life_request_decision", schema)

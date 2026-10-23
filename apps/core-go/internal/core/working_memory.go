@@ -153,9 +153,6 @@ func selectRankedPromptFragments(input []PromptFragment, capTokens int, seen map
 	for _, fragment := range fragments {
 		reason := duplicatePromptFragmentReason(fragment, seen)
 		if reason != "" {
-			if fragment.Required {
-				return nil, errors.New("working_memory_required_budget_exceeded")
-			}
 			trace.Dropped = append(trace.Dropped, workingMemoryDecision(fragment, false, reason))
 			continue
 		}
@@ -207,18 +204,15 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 	selectedGroups := make([]group, 0, len(groups))
 	for index := len(groups) - 1; index >= 0; index-- {
 		value := groups[index]
-		reason := ""
+		reason := "deduplicated"
 		for _, fragment := range value.fragments {
-			if duplicate := duplicatePromptFragmentReason(fragment, seen); duplicate != "" {
-				reason = duplicate
+			if duplicatePromptFragmentReason(fragment, seen) == "" {
+				reason = ""
 				break
 			}
 		}
 		if reason != "" {
 			for _, fragment := range value.fragments {
-				if fragment.Required {
-					return nil, errors.New("working_memory_required_budget_exceeded")
-				}
 				trace.Dropped = append(trace.Dropped, workingMemoryDecision(fragment, false, reason))
 			}
 			continue
@@ -236,19 +230,19 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 	return selected, nil
 }
 
+// Shared provenance does not imply the same claim. Deduplicate only an exact
+// semantic payload with the same complete source set, across memory layers.
+func promptFragmentIdentity(fragment PromptFragment) string {
+	return jsonString(fragment.SourceRefs) + "\x1f" + jsonString(fragment.Content)
+}
 func duplicatePromptFragmentReason(fragment PromptFragment, seen map[string]struct{}) string {
-	for _, ref := range fragment.SourceRefs {
-		if _, duplicate := seen[ref]; duplicate {
-			return "deduplicated"
-		}
+	if _, duplicate := seen[promptFragmentIdentity(fragment)]; duplicate {
+		return "deduplicated"
 	}
 	return ""
 }
-
 func markPromptFragmentSources(fragment PromptFragment, seen map[string]struct{}) {
-	for _, ref := range fragment.SourceRefs {
-		seen[ref] = struct{}{}
-	}
+	seen[promptFragmentIdentity(fragment)] = struct{}{}
 }
 
 func workingMemoryDecision(fragment PromptFragment, selected bool, reason string) WorkingMemoryDecision {

@@ -229,7 +229,7 @@ func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdent
 	content := []any{map[string]any{"type": "text", "text": jsonString(map[string]any{
 		"asset_id": input.CandidateAssetID, "render_intent": "character_design_sheet", "expected_subject": "one_human_character",
 		"expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"front": "front_full_body", "side": "side_full_body", "back": "back_full_body"},
-		"visual_identity": input.InputSnapshot, "renderer_constraints": input.Constraints,
+		"visual_identity": visualIdentityAgentSnapshot(input.InputSnapshot), "renderer_constraints": input.Constraints,
 	})}}
 	if input.ImageContent != nil {
 		content = append(content, input.ImageContent)
@@ -255,10 +255,10 @@ func (a *App) RunVisualIdentityPatchTask(ctx context.Context, input VisualIdenti
 	payload := map[string]any{
 		"stage": "review", "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(),
 		"panel_layout":    map[string]string{"front": "front_full_body", "side": "side_full_body", "back": "back_full_body"},
-		"visual_identity": input.InputSnapshot, "renderer_constraints": input.Constraints, "vision": input.Vision, "candidate_asset_id": input.CandidateAssetID,
+		"visual_identity": visualIdentityAgentSnapshot(input.InputSnapshot), "renderer_constraints": input.Constraints, "vision": input.Vision, "candidate_asset_id": input.CandidateAssetID,
 	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("visual_identity_patch", []map[string]any{
-		{"role": "system", "content": visualIdentityPatchTaskInstruction}, {"role": "user", "content": jsonString(payload)},
+		{"role": "system", "content": visualIdentityPatchTaskInstruction}, {"role": "user", "content": promptTaskData(payload)},
 	})
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentVisualIdentityPatch, messages, nil, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false, nil)
 	return run.Completion.Structured, err
@@ -388,7 +388,7 @@ func virtualActivityResultSchema() map[string]any {
 func (a *App) RunVirtualActivityResultTask(ctx context.Context, input VirtualActivityResultTaskInput) (map[string]any, error) {
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": virtualActivityResultInstruction},
-		{"role": "user", "content": jsonString(virtualActivityModelInput(input))},
+		{"role": "user", "content": promptTaskData(virtualActivityModelInput(input))},
 	})
 	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "virtual_activity_result"), FormalAgentVirtualActivityResult, messages,
 		nil, "virtual_activity_result", virtualActivityResultSchema(), false, nil)
@@ -423,7 +423,7 @@ func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGener
 	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": instruction},
-		{"role": "user", "content": jsonString(scheduleGenerationModelInput(input))},
+		{"role": "user", "content": promptTaskData(scheduleGenerationModelInput(input))},
 	})
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleResponseSchema(), false, nil)
 	return run.Completion.Structured, err
@@ -639,7 +639,7 @@ func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionPro
 func (a *App) RunScheduleReplanTask(ctx context.Context, input SchedulePlanInput) (map[string]any, error) {
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": scheduleReplanPlannerInstruction(input)},
-		{"role": "user", "content": jsonString(scheduleReplanModelInput(input))},
+		{"role": "user", "content": promptTaskData(scheduleReplanModelInput(input))},
 	})
 	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchemaForInput(input), false, nil)
 	return run.Completion.Structured, err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -213,6 +214,9 @@ func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input Formal
 	if strings.TrimSpace(input.SchemaName) == "" {
 		return ADKStructuredTaskResult{}, errors.New("formal_agent_output_contract_required")
 	}
+	// Normalize only trusted system fragments. Already composed history, current
+	// input, images and native transcript content remain byte-for-byte intact.
+	input.Prompt.Messages = formalPromptMessages(id, input.Prompt.Messages)
 	definition.EnableStreaming = input.EnableStreaming
 	return a.RunADKStructuredTask(withFormalAgentDefinition(ctx, definition), ADKStructuredTaskInput{
 		AgentID: id, Role: definition.Role, Scenario: definition.Scenario,
@@ -228,4 +232,26 @@ func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input Formal
 func (a *App) RunFormalAgentStream(ctx context.Context, id FormalAgentID, input FormalAgentRunInput) (ADKStructuredTaskResult, error) {
 	input.EnableStreaming = true
 	return a.RunFormalAgent(ctx, id, input)
+}
+
+// All registered tasks share one leading protocol boundary, including tasks
+// whose input is a multimodal packet rather than a ContextProjection.
+func formalPromptMessages(id FormalAgentID, messages []map[string]any) []map[string]any {
+	rules := []string{}
+	data := make([]map[string]any, 0, len(messages))
+	for _, message := range messages {
+		if stringValue(message["role"]) == "system" {
+			rule := systemMessageContent(message)
+			if rule != "" && !slices.Contains(rules, rule) {
+				rules = append(rules, rule)
+			}
+		} else {
+			data = append(data, formatProviderMessages([]map[string]any{message})[0])
+		}
+	}
+	protocol := strings.Join(rules, "\n\n")
+	if !strings.HasPrefix(protocol, "# 运行协议") {
+		protocol = "# 运行协议\n\n" + protocol
+	}
+	return append([]map[string]any{{"role": "system", "content": protocol}}, data...)
 }

@@ -290,7 +290,7 @@ func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, ru
 
 	snapshot = compactGoalPlannerSnapshot(snapshot)
 	schema := objectSchema(map[string]any{"decision": enumStringSchema("applied", "no_change", "no_viable_candidate", "awaiting_facts", "blocked_by_policy", "failed", "suggestions"), "reason": stringSchema(), "review_condition": stringSchema(), "suggestions": arraySchema(openObjectSchema())}, []string{"decision", "reason", "review_condition", "suggestions"}, false)
-	messages := (&PromptComposer{}).ComposeTaskMessages("goal_planner", []map[string]any{{"role": "system", "content": goalPlannerInstruction}, {"role": "user", "content": jsonString(map[string]any{"run_id": runRef, "mode": mode, "snapshot": snapshot})}})
+	messages := (&PromptComposer{}).ComposeTaskMessages("goal_planner", []map[string]any{{"role": "system", "content": goalPlannerInstruction}, {"role": "user", "content": promptTaskData{"run_id": runRef, "mode": mode, "snapshot": snapshot}}})
 	if prior, err := a.admitGoalPlannerModel(ctx, owner, actor, profile, runRef, mode); err != nil {
 		return nil, err
 	} else if prior != nil {
@@ -727,7 +727,7 @@ func (a *App) RepairGoalPlanning(ctx context.Context, limit int) (int, error) {
 }
 
 func compactGoalPlannerSnapshot(snapshot map[string]any) map[string]any {
-	result := compactStateMap(snapshot, []string{"pending_promises", "revision", "facts_revision", "active_count", "max_active_goals", "auto_planning_enabled", "ordering_mode", "capacity_violation", "trigger_reasons", "dependencies", "stable_persona_summary", "persona_revision", "overlay_revision", "merge_window_seconds", "retry_backoff_seconds", "max_attempts", "lease_seconds", "candidate_limit"})
+	result := compactStateMap(snapshot, []string{"pending_promises", "revision", "facts_revision", "active_count", "max_active_goals", "auto_planning_enabled", "ordering_mode", "capacity_violation", "trigger_reasons", "dependencies", "stable_persona_summary"})
 	goals := []any{}
 	counts := map[string]int{}
 	for _, raw := range arrayValue(snapshot["goals"]) {

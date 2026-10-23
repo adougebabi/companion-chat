@@ -77,9 +77,8 @@ func (g *kevPersonaAdmission) inspect(ctx context.Context, message *schema.Messa
 	}
 	input["actions"] = actions
 	// Include the actual current user event, not full private conversation.
-	input["event_id"] = g.request.SourceFactID
 	input["current_input"] = projection.CurrentUserText
-	input["current_state"] = projection.CurrentState
+	input["current_state"] = compactCurrentStateForSurface(projection, ProviderContextSurfaceNativeCognition)
 	results, err := g.app.kevService().Decide(ctx, "persona.switch", g.app.kevScope(ctx, projection, "persona.switch"), jsonString(input), candidates)
 	if err != nil {
 		return nil, false, err

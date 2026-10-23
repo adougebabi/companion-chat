@@ -86,12 +86,9 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   evidence rules, finite derivation policy, and no-invention constraints. Core
   remains the normalization/validation authority. Other strict cognition/
   reflection operations keep their JSON Schema response formats.
-- Initialization derives a scenario-specific 8,192-token output reserve and
-  ten-minute Provider timeout when the configured context window has sufficient
-  headroom. Ordinary calls retain the persisted generic binding values. A
-  Provider deadline returns `initialization_provider_timeout`, cancellation
-  returns `initialization_provider_cancelled`, and logs retain bounded
-  `provider_error_code`, retryability, error type, and secret-redacted cause.
+- Initialization retains its existing ten-minute Provider timeout, with no
+  application output reserve or token headroom gate. Provider deadline and
+  cancellation remain typed failures; diagnostics retain bounded safe causes.
 - A successful analysis is persisted as an immutable Owner-scoped source with
   original text/digest, Provider/model and prompt/schema versions,
   classification/evidence, derivations, semantic coverage, and structured
@@ -129,9 +126,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   a valid shared scope even when a multi-profile Foundation declares named
   profiles. Preview validation, runtime initialization, and Goal/Intention/
   Relationship seed persistence use the same profile set.
-- The Web default output reserve for a newly configured generic LLM role is
-  4096 tokens, matching Core's default. An explicitly persisted role budget is
-  still authoritative and is not silently overwritten by the browser.
+- Browser/Core role token fields are legacy compatibility storage only; runtime
+  prompt/output caps are absent. See the Prompt Composition contract.
 - Reflection V2 returns `developing_self_candidates` plus allowlisted,
   profile-scoped `personality_evolution_candidates` and
   `behavior_policy_evolution_candidates`. Identity/Core Persona anchors,
@@ -163,7 +159,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Initialization returns non-empty unparseable or truncated content | Return `initialization_response_invalid_json`; if `finish_reason=length`, record `structured_response_truncated` and never repair/activate the partial object. |
 | Initialization wraps one complete JSON object in an explicit Markdown fence | Extract only the complete fenced body, then run ordinary normalization and semantic validation. |
 | Local Provider receives complex multi-personality initialization | Use `json_object` plus the canonical prompt skeleton; do not use the full initialization JSON Schema constrained decoder. |
-| Dense initialization would use a 4,096-token / 300-second generic binding | Derive the initialization floor before building payload, diagnostics, and request context; do not make the Owner tune runtime numbers to preserve card semantics. |
+| Initialization uses a generic binding | Apply the existing ten-minute initialization timeout; ignore legacy token fields and omit output caps. |
 | Initialization Provider reaches the derived deadline | Return `initialization_provider_timeout` with correlation; persist `timeout/request_timeout` and keep the card out of logs. |
 | Model returns known mechanical aliases | Map them to canonical fields before defaults and reference validation. |
 | Normalized initialization still contains an explicit invalid value/reference/type | Return `initialization_persona_invalid` with safe `details.correlation_id` and `details.validation_error.{type,path}`; log only those fields, never the Persona payload. |
@@ -232,8 +228,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 - Live initialization regression calls the configured LLM with a complex
   two-profile description and asserts distinct non-empty raw profiles before
   Core default completion. A local mock is not acceptance evidence.
-- The Live harness uses the same initialization reserve/timeout constants as
-  production so a green canary cannot hide a smaller production budget.
+- The Live harness uses the same initialization timeout and no-cap contract as
+  production so a green canary cannot hide a different production request contract.
 - Reflection tests for candidate schema, category allowlist, evidence ownership/deduplication, repeated-claim no-op, Core conflict rejection, stale watermark/CAS, and transaction rollback.
 - Reflection boundary test covers missing and aliased Provider headers while
   preserving strict unknown-field/evidence rejection; Live acceptance must

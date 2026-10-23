@@ -291,7 +291,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 		return nil, err
 	}
 	input := map[string]any{"select_only": selectOnly, "persona": sections, "current_life": life, "registered_items": items, "plans": plans, "starter_items_allowed": !usableWardrobeCoverage(items)}
-	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{{"role": "system", "content": wardrobePreparationInstruction}, {"role": "user", "content": jsonString(input)}})
+	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{{"role": "system", "content": wardrobePreparationInstruction}, {"role": "user", "content": promptTaskData(input)}})
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentWardrobePreparation, messages, nil, "wardrobe_preparation_v1", wardrobePreparationSchema(), false, nil)
 	if err != nil {
 		return nil, err

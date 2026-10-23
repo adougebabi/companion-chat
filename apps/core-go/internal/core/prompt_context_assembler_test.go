@@ -128,17 +128,14 @@ func TestAssemblePromptMessagesFormatsRuntimeTimesOnWire(t *testing.T) {
 	}
 }
 
-func TestRenderProviderRuntimeContextSeparatesEveryNonEmptySectionWithOneLF(t *testing.T) {
-	wire := renderProviderRuntimeContext(map[string]any{
-		"self_actor": map[string]any{"type": "fluctlight"},
-		"goals":      []any{map[string]any{"state": "active"}},
-		"time_view":  map[string]any{"current_time": "2026-10-10T10:00:00+08:00"},
-	})
-	if strings.Contains(wire, "fluctlightgoals:") || !strings.Contains(wire, "type: fluctlight\ngoals:") {
-		t.Fatalf("runtime sections were not separated by exactly one LF: %q", wire)
+func TestRenderProviderRuntimeContextUsesOrderedJSON(t *testing.T) {
+	value := map[string]any{"self_actor": map[string]any{"type": "fluctlight"}, "goals": []any{map[string]any{"state": "active"}}, "time_view": map[string]any{"current_time": "2026-10-10T10:00:00+08:00"}}
+	wire := renderProviderRuntimeContext(value)
+	if jsonString(decodeObject([]byte(wire))) != jsonString(value) {
+		t.Fatalf("runtime JSON lost facts: %s", wire)
 	}
-	if strings.Contains(wire, "\n\ngoals:") || strings.Contains(wire, "\n\ntime_view:") {
-		t.Fatalf("runtime sections contain an extra blank line: %q", wire)
+	if !(strings.Index(wire, `"self_actor":`) < strings.Index(wire, `"goals":`) && strings.Index(wire, `"goals":`) < strings.Index(wire, `"time_view":`)) {
+		t.Fatal("unstable runtime order")
 	}
 }
 
@@ -160,7 +157,7 @@ func TestWakePromptTreatsRecentConversationAsHistoricalRuntimeEvidence(t *testin
 		t.Fatalf("Wake history escaped into physical user/assistant chronology: %#v", result.Messages)
 	}
 	wire := stringValue(result.Messages[1]["content"])
-	for _, required := range []string{"historical_conversation:", "historical_only_not_current_user_input", "messages[2]{content,conversation_group,occurred_at,role,sender,source_kind,source_refs}", "old dangling request", "failed reply evidence", "actor_user", "actor_self", "message:old-user", "message:failed-reply", "2026-10-10T09:47:00.000+08:00"} {
+	for _, required := range []string{`"historical_conversation":`, "historical_only_not_current_user_input", `"messages":[`, "old dangling request", "failed reply evidence", "actor_user", "actor_self", "message:old-user", "message:failed-reply", "2026-10-10T09:47:00.000+08:00"} {
 		if !strings.Contains(wire, required) {
 			t.Fatalf("Wake historical evidence lost %q: %s", required, wire)
 		}

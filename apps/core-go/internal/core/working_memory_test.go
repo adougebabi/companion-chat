@@ -52,8 +52,8 @@ func TestWorkingMemoryDeduplicatesAcrossAuthorityLayers(t *testing.T) {
 	shared := "fact:shared"
 	result, err := ResolveWorkingMemory(WorkingMemoryInput{
 		ActiveCandidates:  []PromptFragment{{Kind: PromptFragmentActiveMemory, Priority: 100, Content: map[string]any{"content": "active"}, EstimatedTokens: 10, SourceRefs: []string{shared}}},
-		RetrievedMemories: []PromptFragment{{Kind: PromptFragmentRetrievedMemory, Priority: 100, Content: map[string]any{"content": "durable duplicate"}, EstimatedTokens: 10, SourceRefs: []string{shared}}},
-		Summaries:         []PromptFragment{{Kind: PromptFragmentSummary, Priority: 10, Content: map[string]any{"summary": "summary duplicate"}, EstimatedTokens: 10, SourceRefs: []string{shared}}},
+		RetrievedMemories: []PromptFragment{{Kind: PromptFragmentRetrievedMemory, Priority: 100, Content: map[string]any{"content": "active"}, EstimatedTokens: 10, SourceRefs: []string{shared}}},
+		Summaries:         []PromptFragment{{Kind: PromptFragmentSummary, Priority: 10, Content: map[string]any{"content": "active"}, EstimatedTokens: 10, SourceRefs: []string{shared}}},
 	}, DefaultWorkingMemoryPolicy())
 	if err != nil {
 		t.Fatal(err)
@@ -100,7 +100,7 @@ func TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates(t *test
 			{Kind: PromptFragmentResidentMemory, Priority: 90, Content: map[string]any{"content": "次要关系"}, EstimatedTokens: 8, SourceRefs: []string{"memory:secondary"}},
 		},
 		RetrievedMemories: []PromptFragment{
-			{Kind: PromptFragmentRetrievedMemory, Priority: 100, Content: map[string]any{"content": "重要关系重复"}, EstimatedTokens: 8, SourceRefs: []string{"memory:relationship"}},
+			{Kind: PromptFragmentRetrievedMemory, Priority: 100, Content: map[string]any{"content": "重要关系"}, EstimatedTokens: 8, SourceRefs: []string{"memory:relationship"}},
 			{Kind: PromptFragmentRetrievedMemory, Priority: 80, Content: map[string]any{"content": "可进一步检索"}, EstimatedTokens: 8, SourceRefs: []string{"memory:deep"}},
 		},
 	}

@@ -254,8 +254,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	if err := input.Policy.Validate(); err != nil {
 		return PromptAssemblyResult{}, err
 	}
-	input.CurrentInput = strings.TrimSpace(input.CurrentInput)
-	if input.CurrentInput == "" {
+	if strings.TrimSpace(input.CurrentInput) == "" {
 		return PromptAssemblyResult{}, errors.New("prompt_current_input_required")
 	}
 	surface := input.Surface
@@ -458,7 +457,7 @@ func stableTaskContextMessage(value map[string]any) map[string]any {
 	if len(value) == 0 {
 		return nil
 	}
-	return map[string]any{"role": "user", "content": "[STABLE TASK CONTEXT]\n" + jsonString(value) + "\n[/STABLE TASK CONTEXT]"}
+	return map[string]any{"role": "user", "content": "[STABLE TASK CONTEXT]\n" + renderProviderJSON(value) + "\n[/STABLE TASK CONTEXT]"}
 }
 
 func assemblePromptMessages(system, stable, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
@@ -468,7 +467,7 @@ func assemblePromptMessages(system, stable, current map[string]any, selected []p
 func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, stable, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
 	runtimeContext := map[string]any{}
 	snapshotValue := boundedSnapshotValue
-	factOnly := surface == ProviderContextSurfaceFactOnlyCognition || surface == ProviderContextSurfaceFactOnlyReply
+	factOnly := surface == ProviderContextSurfaceFactOnlyCognition || surface == ProviderContextSurfaceFactOnlyReply || surface == ProviderContextSurfaceMomentReply
 	if factOnly {
 		snapshotValue = factOnlyCopyValue
 	}
@@ -477,7 +476,7 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 		fragment := candidate.fragment
 		switch fragment.Kind {
 		case PromptFragmentRecentMessage:
-			if surface == ProviderContextSurfaceWakeUp {
+			if surface == ProviderContextSurfaceWakeUp || surface == ProviderContextSurfaceMomentReply {
 				item := cloneMap(mapValue(fragment.Content))
 				item["source_refs"] = append([]string(nil), fragment.SourceRefs...)
 				if groupKey := strings.TrimSpace(fragment.GroupKey); groupKey != "" {
@@ -512,7 +511,7 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 			runtimeContext["conversation_summaries"] = append(arrayValue(runtimeContext["conversation_summaries"]), snapshotValue(fragment.Content))
 		}
 	}
-	if surface == ProviderContextSurfaceWakeUp && len(recent) > 0 {
+	if (surface == ProviderContextSurfaceWakeUp || surface == ProviderContextSurfaceMomentReply) && len(recent) > 0 {
 		runtimeContext["historical_conversation"] = map[string]any{
 			"evidence_semantics": "historical_only_not_current_user_input",
 			"current_authority":  "unknown_unless_explicit_in_runtime_facts",
@@ -526,6 +525,9 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 	}
 	if len(runtimeContext) > 0 {
 		formatted := formatRuntimeContextTimes(runtimeContext)
+		if schedule := mapValue(formatted["schedule"]); len(schedule) > 0 {
+			formatted["schedule"] = promptScheduleView(schedule)
+		}
 		if factOnly && runtimeContext["history_metadata"] != nil {
 			// Stored instants and the frozen sender-zone snapshot are separate
 			// authorities. Do not relabel them into the self's display timezone.
@@ -574,14 +576,13 @@ func renderProviderRuntimeContext(value map[string]any) string {
 			ordered = append(ordered, key)
 		}
 	}
+	// Preserve the stable-to-volatile key order while using the same JSON
+	// encoder as every task view. Each value is emitted exactly once.
 	sections := make([]string, 0, len(ordered))
 	for _, key := range ordered {
-		section := strings.Trim(renderProviderYAMLWithMode(map[string]any{key: value[key]}, true), "\n")
-		if section != "" {
-			sections = append(sections, section)
-		}
+		sections = append(sections, renderProviderJSON(key)+":"+renderProviderJSON(value[key]))
 	}
-	return strings.Join(sections, "\n")
+	return "{" + strings.Join(sections, ",") + "}"
 }
 
 // formatRuntimeContextTimes changes only the Provider-facing copy. The

@@ -636,19 +636,19 @@ settlement or explicit waiting -> domain backoff/reconciliation -> durable work.
 ## Scenario: Goal Evaluation Source Admission Under Accumulated Tool History
 
 Goal evaluation retains the complete durable source/CAS snapshot and offers a
-bounded Provider view. Repeated Goal inspection snapshots must not be embedded
+task-owned semantic Provider view without a token ceiling. Repeated Goal inspection snapshots must not be embedded
 as proof; selected Goal standards are already provided separately. Actor facts
 retain subject, value, epistemic kind, status and effective interval, supporting
 both database (`subject_actor_id/value_json/valid_from`) and Tool receipt
 (`actor_id/value/effective_at`) shapes. Domain query results and published
 message text retain their full semantic payload.
 
-Existing judgment evidence is mandatory. Admit recent messages before other
-sources and sort equal-priority sources by recorded time then ID descending.
-Keep the Provider source view below the existing required-input ceiling; the
-current implementation reserves headroom with a 12000 estimated-token budget.
-Oversized standards/mandatory proof fail visibly; never truncate proof or raise
-global limits to hide overflow. The normal physical prompt gate still applies.
+Every source in the frozen authorized snapshot reaches the Provider, including
+existing judgment evidence, messages and full domain query results. No 12K or
+other estimated-token threshold, required-input ceiling or physical budget gate
+applies. Keep source order and semantic evidence intact; exact duplicate bodies
+may be represented once while every source event remains independently bound.
+See [Prompt Composition](./prompt-composition-contract.md).
 
 Only offered references may be accepted or marked processed. Unoffered sources
 remain durable and unprocessed; queue a source-remainder evaluation for selected

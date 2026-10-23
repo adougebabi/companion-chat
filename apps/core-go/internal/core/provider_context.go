@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 	"math"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,6 +21,7 @@ type ProviderContextSurface string
 
 const (
 	ProviderContextSurfaceDefault          ProviderContextSurface = "default"
+	ProviderContextSurfaceMomentReply      ProviderContextSurface = "moment_reply"
 	ProviderContextSurfaceConversationMain ProviderContextSurface = "conversation_main"
 	ProviderContextSurfaceTakeoverReply    ProviderContextSurface = "takeover_reply"
 	ProviderContextSurfacePersistentSwitch ProviderContextSurface = "persistent_switch_assessment"
@@ -29,6 +29,7 @@ const (
 	ProviderContextSurfaceDailyReview      ProviderContextSurface = "daily_review"
 	ProviderContextSurfaceNativeCognition  ProviderContextSurface = "native_cognition"
 	ProviderContextSurfaceReflection       ProviderContextSurface = "reflection"
+	ProviderContextSurfaceGoalEvaluation   ProviderContextSurface = "goal_evaluation"
 )
 
 type providerStableTaskContextKey struct{}
@@ -66,6 +67,8 @@ func providerContextSurfaceForSchema(schemaName string) ProviderContextSurface {
 		return ProviderContextSurfaceDailyReview
 	case "native_cognition_response":
 		return ProviderContextSurfaceNativeCognition
+	case "goal_evaluation_v1":
+		return ProviderContextSurfaceGoalEvaluation
 	case "reflection_proposal_v2":
 		return ProviderContextSurfaceReflection
 	default:
@@ -236,7 +239,7 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		compact["actor_background"] = facts
 	}
 	refIndex := projection.ReferenceIndex
-	if surface == ProviderContextSurfacePersistentSwitch || surface == ProviderContextSurfaceReflection || surface == ProviderContextSurfaceDefault {
+	if surface == ProviderContextSurfacePersistentSwitch || surface == ProviderContextSurfaceReflection || surface == ProviderContextSurfaceGoalEvaluation || surface == ProviderContextSurfaceDefault {
 		refIndex = ContextReferenceIndex{}
 	}
 	// Persona material belongs to the System Persona (the Working Persona).
@@ -315,20 +318,17 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 
 func providerContextSurfaceAllowsRecentHistory(surface ProviderContextSurface) bool {
 	switch surface {
-	case ProviderContextSurfaceNativeCognition, ProviderContextSurfaceReflection:
-		return false
-	default:
+	case ProviderContextSurfaceConversationMain, ProviderContextSurfaceTakeoverReply,
+		ProviderContextSurfaceFactOnlyCognition, ProviderContextSurfaceFactOnlyReply,
+		ProviderContextSurfaceWakeUp, ProviderContextSurfacePersistentSwitch:
 		return true
+	default:
+		return false
 	}
 }
 
 func providerContextSurfaceAllowsSummaries(surface ProviderContextSurface) bool {
-	switch surface {
-	case ProviderContextSurfaceNativeCognition, ProviderContextSurfaceReflection:
-		return false
-	default:
-		return true
-	}
+	return providerContextSurfaceAllowsRecentHistory(surface)
 }
 
 func promptItemSourceRefs(item map[string]any, fallback string) []string {
@@ -357,8 +357,8 @@ func recentPromptFragmentsForSurface(projection ContextProjection, surface Provi
 		if role != "user" && role != "assistant" {
 			continue
 		}
-		content := strings.TrimSpace(stringValue(message["text"]))
-		if content == "" {
+		content, _ := message["text"].(string)
+		if strings.TrimSpace(content) == "" {
 			continue
 		}
 		msgTz := defaultTz
@@ -432,8 +432,6 @@ func currentInputRecentMessageIndex(messages []map[string]any, currentUserText s
 	}
 	return lastUser
 }
-
-var providerHashPattern = regexp.MustCompile(`\b(?:active_memory|message|memory|inbox|wake_fact|fluctlight|conversation|claim|event|fact|turn|provider|assessment|decision)_[A-Za-z0-9]{16,64}\b`)
 
 // compactCognitionContext is the Provider-facing projection of a full
 // ContextProjection. The full projection remains the durable/replayable
@@ -673,6 +671,15 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 		compact["recent_outcomes"] = outcomes
 	} else {
 		delete(compact, "recent_outcomes")
+	}
+	if surface == ProviderContextSurfaceGoalEvaluation {
+		for _, key := range []string{"intentions", "recent_outcomes", "goal_policy", "visual_identity", "current_speaker"} {
+			delete(compact, key)
+		}
+		if goals, ok := compact["goals"]; ok {
+			compact["related_goals"] = goals
+			delete(compact, "goals")
+		}
 	}
 	cleaned := cleanPromptValue(compact)
 	if m, ok := cleaned.(map[string]any); ok && len(m) > 0 {
@@ -2470,6 +2477,10 @@ func stripProviderMetadata(value any) any {
 	case map[string]any:
 		result := make(map[string]any, len(typed))
 		for key, child := range typed {
+			if promptOpaqueDataField(key, child) {
+				result[key] = copyPromptData(child)
+				continue
+			}
 			if providerMetadataKey(key) {
 				continue
 			}
@@ -2496,9 +2507,6 @@ func stripProviderMetadata(value any) any {
 		}
 		return result
 	default:
-		if text, ok := value.(string); ok {
-			return strings.TrimSpace(providerHashPattern.ReplaceAllString(text, ""))
-		}
 		return value
 	}
 }
@@ -2511,7 +2519,7 @@ func providerMetadataKey(key string) bool {
 	case "profileid", "activeprofileid", "fromprofileid", "targetprofileid", "currentprofileid":
 		return false
 	}
-	if normalized == "id" || strings.HasSuffix(normalized, "id") {
+	if providerPersistenceIDKey(normalized) {
 		return true
 	}
 	switch normalized {
@@ -2524,13 +2532,17 @@ func providerMetadataKey(key string) bool {
 
 // stripProviderContextMetadata removes storage/coordination metadata while
 // preserving semantic evidence references and memory creation time. Unlike
-// stripProviderMetadata, it never rewrites arbitrary natural-language strings
+// other source projections, it never rewrites arbitrary natural-language strings
 // that merely resemble an internal ID.
 func stripProviderContextMetadata(value any) any {
 	switch typed := value.(type) {
 	case map[string]any:
 		result := make(map[string]any, len(typed))
 		for key, child := range typed {
+			if promptOpaqueDataField(key, child) {
+				result[key] = copyPromptData(child)
+				continue
+			}
 			if providerContextMetadataKey(key) {
 				continue
 			}
@@ -2567,7 +2579,7 @@ func providerContextMetadataKey(key string) bool {
 	case "profileid", "activeprofileid", "fromprofileid", "targetprofileid", "currentprofileid":
 		return false
 	}
-	if normalized == "id" || strings.HasSuffix(normalized, "id") {
+	if providerPersistenceIDKey(normalized) {
 		return true
 	}
 	switch normalized {

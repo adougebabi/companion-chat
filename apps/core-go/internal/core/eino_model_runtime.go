@@ -1114,7 +1114,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				}
 				correctionInput = append(correctionInput, message)
 			}
-			correctionInput = append(correctionInput, schema.UserMessage("Validation: "+validationErr.Error()+"\nCorrect the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."))
+			correctionInput = append(correctionInput, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": validationErr.Error(), "instruction": "Correct the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."})))
 			repairModel := unboundChat
 			if queued, ok := unboundChat.(*queuedToolCallingChatModel); ok {
 				copyModel := *queued
@@ -1631,7 +1631,7 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 				message.Content = text
 			}
 		} else {
-			message.Content = stringValue(content)
+			message.Content, _ = content.(string)
 		}
 		if role == "assistant" && len(message.UserInputMultiContent) > 0 {
 			message.AssistantGenMultiContent = nil
@@ -1715,7 +1715,7 @@ func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {
 		part := mapValue(raw)
 		switch stringValue(part["type"]) {
 		case "text":
-			value := stringValue(part["text"])
+			value, _ := part["text"].(string)
 			result = append(result, schema.MessageInputPart{Type: schema.ChatMessagePartTypeText, Text: value})
 			text.WriteString(value)
 		case "image_url":
@@ -1736,5 +1736,5 @@ func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {
 
 func conversationPublicationCorrectionInput(input []*schema.Message) []*schema.Message {
 	corrected := append([]*schema.Message(nil), input...)
-	return append(corrected, schema.UserMessage("The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."))
+	return append(corrected, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": "private_reply_not_published", "instruction": "The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."})))
 }

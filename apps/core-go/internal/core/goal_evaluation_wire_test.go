@@ -313,7 +313,7 @@ func TestGoalEvaluationSharedEvidenceRetainsActualPublishingProfile(t *testing.T
 	}
 }
 
-func TestGoalEvaluationTOONHybridPreservesSemanticsAndMeasuresSameData(t *testing.T) {
+func TestGoalEvaluationJSONPreservesSemanticsAndMeasuresSameData(t *testing.T) {
 	snapshot := richGoalEvaluationWireSnapshot()
 	legacyBaseline := jsonString(snapshot)
 	_, stable, current, err := goalEvaluationWireInput(snapshot)
@@ -321,16 +321,16 @@ func TestGoalEvaluationTOONHybridPreservesSemanticsAndMeasuresSameData(t *testin
 		t.Fatal(err)
 	}
 	jsonWire := renderGoalEvaluationProviderInput(stable, current)
-	toonWire := formatProviderPromptContentWithMode(jsonString(map[string]any{"stable_definitions": stable, "current": current}), true)
+	semanticWire := renderProviderJSON(map[string]any{"stable_definitions": stable, "current": current})
 	for _, value := range []string{"发送明确表达", "保留换行", "可选：得到真实回复", "我喜欢你。", "这是认真表达。", "false", "0"} {
-		if !strings.Contains(toonWire, value) {
-			t.Fatalf("TOON/YAML lost value %q: %s", value, toonWire)
+		if !strings.Contains(semanticWire, value) {
+			t.Fatalf("JSON lost value %q: %s", value, semanticWire)
 		}
 	}
 	if strings.Index(jsonWire, `"stable_definitions":`) > strings.Index(jsonWire, `"current":`) {
 		t.Fatal("stable definitions must precede volatile current input")
 	}
-	t.Logf("goal fixture old durable baseline bytes=%d estimated_tokens=%d; semantic JSON bytes=%d estimated_tokens=%d; semantic TOON/YAML bytes=%d estimated_tokens=%d", len([]byte(legacyBaseline)), EstimatePromptTokens(legacyBaseline), len([]byte(jsonWire)), EstimatePromptTokens(jsonWire), len([]byte(toonWire)), EstimatePromptTokens(toonWire))
+	t.Logf("goal fixture old durable baseline bytes=%d estimated_tokens=%d; semantic JSON bytes=%d estimated_tokens=%d; semantic JSON bytes=%d estimated_tokens=%d", len([]byte(legacyBaseline)), EstimatePromptTokens(legacyBaseline), len([]byte(jsonWire)), EstimatePromptTokens(jsonWire), len([]byte(semanticWire)), EstimatePromptTokens(semanticWire))
 }
 
 func TestGoalEvaluationStableDefinitionsIgnoreVolatileEvidenceAndState(t *testing.T) {

@@ -186,7 +186,12 @@ func newGoalEvaluationWireBinding(snapshot goalEvaluationSnapshot) (*goalEvaluat
 		if source.SubjectActorID != "" {
 			binding.ensureTargetActor(source.SubjectActorID)
 		}
-		binding.discoverSourceObjects(compactGoalEvaluationSourceData(source))
+		data := compactGoalEvaluationSourceData(source)
+		if stringValue(data["capability"]) == "domain.query" {
+			data = cloneMap(data)
+			delete(data, "observed")
+		}
+		binding.discoverSourceObjects(data)
 	}
 	return binding, nil
 }
@@ -238,24 +243,26 @@ func (binding *goalEvaluationWireBinding) discoverSourceObjects(value any) {
 			child := typed[key]
 			normalized := strings.ToLower(key)
 			if text, ok := child.(string); ok && text != "" {
-				if strings.Contains(normalized, "actor") && strings.HasSuffix(normalized, "id") {
+				if goalEvidenceActorID(normalized) {
 					binding.ensureTargetActor(text)
-				} else if normalized == "id" || strings.HasSuffix(normalized, "_id") {
+				} else if goalEvidenceObjectID(normalized) {
 					binding.bindObject(text)
-				} else if normalized == "ref" || strings.HasSuffix(normalized, "_ref") {
+				} else if goalEvidenceRef(normalized) {
 					if binding.sourceRefs[text] == "" && binding.goalRefsByID[text] == "" && binding.stageRefsByID[text] == "" && binding.commitmentRefs[text] == "" && binding.actorRefs[text] == "" {
 						binding.bindObject(text)
 					}
 				}
 			}
-			if strings.HasSuffix(normalized, "_ids") || strings.HasSuffix(normalized, "_refs") {
+			if goalEvidenceObjectIDs(normalized) || goalEvidenceRefListField(normalized) {
 				for _, item := range arrayValue(child) {
 					if text := stringValue(item); text != "" {
 						binding.bindObject(text)
 					}
 				}
 			}
-			binding.discoverSourceObjects(child)
+			if goalEvidenceContainer(normalized) {
+				binding.discoverSourceObjects(child)
+			}
 		}
 	case []any:
 		for _, child := range typed {
@@ -394,7 +401,7 @@ func (binding *goalEvaluationWireBinding) currentInput() map[string]any {
 				goalRefs = append(goalRefs, ref)
 			}
 		}
-		sources = append(sources, map[string]any{"ref": binding.sourceRefs[source.Ref], "kind": source.Kind, "subject_actor_ref": binding.actorRefs[source.SubjectActorID], "occurred_at": source.OccurredAt, "valid": source.Valid, "can_support_success": source.CanSupportSuccess, "goal_refs": goalRefs, "data": binding.projectSourceValue(compactGoalEvaluationSourceData(source), "")})
+		sources = append(sources, map[string]any{"ref": binding.sourceRefs[source.Ref], "kind": source.Kind, "subject_actor_ref": binding.actorRefs[source.SubjectActorID], "occurred_at": source.OccurredAt, "valid": source.Valid, "can_support_success": source.CanSupportSuccess, "goal_refs": goalRefs, "data": binding.projectSourceData(source)})
 	}
 	reviews := make([]any, 0, len(binding.snapshot.Reviews))
 	for _, review := range binding.snapshot.Reviews {
@@ -402,7 +409,11 @@ func (binding *goalEvaluationWireBinding) currentInput() map[string]any {
 			reviews = append(reviews, map[string]any{"goal_ref": goalRef, "local_date": review.LocalDate, "timezone": review.Timezone, "window_start": review.WindowStart, "window_end": review.WindowEnd, "deadline_overdue": review.DeadlineOverdue})
 		}
 	}
-	return map[string]any{"goal_states": goals, "sources": sources, "reviews": reviews}
+	result := map[string]any{"goal_states": goals, "sources": sources, "reviews": reviews}
+	if payloads := shareGoalEvidencePayloads(sources); len(payloads) > 0 {
+		result["evidence_payloads"] = payloads
+	}
+	return result
 }
 
 func goalEvaluationExecutionHintInput(value map[string]any) map[string]any {
@@ -446,7 +457,7 @@ func (binding *goalEvaluationWireBinding) projectSourceValue(value any, key stri
 				continue
 			}
 			switch normalized {
-			case "revision", "version", "schema_version", "criteria_version", "profile_id", "fluctlight_id", "conversation_id", "event_id", "request_id", "operation_id", "source_fingerprint", "source_digest", "projection_digest", "recorded_at", "updated_at", "created_at":
+			case "call_id", "provider_request_id", "workflow_id", "trace_id", "run_id", "source_fact_id", "source_event_id", "body_revision", "wardrobe_revision", "source_version", "revision", "version", "schema_version", "criteria_version", "profile_id", "fluctlight_id", "conversation_id", "event_id", "request_id", "operation_id", "source_fingerprint", "source_digest", "projection_digest", "recorded_at", "updated_at", "created_at":
 				continue
 			}
 			if normalized == "source_ref" || normalized == "evidence_ref" {
@@ -465,7 +476,7 @@ func (binding *goalEvaluationWireBinding) projectSourceValue(value any, key stri
 				result[childKey] = refs
 				continue
 			}
-			if normalized == "ref" || strings.HasSuffix(normalized, "_ref") {
+			if goalEvidenceRef(normalized) {
 				text := stringValue(child)
 				ref := binding.sourceRefs[text]
 				if ref == "" {
@@ -506,7 +517,7 @@ func (binding *goalEvaluationWireBinding) projectSourceValue(value any, key stri
 				}
 				continue
 			}
-			if strings.HasSuffix(normalized, "_refs") {
+			if goalEvidenceRefListField(normalized) {
 				refs := []any{}
 				for _, item := range arrayValue(child) {
 					text := stringValue(item)
@@ -521,13 +532,13 @@ func (binding *goalEvaluationWireBinding) projectSourceValue(value any, key stri
 				result[childKey] = refs
 				continue
 			}
-			if strings.Contains(normalized, "actor") && strings.HasSuffix(normalized, "id") {
+			if goalEvidenceActorID(normalized) {
 				if ref := binding.actorRefs[stringValue(child)]; ref != "" {
 					result[strings.TrimSuffix(childKey, "id")+"ref"] = ref
 				}
 				continue
 			}
-			if normalized == "id" || strings.HasSuffix(normalized, "_id") {
+			if goalEvidenceObjectID(normalized) {
 				if ref := binding.objectRefs[stringValue(child)]; ref != "" {
 					name := "ref"
 					if normalized != "id" {
@@ -537,7 +548,7 @@ func (binding *goalEvaluationWireBinding) projectSourceValue(value any, key stri
 				}
 				continue
 			}
-			if strings.HasSuffix(normalized, "_ids") {
+			if goalEvidenceObjectIDs(normalized) {
 				refs := []any{}
 				for _, item := range arrayValue(child) {
 					if ref := binding.objectRefs[stringValue(item)]; ref != "" {
@@ -547,7 +558,11 @@ func (binding *goalEvaluationWireBinding) projectSourceValue(value any, key stri
 				result[strings.TrimSuffix(childKey, "ids")+"refs"] = refs
 				continue
 			}
-			result[childKey] = binding.projectSourceValue(child, childKey)
+			if goalEvidenceContainer(normalized) {
+				result[childKey] = binding.projectSourceValue(child, childKey)
+			} else {
+				result[childKey] = copyPromptData(child)
+			}
 		}
 		return result
 	case []any:
@@ -831,4 +846,91 @@ func goalCommitmentCriteriaVersion(values []GoalCommitment, id string) int {
 		}
 	}
 	return 0
+}
+
+// Entity traversal is restricted to declared receipt/source nodes. A schema's
+// properties, an Actor value_json, message content or a document is opaque data.
+func goalEvidenceContainer(key string) bool {
+	switch key {
+	case "surrounding_context", "result", "observed", "expected", "metadata", "fact", "facts", "items", "item", "objects", "object", "actor", "actors", "history", "admissions", "resulting_state", "appearance", "worn_items", "inventory_items", "acquired_items", "outfit", "outfits":
+		return true
+	default:
+		return false
+	}
+}
+func goalEvidenceActorID(key string) bool {
+	switch key {
+	case "actor_id", "subject_actor_id", "target_actor_id", "author_actor_id", "owner_actor_id", "recipient_actor_id":
+		return true
+	}
+	return false
+}
+func goalEvidenceObjectID(key string) bool {
+	switch key {
+	case "id", "item_id", "world_item_id", "outfit_id", "asset_id", "message_id", "moment_id", "activity_id", "intention_id", "goal_id", "stage_id", "commitment_id":
+		return true
+	}
+	return false
+}
+func goalEvidenceRef(key string) bool {
+	switch key {
+	case "ref", "source_ref", "evidence_ref", "goal_ref", "stage_ref", "object_ref", "commitment_ref", "actor_ref", "target_actor_ref", "item_ref", "asset_ref", "target_ref":
+		return true
+	}
+	return false
+}
+func goalEvidenceObjectIDs(key string) bool {
+	switch key {
+	case "item_ids", "asset_ids", "goal_ids", "stage_ids", "commitment_ids", "verified_item_ids":
+		return true
+	}
+	return false
+}
+func goalEvidenceRefListField(key string) bool {
+	switch key {
+	case "evidence_refs", "source_refs", "goal_refs", "item_refs", "asset_refs", "verified_item_refs", "action_result_refs":
+		return true
+	}
+	return false
+}
+func (binding *goalEvaluationWireBinding) projectSourceData(source GoalSource) map[string]any {
+	data := compactGoalEvaluationSourceData(source)
+	// Domain-query output is external domain data, not a Core entity envelope.
+	if stringValue(data["capability"]) == "domain.query" {
+		observed, exists := data["observed"]
+		delete(data, "observed")
+		projected := mapValue(binding.projectSourceValue(data, ""))
+		if exists {
+			projected["observed"] = copyPromptData(observed)
+		}
+		return projected
+	}
+	return mapValue(binding.projectSourceValue(data, ""))
+}
+
+// Share exact payloads, never events: every eN keeps its own time, validity,
+// subject and goal associations, and sourcesByRef still hydrates the original.
+func shareGoalEvidencePayloads(sources []any) map[string]any {
+	counts := map[string]int{}
+	for _, raw := range sources {
+		counts[jsonString(mapValue(raw)["data"])]++
+	}
+	refs := map[string]string{}
+	payloads := map[string]any{}
+	for _, raw := range sources {
+		source := mapValue(raw)
+		signature := jsonString(source["data"])
+		if counts[signature] < 2 {
+			continue
+		}
+		ref := refs[signature]
+		if ref == "" {
+			ref = fmt.Sprintf("payload:%d", len(refs)+1)
+			refs[signature] = ref
+			payloads[ref] = source["data"]
+		}
+		delete(source, "data")
+		source["payload_ref"] = ref
+	}
+	return payloads
 }

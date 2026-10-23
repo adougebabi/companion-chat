@@ -228,7 +228,7 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
-	projection.RecentOutcomes = goalEvaluationScopedOutcomes(input, projection.RecentOutcomes)
+	projection = goalEvaluationPromptProjection(input, projection)
 	schema := objectSchema(map[string]any{"summary": stringSchema()}, []string{"summary"}, false)
 	ctx = withProviderStableTaskContext(ctx, stable)
 	var priorRaw []byte
@@ -244,7 +244,7 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 		}
 	}
 	providerInput := jsonString(current)
-	assembly, refreshed, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, projection, "cognitive_assessment", []string{providerContextAuthorityRule, goalEvaluationNativeInstruction}, providerInput, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalEvaluation), "goal_evaluation_v1", schema)
+	assembly, refreshed, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceGoalEvaluation, projection, "cognitive_assessment", []string{providerContextAuthorityRule, goalEvaluationNativeInstruction}, providerInput, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalEvaluation), "goal_evaluation_v1", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
@@ -365,4 +365,23 @@ func goalEvaluationScopedOutcomes(input goalEvaluationSnapshot, outcomes []map[s
 		}
 	}
 	return result
+}
+
+// The complete snapshot still owns evaluation and Tool authority. This local
+// prompt copy retains other goals as background but avoids re-sending selected
+// goal definitions under a second, unrelated runtime reference namespace.
+func goalEvaluationPromptProjection(input goalEvaluationSnapshot, projection ContextProjection) ContextProjection {
+	projection.RecentOutcomes = goalEvaluationScopedOutcomes(input, projection.RecentOutcomes)
+	selected := map[string]bool{}
+	for _, goal := range input.Goals {
+		selected[firstString(goal.GoalID, goal.Goal.EntityID)] = true
+	}
+	remaining := make([]map[string]any, 0, len(projection.Goals))
+	for _, goal := range projection.Goals {
+		if !selected[firstString(goal["id"], stringValue(goal["goal_id"]))] {
+			remaining = append(remaining, goal)
+		}
+	}
+	projection.Goals = remaining
+	return projection
 }

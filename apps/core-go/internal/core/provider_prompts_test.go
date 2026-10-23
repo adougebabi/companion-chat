@@ -23,10 +23,10 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		//{name: "media-prompt", value: mediaPromptInstruction, max: 4000, must: []string{"Determine the intended framing before choosing a camera relationship", "body-part or partial-body close-up", "rear-camera phone self-capture", "face or upper-body close-up", "front-camera phone selfie", "full-length mirror", "photographer and the camera/phone used by that photographer must remain outside the image", "If neither framing nor capture relationship is specified", "quality_feedback", "Do not add a human subject"}},
 		{name: "media-quality", value: mediaQualityAcceptanceInstruction, max: 1800, must: []string{"strict visual consistency reviewer", "hard, observable consistency", "Do not judge beauty", "verdict pass", "Use retry only", "Use reject", "retry_guidance"}},
 	}
-	if !strings.Contains(providerRuntimeProtocol, "actor_user") || !strings.Contains(providerRuntimeProtocol, "context reference") || strings.Contains(providerRuntimeProtocol, "除用户明确要求") {
+	if !strings.Contains(providerRuntimeProtocol, "actor_user") || !strings.Contains(providerRuntimeProtocol, "正式 ref") || strings.Contains(providerRuntimeProtocol, "除用户明确要求") {
 		t.Fatalf("runtime protocol must use actor_user and a concrete context-reference boundary: %s", providerRuntimeProtocol)
 	}
-	for _, rule := range []string{providerRuntimeProtocol, providerSingleRuntimeProtocol, providerContextAuthorityRule} {
+	for _, rule := range []string{renderProviderRuntimeProtocol(nil), renderProviderRuntimeProtocol(map[string]any{"personality_system": map[string]any{"mode": "multi"}})} {
 		if !strings.Contains(rule, "actor_self") || !strings.Contains(rule, "actor_user") || !strings.Contains(rule, "scene_event") {
 			t.Fatalf("scene authority rule lost actor ownership: %s", rule)
 		}

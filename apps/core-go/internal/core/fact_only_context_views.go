@@ -13,8 +13,7 @@ type factOnlyContextView struct {
 	Selection map[string]any
 }
 
-// Unlike a Tool argument snapshot this must not erase a large required field;
-// the existing prompt budget gate is responsible for rejecting overflow.
+// Copy the complete value; prompt size never permits erasing a required field.
 func factOnlyCopyValue(value any) any { return cloneMap(map[string]any{"value": value})["value"] }
 
 func factOnlyFields(value map[string]any, keys ...string) map[string]any {

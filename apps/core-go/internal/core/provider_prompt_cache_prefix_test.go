@@ -44,7 +44,7 @@ func TestGoalEvaluationAssemblyKeepsStablePhysicalPrefix(t *testing.T) {
 		t.Fatalf("stable facts or leading system duplicated: %#v", first.Messages)
 	}
 	runtime := stringValue(first.Messages[2]["content"])
-	if !(strings.Index(runtime, "goals:") < strings.Index(runtime, "time_view:") && strings.Index(runtime, "time_view:") < strings.Index(runtime, "current_state:") && strings.Index(runtime, "current_state:") < strings.Index(runtime, "retrieved_memory:")) {
+	if !(strings.Index(runtime, `"goals":`) < strings.Index(runtime, `"time_view":`) && strings.Index(runtime, `"time_view":`) < strings.Index(runtime, `"current_state":`) && strings.Index(runtime, `"current_state":`) < strings.Index(runtime, `"retrieved_memory":`)) {
 		t.Fatalf("runtime facts are not slow-to-volatile: %s", runtime)
 	}
 	if first.Trace.SectionTokens["stable_task_context"] <= 0 || first.Trace.SectionBytes["stable_task_context"] <= 0 || first.Trace.EstimatedInputTokens <= 0 || first.Trace.WireBytes <= 0 {
@@ -72,7 +72,7 @@ func TestGoalEvaluationAssemblyKeepsStablePhysicalPrefix(t *testing.T) {
 		t.Fatalf("clock/evidence changed stable physical prefix\nfirst=%s\nsecond=%s", jsonString(first.Messages[:2]), jsonString(second.Messages[:2]))
 	}
 	secondRuntime := stringValue(second.Messages[2]["content"])
-	timeIndex := strings.Index(runtime, "time_view:")
+	timeIndex := strings.Index(runtime, `"time_view":`)
 	if timeIndex < 0 || len(secondRuntime) < timeIndex || runtime[:timeIndex] != secondRuntime[:timeIndex] {
 		t.Fatalf("unchanged slow runtime facts did not remain in the byte-identical prefix\nfirst=%s\nsecond=%s", runtime, secondRuntime)
 	}

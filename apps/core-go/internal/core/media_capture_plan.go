@@ -249,7 +249,7 @@ func ResolveMediaCapturePlan(ctx context.Context, service *decision.Service, sco
 		if len(candidates) == 0 {
 			return nil
 		}
-		results, err := service.Decide(ctx, point, scope, jsonString(map[string]any{"intent_text": intent, "explicit_constraints": explicit, "accepted_plan": plan, "question_version": mediaPlanVersion, "declared_capture": mediaCaptureHints(ctx), "referent_bindings": mediaReferents(ctx)}), candidates)
+		results, err := service.Decide(ctx, point, scope, jsonString(map[string]any{"intent_text": intent, "explicit_constraints": explicit, "accepted_plan": plan, "declared_capture": mediaCaptureHints(ctx), "referent_bindings": mediaReferents(ctx)}), candidates)
 		if err != nil {
 			return err
 		}
@@ -329,7 +329,7 @@ func ResolveMediaCapturePlan(ctx context.Context, service *decision.Service, sco
 			candidates = append(candidates, decision.Candidate{Point: route, ID: key, Question: mediaQuestion(key)})
 		}
 		if len(candidates) > 0 {
-			results, err := service.Decide(ctx, point, scope, jsonString(map[string]any{"intent_text": intent, "explicit_constraints": explicit, "accepted_plan": plan, "question_version": mediaPlanVersion, "declared_capture": mediaCaptureHints(ctx), "referent_bindings": mediaReferents(ctx)}), candidates)
+			results, err := service.Decide(ctx, point, scope, jsonString(map[string]any{"intent_text": intent, "explicit_constraints": explicit, "accepted_plan": plan, "declared_capture": mediaCaptureHints(ctx), "referent_bindings": mediaReferents(ctx)}), candidates)
 			if err != nil {
 				return nil, nil, err
 			}

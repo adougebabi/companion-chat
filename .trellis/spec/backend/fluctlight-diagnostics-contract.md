@@ -42,8 +42,8 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
   rendered prompt layers with image payloads replaced, raw/structured response,
   parse/schema diagnostics, estimated/actual token use, Provider latency,
   timeout/cancel status, correlation identity, and optional Fluctlight scope.
-- `metrics.prompt_budget` contains policy/context/max-input/output-reserve/safety
-  values plus estimated input and section token/count maps for `system`,
+- `metrics.prompt_budget` retains legacy-compatible keys under prompt-unlimited.v1;
+  cap/reserve fields are not active limits. It contains estimated input and section token/count maps for `system`,
   `runtime`, `recent`, `current_input`, `tools`, and `response_schema`.
   Provider usage is normalized to `prompt_tokens`, `completion_tokens`, and
   `total_tokens`; estimator delta is actual prompt minus estimated input.
@@ -180,7 +180,7 @@ return result
 - Owner authorization and correlation/fluctlight filters apply to reads.
 - Periodic retention deletes only diagnostic tables, never domain audit or
   revision/evidence rows.
-- Prompt diagnostics include final wire section counts/tokens, output reserve,
+- Prompt diagnostics include final wire section counts/tokens, no application output cap,
   actual Provider usage/latency, estimator delta, bounded selected/dropped refs,
   ranking reasons/components, and optional continuation phase. Retained
   non-image values, including `source_refs`, are unchanged; image data is replaced.
@@ -236,8 +236,8 @@ return result
   terminal callback, and asserts one unchanged row plus no persistence warning;
   a separate test asserts Provider timeout creates exactly one
   `timeout/request_timeout` row.
-- Provider wire-budget tests assert Tools/schema are counted separately,
-  `max_tokens` remains output reserve, usage/latency/delta are normalized, and
+- Provider physical-input tests assert Tools/schema are measured separately,
+  max_tokens/max_completion_tokens are absent, usage/latency/delta are normalized, and
   ordinary product APIs cannot read prompt metrics.
 
 ### 7. Wrong vs Correct

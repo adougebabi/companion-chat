@@ -27,18 +27,34 @@ func goalEvaluationFactInput(fact map[string]any) map[string]any {
 }
 
 func compactGoalEvaluationSourceData(source GoalSource) map[string]any {
+	if source.Kind == "item" {
+		return map[string]any{"item": compactStateMap(source.Data["item"], []string{"id", "item_kind", "category", "slot", "description", "ownership", "availability", "lender", "source_kind", "acquired_at", "value_json"})}
+	}
 	if source.Kind == "actor_fact" {
 		return map[string]any{"fact": goalEvaluationFactInput(mapValue(source.Data["fact"]))}
 	}
 	if source.Kind != "outcome" {
-		result := cloneMap(source.Data)
+		result := mapValue(copyPromptData(source.Data))
 		delete(result, "context_authority")
 		return result
 	}
-	result := cloneMap(source.Data)
+	result := mapValue(copyPromptData(source.Data))
 	capability := stringValue(source.Data["capability"])
 	observed := mapValue(source.Data["observed"])
 	switch capability {
+	case capabilityCatalogName:
+		// A historical catalog read proves discovery/availability, not the
+		// execution of its advertised tools. Schemas remain in the live native
+		// catalog; replaying them as goal evidence is unrelated instruction data.
+		view := compactStateMap(observed, []string{"count", "loaded", "unavailable", "admissions", "replaces_optional_window"})
+		items := []any{}
+		for _, raw := range arrayValue(observed["items"]) {
+			items = append(items, compactStateMap(mapValue(raw), []string{"name", "status", "available"}))
+		}
+		if len(items) > 0 {
+			view["items"] = items
+		}
+		result["observed"] = view
 	case goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit, "goal.inspect", "goal.decide", "goal.evaluate", "goal.review":
 		// The current selected Goal/criteria are already present separately.
 		result["observed"] = map[string]any{"status": source.Data["status"]}

@@ -319,7 +319,7 @@ func TestProviderSystemPromptHasSinglePersonaSource(t *testing.T) {
 		t.Fatalf("an inactive profile or a visual asset leaked into the system persona: %s", rendered)
 	}
 	// The roster survives as identifiers only, so Main can still name profiles.
-	if !strings.Contains(rendered, "id: twilight") || strings.Contains(rendered, "描述性内容") {
+	if !strings.Contains(rendered, `"id":"twilight"`) || strings.Contains(rendered, "描述性内容") {
 		t.Fatalf("the identifier-only roster is wrong: %s", rendered)
 	}
 }

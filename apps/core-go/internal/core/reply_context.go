@@ -137,7 +137,11 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 	if input.Scene != replySceneMoment && viewVersion == replyViewVersion {
 		persona, personaDiagnostics = privateReplyPersonaView(persona, input.PersonaSource)
 	}
-	result, err := AssemblePromptContext(PromptAssemblyInput{Surface: ProviderContextSurfaceFactOnlyReply, Role: conversationReplyModelRole,
+	surface := ProviderContextSurfaceFactOnlyReply
+	if input.Scene == replySceneMoment {
+		surface = ProviderContextSurfaceMomentReply
+	}
+	result, err := AssemblePromptContext(PromptAssemblyInput{Surface: surface, Role: conversationReplyModelRole,
 		OperationRules: rules, CorePersona: persona,
 		WorkingMemory: working, CurrentInput: input.CurrentInput, Tools: RenderCapabilityTools(replyWriterDefinitions(input)), Policy: policy})
 	if err != nil {
@@ -202,7 +206,7 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 		if role != "user" && role != "assistant" {
 			continue
 		}
-		text := stringValue(message["text"])
+		text, _ := message["text"].(string)
 		if index == currentIndex {
 			continue
 		}

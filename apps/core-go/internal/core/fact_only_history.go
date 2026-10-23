@@ -55,7 +55,7 @@ func factOnlyHistory(projection ContextProjection, currentInput string) []Prompt
 		if role != "user" && role != "assistant" {
 			continue
 		}
-		text := stringValue(row["text"])
+		text, _ := row["text"].(string)
 		if strings.TrimSpace(text) == "" {
 			continue
 		}

@@ -113,7 +113,7 @@ func TestPrivateChatPersonaAppearanceHistoryFinalSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	wire := jsonString(prompt.Messages)
-	for _, required := range []string{"极度通透敏锐", "刻意示弱", "情绪留白", "乱了阵脚", "原文完整保留", "挑选新书与调试咖啡豆", "灵魂共谋者", "success_criteria: []", "text_chat", "past_message_verbatim_not_current_event_proof", "在干嘛呢？"} {
+	for _, required := range []string{"极度通透敏锐", "刻意示弱", "情绪留白", "乱了阵脚", "原文完整保留", "挑选新书与调试咖啡豆", "灵魂共谋者", `\"success_criteria\":[]`, "text_chat", "past_message_verbatim_not_current_event_proof", "在干嘛呢？"} {
 		if !strings.Contains(wire, required) {
 			t.Errorf("required semantic/source missing: %s", required)
 		}

@@ -836,7 +836,7 @@ func TestVisualIdentityAgentMessagesCarryRealImageContentBlock(t *testing.T) {
 		t.Fatalf("real multimodal image block missing: %#v", messages[1]["content"])
 	}
 	textPart := stringValue(mapValue(content[0])["text"])
-	if strings.HasPrefix(textPart, "{") || strings.Contains(textPart, `\"`) || !strings.Contains(textPart, "session_status: running") || jsonString(content[1]) != jsonString(image) {
+	if !strings.HasPrefix(textPart, "{") || strings.Contains(textPart, `\"`) || !strings.Contains(textPart, `"session_status":"running"`) || jsonString(content[1]) != jsonString(image) {
 		t.Fatalf("visual identity multimodal text/image formatting drifted: text=%s image=%#v", textPart, content[1])
 	}
 	for _, forbidden := range []string{"session-1", "fl-1", "media-intent-1", "asset-1", "secret-background", "secret-story", "adapter_version"} {

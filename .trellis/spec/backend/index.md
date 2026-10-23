@@ -11,6 +11,7 @@ boundaries described below.
 
 | Guide | Use it for |
 | --- | --- |
+| [LLM Prompt Composition](./prompt-composition-contract.md) | Required for every model input: one JSON format, task-specific fields, exact deduplication, history authority and prohibition on restoring prompt/response token limits |
 | [Owner Schedule / Story Contracts](./owner-schedule-story-contract.md) | Durable non-overwriting schedule requests, accepted-promise associations and authoritative read-only story totals |
 | [Directory Structure](./directory-structure.md) | Adding routes, helpers, or runtime assets |
 | [Kev Decisions](./kev-decision-contract.md) | Seven selection gates, reliable raw audit, dynamic tool disclosure, pre-effect persona admission and fallback |

@@ -138,7 +138,7 @@ func TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL(t *test
 	formatted := formatProviderMessagesForRole(messages, "media_prompt")
 	formattedParts := arrayValue(formatted[1]["content"])
 	formattedText := stringValue(mapValue(formattedParts[0])["text"])
-	if !strings.Contains(formattedText, "frozen_media_concept:") || !strings.Contains(formattedText, "mode: mirror_selfie") || strings.Contains(formattedText, `\"`) || strings.Contains(formattedText, "frozen_media_concept: '{") {
+	if !strings.Contains(formattedText, `"frozen_media_concept":`) || !strings.Contains(formattedText, `"mode":"mirror_selfie"`) || strings.Contains(formattedText, `\"`) || strings.Contains(formattedText, "frozen_media_concept: '{") {
 		t.Fatalf("quality text part retained nested JSON or lost capture: %s", formattedText)
 	}
 	if jsonString(formattedParts[1]) != jsonString(imagePart) {
@@ -184,10 +184,10 @@ func TestMediaQualityFinalProviderRequestKeepsImageAndReadableText(t *testing.T)
 	if err := repository.Pool().QueryRow(ctx, `SELECT prompt FROM public.diagnostic_model_runs WHERE scenario='media_quality_acceptance' ORDER BY queued_at DESC LIMIT 1`).Scan(&diagnosticPrompt); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(diagnosticPrompt), "frozen_media_concept:") || !strings.Contains(string(diagnosticPrompt), "REDACTED_IMAGE_DATA") || strings.Contains(string(diagnosticPrompt), imageURL) {
+	if !strings.Contains(string(diagnosticPrompt), `"frozen_media_concept":`) || !strings.Contains(string(diagnosticPrompt), "REDACTED_IMAGE_DATA") || strings.Contains(string(diagnosticPrompt), imageURL) {
 		t.Fatalf("physical diagnostic does not match readable multimodal wire: prompt=%s image=%s", diagnosticPrompt, imageURL)
 	}
-	if !strings.HasPrefix(imageURL, "data:image/png;base64,") || !strings.Contains(modelText, "frozen_media_concept:") || !strings.Contains(modelText, "澄光") || strings.HasPrefix(modelText, "{") {
+	if !strings.HasPrefix(imageURL, "data:image/png;base64,") || !strings.Contains(modelText, `"frozen_media_concept":`) || !strings.Contains(modelText, "澄光") || strings.HasPrefix(modelText, "{") {
 		t.Fatalf("media quality wire lost multimodal readable input: text=%s image=%s", modelText, imageURL)
 	}
 	for _, forbidden := range []string{"private story", "fl-private", "chest_lora_weight", `\"`} {

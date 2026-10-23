@@ -521,6 +521,8 @@ func capabilitySurfaceForProviderSurface(surface ProviderContextSurface) Capabil
 		return CapabilitySurfaceWakeUp
 	case ProviderContextSurfaceNativeCognition, ProviderContextSurfaceDailyReview:
 		return CapabilitySurfaceNativeCognition
+	case ProviderContextSurfaceGoalEvaluation:
+		return CapabilitySurfaceGoalEvaluation
 	case ProviderContextSurfaceReflection:
 		return CapabilitySurfaceReflection
 	default:

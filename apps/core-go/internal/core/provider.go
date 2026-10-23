@@ -284,10 +284,8 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		messages = addVisualIdentityMediaPromptInstruction(role, messages)
 		if role == "media_prompt" {
 			messages = withChineseOutputInstruction(role, messages)
-			messages = formatProviderMessagesForRole(messages, role)
-		} else {
-			messages = (&PromptComposer{}).ComposeTaskMessages(role, messages)
 		}
+		messages = (&PromptComposer{}).ComposeTaskMessages(role, messages)
 	}
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
 	disclosed := definitions

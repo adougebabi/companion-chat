@@ -293,7 +293,7 @@ it, or attribute another Actor's statement to the human Owner.
 
 ### 6. Tests Required
 
-Retain authorization-before-ranking, whole-fragment prompt budgeting, Actor and
+Retain authorization-before-ranking, whole-fragment semantic selection, Actor and
 profile attribution, reflection watermark rollback, claim non-promotion,
 post-commit publication, supersession and real streamed request coverage.
 
@@ -380,7 +380,7 @@ or cancellation during an Agent run. Preserve committed actions and domain fence
 ### 2. Signatures
 
 ```text
-reserveRequiredWorkingMemory(input, policy, maxInput) -> policy | budget error
+reserveRequiredWorkingMemory(input, policy, maxInput) -> unchanged compatibility policy
 queuedToolCallingChatModel.compactPhysicalInput(ctx, messages) -> outbound copy
 publicationCapabilityError(ErrLifeContextStale, ...) -> life_context_stale,false
 providerContextRefCodec.registerIndex(index) -> current permitted ref set
@@ -399,19 +399,11 @@ borrowingPersistenceFailure(invocation, code, pgError) -> failed result
   business arguments cannot repair. Borrowing returns failed/non-retryable feedback
   saying no change committed. Transient connection/serialization errors retain
   recovery behavior; never fabricate acquired IDs or clothing after a failure.
-- Required WorkingMemory fragments rank before optional ones. Assembly may expand
-  an individual section quota to its required content, bounded by the configured
-  total input limit. Required recent groups reserve the whole group/contiguous
-  tail. Final wire checks still include system, Runtime, current input, Tools,
-  results, response schema and output/safety reserves; no context-limit increase.
-- If the physical request is oversized, compact only its outbound copy: discard
-  older plain assistant reasoning first, then complete optional historical
-  user/assistant turns when a formal Runtime marker identifies them. Preserve
-  system, Runtime, the latest user input including images and every native
-  ToolCall/ToolResult unchanged. Original Eino history and receipts remain intact.
-  A still-oversized mandatory request fails before HTTP; never truncate a result
-  or silently convert it to a successful empty response. Record estimated
-  before/after counts and removed message counts in adk.model.input_compacted.
+- Required WorkingMemory facts and complete recent groups remain selected.
+  There are no token quotas, output reserves or oversized-request compaction.
+  Physical diagnostics measure system, runtime, current input, Tools/results
+  and response schema; every valid native message/Tool result reaches the model
+  intact. Upstream context errors remain actual Provider failures.
 - A private publication failing Life Context CAS returns non-retryable-in-place
   life_context_stale as ordinary Tool feedback and marks projection refresh dirty.
   The next physical decision reads the new context and may compose a new reply;
@@ -429,7 +421,7 @@ borrowingPersistenceFailure(invocation, code, pgError) -> failed result
   not authority. Unknown refs enter the existing single tool-free final repair
   before business settlement. Do not drop refs silently, invent replacements,
   replay Tools or restart the whole run. The unbound repair model also omits Tool
-  schema from physical budgeting, matching the actual no-Tool request.
+  schema from physical input measurement, matching the actual no-Tool request.
 - Cancellation/timeout classification precedes wrapped Tool-stage classification.
   Cancellation remains request_cancelled and never starts a replacement run.
   Storage's existing failed terminal status is not changed by this classification.
@@ -440,10 +432,8 @@ borrowingPersistenceFailure(invocation, code, pgError) -> failed result
 | --- | --- |
 | SQL 42804 or another class-42 loan write error | failed borrowing code, retryable=false, no committed inventory effect. |
 | Loan Event missing replay fields | Database rejects the transaction; fix the writer, not the trigger. |
-| Required section exceeds its default cap but fits total budget | Reserve sufficient section capacity, displace optional fragments. |
-| Required content itself exceeds total budget | prompt_required_budget_exceeded before model HTTP. |
-| Continuation exceeds budget due optional reasoning/history | Compact outbound copy, re-count full request and continue only if it fits. |
-| Latest mandatory Tool result still too large | prompt_tool_result_budget_exceeded; full result remains in audit. |
+| Large required section or Tool result | Preserve complete supplied data; legacy token settings do not reject or compact. |
+| Later native continuation includes history/reasoning | Preserve actual transcript; no token-based pruning. |
 | Reply context changes between decision and publication | life_context_stale feedback -> refresh -> new decision; stale prose not published. |
 | Unknown full ref or alias in final influences | Bounded tool-free final correction; a failed correction stays a failure. |
 | Wrapped context.Canceled | cancellation/request_cancelled, no automatic replay. |
@@ -453,15 +443,14 @@ borrowingPersistenceFailure(invocation, code, pgError) -> failed result
 - Good: a stale home reply is rejected, fresh shop context is read, and the next
   native reply publishes once without rerunning the scene change.
 - Good: SQL-safe borrowed registration -> actual ID -> wear -> return -> replay.
-- Base: a large required Tool result cannot fit even after optional compaction;
-  refuse the model request with explicit budget diagnostics.
+- Base: a large required Tool result reaches the next model request intact.
 - Bad: fix a SQL defect by retrying indefinitely, remove domain/version guards,
   raise the context ceiling, truncate Tool outputs, or discard unknown provenance.
 
 ### 6. Tests Required
 
-runtime_recovery_test.go covers section borrowing and strict total refusal,
-reasoning/history compaction without changing raw Eino or Tool protocol, actual
+runtime_recovery_test.go covers complete input/Tool retention despite legacy
+settings, unchanged native Eino/Tool protocol, actual
 native final-ref correction with a script HTTP model, cancellation classification,
 and real-PG prior wearing effect -> stale reply rejection -> refresh -> exactly
 one new publication -> valid settlement. Negative checks preserve ordinary
@@ -495,7 +484,7 @@ The typed Goal Evaluation task enters the existing Eino Runner with frozen root 
 - When root submissions are accepted, restore `tool_choice="auto"` while keeping the native request free of final response grammar. Optional object/plan calls remain allowed; the successful stopping candidate is validated against the original final contract, with at most one existing tool-free repair if needed.
 - A real frozen source/authority conflict permits an error summary so the existing finalizer can queue unresolved/deferred targets with a fresh snapshot. This escape never counts as root coverage. The native adapter handles repeated accepted targets, unknown/no_change and deterministic ref normalization as specified in goal-life-consistency-contract.md. Three attempts without a new durable accepted target close Tools and allow an operational awaiting_evidence summary; unresolved targets remain unaccepted and their sources pending.
 - Explicit forbidden choice plus an empty AllowedToolNames removes tools/tool_choice/parallel_tool_calls and permits the summary grammar. Only in that state may task-owned ToolCallFallback replace a successful Provider response that still contains ToolCalls with a procedural summary. Original response/usage diagnostics precede adaptation; Generate/Stream errors and cancellation remain original. The discarded calls never execute, and no Goal judgment is synthesized.
-- Apply options using locked Eino APIs: `model.WithToolChoice` and `openaiext.WithRequestPayloadModifier`. Do not replace ExtraFields to remove one format field. Budget and diagnostics use the effective format of this physical request.
+- Apply options using locked Eino APIs: `model.WithToolChoice` and `openaiext.WithRequestPayloadModifier`. Do not replace ExtraFields to remove one format field. Input measurements and diagnostics use the effective format of this physical request.
 - Final DTO repair is tool-free and explicitly suppresses the task request policy; it cannot issue required ToolCalls without a catalog or replay mutations. Task policies keep their own required/auto readiness rules; the shared adapter omits final grammar whenever the effective physical Tool catalog is nonempty, including WakeUp and requests without a task policy.
 - DB/claim/cancellation failures remain errors. Native state, evidence/CAS, ownership, paused settlement and independent Tool transactions remain the sole business authority.
 
@@ -596,7 +585,7 @@ Good: actual native reply → committed receipt → final cognition. Base: optio
 Wrong: decode a final field and call publication service. Correct: the model calls conversation.reply, its receipt proves publication, and the caller projects the stored message.
 
 
-Physical request policies may set AllowedToolNames to a subset of the already installed catalog. The queued Generate/Stream adapter narrows actual model.WithTools and effective budget/diagnostics together, rejects unknown/empty requested catalogs with physical_request_tool_catalog_invalid, and never grants capabilities. Nil preserves the existing catalog. Planner query phases use this seam; Goal Evaluation, Visual Identity and conversation publication retain their existing policies and single Runner. Tool-free final repair suppresses the policy as before.
+Physical request policies may set AllowedToolNames to a subset of the already installed catalog. The queued Generate/Stream adapter narrows actual model.WithTools and effective input metrics/diagnostics together, rejects unknown/empty requested catalogs with physical_request_tool_catalog_invalid, and never grants capabilities. Nil preserves the existing catalog. Planner query phases use this seam; Goal Evaluation, Visual Identity and conversation publication retain their existing policies and single Runner. Tool-free final repair suppresses the policy as before.
 
 
 ## Scenario: Final repair isolation and empty-output authority (2026-10-11)
@@ -758,7 +747,7 @@ when that actual catalog is nonempty. No endpoint switch or public API is added.
 
 ### 3. Contracts
 Every native Tool-bearing physical request omits response_format and uses the
-same effective format for input budgeting. Required/auto, authorized catalogs,
+same effective format for input measurement. Required/auto, authorized catalogs,
 thinking and optional continuation retain their task-owned rules. A committed
 reply or accepted root does not itself end the run or remove optional Tools.
 When the native Runner stops successfully, a valid final DTO passes strict Core
@@ -808,7 +797,7 @@ and request schema-constrained correction only through the isolated no-Tool path
 `context_reference_index_too_large`. Internal optimization thresholds must permit
 complete valid context to continue, including freezing, Tool replay and settlement.
 This scenario supersedes byte/count rejection for this internal data path; the
-configured physical model budget and external model-argument schema remain separate.
+physical model diagnostics and external model-argument schema remain separate.
 
 ### 2. Signatures
 `ContextReferenceIndex.add(...)`, `ContextReferenceIndex.Validate() error`,

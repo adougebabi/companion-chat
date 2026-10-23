@@ -201,8 +201,8 @@ func TestMediaProviderBindingUsesKnownBodyRowsAndDriveLabels(t *testing.T) {
 	}
 	formatted := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": input}}, "media_prompt")
 	wire := stringValue(formatted[0]["content"])
-	if !strings.Contains(wire, "body_fields[2]{field,value}:") || !strings.Contains(wire, "mode: selfie") || strings.Contains(wire, `\"`) {
-		t.Fatalf("media concept did not render compact TOON with capture: %s", wire)
+	if !strings.Contains(wire, `"body_fields":[`) || !strings.Contains(wire, `"mode":"selfie"`) || strings.Contains(wire, `\"`) {
+		t.Fatalf("media concept did not render JSON with capture: %s", wire)
 	}
 }
 
