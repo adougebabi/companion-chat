@@ -1,5 +1,5 @@
 import { defineComponent, ref, computed, onUnmounted, h, Fragment } from "vue";
-import { pendingIssues } from "../presentation.mjs";
+import { pendingIssues,uniqueReplyNotifications } from "../presentation.mjs";
 import { useWorkspace } from "../workspace.mjs";
 import { renderBrowsePage } from "../renderers/BrowsePage.mjs";
 import { FilterChips, ActionFeedback } from "../shared/components.mjs";
@@ -53,8 +53,7 @@ export default defineComponent({
     );
     const characters = computed(() =>
       props.page === "通知与待处理"
-        ? w.state.notifications
-            .filter((n) => !n.read_at)
+        ? uniqueReplyNotifications(w.state.notifications.filter((n) => !n.read_at))
             .map((n) => {
               const c =
                 w.state.characters.find((v) => v.id === n.fluctlight_id) || {};

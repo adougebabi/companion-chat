@@ -5,6 +5,26 @@ import {
 } from "../v3/domain-presentation.mjs";
 export const joined = (...values) =>
   values.filter((value) => value != null && String(value).trim()).join(" · ");
+export function readablePrompt(value) {
+  let record=value;
+  if(typeof record==='string'){
+    try{const parsed=JSON.parse(record);if(Array.isArray(parsed?.messages)||Array.isArray(parsed))record=parsed;else return record;}catch{return record;}
+  }
+  const messages=Array.isArray(record)?record:Array.isArray(record?.messages)?record.messages:null;
+  if(!messages)return typeof record?.content==='string'?record.content:JSON.stringify(record??{},null,2);
+  const content=(part)=>typeof part==='string'?part:part?.type==='text'?part.text:part?.type==='image_url'?'（图片输入，原始结构见技术详情）':JSON.stringify(part,null,2);
+  return messages.map(message=>`[${message.role||'记录'}]\n${Array.isArray(message.content)?message.content.map(content).join('\n'):content(message.content??'')}${message.tool_calls?.length?'\n工具调用：\n'+JSON.stringify(message.tool_calls,null,2):''}`).join('\n\n');
+}
+export function uniqueReplyNotifications(rows){
+  const seen=new Set();
+  return rows.filter(row=>{
+    let message='',conversation='';
+    try{const url=new URL(String(row.link||'').replace(/^#/,''),'http://notification.local');message=url.searchParams.get('message')||'';conversation=url.searchParams.get('conversation')||'';}catch{}
+    const source=message||(row.source_kind==='conversation_message'?row.source_id:'');
+    const key=source?JSON.stringify([row.fluctlight_id,conversation,source]):'notice:'+row.id;
+    if(seen.has(key))return false;seen.add(key);return true;
+  });
+}
 export function scheduleProjection(item, schedule, format) {
   const activity =
       typeof item.activity === "string" ? item.activity.trim() : "",
@@ -89,10 +109,7 @@ export function diagnosticProjection(
       d.scenario || d.binding_role || d.role,
       index ? "媒体生成" : "模型调用",
     );
-  const rawInput =
-      typeof d.prompt === "string"
-        ? d.prompt
-        : JSON.stringify(d.prompt || {}, null, 2),
+  const rawInput = readablePrompt(d.prompt),
     rawResponse =
       typeof d.response === "string"
         ? d.response

@@ -324,7 +324,7 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		}
 		return b.server.app.DecorateFluctlightList(ctx, actorID, items), nil
 	case path == "/internal/fluctlights" && method == http.MethodPost:
-		item, createErr := b.server.app.CreateFluctlight(ctx, actorID, stringValue(values["id"]), stringValue(values["name"]), "blank_slate", "", nil, nil, nil)
+		item, createErr := b.server.app.AdmitFluctlight(ctx, actorID, stringValue(values["id"]), stringValue(values["name"]), "blank_slate", "", nil, nil, nil)
 		if createErr != nil {
 			return nil, browserBackendError(createErr, "fluctlight_create_failed")
 		}
@@ -475,13 +475,17 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.HasSuffix(path, "/retire"):
 		parts := splitInternalPath(path)
 		return b.server.app.RetireFluctlight(ctx, actorID, pathPart(parts, 2), stringValue(values["reason"]), intPtr(values["expected_revision"]))
+	case strings.HasSuffix(path, "/persona-preparation/recover") && method == http.MethodPost:
+		parts := splitInternalPath(path)
+		value, err := b.server.app.RecoverPersonaPreparation(ctx, actorID, pathPart(parts, 2), intValue(values["expected_revision"]), stringValue(values["idempotency_key"]))
+		return value, ownerVersionError(err, "foundation_revision_conflict")
 	case strings.HasSuffix(path, "/foundation-revisions") && method == http.MethodPost:
 		parts := splitInternalPath(path)
 		value, err := b.server.app.ProposeFoundation(ctx, actorID, pathPart(parts, 2), values)
 		return value, ownerVersionError(err, "foundation_revision_conflict")
 	case strings.Contains(path, "/foundation-revisions/") && (strings.HasSuffix(path, "/accept") || strings.HasSuffix(path, "/reject")):
 		parts := splitInternalPath(path)
-		value, err := b.server.app.SetFoundationDecisionExpected(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), pathPart(parts, 5), stringValue(values["reason"]), intPtr(values["expected_revision"]))
+		value, err := b.server.app.AdmitFoundationDecisionExpected(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4), pathPart(parts, 5), stringValue(values["reason"]), intPtr(values["expected_revision"]))
 		return value, ownerVersionError(err, "foundation_revision_conflict")
 	case strings.HasSuffix(path, "/foundation-revisions/rollback"):
 		parts := splitInternalPath(path)
@@ -636,7 +640,7 @@ func (b *browserBackend) activate(ctx context.Context, actorID string, body map[
 	if mode == "blank_slate" {
 		initialization = nil
 	}
-	item, err := b.server.app.CreateFluctlight(ctx, actorID, core.StableFluctlightID(actorID, requestID), name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]), stringValue(body["initialization_timezone"]))
+	item, err := b.server.app.AdmitFluctlight(ctx, actorID, core.StableFluctlightID(actorID, requestID), name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]), stringValue(body["initialization_timezone"]))
 	if err != nil {
 		return nil, browserBackendError(err, "activation_persistence_failed")
 	}

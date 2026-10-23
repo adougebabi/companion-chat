@@ -149,7 +149,7 @@ func TestCreationOwnsIndependentScheduleAndWakeUpIntents(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(source)
-	create := sourceBetween(t, text, "func (a *App) CreateFluctlight", "func initialPersonalityProfileID")
+	create := sourceBetween(t, text, "func (a *App) createFluctlight", "func initialPersonalityProfileID")
 	if strings.Count(create, "ensureCreationLifecycleIntentsTx") < 2 {
 		t.Fatal("new activation and idempotent replay do not share lifecycle-intent repair")
 	}

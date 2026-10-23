@@ -41,6 +41,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["persona_preparation"], err = a.readPersonaPreparation(ctx, fluctlightID, fluctlight.CurrentRevision)
+	if err != nil {
+		return nil, err
+	}
 	detail["persona_switch_history"], detail["persona_switch_history_has_more"], err = a.readPersonaSwitchHistory(ctx, fluctlightID)
 	if err != nil {
 		return nil, err

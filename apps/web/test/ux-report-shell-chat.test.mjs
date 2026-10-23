@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {configurationSections} from '../src/v3/proto/service-metadata.js';
 import assert from 'node:assert/strict';
 import {errorMessage} from '../src/v3/domain-presentation.mjs';
-import {chatFailureText,chatWaitText} from '../src/v3/chat-feedback.mjs';
+import {chatFailureText,chatWaitText,chatWaitingPresentation} from '../src/v3/chat-feedback.mjs';
 import {characterSwitchHref,sidebarSectionPath} from '../src/v3/workspace-navigation.mjs';
 import {constraintMessage,installFieldValidation} from '../src/v3/proto/components/forms.js';
 import {MessageBubble} from '../src/v3/proto/components/chat.js';
@@ -16,8 +16,13 @@ test('readable failures preserve Chinese business meaning and leave raw values u
 });
 test('long waiting remains observable processing after thirty seconds without a fake failure',()=>{
  const state={hasPendingTurn:true};const text=chatWaitText(state,1000,126000);
- assert.match(text,/已等待 2 分 5 秒/);assert.match(text,/稍后回来/);assert.doesNotMatch(text,/模型服务|提交记录/);assert.doesNotMatch(text,/已失败|不代表失败|查询原请求/);
- assert.equal(chatWaitText({},1000,126000),'');assert.match(chatWaitText({hasSettlingTurn:true},1000,3000),/正在结束本次生成/);
+ assert.equal(text,'她 正在输入');
+ assert.equal(chatWaitingPresentation(state,1000,30000).showDiagnostics,false);
+ assert.equal(chatWaitingPresentation(state,1000,31000).detail,'她还在想…');
+ assert.equal(chatWaitingPresentation(state,1000,90000).showStop,false);
+ assert.equal(chatWaitingPresentation(state,1000,91000,'雨禾').label,'雨禾 正在输入');
+ assert.equal(chatWaitingPresentation(state,1000,91000).showStop,true);
+ assert.equal(chatWaitText({},1000,126000),'');
 });
 test('switching characters keeps list context and filters but never copies object or request identity',()=>{
  assert.equal(characterSwitchHref('/c/a/growth/reflection?status=failed&q=coffee&message=old&conversation=old&returnTo=x','b'),'#/c/b/growth/reflection?status=failed&q=coffee');

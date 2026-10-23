@@ -393,7 +393,7 @@ func (a *App) SetFoundationDecision(ctx context.Context, actorID, fluctlightID, 
 	return a.SetFoundationDecisionExpected(ctx, actorID, fluctlightID, revisionID, action, reason, nil)
 }
 
-func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctlightID, revisionID, action, reason string, expected *int) (map[string]any, error) {
+func (a *App) setFoundationDecisionExpected(ctx context.Context, actorID, fluctlightID, revisionID, action, reason string, expected *int, deferredCompilation bool) (map[string]any, error) {
 	if action != "accept" && action != "reject" {
 		return nil, errors.New("foundation_decision_invalid")
 	}
@@ -412,7 +412,7 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 		return nil, retiredOwnerWriteError()
 	}
 	var compiledWorkingPersonas []CompiledWorkingPersona
-	if action == "accept" {
+	if action == "accept" && !deferredCompilation {
 		var revision, base, current int
 		var status, mode string
 		var rawCore, rawIdentity, rawPersonality, rawPolicy, rawLife []byte
@@ -487,7 +487,7 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 			return ErrConflict
 		}
 		if action == "accept" {
-			if len(compiledWorkingPersonas) == 0 {
+			if !deferredCompilation && len(compiledWorkingPersonas) == 0 {
 				return errors.New("working_persona_compilation_required")
 			}
 			if current != baseRevision {
@@ -513,14 +513,20 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, revision, corePersona, identity, personality, policy, life, provenance); err != nil {
 				return err
 			}
-			if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas); err != nil {
-				return err
-			}
-			if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
-				return err
-			}
-			if err := insertCompiledWorkingPersonasTx(ctx, tx, fluctlightID, compiledWorkingPersonas); err != nil {
-				return err
+			if deferredCompilation {
+				if _, err := enqueuePersonaPreparationTx(ctx, tx, actorID, fluctlightID, revision, "foundation_revision", revisionID); err != nil {
+					return err
+				}
+			} else {
+				if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas); err != nil {
+					return err
+				}
+				if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
+					return err
+				}
+				if err := insertCompiledWorkingPersonasTx(ctx, tx, fluctlightID, compiledWorkingPersonas); err != nil {
+					return err
+				}
 			}
 			if err := initializeAddedProfileHabitsTx(ctx, tx, fluctlightID, revisionID, decodeObject(corePersona)); err != nil {
 				return err

@@ -113,6 +113,15 @@ keep component native DOM parity, and execute repeated route/data updates.
 
 ## Scenario: v6.2 initialization and character details
 
+The follow-up [durable preparation contract](../backend/initialization-preparation-contract.md)
+adds async saved-source compilation, serial bootstrap dependencies and editable
+error recovery. Creation drafts and original commands now use Owner-scoped
+localStorage; archived per-character progress has an independent command key.
+The seven preparation rows include persona compilation in the character/world
+row. Profile detail shows background progress and recovery; observation pauses
+while editing/saving or hidden. Known validation rejection unlocks source
+editing; unknown outcomes retain immutable activation identity.
+
 ### 1. Scope / Trigger
 New/empty library, `#/library/create`, `#/c/:fid/profile`, and report feedback.
 

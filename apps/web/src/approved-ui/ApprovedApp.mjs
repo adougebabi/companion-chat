@@ -134,7 +134,7 @@ export default defineComponent({
     const render = renderApp({
       d: navigate,
       u: switchOpen,
-      character: workspace.current,
+      character: computed(()=>page.value==="初始化角色"?{...workspace.current.value,name:"新的相识",initial:"+",color:"#dce9e2"}:workspace.current.value),
       simulateFailure: simulate,
       characters: computed(() => state.characters),
       selectedId,

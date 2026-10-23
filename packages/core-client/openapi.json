@@ -6325,6 +6325,9 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2147483647
+          },
+          "persona_preparation": {
+            "$ref": "#/components/schemas/CorePersonaPreparation"
           }
         },
         "required": [
@@ -13974,6 +13977,69 @@
           "footprints",
           "footprints_complete",
           "semantics"
+        ],
+        "additionalProperties": false
+      },
+      "CorePersonaPreparationBody": {
+        "type": "object",
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "expected_revision",
+          "idempotency_key"
+        ],
+        "additionalProperties": false
+      },
+      "CorePersonaPreparation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workflow_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "ready",
+              "failed"
+            ]
+          },
+          "intent_status": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "can_recover": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "revision",
+          "can_recover"
         ],
         "additionalProperties": false
       }
@@ -43295,6 +43361,135 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CoreStoryOverview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fluctlight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/internal/fluctlights/{fluctlight_id}/persona-preparation/recover": {
+      "post": {
+        "operationId": "recoverPersonaPreparation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorePersonaPreparationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scoped governance authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorePersonaPreparation"
                 }
               }
             }

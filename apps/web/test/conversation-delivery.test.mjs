@@ -7,7 +7,7 @@ import { createServer } from "vite";
 import { createSSRApp } from "vue";
 import { renderToString } from "vue/server-renderer";
 
-test("a new submit remains visible while an older durable retry is being processed", async () => {
+test("a new submit sends its own identity without implicitly retrying a confirmed failure", async () => {
   const originalWindow = globalThis.window;
   const originalFetch = globalThis.fetch;
   const originalLocalStorage = globalThis.localStorage;
@@ -38,11 +38,12 @@ test("a new submit remains visible while an older durable retry is being process
       conversationId: "conversation-1", fluctlightId: "fluctlight-1", text: "旧的待重试消息",
       idempotencyKey: "turn-old", turnId: "turn_old", attachmentRefs: [],
     };
+    store.messages = [{id:"old-failed",kind:"user",text:"旧的待重试消息",turnId:"turn_old",turnStatus:"failed",turnRetryable:true}];
     const sending = store.send("刚刚点击发送的新消息");
     await started;
 	    assert.equal(store.sending, true);
 	    assert.ok(store.messages.some((message) => message.kind === "user" && message.text === "刚刚点击发送的新消息"), "the submitted message disappeared while the retry cognition was running");
-		assert.ok(values.has("fluctlight.queued-turn.v1"), "the accepted queued turn was not persisted for reload recovery");
+		assert.ok(values.has("fluctlight.retry-turns.v3"), "the submitted turn was not persisted for reload recovery");
     store.invalidateRequest();
     await sending;
   } finally {
@@ -99,7 +100,7 @@ test("a stale post-stream history read cannot erase committed streamed messages"
   }
 });
 
-test("a successful older retry cannot overwrite or lose the separately identified queued user turn", async () => {
+test("a new turn after a confirmed failure never replays the old request", async () => {
 	const originalWindow = globalThis.window;
 	const originalFetch = globalThis.fetch;
 	const originalLocalStorage = globalThis.localStorage;
@@ -119,8 +120,8 @@ test("a successful older retry cannot overwrite or lose the separately identifie
 			turnCount += 1;
 			const body = JSON.parse(String(init.body));
 			submittedTexts.push(body.text);
-			const user = turnCount === 1 ? oldUser : newUser;
-			const assistant = turnCount === 1 ? oldAssistant : newAssistant;
+			const user = newUser;
+			const assistant = newAssistant;
 			const frames = [
 				{ type: "message", turnId: body.turnId, sequence: 0, payload: { message: user } },
 				{ type: "token", turnId: body.turnId, sequence: 1, payload: { text: assistant.text } },
@@ -130,7 +131,7 @@ test("a successful older retry cannot overwrite or lose the separately identifie
 			return new Response(frames, { status: 200, headers: { "content-type": "application/x-ndjson" } });
 		}
 		if (url.includes("/messages")) {
-			const messages = turnCount === 1 ? [oldUser, oldAssistant] : [oldUser, oldAssistant, newUser, newAssistant];
+			const messages = [oldUser, newUser, newAssistant];
 			return Response.json({ conversation, participants: [], messages, nextBeforeSequence: null });
 		}
 		if (url.includes("/read")) return new Response(null, { status: 204 });
@@ -144,15 +145,16 @@ test("a successful older retry cannot overwrite or lose the separately identifie
 		store.conversation = conversation;
 		store.fluctlightId = "fluctlight-queue";
 		store.fluctlights = [{ id: "fluctlight-queue", identity: { name: "摇光" }, status: "active" }];
-		store.messages = [oldUser];
+		store.messages = [{...oldUser,turnId:"old_turn",turnStatus:"failed",turnRetryable:true}];
 		store.retryTurn = { conversationId: conversation.id, fluctlightId: "fluctlight-queue", text: oldUser.text, idempotencyKey: "old-turn", turnId: "old_turn", attachmentRefs: [], messageId: oldUser.id };
 		await store.send("继续");
-		assert.deepEqual(submittedTexts, ["继续", "继续"]);
+		assert.deepEqual(submittedTexts, ["继续"]);
+        assert.equal(turnCount, 1);
 		assert.equal(store.retryTurn, null);
 		assert.equal(store.queuedTurn, null);
 		assert.equal(values.has("fluctlight.queued-turn.v1"), false);
 		assert.deepEqual(store.messages.filter((message) => message.kind === "user").map((message) => message.id), [oldUser.id, newUser.id]);
-		assert.deepEqual(store.messages.filter((message) => message.kind === "assistant").map((message) => message.id), [oldAssistant.id, newAssistant.id]);
+		assert.deepEqual(store.messages.filter((message) => message.kind === "assistant").map((message) => message.id), [newAssistant.id]);
 		assert.equal(store.messages.some((message) => message.id.startsWith("local-") || message.id.startsWith("stream-")), false);
 	} finally {
 		await server.close();

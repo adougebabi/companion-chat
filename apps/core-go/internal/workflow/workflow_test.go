@@ -650,11 +650,7 @@ func TestVisualIdentityReconciliationDeadLettersMissingDependencies(t *testing.T
 }
 
 func TestDispatcherFairSelectionRanksEachIntentClassBeforeBacklog(t *testing.T) {
-	source, err := os.ReadFile("workflow.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := string(source)
+	body := dispatcherCandidateQuery()
 	for _, required := range []string{
 		"ROW_NUMBER() OVER",
 		"PARTITION BY intent_type",
@@ -832,7 +828,7 @@ func TestCognitionDispatchPreemptsWakeUpAndReflection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	text := string(source)
+	text := string(source) + dispatcherCandidateQuery()
 	if !strings.Contains(text, "CancelLifecycleForCognition") {
 		t.Fatal("cognition dispatch does not preempt lifecycle work")
 	}

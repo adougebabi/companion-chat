@@ -100,11 +100,11 @@ function renderChatPageBody(__view) {
           background: A.user ? "#e9eae6" : M(__view.character).color
         })
       }, v(A.user ? "我" : M(__view.character).initial), 5), o("div", wc, [o("div", $c, [Z(v(A.user ? "我" : M(__view.character).name), 1), o("time", {datetime:A.instant,title:A.fullTime,"aria-label":A.fullTime}, v(A.time), 0)]), o("div", Cc, [o("span",null,v(A.text),1),...(A.attachments||[]).map(id=>o("img",{src:__view.mediaUrl(id),alt:M(__view.character).name+" 的附件",loading:"lazy",class:"approved-chat-attachment"}))]), ((te = A.action) == null ? void 0 : te.status) === "error" ? (p(), g("div", xc, [Z(v(A.action.reason), 1), approvedButtonVNode({
-        onClick: se => A.action.run()
+        onClick: se => A.action.run(),disabled:A.action.disabled
       }, [me(M(Qu), {
         size: 12
       }), Z(v(A.action.label||"重试"),1)])])) : X("", !0)])], 2);
-    }), 128)), __view.f.value ? (p(), g("div", Tc, [Z(v(M(__view.waitText)), 1), o("span", {"aria-hidden":"true"}, "•••"),approvedButtonVNode({class:"text-button",onClick:__view.readStatus},"核对进度"),o("a",{class:"text-button",href:M(__view.diagnosticHref)},"查看本次运行 ↗"),approvedButtonVNode({class:"text-button",onClick:__view.cancel},"停止本次生成")])) : X("", !0)], 512), o("div", Mc, [pe(o("textarea", {
+    }), 128)), __view.f.value ? (p(), g("div", Tc, [Z(v(M(__view.waiting).label), 1), o("span", {"aria-hidden":"true"}, "•••"),M(__view.waiting).detail?o("small",null,M(__view.waiting).detail):null,M(__view.waiting).showDiagnostics?o("a",{class:"text-button",href:M(__view.diagnosticHref)},"查看本次运行 ↗"):null,M(__view.waiting).showStop?approvedButtonVNode({class:"text-button",onClick:__view.cancel},"停止本次生成"):null])) : X("", !0),M(__view.errorText)&&!__view.f.value?o("p",{class:"inline-error",role:"alert"},[M(__view.errorText),o("a",{class:"text-button",href:M(__view.diagnosticHref)},"查看本次运行 ↗")]):null], 512), o("div", Mc, [pe(o("textarea", {
       "onUpdate:modelValue": d[0] || (d[0] = A => __view.l.value = A),
       "aria-label": "聊天消息",onCompositionstart:()=>__view.composition(true),onCompositionend:()=>__view.composition(false),
       placeholder: "说点什么，分享你的今天…",

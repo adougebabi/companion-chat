@@ -4,6 +4,7 @@ import { useWorkspace } from "../workspace.mjs";
 import { ActionButton, Surface } from "../shared/primitives.mjs";
 import { FilterChips } from "../shared/components.mjs";
 import CharacterAvatar from "../shared/CharacterAvatar.vue";
+import {migrateCreationRecovery,creationHistoryKey} from "../creation-recovery.mjs";
 import { Gu } from "../shared/icons.mjs";
 const w = useWorkspace(),
   search = ref(""),
@@ -31,6 +32,7 @@ const characters = computed(() => w.state.characters),
         (!filters.value.tag || c.tags?.includes(filters.value.tag)),
     ),
   );
+function progressHref(id){return localStorage.getItem(creationHistoryKey(w.state.session.actorId,id))?"#/library/create?resume="+encodeURIComponent(id):"";}
 function details(id) {
   w.select(id);
   w.navigate("角色详情");
@@ -43,7 +45,8 @@ const subtitle = (c) =>
   [c.job, c.detail?.identity?.residence].filter(Boolean).join(" · ");
 onMounted(() => {
   try {
-    const raw = sessionStorage.getItem(
+    migrateCreationRecovery(w.state.session.actorId,localStorage,sessionStorage);
+    const raw = localStorage.getItem(
       `fluctlight-creation:${w.state.session.actorId}:draft`,
     );
     if (raw) saved.value = JSON.parse(raw);
@@ -75,7 +78,7 @@ onUnmounted(() => (active = false));
       <span class="spacer" /><a
         v-if="characters.length"
         class="button primary"
-        href="#/library/create"
+        :href="saved?.activatedId ? '#/library/create?new=1' : '#/library/create'"
         >{{ saved && !saved.activatedId ? "继续创建" : "创建角色" }}</a
       >
     </div>
@@ -123,7 +126,7 @@ onUnmounted(() => (active = false));
             <div>
               <ActionButton @click="details(character.id)"
                 >角色详情</ActionButton
-              ><ActionButton
+              ><a v-if="progressHref(character.id)" class="text-button" :href="progressHref(character.id)">查看准备进度</a><ActionButton
                 v-if="w.state.selectedId !== character.id"
                 @click="choose(character.id)"
                 >切换角色</ActionButton

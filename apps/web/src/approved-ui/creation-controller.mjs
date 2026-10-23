@@ -1,6 +1,5 @@
 import { reactive, computed, ref } from "vue";
 import {
-  creationDraft,
   checkpointCreation,
   checkpointCreationAnalysis,
   selectCreationWorld,
@@ -14,6 +13,7 @@ import { finishCreationWorld } from "../v3/creation-world.mjs";
 import { persistentCommand } from "../v3/providers/persistent-command.mjs";
 import { creationFeedback } from "../v3/creation-feedback.mjs";
 import { randomId } from "../random-id.mjs";
+import { creationRecovery, creationHistoryKey } from "./creation-recovery.mjs";
 import {
   profileFields,
   profileChanges,
@@ -39,13 +39,14 @@ export function createCreationController({
       day: "2-digit",
     }).format(new Date()),
 }) {
-  const recovery = creationDraft({ owner, storage }),
+  const recovery = creationRecovery({ owner, storage, query }),
     draft = reactive(recovery.read()),
     busy = ref(false),
     error = ref(""),
     feedback = ref(null),
     progress = ref(null),
     previewFields = ref([]),
+    fieldErrors = ref({}),
     step = ref(
       draft.activatedId
         ? "progress"
@@ -70,6 +71,7 @@ export function createCreationController({
               ? 2
               : 3;
       recovery.save(clone(draft));
+      if(draft.activatedId)storage.setItem(creationHistoryKey(owner,draft.activatedId),JSON.stringify(draft));
     }
   };
   const activation = persistentCommand({
@@ -112,6 +114,7 @@ export function createCreationController({
   }
   function initializePreview() {
     if (!draft.analysis) return;
+    if(!draft.analysis.core_persona.identity.timezone)draft.analysis.core_persona.identity.timezone=draft.timezone;
     previewFields.value = profileFields(draft.analysis.core_persona, label);
     const restored = new Map(
       (draft.previewDraft || []).map((f) => [JSON.stringify(f.path), f.value]),
@@ -122,6 +125,7 @@ export function createCreationController({
   }
   if (draft.activatedId && !draft.activationDate)
     draft.activationDate = today(draft.timezone);
+  if(!draft.timezone?.trim())draft.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||"Asia/Shanghai";
   initializePreview();
   persist();
   function fail(cause) {
@@ -210,11 +214,12 @@ export function createCreationController({
       if (file.size > 60000) throw Error("JSON 文件超过 60000 UTF-8 字节上限");
       const raw = await file.text();
       if (!live() || pending.value || draft.activatedId) return;
-      parseCreationInput(raw);
       draft.json = raw;
       draft.fileName = file.name;
-      draft.jsonValid = true;
       invalidate();
+      parseCreationInput(raw);
+      draft.jsonValid = true;
+      persist();
       error.value = "";
     } catch (cause) {
       if (live()) {
@@ -228,11 +233,16 @@ export function createCreationController({
     error.value = "";
     feedback.value = null;
     try {
-      if (!draft.timezone?.trim()) throw Error("请填写生活时区。");
+      fieldErrors.value={};
+      if(!draft.timezone?.trim())fieldErrors.value.timezone="请填写生活时区。";
+      if(draft.mode==="blank"&&!draft.name.trim())fieldErrors.value.name="请填写角色名字。";
+      if(draft.mode==="description"&&!draft.bio.trim())fieldErrors.value.bio="请写一段人物描述。";
+      if(Object.keys(fieldErrors.value).length)throw Error(Object.values(fieldErrors.value)[0]);
       try {
         new Intl.DateTimeFormat("zh-CN", { timeZone: draft.timezone });
       } catch {
-        throw Error("请填写有效的 IANA 时区，例如 Asia/Shanghai。");
+        fieldErrors.value.timezone="请填写有效的 IANA 时区，例如 Asia/Shanghai。";
+        throw Error(fieldErrors.value.timezone);
       }
       if (draft.mode === "blank") {
         if (!draft.name.trim()) throw Error("请填写角色名字。");
@@ -324,6 +334,7 @@ export function createCreationController({
     draft.analysis = { ...draft.analysis, core_persona: next };
     draft.analysisText = JSON.stringify(draft.analysis, null, 2);
     draft.name = next.identity?.name || draft.name;
+    draft.timezone = next.identity?.timezone || draft.timezone;
     draft.requestId = randomId();
     persist();
   }
@@ -393,7 +404,7 @@ export function createCreationController({
         const result = retry
           ? await activation.retry()
           : await activation.submit(clone(value));
-        if (!live()) return;
+        if (!savedCurrent(value.body.requestId)) return;
         Object.assign(draft, recovery.read());
         draft.activatedId = result.id;
         draft.activationDate ??= today(draft.timezone);
@@ -404,6 +415,13 @@ export function createCreationController({
       await finishWorld();
       if (live()) await refreshDirectory();
     } catch (cause) {
+      if (live() && !draft.activatedId && !activation.pending() && [400, 422].includes(cause?.status)) {
+        // A definitive pre-admission rejection is editable. Never discard an
+        // unknown command outcome, which must keep its original identity.
+        invalidate();
+        step.value = "person";
+        persist();
+      }
       fail(cause);
     } finally {
       if (live()) {
@@ -429,7 +447,8 @@ export function createCreationController({
   }
   function reanalyze() {
     try {
-      activation.releaseRejected();
+      if (busy.value || draft.activatedId) return;
+      if (activation.pending()) activation.releaseRejected();
       pending.value = null;
       step.value = "person";
       invalidate();
@@ -445,7 +464,11 @@ export function createCreationController({
     let command;
     busy.value = true;
     try {
-      if (stage.key === "world") await finishWorld();
+      if(stage.key==='persona' || stage.personaCanRecover){
+        command=persistentCommand({key,storage:()=>storage,execute:(value,idempotencyKey)=>client.recoverPersonaPreparation(fid,{...value,idempotencyKey})});
+        if(command.pending())await command.retry();else await command.submit({expectedRevision:stage.revision});
+      }
+      else if (stage.key === "world") await finishWorld();
       else if (stage.key === "wardrobe") {
         command = persistentCommand({
           key,
@@ -497,7 +520,7 @@ export function createCreationController({
     }
   }
   function newDraft() {
-    if (!progress.value?.complete) return;
+    if (!draft.activatedId || pending.value || recovery.archived) return;
     recovery.clear();
     const next = recovery.read();
     for (const key of Object.keys(draft)) delete draft[key];
@@ -514,6 +537,8 @@ export function createCreationController({
     busy,
     error,
     feedback,
+    fieldErrors,
+    archived:!!recovery.archived,
     progress,
     previewFields,
     pending,

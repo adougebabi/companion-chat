@@ -4629,3 +4629,7 @@ select {
 .approved-preparation { margin-bottom:20px; }
 .typing { flex-wrap:wrap; }
 .approved-more-fields { padding-top:18px; }
+
+.action-type-field{border:0;padding:0;margin:0;min-width:0;}
+.action-type-field .check-field{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.action-type-field input{width:auto;}

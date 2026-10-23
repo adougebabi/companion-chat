@@ -31,7 +31,7 @@ func Test0066UpgradeAndRestartPreserveExhaustedBudgetAndChosenQueue(t *testing.T
 	if err := pool.QueryRow(ctx, `SELECT (SELECT version_num=$1 FROM public.alembic_version)
  AND EXISTS(SELECT 1 FROM public.autonomy_policies WHERE fluctlight_id='delivery-policy-fl' AND budget_remaining='0' AND mode='paused' AND concurrency_limit=4 AND revision=7 AND policy_source='override' AND NOT notifications_muted)
  AND EXISTS(SELECT 1 FROM public.runtime_settings WHERE key='product.autonomy' AND (value_json::jsonb->>'budget_remaining')::int=0)
- AND EXISTS(SELECT 1 FROM public.runtime_settings WHERE key='llm.queue' AND (value_json::jsonb->>'generated_concurrency')::int=2)
+ AND EXISTS(SELECT 1 FROM public.runtime_settings WHERE key='llm.queue' AND (value_json::jsonb->>'generated_concurrency')::int=1)
  AND to_regclass('public.owner_notifications') IS NOT NULL
  AND to_regclass('public.fluctlight_diary_days') IS NOT NULL`, Head).Scan(&preserved); err != nil || !preserved {
 		t.Fatalf("upgrade/restart rewrote live configuration %v %v", preserved, err)

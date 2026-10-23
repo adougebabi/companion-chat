@@ -22,7 +22,7 @@ test('avatar uses a neutral initial for empty/broken media and escapes external 
  assert.match(bubble,/你好/);assert.doesNotMatch(bubble,/src=""|xiaoyao/);
 });
 test('chat budget/partial errors become readable while real user content remains intact',()=>{
- assert.match(chatFailureText('回复未完成：prompt_tool_result_budget_exceeded'),/暂时没能回应/);
+ assert.match(chatFailureText('回复未完成：prompt_tool_result_budget_exceeded'),/原消息已保留/);
  assert.doesNotMatch(chatFailureText('回复未完成：prompt_tool_result_budget_exceeded'),/prompt_/);
  assert.match(chatFailureText('agent_partial_committed'),/行动可能已经发生/);
  const original='回复未完成：prompt_tool_result_budget_exceeded，这是我输入的原文';
@@ -54,7 +54,7 @@ test('a pending durable turn always has a diagnostic target after observer disco
  const state={conversation:{id:'conversation'},fluctlightId:'role',error:'',activeTurnId:null,messages:[{id:'accepted',kind:'user',turnId:'background-turn',turnStatus:'running'},{id:'local-queued',kind:'user',turnId:'new-draft'}],queuedTurn:{turnId:'new-draft'}};
  assert.equal(chatDiagnosticTurn(state),'background-turn');
  assert.match(chatFailureText('回复未完成：provider_gateway_timeout'),/中转.*超时/);
- assert.match(chatFailureText('回复未完成：prompt_required_budget_exceeded'),/资料.*上限/);
+ assert.match(chatFailureText('回复未完成：prompt_required_budget_exceeded'),/资料.*本次运行/);
 });
 test('empty inventory is explicit without claiming nakedness; actual categories use shared labels',()=>{
  const html=CurrentInventory([],[]);assert.match(html,/当前没有已登记的穿着衣物/);assert.doesNotMatch(html,/未穿衣|没有衣服/);

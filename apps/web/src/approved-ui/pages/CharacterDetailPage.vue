@@ -39,7 +39,9 @@ const w = useWorkspace(),
   reason = ref(""),
   confirm = ref(false);
 let active = true,
-  epoch = 0;
+  epoch = 0,
+  reading = false,
+  timer;
 const live = () => active && w.currentScope() === scope;
 const snapshot = computed(() =>
     profileSnapshotFromDetail(detail.value || {}, w.current.value._directory),
@@ -253,8 +255,29 @@ async function switchPersona() {
     if (live()) switching.value = false;
   }
 }
+async function pollPreparation() {
+  if (!live() || document.hidden || reading || editing.value || saving.value || switching.value ||
+      !['pending', 'running'].includes(detail.value?.persona_preparation?.status)) return;
+  reading = true;
+  try { await read(); } finally { reading = false; }
+}
+async function recoverPreparation() {
+  if (!live() || saving.value || !detail.value?.persona_preparation?.can_recover) return;
+  saving.value = true;
+  try {
+    const record = w.command('角色详情', 'persona-preparation:' + fid,
+      {expectedRevision: detail.value.current_revision},
+      (value, idempotencyKey) => w.client.recoverPersonaPreparation(fid, {...value, idempotencyKey}),
+      {success: '已继续准备角色资料', onSaved: async () => { if (live()) await read(); }});
+    await record.completion;
+  } catch (cause) { if (live()) error.value = errorMessage(cause); }
+  finally { if (live()) saving.value = false; }
+}
+const visibility = () => { if (!document.hidden) void pollPreparation(); };
 onMounted(() => {
   void read();
+  timer = setInterval(() => void pollPreparation(), 5000);
+  document.addEventListener('visibilitychange', visibility);
   void w.client
     .world(fid)
     .then((value) => {
@@ -265,6 +288,8 @@ onMounted(() => {
 onUnmounted(() => {
   active = false;
   epoch++;
+  clearInterval(timer);
+  document.removeEventListener('visibilitychange', visibility);
 });
 </script>
 <template>
@@ -291,6 +316,10 @@ onUnmounted(() => {
           >编辑资料</ActionButton
         >
       </header>
+      <p v-if="detail?.persona_preparation && detail.persona_preparation.status !== 'ready'" class="approved-guidance" role="status">
+        角色资料已保存。{{detail.persona_preparation.status === 'failed' ? '表达画像准备遇到问题，可继续原角色的准备。' : '正在后台整理表达画像，离开页面后仍会继续。'}}
+        <ActionButton v-if="detail.persona_preparation.can_recover" class="text-button" :disabled="saving || editing" @click="recoverPreparation">继续准备</ActionButton>
+      </p>
       <form
         v-if="editing"
         class="character-form detail-form"

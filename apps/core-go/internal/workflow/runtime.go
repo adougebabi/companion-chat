@@ -324,6 +324,8 @@ func workflowFunction(intentType string) (any, error) {
 		return MemoryEmbeddingWorkflow, nil
 	case "persona.owner_switch":
 		return OwnerPersonaSwitchWorkflow, nil
+	case "persona.compile":
+		return PersonaPreparationWorkflow, nil
 	case "conversation.summary":
 		return ConversationSummaryWorkflow, nil
 	case "conversation.segment":

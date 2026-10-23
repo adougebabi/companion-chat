@@ -306,7 +306,7 @@ func (s *Server) foundationDecision(w http.ResponseWriter, r *http.Request, acti
 	if !valid {
 		return
 	}
-	value, err := s.app.SetFoundationDecisionExpected(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("revisionID"), action, stringValue(body["reason"]), expected(body, "expected_revision"))
+	value, err := s.app.AdmitFoundationDecisionExpected(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("revisionID"), action, stringValue(body["reason"]), expected(body, "expected_revision"))
 	if err != nil {
 		s.opError(w, err, "foundation_revision_"+action+"_failed")
 		return
@@ -786,6 +786,28 @@ func (s *Server) actorUserBackground(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		s.opError(w, err, "actor_user_background_update_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+
+func (s *Server) recoverPersonaPreparation(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	revision := expected(body, "expected_revision")
+	if revision == nil {
+		s.opError(w, core.ErrInvalidArguments, "persona_preparation_invalid")
+		return
+	}
+	value, err := s.app.RecoverPersonaPreparation(r.Context(), actor, r.PathValue("fluctlightID"), *revision, stringValue(body["idempotency_key"]))
+	if err != nil {
+		s.opError(w, err, "persona_preparation_recovery_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, value)

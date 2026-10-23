@@ -1702,7 +1702,7 @@ func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[st
 	return map[string]any{"pleasure": 0.0, "arousal": 0.0, "dominance": 0.0}, map[string]any{"label": "平静", "intensity": 0.0, "source": "server_default"}, map[string]any{"value": 0.0, "trend": 0.0}, map[string]any{"stress": 0.0, "stability": 1.0}, []any{}, []any{}
 }
 
-func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name string, mode string, initializationSourceID string, foundation map[string]any, goals, intentions []any, initializationTimezone ...string) (Fluctlight, error) {
+func (a *App) createFluctlight(ctx context.Context, actorID, requestedID, name string, mode string, initializationSourceID string, foundation map[string]any, goals, intentions []any, deferredCompilation bool, initializationTimezone ...string) (Fluctlight, error) {
 	initializationActivationDigest := ""
 	deviceTimezone := ""
 	if len(initializationTimezone) > 0 && strings.TrimSpace(initializationTimezone[0]) != "" {
@@ -1838,10 +1838,12 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 				return Fluctlight{}, err
 			}
 		}
-		var compileErr error
-		compiledWorkingPersonas, compileErr = a.compileFoundationWorkingPersonas(ctx, id, corePersona, 0, mode, false)
-		if compileErr != nil {
-			return Fluctlight{}, compileErr
+		if !deferredCompilation {
+			var compileErr error
+			compiledWorkingPersonas, compileErr = a.compileFoundationWorkingPersonas(ctx, id, corePersona, 0, mode, false)
+			if compileErr != nil {
+				return Fluctlight{}, compileErr
+			}
 		}
 	}
 	developingSelfClaims := []any{}
@@ -1891,12 +1893,19 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlights (id,created_by_actor_id,initialization_mode,status,current_revision,core_persona,identity,personality,behavioral_policy,life_profile,provenance,created_at,updated_at) VALUES ($1,$2,$3,'active',0,$4,$5,$6,$7,$8,$9,$10,$10)`, id, actorID, mode, jsonBytes(corePersona), jsonBytes(identity), jsonBytes(personality), jsonBytes(policy), jsonBytes(lifeProfile), jsonBytes(provenance), now); err != nil {
 			return err
 		}
-		if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
-			return err
+		if deferredCompilation {
+			if _, err := enqueuePersonaPreparationTx(ctx, tx, actorID, id, 0, "initialization", ""); err != nil {
+				return err
+			}
+		} else {
+			if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
+				return err
+			}
+			if err := insertCompiledWorkingPersonasTx(ctx, tx, id, compiledWorkingPersonas); err != nil {
+				return err
+			}
 		}
-		if err := insertCompiledWorkingPersonasTx(ctx, tx, id, compiledWorkingPersonas); err != nil {
-			return err
-		}
+
 		if err := initializeEffectiveLifeTx(ctx, tx, id, corePersona); err != nil {
 			return err
 		}
