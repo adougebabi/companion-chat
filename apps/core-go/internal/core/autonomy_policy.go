@@ -185,6 +185,22 @@ func quietHoursActive(raw []byte, now time.Time) bool {
 		return false
 	}
 	nowMin := now.Hour()*60 + now.Minute()
+	if raw, exists := value["days"]; exists {
+		startDay := now
+		if startMin > endMin && nowMin < endMin {
+			startDay = now.AddDate(0, 0, -1)
+		}
+		allowed := false
+		for _, candidate := range arrayValue(raw) {
+			day, ok := intValueExact(candidate)
+			if ok && day == int(startDay.Weekday()) {
+				allowed = true
+			}
+		}
+		if !allowed {
+			return false
+		}
+	}
 	if startMin <= endMin {
 		return nowMin >= startMin && nowMin < endMin
 	}

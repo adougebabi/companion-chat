@@ -97,8 +97,27 @@ func validAutonomyConfiguration(value map[string]any) error {
 		return invalid("quiet_hours must be an object")
 	}
 	if len(quiet) > 0 {
-		if len(quiet) != 3 {
+		if len(quiet) != 3 && len(quiet) != 4 {
 			return invalid("quiet_hours requires start, end and IANA timezone")
+		}
+		for key := range quiet {
+			if key != "start" && key != "end" && key != "timezone" && key != "days" {
+				return invalid("unknown quiet hours field")
+			}
+		}
+		if raw, exists := quiet["days"]; exists {
+			days, ok := raw.([]any)
+			if !ok || len(days) == 0 || len(days) > 7 {
+				return invalid("quiet hours days must contain weekdays 0–6")
+			}
+			seen := map[int]bool{}
+			for _, rawDay := range days {
+				day, ok := intValueExact(rawDay)
+				if !ok || day < 0 || day > 6 || seen[day] {
+					return invalid("quiet hours days must contain unique weekdays 0–6")
+				}
+				seen[day] = true
+			}
 		}
 		for _, key := range []string{"start", "end"} {
 			clock := stringValue(quiet[key])

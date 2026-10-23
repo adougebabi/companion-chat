@@ -8,6 +8,13 @@ Nginx. `apps/web/scripts/serve-preview.mjs` is a local preview helper only. The
 deleted root `src/` client is historical context only and must not be restored
 as a compatibility entry point.
 
+## Current approved UI (2026-10-23)
+
+The user-supplied HTML demo is the current workspace visual baseline. Read
+[Approved Demo Contract](./approved-demo-contract.md) for rendering, components,
+real-service integration and isolated demo rules; it supersedes older design
+review gates for this migration.
+
 ## Guides
 
 | Guide | Use it for |

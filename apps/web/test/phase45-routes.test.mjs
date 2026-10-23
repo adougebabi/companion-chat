@@ -4,6 +4,7 @@ import test from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const app = read("../src/App.vue");
+const legacy = read("../src/approved-ui/LegacySurface.vue");
 const studio = read("../src/views/StudioView.vue");
 const world = read("../src/views/WorldView.vue");
 const moments = read("../src/views/MomentsView.vue");
@@ -18,8 +19,9 @@ const migration = read("../../../docs/migration-correspondence.md");
 const access = read("../../../docs/access-status.md");
 
 test("phase 4-5 routes replace studio and world placeholders and keep diary unwired", () => {
-  assert.match(app, /id="v3-root"/);
-  assert.match(app, /mountProduct/);
+  assert.match(app, /approved-ui\/ApprovedApp/);
+  assert.match(legacy, /id="v3-root"/);
+  assert.match(legacy, /mountProduct/);
   assert.match(studio, /创作预览·不进入生活/);
   assert.match(rollback, /未提供/);
   assert.doesNotMatch(app, /<GovernanceView|<StudioView|<UnwiredView/);

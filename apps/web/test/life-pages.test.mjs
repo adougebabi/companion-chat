@@ -4,6 +4,7 @@ import test from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const app = read("../src/App.vue");
+const legacy = read("../src/approved-ui/LegacySurface.vue");
 const now = read("../src/views/life/LifeNowView.vue");
 const schedule = read("../src/views/life/LifeScheduleView.vue");
 const goals = read("../src/views/life/LifeGoalsView.vue");
@@ -15,8 +16,9 @@ const media = read("../src/views/life/MediaView.vue");
 const pages = [now, schedule, goals, wardrobe, people, growth, profile, media];
 
 test("phase 3 routes mount the sage pages and keep diary unwired", () => {
-  assert.match(app, /id="v3-root"/);
-  assert.match(app, /mountProduct/);
+  assert.match(app, /approved-ui\/ApprovedApp/);
+  assert.match(legacy, /id="v3-root"/);
+  assert.match(legacy, /mountProduct/);
   assert.match(now, /LifeNow|此刻|心情尚未接入/);
   assert.doesNotMatch(app, /iframe/);
   assert.doesNotMatch(app, /<LifeNowView|<UnwiredView|<GovernanceView/);

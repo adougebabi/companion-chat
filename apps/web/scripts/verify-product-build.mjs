@@ -7,7 +7,7 @@ import { join } from 'node:path';
 if (process.env.VITE_PRODUCT_MODE === 'mock') process.exit(0);
 const output = fileURLToPath(new URL('../dist/', import.meta.url));
 await rm(join(output,'v3-qa'),{recursive:true,force:true});
-const forbidden=['fluctlight.v3.acceptance.mock.v1','createMockSeed','mock-correlation-','provider_timeout（Mock 示例）','reset-demo','window.__store','window.__app'];
+const forbidden=['approved-demo-fixture','fluctlight.v3.acceptance.mock.v1','createMockSeed','mock-correlation-','provider_timeout（Mock 示例）','reset-demo','window.__store','window.__app'];
 for(const filename of await readdir(join(output,'assets'))){
   if(!filename.endsWith('.js'))continue;
   const source=await readFile(join(output,'assets',filename),'utf8');

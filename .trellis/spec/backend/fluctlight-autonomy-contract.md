@@ -805,3 +805,39 @@ Good: genuine preference → later reasoned recommendation → original criterio
 
 ### 7. Wrong vs Correct
 Wrong: reject every omitted source and repeatedly save “安排中”. Correct: preserve real evidence, send a durable bounded decision obligation into the existing native Tool flow, and settle only real effects.
+
+
+## Scenario: Quiet hours by weekday (2026-10-23)
+
+### 1. Scope / Trigger
+The approved management UI can select weekdays for global or character quiet
+hours; the same policy gates new autonomous actions.
+
+### 2. Signatures
+`quiet_hours = {start: "HH:mm", end: "HH:mm", timezone: IANA, days?: number[]}`.
+Owner write uses `quietHours`; persisted/read JSON uses `quiet_hours`. Weekdays
+are 0=Sunday through 6=Saturday. No migration is needed for the optional JSON field.
+
+### 3. Contracts
+Omitted days preserve daily behavior. Provided days contain 1–7 unique integers
+in 0–6. Evaluate time and weekday in the policy timezone. For an overnight
+window, the portion after midnight belongs to the start day, using calendar
+`AddDate(0,0,-1)` rather than subtracting 24 hours. The end boundary is exclusive.
+Policy changes do not defer deadlines or rewrite already accepted requests.
+
+### 4. Validation & Error Matrix
+Empty, duplicate, fractional, string, or out-of-range weekdays reject the policy.
+Unchanged older daily policies still pass without a days field.
+
+### 5. Good / Base / Bad Cases
+Good: Monday 22:00–Tuesday 08:00 is selected by Monday. Base: no days means daily.
+Bad: Tuesday early morning accidentally requires Tuesday to be selected.
+
+### 6. Tests Required
+`autonomy_policy_test.go` covers daily compatibility, selected start days,
+overnight behavior, timezone and exclusive end boundary; policy validation
+rejects malformed weekday lists. Generated Browser/Core schemas include days.
+
+### 7. Wrong vs Correct
+Wrong: compare a UTC weekday to a local quiet-hour clock. Correct: resolve the
+policy timezone, identify the local start day, then check the allowed weekdays.

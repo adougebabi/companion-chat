@@ -142,7 +142,10 @@ export const profile = {
   },
   async read(id: string) { const detail = await client.detail(id); return profileSnapshotFromDetail({...detail,id},get('characters',id)); },
 };
+let providersRegistered=false;
 export function registerProviders() {
+  if(providersRegistered)return;
+  providersRegistered=true;
   configureProfileProvider(profile);
   installWorldProvider({ client, refreshProduct });
   installLifeProvider(client);

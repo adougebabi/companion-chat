@@ -1,14 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue';
-import { mountProduct } from './v3/proto/app';
-const host = ref<HTMLElement | null>(null);
-let active = true;
-let dispose: undefined | (() => void);
-onMounted(async () => {
-  const cleanup = await mountProduct(host.value);
-  if (active) dispose = cleanup;
-  else cleanup?.();
-});
-onBeforeUnmount(() => { active = false; dispose?.(); });
+import {defineAsyncComponent} from 'vue';
+// Fixture code is selected only by an explicit build-time environment flag.
+const Product=defineAsyncComponent(import.meta.env.VITE_PRODUCT_MODE==='mock'
+ ?()=>import('./approved-ui/reference-fixture.mjs')
+ :()=>import('./approved-ui/ApprovedApp.mjs'));
 </script>
-<template><div id="v3-root" ref="host" /></template>
+<template><Product /></template>

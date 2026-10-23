@@ -1,0 +1,196 @@
+import {
+  defineComponent,
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
+import { useWorkspace } from "../workspace.mjs";
+import { renderChatPage } from "../renderers/ChatPage.mjs";
+import { CurrentOutfit } from "../shared/components.mjs";
+import { chatFailureText } from "../../v3/chat-feedback.mjs";
+import { userInstant } from "../../v3/presentation-time.mjs";
+
+export default defineComponent({
+  name: "ChatPage",
+  props: { preview: Boolean },
+  emits: ["go"],
+  setup(props, { emit }) {
+    const workspace = useWorkspace(),
+      store = workspace.conversation(),
+      draft = ref(""),
+      timeline = ref(),
+      character = workspace.current,
+      scope = workspace.currentScope();
+    let active = true,
+      poll,
+      polling = false,
+      lastIdleRead = 0,
+      lastSummaryRead = 0,
+      composing = false;
+    const now = ref(Date.now());
+    const live = () => active && workspace.currentScope() === scope;
+    const storageKey = "fluctlight:approved-chat-draft:" + scope;
+    try {
+      draft.value = sessionStorage.getItem(storageKey) || "";
+    } catch {
+      /* The mounted draft is still usable. */
+    }
+    const scroll = () =>
+      nextTick(() => {
+        const node = timeline.value;
+        if (node) node.scrollTop = node.scrollHeight;
+      });
+    const project = () => {
+      if (!live() || store.fluctlightId !== character.value.id) return;
+      const node = timeline.value,
+        following =
+          !node || node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+      character.value.messages = store.messages
+        .filter((m) => m.kind !== "system")
+        .map((message) => ({
+          id: message.id,
+          text: message.text,
+          attachments: message.attachmentRefs || [],
+          user: message.kind === "user",
+          time: workspace.clock(message.createdAt, "Asia/Shanghai"),
+          instant: message.createdAt,
+          fullTime: userInstant(message.createdAt),
+          action:
+            message.kind === "user" &&
+            ["failed", "cancelled", "pending", "running"].includes(
+              message.turnStatus,
+            )
+              ? {
+                  status: ["failed", "cancelled"].includes(message.turnStatus)
+                    ? "error"
+                    : "pending",
+                  reason: chatFailureText(message.turnErrorCode || store.error),
+                  run: () => {
+                    if (store.retryTurn?.turnId === message.turnId)
+                      return store.retry();
+                    return store.refreshActiveTurn(true);
+                  },
+                }
+              : undefined,
+        }));
+      if (following) void scroll();
+    };
+    const stop = store.$subscribe(project, { detached: true, flush: "sync" });
+    const busy = computed(
+      () => store.sending || store.hasPendingTurn || store.hasSettlingTurn,
+    );
+    const send = async () => {
+      const text = draft.value.trim();
+      if (!text || busy.value) return;
+      draft.value = "";
+      sessionStorage.removeItem(storageKey);
+      await store.send(text);
+      project();
+    };
+    watch(draft, (value) => {
+      try {
+        sessionStorage.setItem(storageKey, value);
+      } catch {
+        /* No authoritative data is stored here. */
+      }
+    });
+    onMounted(async () => {
+      try {
+        await workspace.openConversation(character.value.id, live);
+        if (!live()) return;
+        project();
+        void scroll();
+        const tick = async () => {
+          if (!live() || document.hidden || polling) return;
+          now.value = Date.now();
+          polling = true;
+          try {
+            if (store.hasPendingTurn || store.hasSettlingTurn)
+              await store.refreshActiveTurn();
+            else if (
+              !store.sending &&
+              !composing &&
+              !draft.value.trim() &&
+              Date.now() - lastIdleRead > 10000
+            ) {
+              lastIdleRead = Date.now();
+              await store.refreshActiveTurn(true);
+              if (!live()) return;
+              project();
+              if (Date.now() - lastSummaryRead > 30000) {
+                lastSummaryRead = Date.now();
+                await workspace.detail();
+                if (!live()) return;
+                await workspace.loadWardrobe();
+              }
+            }
+          } catch (error) {
+            if (live()) workspace.state.errors.chat = error.message;
+          } finally {
+            polling = false;
+          }
+        };
+        poll = setInterval(() => void tick(), 2000);
+      } catch (error) {
+        if (live()) workspace.state.errors.chat = error.message;
+      }
+    });
+    onUnmounted(() => {
+      active = false;
+      stop();
+      clearInterval(poll);
+      if (store.fluctlightId === character.value.id) store.invalidateRequest();
+    });
+    const currentSchedule = computed(() => {
+      const item =
+        character.value.schedule.find(
+          (i) => i._source?.action_status === "in_progress",
+        ) ||
+        character.value.schedule.find(
+          (i) =>
+            !i._source?.end_at || Date.parse(i._source.end_at) > Date.now(),
+        );
+      return item
+        ? {
+            ...item,
+            endTime: item._source?.end_at
+              ? workspace.clock(item._source.end_at, character.value.timezone)
+              : "",
+            stateLabel:
+              item._source?.action_status === "in_progress"
+                ? "进行中"
+                : "日程安排",
+          }
+        : null;
+    });
+    const dateLabel = computed(
+      () =>
+        "今天 · " +
+        new Intl.DateTimeFormat("zh-CN", {
+          timeZone: "Asia/Shanghai",
+          month: "long",
+          day: "numeric",
+          weekday: "long",
+        })
+          .format(new Date(now.value))
+          .replace(/(日)(星期)/, "$1 $2"),
+    );
+    return renderChatPage({
+      props,
+      composition: (value) => (composing = value),
+      mediaUrl: (id) => workspace.services.mediaClient.url(id),
+      dateLabel,
+      currentSchedule,
+      character,
+      i: timeline,
+      l: draft,
+      u: send,
+      f: busy,
+      n: emit,
+      CurrentOutfit,
+    });
+  },
+});

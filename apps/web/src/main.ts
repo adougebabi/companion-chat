@@ -1,17 +1,7 @@
 import { acceptancePath } from './v3/mock-navigation.mjs';
 import { createApp } from 'vue';
 import App from './App.vue';
-import './styles/v3-proto.css';
-import './styles/v3-life-review.css';
-import './styles/v3-world-review.css';
-import './styles/v3-life-regression.css';
-import './styles/v3-reading-regression.css';
-import './styles/v3-media-regression.css';
-import './styles/v3-settings-regression.css';
-import './styles/v3-ux-report-life.css';
-import './styles/v3-ux-report-creation.css';
-import './styles/v3-ux-report-settings.css';
-import './styles/v3-chat-summary-review.css';
+import './styles/approved-ui.css';
 const bookmarkedPage = acceptancePath(location.pathname, location.search);
 if (!location.hash && bookmarkedPage) history.replaceState(null, '', '/#' + bookmarkedPage);
 createApp(App).mount('#app');
