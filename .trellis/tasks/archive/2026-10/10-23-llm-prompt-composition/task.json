@@ -1,0 +1,28 @@
+{
+  "id": "llm-prompt-composition",
+  "name": "llm-prompt-composition",
+  "title": "统一 LLM 提示词组成与最小必要上下文",
+  "description": "统一所有模型入口的运行协议、动态数据和按需私聊上下文，消除重复与持久化字段泄漏，冻结 token 上限策略并补齐规范和组成清单。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-10-23",
+  "completedAt": "2026-10-23",
+  "branch": "codex/fluctlight-functional-recovery",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": "2d82c94e73e823b8001f6cb9d1f3195cbbae9b66",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "verification": "changed-scope passed; four pre-existing failures reproduced and excluded; live Provider/PostgreSQL not run"
+  }
+}

@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"最终检查范围与真实验证证据要求"}
+{"file":".trellis/spec/backend/persona-layer-contract.md","reason":"独立核验人格、事实与历史权威不回退"}
+{"file":".trellis/spec/backend/goal-life-consistency-contract.md","reason":"目标证据、场景、时间、获取与穿着的语义保真"}
+{"file":".trellis/spec/backend/goal-planner-contract.md","reason":"验证精简没有改变实际 query/commit 权限与 CAS"}
+{"file":".trellis/spec/backend/media-capture-plan-contract.md","reason":"图片与媒体 prompt 业务边界"}
+{"file":".trellis/tasks/archive/2026-10/10-23-llm-prompt-composition/research/current-composition.md","reason":"组成矩阵完整性、精确源码锚点与 no-cap 物理请求回归"}

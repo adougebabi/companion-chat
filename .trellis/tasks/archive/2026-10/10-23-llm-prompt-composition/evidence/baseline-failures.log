@@ -1,0 +1,11 @@
+--- FAIL: TestActorUserInitializationJSONPreservesOnlyQualifiedHumanBackground (0.00s)
+    actor_user_background_test.go:24: invalid user settings accepted <nil>
+--- FAIL: TestInitializationOwnerBackgroundKeepsStrictScalarTypes (0.00s)
+    initialization_contract_test.go:547: initialization accepted invalid background interests ([]interface {})
+--- FAIL: TestNoArgCatalogSchemaValidationAndCatalogParity (0.00s)
+    no_arg_tool_schema_test.go:177: catalog schema disagrees with the native definition: map[string]interface {}{}
+--- FAIL: TestPhase8CIUsesTheRealGateAndVectorEnabledDatabase (0.00s)
+    phase8_contract_matrix_test.go:260: CI does not invoke the Phase 8 gate script
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.690s
+FAIL

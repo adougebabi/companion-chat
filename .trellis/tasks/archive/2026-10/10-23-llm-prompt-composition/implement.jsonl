@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"变更范围、测试和禁止访问共享生产数据库"}
+{"file":".trellis/spec/backend/persona-layer-contract.md","reason":"固定人格与当前状态权威边界，保留完整 persona"}
+{"file":".trellis/spec/backend/goal-planner-contract.md","reason":"Goal Planner frozen snapshot、query/commit 与 CAS 绑定"}
+{"file":".trellis/spec/backend/kev-decision-contract.md","reason":"Kev 独立外部协议、选择和可审计降级边界"}
+{"file":".trellis/spec/backend/media-capture-plan-contract.md","reason":"媒体分支、真实图片和视觉输入隔离"}
+{"file":".trellis/tasks/archive/2026-10/10-23-llm-prompt-composition/research/current-composition.md","reason":"28 Agent 与辅助入口的构成、样本问题及无 token 限制基线"}

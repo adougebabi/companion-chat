@@ -1,0 +1,5 @@
+=== RUN   TestGoalPromptPrivateSampleReplay
+    prompt_composition_contract_test.go:256: reconstructed sample content_chars before=57020 after=24447 reduction=57.1% sources=32 messages=4 shared_payloads=8; Provider NOT_CALLED
+--- PASS: TestGoalPromptPrivateSampleReplay (0.01s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	1.090s
