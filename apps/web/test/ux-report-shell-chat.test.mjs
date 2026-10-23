@@ -11,7 +11,7 @@ import {MessageBubble} from '../src/v3/proto/components/chat.js';
 test('readable failures preserve Chinese business meaning and leave raw values untouched',()=>{
  const error=new Error('Browser request failed: 401');assert.match(errorMessage(error),/检查密码/);assert.equal(error.message,'Browser request failed: 401');
  assert.equal(errorMessage('请先保存世界，再继续创建'),'请先保存世界，再继续创建');
- assert.match(chatFailureText('回复未完成：request_timeout'),/稍后再试/);assert.doesNotMatch(chatFailureText('回复未完成：request_timeout'),/request_timeout/);
+ assert.match(chatFailureText('回复未完成：request_timeout'),/稍后重试/);assert.doesNotMatch(chatFailureText('回复未完成：request_timeout'),/request_timeout/);
  assert.equal(errorMessage('unmapped_code','读取失败，请重试'),'读取失败，请重试');
 });
 test('long waiting remains observable processing after thirty seconds without a fake failure',()=>{
@@ -39,10 +39,10 @@ test('native invalid capture marks controls inline, focuses first only, and clea
  const first=control('first'),second=control('second'),stop=installFieldValidation(root);
  try{let prevented=0;handlers.invalid({target:first,preventDefault(){prevented++;}});handlers.invalid({target:second,preventDefault(){prevented++;}});await Promise.resolve();assert.equal(prevented,2);assert.equal(focus,'first');assert.equal(first.attributes['aria-invalid'],'true');assert.match(first.attributes['aria-describedby'],/^help constraint-/);handlers.input({target:first});assert.equal(first.attributes['aria-describedby'],'help');assert.equal(errors[0].hidden,true);assert.equal(first.attributes['aria-invalid'],undefined);}finally{stop();globalThis.document=old;}
 });
-test('message copy and management source actions escape identifiers and preserve user text',()=>{
+test('removed message copy and management source actions escape identifiers and preserve user text',()=>{
  const message={id:'"<id>',from:'char',text:'<private> & message',at:'2026-10-22 12:00 (北京时间)'};
  const html=MessageBubble(message,{viewMode:'管理'});
- assert.match(html,/data-copy-message="&quot;&lt;id&gt;"/);assert.match(html,/data-source=/);assert.match(html,/&lt;private&gt; &amp; message/);assert.doesNotMatch(MessageBubble(message,{viewMode:'交流'}),/data-source=/);
+ assert.doesNotMatch(html,/data-copy-message|复制消息/);assert.match(html,/data-source=/);assert.match(html,/&lt;private&gt; &amp; message/);assert.doesNotMatch(MessageBubble(message,{viewMode:'交流'}),/data-source=/);
 });
 
 test('footer reportValidity paths reject whitespace without clearing page custom constraints',()=>{

@@ -8,7 +8,7 @@ import {directoryGroupProjection} from '../src/v3/contract-map.mjs';
 
 test('management tools stay in management navigation and direct URLs choose their workspace',()=>{
  for(const path of ['/settings/models','/diag/model-runs','/data','/studio','/setup','/library/create'])assert.equal(workspaceForPath(path),'管理');
- assert.ok(globalNavigation('交流').some(([,href])=>href==='#/settings'));assert.deepEqual(globalNavigation('交流'),globalNavigation('管理'));
+ assert.ok(globalNavigation('管理').some(([,href])=>href==='#/settings'));assert.notDeepEqual(globalNavigation('交流'),globalNavigation('管理'));
  assert.ok(globalNavigation('管理').some(([,href])=>href==='#/data'));
  assert.equal(workspaceForPath('/c/character/chat'),'交流');assert.equal(workspaceForPath('/inbox'),null);
 });

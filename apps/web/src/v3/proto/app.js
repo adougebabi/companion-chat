@@ -1,5 +1,5 @@
 import {installFieldValidation} from './components/forms.js';
-import {exchangeNavigation,globalNavigation,sidebarSectionPath,primaryNavigationKey,characterSwitchHref} from '../workspace-navigation.mjs';
+import {exchangeNavigation,globalNavigation,sidebarSectionPath,characterSwitchHref} from '../workspace-navigation.mjs';
 import {Avatar,bindAvatars} from './components/avatar.js';
 import { ApplicationShell } from './components/shell.js';
 import * as store from './store.js';
@@ -94,7 +94,9 @@ function renderChrome(ctx) {
   ui.$('#narrowBack').hidden=!ctx.def.backHref&&back.length<=1&&!ctx.query.from;
   ui.$('#charsw').innerHTML = `${Avatar({src:c.avatar,name:c.name})}<b>${esc(c.name)}</b>${icon('more')}`;
   bindAvatars(ui.$('#charsw'));
-  ui.$('#scopebar').innerHTML = '';
+  ui.$('#scopebar').innerHTML = `<span class="hide-n">${badge(ctx.def?.scope || '角色范围')}</span><span class="hide-n">${esc(c.name)} · ${esc(w?.name || '')}</span>
+    <span class="ident" data-test="ident">${['交流', '管理'].map(v => `<button data-v="${v}" class="${st.identity === v ? 'on' : ''}">${v}</button>`).join('')}</span>`;
+  ui.$$('#scopebar .ident button').forEach(b => b.onclick = () => { store.setUi({ identity: b.dataset.v }); navigate(b.dataset.v==='管理'?'#/settings':c.id?`#/c/${c.id}/chat`:'#/library'); });
   const pending=store.pending(ctx.charId);
   const meta=store.get('meta');
   const unread = store.isMock ? store.get('notices').filter(n => !n.read).length : (typeof meta.alertCount==='number' ? meta.alertCount : null);
@@ -107,13 +109,17 @@ function renderChrome(ctx) {
   ui.$('#notesT').checked = store.isMock && st.notes; document.body.classList.toggle('show-notes', store.isMock && !!st.notes);
   const p = ctx.path; const sectionPath=sidebarSectionPath(p); const base = `#/c/${c.id}/`;
   const on = path => sectionPath === '/c/' + c.id + '/' + path || sectionPath.startsWith('/c/' + c.id + '/' + path + '/');
-  const active=primaryNavigationKey(p,ctx.query);
-  const navigation=(c.id?exchangeNavigation:[]).map(n=>`<a class="navlink ${active===n.k?'on':''}" href="${base}${n.path}" ${active===n.k?'aria-current="page"':''}>${icon(n.icon)} ${n.label}</a>`).join('');
-  ui.$('#sidenav').innerHTML=`${navigation}<a class="navlink ${active==='characters'?'on':''}" href="#/library" ${active==='characters'?'aria-current="page"':''}>${icon('home')} 角色</a><button class="navlink navigation-more" data-navigation-more>${icon('more')} 更多</button>`;
-  ui.$('[data-navigation-more]').onclick=event=>moreMenu(event.currentTarget);
+  const navigation=(c.id?exchangeNavigation:[]).map(n=>{
+    if(!n.subs)return `<a class="navlink ${on(n.path)?'on':''}" href="${base}${n.path}" ${on(n.path)?'aria-current="page"':''}>${icon(n.icon)} ${n.label}</a>`;
+    const key=JSON.stringify([c.id,n.k]);
+    const expanded=navigationExpansion.get(key)??p.includes('/life/');
+    return `<details class="nav-group" data-nav-group="${esc(key)}" ${expanded?'open':''}><summary class="navlink ${p.includes('/life/')?'on':''}">${icon(n.icon)} ${n.label}<span class="spacer"></span><span class="nav-chevron" aria-hidden="true">⌄</span></summary>${n.subs.map(([l,sp,ic])=>`<a class="navlink sub ${on(sp)?'on':''}" href="${base}${sp}" ${on(sp)?'aria-current="page"':''}>${icon(ic)} ${l}</a>`).join('')}</details>`;
+  }).join('');
+  const globalItems=[['动态','#/feed','feed'],['通知与待处理','#/inbox','inbox'],['角色库','#/library','home'],['创作工坊','#/studio','studio'],['管理中心','#/settings','settings']];
+  ui.$('#sidenav').innerHTML = `<div class="sec">${esc(w?.name||'角色空间')}</div>${navigation}<div class="sec navigation-other">其他空间</div>${globalItems.map(([l,h,i])=>`<a class="navlink ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'on':''}" href="${h}" ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'aria-current="page"':''}>${icon(i)} ${l}</a>`).join('')}`;
   const bindNavigation=root=>root.querySelectorAll('[data-nav-group]').forEach(details=>details.addEventListener('toggle',()=>navigationExpansion.set(details.dataset.navGroup,details.open)));
   bindNavigation(ui.$('#sidenav'));
-  ui.$('#navDrawer').onclick = () => { const wide=matchMedia('(min-width:761px)'); const closeOnWide=()=>{if(wide.matches)d.close();}; const d = ui.drawer({onClose:()=>wide.removeEventListener('change',closeOnWide), title: '全部页面', body: `<div class="row"><b class="grow">${esc(c.name)}</b><button class="btn sm" data-switch-character>切换角色</button></div>`+ui.$('#sidenav').innerHTML }); wide.addEventListener('change',closeOnWide);bindNavigation(d.body);d.body.querySelector('[data-navigation-more]').onclick=()=>{d.close();moreMenu(ui.$('#navDrawer'));};d.body.querySelector('[data-switch-character]').onclick=()=>{d.close();charMenu(ui.$('#navDrawer'));};d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
+  ui.$('#navDrawer').onclick = () => { const wide=matchMedia('(min-width:761px)'); const closeOnWide=()=>{if(wide.matches)d.close();}; const d = ui.drawer({onClose:()=>wide.removeEventListener('change',closeOnWide), title: '全部页面', body: `<div class="row"><b class="grow">${esc(c.name)}</b><button class="btn sm" data-switch-character>切换角色</button></div>`+ui.$('#sidenav').innerHTML }); wide.addEventListener('change',closeOnWide);bindNavigation(d.body);d.body.querySelector('[data-switch-character]').onclick=()=>{d.close();charMenu(ui.$('#navDrawer'));};d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
 }
 function renderPage() {
   disposePage?.(); disposePage = null;

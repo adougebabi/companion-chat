@@ -34,7 +34,7 @@
 .world-tree-place:hover,.world-tree-root:hover{background:var(--surface-2)}
 .world-tree-empty{padding:8px 12px}
 .world-tree-add{flex-shrink:0;margin-top:12px;width:100%;border-style:dashed}
-.world-editor-content{box-sizing:border-box;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;height:max(480px,calc(100dvh - 220px));overflow:auto;scrollbar-width:thin}
+.world-editor-content{box-sizing:border-box;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;height:auto;overflow:visible;}
 .world-editor-form{display:flex;flex-direction:column;min-height:100%;min-width:0}
 .world-editor-body{padding:24px;flex:1;min-width:0;gap:20px}
 .world-editor-body h3{margin:0}

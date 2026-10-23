@@ -7,6 +7,7 @@ import {stateLabel} from '../../domain-presentation.mjs';
 import {userInstant,displayTimezone} from '../../presentation-time.mjs';
 import {ScheduleTimeRange} from './schedule-records.js';
 import {WearingSummary} from './inventory-records.js';
+import {chatSummaryPreference} from '../../chat-summary-preference.mjs';
 
 // Read-only context stays in this pane. Folding it does not discard its stack.
 const contexts=new Map();subscribe(()=>{if(!get('session'))contexts.clear();});
@@ -14,7 +15,8 @@ export function mountChatLifeSummary(host,{ctx,scope,character,onFold,onClose,on
   let alive=true,epoch=0,snapshot=null,error='',loading=false,npcEpoch=0,timer;const npcs=new Map(),npcErrors=new Map();let previousView='';
   const owner=get('session')?.actorId,current=()=>alive&&get('session')?.actorId===owner;
   const contextKey=JSON.stringify([get('session')?.actorId||'',ctx.charId,scope]);
-  const view=contexts.get(contextKey)||{allDay:false,stack:[],folded:true};contexts.set(contextKey,view);const positions=view.positions||(view.positions=new Map());
+  const preference=chatSummaryPreference({owner,fid:ctx.charId});
+  const view=contexts.get(contextKey)||{allDay:false,stack:[],folded:preference.read()};contexts.set(contextKey,view);const positions=view.positions||(view.positions=new Map());
   const base=`#/c/${encodeURIComponent(ctx.charId)}/`;
   const link=(href,label)=>`<a class="btn ghost sm" href="${base+href}">${esc(label)} →</a>`;
   function paint(){
@@ -56,7 +58,7 @@ export function mountChatLifeSummary(host,{ctx,scope,character,onFold,onClose,on
     const body=host.querySelector('.summary-pane-body');if(body)body.scrollTop=positions.get(previousView)||0;
     host.querySelectorAll('[data-summary-npc]').forEach(button=>button.onclick=()=>{view.stack.push({type:'npc',id:button.dataset.summaryNpc});paint();void loadNpc(button.dataset.summaryNpc);});host.querySelector('[data-summary-npc-retry]')?.addEventListener('click',()=>void loadNpc(top.id));
     host.querySelector('[data-summary-close]').onclick=()=>{host.classList.remove('is-open');onClose?.();};
-    host.querySelector('[data-summary-fold]').onclick=()=>{view.folded=!view.folded;paint();host.querySelector('[data-summary-fold]')?.focus({preventScroll:true});};
+    host.querySelector('[data-summary-fold]').onclick=()=>{view.folded=!view.folded;preference.save(view.folded);paint();host.querySelector('[data-summary-fold]')?.focus({preventScroll:true});};
     host.querySelector('[data-summary-back]')?.addEventListener('click',()=>{const previous=view.stack.pop();paint();const selector=previous.type==='context'?'[data-summary-context]':previous.type==='npc'?'[data-summary-npc="'+CSS.escape(previous.id)+'"]':previous.type==='schedule'?'[data-summary-schedule="'+CSS.escape(previous.id)+'"]':previous.type==='wear'?'[data-summary-wear]':'[data-summary-place="'+CSS.escape(previous.id)+'"]';host.querySelector(selector)?.focus({preventScroll:true});});
     host.querySelector('[data-summary-home]')?.addEventListener('click',()=>{view.stack=[];paint();});
     host.querySelector('[data-summary-day]')?.addEventListener('click',()=>{view.allDay=!view.allDay;paint();host.querySelector('[data-summary-day]')?.focus({preventScroll:true});});
@@ -84,7 +86,7 @@ export function mountChatLifeSummary(host,{ctx,scope,character,onFold,onClose,on
 
   const visibility=()=>{clearTimeout(timer);if(!document.hidden)void load();};document.addEventListener('visibilitychange',visibility);
   paint();void load();if(view.stack.at(-1)?.type==='npc')void loadNpc(view.stack.at(-1).id);
-  return {open(){view.folded=false;host.classList.add('is-open');paint();},close(){host.classList.remove('is-open');},dispose(){const body=host.querySelector('.summary-pane-body');if(body)positions.set(previousView,body.scrollTop);alive=false;epoch++;npcEpoch++;clearTimeout(timer);document.removeEventListener?.('visibilitychange',visibility);}};
+  return {open(){view.folded=false;preference.save(false);host.classList.add('is-open');paint();},close(){host.classList.remove('is-open');},dispose(){const body=host.querySelector('.summary-pane-body');if(body)positions.set(previousView,body.scrollTop);alive=false;epoch++;npcEpoch++;clearTimeout(timer);document.removeEventListener?.('visibilitychange',visibility);}};
 }
 
 // Planned time never establishes an execution result.

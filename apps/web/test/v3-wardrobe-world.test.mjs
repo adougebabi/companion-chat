@@ -1,10 +1,11 @@
 import test from 'node:test';
+import {errorMessage} from '../src/v3/domain-presentation.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {persistentCommand} from '../src/v3/providers/persistent-command.mjs';
 import {beginDraftSubmission,settleDraftSubmission} from '../src/v3/proto/components/draft-submission.js';
 import {WorldFrameworkPreview,WorldVenueDirectory} from '../src/v3/proto/components/world-venues.js';
-function load(file,bindings,exports){const source=readFileSync(new URL(`../src/v3/proto/components/${file}`,import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replaceAll('export function ','function ');return Function(...Object.keys(bindings),`${source}\nreturn {${exports}};`)(...Object.values(bindings));}
+function load(file,bindings,exports){const source=readFileSync(new URL(`../src/v3/proto/components/${file}`,import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replaceAll('export function ','function ');return Function('errorMessage',...Object.keys(bindings),`${source}\nreturn {${exports}};`)(errorMessage,...Object.values(bindings));}
 const storage=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
 function drawerFactory(){const opened=[];function drawer(){const fields=new Map();const el={isConnected:true,querySelector:s=>{if(!fields.has(s))fields.set(s,{value:s==='[name=reason]'?'保存修改':'',reportValidity:()=>true,hidden:false,disabled:false,textContent:''});return fields.get(s);}};const value={el,body:{innerHTML:''},close(){el.isConnected=false;}};opened.push(value);return value;}return {drawer,opened};}
 test('wardrobe metadata command preserves exact unknown request through drawer remount and module reload',async()=>{

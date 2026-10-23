@@ -44,6 +44,7 @@ R('/diag/audit', 'diag.audit', '操作审计日志', 'BP-17', '仅展示', G.ren
 R('/diag/pending', 'diag.pending.list', '待处理事项', 'BP-17.7', '仅展示', G.renderPending, { source: '由各领域真实状态派生，不另存', manualRefresh: true });
 R('/data/backup/:backupId','data.backup.detail','业务备份与隔离恢复任务','BP-18','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-backups.js'),'renderRealBackup',el,ctx),{manualRefresh:true});
 R('/data/pack/:packId','data.pack.detail','导入草稿与来源','BP-18','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-data-tools.js'),'renderRealPack',el,ctx),{manualRefresh:true});
+R('/backup','data.backup.alias','备份与数据','BP-18','可操作',(el,ctx)=>{ctx.navigate('#/data');});
 R('/data', 'data.tools', '数据工具', 'BP-18', '可操作', G.renderData, { source: '配置包可导出/导入为草稿；业务备份 P2 未完成；回档 P3 只有说明' });
 R('/data/revisions', 'data.object.revisions', '对象修订记录', 'BP-18', '仅展示', G.renderRevisions);
 R('/data/rollback', 'data.rollback', '时间线回档说明', 'BP-18', '占位', G.renderRollback);

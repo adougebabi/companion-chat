@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {primaryNavigationKey,exchangeNavigation,globalNavigation} from '../src/v3/workspace-navigation.mjs';
+import {sidebarSectionPath,exchangeNavigation,globalNavigation} from '../src/v3/workspace-navigation.mjs';
 import {pendingSummary} from '../src/v3/pending-presentation.mjs';
 import {lifeTimelineRows} from '../src/v3/life-timeline.mjs';
 import {readFileSync} from 'node:fs';
@@ -12,11 +12,11 @@ test('chat context omits unknown values and labels a schedule as an arrangement'
  assert.equal(chatContextText({source:'event',activity:'看书',location:'书屋'}),'看书 · 书屋');
 });
 
-test('five-entry navigation maps all old detail routes to a stable home',()=>{
- assert.deepEqual([...exchangeNavigation.map(n=>n.label),'角色'],['聊天','她的生活','我们','她','角色']);
- for(const [path,key] of [['chat','chat'],['life','life'],['life/diary/one','life'],['growth/memory/one','us'],['life/shared','us'],['life/wardrobe/item/one','her'],['world/place/one','her'],['people/owner','us'],['profile','her']])assert.equal(primaryNavigationKey('/c/role/'+path),key);
- assert.equal(primaryNavigationKey('/c/role/life/schedule',{section:'promises'}),'us');assert.equal(primaryNavigationKey('/library'),'characters');
- assert.ok(globalNavigation().some(([,href])=>href==='#/diag'));
+test('approved navigation is restored to the pre-ab4d33a3 structure',()=>{
+ assert.deepEqual(exchangeNavigation.map(n=>n.label),['对话','生活','世界','人物关系','记忆成长','媒体','角色资料']);
+ assert.deepEqual(exchangeNavigation.find(n=>n.k==='life').subs.map(([label])=>label),['此刻','日程','目标','衣柜','日记','共同经历']);
+ assert.equal(sidebarSectionPath('/c/role/life'),'/c/role/life/now');
+ assert.ok(globalNavigation('管理').some(([,href])=>href==='#/diag'));
 });
 test('17 service failures and one running request are not two actual human decisions',()=>{
  const groups=[{kind:'capability',count:1,status:'ok'},{kind:'persona_proposal',count:1,status:'ok'},{kind:'studio_apply',count:0,status:'ok'},{kind:'owner_request',count:1,status:'ok'},{kind:'failed_task',count:17,status:'ok'}];

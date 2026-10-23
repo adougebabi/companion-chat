@@ -138,6 +138,9 @@ const turnErrorCodes = new Set([
   "turn_stage_not_executable",
   "visible_text_source_conflict",
 	"user_cancelled",
+ "provider_gateway_timeout",
+ "reply_gateway_timeout",
+ "reply_quality_repair_failed",
 ]);
 
 type StreamPayload = {
@@ -580,7 +583,9 @@ export const useConversationStore = defineStore("conversations", {
 				this.messages = mergeConversationMessages(page.messages, this.messages.filter(message => !message.id.startsWith("stream-") && !(message.id.startsWith("local-") && message.turnId === turnId)));
 			} else this.messages = mergeConversationMessages(page.messages, this.messages);
 			this.syncServerTurnState();
-			return page.messages.findLast(message => message.kind === "user")?.turnStatus;
+			const status = page.messages.findLast(message => message.kind === "user")?.turnStatus;
+			if (status === "completed" && this.queuedTurn && !this.sending && !this.hasPendingTurn && !this.hasSettlingTurn && !this.retryTurn && !this.retrying) await this.sendQueuedTurn();
+			return status;
 		} catch (error) {
 			// A read failure cannot change an accepted turn's server state.
 			if (explicit) throw error;
@@ -588,7 +593,21 @@ export const useConversationStore = defineStore("conversations", {
 	},
 	async send(text: string, retry = false, queuedRequest: QueuedTurn | null = null) {
 		const normalized = text.trim();
-		if (!normalized || this.sending) return;
+		if (!normalized) return;
+		if (!retry && !queuedRequest && this.queuedTurn) {
+			this.error ||= "已有一条追发消息保留，请先处理原回应，当前输入尚未发送。";
+			return;
+		}
+		if (this.sending) {
+			if (retry || this.queuedTurn || !this.conversation?.id || !this.fluctlightId) return;
+			const senderTime = captureSenderTime();
+			const local = createLocalMessage(this.conversation.id, normalized, 0, this.senderActorId ?? "human", undefined, senderTime.senderSentAt, senderTime);
+			const queued: QueuedTurn = {conversationId:this.conversation.id,fluctlightId:this.fluctlightId,text:normalized,idempotencyKey:`turn-${randomId()}`,turnId:`turn_${randomId()}`,attachmentRefs:[],senderActorId:this.senderActorId??undefined,...senderTime,messageId:local.id,createdAt:local.createdAt};
+			this.queuedTurn = queued;
+			persistQueuedTurn(queued);
+			this.messages.push({...local,turnId:queued.turnId,idempotencyKey:queued.idempotencyKey});
+			return;
+		}
 		if (!retry && this.hasPendingTurn) {
 			if (!this.sending) {
 				await this.cancel();
@@ -823,6 +842,7 @@ export const useConversationStore = defineStore("conversations", {
           this.abortController = null;
           this.sending = false;
 		  this.activeTurnId = null;
+		  if (!retry && !this.retrying && this.queuedTurn && !this.hasPendingTurn && !this.hasSettlingTurn && !this.retryTurn) await this.sendQueuedTurn();
         }
       }
     },
@@ -888,13 +908,7 @@ export const useConversationStore = defineStore("conversations", {
 		const conversationId = this.conversation?.id;
 		const pending = [...this.messages].reverse().find((message) => message.kind === "user" && (message.turnStatus === "pending" || message.turnStatus === "running") && message.turnId);
 		if (!conversationId || !pending?.turnId) {
-			for (const m of this.messages) {
-				if (m.kind === "user" && (m.turnStatus === "pending" || m.turnStatus === "running")) {
-					m.turnStatus = "cancelled";
-					m.turnErrorCode = "user_cancelled";
-				}
-			}
-			this.syncServerTurnState();
+			this.error = "还未读到可取消的消息标识，请刷新进度确认受理结果。";
 			return;
 		}
 		try {
@@ -905,11 +919,7 @@ export const useConversationStore = defineStore("conversations", {
 			this.messages = mergeConversationMessages(page.messages, this.messages);
 			this.syncServerTurnState();
 		} catch {
-			if (pending) {
-				pending.turnStatus = "cancelled";
-				pending.turnErrorCode = "user_cancelled";
-			}
-			this.syncServerTurnState();
+			this.error = "取消请求结果尚未确认，请刷新进度核对。原消息已保留。";
 		}
 	    },
 	    async retry() {

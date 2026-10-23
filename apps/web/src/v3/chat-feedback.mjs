@@ -9,11 +9,18 @@ export function chatFailureText(value) {
   const text=String(value || '');
   if(!text)return '';
   if(/agent_partial_committed/.test(text))return '这次回应没有完成，有些行动可能已经发生。请先看看她的近况。';
+  if(/gateway_timeout|\b524\b/.test(text))return '模型中转服务等待超时，没能收到回应。原消息已保留，可以检查模型通道后再试。';
+  if(/budget_exceeded/.test(text))return '她暂时没能回应：需要读取的资料超过模型输入上限，请核对本次调用的有效预算。';
+  if(/timeout|timed.out|deadline exceeded/.test(text))return '她暂时没能回应：模型服务响应超时。原消息已保留，可以稍后重试。';
+  if(/request_cancelled|context canceled|reply_cancelled/.test(text))return '本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。';
+  if(/unavailable|http_error|request_failed/.test(text))return '她暂时没能回应：模型服务连接失败，请检查模型通道后重试。';
   if(/已取消|cancelled|canceled/.test(text))return '已停止等待这次回应。';
   return '她暂时没能回应。可以稍后再试一次。';
 }
 
 export function chatDiagnosticTurn(state){
+  const pending=state.messages.findLast(message=>message.kind==='user'&&!/^(?:local-|stream-)/.test(message.id)&&message.turnId!==state.queuedTurn?.turnId&&['pending','running'].includes(message.turnStatus));
+  if(pending?.turnId)return pending.turnId;
   // History/page errors have no turn identity. A queued message can be newer
   // than the failed request and must never become that failure's correlation.
   const error=String(state.error || '');

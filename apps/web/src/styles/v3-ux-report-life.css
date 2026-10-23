@@ -33,7 +33,35 @@
 .chat-more[open] .chat-secondary-actions { position:absolute; right:0; top:100%; z-index:30; background:var(--surface-glass-strong,var(--surface)); border:1px solid var(--line); border-radius:12px; box-shadow:var(--surface-shadow); padding:12px; min-width:220px; display:flex; flex-direction:column; gap:8px; }
 .chatwrap.summary-folded { grid-template-columns:minmax(0,1fr); }
 .chatwrap.summary-folded .chatside { display:none; }
+.chatwrap.summary-folded .chat-related-button { display:inline-flex; }
 .library-organize { margin-left:auto; }
 @media(max-width:760px){.life-journal { width:100%; }.chat-secondary-actions{max-width:calc(100vw - 40px);}}
 
 .main.reading-home>.pagehead { display:none; }
+
+/* Fourth-round corrections stay inside the existing navigation and pages. */
+.service-health{display:flex;align-items:center;gap:10px;font-size:1.05rem;font-weight:600}
+.service-health::before{content:'';width:10px;height:10px;border-radius:50%;background:currentColor}
+.service-health.is-ready{color:var(--primary-strong,#286a58)}
+.service-health.is-failed{color:var(--danger,#b44439)}
+.diagnostic-shortcuts{gap:10px;margin-block:8px}
+.diagnostic-budget{padding:10px;background:var(--surface-2);border-radius:8px;overflow-wrap:anywhere}
+.command-target-preview:not(:empty){padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--primary-soft);margin-bottom:16px}
+.command-target-preview h3{margin-top:0}
+.inventory-detail-image{display:block;max-width:100%;max-height:360px;object-fit:contain;border-radius:10px}
+.wardrobe-page .wgrid{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));align-items:start}
+.wardrobe-page .imgbox:not(:has(img)){min-height:100px;aspect-ratio:auto}
+.diary-generation-records{margin-top:24px;border-top:1px solid var(--line);padding-top:16px}
+.diary-generation-state progress{display:block;width:100%;margin-block:12px;accent-color:var(--primary)}
+.chat-feedback-text{font-size:14px;line-height:1.6;margin:0 0 8px}
+.chat-feedback-controls{gap:8px;align-items:center}
+.chat-feedback-controls details{margin-left:auto;max-width:100%}
+.chat-feedback-controls pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.life-journal nav a,.reading-module-nav a{display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);min-height:40px}
+.moment-compose-actions{gap:12px;margin-block:16px}
+.moment-text-repair{font-size:13px;color:var(--ink-2);margin-block:8px}
+.library-toolbar+.row,.library-group{gap:16px}
+[aria-label="正在创建的角色"]{align-items:flex-start}
+.character-more>summary,.library-organize>summary{cursor:pointer;padding:8px;min-height:40px}
+.schedule-suggestion a,.schedule-progress a{display:inline-flex;align-items:center;min-height:40px;padding:8px 12px;border:1px solid var(--line);border-radius:8px}
+@media(max-width:760px){.chat-feedback-controls details{margin-left:0}.command-target-preview:not(:empty){padding:12px}}

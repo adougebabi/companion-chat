@@ -28,6 +28,8 @@ export function visualStageLabel(value,fallback='生成阶段记录'){return vis
 export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
  const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
  const source=code+' '+text;
+ if(/\b(?:INSERT|UPDATE|SELECT|DELETE|SQLSTATE|constraint|pgconn)\b|fluctlight_wardrobe_|outfit_item_insert_failed/.test(source))return '服装或搭配的保存没有完成，请重新读取衣柜后再试；详细原因已保留在运行诊断。';
+ if(/gateway_timeout|\b524\b/.test(source))return '模型中转服务等待超时，请检查模型通道后重试。原消息和提交记录已保留。';
  if(error?.status===401||/\b401\b|invalid_password|invalid_credentials/.test(source))return '登录未成功，请检查密码并重新登录。';
  if(error?.status===403||/\b403\b|forbidden/.test(source))return '当前账户没有执行此操作的权限。';
  if(error?.status===404||/resource not found|could not be read|not_found/.test(source))return '没有找到这条记录，请返回列表核对。';

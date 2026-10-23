@@ -8,11 +8,11 @@ import {drawer,esc,toast} from '../ui.js';
 import {newWardrobeItemDraft,wardrobeCategoryOptions,wardrobeSlotOptions} from '../../../lib/wardrobe-form.ts';
 const drafts=new Map();subscribe(()=>{if(!get('session'))drafts.clear();});
 const readOnly=fid=>get('characters',fid)?.status==='已退休';
-export function requestInventoryAction(fid,kind,payload,revision,onSaved,observe=()=>true){
+export function requestInventoryAction(fid,kind,payload,revision,onSaved,observe=()=>true,previewSnapshot=payload){
  if(readOnly(fid))return;
  const origin=window.location.hash;
  const titles={borrow:'提出借入请求',return:'提出归还请求',remove:'提出脱下请求',outfit:'请她换上这套'};
- governanceCommand({scope:[fid,'inventory-action',kind,payload],title:titles[kind],defaultReason:kind==='outfit'?'想请你试试这套搭配':'',reasonOptional:kind==='outfit',maxReason:500,note:kind==='borrow'?'借入请求不证明出借方已同意或已经交付。她会根据实际情境决定；借到后另行穿着或使用。':kind==='return'?'归还仅针对这些真实借入物品。实际归还后清除穿用关联，保留借入和使用历史。':kind==='remove'?'只请求移除选定部位，不换上其他物品，不改变拥有关系。':'请她换上这套搭配。她可能根据场合和自己的想法婉拒，结果会在处理进度中说明。',revision,snapshot:payload,target:payload,successMessage:result=>`请求 ${result.request.id} 已受理；实际结果见待处理或通知`,
+ governanceCommand({scope:[fid,'inventory-action',kind,payload],title:titles[kind],defaultReason:kind==='outfit'?'想请你试试这套搭配':'',reasonOptional:kind==='outfit',maxReason:500,note:kind==='borrow'?'借入请求不证明出借方已同意或已经交付。她会根据实际情境决定；借到后另行穿着或使用。':kind==='return'?'归还仅针对这些真实借入物品。实际归还后清除穿用关联，保留借入和使用历史。':kind==='remove'?'只请求移除选定部位，不换上其他物品，不改变拥有关系。':'请她换上这套搭配。她可能根据场合和自己的想法婉拒，结果会在处理进度中说明。',revision,snapshot:previewSnapshot,preview:({snapshot})=>kind==='outfit'?`<h3>希望换上：${esc((snapshot.outfit||snapshot).name||'所选整套搭配')}</h3><ul>${((snapshot.outfit||snapshot).items||[]).map(item=>`<li>${esc(item.description||'已登记服装')}</li>`).join('')}</ul><p class="small muted">请求整套替换当前穿搭，实际结果以她的执行记录为准。</p>`:'',target:payload,successMessage:result=>`请求 ${result.request.id} 已受理；实际结果见待处理或通知`,
   read:async()=>({...(await inventoryClient.current(fid)),...(kind==='outfit'?{outfit:await inventoryClient.outfit(fid,payload.outfitId)}:{})}),
   rebaseTarget:(latest,target)=>kind==='outfit'?{...target,expectedOutfitRevision:latest.outfit.revision,profileId:latest.outfit.active_profile_id}:target,
   execute:(body,target)=>inventoryClient.action(fid,{kind,...target,expectedRevision:body.expectedRevision,reason:body.reason}),

@@ -37,7 +37,7 @@ register({ route: '/c/:charId/growth/reflection', key: 'growth.reflection.timeli
 register({ route: '/c/:charId/growth/reflection/:refId', key: 'growth.reflection.detail', title: '反思详情', bp: 'BP-13.4', zone: Z, coverage: '可操作', render: reflection,manualRefresh:true });
 register({ route: '/c/:charId/growth/self', key: 'growth.self.view', title: '自我认知', bp: 'BP-13', zone: Z, coverage: '可操作', render: liveLife(()=>import('../pages/real-self.js'),'renderRealSelf',guard(L.renderSelf,'自我认知')),manualRefresh:true });
 register({ route: '/c/:charId/growth/self/claim/:claimId', key: 'growth.self.claim', title: '认识详情与修订', bp: 'BP-13', zone: Z, coverage: '可操作', render: (el,ctx)=>providerPage(()=>import('../pages/real-self.js'),'renderRealSelfClaim',el,ctx),manualRefresh:true });
-register({ route: '/c/:charId/profile', key: 'profile.char.view', title: '她', bp: 'BP-05', zone: Z, coverage: '可操作', source: '角色资料、身份核心、人格档案与受控切换、有效状态', manualRefresh: true, render: L.renderProfile });
+register({ route: '/c/:charId/profile', key: 'profile.char.view', title: '角色资料', bp: 'BP-05', zone: Z, coverage: '可操作', source: '角色资料、身份核心、人格档案与受控切换、有效状态', manualRefresh: true, render: L.renderProfile });
 
 register({ route: '/c/:charId/life/goal/new', key: 'goals.create', title: '新建目标', bp: 'BP-07', zone: Z, coverage: '可操作', render: goalEditor, manualRefresh: true });
 register({ route: '/c/:charId/life/goal/:goalId', key: 'goals.detail', title: '目标详情与治理', bp: 'BP-07', zone: Z, coverage: '可操作', render: goalEditor, manualRefresh: true });

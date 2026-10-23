@@ -32,7 +32,7 @@ export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, charac
   return `<div class="msg ${me ? 'me' : ''}" data-msg="${esc(m.id)}">${Avatar({src:me?'/v3/assets/avatars/user.svg':characterAvatar,name:me?'你':characterName})}
    <div class="message-content"><div class="message-identity">${esc(me?senderName:characterName)}</div><div class="bubble">${esc(m.text)}${mediaUrl ? (m.attachmentRefs || []).map(id => `<div class="genimg"><img src="${esc(mediaUrl(id))}" alt="会话媒体" loading="lazy"></div>`).join('') : ''}${md ? `<div style="margin-top:8px">${GeneratedImage(md)}</div>` : ''}</div>
    <div class="meta"><time title="${esc(timestamp)}" aria-label="${esc(timestamp)}">${esc(compactTime)}</time> ${m.identity && m.identity !== '交流' ? badge(m.identity) : ''} ${marks}
-     <button type="button" class="chip" data-copy-message="${esc(m.id)}" aria-label="复制消息">复制</button>${!me&&viewMode==='管理'?`<span class="tools"><button class="chip" data-source="${esc(m.id)}">${icon('link')} 查看来源</button></span>`:''}</div></div></div>`;
+     ${!me&&viewMode==='管理'?`<span class="tools"><button class="chip" data-source="${esc(m.id)}">${icon('link')} 查看来源</button></span>`:''}</div></div></div>`;
 }
 
 export function MessageLog(messages, options = {}) {

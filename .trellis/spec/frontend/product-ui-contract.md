@@ -366,10 +366,12 @@ technical receipts. It does not remove domain authority, data or support routes.
 `pendingSummary(groups)`; calendar `visible/emptyText` and unfiltered list mode.
 
 ### 3. Contracts
-Five primary entries: 聊天 / 她的生活 / 我们 / 她 / 角色. More owns notifications,
-creation, settings and service status. Existing deep links select their owning
-primary. Authenticated empty-URL entry prefers an available active character's
-chat. Chat controls/details and side context start folded; ordinary failures are
+The revised fourth-round report withdraws the proposed five-entry sidebar.
+Use the pre-ab4d33a3 navigation: 对话 / 生活 (此刻、日程、目标、衣柜、日记、共同经历) /
+世界 / 人物关系 / 记忆成长 / 媒体 / 角色资料, plus its original global spaces.
+Keep old deep links and workspace ownership. Authenticated empty-URL entry prefers an available active character's
+chat. Chat secondary controls stay in More; side context defaults by viewport and
+remembers the Owner/character fold preference across conversations and refresh; ordinary failures are
 plain connection feedback with the real recovery identity unchanged.
 
 Life merges independent authoritative sources, retains successful reads on
@@ -461,3 +463,34 @@ covers source-switch rejection and Owner/request-scoped checkpoints.
 Wrong: `draft=await oldRead(); recovery.save(draft)` after arbitrary navigation.
 Correct: await the response, reread the current draft, verify all identities,
 then save only the matching receipt.
+
+
+## Fourth-round recovery and display corrections (2026-10-23)
+
+The latest revised report takes precedence over the earlier navigation proposal.
+`chatDiagnosticTurn` follows an accepted pending/running turn independently of
+error prose and excludes newer queued drafts. Failure codes survive the browser
+allowlist, with gateway timeout, budget, interruption and connection categories.
+One follow-up may be stored under its own immutable queued identity while a reply
+runs; only after successful settlement is it sent. Failure keeps it for recovery.
+A failed cancel transport must not synthesize a cancelled message.
+
+Calendar counts/dots use the same visible records as the reading list. Diary
+non-body states have a separate generation-record panel with actual progress and
+recovery links. Opening date controls exposes the calendar grid even in list mode.
+Historical moment corruption has an explicitly labelled reading view and original
+text disclosure; it never mutates stored prose. User/known multilingual text is
+unchanged. Reproposing a failed dynamic preloads an editable draft and submits a
+new command only after explicit send; original failure history is preserved.
+
+Wardrobe requests show the actual garment/outfit before the reason field. Rebase
+updates that preview along with the submitted target/fences. Actual wear receipts
+may expose before_items/items for a readable before/after; submitted intent alone
+cannot be rendered as completed wear. Runtime observations and durable task
+results remain independent, with disagreement explained and the original recovery
+link/last failure visible before technical controls. `/backup` is a compatibility
+route to the existing data page. World form content uses the page scroll owner.
+
+Regression: fourth-round-regression, conversation-delivery and existing request,
+wardrobe, diagnostic tests. Use the final production bundle for desktop/mobile
+checks. Fixture evidence does not prove live SQL, Provider or deployment recovery.

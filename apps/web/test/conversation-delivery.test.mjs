@@ -550,7 +550,7 @@ test("sending a new message when previous turn is stuck pending auto-cancels and
 		const url = String(input);
 		if (url.includes("/cancel")) {
 			cancelled = true;
-			return new Response(null, { status: 200 });
+			return Response.json({status:"cancelled"});
 		}
 		if (url.includes("/turn")) {
 			newSent = true;
@@ -602,12 +602,14 @@ async function withRetryFixture(clock, run) {
 	const user = { id: "persisted-retry-user", conversationId: conversation.id, sequence: 1, authorActorId: "participant", kind: "user", text: "原始消息", attachmentRefs: ["asset-original"], createdAt: "2026-09-11T00:00:01Z", turnId: "original-turn", idempotencyKey: "original-key", turnStatus: "failed", turnErrorCode: "conversation_native_output_missing", turnRetryable: true, ...clock };
 	const page = { conversation, participants: [], messages: [user], nextBeforeSequence: null };
 	const requests = [];
+ let cancelResponse=async()=>Response.json({status:"cancelled"});
 	let turnResponse = async () => {
 		user.turnStatus = "completed";
 		return new Response(JSON.stringify({ type: "completed", turnId: user.turnId, sequence: 0, payload: {} }) + "\n", { headers: { "content-type": "application/x-ndjson" } });
 	};
 	globalThis.fetch = async (input, init = {}) => {
 		const url = String(input);
+ if(url.endsWith("/cancel"))return cancelResponse();
 		if (url.endsWith("/turn")) {
 			requests.push(JSON.parse(String(init.body)));
 			return turnResponse();
@@ -624,12 +626,58 @@ async function withRetryFixture(clock, run) {
 		const store = useConversationStore();
 		store.fluctlights = [{ id: "fluctlight-retry-clock", identity: { name: "摇光" }, status: "active" }];
 		await store.selectFluctlight("fluctlight-retry-clock");
-		await run({ store, server, pinia, user, requests, values, setTurnResponse: (response) => { turnResponse = response; } });
+		await run({ store, server, pinia, user, requests, values, setCancelResponse:response=>{cancelResponse=response;}, setTurnResponse: (response) => { turnResponse = response; } });
 	} finally {
 		await server.close();
 		Object.assign(globalThis, originals);
 	}
 }
+
+test('an unconfirmed cancel never invents a cancelled server turn',async()=>{
+ await withRetryFixture({},async({store,user,setCancelResponse})=>{
+  setCancelResponse(async()=>Response.json({error:{code:'unavailable'}},{status:503}));
+  store.messages=[{...user,turnStatus:'running'}];
+  await store.cancel();
+  assert.equal(store.messages[0].turnStatus,'running');assert.equal(store.hasPendingTurn,true);assert.match(store.error,/尚未确认/);
+ });
+});
+
+test('one follow-up stays visible and sends once after the running reply completes',async()=>{
+ await withRetryFixture({},async({store,user,requests,values,setTurnResponse})=>{
+  store.dismissRetry();user.turnStatus='completed';store.messages=[{...user}];
+  let release,entered;const started=new Promise(resolve=>entered=resolve),response=new Promise(resolve=>release=resolve);
+  setTurnResponse(async()=>{
+   const request=requests.at(-1);if(requests.length===1){entered();await response;}
+   Object.assign(user,{id:'accepted-'+requests.length,turnId:request.turnId,idempotencyKey:request.idempotencyKey,text:request.text,turnStatus:'completed'});
+   return new Response(JSON.stringify({type:'completed',turnId:request.turnId,sequence:0,payload:{}})+'\n',{headers:{'content-type':'application/x-ndjson'}});
+  });
+  const first=store.send('第一条');await started;await store.send('再补充一句');
+  assert.equal(requests.length,1);assert.equal(store.queuedTurn.text,'再补充一句');assert.ok(store.messages.some(m=>m.text==='再补充一句'));assert.ok(values.has('fluctlight.queued-turn.v1'));
+  const key=store.queuedTurn.idempotencyKey;release();await first;
+  assert.equal(requests.length,2);assert.equal(requests[1].text,'再补充一句');assert.equal(requests[1].idempotencyKey,key);assert.equal(store.queuedTurn,null);
+ });
+});
+
+test('a failed original reply cannot replace an existing follow-up with a third submit',async()=>{
+ await withRetryFixture({},async({store,requests,values})=>{
+  store.sending=true;await store.send('保留的追发');store.sending=false;
+  const original=JSON.parse(JSON.stringify(store.queuedTurn)),persisted=values.get('fluctlight.queued-turn.v1');
+  await store.send('第三条尚未发送');
+  assert.deepEqual(JSON.parse(JSON.stringify(store.queuedTurn)),original);assert.equal(values.get('fluctlight.queued-turn.v1'),persisted);assert.equal(requests.length,0);
+ });
+});
+
+test('explicit refresh confirming completion sends the exact queued follow-up before the old observer closes',async()=>{
+ await withRetryFixture({},async({store,user,requests,setTurnResponse})=>{
+  store.dismissRetry();user.turnStatus='completed';store.messages=[{...user}];
+  let release,entered;const started=new Promise(resolve=>entered=resolve),blocked=new Promise(resolve=>release=resolve);
+  setTurnResponse(async()=>{const request=requests.at(-1);if(requests.length===1){entered();await blocked;}Object.assign(user,{id:'accepted-'+requests.length,turnId:request.turnId,idempotencyKey:request.idempotencyKey,text:request.text,turnStatus:'completed'});return new Response(JSON.stringify({type:'completed',turnId:request.turnId,sequence:0,payload:{}})+'\n',{headers:{'content-type':'application/x-ndjson'}});});
+  const original=store.send('等待读回');await started;await store.send('原追发');const key=store.queuedTurn.idempotencyKey;
+  Object.assign(user,{id:'accepted-a',turnId:requests[0].turnId,idempotencyKey:requests[0].idempotencyKey,turnStatus:'completed'});
+  await store.refreshActiveTurn(true);assert.equal(requests.length,2);assert.equal(requests[1].text,'原追发');assert.equal(requests[1].idempotencyKey,key);assert.equal(store.queuedTurn,null);
+  release();await original;
+ });
+});
 
 for (const [name, clock] of [
 	["frozen sender clock", { senderTimezone: "Asia/Shanghai", senderUtcOffsetMinutes: 480, senderSentAt: "2026-09-11T00:00:00.123Z" }],

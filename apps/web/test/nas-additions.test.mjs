@@ -50,6 +50,12 @@ test('chat diagnosis follows the failed retry identity, not a newer queued messa
  assert.equal(chatDiagnosticTurn({...state,retryTurn:{...state.retryTurn,fluctlightId:'other'},messages:[state.messages[1]]}),null);
  assert.equal(chatDiagnosticTurn({...state,retryTurn:null,messages:[{...failed,id:'local-old'},state.messages[1]]}),null);
 });
+test('a pending durable turn always has a diagnostic target after observer disconnect',()=>{
+ const state={conversation:{id:'conversation'},fluctlightId:'role',error:'',activeTurnId:null,messages:[{id:'accepted',kind:'user',turnId:'background-turn',turnStatus:'running'},{id:'local-queued',kind:'user',turnId:'new-draft'}],queuedTurn:{turnId:'new-draft'}};
+ assert.equal(chatDiagnosticTurn(state),'background-turn');
+ assert.match(chatFailureText('回复未完成：provider_gateway_timeout'),/中转.*超时/);
+ assert.match(chatFailureText('回复未完成：prompt_required_budget_exceeded'),/资料.*上限/);
+});
 test('empty inventory is explicit without claiming nakedness; actual categories use shared labels',()=>{
  const html=CurrentInventory([],[]);assert.match(html,/当前没有已登记的穿着衣物/);assert.doesNotMatch(html,/未穿衣|没有衣服/);
  const card=InventoryCard({id:'one',fluctlight_id:'fl-one',description:'外套',category:'outdoor_clothing',slot:'outerwear',ownership:'unknown',availability:'available'});
