@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {creationDraft,checkpointCreation} from '../src/v3/creation-draft.mjs';
+import {creationDraft,checkpointCreation,selectCreationWorld} from '../src/v3/creation-draft.mjs';
 import {creationAnalysisRequest,parseCreationInput} from '../src/v3/creation-json.mjs';
 import {persistentCommand} from '../src/v3/providers/persistent-command.mjs';
 
 const storage=()=>{const data=new Map();return {getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};};
+test('an activated default-world command cannot be replaced by a new source during recovery',()=>{
+ const draft={requestId:'original',activatedId:'actual-character',useDefaultWorld:true};
+ assert.equal(selectCreationWorld(draft,{resourceId:'other-world',version:'1'}),false);
+ assert.deepEqual(draft,{requestId:'original',activatedId:'actual-character',useDefaultWorld:true});
+});
 test('creation sources distinguish raw JSON, immutable publication and restored analysis authority',()=>{
  const json={core_persona:{identity:{name:'Source <script>'}}};
  assert.deepEqual(creationAnalysisRequest({mode:'json',json:JSON.stringify(json)}),{json});
@@ -58,4 +63,13 @@ test('activation after page disposal checkpoints before releasing original reque
  const original=JSON.stringify(recovery.read());
  checkpointCreation(recovery,submitted,{id:'late-wrong-owner'},()=>false);assert.equal(JSON.stringify(recovery.read()),original);
  const other=creationDraft({owner:'other',storage:saved});checkpointCreation(other,submitted,{id:'late-new-draft'},()=>true);assert.equal(other.read().activatedId,null);
+});
+
+test('leaving during analysis checkpoints only the original Owner draft and never erases newer input',async()=>{
+ const {checkpointCreationAnalysis}=await import('../src/v3/creation-draft.mjs');
+ const saved=storage(),recovery=creationDraft({owner:'owner',storage:saved}),original=recovery.read();recovery.save(original);
+ assert.equal(checkpointCreationAnalysis(recovery,original.requestId,{analysis_id:'saved-analysis'},()=>true),true);assert.equal(recovery.read().analysis.analysis_id,'saved-analysis');
+ const newer={...recovery.read(),requestId:'newer-input',bio:'keep me',analysis:null};recovery.save(newer);
+ assert.equal(checkpointCreationAnalysis(recovery,original.requestId,{analysis_id:'obsolete'},()=>true),false);assert.equal(recovery.read().bio,'keep me');assert.equal(recovery.read().analysis,null);
+ assert.equal(checkpointCreationAnalysis(recovery,'newer-input',{analysis_id:'wrong-owner'},()=>false),false);
 });

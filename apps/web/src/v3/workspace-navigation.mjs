@@ -1,9 +1,19 @@
+export const lifeSections=[['近况','life','life'],['日程','life/schedule','calendar'],['目标','life/goals','target'],['日记','life/diary','book'],['相册','media','image']];
 export const exchangeNavigation = [
- {k:'chat',label:'对话',icon:'chat',path:'chat'},
- {k:'life',label:'生活',icon:'life',path:'life/now',subs:[['此刻','life/now','now'],['日程','life/schedule','calendar'],['目标','life/goals','target'],['衣柜','life/wardrobe','shirt'],['日记','life/diary','book'],['共同经历','life/shared','heart']]},
- {k:'world',label:'世界',icon:'globe',path:'world'}, {k:'people',label:'人物关系',icon:'people',path:'people'},
- {k:'growth',label:'记忆成长',icon:'brain',path:'growth'}, {k:'media',label:'媒体',icon:'image',path:'media'}, {k:'profile',label:'角色资料',icon:'user',path:'profile'},
+ {k:'chat',label:'聊天',icon:'chat',path:'chat'},
+ {k:'life',label:'她的生活',icon:'life',path:'life'},
+ {k:'us',label:'我们',icon:'heart',path:'life/shared'},
+ {k:'her',label:'她',icon:'user',path:'profile'},
 ];
+export function primaryNavigationKey(path,query={}){
+ if(path==='/library'||path==='/library/create')return 'characters';
+ if(!/^\/c\/[^/]+\//.test(path))return path==='/feed'?'life':null;
+ const section=path.replace(/^\/c\/[^/]+\//,'');
+ if(section.startsWith('chat'))return 'chat';
+ if(section==='life/shared'||section.startsWith('growth')||section==='people/owner'||section==='life/schedule'&&query.section==='promises')return 'us';
+ if(section.startsWith('life/wardrobe')||/^(profile|people|world|governance|settings)(\/|$)/.test(section))return 'her';
+ return 'life';
+}
 export const managementNavigation=[
  {k:'profile',label:'角色资料',icon:'user',path:'profile'}, {k:'worlds',label:'世界管理',icon:'globe',path:'worlds'},
  {k:'people',label:'人物管理',icon:'people',path:'people/npcs'}, {k:'governance',label:'身份与能力治理',icon:'brain',path:'governance'},
@@ -24,9 +34,7 @@ export function workspaceForPath(path){
  if(path==='/auth'||path==='/inbox'||path==='/library'||/\/profile$/.test(path))return null;
  return '交流';
 }
-export function globalNavigation(mode){return mode==='管理'
- ? [['角色库','#/library','home'],['初始化向导','#/setup','route'],['创作中心','#/studio','studio'],['系统设置','#/settings','settings'],['运行诊断','#/diag','diag'],['数据工具','#/data','book'],['通知','#/inbox','inbox']]
- : [['角色库','#/library','home'],['动态','#/feed','feed'],['通知','#/inbox','inbox']];}
+export function globalNavigation(){return [['通知','#/inbox','inbox'],['创作工坊','#/studio','studio'],['设置','#/settings','settings'],['服务状态','#/diag','diag'],['备份与数据','#/data','book']];}
 
 // Only module/list paths migrate; object, conversation and source identities do not.
 export function characterSwitchHref(raw, characterId) {

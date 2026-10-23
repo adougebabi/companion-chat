@@ -1,12 +1,16 @@
 import {errorMessage} from './domain-presentation.mjs';
+// A scheduled activity is a plan, even when its scheduled time is now.
+export function chatContextText(context){
+ const text=[context?.activity,context?.location].filter(Boolean).join(' · ');
+ return text&&context?.source==='schedule'?'安排 · '+text:text;
+}
 // Presentation only: the conversation store retains the original failure and retry identity.
 export function chatFailureText(value) {
   const text=String(value || '');
-  if(/prompt_(?:required_|tool_result_)?budget_exceeded|prompt_context_budget_exceeded/.test(text))return '本次回复需要读取的资料超出模型可处理范围，回复未完成。原消息已保留；可在诊断中查看原因，修复后重试。';
-  if(text.includes('agent_partial_committed'))return '本次回复未全部完成，但已有操作提交。请先核对已显示的结果和诊断记录。';
-  if(text.includes('owner_life_assessment_failed'))return '本次请求未能完成判断。请查看关联诊断，确认模型服务恢复后再决定是否重新发出建议。';
-  if(/agent_run_failed|provider_[a-z_]+|turn_failed/.test(text))return '本次回复未能完成。原消息已保留，请查看关联诊断；确认服务恢复后可重试。';
-  return text?errorMessage(text,'本次回复未能完成，原消息已保留，请查看关联诊断。'):'';
+  if(!text)return '';
+  if(/agent_partial_committed/.test(text))return '这次回应没有完成，有些行动可能已经发生。请先看看她的近况。';
+  if(/已取消|cancelled|canceled/.test(text))return '已停止等待这次回应。';
+  return '她暂时没能回应。可以稍后再试一次。';
 }
 
 export function chatDiagnosticTurn(state){
@@ -25,5 +29,5 @@ export function chatWaitText(state, startedAt, now=Date.now()) {
  if(!state.sending&&!state.hasPendingTurn&&!state.hasSettlingTurn)return '';
  const seconds=Math.max(0,Math.floor((now-startedAt)/1000));
  const elapsed=seconds<60?`${seconds} 秒`:`${Math.floor(seconds/60)} 分 ${seconds%60} 秒`;
- return `${state.hasSettlingTurn?'正在结束本次生成':state.sending?'正在连接或等待回复':'后台正在处理回复'} · 已等待 ${elapsed}。${seconds>=60?'她暂时还没回应，可能是模型服务较慢或暂不可用。可以刷新进度、检查模型服务，或取消后重试。':seconds>=30?'正在等待她回应，稍后可以离开页面再回来查看。':''}`;
+ return `${state.hasSettlingTurn?'正在结束本次生成':state.sending?'正在连接或等待回复':'后台正在处理回复'} · 已等待 ${elapsed}。${seconds>=60?'她还没能回应，可以先看看她的生活，稍后回来。':seconds>=30?'正在等待她回应，稍后可以离开页面再回来查看。':''}`;
 }

@@ -6,7 +6,7 @@ export function creationDraft({owner,storage,timezone=Intl.DateTimeFormat().reso
   const key=`fluctlight-creation:${owner}:draft`;
   function read(){
     const raw=storage.getItem(key);
-    if(!raw)return {version:1,step:0,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:randomId(),timezone,analysis:null,includeGoals:true,activatedId:null};
+    if(!raw)return {version:1,step:0,useDefaultWorld:true,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:randomId(),timezone,analysis:null,includeGoals:true,activatedId:null};
     const value=JSON.parse(raw);
     if(value?.version!==1||!Number.isInteger(value.step)||value.step<0||value.step>3||typeof value.requestId!=='string'||!value.requestId)throw new Error('创建草稿不可读取，请先核对原创建请求，避免重复激活');
     return value;
@@ -29,7 +29,7 @@ export function checkpointCreation(recovery,submitted,result,ownerCurrent){
   if(!ownerCurrent())return;
   const saved=recovery.read();
   if(saved.requestId!==submitted.body.requestId)return;
-  recovery.save({...saved,activatedId:result.id,activationGroupId:submitted.groupId,...(submitted.worldResourceId?{worldResourceId:submitted.worldResourceId,worldResourceVersion:submitted.worldResourceVersion}:{})});
+  recovery.save({...saved,activatedId:result.id,activationGroupId:submitted.groupId,...(Object.hasOwn(submitted,'useDefaultWorld')?{useDefaultWorld:submitted.useDefaultWorld}:{}),...(submitted.worldResourceId?{worldResourceId:submitted.worldResourceId,worldResourceVersion:submitted.worldResourceVersion}:{})});
 }
 
 // A different published source changes analysis context, never a pending command.
@@ -38,12 +38,18 @@ export function selectCreationWorld(draft,{resourceId,version,pending=false}){
  if(draft.activatedId){
   // An explicitly chosen late source can complete an unconfigured world step.
   // An already bound source/runtime remains governed by world management.
-  if(draft.worldResourceId||draft.worldRuntimeId)return false;
-  draft.worldResourceId=resourceId;draft.worldResourceVersion=version;return true;
+  if(draft.useDefaultWorld||draft.worldResourceId||draft.worldRuntimeId)return false;
+  draft.useDefaultWorld=false;draft.worldResourceId=resourceId;draft.worldResourceVersion=version;return true;
  }
  if(draft.worldResourceId===resourceId&&draft.worldResourceVersion===version)return false;
- draft.worldResourceId=resourceId;draft.worldResourceVersion=version;
+ draft.useDefaultWorld=false;draft.worldResourceId=resourceId;draft.worldResourceVersion=version;
  draft.analysis=null;draft.analysisText='';draft.worldContextWarning='';
  if(draft.step===3)draft.step=draft.mode==='analysis'?0:2;
  draft.requestId=randomId();return true;
+}
+
+export function checkpointCreationAnalysis(recovery,requestId,analysis,ownerCurrent){
+ if(!ownerCurrent())return false;
+ const saved=recovery.read();if(saved.requestId!==requestId||saved.activatedId)return false;
+ recovery.save({...saved,analysis,analysisText:JSON.stringify(analysis,null,2)});return true;
 }

@@ -34,7 +34,7 @@ export function ProfileHeader(snapshot, canEdit) {
   return Card({ attrs: { 'data-test': `profile-${snapshot.id}` },
     heading: EntityHeader({avatar:snapshot.avatar,title:snapshot.name||'姓名尚未记录',subtitle:`当前人格 · ${esc(personaName(snapshot,snapshot.activeProfileId))}`,status:badge(({active:'运行中',paused:'已暂停',retired:'已退休',archived:'已归档',created:'准备中',failed:'需要处理'})[snapshot.status]||snapshot.status||'状态未提供')}),
     body: `${bioBody}<details class="mgmt small muted"><summary>资料版本</summary>${KeyValueList([['身份核心版本', ProfileValue(snapshot.foundationRevision)], ['运行版本', ProfileValue(snapshot.runtimeRevision)]])}</details>`,
-    footer: `<div class="row"><button class="btn" data-profile-edit data-test="profile-edit" ${!canEdit || snapshot.readOnly ? 'disabled' : ''}>编辑简介…</button><a class="btn ghost" href="#/c/${encodeURIComponent(snapshot.id)}/settings/autonomy">自治与触达</a><a class="btn ghost" href="#/c/${encodeURIComponent(snapshot.id)}/growth/self">自我认知</a></div>` });
+    footer: `<div class="row"><button class="btn" data-profile-edit data-test="profile-edit" ${!canEdit || snapshot.readOnly ? 'disabled' : ''}>编辑简介…</button></div>` });
 }
 export function PersonaSection(snapshot, canSwitch) {
   const choices = snapshot.profiles.filter(profile => profile.id !== snapshot.activeProfileId && (!snapshot.switchTargetIds || snapshot.switchTargetIds.includes(profile.id)));

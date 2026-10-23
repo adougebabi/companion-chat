@@ -13,6 +13,7 @@ export function createOperationsProvider(client:BrowserClient,refresh:()=>Promis
     return result;
   }
   return {
+    health:()=>client.health('/health/ready'),
     notifications:(cursor='',unread=false)=>client.listNotifications({cursor,unread,limit:30}),
     notificationCount:()=>client.unreadNotificationCount(),
     readNotification:(id:string)=>command('notice:'+id,key=>client.markNotificationRead(id,{idempotencyKey:key})),

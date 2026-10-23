@@ -44,8 +44,8 @@ export function TypingMessage(character={}) {
 }
 export function ChatPanel({ character, summary='', messages, messageOptions, sidebar,viewMode='交流',senderName='你',worldName='' }) {
   return `<div class="chatwrap"><section class="chatcol">
-    <div class="chathead"><div class="grow"><h2>和${esc(character.name)}聊聊</h2><div class="small muted">以 ${esc(senderName)} 的身份私聊${worldName?` · ${esc(worldName)}`:''}</div></div>
-      <div class="chat-head-actions"><a class="btn ghost sm" href="#/c/${character.id}/chat/history">历史与搜索</a><a class="btn ghost sm" href="#/c/${character.id}/people/owner">关于你</a><div class="ident" role="group" aria-label="聊天查看方式">${['交流','管理'].map(mode=>`<button type="button" data-chat-view="${mode}" aria-pressed="${mode===viewMode}" class="${mode===viewMode?'on':''}">${mode}</button>`).join('')}</div></div></div>
+    <div class="chathead"><div class="grow"><h2>${esc(character.name)}</h2><p class="small muted" data-chat-now hidden></p></div>
+      <div class="chat-head-actions"><details class="chat-more"><summary aria-label="更多聊天选项">···</summary><div class="chat-secondary-actions"><a class="btn ghost sm" href="#/c/${character.id}/chat/history">历史与搜索</a><div class="ident" role="group" aria-label="聊天查看方式">${['交流','管理'].map(mode=>`<button type="button" data-chat-view="${mode}" aria-pressed="${mode===viewMode}" class="${mode===viewMode?'on':''}">${mode}</button>`).join('')}</div></div></details></div></div>
     <p class="small muted chat-view-help" data-chat-view-help ${viewMode==='管理'?'':'hidden'}>管理视图可查看每条回复的来源与处理记录。</p>
     ${summary}
     <div class="message-area">${MessageLog(messages, messageOptions)}<button class="latest-messages btn" data-latest hidden aria-label="回到最新消息">⇊ <span data-new-count></span></button></div>

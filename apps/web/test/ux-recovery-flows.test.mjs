@@ -4,11 +4,34 @@ import {readFileSync} from 'node:fs';
 import {esc,badge} from '../src/v3/proto/components/controls.js';
 import {domainName,stateLabel,errorMessage} from '../src/v3/domain-presentation.mjs';
 import {requestDecisionText,RequestDecisionSource,RequestFailureLink} from '../src/v3/proto/components/request-failure.js';
-import {creationDraft} from '../src/v3/creation-draft.mjs';
+import {creationDraft,checkpointCreation,checkpointCreationAnalysis,selectCreationWorld} from '../src/v3/creation-draft.mjs';
+import {creationAnalysisRequest,parseCreationAnalysis} from '../src/v3/creation-json.mjs';
+import {persistentCommand} from '../src/v3/providers/persistent-command.mjs';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const storage=()=>{const values=new Map();return {getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};};
 function load(file,bindings,name){const text=readFileSync(new URL('../src/v3/proto/'+file,import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replace(/^export \{.+;\s*$/gm,'').replaceAll('export ','');return Function(...Object.keys(bindings),text+'\nreturn '+name)(...Object.values(bindings));}
 function element(){const nodes=new Map();return {isConnected:true,innerHTML:'',querySelector(s){if(!nodes.has(s))nodes.set(s,{isConnected:true,innerHTML:'',textContent:'',hidden:false,disabled:false,insertAdjacentHTML(_where,text){this.innerHTML+=text;},addEventListener(){}});return nodes.get(s);},querySelectorAll:()=>[]};}
+
+function creationPage({analyze,activated=false}={}){
+ const saved=storage(),recovery=creationDraft({owner:'owner',storage:saved,timezone:'Asia/Shanghai'}),el=element();let activations=0;
+ const query=el.querySelector.bind(el);el.querySelector=s=>{const n=query(s);n.addEventListener=(type,fn)=>{n['on'+type]=fn;};n.querySelectorAll=()=>[];n.focus=()=>n.focused=true;return n;};
+ const form=el.querySelector('[data-source]');form.elements={};form.reportValidity=()=>true;
+ recovery.save({...recovery.read(),bio:'她喜欢看书',...(activated?{activatedId:'original-role',groupConfirmed:true,worldRuntimeId:'original-world',worldSelectionConfirmed:true}:{})});
+ const render=load('pages/real-create.js',{client:{},store:{get:k=>k==='session'?{actorId:'owner'}:{status:'正常'},list:()=>[]},creationDraft,checkpointCreation,checkpointCreationAnalysis,selectCreationWorld,creationAnalysisRequest,parseCreationAnalysis,persistentCommand,studioDraftStorage:()=>saved,esc,Field:()=>'',CreationPreview:()=>'',creationFeedback:c=>({message:c.message}),JsonDetails:()=>'',document:{hidden:false,addEventListener(){},removeEventListener(){}},setTimeout:()=>1,clearTimeout(){},requireOwner:async()=>true,directory:{analyze,activate:async()=>{activations++;return {id:'created'};}},activationFromAnalysis:()=>({}),readCreationProgress:async()=>({complete:true,stages:[],worldConfirmed:true}),localDate:()=> '2026-10-23'},'renderRealCreate');
+ const dispose=render(el,{query:{},navigate(){}});return {el,recovery,dispose,activations:()=>activations};
+}
+const validAnalysis={analysis_id:'initialization_source_'+'a'.repeat(32),correlation_id:'real-analysis-request',schema_version:1,core_persona:{},developing_self:{},extensions:{},initial_goals:[],initial_intentions:[],initial_relationships:[]};
+
+test('a stale analysis response cannot continue activation using a replacement draft',async()=>{
+ let release;const response=new Promise(resolve=>release=resolve),page=creationPage({analyze:()=>response});
+ try{page.el.querySelector('[data-start]').onclick();await tick();const newer={...page.recovery.read(),requestId:'replacement',name:'新草稿',bio:'保留新输入',analysis:{unrelated:true},wizardStep:1};page.recovery.save(newer);release(validAnalysis);await tick();assert.equal(page.activations(),0);assert.deepEqual(page.recovery.read(),newer);}finally{page.dispose();}
+});
+test('analysis without a name returns to editable input and a second creation starts with description',async()=>{
+ const page=creationPage({analyze:async()=>validAnalysis});
+ try{page.el.querySelector('[data-start]').onclick();await tick();assert.equal(page.recovery.read().wizardStep,1);assert.equal(page.el.querySelector('[data-name-options]').open,true);assert.equal(page.el.querySelector('[name="name"]').focused,true);assert.equal(page.activations(),0);}finally{page.dispose();}
+ const next=creationPage({activated:true});
+ try{await tick();next.el.querySelector('[data-new-creation]').onclick();assert.equal(next.recovery.read().wizardStep,1);assert.equal(next.recovery.read().useDefaultWorld,true);assert.match(next.el.innerHTML,/她是什么样的人/);}finally{next.dispose();}
+});
 
 test('inline progress follows original request, localizes tasks, keeps state on read failure and ignores changed Owner',async()=>{
  const previous=globalThis.document;const handlers=new Map();globalThis.document={hidden:false,addEventListener:(kind,fn)=>handlers.set(kind,fn),removeEventListener:kind=>handlers.delete(kind)};

@@ -354,3 +354,110 @@ previous explicit rebase tests passing.
 
 Wrong: show only an internal accepted code and require users to locate a request
 ID. Correct: show progress/results in context and expose concrete recovery actions.
+
+## Scenario: Companion-first reading hierarchy (2026-10-23)
+
+### 1. Scope / Trigger
+The insight review replaces the 17-module ordinary navigation and pervasive
+technical receipts. It does not remove domain authority, data or support routes.
+
+### 2. Signatures
+`primaryNavigationKey(path,query)`; `lifeTimelineRows(fid,sources)`;
+`pendingSummary(groups)`; calendar `visible/emptyText` and unfiltered list mode.
+
+### 3. Contracts
+Five primary entries: 聊天 / 她的生活 / 我们 / 她 / 角色. More owns notifications,
+creation, settings and service status. Existing deep links select their owning
+primary. Authenticated empty-URL entry prefers an available active character's
+chat. Chat controls/details and side context start folded; ordinary failures are
+plain connection feedback with the real recovery identity unchanged.
+
+Life merges independent authoritative sources, retains successful reads on
+partial failures, and keeps each cursor independent. Empty diary bodies and
+Owner-authored posts do not become her life entries. Plans remain labeled plans;
+missing dates are not replaced with the current time. Fresh first-page reads replace
+their source and cursor so hidden/deleted rows disappear; failed reads retain the
+last success. Loading older pages pauses following until an explicit latest
+refresh. Polls stop on disposal,
+Owner switch and hidden pages. Diary/memory default lists show all loaded rows
+unless an explicit date/month is selected; URL persistence must not turn the
+implicit current month into a filter. Source/provenance details remain available. Chat context follows at 30 seconds
+when visible and not sending, keeps the object stack, omits unknown fields and
+labels schedule-derived activity as an arrangement.
+
+Human attention counts capability/persona/application decisions only. Request
+progress and service failures have separate, collapsed sections; unreadable
+attention sources remain unknown rather than zero. Historical service notices
+are retained by Core while ordinary notification list/count use one visibility
+predicate. Accepted invitations remain personal notifications.
+
+### 4. Validation & Error Matrix
+17 failures + 1 running request + 2 decisions => attention 2, progress 1, service
+17. Old sparse diary => visible without selecting its month. Empty-body diary =>
+not offered as a readable entry. World/wardrobe/editor detail => 她; memory/shared
+=> 我们. Actual failure/cancel/retry semantics do not change with simpler copy.
+
+### 5. Good / Base / Bad Cases
+Good: open her life and read actual content; expand setup only when needed.
+Base: rich profile/governance remains in closed sections. Bad: hide failures but
+retain a 20-item human badge, invent current activity, or auto-convert clothing
+material images into owned wardrobe items.
+
+### 6. Tests Required
+`insight-companionship.test.mjs` covers primary ownership, attention partition,
+source-based timeline and unfiltered sparse reading. Verify real production
+renderer on desktop/mobile, menu reachability, late-response scope, and preserved
+forms/cursors. Local fixtures are presentation evidence, not live model acceptance.
+
+### 7. Wrong vs Correct
+Wrong: simplify by deleting features or presenting unknown fields as facts.
+Correct: show ordinary reading first and retain explicit, governed advanced paths.
+
+
+## Scenario: Description-First Creation With A Real Default World
+
+### 1. Scope / Trigger
+New character creation and recovery after analysis, activation or world setup.
+
+### 2. Signatures
+`finishCreationWorld({client,recovery,storage,owner,ownerCurrent})`;
+`checkpointCreationAnalysis(recovery,requestId,analysis,ownerCurrent)`;
+`updateRuntimeWorld(fid,{expectedRevision:0,name,background,reason,idempotencyKey})`.
+
+### 3. Contracts
+Fresh and subsequent drafts start at description (`wizardStep=1`) with
+`useDefaultWorld=true`. Name may come from analysis; missing name returns to
+editable input. Source/template/JSON options remain explicit advanced paths.
+Activation does not create a world: persist the actual runtime-world command
+receipt before releasing the pending key, then verify `client.world(fid)`.
+Create no places, ownership or presence from prose. All four real initialization
+stages plus world readback remain required for full completion. A confirmed
+world and active directory character may expose an early chat entry.
+
+After every async boundary, recheck Owner, requestId, activatedId and source
+mode before saving or issuing a follow-up. A false analysis checkpoint ends the
+old continuation. Leaving the page may preserve accepted analysis, but a new
+Owner/draft cannot receive it. An activated default-world draft cannot switch
+source while its original command is unresolved.
+
+### 4. Validation & Error Matrix
+Unknown world response: retry exact body/key. World ID returned but no selected
+binding: incomplete. Owner/request changes during write/read: no local save or
+follow-up. Missing analyzed name: editable options open, no activation.
+
+### 5. Good / Base / Bad Cases
+Good: one description leads to one character and a verified real default world.
+Base: the published-resource branch retains its existing source and CAS checks.
+Bad: synthesize a world ID, overwrite a replacement draft, or count acceptance
+as completed visual initialization.
+
+### 6. Tests Required
+`creation-world.test.mjs` covers exact retry and stale initial/write/readback
+responses. `ux-recovery-flows.test.mjs` executes stale-analysis continuation,
+missing-name editing and subsequent-draft start. `v3-creation-recovery.test.mjs`
+covers source-switch rejection and Owner/request-scoped checkpoints.
+
+### 7. Wrong vs Correct
+Wrong: `draft=await oldRead(); recovery.save(draft)` after arbitrary navigation.
+Correct: await the response, reread the current draft, verify all identities,
+then save only the matching receipt.

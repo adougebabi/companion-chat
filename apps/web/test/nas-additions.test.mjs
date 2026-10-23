@@ -22,9 +22,9 @@ test('avatar uses a neutral initial for empty/broken media and escapes external 
  assert.match(bubble,/你好/);assert.doesNotMatch(bubble,/src=""|xiaoyao/);
 });
 test('chat budget/partial errors become readable while real user content remains intact',()=>{
- assert.match(chatFailureText('回复未完成：prompt_tool_result_budget_exceeded'),/超出模型可处理范围/);
+ assert.match(chatFailureText('回复未完成：prompt_tool_result_budget_exceeded'),/暂时没能回应/);
  assert.doesNotMatch(chatFailureText('回复未完成：prompt_tool_result_budget_exceeded'),/prompt_/);
- assert.match(chatFailureText('agent_partial_committed'),/已有操作提交/);
+ assert.match(chatFailureText('agent_partial_committed'),/行动可能已经发生/);
  const original='回复未完成：prompt_tool_result_budget_exceeded，这是我输入的原文';
  const bubble=MessageBubble({id:'user',from:'user',text:original,turnErrorCode:'prompt_tool_result_budget_exceeded'},{mediaById(){}});
  assert.match(bubble,/回复未完成：prompt_tool_result_budget_exceeded，这是我输入的原文/);

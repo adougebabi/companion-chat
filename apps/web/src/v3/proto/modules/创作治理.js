@@ -13,7 +13,7 @@ const Z = '创作治理';
 const R = (route, key, title, bp, coverage, render, extra = {}) => register({ route, key, title, bp, zone: Z, coverage, scope: '全局定义', render, ...extra });
 R('/auth', 'auth.signin', '登录/注册', 'BP-01', '可操作', G.renderAuth, { source: '原型模拟登录，不连接真实账号' });
 R('/library', 'library.home', '角色库', 'BP-01', '可操作', G.renderLibrary);
-R('/library/create', 'library.char.create', '新建角色向导', 'BP-01', '可操作', G.renderCreate);
+R('/library/create', 'library.char.create', '认识新的人', 'BP-01', '可操作', G.renderCreate);
 R('/setup','setup.home','初始化向导','BP-01/16','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-setup.js'),'renderRealSetup',el,ctx),{manualRefresh:true});
 R('/studio/npc/:resId', 'studio.npc.edit', 'NPC 定义编辑', 'BP-12/15', '可操作', renderNPCDefinition, { manualRefresh: true });
 R('/studio/material/:materialId','studio.material.detail','创作素材与保留历史','BP-15','可操作',(el,ctx)=>providerPage(()=>import('../pages/real-material.js'),'renderRealMaterial',el,ctx));
@@ -26,7 +26,7 @@ R('/studio/apply', 'studio.apply', '应用到实例', 'BP-15/05', '可操作', G
 R('/studio/template', 'studio.event.template', '事件模板', 'BP-11.2-3', '仅展示', G.renderTemplate);
 R('/settings', 'settings.global', '系统设置', 'BP-16', '仅展示', (el, ctx) => { if(!store.isMock)return providerPage(()=>import("../pages/real-configuration.js"),"renderRealSettings",el,ctx);G.renderSettings(el, ctx); el.insertAdjacentHTML('beforeend', settingsLinks()); }, { source: '仅记录偏好，不改变运行时权限' });
 R('/c/:charId/settings/autonomy', 'settings.char.autonomy', '角色自治与触达设置', 'BP-16', '仅展示', G.renderAutonomy, { scope: '角色范围', source: '角色实际策略与全局继承', manualRefresh: true });
-R('/diag', 'diag.home', '运行诊断', 'BP-17', '可操作', (el, ctx) => { G.renderDiag(el, ctx); el.insertAdjacentHTML('beforeend', diagnosticsLinks()); });
+R('/diag', 'diag.home', '服务状态', 'BP-17', '可操作', (el, ctx) => { G.renderDiag(el, ctx); el.insertAdjacentHTML('beforeend', diagnosticsLinks()); });
 R('/diag/task/:taskId', 'diag.task.detail', '诊断任务详情', 'BP-17', '可操作', (el, ctx) => {
   if (!store.isMock) return providerPage(() => import('../pages/real-operations.js'), 'renderRealTask',el,ctx);
   const t = store.get('tasks', ctx.params.taskId); if (!t) { el.innerHTML = '<div class="statebox"><h2>当前范围未找到该任务</h2></div>'; return; }

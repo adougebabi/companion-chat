@@ -1,3 +1,4 @@
+import {pendingSummary} from './pending-presentation.mjs';
 // 把契约响应投影成原型页面读取的视图模型，并提供反向的夹具投影。
 // 浏览器包只调用 viewFromBundle；种子只存在于测试夹具。
 
@@ -437,8 +438,10 @@ export function viewFromBundle(bundle) {
   data.meta.unreadCount = bundle.unread?.count;
   data.meta.alertCount = bundle.unread?.alert_count;
   data.meta.pendingGroups = bundle.pending?.groups?.map(group=>({...group,items:group.items?.map(item=>({...item,charId:item.fluctlight_id,text:item.title,link:item.href}))}));
-  data.meta.pendingCount = bundle.pendingCount?.count;
-  data.meta.pendingPartial = bundle.pendingCount?.partial;
+  const attention=pendingSummary(bundle.pending?.groups);
+  data.meta.pendingCount = attention.attentionKnown?attention.attention:undefined;
+  data.meta.pendingPartial = !attention.attentionKnown;
+  data.meta.serviceIssues=attention.serviceKnown?attention.service:undefined;
   data.meta.conversations = Object.fromEntries(Object.entries(bundle.conversations || {}).map(([id, page]) => [id, page.conversation?.id]).filter(([, id]) => id));
   return data;
 }

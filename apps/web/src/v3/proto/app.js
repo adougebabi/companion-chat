@@ -1,5 +1,5 @@
 import {installFieldValidation} from './components/forms.js';
-import {exchangeNavigation,globalNavigation,sidebarSectionPath,characterSwitchHref} from '../workspace-navigation.mjs';
+import {exchangeNavigation,globalNavigation,sidebarSectionPath,primaryNavigationKey,characterSwitchHref} from '../workspace-navigation.mjs';
 import {Avatar,bindAvatars} from './components/avatar.js';
 import { ApplicationShell } from './components/shell.js';
 import * as store from './store.js';
@@ -94,14 +94,12 @@ function renderChrome(ctx) {
   ui.$('#narrowBack').hidden=!ctx.def.backHref&&back.length<=1&&!ctx.query.from;
   ui.$('#charsw').innerHTML = `${Avatar({src:c.avatar,name:c.name})}<b>${esc(c.name)}</b>${icon('more')}`;
   bindAvatars(ui.$('#charsw'));
-  ui.$('#scopebar').innerHTML = `<span class="hide-n">${badge(ctx.def?.scope || '角色范围')}</span><span class="hide-n">${esc(c.name)} · ${esc(w?.name || '')}</span>
-    <span class="ident" data-test="ident">${['交流', '管理'].map(v => `<button data-v="${v}" class="${st.identity === v ? 'on' : ''}">${v}</button>`).join('')}</span>`;
-  ui.$$('#scopebar .ident button').forEach(b => b.onclick = () => { store.setUi({ identity: b.dataset.v }); navigate(b.dataset.v==='管理'?'#/settings':c.id?`#/c/${c.id}/chat`:'#/library'); });
+  ui.$('#scopebar').innerHTML = '';
   const pending=store.pending(ctx.charId);
   const meta=store.get('meta');
   const unread = store.isMock ? store.get('notices').filter(n => !n.read).length : (typeof meta.alertCount==='number' ? meta.alertCount : null);
   const pendingCount=store.isMock?pending?.length:meta.pendingPartial===false?meta.pendingCount:null;
-  const notificationSummary=`${unread===null?'未读通知数量待更新':`${unread} 条未读通知`}；${typeof pendingCount==='number'?`${pendingCount} 项待处理`:'待处理数量待更新'}。通知已读不会处理待办。`;
+  const notificationSummary=`${unread===null?'未读通知数量待更新':`${unread} 条未读通知`}；${typeof pendingCount==='number'?`${pendingCount} 项待处理`:'待处理数量待更新'}。`;
   ui.$('#bellc').textContent = unread===null?'?':unread; ui.$('#bellc').style.display = unread===null || unread ? '' : 'none';
   ui.$('#bellc').title=notificationSummary;
   ui.$('[data-test="bell"]').setAttribute('aria-label',notificationSummary);
@@ -109,28 +107,25 @@ function renderChrome(ctx) {
   ui.$('#notesT').checked = store.isMock && st.notes; document.body.classList.toggle('show-notes', store.isMock && !!st.notes);
   const p = ctx.path; const sectionPath=sidebarSectionPath(p); const base = `#/c/${c.id}/`;
   const on = path => sectionPath === '/c/' + c.id + '/' + path || sectionPath.startsWith('/c/' + c.id + '/' + path + '/');
-  const navigation=(c.id?exchangeNavigation:[]).map(n=>{
-    if(!n.subs)return `<a class="navlink ${on(n.path)?'on':''}" href="${base}${n.path}" ${on(n.path)?'aria-current="page"':''}>${icon(n.icon)} ${n.label}</a>`;
-    const key=JSON.stringify([c.id,n.k]);
-    const expanded=navigationExpansion.get(key)??p.includes('/life/');
-    return `<details class="nav-group" data-nav-group="${esc(key)}" ${expanded?'open':''}><summary class="navlink ${p.includes('/life/')?'on':''}">${icon(n.icon)} ${n.label}<span class="spacer"></span><span class="nav-chevron" aria-hidden="true">⌄</span></summary>${n.subs.map(([l,sp,ic])=>`<a class="navlink sub ${on(sp)?'on':''}" href="${base}${sp}" ${on(sp)?'aria-current="page"':''}>${icon(ic)} ${l}</a>`).join('')}</details>`;
-  }).join('');
-  const globalItems=[['动态','#/feed','feed'],['通知与待处理','#/inbox','inbox'],['角色库','#/library','home'],['创作工坊','#/studio','studio'],['管理中心','#/settings','settings']];
-  ui.$('#sidenav').innerHTML = `<div class="sec">${esc(w?.name||'角色空间')}</div>${navigation}<div class="sec navigation-other">其他空间</div>${globalItems.map(([l,h,i])=>`<a class="navlink ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'on':''}" href="${h}" ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'aria-current="page"':''}>${icon(i)} ${l}</a>`).join('')}`;
+  const active=primaryNavigationKey(p,ctx.query);
+  const navigation=(c.id?exchangeNavigation:[]).map(n=>`<a class="navlink ${active===n.k?'on':''}" href="${base}${n.path}" ${active===n.k?'aria-current="page"':''}>${icon(n.icon)} ${n.label}</a>`).join('');
+  ui.$('#sidenav').innerHTML=`${navigation}<a class="navlink ${active==='characters'?'on':''}" href="#/library" ${active==='characters'?'aria-current="page"':''}>${icon('home')} 角色</a><button class="navlink navigation-more" data-navigation-more>${icon('more')} 更多</button>`;
+  ui.$('[data-navigation-more]').onclick=event=>moreMenu(event.currentTarget);
   const bindNavigation=root=>root.querySelectorAll('[data-nav-group]').forEach(details=>details.addEventListener('toggle',()=>navigationExpansion.set(details.dataset.navGroup,details.open)));
   bindNavigation(ui.$('#sidenav'));
-  ui.$('#navDrawer').onclick = () => { const wide=matchMedia('(min-width:761px)'); const closeOnWide=()=>{if(wide.matches)d.close();}; const d = ui.drawer({onClose:()=>wide.removeEventListener('change',closeOnWide), title: '全部页面', body: `<div class="row"><b class="grow">${esc(c.name)}</b><button class="btn sm" data-switch-character>切换角色</button></div>`+ui.$('#sidenav').innerHTML }); wide.addEventListener('change',closeOnWide);bindNavigation(d.body);d.body.querySelector('[data-switch-character]').onclick=()=>{d.close();charMenu(ui.$('#navDrawer'));};d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
+  ui.$('#navDrawer').onclick = () => { const wide=matchMedia('(min-width:761px)'); const closeOnWide=()=>{if(wide.matches)d.close();}; const d = ui.drawer({onClose:()=>wide.removeEventListener('change',closeOnWide), title: '全部页面', body: `<div class="row"><b class="grow">${esc(c.name)}</b><button class="btn sm" data-switch-character>切换角色</button></div>`+ui.$('#sidenav').innerHTML }); wide.addEventListener('change',closeOnWide);bindNavigation(d.body);d.body.querySelector('[data-navigation-more]').onclick=()=>{d.close();moreMenu(ui.$('#navDrawer'));};d.body.querySelector('[data-switch-character]').onclick=()=>{d.close();charMenu(ui.$('#navDrawer'));};d.body.onclick = e => { if (e.target.closest('a')) d.close(); }; };
 }
 function renderPage() {
   disposePage?.(); disposePage = null;
   const { def, params, ctx } = current; const main = ui.$('#main');
   main.classList.toggle('chat-page',def.key==='chat.thread.view');
+  main.classList.toggle('reading-home',['life.timeline','diary.list.view','growth.memory.list','diary.shared.timeline'].includes(def.key));
   const state = demoStates[def.key] || '正常';
   ctx.state = state; renderChrome(ctx);
   const returnTo=typeof ctx.query.returnTo==='string'&&ctx.query.returnTo.startsWith('#/')?ctx.query.returnTo:null;
   const showBack = back.length > 1 || ctx.query.from;
   const backControl=ctx.path==='/auth'&&!store.get('session')&&!store.isMock?'':returnTo?`<a class="btn sm" href="${esc(returnTo)}" data-test="back">${icon('back')} ${esc(ctx.query.returnLabel||'返回来源')}</a>`:def.backHref?`<a class="btn sm" href="${esc(def.backHref)}" data-test="back">${icon('back')} ${esc(def.backLabel||'返回')}</a>`:showBack?`<button class="btn sm" data-back data-test="back">${icon('back')} 返回</button>`:'';
-  main.innerHTML = `<div class="pagehead">${backControl}<h1>${ctx.path==='/auth'?'所有者登录':ctx.path.includes('/life/')?'生活':def.title}</h1>${badge(def.scope || '角色范围')}<span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
+  main.innerHTML = `<div class="pagehead">${backControl}<h1>${ctx.path==='/auth'?'所有者登录':ctx.path==='/c/'+ctx.charId+'/life'?'她的生活':def.title}</h1><span class="spacer"></span>${store.isMock ? ui.stateSwitcher(state) : ''}</div>
     ${ui.notesPanel(def)}<div id="page" data-page="${def.key}"></div>`;
   const el = ui.$('#page');
   const bootstrapWarning=store.get('meta')?.bootstrapWarning;if(bootstrapWarning)el.insertAdjacentHTML('beforebegin',`<div class="banner info">${esc(bootstrapWarning)}</div>`);
@@ -155,7 +150,7 @@ function route() {
   if(current){scrollPositions.set(current.ctx.raw,window.scrollY);if(scrollPositions.size>40)scrollPositions.delete(scrollPositions.keys().next().value);}
   // Resolve the initial route before parsing. Replacing an empty URL with
   // /auth does not emit hashchange; parsing /library first leaves main blank.
-  if (!location.hash) { history.replaceState(null, '', store.get('session') || store.isMock ? '#/library' : '#/auth'); }
+  if (!location.hash) { const selected=store.get('characters',store.get('ui').charId)||store.list('characters').find(c=>c.status==='正常');history.replaceState(null,'',store.get('session')||store.isMock?selected?.status==='正常'?'#/c/'+encodeURIComponent(selected.id)+'/chat':'#/library':'#/auth'); }
   const { raw, path, query } = parse();
   const prior=back.lastIndexOf('#'+raw);
   if(!popping&&prior>=0&&prior<back.length-1){back=back.slice(0,prior+1);popping=true;sessionStorage.setItem(HKEY,JSON.stringify(back));}

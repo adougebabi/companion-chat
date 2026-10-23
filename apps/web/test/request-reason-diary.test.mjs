@@ -89,6 +89,6 @@ test('diary renders only all/favorite filters while generation and independent s
  assert.doesNotMatch(el.innerHTML,/共同经历|故事|life\/shared|diary-shared-action/);
  assert.match(el.innerHTML,/data-open-generation/);assert.deepEqual(calendar.scope,['role','diary',false]);dispose();
  const navigation=readFileSync(new URL('../src/v3/workspace-navigation.mjs',import.meta.url),'utf8');
- assert.match(navigation,/共同经历/);assert.match(navigation,/life\/shared/);
+ assert.match(navigation,/label:'我们'/);assert.match(navigation,/life\/shared/);
  const module=readFileSync(new URL('../src/v3/proto/modules/生活成长.js',import.meta.url),'utf8');assert.match(module,/renderRealShared/);
 });

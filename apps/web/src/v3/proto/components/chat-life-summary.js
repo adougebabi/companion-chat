@@ -10,14 +10,15 @@ import {WearingSummary} from './inventory-records.js';
 
 // Read-only context stays in this pane. Folding it does not discard its stack.
 const contexts=new Map();subscribe(()=>{if(!get('session'))contexts.clear();});
-export function mountChatLifeSummary(host,{ctx,scope,character,onFold,onClose}){
-  let alive=true,epoch=0,snapshot=null,error='',loading=false,npcEpoch=0;const npcs=new Map(),npcErrors=new Map();let previousView='';
+export function mountChatLifeSummary(host,{ctx,scope,character,onFold,onClose,onContext,canRefresh=()=>true}){
+  let alive=true,epoch=0,snapshot=null,error='',loading=false,npcEpoch=0,timer;const npcs=new Map(),npcErrors=new Map();let previousView='';
+  const owner=get('session')?.actorId,current=()=>alive&&get('session')?.actorId===owner;
   const contextKey=JSON.stringify([get('session')?.actorId||'',ctx.charId,scope]);
-  const view=contexts.get(contextKey)||{allDay:false,stack:[],folded:false};contexts.set(contextKey,view);const positions=view.positions||(view.positions=new Map());
+  const view=contexts.get(contextKey)||{allDay:false,stack:[],folded:true};contexts.set(contextKey,view);const positions=view.positions||(view.positions=new Map());
   const base=`#/c/${encodeURIComponent(ctx.charId)}/`;
   const link=(href,label)=>`<a class="btn ghost sm" href="${base+href}">${esc(label)} →</a>`;
   function paint(){
-    if(!alive)return;
+    if(!current())return;
     host.classList.toggle('is-folded',view.folded);onFold?.(view.folded);
     const previous=host.querySelector('.summary-pane-body');if(previous)positions.set(previousView,previous.scrollTop);
     const top=view.stack.at(-1),detail=snapshot?.detail,context=detail?.context;
@@ -67,18 +68,23 @@ export function mountChatLifeSummary(host,{ctx,scope,character,onFold,onClose}){
   function wearing(appearance){
     return WearingSummary(appearance?.worn_items,{known:appearance?.wearing_state==='known'});
   }
-  async function loadNpc(id){const token=++npcEpoch;try{const npc=await mockClient.npc(ctx.charId,id);if(!alive||token!==npcEpoch)return;npcs.set(id,npc);npcErrors.delete(id);}catch(cause){if(alive&&token===npcEpoch)npcErrors.set(id,cause.message);}if(alive&&token===npcEpoch)paint();}
+  async function loadNpc(id){const token=++npcEpoch;try{const npc=await mockClient.npc(ctx.charId,id);if(!current()||token!==npcEpoch)return;npcs.set(id,npc);npcErrors.delete(id);}catch(cause){if(current()&&token===npcEpoch)npcErrors.set(id,cause.message);}if(current()&&token===npcEpoch)paint();}
   async function load(){
+    if(!current()||loading||document.hidden)return;
+    clearTimeout(timer);
+    if(!canRefresh()){timer=setTimeout(()=>void load(),30000);return;}
     const request=++epoch;loading=true;paint();
     const results=await Promise.allSettled([lifeClient.detail(ctx.charId),lifeClient.nearby(ctx.charId)]);
-    if(!alive||request!==epoch)return;
+    if(!current()||request!==epoch)return;
     error='';if(results[0].status==='fulfilled')snapshot={...snapshot,detail:results[0].value};else error=results[0].reason.message;
     if(results[1].status==='fulfilled')snapshot={...snapshot,nearby:results[1].value};else error+=(error?'；':'')+'附近人物读取失败：'+results[1].reason.message;
-    loading=false;paint();
+    loading=false;onContext?.(snapshot?.detail?.context);paint();
+    timer=setTimeout(()=>void load(),30000);
   }
 
+  const visibility=()=>{clearTimeout(timer);if(!document.hidden)void load();};document.addEventListener('visibilitychange',visibility);
   paint();void load();if(view.stack.at(-1)?.type==='npc')void loadNpc(view.stack.at(-1).id);
-  return {open(){view.folded=false;host.classList.add('is-open');paint();},close(){host.classList.remove('is-open');},dispose(){const body=host.querySelector('.summary-pane-body');if(body)positions.set(previousView,body.scrollTop);alive=false;epoch++;npcEpoch++;}};
+  return {open(){view.folded=false;host.classList.add('is-open');paint();},close(){host.classList.remove('is-open');},dispose(){const body=host.querySelector('.summary-pane-body');if(body)positions.set(previousView,body.scrollTop);alive=false;epoch++;npcEpoch++;clearTimeout(timer);document.removeEventListener?.('visibilitychange',visibility);}};
 }
 
 // Planned time never establishes an execution result.
