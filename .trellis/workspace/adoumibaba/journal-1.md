@@ -1899,3 +1899,30 @@ Implemented all six deliverables on isolated feature branch. Local Go race, vet/
 ### Status
 
 [OK] **Completed**
+
+
+## Session 59: Kev 请求超时改为十秒
+<!-- trellis-session: v=2 fp=7c56c7bdf05dd564 -->
+
+**Date**: 2026-10-23
+**Task**: Kev 请求超时改为十秒
+**Branch**: `codex/fluctlight-functional-recovery`
+
+### Summary
+
+Kev 默认 timeout_ms 和阶段 budget_ms 均改为 10000；新增 0100 单次升级已有保存配置，保留更长阶段预算、其他选项和后续手动编辑。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1e233315` | fix: set Kev timeout to ten seconds |
+
+### Testing
+
+- [OK] Kev decision/Core/Workflow race 与迁移测试通过；隔离 PG 验证 0099 升级、配置版本、重复执行和后续编辑保护。
+- [OK] Web 373/373，workspace typecheck、Web production build、Go vet/build 通过。
+
+### Status
+
+[OK] **Completed**
