@@ -1926,3 +1926,25 @@ Kev 默认 timeout_ms 和阶段 budget_ms 均改为 10000；新增 0100 单次�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 61: v6.2 创建恢复、后台编译与串行初始化
+<!-- trellis-session: v=2 fp=5a2c5b5a1911b5de -->
+
+**Date**: 2026-10-24
+**Task**: v6.2 创建恢复、后台编译与串行初始化
+**Branch**: `codex/v62-retest-fixes`
+
+### Summary
+
+独立分支完成创建 JSON 错误可编辑恢复、同身份激活重放、会话发送恢复、资料后台编译、初始化串行和 0101 并发收敛。Web 381 测试、生成/类型/构建、隔离 PG 与 Workflow 回归通过；既有 Go 六项失败及真实模型待复验项见 docs/design/v62-retest-validation.md。未触碰提示词 session 文件。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `670875d8` | fix: recover v6.2 creation and serialize preparation |
+
+### Status
+
+[OK] **Completed**
