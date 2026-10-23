@@ -10,13 +10,15 @@ import { ActionButton, Surface } from "../shared/primitives.mjs";
 import PreparationSteps from "../shared/PreparationSteps.vue";
 import ProfileForm from "../shared/ProfileForm.vue";
 import SemanticTree from "../shared/SemanticTree.vue";
+import { migrateCreationRecovery } from "../creation-recovery.mjs";
 const w = useWorkspace(),
   owner = w.state.session?.actorId,
+  migrated = migrateCreationRecovery(owner,localStorage,sessionStorage),
   c = createCreationController({
     owner,
     client: w.client,
     directory,
-    storage: sessionStorage,
+    storage: localStorage,
     analysisToActivation: activationFromAnalysis,
     ownerCurrent: () => w.state.session?.actorId === owner,
     refreshDirectory: w.refreshDirectory,
@@ -24,7 +26,16 @@ const w = useWorkspace(),
     query: new URLSearchParams(location.hash.split("?")[1] || ""),
     today: (zone) => w.day(new Date(), zone),
   });
-const { draft, step, busy, error, feedback, progress, previewFields, pending } =
+// `new=1` is an entry action, not a persistent instruction on every reload.
+const entryUrl = new URL(location.href);
+const [entryPath, entrySearch = ""] = entryUrl.hash.split("?");
+const entryQuery = new URLSearchParams(entrySearch);
+if (entryQuery.has("new")) {
+  entryQuery.delete("new");
+  entryUrl.hash = entryPath + (entryQuery.size ? "?" + entryQuery : "");
+  history.replaceState(history.state, "", entryUrl);
+}
+const { draft, step, busy, error, feedback, fieldErrors, progress, previewFields, pending } =
     c,
   worlds = ref([]),
   templates = ref([]),
@@ -227,7 +238,8 @@ onUnmounted(() => {
           >创建世界设定 ↗</a
         >
       </div>
-      <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
+      <ul v-if="Object.keys(fieldErrors).length" class="inline-error" role="alert"><li v-for="(message,key) in fieldErrors" :key="key">{{message}}</li></ul>
+    <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
       <footer class="wizard-footer">
         <a class="button" href="#/library">保留草稿并返回</a
         ><span class="spacer" /><ActionButton
@@ -357,10 +369,9 @@ onUnmounted(() => {
           <p class="muted">
             {{ draft.fileName || "尚未选择文件" }} · 上限 60000 UTF-8 字节
           </p>
-          <details v-if="draft.json">
-            <summary>查看导入内容</summary>
-            <pre class="approved-json">{{ draft.json }}</pre>
-          </details></template
+          <label>核对或修正 JSON
+            <textarea v-model="draft.json" data-testid="wizard-json" rows="10" spellcheck="false" @input="c.invalidate()" />
+          </label></template
         >
         <template v-else-if="draft.mode === 'template'"
           ><label
@@ -412,7 +423,7 @@ onUnmounted(() => {
       <p v-if="error" class="inline-error" role="alert">
         {{ error }}
         <a
-          v-if="feedback?.type === 'configuration' || configured === false"
+          v-if="feedback?.type === 'configuration'"
           class="text-button"
           :href="configHref('模型用途')"
           >去配置中心 ↗</a
@@ -575,5 +586,6 @@ onUnmounted(() => {
       ></Surface
     >
     <a class="text-button" href="#/library">保留草稿并返回角色库</a>
+    <ActionButton v-if="draft.activatedId&&!c.archived&&!pending" class="text-button" @click="c.newDraft()">再认识一个人（保留当前进度）</ActionButton>
   </div>
 </template>

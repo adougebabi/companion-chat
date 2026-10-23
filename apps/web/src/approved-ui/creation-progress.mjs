@@ -19,7 +19,7 @@ const statusOf = (status) =>
       : "pending";
 export async function readApprovedCreationProgress(client, draft) {
   const fid = draft.activatedId;
-  const [visual, wardrobe, schedule, lifecycle, world] = await Promise.all([
+  const [visual, wardrobe, schedule, lifecycle, world,detail] = await Promise.all([
     readInitializationProgress(client, fid),
     part(() => client.inventoryPreparation(fid)),
     part(() =>
@@ -30,6 +30,7 @@ export async function readApprovedCreationProgress(client, draft) {
     ),
     part(() => client.lifecycleDiagnostics({ fluctlightId: fid, limit: 100 })),
     part(() => client.world(fid)),
+    part(() => client.detail(fid)),
   ]);
   const identity =
       visual.identity.state === "ready" ? visual.identity.value : null,
@@ -89,6 +90,7 @@ export async function readApprovedCreationProgress(client, draft) {
       (d) => d.local_date === draft.activationDate,
     )?.schedule;
   const preparation = wardrobe.value;
+  const persona=detail.value?.persona_preparation;
   const stages = [
     {
       key: "analysis",
@@ -103,18 +105,22 @@ export async function readApprovedCreationProgress(client, draft) {
       key: "world",
       title: "创建角色与生活世界",
       state:
-        world.state === "unknown"
+        world.state === "unknown" || detail.state === "unknown"
           ? "unknown"
+          : persona?.status === "failed" ? "failed"
           : world.value?.world?.id === draft.worldRuntimeId &&
-              draft.groupConfirmed
+              draft.groupConfirmed && persona?.status === 'ready'
             ? "ready"
-            : "pending",
+            : persona?.status === 'running' ? 'running' : "pending",
       note:
-        world.errorMessage ||
+        world.errorMessage || detail.errorMessage ||
+        (persona?.status === 'failed' ? '角色已建立，人格资料整理未完成，可继续准备。' : persona?.status !== 'ready' ? '世界确认后将在后台整理人格资料；后续步骤按顺序继续。' : '') ||
         (!draft.groupConfirmed
           ? "原角色已建立，正在核对世界与分组"
           : "以实际选用的独立世界为准"),
-      retryable: !(
+      personaCanRecover: !!persona?.can_recover,
+      revision: detail.value?.current_revision,
+      retryable: !!persona?.can_recover || !(
         world.value?.world?.id === draft.worldRuntimeId && draft.groupConfirmed
       ),
     },

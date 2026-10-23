@@ -111,7 +111,7 @@ export function profileFields(core, label = (key) => key) {
         .map((p) =>
           typeof p === "number"
             ? `第 ${p + 1} 项`
-            : identityFields[p] || behavioralFields[p] || label(p),
+            : identityFields[p] || behavioralFields[p] || (label(p)==="自定义字段"?"补充说明":label(p)),
         )
         .join(" · "),
       kind,

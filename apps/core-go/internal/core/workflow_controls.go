@@ -86,6 +86,8 @@ func workflowRecovery(kind string, input map[string]any) map[string]any {
 		}
 	case "persona.owner_switch":
 		return link(root+"/profile", "查看人格切换请求与实际结果")
+	case "persona.compile":
+		return link(root+"/profile", "查看人格资料整理及恢复")
 	case "goal.plan", "goal.evaluate", "intention.trigger":
 		return link(root+"/life/goals", "查看目标、约定和原请求恢复")
 	case "visual_identity.initialize":

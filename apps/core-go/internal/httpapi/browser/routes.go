@@ -781,6 +781,16 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 	}
 
 	// Foundation revisions, memories and relationship rollback.
+	if fid, ok := match(path, "/api/fluctlights/:fluctlightId/persona-preparation/recover"); ok && methodName == http.MethodPost {
+		body, valid := s.mutationBody(response, request, func(value map[string]any) bool {
+			return onlyKeys(value, "expectedRevision", "idempotencyKey") && validateInteger(value["expectedRevision"], 0) && validateString(value["idempotencyKey"], 1, 256)
+		})
+		if !valid {
+			return
+		}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fid)+"/persona-preparation/recover", http.MethodPost, map[string]any{"expected_revision": body["expectedRevision"], "idempotency_key": body["idempotencyKey"]}, s.surfaceStatusError(422, "persona_preparation_failed", "人格资料整理暂未恢复"), nil)
+		return
+	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/foundation-revisions"); ok && methodName == http.MethodPost {
 		body, valid := s.mutationBody(response, request, validateFoundationRevision)
 		if !valid {

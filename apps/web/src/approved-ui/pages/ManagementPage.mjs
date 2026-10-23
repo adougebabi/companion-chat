@@ -17,6 +17,7 @@ import { FilterChips, DetailDrawer } from "../shared/components.mjs";
 import { diagnosticProjection } from "../presentation.mjs";
 import { catalogLabel } from "../../v3/runtime-catalog.mjs";
 import ModelDirectory from "../shared/ModelDirectory.vue";
+import SettingsField from "../shared/SettingsField.vue";
 import { configurationFields } from "../../v3/proto/components/configuration-fields.js";
 import {
   acknowledgeConfiguration,
@@ -64,7 +65,6 @@ function uiField(settingKey, field, values) {
                 "workflow",
                 "json",
                 "boolean-map",
-                "action-types",
                 "quiet-hours",
               ].includes(field.type)
             ? "json"
@@ -263,9 +263,7 @@ export default defineComponent({
       (w.state.runtimeCatalog?.agents || [])
         .filter(
           (a) =>
-            a.role === "cognitive_assessment" ||
-            a.role === "generic_llm" ||
-            a.role === "media_prompt",
+            a.binding_role ? a.binding_role === "generic_llm" : ["cognitive_assessment","generic_llm","media_prompt","initialization","reflection","interaction","action_realization","visual_identity_patch"].includes(a.role),
         )
         .map((a) => catalogLabel("agent", a.name, a.description)),
     );
@@ -711,6 +709,7 @@ export default defineComponent({
       },
       sharedScenarios,
       ModelDirectory,
+      SettingsField,
       openTaskDiagnostics: () => w.navigatePath("/diag/pending"),
     });
     const clockTimer = setInterval(() => {

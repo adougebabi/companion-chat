@@ -1,4 +1,5 @@
 import test from "node:test";
+import { creationRecovery, migrateCreationRecovery, creationHistoryKey } from "../src/approved-ui/creation-recovery.mjs";
 import assert from "node:assert/strict";
 import { reactive } from "vue";
 import {
@@ -56,12 +57,13 @@ const analysis = () => ({
   initial_goals: [],
   initial_intentions: [],
 });
-function fixture({ activate } = {}) {
+function fixture({ activate, analyze } = {}) {
   const saved = storage(),
     calls = [],
     a = analysis();
   let world = null;
   const client = {
+    detail:async()=>({current_revision:0,persona_preparation:{status:"ready",can_recover:false}}),
     world: async () => ({ world }),
     updateRuntimeWorld: async (_fid, body) => {
       world = { id: "world-new", name: body.name };
@@ -96,7 +98,7 @@ function fixture({ activate } = {}) {
   const directory = {
     analyze: async (request) => {
       calls.push(["analysis", structuredClone(request)]);
-      return structuredClone(a);
+      return analyze ? analyze(request) : structuredClone(a);
     },
     activate: async (body) => {
       calls.push(["activation", structuredClone(body)]);
@@ -124,6 +126,122 @@ function fixture({ activate } = {}) {
   };
   return { saved, calls, options, client };
 }
+test("malformed and incomplete analyses keep the editable original input until a valid retry", async () => {
+  let attempt = 0;
+  const f = fixture({analyze: () => {
+    if (++attempt === 1) throw Object.assign(Error("invalid json"), {status:503, code:"initialization_response_invalid_json"});
+    const value = analysis();
+    if (attempt === 2) delete value.core_persona.identity;
+    return value;
+  }});
+  const c = createCreationController(f.options);
+  c.draft.bio = "原始描述"; c.draft.name = "小林"; c.next();
+  await c.analyze();
+  assert.equal(c.step.value, "person"); assert.equal(c.draft.bio, "原始描述");
+  assert.equal(c.pending.value, null); assert.equal(c.draft.analysis, null);
+  await c.analyze();
+  assert.equal(c.step.value, "person");
+  assert.equal(c.feedback.value.path, "core_persona.identity");
+  assert.match(c.error.value, /问题字段/);
+  c.draft.bio = "修正后的描述"; c.invalidate();
+  await c.analyze();
+  assert.equal(c.step.value, "preview");
+  assert.match(f.calls.at(-1)[1].description, /修正后的描述/);
+  await c.activate();
+  assert.equal(c.draft.activatedId, "new-character");
+  assert.equal(f.calls.filter(([kind]) => kind === "activation").length, 1);
+});
+test("definitive activation rejection returns to input and never reuses rejected analysis", async () => {
+  let attempts = 0;
+  const f = fixture({activate: () => {
+    if (++attempts === 1) throw Object.assign(Error("missing field"), {status:422,code:"activation_persona_invalid",details:{validation_error:{path:"core_persona.identity.name",type:"required"}}});
+    return {id:"new-character"};
+  }});
+  const c = createCreationController(f.options);
+  c.draft.bio = "原始描述"; c.next(); await c.analyze(); await c.activate();
+  assert.equal(c.step.value, "person"); assert.equal(c.pending.value, null);
+  assert.equal(c.draft.analysis, null); assert.equal(c.draft.bio, "原始描述");
+  const first = f.calls.find(([kind]) => kind === "activation")[1].requestId;
+  c.draft.bio = "补充身份后的描述"; c.invalidate();
+  await c.analyze(); await c.activate();
+  assert.equal(c.draft.activatedId, "new-character");
+  assert.equal(f.calls.filter(([kind]) => kind === "analysis").length, 2);
+  assert.notEqual(f.calls.filter(([kind]) => kind === "activation")[1][1].requestId, first);
+});
+test("activation rejection after an unknown response retains the exact original command", async () => {
+  let attempts = 0;
+  const f = fixture({activate: () => {
+    if (++attempts === 1) throw Error("connection lost");
+    throw Object.assign(Error("missing field"), {status:422,code:"activation_persona_invalid"});
+  }});
+  const c = createCreationController(f.options);
+  c.draft.bio = "原描述"; c.next(); await c.analyze(); await c.activate();
+  const original = JSON.parse(JSON.stringify(c.pending.value.value));
+  await c.activate(true);
+  assert.deepEqual(c.pending.value.value, original);
+  c.reanalyze();
+  assert.deepEqual(c.pending.value.value, original);
+  assert.notEqual(c.step.value, "person");
+});
+test("a malformed imported JSON stays available for repair without another upload", async () => {
+  const f = fixture(), c = createCreationController(f.options);
+  c.changeMode("json"); c.next();
+  await c.importFile({name:"broken.json",size:10,text:async()=>'{broken'});
+  assert.equal(c.draft.json, "{broken"); assert.equal(c.draft.fileName, "broken.json");
+  c.draft.json = '{"name":"修正"}'; c.invalidate(); await c.analyze();
+  assert.equal(c.step.value, "preview");
+  assert.deepEqual(f.calls.find(([kind]) => kind === "analysis")[1].json, {name:"修正"});
+});
+test("legacy recovery migration cannot resurrect a released activation command", () => {
+  const saved=storage(), previous=storage();
+  const initial=creationRecovery({owner:'owner',storage:previous,query:new URLSearchParams()});
+  previous.setItem(initial.key,JSON.stringify(initial.read()));
+  previous.setItem(initial.commandKey,JSON.stringify({value:{body:{requestId:initial.read().requestId}}}));
+  migrateCreationRecovery('owner',saved,previous);
+  assert.equal(previous.getItem(initial.commandKey),null);
+  saved.removeItem(initial.commandKey);
+  migrateCreationRecovery('owner',saved,previous);
+  assert.equal(saved.getItem(initial.commandKey),null);
+});
+test("archived progress never adopts or releases another character activation", () => {
+  const saved=storage(), query=new URLSearchParams('resume=old-role');
+  const base=creationRecovery({owner:'owner',storage:saved,query:new URLSearchParams()});
+  const draft={...base.read(),activatedId:'old-role'};
+  saved.setItem(creationHistoryKey('owner','old-role'),JSON.stringify(draft));
+  saved.setItem(base.commandKey,'another-activation');
+  const archived=creationRecovery({owner:'owner',storage:saved,query});
+  assert.notEqual(archived.commandKey,base.commandKey);
+  assert.equal(saved.getItem(archived.commandKey),null);
+  archived.clear();
+  assert.equal(saved.getItem(base.commandKey),'another-activation');
+});
+test("migration never pairs a legacy activation with a newer durable draft", () => {
+  const saved=storage(), previous=storage();
+  const source=creationRecovery({owner:'owner',storage:previous,query:new URLSearchParams()});
+  const oldDraft=source.read(); previous.setItem(source.key,JSON.stringify(oldDraft));
+  const command=JSON.stringify({value:{body:{requestId:oldDraft.requestId}}});
+  previous.setItem(source.commandKey,command);
+  const newer={...oldDraft,requestId:'newer-request',bio:'新的输入'};
+  saved.setItem(source.key,JSON.stringify(newer));
+  migrateCreationRecovery('owner',saved,previous);
+  assert.deepEqual(JSON.parse(saved.getItem(source.key)),newer);
+  assert.equal(saved.getItem(source.commandKey),null);
+  assert.equal(previous.getItem(source.commandKey),command);
+});
+test("a late activation receipt cannot attach the old role to a replacement draft", async () => {
+  let release;
+  const waiting=new Promise(resolve=>{release=resolve});
+  const f=fixture({activate:()=>waiting}),c=createCreationController(f.options);
+  c.draft.bio="原输入";c.next();await c.analyze();
+  const activation=c.activate();
+  await Promise.resolve();
+  const key='fluctlight-creation:owner:draft';
+  const replacement={...JSON.parse(f.saved.getItem(key)),requestId:'replacement',bio:'新的输入',analysis:null,activatedId:null};
+  f.saved.setItem(key,JSON.stringify(replacement));
+  release({id:'original-role'});await activation;
+  assert.deepEqual(JSON.parse(f.saved.getItem(key)),replacement);
+  assert.equal(c.draft.activatedId,null);
+});
 test("v6.2 detail and creation retain canonical routes and life navigation", () => {
   assert.ok(lifePages.includes("角色详情"));
   assert.equal(approvedHref("角色详情", "role-A"), "#/c/role-A/profile");

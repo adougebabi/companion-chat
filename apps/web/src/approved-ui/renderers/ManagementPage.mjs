@@ -311,31 +311,7 @@ function renderManagementPageBody(__view) {
     id: __view._(h.title),
     class: "card settings-group"
   }, {
-    default: Ht(() => [h.title === "高级" ? (p(), g("summary", mm, "高级 · Kev 决策服务")) : (p(), g("h2", vm, v(h.title), 1)), h.title === "图片（ComfyUI）" ? (p(), g("p", hm, "图片已接入 ComfyUI · 语音：未接入 · 视频：未接入")) : X("", !0), o("div", gm, [(p(!0), g(O, null, oe(h.fields, b => (p(), g("label", {
-      key: b.label,
-      class: ge({
-        "check-field": b.type === "checkbox"
-      })
-    }, [o("span", null, v(b.label), 1), b.type === "select" ? pe((p(), g("select", {
-      key: 0,
-      "onUpdate:modelValue": k => b.value = k
-    }, [(p(!0), g(O, null, oe(b.options, k => (p(), g("option", null, v(k), 1))), 256))], 8, ym)), [[Et, b.value]]) : b.type === "json" ? (p(), g("textarea", {
-      key: 1,
-      value: String(b.value),
-      onInput: k => b.value = k.target.value,
-      rows: "3"
-    }, null, 40, bm)) : pe((p(), g("input", {
-      key: 2,
-      "onUpdate:modelValue": k => b.value = k,
-      type: b.type,
-      min: b.min,
-      max: b.max,
-      step: b.type === "number" ? "any" : void 0,
-      class: ge({
-        switch: b.type === "checkbox"
-      }),
-      placeholder: b.type === "password" ? "留空保留原值 · 只写不读" : void 0
-    }, null, 10, _m)), [[Vu, b.value]])], 2))), 128))]), ["图片（ComfyUI）", "高级", "看图理解"].includes(h.title) ? (p(), approvedButtonBlock({
+    default: Ht(() => [h.title === "高级" ? (p(), g("summary", mm, "高级 · Kev 决策服务")) : (p(), g("h2", vm, v(h.title), 1)), h.title === "图片（ComfyUI）" ? (p(), g("p", hm, "图片已接入 ComfyUI · 语音：未接入 · 视频：未接入")) : X("", !0), o("div", gm, [(p(!0), g(O, null, oe(h.fields, b => me(__view.SettingsField,{key:b.label,field:b})), 128))]), ["图片（ComfyUI）", "高级", "看图理解"].includes(h.title) ? (p(), approvedButtonBlock({
       key: 3,
       type: "button",
       class: "text-button",

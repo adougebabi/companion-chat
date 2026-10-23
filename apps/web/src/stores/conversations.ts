@@ -162,6 +162,7 @@ function turnErrorCode(payload: StreamPayload): string {
   return "turn_failed";
 }
 type RetryTurn = {
+  attemptStartedAt?: number;
   conversationId: string;
   fluctlightId: string;
   text: string;
@@ -201,63 +202,45 @@ function persistSelection(fluctlightId: string | null): void {
   else localStorage.removeItem(selectedFluctlightStorageKey);
 }
 
-function persistedRetry(): RetryTurn | null {
-  if (typeof localStorage === "undefined") return null;
-  const raw = localStorage.getItem(retryTurnStorageKey);
-  if (!raw) return null;
-  try {
-    const value = JSON.parse(raw) as Partial<RetryTurn>;
-    if (
-      typeof value.conversationId === "string" &&
-      typeof value.fluctlightId === "string" &&
-      typeof value.text === "string" &&
-      typeof value.idempotencyKey === "string" &&
-      typeof value.turnId === "string" &&
-      Array.isArray(value.attachmentRefs) &&
-      value.attachmentRefs.every((item) => typeof item === "string")
-    ) {
-      return { ...value, attachmentRefs: value.attachmentRefs as string[] } as RetryTurn;
-    }
-  } catch {
-    // Ignore malformed local retry state and let the server remain authoritative.
-  }
-  localStorage.removeItem(retryTurnStorageKey);
-  return null;
+const retryArchiveKey = "fluctlight.retry-turns.v3";
+const queuedArchiveKey = "fluctlight.queued-turns.v2";
+const recoveryScope = (conversationId: string, fluctlightId: string) => JSON.stringify([fluctlightId, conversationId]);
+function validRecovery(value: unknown, queued = false): value is QueuedTurn {
+ const v = value as Partial<QueuedTurn> | null;
+ return !!v && typeof v.conversationId === "string" && typeof v.fluctlightId === "string" && typeof v.text === "string" && typeof v.idempotencyKey === "string" && typeof v.turnId === "string" && Array.isArray(v.attachmentRefs) && v.attachmentRefs.every(item => typeof item === "string") && (!queued || typeof v.messageId === "string" && typeof v.createdAt === "string");
 }
-
-function persistRetry(retry: RetryTurn | null): void {
-  if (typeof localStorage === "undefined") return;
-  if (retry) localStorage.setItem(retryTurnStorageKey, JSON.stringify(retry));
-  else localStorage.removeItem(retryTurnStorageKey);
+function recoveryRecords(archiveKey: string, legacyKey: string, queued = false): Record<string, RetryTurn> {
+ const records: Record<string, RetryTurn> = {};
+ if (typeof localStorage === "undefined") return records;
+ try {
+  const stored = JSON.parse(localStorage.getItem(archiveKey) || "{}");
+  for (const value of Object.values(stored)) if (validRecovery(value, queued)) records[recoveryScope(value.conversationId,value.fluctlightId)] = value;
+ } catch { /* Only valid local identities can be resumed. */ }
+ try {
+  const legacy = JSON.parse(localStorage.getItem(legacyKey) || "null");
+  if (validRecovery(legacy,queued)) records[recoveryScope(legacy.conversationId,legacy.fluctlightId)] ??= legacy;
+ } catch { /* An unreadable legacy slot cannot block another conversation. */ }
+ return records;
 }
-
-function persistedQueuedTurn(): QueuedTurn | null {
-	if (typeof localStorage === "undefined") return null;
-	const raw = localStorage.getItem(queuedTurnStorageKey);
-	if (!raw) return null;
-	try {
-		const value = JSON.parse(raw) as Partial<QueuedTurn>;
-		if (
-			typeof value.conversationId === "string" && typeof value.fluctlightId === "string" &&
-			typeof value.text === "string" && typeof value.idempotencyKey === "string" &&
-			typeof value.turnId === "string" && typeof value.messageId === "string" &&
-			typeof value.createdAt === "string" && Array.isArray(value.attachmentRefs) &&
-			value.attachmentRefs.every((item) => typeof item === "string")
-		) {
-			return { ...value, attachmentRefs: value.attachmentRefs as string[] } as QueuedTurn;
-		}
-	} catch {
-		// Ignore malformed local queue state; only a fully identified turn is safe to resume.
-	}
-	localStorage.removeItem(queuedTurnStorageKey);
-	return null;
+function readRecovery(archive: string, legacy: string, queued: boolean, conversationId?: string, fluctlightId?: string): RetryTurn | null {
+ const records=recoveryRecords(archive,legacy,queued);
+ if (conversationId && fluctlightId) return records[recoveryScope(conversationId,fluctlightId)] || null;
+ return Object.values(records).at(-1) || null;
 }
-
-function persistQueuedTurn(turn: QueuedTurn | null): void {
-	if (typeof localStorage === "undefined") return;
-	if (turn) localStorage.setItem(queuedTurnStorageKey, JSON.stringify(turn));
-	else localStorage.removeItem(queuedTurnStorageKey);
+function writeRecovery(archive: string, legacy: string, queued: boolean, value: RetryTurn | null, conversationId?: string | null, fluctlightId?: string | null): void {
+ if (typeof localStorage === "undefined") return;
+ const records=recoveryRecords(archive,legacy,queued);
+ if(value) records[recoveryScope(value.conversationId,value.fluctlightId)] = value;
+ else if(conversationId && fluctlightId) delete records[recoveryScope(conversationId,fluctlightId)];
+ else { localStorage.removeItem(archive); localStorage.removeItem(legacy); return; }
+ if(Object.keys(records).length) localStorage.setItem(archive,JSON.stringify(records)); else localStorage.removeItem(archive);
+ const current=value || Object.values(records).at(-1);
+ if(current) localStorage.setItem(legacy,JSON.stringify(current)); else localStorage.removeItem(legacy);
 }
+function persistedRetry(conversationId?: string, fluctlightId?: string): RetryTurn | null { return readRecovery(retryArchiveKey,retryTurnStorageKey,false,conversationId,fluctlightId); }
+function persistRetry(value: RetryTurn | null, conversationId?: string | null, fluctlightId?: string | null): void { writeRecovery(retryArchiveKey,retryTurnStorageKey,false,value,conversationId,fluctlightId); }
+function persistedQueuedTurn(conversationId?: string, fluctlightId?: string): QueuedTurn | null { return readRecovery(queuedArchiveKey,queuedTurnStorageKey,true,conversationId,fluctlightId) as QueuedTurn | null; }
+function persistQueuedTurn(value: QueuedTurn | null, conversationId?: string | null, fluctlightId?: string | null): void { writeRecovery(queuedArchiveKey,queuedTurnStorageKey,true,value,conversationId,fluctlightId); }
 
 function captureSenderTime(): Pick<RetryTurn, "senderTimezone" | "senderUtcOffsetMinutes" | "senderSentAt"> {
 	const sentAt = new Date();
@@ -330,6 +313,7 @@ export const useConversationStore = defineStore("conversations", {
     historyLoading: false,
     sending: false,
 	activeTurnId: null as string | null,
+  attemptStartedAt: null as number | null,
     error: "" as string,
     directoryError: "" as string,
     attachmentRef: "",
@@ -349,7 +333,7 @@ export const useConversationStore = defineStore("conversations", {
       const name = this.selectedFluctlight?.identity.name;
       return typeof name === "string" && name.trim() ? name : this.selectedFluctlight?.id ?? null;
     },
-	canRetry: (state) => Boolean(state.retryTurn) && state.retryTurn?.conversationId === state.conversation?.id && state.retryTurn?.fluctlightId === state.fluctlightId && !state.sending && !state.retrying && !state.messages.some((message) => message.kind === "user" && message.id === state.retryTurn?.messageId && message.turnRetryable === false),
+	canRetry: (state) => Boolean(state.retryTurn) && state.retryTurn?.conversationId === state.conversation?.id && state.retryTurn?.fluctlightId === state.fluctlightId && !state.sending && !state.retrying && !state.messages.some(message => message.kind === "user" && ["pending","running"].includes(message.turnStatus ?? "")) && !state.messages.some((message) => message.kind === "user" && message.id === state.retryTurn?.messageId && message.turnRetryable === false),
 	retryIsModelFailure: (state) => Boolean(state.retryTurn && state.messages.some((message) => message.kind === "user" && message.id === state.retryTurn?.messageId && (message.turnStatus === "failed" || message.turnStatus === "cancelled"))),
 	hasPendingTurn: (state) => state.messages.some((message) => message.kind === "user" && (message.turnStatus === "pending" || message.turnStatus === "running")),
 	hasSettlingTurn: (state) => state.messages.some((message) => message.kind === "user" && (message.turnStatus === "failed" || message.turnStatus === "cancelled") && message.turnRetryable === false && message.turnErrorCode !== "agent_partial_committed"),
@@ -483,20 +467,17 @@ export const useConversationStore = defineStore("conversations", {
         return;
       }
       if (options.loading !== false) this.loading = true;
+      if(this.retryTurn) persistRetry(this.retryTurn);
+      if(this.queuedTurn) persistQueuedTurn(this.queuedTurn);
       this.invalidateRequest();
       this.error = "";
       const selectionEpoch = this.requestEpoch;
       try {
         const page = await client.directConversation(fluctlightId);
         if (selectionEpoch !== this.requestEpoch || (options.current && !options.current())) return;
-        if (this.retryTurn && this.retryTurn.fluctlightId === fluctlightId && this.retryTurn.conversationId !== page.conversation.id) {
-          this.retryTurn = null;
-          persistRetry(null);
-        }
-        if (this.queuedTurn && this.queuedTurn.fluctlightId === fluctlightId && this.queuedTurn.conversationId !== page.conversation.id) {
-          this.queuedTurn = null;
-          persistQueuedTurn(null);
-        }
+        this.retryTurn = persistedRetry(page.conversation.id,fluctlightId);
+        this.queuedTurn = persistedQueuedTurn(page.conversation.id,fluctlightId);
+        this.attemptStartedAt = this.retryTurn?.attemptStartedAt ?? null;
         this.conversation = page.conversation;
         this.conversationParticipants = page.participants;
 		this.messages = page.messages;
@@ -540,6 +521,7 @@ export const useConversationStore = defineStore("conversations", {
 				return;
 			}
 			const retry: RetryTurn = {
+        attemptStartedAt: this.retryTurn?.turnId === latest.turnId ? this.retryTurn.attemptStartedAt : undefined,
 				conversationId,
 				fluctlightId,
 				text: latest.text,
@@ -561,9 +543,10 @@ export const useConversationStore = defineStore("conversations", {
 				: latest.turnStatus === "cancelled" ? "回复已取消，可以重试。" : `回复未完成：${latest.turnErrorCode ?? "模型处理失败"}`;
 			return;
 		}
+		if (["pending","running"].includes(latest.turnStatus)) { this.error = ""; return; }
 		if (this.retryTurn?.conversationId === conversationId && this.retryTurn?.fluctlightId === fluctlightId) {
 			this.retryTurn = null;
-			persistRetry(null);
+			persistRetry(null, this.conversation?.id, this.fluctlightId);
 		}
 		this.error = "";
 	},
@@ -591,22 +574,23 @@ export const useConversationStore = defineStore("conversations", {
 			if (explicit) throw error;
 		}
 	},
-	async send(text: string, retry = false, queuedRequest: QueuedTurn | null = null) {
+	async send(text: string, retry = false, queuedRequest: QueuedTurn | null = null, onAccepted?: () => void): Promise<boolean> {
 		const normalized = text.trim();
-		if (!normalized) return;
-		if (!retry && !queuedRequest && this.queuedTurn) {
+		if (!normalized) return false;
+		if (!retry && !queuedRequest && this.queuedTurn?.conversationId === this.conversation?.id && this.queuedTurn?.fluctlightId === this.fluctlightId) {
 			this.error ||= "已有一条追发消息保留，请先处理原回应，当前输入尚未发送。";
-			return;
+			return false;
 		}
 		if (this.sending) {
-			if (retry || this.queuedTurn || !this.conversation?.id || !this.fluctlightId) return;
+			if (retry || this.queuedTurn?.conversationId === this.conversation?.id || !this.conversation?.id || !this.fluctlightId) return false;
 			const senderTime = captureSenderTime();
 			const local = createLocalMessage(this.conversation.id, normalized, 0, this.senderActorId ?? "human", undefined, senderTime.senderSentAt, senderTime);
 			const queued: QueuedTurn = {conversationId:this.conversation.id,fluctlightId:this.fluctlightId,text:normalized,idempotencyKey:`turn-${randomId()}`,turnId:`turn_${randomId()}`,attachmentRefs:[],senderActorId:this.senderActorId??undefined,...senderTime,messageId:local.id,createdAt:local.createdAt};
 			this.queuedTurn = queued;
 			persistQueuedTurn(queued);
 			this.messages.push({...local,turnId:queued.turnId,idempotencyKey:queued.idempotencyKey});
-			return;
+      onAccepted?.();
+			return true;
 		}
 		if (!retry && this.hasPendingTurn) {
 			if (!this.sending) {
@@ -614,47 +598,27 @@ export const useConversationStore = defineStore("conversations", {
 			}
 			if (this.hasPendingTurn) {
 				this.error = "上一条消息仍在后台处理；可点击取消后再发送。";
-				return;
+				return false;
 			}
 		}
-		const initialConversationId = this.conversation?.id;
-		const initialFluctlightId = this.fluctlightId;
-		const retryBelongsToCurrent = this.retryTurn?.conversationId === initialConversationId && this.retryTurn?.fluctlightId === initialFluctlightId;
-		if (!retry && this.retryTurn && !retryBelongsToCurrent) await this.reconcilePersistedRetry();
+    if(this.retryTurn && (this.retryTurn.conversationId !== this.conversation?.id || this.retryTurn.fluctlightId !== this.fluctlightId)) {
+      persistRetry(this.retryTurn);
+      this.retryTurn = this.conversation && this.fluctlightId ? persistedRetry(this.conversation.id,this.fluctlightId) : null;
+    }
 		const conversationId = this.conversation?.id;
 		const fluctlightId = this.fluctlightId;
 		const pendingRetry = this.retryTurn?.conversationId === conversationId && this.retryTurn?.fluctlightId === fluctlightId ? this.retryTurn : null;
-		if (!conversationId || !fluctlightId) return;
-		if (retry && !pendingRetry) return;
-		if (!retry && this.retryTurn && !pendingRetry) {
-			this.error = "另一个会话仍有未完成消息；请返回该会话处理后再发送。";
-			return;
-		}
-		if (queuedRequest && (queuedRequest.conversationId !== conversationId || queuedRequest.fluctlightId !== fluctlightId)) return;
-		if (pendingRetry && !retry && !queuedRequest) {
-			const senderTime = captureSenderTime();
-			const queuedMessage = createLocalMessage(conversationId, normalized, 0, this.senderActorId ?? "human", undefined, senderTime.senderSentAt, senderTime);
-			const queuedTurn: QueuedTurn = {
-				conversationId,
-				fluctlightId,
-				text: normalized,
-				idempotencyKey: `turn-${randomId()}`,
-				turnId: `turn_${randomId()}`,
-				attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
-				senderActorId: this.senderActorId ?? undefined,
-				...senderTime,
-				messageId: queuedMessage.id,
-				createdAt: queuedMessage.createdAt,
-			};
-			this.queuedTurn = queuedTurn;
-			persistQueuedTurn(queuedTurn);
-			this.messages.push({ ...queuedMessage, attachmentRefs: queuedTurn.attachmentRefs, turnId: queuedTurn.turnId, idempotencyKey: queuedTurn.idempotencyKey });
-			await this.retry();
-			if (this.retryTurn && this.queuedTurn?.conversationId === conversationId && this.queuedTurn?.fluctlightId === fluctlightId) {
-				this.dismissRetry();
-			}
-			return;
-		}
+		if (!conversationId || !fluctlightId) return false;
+		if (retry && !pendingRetry) return false;
+    if (queuedRequest && (queuedRequest.conversationId !== conversationId || queuedRequest.fluctlightId !== fluctlightId)) return false;
+    // A new message is a new command. Only retry() can replay an older failed turn.
+    if (pendingRetry && !retry && !this.messages.some(message => message.kind === "user" &&
+        (message.turnId === pendingRetry.turnId || message.id === pendingRetry.messageId) &&
+        ["failed", "cancelled", "completed"].includes(message.turnStatus ?? ""))) {
+      this.error = "上一条消息的发送状态尚未确认，请先查询或重新发送原消息。当前输入已保留。";
+      return false;
+    }
+    if(pendingRetry && !retry) this.dismissedTurnId = pendingRetry.turnId;
 	      this.error = "";
 	      this.sending = true;
 	      this.abortController = new AbortController();
@@ -674,6 +638,9 @@ export const useConversationStore = defineStore("conversations", {
 				...captureSenderTime(),
 	          };
 		this.activeTurnId = request.turnId;
+    request.attemptStartedAt = Date.now();
+    this.attemptStartedAt = request.attemptStartedAt;
+		this.retryTurn = request;
 		persistRetry(request);
 		let optimisticMessageId = request.messageId ?? null;
 	      if (!retry) {
@@ -703,6 +670,7 @@ export const useConversationStore = defineStore("conversations", {
           this.abortController.signal,
         );
         if (!response.body) throw new Error("stream_missing");
+        onAccepted?.();
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
@@ -710,7 +678,7 @@ export const useConversationStore = defineStore("conversations", {
         let expectedSequence = 0;
         let terminalType: "completed" | "error" | null = null;
         const applyEvent = (event: BrowserTurnEvent) => {
-          if (this.requestEpoch !== requestEpoch) return;
+          if (this.requestEpoch !== requestEpoch) return false;
           if (event.turnId !== request.turnId) throw new Error("turn_id_mismatch");
           if (event.sequence !== expectedSequence) throw new Error("turn_sequence_invalid");
           expectedSequence += 1;
@@ -780,7 +748,7 @@ export const useConversationStore = defineStore("conversations", {
         };
         while (true) {
           const next = await reader.read();
-          if (this.requestEpoch !== requestEpoch) return;
+          if (this.requestEpoch !== requestEpoch) return false;
           if (next.done) break;
           buffer += decoder.decode(next.value, { stream: true });
           const lines = buffer.split("\n");
@@ -790,14 +758,14 @@ export const useConversationStore = defineStore("conversations", {
             applyEvent(JSON.parse(line) as BrowserTurnEvent);
           }
         }
-        if (this.requestEpoch !== requestEpoch) return;
+        if (this.requestEpoch !== requestEpoch) return false;
         buffer += decoder.decode();
         if (buffer.trim()) {
           applyEvent(JSON.parse(buffer) as BrowserTurnEvent);
         }
 	        if (terminalType !== "completed") throw new Error("turn_stream_incomplete");
 	        const page = await client.messages(request.conversationId);
-			if (this.requestEpoch !== requestEpoch || this.conversation?.id !== request.conversationId || this.fluctlightId !== request.fluctlightId) return;
+			if (this.requestEpoch !== requestEpoch || this.conversation?.id !== request.conversationId || this.fluctlightId !== request.fluctlightId) return false;
 	        this.conversation = page.conversation;
 		this.messages = mergeConversationMessages(page.messages, this.messages, true);
 		this.syncServerTurnState();
@@ -805,15 +773,15 @@ export const useConversationStore = defineStore("conversations", {
         this.attachmentRef = "";
 			if (this.retryTurn?.idempotencyKey === request.idempotencyKey || retry) {
 				this.retryTurn = null;
-				persistRetry(null);
+				persistRetry(null, this.conversation?.id, this.fluctlightId);
 			}
 			this.dismissedTurnId = null;
       } catch (error) {
-        if (this.requestEpoch !== requestEpoch) return;
+        if (this.requestEpoch !== requestEpoch) return false;
         if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
 		try {
 			const page = await client.messages(request.conversationId);
-			if (this.requestEpoch !== requestEpoch || this.conversation?.id !== request.conversationId) return;
+			if (this.requestEpoch !== requestEpoch || this.conversation?.id !== request.conversationId) return false;
 			this.messages = mergeConversationMessages(page.messages, this.messages);
 			const confirmed = page.messages.find((message) => message.kind === "user" && message.turnId === request.turnId);
 			if (confirmed) {
@@ -822,16 +790,17 @@ export const useConversationStore = defineStore("conversations", {
 				if (error instanceof BrowserApiError && (confirmed.turnStatus === "failed" || confirmed.turnStatus === "cancelled")) {
 					this.error = `${retry ? "重试" : "发送"}请求未被接受：${turnErrorCode({ code: error.code })}。${this.error}`;
 				}
-				return;
+				return false;
 			}
 		} catch {
 			// Keep the submitted identity until a later authoritative read.
 		}
-		if (error instanceof BrowserApiError && ([400, 401, 403, 404].includes(error.status) || error.code === "conversation_turn_conflict")) {
+		if (!retry && error instanceof BrowserApiError && ([400, 401, 403, 404].includes(error.status) || error.code === "conversation_turn_conflict")) {
+			this.messages = this.messages.filter(message => message.id !== optimisticMessageId);
 			this.retryTurn = null;
-			persistRetry(null);
+			persistRetry(null, this.conversation?.id, this.fluctlightId);
 			this.error = `消息未被接受：${turnErrorCode({ code: error.code })}`;
-			return;
+			return false;
 		}
 		request.messageId = request.messageId ?? optimisticMessageId ?? undefined;
 		this.retryTurn = request;
@@ -845,6 +814,7 @@ export const useConversationStore = defineStore("conversations", {
 		  if (!retry && !this.retrying && this.queuedTurn && !this.hasPendingTurn && !this.hasSettlingTurn && !this.retryTurn) await this.sendQueuedTurn();
         }
       }
+      return true;
     },
     invalidateRequest() {
       this.requestEpoch += 1;
@@ -856,13 +826,17 @@ export const useConversationStore = defineStore("conversations", {
     },
     pruneOrphanedLocalTurns() {
       const available = new Set(this.fluctlights.map((item) => item.id));
+      for(const recovery of Object.values(recoveryRecords(retryArchiveKey,retryTurnStorageKey))){
+        if(!available.has(recovery.fluctlightId))persistRetry(null,recovery.conversationId,recovery.fluctlightId);
+      }
+      for(const recovery of Object.values(recoveryRecords(queuedArchiveKey,queuedTurnStorageKey,true))){
+        if(!available.has(recovery.fluctlightId))persistQueuedTurn(null,recovery.conversationId,recovery.fluctlightId);
+      }
       if (this.retryTurn && !available.has(this.retryTurn.fluctlightId)) {
         this.retryTurn = null;
-        persistRetry(null);
       }
       if (this.queuedTurn && !available.has(this.queuedTurn.fluctlightId)) {
         this.queuedTurn = null;
-        persistQueuedTurn(null);
       }
     },
     async reconcilePersistedRetry() {
@@ -872,7 +846,7 @@ export const useConversationStore = defineStore("conversations", {
         const page = await client.directConversation(retry.fluctlightId);
         if (page.conversation.id !== retry.conversationId) {
           this.retryTurn = null;
-          persistRetry(null);
+          persistRetry(null, retry.conversationId, retry.fluctlightId);
           return;
         }
         let historyPage = page;
@@ -892,12 +866,12 @@ export const useConversationStore = defineStore("conversations", {
 	        const completed = userMessage.turnStatus === "completed" || allMessages.some((message) => message.kind === "assistant" && message.turnId === retry.turnId);
         if (completed) {
           this.retryTurn = null;
-          persistRetry(null);
+          persistRetry(null, retry.conversationId, retry.fluctlightId);
         }
       } catch (error) {
         if (error instanceof BrowserApiError && error.status === 404) {
           this.retryTurn = null;
-          persistRetry(null);
+          persistRetry(null, retry.conversationId, retry.fluctlightId);
           return;
         }
         // Preserve the retry on transient read failures; blocking is safer than
@@ -922,6 +896,15 @@ export const useConversationStore = defineStore("conversations", {
 			this.error = "取消请求结果尚未确认，请刷新进度核对。原消息已保留。";
 		}
 	    },
+    async retryMessage(messageId: string) {
+      if (this.sending || this.retrying || this.hasPendingTurn || this.hasSettlingTurn || !this.conversation || !this.fluctlightId) return;
+      const message = this.messages.find(message => message.id === messageId && message.kind === "user" && message.turnRetryable === true && ["failed", "cancelled"].includes(message.turnStatus ?? ""));
+      if (!message?.turnId || !message.idempotencyKey) return;
+      if (this.retryTurn && this.retryTurn.turnId !== message.turnId && !this.messages.some(item => item.kind === 'user' && item.turnId === this.retryTurn?.turnId && ['failed','cancelled','completed'].includes(item.turnStatus ?? ''))) return;
+      this.retryTurn = {conversationId:this.conversation.id, fluctlightId:this.fluctlightId, text:message.text, turnId:message.turnId, idempotencyKey:message.idempotencyKey, attachmentRefs:message.attachmentRefs, messageId:message.id, senderActorId:message.authorActorId === this.conversation.createdByActorId ? undefined : message.authorActorId, senderTimezone:message.senderTimezone ?? undefined, senderUtcOffsetMinutes:message.senderUtcOffsetMinutes ?? undefined, senderSentAt:message.senderSentAt ?? undefined};
+      persistRetry(this.retryTurn);
+      await this.retry();
+    },
 	    async retry() {
 	      const pending = this.retryTurn;
 	      if (!pending || pending.conversationId !== this.conversation?.id || pending.fluctlightId !== this.fluctlightId || !this.canRetry) return;
@@ -941,14 +924,14 @@ export const useConversationStore = defineStore("conversations", {
 	      this.retryTurn = null;
 	      this.retrying = false;
 	      this.error = "";
-	      persistRetry(null);
+	      persistRetry(null, this.conversation?.id, this.fluctlightId);
 		if (queued && queued.conversationId === this.conversation?.id && queued.fluctlightId === this.fluctlightId) void this.sendQueuedTurn();
 	    },
 	async sendQueuedTurn() {
 		const queued = this.queuedTurn;
 		if (!queued || queued.conversationId !== this.conversation?.id || queued.fluctlightId !== this.fluctlightId || this.sending) return;
 		this.queuedTurn = null;
-		persistQueuedTurn(null);
+		persistQueuedTurn(null, this.conversation?.id, this.fluctlightId);
 		await this.send(queued.text, false, queued);
 	},
 		ensureRetryMessageVisible() {
@@ -962,10 +945,10 @@ export const useConversationStore = defineStore("conversations", {
 		      pending.messageId = matched.id;
 		      persistRetry(pending);
 		    }
-		    const completed = this.messages.some((message) => message.kind === "assistant" && message.sequence > matched.sequence);
+		    const completed = this.messages.some((message) => message.kind === "assistant" && message.turnId === pending.turnId);
 		    if (completed) {
 		      this.retryTurn = null;
-		      persistRetry(null);
+		      persistRetry(null, this.conversation?.id, this.fluctlightId);
 		      return;
 		    }
 		    return;

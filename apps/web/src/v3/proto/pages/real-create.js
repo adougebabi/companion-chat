@@ -84,14 +84,17 @@ export function renderRealCreate(el,ctx){
    if(draft.mode==='template'&&!draft.templateReviewed){draft.templateReviewed=true;draft.wizardStep=1;save();busy=false;paint();return;}
    if(!draft.name.trim()){draft.name=draft.analysis?.core_persona?.identity?.name||'';save();}if(!draft.name.trim()){draft.wizardStep=1;save();throw new Error('还没有读到她的称呼，请在下方补充后继续。');}
    busy=false;await activate(false);
-  }catch(cause){busy=false;if(!currentRequest())return;fail(cause);if(draft.wizardStep===1&&!draft.name.trim()){const options=el.querySelector('[data-name-options]');if(options)options.open=true;el.querySelector('[name="name"]')?.focus();}}
+  }catch(cause){busy=false;if(!currentRequest())return;if(!draft.activatedId&&!command.pending()){draft.wizardStep=1;save();}fail(cause);if(draft.wizardStep===1&&!draft.name.trim()){const options=el.querySelector('[data-name-options]');if(options)options.open=true;el.querySelector('[name="name"]')?.focus();}}
  }
  async function activate(retry){
   const requestId=draft.requestId,currentRequest=()=>live()&&recovery.read().requestId===requestId;
   if(busy||!currentRequest()||!(await requireOwner())||!currentRequest())return;busy=true;error='';paint();
   try{draft=recovery.read();if(!draft.activatedId){const value=retry?command.pending()?.value:{body:draft.mode==='blank'?{requestId:draft.requestId,initializationMode:'blank_slate',name:draft.name,initializationTimezone:draft.timezone}:activationFromAnalysis(draft.includeGoals===false?{...draft.analysis,initial_goals:[],initial_intentions:[]}:draft.analysis,draft.name,draft.requestId,draft.timezone),groupId:draft.groupId,worldResourceId:draft.worldResourceId,worldResourceVersion:draft.worldResourceVersion,useDefaultWorld:!!draft.useDefaultWorld};if(!value)throw new Error('原提交身份尚未读到，请保留草稿核对');const result=retry?await command.retry():await command.submit(value);if(!currentRequest())return;draft=recovery.read();draft.activatedId=result.id;draft.activationGroupId=value.groupId;draft.activationDate=localDate(new Date().toISOString(),draft.timezone);save();}
    busy=false;await finishWorld();
-  }catch(cause){busy=false;if(currentRequest())fail(cause);}finally{busy=false;if(currentRequest())paint();}
+  }catch(cause){busy=false;if(currentRequest()){
+   if(!draft.activatedId&&!command.pending()&&[400,422].includes(cause?.status)){draft.wizardStep=1;invalidate();}
+   fail(cause);
+  }}finally{busy=false;if(live())paint();}
  }
  async function finishWorld(){
   if(busy||!draft.activatedId||!live())return;

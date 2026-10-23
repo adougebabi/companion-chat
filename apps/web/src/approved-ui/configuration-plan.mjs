@@ -124,6 +124,9 @@ export function configurationPlan({
             throw Error(field.label + "：请填写有效 JSON");
           }
         }
+      } else if(field.type==='action-types'){
+        if(!Array.isArray(value)||value.some(item=>typeof item!=='string'))throw Error(field.label+'：请选择有效的行动类型');
+        value=[...value];
       } else if (field.type === "select")
         value = field._choices.find((c) => c.label === value)?.value ?? value;
       else if (field.type === "number") {

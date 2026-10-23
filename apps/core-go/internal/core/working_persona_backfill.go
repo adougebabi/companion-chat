@@ -51,6 +51,17 @@ func (a *App) VerifyWorkingPersonasReady(ctx context.Context) error {
 		}
 		for _, item := range report {
 			if item.Status != "skipped" {
+				resource, readErr := a.DB.GetFluctlight(ctx, item.FluctlightID, owner)
+				if readErr != nil {
+					return readErr
+				}
+				preparation, readErr := a.readPersonaPreparation(ctx, item.FluctlightID, resource.CurrentRevision)
+				if readErr != nil {
+					return readErr
+				}
+				if stringValue(preparation["id"]) != "" && preparation["status"] != "ready" {
+					continue
+				}
 				return fmt.Errorf("working_persona_not_ready: fluctlight=%s profile=%s status=%s; run persona-backfill --owner %s --all --apply before serving", item.FluctlightID, item.ProfileID, item.Status, owner)
 			}
 		}

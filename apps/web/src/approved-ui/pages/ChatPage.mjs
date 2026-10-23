@@ -12,7 +12,7 @@ import { renderChatPage } from "../renderers/ChatPage.mjs";
 import { CurrentOutfit } from "../shared/components.mjs";
 import { joined } from "../presentation.mjs";
 import {
-  chatWaitText,
+  chatWaitingPresentation,
   chatDiagnosticTurn,
   chatFailureText,
 } from "../../v3/chat-feedback.mjs";
@@ -54,7 +54,7 @@ export default defineComponent({
         following =
           !node || node.scrollHeight - node.scrollTop - node.clientHeight < 80;
       character.value.messages = store.messages
-        .filter((m) => m.kind !== "system")
+        .filter((m) => m.kind !== "system" && !m.id.startsWith('stream-'))
         .map((message) => ({
           id: message.id,
           text: message.text,
@@ -72,11 +72,11 @@ export default defineComponent({
                   status: ["failed", "cancelled"].includes(message.turnStatus)
                     ? "error"
                     : "pending",
-                  reason: chatFailureText(message.turnErrorCode || store.error),
-                  label: message.turnRetryable ? "重试原回应" : "查看状态",
+                  reason: chatFailureText(message.turnErrorCode || store.error,store.messages.some((m)=>m.kind==='assistant'&&!m.id.startsWith('stream-')&&m.turnId===message.turnId)),
+                  label: store.retrying ? "重试中…" : message.turnRetryable ? "重试原回应" : "查看状态",
+                  disabled: store.sending || store.retrying,
                   run: () => {
-                    if (store.retryTurn?.turnId === message.turnId)
-                      return store.retry();
+                    if (message.turnRetryable) return store.retryMessage(message.id);
                     return store.refreshActiveTurn(true);
                   },
                 }
@@ -89,11 +89,11 @@ export default defineComponent({
       () => store.sending || store.hasPendingTurn || store.hasSettlingTurn,
     );
     const send = async () => {
-      const text = draft.value.trim();
+      const submitted = draft.value, text = submitted.trim();
       if (!text || busy.value) return;
-      draft.value = "";
-      sessionStorage.removeItem(storageKey);
-      await store.send(text);
+      await store.send(text,false,null,()=>{
+        if(live()&&draft.value===submitted){draft.value="";sessionStorage.removeItem(storageKey);}
+      });
       project();
     };
     watch(draft, (value) => {
@@ -184,15 +184,16 @@ export default defineComponent({
           .format(new Date(now.value))
           .replace(/(日)(星期)/, "$1 $2"),
     );
-    const waitText = computed(() => {
+    const waiting = computed(() => {
       const pending = store.messages.findLast(
         (m) =>
           m.kind === "user" && ["pending", "running"].includes(m.turnStatus),
       );
-      return chatWaitText(
+      return chatWaitingPresentation(
         store,
-        pending?.createdAt ? Date.parse(pending.createdAt) : now.value,
+        store.attemptStartedAt ?? (pending?.createdAt ? Date.parse(pending.createdAt) : now.value),
         now.value,
+        character.value.name,
       );
     });
     const diagnosticHref = computed(() => {
@@ -209,7 +210,8 @@ export default defineComponent({
         }),
       cancel: () => store.cancel(),
       joined,
-      waitText,
+      waiting,
+      errorText:computed(()=>store.fluctlightId===character.value.id&&store.error?chatFailureText(store.error,store.messages.some(m=>m.kind==='assistant'&&!m.id.startsWith('stream-')&&m.turnId===chatDiagnosticTurn(store))):workspace.state.errors.chat||''),
       props,
       composition: (value) => (composing = value),
       mediaUrl: (id) => workspace.services.mediaClient.url(id),

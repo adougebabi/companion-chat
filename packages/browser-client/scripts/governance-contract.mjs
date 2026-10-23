@@ -5,9 +5,11 @@ const object=(properties,required=Object.keys(properties))=>({type:'object',prop
 const nullable=value=>({anyOf:[value,{type:'null'}]});
 const idempotencyKey={type:'string',minLength:1,maxLength:256},reason={type:'string',minLength:1,maxLength:1024};
 export const governanceSchemas={
+ BrowserPersonaPreparationBody:object({expectedRevision:version,idempotencyKey}),
+ BrowserPersonaPreparation:object({id:text,workflow_id:text,status:{type:'string',enum:['pending','running','ready','failed']},intent_status:text,revision:version,error_code:text,created_at:text,can_recover:{type:'boolean'}},['status','revision','can_recover']),
  BrowserFoundationDecisionBody:object({expectedRevision:version,reason}),
  BrowserFoundationRestoreBody:object({expectedRevision:version,targetRevision:version,reason}),
- BrowserFoundationDecisionResult:object({id:text,fluctlight_id:text,revision:version,status:{type:'string',enum:['accepted','rejected']},reason,replayed:{type:'boolean'},target_revision:version},['id','fluctlight_id','revision','status','reason','replayed']),
+ BrowserFoundationDecisionResult:object({id:text,fluctlight_id:text,revision:version,status:{type:'string',enum:['accepted','rejected']},reason,replayed:{type:'boolean'},target_revision:version,persona_preparation:ref('BrowserPersonaPreparation')},['id','fluctlight_id','revision','status','reason','replayed']),
  BrowserFoundationProposalBody:object({changes:data,expectedRevision:version,reason,idempotencyKey}),
  BrowserFoundationRevision:object({id:text,fluctlight_id:text,revision:version,base_revision:version,source:text,status:{type:'string',enum:['proposed','accepted','rejected']},actor_id:text,reason:nullable(text),created_at:text,accepted_at:nullable(text),rejected_at:nullable(text),changes:data,core_persona:data,identity:data,personality:data,behavioral_policy:data,life_profile:data,provenance:data,evidence_refs:array({}),base_snapshot:nullable(data),source_resource_id:nullable(text),source_version:nullable(text),source_choices:array(data)}),
  BrowserFoundationPage:object({items:array(ref('BrowserFoundationRevision')),next_cursor:text}),
@@ -22,6 +24,7 @@ const response=name=>({responses:{200:{description:'Scoped governance authority'
 const pageParams=[{name:'cursor',in:'query',schema:text},{name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:100}}];
 const body=name=>({requestBody:{required:true,content:{'application/json':{schema:ref(name)}}}});
 export const governancePaths=ownerPathContracts({
+ '/api/fluctlights/{fluctlightId}/persona-preparation/recover':{post:{operationId:'recoverPersonaPreparation',...body('BrowserPersonaPreparationBody'),...response('BrowserPersonaPreparation')}},
  '/api/fluctlights/{fluctlightId}/foundation-revisions':{get:{operationId:'foundationRevisionPage',parameters:[...pageParams,...['q','status'].map(name=>({name,in:'query',schema:text}))],...response('BrowserFoundationPage')},post:{operationId:'submitFoundationRevision',...body('BrowserFoundationProposalBody'),responses:{200:{description:'Durable proposal receipt',content:{'application/json':{schema:data}}}}}},
  ...Object.fromEntries(['accept','reject'].map(action=>['/api/fluctlights/{fluctlightId}/foundation-revisions/{revisionId}/'+action,{post:{operationId:action+'FoundationRevision',...body('BrowserFoundationDecisionBody'),...response('BrowserFoundationDecisionResult')}}])),
  '/api/fluctlights/{fluctlightId}/foundation-revisions/rollback':{post:{operationId:'rollbackFoundationRevision',...body('BrowserFoundationRestoreBody'),...response('BrowserFoundationDecisionResult')}},

@@ -113,6 +113,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/status", s.setFluctlightStatus)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/retire", s.retireFluctlight)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/foundation-revisions", s.proposeFoundation)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/persona-preparation/recover", s.recoverPersonaPreparation)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/foundation-revisions/{revisionID}/accept", s.acceptFoundation)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/foundation-revisions/{revisionID}/reject", s.rejectFoundation)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/foundation-revisions/rollback", s.rollbackFoundation)
@@ -689,7 +690,7 @@ func (s *Server) createFluctlight(response http.ResponseWriter, request *http.Re
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
 		return
 	}
-	item, err := s.app.CreateFluctlight(request.Context(), actorID, stringValue(body["id"]), stringValue(body["name"]), "blank_slate", "", nil, nil, nil)
+	item, err := s.app.AdmitFluctlight(request.Context(), actorID, stringValue(body["id"]), stringValue(body["name"]), "blank_slate", "", nil, nil, nil)
 	if err != nil {
 		writeError(response, http.StatusConflict, "fluctlight_create_failed")
 		return
@@ -806,7 +807,7 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 		initialization = nil
 	}
 	stable := core.StableFluctlightID(actorID, requestID)
-	item, err := s.app.CreateFluctlight(request.Context(), actorID, stable, name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
+	item, err := s.app.AdmitFluctlight(request.Context(), actorID, stable, name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
 	if err != nil {
 		correlationID := "activation:" + stable
 		code, details := activationFailureDetails(err, correlationID)

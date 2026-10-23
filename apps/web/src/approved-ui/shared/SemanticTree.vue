@@ -12,7 +12,7 @@ const props = defineProps({
   depth: { type: Number, default: 0 },
 });
 const technical = (k) =>
-  /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets)$/.test(
+  /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets|owner_switch_status|hash|source_hash)$/.test(
     k,
   ) || /_(?:id|ids|revision|version|at)$/.test(k);
 function categoryLabel(value) {
@@ -44,14 +44,16 @@ const dimensions = {
   risk_tolerance: ["偏谨慎", "冒险倾向适中", "比较愿意尝试"],
 };
 const scalar = computed(() => {
-  const value = props.value;
+  const value = dimensions[props.field] && typeof props.value==='string' && /^\d+(?:\.\d+)?$/.test(props.value) ? Number(props.value) : props.value;
   if (typeof value === "boolean") return value ? "是" : "否";
   if (typeof value === "number") {
     if (dimensions[props.field] && value >= 0 && value <= 1)
       return dimensions[props.field][value < 0.35 ? 0 : value > 0.65 ? 2 : 1];
+    const affect={pleasure:['有些低落','情绪平稳','心情愉悦'],arousal:['平静放松','精力适中','比较活跃'],dominance:['需要支持','掌控感适中','比较有把握']};
+    if(affect[props.field]&&value>=-1&&value<=1)return affect[props.field][value<-.25?0:value>.25?2:1];
     return String(value);
   }
-  const aliases = { known: "已记录", unknown: "尚未确定", male: "男性", female: "女性", nonbinary: "非二元性别" };
+  const aliases = { known: "已记录", unknown: "尚未确定", male: "男性", female: "女性", nonbinary: "非二元性别",ready:'已就绪',awake:'清醒',asleep:'休息中',assessment_required:'需要评估',single:'单一人格',multiple:'多重人格',stale:'等待更新',missing:'尚未整理' };
   const translated = aliases[value] || enumLabel(value);
   return translated === "未分类" ? String(value ?? "") : translated;
 });

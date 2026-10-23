@@ -45,8 +45,8 @@ const (
 	defaultWakeUpIntervalSeconds  = 10 * 60
 	minWakeUpIntervalSeconds      = 10 * 60
 	maxWakeUpIntervalSeconds      = 10 * 60
-	dispatcherIntentOrder         = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE intent_id > $2 AND ((status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','schedule.current_day','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','conversation.segment','conversation.daily_memory'))) ORDER BY intent_id LIMIT $1`
+	dispatcherIntentOrder         = "CASE WHEN intent_type = 'persona.compile' THEN 0 WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
+	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE intent_id > $2 AND ((status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','schedule.current_day','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','persona.compile','conversation.segment','conversation.daily_memory'))) ORDER BY intent_id LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
@@ -59,7 +59,7 @@ func workflowIntentMaximumAttempts(intentType string) int {
 		return goalEvaluationMaximumAttempts
 	case "reflection.run":
 		return reflectionMaximumAttempts
-	case "persona.owner_switch":
+	case "persona.owner_switch", "persona.compile":
 		return cognitionMaximumAttempts
 	case "cognition.processing":
 		return cognitionMaximumAttempts
@@ -1332,6 +1332,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(IntentionTriggerWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
 			w.RegisterWorkflow(OwnerPersonaSwitchWorkflow)
+			w.RegisterWorkflow(PersonaPreparationWorkflow)
 			w.RegisterWorkflow(ConversationSummaryWorkflow)
 			w.RegisterWorkflow(ConversationSegmentWorkflow)
 			w.RegisterWorkflow(GoalEvaluationWorkflow)
@@ -1347,6 +1348,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ResolveScheduledLifeActivityActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
 			w.RegisterActivity(ProcessOwnerPersonaSwitchActivity)
+			w.RegisterActivity(ProcessPersonaPreparationActivity)
 			w.RegisterActivity(ProcessConversationSummaryActivity)
 			w.RegisterActivity(ProcessConversationSegmentActivity)
 			w.RegisterActivity(ProcessGoalEvaluationActivity)
@@ -2256,52 +2258,33 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 	// Rank one candidate per intent class before admitting a second item from
 	// any class. Priority still orders each fairness round, but one large media
 	// or visual backlog cannot consume the entire dispatcher LIMIT.
-	query := fmt.Sprintf(`
-		WITH eligible AS (
-			SELECT candidate.intent_id,candidate.workflow_id,candidate.task_queue,candidate.intent_type,candidate.payload,COALESCE(candidate.attempt_count,0) AS attempt_count,candidate.created_at,
-				%s AS intent_priority,
-				ROW_NUMBER() OVER (
-					PARTITION BY intent_type
-					ORDER BY created_at,intent_id
-				) AS class_rank
-			FROM public.platform_workflow_intents AS candidate
-			WHERE (candidate.status IS NULL OR candidate.status IN ('pending','retry'))
-			  AND (candidate.next_attempt_at IS NULL OR candidate.next_attempt_at <= now())
-			  AND (
-					candidate.intent_type LIKE 'cognition.%%'
-					OR candidate.intent_type NOT IN ('wake_up.current','reflection.run')
-					OR NOT EXISTS (
-						SELECT 1
-						FROM public.platform_workflow_intents AS cognition
-						WHERE cognition.intent_type LIKE 'cognition.%%'
-						  AND cognition.payload->>'fluctlight_id'=candidate.payload->>'fluctlight_id'
-						  AND (
-								cognition.status IN ('started','cancel_requested')
-								OR (cognition.status IN ('pending','retry') AND (cognition.next_attempt_at IS NULL OR cognition.next_attempt_at <= now()))
-							  )
-						)
-				  )
-		)
-		SELECT intent_id,workflow_id,task_queue,intent_type,payload,attempt_count
-		FROM eligible
-		ORDER BY class_rank,intent_priority,created_at,intent_id
-		LIMIT $1`, dispatcherIntentOrder)
+	query := dispatcherCandidateQuery()
 	rows, err := d.App.DB.Pool().Query(ctx, query, limit)
 	if err != nil {
 		return 0, err
 	}
-	defer rows.Close()
-	count := 0
+	type candidate struct {
+		intentID, workflowID, queue, intentType string
+		payload                                 []byte
+		attemptCount                            int
+	}
+	candidates := []candidate{}
 	for rows.Next() {
-		if count >= limit {
-			break
+		var item candidate
+		if err := rows.Scan(&item.intentID, &item.workflowID, &item.queue, &item.intentType, &item.payload, &item.attemptCount); err != nil {
+			rows.Close()
+			return 0, err
 		}
-		var intentID, workflowID, queue, intentType string
-		var payload []byte
-		var attemptCount int
-		if err := rows.Scan(&intentID, &workflowID, &queue, &intentType, &payload, &attemptCount); err != nil {
-			return count, err
-		}
+		candidates = append(candidates, item)
+	}
+	readErr := rows.Err()
+	rows.Close()
+	if readErr != nil {
+		return 0, readErr
+	}
+	count := 0
+	for _, item := range candidates {
+		intentID, workflowID, queue, intentType, payload, attemptCount := item.intentID, item.workflowID, item.queue, item.intentType, item.payload, item.attemptCount
 		var input Input
 		if err := json.Unmarshal(payload, &input); err != nil {
 			if intentType == "media.delete" {
@@ -2425,6 +2408,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		case "persona.owner_switch":
 			workflowFn = OwnerPersonaSwitchWorkflow
 			taskQueue = LifecycleQueue
+		case "persona.compile":
+			workflowFn = PersonaPreparationWorkflow
+			taskQueue = LifecycleQueue
 		case "conversation.summary":
 			workflowFn = ConversationSummaryWorkflow
 			taskQueue = LifecycleQueue
@@ -2544,7 +2530,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		d.Started[intentID] = struct{}{}
 		count++
 	}
-	return count, rows.Err()
+	return count, nil
 }
 
 func normalizedWorkflowID(workflowID string) string {

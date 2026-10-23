@@ -75,6 +75,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "conversation create", method: http.MethodPost, path: "/api/conversations", body: `{"participantActorIds":["fl-1"]}`},
 		{name: "fluctlight create", method: http.MethodPost, path: "/api/fluctlights", body: `{}`},
 		{name: "creation analysis", method: http.MethodPost, path: "/api/fluctlight-creations/analysis", body: `{"description":"a new companion"}`},
+		{name: "persona preparation recover", method: http.MethodPost, path: "/api/fluctlights/fl-1/persona-preparation/recover", body: `{"expectedRevision":1,"idempotencyKey":"persona-recover-1"}`},
 		{name: "creation activation", method: http.MethodPost, path: "/api/fluctlight-creations/activate", body: `{"requestId":"request","initializationMode":"blank_slate","name":"blank"}`},
 		{name: "fluctlight list", method: http.MethodGet, path: "/api/fluctlights"},
 		{name: "actor group list", method: http.MethodGet, path: "/api/actor-groups"},

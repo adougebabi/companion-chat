@@ -113,7 +113,7 @@ func (a *App) OwnerRuntimeCatalog(ctx context.Context, owner string) (map[string
 	}
 	agents := []any{}
 	for _, agent := range FormalAgentDefinitions() {
-		agents = append(agents, map[string]any{"id": agent.ID, "name": agent.Name, "description": agent.Description, "role": agent.Role, "default_surface": agent.DefaultSurface, "mandatory_tools": agent.MandatoryTools})
+		agents = append(agents, map[string]any{"id": agent.ID, "name": agent.Name, "description": agent.Description, "role": agent.Role, "binding_role": providerBindingRole(agent.Role), "default_surface": agent.DefaultSurface, "mandatory_tools": agent.MandatoryTools})
 	}
 	return map[string]any{"agents": agents, "capabilities": a.capabilityRegistry().Definitions(), "read_only": true, "dynamic_installation": false}, nil
 }

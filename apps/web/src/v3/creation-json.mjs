@@ -1,11 +1,19 @@
 // An exported analysis is a preview, never an authority to bypass Core checks.
 // Core rechecks its persisted source, Owner, freshness and activation replay.
+function invalidAnalysis(path, kind = '对象') {
+  return Object.assign(new Error(`整理结果缺少有效${kind}：${path}。原输入已保留，请返回修改或重新整理。`), {
+    code: 'initialization_persona_invalid',
+    details: { validation_error: { type: 'structure', path } },
+  });
+}
 export function parseCreationAnalysis(text) {
-  const value = JSON.parse(text);
+  let value;
+  try { value = JSON.parse(text); } catch { throw invalidAnalysis('provider_response'); }
   const object = candidate => candidate !== null && typeof candidate === 'object' && !Array.isArray(candidate);
   if (!object(value) || !/^initialization_source_[a-f0-9]{32}$/.test(value.analysis_id) || typeof value.correlation_id !== 'string' || !value.correlation_id || !Number.isSafeInteger(value.schema_version) || value.schema_version < 1) throw new Error('请导入当前所有者已完成分析的完整 JSON（含分析来源与版本）');
-  for (const field of ['core_persona','developing_self','extensions']) if (!object(value[field])) throw new Error(`创建 JSON 缺少有效对象：${field}`);
-  for (const field of ['initial_goals','initial_intentions','initial_relationships']) if (!Array.isArray(value[field]) || !value[field].every(object)) throw new Error(`创建 JSON 缺少有效列表：${field}`);
+  for (const field of ['core_persona','developing_self','extensions']) if (!object(value[field])) throw invalidAnalysis(field);
+  if (!object(value.core_persona.identity)) throw invalidAnalysis('core_persona.identity');
+  for (const field of ['initial_goals','initial_intentions','initial_relationships']) if (!Array.isArray(value[field]) || !value[field].every(object)) throw invalidAnalysis(field, '列表');
   return value;
 }
 
