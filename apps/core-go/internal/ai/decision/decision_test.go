@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,6 +31,31 @@ type testStore struct {
 	mu      sync.Mutex
 	records []Record
 	fail    bool
+}
+
+type defaultDeadlineTransport struct{ remaining time.Duration }
+
+func (transport *defaultDeadlineTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	deadline, _ := request.Context().Deadline()
+	transport.remaining = time.Until(deadline)
+	return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"answers":{"q_0001":{"type":"choice","choice":"yes","confidence":0.8,"probabilities":{"yes":0.8,"no":0.1,"unclear":0.1}}}}`)), Request: request}, nil
+}
+
+func TestKevDefaultRequestReceivesTenSecondDeadline(t *testing.T) {
+	config := DefaultConfig()
+	config.Enabled = true
+	if err := config.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	transport := &defaultDeadlineTransport{}
+	service := &Service{Settings: &testSettings{config: config, version: 1}, Store: &testStore{}, HTTP: &http.Client{Transport: transport}, ID: func() string { return "default-timeout" }}
+	results, err := service.Decide(context.Background(), "tools.select", Scope{}, "", []Candidate{{ID: "a", Question: Choice("question")}})
+	if err != nil || len(results) != 1 || results[0].Record.CallStatus != "ok" {
+		t.Fatal(results, err)
+	}
+	if transport.remaining < 9*time.Second || transport.remaining > 10*time.Second {
+		t.Fatal("request still uses the old short deadline", transport.remaining)
+	}
 }
 
 type cancellingSettings struct {

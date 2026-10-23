@@ -10,9 +10,10 @@ import (
 )
 
 // Head identifies the Go-owned schema bundle. Released identifiers are never
-// rewritten; the bounded capability-runtime reconciliation below is the one
-// explicitly allowed active-payload migration and preserves audit history.
-const Head = "0099_durable_turn_diagnostics"
+// rewritten; explicit forward data/configuration upgrades preserve unrelated
+// settings, domain records and audit history.
+const Head = "0100_kev_timeout"
+const KevTimeoutPreviousHead = "0099_durable_turn_diagnostics"
 const DurableTurnDiagnosticsPreviousHead = "0098_generic_model_budget"
 const GenericModelBudgetPreviousHead = "0097_owner_schedules"
 const OwnerSchedulesPreviousHead = "0096_wardrobe_world_structure"
@@ -142,7 +143,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != DurableTurnDiagnosticsPreviousHead && current != GenericModelBudgetPreviousHead && current != OwnerSchedulesPreviousHead && current != WardrobeWorldStructurePreviousHead && current != PlaceDefaultsPreviousHead && current != BusinessBackupsPreviousHead && current != WorkflowControlsPreviousHead && current != DiagnosticOperationsPreviousHead && current != ConfigurationCommandsPreviousHead && current != MomentNPCInteractionsPreviousHead && current != MomentFeedPreviousHead && current != MediaLifecyclePreviousHead && current != RoleMediaReferencesPreviousHead && current != OwnerMediaRequestsPreviousHead && current != MediaReferenceGrantsPreviousHead && current != OwnerMediaPreviousHead && current != StudioOutfitsPreviousHead && current != WorldItemsPreviousHead && current != StudioFoundationPreviousHead && current != StudioVisualStylePreviousHead && current != StudioMediaPreviousHead && current != StudioJobsPreviousHead && current != WorldEventsPreviousHead && current != WorldEncounterRuntimePreviousHead && current != PromiseLifecyclePreviousHead && current != OutfitHistoryPreviousHead && current != InventoryManagementPreviousHead && current != VisualBriefPreviousHead && current != PersonaGovernancePreviousHead && current != SelfGovernancePreviousHead && current != DiaryPreviousHead && current != RoleAutonomyPreviousHead && current != NotificationCenterPreviousHead && current != LifePlacePreviousHead && current != WorldCatalogPreviousHead && current != WorldRuntimePreviousHead && current != GoalAgentCadencePreviousHead && current != ReplyMediaPreviousHead && current != FactOnlyReplyPreviousHead && current != MediaKevPreviousHead && current != FactGenerationProvenancePreviousHead && current != SemanticFactGenerationPreviousHead && current != LogicalAgentLeasesPreviousHead && current != KevDecisionsPreviousHead && current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead && current != ActorUserBackgroundPreviousHead && current != GoalExecutionPreviousHead && current != GoalClosurePreviousHead && current != GoalGovernancePreviousHead && current != GoalReconciliationPreviousHead && current != GoalPlannerPreviousHead && current != GoalPlannerCadencePreviousHead {
+		if current != KevTimeoutPreviousHead && current != DurableTurnDiagnosticsPreviousHead && current != GenericModelBudgetPreviousHead && current != OwnerSchedulesPreviousHead && current != WardrobeWorldStructurePreviousHead && current != PlaceDefaultsPreviousHead && current != BusinessBackupsPreviousHead && current != WorkflowControlsPreviousHead && current != DiagnosticOperationsPreviousHead && current != ConfigurationCommandsPreviousHead && current != MomentNPCInteractionsPreviousHead && current != MomentFeedPreviousHead && current != MediaLifecyclePreviousHead && current != RoleMediaReferencesPreviousHead && current != OwnerMediaRequestsPreviousHead && current != MediaReferenceGrantsPreviousHead && current != OwnerMediaPreviousHead && current != StudioOutfitsPreviousHead && current != WorldItemsPreviousHead && current != StudioFoundationPreviousHead && current != StudioVisualStylePreviousHead && current != StudioMediaPreviousHead && current != StudioJobsPreviousHead && current != WorldEventsPreviousHead && current != WorldEncounterRuntimePreviousHead && current != PromiseLifecyclePreviousHead && current != OutfitHistoryPreviousHead && current != InventoryManagementPreviousHead && current != VisualBriefPreviousHead && current != PersonaGovernancePreviousHead && current != SelfGovernancePreviousHead && current != DiaryPreviousHead && current != RoleAutonomyPreviousHead && current != NotificationCenterPreviousHead && current != LifePlacePreviousHead && current != WorldCatalogPreviousHead && current != WorldRuntimePreviousHead && current != GoalAgentCadencePreviousHead && current != ReplyMediaPreviousHead && current != FactOnlyReplyPreviousHead && current != MediaKevPreviousHead && current != FactGenerationProvenancePreviousHead && current != SemanticFactGenerationPreviousHead && current != LogicalAgentLeasesPreviousHead && current != KevDecisionsPreviousHead && current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead && current != ActorUserBackgroundPreviousHead && current != GoalExecutionPreviousHead && current != GoalClosurePreviousHead && current != GoalGovernancePreviousHead && current != GoalReconciliationPreviousHead && current != GoalPlannerPreviousHead && current != GoalPlannerCadencePreviousHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -392,7 +393,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, placeDefaultsSchemaSQL); err != nil {
 		return fmt.Errorf("apply provenance-backed place defaults: %w", err)
 	}
-	if current != Head {
+	if current != Head && current != KevTimeoutPreviousHead {
 		if _, err := tx.Exec(ctx, inventoryManagementDataRepairSQL); err != nil {
 			return fmt.Errorf("repair legacy inventory eligibility: %w", err)
 		}
@@ -403,14 +404,19 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, ownerSchedulesSQL); err != nil {
 		return fmt.Errorf("apply Owner schedule requests: %w", err)
 	}
-	if current != Head {
+	if current != Head && current != KevTimeoutPreviousHead {
 		if _, err := tx.Exec(ctx, genericModelBudgetRepairSQL); err != nil {
 			return fmt.Errorf("restore consolidated model budget: %w", err)
 		}
 	}
-	if current != Head {
+	if current != Head && current != KevTimeoutPreviousHead {
 		if _, err := tx.Exec(ctx, durableTurnDiagnosticsSQL); err != nil {
 			return fmt.Errorf("backfill durable turn diagnostics: %w", err)
+		}
+	}
+	if current != Head {
+		if _, err := tx.Exec(ctx, kevTimeoutSQL); err != nil {
+			return fmt.Errorf("apply requested Kev timeout: %w", err)
 		}
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {

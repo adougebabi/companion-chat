@@ -13,7 +13,7 @@ import { kevDecisionPoints } from "../lib/kev-presentation";
 import { displayStatus, userError } from "../lib/user-feedback";
 const store = useControlCenterStore();
 const pointLabels = kevDecisionPoints;
-const config = reactive({enabled:false,media_enabled:true,endpoint:"http://127.0.0.1:8010/v1/systemone",points:Object.fromEntries(Object.keys(pointLabels).map(key=>[key,true])),timeout_ms:1500,budget_ms:3000,concurrency:1,batch_size:8,response_bytes:1048576,request_bytes:262144,strategy:"choice_argmax",min_probability:0,min_margin:0,max_deferrals:3,deferral_seconds:60,retention_days:7,model:"Jakevin/kev-4b-ternary-mlx",model_revision:"unknown"});
+const config = reactive({enabled:false,media_enabled:true,endpoint:"http://127.0.0.1:8010/v1/systemone",points:Object.fromEntries(Object.keys(pointLabels).map(key=>[key,true])),timeout_ms:10000,budget_ms:10000,concurrency:1,batch_size:8,response_bytes:1048576,request_bytes:262144,strategy:"choice_argmax",min_probability:0,min_margin:0,max_deferrals:3,deferral_seconds:60,retention_days:7,model:"Jakevin/kev-4b-ternary-mlx",model_revision:"unknown"});
 const ready = ref(false), loadError = ref(""), error = ref(""), notice = ref(""), secret = ref(""), testing = ref(false);
 const connectionMessage = ref(""), connectionDetail = ref(""), connectionOk = ref(false);
 const {errors,validate} = useFormErrors();

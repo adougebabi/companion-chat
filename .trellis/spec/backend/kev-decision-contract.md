@@ -37,11 +37,13 @@ Check parent cancellation after settings I/O and recheck config version before
 adoption. Record actual choice/confidence/distribution separately from application.
 A stored model yes stays yes after later disable or audit rejection.
 
-Defaults: choice_argmax, 1500ms request, 3000ms shared selection stage, 1 concurrent
+Defaults: choice_argmax, 10000ms request, 10000ms shared selection stage, 1 concurrent
 request per service instance, 8 questions/batch, zero retries, 3 deferrals, 60s
 backoff and 7-day retention. Missing installed settings leave the original path;
 the explicit local/operator configuration command configures ten points (seven original plus three media).
 Do not write production endpoint or silently overwrite Owner settings in migration.
+The explicit 2026-10-23 Owner request authorizes the one-time `0100_kev_timeout`
+upgrade described below; it changes only timeout and a too-short stage budget.
 
 Complete raw response and each question's raw answer must be durably stored before
 adoption. Use a bounded fsync append journal if PostgreSQL diagnostic writes fail;
@@ -213,6 +215,44 @@ Existing TestKev* plus TestMediaBranchKevTwoStagesAndMixedPointAudit, M34/M40 re
 ### 7. Wrong vs Correct
 Wrong: hard-code three answer labels for every new media question or overwrite all settings to enable only media.
 Correct: bind parsing to the question's allowed choices, preserve raw audit and merge media settings after private backup.
+
+## Scenario: Owner-requested ten-second timeout (2026-10-23)
+
+### 1. Scope / Trigger
+The Owner explicitly requested Kev timeout=10 seconds, including existing settings.
+
+### 2. Signatures
+`decision.DefaultConfig()` and the compatible Vue editor default to
+`timeout_ms=10000,budget_ms=10000`. Migration `0100_kev_timeout` follows
+`0099_durable_turn_diagnostics` and updates an existing `runtime_settings.kev`.
+
+### 3. Contracts
+On upgrade set request timeout to 10000ms, raise stage budget only when below
+10000ms, preserve every other option and increment the setting revision if changed.
+No missing Kev row is created or enabled. At the current head the migration is
+not reapplied over later Owner edits. The 0099→0100 path must not replay the
+previous inventory, binding-budget or turn-diagnostic data repairs. Parent
+cancellation/deadlines and fallback behavior remain authoritative.
+
+### 4. Validation & Error Matrix
+Old 1500/3000 → 10000/10000. Existing 6000/25000 → 10000/25000.
+Already 10000 with sufficient stage budget → no setting revision change.
+Current-head rerun after an Owner edit → preserve that edit. Absent row → absent.
+
+### 5. Good / Base / Bad Cases
+Good: the actual default HTTP request receives about ten seconds. Base: an
+existing longer stage remains longer. Bad: change only the request default while
+the saved three-second stage still cancels it early.
+
+### 6. Tests Required
+Capture the actual request context deadline; retain timeout/cancel/fallback
+regressions. Disposable PG verifies upgrade, settings revision, option preservation,
+fresh unconfigured behavior and later-edit/reapply safety. Run migrations and
+decision race tests, Web typecheck/build and Go vet/build.
+
+### 7. Wrong vs Correct
+Wrong: normalize saved settings on every read, erasing later user choices.
+Correct: update defaults plus a single forward migration under the migration lock.
 
 
 ## Scenario: Explicit empty parameters for recovery tools (2026-10-12)
