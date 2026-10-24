@@ -15,10 +15,10 @@ function toggle(value,checked){const selected=new Set(Array.isArray(props.field.
     <label v-for="[value,label] in actionChoices" :key="value" class="check-field"><input type="checkbox" :checked="Array.isArray(field.value)&&field.value.includes(value)" @change="toggle(value,$event.target.checked)"/>{{label}}</label>
   </fieldset>
   <label v-else>{{field.label}}
-    <select v-if="field.type==='select'" v-model="field.value"><option v-for="option in field.options" :key="option">{{option}}</option></select>
-    <textarea v-else-if="field.type==='json'" :value="String(field.value)" rows="3" @input="field.value=$event.target.value"/>
-    <input v-else-if="field.type==='checkbox'" v-model="field.value" class="switch" type="checkbox"/>
-    <input v-else-if="field.type==='number'" v-model.number="field.value" type="number" :min="field.min" :max="field.max" :step="field._definition?.step||'any'"/>
-    <input v-else v-model="field.value" :type="field.type||'text'"/>
+    <select :aria-label="field.label" v-if="field.type==='select'" v-model="field.value"><option v-for="option in field.options" :key="option">{{option}}</option></select>
+    <textarea :aria-label="field.label" v-else-if="field.type==='json'" :value="String(field.value)" rows="3" @input="field.value=$event.target.value"/>
+    <input :aria-label="field.label" v-else-if="field.type==='checkbox'" v-model="field.value" class="switch" type="checkbox"/>
+    <input :aria-label="field.label" v-else-if="field.type==='number'" v-model.number="field.value" type="number" :min="field.min" :max="field.max" :step="field._definition?.step||'any'"/>
+    <input :aria-label="field.label" v-else v-model="field.value" :type="field.type||'text'"/>
   </label>
 </template>

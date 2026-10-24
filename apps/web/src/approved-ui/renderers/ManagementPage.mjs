@@ -275,11 +275,11 @@ function renderManagementPageBody(__view) {
     const required=!!h._source||!!h.endpoint||!!h.model||(h.timeout!=null&&h.timeout!=="");
     return o("details", { key: h.name, class: "management-block", open: !!h._source||['generic_llm','conversation_reply'].includes(h.role) }, [
       o("summary", null, h.name), o("div", J1, [
-        o("label", null, ["使用服务", pe(o("select", {"onUpdate:modelValue": value => h.endpoint = value, required},
+        o("label", null, ["使用服务", pe(o("select", {"onUpdate:modelValue": value => h.endpoint = value, required, "aria-label":"使用服务"},
           [o("option",{value:""},"尚未配置"),...__view.l.value.map(endpoint => o("option", {value: endpoint.id}, endpoint.name))]), [[Et, h.endpoint]])]),
-        o("label", null, ["模型 ID", pe(o("input", {"onUpdate:modelValue": value => h.model = value, list: "models-" + h.role, required}), [[$e, h.model]]),
+        o("label", null, ["模型 ID", pe(o("input", {"onUpdate:modelValue": value => h.model = value, list: "models-" + h.role, required, "aria-label":"模型 ID"}), [[$e, h.model]]),
           o("datalist", {id: "models-" + h.role}, (__view.l.value.find(endpoint => endpoint.id === h.endpoint)?.models || []).map(model => o("option", {value: model})))]),
-        o("label", null, ["超时（秒）", pe(o("input", {"onUpdate:modelValue": value => h.timeout = value, type: "number", min: "1", required}), [[$e, h.timeout, void 0, {number: true}]] )])
+        o("label", null, ["超时（秒，可选）", pe(o("input", {"onUpdate:modelValue": value => h.timeout = value, type: "number", min: "1", placeholder: "默认 120 秒", "aria-label":"超时（秒，可选）"}), [[$e, h.timeout, void 0, {number: true}]] ),o("small",{class:"muted"},"留空使用 120 秒；未配置用途可以全部留空。")])
       ])
     ]);
   }), 128)), o("details", om, [o("summary", null, "共用通用模型的场景 · " + v(M(__view.sharedScenarios).length) + " 项", 1), (p(!0), g(O, null, oe(M(__view.sharedScenarios), h => (p(), g("div", im, [o("span", null, v(h), 1), $[26] || ($[26] = o("small", null, "使用：通用模型", -1))]))), 256))])]), approvedSurfaceVNode("section", {
@@ -320,7 +320,7 @@ function renderManagementPageBody(__view) {
       onClick: b => __view.x(h.title)
     }, v(h.title === "看图理解" ? "测试看图（使用已保存配置）" : "测试连接"))) : X("", !0)]),
     _: 2
-  }, 1032, ["id"]))), 128)), __view.te.value ? (p(), g("p", wm, v(__view.te.value), 1)) : X("", !0), o("div", $m, [__view.A.value ? (p(), g("p", Cm, v(__view.A.value), 1)) : (p(), g("span", xm, "让相处的节奏，更合心意。")), approvedButtonVNode({
+  }, 1032, ["id"]))), 128)), __view.te.value ? (p(), g("p", wm, v(__view.te.value), 1)) : X("", !0), o("div", $m, [__view.A.value ? (p(), g("p", Cm, v(__view.A.value), 1)) : o("p",{class:"muted",role:"status","aria-live":"polite","data-testid":"config-save-status"},__view.saveStatus.value || "让相处的节奏，更合心意。"), approvedButtonVNode({
     class: "button primary",
     disabled: __view.w.value,
     "data-testid": "config-save"

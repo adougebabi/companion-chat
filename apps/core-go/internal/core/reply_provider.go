@@ -164,7 +164,7 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	if err != nil {
 		return ReplyDraft{}, err
 	}
-	for key, value := range map[string]any{"run_id": input.CorrelationID, "parent_run_id": input.ParentRunID,
+	for key, value := range map[string]any{"fluctlight_id": input.Context.Projection.FluctlightID, "conversation_id": input.Context.Projection.ConversationID, "run_id": input.CorrelationID, "parent_run_id": input.ParentRunID,
 		"draft_ref": input.DraftRef, "reply_mode": firstString(input.Mode, "fact_only"), "output_scene": firstString(input.Context.Scene, "private_reply"), "effective_binding_role": input.Assignment.Role, "config_version": input.ConfigVersion, "prompt_version": contract.Version, "style_repair": input.Context.StyleRepair, "prompt_budget": prompt.Trace} {
 		diagnostics[key] = value
 	}

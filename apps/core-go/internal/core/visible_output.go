@@ -119,6 +119,11 @@ func visibleReplyIsStructured(value string) bool {
 }
 
 func visibleReplyObject(value string) (map[string]any, bool) {
+	// Structured-task fence support does not turn a visible message's code
+	// block into an action envelope or publication authority.
+	if strings.HasPrefix(strings.TrimSpace(value), "```") {
+		return nil, false
+	}
 	structured, ok := parseStructuredCandidate(value, 0)
 	return structured, ok && structured != nil
 }

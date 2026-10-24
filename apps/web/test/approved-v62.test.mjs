@@ -142,7 +142,7 @@ test("malformed and incomplete analyses keep the editable original input until a
   await c.analyze();
   assert.equal(c.step.value, "person");
   assert.equal(c.feedback.value.path, "core_persona.identity");
-  assert.match(c.error.value, /问题字段/);
+  assert.match(c.error.value, /模型返回.*字段校验/);
   c.draft.bio = "修正后的描述"; c.invalidate();
   await c.analyze();
   assert.equal(c.step.value, "preview");

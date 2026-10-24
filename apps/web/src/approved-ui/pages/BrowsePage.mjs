@@ -1,7 +1,8 @@
 import { defineComponent, ref, computed, onUnmounted, watch, h, Fragment } from "vue";
 import { readNotificationPreviews } from '../notification-previews.mjs';
-import { pendingIssues,notificationGroups } from "../presentation.mjs";
+import { pendingIssues,notificationGroups,notificationIssueGroups,notificationPath } from "../presentation.mjs";
 import NotificationGroup from '../shared/NotificationGroup.vue';
+import NotificationIssues from '../shared/NotificationIssues.vue';
 import { useWorkspace } from "../workspace.mjs";
 import { renderBrowsePage } from "../renderers/BrowsePage.mjs";
 import { FilterChips, ActionFeedback } from "../shared/components.mjs";
@@ -297,12 +298,8 @@ export default defineComponent({
           if (!live()) return;
           await w.loadBrowse("通知与待处理");
           if (!live()) return;
-          const href = notice.link;
-          if (
-            typeof href === "string" &&
-            href.startsWith("/") &&
-            !href.startsWith("//")
-          )
+          const href = notificationPath(notice.link);
+          if (href)
             w.navigatePath(href);
           else if (notice.fluctlight_id) {
             w.select(notice.fluctlight_id);
@@ -316,8 +313,8 @@ export default defineComponent({
       i: errors,
       r: (id) => {
         const pending = w.state.pending.find((p) => p.id === id);
-        if (pending?.href?.startsWith("/") && !pending.href.startsWith("//"))
-          w.navigatePath(pending.href);
+        const href=notificationPath(pending?.href);
+        if (href) w.navigatePath(href);
         else {
           w.state.managementTab = "运行诊断";
           w.navigate("管理中心");
@@ -327,6 +324,8 @@ export default defineComponent({
       playMedia,
     };
     bindings.NotificationGroup=NotificationGroup;
+    bindings.NotificationIssues=NotificationIssues;
+    bindings.issueGroups=computed(()=>notificationIssueGroups(errors.value));
     const render = renderBrowsePage(bindings);
     return (context, cache) =>
       h(Fragment, [

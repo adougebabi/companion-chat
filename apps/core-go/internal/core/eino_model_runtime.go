@@ -1096,7 +1096,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	}
 	if call.JSONMode {
 		validationSchema := call.ResponseSchema
-		validationErr := validateADKFinalContract(final, call.Role, validationSchema, adkContext.Refs)
+		validationErr := validateADKFinalContractForSchema(final, call.Role, call.SchemaName, validationSchema, adkContext.Refs)
 		if validationErr != nil && visibleReplyCommitted(ctx) {
 			// The visible reply already committed. Do not spend another model call repairing cognition JSON.
 			final = visibleReplyTerminalMessage(nil)
@@ -1105,7 +1105,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		}
 		if validationErr != nil {
 			var truncated *structuredResponseTruncatedError
-			if errors.As(validationErr, &truncated) {
+			if errors.As(validationErr, &truncated) || call.SchemaName == "initialization_response" {
 				return einoModelResponse{}, validationErr
 			}
 			// A second, tool-free model call can correct a malformed final DTO.
@@ -1113,7 +1113,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			// must not receive the Tool catalog or execute another ToolCall.
 			correctionInput := append([]*schema.Message(nil), input...)
 			for _, message := range loopResult.Messages {
-				if message == nil || (message.Role == schema.Assistant && len(message.ToolCalls) == 0) {
+				if message == nil {
 					continue
 				}
 				correctionInput = append(correctionInput, message)
@@ -1132,7 +1132,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			correction, correctionErr := RunADKLoop(repairCtx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: repairModel, MaxIterations: 1, EnableStreaming: call.EnableStreaming}, correctionInput)
 			preservePhysicalResponseMetadata(correction.FinalMessage, repairModel)
 			if correctionErr == nil && correction.FinalMessage != nil && len(correction.ToolCalls) == 0 {
-				if err := validateADKFinalContract(correction.FinalMessage, call.Role, validationSchema, adkContext.Refs); err == nil {
+				if err := validateADKFinalContractForSchema(correction.FinalMessage, call.Role, call.SchemaName, validationSchema, adkContext.Refs); err == nil {
 					final = correction.FinalMessage
 					loopResult.FinalMessage = final
 				} else {
@@ -1162,6 +1162,10 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 }
 
 func validateADKFinalContract(message *schema.Message, role string, outputSchema map[string]any, refs *providerContextRefCodec) error {
+	return validateADKFinalContractForSchema(message, role, "", outputSchema, refs)
+}
+
+func validateADKFinalContractForSchema(message *schema.Message, role, schemaName string, outputSchema map[string]any, refs *providerContextRefCodec) error {
 	if err := validateADKStructuredResponse(message, role); err != nil {
 		return err
 	}
@@ -1180,7 +1184,7 @@ func validateADKFinalContract(message *schema.Message, role string, outputSchema
 		parsed = decoded.(map[string]any)
 	}
 	normalizeAbsentAppraisalEvidence(parsed, outputSchema)
-	if role != "initialization" {
+	if !usesInitializationObjectFormat(role, schemaName) {
 		if err := capabilitycontract.ValidateCapabilitySchemaValue(parsed, outputSchema); err != nil {
 			return fmt.Errorf("adk_final_output_invalid: %w", err)
 		}
@@ -1225,7 +1229,7 @@ func recordADKTerminationDiagnostic(ctx context.Context, provider *ProviderClien
 	}
 	var truncated *structuredResponseTruncatedError
 	if errors.As(runErr, &truncated) {
-		metadata := map[string]any{"finish_reason": "length"}
+		metadata := map[string]any{"finish_reason": "length", "structured_content_complete": truncated.contentComplete}
 		if truncated.completionTokens > 0 {
 			metadata["completion_tokens"] = truncated.completionTokens
 		}
@@ -1571,7 +1575,7 @@ func einoResponseFormat(jsonMode bool, schemaName string, raw map[string]any) (*
 }
 
 func einoResponseFormatForRole(role string, jsonMode bool, schemaName string, raw map[string]any) (*openaiext.ChatCompletionResponseFormat, error) {
-	if strings.TrimSpace(role) == "initialization" {
+	if usesInitializationObjectFormat(role, schemaName) {
 		if !jsonMode {
 			return nil, nil
 		}

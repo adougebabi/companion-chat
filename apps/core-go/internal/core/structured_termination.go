@@ -11,6 +11,7 @@ import (
 type structuredResponseTruncatedError struct {
 	role             string
 	completionTokens int
+	contentComplete  bool
 }
 
 func (e *structuredResponseTruncatedError) Error() string {
@@ -27,7 +28,8 @@ func structuredTerminationError(message *schema.Message, role string) error {
 	if message.ResponseMeta.Usage != nil {
 		tokens = message.ResponseMeta.Usage.CompletionTokens
 	}
-	return &structuredResponseTruncatedError{role: role, completionTokens: tokens}
+	_, complete := parseStructuredCandidates(providerStructuredCandidates(einoMessageRaw(message)))
+	return &structuredResponseTruncatedError{role: role, completionTokens: tokens, contentComplete: complete}
 }
 func initializationStructuredCause(err error) string {
 	var truncated *structuredResponseTruncatedError

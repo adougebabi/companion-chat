@@ -1,5 +1,6 @@
 import { readInitializationProgress } from "../v3/initialization-progress.mjs";
-import { errorMessage, stateLabel } from "../v3/domain-presentation.mjs";
+import { errorMessage } from "../v3/domain-presentation.mjs";
+import { wardrobePreparationStage } from './wardrobe-preparation.mjs';
 async function part(run) {
   try {
     return { state: "ready", value: await run() };
@@ -124,32 +125,7 @@ export async function readApprovedCreationProgress(client, draft) {
         world.value?.world?.id === draft.worldRuntimeId && draft.groupConfirmed
       ),
     },
-    {
-      key: "wardrobe",
-      title: "初始衣柜",
-      state:
-        wardrobe.state === "unknown"
-          ? "unknown"
-          : preparation?.status === "completed"
-            ? "ready"
-            : preparation?.can_recover
-              ? "failed"
-              : statusOf(preparation?.status),
-      note:
-        wardrobe.errorMessage ||
-        (failed(preparation?.status) || preparation?.can_recover
-          ? preparation?.result?.failure_reason || errorMessage(
-              { code: preparation.error_code },
-              "初始穿搭准备未完成，可检查模型设置后恢复。",
-            )
-          : stateLabel(preparation?.status, "等待后台准备")),
-      retryable:
-        preparation?.can_recover || preparation?.status === "not_started",
-      configSection: "模型用途",
-      href: preparation?.task_id
-        ? "#/diag/task/" + encodeURIComponent(preparation.task_id)
-        : undefined,
-    },
+    wardrobePreparationStage(preparation,wardrobe.errorMessage),
     imageStage("reference", "形象参考图", reference),
     imageStage("sheet", "角色设定图", sheet),
     {
@@ -193,10 +169,21 @@ export async function readApprovedCreationProgress(client, draft) {
       configSection: "模型用途",
     },
   ];
+  let blocker;
+  for (const stage of stages) {
+    if (blocker && stage.state === 'pending') {
+      stage.state = 'blocked';
+      stage.blockedBy = blocker.key;
+      stage.note = `等待恢复「${blocker.title}」，此环节尚未开始。`;
+      stage.retryable = false;
+    }
+    if (!blocker && stage.state === 'failed') blocker = stage;
+  }
   return {
     fid,
     stages,
     complete: stages.every((s) => s.state === "ready"),
+    blocker,
     visual,
     wardrobe,
     schedule,

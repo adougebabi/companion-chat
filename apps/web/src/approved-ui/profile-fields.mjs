@@ -53,6 +53,7 @@ const technical = (key) =>
   ) || /_(?:id|ids|version|revision|at)$/.test(key);
 const readOnlyLife = new Set(["wardrobe_items", "relationship_seeds"]);
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const fieldOptions = {message_length:[['short','简短'],['medium','适中'],['long','详细']]};
 export function coreFromDetail(detail) {
   return {
     identity: clone(detail.identity || detail.core_persona?.identity || {}),
@@ -97,7 +98,7 @@ export function profileFields(core, label = (key) => key) {
             ? "boolean"
             : numeric
               ? "number"
-              : "text";
+              : path[0] === 'behavioral_policy' && fieldOptions[key] ? 'select' : "text";
     const display =
       kind === "lines"
         ? Array.isArray(value)
@@ -115,6 +116,7 @@ export function profileFields(core, label = (key) => key) {
         )
         .join(" · "),
       kind,
+      options:kind === 'select' ? [{value:'',label:'尚未填写'},...fieldOptions[key].map(([value,label])=>({value,label})),...(!fieldOptions[key].some(([option])=>option===value)&&value ? [{value,label:String(value)}] : [])] : undefined,
       itemType:
         Array.isArray(value) &&
         value.length &&

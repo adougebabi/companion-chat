@@ -115,7 +115,7 @@ function renderChrome(ctx) {
     const expanded=navigationExpansion.get(key)??p.includes('/life/');
     return `<details class="nav-group" data-nav-group="${esc(key)}" ${expanded?'open':''}><summary class="navlink ${p.includes('/life/')?'on':''}">${icon(n.icon)} ${n.label}<span class="spacer"></span><span class="nav-chevron" aria-hidden="true">⌄</span></summary>${n.subs.map(([l,sp,ic])=>`<a class="navlink sub ${on(sp)?'on':''}" href="${base}${sp}" ${on(sp)?'aria-current="page"':''}>${icon(ic)} ${l}</a>`).join('')}</details>`;
   }).join('');
-  const globalItems=[['动态','#/feed','feed'],['通知与待处理','#/inbox','inbox'],['角色库','#/library','home'],['创作工坊','#/studio','studio'],['管理中心','#/settings','settings']];
+  const globalItems=[['动态','#/feed','feed'],['通知与待处理','#/inbox','inbox'],['角色库','#/library','home'],['创作中心','#/studio','studio'],['管理中心','#/settings','settings']];
   ui.$('#sidenav').innerHTML = `<div class="sec">${esc(w?.name||'角色空间')}</div>${navigation}<div class="sec navigation-other">其他空间</div>${globalItems.map(([l,h,i])=>`<a class="navlink ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'on':''}" href="${h}" ${sectionPath===h.slice(1)||sectionPath.startsWith(h.slice(1)+'/')?'aria-current="page"':''}>${icon(i)} ${l}</a>`).join('')}`;
   const bindNavigation=root=>root.querySelectorAll('[data-nav-group]').forEach(details=>details.addEventListener('toggle',()=>navigationExpansion.set(details.dataset.navGroup,details.open)));
   bindNavigation(ui.$('#sidenav'));

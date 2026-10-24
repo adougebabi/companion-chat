@@ -1,4 +1,4 @@
-import { providerBindingBody } from "../v3/provider-budget.mjs";
+import { providerBindingBody, defaultModelTimeoutSeconds } from "../v3/provider-budget.mjs";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 export const weekdays = [
   "周日",
@@ -85,7 +85,7 @@ export function configurationPlan({
         role: binding.role,
         endpointId,
         modelId: binding.model.trim(),
-        timeoutSeconds: Number(binding.timeout),
+        timeoutSeconds: binding.timeout === "" || binding.timeout == null ? defaultModelTimeoutSeconds : Number(binding.timeout),
       };
     if (
       !normalized.modelId ||

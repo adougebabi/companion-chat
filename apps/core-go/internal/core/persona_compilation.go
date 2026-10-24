@@ -259,7 +259,7 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt == 1 {
 			return CompiledWorkingPersona{}, validationErr
 		}
-		messages = append(messages, map[string]any{"role": "user", "content": renderProviderJSON(map[string]any{"validation_feedback": validationErr.Error(), "instruction": "Return only a JSON object with one non-empty portrait_text string for the same supplied source and profile. Keep it within the stated rune budget; do not include fact arrays or source paths."})})
+		messages = append(messages, map[string]any{"role": "assistant", "content": jsonString(run.Completion.Structured)}, map[string]any{"role": "user", "content": renderProviderJSON(map[string]any{"validation_feedback": validationErr.Error(), "instruction": "Return only a JSON object with one non-empty portrait_text string for the same supplied source and profile. Keep it within the stated rune budget; do not include fact arrays or source paths."})})
 	}
 	return CompiledWorkingPersona{}, errors.New("persona_compilation_retry_exhausted")
 }

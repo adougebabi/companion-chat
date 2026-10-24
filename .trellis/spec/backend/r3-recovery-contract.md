@@ -17,7 +17,10 @@ schedule generation failures, duplicate conversation segments and browser recove
 Initialization stays one generation task. No application input/output token cap
 or segmented quota is sent. Explicit length termination is not a successful final
 JSON even when the object parses, and does not trigger the final DTO repair.
-Ordinary malformed stop output retains its existing single tool-free repair.
+Ordinary malformed stop output retains its existing single tool-free repair,
+except initialization_response: r4 now enforces one physical generation per
+Owner attempt even on malformed stop output. Complete formal JSON fence framing
+is accepted; prose/reasoning/partial output remains rejected.
 Timeout/cancellation error identity takes precedence; partial persona text is
 not included in the public typed failure.
 

@@ -1,9 +1,10 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useWorkspace } from "../workspace.mjs";
-import { errorMessage, stateLabel } from "../../v3/domain-presentation.mjs";
+import { errorMessage } from "../../v3/domain-presentation.mjs";
 import PreparationSteps from "./PreparationSteps.vue";
 import { ActionFeedback } from "./components.mjs";
+import { wardrobePreparationStage } from '../wardrobe-preparation.mjs';
 const w = useWorkspace(),
   fid = w.state.selectedId,
   scope = w.currentScope(),
@@ -14,44 +15,7 @@ let active = true,
   reading = false,
   timer;
 const live = () => active && w.currentScope() === scope;
-const stages = computed(() => {
-  const p = preparation.value;
-  if (!p)
-    return [
-      {
-        key: "wardrobe",
-        title: "初始衣柜",
-        state: "unknown",
-        note: readError.value || "正在读取准备状态",
-      },
-    ];
-  return [
-    {
-      key: "wardrobe",
-      title: "初始衣柜",
-      state:
-        p.status === "completed"
-          ? "ready"
-          : p.can_recover || p.status === "failed"
-            ? "failed"
-            : ["generating", "awaiting_wear"].includes(p.status)
-              ? "running"
-              : "pending",
-      note:
-        p.can_recover || p.status === "failed"
-          ? errorMessage(
-              { code: p.error_code, message: p.result?.failure_reason },
-              "初始穿搭准备未完成，请检查模型服务后恢复。",
-            )
-          : stateLabel(p.status, "等待准备任务"),
-      configSection: "模型用途",
-      href: p.task_id
-        ? "#/diag/task/" + encodeURIComponent(p.task_id)
-        : undefined,
-      retryable: p.can_recover || p.status === "not_started",
-    },
-  ];
-});
+const stages = computed(() => [wardrobePreparationStage(preparation.value,readError.value)]);
 async function load() {
   if (!live() || reading) return;
   reading = true;
@@ -135,7 +99,7 @@ onUnmounted(() => {
     <summary>
       初始穿搭准备
       <small>{{
-        preparation ? stateLabel(preparation.status, "状态待确认") : "读取中"
+        preparation ? ({ready:'已完成',failed:'执行失败',running:'进行中',pending:'等待中',unknown:'状态待确认'}[stages[0].state]) : "读取中"
       }}</small>
     </summary>
     <PreparationSteps :stages="stages" :busy="busy" @recover="recover" />

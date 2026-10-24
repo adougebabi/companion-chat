@@ -6,6 +6,7 @@ import { ActionFeedback } from "../shared/components.mjs";
 import CharacterAvatar from "../shared/CharacterAvatar.vue";
 import SemanticTree from "../shared/SemanticTree.vue";
 import ProfileForm from "../shared/ProfileForm.vue";
+import { personaPresentation,workingPersonaPresentation } from '../profile-presentation.mjs';
 import { profileSnapshotFromDetail } from "../../v3/proto/data/profile.js";
 import {
   semanticLabel,
@@ -61,7 +62,7 @@ const sections = computed(() =>
     ],
     ["policy", "表达与相处", core.value.behavioral_policy],
     ["life", "生活设定", core.value.life_profile],
-    ["working", "当前表达画像", snapshot.value.groups.find((group) => group.key === 'working')?.value],
+    ["working", "当前表达画像", workingPersonaPresentation(snapshot.value.groups.find((group) => group.key === 'working')?.value)],
     [
       "current",
       "此刻状态",
@@ -70,6 +71,7 @@ const sections = computed(() =>
     ["developing", "发展中的自我", detail.value?.developing_self],
   ].filter(([, , value]) => hasSemanticValue(value)),
 );
+const personaValue=persona=>personaPresentation(persona,{...core.value,personality:detail.value?.personality||detail.value?.core_persona?.personality});
 const title = computed(
     () => detail.value?.identity?.name || w.current.value.name,
   ),
@@ -386,7 +388,8 @@ onUnmounted(() => {
               {{ persona.name || persona.id }}
               <small v-if="persona.id === snapshot.activeProfileId">当前</small>
             </summary>
-            <SemanticTree :value="persona" />
+            <p class="muted">这里展示此人格相对共同设定的补充与差异。</p>
+            <SemanticTree :value="personaValue(persona)" />
           </details>
           <details v-if="personas.length > 1 && !snapshot.readOnly">
             <summary>切换人格</summary>

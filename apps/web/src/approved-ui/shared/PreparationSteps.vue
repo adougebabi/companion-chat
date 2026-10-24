@@ -7,6 +7,7 @@ const labels = {
   running: "进行中",
   pending: "等待中",
   failed: "失败",
+  blocked: "等待前序恢复",
   unknown: "状态待确认",
 };
 </script>

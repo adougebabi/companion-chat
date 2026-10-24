@@ -22,7 +22,7 @@ func TestInitializationLengthIsTypedAndDoesNotRepeatGeneration(t *testing.T) {
 		}{
 			{"partial", `{"ok":`, "length", 1},
 			{"valid-but-truncated", `{"ok":true}`, "length", 1},
-			{"ordinary-repair", `{"ok":`, "stop", 2},
+			{"ordinary-no-regeneration", `{"ok":`, "stop", 1},
 		} {
 			t.Run(fmt.Sprint(stream)+item.name, func(t *testing.T) {
 				calls := 0
@@ -66,8 +66,8 @@ func TestInitializationLengthIsTypedAndDoesNotRepeatGeneration(t *testing.T) {
 					if truncated.completionTokens != 8192 {
 						t.Fatalf("usage lost: %#v", truncated)
 					}
-				} else if err != nil {
-					t.Fatal(err)
+				} else if err == nil || initializationProviderErrorCode(err) != "initialization_response_invalid_json" {
+					t.Fatal("invalid initialization must fail without a hidden regeneration", err)
 				}
 			})
 		}

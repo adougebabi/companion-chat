@@ -28,6 +28,8 @@ export function visualStageLabel(value,fallback='生成阶段记录'){return vis
 export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
  const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
  const source=code+' '+text;
+ if(/memory_embedding_unconfigured/.test(source))return '记忆正文已保存；尚未配置记忆检索向量模型，向量索引未完成。请到模型用途配置后恢复原任务。';
+ if(/structured_response_truncated/.test(source))return '模型以长度终止状态结束了本次处理，完整结果尚未确认，请查看原任务后重试。';
  if(/\b(?:INSERT|UPDATE|SELECT|DELETE|SQLSTATE|constraint|pgconn)\b|fluctlight_wardrobe_|outfit_item_insert_failed/.test(source))return '服装或搭配的保存没有完成，请重新读取衣柜后再试；详细原因已保留在运行诊断。';
  if(/gateway_timeout|\b524\b/.test(source))return '模型中转服务等待超时，请检查模型通道后重试。原消息和提交记录已保留。';
  if(error?.status===401||/\b401\b|invalid_password|invalid_credentials/.test(source))return '登录未成功，请检查密码并重新登录。';

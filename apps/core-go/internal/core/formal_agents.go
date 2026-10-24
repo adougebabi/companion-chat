@@ -218,6 +218,14 @@ func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input Formal
 	// input, images and native transcript content remain byte-for-byte intact.
 	input.Prompt.Messages = formalPromptMessages(id, input.Prompt.Messages)
 	definition.EnableStreaming = input.EnableStreaming
+	if id == FormalAgentConversationSummary {
+		switch input.SchemaName {
+		case "conversation_segment_v1":
+			definition.Scenario = "conversation_segment"
+		case "conversation_daily_memory_v1":
+			definition.Scenario = "conversation_daily_memory"
+		}
+	}
 	return a.RunADKStructuredTask(withFormalAgentDefinition(ctx, definition), ADKStructuredTaskInput{
 		AgentID: id, Role: definition.Role, Scenario: definition.Scenario,
 		Prompt: input.Prompt, Definitions: input.Definitions, SchemaName: input.SchemaName,

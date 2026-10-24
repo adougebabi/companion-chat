@@ -17,6 +17,15 @@ isolated demo builds. This is the current visual and interaction baseline for
 the main workspace, superseding the earlier Pen/navigation review gates.
 The user explicitly opted out of creating more Trellis tasks.
 
+The r4 follow-up in `docs/design/v62-r4-remediation.md` records production-shaped
+coverage: saved-setting status stays beside the button through receipt readback;
+unused timeout defaults to 120 seconds. Failed preparation successors explicitly
+name the blocker while strict serial admission remains unchanged. Notification
+groups start collapsed, preserve all notice identities, and normalize only a
+single leading hash for internal navigation. Blank portrait scalar lines are
+display-only translations; common/profile and flat/carrier exact aliases appear
+once, while distinct facts and unknown values remain available.
+
 ## 2. Signatures
 
 - `App.vue`: build-time `VITE_PRODUCT_MODE=mock` selects `reference-fixture.mjs`;

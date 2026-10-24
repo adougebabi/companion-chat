@@ -194,18 +194,21 @@ embed(role, inputs) -> VersionedEmbeddings
   `parallel_tool_calls=true`; a single-capability payload omits the hint. This
   transport flag does not change Registry validation, execution ordering, or
   the one `conversation_messages` delivery path.
-- Structured parsing accepts complete known transport wrappers: whole or
-  embedded Markdown `json` fences, `<think>` wrappers, double-encoded JSON, and
-  a short prelude followed by one terminal object. Embedded-fence extraction
-  reads only the complete fenced body; it never scans arbitrary prose for an
-  executable object. An unclosed/truncated fence remains invalid.
+- Structured parsing accepts a complete object in the formal Content channel,
+  either bare or enclosed by exactly one whole Markdown `json`/unlabeled fence.
+  r4 diagnostics prove complete fenced persona outputs occur in production.
+  Prelude/trailing prose, `<think>`, reasoning-only content, encoded JSON strings,
+  multiple objects and unclosed fences remain invalid. Never infer native Tool
+  execution from parsed content. Visible-message code blocks retain their text.
 - Thinking is operation-owned and never becomes visible output or Tool execution
   authority. Final structured output must satisfy the Agent contract; no
   reasoning/prose fallback supplies missing native calls or a failed final DTO.
 - When final structured content is malformed or violates schema/influence-reference
   contracts, the runtime triggers a single bounded, tool-free correction call
-  (`ADKLoop` with `unboundChat` and no tool catalog) using the existing transcript.
-  It strictly forbids re-executing or repeating previously committed ToolCalls.
+  (except complete initialization, which remains one physical generation per
+  user attempt). Correction retains the prior final output and actual tool
+  transcript as data; it cannot execute tools again. The `initialization_response`
+  object-format exception never exempts persona compilation's independent schema.
 - An omitted `appraisal.evidence_refs` field is interpreted as "no evidence" and
   is normalized to `[]` before schema evaluation; it never synthesizes or fabricates
   context references.
@@ -245,12 +248,10 @@ embed(role, inputs) -> VersionedEmbeddings
 ### 5. Good / Base / Bad Cases
 
 - Good: one local chat model passes five role preflights with separate bindings; every artifact records its actual role/model/prompt version.
-- Good: the shared generative binding remains 4,096/300 for ordinary calls,
-  while a dense initialization receives 8,192/600 and completes without losing
-  explicit card fields.
-- Base: the model wraps a complete object in a Markdown JSON fence with short
-  prose around it; Core extracts the designated fence and validates the normal
-  initialization semantics.
+- Good: a dense initialization retains its operation deadline and complete
+  source, without application input/output token caps.
+- Base: the model wraps one complete formal object in a whole Markdown JSON
+  fence; Core unwraps only that framing and validates ordinary task semantics.
 - Bad: append missing braces to a `finish_reason=length` response or turn its
   half-populated object into a default Persona.
 - Good: an embedding model upgrade creates a new dimension/model index and background rebuild without mixing distances.

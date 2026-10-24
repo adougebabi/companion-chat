@@ -18,10 +18,7 @@ export function readablePrompt(value) {
 export function uniqueReplyNotifications(rows){
   const seen=new Set();
   return rows.filter(row=>{
-    let message='',conversation='';
-    try{const url=new URL(String(row.link||'').replace(/^#/,''),'http://notification.local');message=url.searchParams.get('message')||'';conversation=url.searchParams.get('conversation')||'';}catch{}
-    const source=message||(['conversation_message','conversation.reply.published'].includes(row.source_kind)?row.source_id:'');
-    const key=source?JSON.stringify([row.fluctlight_id,conversation,source]):'notice:'+row.id;
+    const key=row.id;
     if(seen.has(key))return false;seen.add(key);return true;
   });
 }
@@ -34,6 +31,21 @@ export function notificationGroups(rows,characters){
       groups.set(key,{id:key,name:character?.name||(notice.fluctlight_id?'角色名称未读取':'系统通知'),initial:character?.initial||'光',color:character?.color||'#e4ede4',notices:[]});
     }
     groups.get(key).notices.push(notice);
+  }
+  return [...groups.values()];
+}
+export function notificationPath(link){
+  const path=typeof link==='string'?link.replace(/^#/,''):'';
+  return path.startsWith('/')&&!path.startsWith('//')&&!/[\\\r\n]/.test(path)?path:null;
+}
+export function notificationIssueGroups(rows){
+  const groups=new Map();
+  for(const row of rows){
+    const fid=row.fid||row._pending?.fluctlight_id||row._record?.data?.metrics?.fluctlight_id||row._record?.data?.fluctlight_id||'';
+    const key=JSON.stringify([fid,row.code||row._pending?.intent_type||'',row.label]);
+    if(!groups.has(key))groups.set(key,{id:key,label:row.label,items:[]});
+    const group=groups.get(key);
+    if(!group.items.some(item=>item.id===row.id))group.items.push(row);
   }
   return [...groups.values()];
 }

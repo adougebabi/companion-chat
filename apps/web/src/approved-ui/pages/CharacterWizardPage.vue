@@ -535,14 +535,14 @@ onUnmounted(() => {
         <small>{{ draft.name || "角色" }}的新生活</small>
         <h2>
           {{
-            progress?.complete ? "准备好了，很高兴遇见你" : "一点点，准备好相遇"
+            progress?.complete ? "准备好了，很高兴遇见你" : progress?.blocker ? "准备已暂停，需要恢复" : "一点点，准备好相遇"
           }}
         </h2>
         <p class="muted">
           {{
             progress?.complete
               ? "每个准备环节都已读回确认，接下来一起走进日常。"
-              : "角色与原任务会保留。遇到问题时，可单独恢复尚未完成的环节。"
+              : progress?.blocker ? `「${progress.blocker.title}」尚未完成，后续等待环节不会自行继续。请先恢复此环节，角色与原任务均已保留。` : "角色与原任务会保留。遇到问题时，可单独恢复尚未完成的环节。"
           }}
         </p>
       </header>

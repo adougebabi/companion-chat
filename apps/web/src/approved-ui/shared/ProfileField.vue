@@ -10,7 +10,7 @@ defineProps({ field: { type: Object, required: true } });
     }}<select v-if="field.kind === 'boolean'" v-model="field.value">
       <option :value="true">是</option>
       <option :value="false">否</option></select
-    ><textarea
+    ><select v-else-if="field.kind === 'select'" v-model="field.value" :aria-label="field.label"><option v-for="option in field.options" :key="option.value" :value="option.value">{{option.label}}</option></select><textarea
       v-else-if="
         field.kind === 'lines' ||
         String(field.value).length > 80 ||

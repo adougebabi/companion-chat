@@ -115,6 +115,7 @@ export default defineComponent({
       selectedId = ref(null),
       highlight = ref(null),
       saving = ref(false),
+      saveStatus = ref(""),
       error = ref(""),
       reference = ref(""),
       testResult = ref("");
@@ -471,6 +472,7 @@ export default defineComponent({
     async function save() {
       if (saving.value || !catalog) return;
       saving.value = true;
+      saveStatus.value = "正在保存设置，等待服务端确认…";
       error.value = "";
       const submitted = {
         settings: clone(settings.value),
@@ -484,8 +486,10 @@ export default defineComponent({
           catalog,
           characters: characters.value,
         });
+        let completed = 0;
         for (const operation of plan) {
           if (!live()) return;
+          saveStatus.value = `正在保存设置（${completed + 1} / ${plan.length}），等待服务端确认…`;
           const body = {
             ...operation.body,
             ...(operation.operation === "autonomy"
@@ -527,15 +531,21 @@ export default defineComponent({
             submitted.endpoints,
             operation.body,
           );
+          completed++;
         }
 
-        if (live()) w.notify("设置已保存；新任务使用当前有效配置");
+        if (live()) {
+          saveStatus.value = plan.length ? "设置已保存；新任务使用当前有效配置。" : "当前设置已保存，没有新的修改。";
+          w.notify(saveStatus.value);
+        }
       } catch (cause) {
-        if (live())
+        if (live()) {
+          saveStatus.value = "";
           error.value = errorMessage(
             cause,
             "设置未完全保存，已保存部分和当前草稿请分别核对。",
           );
+        }
       } finally {
         if (live()) saving.value = false;
       }
@@ -700,6 +710,7 @@ export default defineComponent({
       te: testResult,
       A: error,
       w: saving,
+      saveStatus,
       u: kind,
       q: (value) => {
         kind.value = value;

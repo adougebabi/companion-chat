@@ -488,7 +488,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 					p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_output_missing")
 					return ProviderCompletion{}, err
 				}
-				if role != "initialization" {
+				if !usesInitializationObjectFormat(role, schemaName) {
 					if err := capabilitycontract.ValidateCapabilitySchemaValue(parsedStructured, structuredSchema); err != nil {
 						p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_output_invalid")
 						return ProviderCompletion{}, fmt.Errorf("adk_final_output_invalid: %w", err)
@@ -628,11 +628,17 @@ func parseStructuredCandidatesForRole(role string, candidates []string) (map[str
 	return nil, false, nil
 }
 
-// parseStructuredCandidate accepts only a complete JSON object from the formal
-// Content channel. Reasoning, <think>, Markdown fences, encoded strings and
-// trailing prose are transport guesses and are deliberately rejected.
+// Accept a complete formal-channel object, optionally enclosed by one exact
+// Markdown JSON fence. Never search prose/reasoning for JSON or repair its bytes.
 func parseStructuredCandidate(candidate string, _ int) (map[string]any, bool) {
 	candidate = strings.TrimSpace(candidate)
+	if strings.HasPrefix(candidate, "```") {
+		line, body, found := strings.Cut(candidate, "\n")
+		if !found || (strings.TrimSuffix(line, "\r") != "```json" && strings.TrimSuffix(line, "\r") != "```") || !strings.HasSuffix(body, "\n```") {
+			return nil, false
+		}
+		candidate = strings.TrimSpace(strings.TrimSuffix(body, "\n```"))
+	}
 	if candidate == "" {
 		return nil, false
 	}
@@ -887,7 +893,7 @@ func providerResponseFormat(role string) map[string]any {
 }
 
 func providerResponseFormatForSchema(role, schemaName string, schema map[string]any) map[string]any {
-	if role == "initialization" {
+	if usesInitializationObjectFormat(role, schemaName) {
 		return map[string]any{"type": "json_object"}
 	}
 	if schema == nil {
@@ -904,6 +910,12 @@ func providerResponseFormatForSchema(role, schemaName string, schema map[string]
 			"schema": capabilitycontract.StrictModelSchema(schema),
 		},
 	}
+}
+
+// The complete initialization DTO owns its flexible object contract. Other
+// tasks may share the model role without inheriting that schema exemption.
+func usesInitializationObjectFormat(role, schemaName string) bool {
+	return strings.TrimSpace(role) == "initialization" && (schemaName == "" || schemaName == "initialization_response")
 }
 
 func providerSchemaName(role string) string {

@@ -35,6 +35,9 @@ func (a *App) ProcessMemoryEmbeddingIntentAt(ctx context.Context, intentID, memo
 	}
 	assignment, err := a.resolveMemoryEmbeddingAssignment(ctx, intentID, providerEndpointID, modelID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("memory_embedding_unconfigured")
+		}
 		return nil, err
 	}
 	embeddingID := "embedding_" + stableDigest(memoryID+":"+fmt.Sprint(requestedRevision)+":"+assignment.ModelID)

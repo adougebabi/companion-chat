@@ -6,6 +6,7 @@ import {
 } from "../../v3/proto/components/semantic-fields.js";
 import { enumLabel } from "../../lib/fluctlight-display.ts";
 import { wardrobeCategoryLabel, wardrobeSlotLabel, wardrobeOwnershipLabel, wardrobeAvailabilityLabel } from "../../lib/wardrobe-form.ts";
+import { semanticEntries,portraitPresentation } from '../profile-presentation.mjs';
 const props = defineProps({
   value: null,
   field: { type: String, default: "" },
@@ -23,7 +24,7 @@ function categoryLabel(value) {
 }
 const entries = computed(() =>
   props.value && typeof props.value === "object" && !Array.isArray(props.value)
-    ? Object.entries(props.value).filter(
+    ? semanticEntries(props.value).filter(
         ([key, value]) => !technical(key) && hasSemanticValue(value),
       )
     : [],
@@ -60,6 +61,7 @@ const scalar = computed(() => {
 </script>
 <template>
   <span v-if="value == null || value === ''" class="muted">尚未记录</span>
+  <ul v-else-if="field === 'portrait_text' && typeof value === 'string'" class="semantic-list"><li v-for="(line,index) in portraitPresentation(value)" :key="index"><template v-if="line.field"><b>{{semanticLabel(line.field)}}：</b><SemanticTree :value="line.value" :field="line.field" :depth="depth+1"/></template><template v-else>{{line.text}}</template></li></ul>
   <span v-else-if="typeof value !== 'object'">{{ scalar }}</span>
   <p v-else-if="depth >= 7" class="muted">更多层级可在技术详情中查看。</p>
   <ul v-else-if="Array.isArray(value) && ['wardrobe_items','worn_items','used_items'].includes(field)" class="semantic-list">
@@ -78,10 +80,10 @@ const scalar = computed(() => {
     <li v-if="!value.length" class="muted">尚未记录</li>
   </ul>
   <dl v-else class="approved-facts">
-    <div v-for="[key, item] in entries" :key="key">
+    <div v-for="([key, item], index) in entries" :key="key">
       <dt>
         {{
-          semanticLabel(key) === "自定义字段" ? "补充设定" : semanticLabel(key)
+          semanticLabel(key) === "自定义字段" ? `补充设定 ${index + 1}` : semanticLabel(key)
         }}
       </dt>
       <dd><SemanticTree :value="item" :field="key" :depth="depth + 1" /></dd>

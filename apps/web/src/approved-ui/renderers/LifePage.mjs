@@ -335,7 +335,7 @@ function renderLifePageBody(__view) {
     key: 4
   }, [b[41] || (b[41] = o("p", {
     class: "muted"
-  }, "把相处留下的细节，慢慢收进记忆。", -1)), me(__view.FilterChips, {
+  }, "把相处留下的细节，慢慢收进记忆。", -1)),o("p",{class:"muted"},["记忆正文会独立保存；向量检索需要配置记忆检索模型。",o("a",{class:"text-button",href:"#/settings?section="+encodeURIComponent("模型用途")},"查看模型用途 ↗")]), me(__view.FilterChips, {
     search: __view.te.value,
     "onUpdate:search": b[6] || (b[6] = k => __view.te.value = k),
     filters: __view.se.value,

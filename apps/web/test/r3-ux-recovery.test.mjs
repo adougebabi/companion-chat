@@ -49,8 +49,8 @@ test('connection draft restores noncredential fields and preserves the original 
 test('five distinct replies become one character group without losing notice identities',()=>{
  const notices=Array.from({length:5},(_,i)=>({id:'notice-'+i,fluctlight_id:'A',title:'新回复',body:'有一条已保存的角色回复',link:'/c/A/chat?conversation=C&message=M'+i}));
  const groups=notificationGroups([...notices,{...notices[0],id:'duplicate'},{id:'other',fluctlight_id:'B',read_at:'already-read'}],[{id:'A',name:'雨禾'}]);
- assert.equal(groups.length,1);assert.equal(groups[0].name,'雨禾');assert.equal(groups[0].notices.length,5);
- assert.deepEqual(groups[0].notices.map(n=>n.id),notices.map(n=>n.id));
+ assert.equal(groups.length,1);assert.equal(groups[0].name,'雨禾');assert.equal(groups[0].notices.length,6);
+ assert.deepEqual(groups[0].notices.map(n=>n.id),[...notices.map(n=>n.id),'duplicate']);
 });
 test('diary dates and terminal receipts never manufacture generated prose',()=>{
  assert.equal(previousDiaryDate('2026-01-01'),'2025-12-31');
@@ -73,6 +73,6 @@ test('diagnostic previews keep raw formatting in detail rather than leaking it i
 });
 test('truncated generation and malformed imports have actionable Chinese feedback',()=>{
  const feedback=creationFeedback({code:'initialization_response_truncated'});
- assert.match(feedback.message,/完成前结束/);assert.doesNotMatch(feedback.message,/服务.*不可用/);
+ assert.match(feedback.message,/长度终止.*尚未确认/);assert.doesNotMatch(feedback.message,/服务.*不可用/);
  assert.throws(()=>parseCreationInput('{broken'),/JSON 格式不正确.*原内容已保留/);
 });

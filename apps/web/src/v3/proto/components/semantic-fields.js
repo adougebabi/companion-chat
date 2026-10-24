@@ -9,7 +9,7 @@ const technical=key=>/^(id|schema_version|extensions|provenance|evidence_refs|up
 const units=new Set(['openness','conscientiousness','extraversion','agreeableness','neuroticism','curiosity','independence','patience','empathy','assertiveness','humor','sociability','risk_tolerance','emoji_frequency','sarcasm_tendency','directness','initiative','topic_initiation','silence_tolerance','emotional_expression','confidence']);
 const aliases={male:'男性',female:'女性',nonbinary:'非二元性别',natural:'自然',known:'已记录',unknown:'尚未确定',clear:'清晰明确',gentle:'温和',direct:'直接',black:'黑色',brown:'棕色',blonde:'金色',long:'长发',shoulder_length:'齐肩',short_hair:'短发'};
 export const hasSemanticValue=value=>value!=null&&value!==''&&(!Array.isArray(value)||value.some(hasSemanticValue))&&(typeof value!=='object'||Array.isArray(value)||Object.values(value).some(hasSemanticValue));
-export function semanticLabel(key){return labels[key]||labelFor(key);}
+export function semanticLabel(key){return ({traits:'性格倾向',expression:'表达特征',working_persona:'当前表达画像',portrait_text:'表达画像',core_mechanisms:'性格与行为机制',language_expression:'语言表达',behavior_boundaries:'相处边界',stable_preferences:'稳定偏好'})[key]||labels[key]||labelFor(key);}
 function narrativeValue(value,key,depth){
  if(typeof value==='string')return /[\u3400-\u9fff\s]/u.test(value)&&value.trim()?esc(value):'';
  if(depth>=5||value==null||typeof value!=='object')return '';
