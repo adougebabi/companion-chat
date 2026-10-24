@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 // conversationPublicationPhysicalRequestPolicy keeps private conversation
@@ -31,9 +32,12 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
-	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
+	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting || momentAcknowledgementOnly(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
+	}
+	if _, committed := committedMomentResult(adkContext.Trace); committed {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: []string{"moment.publish"}}, nil
 	}
 	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
 }
@@ -186,10 +190,22 @@ func assistantMessageStream(message *schema.Message) *schema.StreamReader[*schem
 
 func validateConversationPublicationCorrection(ctx context.Context, message *schema.Message) error {
 	correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool)
+	if !correcting && conversationPublicationPolicyEnabled(ctx) {
+		if bridge, ok := adkCapabilityContext(ctx); ok {
+			if _, committed := committedMomentResult(bridge.Trace); committed && message != nil {
+				for _, call := range message.ToolCalls {
+					if capabilitycontract.CapabilityNamesMatch(call.Function.Name, "moment.publish") {
+						return fmt.Errorf("%w: conversation_publication_already_committed", errADKFinalContractInvalid)
+					}
+				}
+			}
+			correcting = momentAcknowledgementOnly(bridge.Trace)
+		}
+	}
 	if !correcting {
 		return nil
 	}
-	if message == nil || len(message.ToolCalls) != 1 || message.ToolCalls[0].Function.Name != conversationReplyCapabilityName {
+	if message == nil || len(message.ToolCalls) != 1 || !capabilitycontract.CapabilityNamesMatch(message.ToolCalls[0].Function.Name, conversationReplyCapabilityName) {
 		return fmt.Errorf("%w: conversation_native_output_missing", errADKFinalContractInvalid)
 	}
 	return nil

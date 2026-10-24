@@ -71,6 +71,24 @@ Moment Writer only produces text. Private reply.image.request/needs_action canno
 
 Moment prepublication cache command identity includes subject actor, source/evidence fact, conversation, working profile and canonical arguments; physical/native call IDs are excluded. A changed command under one operation conflicts before regeneration or publication, matching the durable Tool ledger.
 
+### R5: completed feed action and private acknowledgement
+
+An implicit Moment action in a private Conversation is source/action-scoped,
+including the adapter's default `conversation` target. Fresh physical call
+coordinates cannot grant another publication. Empty/null/omitted optional
+evidence selections are equivalent; real changed commands remain conflicts.
+Explicit Owner targets and autonomous scopes keep their own action authority.
+
+A real completed Moment never becomes a conversation_message receipt. It closes
+the feed action and narrows the unfinished private acknowledgement to
+conversation.reply. A real needs_action reply reopens its required action catalog
+while excluding the completed Moment; waiting keeps the existing continuation.
+Provider attempts to republish after commit fail before native execution. Normal
+private reply commit still ends observation locally. Preserve all actual receipts
+on cancellation/failure; do not invent acknowledgment or use a global rate cap.
+`r5_moment_loop_test.go` proves Generate/Stream, ignored restricted catalog,
+real PG publication/outbox, source replay before Writer and new-source admission.
+
 ## Scenario: Local fact views and native reply v2 (2026-10-14)
 
 ### 1. Scope / Trigger

@@ -1118,7 +1118,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				}
 				correctionInput = append(correctionInput, message)
 			}
-			correctionInput = append(correctionInput, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": validationErr.Error(), "instruction": "Correct the final response contract. Return one complete JSON object matching the response schema. Use only context references shown in this run; use an empty evidence_refs or influences array when none applies. Do not call tools or describe an uncommitted action as completed."})))
+			correctionInput = append(correctionInput, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": validationErr.Error(), "instruction": "Correct the final response contract. Return one complete JSON object matching the supplied response schema, with every required field and no undeclared fields. Preserve valid values from the previous output; use only context references shown in this run. Do not call tools or describe an uncommitted action as completed."})))
 			repairModel := unboundChat
 			if queued, ok := unboundChat.(*queuedToolCallingChatModel); ok {
 				copyModel := *queued

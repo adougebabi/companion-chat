@@ -169,6 +169,9 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		return "", errors.New("adk_tool_operation_root_required")
 	}
 	operationID := "agent_tool_" + stableDigest(fmt.Sprintf("%s\x1f%d\x1f%d\x1f%s", operationRoot, modelIdentity.ModelCallSequence, modelIdentity.ToolIndex, capabilityName))
+	if capabilityName == "moment.publish" {
+		operationID = conversationMomentOperationID(i.request, operationID)
+	}
 	workingProfileID := workingProfileForToolExecution(projection, i.trace)
 	var expectedPersonaRevision *int
 	var expectedOverlayRevision *int
@@ -250,6 +253,9 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			return rejectArguments(err)
 		}
 		arguments = bound
+	}
+	if _, factOnly := capability.(factOnlyMomentCapability); factOnly {
+		arguments = canonicalMomentEvidenceArguments(arguments)
 	}
 	invocation.Arguments = arguments
 	// Native call identity is diagnostic correlation only. The stable business

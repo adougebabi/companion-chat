@@ -25,7 +25,10 @@ type physicalModelRequestDecision struct {
 	// AllowedToolNames narrows this physical request's installed catalog only.
 	// Nil preserves the task's catalog; it never grants a new capability.
 	AllowedToolNames []string
-	DisableThinking  bool
+	// Exclusions remove an already fulfilled action while retaining real pending
+	// media/context tools. They never expand the physical installed catalog.
+	ExcludedToolNames []string
+	DisableThinking   bool
 	// ToolCallFallback is a task-owned operational final response if a Provider
 	// ignores an explicitly empty Tool catalog. It never masks request errors.
 	ToolCallFallback *schema.Message
@@ -52,14 +55,18 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 		copyModel.toolCallFallback = decision.ToolCallFallback
 		m = &copyModel
 	}
-	if decision.AllowedToolNames != nil {
+	if decision.AllowedToolNames != nil || len(decision.ExcludedToolNames) > 0 {
 		allowed := map[string]bool{}
+		excluded := map[string]bool{}
+		for _, name := range decision.ExcludedToolNames {
+			excluded[name] = true
+		}
 		for _, name := range decision.AllowedToolNames {
 			allowed[name] = true
 		}
 		definitions := []CapabilityDefinition{}
 		for _, d := range m.definitions {
-			if allowed[d.Name] {
+			if !excluded[d.Name] && (decision.AllowedToolNames == nil || allowed[d.Name]) {
 				definitions = append(definitions, d)
 				delete(allowed, d.Name)
 			}
