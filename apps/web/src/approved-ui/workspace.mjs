@@ -375,7 +375,7 @@ export function createWorkspace() {
         2,
         "diary",
         (rows) =>
-          (c.life.diaries = rows.filter((d) => d.body?.trim()).map(diaryView)),
+          {c.life.diaryStates=rows; c.life.diaries = rows.filter((d) => d.body?.trim()).map(diaryView);},
       );
       accept(3, "memory", (rows) => (c.life.memories = rows.map(memoryView)));
       accept(

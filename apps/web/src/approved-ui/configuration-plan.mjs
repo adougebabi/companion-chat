@@ -77,7 +77,7 @@ export function configurationPlan({
     }
   }
   for (const binding of bindings) {
-    if (!binding.endpoint && !binding.model && !binding._source) continue;
+    if (!binding.endpoint && !binding.model && !binding._source && (binding.timeout === "" || binding.timeout == null)) continue;
     const endpointId = endpointIds.get(binding.endpoint);
     if (!endpointId) throw Error("请为用途选择有效的服务地址");
     const source = binding._source,

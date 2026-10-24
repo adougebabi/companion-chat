@@ -9,6 +9,9 @@ boundaries described below.
 
 ## Active Specifications
 
+The [r3 recovery contract](./r3-recovery-contract.md) covers bounded generation
+failure, private media no-progress handling, segment admission and browser recovery.
+
 | Guide | Use it for |
 | --- | --- |
 | [LLM Prompt Composition](./prompt-composition-contract.md) | Required for every model input: one JSON format, task-specific fields, exact deduplication, history authority and prohibition on restoring prompt/response token limits |

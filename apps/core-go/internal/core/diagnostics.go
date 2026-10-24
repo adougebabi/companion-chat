@@ -472,6 +472,9 @@ func providerRunErrorCode(err error) string {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "request_timeout"
 	}
+	if errors.Is(err, errReplyMediaNoProgress) {
+		return "reply_media_no_progress"
+	}
 	return "provider_request_failed"
 }
 

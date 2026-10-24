@@ -35,7 +35,7 @@ if (entryQuery.has("new")) {
   entryUrl.hash = entryPath + (entryQuery.size ? "?" + entryQuery : "");
   history.replaceState(history.state, "", entryUrl);
 }
-const { draft, step, busy, error, feedback, fieldErrors, progress, previewFields, pending } =
+const { draft, step, busy, error, feedback, fieldErrors, progress, previewFields, pending,analysisStartedAt } =
     c,
   worlds = ref([]),
   templates = ref([]),
@@ -43,13 +43,19 @@ const { draft, step, busy, error, feedback, fieldErrors, progress, previewFields
   templateCursor = ref(""),
   sourceError = ref(""),
   configured = ref(null);
+const wizardRoot=ref(null);
+const analysisNow=ref(Date.now());
+watch(step,()=>{
+  const root=wizardRoot.value,heading=root?.querySelector('h2');
+  if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});root.scrollIntoView({block:'start'});}
+},{flush:'post'});
 let timer,
   active = true,
   reading = false;
 const modes = [
-  ["blank", "空白创建", "从名字开始，性格从服务端默认起点慢慢形成。"],
+  ["blank", "空白创建", "从名字开始，其他资料可以在相处中逐渐补充。"],
   ["description", "一段描述", "由模型把身份、性格与生活整理成完整设定。"],
-  ["json", "JSON 导入", "使用当前人物模板，由后端校验结构化资料。"],
+  ["json", "JSON 导入", "导入已有的人物资料，核对后再创建。"],
   ["template", "角色模板", "选择一份已发布版本，先解析与审阅。"],
 ];
 const groups = computed(() =>
@@ -119,6 +125,7 @@ function prev() {
   c.persist();
 }
 async function poll() {
+  analysisNow.value=Date.now();
   if (
     !active ||
     document.hidden ||
@@ -161,7 +168,7 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <div class="character-workflow">
+  <div ref="wizardRoot" class="character-workflow">
     <div class="character-breadcrumb">
       <a class="text-button" href="#/library">角色库</a><span>›</span
       ><small>{{ draft.activatedId ? "为新的生活做准备" : "新的相识" }}</small>
@@ -359,7 +366,7 @@ onUnmounted(() => {
             class="text-button"
             href="/templates/yaoguang-character-init-template.v2.json"
             download
-            >下载当前 JSON 模板 ↗</a
+            >下载当前 JSON 模板</a
           ><label
             >选择 JSON 文件<input
               type="file"
@@ -371,7 +378,7 @@ onUnmounted(() => {
           </p>
           <label>核对或修正 JSON
             <textarea v-model="draft.json" data-testid="wizard-json" rows="10" spellcheck="false" @input="c.invalidate()" />
-          </label></template
+          </label><p class="muted">填写已知的人物资料，保留模板结构；不要导入聊天存档或其他分析记录。</p></template
         >
         <template v-else-if="draft.mode === 'template'"
           ><label
@@ -400,11 +407,11 @@ onUnmounted(() => {
             >读取更多模板</ActionButton
           >
           <p v-if="!templates.length" class="muted">
-            还没有已发布的角色模板。可以选择其他创建方式。
+            还没有已发布的角色模板。可以选择其他创建方式，或<a class="text-button" href="#/studio/edit/new?kind=character_template">去创作中心发布角色模板</a>。
           </p></template
         >
         <p v-else class="muted">
-          空白创建只使用名字、生活时区与服务端默认设定，不调用模型，也不预先编造经历。其他资料可在角色详情里继续补充。
+          空白创建从名字和生活时区开始，其他资料可以稍后在角色详情里补充。
         </p>
       </fieldset>
       <p
@@ -418,9 +425,10 @@ onUnmounted(() => {
         >
       </p>
       <p v-if="step === 'analysis'" class="approved-guidance" role="status">
-        正在由模型整理人物设定，请稍候。资料和本次草稿已经保留。
+        正在整理人物设定，已等待 {{Math.max(0,Math.floor((analysisNow-(analysisStartedAt||analysisNow))/1000))}} 秒。原输入已保留。
+        <ActionButton type="button" class="text-button" @click="c.cancelAnalysis()">停止本次等待</ActionButton>
       </p>
-      <p v-if="error" class="inline-error" role="alert">
+      <p v-if="error && !Object.keys(fieldErrors).length" class="inline-error" role="alert">
         {{ error }}
         <a
           v-if="feedback?.type === 'configuration'"
@@ -438,7 +446,7 @@ onUnmounted(() => {
           >上一步</ActionButton
         ><span class="spacer" /><ActionButton
           class="button primary"
-          :disabled="busy || !!pending"
+          :disabled="busy || !!pending || (draft.mode==='template'&&(!draft.templateId||!draft.templateVersion))"
           data-testid="wizard-analyze"
           >{{
             busy
@@ -460,7 +468,7 @@ onUnmounted(() => {
         <small>第 3 / 4 步</small>
         <h2>在相遇之前，先认识一下</h2>
         <p class="muted">
-          可以核对并调整身份、表达和生活设定，确认后再激活。来源和版本保持原记录，最终由服务端重新校验。
+          先核对身份、表达和生活设定，确认后开始准备相遇。
         </p>
       </header>
       <template v-if="draft.mode === 'blank'"

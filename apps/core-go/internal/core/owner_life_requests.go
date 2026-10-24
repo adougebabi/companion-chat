@@ -599,13 +599,17 @@ func ownerRequestFailureReason(err error) string {
 	case strings.Contains(text, "524"), strings.Contains(text, "gateway_timeout"):
 		return "模型中转服务等待超时，请检查模型通道后重新提出请求。"
 	case strings.Contains(text, "budget_exceeded"):
-		return "需要读取的资料超过模型输入上限，请核对模型的上下文设置后重试。"
+		return "模型服务未能处理本次资料，请查看本次运行记录。原资料和已完成步骤仍保留。"
+	case errors.Is(err, errImageProviderNotConfigured):
+		return "图片服务尚未配置，请先到图片（ComfyUI）配置连接，再恢复这一环节。"
+	case strings.Contains(text, "wardrobe_initial_"), strings.Contains(text, "wardrobe_starter_"), strings.Contains(text, "wardrobe_wear_selection_"), strings.Contains(text, "wardrobe_select_only_"):
+		return "初始穿搭还没有形成完整、可执行的方案。可以补充穿衣偏好或登记可用衣物，再恢复这一环节。"
 	case errors.Is(err, context.DeadlineExceeded), strings.Contains(text, "timeout"), strings.Contains(text, "deadline exceeded"):
 		return "模型服务响应超时，请检查服务后重试。"
 	case errors.Is(err, context.Canceled):
 		return "本次处理已中断，请刷新进度核对结果。"
 	case strings.Contains(text, "adk_final_"), strings.Contains(text, "structured_response_invalid"):
-		return "模型返回的内容格式不完整，请检查模型服务后重试。"
+		return "模型返回的内容格式不完整，原资料已保留。可以重新整理，或查看本次运行定位问题。"
 	case errors.Is(err, ErrConflict):
 		return "处理期间资料发生了变化，请刷新后重试。"
 	default:

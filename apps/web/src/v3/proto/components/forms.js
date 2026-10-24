@@ -101,7 +101,7 @@ export function installFieldValidation(root=document) {
   control.setAttribute('aria-invalid','true');
   const ids=new Set((control.getAttribute('aria-describedby')||'').split(/\s+/).filter(Boolean));ids.add(error.id);control.setAttribute('aria-describedby',[...ids].join(' '));
   firstInvalid??=control;
-  if(!scheduled){scheduled=true;queueMicrotask(()=>{scheduled=false;const field=firstInvalid;firstInvalid=null;if(field?.isConnected){field.focus();field.scrollIntoView?.({block:'center',behavior:'auto'});}});}
+  if(!scheduled){scheduled=true;queueMicrotask(()=>{scheduled=false;const field=firstInvalid;firstInvalid=null;if(field?.isConnected){let panel=field.closest?.('details');while(panel){panel.open=true;panel=panel.parentElement?.closest?.('details');}field.focus();field.scrollIntoView?.({block:'center',behavior:'auto'});}});}
  };
  const invalid=event=>{event.preventDefault();show(event.target);};
  const input=event=>{const control=event.target;syncRequired(control);const error=errors.get(control);if(error){error.hidden=true;control.removeAttribute('aria-invalid');const ids=(control.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id!==error.id);if(ids.length)control.setAttribute('aria-describedby',ids.join(' '));else control.removeAttribute('aria-describedby');}};

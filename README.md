@@ -329,6 +329,9 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPostCo
      /usr/local/bin/fluctlight-setup-token-go --expires-minutes 30
    ```
 
+   从旧库升级后，如果启动日志提示 `working_persona_not_ready`，请先按
+   [人格画像升级说明](docs/operations/persona-upgrade.md)预览并完成整理，再启动服务。
+
 4. 运行可丢弃的整栈验收。脚本会自动创建独立 Compose project，检查所有服务和
    one-shot 任务，结束后清理容器、网络和 volume：
 

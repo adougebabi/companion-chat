@@ -2818,6 +2818,23 @@ select {
 .world-list .current {
   border-color: #93ad90;
 }
+.diary-generation { min-width: 0; }
+.diary-generation .row { gap: .6rem; flex-wrap: wrap; }
+.diary-generation label { display: grid; gap: .35rem; }
+.notification-item { display: block; width: 100%; padding: .9rem 0; border: 0; border-top: 1px solid var(--border); background: transparent; text-align: left; overflow-wrap: anywhere; }
+.notification-group summary { margin-bottom: .75rem; }
+@media (max-width: 800px) {
+  .diary-heading { flex-direction: column; align-items: stretch; gap: 16px; }
+  .diary-heading > .spacer { display: none; }
+  .diary-generation { width: 100%; max-width: 100%; }
+  .diary-generation label { flex: 1 1 140px; min-width: 0; }
+  .diary-generation input { min-height: 44px; max-width: 100%; }
+  .diary-generation .button { flex: 1 1 170px; min-width: 0; min-height: 44px; max-width: 100%; white-space: normal; }
+  .diary-layout { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+  .diary-layout .calendar, .diary-book { min-width: 0; max-width: 100%; }
+  .diary-layout .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+  .diary-layout .calendar-grid button { min-width: 0; min-height: 44px; padding-inline: 0; }
+}
 .notification-card {
   width: 100%;
   text-align: left;

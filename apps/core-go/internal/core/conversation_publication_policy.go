@@ -18,9 +18,15 @@ import (
 type conversationPublicationPhysicalRequestPolicy struct{}
 
 func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
+	if err := ctx.Err(); err != nil {
+		return physicalModelRequestDecision{}, err
+	}
 	adkContext, ok := adkCapabilityContext(ctx)
 	if !ok || adkContext.Trace == nil {
 		return physicalModelRequestDecision{}, errors.New("conversation_publication_trace_missing")
+	}
+	if err := unchangedReplyMediaResult(adkContext.Trace); err != nil {
+		return physicalModelRequestDecision{}, err
 	}
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
@@ -84,9 +90,54 @@ func conversationPublicationOmission(message *schema.Message) bool {
 // model request is replaced locally so Eino can stop without another provider call.
 func visibleReplyEndsTurn(ctx context.Context, input []*schema.Message) (*schema.Message, bool) {
 	if !visibleReplyCommitted(ctx) {
+		if conversationPublicationPolicyEnabled(ctx) && ctx.Err() == nil {
+			if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
+				_, results := bridge.Trace.Snapshot()
+				for index := len(results) - 1; index >= 0; index-- {
+					result := results[index]
+					if result.CapabilityName != conversationReplyCapabilityName {
+						continue
+					}
+					output := mapValue(result.Output)
+					if result.Status == "accepted" && output["reply_status"] == "waiting" && stringValue(output["draft_ref"]) != "" {
+						return schema.AssistantMessage(`{"action_type":"reply","response_intent":"reply awaits accepted media completion","influences":[]}`, nil), true
+					}
+					break
+				}
+			}
+		}
 		return nil, false
 	}
 	return visibleReplyTerminalMessage(input), true
+}
+
+var errReplyMediaNoProgress = errors.New("reply_media_no_progress")
+
+func unchangedReplyMediaResult(trace *ADKCapabilityTrace) error {
+	if trace == nil {
+		return nil
+	}
+	_, results := trace.Snapshot()
+	latest := ""
+	for index := len(results) - 1; index >= 0; index-- {
+		result := results[index]
+		if result.CapabilityName != conversationReplyCapabilityName {
+			continue
+		}
+		output := mapValue(result.Output)
+		if result.Status != "accepted" || output["reply_status"] != "needs_action" || stringValue(output["draft_ref"]) == "" {
+			return nil
+		}
+		fingerprint := jsonString(map[string]any{"draft_ref": output["draft_ref"], "media_requests": output["media_requests"]})
+		if latest != "" {
+			if latest == fingerprint {
+				return errReplyMediaNoProgress
+			}
+			return nil
+		}
+		latest = fingerprint
+	}
+	return nil
 }
 
 func visibleReplyCommitted(ctx context.Context) bool {

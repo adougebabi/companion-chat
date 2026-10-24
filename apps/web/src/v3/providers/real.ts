@@ -85,7 +85,7 @@ export const directory = {
     await refreshProduct();
   },
   async removeGroup(id: string, idempotencyKey: string) { await client.deleteActorGroup(id,{expectedRevision:0,idempotencyKey}); await refreshProduct(); },
-  analyze: (input: string | BrowserFluctlightCreationAnalysisRequest) => client.analyzeFluctlightCreation(input),
+  analyze: (input: string | BrowserFluctlightCreationAnalysisRequest, options: {signal?:AbortSignal} = {}) => client.analyzeFluctlightCreation(input,options),
   templates: (options:{q?:string;cursor?:string}={}) => client.listStudioResources({...options,kind:'character_template',published:true}),
   publication: (id:string,version:string) => client.studioPublication(id,version),
   async activate(body: BrowserFluctlightActivationRequest, groupId?: string) {

@@ -113,6 +113,12 @@ keep component native DOM parity, and execute repeated route/data updates.
 
 ## Scenario: v6.2 initialization and character details
 
+The [r3 recovery follow-up](../backend/r3-recovery-contract.md) adds optional unused
+model bindings, credential-free connection drafts, saved-only directory feedback,
+explicit diary dates/terminal receipts, exact-source notification previews and
+cancelled-analysis fencing. It retains single initialization generation and the
+existing no-token-cap policy.
+
 The follow-up [durable preparation contract](../backend/initialization-preparation-contract.md)
 adds async saved-source compilation, serial bootstrap dependencies and editable
 error recovery. Creation drafts and original commands now use Owner-scoped

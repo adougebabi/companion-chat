@@ -223,6 +223,19 @@ func (a *App) EnsureConversationSegmentIntents(ctx context.Context, limit int) (
 }
 
 func (a *App) ProcessConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error) {
+	var fid string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.segment'`, intentID).Scan(&fid); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(fid) == "" {
+		return nil, errors.New("conversation_segment_intent_invalid")
+	}
+	return a.runBackgroundLogicalWork(ctx, fid, "conversation_summary", func(runCtx context.Context) (map[string]any, error) {
+		return a.processConversationSegmentIntent(runCtx, intentID)
+	})
+}
+
+func (a *App) processConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error) {
 	var raw []byte
 	var status string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents
@@ -314,6 +327,10 @@ func (a *App) settleConversationSegment(ctx context.Context, work conversationSu
 		var status, epoch string
 		if err := tx.QueryRow(ctx, `SELECT status,payload->>'idle_epoch' FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, work.IntentID).Scan(&status, &epoch); err != nil {
 			return err
+		}
+		if status == "completed" {
+			result = map[string]any{"status": "completed", "replayed": true}
+			return nil
 		}
 		var currentEpoch string
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversation_messages WHERE conversation_id=$1 AND kind='user' ORDER BY sequence DESC LIMIT 1`, work.ConversationID).Scan(&currentEpoch); err != nil {

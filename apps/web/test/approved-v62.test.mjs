@@ -96,9 +96,9 @@ function fixture({ activate, analyze } = {}) {
     lifecycleDiagnostics: async () => ({ workflowIntents: [] }),
   };
   const directory = {
-    analyze: async (request) => {
+    analyze: async (request, options) => {
       calls.push(["analysis", structuredClone(request)]);
-      return analyze ? analyze(request) : structuredClone(a);
+      return analyze ? analyze(request, options) : structuredClone(a);
     },
     activate: async (body) => {
       calls.push(["activation", structuredClone(body)]);
@@ -241,6 +241,52 @@ test("a late activation receipt cannot attach the old role to a replacement draf
   release({id:'original-role'});await activation;
   assert.deepEqual(JSON.parse(f.saved.getItem(key)),replacement);
   assert.equal(c.draft.activatedId,null);
+});
+test("stopping analysis aborts observation and a late result cannot end a newer analysis",async()=>{
+ let releaseOld,releaseNew,oldSignal,calls=0;
+ const oldResult=new Promise(resolve=>releaseOld=resolve),newResult=new Promise(resolve=>releaseNew=resolve);
+ const f=fixture({analyze:(_request,options)=>{calls++;if(calls===1){oldSignal=options.signal;return oldResult;}return newResult;}});
+ const c=createCreationController(f.options);c.draft.bio="原描述";c.next();
+ const old=c.analyze();await Promise.resolve();
+ assert.ok(c.analysisStartedAt.value);c.cancelAnalysis();
+ assert.equal(oldSignal.aborted,true);assert.equal(c.step.value,"person");assert.equal(c.draft.bio,"原描述");
+ c.draft.bio="新的描述";c.invalidate();const current=c.analyze();await Promise.resolve();
+ releaseOld(analysis());await old;
+ assert.equal(c.busy.value,true);assert.equal(c.step.value,"analysis");assert.equal(c.draft.analysis,null);
+ releaseNew(analysis());await current;
+ assert.equal(c.step.value,"preview");assert.equal(c.draft.bio,"新的描述");assert.equal(c.analysisStartedAt.value,null);
+});
+test("leaving during analysis aborts its observer and reopening cannot adopt its late result",async()=>{
+ let releaseOld,oldSignal,calls=0;
+ const oldResult=new Promise(resolve=>releaseOld=resolve);
+ const f=fixture({analyze:(_request,options)=>{calls++;if(calls===1){oldSignal=options.signal;return oldResult;}return analysis();}});
+ const c=createCreationController(f.options);c.draft.bio="离页前的描述";c.next();
+ const old=c.analyze();await Promise.resolve();
+ const oldId=c.draft.requestId;c.dispose();
+ assert.equal(oldSignal.aborted,true);
+ const restored=createCreationController(f.options);
+ assert.equal(restored.step.value,"person");assert.equal(restored.busy.value,false);
+ assert.equal(restored.draft.bio,"离页前的描述");assert.notEqual(restored.draft.requestId,oldId);
+ assert.equal(calls,1);
+ releaseOld(analysis());await old;
+ assert.equal(restored.draft.analysis,null);
+ assert.equal(JSON.parse(f.saved.getItem("fluctlight-creation:owner:draft")).analysis,null);
+ await restored.analyze();assert.equal(restored.step.value,"preview");assert.equal(calls,2);
+ restored.dispose();
+});
+test("restoring an interrupted analysis screen returns to editable input and fences the previous controller",async()=>{
+ let release;
+ const f=fixture({analyze:()=>new Promise(resolve=>release=resolve)});
+ const previous=createCreationController(f.options);previous.draft.bio="刷新前的描述";previous.next();
+ const old=previous.analyze();await Promise.resolve();
+ const oldId=previous.draft.requestId,restored=createCreationController(f.options);
+ assert.equal(restored.step.value,"person");assert.equal(restored.draft.bio,"刷新前的描述");
+ assert.notEqual(restored.draft.requestId,oldId);assert.match(restored.error.value,/原输入已保留/);
+ previous.dispose();
+ assert.equal(JSON.parse(f.saved.getItem("fluctlight-creation:owner:draft")).requestId,restored.draft.requestId);
+ release(analysis());await old;
+ assert.equal(JSON.parse(f.saved.getItem("fluctlight-creation:owner:draft")).analysis,null);
+ restored.dispose();
 });
 test("v6.2 detail and creation retain canonical routes and life navigation", () => {
   assert.ok(lifePages.includes("角色详情"));
@@ -467,7 +513,7 @@ test("diagnostic summary hides raw JSON, shows system scope and rounded authorit
     },
   };
   const view = diagnosticProjection(r, 0, []);
-  assert.equal(view.character, "系统调用");
+  assert.equal(view.character, "创建中的人物");
   assert.equal(view.durationLabel, "114 秒");
   assert.doesNotMatch(view.summary, /[{}]/);
   assert.match(view.response, /items/);

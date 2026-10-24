@@ -19,7 +19,11 @@ export function parseCreationAnalysis(text) {
 
 export function parseCreationInput(text) {
   if (new TextEncoder().encode(text).length > 60000) throw new Error('创建输入超过 60000 UTF-8 字节上限，请保留原文件并缩小本次输入');
-  const value=JSON.parse(text);
+  let value;
+  try {value=JSON.parse(text);} catch(cause){
+    const position=/position (\d+)/.exec(cause.message)?.[1];
+    throw new Error('JSON 格式不正确'+(position?'，请检查第 '+(Number(position)+1)+' 个字符附近的引号、逗号或括号。':'，请检查引号、逗号和括号。')+'原内容已保留，可直接修正。');
+  }
   if(!value||typeof value!=='object'||Array.isArray(value)||!Object.keys(value).length)throw new Error('创建 JSON 必须是非空对象');
   for(const key of ['analysis_id','correlation_id','id','status','current_revision','current_state','messages','memories','inventory'])if(key in value)throw new Error(`原始创建 JSON 不能携带分析凭证或运行存档字段：${key}。恢复分析预览请使用对应创建方式。`);
   return value;

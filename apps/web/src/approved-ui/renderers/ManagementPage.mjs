@@ -216,6 +216,7 @@ function renderManagementPageBody(__view) {
     "data-testid": "config-anchor-" + h,
     onClick: Ve(b => __view.ee(h), ["prevent"])
   }, v(h), 9, L1))), 128))]), o("form", {
+    ref: __view.configForm,
     class: "settings-form management-form",
     onSubmit: Ve(__view.R, ["prevent"])
   }, [approvedSurfaceVNode("section", {
@@ -243,41 +244,42 @@ function renderManagementPageBody(__view) {
     readonly: !!h._source,
     required: "",
     maxlength: "128"
-  }, null, 8, D1), [[$e, h.name]])]), o("label", null, [$[16] || ($[16] = Z("接口协议", -1)), pe(o("input", {
+  }, null, 8, D1), [[$e, h.name]])]), o("label", null, [$[16] || ($[16] = Z("接口协议", -1)), pe(o("select", {
     "onUpdate:modelValue": k => h.protocol = k,
     required: ""
-  }, null, 8, j1), [[$e, h.protocol]])]), o("label", null, [$[17] || ($[17] = Z("服务地址", -1)), pe(o("input", {
+  }, [o("option",{value:"openai-compatible"},"OpenAI 兼容接口"),h.protocol&&h.protocol!=="openai-compatible"?o("option",{value:h.protocol},h.protocol):X("",!0)], 8, j1), [[Et, h.protocol]])]), o("label", null, [$[17] || ($[17] = Z("服务地址", -1)), pe(o("input", {
     "onUpdate:modelValue": k => h.url = k,
     required: "",
     type: "url"
   }, null, 8, H1), [[$e, h.url]])]), o("label", null, [$[18] || ($[18] = Z("访问密钥", -1)), pe(o("input", {
     "onUpdate:modelValue": k => h.secret = k,
     type: "password",
-    placeholder: "留空保留原值 · 只写不读",
+    placeholder: h._source?.secret_configured ? "留空保留已保存的密钥" : "可选：填写访问密钥",
     autocomplete: "new-password"
-  }, null, 8, B1), [[$e, h.secret]])]), o("label", K1, [$[19] || ($[19] = Z("清除已存密钥", -1)), pe(o("input", {
+  }, null, 8, B1), [[$e, h.secret]])]), h._source?.secret_configured ? o("label", K1, [$[19] || ($[19] = Z("清除已存密钥", -1)), pe(o("input", {
     "onUpdate:modelValue": k => h.clearSecret = k,
     type: "checkbox"
-  }, null, 8, W1), [[ss, h.clearSecret]])])]), me(__view.ModelDirectory,{models:h.models},null,8,["models"]), approvedButtonVNode({
+  }, null, 8, W1), [[ss, h.clearSecret]])]) : X("",!0)]), me(__view.ModelDirectory,{models:h.models},null,8,["models"]), approvedButtonVNode({
     type: "button",
     class: "text-button",
-    onClick: k => __view.x(h.name)
-  }, "测试连接")]))), 128)), $[20] || ($[20] = o("p", {
+    onClick: k => __view.x(h)
+  }, "读取模型目录（已保存连接）"),h.feedback?o("p",{class:"muted",role:"status"},h.feedback):X("",!0)]))), 128)), $[20] || ($[20] = o("p", {
     class: "muted"
   }, "服务地址修改并保存后，其用途绑定需要重新确认，已保存绑定与草稿分别显示。", -1))]), approvedSurfaceVNode("section", {
     id: __view._("模型用途"),
     class: "card settings-group"
   }, [$[27] || ($[27] = o("h2", null, "各用途对应的模型配置", -1)), $[28] || ($[28] = o("p", {
     class: "muted"
-  }, "四个用途可分别选择模型。应用不设置输入、输出 Token 上限，容量由模型服务决定。", -1)), (p(!0), g(O, null, oe(__view.i.value, h => {
+  }, "可以先配置思考与通用分析、聊天回复；看图与记忆检索向量可在使用时再配置。应用不设置输入、输出 Token 上限。", -1)), (p(!0), g(O, null, oe(__view.i.value, h => {
     var b;
-    return o("details", { key: h.name, class: "management-block", open: "" }, [
+    const required=!!h._source||!!h.endpoint||!!h.model||(h.timeout!=null&&h.timeout!=="");
+    return o("details", { key: h.name, class: "management-block", open: !!h._source||['generic_llm','conversation_reply'].includes(h.role) }, [
       o("summary", null, h.name), o("div", J1, [
-        o("label", null, ["使用服务", pe(o("select", {"onUpdate:modelValue": value => h.endpoint = value, required: ""},
-          __view.l.value.map(endpoint => o("option", {value: endpoint.id}, endpoint.name))), [[Et, h.endpoint]])]),
-        o("label", null, ["模型 ID", pe(o("input", {"onUpdate:modelValue": value => h.model = value, list: "models-" + h.role, required: ""}), [[$e, h.model]]),
+        o("label", null, ["使用服务", pe(o("select", {"onUpdate:modelValue": value => h.endpoint = value, required},
+          [o("option",{value:""},"尚未配置"),...__view.l.value.map(endpoint => o("option", {value: endpoint.id}, endpoint.name))]), [[Et, h.endpoint]])]),
+        o("label", null, ["模型 ID", pe(o("input", {"onUpdate:modelValue": value => h.model = value, list: "models-" + h.role, required}), [[$e, h.model]]),
           o("datalist", {id: "models-" + h.role}, (__view.l.value.find(endpoint => endpoint.id === h.endpoint)?.models || []).map(model => o("option", {value: model})))]),
-        o("label", null, ["超时（秒）", pe(o("input", {"onUpdate:modelValue": value => h.timeout = value, type: "number", min: "1", required: ""}), [[$e, h.timeout, void 0, {number: true}]] )])
+        o("label", null, ["超时（秒）", pe(o("input", {"onUpdate:modelValue": value => h.timeout = value, type: "number", min: "1", required}), [[$e, h.timeout, void 0, {number: true}]] )])
       ])
     ]);
   }), 128)), o("details", om, [o("summary", null, "共用通用模型的场景 · " + v(M(__view.sharedScenarios).length) + " 项", 1), (p(!0), g(O, null, oe(M(__view.sharedScenarios), h => (p(), g("div", im, [o("span", null, v(h), 1), $[26] || ($[26] = o("small", null, "使用：通用模型", -1))]))), 256))])]), approvedSurfaceVNode("section", {
@@ -306,12 +308,12 @@ function renderManagementPageBody(__view) {
     "onUpdate:modelValue": $[5] || ($[5] = b => __view.r.value.days = b),
     type: "checkbox",
     value: h
-  }, null, 8, pm), [[ss, __view.r.value.days]]), Z(v(h), 1)]))), 256))])], 8, cm)]), (p(!0), g(O, null, oe(__view.n.value, h => (p(), Ae(as(h.title === "高级" ? "details" : "section"), {
+  }, null, 8, pm), [[ss, __view.r.value.days]]), Z(v(h), 1)]))), 256))])], 8, cm)]), (p(!0), g(O, null, oe(__view.n.value, h => (p(), Ae(as("details"), {
     key: h.title,
     id: __view._(h.title),
     class: "card settings-group"
   }, {
-    default: Ht(() => [h.title === "高级" ? (p(), g("summary", mm, "高级 · Kev 决策服务")) : (p(), g("h2", vm, v(h.title), 1)), h.title === "图片（ComfyUI）" ? (p(), g("p", hm, "图片已接入 ComfyUI · 语音：未接入 · 视频：未接入")) : X("", !0), o("div", gm, [(p(!0), g(O, null, oe(h.fields, b => me(__view.SettingsField,{key:b.label,field:b})), 128))]), ["图片（ComfyUI）", "高级", "看图理解"].includes(h.title) ? (p(), approvedButtonBlock({
+    default: Ht(() => [o("summary",mm,h.title === "高级" ? "高级 · Kev 决策服务" : h.title), h.title === "图片（ComfyUI）" ? (p(), g("p", hm, "图片使用 ComfyUI；需要图片功能时再展开配置。")) : X("", !0), o("div", gm, [(p(!0), g(O, null, oe(h.fields, b => me(__view.SettingsField,{key:b.label,field:b})), 128))]), ["图片（ComfyUI）", "高级", "看图理解"].includes(h.title) ? (p(), approvedButtonBlock({
       key: 3,
       type: "button",
       class: "text-button",

@@ -1104,6 +1104,10 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			validationErr = nil
 		}
 		if validationErr != nil {
+			var truncated *structuredResponseTruncatedError
+			if errors.As(validationErr, &truncated) {
+				return einoModelResponse{}, validationErr
+			}
 			// A second, tool-free model call can correct a malformed final DTO.
 			// The original Tool effects are already committed, so the repair loop
 			// must not receive the Tool catalog or execute another ToolCall.
@@ -1219,6 +1223,14 @@ func recordADKTerminationDiagnostic(ctx context.Context, provider *ProviderClien
 	if errors.As(runErr, &empty) {
 		payload["response_metadata"] = einoResponseMetadata(empty.Message)
 	}
+	var truncated *structuredResponseTruncatedError
+	if errors.As(runErr, &truncated) {
+		metadata := map[string]any{"finish_reason": "length"}
+		if truncated.completionTokens > 0 {
+			metadata["completion_tokens"] = truncated.completionTokens
+		}
+		payload["response_metadata"] = metadata
+	}
 	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", statusSeverity(status), stringValue(diagnostics["fluctlight_id"]), "", call.CorrelationID, payload)
 }
 
@@ -1237,6 +1249,13 @@ func adkTerminationReason(err error) string {
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "request_timeout"
+	}
+	if errors.Is(err, errReplyMediaNoProgress) {
+		return "reply_media_no_progress"
+	}
+	var truncated *structuredResponseTruncatedError
+	if errors.As(err, &truncated) {
+		return truncated.Error()
 	}
 	if code := embeddedToolExecutionErrorCode(err); code != "" {
 		return code
@@ -1438,6 +1457,9 @@ func einoMessageRaw(message *schema.Message) map[string]any {
 // fact remain in the request-scoped trace when the final model response is
 // malformed.
 func validateADKStructuredResponse(message *schema.Message, role string) error {
+	if err := structuredTerminationError(message, role); err != nil {
+		return err
+	}
 	candidates := providerStructuredCandidates(einoMessageRaw(message))
 	if len(candidates) == 0 {
 		return nil

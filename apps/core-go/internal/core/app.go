@@ -549,6 +549,9 @@ func initializationProviderErrorCode(err error) string {
 	if errors.Is(err, context.Canceled) {
 		return "initialization_provider_cancelled"
 	}
+	if code := initializationStructuredCause(err); code != "" {
+		return code
+	}
 	code := strings.TrimSpace(err.Error())
 	if safeInitializationErrorCode(code) {
 		return code

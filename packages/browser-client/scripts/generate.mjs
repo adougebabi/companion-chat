@@ -259,7 +259,7 @@ export class BrowserClient {
   async configureModelRole(body: { role: string; endpointId: string; modelId: string; tokenBudget?: number; timeoutSeconds: number; contextWindowTokens?: number; maxInputTokens?: number;expectedVersions:Record<string,number>;idempotencyKey:string }): Promise<Record<string, unknown>> { return this.json("/api/providers/roles", { method: "PUT", body }) as Promise<Record<string, unknown>>; }
   async createConversation(body: { title?: string; participantActorIds: string[] }): Promise<BrowserConversationPage> { return this.json("/api/conversations", { method: "POST", body }) as Promise<BrowserConversationPage>; }
   async createFluctlight(body: BrowserFluctlightCreateRequest): Promise<{ id: string; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlights", { method: "POST", body }) as Promise<{ id: string; identity: Record<string, unknown>; status: string }>; }
-  async analyzeFluctlightCreation(input: string | BrowserFluctlightCreationAnalysisRequest): Promise<BrowserFluctlightCreationAnalysis> { const body: BrowserFluctlightCreationAnalysisRequest = typeof input === "string" ? { description: input } : input; return this.json("/api/fluctlight-creations/analysis", { method: "POST", body }) as Promise<BrowserFluctlightCreationAnalysis>; }
+  async analyzeFluctlightCreation(input: string | BrowserFluctlightCreationAnalysisRequest, options: { signal?: AbortSignal } = {}): Promise<BrowserFluctlightCreationAnalysis> { const body: BrowserFluctlightCreationAnalysisRequest = typeof input === "string" ? { description: input } : input; return this.json("/api/fluctlight-creations/analysis", { method: "POST", body, signal: options.signal }) as Promise<BrowserFluctlightCreationAnalysis>; }
   async activateFluctlightCreation(body: BrowserFluctlightActivationRequest): Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlight-creations/activate", { method: "POST", body }) as Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }>; }
   async listFluctlights(): Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>> { return this.json("/api/fluctlights") as Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>>; }
   async listActorGroups(): Promise<Array<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>> { return this.json("/api/actor-groups") as Promise<Array<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>>; }
@@ -416,9 +416,12 @@ export class BrowserClient {
     const token = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(prefix))?.slice(prefix.length);
     return token ? { "x-csrf-token": decodeURIComponent(token) } : {};
   }
-  private async json(path: string, options: { method?: string; body?: unknown; timeoutMs?: number; anonymousSession?: boolean } = {}): Promise<unknown> {
+  private async json(path: string, options: { method?: string; body?: unknown; timeoutMs?: number; anonymousSession?: boolean; signal?: AbortSignal } = {}): Promise<unknown> {
     const method = options.method ?? "GET";
     const controller = new AbortController();
+    const abortExternal = () => controller.abort(options.signal?.reason);
+    if (options.signal?.aborted) abortExternal();
+    else options.signal?.addEventListener("abort", abortExternal, { once: true });
     const timeoutMs = options.timeoutMs ?? (method === "GET" ? this.readTimeoutMs : 0);
     let timer: ReturnType<typeof setTimeout> | undefined;
     const work = (async () => {
@@ -439,15 +442,16 @@ export class BrowserClient {
       return response.json();
     })();
     // Model-triggering writes keep their server-owned task/timeout lifecycle.
-    if (timeoutMs <= 0) return work;
+    try {
+    if (timeoutMs <= 0) return await work;
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         reject(new BrowserApiError(0, "browser_request_timeout", "服务读取超时，请重试；原会话和已提交请求已保留。", { path, method, retryable: true }));
         controller.abort();
       }, timeoutMs);
     });
-    try { return await Promise.race([work, deadline]); }
-    finally { if (timer) clearTimeout(timer); }
+    return await Promise.race([work, deadline]);
+    } finally { options.signal?.removeEventListener("abort", abortExternal); if (timer) clearTimeout(timer); }
   }
 
 }

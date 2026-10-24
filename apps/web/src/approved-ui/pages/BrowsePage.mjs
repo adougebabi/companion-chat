@@ -1,5 +1,7 @@
-import { defineComponent, ref, computed, onUnmounted, h, Fragment } from "vue";
-import { pendingIssues,uniqueReplyNotifications } from "../presentation.mjs";
+import { defineComponent, ref, computed, onUnmounted, watch, h, Fragment } from "vue";
+import { readNotificationPreviews } from '../notification-previews.mjs';
+import { pendingIssues,notificationGroups } from "../presentation.mjs";
+import NotificationGroup from '../shared/NotificationGroup.vue';
 import { useWorkspace } from "../workspace.mjs";
 import { renderBrowsePage } from "../renderers/BrowsePage.mjs";
 import { FilterChips, ActionFeedback } from "../shared/components.mjs";
@@ -29,6 +31,13 @@ export default defineComponent({
       scope = w.currentScope();
     let active = true;
     const live = () => active && w.currentScope() === scope;
+    const noticePreviews=ref({});let noticeRead=0;
+    watch(()=>props.page==='通知与待处理'?w.state.notifications.map(n=>n.id+'|'+n.link).join('\n'):'',async()=>{
+      const token=++noticeRead;
+      if(props.page!=='通知与待处理')return;
+      const previews=await readNotificationPreviews(w.client,w.state.notifications,()=>live()&&props.page==='通知与待处理');
+      if(live()&&token===noticeRead)noticePreviews.value=previews;
+    },{immediate:true});
     const busy = computed(() =>
       w.state.operations.some(
         (r) =>
@@ -53,21 +62,7 @@ export default defineComponent({
     );
     const characters = computed(() =>
       props.page === "通知与待处理"
-        ? uniqueReplyNotifications(w.state.notifications.filter((n) => !n.read_at))
-            .map((n) => {
-              const c =
-                w.state.characters.find((v) => v.id === n.fluctlight_id) || {};
-              return {
-                id: n.id,
-                name: c.name || n.title,
-                initial: c.initial || "光",
-                color: c.color || "#e4ede4",
-                noticeTitle: n.title,
-                unreadCount: n.read_at ? 0 : 1,
-                messages: [{ text: n.body || n.title, user: false }],
-                _notice: n,
-              };
-            })
+        ? notificationGroups(w.state.notifications,w.state.characters).map(group=>({...group,notices:group.notices.map(notice=>({...notice,preview:noticePreviews.value[notice.id]||''}))}))
         : w.state.characters,
     );
     const library = computed(() =>
@@ -331,6 +326,7 @@ export default defineComponent({
       reactPost,
       playMedia,
     };
+    bindings.NotificationGroup=NotificationGroup;
     const render = renderBrowsePage(bindings);
     return (context, cache) =>
       h(Fragment, [

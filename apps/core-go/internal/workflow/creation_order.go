@@ -22,7 +22,7 @@ const creationStageReadySQL = `
           WHERE s.fluctlight_id=candidate.payload->>'fluctlight_id' AND s.status='completed' AND v.status='active'
             AND v.canonical_asset_id IS NOT NULL AND v.character_sheet_asset_id IS NOT NULL)
       WHEN candidate.intent_type='wake_up.current'
-        THEN EXISTS(SELECT 1 FROM public.platform_workflow_intents s WHERE s.intent_id='schedule_intent:'||(candidate.payload->>'fluctlight_id') AND s.status='completed')
+        THEN EXISTS(SELECT 1 FROM public.life_schedules s WHERE s.fluctlight_id=candidate.payload->>'fluctlight_id' AND s.status IN ('accepted','superseded'))
       ELSE true
     END
   )`

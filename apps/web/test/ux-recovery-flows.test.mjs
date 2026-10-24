@@ -8,6 +8,20 @@ import {creationDraft,checkpointCreation,checkpointCreationAnalysis,selectCreati
 import {creationAnalysisRequest,parseCreationAnalysis} from '../src/v3/creation-json.mjs';
 import {persistentCommand} from '../src/v3/providers/persistent-command.mjs';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
+test('first setup confirms the exact password before calling authentication',async()=>{
+ const host=element(),form=host.querySelector('form'),result=host.querySelector('[data-result]');let calls=0,focused=false;
+ form.elements={token:{value:'controlled-setup-token'},password:{value:' exact password '},confirmPassword:{value:'mismatch',focus(){focused=true;}}};
+ form.querySelector=selector=>selector==='button'?{disabled:false}:result;
+ const render=load('pages/real-core.js',{store:{get:()=>null},auth:{setupStatus:async()=>({setupAvailable:true}),setup:async(token,password)=>{calls++;assert.equal(token,'controlled-setup-token');assert.equal(password,' exact password ');}},
+ Field:()=>'',errorMessage,document:{},toast(){},esc},'renderRealAuth');
+ const dispose=render(host,{navigate(){},refresh(){}});
+ await tick();
+ await form.onsubmit({preventDefault(){},target:form});
+ assert.equal(calls,0);assert.equal(focused,true);assert.match(result.textContent,/两次输入的密码不一致/);
+ form.elements.confirmPassword.value=form.elements.password.value;
+ await form.onsubmit({preventDefault(){},target:form});
+ assert.equal(calls,1);dispose();
+});
 const storage=()=>{const values=new Map();return {getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};};
 function load(file,bindings,name){const text=readFileSync(new URL('../src/v3/proto/'+file,import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replace(/^export \{.+;\s*$/gm,'').replaceAll('export ','');return Function(...Object.keys(bindings),text+'\nreturn '+name)(...Object.values(bindings));}
 function element(){const nodes=new Map();return {isConnected:true,innerHTML:'',querySelector(s){if(!nodes.has(s))nodes.set(s,{isConnected:true,innerHTML:'',textContent:'',hidden:false,disabled:false,insertAdjacentHTML(_where,text){this.innerHTML+=text;},addEventListener(){}});return nodes.get(s);},querySelectorAll:()=>[]};}

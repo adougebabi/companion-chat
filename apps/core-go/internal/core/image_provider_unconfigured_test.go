@@ -28,7 +28,7 @@ func TestImageTaskWithoutComfyUINamesMissingProvider(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,status) VALUES($1,$2,'image','image/png',$3,$4,$5,'pending')`, visualID, f.fluctlightID, `{"purpose":"visual_identity"}`, "provider-"+visualID, "workflow-"+visualID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.app.ProcessMediaIntent(f.ctx, visualID); err == nil || !strings.Contains(err.Error(), "no rows") || errors.Is(err, errImageProviderNotConfigured) {
-		t.Fatalf("visual identity provider error changed: %v", err)
+	if _, err := f.app.ProcessMediaIntent(f.ctx, visualID); !errors.Is(err, errImageProviderNotConfigured) || strings.Contains(err.Error(), "no rows") {
+		t.Fatalf("visual identity missing provider was not explained: %v", err)
 	}
 }

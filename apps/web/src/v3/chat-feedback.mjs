@@ -9,6 +9,7 @@ export function chatFailureText(value, delivered = false) {
   if(delivered)return '回复已经保存，后续处理尚未完成。可以查看本次运行。';
   const text=String(value || '');
   if(!text)return '';
+  if(/reply_media_no_progress/.test(text))return '图片准备尚未推进，原消息和草稿已保留。请查看本次运行后恢复。';
   if(/agent_partial_committed/.test(text))return '这次回应没有完成，有些行动可能已经发生。请先看看她的近况。';
   if(/gateway_timeout|\b524\b/.test(text))return '模型中转服务等待超时，没能收到回应。原消息已保留，可以检查模型通道后再试。';
   if(/budget_exceeded/.test(text))return '模型服务未能处理本次资料。原消息已保留，请查看本次运行。';

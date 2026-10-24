@@ -71,7 +71,7 @@ const wd = {
   "data-testid": "appointment-grid"
 };
 const $d = {
-  class: "row"
+  class: "row diary-heading"
 };
 const Cd = ["disabled"];
 const xd = {
@@ -246,7 +246,7 @@ function renderLifePageBody(__view) {
   }, "⋯", 8, dd), o("div", fd, [approvedButtonVNode({
     disabled: M(__view.r)||k.editable===false,
     onClick: ve => __view.A(k, ve)
-  }, "编辑")])])) : X("", !0)], 64))], 10, od))), 128)), (__view.props.page === "此刻" ? __view.c.value : __view.u.value).length ? X("", !0) : (p(), g("p", md, "暂时没有安排，留一点自由时间。"))])], 64)) : X("", !0), __view.props.page === "目标" ? (p(), g(O, {
+  }, "编辑")])])) : X("", !0)], 64))], 10, od))), 128)), (__view.props.page === "此刻" ? __view.c.value : __view.u.value).length ? X("", !0) : (p(), g("div", md, [o("p",null,"暂时没有已确认的日程。"),__view.props.page==="日程"?approvedButtonVNode({class:"button",onClick:__view.openSchedulePlanning},"安排与调整日程"):X("",!0)]))])], 64)) : X("", !0), __view.props.page === "目标" ? (p(), g(O, {
     key: 2
   }, [b[24] || (b[24] = o("p", {
     class: "muted"
@@ -293,12 +293,7 @@ function renderLifePageBody(__view) {
     class: "muted"
   }, "有些心事，留在纸页之间。")], -1)), b[26] || (b[26] = o("span", {
     class: "spacer"
-  }, null, -1)), approvedButtonVNode({
-    class: "button primary",
-    disabled: M(__view.i),
-    "data-testid": "diary-generate",
-    onClick: __view.F
-  }, v(M(__view.i) ? "处理中…" : "生成日记"))]), o("div", xd, [approvedSurfaceVNode("section", Sd, [o("h3", null, __view.calendarTitle.value, 1), o("div", Td, [(p(), g(O, null, oe(["一", "二", "三", "四", "五", "六", "日"], k => o("small", {
+  }, null, -1)), me(__view.DiaryGeneration,{date:__view.he.value,onSelect:__view.R})]), o("div", xd, [approvedSurfaceVNode("section", Sd, [o("h3", null, __view.calendarTitle.value, 1), o("div", Td, [(p(), g(O, null, oe(["一", "二", "三", "四", "五", "六", "日"], k => o("small", {
     key: k
   }, v(k), 1)), 64)), (p(), g(O, null, oe(__view.calendarOffset.value, k => o("span", {
     key: "blank" + k
@@ -308,7 +303,7 @@ function renderLifePageBody(__view) {
       marked: __view.ee.value.some(ve => ve.date === `${__view.calendarMonth.value}-${String(k).padStart(2,"0")}`),
       selected: __view.he.value === `${__view.calendarMonth.value}-${String(k).padStart(2, "0")}`
     }),
-    disabled: !__view.ee.value.some(ve => ve.date === `${__view.calendarMonth.value}-${String(k).padStart(2,"0")}`),
+    disabled: `${__view.calendarMonth.value}-${String(k).padStart(2,"0")}`>__view.closedDiaryDate.value,
     "aria-label": `${__view.calendarMonth.value}-${k}`,
     "aria-pressed": __view.he.value === `${__view.calendarMonth.value}-${String(k).padStart(2, "0")}`,
     "data-testid": `calendar-day-${__view.calendarMonth.value}-${String(k).padStart(2, "0")}`,
@@ -324,7 +319,7 @@ function renderLifePageBody(__view) {
       class: "diary-paper",
       "data-testid": "diary-entry",
       "data-date": __view.x.value.date
-    }, [o("small", null, v(__view.joined(__view.x.value.date,__view.x.value.time)), 1), o("h2", null, v(__view.x.value.title), 1), o("div", Od, [__view.x.value.weather?o("span", null, "天气 · " + v(__view.x.value.weather), 1):X("",!0), __view.x.value.mood?o("span", null, "心情 · " + v(__view.x.value.mood), 1):X("",!0)]), o("p", Vd, v(__view.x.value.text), 1), o("p", Pd, "— " + v(M(__view.character).name), 1)], 8, Id)) : (p(), g("div", Ld, [...(b[29] || (b[29] = [o("p", null, "这一页，等着今天的故事。", -1)]))]))]),
+    }, [o("small", null, v(__view.joined(__view.x.value.date,__view.x.value.time)), 1), o("h2", null, v(__view.x.value.title), 1), o("div", Od, [__view.x.value.weather?o("span", null, "天气 · " + v(__view.x.value.weather), 1):X("",!0), __view.x.value.mood?o("span", null, "心情 · " + v(__view.x.value.mood), 1):X("",!0)]), o("p", Vd, v(__view.x.value.text), 1), o("p", Pd, "— " + v(M(__view.character).name), 1)], 8, Id)) : (p(), g("div", Ld, [...(b[29] || (b[29] = [o("p", null, "这一天还没有日记。", -1)]))]))]),
     _: 1
   }, 8, ["name"]), o("footer", Ud, [approvedButtonVNode({
     class: "text-button",

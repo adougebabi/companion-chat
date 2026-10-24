@@ -13,6 +13,7 @@ import { randomId } from "../random-id";
 const client = new BrowserClient(apiOrigin);
 
 const turnErrorCodes = new Set([
+  "reply_media_no_progress",
   "active_memory_capability_unavailable",
   "active_memory_plan_invalid",
   "active_memory_plan_stale",

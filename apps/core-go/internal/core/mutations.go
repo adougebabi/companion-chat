@@ -759,6 +759,9 @@ func streamTurnFailureCodeWithFallback(err error, fallback string) string {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "request_timeout"
 	}
+	if errors.Is(err, errReplyMediaNoProgress) {
+		return "reply_media_no_progress"
+	}
 	if errors.Is(err, errProviderRequestFailed) {
 		if code := safeStreamTurnErrorCode(providerRunErrorCode(err)); code != "" {
 			return code
@@ -808,6 +811,8 @@ func ConversationTurnFailureCode(err error) string {
 func safeStreamTurnErrorCode(value string) string {
 	code := strings.TrimSpace(value)
 	switch code {
+	case "reply_media_no_progress":
+		return code
 	case "provider_gateway_timeout", "reply_gateway_timeout", "reply_quality_repair_failed", "adk_final_message_missing", "adk_final_output_invalid", "adk_final_output_missing", "adk_final_text_missing",
 		"adk_run_failed", "agent_run_failed", "agent_turn_failed", "agent_final_contract_invalid", "agent_output_publication_failed", "agent_cognition_settlement_failed", "capability_prepare_failed", "capability_settlement_failed",
 		"fluctlight_inactive", "fluctlight_paused",

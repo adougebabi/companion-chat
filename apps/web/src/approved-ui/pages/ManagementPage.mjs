@@ -25,9 +25,11 @@ import {
 } from "../configuration-ack.mjs";
 import { persistentCommand } from "../../v3/providers/persistent-command.mjs";
 import { configurationPlan } from "../configuration-plan.mjs";
+import { connectionDraftKey, connectionDraft, restoreConnectionDraft,connectionIsSaved } from "../configuration-draft.mjs";
 import { errorMessage, domainName } from "../../v3/domain-presentation.mjs";
 import { randomId } from "../../random-id.mjs";
 import { userInstant } from "../../v3/presentation-time.mjs";
+import { installFieldValidation } from "../../v3/proto/components/forms.js";
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const groupSpecs = [
   ["图片（ComfyUI）", ["media.comfyui"]],
@@ -100,7 +102,8 @@ export default defineComponent({
       scope = w.state.session?.actorId;
     let active = true,
       catalog = null,
-      versions = {};
+      versions = {},
+      loaded = false;
     const live = () => active && w.state.session?.actorId === scope;
     const tab = computed({
         get: () => w.state.managementTab,
@@ -129,6 +132,8 @@ export default defineComponent({
       records = ref([]),
       pending = new Map(),
       recovery = ref(null);
+    const configForm=ref(null);
+    watch(configForm,(node,_old,cleanup)=>{if(node)cleanup(installFieldValidation(node));},{flush:'post'});
     const policyChannels = new Map(),
       policyRecovery = ref(null);
     async function writePolicy(operation) {
@@ -258,6 +263,8 @@ export default defineComponent({
       const node = document.getElementById(sectionId(value));
       if (node?.tagName === "DETAILS") node.open = true;
       node?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const heading=node?.querySelector('summary,h2');
+      if(heading){if(heading.tagName==='H2')heading.tabIndex=-1;heading.focus({preventScroll:true});}
     };
     const sharedScenarios = computed(() =>
       (w.state.runtimeCatalog?.agents || [])
@@ -304,6 +311,18 @@ export default defineComponent({
           _source: b,
         };
       });
+      const restored = restoreConnectionDraft(sessionStorage.getItem(connectionDraftKey(scope)), snapshot);
+      if (restored) {
+        endpoints.value = restored.endpoints;
+        for (const binding of bindings.value) {
+          const saved=restored.bindings.find(b=>b.role===binding.role);
+          if(saved)Object.assign(binding,saved);
+        }
+        versions={...restored.versions};
+        if(restored.stale)error.value='配置已经更新。未保存的连接草稿已恢复，请读取最新基线并核对后保存。';
+        else if(restored.credentialPending)error.value='连接草稿已恢复。访问密钥不会保存在浏览器草稿中，请重新填写。';
+      }
+      loaded=true;
       const hours =
         snapshot.effective_values["product.autonomy"]?.quiet_hours || {};
       quiet.value = {
@@ -315,7 +334,7 @@ export default defineComponent({
         character: "全部角色",
         _source: hours,
       };
-      for (const e of endpoints.value) {
+      for (const e of endpoints.value.filter(connectionIsSaved)) {
         void config
           .models(e.id)
           .then((result) => {
@@ -330,8 +349,7 @@ export default defineComponent({
         })
         .catch(() => {});
       await nextTick();
-      if (live() && w.state.managementSection)
-        scrollTo(w.state.managementSection);
+      if (live()) scrollTo(w.state.managementSection||'服务地址');
     }
     async function loadDiagnostics() {
       const [models, media] = await Promise.allSettled([
@@ -522,12 +540,19 @@ export default defineComponent({
         if (live()) saving.value = false;
       }
     }
-    async function test(name) {
-      testResult.value = name + "：测试中…";
+    async function test(target) {
+      const endpoint=typeof target==='object'?target:null;
+      const name=endpoint?(endpoint.name||'新服务'):target;
+      testResult.value = endpoint ? '' : name + "：测试中…";
+      if(endpoint)endpoint.feedback='正在读取已保存连接的模型目录…';
       try {
-        const endpoint = endpoints.value.find((e) => e.name === name);
+        if(endpoint&&!connectionIsSaved(endpoint)){
+          endpoint.feedback='请先保存服务地址和访问密钥，再读取已保存连接的模型目录。';
+          return;
+        }
+        const source=endpoint?._source;
         const result = endpoint
-          ? await config.models(endpoint._source?.id || endpoint.id)
+          ? await config.models(endpoint._source.id)
           : await config.test(
               name === "高级"
                 ? "kev"
@@ -535,15 +560,20 @@ export default defineComponent({
                   ? "vision"
                   : "media",
             );
-        if (live())
+        if (live()) {
+          if(endpoint&&(!connectionIsSaved(endpoint)||endpoint._source!==source)){
+            endpoint.feedback='连接输入已修改，请保存后重新读取目录。';return;
+          }
+          if(endpoint){endpoint.models=result.models||[];endpoint.feedback='已读取模型目录 '+endpoint.models.length+' 项';return;}
           testResult.value =
             name +
             "：" +
             (endpoint
               ? "已读取模型目录 " + (result.models || []).length + " 项"
               : JSON.stringify(result));
+        }
       } catch (cause) {
-        if (live()) testResult.value = name + "：" + errorMessage(cause);
+        if (live()) {if(endpoint)endpoint.feedback=errorMessage(cause);else testResult.value = name + "：" + errorMessage(cause);}
       }
     }
     function retry(record) {
@@ -631,6 +661,10 @@ export default defineComponent({
           section.rows = [errorMessage(cause)];
       }
     });
+    watch([endpoints,bindings],()=>{
+      for(const endpoint of endpoints.value)if(!connectionIsSaved(endpoint)&&endpoint.models?.length)endpoint.models=[];
+      if(live()&&loaded)sessionStorage.setItem(connectionDraftKey(scope),JSON.stringify(connectionDraft({endpoints:endpoints.value,bindings:bindings.value,versions})));
+    },{deep:true});
     onMounted(() => {
       void readCatalog().catch((e) => (error.value = errorMessage(e)));
       void loadDiagnostics().catch((e) => (error.value = errorMessage(e)));
@@ -640,6 +674,7 @@ export default defineComponent({
       for (const endpoint of endpoints.value) endpoint.secret = "";
     });
     const render = renderManagementPage({
+      configForm,
       a: tab,
       U: sections,
       ee: scrollTo,

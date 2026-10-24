@@ -138,7 +138,7 @@ export async function readApprovedCreationProgress(client, draft) {
       note:
         wardrobe.errorMessage ||
         (failed(preparation?.status) || preparation?.can_recover
-          ? errorMessage(
+          ? preparation?.result?.failure_reason || errorMessage(
               { code: preparation.error_code },
               "初始穿搭准备未完成，可检查模型设置后恢复。",
             )

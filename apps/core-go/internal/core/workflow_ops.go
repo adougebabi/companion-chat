@@ -844,10 +844,12 @@ func (a *App) EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string)
 	}
 	generated, generateErr := a.generateInitialSchedule(ctx, ownerID, fluctlightID, localDate, timezone, stringValue(life["context_revision"]), decodeObject(identity), decodeObject(lifeProfile))
 	if generateErr != nil {
-		// Provider outage/invalid structured output and a projection that became
-		// stale during planning are both durable pending states. The workflow
-		// retries from a fresh snapshot and never commits the old plan.
-		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "timezone": timezone, "status": "pending", "error_code": "schedule_generation_failed"}, nil
+		if errors.Is(generateErr, ErrLifeContextStale) || errors.Is(generateErr, ErrConflict) {
+			return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "timezone": timezone, "status": "pending", "error_code": "schedule_context_stale"}, nil
+		}
+		// Real generation failures use the existing bounded Activity retry.
+		// Returning nil here would turn every failure into an endless five-minute loop.
+		return nil, fmt.Errorf("schedule_generation_failed: %w", generateErr)
 	}
 	return generated, nil
 }

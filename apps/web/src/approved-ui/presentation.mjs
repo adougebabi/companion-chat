@@ -20,10 +20,22 @@ export function uniqueReplyNotifications(rows){
   return rows.filter(row=>{
     let message='',conversation='';
     try{const url=new URL(String(row.link||'').replace(/^#/,''),'http://notification.local');message=url.searchParams.get('message')||'';conversation=url.searchParams.get('conversation')||'';}catch{}
-    const source=message||(row.source_kind==='conversation_message'?row.source_id:'');
+    const source=message||(['conversation_message','conversation.reply.published'].includes(row.source_kind)?row.source_id:'');
     const key=source?JSON.stringify([row.fluctlight_id,conversation,source]):'notice:'+row.id;
     if(seen.has(key))return false;seen.add(key);return true;
   });
+}
+export function notificationGroups(rows,characters){
+  const groups=new Map();
+  for(const notice of uniqueReplyNotifications(rows.filter(n=>!n.read_at))){
+    const key=notice.fluctlight_id||'system';
+    if(!groups.has(key)){
+      const character=characters.find(c=>c.id===notice.fluctlight_id);
+      groups.set(key,{id:key,name:character?.name||(notice.fluctlight_id?'角色名称未读取':'系统通知'),initial:character?.initial||'光',color:character?.color||'#e4ede4',notices:[]});
+    }
+    groups.get(key).notices.push(notice);
+  }
+  return [...groups.values()];
 }
 export function scheduleProjection(item, schedule, format) {
   const activity =
@@ -47,6 +59,7 @@ export function readableSummary(
   if (typeof value === "string") {
     const text = value.trim();
     if (!text) return fallback;
+    if(/(^|\n)\s*(?:```|#{1,6}\s|\|)/.test(text))return fallback;
     if (/^[\[{]/.test(text)) {
       try {
         return readableSummary(JSON.parse(text), fallback, depth + 1);
@@ -54,7 +67,7 @@ export function readableSummary(
         return fallback;
       }
     }
-    return text.replace(/\s+/g, " ").slice(0, 180);
+    return /[\u3400-\u9fff]/.test(text)?text.replace(/\s+/g, " ").slice(0, 180):fallback;
   }
   if (Array.isArray(value)) {
     const text = value
@@ -88,10 +101,11 @@ export function diagnosticProjection(
   now = Date.now(),
 ) {
   const d = record.data || {},
+    scenario=d.scenario||d.trigger_scenario||d.metrics?.scenario||d.metrics?.trigger_scenario||d.role,
     fid = d.fluctlight_id || d.metrics?.fluctlight_id,
     character =
       characters.find((c) => c.id === fid)?.name ||
-      (fid ? "角色名称未读取" : "系统调用"),
+      (fid ? "角色名称未读取" : ['initialization','persona_compilation'].includes(scenario)?"创建中的人物":"尚未关联角色"),
     start = Date.parse(d.started_at || d.queued_at || record.occurred_at) || 0,
     queued = Date.parse(d.queued_at) || start,
     completed = Date.parse(d.completed_at || ""),
@@ -106,7 +120,7 @@ export function diagnosticProjection(
           ? "success"
           : "unknown",
     label = domainName(
-      d.scenario || d.binding_role || d.role,
+      scenario || d.binding_role,
       index ? "媒体生成" : "模型调用",
     );
   const rawInput = readablePrompt(d.prompt),

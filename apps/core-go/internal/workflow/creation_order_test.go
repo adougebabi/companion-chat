@@ -149,7 +149,14 @@ func TestPostgresCreationStageOrdering(t *testing.T) {
 	eligible("schedule.current_day", true)
 	check("wake_up.current", false)
 	exec("UPDATE public.platform_workflow_intents SET status='completed' WHERE intent_id='schedule_intent:order-role'")
+	check("wake_up.current", false)
+	// A stable scheduler keeps running across midnights. Accepted domain state,
+	// rather than Workflow completion, releases the initial WakeUp dependency.
+	exec("UPDATE public.platform_workflow_intents SET status='started' WHERE intent_id='schedule_intent:order-role'")
+	exec(`INSERT INTO public.life_schedules(id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,reschedule_policy,idempotency_key,request_digest,result) VALUES('order-initial-schedule','order-role','2026-10-24','Asia/Shanghai','accepted','test','["fact"]',1,'{}','order-initial-schedule','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','{"id":"order-initial-schedule","status":"accepted","revision":1,"expected_context_revision":"life_ctx_before","resulting_context_revision":"life_ctx_after","replayed":false}')`)
 	check("wake_up.current", true)
+	exec("UPDATE public.platform_workflow_intents SET next_attempt_at=now() WHERE intent_type='wake_up.current'")
+	eligible("wake_up.current", true)
 	// Completed bootstrap remains usable when a later unrelated portrait job fails.
 	exec("INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES('later','later','lifecycle','schedule.current_day','{\"fluctlight_id\":\"order-role\"}')")
 	var later bool

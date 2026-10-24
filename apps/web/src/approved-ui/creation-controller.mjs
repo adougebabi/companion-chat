@@ -47,6 +47,7 @@ export function createCreationController({
     progress = ref(null),
     previewFields = ref([]),
     fieldErrors = ref({}),
+    analysisStartedAt = ref(null),
     step = ref(
       draft.activatedId
         ? "progress"
@@ -55,7 +56,9 @@ export function createCreationController({
           : draft.v62Step || "world",
     );
   let active = true,
-    readEpoch = 0;
+    readEpoch = 0,
+    analysisEpoch = 0,
+    analysisAbort = null;
   const live = () => active && ownerCurrent(),
     savedCurrent = (requestId) =>
       live() && recovery.read().requestId === requestId;
@@ -89,6 +92,12 @@ export function createCreationController({
   });
   const pending = ref(activation.pending());
   if (pending.value) step.value = "progress";
+  if (!pending.value && !draft.activatedId && !draft.analysis && step.value === "analysis") {
+    // A persisted screen cannot restore an in-memory request or AbortController.
+    step.value = "person";
+    draft.requestId = randomId();
+    error.value = "上次整理已停止等待，原输入已保留，请重新整理并审阅。";
+  }
   if (
     query.get("worldResourceId") &&
     query.get("worldVersion") &&
@@ -137,6 +146,7 @@ export function createCreationController({
   }
   function invalidate() {
     if (draft.activatedId || pending.value) return;
+    fieldErrors.value={}; error.value=""; feedback.value=null;
     draft.analysis = null;
     draft.analysisText = "";
     draft.previewDraft = [];
@@ -230,6 +240,7 @@ export function createCreationController({
   }
   async function analyze() {
     if (!live() || busy.value || pending.value || draft.activatedId) return;
+    const attempt=++analysisEpoch;
     error.value = "";
     feedback.value = null;
     try {
@@ -258,6 +269,8 @@ export function createCreationController({
       if (draft.mode === "description" && !draft.bio.trim())
         throw Error("请写一段想认识的人的描述。");
       busy.value = true;
+      analysisStartedAt.value=Date.now();
+      analysisAbort=new AbortController();
       const requestId = draft.requestId;
       draft.analysis = null;
       draft.previewDraft = [];
@@ -286,7 +299,8 @@ export function createCreationController({
             "描述与所选世界设定合计超过 60000 UTF-8 字节，请缩短本次输入。",
           );
       }
-      const result = await directory.analyze(request);
+      const result = await directory.analyze(request,{signal:analysisAbort.signal});
+      if(attempt!==analysisEpoch)return;
       const analysis = parseCreationAnalysis(JSON.stringify(result)),
         saved = recovery.read();
       if (saved.requestId === requestId && saved.name?.trim())
@@ -307,14 +321,23 @@ export function createCreationController({
       step.value = "preview";
       persist();
     } catch (cause) {
-      if (live()) {
+      if (live() && attempt===analysisEpoch) {
         step.value = "person";
         fail(cause);
         persist();
       }
     } finally {
-      if (live()) busy.value = false;
+      if (live() && attempt===analysisEpoch) {busy.value = false;analysisStartedAt.value=null;analysisAbort=null;}
     }
+  }
+  function abortAnalysisObservation(){
+    analysisEpoch++;analysisAbort?.abort();analysisAbort=null;
+    busy.value=false;analysisStartedAt.value=null;
+  }
+  function cancelAnalysis(){
+    if(!live()||!busy.value||step.value!=="analysis"||draft.activatedId)return;
+    abortAnalysisObservation();step.value="person";
+    invalidate();error.value="已停止等待这次整理，原输入已保留。";persist();
   }
   function persistPreview() {
     if (step.value !== "preview" || pending.value || draft.activatedId) return;
@@ -551,13 +574,23 @@ export function createCreationController({
     next,
     importFile,
     analyze,
+    cancelAnalysis,
+    analysisStartedAt,
     activate,
     refreshProgress,
     recoverStage,
     reanalyze,
     newDraft,
     dispose() {
-      persist();
+      const current = savedCurrent(draft.requestId);
+      if (step.value === "analysis") {
+        abortAnalysisObservation();
+        if (current) {
+          step.value = "person";
+          invalidate();
+        }
+      }
+      if (current) persist();
       active = false;
       readEpoch++;
     },

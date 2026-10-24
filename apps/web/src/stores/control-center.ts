@@ -1204,6 +1204,7 @@ function creationAnalysisFailureMessage(error: unknown): string {
   if (error.code === "unauthenticated") return "登录会话已失效，请重新登录后再分析。";
   if (error.code === "initialization_role_unconfigured") return "初始化模型角色未配置或预检未通过。";
   if (error.code === "initialization_response_invalid_json") return "初始化模型没有返回合法 JSON。";
+  if (error.code === "initialization_response_truncated") return "本次人物资料在整理完成前结束，原输入已保留，可以重试。";
   if (error.code === "initialization_response_invalid") return "初始化模型返回的 JSON 结构无效。";
   if (error.code === "initialization_response_semantic_empty") return "初始化模型没有提取出角色卡中的有效语义，请查看本次失败诊断后重试。";
   if (error.code === "initialization_persona_invalid" || error.code === "initialization_foundation_invalid") {

@@ -4,6 +4,8 @@ import { useWorkspace, slots, day } from "../workspace.mjs";
 import { zonedInputInstant } from "../../v3/zoned-input.mjs";
 import { errorMessage } from "../../v3/domain-presentation.mjs";
 import { renderLifePage } from "../renderers/LifePage.mjs";
+import DiaryGeneration from '../shared/DiaryGeneration.vue';
+import { previousDiaryDate } from '../diary-generation.mjs';
 import {
   CurrentOutfit,
   FilterChips,
@@ -211,8 +213,8 @@ export default defineComponent({
     watch(
       diaries,
       (rows) => {
-        if (!rows.some((d) => d.date === selectedDate.value))
-          selectedDate.value = rows.at(-1)?.date || "";
+        if (!selectedDate.value)
+          selectedDate.value = rows.at(-1)?.date || previousDiaryDate(day(new Date(),character.value.timezone||'Asia/Shanghai'));
       },
       { immediate: true },
     );
@@ -222,44 +224,14 @@ export default defineComponent({
       entry = computed(() => diaries.value[diaryIndex.value]);
     const selectDate = (date) => {
       if (
-        diaries.value.some((d) => d.date === date) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(date) && date<=previousDiaryDate(day(new Date(),character.value.timezone||'Asia/Shanghai')) &&
         date !== selectedDate.value
       ) {
         direction.value = date > selectedDate.value ? "page-next" : "page-prev";
         selectedDate.value = date;
       }
     };
-    async function generateDiary() {
-      const fid = character.value.id,
-        today = day(new Date(), character.value.timezone),
-        previous = new Date(Date.parse(today + "T00:00:00Z") - 86400000)
-          .toISOString()
-          .slice(0, 10);
-      const date =
-        selectedDate.value && selectedDate.value < today
-          ? selectedDate.value
-          : previous;
-      const body = {
-        localDate: date,
-        timezone: character.value.timezone || "Asia/Shanghai",
-        reason: "请求回顾已结束日期的真实经历",
-      };
-      const record = w.command(
-        "日记",
-        "diary:" + date,
-        body,
-        (value, key) =>
-          w.client.generateDiary(fid, { ...value, idempotencyKey: key }),
-        { onSaved: () => w.loadLife(), success: "日记生成请求已受理" },
-      );
-      try {
-        const result = await record.completion;
-        if (result?.diary_id)
-          w.notify("已提交 " + date + " 的日记回顾，可稍后回来查看");
-      } catch {
-        /* Inline action feedback owns failure and retry. */
-      }
-    }
+
     watch(
       () => props.page,
       async (page) => {
@@ -343,8 +315,10 @@ export default defineComponent({
       w: text,
       r: scheduleBusy,
       A: editSchedule,
+      openSchedulePlanning:()=>w.navigatePath('/c/'+encodeURIComponent(character.value.id)+'/life/schedule?legacy=1'),
       i: diaryBusy,
-      F: generateDiary,
+      DiaryGeneration,
+      closedDiaryDate:computed(()=>previousDiaryDate(day(new Date(),character.value.timezone||'Asia/Shanghai'))),
       ee: diaries,
       he: selectedDate,
       R: selectDate,

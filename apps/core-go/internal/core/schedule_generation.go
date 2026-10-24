@@ -70,6 +70,8 @@ func (a *App) initialSchedulePayload(ctx context.Context, fluctlightID, localDat
 		taskInput.CompactOutputReminder = true
 		if retryResult, retryErr := a.RunScheduleGenerationTask(ctx, taskInput); retryErr == nil {
 			payload, err = normalizeScheduleResponse(retryResult, localDate, timezone)
+		} else {
+			return nil, fmt.Errorf("initial schedule repair request failed: %w", retryErr)
 		}
 	}
 	if err != nil {
