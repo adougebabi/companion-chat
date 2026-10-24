@@ -7,8 +7,8 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 63
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 64
 - **Last Active**: 2026-10-24
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1994 | Active |
+| `journal-2.md` | ~29 | Active |
+| `journal-1.md` | ~1994 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 64 | 2026-10-24 | v6.2 r5 repeated Moment publication and wardrobe contracts | `37f99441` | `codex/v62-r3-retest` |
 | 63 | 2026-10-24 | v6.2 r4 diagnostic replay and UX recovery | `b89d16b6` | `codex/v62-r3-retest` |
 | 62 | 2026-10-24 | v6.2 r3 UX recovery and bounded background failures | `cc8da1b4` | `codex/v62-r3-retest` |
 | 60 | 2026-10-23 | 统一 LLM 提示词构造与最小必要上下文 | `2d82c94e73e823b8001f6cb9d1f3195cbbae9b66` | `codex/fluctlight-functional-recovery` |
