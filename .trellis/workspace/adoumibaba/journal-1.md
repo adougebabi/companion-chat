@@ -1970,3 +1970,25 @@ Addressed r3 configuration drafts/optional bindings, cancellable creation and na
 ### Status
 
 [OK] **Completed**
+
+
+## Session 63: v6.2 r4 diagnostic replay and UX recovery
+<!-- trellis-session: v=2 fp=c7be817093d8e2cb -->
+
+**Date**: 2026-10-24
+**Task**: v6.2 r4 diagnostic replay and UX recovery
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+Used five supplied diagnostics to establish complete fenced persona stop outputs versus two partial length outputs and one closed length output. Accepted only whole formal object fences, restored independent persona schema, retained repair source data, enforced one physical full-initialization generation and preserved no token caps/concurrency1/strict serial admission. Fixed persistent config feedback/default120/accessible names, failed-stage blocker presentation, profile Chinese scalar portraits and exact aliases, collapsed notices and hash links, Writer scope and summary scenario diagnostics, explicit missing-embedding feedback. Web399 passed; generation/types/real+mock builds, Go build/vet/gofmt, real-PG recovery+embedding and request replay race passed. Six Go baseline failures remain documented. Actual truncated generation and moment/wear/high-round behavior still need real native receipts. Prompt instruction text preserved; no tasks created/archived; original checkout untouched.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b89d16b6` | fix: honor structured output framing and recover r4 user flows |
+
+### Status
+
+[OK] **Completed**
