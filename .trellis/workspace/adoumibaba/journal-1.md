@@ -1948,3 +1948,25 @@ Kev 默认 timeout_ms 和阶段 budget_ms 均改为 10000；新增 0100 单次�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 62: v6.2 r3 UX recovery and bounded background failures
+<!-- trellis-session: v=2 fp=e78828b8f050088c -->
+
+**Date**: 2026-10-24
+**Task**: v6.2 r3 UX recovery and bounded background failures
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+Addressed r3 configuration drafts/optional bindings, cancellable creation and navigation recovery, accurate truncated-output errors, native reply waiting/no-progress termination, bounded schedule failures, accepted-schedule initialization gate, segment summary serialization, diary dates/terminal receipts, exact-source notification grouping, missing image configuration feedback and old-database upgrade guidance. Preserved prompt optimization, single initialization generation, no token caps and LLM concurrency 1. Validation: Web 392, Browser Client 40 and Core Client 3 passed; typecheck/generation/production+mock builds, Go build/vet/gofmt, targeted real-PG/Temporal/native HTTP and Core race passed. Full Go retains six documented baseline failures. Real-model initialization, outfit/image publication and memory_event behavior require same-version user retest. No task created or archived; original checkout left intact.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cc8da1b4` | fix: recover v6.2 r3 user flows and bound failed work |
+
+### Status
+
+[OK] **Completed**
