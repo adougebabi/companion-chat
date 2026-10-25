@@ -320,6 +320,8 @@ func workflowFunction(intentType string) (any, error) {
 		return ReflectionWorkflow, nil
 	case "intention.trigger":
 		return IntentionTriggerWorkflow, nil
+	case "life.activity.resolve":
+		return ActivityResolutionWorkflow, nil
 	case "memory.embedding":
 		return MemoryEmbeddingWorkflow, nil
 	case "persona.owner_switch":

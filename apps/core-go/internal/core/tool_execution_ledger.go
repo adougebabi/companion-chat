@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type toolExecutionReader interface {
@@ -73,7 +75,7 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 	var result CapabilityResult
 	var authority ToolAuthorityRevisions
 	var replayed bool
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err := withToolMutationTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		// One snapshot separates this transaction's writes from concurrent commits.
 		if _, err := tx.Exec(ctx, `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`); err != nil {
 			return err
@@ -187,4 +189,20 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		return err
 	})
 	return result, authority, replayed, err
+}
+
+// Only short, database-only mutation callbacks may be replayed here. Provider
+// preparation is already complete. SQLSTATE 40001 guarantees the attempt did
+// not commit; connection/unknown commit errors must never be retried here.
+func withToolMutationTransaction(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) error {
+	for attempt := 0; ; attempt++ {
+		err := withTransaction(ctx, pool, fn)
+		var pgerr *pgconn.PgError
+		if err == nil || attempt >= 2 || !errors.As(err, &pgerr) || pgerr.Code != "40001" {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
 }

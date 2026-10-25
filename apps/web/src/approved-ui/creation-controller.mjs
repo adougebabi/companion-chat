@@ -12,6 +12,7 @@ import {
 import { finishCreationWorld } from "../v3/creation-world.mjs";
 import { persistentCommand } from "../v3/providers/persistent-command.mjs";
 import { creationFeedback } from "../v3/creation-feedback.mjs";
+import { errorMessage } from "../v3/domain-presentation.mjs";
 import { randomId } from "../random-id.mjs";
 import { creationRecovery, creationHistoryKey } from "./creation-recovery.mjs";
 import {
@@ -492,6 +493,10 @@ export function createCreationController({
         if(command.pending())await command.retry();else await command.submit({expectedRevision:stage.revision});
       }
       else if (stage.key === "world") await finishWorld();
+      else if (stage.key === "schedule") {
+        command=persistentCommand({key,storage:()=>storage,execute:(value,idempotencyKey)=>client.recoverInitialSchedule(fid,{...value,idempotencyKey})});
+        if(command.pending())await command.retry();else await command.submit({reason:"恢复原角色的初始日程任务"});
+      }
       else if (stage.key === "wardrobe") {
         command = persistentCommand({
           key,
@@ -534,7 +539,10 @@ export function createCreationController({
       }
       error.value = "";
     } catch (cause) {
-      fail(cause);
+      if (live()) {
+        feedback.value = null;
+        error.value = errorMessage(cause, "本次恢复结果尚未确认，原请求已保留，可重新读取或重试。");
+      }
     } finally {
       if (live()) {
         busy.value = false;

@@ -43,6 +43,9 @@ func (s *factOnlyReplyService) currentActionFacts(ctx context.Context, reply Cap
 			value["error_code"] = result.ErrorCode
 		}
 		value["observed"] = factOnlyFields(mapValue(result.Output), "disposition", "warning_code", "effect_applied", "mutation_committed", "handled", "retry_same_arguments")
+		if call.CapabilityName == chatPromiseCapabilityName && result.Status == "accepted" {
+			value["observed"] = factOnlyFields(mapValue(result.Output), "promise_status", "accepted_by_character", "scheduled", "window_start", "window_end")
+		}
 		if call.CapabilityName == "moment.publish" && result.Status == "completed" && mapValue(result.Output)["target_kind"] == "moment" {
 			mapValue(value["observed"])["published_text"] = stringValue(mapValue(result.Output)["text"])
 		}

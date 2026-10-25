@@ -1,6 +1,8 @@
 import {ownerPathContracts} from './owner-contract-utils.mjs';
 const text={type:'string'},date={type:'string',format:'date'},instant={type:'string',format:'date-time'},number={type:'number'},data={type:'object',additionalProperties:true},ref=name=>({$ref:'#/components/schemas/'+name}),nullable=value=>({anyOf:[value,{type:'null'}]}),object=(properties,required=Object.keys(properties))=>({type:'object',properties,required,additionalProperties:false});
 export const scheduleOwnerSchemas={
+ BrowserScheduleRecoveryBody:object({idempotencyKey:{type:'string',minLength:1,maxLength:256},reason:{type:'string',minLength:1,maxLength:500}}),
+ BrowserScheduleRecoveryView:object({intent_id:text,workflow_id:text,status:text,restarted:{type:'boolean'},audit_id:text,previous_error:text},['intent_id','workflow_id','status','restarted']),
  BrowserScheduledItemView:object({id:text,start_at:instant,end_at:instant,activity:text,scene:text,location:nullable(text),item_type:text,status:text,priority:number,flexibility:number,interruption_cost:number,place_id:text,intention_id:text,action_status:text,promise_request_id:text,promise_schedule_valid:{type:'boolean'},promise_state:text},['id','start_at','end_at','activity','scene','location','item_type','status','priority','flexibility','interruption_cost']),
  BrowserScheduleView:object({id:text,local_date:date,timezone:text,revision:{type:'integer',minimum:1},status:{type:'string',enum:['accepted']},reschedule_policy:nullable(data),items:{type:'array',items:ref('BrowserScheduledItemView')}}),
  BrowserScheduleRequestView:object({request_id:text,fluctlight_id:text,kind:{type:'string',enum:['generate','promise']},local_date:date,timezone:text,status:{type:'string',enum:['queued','running','completed','failed','conflict']},result:data,error_code:nullable(text),task_id:text,created_at:instant,updated_at:instant}),
@@ -10,6 +12,7 @@ export const scheduleOwnerSchemas={
 const response=(schema,description)=>({description,content:{'application/json':{schema:ref(schema)}}});
 const base='/api/fluctlights/{fluctlightId}/schedules';
 export const scheduleOwnerPaths=ownerPathContracts({
+ [base+'/recover']:{post:{operationId:'recoverInitialSchedule',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserScheduleRecoveryBody')}}},responses:{200:response('BrowserScheduleRecoveryView','Original scheduler rearmed or existing state returned; no schedule fabricated')}}},
  [base]:{get:{operationId:'readScheduleCalendar',parameters:['from','to'].map(name=>({name,in:'query',schema:date})),responses:{200:response('BrowserScheduleCalendar','Accepted schedules in the character authoritative timezone; absence is explicit')}}},
  [base+'/requests']:{post:{operationId:'requestOwnerSchedule',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserOwnerScheduleBody')}}},responses:{200:response('BrowserScheduleRequestView','Existing accepted schedule preserved'),202:response('BrowserScheduleRequestView','Durable planning request accepted; schedule not yet produced')}}},
  [base+'/requests/{requestId}']:{get:{operationId:'readOwnerScheduleRequest',responses:{200:response('BrowserScheduleRequestView','Original request and actual persisted result')}}},

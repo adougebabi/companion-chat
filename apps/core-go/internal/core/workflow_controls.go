@@ -70,6 +70,8 @@ func workflowRecovery(kind string, input map[string]any) map[string]any {
 		return map[string]any{"href": href, "label": label, "mode": "domain_recovery", "reason": "领域恢复保留原结果、attempt、版本和副作用围栏；工作流命令不代表业务已成功"}
 	}
 	switch kind {
+	case "schedule.current_day":
+		return link(root+"/life/schedule?recoverInitial=1", "恢复原日程任务")
 	case "studio.generate":
 		if id := stringValue(input["studio_job_id"]); id != "" {
 			return link("/studio/preview?res="+url.QueryEscape(stringValue(input["studio_resource_id"]))+"&job="+url.QueryEscape(id), "查看创作任务及原结果恢复")

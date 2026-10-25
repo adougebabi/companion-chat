@@ -864,3 +864,32 @@ Wrong: `len(index.ByRef) >= 128` returns an error before deduplication, or a
 snapshot copy returns nil above `maxToolArgumentsBytes*2`.
 Correct: validate identity/scope/JSON/hash, preserve the complete data, emit
 metadata-only capacity diagnostics and continue through the original pipeline.
+
+## R9: actual progress, empty output and truthful unknown Tool receipts
+
+A false `EnableThinking` is an explicit `enable_thinking:false` on both Eino
+Generate/Stream and legacy transport. Omitting it is not equivalent to false on
+reasoning-enabled gateways. No application output/input token ceiling returns.
+Empty final content with finish_reason=length is a typed truncation failure,
+never a default initialization object. Retain every diagnostic native message,
+including messages after index 64 and the ToolCallID/name pairing.
+
+Unknown native tool names pass the same CallID, physical Provider provenance and
+replay validation, then return handled/capability_not_installed/no effect.
+Canonical dotted names remain valid. Do not guess a replacement, execute the
+nearest tool or infer a new Owner capability request from a misspelling; explicit
+`capability.request` remains the governed demand path.
+
+Repeated identical fact queries/no-effect receipts may close the action phase
+and leave only the real `conversation.reply` Writer. Repeated catalog disclosure
+is not a fact read: when it selects an installed read-only tool, first narrow the
+next native choice to that query and let the model supply its arguments. Never
+synthesize those arguments or answer from the schema. Actual completed/accepted
+actions reset prior stagnation, including needs_action media drafts. Enforce the
+phase in the invoker too; ignored tool catalogs cannot authorize another mutation.
+If the model repeatedly ignores that fence, fail explicitly, retaining committed
+siblings, rather than manufacturing a reply or silently claiming completion.
+
+Regression: r9_recovery_test.go, r9_progress_test.go; opt-in local Provider
+r8_recovery_test.go/TestR8LiveSegmentAndMomentRecall. Controlled responses prove
+control flow, while the opt-in test verifies the exact persisted post is read.

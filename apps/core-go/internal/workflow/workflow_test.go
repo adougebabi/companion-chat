@@ -310,8 +310,8 @@ func TestWorkflowIDReusePolicyAllowsWakeUpRecovery(t *testing.T) {
 			t.Fatalf("%s reuse policy = %v, want allow duplicate failed only", intentType, got)
 		}
 	}
-	if got := workflowIDReusePolicy("schedule.current_day"); got != enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE {
-		t.Fatalf("schedule reuse policy = %v, want reject duplicate", got)
+	if got := workflowIDReusePolicy("schedule.current_day"); got != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY {
+		t.Fatalf("schedule reuse policy = %v, want failed-only recovery", got)
 	}
 }
 

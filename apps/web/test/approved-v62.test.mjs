@@ -564,3 +564,32 @@ test("unknown schedule fields do not manufacture midnight while real midnight st
   assert.equal(placeholder.time, "");
   assert.equal(placeholder.editable, false);
 });
+
+
+test("failed initial schedule exposes recovery and retries the identical command without creating another character", async () => {
+  const f = fixture(), received = [];
+  f.client.schedules = async () => ({ days: [] });
+  f.client.lifecycleDiagnostics = async () => ({ workflowIntents: [{ intentType: "schedule.current_day", intentId: "schedule_intent:existing", status: "failed", lastError: "empty_response" }] });
+  let attempt = 0;
+  f.client.recoverInitialSchedule = async (fid, body) => {
+    received.push([fid, structuredClone(body)]);
+    if (++attempt === 1) throw Error("connection lost");
+    return { status: "pending", restarted: true };
+  };
+  f.saved.setItem("fluctlight-creation:owner:draft", JSON.stringify({ version: 1, step: 3, requestId: "original", activatedId: "existing", timezone: "Asia/Shanghai", mode: "blank", name: "已有角色", useDefaultWorld: true, worldRuntimeId: "world-new", groupConfirmed: true }));
+  const c = createCreationController(f.options);
+  await c.refreshProgress();
+  const stage = c.progress.value.stages.find(s => s.key === "schedule");
+  assert.equal(stage.state, "failed");
+  assert.equal(stage.retryable, true);
+  assert.equal(c.progress.value.stages.find(s => s.key === "reference").retryable, false);
+  await c.recoverStage(stage);
+  assert.match(c.error.value, /恢复结果尚未确认/);
+  await c.recoverStage(stage);
+  assert.equal(received.length, 2);
+  assert.deepEqual(received[0], received[1]);
+  assert.ok(received[0][1].idempotencyKey);
+  assert.equal(c.draft.activatedId, "existing");
+  assert.equal(f.calls.length, 0);
+  c.dispose();
+});

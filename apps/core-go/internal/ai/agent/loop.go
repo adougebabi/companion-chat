@@ -266,6 +266,19 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		Instruction: config.Instruction, Model: config.Model,
 		ToolsConfig: adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{
 			Tools: config.Tools, ExecuteSequentially: true,
+			UnknownToolsHandler: func(ctx context.Context, name, input string) (string, error) {
+				// Use the same request-scoped bridge and native CallID as known
+				// tools. A hallucinated name must become feedback, not abort
+				// already committed siblings or manufacture an execution.
+				for _, candidate := range config.Tools {
+					if installed, ok := candidate.(*ADKCapabilityTool); ok {
+						if invoker, ok := installed.invoker.(ADKCapabilityInvokerWithID); ok {
+							return invoker.ExecuteWithID(ctx, compose.GetToolCallID(ctx), name, input)
+						}
+					}
+				}
+				return "", fmt.Errorf("adk_tool_not_available: %s", name)
+			},
 		}},
 		// Production Agents do not impose a model/tool round limit. The
 		// framework requires a positive value and otherwise defaults to 20, so

@@ -103,8 +103,12 @@ func extendLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityI
 	}
 	var eventID string
 	var previous time.Time
-	if err := tx.QueryRow(ctx, `SELECT COALESCE(authority_event_id,''),active_until FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2 AND revision=$3 FOR UPDATE`, activityID, fluctlightID, revision).Scan(&eventID, &previous); err != nil {
+	var previousResult []byte
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(authority_event_id,''),active_until,result_json FROM public.fluctlight_life_activity_runs WHERE id=$1 AND fluctlight_id=$2 AND revision=$3 FOR UPDATE`, activityID, fluctlightID, revision).Scan(&eventID, &previous, &previousResult); err != nil {
 		return failedCapabilityResult(invocation, "activity_extension_stale", true), err
+	}
+	if invocation.SourceFactID != "" && mapValue(decodeObject(previousResult)["extension"])["source_fact_id"] == invocation.SourceFactID {
+		return handledCapabilityResult(invocation, "activity_extension_already_recorded", "no_change", map[string]any{"activity_id": activityID, "active_until": previous.Format(instantLayout), "retry_same_arguments": false, "recovery": "This source already extended the activity. Earliest resolution time is unchanged. Do not add another extension; await the durable result."}), nil
 	}
 	if eventID == "" {
 		return failedCapabilityResult(invocation, "activity_extension_legacy_run", false), ErrConflict
@@ -120,7 +124,7 @@ func extendLifeActivityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityI
 		}
 		return failedCapabilityResult(invocation, "activity_extension_event_failed", true), err
 	}
-	command, err = tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET active_until=$3,revision=revision+1,result_json=jsonb_set(result_json,'{extension}', $4::jsonb,true) WHERE id=$1 AND fluctlight_id=$2 AND revision=$5 AND status IN ('in_progress','deferred')`, activityID, fluctlightID, newUntil, jsonBytes(map[string]any{"reason": decision["reason"], "until": newUntil.Format(instantLayout)}), revision)
+	command, err = tx.Exec(ctx, `UPDATE public.fluctlight_life_activity_runs SET active_until=$3,revision=revision+1,result_json=jsonb_set(result_json,'{extension}', $4::jsonb,true) WHERE id=$1 AND fluctlight_id=$2 AND revision=$5 AND status IN ('in_progress','deferred')`, activityID, fluctlightID, newUntil, jsonBytes(map[string]any{"reason": decision["reason"], "until": newUntil.Format(instantLayout), "source_fact_id": invocation.SourceFactID}), revision)
 	if err != nil || command.RowsAffected() != 1 {
 		if err == nil {
 			err = ErrConflict

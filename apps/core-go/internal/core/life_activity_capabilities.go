@@ -38,29 +38,30 @@ func lifeActivityOutputSchema() map[string]any {
 func lifeActivityStartDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: lifeActivityStartCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Start timed activity. Shopping: read wardrobe.inspect catalogue; use single category/slot/description/world_item_id OR items array of objects, never both. Wearables need slot. Copy catalogue definition and place_id; location text is not place_id. Omit unknown IDs. Accepted means started, not acquired; after not_before call life.activity.advance, then wear returned inventory IDs. Haircut: desired_hair_length; dye: desired_hair_color and due intention.",
+		Description:   "Start timed shopping/haircut/dye. Shopping: read wardrobe.inspect catalogue; use single fields OR items array, copy exact definition and place_id, omit unknown IDs. Wearables need slot. Set wear_after_acquisition=true only if you decide to wear the acquired clothes after completion. Accepted means started, not acquired; Core schedules the result at not_before. Haircut needs desired_hair_length; dye needs desired_hair_color and due intention.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false, "required": []any{"kind", "reason"},
 			"properties": map[string]any{
-				"kind":                enumStringSchema("virtual_shopping", "haircut", "hair_dye"),
-				"intention_id":        map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
-				"schedule_item_id":    map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
-				"duration_minutes":    map[string]any{"type": "integer", "minimum": 15, "maximum": 240},
-				"item_kind":           enumStringSchema("wearable", "object"),
-				"world_item_id":       map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
-				"items":               map[string]any{"type": "array", "maxItems": 8, "items": shoppingItemSchema()},
-				"category":            map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
-				"slot":                map[string]any{"type": "string", "maxLength": 64},
-				"description":         map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"scene":               map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"activity":            map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"place_id":            map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
-				"location":            map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"desired_hair_length": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
-				"desired_hair_color":  map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
-				"reason":              map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
+				"kind":                   enumStringSchema("virtual_shopping", "haircut", "hair_dye"),
+				"intention_id":           map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"schedule_item_id":       map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"duration_minutes":       map[string]any{"type": "integer", "minimum": 15, "maximum": 240},
+				"item_kind":              enumStringSchema("wearable", "object"),
+				"world_item_id":          map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"items":                  map[string]any{"type": "array", "maxItems": 8, "items": shoppingItemSchema()},
+				"wear_after_acquisition": map[string]any{"type": "boolean"},
+				"category":               map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+				"slot":                   map[string]any{"type": "string", "maxLength": 64},
+				"description":            map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"scene":                  map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"activity":               map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"place_id":               map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"location":               map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"desired_hair_length":    map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"desired_hair_color":     map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"reason":                 map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
 			},
 		},
 		OutputSchema: lifeActivityOutputSchema(), SideEffectClass: "native_projection", SuccessBoundary: "virtual_activity_started",
@@ -91,6 +92,14 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		items, err := shoppingRequestedItems(args)
 		if err != nil {
 			return handledCapabilityResult(invocation, "shopping_item_required", "needs_input", map[string]any{"detail": err.Error(), "recovery": "Use single item fields OR an items array of objects. Each wearable needs category, slot and description; copy catalogue fields exactly. Do not supply unknown IDs."}), nil
+		}
+		if args["wear_after_acquisition"] == true {
+			for _, item := range items {
+				if item["item_kind"] != "wearable" {
+					return handledCapabilityResult(invocation, "shopping_followup_requires_wearables", "needs_input", nil), nil
+				}
+			}
+			request["wear_after_acquisition"] = true
 		}
 		if _, bundle := args["items"]; bundle {
 			members := make([]any, 0, len(items))
@@ -327,6 +336,11 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 	if err := appendOutboxTx(ctx, tx, "life.activity.started", "life_activity", activityID, fluctlightID, invocation.SourceFactID,
 		"activity:"+activityID, "activity-start:"+activityID, map[string]any{"activity_id": activityID, "kind": kind, "status": "in_progress", "not_before": notBefore.Format(instantLayout)}); err != nil {
 		return failedCapabilityResult(invocation, "activity_event_failed", true), err
+	}
+	if intentionID == "" {
+		if err := registerActivityResolutionTx(ctx, tx, activityID, fluctlightID, notBefore); err != nil {
+			return failedCapabilityResult(invocation, "activity_resolution_intent_failed", true), err
+		}
 	}
 	receiptResult := CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "accepted",
 		Output:            map[string]any{"activity_id": activityID, "status": "in_progress", "not_before": notBefore.Format(instantLayout), "intention_id": intentionID, "event_id": eventID},

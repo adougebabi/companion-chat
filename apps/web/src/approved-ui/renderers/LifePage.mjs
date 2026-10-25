@@ -246,7 +246,7 @@ function renderLifePageBody(__view) {
   }, "⋯", 8, dd), o("div", fd, [approvedButtonVNode({
     disabled: M(__view.r)||k.editable===false,
     onClick: ve => __view.A(k, ve)
-  }, "编辑")])])) : X("", !0)], 64))], 10, od))), 128)), (__view.props.page === "此刻" ? __view.c.value : __view.u.value).length ? X("", !0) : (p(), g("div", md, [o("p",null,"暂时没有已确认的日程。"),__view.props.page==="日程"?approvedButtonVNode({class:"button",onClick:__view.openSchedulePlanning},"安排与调整日程"):X("",!0)]))])], 64)) : X("", !0), __view.props.page === "目标" ? (p(), g(O, {
+  }, "编辑")])])) : X("", !0)], 64))], 10, od))), 128)), (__view.props.page === "此刻" ? __view.c.value : __view.u.value).length ? X("", !0) : (p(), g("div", md, [o("p",null,"暂时没有已确认的日程。"),__view.props.page==="日程"?o("div",{class:"row"},[approvedButtonVNode({class:"button",onClick:__view.recoverInitialSchedule},"恢复初始日程"),approvedButtonVNode({class:"button",onClick:__view.openSchedulePlanning},"安排与调整日程")]):X("",!0)]))])], 64)) : X("", !0), __view.props.page === "目标" ? (p(), g(O, {
     key: 2
   }, [b[24] || (b[24] = o("p", {
     class: "muted"
@@ -335,7 +335,7 @@ function renderLifePageBody(__view) {
     key: 4
   }, [b[41] || (b[41] = o("p", {
     class: "muted"
-  }, "把相处留下的细节，慢慢收进记忆。", -1)),o("p",{class:"muted"},["记忆正文会独立保存；向量检索需要配置记忆检索模型。",o("a",{class:"text-button",href:"#/settings?section="+encodeURIComponent("模型用途")},"查看模型用途 ↗")]), me(__view.FilterChips, {
+  }, "把相处留下的细节，慢慢收进记忆。", -1)),o("p",{class:"muted"},["对话会先在空闲后整理成片段，每日经历在当天结束后形成；此列表展示已正式保存的记忆。向量检索需要配置记忆检索模型。",o("a",{class:"text-button",href:"#/settings?section="+encodeURIComponent("模型用途")},"查看模型用途 ↗")]), me(__view.FilterChips, {
     search: __view.te.value,
     "onUpdate:search": b[6] || (b[6] = k => __view.te.value = k),
     filters: __view.se.value,

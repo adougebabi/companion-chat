@@ -39,7 +39,7 @@ func dispatcherCandidateQuery() string {
 			WHERE (candidate.status IS NULL OR candidate.status IN ('pending','retry'))
 			  AND (candidate.next_attempt_at IS NULL OR candidate.next_attempt_at <= now())
 			  %s
-              AND (candidate.intent_type NOT IN ('cognition.processing','wake_up.current','reflection.run','goal.plan','goal.evaluate','wardrobe.initialize','schedule.current_day','diary.generate','visual_identity.initialize','intention.trigger','autonomy.action','capability.action')
+              AND (candidate.intent_type NOT IN ('cognition.processing','wake_up.current','reflection.run','goal.plan','goal.evaluate','wardrobe.initialize','schedule.current_day','diary.generate','visual_identity.initialize','intention.trigger','life.activity.resolve','autonomy.action','capability.action')
                    OR NOT EXISTS (
                      SELECT 1 FROM public.platform_workflow_intents preparation JOIN public.fluctlights f ON f.id=preparation.payload->>'fluctlight_id'
                      WHERE preparation.intent_type='persona.compile'

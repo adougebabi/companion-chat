@@ -290,6 +290,11 @@ export default defineComponent({
         .toUpperCase(),
     );
     const bindings = {
+	  recoverInitialSchedule: () => {
+	    const fid=character.value.id;
+	    const record=w.command("日程","recover-initial-schedule",{reason:"恢复当前角色的原日程准备任务"},(body,key)=>w.client.recoverInitialSchedule(fid,{...body,idempotencyKey:key}),{onSaved:()=>w.loadLife(),success:"已核对原日程任务，等待后台继续准备"});
+	    void record.completion.catch(()=>{});
+	  },
       joined,
       props,
       todayLabel,

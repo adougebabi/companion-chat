@@ -18,6 +18,7 @@ type surfaceRoute struct {
 var surfaceRoutes = []surfaceRoute{
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/schedules"},
 	{http.MethodPost, "/api/fluctlights/:fluctlightId/schedules/requests"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/schedules/recover"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/schedules/requests/:requestId"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/world/places/:placeId/defaults"}, {http.MethodPost, "/api/fluctlights/:fluctlightId/world/places/:placeId/defaults"}, {http.MethodGet, "/api/fluctlights/:fluctlightId/world/places/:placeId/defaults/history"},
 	{http.MethodGet, "/api/ops/backups/:backupId"}, {http.MethodPost, "/api/ops/backups/:backupId/retry"}, {http.MethodPost, "/api/ops/backups/:backupId/cancel"},
@@ -235,6 +236,10 @@ func (s *Server) dispatchSurface(response http.ResponseWriter, request *http.Req
 		}
 		if strings.HasSuffix(request.URL.Path, "/schedules/requests") && !validScheduleOwnerCommand(parsed) {
 			writeError(response, 400, "invalid_request", "Invalid schedule request")
+			return
+		}
+		if strings.HasSuffix(request.URL.Path, "/schedules/recover") && (!onlyKeys(parsed, "idempotencyKey", "reason") || !validateString(parsed["idempotencyKey"], 1, 256) || !validateString(parsed["reason"], 1, 500)) {
+			writeError(response, 400, "invalid_request", "Invalid schedule recovery")
 			return
 		}
 		if (strings.HasSuffix(request.URL.Path, "/display-avatar") || strings.HasSuffix(request.URL.Path, "/visual-identity")) && !validDisplayAvatar(parsed) {

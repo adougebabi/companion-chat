@@ -167,6 +167,7 @@ export async function readApprovedCreationProgress(client, draft) {
         ? "#/diag/task/" + encodeURIComponent(scheduleTask.intentId)
         : undefined,
       configSection: "模型用途",
+      retryable: !accepted && failed(scheduleTask?.status),
     },
   ];
   // Backend bootstrap is serial: persona -> wardrobe -> schedule -> images.

@@ -32,6 +32,18 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
+	if conversationLoopNeedsReply(ctx) {
+		if conversationClosedActionAttempts(adkContext.Trace) >= 2 {
+			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
+		}
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
+	}
+	if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 {
+		if conversationClosedActionAttempts(adkContext.Trace) >= 2 {
+			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
+		}
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, AllowedToolNames: queries}, nil
+	}
 	if repeatedDiscoveryLoadCount(adkContext.Trace) >= 3 || repeatedDiscoveryResultCount(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("tool_discovery_no_progress", false, errors.New("tool_discovery_no_progress"))
 	}

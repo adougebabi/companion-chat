@@ -191,7 +191,14 @@ func (a *App) DispatchWorldApply(ctx context.Context, owner, id string, body map
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"available": true, "diff": worldApplyDiff(current, publication), "conflicts": worldApplyDiff(current, publication), "instance_revision": fl.CurrentRevision, "runtime_revision": intValue(current["revision"]), "runtime_id": current["id"]}, nil
+		diff := worldApplyDiff(current, publication)
+		operation := "update"
+		if current["id"] == nil {
+			operation = "create"
+		} else if len(diff) == 0 {
+			operation = "unchanged"
+		}
+		return map[string]any{"available": true, "operation": operation, "create_required": operation == "create", "diff": diff, "conflicts": diff, "instance_revision": fl.CurrentRevision, "runtime_revision": intValue(current["revision"]), "runtime_id": current["id"]}, nil
 	}
 	return a.worldCommand(ctx, owner, fid, "apply:"+id, body, func(ctx context.Context, tx pgx.Tx) (map[string]any, error) {
 		source, found, err := (postgresSurfaceTx{tx}).Get(ctx, owner, id)

@@ -124,7 +124,7 @@ function renderWorldPageBody(__view) {
           id: Date.now(),
           name: "",
           alias: "",
-          floor: "1F",
+          floor: "",
           description: "",
           atmosphere: "",
           furniture: "",
@@ -135,7 +135,7 @@ function renderWorldPageBody(__view) {
     }, "添加地点")) : X("", !0)]), H.places.length ? X("", !0) : (p(), g("p", Ip, "暂无地点")), o("div", Op, [(p(!0), g(O, null, oe(H.places, V => (p(), g("article", {
       key: V.id,
       class: "place"
-    }, [o("div", Vp, [o("b", null, v(V.alias || V.name), 1), o("small", null, v(V.floor), 1)]), o("p", null, v(V.description) + " · " + v(V.atmosphere), 1), o("small", null, "固定陈设：" + v(V.furniture), 1), o("small", null, "布局：" + v(V.layout), 1), __view.n.value ? (p(), approvedButtonBlock({
+    }, [o("div", Vp, [o("b", null, v(V.alias || V.name), 1), V.floor ? o("small", null, v(V.floor), 1) : X("", !0)]), V.description || V.atmosphere ? o("p", null, [V.description,V.atmosphere].filter(Boolean).join(" · "), 1) : X("", !0), V.furniture ? o("small", null, "固定陈设：" + v(V.furniture), 1) : X("", !0), V.layout ? o("small", null, "布局：" + v(V.layout), 1) : X("", !0), __view.n.value ? (p(), approvedButtonBlock({
       key: 0,
       class: "button edit-place",
       onClick: U => __view.se(V, q)

@@ -546,7 +546,7 @@ func TestStructuredProviderPayloadUsesJSONFormatWithoutHiddenThinking(t *testing
 	if !ok || schemaEnvelope["strict"] != true || schemaEnvelope["schema"] == nil {
 		t.Fatalf("cognitive assessment schema is not strict: %#v", format)
 	}
-	if _, exists := assessment["enable_thinking"]; exists {
+	if thinking, exists := assessment["enable_thinking"]; !exists || thinking != false {
 		t.Fatalf("cognitive assessment must keep structured control JSON out of hidden reasoning: %#v", assessment)
 	}
 	reflection := providerChatPayloadForRole("model", nil, 512, true, nil, "reflection")
@@ -554,7 +554,7 @@ func TestStructuredProviderPayloadUsesJSONFormatWithoutHiddenThinking(t *testing
 	if !ok || reflectionFormat["type"] != "json_schema" {
 		t.Fatalf("structured provider must request JSON output: %#v", reflection)
 	}
-	if _, ok := reflection["enable_thinking"]; ok {
+	if thinking, ok := reflection["enable_thinking"]; !ok || thinking != false {
 		t.Fatalf("non-cognitive provider must not enable thinking: %#v", reflection)
 	}
 	text := providerChatPayloadForRole("model", nil, 512, false, nil, "action_realization")

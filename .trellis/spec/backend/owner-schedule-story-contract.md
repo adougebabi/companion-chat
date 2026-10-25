@@ -59,3 +59,25 @@ Keep schedule regressions for scope/CAS/idempotency, day preservation, real acce
 Wrong: `rounds = messages.length / 2; memoryTotal = page.items.length; promiseAccepted = promiseFulfilled`.
 
 Correct: read counts and sources in the authorized database snapshot, deduplicate durable conversation/turn pairs with actual published replies, use source-liveness authorities and preserve execution/fulfillment as separate domain facts.
+
+## R9: chat proposals and original scheduler recovery
+
+`promise.propose` is a conversation-only Tool. Its title comes verbatim from the
+actual current Owner user message bound to the source fact and active target
+participant. The model supplies an explicit future window and reason, never an
+Owner-authored title or accepted/scheduled/fulfilled state. The existing inbox /
+Goal / Commitment / Intention flow decides acceptance. Future candidate/qualified
+registration checks authority without requiring window_start to have arrived;
+actual due/start execution still requires that window. Only accepted, genuinely
+linked chat promises enter the existing Owner schedule-request flow, once per
+promise. A stale/unschedulable individual does not abort subsequent candidates;
+missed starts are not silently shifted or retroactively fulfilled.
+
+POST `/api/fluctlights/{fid}/schedules/recover` accepts reason/idempotencyKey.
+OwnerSurface authenticates, audits and commits in its original transaction;
+recovery re-arms only the original failed/dead_letter schedule_intent with its
+original payload/workflow identity. Pending/running/completed is an idempotent
+readback, never a duplicate scheduler. Temporal allows failed-only reuse. The
+browser generated client, route matrix and initialization/schedule page use the
+same command, preserving unknown outcomes for retry. Regression includes actual
+PG promise-to-calendar associations and strict future execution negatives.

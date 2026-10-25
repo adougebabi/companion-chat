@@ -130,7 +130,17 @@ func (a *App) ResolveScheduledLifeActivity(ctx context.Context, activityID strin
 		return nil, err
 	}
 	if status == "completed" || status == "failed" || status == "cancelled" {
-		return map[string]any{"activity_id": activityID, "status": status}, nil
+		view := map[string]any{"activity_id": activityID, "status": status}
+		if status == "completed" {
+			follow, err := a.completeActivityWearFollowup(ctx, activityID, fluctlightID, ownerID, profileID)
+			if err != nil {
+				return nil, err
+			}
+			if len(follow) > 0 {
+				view["wear_followup"] = follow
+			}
+		}
+		return view, nil
 	}
 	if a.now().UTC().Before(notBefore) {
 		return map[string]any{"activity_id": activityID, "status": "pending", "not_before": notBefore.UTC().Format(instantLayout)}, nil
@@ -173,5 +183,14 @@ func (a *App) ResolveScheduledLifeActivity(ctx context.Context, activityID strin
 		return a.recoverScheduledResolution(ctx, activityID, fluctlightID, revision, operationID)
 	}
 	output := mapValue(receipt.Result.Output)
-	return map[string]any{"activity_id": activityID, "status": firstString(output["status"], receipt.Result.Status), "not_before": output["not_before"]}, nil
+	if stringValue(output["status"]) == "completed" {
+		follow, err := a.completeActivityWearFollowup(ctx, activityID, fluctlightID, ownerID, profileID)
+		if err != nil {
+			return nil, err
+		}
+		if len(follow) > 0 {
+			output["wear_followup"] = follow
+		}
+	}
+	return map[string]any{"activity_id": activityID, "status": firstString(output["status"], receipt.Result.Status), "not_before": output["not_before"], "wear_followup": output["wear_followup"]}, nil
 }

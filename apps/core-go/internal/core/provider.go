@@ -241,7 +241,7 @@ func structuredThinkingEnabledForSchema(schemaName string) bool {
 }
 
 // StructuredAssembledJudgement calls a dedicated judge role on the assembled
-// message path. It sends no tools and omits enable_thinking so the bounded
+// message path. It sends no tools and explicitly disables thinking so the bounded
 // verdict stays in the normal content channel. The main/native cognition
 // surfaces explicitly enable thinking.
 func (p *ProviderClient) StructuredAssembledJudgement(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
@@ -880,11 +880,7 @@ func providerChatPayloadWithSchema(model string, messages []map[string]any, toke
 	} else if jsonMode {
 		payload["response_format"] = providerResponseFormatForSchema(role, schemaName, schema)
 	}
-	if enableThinking {
-		payload["enable_thinking"] = true
-	} else if schemaName == "goal_evaluation_v1" {
-		payload["enable_thinking"] = false
-	}
+	payload["enable_thinking"] = enableThinking
 	return payload
 }
 

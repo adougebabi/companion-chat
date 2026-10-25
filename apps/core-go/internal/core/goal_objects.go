@@ -254,6 +254,10 @@ func cascadeGoalObjectsTx(ctx context.Context, tx pgx.Tx, before *GoalAuthority,
 }
 
 func requireGoalCommitmentWindowTx(ctx context.Context, tx pgx.Tx, intention IntentionAuthority, at time.Time) error {
+	return requireGoalCommitmentAdmissionTx(ctx, tx, intention, at, true)
+}
+
+func requireGoalCommitmentAdmissionTx(ctx context.Context, tx pgx.Tx, intention IntentionAuthority, at time.Time, requireStarted bool) error {
 	if intention.CommitmentID == "" {
 		return nil
 	}
@@ -265,7 +269,7 @@ func requireGoalCommitmentWindowTx(ctx context.Context, tx pgx.Tx, intention Int
 	if state != "active" {
 		return errors.New("intention_commitment_not_active")
 	}
-	if start != nil && at.Before(*start) {
+	if requireStarted && start != nil && at.Before(*start) {
 		return errors.New("intention_commitment_window_not_started")
 	}
 	if end != nil && !at.Before(*end) {

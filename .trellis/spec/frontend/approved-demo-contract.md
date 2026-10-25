@@ -218,3 +218,24 @@ prove rendering/transport shape only, and do not certify a user's live models.
 Wrong: resubmit edited live fields after an unknown activation, or compare newer
 save-time input only against the original edit-session baseline. Correct: replay
 the frozen command; preserve post-submit edits against the submitted snapshot.
+
+## R9 recurring regression contracts
+
+Both retained creation renderers use gender-neutral headings and name labels.
+An empty schedule exposes original-task recovery; failed creation schedule
+stages are retryable while blocked later image stages remain blocked. Recovery
+uses the same persisted command body/key and never activates another character.
+
+A new Studio definition can have no update diff and still need creation. Consume
+`operation=create` / `create_required=true`, show a creation explanation and keep
+Confirm enabled. Do not display "already consistent" or infer existence from an
+empty diff. Place definitions have ordinary Chinese fields and optional advanced
+JSON. Blank floor remains unknown; blank furniture/layout labels stay hidden.
+Saved item kind/category/slot reflect submitted/server-read values; a newer local
+draft remains separate. Studio's main page lists real resource records with edit
+and creation entries. Memory copy distinguishes idle conversation segments from
+formal daily memories; chat alone does not fabricate an immediate memory record.
+
+Node tests cover recovery identity, fields and saved selections. Isolated
+production-browser fixtures cover visible controls/readback, not real database
+or model success; retain separate disposable-PG and opt-in model evidence.

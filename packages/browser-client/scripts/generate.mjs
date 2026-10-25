@@ -5,7 +5,7 @@ const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
 const paths = Object.keys(schema.paths).sort();
 const requestTypeNames = [
- ...Object.keys(schema.components.schemas).filter(n=>['BrowserScheduledItemView','BrowserScheduleView','BrowserScheduleRequestView','BrowserScheduleCalendar','BrowserOwnerScheduleBody'].includes(n)),
+ ...Object.keys(schema.components.schemas).filter(n=>['BrowserScheduledItemView','BrowserScheduleView','BrowserScheduleRequestView','BrowserScheduleCalendar','BrowserOwnerScheduleBody','BrowserScheduleRecoveryBody','BrowserScheduleRecoveryView'].includes(n)),
  ...Object.keys(schema.components.schemas).filter(n=>n.startsWith("BrowserPlaceDefault")),
  ...Object.keys(schema.components.schemas).filter(n=>n.startsWith("BrowserResourcePack")||n.startsWith("BrowserBusinessBackup")||n==="BrowserObjectRevisionPage"),
  ...Object.keys(schema.components.schemas).filter(n=>n.startsWith("BrowserWorkflow")),
@@ -322,6 +322,7 @@ export class BrowserClient {
   async setLifePresence(fluctlightId: string, body: BrowserPresenceRequest): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/presence\`, { method: "PUT", body }) as Promise<Record<string, unknown>>; }
   async schedules(fid:string,options:{from?:string;to?:string}={}):Promise<BrowserScheduleCalendar>{const q=new URLSearchParams();for(const [key,value]of Object.entries(options))if(value)q.set(key,value);return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/schedules?\${q}\`) as Promise<BrowserScheduleCalendar>;}
   async requestSchedule(fid:string,body:BrowserOwnerScheduleBody):Promise<BrowserScheduleRequestView>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/schedules/requests\`,{method:"POST",body}) as Promise<BrowserScheduleRequestView>;}
+  async recoverInitialSchedule(fid:string,body:BrowserScheduleRecoveryBody):Promise<BrowserScheduleRecoveryView>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/schedules/recover\`,{method:"POST",body}) as Promise<BrowserScheduleRecoveryView>;}
   async scheduleRequest(fid:string,id:string):Promise<BrowserScheduleRequestView>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/schedules/requests/\${encodeURIComponent(id)}\`) as Promise<BrowserScheduleRequestView>;}
   async acceptLifeSchedule(fluctlightId: string, body: BrowserScheduleRequest): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
   async cancelLifeSchedule(fluctlightId: string, scheduleId: string, body: BrowserScheduleCancelRequest): Promise<void> { await this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules/\${encodeURIComponent(scheduleId)}/cancel\`, { method: "POST", body }); }

@@ -88,6 +88,7 @@ type SurfaceHooks struct {
 	OwnerSchedules             func(context.Context, string, string, url.Values) (map[string]any, error)
 	OwnerScheduleRequest       func(context.Context, string, string, string) (map[string]any, error)
 	RequestOwnerSchedule       func(context.Context, string, string, map[string]any) (map[string]any, error)
+	RecoverInitialSchedule     func(context.Context, string, string, map[string]any) (map[string]any, error)
 	WardrobePreparation        func(context.Context, string, string) (map[string]any, error)
 	RequestWardrobePreparation func(context.Context, string, string, map[string]any) (map[string]any, error)
 	WardrobeTags               func(context.Context, string, string) (map[string]any, error)
@@ -407,6 +408,11 @@ func (s *OwnerSurface) perform(ctx context.Context, tx surfaceTx, op surfaceCall
 	case "owner_schedule_generate":
 		if s.hooks.RequestOwnerSchedule != nil {
 			return s.hooks.RequestOwnerSchedule(ctx, owner, op.fid, body)
+		}
+		return nil, ErrNotFound
+	case "initial_schedule_recover":
+		if s.hooks.RecoverInitialSchedule != nil {
+			return s.hooks.RecoverInitialSchedule(ctx, owner, op.fid, body)
 		}
 		return nil, ErrNotFound
 
@@ -1874,6 +1880,8 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		call.name, call.fid, call.read = "owner_schedules", parts[1], true
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "schedules" && parts[3] == "requests" && method == "POST":
 		call.name, call.fid, call.success = "owner_schedule_generate", parts[1], 202
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "schedules" && parts[3] == "recover" && method == "POST":
+		call.name, call.fid = "initial_schedule_recover", parts[1]
 	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "schedules" && parts[3] == "requests" && method == "GET":
 		call.name, call.fid, call.a, call.read = "owner_schedule_request", parts[1], parts[4], true
 

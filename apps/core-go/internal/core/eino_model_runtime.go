@@ -867,9 +867,6 @@ func einoDiagnosticMessages(messages []*schema.Message) []map[string]any {
 			continue
 		}
 		result = append(result, einoMessageRaw(message))
-		if len(result) >= 64 {
-			break
-		}
 	}
 	return result
 }
@@ -947,11 +944,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 		return einoModelResponse{}, err
 	}
 	extra := providerSamplingFields(call.Assignment)
-	if call.EnableThinking {
-		extra["enable_thinking"] = true
-	} else if call.SchemaName == "conversation_summary_v1" || call.SchemaName == "goal_evaluation_v1" {
-		extra["enable_thinking"] = false
-	}
+	extra["enable_thinking"] = call.EnableThinking
 	if len(call.Definitions) > 1 {
 		extra["parallel_tool_calls"] = true
 	}
@@ -1023,11 +1016,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		return einoModelResponse{}, formatErr
 	}
 	extra := providerSamplingFields(call.Assignment)
-	if call.EnableThinking {
-		extra["enable_thinking"] = true
-	} else if call.SchemaName == "conversation_summary_v1" || call.SchemaName == "goal_evaluation_v1" {
-		extra["enable_thinking"] = false
-	}
+	extra["enable_thinking"] = call.EnableThinking
 	if len(call.Definitions) > 1 {
 		extra["parallel_tool_calls"] = true
 	}
@@ -1421,6 +1410,12 @@ func einoMessageRaw(message *schema.Message) map[string]any {
 		"content":           message.Content,
 		"tool_calls":        toolCalls,
 		"reasoning_content": message.ReasoningContent,
+	}
+	if message.ToolCallID != "" {
+		result["tool_call_id"] = message.ToolCallID
+	}
+	if name := firstString(message.ToolName, message.Name); name != "" {
+		result["name"] = name
 	}
 	if message.ResponseMeta != nil {
 		result["finish_reason"] = message.ResponseMeta.FinishReason

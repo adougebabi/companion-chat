@@ -13,6 +13,12 @@ import (
 // All linked execution and governance transactions share the Life lock. It
 // serializes local admission with lifecycle changes, not external systems.
 func requireIntentionGoalActiveTx(ctx context.Context, tx pgx.Tx, intention IntentionAuthority, at time.Time) error {
+	return requireIntentionGoalPolicyTx(ctx, tx, intention, at, true)
+}
+
+// Registering a future intention must validate its goal/window authority, but
+// only due/execution admission requires that window and retry timer to be open.
+func requireIntentionGoalPolicyTx(ctx context.Context, tx pgx.Tx, intention IntentionAuthority, at time.Time, execution bool) error {
 	if err := lockLifeContextTx(ctx, tx, intention.FluctlightID); err != nil {
 		return err
 	}
@@ -38,6 +44,9 @@ func requireIntentionGoalActiveTx(ctx context.Context, tx pgx.Tx, intention Inte
 	}
 	if !at.Before(intention.Expiration) {
 		return newCapabilityError("intention_expired", false, ErrConflict)
+	}
+	if !execution {
+		return requireGoalCommitmentAdmissionTx(ctx, tx, intention, at, false)
 	}
 	var next *time.Time
 	if err := tx.QueryRow(ctx, `SELECT next_attempt_at FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2`, intention.EntityID, intention.FluctlightID).Scan(&next); err != nil && !errors.Is(err, pgx.ErrNoRows) {

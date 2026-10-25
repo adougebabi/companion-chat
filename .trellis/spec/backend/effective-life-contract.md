@@ -300,3 +300,30 @@ change the payload under an existing operation. Failure recovery creates a new
 workflow intent attempt, preserving the previous failed Run and ledger. Sleep
 uses a durable timer; completed preparation never regenerates after undressing.
 Real external model behavior is accepted separately through user-run L18.
+
+## R9: independent activity completion and selected wear
+
+An activity started without an Intention registers `life.activity.resolve` in the
+same transaction, with stable `activity_resolution:<activity_id>` intent/workflow
+identity and original not_before. It does not depend on the first daily schedule
+or another user message. Temporal waits until that due time, respects pause and
+uses the existing resolution Tool. Repair scans only missing/failed intents or
+completed acquisition whose explicitly selected wear followup is still missing;
+healthy old timers cannot starve later missing timers. Deferred results retain
+the existing authority/retry rules and use a timer, never a tight polling loop.
+
+Only a frozen `wear_after_acquisition:true` decision on a wearable purchase may
+request post-acquisition wear. Real completed purchase_result stock, matched by
+source event, supplies actual item IDs to the independent partial wardrobe.wear
+operation `activity-wear:<activity_id>`. It preserves other slots and records the
+actual followup receipt. Failure/no acquisition is not worn success; replay and
+crash recovery do not grant or wear twice. Repeating extension from the same
+source cannot add minutes repeatedly, and extending active_until never moves
+not_before. Shanghai midnight preserves current wearing until a real wear effect.
+
+Logical lease fencing must preserve PostgreSQL errors other than missing/token
+mismatch. A heartbeat update can conflict with a REPEATABLE READ Tool snapshot;
+only SQLSTATE 40001 permits up to three whole database-only mutation attempts
+with the same operation identity. Provider preparation stays outside the retry;
+connection loss, actual lease loss and unknown commit outcome never auto-retry.
+Regression: r9_lease_fence_test.go, r9_recovery_test.go and workflow timer tests.

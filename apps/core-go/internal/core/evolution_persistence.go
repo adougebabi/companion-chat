@@ -135,7 +135,8 @@ func persistIntentionAuthorityTx(ctx context.Context, tx pgx.Tx, before *Intenti
 		}
 	}
 	if after.Status == IntentionQualified || after.Status == IntentionDue || (after.Status == IntentionInProgress && record.Operation == IntentionStart) || before == nil {
-		if err := requireIntentionGoalActiveTx(ctx, tx, after, record.OccurredAt); err != nil {
+		execution := after.Status == IntentionDue || after.Status == IntentionInProgress && record.Operation == IntentionStart
+		if err := requireIntentionGoalPolicyTx(ctx, tx, after, record.OccurredAt, execution); err != nil {
 			return false, err
 		}
 	}

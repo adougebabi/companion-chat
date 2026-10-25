@@ -4,6 +4,7 @@ package core
 // Named disclosure preserves Definition.Description and the complete schema.
 // Do not shorten factual tool results or provider/native instructions here.
 var capabilityDirectoryPurposes = map[string]string{
+	"promise.propose":                    "Record a new Owner appointment proposal; accepted real promises enter their date schedule.",
 	"moment.inspect":                     "Read your previously published Moments and exact text; creates no new post.",
 	"capability.catalog":                 "List available tools; request named tool details.",
 	"capability.discover":                "Load selected tool schemas for the next request.",

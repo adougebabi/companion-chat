@@ -44,7 +44,7 @@ test('analysis without a name returns to editable input and a second creation st
  const page=creationPage({analyze:async()=>validAnalysis});
  try{page.el.querySelector('[data-start]').onclick();await tick();assert.equal(page.recovery.read().wizardStep,1);assert.equal(page.el.querySelector('[data-name-options]').open,true);assert.equal(page.el.querySelector('[name="name"]').focused,true);assert.equal(page.activations(),0);}finally{page.dispose();}
  const next=creationPage({activated:true});
- try{await tick();next.el.querySelector('[data-new-creation]').onclick();assert.equal(next.recovery.read().wizardStep,1);assert.equal(next.recovery.read().useDefaultWorld,true);assert.match(next.el.innerHTML,/她是什么样的人/);}finally{next.dispose();}
+ try{await tick();next.el.querySelector('[data-new-creation]').onclick();assert.equal(next.recovery.read().wizardStep,1);assert.equal(next.recovery.read().useDefaultWorld,true);assert.match(next.el.innerHTML,/这是一个什么样的人/);}finally{next.dispose();}
 });
 
 test('inline progress follows original request, localizes tasks, keeps state on read failure and ignores changed Owner',async()=>{

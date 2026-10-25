@@ -10,3 +10,10 @@ test('repairing invalid advanced item JSON through an ordinary field clears the 
 test('advanced JSON changing an object to clothing makes the slot editable and preserves custom categories',()=>{
  const {nodes,body}=fixture();nodes.itemDefinitionJson.value=JSON.stringify({schema:'item-definition.v1',item_kind:'wearable',category:'custom-category',slot:'custom-slot',description:'explicit clothing'});nodes.itemDefinitionJson.oninput({target:nodes.itemDefinitionJson});assert.equal(nodes.itemDefinitionJson.error,'');assert.equal(nodes.slot.disabled,false);assert.equal(nodes.slot.required,true);assert.equal(nodes.slot.value,'custom-slot');assert.match(nodes.category.innerHTML,/custom-category/);assert.equal(body.item_kind,'wearable');
 });
+
+test('binding a saved definition restores its actual category instead of the placeholder',()=>{
+ const {nodes,body}=fixture();
+ assert.equal(nodes.item_kind.value,body.item_kind);
+ assert.equal(nodes.category.value,'book');
+ assert.equal(nodes.description.value,'old');
+});

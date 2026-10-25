@@ -219,7 +219,7 @@ func factOnlyCurrentState(projection ContextProjection, cognition bool) map[stri
 		if factOnlyExpired(row, "active_until", projection.AsOf) {
 			continue
 		}
-		item := factOnlyFields(row, "kind", "status", "started_at", "not_before", "active_until", "ready_for_resolution")
+		item := factOnlyFields(row, "id", "kind", "status", "started_at", "not_before", "active_until", "ready_for_resolution")
 		if request := factOnlyFields(mapValue(row["request"]), "category", "slot", "description", "desired_hair_length", "desired_hair_color"); len(request) > 0 {
 			item["request"] = request
 		}

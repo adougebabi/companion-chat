@@ -39,7 +39,10 @@ func (s postgresLogicalAgentLeases) Fence(ctx context.Context, tx pgx.Tx, owner,
 	// Keep only this short commit transaction fenced. No SQL/Actor lock spans
 	// a model call; expiry takeover waits for any current local commit to finish.
 	if err := tx.QueryRow(ctx, `SELECT owner_token FROM public.logical_agent_leases WHERE fluctlight_id=$1 AND expires_at>now() FOR SHARE`, owner).Scan(&current); err != nil {
-		return errLogicalAgentLeaseLost
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errLogicalAgentLeaseLost
+		}
+		return err
 	}
 	if current != token {
 		return errLogicalAgentLeaseLost

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/cloudwego/eino/schema"
+	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
 )
 
 // Preserve a structured termination cause through final-contract wrappers.
@@ -32,6 +33,10 @@ func structuredTerminationError(message *schema.Message, role string) error {
 	return &structuredResponseTruncatedError{role: role, completionTokens: tokens, contentComplete: complete}
 }
 func initializationStructuredCause(err error) string {
+	var empty *aiagent.EmptyFinalMessageError
+	if errors.As(err, &empty) && empty.Message != nil && empty.Message.ResponseMeta != nil && empty.Message.ResponseMeta.FinishReason == "length" {
+		return "initialization_response_truncated"
+	}
 	var truncated *structuredResponseTruncatedError
 	if errors.As(err, &truncated) {
 		return "initialization_response_truncated"

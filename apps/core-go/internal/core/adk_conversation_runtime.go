@@ -118,13 +118,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if ok && i.request.Surface != "" && !definition.SupportsSurface(i.request.Surface) {
 		return "", ErrUnauthorized
 	}
-	if !ok {
-		// Unknown native calls cannot execute. Preserve an Owner-reviewable
-		// capability need when the run has an authenticated source fact.
-		i.recordMissingCapabilityRequest(ctx, callID, capabilityName, projection)
-		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "capability_not_found", argumentsJSON)
-		return "", fmt.Errorf("capability_not_found: %s", capabilityName)
-	}
+	knownCapability := ok
 	callID = strings.TrimSpace(callID)
 	if callID == "" {
 		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_required", argumentsJSON)
@@ -188,6 +182,36 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		Metadata: InvocationMetadata{WorkingProfileID: workingProfileID, AuthorizationActorID: authorizationActorID, SubjectActorID: subjectActorID, CorrelationID: firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID)), OperationID: operationID, FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, Surface: i.request.Surface, Source: "model_tool"},
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
 	invocation.ActionID = i.request.ActionID
+	if conversationPublicationPolicyEnabled(ctx) && !conversationLoopNeedsReply(ctx) {
+		if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 && !containsString(queries, capabilityName) {
+			if previous, found := i.trace.FindResult(callID); found {
+				return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), nil
+			}
+			result := handledCapabilityResult(invocation, "turn_action_window_closed", "needs_query", map[string]any{"allowed_query_tools": queries, "recovery": "The read-only schemas are loaded. Call one listed query with your own schema-valid arguments. Repeating discovery does not read the facts; no action executed."})
+			i.trace.Append(invocation, result)
+			return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
+		}
+	}
+	if conversationPublicationPolicyEnabled(ctx) && capabilityName != conversationReplyCapabilityName && conversationLoopNeedsReply(ctx) {
+		if previous, found := i.trace.FindResult(callID); found {
+			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), nil
+		}
+		result := handledCapabilityResult(invocation, "turn_action_window_closed", "awaiting_reply", map[string]any{"recovery": "The same query/rejection has repeated without new facts. No further action executed. Call conversation.reply using the existing actual results; do not invent completion or another action."})
+		i.trace.Append(invocation, result)
+		return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
+	}
+	if !knownCapability {
+		if previous, found := i.trace.FindResult(callID); found {
+			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), nil
+		}
+		if !json.Valid(invocation.Arguments) {
+			invocation.Arguments = json.RawMessage(`{}`)
+		}
+		result := handledCapabilityResult(invocation, "capability_not_installed", "needs_input", map[string]any{"capability_name": capabilityName, "recovery": "No action executed. Discover exact installed names with capability.catalog; reuse the names and schemas returned. Preserve earlier actual results and finish through conversation.reply."})
+		i.trace.Append(invocation, result)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.completed", callID, capabilityName, "handled", "capability_not_installed", argumentsJSON)
+		return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
+	}
 	// Context snapshots are required for contextful capabilities. A
 	// contextless capability must not receive a partial identity-only snapshot
 	// assembled from an optional/empty Projection: candidate validation would
@@ -373,43 +397,6 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		return serialized, &agentRunFailure{stage: "tool", code: result.ErrorCode, cause: fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)}
 	}
 	return serialized, nil
-}
-
-func (i *appADKCapabilityInvoker) recordMissingCapabilityRequest(ctx context.Context, callID, capabilityName string, projection ContextProjection) {
-	if i == nil || i.app == nil || i.trace == nil || !toolNamePattern.MatchString(capabilityName) || strings.TrimSpace(callID) == "" || strings.TrimSpace(i.request.SourceFactID) == "" {
-		return
-	}
-	identity, ok := i.trace.ModelIdentity(callID)
-	if !ok || strings.TrimSpace(identity.ProviderRequestID) == "" {
-		return
-	}
-	operationRoot := firstString(i.request.OperationID, firstString(i.request.ActionID, i.request.SourceFactID))
-	if operationRoot == "" {
-		return
-	}
-	actorID := firstString(i.request.AuthorizationActorID, projection.OwnerActorID)
-	if actorID == "" || i.request.FluctlightID == "" {
-		return
-	}
-	arguments := jsonBytes(map[string]any{
-		"capability_key":    capabilityName,
-		"title":             capabilityName,
-		"description":       "The Agent requested this unavailable tool during an authorized run.",
-		"rationale":         "The requested action could not be executed because the capability is not installed.",
-		"desired_contract":  map[string]any{"requested_tool": capabilityName},
-		"side_effect_class": "unknown",
-	})
-	agentDefinition, _ := formalAgentDefinitionFromContext(ctx)
-	_, _ = i.app.ExecuteTool(ctx, ToolExecutionRequest{
-		AgentID: agentDefinition.ID, RunID: operationRoot,
-		CapabilityName: "capability.request", OperationID: "missing_capability_" + stableDigest(operationRoot+"\x1f"+callID+"\x1f"+capabilityName),
-		ProviderRequestID:    identity.ProviderRequestID,
-		AuthorizationActorID: actorID, FluctlightID: i.request.FluctlightID,
-		SubjectActorID: firstString(i.request.SubjectActorID, actorID), ConversationID: i.request.ConversationID,
-		EvidenceID: firstString(i.request.SourceFactID, projection.SourceFactID), Surface: i.request.Surface, Arguments: arguments,
-		AuthorizationPolicy: i.request.AuthorizationPolicy,
-		TargetKind:          i.request.TargetKind, TargetRef: i.request.TargetRef,
-	})
 }
 
 func modelFacingToolResultForContext(ctx context.Context, receipt ToolExecutionReceipt, definition CapabilityDefinition) (string, error) {

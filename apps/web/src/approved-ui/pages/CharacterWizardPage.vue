@@ -61,7 +61,7 @@ const modes = [
 const groups = computed(() =>
   list("groups").filter((g) => g.id !== "ungrouped"),
 );
-const navSteps = ["生活世界", "认识她", "资料预览", "准备相遇"],
+const navSteps = ["生活世界", "认识角色", "资料预览", "准备相遇"],
   currentStep = computed(
     () =>
       ({
@@ -197,7 +197,7 @@ onUnmounted(() => {
         <small>第 1 / 4 步</small>
         <h2>生活世界</h2>
         <p class="muted">
-          世界是生活的背景、地点和规则。先选一份底稿，再慢慢认识她。
+          世界是生活的背景、地点和规则。先选一份底稿，再慢慢认识这个人。
         </p>
       </header>
       <ActionButton
@@ -264,7 +264,7 @@ onUnmounted(() => {
       @submit.prevent="c.analyze()"
       ><header>
         <small>第 2 / 4 步</small>
-        <h2>她是什么样的人？</h2>
+        <h2>这是一个什么样的人？</h2>
         <p class="muted">
           {{
             draft.useDefaultWorld

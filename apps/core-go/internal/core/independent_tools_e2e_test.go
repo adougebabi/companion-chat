@@ -52,6 +52,7 @@ var independentToolProductInventory = []string{
 	"persona.switch",
 	"persona.takeover",
 	"presence_event",
+	"promise.propose",
 	"relationship.lookup",
 	"scene_event",
 	"schedule.edit",

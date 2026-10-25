@@ -59,6 +59,12 @@ func main() {
 	} else if ensured > 0 {
 		slog.Default().Info("Go Worker ensured wake-up intents", "count", ensured)
 	}
+	if _, err := application.EnsureAcceptedChatPromiseSchedules(ctx, 50); err != nil {
+		log.Printf("ensure accepted chat promise schedules: %v", err)
+	}
+	if _, err := application.EnsureLifeActivityResolutionIntents(ctx, 100); err != nil {
+		log.Printf("ensure life activity resolution intents: %v", err)
+	}
 	if ensured, err := application.EnsureConversationSegmentIntents(ctx, 100); err != nil {
 		log.Printf("ensure conversation segment intents: %v", err)
 	} else if ensured > 0 {
@@ -255,6 +261,12 @@ func main() {
 			logger.Warn("Go Worker legacy conversation summary reconciliation retry", "error", err)
 		} else if reconciled > 0 {
 			logger.Info("Go Worker reconciled legacy conversation summaries", "count", reconciled)
+		}
+		if _, err := application.EnsureAcceptedChatPromiseSchedules(ctx, 50); err != nil {
+			logger.Warn("accepted chat promise schedule reconciliation retry", "error", err)
+		}
+		if _, err := application.EnsureLifeActivityResolutionIntents(ctx, 100); err != nil {
+			logger.Warn("life activity resolution reconciliation retry", "error", err)
 		}
 		if ensured, err := application.EnsureConversationSegmentIntents(ctx, 100); err != nil {
 			logger.Warn("Go Worker conversation segment repair retry", "error", err)

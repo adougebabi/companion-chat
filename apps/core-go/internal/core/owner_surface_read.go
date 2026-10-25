@@ -139,7 +139,7 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 }
 
 func (a *App) surfaceHooks() SurfaceHooks {
-	return SurfaceHooks{OwnerSchedules: a.OwnerSchedules, OwnerScheduleRequest: a.OwnerScheduleRequest, RequestOwnerSchedule: a.RequestOwnerSchedule, WardrobePreparation: a.OwnerWardrobePreparation, RequestWardrobePreparation: a.RequestOwnerWardrobePreparation, WardrobeTags: a.OwnerWardrobeTags, SaveWardrobeTags: a.SaveOwnerWardrobeTags,
+	return SurfaceHooks{OwnerSchedules: a.OwnerSchedules, OwnerScheduleRequest: a.OwnerScheduleRequest, RequestOwnerSchedule: a.RequestOwnerSchedule, RecoverInitialSchedule: a.RecoverInitialSchedule, WardrobePreparation: a.OwnerWardrobePreparation, RequestWardrobePreparation: a.RequestOwnerWardrobePreparation, WardrobeTags: a.OwnerWardrobeTags, SaveWardrobeTags: a.SaveOwnerWardrobeTags,
 		Promises: a.OwnerPromises, Promise: a.OwnerPromise, PromiseHistory: a.OwnerPromiseHistory, PromiseCommand: a.OwnerPromiseCommand,
 		WearingHistory:      a.OwnerWearingHistory,
 		SaveInventoryOutfit: a.SaveOwnerInventoryOutfit, InventoryOutfitHistory: a.OwnerInventoryOutfitHistory,

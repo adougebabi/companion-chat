@@ -1330,6 +1330,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(CurrentDayScheduleWorkflow)
 			w.RegisterWorkflow(ReflectionWorkflow)
 			w.RegisterWorkflow(IntentionTriggerWorkflow)
+			w.RegisterWorkflow(ActivityResolutionWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
 			w.RegisterWorkflow(OwnerPersonaSwitchWorkflow)
 			w.RegisterWorkflow(PersonaPreparationWorkflow)
@@ -2215,7 +2216,7 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 		// cycle idempotent even when a terminal execution is replayed.
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
 	}
-	if intentType == "visual_identity.initialize" || intentType == "wardrobe.initialize" {
+	if intentType == "visual_identity.initialize" || intentType == "wardrobe.initialize" || intentType == "schedule.current_day" {
 		// Reconciliation retries only a terminal failed Visual Identity workflow.
 		// The stable workflow ID must therefore admit a new run after failure but
 		// must not reopen a successfully completed identity workflow.
@@ -2224,7 +2225,7 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 	if intentType == "reflection.run" || intentType == "goal.evaluate" {
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
-	if intentType == "cognition.processing" || intentType == "intention.trigger" || intentType == "autonomy.action" || intentType == "capability.action" {
+	if intentType == "cognition.processing" || intentType == "intention.trigger" || intentType == "life.activity.resolve" || intentType == "autonomy.action" || intentType == "capability.action" {
 		// These intents are explicitly requeued after a terminal failed
 		// execution while their durable inbox/action remains executable. Reusing
 		// the stable ID must therefore admit a new run after failure; otherwise
@@ -2401,6 +2402,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = CriticalLifecycleQueue
 		case "intention.trigger":
 			workflowFn = IntentionTriggerWorkflow
+			taskQueue = LifecycleQueue
+		case "life.activity.resolve":
+			workflowFn = ActivityResolutionWorkflow
 			taskQueue = LifecycleQueue
 		case "memory.embedding":
 			workflowFn = MemoryEmbeddingWorkflow
