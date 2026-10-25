@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 67
+- **Total Sessions**: 68
 - **Last Active**: 2026-10-25
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~95 | Active |
+| `journal-2.md` | ~117 | Active |
 | `journal-1.md` | ~1994 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 68 | 2026-10-25 | R9 recurring activity, schedule and native-loop recovery | `9018e94f` | `codex/v62-r3-retest` |
 | 67 | 2026-10-25 | v6.2 R8 world and conversation recovery | `d5530d06` | `codex/v62-r3-retest` |
 | 66 | 2026-10-25 | v6.2 r7 本机模型换装回归与不实回复发布保护 | `55db2cb5` | `codex/v62-r3-retest` |
 | 65 | 2026-10-25 | v6.2 r6 换装执行与真实穿着读回 | `4b85c1be` | `codex/v62-r3-retest` |

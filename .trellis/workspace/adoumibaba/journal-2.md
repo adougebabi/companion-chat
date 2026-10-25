@@ -93,3 +93,25 @@ Persisted world venue categories and preserved edit identity; added strict JSON-
 ### Status
 
 [OK] **Completed**
+
+
+## Session 68: R9 recurring activity, schedule and native-loop recovery
+<!-- trellis-session: v=2 fp=535a58f114f52f2d -->
+
+**Date**: 2026-10-25
+**Task**: R9 recurring activity, schedule and native-loop recovery
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+Closed R9 independent shopping timer and selected wear, chat proposal to accepted calendar scheduling, explicit thinking=false and original schedule recovery, truthful unknown-tool/progress phases, lease serialization retry, and Studio/creation UI gaps. Disposable PG race suites, 407 web tests, typecheck/build/vet and three real local model cases passed. Four no-DB Go failures independently reproduced at pre-change 7c59f02c; full PG exploratory suite not certified. Details: docs/v62-r9-regression.md. No new task and no changes to parallel session checkout.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9018e94f` | fix: close r9 activity, scheduling and native recovery loops |
+
+### Status
+
+[OK] **Completed**
