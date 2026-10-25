@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-25",
+  "base_commit": "ce0bdc1f",
+  "model": "huihui-ai-Huihui-Qwen3.8-27B-abliterated-MTPLX",
+  "runtime": "local MLX, serial requests, disposable PostgreSQL",
+  "cases": [
+    {
+      "case": "ordinary_chat",
+      "result": "actual_wear_and_reload_passed",
+      "worn_count_before": 2,
+      "worn_count_after": 3,
+      "other_worn_items_preserved": true,
+      "physical_model_requests": 12,
+      "native_tool_calls": {
+        "capability_catalog": 2,
+        "wardrobe_inspect": 4,
+        "wardrobe_wear": 1,
+        "conversation_reply": 2,
+        "persona_detail": 1
+      },
+      "action_review_requests": 0
+    },
+    {
+      "case": "moment_then_wear",
+      "result": "actual_wear_and_reload_passed",
+      "worn_count_before": 2,
+      "worn_count_after": 3,
+      "other_worn_items_preserved": true,
+      "physical_model_requests": 12,
+      "native_tool_calls": {
+        "capability_catalog": 2,
+        "moment_publish": 1,
+        "wardrobe_inspect": 4,
+        "wardrobe_wear": 1,
+        "conversation_reply": 2
+      },
+      "action_review_requests": 0
+    },
+    {
+      "case": "discussion_only",
+      "result": "no_wear_as_requested",
+      "worn_count_before": 2,
+      "worn_count_after": 2,
+      "other_worn_items_preserved": true,
+      "physical_model_requests": 2,
+      "native_tool_calls": {
+        "conversation_reply": 1
+      },
+      "action_review_requests": 0
+    },
+    {
+      "case": "streaming_chat",
+      "result": "actual_wear_and_reload_passed",
+      "worn_count_before": 2,
+      "worn_count_after": 3,
+      "other_worn_items_preserved": true,
+      "physical_model_requests": 13,
+      "native_tool_calls": {
+        "capability_catalog": 2,
+        "wardrobe_inspect": 6,
+        "wardrobe_wear": 1,
+        "conversation_reply": 2
+      },
+      "action_review_requests": 0
+    },
+    {
+      "case": "unavailable_guard",
+      "result": "inconsistent_draft_blocked_no_message",
+      "worn_count_before": 2,
+      "worn_count_after": 2,
+      "other_worn_items_preserved": true,
+      "physical_model_requests": 14,
+      "native_tool_calls": {
+        "capability_catalog": 2,
+        "wardrobe_inspect": 7,
+        "wardrobe_wear": 1,
+        "conversation_reply": 1
+      },
+      "action_review_requests": 2
+    },
+    {
+      "case": "owner_already_worn",
+      "result": "completed_no_change",
+      "mutation_committed": false,
+      "same_worn_set": true,
+      "replay_does_not_call_model": true
+    }
+  ],
+  "limits": [
+    "Positive live cases ran before the final unsuccessful-action publication check; their successful/no_change paths do not trigger it. The unavailable guard case ran with the publication check and immediate-stop policy.",
+    "The local model still generated false completion in unavailable cases. These drafts are rejected; blocked publication is not a claim of good model reply quality.",
+    "The user Haiku deployment, shopping/world prerequisites and latency acceptance were not tested.",
+    "An optional LM Studio cross-model probe failed with local backend HTTP 400 before producing usable validation."
+  ]
+}

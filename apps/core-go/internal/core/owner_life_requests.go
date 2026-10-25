@@ -385,6 +385,9 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 	if kind == "moment_suggestion" {
 		rules = append(rules, "This request only suggests publishing a feed Moment. You may reject or defer. To accept call moment.publish once; the independent persona Writer decides its own text. Suggested text is a topic, never a factual claim or a mandatory draft. Core binds the request and selected attachments. It does not create a conversation, move anyone or establish acquaintance.")
 	}
+	if kind == "inventory_outfit" || kind == "wardrobe_wear" {
+		rules = append(rules, "After deciding to accept, load wardrobe.wear through capability.catalog and invoke it with the exact requested target. Even if the target seems already worn, let that Tool return its authoritative no_change receipt; catalogue and inspection receipts alone do not fulfill the request. A handled no_change receipt means the target was already satisfied, not that a new change happened. You may still reject or defer before accepting.")
+	}
 	rules = append(rules, "The final response has exactly decision (accepted, rejected, or deferred) and reason (a nonempty short public explanation). Do not emit event_type, action_status, effects, or mutation_committed; Core derives execution state from real Tool receipts, not from the final response.")
 	input := jsonString(map[string]any{"event_type": ownerLifeRequestFactType, "kind": kind, "request": ownerLifePromptView(kind, request)})
 	definitions := capabilityCatalog(registry, CapabilitySurfaceNativeCognition)

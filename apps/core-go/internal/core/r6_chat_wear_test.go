@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
@@ -44,7 +45,7 @@ func r6InspectedItem(payload map[string]any, description string) string {
 
 func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 	for _, streaming := range []bool{false, true} {
-		for _, scenario := range []string{"normal", "after_moment", "same_batch", "reply_first_batch", "wear_unavailable", "same_batch_unavailable", "refusal"} {
+		for _, scenario := range []string{"normal", "after_moment", "same_batch", "reply_first_batch", "wear_unavailable", "same_batch_unavailable", "wear_unavailable_bad_reply", "wear_unavailable_repair", "wear_unavailable_fallback_repair", "wear_unavailable_check_error", "refusal"} {
 			t.Run(fmt.Sprintf("%s/stream=%t", scenario, streaming), func(t *testing.T) {
 				steps := []string{"catalog", "load", "inspect", "wear", "reply"}
 				if scenario == "after_moment" {
@@ -56,11 +57,21 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 				if scenario == "refusal" {
 					steps = []string{"reply"}
 				}
-				phase, writers := 0, 0
+				phase, writers, checks, cognitionCalls := 0, 0, 0, 0
+				unavailable := strings.Contains(scenario, "unavailable")
 				var boots string
 				var inspectOffered bool
 				router := newFakeProviderRouter()
 				ctx, repo, app, owner, self, conversation := r5MomentFixture(t, "r6-chat-"+scenario, router)
+				if scenario == "wear_unavailable_fallback_repair" {
+					config := defaultConversationReplySettings()
+					config.FailurePolicy = "legacy_fallback"
+					config.RetryLimit = 0
+					if _, err := repo.Pool().Exec(ctx, `UPDATE public.runtime_settings SET value_json=$2 WHERE key=$1`, conversationReplySettingKey, jsonString(config)); err != nil {
+						t.Fatal(err)
+					}
+					ctx = withFrozenProviderAssignment(ctx, "generic_llm", providerAssignment{Role: "generic_llm", BaseURL: "http://controlled.invalid", ModelID: "r7-fallback", Timeout: 3 * time.Second})
+				}
 				var revision int
 				if err := repo.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, self).Scan(&revision); err != nil {
 					t.Fatal(err)
@@ -70,13 +81,27 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 					t.Fatal(err)
 				}
 				boots = stringValue(mapValue(added["item"])["id"])
-				if scenario == "wear_unavailable" || scenario == "same_batch_unavailable" {
+				if unavailable {
 					if _, err := repo.Pool().Exec(ctx, `UPDATE public.fluctlight_wardrobe_items SET availability='unavailable' WHERE id=$1`, boots); err != nil {
 						t.Fatal(err)
 					}
 				}
 				router.otherwise(func(payload map[string]any) fakeProviderResult {
-					if payload["model"] == "r5-writer" {
+					if providerWireSchemaName(payload) == "reply_action_consistency" {
+						checks++
+						if scenario == "wear_unavailable_check_error" {
+							return fakeProviderResult{Status: 400}
+						}
+						if len(arrayValue(payload["tools"])) != 0 {
+							t.Error("action checker gained tools")
+						}
+						valid := scenario != "wear_unavailable_bad_reply" && ((scenario != "wear_unavailable_repair" && scenario != "wear_unavailable_fallback_repair") || writers >= 2)
+						return fakeProviderResult{Structured: map[string]any{"consistent": valid, "reason": "根据实际未生效回执检查正文"}}
+					}
+					if scenario == "wear_unavailable_fallback_repair" && payload["model"] == "r5-writer" {
+						return fakeProviderResult{Status: 400}
+					}
+					if payload["model"] == "r5-writer" || payload["model"] == "r7-fallback" {
 						writers++
 						if strings.Contains(jsonString(payload["messages"]), "面向动态参与者") {
 							return fakeProviderResult{Text: "受控测试中的一条动态。"}
@@ -89,7 +114,7 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 						for _, raw := range current {
 							wearing = wearing || mapValue(raw)["id"] == boots
 						}
-						shouldWear := scenario != "wear_unavailable" && scenario != "same_batch_unavailable" && scenario != "refusal"
+						shouldWear := !unavailable && scenario != "refusal"
 						if wearing != shouldWear {
 							t.Error("Writer ran before real wear outcome")
 						}
@@ -100,9 +125,25 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 							}
 							return fakeProviderResult{Text: "现在穿着那双短靴。"}
 						}
+						if unavailable {
+							wire := jsonString(payload["messages"])
+							if !strings.Contains(wire, "wardrobe_item_unavailable") || !strings.Contains(wire, "effect_applied") {
+								t.Error("Writer lost the actual rejected wear result when evidence_refs were omitted")
+							}
+						}
+						if writers > 1 && (scenario == "wear_unavailable_bad_reply" || scenario == "wear_unavailable_repair" || scenario == "wear_unavailable_fallback_repair") && len(arrayValue(payload["tools"])) != 0 {
+							t.Error("fact correction reopened tools")
+						}
+						if scenario == "wear_unavailable_bad_reply" || ((scenario == "wear_unavailable_repair" || scenario == "wear_unavailable_fallback_repair") && writers == 1) {
+							return fakeProviderResult{Text: "已经换好那双短靴了。"}
+						}
 						return fakeProviderResult{Text: "这次保持原来的穿着。"}
 					}
+					cognitionCalls++
 					if phase >= len(steps) {
+						if scenario == "wear_unavailable_bad_reply" || scenario == "wear_unavailable_check_error" {
+							return fakeProviderResult{Structured: validToolOnlyConversationFinal()}
+						}
 						t.Error("unexpected additional cognition request")
 						return fakeProviderResult{Status: 400}
 					}
@@ -146,6 +187,20 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 					}
 				})
 				result, err := app.handleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": self, "text": "如果愿意，请试一下衣柜里的那双鞋。", "idempotency_key": "r6-chat", "turn_id": "r6-chat", "attachment_refs": []any{}}, turnCallbacks{}, streaming)
+				if scenario == "wear_unavailable_bad_reply" || scenario == "wear_unavailable_check_error" {
+					var published int
+					if readErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND author_actor_id=$2`, conversation, self).Scan(&published); readErr != nil {
+						t.Fatal(readErr)
+					}
+					wantAttempts := 2
+					if scenario == "wear_unavailable_check_error" {
+						wantAttempts = 1
+					}
+					if err == nil || published != 0 || writers != wantAttempts || checks != wantAttempts || cognitionCalls != len(steps) {
+						t.Fatal("contradictory reply was not bounded and blocked before publication", err, published, writers, checks, cognitionCalls)
+					}
+					return
+				}
 				if err != nil {
 					t.Fatal("native chat chain failed", result, err)
 				}
@@ -153,8 +208,20 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 				_ = repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name='wardrobe.wear' AND result->>'status'='completed'`, self).Scan(&wears)
 				_ = repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, self).Scan(&moments)
 				wantWear, wantWriter, wantMoment := 1, 1, 0
-				if scenario == "refusal" || scenario == "wear_unavailable" || scenario == "same_batch_unavailable" {
+				if scenario == "refusal" || unavailable {
 					wantWear = 0
+				}
+				if scenario == "wear_unavailable_repair" || scenario == "wear_unavailable_fallback_repair" {
+					wantWriter = 2
+				}
+				if scenario == "wear_unavailable_fallback_repair" {
+					var mode, model string
+					if err := repo.Pool().QueryRow(ctx, `SELECT reply_metadata->>'reply_mode',reply_metadata->>'reply_model_ref' FROM public.conversation_messages WHERE conversation_id=$1 AND author_actor_id=$2`, conversation, self).Scan(&mode, &model); err != nil {
+						t.Fatal(err)
+					}
+					if mode != "legacy_fallback" || model != "r7-fallback" {
+						t.Fatal("fact correction lost effective Writer binding", mode, model)
+					}
 				}
 				if scenario == "after_moment" {
 					wantWriter, wantMoment = 2, 1

@@ -1,5 +1,47 @@
 package core
 
+import "context"
+
+// The Writer is a child of the current native loop. Optional model-selected
+// refs must not decide whether it learns that a just-attempted action failed.
+// Read the server-owned invocation/result pairs, never the model's arguments,
+// final reasoning, or unrelated historical outcomes.
+func (s *factOnlyReplyService) currentActionFacts(ctx context.Context, reply CapabilityInvocation) []map[string]any {
+	bridge, ok := adkCapabilityContext(ctx)
+	if !ok || bridge.Trace == nil || reply.CapabilityName != conversationReplyCapabilityName {
+		return nil
+	}
+	invocations, results := bridge.Trace.Snapshot()
+	authorized := map[string]CapabilityInvocation{}
+	registry := s.app.capabilityRegistryForContext(ctx)
+	for _, call := range invocations {
+		if call.Metadata.AuthorizationActorID != reply.Metadata.AuthorizationActorID ||
+			call.Metadata.FluctlightID != reply.Metadata.FluctlightID ||
+			call.Metadata.ConversationID != reply.Metadata.ConversationID || call.SourceFactID != reply.SourceFactID {
+			continue
+		}
+		tool, found := registry.Lookup(call.CapabilityName)
+		if !found || tool.Definition().Type != CapabilityTypeAction || call.CapabilityName == conversationReplyCapabilityName {
+			continue
+		}
+		authorized[call.CallID] = call
+	}
+	facts := []map[string]any{}
+	for _, result := range results {
+		call, found := authorized[result.CallID]
+		if !found || result.CapabilityName != call.CapabilityName {
+			continue
+		}
+		value := map[string]any{"capability_name": result.CapabilityName, "status": result.Status}
+		if result.ErrorCode != "" {
+			value["error_code"] = result.ErrorCode
+		}
+		value["observed"] = factOnlyFields(mapValue(result.Output), "disposition", "warning_code", "effect_applied", "mutation_committed", "handled", "retry_same_arguments")
+		facts = append(facts, map[string]any{"kind": "current_action_result", "value": value})
+	}
+	return facts
+}
+
 // Entity snapshots are not Writer inputs. In particular, a valid Goal ref can
 // point to execution advice; the Writer reads all visible Goals through its own
 // projection. Only typed statement/result facts need additional material here.
@@ -30,6 +72,8 @@ func factOnlyReplyToolFacts(facts []map[string]any) []map[string]any {
 		kind := stringValue(fact["kind"])
 		var value any
 		switch kind {
+		case "current_action_result":
+			value = factOnlyFields(mapValue(fact["value"]), "capability_name", "status", "error_code", "observed")
 		case "media_action_result":
 			value = factOnlyFields(mapValue(fact["value"]), "kind", "intent", "status", "error_code")
 		case "private_candidate_text":

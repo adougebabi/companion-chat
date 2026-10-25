@@ -614,9 +614,20 @@ export function createWorkspace() {
   }
   function checkpoint(owner, fid, request, label, operation) {
     const key = receiptKey(owner, fid),
-      rows = pointers(owner, fid).filter((r) => r.id !== request.id);
+      rows = pointers(owner, fid).filter((r) => r.id !== request.id &&
+        !(operation?.startsWith("wear-outfit:") && r.operation === operation));
     rows.push({ id: request.id, label, operation });
     sessionStorage.setItem(key, JSON.stringify(rows));
+  }
+  function updateCheckpoint(owner, fid, id, patch) {
+    const rows = pointers(owner, fid).map((row) => row.id === id ? {...row, ...patch} : row);
+    const latest = new Map();
+    rows.forEach((row, index) => {
+      if (row.operation?.startsWith("wear-outfit:")) latest.set(row.operation, index);
+    });
+    // Keep submission order when old checkpoints discover their outfit out of order.
+    sessionStorage.setItem(receiptKey(owner, fid), JSON.stringify(rows.filter((row, index) =>
+      !row.operation?.startsWith("wear-outfit:") || latest.get(row.operation) === index)));
   }
   function command(
     label,
@@ -634,7 +645,8 @@ export function createWorkspace() {
     const owner = state.session?.actorId,
       scope = JSON.stringify([owner, fid, operation]);
     const unresolved = state.operations.find(
-      (record) => record.fid === fid && record.operation === operation && record.requestUnresolved,
+      (record) => record.fid === fid && record.operation === operation &&
+        (record.requestUnresolved || (operation.startsWith("wear-outfit:") && record.status === "pending")),
     );
     if (unresolved) return unresolved;
     let viewGeneration = generation;
@@ -701,7 +713,7 @@ export function createWorkspace() {
         channels.delete(scope);
         if (!live()) return result;
         const request = result?.request;
-        record.response = request ? "请求已受理，等待她处理" : success;
+        record.response = request ? "请求已受理，等待处理" : success;
         record.status =
           request &&
           ["pending", "processing", "awaiting_goal"].includes(request.status)
@@ -795,6 +807,8 @@ export function createWorkspace() {
       record.requestStatus = request.status;
       if (!record.operation && request.kind === 'inventory_outfit' && typeof request.payload?.outfit_id === 'string')
         record.operation = 'wear-outfit:' + request.payload.outfit_id;
+      if (record.operation?.startsWith("wear-outfit:"))
+        updateCheckpoint(owner, fid, id, {operation: record.operation});
       if (["pending", "processing", "awaiting_goal"].includes(request.status)) {
         record.requestUnresolved = true;
         record.status = "pending";
@@ -808,10 +822,9 @@ export function createWorkspace() {
       }
       observations.delete(key);
       record.requestUnresolved = false;
-      sessionStorage.setItem(
-        receiptKey(owner, fid),
-        JSON.stringify(pointers(owner, fid).filter((r) => r.id !== id)),
-      );
+      const retainResult = record.operation?.startsWith("wear-outfit:");
+      if (retainResult) updateCheckpoint(owner, fid, id, {terminal: true});
+      else sessionStorage.setItem(receiptKey(owner, fid), JSON.stringify(pointers(owner, fid).filter((r) => r.id !== id)));
       record.status = ["completed", "accepted"].includes(request.status)
         ? "success"
         : "error";
@@ -820,7 +833,10 @@ export function createWorkspace() {
           ? ""
           : requestDecisionText(request);
       record.response = record.status === 'success'
-        ? request.result?.mutation_committed === false ? '请求已完成，目标状态已经满足，没有新增变更。' : request.status === 'accepted' ? '请求已接受，实际结果将继续更新。' : '请求已完成，可核对当前记录。'
+        ? request.status === 'accepted' ? '请求已接受，实际结果将继续更新。'
+          : request.result?.disposition === 'no_change'
+            ? retainResult ? '已经穿着这套搭配，本次无需换装。' : '目标状态已经满足，本次无需新增变更。'
+            : '请求已完成，可核对当前记录。'
         : '';
       record.actionText = "查看原请求";
       record.run = () => {
@@ -859,9 +875,12 @@ export function createWorkspace() {
       const key = JSON.stringify([owner, fid, pointer.id]);
       if (observations.has(key)) {
         const o = observations.get(key);
+        if (!state.operations.some((record) => record.fid === fid && record.requestId === pointer.id))
+          state.operations.push(o.record);
         void observeRequest(owner, fid, pointer.id, o.record, o.onSaved);
         continue;
       }
+      if (state.operations.some((record) => record.fid === fid && record.requestId === pointer.id)) continue;
       const onSaved = () => pointer.label === "换装" ? loadWardrobe() : load(state.page);
       const record = reactive({
         id: randomId(),
@@ -869,7 +888,7 @@ export function createWorkspace() {
         fid,
         label: pointer.label,
         operation: pointer.operation,
-        requestUnresolved: true,
+        requestUnresolved: !pointer.terminal,
         status: "pending",
         reason: "",
         run: () =>

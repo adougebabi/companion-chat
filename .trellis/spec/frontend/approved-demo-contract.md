@@ -34,6 +34,16 @@ domain status, reason and original diagnostic link. Re-reading results must
 never rerun the mutation. r6-wear-readback.test.mjs executes these transitions,
 including a genuinely recreated workspace and rendered production WardrobePage.
 
+R7 retains the latest request identity per Owner/character/outfit in sessionStorage
+after settlement, then re-reads that original request after refresh. Store only
+identity/routing/terminal marker, never cached business outcomes. Known pointers
+and legacy unbound pointers converge by original submission order, not GET finish
+order. Reattach an existing observation after an Owner round trip and avoid
+duplicate operation records. In-flight outfit submission also keeps one command
+identity before 202. Only completed+disposition=no_change means already wearing;
+accepted without a mutation remains accepted. Use the character/outfit names in
+wardrobe copy and accessible button names instead of demo numeric IDs/gender.
+
 The r4 follow-up in `docs/design/v62-r4-remediation.md` records production-shaped
 coverage: saved-setting status stays beside the button through receipt readback;
 unused timeout defaults to 120 seconds. Failed preparation successors explicitly

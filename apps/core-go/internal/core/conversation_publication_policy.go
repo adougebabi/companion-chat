@@ -32,6 +32,15 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
+	_, results := adkContext.Trace.Snapshot()
+	for _, result := range results {
+		if result.CapabilityName == conversationReplyCapabilityName &&
+			(result.ErrorCode == "reply_action_outcome_conflict" || result.ErrorCode == "reply_action_check_failed") {
+			// The draft already exhausted its bounded fact correction. Asking the
+			// parent again cannot retry this failed source or authorize publication.
+			return physicalModelRequestDecision{}, newCapabilityError(result.ErrorCode, false, errors.New(result.ErrorCode))
+		}
+	}
 	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil

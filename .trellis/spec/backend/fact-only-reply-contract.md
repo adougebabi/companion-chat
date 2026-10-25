@@ -96,6 +96,69 @@ the wear receipt and refreshed state. The Writer keeps authoritative current
 wearing_state/worn_items even with persona.detail installed; unrelated body
 details stay on demand. Never convert reply prose into wearing authority.
 
+R7 `action_execution_boundary` declares the current Writer expression stage and
+parent cognition's action responsibility. Writer-local tool visibility is not the
+character's whole capability catalogue; text chat does not disable authorized
+self-life actions. Both speech and parenthetical narration need current facts or
+actual receipts for persistent changes. Preserve the immutable expression
+protocol/hash and persona source while supplying these typed runtime facts.
+
+Current native action receipts are mandatory Writer facts, independent of optional
+evidence_refs. `factOnlyReplyService.currentActionFacts` reads the actual ADK
+invocation/result pair, matches authorization Actor, Fluctlight, conversation and
+source fact, and accepts only installed action definitions. It excludes queries,
+reply publication itself, model arguments, hidden reasoning and raw error detail.
+`current_action_result` preserves actual status/error plus disposition, warning_code,
+effect_applied and mutation_committed, including false. A handled failure must not
+become a bare suppressed status. Same-turn receipts may not yet exist in settled
+DB ActionOutcomes; do not substitute a DB-only recent-outcome read for this bridge.
+Regression checks the actual Writer request with no selected refs, both Generate
+and Stream and failed same-batch wear, then uses a real model to review the reply.
+
+## Scenario: Unsuccessful wardrobe action and reply publication
+
+### 1. Scope / Trigger
+An actual current wardrobe.wear failed/rejected or returned an unapplied handled
+receipt. No keyword classification of user requests or candidate prose.
+
+### 2. Signatures
+`replyNeedsActionCheck`, `checkReplyActionResult`, `ensureReplyActionConsistency`,
+`adoptReplyActionCorrection`; formal `reply_action_check` uses cognitive_assessment,
+no Tools and a closed `{consistent:boolean,reason:string}` contract.
+
+### 3. Contracts
+Review only actual receipt facts, current state and an unpublished candidate;
+do not roleplay or execute actions. At most one tool-free Writer correction and
+two checks. Reuse the effective frozen Writer assignment/mode, including fallback.
+Retain media, prior candidate/style audit and consumed repair count; v5 correction
+must still pass its final style gate without another style repair. Legacy style
+contracts remain legacy. Failed/unavailable review never publishes. The existing
+failed-draft fence plus publication physical policy stops further parent model
+calls for reply_action_outcome_conflict/reply_action_check_failed.
+
+### 4. Validation & Error Matrix
+No unsuccessful wear / no_change / accepted → no extra review. Consistent text →
+publish. Inconsistent → one correction then recheck. Still inconsistent or review
+error → failed draft, zero message, no repeated parent model request. Successful
+wear and unrelated domains keep their previous paths.
+
+### 5. Good / Base / Bad Cases
+Good: unavailable garment + truthful refusal; or reject a fabricated completion.
+Base: a normal successful wear does not incur this review. Bad: treat a test exit
+0 as semantic proof when the database stayed unchanged but the reply lied.
+
+### 6. Tests Required
+Real PG Generate/Stream cover valid failure prose, correction, persistent conflict,
+checker HTTP error, fixed call counts, no publication and effective fallback metadata.
+Unit checks scope triggering, style/legacy boundaries and frozen media. Live tests
+distinguish truthful response quality from blocked_inconsistent_draft; the latter
+proves blocked publication, not that the model learned to express the failure.
+
+### 7. Wrong vs Correct
+Wrong: pass only model-selected refs, trust all generated prose, or loop after a
+failed draft. Correct: mandatory actual receipts, scoped semantic review and a
+bounded publication failure. A probabilistic reviewer is not a universal guarantee.
+
 ## Scenario: Local fact views and native reply v2 (2026-10-14)
 
 ### 1. Scope / Trigger

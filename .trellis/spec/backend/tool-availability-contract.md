@@ -14,6 +14,15 @@ no-effect claims, stale targets and replay. Returning a pre-scripted wear call
 when its schema was absent is not end-to-end evidence. See
 `docs/design/v62-r6-wear-remediation.md` and `r6_wear_contract_test.go`.
 
+R7 separates protocol reachability from model behavior. A scripted Provider that
+chooses catalog/inspect/wear only proves execution of that script. Live acceptance
+must start with natural language, use actual physical schemas and returned IDs,
+and compare the final worn set with the prior set plus the requested change.
+Unknown tool names require an unfiltered directory read before named loading;
+listing/loading alone never fulfills an action. Owner accepted/no-change still
+requires the real target-scoped receipt. Test unavailable items and discussion
+without wearing; review the actual text for false completion, not just keywords.
+
 ## 1. Scope / Trigger
 
 Applies to every installed Tool, including the 48 builtin names and private

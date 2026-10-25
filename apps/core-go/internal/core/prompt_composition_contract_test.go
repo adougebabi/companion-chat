@@ -16,7 +16,7 @@ import (
 func TestEveryFormalAgentSharesLosslessProtocolComposition(t *testing.T) {
 	// Deliberately explicit: a new Agent must be included in the documented
 	// composition matrix, rather than silently inheriting all conversation data.
-	ids := strings.Fields("conversation_cognition conversation_reply wake_up takeover_judge takeover_reply wardrobe_preparation initialization persona_compilation media_prompt media_quality visual_identity_vision visual_identity_patch visual_identity conversation_summary schedule_generation native_cognition studio_assistant studio_text_preview npc_response daily_review diary_material diary_expression persistent_switch reflection schedule_replan goal_planner goal_evaluation virtual_activity_result")
+	ids := strings.Fields("conversation_cognition conversation_reply reply_action_check wake_up takeover_judge takeover_reply wardrobe_preparation initialization persona_compilation media_prompt media_quality visual_identity_vision visual_identity_patch visual_identity conversation_summary schedule_generation native_cognition studio_assistant studio_text_preview npc_response daily_review diary_material diary_expression persistent_switch reflection schedule_replan goal_planner goal_evaluation virtual_activity_result")
 	if len(ids) != len(FormalAgentDefinitions()) {
 		t.Fatal("update the Agent composition inventory and matrix")
 	}

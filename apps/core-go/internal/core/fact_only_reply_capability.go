@@ -363,6 +363,7 @@ func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocat
 			toolFacts = append(toolFacts, fact)
 		}
 	}
+	toolFacts = append(toolFacts, s.currentActionFacts(ctx, invocation)...)
 	return projection, toolFacts, nil
 }
 
@@ -415,6 +416,16 @@ func (s *factOnlyReplyService) generateFromProjection(ctx context.Context, invoc
 		return ReplyDraft{}, err
 	}
 	draft, err := s.app.runReplyWithFailurePolicy(ctx, input, run)
+	if err != nil {
+		return draft, err
+	}
+	run.mu.Lock()
+	if run.EffectiveAssignment != nil {
+		input.Assignment = *run.EffectiveAssignment
+		input.Mode = run.EffectiveMode
+	}
+	run.mu.Unlock()
+	draft, err = s.ensureReplyActionConsistency(ctx, input, draft)
 	if err != nil {
 		return draft, err
 	}

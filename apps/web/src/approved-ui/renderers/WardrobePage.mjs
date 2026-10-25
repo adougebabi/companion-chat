@@ -127,7 +127,7 @@ function renderWardrobePageBody(__view) {
       active: M(__view.i) === x
     }),
     onClick: R => __view.i.value = x
-  }, v(x === "为她搭配" && M(__view.character).id === 1 ? "为他搭配" : x))), 64))]), M(__view.i) === "为她搭配" ? (p(), g(O, {
+  }, v(x === "为她搭配" ? "为" + M(__view.character).name + "搭配" : x))), 64))]), M(__view.i) === "为她搭配" ? (p(), g(O, {
     key: 0
   }, [o("div", wf, [o("label", null, [T[20] || (T[20] = Z("先选标签 ", -1)), pe(o("select", {
     "onUpdate:modelValue": T[0] || (T[0] = x => __view.r.value = x)
@@ -224,6 +224,7 @@ function renderWardrobePageBody(__view) {
     disabled:true, title:"服务端保留方案及其历史；可编辑或重命名"
   }, "删除")])]), approvedButtonVNode({
     class: "button",
+    "aria-label": "请" + M(__view.character).name + "换上「" + x.name + "」",
     disabled: M(__view.n),
     onClick: R => __view.V(x)
   }, v(M(__view.n) && __view.t.value === "wear" && __view.s.value === x.id ? "处理中…" : "请" + M(__view.character).name + "换上"))]),me(__view.ActionFeedback,{labels:["换装"],operation:"wear-outfit:"+x.id,showStatus:true}), __view.c.value === x.id ? (p(), g("p", Qf, v(__view.q(x)), 1)) : X("", !0)]))), 128)), M(__view.character).outfits.length ? X("", !0) : (p(), g("p", Xf, "还没有方案，去搭配一套吧。"))], 64)) : (p(), g(O, {

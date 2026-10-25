@@ -472,7 +472,7 @@ onUnmounted(() => {
             ><a
               class="text-button"
               :href="'#/c/' + encodeURIComponent(fid) + '/life/wardrobe'"
-              >她的衣柜 ↗</a
+              >查看衣柜 ↗</a
             >
           </div>
         </section>

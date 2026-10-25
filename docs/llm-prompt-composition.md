@@ -1,6 +1,6 @@
 # LLM 提示词组成清单
 
-更新：2026-10-23。代码权威是 `apps/core-go/internal/core/formal_agents.go`
+更新：2026-10-25。代码权威是 `apps/core-go/internal/core/formal_agents.go`
 与各 typed task，规范在 [Prompt Composition Contract](../.trellis/spec/backend/prompt-composition-contract.md)。
 
 ## 统一构造
@@ -33,7 +33,7 @@
   是 `historical_conversation` 数据，不模拟当前用户发来旧请求。
 - 表中“0”表示不追加通用私聊；Goal、日记、摘要的显式证据可包含源消息。
 
-## 28 个正式 Agent
+## 29 个正式 Agent
 
 表内文件均在 `apps/core-go/internal/core/`；这些文件与函数可用于定位具体入口。
 
@@ -41,6 +41,7 @@
 | --- | --- | --- | --- |
 | conversation_cognition | 私聊认知协议 + Working Persona + 私聊 D/M/S + H + 当前输入；legacy 与 fact-only 投影不同 | H | cognition_agent.go；conversation_runtime.go |
 | conversation_reply | 私聊表达协议 + Working Persona + 独立事实视图/能力边界/实际 Tool facts + M/S + H + 当前输入 | H | reply_context.go；reply_provider.go |
+| reply_action_check | 换装未生效时核验未发送正文；实际动作回执 + 当前状态 + 候选正文，无人格扮演，无工具 | 0 | reply_action_consistency.go |
 | wake_up | 专属完整唤醒协议 + Working Persona + D/M/S + 历史资料 H + 本次唤醒事件 | H，作为历史数据 | agent_result_adapter.go；capability_prompt_policy.go |
 | takeover_judge | Judge 协议 + 本轮 user/candidate/接管规则/控制与关系事实 + 可选 recent references | 无全量 H/M | turn_takeover.go；conversation_runtime.go |
 | takeover_reply | 接管任务规则 + caller 提供的选定人格、上下文及 messages + 授权 Tools | 取决于 caller | conversation_runtime.go |
@@ -75,6 +76,24 @@
 生活/关系/目标/能力/真实工具事实 + 检索记忆/S + 按既有会话范围取得的 H。
 H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制父 Agent 草稿或
 把私聊全文作为公开动态。
+
+R7 换装回归明确阶段职责：fact-only `conversation_cognition` 自主决定是否接受
+本人生活动作；接受且可执行时先发现、查询和执行，再交 `conversation.reply`。
+未知能力名先空参数查询 catalog，不能猜名字。目录加载和库存查询不算执行。
+Writer 的当前事实视图增加 `action_execution_boundary`：当前为表达阶段、
+其工具不是角色完整目录、文字聊天不禁用本人生活动作、叙述不能改写状态。
+当前人格原文、旧 Writer protocol/hash 和原生工具授权仍使用原契约。
+Owner 换装子任务即使目标看似已满足，也由真实 wear Tool 返回 no_change；
+仅有 accepted 文本或目录回执不能结算为换装成功。
+私聊 Writer 的 `tool_facts.current_action_result` 还直接读取本轮实际原生动作
+回执，不依赖父模型选填 evidence_refs。按 owner/角色/会话/source 配对，
+保留 handled 的 warning_code、disposition 与 effect_applied/mutation_committed=false。
+查询、参数、父推理、原始错误 detail 不进入这条通道。本轮未结算的失败不能
+指望历史 ActionOutcome 数据库读取自动补齐。
+本轮存在未生效的 wardrobe.wear 时，reply_action_check 使用已配置的认知模型
+核验待发布正文；无冲突直接发布，有冲突只允许原 Writer 做一次无工具纠正，
+再核验仍失败或核验服务出错则不发布。已有草稿失败栅栏阻止重做；父循环在
+下一次物理模型调用前立即结束。成功、no_change、纯讨论不增加此检查。
 
 ## 共享 Agent 子任务与辅助调用
 
@@ -122,12 +141,16 @@ H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制�
 
 ## 验证入口
 
-- `prompt_composition_contract_test.go`：28 Agent 协议边界、原文与图片保真、
+- `prompt_composition_contract_test.go`：29 Agent 协议边界、原文与图片保真、
   必要引用、字段白名单、源事件独立、schema/领域数据保护、日程去重。
 - `working_memory_test.go` 与 `prompt_context_assembler_test.go`：同来源不同
   事实、完整对话组、摘要覆盖和大输入保留。
 - ordinary structured/stream、Writer、native 第三次工具结果进入第四轮的
   实际 HTTP 请求测试：没有 max_tokens/max_completion_tokens，输入完整。
 - `provider_prompt_cache_prefix_test.go`：稳定事实前缀与变化后的动态后缀。
+- `r7_live_wear_test.go`：显式启用本地真实模型与一次性 PostgreSQL，从自然语言
+  请求进入生产 handleTurn，模型自主发现和执行；核对实际穿着、其他衣物保留、
+  原生回执和重载读回。含动态复合、不可用、只讨论、SSE 与 Owner no_change。
+  不能用 scripted Provider 或回复包含衣物名称替代此验收；还需审阅真实正文语义。
 
 任何提示词精简都不能通过 token 上限、按估算截断或预算拒绝实现。

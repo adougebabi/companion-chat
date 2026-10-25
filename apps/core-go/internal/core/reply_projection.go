@@ -60,6 +60,14 @@ func privateChatCommunicationView(projection ContextProjection) map[string]any {
 
 func applyPrivateReplyView(view *factOnlyContextView, projection ContextProjection, capabilities map[string]any) {
 	view.Facts["communication_state"] = privateChatCommunicationView(projection)
+	view.Facts["action_execution_boundary"] = map[string]any{
+		"current_stage":                           "reply_expression",
+		"life_action_executor":                    "parent_conversation_cognition",
+		"writer_tools_are_full_character_catalog": false,
+		"text_chat_disables_self_life_actions":    false,
+		"narration_changes_state":                 false,
+		"completion_source":                       "当前权威状态或本轮实际工具回执；仅有意愿、查询、失败或历史台词不证明已经行动。正文和括号动作都不能代替执行。",
+	}
 	state := mapValue(view.Facts["current_state"])
 	data := mapValue(state["data"])
 	if _, exists := data["appearance"]; exists && capabilities["persona_detail_registered"] == true {
