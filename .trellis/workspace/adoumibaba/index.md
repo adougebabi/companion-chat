@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 64
-- **Last Active**: 2026-10-24
+- **Total Sessions**: 65
+- **Last Active**: 2026-10-25
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~29 | Active |
+| `journal-2.md` | ~51 | Active |
 | `journal-1.md` | ~1994 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 65 | 2026-10-25 | v6.2 r6 换装执行与真实穿着读回 | `4b85c1be` | `codex/v62-r3-retest` |
 | 64 | 2026-10-24 | v6.2 r5 repeated Moment publication and wardrobe contracts | `37f99441` | `codex/v62-r3-retest` |
 | 63 | 2026-10-24 | v6.2 r4 diagnostic replay and UX recovery | `b89d16b6` | `codex/v62-r3-retest` |
 | 62 | 2026-10-24 | v6.2 r3 UX recovery and bounded background failures | `cc8da1b4` | `codex/v62-r3-retest` |

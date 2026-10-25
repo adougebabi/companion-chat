@@ -27,3 +27,25 @@ Traced r5 repeated native publication:45 cognition requests in original correlat
 ### Status
 
 [OK] **Completed**
+
+
+## Session 65: v6.2 r6 换装执行与真实穿着读回
+<!-- trellis-session: v=2 fp=ddbc843bb12fe468 -->
+
+**Date**: 2026-10-25
+**Task**: v6.2 r6 换装执行与真实穿着读回
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+修复 Owner 换装 scoped registry 漏装 catalog 导致实际零工具；保留 Moment 之后的合法动作并阻断同批回复抢跑。统一真实穿着读面、此刻冷启动读取、缺字段保留与逐套装反馈；查询失败保留未决请求身份，终态原因和读回错误分离。真实 PG/native/race、443 项工作区测试、类型/生成/生产与独立 mock 构建通过；Go 全量保留六项既有基线失败。三个独立只读复核已完成，浏览器验证完成。r6 记忆、图片依赖日程、世界场地购物等其他问题未在本轮关闭。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4b85c1be` | fix: restore wardrobe execution and authoritative wear readback |
+
+### Status
+
+[OK] **Completed**
