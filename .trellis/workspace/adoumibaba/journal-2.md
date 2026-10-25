@@ -71,3 +71,25 @@ Traced r5 repeated native publication:45 cognition requests in original correlat
 ### Status
 
 [OK] **Completed**
+
+
+## Session 67: v6.2 R8 world and conversation recovery
+<!-- trellis-session: v=2 fp=9550916184f4a242 -->
+
+**Date**: 2026-10-25
+**Task**: v6.2 R8 world and conversation recovery
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+Persisted world venue categories and preserved edit identity; added strict JSON-container recovery and precise shop-place feedback; serial bootstrap now prepares schedule before images; added scoped self-Moment reads and Writer facts; fixed segment participant labels, male unknown fields and neutral chat feedback. Web 404 + client 43, type/build/vet and isolated PG/race passed; Go retains six known baseline failures. Real local Qwen/Cydonia full chat shopping acceptance NOT passed; successful Moment read fragment and all failure limits are recorded in docs/design/v62-r8-remediation.md. No business DB or original workspace changes.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d5530d06` | fix: repair r8 world persistence and capability recovery |
+
+### Status
+
+[OK] **Completed**
