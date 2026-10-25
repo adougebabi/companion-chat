@@ -49,3 +49,25 @@ Traced r5 repeated native publication:45 cognition requests in original correlat
 ### Status
 
 [OK] **Completed**
+
+
+## Session 66: v6.2 r7 本机模型换装回归与不实回复发布保护
+<!-- trellis-session: v=2 fp=703eb6b41b3cb2c5 -->
+
+**Date**: 2026-10-25
+**Task**: v6.2 r7 本机模型换装回归与不实回复发布保护
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+真实调用本机 MLX 模型和一次性 PostgreSQL，复现口头换好但未执行及失败回执未进入 Writer。补齐认知执行职责、当前原生动作回执与失败换装的条件事实核验；一次纠正仍冲突则零发布并立即结束，保留文体/候选链/fallback 绑定。正向聊天、动态后换装、SSE、只讨论、已穿套装有实际模型证据；不可用场景明确计为 blocked_inconsistent_draft，不夸大模型正文质量。页面保留每套方案最近请求身份，修复刷新恢复、202 前重复提交、旧 pointer 乱序、账号切回、no_change 和具名按钮。444 项工作区测试、真实 SQL/race、类型/生成/生产/mock 构建及 Go vet/build通过；Go 全量仍有六项既有基线失败。Haiku 部署及购物/世界/记忆/日程等其他问题未在本轮关闭。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `55db2cb5` | fix: ground wardrobe replies in live execution results |
+
+### Status
+
+[OK] **Completed**
