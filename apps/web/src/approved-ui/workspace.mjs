@@ -27,6 +27,7 @@ import { errorMessage } from "../v3/domain-presentation.mjs";
 import { profileSnapshotFromDetail } from "../v3/proto/data/profile.js";
 import { scheduleProjection } from "./presentation.mjs";
 import { userInstant } from "../v3/presentation-time.mjs";
+import { requestDecisionText } from '../v3/proto/components/request-failure.js';
 export const WorkspaceKey = Symbol("approved-workspace");
 export const useWorkspace = () => {
   const value = inject(WorkspaceKey);
@@ -403,6 +404,8 @@ export function createWorkspace() {
         inventoryClient.outfits(fid),
         inventoryClient.tags(fid),
       ]);
+      if (!Array.isArray(wearing?.worn_items) || wearing.worn_items.some(item=>!item||typeof (item.item_id||item.id)!=='string'||typeof item.slot!=='string'))
+        throw Error("当前穿着未能完整读回，已保留上次确认的记录，请重新读取。");
       const all = library.items || [];
       let cursor = library.next_cursor,
         seen = new Set();
@@ -421,7 +424,7 @@ export function createWorkspace() {
       c.wearing = Object.fromEntries(
         slots.map((s) => [
           s,
-          (wearing.worn_items || [])
+          wearing.worn_items
             .filter(
               (i) => (slotNames[i.slot] || slotNames[i.clothing_type]) === s,
             )
@@ -609,10 +612,10 @@ export function createWorkspace() {
       return [];
     }
   }
-  function checkpoint(owner, fid, request, label) {
+  function checkpoint(owner, fid, request, label, operation) {
     const key = receiptKey(owner, fid),
       rows = pointers(owner, fid).filter((r) => r.id !== request.id);
-    rows.push({ id: request.id, label });
+    rows.push({ id: request.id, label, operation });
     sessionStorage.setItem(key, JSON.stringify(rows));
   }
   function command(
@@ -630,6 +633,10 @@ export function createWorkspace() {
   ) {
     const owner = state.session?.actorId,
       scope = JSON.stringify([owner, fid, operation]);
+    const unresolved = state.operations.find(
+      (record) => record.fid === fid && record.operation === operation && record.requestUnresolved,
+    );
+    if (unresolved) return unresolved;
     let viewGeneration = generation;
     const live = () => isCurrent(owner, fid) && generation === viewGeneration;
     let channel = channels.get(scope);
@@ -650,7 +657,7 @@ export function createWorkspace() {
             throw error;
           }
           if (result?.request?.id && state.session?.actorId === owner)
-            checkpoint(owner, fid, result.request, label);
+            checkpoint(owner, fid, result.request, label, operation);
           return result;
         },
       });
@@ -660,6 +667,7 @@ export function createWorkspace() {
         id: randomId(),
         fid,
         label,
+        operation,
         character: current.value.name,
         input: safeText(value),
         status: "pending",
@@ -701,6 +709,7 @@ export function createWorkspace() {
             : "success";
         if (request) {
           record.requestId = request.id;
+          record.requestUnresolved = true;
           void observeRequest(owner, fid, request.id, record, onSaved);
         } else {
           await onSaved?.(result);
@@ -783,7 +792,11 @@ export function createWorkspace() {
     try {
       const request = await lifeClient.request(fid, id);
       if (!isCurrent(owner, fid)) return;
+      record.requestStatus = request.status;
+      if (!record.operation && request.kind === 'inventory_outfit' && typeof request.payload?.outfit_id === 'string')
+        record.operation = 'wear-outfit:' + request.payload.outfit_id;
       if (["pending", "processing", "awaiting_goal"].includes(request.status)) {
+        record.requestUnresolved = true;
         record.status = "pending";
         const timer = setTimeout(() => {
           timers.delete(timer);
@@ -794,6 +807,7 @@ export function createWorkspace() {
         return;
       }
       observations.delete(key);
+      record.requestUnresolved = false;
       sessionStorage.setItem(
         receiptKey(owner, fid),
         JSON.stringify(pointers(owner, fid).filter((r) => r.id !== id)),
@@ -804,18 +818,32 @@ export function createWorkspace() {
       record.reason =
         record.status === "success"
           ? ""
-          : request.decision_reason ||
-            request.result?.reason ||
-            "本次请求未完成，请查看原请求";
+          : requestDecisionText(request);
+      record.response = record.status === 'success'
+        ? request.result?.mutation_committed === false ? '请求已完成，目标状态已经满足，没有新增变更。' : request.status === 'accepted' ? '请求已接受，实际结果将继续更新。' : '请求已完成，可核对当前记录。'
+        : '';
       record.actionText = "查看原请求";
       record.run = () => {
         location.hash = "#/diag/request/" + encodeURIComponent(id);
       };
-      await onSaved?.(request);
+      if (onSaved) {
+        record.refreshResult = async () => {
+          if (!isCurrent(owner, fid)) return;
+          record.readbackError = "";
+          try {
+            await onSaved(request);
+          } catch (error) {
+            if (isCurrent(owner, fid))
+              record.readbackError = "请求状态已确认，但页面结果读回失败：" + errorMessage(error);
+          }
+        };
+        await record.refreshResult();
+      }
     } catch (error) {
       if (isCurrent(owner, fid)) {
         record.status = "error";
-        record.reason = errorMessage(error);
+        record.reason = "请求已受理，处理状态暂未确认，请恢复查询原请求：" + errorMessage(error);
+        record.actionText = "恢复查询原请求";
         record.run = () => observeRequest(owner, fid, id, record, onSaved);
       }
     } finally {
@@ -834,22 +862,21 @@ export function createWorkspace() {
         void observeRequest(owner, fid, pointer.id, o.record, o.onSaved);
         continue;
       }
+      const onSaved = () => pointer.label === "换装" ? loadWardrobe() : load(state.page);
       const record = reactive({
         id: randomId(),
         requestId: pointer.id,
         fid,
         label: pointer.label,
+        operation: pointer.operation,
+        requestUnresolved: true,
         status: "pending",
         reason: "",
         run: () =>
-          observeRequest(owner, fid, pointer.id, record, () =>
-            load(state.page),
-          ),
+          observeRequest(owner, fid, pointer.id, record, onSaved),
       });
       state.operations.push(record);
-      void observeRequest(owner, fid, pointer.id, record, () =>
-        load(state.page),
-      );
+      void observeRequest(owner, fid, pointer.id, record, onSaved);
     }
   }
   document.addEventListener("visibilitychange", resumeRequests);
@@ -871,7 +898,9 @@ export function createWorkspace() {
       if (page === "聊天") {
         await detail();
         await loadWardrobe();
-      } else if (["此刻", "日程", "目标", "日记", "记忆"].includes(page))
+      } else if (page === "此刻")
+        await Promise.allSettled([loadLife(),loadWardrobe()]);
+      else if (["日程", "目标", "日记", "记忆"].includes(page))
         await loadLife();
       else if (page === "角色详情") await detail();
       else if (page === "衣柜") await loadWardrobe();

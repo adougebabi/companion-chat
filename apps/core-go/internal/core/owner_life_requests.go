@@ -312,7 +312,7 @@ func validateOwnerScheduleRequestPlan(request, plan map[string]any) error {
 }
 
 func (a *App) ownerLifeRegistry(owner, fid, kind string, request map[string]any) (*CapabilityRegistry, error) {
-	names := []string{wardrobeInspectCapabilityName, intentionInspectCapabilityName, "schedule.inspect"}
+	names := []string{capabilityCatalogName, wardrobeInspectCapabilityName, intentionInspectCapabilityName, "schedule.inspect"}
 	if kind == "moment_suggestion" {
 		names = append(names, "moment.publish")
 	}
@@ -385,6 +385,7 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 	if kind == "moment_suggestion" {
 		rules = append(rules, "This request only suggests publishing a feed Moment. You may reject or defer. To accept call moment.publish once; the independent persona Writer decides its own text. Suggested text is a topic, never a factual claim or a mandatory draft. Core binds the request and selected attachments. It does not create a conversation, move anyone or establish acquaintance.")
 	}
+	rules = append(rules, "The final response has exactly decision (accepted, rejected, or deferred) and reason (a nonempty short public explanation). Do not emit event_type, action_status, effects, or mutation_committed; Core derives execution state from real Tool receipts, not from the final response.")
 	input := jsonString(map[string]any{"event_type": ownerLifeRequestFactType, "kind": kind, "request": ownerLifePromptView(kind, request)})
 	definitions := capabilityCatalog(registry, CapabilitySurfaceNativeCognition)
 	schema := ownerLifeDecisionSchema()

@@ -139,6 +139,7 @@ function renderWardrobePageBody(__view) {
   }).join("、") || "未选择"), 1)]), o("div", Sf, [(p(!0), g(O, null, oe(M(__view.character).garments.filter(R => R.type === x), R => {
     var ye;
     return p(), approvedButtonBlock({
+      "aria-label": R.name,
       disabled: !__view.r.value,
       title: __view.r.value ? void 0 : "请先选择标签",
       class: ge(["choice", {
@@ -225,7 +226,7 @@ function renderWardrobePageBody(__view) {
     class: "button",
     disabled: M(__view.n),
     onClick: R => __view.V(x)
-  }, v(M(__view.n) && __view.t.value === "wear" && __view.s.value === x.id ? "处理中…" : "请" + M(__view.character).name + "换上"))]), __view.c.value === x.id ? (p(), g("p", Qf, v(__view.q(x)), 1)) : X("", !0)]))), 128)), M(__view.character).outfits.length ? X("", !0) : (p(), g("p", Xf, "还没有方案，去搭配一套吧。"))], 64)) : (p(), g(O, {
+  }, v(M(__view.n) && __view.t.value === "wear" && __view.s.value === x.id ? "处理中…" : "请" + M(__view.character).name + "换上"))]),me(__view.ActionFeedback,{labels:["换装"],operation:"wear-outfit:"+x.id,showStatus:true}), __view.c.value === x.id ? (p(), g("p", Qf, v(__view.q(x)), 1)) : X("", !0)]))), 128)), M(__view.character).outfits.length ? X("", !0) : (p(), g("p", Xf, "还没有方案，去搭配一套吧。"))], 64)) : (p(), g(O, {
     key: 2
   }, [o("div", ep, [pe(o("select", {
     "onUpdate:modelValue": T[7] || (T[7] = x => __view.w.value = x),
@@ -315,7 +316,8 @@ function renderWardrobePageBody(__view) {
     })
   }, "确认删除")])])])) : X("", !0), __view.S.value ? X("", !0) : (p(), Ae(__view.ActionFeedback, {
     key: 5,
-    labels: ["衣柜", "换装"]
+    labels: ["衣柜", "换装"],
+    excludeOperationPrefix: M(__view.i) === "方案库" ? "wear-outfit:" : ""
   }))], 64));
 }
 

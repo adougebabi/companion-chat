@@ -1,5 +1,19 @@
 # Tool Availability Contract
 
+## R6: scoped discovery must survive narrowed registries
+
+An Owner life request using deferred tool disclosure must install the read-only
+capability.catalog in its scoped registry. Discovery reads that registry, never
+the global mutation catalogue. Exact-target action wrappers, CAS and refusal
+remain unchanged. A registry with no public baseline and an empty loaded window
+otherwise silently offers zero Tools, even when its text mentions wardrobe.wear.
+
+Native Provider fixtures must check the actual outgoing tools before returning
+a ToolCall. Test discovery→load→execution→durable receipt→readback, plus rejection,
+no-effect claims, stale targets and replay. Returning a pre-scripted wear call
+when its schema was absent is not end-to-end evidence. See
+`docs/design/v62-r6-wear-remediation.md` and `r6_wear_contract_test.go`.
+
 ## 1. Scope / Trigger
 
 Applies to every installed Tool, including the 48 builtin names and private

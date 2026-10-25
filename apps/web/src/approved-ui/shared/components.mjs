@@ -24,13 +24,14 @@ export const CurrentOutfit = defineComponent({
     return renderCurrentOutfit({
       props,
       character: workspace.current,
+      readStatus: computed(()=>workspace.state.errors?.wardrobe ? '穿着读取未完成，保留上次确认的记录。' : workspace.state.loading?.wardrobe ? '正在读取实际穿着…' : ''),
       t: () => {
         workspace.state.outfitTab = "为她搭配";
         workspace.navigate("衣柜");
       },
       outfitNames: (character, slot) =>
-        (character.wearing[slot] || [])
-          .map((id) => character.garments.find((g) => g.id === id)?.name)
+        !Array.isArray(character._wardrobe?.wearing?.worn_items) ? '状态待读取' : (character.wearing[slot] || [])
+          .map((id) => character.garments.find((g) => g.id === id)?.name || character._wardrobe.wearing.worn_items.find(item=>(item.item_id||item.id)===id)?.description || '衣物名称待读取')
           .filter(Boolean)
           .join("、") || "未登记",
     });
@@ -39,7 +40,7 @@ export const CurrentOutfit = defineComponent({
 /** Inline failure feedback reuses the original operation's retry identity. */
 export const ActionFeedback = defineComponent({
   name: "ActionFeedback",
-  props: { labels: { type: Array, required: true } },
+  props: { labels: { type: Array, required: true },operation:{type:String,default:''},excludeOperationPrefix:{type:String,default:''},showStatus:Boolean },
   setup(props) {
     const workspace = useWorkspace();
     const latest = computed(() =>
@@ -47,14 +48,23 @@ export const ActionFeedback = defineComponent({
         .filter(
           (r) =>
             r.fid === workspace.state.selectedId &&
-            props.labels.includes(r.label),
+            props.labels.includes(r.label) && (!props.operation || r.operation===props.operation) &&
+            (!props.excludeOperationPrefix || !r.operation?.startsWith(props.excludeOperationPrefix)),
         )
         .at(-1),
     );
     const render = renderActionFeedback({ s: latest });
     return (context, cache) =>
       h(Fragment, [
+        props.showStatus && latest.value && latest.value.status !== 'error'
+          ? h('p',{class:'muted',role:'status','data-testid':'request-status'},latest.value.status === 'pending' ? '换装请求已受理，等待处理；当前穿着以实际记录为准。' : latest.value.response || '请求已处理，请核对实际结果。') : null,
         render(context, cache),
+        latest.value?.readbackError
+          ? h("p", { class: "inline-error", role: "alert" }, [
+              latest.value.readbackError + " ",
+              h("button", { class: "text-button", onClick: () => latest.value.refreshResult() }, "重新读取页面结果"),
+            ])
+          : null,
         latest.value?.originalInput
           ? h("details", { class: "inline-error" }, [
               h("summary", "查看等待核对的原提交"),

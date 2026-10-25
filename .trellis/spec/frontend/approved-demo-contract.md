@@ -17,6 +17,23 @@ isolated demo builds. This is the current visual and interaction baseline for
 the main workspace, superseding the earlier Pen/navigation review gates.
 The user explicitly opted out of creating more Trellis tasks.
 
+R6 wearing follow-up: cold entry/refresh of 此刻 loads actual wardrobe state
+independently of other life modules. Missing/malformed worn_items is a failed
+read, not an empty outfit; keep the last confirmed projection. Valid [] remains
+authoritative empty. Resolve a worn description from its actual read row when
+its ID is absent from the current catalogue. Outfit request receipts/feedback
+bind to the original operation and target card, retain original request links,
+and distinguish business failure from a post-commit readback failure.
+An accepted request sets requestUnresolved until a domain terminal status is
+observed. A status transport error retains its receipt identity, blocks another
+wear submission and offers recovery of the same request. Restored legacy
+checkpoints also remain unresolved; recover their operation from the actual
+inventory_outfit payload. Unknown-target errors stay visible in page feedback.
+Terminal readback errors use readbackError/refreshResult separately from the
+domain status, reason and original diagnostic link. Re-reading results must
+never rerun the mutation. r6-wear-readback.test.mjs executes these transitions,
+including a genuinely recreated workspace and rendered production WardrobePage.
+
 The r4 follow-up in `docs/design/v62-r4-remediation.md` records production-shaped
 coverage: saved-setting status stays beside the button through receipt readback;
 unused timeout defaults to 120 seconds. Failed preparation successors explicitly

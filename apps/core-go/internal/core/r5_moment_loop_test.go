@@ -56,7 +56,7 @@ func r5MomentFixture(t *testing.T, suffix string, router *fakeProviderRouter) (c
 	return ctx, repo, app, owner, self, conversation
 }
 
-func TestR5MomentPublicationLeavesOnlyAcknowledgementGenerateAndStream(t *testing.T) {
+func TestR5MomentPublicationStopsRepeatGenerateAndStream(t *testing.T) {
 	for _, stream := range []bool{false, true} {
 		for _, hostile := range []bool{false, true} {
 			t.Run(fmt.Sprint(stream, hostile), func(t *testing.T) {
@@ -77,8 +77,16 @@ func TestR5MomentPublicationLeavesOnlyAcknowledgementGenerateAndStream(t *testin
 					name, args := "moment.publish", map[string]any{}
 					if cognition == 2 {
 						tools := arrayValue(payload["tools"])
-						if len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), conversationReplyCapabilityName) {
-							t.Error("committed Moment did not narrow unfinished acknowledgement")
+						hasReply := false
+						for _, tool := range tools {
+							name := stringValue(mapValue(mapValue(tool)["function"])["name"])
+							if capabilitycontract.CapabilityNamesMatch(name, "moment.publish") {
+								t.Error("completed Moment still exposed")
+							}
+							hasReply = hasReply || capabilitycontract.CapabilityNamesMatch(name, conversationReplyCapabilityName)
+						}
+						if !hasReply {
+							t.Error("private reply no longer available")
 						}
 						if !hostile {
 							name = conversationReplyCapabilityName
@@ -178,7 +186,7 @@ func TestR5MomentFreshNativeCoordinatesReplaySameSourceBeforeWriter(t *testing.T
 func TestR5MomentObligationDoesNotFakeReplyOrCloseMediaActions(t *testing.T) {
 	moment := CapabilityResult{CapabilityName: "moment.publish", Status: "completed", Output: map[string]any{"target_kind": "moment", "target_ref": "actual-moment"}}
 	trace := &ADKCapabilityTrace{Results: []CapabilityResult{moment}}
-	if !momentAcknowledgementOnly(trace) || conversationHasAuthoritativeOutput(trace) {
+	if _, committed := committedMomentResult(trace); !committed || conversationHasAuthoritativeOutput(trace) {
 		t.Fatal("Moment became a private reply")
 	}
 	trace.Results = append(trace.Results, CapabilityResult{CapabilityName: conversationReplyCapabilityName, Status: "accepted", Output: map[string]any{"draft_ref": "actual-draft", "reply_status": "needs_action"}})
@@ -196,7 +204,7 @@ func TestR5MomentObligationDoesNotFakeReplyOrCloseMediaActions(t *testing.T) {
 		t.Fatal("accepted waiting handoff reopened")
 	}
 	trace.Results = []CapabilityResult{{CapabilityName: "moment.publish", Status: "accepted", Output: moment.Output}}
-	if momentAcknowledgementOnly(trace) {
+	if _, committed := committedMomentResult(trace); committed {
 		t.Fatal("uncommitted Moment closed action")
 	}
 	request := ADKCapabilityRequest{Surface: CapabilitySurfaceConversation, ConversationID: "C", SourceFactID: "S", ActionID: "A"}

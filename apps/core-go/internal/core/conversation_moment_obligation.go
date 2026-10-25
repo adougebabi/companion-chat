@@ -32,23 +32,6 @@ func committedMomentResult(trace *ADKCapabilityTrace) (CapabilityResult, bool) {
 	return CapabilityResult{}, false
 }
 
-func momentAcknowledgementOnly(trace *ADKCapabilityTrace) bool {
-	if _, ok := committedMomentResult(trace); !ok || conversationHasAuthoritativeOutput(trace) {
-		return false
-	}
-	_, results := trace.Snapshot()
-	for index := len(results) - 1; index >= 0; index-- {
-		result := results[index]
-		if result.CapabilityName != conversationReplyCapabilityName {
-			continue
-		}
-		// Real pending media actions remain executable before acknowledgement.
-		output := mapValue(result.Output)
-		return !(result.Status == "accepted" && output["reply_status"] == "needs_action" && strings.TrimSpace(stringValue(output["draft_ref"])) != "")
-	}
-	return true
-}
-
 // Omitted, null and empty optional evidence all mean no selected evidence. This
 // changes no nonempty command and never normalizes legacy text/tool arguments.
 func canonicalMomentEvidenceArguments(arguments []byte) []byte {

@@ -16,7 +16,7 @@ function renderCurrentOutfitBody(__view) {
   }, null, -1)), approvedButtonVNode({
     class: "text-button",
     onClick: __view.t
-  }, "去编辑 ↗")]), o("div", {
+  }, "去编辑 ↗")]), __view.readStatus?.value ? o("p",{class:"muted",role:"status"},__view.readStatus.value) : null, o("div", {
     class: ge(__view.props.compact ? "outfit-tags" : "outfit-lines")
   }, [(p(!0), g(O, null, oe(M(At), l => (p(), g("div", {
     key: l

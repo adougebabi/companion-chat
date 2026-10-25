@@ -32,7 +32,7 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
-	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting || momentAcknowledgementOnly(adkContext.Trace) {
+	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
 	}
@@ -199,7 +199,6 @@ func validateConversationPublicationCorrection(ctx context.Context, message *sch
 					}
 				}
 			}
-			correcting = momentAcknowledgementOnly(bridge.Trace)
 		}
 	}
 	if !correcting {

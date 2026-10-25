@@ -28,7 +28,7 @@ export default defineComponent({
           (r) =>
             r.fid === character.value.id &&
             ["衣柜", "换装"].includes(r.label) &&
-            r.status === "pending",
+            (r.status === "pending" || r.requestUnresolved),
         ),
       );
     const tab = computed({
@@ -166,6 +166,7 @@ export default defineComponent({
       tab.value = "为她搭配";
     }
     function wear(outfit) {
+      if (busy.value) return;
       const fid = character.value.id,
         state = character.value._wardrobe;
       action.value = "wear";

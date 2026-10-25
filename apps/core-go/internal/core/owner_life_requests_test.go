@@ -16,6 +16,7 @@ func TestOwnerLifeRequestWearNativeConsumptionAndRecovery(t *testing.T) {
 			boots := wardrobeItemID(t, f, "黑色短靴")
 			revision := wardrobeRevision(t, f)
 			calls := 0
+			wearInvoked := false
 			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 				calls++
 				for _, raw := range arrayValue(payload["tools"]) {
@@ -27,12 +28,20 @@ func TestOwnerLifeRequestWearNativeConsumptionAndRecovery(t *testing.T) {
 				if scenario == "reject" {
 					return fakeProviderResult{Structured: map[string]any{"decision": "rejected", "reason": "今天不想换靴子"}}
 				}
-				if scenario == "provider_failure" || (scenario == "final_failure" && payloadHasToolResult(payload)) {
+				if scenario == "provider_failure" || (scenario == "final_failure" && wearInvoked) {
 					return fakeProviderResult{Err: errors.New("controlled private provider failure")}
 				}
-				if payloadHasToolResult(payload) {
+				if wearInvoked {
 					return fakeProviderResult{Structured: map[string]any{"decision": "accepted", "reason": "已按请求穿上靴子"}}
 				}
+				if !r6PayloadHasTool(payload, wardrobeWearCapabilityName) {
+					if !r6PayloadHasTool(payload, capabilityCatalogName) {
+						t.Error("request cannot discover its scoped wear tool")
+						return fakeProviderResult{Status: 400}
+					}
+					return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("discover-owner-wear", capabilityCatalogName, map[string]any{"names": []any{wardrobeWearCapabilityName}})}}
+				}
+				wearInvoked = true
 				target := boots
 				if scenario == "target_mismatch" {
 					target = wardrobeItemID(t, f, "银项链")

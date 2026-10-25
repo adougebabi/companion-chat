@@ -80,14 +80,21 @@ evidence selections are equivalent; real changed commands remain conflicts.
 Explicit Owner targets and autonomous scopes keep their own action authority.
 
 A real completed Moment never becomes a conversation_message receipt. It closes
-the feed action and narrows the unfinished private acknowledgement to
-conversation.reply. A real needs_action reply reopens its required action catalog
-while excluding the completed Moment; waiting keeps the existing continuation.
+only the feed action. R6 preserves discovery and other legal actions (including
+wardrobe changes) while excluding the completed Moment; it must not force an
+immediate private acknowledgement that drops unfinished work. Real needs_action
+keeps its action catalog and waiting keeps the existing continuation.
 Provider attempts to republish after commit fail before native execution. Normal
 private reply commit still ends observation locally. Preserve all actual receipts
 on cancellation/failure; do not invent acknowledgment or use a global rate cap.
 `r5_moment_loop_test.go` proves Generate/Stream, ignored restricted catalog,
 real PG publication/outbox, source replay before Writer and new-source admission.
+
+R6 adds real native discovery→inspect→wear→reply regressions, including a prior
+Moment and same-batch wear/reply in either order. A same-batch reply waits for
+the wear receipt and refreshed state. The Writer keeps authoritative current
+wearing_state/worn_items even with persona.detail installed; unrelated body
+details stay on demand. Never convert reply prose into wearing authority.
 
 ## Scenario: Local fact views and native reply v2 (2026-10-14)
 

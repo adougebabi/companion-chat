@@ -40,9 +40,20 @@ func (a *App) WardrobeItems(ctx context.Context, actorID, fluctlightID, cursor s
 	if len(cursor) > 128 {
 		return nil, ErrInvalidArguments
 	}
-	return newWardrobeService(a).inspectWardrobe(ctx, fluctlightID, "", map[string]any{
+	page, err := newWardrobeService(a).inspectWardrobe(ctx, fluctlightID, "", map[string]any{
 		"operation": "list", "limit": 30, "cursor": cursor,
 	})
+	if err != nil {
+		return nil, err
+	}
+	a.DecorateWardrobe(ctx, actorID, fluctlightID, page)
+	if _, ok := page["worn_items"].([]any); !ok {
+		return nil, errors.New("wardrobe_current_wearing_unavailable")
+	}
+	if _, ok := page["used_items"].([]any); !ok {
+		return nil, errors.New("wardrobe_current_usage_unavailable")
+	}
+	return page, nil
 }
 
 func wardrobeInspectDefinition() CapabilityDefinition {

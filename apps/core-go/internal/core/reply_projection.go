@@ -63,7 +63,9 @@ func applyPrivateReplyView(view *factOnlyContextView, projection ContextProjecti
 	state := mapValue(view.Facts["current_state"])
 	data := mapValue(state["data"])
 	if _, exists := data["appearance"]; exists && capabilities["persona_detail_registered"] == true {
-		data["appearance"] = map[string]any{"source_kind": "effective_appearance", "details": "available_via_persona.detail_current_appearance", "wearing_completeness": "partial_unless_explicitly_complete"}
+		appearance := factOnlyFields(mapValue(data["appearance"]), "wearing_state", "worn_items")
+		appearance["source_kind"], appearance["details"], appearance["wearing_completeness"] = "effective_appearance", "available_via_persona.detail_current_appearance", "partial_unless_explicitly_complete"
+		data["appearance"] = appearance
 		view.Selection["appearance_selection"] = "omit_unrelated_details; current detail remains available through scoped read-only query"
 	} else {
 		view.Selection["appearance_selection"] = "retain_authority_details_when_scoped_query_unavailable"

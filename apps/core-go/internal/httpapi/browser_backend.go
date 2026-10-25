@@ -440,7 +440,6 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		if wardrobeErr != nil {
 			return nil, wardrobeErr
 		}
-		b.server.app.DecorateWardrobe(ctx, actorID, pathPart(parts, 2), page)
 		return page, nil
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/wardrobe/items") && method == http.MethodPost:
 		parts := splitInternalPath(path)

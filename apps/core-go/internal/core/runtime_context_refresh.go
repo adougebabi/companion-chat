@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 type runtimeContextRefreshPlanKey struct{}
@@ -59,7 +60,7 @@ func (r *runtimeContextRefresh) noteModelToolCalls(sequence uint64, calls []sche
 	}
 	for _, call := range calls {
 		if id, name := strings.TrimSpace(call.ID), strings.TrimSpace(call.Function.Name); id != "" && name != "" {
-			r.batches[sequence][id] = name
+			r.batches[sequence][id] = capabilitycontract.CanonicalCapabilityName(name)
 		}
 	}
 }
@@ -76,7 +77,7 @@ func (r *runtimeContextRefresh) sameBatch(sequence uint64, callID string) (map[s
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	batch := r.batches[sequence]
-	if batch[callID] != conversationReplyCapabilityName {
+	if !capabilitycontract.CapabilityNamesMatch(batch[callID], conversationReplyCapabilityName) {
 		return nil, false
 	}
 	copyBatch := make(map[string]string, len(batch))
@@ -97,6 +98,7 @@ func replyBlockedBySameBatchSideEffect(refresh *runtimeContextRefresh, sequence 
 	}
 	schedule := false
 	sideEffect := false
+	wardrobe := false
 	for id, name := range batch {
 		if id == callID {
 			continue
@@ -108,12 +110,18 @@ func replyBlockedBySameBatchSideEffect(refresh *runtimeContextRefresh, sequence 
 		if replyRecordTool(name) {
 			sideEffect = true
 		}
+		if capabilitycontract.CapabilityNamesMatch(name, wardrobeWearCapabilityName) {
+			wardrobe = true
+		}
 	}
 	if schedule {
 		return "schedule_context_refresh_required", "Wait for the Schedule Tool result and refreshed context, then compose the reply in the next model turn.", true
 	}
 	if sideEffect {
 		return "side_effect_before_reply_required", "Execute side-effect tools such as memory_event and actor.fact.record before conversation.reply. Do not send the reply in the same batch and then record later.", true
+	}
+	if wardrobe {
+		return "wardrobe_context_refresh_required", "Wait for the actual wardrobe.wear receipt, then compose the reply from the refreshed current wearing in the next model turn. Do not claim a failed or uncommitted change.", true
 	}
 	return "", "", false
 }
