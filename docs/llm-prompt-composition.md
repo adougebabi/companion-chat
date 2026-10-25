@@ -53,7 +53,7 @@
 | visual_identity_vision | 视觉检查协议 + identity snapshot/视图要求/renderer 约束 + 图片 | 0 | model_tasks.go |
 | visual_identity_patch | 修正决策协议 + candidate/snapshot/constraints/vision findings | 0 | model_tasks.go |
 | visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查 + 必要图片 | 0；尝试历史是任务历史 | visual_identity_agent.go |
-| conversation_summary | 累计：旧摘要+Actor 更正+源消息；片段：时间范围+源消息；daily：日期/时区+segments | 指定源范围，非通用 H | conversation_summary.go；model_tasks.go |
+| conversation_summary | 累计：旧摘要+Actor 更正+源消息；片段：真实参与者/说话人别名与名称+时间范围+源消息，显式 JSON 合同；daily：日期/时区+segments | 指定源范围，非通用 H | conversation_summary.go；model_tasks.go |
 | schedule_generation | 排程规则 + 当前 identity/life/goals/intentions/outcomes/承诺 | 0 | model_tasks.go |
 | native_cognition | 认知协议 + Working Persona + D/M + 本次事件/事实 | 0，无 S | model_tasks.go |
 | studio_assistant | 定义编辑协议 + 隔离的定义 body/创作要求/允许引用（移除 job 身份） | 0，无生活 M | studio_runtime.go |
@@ -88,8 +88,12 @@ Owner 换装子任务即使目标看似已满足，也由真实 wear Tool 返回
 私聊 Writer 的 `tool_facts.current_action_result` 还直接读取本轮实际原生动作
 回执，不依赖父模型选填 evidence_refs。按 owner/角色/会话/source 配对，
 保留 handled 的 warning_code、disposition 与 effect_applied/mutation_committed=false。
-查询、参数、父推理、原始错误 detail 不进入这条通道。本轮未结算的失败不能
+普通查询、参数、父推理、原始错误 detail 不进入这条通道。本轮未结算的失败不能
 指望历史 ActionOutcome 数据库读取自动补齐。
+R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
+`published_moments`（正文/发布时间/是否还有下一页）交给 Writer。实际完成的
+`moment.publish` 回执补充 published_text；accepted/failed 草稿不冒充发布正文。
+不由用户关键词推断发布/承诺，不把原聊天删除或改写成新事实。
 本轮存在未生效的 wardrobe.wear 时，reply_action_check 使用已配置的认知模型
 核验待发布正文；无冲突直接发布，有冲突只允许原 Writer 做一次无工具纠正，
 再核验仍失败或核验服务出错则不发布。已有草稿失败栅栏阻止重做；父循环在

@@ -25,7 +25,7 @@ without wearing; review the actual text for false completion, not just keywords.
 
 ## 1. Scope / Trigger
 
-Applies to every installed Tool, including the 48 builtin names and private
+Applies to every installed Tool, including the 50 builtin names and private
 Writer `reply.image.request`, direct/native input and both capability runtimes.
 The 2026-10-14 user policy supersedes older fail-closed recommendation, empirical
 capacity and ordinary recoverable-precondition guidance. A Tool call must produce
@@ -67,7 +67,8 @@ again after a fresh preparer returns; cancellation still wins. Native model
 arguments cannot supply the identity, snapshot, prepared payload or private claim.
 
 Required means key presence; nullable unions decide whether null is valid.
-Representation repair uses explicit defaults, unambiguous scalar/enum forms,
+Representation repair uses explicit defaults, schema-required matching JSON
+container decoding (never string/user-text rewriting), unambiguous scalar/enum forms,
 optional nonnullable-null omission, and closed-schema extra-field omission.
 Missing business meaning is not guessed. Record safe normalization metadata.
 For Planner, context_review_required is a state flag rather than a dependency

@@ -7,10 +7,12 @@ import {
 import { enumLabel } from "../../lib/fluctlight-display.ts";
 import { wardrobeCategoryLabel, wardrobeSlotLabel, wardrobeOwnershipLabel, wardrobeAvailabilityLabel } from "../../lib/wardrobe-form.ts";
 import { semanticEntries,portraitPresentation } from '../profile-presentation.mjs';
+import { bodyFieldVisible } from '../../lib/body-field-presentation.mjs';
 const props = defineProps({
   value: null,
   field: { type: String, default: "" },
   depth: { type: Number, default: 0 },
+  identity: { type: Object, default: () => ({}) },
 });
 const technical = (k) =>
   /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets|owner_switch_status|hash|source_hash)$/.test(
@@ -25,7 +27,7 @@ function categoryLabel(value) {
 const entries = computed(() =>
   props.value && typeof props.value === "object" && !Array.isArray(props.value)
     ? semanticEntries(props.value).filter(
-        ([key, value]) => !technical(key) && hasSemanticValue(value),
+        ([key, value]) => !technical(key) && hasSemanticValue(value) && bodyFieldVisible(key, value, props.identity),
       )
     : [],
 );
@@ -75,7 +77,7 @@ const scalar = computed(() => {
   </ul>
   <ul v-else-if="Array.isArray(value)" class="semantic-list">
     <li v-for="(item, index) in value" :key="index">
-      <SemanticTree :value="item" :field="field" :depth="depth + 1" />
+      <SemanticTree :value="item" :field="field" :depth="depth + 1" :identity="identity" />
     </li>
     <li v-if="!value.length" class="muted">尚未记录</li>
   </ul>
@@ -86,7 +88,7 @@ const scalar = computed(() => {
           semanticLabel(key) === "自定义字段" ? `补充设定 ${index + 1}` : semanticLabel(key)
         }}
       </dt>
-      <dd><SemanticTree :value="item" :field="key" :depth="depth + 1" /></dd>
+      <dd><SemanticTree :value="item" :field="key" :depth="depth + 1" :identity="identity" /></dd>
     </div>
     <div v-if="!entries.length"><dd class="muted">尚未记录</dd></div>
   </dl>

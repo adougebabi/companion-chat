@@ -21,7 +21,7 @@ func (s *factOnlyReplyService) currentActionFacts(ctx context.Context, reply Cap
 			continue
 		}
 		tool, found := registry.Lookup(call.CapabilityName)
-		if !found || tool.Definition().Type != CapabilityTypeAction || call.CapabilityName == conversationReplyCapabilityName {
+		if !found || (tool.Definition().Type != CapabilityTypeAction && call.CapabilityName != momentInspectCapabilityName) || call.CapabilityName == conversationReplyCapabilityName {
 			continue
 		}
 		authorized[call.CallID] = call
@@ -32,11 +32,20 @@ func (s *factOnlyReplyService) currentActionFacts(ctx context.Context, reply Cap
 		if !found || result.CapabilityName != call.CapabilityName {
 			continue
 		}
+		if call.CapabilityName == momentInspectCapabilityName {
+			if result.Status == "completed" {
+				facts = append(facts, map[string]any{"kind": "published_moments", "value": factOnlyFields(mapValue(result.Output), "items", "has_more")})
+			}
+			continue
+		}
 		value := map[string]any{"capability_name": result.CapabilityName, "status": result.Status}
 		if result.ErrorCode != "" {
 			value["error_code"] = result.ErrorCode
 		}
 		value["observed"] = factOnlyFields(mapValue(result.Output), "disposition", "warning_code", "effect_applied", "mutation_committed", "handled", "retry_same_arguments")
+		if call.CapabilityName == "moment.publish" && result.Status == "completed" && mapValue(result.Output)["target_kind"] == "moment" {
+			mapValue(value["observed"])["published_text"] = stringValue(mapValue(result.Output)["text"])
+		}
 		facts = append(facts, map[string]any{"kind": "current_action_result", "value": value})
 	}
 	return facts
@@ -72,6 +81,8 @@ func factOnlyReplyToolFacts(facts []map[string]any) []map[string]any {
 		kind := stringValue(fact["kind"])
 		var value any
 		switch kind {
+		case "published_moments":
+			value = factOnlyFields(mapValue(fact["value"]), "items", "has_more")
 		case "current_action_result":
 			value = factOnlyFields(mapValue(fact["value"]), "capability_name", "status", "error_code", "observed")
 		case "media_action_result":

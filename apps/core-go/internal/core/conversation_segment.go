@@ -291,7 +291,11 @@ func (a *App) processConversationSegmentIntent(ctx context.Context, intentID str
 	if err != nil {
 		return nil, err
 	}
-	response, err := a.RunConversationSegmentTask(WithProviderCorrelation(ctx, "conversation-segment:"+intentID), work.Messages)
+	var owner, selfName string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id,COALESCE(identity->>'name','') FROM public.fluctlights WHERE id=$1`, work.FluctlightID).Scan(&owner, &selfName); err != nil {
+		return nil, err
+	}
+	response, err := a.RunConversationSegmentTask(WithProviderCorrelation(ctx, "conversation-segment:"+intentID), ConversationSegmentTaskInput{Messages: work.Messages, OwnerActorID: owner, FluctlightID: work.FluctlightID, SelfName: selfName})
 	if err != nil {
 		return nil, err
 	}

@@ -132,22 +132,27 @@ export default defineComponent({
         if (JSON.stringify(place.value) === submitted) place.value = null;
       } catch {}
     }
-    function addSite() {
+    async function addSite() {
       const name = siteName.value.trim();
-      if (!world.value || !name) return;
+      if (!world.value || !name || busy.value) return;
       if (world.value.sites.some((s) => s.name === name)) {
         w.notify("已有同名场地");
         return;
       }
-      world.value.sites.push({
-        id: "draft:" + randomId(),
-        name,
-        places: [],
-        draft: true,
+      const target = world.value, fid = character.value.id;
+      operation.value = "site";
+      const record = w.command("世界", "category:" + target.id, {
+        name: target.name,
+        expectedRevision: target._source.revision,
+        venueCategories: [...(target._source.venueCategories || []), {id:"venue_" + randomId(),name}],
+        reason: "新增世界场地分类",
+      }, (body,key) => w.client.updateCatalogWorld(fid,target.id,{...body,idempotencyKey:key}), {
+        onSaved: () => w.loadWorlds(), success: "场地分类已保存，可继续添加店铺等具体地点",
       });
-      siteName.value = "";
-      siteDialog.value = false;
-      w.notify("场地已加入本次草稿，保存第一个地点后形成实际分组");
+      try {
+        await record.completion;
+        if (siteName.value.trim() === name) { siteName.value = ""; siteDialog.value = false; }
+      } catch {}
     }
     async function expandWorld() {
       const target = world.value;

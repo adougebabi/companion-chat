@@ -80,7 +80,7 @@ func (a *App) withMomentWriterRun(ctx context.Context, scope ToolExecutionReques
 func (c factOnlyMomentCapability) Definition() CapabilityDefinition {
 	d := momentPublishCapabilityDefinition()
 	d.Version = "fact_only.v1"
-	d.Description = "Generate and publish one feed Moment using the configured independent persona reply model and authoritative current context. evidence_refs is optional; use only offered actionable refs, never historical source_refs. Do not provide text, a draft, tone or social strategy. The committed Writer text returns in this result."
+	d.Description = "Create and publish a NEW feed Moment using the configured independent persona reply model and authoritative current context. To read a previous post use moment.inspect. evidence_refs is optional; use only offered actionable refs, never historical source_refs. Do not provide text, a draft, tone or social strategy. The committed Writer text returns in this result."
 	d.InputSchema = objectSchema(map[string]any{"evidence_refs": map[string]any{"type": "array", "items": stringSchema()}}, nil, false)
 	d.ModelResultOmitFields = []string{"target_ref", "replayed"}
 	d.SupportsCancel = true

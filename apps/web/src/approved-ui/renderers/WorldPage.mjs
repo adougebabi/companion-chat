@@ -89,7 +89,7 @@ function renderWorldPageBody(__view) {
     }, null, -1)), approvedButtonVNode({
       class: "button",
       onClick: I[1] || (I[1] = H => __view.u.value = !0)
-    }, "新增场地")]), approvedSurfaceVNode("div", Cp, [o("div", xp, [I[17] || (I[17] = o("span", {
+    }, "新增场地分类")]), approvedSurfaceVNode("div", Cp, [o("div", xp, [I[17] || (I[17] = o("span", {
       class: "eyebrow"
     }, "A WORLD OF YOUR OWN", -1)), I[18] || (I[18] = o("span", {
       class: "spacer"
@@ -98,7 +98,8 @@ function renderWorldPageBody(__view) {
       onClick: I[2] || (I[2] = H => __view.c.value = {
         id: __view.s.value.id,
         name: __view.s.value.name,
-        genre: __view.s.value.genre
+        genre: __view.s.value.genre,
+        _source: __view.s.value._source
       })
     }, "编辑世界信息"), approvedButtonVNode({
       class: "button",
@@ -224,16 +225,16 @@ function renderWorldPageBody(__view) {
       _: 1
     }, 8, ["title"])) : X("", !0), __view.u.value ? (p(), Ae(__view.DetailDrawer, {
       key: 4,
-      title: "添加场地",
+      title: "添加场地分类",
       "test-id": "site-drawer",
       onClose: I[11] || (I[11] = H => __view.u.value = !1)
     }, {
       default: Ht(() => [o("form", {
         class: "form-grid",
         onSubmit: Ve(__view.ue, ["prevent"])
-      }, [me(__view.ActionFeedback, {
+      }, [o("p", {class:"muted"}, "分类用于组织地点，例如商店、公共设施。保存后可在分类中添加服装店等具体地点。"), me(__view.ActionFeedback, {
         labels: ["世界"]
-      }), o("label", null, [I[24] || (I[24] = Z("名称", -1)), pe(o("input", {
+      }), o("label", null, [I[24] || (I[24] = Z("分类名称", -1)), pe(o("input", {
         "onUpdate:modelValue": I[10] || (I[10] = H => __view.a.value = H)
       }, null, 512), [[$e, __view.a.value]]), __view.a.value.trim() ? X("", !0) : (p(), g("small", Dp, "请填写场地名称。"))]), approvedButtonVNode({
         class: "button primary",

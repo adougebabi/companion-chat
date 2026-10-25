@@ -17,10 +17,9 @@ const creationStageReadySQL = `
         THEN EXISTS(SELECT 1 FROM public.fluctlight_world_bindings b WHERE b.fluctlight_id=candidate.payload->>'fluctlight_id')
       WHEN candidate.intent_type='visual_identity.initialize'
         THEN EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_preparations p WHERE p.fluctlight_id=candidate.payload->>'fluctlight_id' AND p.status='completed')
+          AND EXISTS(SELECT 1 FROM public.life_schedules s WHERE s.fluctlight_id=candidate.payload->>'fluctlight_id' AND s.status IN ('accepted','superseded'))
       WHEN candidate.intent_id='schedule_intent:'||(candidate.payload->>'fluctlight_id')
-        THEN EXISTS(SELECT 1 FROM public.fluctlight_visual_identity_sessions s JOIN public.fluctlight_visual_identities v ON v.id=s.visual_identity_id
-          WHERE s.fluctlight_id=candidate.payload->>'fluctlight_id' AND s.status='completed' AND v.status='active'
-            AND v.canonical_asset_id IS NOT NULL AND v.character_sheet_asset_id IS NOT NULL)
+        THEN EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_preparations p WHERE p.fluctlight_id=candidate.payload->>'fluctlight_id' AND p.status='completed')
       WHEN candidate.intent_type='wake_up.current'
         THEN EXISTS(SELECT 1 FROM public.life_schedules s WHERE s.fluctlight_id=candidate.payload->>'fluctlight_id' AND s.status IN ('accepted','superseded'))
       ELSE true

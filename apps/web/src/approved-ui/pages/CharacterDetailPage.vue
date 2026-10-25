@@ -373,6 +373,7 @@ onUnmounted(() => {
           <h3>{{ label }}</h3>
           <SemanticTree
             :value="value"
+            :identity="core.identity"
             :field="key === 'personality' ? 'personality' : ''"
           />
         </section>
@@ -389,7 +390,7 @@ onUnmounted(() => {
               <small v-if="persona.id === snapshot.activeProfileId">当前</small>
             </summary>
             <p class="muted">这里展示此人格相对共同设定的补充与差异。</p>
-            <SemanticTree :value="personaValue(persona)" />
+            <SemanticTree :value="personaValue(persona)" :identity="core.identity" />
           </details>
           <details v-if="personas.length > 1 && !snapshot.readOnly">
             <summary>切换人格</summary>

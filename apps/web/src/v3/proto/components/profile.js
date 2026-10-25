@@ -22,7 +22,7 @@ export function ProfileGroups(snapshot) {
   const add=(key,title,value,options={})=>{if(hasSemanticValue(value))sections.push([key,title,SemanticFields(value,options)]);};
   const identity=Object.fromEntries(Object.entries(group('identity')||{}).filter(([key])=>!['name','background','background_story'].includes(key)));
   add('identity','身份与背景',identity);add('personality','共同性格',group('personality'));add('policy','表达与相处',snapshot.groups.some(g=>g.key==='policy')?group('policy'):core.behavioral_policy);add('life','生活设定',snapshot.groups.some(g=>g.key==='life')?group('life'):core.life_profile);
-  const current=group('current');if(current)sections.push(['current','此刻状态',CurrentProfile(current,{zone:group('identity')?.timezone})]);
+  const current=group('current');if(current)sections.push(['current','此刻状态',CurrentProfile(current,{zone:group('identity')?.timezone,identity:group('identity')||{}})]);
   const claims=group('developing')?.claims;
   sections.push(['developing','逐渐形成的自我认识',Array.isArray(claims)&&claims.length?claims.map(c=>`<div class="lrow"><div class="grow"><p>${esc(c.claim||c.text||'尚无认识内容')}</p>${SemanticValue(c.value)}<p class="small muted">${esc(({active:'当前认可',uncertain:'仍在探索',forgotten:'已遗忘',superseded:'已有新认识'})[c.status]||'状态待确认')}</p></div></div>`).join(''):'<p class="small muted">还没有形成已记录的自我认识，会随着真实经历逐步积累。</p>']);
   if(portrait)sections.push(['working','当前表达画像',`<p class="memory-content">${esc(portrait)}</p><p class="small muted">来自当前已准备的工作人格。</p>`]);

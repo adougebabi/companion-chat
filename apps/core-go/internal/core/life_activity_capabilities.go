@@ -38,7 +38,7 @@ func lifeActivityOutputSchema() map[string]any {
 func lifeActivityStartDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: lifeActivityStartCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Start timed virtual activity. Moving needs scene/activity/location. Shopping: category/slot/description; haircut: desired_hair_length; dye: desired_hair_color+due intention. Accepted is started, not acquired.",
+		Description:   "Start timed activity. Shopping: read wardrobe.inspect catalogue; use single category/slot/description/world_item_id OR items array of objects, never both. Wearables need slot. Copy catalogue definition and place_id; location text is not place_id. Omit unknown IDs. Accepted means started, not acquired; after not_before call life.activity.advance, then wear returned inventory IDs. Haircut: desired_hair_length; dye: desired_hair_color and due intention.",
 		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: map[string]any{
@@ -90,7 +90,7 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 	case "virtual_shopping":
 		items, err := shoppingRequestedItems(args)
 		if err != nil {
-			return failedCapabilityResult(invocation, "shopping_item_required", false), err
+			return handledCapabilityResult(invocation, "shopping_item_required", "needs_input", map[string]any{"detail": err.Error(), "recovery": "Use single item fields OR an items array of objects. Each wearable needs category, slot and description; copy catalogue fields exactly. Do not supply unknown IDs."}), nil
 		}
 		if _, bundle := args["items"]; bundle {
 			members := make([]any, 0, len(items))
@@ -227,6 +227,10 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 	}
 	if kind == "virtual_shopping" {
 		if err := freezeShoppingCatalogueTx(ctx, tx, fluctlightID, placeID, request); err != nil {
+			var feedback *shoppingCatalogueFeedback
+			if errors.As(err, &feedback) {
+				return handledCapabilityResult(invocation, feedback.code, "needs_input", feedback.output), nil
+			}
 			return failedCapabilityResult(invocation, "shopping_catalogue_invalid", false), err
 		}
 	}

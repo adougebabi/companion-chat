@@ -46,6 +46,7 @@ var independentToolProductInventory = []string{
 	"media.image.generate",
 	"memory.recall",
 	"memory_event",
+	"moment.inspect",
 	"moment.publish",
 	"persona.detail",
 	"persona.switch",

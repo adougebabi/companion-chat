@@ -4,11 +4,12 @@ package core
 // Named disclosure preserves Definition.Description and the complete schema.
 // Do not shorten factual tool results or provider/native instructions here.
 var capabilityDirectoryPurposes = map[string]string{
+	"moment.inspect":                     "Read your previously published Moments and exact text; creates no new post.",
 	"capability.catalog":                 "List available tools; request named tool details.",
 	"capability.discover":                "Load selected tool schemas for the next request.",
 	"capability.request":                 "Request a missing capability for Owner review.",
 	"conversation.reply":                 "Send a private message and finish the turn.",
-	"moment.publish":                     "Publish a Moment to the shared feed.",
+	"moment.publish":                     "Create a NEW Moment in the shared feed; use moment.inspect to read prior posts.",
 	"media.image.generate":               "Generate an image from the requested subject.",
 	"scene_event":                        "Change the character's own scene, activity or location.",
 	"presence_event":                     "Record temporary interaction presence.",
@@ -23,7 +24,7 @@ var capabilityDirectoryPurposes = map[string]string{
 	"persona.takeover":                   "Apply a declared temporary persona takeover.",
 	"persona.switch":                     "Apply a declared persona profile switch.",
 	"appearance.style":                   "Set or clear a temporary hairstyle.",
-	"wardrobe.inspect":                   "Inspect inventory, outfits, wearing or obtainable items.",
+	"wardrobe.inspect":                   "Read owned clothing, wearing, outfits or shop product catalogue with world_item_id and place_id.",
 	"wardrobe.wear":                      "Change clothing using available inventory items.",
 	"wardrobe.borrow":                    "Record an authorized clothing loan or try-on.",
 	"wardrobe.return":                    "Return borrowed items.",
@@ -37,8 +38,8 @@ var capabilityDirectoryPurposes = map[string]string{
 	"schedule.edit":                      "Move, revise or cancel a schedule item.",
 	"schedule.replan":                    "Replan current and future local-day intervals.",
 	"intention.schedule":                 "Schedule a Goal action or request planning.",
-	"life.activity.start":                "Start a timed virtual activity.",
-	"life.activity.advance":              "Extend or resolve a started virtual activity.",
+	"life.activity.start":                "Begin timed shopping, haircut or hair dye; shopping is not yet acquired inventory.",
+	"life.activity.advance":              "Resolve due shopping into actual inventory item IDs, or extend an unfinished activity.",
 	"world.npc.encounter":                "Contact or pass on an actual NPC co-presence opportunity.",
 	"goal.inspect":                       "Read Goals, results and evidence.",
 	"goal.decide":                        "Issue Owner commands to create or change Goals.",

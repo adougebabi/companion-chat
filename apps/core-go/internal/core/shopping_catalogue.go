@@ -7,6 +7,13 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type shoppingCatalogueFeedback struct {
+	code   string
+	output map[string]any
+}
+
+func (e *shoppingCatalogueFeedback) Error() string { return e.code }
+
 // Only this transactional admission may grant a catalogue provenance snapshot.
 // Model arguments identify a record; they never choose source authority.
 func freezeShoppingCatalogueTx(ctx context.Context, tx pgx.Tx, fid, place string, request map[string]any) error {
@@ -27,8 +34,11 @@ func freezeShoppingCatalogueTx(ctx context.Context, tx pgx.Tx, fid, place string
 		if err != nil {
 			return err
 		}
-		if record["world_id"] != world || record["available"] != true || (stringValue(record["place_id"]) != "" && record["place_id"] != place) {
+		if record["world_id"] != world || record["available"] != true {
 			return errors.New("shopping_catalogue_item_unavailable")
+		}
+		if required := stringValue(record["place_id"]); required != "" && required != place {
+			return &shoppingCatalogueFeedback{code: "shopping_catalogue_place_required", output: map[string]any{"world_item_id": id, "required_place_id": required, "recovery": "Retry with this catalogue record's place_id. A location label or scene change does not supply a stable place. No purchase has started."}}
 		}
 		definition, err := normalizeShoppingItem(mapValue(record["definition"]))
 		if err != nil {
@@ -36,7 +46,7 @@ func freezeShoppingCatalogueTx(ctx context.Context, tx pgx.Tx, fid, place string
 		}
 		for _, key := range []string{"item_kind", "category", "slot", "description"} {
 			if item[key] != definition[key] {
-				return errors.New("shopping_catalogue_definition_mismatch")
+				return &shoppingCatalogueFeedback{code: "shopping_catalogue_definition_mismatch", output: map[string]any{"world_item_id": id, "field": key, "expected_value": definition[key], "recovery": "Copy the exact definition from wardrobe.inspect catalogue_detail. No purchase has started."}}
 			}
 		}
 		item["catalogue_source"] = map[string]any{"world_item_id": id, "world_item_revision": record["revision"], "world_id": world, "source_resource_id": record["source_resource_id"], "source_version": record["source_version"]}

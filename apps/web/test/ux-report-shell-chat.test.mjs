@@ -16,9 +16,9 @@ test('readable failures preserve Chinese business meaning and leave raw values u
 });
 test('long waiting remains observable processing after thirty seconds without a fake failure',()=>{
  const state={hasPendingTurn:true};const text=chatWaitText(state,1000,126000);
- assert.equal(text,'她 正在输入');
+ assert.equal(text,'对方 正在输入');
  assert.equal(chatWaitingPresentation(state,1000,30000).showDiagnostics,false);
- assert.equal(chatWaitingPresentation(state,1000,31000).detail,'她还在想…');
+ assert.equal(chatWaitingPresentation(state,1000,31000).detail,'对方还在想…');
  assert.equal(chatWaitingPresentation(state,1000,90000).showStop,false);
  assert.equal(chatWaitingPresentation(state,1000,91000,'雨禾').label,'雨禾 正在输入');
  assert.equal(chatWaitingPresentation(state,1000,91000).showStop,true);

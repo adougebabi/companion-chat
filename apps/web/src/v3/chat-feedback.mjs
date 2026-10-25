@@ -10,14 +10,15 @@ export function chatFailureText(value, delivered = false) {
   const text=String(value || '');
   if(!text)return '';
   if(/reply_media_no_progress/.test(text))return '图片准备尚未推进，原消息和草稿已保留。请查看本次运行后恢复。';
-  if(/agent_partial_committed/.test(text))return '这次回应没有完成，有些行动可能已经发生。请先看看她的近况。';
+  if(/agent_partial_committed/.test(text))return '这次回应没有完成，有些行动可能已经发生。请先查看近况。';
+  if(/tool_discovery_no_progress/.test(text))return '工具准备未能继续，已停止重复尝试。原消息已保留，可以查看本次运行后重试。';
   if(/gateway_timeout|\b524\b/.test(text))return '模型中转服务等待超时，没能收到回应。原消息已保留，可以检查模型通道后再试。';
   if(/budget_exceeded/.test(text))return '模型服务未能处理本次资料。原消息已保留，请查看本次运行。';
-  if(/timeout|timed.out|deadline exceeded/.test(text))return '她暂时没能回应：模型服务响应超时。原消息已保留，可以稍后重试。';
+  if(/timeout|timed.out|deadline exceeded/.test(text))return '暂时没能回应：模型服务响应超时。原消息已保留，可以稍后重试。';
   if(/request_cancelled|context canceled|reply_cancelled/.test(text))return '本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。';
-  if(/unavailable|http_error|request_failed/.test(text))return '她暂时没能回应：模型服务连接失败，请检查模型通道后重试。';
+  if(/unavailable|http_error|request_failed/.test(text))return '暂时没能回应：模型服务连接失败，请检查模型通道后重试。';
   if(/已取消|cancelled|canceled/.test(text))return '已停止等待这次回应。';
-  return '她暂时没能回应。可以稍后再试一次。';
+  return '暂时没能回应。可以稍后再试一次。';
 }
 
 export function chatDiagnosticTurn(state){
@@ -38,8 +39,8 @@ export function chatWaitText(state, startedAt, now=Date.now()) {
  return chatWaitingPresentation(state,startedAt,now).label;
 }
 
-export function chatWaitingPresentation(state, startedAt, now=Date.now(), name='她') {
+export function chatWaitingPresentation(state, startedAt, now=Date.now(), name='对方') {
  const busy=state.sending||state.hasPendingTurn||state.hasSettlingTurn;
  const seconds=Math.max(0,Math.floor((now-(Number.isFinite(startedAt)?startedAt:now))/1000));
- return {seconds,label:busy?`${name} 正在输入`:'',detail:busy&&seconds>=30?'她还在想…':'',showDiagnostics:busy&&seconds>=30,showStop:busy&&seconds>=90};
+ return {seconds,label:busy?`${name} 正在输入`:'',detail:busy&&seconds>=30?`${name}还在想…`:'',showDiagnostics:busy&&seconds>=30,showStop:busy&&seconds>=90};
 }

@@ -9,6 +9,10 @@ boundaries described below.
 
 ## Active Specifications
 
+The [R8 recovery contract](./r8-recovery-contract.md) covers persistent venue
+categories, shopping feedback, schedule/image ordering, segment attribution and
+read-only self-Moment recall.
+
 The [r3 recovery contract](./r3-recovery-contract.md) covers bounded generation
 failure, private media no-progress handling, segment admission and browser recovery.
 

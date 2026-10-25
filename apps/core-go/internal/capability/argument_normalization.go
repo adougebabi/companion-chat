@@ -50,6 +50,21 @@ func schemaAllowsNull(schema map[string]any) bool {
 	return false
 }
 func normalizeModelValue(value any, schema map[string]any) any {
+	// Some native-tool models serialize a container a second time. Decode only
+	// when the declared type requires that container; strings remain opaque.
+	if text, ok := value.(string); ok && (schema["type"] == "array" || schema["type"] == "object") {
+		var decoded any
+		if json.Unmarshal([]byte(text), &decoded) == nil {
+			_, array := decoded.([]any)
+			_, object := decoded.(map[string]any)
+			if (schema["type"] == "array" && array) || (schema["type"] == "object" && object) {
+				value = decoded
+			} else if array || object {
+				// A different container is not an implicit singleton business item.
+				return value
+			}
+		}
+	}
 	if object, ok := value.(map[string]any); ok && (schema["type"] == "object" || len(mapValue(schema["properties"])) > 0) {
 		properties := mapValue(schema["properties"])
 		required := map[string]bool{}

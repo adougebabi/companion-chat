@@ -79,7 +79,7 @@ func validWorldSurfaceBody(method, path string, body map[string]any) bool {
 		} else if len(p) > 4 && p[4] == "places" {
 			fields = []string{"worldId", "name", "description", "parentPlaceId", "status", "alias", "venueCategoryId", "group", "floor", "scene", "atmosphere", "furniture", "layout", "connections", "connectionPlaceIds", "roomItems"}
 		} else {
-			fields = []string{"name", "background", "rules", "description", "flavor", "itemPool"}
+			fields = []string{"name", "background", "rules", "description", "flavor", "itemPool", "venueCategories"}
 		}
 	} else if len(p) > 5 && p[5] == "encounters" {
 		fields = []string{"confirmed", "summary", "startAt", "endAt", "placeId", "evidenceRefs", "expectedLifeContextRevision"}
@@ -180,6 +180,18 @@ func validWorldSurfaceBody(method, path string, body map[string]any) bool {
 	for _, key := range []string{"connectionPlaceIds", "routine", "evidenceRefs"} {
 		if value, ok := body[key]; ok {
 			if arr, valid := value.([]any); !valid || len(arr) > 200 {
+				return false
+			}
+		}
+	}
+	if value, present := body["venueCategories"]; present {
+		categories, ok := value.([]any)
+		if !ok || len(categories) > 32 {
+			return false
+		}
+		for _, raw := range categories {
+			category, ok := raw.(map[string]any)
+			if !ok || !onlyKeys(category, "id", "name") || !validateString(category["id"], 1, 80) || !validateString(category["name"], 1, 128) || strings.TrimSpace(stringValue(category["id"])) == "" || strings.TrimSpace(stringValue(category["name"])) == "" {
 				return false
 			}
 		}

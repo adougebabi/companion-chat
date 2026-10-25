@@ -137,7 +137,11 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 		}
 		items = append(items, item)
 	}
-	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"items": items, "count": len(items), "run_scoped": kevSelection(ctx) != nil, "loaded": loaded, "unavailable": unavailable, "admissions": admissions, "replaces_optional_window": len(args.Names) > 0}}, nil
+	output := map[string]any{"items": items, "count": len(items), "run_scoped": kevSelection(ctx) != nil, "loaded": loaded, "unavailable": unavailable, "admissions": admissions, "replaces_optional_window": len(args.Names) > 0}
+	if len(loaded) > 0 {
+		output["next_step"] = "These schemas are loaded in the next native tools list. Call the selected tool itself using its wire name and parameters; loading does not execute it. Do not repeat this same catalog request."
+	}
+	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: output}, nil
 }
 
 func (c capabilityDiscoverCapability) Definition() CapabilityDefinition {

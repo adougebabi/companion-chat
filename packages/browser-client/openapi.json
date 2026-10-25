@@ -4354,6 +4354,31 @@
               }
             ],
             "description": "Arrays must also fit the Core 32000-byte encoded JSON bound."
+          },
+          "venueCategories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 32,
+            "description": "Append categories while retaining existing IDs and names. Categories group concrete places; they are not enterable places."
           }
         },
         "required": [
@@ -4416,6 +4441,31 @@
               }
             ],
             "description": "Arrays must also fit the Core 32000-byte encoded JSON bound."
+          },
+          "venueCategories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 32,
+            "description": "Append categories while retaining existing IDs and names. Categories group concrete places; they are not enterable places."
           }
         },
         "required": [

@@ -32,6 +32,9 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
+	if repeatedDiscoveryLoadCount(adkContext.Trace) >= 3 || repeatedDiscoveryResultCount(adkContext.Trace) >= 3 {
+		return physicalModelRequestDecision{}, newCapabilityError("tool_discovery_no_progress", false, errors.New("tool_discovery_no_progress"))
+	}
 	_, results := adkContext.Trace.Snapshot()
 	for _, result := range results {
 		if result.CapabilityName == conversationReplyCapabilityName &&
@@ -46,9 +49,63 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
 	}
 	if _, committed := committedMomentResult(adkContext.Trace); committed {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: []string{"moment.publish"}}, nil
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil
 	}
-	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace)}, nil
+}
+
+// Two identical successful named disclosures already supplied the schema.
+// Cool down discovery for one physical request, without choosing a business
+// action or forcing acceptance. Any actual query/action restores discovery.
+func repeatedDiscoveryExclusions(trace *ADKCapabilityTrace) []string {
+	if repeatedDiscoveryLoadCount(trace) >= 2 {
+		return []string{capabilityCatalogName, capabilityDiscoverName}
+	}
+	return nil
+}
+
+func repeatedDiscoveryLoadCount(trace *ADKCapabilityTrace) int {
+	_, results := trace.Snapshot()
+	previous := ""
+	count := 0
+	for index := len(results) - 1; index >= 0; index-- {
+		result := results[index]
+		if result.Status != "completed" || (result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName) {
+			break
+		}
+		out := mapValue(result.Output)
+		if len(arrayValue(out["loaded"])) == 0 || len(arrayValue(out["unavailable"])) != 0 {
+			break
+		}
+		fingerprint := jsonString(out["loaded"])
+		if previous != "" && previous != fingerprint {
+			break
+		}
+		previous = fingerprint
+		count++
+	}
+	return count
+}
+
+// Repeated unavailable-name or empty-directory results are also no progress.
+// Compare the actual complete result, never infer intent from user language.
+func repeatedDiscoveryResultCount(trace *ADKCapabilityTrace) int {
+	_, results := trace.Snapshot()
+	previous := ""
+	count := 0
+	for index := len(results) - 1; index >= 0; index-- {
+		result := results[index]
+		if result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName {
+			break
+		}
+		fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "status": result.Status, "output": result.Output, "error_code": result.ErrorCode})
+		if previous != "" && previous != fingerprint {
+			break
+		}
+		previous = fingerprint
+		count++
+	}
+	return count
 }
 
 func conversationHasAuthoritativeOutput(trace *ADKCapabilityTrace) bool {

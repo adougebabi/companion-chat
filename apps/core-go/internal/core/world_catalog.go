@@ -133,8 +133,48 @@ func writeWorldExtrasTx(ctx context.Context, tx pgx.Tx, id string, body map[stri
 		if !boundedWorldCollectionOrText(pool) {
 			return invalid("itemPool must be bounded text or an array")
 		}
-		_, err := tx.Exec(ctx, `UPDATE public.life_worlds SET item_pool=$2 WHERE id=$1`, id, jsonBytes(pool))
-		return err
+		if _, err := tx.Exec(ctx, `UPDATE public.life_worlds SET item_pool=$2 WHERE id=$1`, id, jsonBytes(pool)); err != nil {
+			return err
+		}
+	}
+	if raw, present := body["venue_categories"]; present {
+		categories, ok := raw.([]any)
+		if !ok || len(categories) > 32 {
+			return invalid("venueCategories must be an array of at most 32 categories")
+		}
+		known, names := map[string]string{}, map[string]bool{}
+		for _, value := range categories {
+			category, ok := value.(map[string]any)
+			if !ok || len(category) != 2 {
+				return invalid("category requires only id and name")
+			}
+			key, err := boundedWorldText(category, "id", 80, true)
+			if err != nil {
+				return err
+			}
+			name, err := boundedWorldText(category, "name", 128, true)
+			if err != nil {
+				return err
+			}
+			if known[key] != "" || names[name] {
+				return invalid("duplicate venue category")
+			}
+			known[key], names[name] = name, true
+			category["id"], category["name"] = key, name
+		}
+		var previous []byte
+		if err := tx.QueryRow(ctx, `SELECT venue_categories FROM public.life_worlds WHERE id=$1 FOR UPDATE`, id).Scan(&previous); err != nil {
+			return err
+		}
+		for _, value := range decodeArray(previous) {
+			category := mapValue(value)
+			if known[stringValue(category["id"])] != stringValue(category["name"]) {
+				return invalid("existing venue categories cannot be renamed or removed")
+			}
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.life_worlds SET venue_categories=$2 WHERE id=$1`, id, jsonBytes(categories)); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -278,16 +278,7 @@ func (a *App) RunConversationSummaryTask(ctx context.Context, input Conversation
 		a.recordDiagnosticEvent(ctx, "conversation_summary.thinking_mode", "info", input.FluctlightID, "", providerCorrelation(ctx), map[string]any{"requested_enable_thinking": false, "provider_support": "unverified", "effective_mode": "unverified"})
 	}
 	providerMessages := conversationSummaryProviderMessages(input.Messages)
-	for index, message := range input.Messages {
-		alias := "actor:" + stableDigest(message.AuthorActorID)[:12]
-		if message.AuthorActorID == input.OwnerActorID {
-			alias = "actor_user"
-		}
-		if message.AuthorActorID == input.FluctlightID {
-			alias = "actor_self"
-		}
-		providerMessages[index]["author"] = alias
-	}
+	addSummaryAuthors(providerMessages, input.Messages, input.OwnerActorID, input.FluctlightID)
 	instruction := conversationSummaryInstruction
 	if input.MaxRunes > 0 {
 		instruction = fmt.Sprintf("以一份有界运行摘要替换旧运行摘要。只合并 previous_runtime_summary 与尚未覆盖的 source_messages，并以 authoritative_actor_facts 中的明确纠正校正旧误判；不把新状态变化改写为过去一直如此。保留主体、明确纠正、意图、承诺、未完成事项与真实结果，计划/推断/失败不可变成已完成事实。重复问候、光线和衣物颜色无新信息时归并。最多%d个字符，不新增事实，不追加摘要块。", input.MaxRunes)
@@ -310,11 +301,45 @@ func (a *App) RunConversationSummaryTask(ctx context.Context, input Conversation
 	return decodeConversationSummaryProviderResponse(run.Completion.Structured)
 }
 
-func (a *App) RunConversationSegmentTask(ctx context.Context, source []ConversationSummarySourceMessage) (conversationSegmentResponse, error) {
+type ConversationSegmentTaskInput struct {
+	Messages     []ConversationSummarySourceMessage
+	OwnerActorID string
+	FluctlightID string
+	SelfName     string
+}
+
+func addSummaryAuthors(rows []map[string]any, source []ConversationSummarySourceMessage, owner, self string) {
+	for index, message := range source {
+		alias := "actor:" + stableDigest(message.AuthorActorID)[:12]
+		if message.AuthorActorID == owner {
+			alias = "actor_user"
+		}
+		if message.AuthorActorID == self {
+			alias = "actor_self"
+		}
+		rows[index]["author"] = alias
+	}
+}
+
+func (a *App) RunConversationSegmentTask(ctx context.Context, input ConversationSegmentTaskInput) (conversationSegmentResponse, error) {
+	source := input.Messages
+	if len(source) == 0 || input.OwnerActorID == "" || input.FluctlightID == "" {
+		return conversationSegmentResponse{}, errors.New("conversation_segment_source_identity_missing")
+	}
 	from, to := source[0].CreatedAt.UTC(), source[len(source)-1].CreatedAt.UTC()
+	rows := conversationSummaryProviderMessages(source)
+	addSummaryAuthors(rows, source, input.OwnerActorID, input.FluctlightID)
+	for _, row := range rows {
+		switch row["author"] {
+		case "actor_user":
+			row["author_display_name"] = "用户"
+		case "actor_self":
+			row["author_display_name"] = input.SelfName
+		}
+	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("reflection", []map[string]any{
-		{"role": "system", "content": conversationSummaryInstruction + " 这是按真实时间界定的聊天阶段。summary 概括重要事件与变化，ending_state 说明这段实际怎样结束，open_threads 只列未完成线索，core_events 只列已发生的关键事情。不要逐条复述。"},
-		{"role": "user", "content": jsonString(map[string]any{"started_at": from.Format(time.RFC3339Nano), "ended_at": to.Format(time.RFC3339Nano), "source_messages": conversationSummaryProviderMessages(source)})},
+		{"role": "system", "content": conversationSummaryInstruction + " 这是按真实时间界定的聊天阶段。只返回 response_format 规定的一个 JSON 对象：schema_version 必须为 conversation-segment.v1；summary 概括重要事件与变化，ending_state 说明这段实际怎样结束，open_threads 只列未完成线索，core_events 只列已发生的关键事情。无列表项用空数组。不输出 Markdown、围栏、started_at 或 ended_at。participants 标明真正说话人，assistant 是 actor_self 的历史发言，不是摘要模型的身份；历史自称、否认或假设只能作为该说话人当时的表述，不更改参与者身份或证明实际能力。不要逐条复述。"},
+		{"role": "user", "content": jsonString(map[string]any{"participants": []map[string]any{{"actor": "actor_self", "role": "assistant", "display_name": input.SelfName, "type": "fluctlight"}, {"actor": "actor_user", "role": "user", "display_name": "用户", "type": "human"}}, "started_at": from.Format(time.RFC3339Nano), "ended_at": to.Format(time.RFC3339Nano), "source_messages": rows})},
 	})
 	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "conversation_segment"), FormalAgentConversationSummary, messages, nil, "conversation_segment_v1", conversationSegmentProviderSchema(), false, nil)
 	if err != nil {

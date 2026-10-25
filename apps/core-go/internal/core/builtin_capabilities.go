@@ -150,6 +150,7 @@ func builtinCapabilities(app *App) []Capability {
 		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
 		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},
 		memoryRecallCapability{service: newMemoryRecallService(app)},
+		momentInspectCapability{repository: appearanceRepository},
 		actorInspectCapability{service: facts}, actorFactCapability{service: facts},
 		personaDetailCapability{service: newPersonaDetailService(app)},
 		wardrobeInspectCapability{service: wardrobe}, wardrobeWearCapability{service: wardrobe},

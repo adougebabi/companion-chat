@@ -169,6 +169,9 @@ export async function readApprovedCreationProgress(client, draft) {
       configSection: "模型用途",
     },
   ];
+  // Backend bootstrap is serial: persona -> wardrobe -> schedule -> images.
+  // A missing renderer must not hold non-image life preparation indefinitely.
+  stages.splice(3, 0, stages.pop());
   let blocker;
   for (const stage of stages) {
     if (blocker && stage.state === 'pending') {

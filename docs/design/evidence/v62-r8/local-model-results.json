@@ -1,0 +1,78 @@
+{
+  "full_autonomous_chat_acceptance": "not_passed",
+  "scenarios": [
+    {
+      "scenario": "qwen_intermediate_recall",
+      "model": "huihui-ai-Huihui-Qwen3.8-27B-abliterated-MTPLX",
+      "physical_calls": 7,
+      "tool_calls": {
+        "capability_catalog": 3,
+        "moment_inspect": 1,
+        "conversation_reply": 1
+      },
+      "successful_moment_read": true,
+      "publication_facts_in_writer": true,
+      "application_output_cap_present": false,
+      "result": "actual prior post returned; test initially checked the wrong query ledger"
+    },
+    {
+      "scenario": "qwen_bounded_recall",
+      "model": "huihui-ai-Huihui-Qwen3.8-27B-abliterated-MTPLX",
+      "physical_calls": 6,
+      "tool_calls": {
+        "capability_catalog": 5
+      },
+      "successful_moment_read": false,
+      "publication_facts_in_writer": false,
+      "application_output_cap_present": false,
+      "result": "stopped tool_discovery_no_progress; full acceptance failed"
+    },
+    {
+      "scenario": "qwen_shopping",
+      "model": "huihui-ai-Huihui-Qwen3.8-27B-abliterated-MTPLX",
+      "physical_calls": 5,
+      "tool_calls": {
+        "capability_catalog": 3,
+        "wardrobe_inspect": 1,
+        "scene_event": 1
+      },
+      "successful_moment_read": false,
+      "publication_facts_in_writer": false,
+      "application_output_cap_present": false,
+      "result": "logical_agent_lease_lost before acquisition; full acceptance failed"
+    },
+    {
+      "scenario": "cydonia_recall",
+      "model": "Cydonia-24B-v4.1-MLX-Mixed",
+      "physical_calls": 3,
+      "tool_calls": {},
+      "successful_moment_read": false,
+      "publication_facts_in_writer": false,
+      "application_output_cap_present": false,
+      "result": "conversation_native_output_missing; full acceptance failed"
+    },
+    {
+      "scenario": "cydonia_shopping",
+      "model": "Cydonia-24B-v4.1-MLX-Mixed",
+      "physical_calls": 4,
+      "tool_calls": {
+        "capability_catalog": 1,
+        "conversation_reply": 1
+      },
+      "successful_moment_read": false,
+      "publication_facts_in_writer": false,
+      "application_output_cap_present": false,
+      "result": "asked for shop information; no shopping started"
+    },
+    {
+      "scenario": "cydonia_directory_revision",
+      "model": "Cydonia-24B-v4.1-MLX-Mixed",
+      "physical_calls": 2,
+      "tool_calls": {},
+      "successful_moment_read": false,
+      "publication_facts_in_writer": false,
+      "application_output_cap_present": false,
+      "result": "conversation_native_output_missing; full acceptance failed"
+    }
+  ]
+}

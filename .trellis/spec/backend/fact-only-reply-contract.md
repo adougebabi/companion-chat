@@ -106,7 +106,8 @@ protocol/hash and persona source while supplying these typed runtime facts.
 Current native action receipts are mandatory Writer facts, independent of optional
 evidence_refs. `factOnlyReplyService.currentActionFacts` reads the actual ADK
 invocation/result pair, matches authorization Actor, Fluctlight, conversation and
-source fact, and accepts only installed action definitions. It excludes queries,
+source fact, and accepts installed action definitions plus the scoped read-only
+`moment.inspect` publication query. Other queries remain excluded, along with
 reply publication itself, model arguments, hidden reasoning and raw error detail.
 `current_action_result` preserves actual status/error plus disposition, warning_code,
 effect_applied and mutation_committed, including false. A handled failure must not
@@ -114,6 +115,9 @@ become a bare suppressed status. Same-turn receipts may not yet exist in settled
 DB ActionOutcomes; do not substitute a DB-only recent-outcome read for this bridge.
 Regression checks the actual Writer request with no selected refs, both Generate
 and Stream and failed same-batch wear, then uses a real model to review the reply.
+Actual Moment query results reach Writer as `published_moments` with committed
+body/time and has_more. Only completed `moment.publish` supplies published_text;
+unpublished draft text remains excluded. See the R8 recovery contract.
 
 ## Scenario: Unsuccessful wardrobe action and reply publication
 

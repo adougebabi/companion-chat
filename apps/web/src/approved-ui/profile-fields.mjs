@@ -1,3 +1,4 @@
+import { bodyFieldVisible } from '../lib/body-field-presentation.mjs';
 const clone = (value) =>
   value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 export const identityFields = {
@@ -70,6 +71,7 @@ export function profileFields(core, label = (key) => key) {
   const fields = [];
   function walk(value, path) {
     const key = String(path.at(-1));
+    if (!bodyFieldVisible(key, value, core.identity)) return;
     if (technical(key) || (path[0] === "life_profile" && readOnlyLife.has(key)))
       return;
     if (value && typeof value === "object" && !Array.isArray(value)) {
