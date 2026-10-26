@@ -152,3 +152,38 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Next Steps
 
 - User rebuild and r10 UI/UX retest; live model behavior was outside this round.
+
+
+## Session 70: R11 UI controls, command recovery and media subject repair
+<!-- trellis-session: v=2 fp=0efd7cc0a5ec9e33 -->
+
+**Date**: 2026-10-26
+**Task**: R11 UI controls, command recovery and media subject repair
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+完成 R11 输入、预览、诊断、任务与组件替换；保持当前 React/shadcn 技术栈和原领域协议，不创建任务。修复 NAS 本人媒体主体别名。
+
+### Main Changes
+
+- 35 个 shadcn 基础组件和 35 个共享组合；原生对象页面与有边界的同根领域控件接入，保留原 body/key、CAS、Owner 与迟到回执。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f3dfba3b` | fix: bind media self references to the authenticated task actor |
+| `fef56b07` | fix(web): unify r11 controls and preserve recovery flows |
+
+### Testing
+
+- [OK] Web 380/380，typecheck、build 和 fixture/React graph 守卫通过；Core 媒体专项 go test -race 通过；CUA 验证桌面和 390px 窄屏。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 用户拉取并重建 NAS 后优先复测原自拍、真实初始化中文输入和原任务失败恢复；fixture 不证明真实模型生成成功。
