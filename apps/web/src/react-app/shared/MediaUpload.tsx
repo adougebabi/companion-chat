@@ -1,3 +1,4 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {UploadIcon,FileImageIcon} from 'lucide-react';
 import {Button} from '@/components/ui/button';
@@ -22,9 +23,9 @@ export default function MediaUpload({onSaved=()=>{}}:{onSaved?:(asset:any)=>unkn
   catch(cause){if(live()){setError(errorMessage(cause));setStatus('');}}finally{if(live()){setBusy(false);redraw(v=>v+1);}}}
  return <Card aria-label="上传素材"><CardHeader><CardTitle>上传素材</CardTitle></CardHeader><CardContent className="grid gap-4">
   <p className="text-sm text-muted-foreground">支持图片、视频和音频，单个文件不超过 64MiB。素材仅保存到你的媒体库。</p>
-  <div className="grid justify-items-center gap-3 rounded-lg border border-dashed p-6 text-center" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)select(e.dataTransfer.files[0]||null);}}><FileImageIcon className="size-7 text-muted-foreground" aria-hidden="true"/><p>{file?.name||'拖放文件到这里，或选择一个文件'}</p><Button type="button" variant="outline" disabled={busy} onClick={()=>input.current?.click()}><UploadIcon/>选择文件</Button><input ref={input} type="file" className="sr-only" aria-label="选择上传的媒体文件" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,audio/mpeg,audio/wav,audio/ogg" disabled={busy} onChange={e=>select(e.target.files?.[0]||null)}/></div>
+  <div className="grid justify-items-center gap-3 rounded-lg border border-dashed p-6 text-center" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)select(e.dataTransfer.files[0]||null);}}><FileImageIcon className="size-7 text-muted-foreground" aria-hidden="true"/><p>{file?.name||'拖放文件到这里，或选择一个文件'}</p><Button type="button" variant="outline" aria-label="选择上传的媒体文件" disabled={busy} onClick={()=>input.current?.click()}><UploadIcon/>选择文件</Button><input ref={input} type="file" hidden tabIndex={-1} aria-hidden="true" aria-label="选择上传的媒体文件" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,audio/mpeg,audio/wav,audio/ogg" disabled={busy} onChange={e=>select(e.target.files?.[0]||null)}/></div>
   {pending&&<p className="text-sm">待确认：{pending.value.filename}。刷新后可查询原结果；尚未上传时，请重新选择同一个文件再重试。</p>}
-  {error&&<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}{status&&<p role="status">{status}</p>}
+  {error&&<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}{status&&<OperationStatus variant="default" role="status">{status}</OperationStatus>}
   <div className="flex flex-wrap gap-3"><Button type="button" disabled={busy||!!pending||!file||file.size>64*1024*1024} onClick={()=>void run()}>上传素材</Button>{pending&&<Button type="button" variant="outline" disabled={busy} onClick={()=>void run(true)}>查询或重试原上传</Button>}{last&&<Button type="button" variant="link" onClick={()=>w.navigatePath('/media/'+encodeURIComponent(last))}>查看上次上传</Button>}</div>
  </CardContent></Card>;
 }

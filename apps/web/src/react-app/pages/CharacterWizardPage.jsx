@@ -1,3 +1,7 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+import {InlineFeedback,ReadState} from "@/react-app/shared/Presentation";
+import {Surface as CardSurface} from "@/react-app/controls";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import WorkspaceBreadcrumb from '@/react-app/shared/WorkspaceBreadcrumb';
 import ChoiceCards from '@/react-app/shared/ChoiceCards';
 import {hasVisibleSemanticValue} from '@/react-app/shared/SemanticTree';
@@ -268,7 +272,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           <Surface
             key={0}
             as="form"
-            className="card character-form"
+            className="character-form"
             noValidate=""
             onSubmit={eventModifiers(
               ($event) => worldChoice.value && readValue(c).next(),
@@ -286,64 +290,64 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             </header>
             <section className="character-stack">
               <h3>已有生活世界</h3>
-              {existingWorldLoading.value && <p role="status">正在读取已有世界…</p>}
-              {existingWorldError.value && <p className="inline-error" role="alert">{existingWorldError.value}</p>}
+              {existingWorldLoading.value && <ReadState role="status">正在读取已有世界…</ReadState>}
+              {existingWorldError.value && <InlineFeedback  role="alert">{existingWorldError.value}</InlineFeedback>}
               {!existingWorldLoading.value && !existingWorldError.value && !existingWorlds.value.length && <p className="muted">还没有角色关联的生活世界，可以选择下面的已发布底稿，或创建新的世界设定。</p>}
               <p className="muted">只复用世界背景、规则和地点；人物、物品实例、事件模板、运行位置与生活历史不复制。</p>
               <ChoiceCards label="生活世界来源" value={worldValue} disabled={readValue(busy)||!!readValue(pending)} options={worldOptions} onChange={value=>worldOptions.find(option=>option.value===value)?.select()}/>
-              <ActionButton type="button" className="text-button" onClick={()=>void loadExistingWorlds()}>重新读取已有世界</ActionButton>
+              <ActionButton variant="ghost" type="button"  onClick={()=>void loadExistingWorlds()}>重新读取已有世界</ActionButton>
               {!worlds.value.length&&!sourceError.value&&<p className="muted">创作中心的世界草稿需要先发布，才会出现在可选底稿中。</p>}
               {worldCursor.value ? (
-                <ActionButton
+                <ActionButton variant="outline"
                   key={1}
                   type="button"
-                  className="button"
+
                   onClick={($event) => loadSources("world", true)}
                 >
                   {"读取更多世界"}
                 </ActionButton>
               ) : null}
               {sourceError.value ? (
-                <p key={2} className="inline-error">
+                <InlineFeedback key={2} >
                   {displayText(sourceError.value) + " "}
-                  <ActionButton
+                  <ActionButton variant="ghost"
                     type="button"
-                    className="text-button"
+
                     onClick={($event) => loadSources("world")}
                   >
                     {"重新读取"}
                   </ActionButton>
-                </p>
+                </InlineFeedback>
               ) : null}
-              <ActionButton asChild className="text-button">
-                <a className="text-button" href="#/studio/edit/new?kind=world">
-                  {"创建世界设定 ↗"}
+              <ActionButton variant="ghost" asChild >
+                <a  href="#/studio/edit/new?kind=world">
+                  {"创建世界设定 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                 </a>
               </ActionButton>
             </section>
             {Object.keys(readValue(fieldErrors)).length ? (
-              <ul key={0} className="inline-error" role="alert">
+              <InlineFeedback key={0}  role="alert">
                 <Fragment>
                   {listValues(readValue(fieldErrors)).map((message, key) => {
                     return <li key={key}>{displayText(message)}</li>;
                   })}
                 </Fragment>
-              </ul>
+              </InlineFeedback>
             ) : null}
             {readValue(error) ? (
-              <p key={1} className="inline-error" role="alert">
+              <InlineFeedback key={1}  role="alert">
                 {displayText(readValue(error))}
-              </p>
+              </InlineFeedback>
             ) : null}
             <footer className="wizard-footer">
-              <ActionButton asChild className="button">
-                <a className="button" href="#/library">
+              <ActionButton variant="outline" asChild >
+                <a  href="#/library">
                   {"保留草稿并返回"}
                 </a>
               </ActionButton>
               <span className="spacer" />
-              <ActionButton
-                className="button primary"
+              <ActionButton variant="default"
+
                 data-testid="wizard-world-next"
                 disabled={!worldChoice.value || readValue(busy)}
               >
@@ -355,7 +359,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           <Surface
             key={1}
             as="form"
-            className="card character-form"
+            className="character-form"
             noValidate=""
             onSubmit={eventModifiers(
               ($event) => readValue(c).analyze(),
@@ -402,9 +406,9 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                   {readValue(error) &&
                   readValue(draft).mode === "blank" &&
                   !readValue(draft).name.trim() ? (
-                    <small key={0} className="inline-error">
+                    <InlineFeedback key={0} >
                       {"请填写角色名字。"}
-                    </small>
+                    </InlineFeedback>
                   ) : null}
                 </label>
                 <label>
@@ -423,13 +427,13 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                   {readValue(error) &&
                   (!readValue(draft).timezone ||
                     readValue(error).includes("时区")) ? (
-                    <small key={0} className="inline-error">
+                    <InlineFeedback key={0} >
                       {displayText(
                         readValue(error).includes("时区")
                           ? readValue(error)
                           : "请填写生活时区。",
                       )}
-                    </small>
+                    </InlineFeedback>
                   ) : null}
                 </label>
               </div>
@@ -473,9 +477,9 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                       }}
                     />
                     {readValue(error) && !readValue(draft).bio.trim() ? (
-                      <small key={0} className="inline-error">
+                      <InlineFeedback key={0} >
                         {"请写一段人物描述。"}
-                      </small>
+                      </InlineFeedback>
                     ) : null}
                   </label>
                   <Disclosure title={<>{"可选：一些相处期望"}</>}>
@@ -530,9 +534,9 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 </Fragment>
               ) : readValue(draft).mode === "json" ? (
                 <Fragment key={1}>
-                  <ActionButton asChild className="text-button">
+                  <ActionButton variant="ghost" asChild >
                     <a
-                      className="text-button"
+
                       href="/templates/yaoguang-character-init-template.v2.json"
                       download=""
                     >
@@ -602,12 +606,12 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                         displayText(readValue(draft).templateVersion)}
                     </p>
                   ) : null}
-                  {templateError.value && <p className="inline-error" role="alert">{templateError.value}<ActionButton type="button" onClick={()=>loadSources("character_template")}>重新读取模板</ActionButton></p>}
+                  {templateError.value && <InlineFeedback  role="alert">{templateError.value}<ActionButton variant="ghost" type="button" onClick={()=>loadSources("character_template")}>重新读取模板</ActionButton></InlineFeedback>}
                   {templateCursor.value ? (
-                    <ActionButton
+                    <ActionButton variant="outline"
                       key={1}
                       type="button"
-                      className="button"
+
                       onClick={($event) =>
                         loadSources("character_template", true)
                       }
@@ -618,9 +622,9 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                   {!templates.value.length ? (
                     <p key={2} className="muted">
                       {" 还没有已发布的角色模板。可以选择其他创建方式，或"}
-                      <ActionButton asChild className="text-button">
+                      <ActionButton variant="ghost" asChild >
                         <a
-                          className="text-button"
+
                           href="#/studio/edit/new?kind=character_template"
                         >
                           {"去创作中心发布角色模板"}
@@ -644,15 +648,15 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 {
                   " 还没有配置通用模型。描述分析需要模型服务；也可以先选择空白创建。"
                 }
-                <ActionButton asChild className="text-button">
-                  <a className="text-button" href={configHref("模型用途")}>
-                    {"先连接模型 ↗"}
+                <ActionButton variant="ghost" asChild >
+                  <a  href={configHref("模型用途")}>
+                    {"先连接模型 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                   </a>
                 </ActionButton>
               </p>
             ) : null}
             {readValue(step) === "analysis" ? (
-              <p key={1} className="approved-guidance" role="status">
+              <OperationStatus variant="default" key={1} className="approved-guidance" role="status">
                 {" 正在整理人物设定，已等待 " +
                   displayText(
                     Math.max(
@@ -665,43 +669,43 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                     ),
                   ) +
                   " 秒。原输入已保留。 "}
-                <ActionButton
+                <ActionButton variant="ghost"
                   type="button"
-                  className="text-button"
+
                   onClick={($event) => readValue(c).cancelAnalysis()}
                 >
                   {"停止本次等待"}
                 </ActionButton>
-              </p>
+              </OperationStatus>
             ) : null}
             {readValue(error) && !Object.keys(readValue(fieldErrors)).length ? (
-              <p key={2} className="inline-error" role="alert">
+              <InlineFeedback key={2}  role="alert">
                 {displayText(readValue(error)) + " "}
                 {readValue(feedback)?.type === "configuration" ? (
-                  <ActionButton asChild className="text-button" key={0}>
+                  <ActionButton variant="ghost" asChild  key={0}>
                     <a
                       key={0}
-                      className="text-button"
+
                       href={configHref("模型用途")}
                     >
-                      {"去配置中心 ↗"}
+                      {"去配置中心 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                     </a>
                   </ActionButton>
                 ) : null}
-              </p>
+              </InlineFeedback>
             ) : null}
             <footer className="wizard-footer">
-              <ActionButton
+              <ActionButton variant="outline"
                 type="button"
-                className="button"
+
                 disabled={readValue(busy)}
                 onClick={prev}
               >
                 {"上一步"}
               </ActionButton>
               <span className="spacer" />
-              <ActionButton
-                className="button primary"
+              <ActionButton variant="default"
+
                 disabled={
                   readValue(busy) ||
                   !!readValue(pending) ||
@@ -725,7 +729,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           <Surface
             key={2}
             as="form"
-            className="card character-form"
+            className="character-form"
             noValidate=""
             onSubmit={eventModifiers(
               ($event) => readValue(c).activate(),
@@ -791,22 +795,22 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               </Fragment>
             )}
             {readValue(error) ? (
-              <p key={2} className="inline-error" role="alert">
+              <InlineFeedback key={2}  role="alert">
                 {displayText(readValue(error))}
-              </p>
+              </InlineFeedback>
             ) : null}
             <footer className="wizard-footer">
-              <ActionButton
+              <ActionButton variant="outline"
                 type="button"
-                className="button"
+
                 disabled={readValue(busy) || !!readValue(pending)}
                 onClick={prev}
               >
                 {"返回修改"}
               </ActionButton>
               <span className="spacer" />
-              <ActionButton
-                className="button primary"
+              <ActionButton variant="default"
+
                 data-testid="wizard-activate"
                 disabled={readValue(busy) || !!readValue(pending)}
               >
@@ -815,7 +819,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             </footer>
           </Surface>
         ) : (
-          <Surface key={3} as="section" className="card character-preparation">
+          <Surface key={3} as="section" className="character-preparation">
             <header>
               <small>
                 {displayText(readValue(draft).name || "角色") + "的新生活"}
@@ -845,30 +849,30 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               onRecover={readValue(c).recoverStage}
             />
             {!readValue(progress) ? (
-              <p key={0} className="muted" role="status">
+              <ReadState key={0} className="muted" role="status">
                 {displayText(
                   readValue(busy)
                     ? "正在确认原创建结果…"
                     : "正在读取实际准备进度…",
                 )}
-              </p>
+              </ReadState>
             ) : null}
             {readValue(error) ? (
-              <p key={1} className="inline-error" role="alert">
+              <InlineFeedback key={1}  role="alert">
                 {displayText(readValue(error))}
-              </p>
+              </InlineFeedback>
             ) : null}
-            {draft.worldSource && !draft.worldSelectionConfirmed && <section className="card character-stack">
+            {draft.worldSource && !draft.worldSelectionConfirmed && <CardSurface as="section" className="character-stack">
               <p>角色已建立。世界配置复用仍需核对，原角色和原提交身份均已保留。</p>
-              {worldSourceReview.value ? <><SemanticTree value={worldSourceReview.value.preview}/><ActionButton type="button" className="button" disabled={readValue(busy)} onClick={()=>c.confirmWorldSourceReview()}>确认新版配置并继续复用</ActionButton></> : <ActionButton type="button" className="button" disabled={readValue(busy)} onClick={()=>c.reviewWorldSource()}>核对已有世界的最新配置</ActionButton>}
-            </section>}
+              {worldSourceReview.value ? <><SemanticTree value={worldSourceReview.value.preview}/><ActionButton variant="outline" type="button"  disabled={readValue(busy)} onClick={()=>c.confirmWorldSourceReview()}>确认新版配置并继续复用</ActionButton></> : <ActionButton variant="outline" type="button"  disabled={readValue(busy)} onClick={()=>c.reviewWorldSource()}>核对已有世界的最新配置</ActionButton>}
+            </CardSurface>}
             <div className="preparation-done row">
               {readValue(draft).activatedId &&
               readValue(draft).worldSelectionConfirmed ? (
-                <ActionButton asChild className="button primary" key={0}>
+                <ActionButton variant="default" asChild  key={0}>
                   <a
                     key={0}
-                    className="button primary"
+
                     href={
                       "#/c/" +
                       encodeURIComponent(readValue(draft).activatedId) +
@@ -880,10 +884,10 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 </ActionButton>
               ) : null}
               {readValue(draft).activatedId ? (
-                <ActionButton asChild className="button" key={1}>
+                <ActionButton variant="outline" asChild  key={1}>
                   <a
                     key={1}
-                    className="button"
+
                     href={
                       "#/c/" +
                       encodeURIComponent(readValue(draft).activatedId) +
@@ -894,17 +898,17 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                   </a>
                 </ActionButton>
               ) : null}
-              <ActionButton
-                className="button"
+              <ActionButton variant="outline"
+
                 disabled={readValue(busy)}
                 onClick={($event) => readValue(c).refreshProgress()}
               >
                 {"重新读取进度"}
               </ActionButton>
               {readValue(progress)?.complete ? (
-                <ActionButton
+                <ActionButton variant="ghost"
                   key={2}
-                  className="text-button"
+
                   onClick={($event) => (readValue(c).newDraft(), worldChoice.value=false)}
                 >
                   {"创建新的角色"}
@@ -914,25 +918,25 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           </Surface>
         )}
         {readValue(pending) ? (
-          <Surface key={4} as="section" className="card approved-guidance">
+          <Surface key={4} as="section" className="approved-guidance">
             <p>
               {
                 " 原激活结果尚未确认，当前资料和请求身份已保留。请先查询或重试原提交，避免创建第二个角色。 "
               }
             </p>
             {!readValue(pending).rejection ? (
-              <ActionButton
+              <ActionButton variant="outline"
                 key={0}
-                className="button"
+
                 disabled={readValue(busy)}
                 onClick={($event) => readValue(c).activate(true)}
               >
                 {"查询或重试原激活"}
               </ActionButton>
             ) : (
-              <ActionButton
+              <ActionButton variant="outline"
                 key={1}
-                className="button"
+
                 onClick={($event) => readValue(c).reanalyze()}
               >
                 {"保留输入并重新整理"}
@@ -940,17 +944,17 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             )}
           </Surface>
         ) : null}
-        <ActionButton asChild className="text-button">
-          <a className="text-button" href="#/library">
+        <ActionButton variant="ghost" asChild >
+          <a  href="#/library">
             {"保留草稿并返回角色库"}
           </a>
         </ActionButton>
         {readValue(draft).activatedId &&
         !readValue(c).archived &&
         !readValue(pending) ? (
-          <ActionButton
+          <ActionButton variant="ghost"
             key={5}
-            className="text-button"
+
             onClick={($event) => (readValue(c).newDraft(), worldChoice.value=false)}
           >
             {"再认识一个人（保留当前进度）"}

@@ -1,3 +1,4 @@
+
 import { readValue } from "@/state/view-model";
 import { ActionButton, Surface, Disclosure } from "@/react-app/controls";
 import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
@@ -8,7 +9,7 @@ export default function NotificationGroup(input = {}) {
     ...input,
   };
   return (
-    <Surface as="section" className="card notification-group">
+    <Surface as="section" className="notification-group">
       <Disclosure
         title={
           <>
@@ -31,7 +32,7 @@ export default function NotificationGroup(input = {}) {
         <Fragment>
           {listValues(__props.group.notices).map((notice) => {
             return (
-              <ActionButton
+              <ActionButton variant="ghost"
                 key={notice.id}
                 className="notification-item"
                 onClick={($event) => __props.onOpen?.(notice.id)}

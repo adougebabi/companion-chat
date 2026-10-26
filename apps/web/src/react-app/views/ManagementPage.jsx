@@ -1,3 +1,6 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {Surface as CardSurface} from "@/react-app/controls";
 import ModelTranscript from '@/react-app/shared/ModelTranscript';
 import JsonDetails from '@/react-app/shared/JsonDetails';
 import {Table,TableBody,TableCell,TableRow} from '@/components/ui/table';
@@ -54,7 +57,7 @@ export function ManagementPageView({ view: view }) {
             >
               <Fragment>
                 {listValues(view.sections.value).map((h) => (
-                  <ActionButton type="button" key={h} className="text-button justify-start text-left" data-testid={"config-anchor-"+h} onClick={()=>view.scrollTo(h)}>{h}</ActionButton>
+                  <ActionButton variant="ghost" type="button" key={h} className="justify-start text-left" data-testid={"config-anchor-"+h} onClick={()=>view.scrollTo(h)}>{h}</ActionButton>
                 ))}
               </Fragment>
             </nav>
@@ -66,14 +69,14 @@ export function ManagementPageView({ view: view }) {
               <Surface
                 as="section"
                 id={view.sectionId("服务地址")}
-                className="card settings-group"
+                className="settings-group"
               >
                 <div className="row">
                   <h2>{"服务地址"}</h2>
                   <span className="spacer" />
-                  <ActionButton
+                  <ActionButton variant="ghost"
                     type="button"
-                    className="text-button"
+
                     onClick={view.addEndpoint}
                   >
                     {"添加服务"}
@@ -86,9 +89,9 @@ export function ManagementPageView({ view: view }) {
                         <b>{displayText(h.name)}</b>
                         <small>{displayText(h.status)}</small>
                         <span className="spacer" />
-                        <ActionButton
+                        <ActionButton variant="ghost"
                           type="button"
-                          className="text-button"
+
                           onClick={() => view.removeEndpoint(b)}
                         >
                           {"移除"}
@@ -164,17 +167,17 @@ export function ManagementPageView({ view: view }) {
                         ) : null}
                       </div>
                       <view.ModelDirectory models={h.models} />
-                      <ActionButton
+                      <ActionButton variant="ghost"
                         type="button"
-                        className="text-button"
+
                         onClick={(k) => view.test(h)}
                       >
                         {"读取模型目录（已保存连接）"}
                       </ActionButton>
                       {h.feedback ? (
-                        <p className="muted" role="status">
+                        <OperationStatus variant="default" className="muted" role="status">
                           {h.feedback}
-                        </p>
+                        </OperationStatus>
                       ) : null}
                     </div>
                   ))}
@@ -188,7 +191,7 @@ export function ManagementPageView({ view: view }) {
               <Surface
                 as="section"
                 id={view.sectionId("模型用途")}
-                className="card settings-group"
+                className="settings-group"
               >
                 <h2>{"各用途对应的模型配置"}</h2>
                 <p className="muted">
@@ -325,7 +328,7 @@ export function ManagementPageView({ view: view }) {
               <Surface
                 as="section"
                 id={view.sectionId("安静时段")}
-                className="card settings-group"
+                className="settings-group"
               >
                 <h2>{"安静时段"}</h2>
                 <div className="form-grid">
@@ -420,10 +423,10 @@ export function ManagementPageView({ view: view }) {
               </Surface>
               <Fragment>
                 {listValues(view.settings.value).map((h) => (
-                  <Disclosure
+                  <CardSurface
                     key={h.title}
                     id={view.sectionId(h.title)}
-                    className="card settings-group"
+                    className="settings-group"
                     title={
                       <>
                         {h.title === "高级" ? "高级 · Kev 决策服务" : h.title}
@@ -445,10 +448,10 @@ export function ManagementPageView({ view: view }) {
                     {["图片（ComfyUI）", "高级", "看图理解"].includes(
                       h.title,
                     ) ? (
-                      <ActionButton
+                      <ActionButton variant="ghost"
                         key={3}
                         type="button"
-                        className="text-button"
+
                         onClick={(b) => view.test(h.title)}
                       >
                         {displayText(
@@ -458,31 +461,31 @@ export function ManagementPageView({ view: view }) {
                         )}
                       </ActionButton>
                     ) : null}
-                  </Disclosure>
+                  </CardSurface>
                 ))}
               </Fragment>
               {view.testResult.value ? (
-                <p key={0} role="status" className="muted">
+                <OperationStatus variant="default" key={0} role="status" className="muted">
                   {displayText(view.testResult.value)}
-                </p>
+                </OperationStatus>
               ) : null}
               <div className="settings-save-bar" data-testid="config-save-bar">
                 {view.error.value ? (
-                  <p key={0} role="alert" className="inline-error">
+                  <InlineFeedback key={0} role="alert" >
                     {displayText(view.error.value)}
-                  </p>
+                  </InlineFeedback>
                 ) : (
-                  <p
+                  <OperationStatus variant="default"
                     className="muted"
                     role="status"
                     aria-live="polite"
                     data-testid="config-save-status"
                   >
                     {view.saveStatus.value || "让相处的节奏，更合心意。"}
-                  </p>
+                  </OperationStatus>
                 )}
-                <ActionButton
-                  className="button primary"
+                <ActionButton variant="default"
+
                   disabled={view.saving.value}
                   data-testid="config-save"
                 >
@@ -519,7 +522,7 @@ export function ManagementPageView({ view: view }) {
                 onClose={(h) => (view.selectedId.value = null)}
               >
                 <div className="detail-meta">
-                  <Badge className="pill">
+                  <Badge >
                     {displayText(view.selected.value.kind)}
                   </Badge>
                   <p>
@@ -536,19 +539,19 @@ export function ManagementPageView({ view: view }) {
                   </span>
                 </div>
                 {view.selected.value.status === "error" ? (
-                  <p key={0} className="inline-error">
+                  <InlineFeedback key={0} >
                     {displayText(view.selected.value.category) +
                       "：" +
                       displayText(view.selected.value.reason) +
                       " "}
-                    <ActionButton
-                      className="text-button"
+                    <ActionButton variant="ghost"
+
                       data-testid="diag-drawer-retry"
                       onClick={(h) => view.retry(view.selected.value)}
                     >
                       {"重试"}
                     </ActionButton>
-                  </p>
+                  </InlineFeedback>
                 ) : null}
                 {view.selected.value.kind === "媒体调用" &&
                 view.selected.value.media ? (
@@ -592,7 +595,7 @@ export function ManagementPageView({ view: view }) {
                       data-testid="media-call-output"
                     >
                       <h3>{"输出"}</h3>
-                      {view.selected.value.media.assetId?<><p>{view.selected.value.media.output}</p><ActionButton type="button" className="button" onClick={()=>view.openMediaAsset(view.selected.value.media.assetId)}>查看已记录素材</ActionButton></>:<p className="muted">{view.selected.value.status==='pending'?'媒体任务仍在处理。':'尚未关联可读取的媒体素材；调用完成不代表图片已生成。'}</p>}
+                      {view.selected.value.media.assetId?<><p>{view.selected.value.media.output}</p><ActionButton variant="outline" type="button"  onClick={()=>view.openMediaAsset(view.selected.value.media.assetId)}>查看已记录素材</ActionButton></>:<p className="muted">{view.selected.value.status==='pending'?'媒体任务仍在处理。':'尚未关联可读取的媒体素材；调用完成不代表图片已生成。'}</p>}
                     </section>
                   </Fragment>
                 ) : (
@@ -617,14 +620,14 @@ export function ManagementPageView({ view: view }) {
               <small>{"其它诊断"}</small>
               <ToggleGroup type="single" variant="outline" value={view.reference.value} onValueChange={value=>view.reference.value=value} className="max-w-full flex-wrap justify-start" aria-label="其他诊断">{readValue(view.referenceSections).map(section=><ToggleGroupItem key={section.title} value={section.title}>{section.title}</ToggleGroupItem>)}</ToggleGroup>
               {view.referenceSection.value ? (
-                <Surface as="div" key={0} className="card">
+                <Surface as="div" key={0} >
                   <div className="row">
                     <b>
                       {displayText(view.referenceSection.value.title) +
                         " · 实际记录"}
                     </b>
                     <span className="spacer" />
-                    <ActionButton onClick={(h) => (view.reference.value = "")}>
+                    <ActionButton variant="ghost" onClick={(h) => (view.reference.value = "")}>
                       {"关闭"}
                     </ActionButton>
                   </div>
@@ -642,15 +645,15 @@ export function ManagementPageView({ view: view }) {
                   {["后台任务", "待处理事项 / 重试耗尽"].includes(
                     view.reference.value,
                   ) ? (
-                    <ActionButton
+                    <ActionButton variant="ghost"
                       key={0}
-                      className="text-button"
+
                       onClick={view.openTaskDiagnostics}
                     >
                       {"查看原任务与恢复"}
                     </ActionButton>
                   ) : null}
-                  <p role="status">{displayText(view.testResult.value)}</p>
+                  <OperationStatus variant="default" role="status">{displayText(view.testResult.value)}</OperationStatus>
                 </Surface>
               ) : null}
             </div>

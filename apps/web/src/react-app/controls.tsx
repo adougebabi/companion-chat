@@ -1,7 +1,8 @@
 import FilePicker from './shared/FilePicker';
+import {InputGroup,InputGroupAddon} from '@/components/ui/input-group';
+import {ClockIcon} from 'lucide-react';
 import {MinusIcon,PlusIcon} from 'lucide-react';
 import ControlHint from './shared/ControlHint';
-import {MoreHorizontalIcon, ArrowUpRightIcon} from 'lucide-react';
 import DateField from './shared/DateField';
 import {
   Sheet,
@@ -49,8 +50,8 @@ export function Label({children,className,...props}:React.ComponentProps<typeof 
  const checkable=React.Children.toArray(children).some(child=>React.isValidElement(child)&&!!child.props&&typeof child.props==='object'&&'type' in child.props&&(child.props.type==='checkbox'||child.props.type==='radio'));
  return <PrimitiveLabel {...props} className={cn('min-w-0',checkable?'flex-row items-center':'flex-col items-start',className)}>{children}</PrimitiveLabel>;
 }
-export function Badge({className='',title,variant,...props}:React.ComponentProps<typeof ShadcnBadge>){return <ControlHint text={title}><ShadcnBadge variant={variant||'secondary'} className={className.split(/\s+/).filter(token=>token!=='pill').join(' ')} {...props}/></ControlHint>;}
-const iconText=(children:React.ReactNode):React.ReactNode=>React.Children.map(children,child=>typeof child==='string'&&child.includes('↗')?<>{child.replace(/\s*↗/g,'')}<ArrowUpRightIcon className="size-3.5 shrink-0" aria-hidden="true"/></>:child==='⋯'?<MoreHorizontalIcon className="size-4" aria-hidden="true"/>:child);
+export function Badge({className='',title,variant,...props}:React.ComponentProps<typeof ShadcnBadge>){return <ControlHint text={title}><ShadcnBadge variant={variant||'secondary'} className={className} {...props}/></ControlHint>;}
+
 
 // React owns the immediate edit value; domain controllers may notify later.
 // Keep the same native element and never restore stale props during composition.
@@ -82,20 +83,8 @@ export function ActionButton({
   children,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const tokens = className.split(/\s+/);
-  const selected =
-    variant ??
-    (tokens.includes("primary")
-      ? "default"
-      : (tokens.includes("danger") || tokens.includes("destructive"))
-        ? "destructive"
-        : tokens.includes("button")
-          ? "outline"
-          : "ghost");
-  const content = props.asChild && React.isValidElement(children)
-    ? React.cloneElement(children as React.ReactElement<any>, {}, iconText((children as React.ReactElement<any>).props.children))
-    : iconText(children);
-  return <ControlHint text={title}><Button className={cn('product-button',tokens.filter(token=>!['button','primary','text-button','danger','destructive'].includes(token)).join(' '))} variant={selected} type={type} {...props}>{content}</Button></ControlHint>;
+
+  return <ControlHint text={title}><Button className={className} variant={variant??'ghost'} type={type} {...props}>{children}</Button></ControlHint>;
 }
 
 export function Surface({
@@ -104,7 +93,7 @@ export function Surface({
   children,
   ...props
 }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) {
-  return <Card asChild><Tag className={className} {...props}>{children}</Tag></Card>;
+  return <Card asChild className={cn('min-w-0 gap-4 p-5',className?.includes('media-tile')&&'p-0')}><Tag className={className} {...props}>{children}</Tag></Card>;
 }
 
 type FieldProps = Omit<
@@ -163,7 +152,7 @@ function FieldControl({
     );
   }
   if (type === "date") return <DateField value={value} onChange={onChange} onInput={onInput} {...props}/>;
-  if (type === "time") return <DraftTextControl type="text" inputMode="numeric" placeholder="HH:mm" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?" value={value} onChange={onChange} onInput={onInput} className={className} {...props}/>;
+  if (type === "time") return <InputGroup className="h-auto min-h-11"><InputGroupAddon><ClockIcon/></InputGroupAddon><DraftTextControl type="text" inputMode="numeric" placeholder="HH:mm" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?" value={value} onChange={onChange} onInput={onInput} className={cn('border-0 shadow-none focus-visible:ring-0',className)} data-slot="input-group-control" {...props}/></InputGroup>;
   if (type === "file") return <FilePicker onChange={onChange} onInput={onInput} {...props}/>;
   if (type === "number") return <NumberControl className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
   return <DraftTextControl type={type} className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
@@ -299,7 +288,7 @@ export function MenuDisclosure({ title, children, className, ...props }: any) {
           size="icon"
           aria-label={props["aria-label"] || "更多操作"}
         >
-          {iconText(title)}
+          {title}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

@@ -1,3 +1,7 @@
+import {Progress} from "@/components/ui/progress";
+import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
+import ConfirmationFrame from "@/react-app/shared/ConfirmationFrame";
 import StarRating from '@/react-app/shared/StarRating';
 import {DiaryCalendar} from '@/react-app/shared/DateField';
 import { readValue } from "@/state/view-model";
@@ -23,7 +27,7 @@ export function LifePageView({ view: view }) {
     <Fragment>
       {view.props.page === "此刻" ? (
         <Fragment key={0}>
-          <Surface as="div" className="card now-card">
+          <Surface as="div" className="now-card">
             <span className="eyebrow">
               {displayText(readValue(view.todayLabel))}
             </span>
@@ -43,22 +47,22 @@ export function LifePageView({ view: view }) {
             <p>{displayText(readValue(view.character).world)}</p>
           </Surface>
           <div className="grid now-grid">
-            <Surface as="div" className="card">
+            <Surface as="div" >
               <view.CurrentOutfit compact="" />
             </Surface>
-            <Surface as="section" className="card now-appointments">
+            <Surface as="section" className="now-appointments">
               <div className="row">
                 <h2>{"约定"}</h2>
                 <span className="spacer" />
-                <ActionButton
-                  className="text-button"
+                <ActionButton variant="ghost"
+
                   data-testid="now-appointments"
                   onClick={(k) => {
                     ((view.appointmentHighlight.value = !0),
                       view.emit("go", "目标"));
                   }}
                 >
-                  {"查看全部 ↗"}
+                  {"查看全部 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                 </ActionButton>
               </div>
               <Fragment>
@@ -91,10 +95,10 @@ export function LifePageView({ view: view }) {
               view.props.page === "此刻" ? "此刻与接下来" : "今天的安排",
             )}
           </h2>
-          {view.props.page === "日程" && <ActionButton className="button" onClick={view.openSchedulePlanning}>查看与规划日程</ActionButton>}
+          {view.props.page === "日程" && <ActionButton variant="outline"  onClick={view.openSchedulePlanning}>查看与规划日程</ActionButton>}
           <Surface
             as="section"
-            className="card schedule-list"
+            className="schedule-list"
             data-testid="schedule-list"
           >
             <Fragment>
@@ -136,8 +140,8 @@ export function LifePageView({ view: view }) {
                           ((ve) => (view.text.value = ve))(event.target.value);
                         }}
                       />
-                      <ActionButton
-                        className="button"
+                      <ActionButton variant="outline"
+
                         disabled={
                           readValue(view.scheduleBusy) ||
                           !view.text.value.trim() ||
@@ -149,9 +153,9 @@ export function LifePageView({ view: view }) {
                           readValue(view.scheduleBusy) ? "处理中…" : "保存",
                         )}
                       </ActionButton>
-                      <ActionButton
+                      <ActionButton variant="ghost"
                         type="button"
-                        className="text-button"
+
                         disabled={readValue(view.scheduleBusy)}
                         onClick={(ve) => (view.editing.value = null)}
                       >
@@ -168,7 +172,7 @@ export function LifePageView({ view: view }) {
                       {k === view.active.value ? (
                         <Badge
                           key={0}
-                          className="pill"
+
                           data-testid="schedule-current"
                         >
                           {"进行中"}
@@ -178,11 +182,11 @@ export function LifePageView({ view: view }) {
                         <MenuDisclosure
                           key={1}
                           className="actions-menu"
-                          title={<>{"⋯"}</>}
+                          title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
                           aria-label="日程操作"
                         >
                           <div className="scroll-lock-list" data-scroll-lock="">
-                            <ActionButton
+                            <ActionButton variant="ghost"
                               disabled={
                                 readValue(view.scheduleBusy) ||
                                 k.editable === false
@@ -207,8 +211,8 @@ export function LifePageView({ view: view }) {
                 <p>{"暂时没有已确认的日程。"}</p>
                 {view.props.page === "日程" ? (
                   <div className="row">
-                    <ActionButton
-                      className="button"
+                    <ActionButton variant="outline"
+
                       onClick={view.recoverInitialSchedule}
                     >
                       {"恢复初始日程"}
@@ -226,9 +230,9 @@ export function LifePageView({ view: view }) {
           <div className="small-card-grid" data-testid="goal-grid">
             <Fragment>
               {listValues(readValue(view.character).goals).map((k, ve) => (
-                <Surface as="article" key={k.id} className="card goal-card">
+                <Surface as="article" key={k.id} className="goal-card">
                   <div className="row">
-                    <Badge className="pill">
+                    <Badge >
                       {displayText(k.category || "目标")}
                     </Badge>
                     <span className="spacer" />
@@ -252,21 +256,7 @@ export function LifePageView({ view: view }) {
                       {displayText(k.text)}
                     </span>
                   </label>
-                  <div
-                    className="progress"
-                    role="progressbar"
-                    aria-label={k.text}
-                    aria-valuenow={k.done ? 100 : k.progress}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                  >
-                    <i
-                      style={{
-                        width: (k.done ? 100 : k.progress) + "%",
-                      }}
-                      data-testid={"goal-progress-" + ve}
-                    />
-                  </div>
+                  <Progress value={k.done?100:k.progress} aria-label={k.text} data-testid={"goal-progress-"+ve}/>
                 </Surface>
               ))}
             </Fragment>
@@ -288,7 +278,7 @@ export function LifePageView({ view: view }) {
                   <Surface
                     as="article"
                     key={k.date + k.time}
-                    className="card appointment-card"
+                    className="appointment-card"
                   >
                     <small>
                       {displayText(k.date) + " · " + displayText(k.time)}
@@ -318,7 +308,7 @@ export function LifePageView({ view: view }) {
             />
           </div>
           <div className="diary-layout">
-            <Surface as="section" className="card calendar">
+            <Surface as="section" className="calendar">
               <DiaryCalendar value={view.selectedDate.value} max={view.closedDiaryDate.value} dates={view.diaries.value.map(entry=>entry.date)} onChange={view.selectDate}/>
             </Surface>
             <section
@@ -363,14 +353,14 @@ export function LifePageView({ view: view }) {
                     </p>
                   </article>
                 ) : (
-                  <div key={1} className="diary-paper empty-state">
+                  <EmptyState key={1} className="diary-paper">
                     {[<p key={0}>{"这一天还没有日记。"}</p>]}
-                  </div>
+                  </EmptyState>
                 )}
               </Fragment>
               <footer className="book-controls">
-                <ActionButton
-                  className="text-button"
+                <ActionButton variant="ghost"
+
                   disabled={view.diaryIndex.value <= 0}
                   data-testid="diary-prev"
                   onClick={(k) => view.moveDiary(-1)}
@@ -384,8 +374,8 @@ export function LifePageView({ view: view }) {
                     " / " +
                     displayText(view.diaries.value.length)}
                 </small>
-                <ActionButton
-                  className="text-button"
+                <ActionButton variant="ghost"
+
                   disabled={
                     view.diaryIndex.value < 0 ||
                     view.diaryIndex.value >= view.diaries.value.length - 1
@@ -407,12 +397,12 @@ export function LifePageView({ view: view }) {
             {
               "对话会先在空闲后整理成片段，每日经历在当天结束后形成；此列表展示已正式保存的记忆。向量检索需要配置记忆检索模型。"
             }
-            <ActionButton asChild className="text-button">
+            <ActionButton variant="ghost" asChild >
               <a
-                className="text-button"
+
                 href={"#/settings?section=" + encodeURIComponent("模型用途")}
               >
-                {"查看模型用途 ↗"}
+                {"查看模型用途 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
               </a>
             </ActionButton>
           </p>
@@ -438,7 +428,7 @@ export function LifePageView({ view: view }) {
                   ])}
                   data-testid={"memory-row-" + k.id}
                 >
-                  <ActionButton
+                  <ActionButton variant="ghost"
                     className="memory-summary"
                     aria-expanded={view.expandedMemoryId.value === k.id}
                     aria-controls={"memory-details-" + k.id}
@@ -457,7 +447,7 @@ export function LifePageView({ view: view }) {
                       {displayText(k.text)}
                     </span>
                     <time>{displayText(k.date)}</time>
-                    <Badge className="pill">{displayText(k.category)}</Badge>
+                    <Badge >{displayText(k.category)}</Badge>
                   </ActionButton>
                   {view.expandedMemoryId.value === k.id ? (
                     <div
@@ -483,7 +473,7 @@ export function LifePageView({ view: view }) {
                           <dd>
                             <Fragment>
                               {listValues(k.tags).map((ve) => (
-                                <Badge key={ve} className="pill">
+                                <Badge key={ve} >
                                   {"# " + displayText(ve)}
                                 </Badge>
                               ))}
@@ -497,8 +487,8 @@ export function LifePageView({ view: view }) {
                         </div>
                       </dl>
                       <div className="row">
-                        <ActionButton
-                          className="text-button"
+                        <ActionButton variant="ghost"
+
                           data-testid={"memory-edit-" + k.id}
                           onClick={(ve) => {
                             ((view.draftMemory.value = {
@@ -510,8 +500,8 @@ export function LifePageView({ view: view }) {
                         >
                           {"编辑"}
                         </ActionButton>
-                        <ActionButton
-                          className="text-button"
+                        <ActionButton variant="ghost"
+
                           data-testid={"memory-forget-" + k.id}
                           onClick={(ve) => (view.forgetMemory.value = k)}
                         >
@@ -525,16 +515,16 @@ export function LifePageView({ view: view }) {
             </Fragment>
           </section>
           {view.memories.value.length ? null : (
-            <Surface as="div" key={0} className="card empty-state">
+            <EmptyState as="div" key={0} >
               <p>{"没有符合条件的记忆。"}</p>
-              <ActionButton
-                className="button"
+              <ActionButton variant="outline"
+
                 data-testid="memory-empty-clear"
                 onClick={view.clearFilters}
               >
                 {"清除筛选"}
               </ActionButton>
-            </Surface>
+            </EmptyState>
           )}
           {view.draftMemory.value ? (
             <view.DetailDrawer
@@ -560,9 +550,9 @@ export function LifePageView({ view: view }) {
                     }}
                   />
                   {view.draftMemory.value.text.trim() ? null : (
-                    <small key={0} className="inline-error">
+                    <InlineFeedback key={0} >
                       {"请填写记忆内容"}
-                    </small>
+                    </InlineFeedback>
                   )}
                 </label>
                 <label>
@@ -592,8 +582,8 @@ export function LifePageView({ view: view }) {
                 </label>
                 <section className="grid gap-3 rounded-lg border bg-muted/30 p-4"><h3 className="font-medium">记录信息（只读）</h3><p className="text-sm text-muted-foreground">评分、来源、分类和标签由实际记忆记录维护，此处只修正正文。</p><StarRating value={view.draftMemory.value.importance}/><Badge variant="secondary">{view.draftMemory.value.category}</Badge><div className="flex flex-wrap gap-2">{view.draftMemory.value.tags.map(tag=><Badge key={tag} variant="outline">{tag}</Badge>)}</div></section>
                 <view.ActionFeedback labels={["记忆"]} />
-                <ActionButton
-                  className="button primary"
+                <ActionButton variant="default"
+
                   disabled={
                     readValue(view.memoryBusy) ||
                     !view.draftMemory.value.text.trim()
@@ -606,30 +596,30 @@ export function LifePageView({ view: view }) {
             </view.DetailDrawer>
           ) : null}
           {view.forgetMemory.value ? (
-            <DialogFrame
+            <ConfirmationFrame
               key={2}
               className="modal-backdrop"
               onClose={() => (view.forgetMemory.value = null)}
             >
-              <Surface
-                as="section"
-                className="card confirm-dialog"
-                role="alertdialog"
-                aria-modal="true"
-                aria-label="遗忘这段记忆？"
+              <div
+
+                className="grid gap-4"
+
+
+
                 data-testid="memory-forget-confirm"
               >
                 <h2>{"遗忘这段记忆？"}</h2>
                 <p>{displayText(view.forgetMemory.value.text)}</p>
                 <div className="row">
-                  <ActionButton
-                    className="button"
+                  <ActionButton variant="outline"
+
                     onClick={(k) => (view.forgetMemory.value = null)}
                   >
                     {"取消"}
                   </ActionButton>
-                  <ActionButton
-                    className="button primary"
+                  <ActionButton variant="default"
+
                     data-testid="memory-confirm-forget"
                     onClick={() => view.forget()}
                     disabled={view.memoryBusy.value}
@@ -637,8 +627,8 @@ export function LifePageView({ view: view }) {
                     {"确认遗忘"}
                   </ActionButton>
                 </div>
-              </Surface>
-            </DialogFrame>
+              </div>
+            </ConfirmationFrame>
           ) : null}
         </Fragment>
       ) : null}

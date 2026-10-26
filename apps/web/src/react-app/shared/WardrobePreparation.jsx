@@ -1,3 +1,5 @@
+import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {Surface as CardSurface} from "@/react-app/controls";
 import { useController } from "@/react-app/page";
 import { selector } from "@/state/view-model";
 import { ActionButton, Disclosure } from "@/react-app/controls";
@@ -95,8 +97,8 @@ function createWardrobePreparationController(__props, context, lifecycle) {
   });
   return (_ctx, _cache) => {
     return (
-      <Disclosure
-        className="card approved-preparation"
+      <CardSurface
+        className="approved-preparation"
         open={
           !!readError.value ||
           preparation.value?.status === "failed" ||
@@ -127,15 +129,15 @@ function createWardrobePreparationController(__props, context, lifecycle) {
           onRecover={recover}
         />
         {readError.value ? (
-          <p key={0} className="inline-error" role="alert">
+          <InlineFeedback key={0}  role="alert">
             {displayText(readError.value)}
-          </p>
+          </InlineFeedback>
         ) : null}
         <ActionFeedback labels={["衣柜"]} />
-        <ActionButton className="text-button" type="button" onClick={load}>
+        <ActionButton variant="ghost"  type="button" onClick={load}>
           {" 重新读取准备状态 "}
         </ActionButton>
-      </Disclosure>
+      </CardSurface>
     );
   };
 }

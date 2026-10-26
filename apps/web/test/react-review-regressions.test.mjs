@@ -146,14 +146,14 @@ test("memory deep links expand by ID and the confirmation supports Escape cancel
     await view.click(
       view.host.querySelector('[data-testid="memory-forget-M"]'),
     );
-    assert.ok(document.querySelector('[role="dialog"]'));
+    assert.ok(document.querySelector('[role="alertdialog"]'));
     await act(async () =>
       document.dispatchEvent(
         new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
       ),
     );
     await view.flush();
-    assert.equal(document.querySelector('[role="dialog"]'), null);
+    assert.equal(document.querySelector('[role="alertdialog"]'), null);
     assert.equal(toggle.getAttribute("aria-expanded"), "true");
   } finally {
     await view.dispose();
@@ -236,10 +236,10 @@ test("world deletion confirmation supports its Radix close control without issui
   try {
     const menuTrigger=view.host.querySelector('[aria-label="保留世界的世界操作"]');menuTrigger.focus();act(()=>menuTrigger.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await view.flush();
     await view.click([...document.querySelectorAll('[role="menuitem"]')].find(node=>node.textContent==='删除'));
-    const dialog = document.querySelector('[role="dialog"]');
+    const dialog = document.querySelector('[role="alertdialog"]');
     assert.ok(dialog);
-    await view.click(dialog.querySelector('[data-slot="dialog-close"]'));
-    assert.equal(document.querySelector('[role="dialog"]'), null);
+    await view.click(dialog.querySelector('[aria-label="关闭确认"]'));
+    assert.equal(document.querySelector('[role="alertdialog"]'), null);
     assert.match(view.host.textContent, /保留世界/);
   } finally {
     await view.dispose();

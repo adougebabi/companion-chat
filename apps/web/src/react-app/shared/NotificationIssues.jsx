@@ -1,3 +1,4 @@
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import { ActionButton, Surface, Disclosure } from "@/react-app/controls";
 import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
 export default function NotificationIssues(input = {}) {
@@ -11,7 +12,7 @@ export default function NotificationIssues(input = {}) {
           <Surface
             key={group.id}
             as="section"
-            className="card notification-group"
+            className="notification-group"
           >
             <Disclosure
               title={
@@ -25,7 +26,7 @@ export default function NotificationIssues(input = {}) {
               <Fragment>
                 {listValues(group.items).map((item) => {
                   return (
-                    <ActionButton
+                    <ActionButton variant="ghost"
                       key={item.id}
                       className="notification-item"
                       data-testid={"notification-diagnostic-" + item.id}
@@ -33,7 +34,7 @@ export default function NotificationIssues(input = {}) {
                     >
                       <b>{displayText(item.label)}</b>
                       <p>{displayText(item.reason)}</p>
-                      <span>{"查看原诊断 ↗"}</span>
+                      <span>{"查看原诊断 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></span>
                     </ActionButton>
                   );
                 })}

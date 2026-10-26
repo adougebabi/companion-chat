@@ -1,3 +1,5 @@
+import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import { useController } from "@/react-app/page";
 import { selector, readValue } from "@/state/view-model";
 import {
@@ -98,10 +100,10 @@ function createLibraryPageController(__props, context, lifecycle) {
           </p>
           <span className="spacer" />
           {characters.value.length ? (
-            <ActionButton asChild className="button primary" key={0}>
+            <ActionButton variant="default" asChild  key={0}>
               <a
                 key={0}
-                className="button primary"
+
                 href={
                   saved.value?.activatedId
                     ? "#/library/create?new=1"
@@ -118,24 +120,24 @@ function createLibraryPageController(__props, context, lifecycle) {
           ) : null}
         </div>
         {saved.value ? (
-          <Surface key={0} as="aside" className="card approved-guidance">
+          <Surface key={0} as="aside" className="approved-guidance">
             <b>
               {displayText(
                 saved.value.activatedId ? "继续查看准备进度" : "继续上次的相识",
               )}
             </b>
             <p>{"上次的资料和准备进度已经为你保留。"}</p>
-            <ActionButton asChild className="text-button">
-              <a className="text-button" href="#/library/create">
-                {"继续创建与查看进度 ↗"}
+            <ActionButton variant="ghost" asChild >
+              <a  href="#/library/create">
+                {"继续创建与查看进度 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
               </a>
             </ActionButton>
           </Surface>
         ) : null}
         {error.value ? (
-          <p key={1} className="inline-error" role="alert">
+          <InlineFeedback key={1}  role="alert">
             {displayText(error.value)}
-          </p>
+          </InlineFeedback>
         ) : null}
         {characters.value.length ? (
           <Fragment key={2}>
@@ -154,7 +156,7 @@ function createLibraryPageController(__props, context, lifecycle) {
                   <Surface
                     key={character.id}
                     as="article"
-                    className="card compact library-character"
+                    className="compact library-character"
                   >
                     <div className="row">
                       <CharacterAvatar
@@ -171,7 +173,7 @@ function createLibraryPageController(__props, context, lifecycle) {
                         <Fragment>
                           {listValues(character.tags || []).map((tag) => {
                             return (
-                              <Badge key={tag} className="pill">
+                              <Badge key={tag} >
                                 {displayText(tag)}
                               </Badge>
                             );
@@ -180,30 +182,30 @@ function createLibraryPageController(__props, context, lifecycle) {
                       </div>
                       <span className="spacer" />
                       {readValue(w).state.selectedId === character.id ? (
-                        <Badge key={0} className="pill current-badge">
+                        <Badge key={0} className="current-badge">
                           {"当前"}
                         </Badge>
                       ) : null}
                       <MenuDisclosure
                         className="actions-menu"
-                        title={<>{"⋯"}</>}
+                        title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
                         aria-label={character.name + "的操作"}
                       >
                         <div>
-                          <ActionButton
+                          <ActionButton variant="ghost"
                             onClick={($event) => details(character.id)}
                           >
                             {"角色详情"}
                           </ActionButton>
                           {progressHref(character.id) ? (
-                            <ActionButton
+                            <ActionButton variant="ghost"
                               asChild
-                              className="text-button"
+
                               key={0}
                             >
                               <a
                                 key={0}
-                                className="text-button"
+
                                 href={progressHref(character.id)}
                               >
                                 {"查看准备进度"}
@@ -211,7 +213,7 @@ function createLibraryPageController(__props, context, lifecycle) {
                             </ActionButton>
                           ) : null}
                           {readValue(w).state.selectedId !== character.id ? (
-                            <ActionButton
+                            <ActionButton variant="ghost"
                               key={1}
                               onClick={($event) => choose(character.id)}
                             >
@@ -226,10 +228,10 @@ function createLibraryPageController(__props, context, lifecycle) {
               })}
             </Fragment>
             {!rows.value.length ? (
-              <Surface key={0} as="div" className="card empty-state">
+              <EmptyState key={0} as="div" >
                 <p>{"暂无匹配角色。"}</p>
-                <ActionButton
-                  className="button"
+                <ActionButton variant="outline"
+
                   onClick={($event) => {
                     search.value = "";
                     filters.value = {
@@ -239,11 +241,11 @@ function createLibraryPageController(__props, context, lifecycle) {
                 >
                   {"清除筛选"}
                 </ActionButton>
-              </Surface>
+              </EmptyState>
             ) : null}
           </Fragment>
         ) : (
-          <Surface key={3} as="section" className="card library-first-use">
+          <Surface key={3} as="section" className="library-first-use">
             <LibraryIcon size={30} aria-hidden="true" />
             <h2>{"还没有一起生活的人"}</h2>
             <p>
@@ -260,19 +262,19 @@ function createLibraryPageController(__props, context, lifecycle) {
             ) : null}
             <div className="row first-use-actions">
               {configured.value !== true ? (
-                <ActionButton asChild className="button" key={0}>
+                <ActionButton variant="outline" asChild  key={0}>
                   <a
                     key={0}
-                    className="button"
+
                     href="#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94"
                   >
                     {"先连接模型"}
                   </a>
                 </ActionButton>
               ) : null}
-              <ActionButton asChild className="button primary">
+              <ActionButton variant="default" asChild >
                 <a
-                  className="button primary"
+
                   data-testid="library-create-first"
                   href="#/library/create"
                 >

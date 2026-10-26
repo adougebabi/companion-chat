@@ -15,7 +15,7 @@ export function mountCursorRecords(box,{read,render,alive=()=>true,bind=()=>{},l
   const current=()=>!disposed&&alive()&&box.isConnected;
   async function load() {
     const version=++epoch,requestedAt=at;
-    if(!lastPage)box.innerHTML='<p role="status">正在读取…</p>';
+    if(!lastPage)box.innerHTML='<p role="status" data-domain-ui="skeleton">正在读取…</p>';
     try {
       const page=await read(cursors[at]);if(!current()||version!==epoch)return;
       lastPage=page;lastAt=at;remember();paint(page);
@@ -23,7 +23,7 @@ export function mountCursorRecords(box,{read,render,alive=()=>true,bind=()=>{},l
       if(!current()||version!==epoch)return;
       if(lastPage){at=lastAt;paint(lastPage);}else box.innerHTML='';
       onError(error);
-      box.querySelector('[data-panel-failure]')?.remove();box.insertAdjacentHTML('beforeend',`<div data-panel-failure><p class="banner err" role="alert">${esc(errorMessage(error,errorFallback))}</p><button data-domain-ui="button" class="btn" data-panel-retry>重新读取</button></div>`);
+      box.querySelector('[data-panel-failure]')?.remove();box.insertAdjacentHTML('beforeend',`<div data-panel-failure><p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(error,errorFallback))}</p><button data-domain-ui="button" class="btn" data-panel-retry>重新读取</button></div>`);
       box.querySelector('[data-panel-retry]').onclick=()=>{at=requestedAt;void load();};
     }
   }

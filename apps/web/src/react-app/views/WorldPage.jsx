@@ -1,3 +1,6 @@
+import {MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
+import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
+import ConfirmationFrame from "@/react-app/shared/ConfirmationFrame";
 import { readValue } from "@/state/view-model";
 import { cn } from "@/lib/utils";
 import {
@@ -21,27 +24,27 @@ export function WorldPageView({ view: view }) {
       {view.world.value ? (
         <Fragment key={1}>
           <div className="row">
-            <ActionButton
-              className="text-button"
+            <ActionButton variant="ghost"
+
               onClick={(H) => (view.selected.value = null)}
             >
               {"世界列表"}
             </ActionButton>
             <span>{" / " + displayText(view.world.value.name)}</span>
             <span className="spacer" />
-            <ActionButton
-              className="button"
+            <ActionButton variant="outline"
+
               onClick={(H) => (view.siteDialog.value = !0)}
             >
               {"新增场地分类"}
             </ActionButton>
           </div>
-          <Surface as="div" className="card world-header">
+          <Surface as="div" className="world-header">
             <div className="row">
               <span className="eyebrow">{"A WORLD OF YOUR OWN"}</span>
               <span className="spacer" />
-              <ActionButton
-                className="button"
+              <ActionButton variant="outline"
+
                 onClick={(H) =>
                   (view.worldDraft.value = {
                     id: view.world.value.id,
@@ -53,8 +56,8 @@ export function WorldPageView({ view: view }) {
               >
                 {"编辑世界信息"}
               </ActionButton>
-              <ActionButton
-                className="button"
+              <ActionButton variant="outline"
+
                 onClick={(H) => (view.expanded.value = !view.expanded.value)}
               >
                 {displayText(view.expanded.value ? "结束编辑" : "编辑地点")}
@@ -71,8 +74,8 @@ export function WorldPageView({ view: view }) {
                 ((H) => (view.instruction.value = H))(event.target.value);
               }}
             />
-            <ActionButton
-              className="button"
+            <ActionButton variant="outline"
+
               disabled={readValue(view.busy)}
               onClick={view.expandWorld}
             >
@@ -84,25 +87,25 @@ export function WorldPageView({ view: view }) {
             </ActionButton>
           </div>
           {view.world.value.sites.length ? null : (
-            <Surface
+            <EmptyState
               as="div"
               key={0}
-              className="card empty-state"
+
               data-testid="world-empty-sites"
             >
               {[<p key={0}>{"暂无场地"}</p>]}
-            </Surface>
+            </EmptyState>
           )}
           <Fragment>
             {listValues(view.world.value.sites).map((H, q) => (
-              <Surface as="section" key={q} className="card compact">
+              <Surface as="section" key={q} className="compact">
                 <div className="row">
                   <h3>{"场地 · " + displayText(H.name)}</h3>
                   <span className="spacer" />
                   {view.expanded.value ? (
-                    <ActionButton
+                    <ActionButton variant="ghost"
                       key={0}
-                      className="text-button"
+
                       onClick={(V) => {
                         ((view.siteIndex.value = q),
                           (view.place.value = {
@@ -153,9 +156,9 @@ export function WorldPageView({ view: view }) {
                           <small>{"布局：" + displayText(V.layout)}</small>
                         ) : null}
                         {view.expanded.value ? (
-                          <ActionButton
+                          <ActionButton variant="outline"
                             key={0}
-                            className="button edit-place"
+                            className="edit-place"
                             onClick={(U) => view.editPlace(V, q)}
                           >
                             {"编辑地点"}
@@ -177,8 +180,8 @@ export function WorldPageView({ view: view }) {
               <p className="muted">{"每个人，都在自己的风景里生活。"}</p>
             </div>
             <span className="spacer" />
-            <ActionButton
-              className="button"
+            <ActionButton variant="outline"
+
               data-testid="world-add"
               onClick={view.newWorld}
             >
@@ -192,7 +195,7 @@ export function WorldPageView({ view: view }) {
                   as="article"
                   key={H.id}
                   className={cn([
-                    "card",
+                    "",
                     {
                       current: H.residents.includes(
                         readValue(view.character).id,
@@ -203,7 +206,7 @@ export function WorldPageView({ view: view }) {
                   <div className="row">
                     <h2>{displayText(H.name)}</h2>
                     {H.residents.includes(readValue(view.character).id) ? (
-                      <Badge key={0} className="pill">
+                      <Badge key={0} >
                         {"当前"}
                       </Badge>
                     ) : null}
@@ -229,8 +232,8 @@ export function WorldPageView({ view: view }) {
                       )}
                   </p>
                   <div className="row">
-                    <ActionButton
-                      className="button primary"
+                    <ActionButton variant="default"
+
                       onClick={(q) => {
                         ((view.selected.value = H.id),
                           (view.expanded.value = !1));
@@ -238,9 +241,9 @@ export function WorldPageView({ view: view }) {
                     >
                       {"进入"}
                     </ActionButton>
-                    <MenuDisclosure title="⋯" aria-label={H.name + "的世界操作"}>
-                    <ActionButton
-                      className="text-button"
+                    <MenuDisclosure title={<MoreActionsIcon className="size-4"/>} aria-label={H.name + "的世界操作"}>
+                    <ActionButton variant="ghost"
+
                       onClick={(q) => {
                         ((view.selected.value = H.id),
                           (view.expanded.value = !0));
@@ -248,8 +251,8 @@ export function WorldPageView({ view: view }) {
                     >
                       {"编辑"}
                     </ActionButton>
-                    <ActionButton
-                      className="text-button"
+                    <ActionButton variant="ghost"
+
                       onClick={(q) => (view.removeId.value = H.id)}
                     >
                       {"删除"}
@@ -304,9 +307,9 @@ export function WorldPageView({ view: view }) {
                 <small className="muted">{"正式名称固定，可修改别名"}</small>
               ) : null}
               {view.place.value.name.trim() ? null : (
-                <small key={0} className="inline-error">
+                <InlineFeedback key={0} >
                   {"请填写地点名称。"}
-                </small>
+                </InlineFeedback>
               )}
             </label>
             <Fragment>
@@ -322,8 +325,8 @@ export function WorldPageView({ view: view }) {
                 </label>
               ))}
             </Fragment>
-            <ActionButton
-              className="button primary"
+            <ActionButton variant="default"
+
               disabled={readValue(view.busy) || !view.place.value.name.trim()}
             >
               {displayText(
@@ -366,9 +369,9 @@ export function WorldPageView({ view: view }) {
                 }}
               />
               {view.worldDraft.value.name.trim() ? null : (
-                <small key={0} className="inline-error">
+                <InlineFeedback key={0} >
                   {"请填写世界名称。"}
-                </small>
+                </InlineFeedback>
               )}
             </label>
             <label>
@@ -383,8 +386,8 @@ export function WorldPageView({ view: view }) {
                 }}
               />
             </label>
-            <ActionButton
-              className="button primary"
+            <ActionButton variant="default"
+
               disabled={
                 readValue(view.busy) || !view.worldDraft.value.name.trim()
               }
@@ -428,8 +431,8 @@ export function WorldPageView({ view: view }) {
                 <small key={0}>{"请填写场地名称。"}</small>
               )}
             </label>
-            <ActionButton
-              className="button primary"
+            <ActionButton variant="default"
+
               disabled={readValue(view.busy) || !view.siteName.value.trim()}
             >
               {displayText(
@@ -442,12 +445,12 @@ export function WorldPageView({ view: view }) {
         </view.DetailDrawer>
       ) : null}
       {view.removeId.value !== null ? (
-        <DialogFrame
+        <ConfirmationFrame
           key={5}
           className="modal-backdrop"
           onClose={() => (view.removeId.value = null)}
         >
-          <Surface as="section" className="card confirm-dialog">
+          <div  className="grid gap-4">
             <h2>{"删除世界？"}</h2>
             <p>
               {"「" +
@@ -460,20 +463,20 @@ export function WorldPageView({ view: view }) {
                 ) +
                 "」及其中的场地将被移除。"}
             </p>
-            <ActionButton
-              className="button"
+            <ActionButton variant="outline"
+
               onClick={(H) => (view.removeId.value = null)}
             >
               {"取消"}
             </ActionButton>
-            <ActionButton
-              className="button primary"
+            <ActionButton variant="default"
+
               onClick={() => view.removeWorld(view.removeId.value)}
             >
               {"确认删除"}
             </ActionButton>
-          </Surface>
-        </DialogFrame>
+          </div>
+        </ConfirmationFrame>
       ) : null}
       {!view.place.value && !view.worldDraft.value && !view.siteDialog.value ? (
         <view.ActionFeedback key={6} labels={["世界"]} />

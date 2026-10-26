@@ -1,3 +1,5 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+import {InlineFeedback} from "@/react-app/shared/Presentation";
 import { useController } from "@/react-app/page";
 import { selector, readValue } from "@/state/view-model";
 import { ActionButton, FieldInput } from "@/react-app/controls";
@@ -154,8 +156,8 @@ function createDiaryGenerationController(__props, { emit: __emit }, lifecycle) {
               onInput={($event) => emit("select", $event.target.value)}
             />
           </label>
-          <ActionButton
-            className="button primary"
+          <ActionButton variant="default"
+
             data-testid="diary-generate"
             disabled={pending.value}
             onClick={generate}
@@ -169,13 +171,13 @@ function createDiaryGenerationController(__props, { emit: __emit }, lifecycle) {
           {"只回顾已经结束的一天；今天结束后，再整理今天的经历。"}
         </small>
         {receipt.value ? (
-          <p key={0} role="status">
+          <OperationStatus variant="default" key={0} role="status">
             {displayText(readValue(diaryRequestText)(receipt.value)) + " "}
             {receipt.value.workflow_id ? (
-              <ActionButton asChild className="text-button" key={0}>
+              <ActionButton variant="ghost" asChild  key={0}>
                 <a
                   key={0}
-                  className="text-button"
+
                   href={
                     "#/diag/task/" +
                     encodeURIComponent(receipt.value.workflow_id)
@@ -185,12 +187,12 @@ function createDiaryGenerationController(__props, { emit: __emit }, lifecycle) {
                 </a>
               </ActionButton>
             ) : null}
-          </p>
+          </OperationStatus>
         ) : null}
         {error.value ? (
-          <p key={1} className="inline-error" role="alert">
+          <InlineFeedback key={1}  role="alert">
             {displayText(error.value)}
-          </p>
+          </InlineFeedback>
         ) : null}
       </div>
     );

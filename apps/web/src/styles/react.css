@@ -66,9 +66,6 @@ body {
 .react-workspace {
   min-height: 100dvh;
 }
-.product-button {
-  min-height: 40px;
-}
 [data-slot="input"],
 [data-slot="select-trigger"] {
   min-height: 44px;
@@ -168,3 +165,6 @@ body {
 .react-workspace .large-media.media-preview{height:auto;min-height:300px;}
 .react-workspace .large-media.media-preview .approved-media-content{height:400px;object-fit:contain;}
 @media(max-width:800px){.react-workspace .sidebar{display:none;}.mobile-nav-trigger{display:inline-flex;}.react-workspace .chat-main{display:flex;flex-direction:column;min-height:0;overflow:hidden;}.react-workspace .chat-layout,.react-workspace .chat-layout.collapsed{flex:1;min-height:0;height:auto;}.react-workspace .chat-panel,.react-workspace .timeline{min-height:0;}.react-workspace .composer{flex:none;}}
+
+/* Error placeholders have no visible frame until their controller writes text. */
+[data-domain-ui="alert"][data-slot="alert"]:empty { display: none; }

@@ -1,6 +1,12 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import {Alert,AlertDescription} from '@/components/ui/alert';
 import {toast} from '@/v3/proto/components/toast.js';
+import {InputGroup,InputGroupAddon,InputGroupButton} from '@/components/ui/input-group';
+import {SearchIcon} from 'lucide-react';
+import {ScrollArea} from '@/components/ui/scroll-area';
 import * as React from "react";
 import {
   Sheet,
@@ -48,20 +54,20 @@ export function CurrentOutfit({ compact = false }: { compact?: boolean }) {
       <div className="row">
         <b>今日穿着</b>
         <span className="spacer" />
-        <ActionButton
-          className="text-button"
+        <ActionButton variant="ghost"
+
           onClick={() => {
             w.state.outfitTab = "为她搭配";
             w.navigate("衣柜");
           }}
         >
-          去编辑 ↗
+          去编辑 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
         </ActionButton>
       </div>
       {status && (
-        <p className="muted" role="status">
+        <OperationStatus variant="default" className="muted" role="status">
           {status}
-        </p>
+        </OperationStatus>
       )}
       <div className={compact ? "outfit-tags" : "outfit-lines"}>
         {["外套", "上衣", "内衣", "内裤", "下衣", "袜子", "鞋子", "配饰"].map(
@@ -99,45 +105,45 @@ export function ActionFeedback({
   return (
     <>
       {showStatus && latest.status !== "error" && (
-        <p className="muted" role="status" data-testid="request-status">
+        <OperationStatus variant="default" className="muted" role="status" data-testid="request-status">
           {latest.status === "pending"
             ? "换装请求已受理，等待处理；当前穿着以实际记录为准。"
             : latest.response || "请求已处理，请核对实际结果。"}
-        </p>
+        </OperationStatus>
       )}
       {latest.status === "error" && (
         <Alert variant="destructive"><AlertDescription>
           {latest.reason}{" "}
-          <ActionButton className="text-button" onClick={() => latest.run?.()}>
+          <ActionButton variant="ghost"  onClick={() => latest.run?.()}>
             {latest.actionText || "重试"}
           </ActionButton>
         </AlertDescription></Alert>
       )}
       {latest.readbackError && (
-        <p className="inline-error" role="alert">
+        <InlineFeedback  role="alert">
           {latest.readbackError}{" "}
-          <ActionButton
-            className="text-button"
+          <ActionButton variant="ghost"
+
             onClick={() => latest.refreshResult()}
           >
             重新读取页面结果
           </ActionButton>
-        </p>
+        </InlineFeedback>
       )}
       {latest.originalInput && (
-        <Disclosure title="查看等待核对的原提交" className="inline-error">
-          <pre>{latest.originalInput}</pre>
-        </Disclosure>
+        <InlineFeedback>
+          <Disclosure title="查看等待核对的原提交"><ScrollArea className="h-64"><pre className="whitespace-pre-wrap break-words">{latest.originalInput}</pre></ScrollArea></Disclosure>
+        </InlineFeedback>
       )}
       {latest.review && (
-        <div className="inline-error">
+        <InlineFeedback >
           <p>
             原提交已明确因版本冲突被拒绝，草稿仍保留。读取最新对象后，请重新核对变更。
           </p>
-          <ActionButton className="button" onClick={() => latest.release()}>
+          <ActionButton variant="outline"  onClick={() => latest.release()}>
             读取最新版本并保留草稿
           </ActionButton>
-        </div>
+        </InlineFeedback>
       )}
     </>
   );
@@ -157,9 +163,12 @@ export function FilterChips({
       [key]: filters[key] === value ? "" : value,
     });
   return (
-    <section className="filter-chips" data-testid={prefix}>
-      <div className="filter-search-row">
+    <section className="grid min-w-0 gap-3" data-testid={prefix}>
+      <InputGroup className="h-auto min-h-11">
+        <InputGroupAddon><SearchIcon/></InputGroupAddon>
         <FieldInput
+          data-slot="input-group-control"
+          className="min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
           value={search}
           type="search"
           placeholder={placeholder}
@@ -168,9 +177,9 @@ export function FilterChips({
           onChange={(e) => props.onUpdateSearch?.(e.target.value)}
         />
         {(search.trim() || Object.values(filters).some(Boolean)) && (
-          <ActionButton
+          <InputGroupAddon align="inline-end"><InputGroupButton
             type="button"
-            className="text-button"
+
             data-testid={`${prefix}-clear`}
             onClick={() => {
               props.onUpdateSearch?.("");
@@ -181,9 +190,9 @@ export function FilterChips({
             }}
           >
             清除
-          </ActionButton>
+          </InputGroupButton></InputGroupAddon>
         )}
-      </div>
+      </InputGroup>
       {groups.map((group:any)=><div key={group.key} className="flex min-w-0 items-center gap-3"><small className="shrink-0">{group.label}</small><ToggleGroup type="single" variant="outline" aria-label={group.label} value={filters[group.key]?'option:'+group.options.indexOf(filters[group.key]):'all'} onValueChange={key=>{const value=key.startsWith('option:')?group.options[Number(key.slice(7))]:'';props.onUpdateFilters?.({...filters,[group.key]:value});}} className="max-w-full justify-start overflow-x-auto"><ToggleGroupItem value="all" data-testid={`${prefix}-${group.key}-all`}>全部</ToggleGroupItem>{group.options.map((value:string,index:number)=><ToggleGroupItem key={value} value={'option:'+index} data-testid={`${prefix}-${group.key}-${value}`}>{value}</ToggleGroupItem>)}</ToggleGroup></div>)}
     </section>
   );
@@ -222,9 +231,9 @@ export function DetailDrawer({
           <SheetDescription className="sr-only">
             查看和编辑当前对象
           </SheetDescription>
-          <ActionButton
+          <ActionButton variant="ghost"
             type="button"
-            className="text-button"
+
             data-testid={`${prefix}-close`}
             onClick={onClose}
           >

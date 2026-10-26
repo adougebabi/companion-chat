@@ -26,10 +26,10 @@ export function sourceDrawer(objId) {
   (o.impacts || []).forEach(i => refs.push(['影响', i.id]));
   const audits = store.auditLog().filter(a => a.target === objId).slice(0, 5);
   return drawer({ title: `${icon('link')} 来源 · ${esc(objId)}`, body: `
-    <div class="stack"><div class="card tint-sun"><b>${esc(nameOf(objId))}</b><div class="small muted">类型：${f.col} · ID：<code>${esc(objId)}</code></div></div>
-    <h3>关联对象</h3><div class="list">${refs.length ? refs.map(([k, v]) => `<div class="lrow"><span class="small muted" style="width:90px">${k}</span>${objLink(v, `${nameOf(v)} (${v})`)}</div>`).join('') : '<p class="muted">无关联</p>'}</div>
-    <h3>最近审计</h3>${audits.length ? audits.map(a => `<div class="lrow small">${badge(a.identity)} ${esc(a.summary)} <span class="muted">${a.at}</span></div>`).join('') : '<p class="small muted">无</p>'}</div>` });
+    <div class="stack"><div data-domain-ui="card" class="card tint-sun"><b>${esc(nameOf(objId))}</b><div class="small muted">类型：${f.col} · ID：<code>${esc(objId)}</code></div></div>
+    <h3>关联对象</h3><div class="list">${refs.length ? refs.map(([k, v]) => `<div data-domain-ui="item" class="lrow"><span class="small muted [width:90px]">${k}</span>${objLink(v, `${nameOf(v)} (${v})`)}</div>`).join('') : '<p class="muted">无关联</p>'}</div>
+    <h3>最近审计</h3>${audits.length ? audits.map(a => `<div data-domain-ui="item" class="lrow small">${badge(a.identity)} ${esc(a.summary)} <span class="muted">${a.at}</span></div>`).join('') : '<p class="small muted">无</p>'}</div>` });
 }
 export function avatarOf(id) { const f = store.find(id); return f?.obj.avatar || '/v3/assets/avatars/user.svg'; }
 /** 管理信息折叠区：ID、page key、来源等放这里，日常视图不直接露出 */
-export const mgmt = (html, label = '管理信息') => `<details data-domain-ui="disclosure" class="mgmt small muted" data-test="mgmt"><summary>${label}</summary><div style="margin-top:4px">${html}</div></details>`;
+export const mgmt = (html, label = '管理信息') => `<details data-domain-ui="disclosure" class="mgmt small muted" data-test="mgmt"><summary>${label}</summary><div class="[margin-top:4px]">${html}</div></details>`;

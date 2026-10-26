@@ -136,3 +136,19 @@ body/key for endpoints with idempotency support and pass that SAME key through
 the provider. CAS-only endpoints never invent replay keys; unknown admission
 requires explicit current-object review. Acknowledged readback recovery never
 sends another mutation. Owner-scoped session records clear on logout/switch.
+
+## R2 presentation host preservation
+
+Pure Card/Alert/Item/Empty ports keep the ORIGINAL host visible and apply the
+actual component's asChild props in place. Never use the hidden interactive
+carrier path or move/clone children for a form, content shell or record list.
+Retain named form controls, descendant queries, handlers, hidden state and
+source node identity across body redraws. Attribute writes compare old/new
+values to prevent MutationObserver loops. Empty error placeholders have no
+visible frame until their owner supplies content.
+
+UI wrappers may retain semantic composition (Tooltip, form values), but variants
+and Lucide icons are explicit at call sites; no legacy class-to-variant or text
+icon interpreter. Cursor pagination expresses only real previous/next cursors;
+append readers remain append readers. Confirmations use one AlertDialog role,
+with labelled content and cancellation that never invokes the mutation.

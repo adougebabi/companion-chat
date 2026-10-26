@@ -1,3 +1,5 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+
 import { useController, afterPaint } from "@/react-app/page";
 import { selector } from "@/state/view-model";
 import { ActionButton } from "@/react-app/controls";
@@ -914,34 +916,34 @@ function createManagementPageController(props, context, lifecycle) {
   );
   return (context, cache) => (
     <Fragment>
-      <div className="row account-actions">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton type="button" className="text-button" onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton type="button" className="button" disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>
+      <div className="row account-actions">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton variant="ghost" type="button"  onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton variant="outline" type="button"  disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>
       {render(context, cache)}
       {error.value ? (
-        <aside className="approved-recovery" role="status">
+        <OperationStatus variant="default" className="approved-recovery" role="status">
           {policyRecovery.value &&
           policyRecovery.value.channel.pending() &&
           !policyRecovery.value.channel.pending().rejection ? (
-            <ActionButton className="button" onClick={retryPolicy}>
+            <ActionButton variant="outline"  onClick={retryPolicy}>
               {"重试原角色设置"}
             </ActionButton>
           ) : null}
           {recovery.value ? (
-            <ActionButton className="button" onClick={() => recoverOriginal()}>
+            <ActionButton variant="outline"  onClick={() => recoverOriginal()}>
               {"核对原提交"}
             </ActionButton>
           ) : null}
           {recovery.value ? (
-            <ActionButton
-              className="button"
+            <ActionButton variant="outline"
+
               onClick={() => recoverOriginal(true)}
             >
               {"停止未受理提交"}
             </ActionButton>
           ) : null}
-          <ActionButton className="button" onClick={rebase}>
+          <ActionButton variant="outline"  onClick={rebase}>
             {"读取最新基线（保留输入）"}
           </ActionButton>
-        </aside>
+        </OperationStatus>
       ) : null}
     </Fragment>
   );

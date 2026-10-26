@@ -1,3 +1,7 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
+import ConfirmationFrame from "@/react-app/shared/ConfirmationFrame";
 const tabKeys = {
   为她搭配: "compose",
   方案库: "outfits",
@@ -82,13 +86,13 @@ export function WardrobePageView({ view: view }) {
             </div>
             <Surface
               as="div"
-              className="card slot-picker scroll-lock-list"
+              className="slot-picker scroll-lock-list"
               data-scroll-lock=""
             >
               {view.tag.value ? null : (
-                <p key={0} className="muted" role="status">
+                <OperationStatus variant="default" key={0} className="muted" role="status">
                   {"请先选择标签"}
-                </p>
+                </OperationStatus>
               )}
               <Fragment>
                 {listValues(readValue(At)).map((x, rowIndex) => (
@@ -127,7 +131,7 @@ export function WardrobePageView({ view: view }) {
                         ).map((R, rowIndex) => {
                           var ye;
                           return (
-                            <ActionButton
+                            <ActionButton variant="ghost"
                               aria-label={R.name}
                               disabled={!view.tag.value}
                               title={view.tag.value ? void 0 : "请先选择标签"}
@@ -162,7 +166,7 @@ export function WardrobePageView({ view: view }) {
                 ))}
               </Fragment>
             </Surface>
-            <Surface as="div" className="card">
+            <Surface as="div" >
               <h3>{"当前搭配"}</h3>
               <p className="slot-summary">
                 {displayText(
@@ -175,9 +179,9 @@ export function WardrobePageView({ view: view }) {
               </p>
             </Surface>
             {view.duplicate.value ? (
-              <p key={0} className="inline-error">
+              <InlineFeedback key={0} >
                 {"方案名称已存在，请换一个名称。"}
-              </p>
+              </InlineFeedback>
             ) : null}
             {view.name.value.trim() ? null : (
               <p key={1} className="muted">
@@ -196,8 +200,8 @@ export function WardrobePageView({ view: view }) {
                   ((x) => (view.name.value = x))(event.target.value);
                 }}
               />
-              <ActionButton
-                className="button primary"
+              <ActionButton variant="default"
+
                 disabled={
                   readValue(view.busy) ||
                   view.duplicate.value ||
@@ -213,9 +217,9 @@ export function WardrobePageView({ view: view }) {
                       : "保存为方案",
                 )}
               </ActionButton>
-              <ActionButton
+              <ActionButton variant="outline"
                 type="button"
-                className="button"
+
                 onClick={(x) => {
                   ((view.editingId.value = null),
                     (view.items.value = {}),
@@ -228,7 +232,7 @@ export function WardrobePageView({ view: view }) {
           </Fragment>
         ) : readValue(view.tab) === "方案库" ? (
           <Fragment key={1}>
-            <Surface as="div" className="card">
+            <Surface as="div" >
               <div className="row">
                 <b>{"标签管理"}</b>
                 <small>{"删除标签保留方案"}</small>
@@ -238,11 +242,11 @@ export function WardrobePageView({ view: view }) {
                   {listValues(readValue(view.character).outfitTags).map(
                     (x, rowIndex) => (
                       <Badge
-                        className="pill"
+
                         key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
                       >
                         {displayText(x) + " "}
-                        <ActionButton
+                        <ActionButton variant="ghost"
                           onClick={(R) => {
                             ((view.renameTag.value = x),
                               (view.newTag.value = x));
@@ -250,7 +254,7 @@ export function WardrobePageView({ view: view }) {
                         >
                           {"改名"}
                         </ActionButton>
-                        <ActionButton onClick={(R) => view.removeTag(x)}>
+                        <ActionButton variant="ghost" onClick={(R) => view.removeTag(x)}>
                           {"删除"}
                         </ActionButton>
                       </Badge>
@@ -270,8 +274,8 @@ export function WardrobePageView({ view: view }) {
                     ((x) => (view.newTag.value = x))(event.target.value);
                   }}
                 />
-                <ActionButton
-                  className="button"
+                <ActionButton variant="outline"
+
                   disabled={!view.newTag.value.trim()}
                 >
                   {displayText(view.renameTag.value ? "保存标签" : "添加")}
@@ -280,7 +284,7 @@ export function WardrobePageView({ view: view }) {
             </Surface>
             <Fragment>
               {listValues(readValue(view.character).outfits).map((x) => (
-                <Surface as="article" key={x.id} className="card compact">
+                <Surface as="article" key={x.id} className="compact">
                   <div className="row">
                     {view.renameOutfit.value === x.id ? (
                       <form
@@ -301,8 +305,8 @@ export function WardrobePageView({ view: view }) {
                             );
                           }}
                         />
-                        <ActionButton
-                          className="button"
+                        <ActionButton variant="outline"
+
                           disabled={
                             readValue(view.busy) ||
                             !view.renameValue.value.trim()
@@ -315,9 +319,9 @@ export function WardrobePageView({ view: view }) {
                               : "保存",
                           )}
                         </ActionButton>
-                        <ActionButton
+                        <ActionButton variant="ghost"
                           type="button"
-                          className="text-button"
+
                           onClick={(R) => (view.renameOutfit.value = null)}
                         >
                           {"取消"}
@@ -326,7 +330,7 @@ export function WardrobePageView({ view: view }) {
                     ) : (
                       <b key={1}>{displayText(x.name)}</b>
                     )}
-                    <Badge className="pill">
+                    <Badge >
                       {displayText(view.tagLabel(x.tag) || "未分类")}
                     </Badge>
                     <span className="spacer" />
@@ -336,11 +340,11 @@ export function WardrobePageView({ view: view }) {
                         R.target.closest("button") &&
                         R.currentTarget.removeAttribute("open")
                       }
-                      title={<>{"⋯"}</>}
+                      title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
                       aria-label={x.name + "的方案操作"}
                     >
                       <div className="scroll-lock-list" data-scroll-lock="">
-                        <ActionButton
+                        <ActionButton variant="ghost"
                           onClick={(R) =>
                             (view.preview.value =
                               view.preview.value === x.id ? null : x.id)
@@ -348,10 +352,10 @@ export function WardrobePageView({ view: view }) {
                         >
                           {"预览"}
                         </ActionButton>
-                        <ActionButton onClick={(R) => view.edit(x)}>
+                        <ActionButton variant="ghost" onClick={(R) => view.edit(x)}>
                           {"编辑搭配"}
                         </ActionButton>
-                        <ActionButton
+                        <ActionButton variant="ghost"
                           onClick={(R) => {
                             ((view.renameOutfit.value = x.id),
                               (view.renameValue.value = x.name));
@@ -359,7 +363,7 @@ export function WardrobePageView({ view: view }) {
                         >
                           {"重命名"}
                         </ActionButton>
-                        <ActionButton
+                        <ActionButton variant="ghost"
                           disabled={true}
                           title="服务端保留方案及其历史；可编辑或重命名"
                         >
@@ -367,8 +371,8 @@ export function WardrobePageView({ view: view }) {
                         </ActionButton>
                       </div>
                     </MenuDisclosure>
-                    <ActionButton
-                      className="button"
+                    <ActionButton variant="outline"
+
                       aria-label={
                         "请" +
                         readValue(view.character).name +
@@ -447,8 +451,8 @@ export function WardrobePageView({ view: view }) {
                 </Fragment>
               </ChoiceSelect>
               <span className="spacer" />
-              <ActionButton
-                className="button"
+              <ActionButton variant="outline"
+
                 onClick={(x) =>
                   (view.garment.value = {
                     id: Date.now(),
@@ -467,7 +471,7 @@ export function WardrobePageView({ view: view }) {
                   <Surface
                     as="article"
                     key={x.id}
-                    className="card garment-card"
+                    className="garment-card"
                   >
                     <div
                       className={cn([
@@ -490,11 +494,11 @@ export function WardrobePageView({ view: view }) {
                           R.target.closest("button") &&
                           R.currentTarget.removeAttribute("open")
                         }
-                        title={<>{"⋯"}</>}
+                        title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
                         aria-label={x.name + "的衣服操作"}
                       >
                         <div className="scroll-lock-list" data-scroll-lock="">
-                          <ActionButton
+                          <ActionButton variant="ghost"
                             onClick={(R) =>
                               (view.garment.value = JSON.parse(
                                 JSON.stringify(x),
@@ -503,7 +507,7 @@ export function WardrobePageView({ view: view }) {
                           >
                             {"编辑"}
                           </ActionButton>
-                          <ActionButton
+                          <ActionButton variant="ghost"
                             onClick={(R) => view.removeGarment(x.id)}
                           >
                             {"删除"}
@@ -557,9 +561,9 @@ export function WardrobePageView({ view: view }) {
                   }}
                 />
                 {view.garment.value.name.trim() ? null : (
-                  <small key={0} className="inline-error">
+                  <InlineFeedback key={0} >
                     {"请填写衣服名称。"}
-                  </small>
+                  </InlineFeedback>
                 )}
               </label>
               <label>
@@ -599,8 +603,8 @@ export function WardrobePageView({ view: view }) {
                 </Fragment>
               </div>
               <div className="row">
-                <ActionButton
-                  className="button primary"
+                <ActionButton variant="default"
+
                   disabled={
                     readValue(view.busy) || !view.garment.value.name.trim()
                   }
@@ -611,9 +615,9 @@ export function WardrobePageView({ view: view }) {
                       : "保存衣服",
                   )}
                 </ActionButton>
-                <ActionButton
+                <ActionButton variant="outline"
                   type="button"
-                  className="button"
+
                   onClick={(x) => (view.garment.value = null)}
                 >
                   {"取消"}
@@ -623,29 +627,29 @@ export function WardrobePageView({ view: view }) {
           </DrawerFrame>
         ) : null}
         {view.confirmation.value ? (
-          <DialogFrame
+          <ConfirmationFrame
             key={4}
             className="modal-backdrop"
             onClose={(x) => (view.confirmation.value = null)}
           >
-            <Surface
-              as="section"
-              className="card confirm-dialog"
-              role="alertdialog"
-              aria-modal="true"
-              aria-label={view.confirmation.value.title}
+            <div
+
+              className="grid gap-4"
+
+
+
             >
               <h2>{displayText(view.confirmation.value.title)}</h2>
               <p>{displayText(view.confirmation.value.message)}</p>
               <div className="row">
-                <ActionButton
-                  className="button"
+                <ActionButton variant="outline"
+
                   onClick={(x) => (view.confirmation.value = null)}
                 >
                   {"取消"}
                 </ActionButton>
-                <ActionButton
-                  className="button primary"
+                <ActionButton variant="default"
+
                   onClick={(x) => {
                     (view.confirmation.value.run(),
                       (view.confirmation.value = null));
@@ -654,8 +658,8 @@ export function WardrobePageView({ view: view }) {
                   {"确认删除"}
                 </ActionButton>
               </div>
-            </Surface>
-          </DialogFrame>
+            </div>
+          </ConfirmationFrame>
         ) : null}
         {view.garment.value ? null : (
           <view.ActionFeedback

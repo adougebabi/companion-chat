@@ -1018,14 +1018,7 @@
     padding: 17px;
     color: #6c7b64;
   }
-  .react-workspace .pill {
-    font-size: 12px;
-    padding: 4px 7px;
-    border: 1px solid #e2e8dc;
-    border-radius: 5px;
-    color: #8e9c81;
-    display: inline-block;
-  }
+
   .react-workspace .preview-heading .pill {
     font-size: 12px;
   }
@@ -1218,19 +1211,13 @@
   }
   .react-workspace .page-content {
     max-width: 1050px;
-    margin: auto;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 20px;
     padding-bottom: 25px;
   }
-  .react-workspace .card {
-    background: #fff;
-    border: 1px solid #e1e7dc;
-    border-radius: 10px;
-    padding: 24px;
-    box-shadow: 0 2px 6px #344d3004;
-  }
+
   .react-workspace .section-intro {
     padding: 8px 0;
   }
@@ -1814,9 +1801,7 @@
     .react-workspace .input-row {
       flex-wrap: wrap;
     }
-    .react-workspace .card {
-      padding: 19px;
-    }
+
   }
   @media (max-height: 800px) and (min-width: 801px) {
     .react-workspace .nav-item {
@@ -1898,10 +1883,7 @@
     gap: 14px;
     max-width: 1250px;
   }
-  .react-workspace .card {
-    padding: 20px;
-    box-shadow: none;
-  }
+
   .react-workspace .compact {
     padding: 15px 18px;
   }
@@ -2291,9 +2273,7 @@
     .react-workspace .brand-en {
       display: none;
     }
-    .react-workspace .card {
-      padding: 14px;
-    }
+
     .react-workspace .preview {
       width: 255px;
     }
@@ -3826,11 +3806,7 @@
     text-decoration: underline;
     text-underline-offset: 3px;
   }
-  .react-workspace .pill {
-    color: #5f7166;
-    border-color: var(--border);
-    background: #f4f7f4;
-  }
+
   .react-workspace .tabs {
     border-color: #d4dfd7;
     gap: 8px;

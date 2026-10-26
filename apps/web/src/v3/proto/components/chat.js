@@ -20,7 +20,7 @@ export function ActionCard(a, link) {
   return `<div class="actcard" data-action="${a.id}" data-test="actcard-${a.id}"><div class="row">${icon('bag')}<b class="grow">${esc(a.title)}</b>${badge('行动请求')}${badge(a.state)}</div>
    <div class="steps">${PHASES.map((p, k) => `<span class="${fail && k >= 2 ? 'fail' : k <= i ? 'on' : ''}" title="${p}"></span>`).join('')}</div>
    <div class="small muted">阶段：<b data-test="act-phase">${a.phase}</b> · 关联 ${link(a.goalId || a.taskId || a.id, a.goalId ? '目标 ' + a.goalId : a.taskId)} · ${a.scheduleId ? link(a.scheduleId, '日程 ' + a.scheduleId) : ''}</div>
-   <div class="row" style="margin-top:8px">${btns}<span class="spacer"></span><button data-domain-ui="button" class="btn ghost sm" data-act="detail">详情</button></div></div>`;
+   <div class="row [margin-top:8px]">${btns}<span class="spacer"></span><button data-domain-ui="button" class="btn ghost sm" data-act="detail">详情</button></div></div>`;
 }
 export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, characterAvatar, characterName='对方',senderName='你',viewMode='交流' }) {
   if (m.from === 'divider') return `<div class="divider">${esc(m.text)}</div>`;
@@ -28,9 +28,9 @@ export function MessageBubble(m, { actionById, mediaById, link, mediaUrl, charac
   if (m.from === 'action') { const a = actionById(m.actionId); return a ? ActionCard(a, link) : ''; }
   const me = m.from === 'user'; const md = m.mediaId && mediaById(m.mediaId);
   const timestamp = String(m.at || ''), compactTime = /^\d{2}:\d{2}(?::\d{2})? · /.test(timestamp) ? timestamp.split(' · ')[0] : timestamp;
-  const marks = [m.recall ? badge('回忆', 'plain') : '', m.corrected ? `<span class="corrected" data-test="corrected">${icon('check')} 已纠正 · 记忆 #${m.memoryRef}</span>` : '', m.feedback ? `<span class="corrected" style="background:var(--primary-soft);color:var(--primary-strong)">已告诉她</span>` : ''].join('');
+  const marks = [m.recall ? badge('回忆', 'plain') : '', m.corrected ? `<span class="corrected" data-test="corrected">${icon('check')} 已纠正 · 记忆 #${m.memoryRef}</span>` : '', m.feedback ? `<span class="corrected [background:var(--primary-soft)] [color:var(--primary-strong)]">已告诉她</span>` : ''].join('');
   return `<div class="msg ${me ? 'me' : ''}" data-msg="${esc(m.id)}">${Avatar({src:me?'/v3/assets/avatars/user.svg':characterAvatar,name:me?'你':characterName})}
-   <div class="message-content"><div class="message-identity">${esc(me?senderName:characterName)}</div><div class="bubble">${esc(m.text)}${mediaUrl ? (m.attachmentRefs || []).map(id => `<div class="genimg"><img src="${esc(mediaUrl(id))}" alt="会话媒体" loading="lazy"></div>`).join('') : ''}${md ? `<div style="margin-top:8px">${GeneratedImage(md)}</div>` : ''}</div>
+   <div class="message-content"><div class="message-identity">${esc(me?senderName:characterName)}</div><div class="bubble">${esc(m.text)}${mediaUrl ? (m.attachmentRefs || []).map(id => `<div class="genimg"><img src="${esc(mediaUrl(id))}" alt="会话媒体" loading="lazy"></div>`).join('') : ''}${md ? `<div class="[margin-top:8px]">${GeneratedImage(md)}</div>` : ''}</div>
    <div class="meta"><time title="${esc(timestamp)}" aria-label="${esc(timestamp)}">${esc(compactTime)}</time> ${m.identity && m.identity !== '交流' ? badge(m.identity) : ''} ${marks}
      ${!me&&viewMode==='管理'?`<span class="tools"><button data-domain-ui="button" class="chip" data-source="${esc(m.id)}">${icon('link')} 查看来源</button></span>`:''}</div></div></div>`;
 }

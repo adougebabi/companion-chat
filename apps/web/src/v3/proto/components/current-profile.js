@@ -20,7 +20,7 @@ export function CurrentProfile(current,{zone,identity=current.identity||{}}={}){
   if(Array.isArray(appearance.used_items)&&appearance.used_items.length)body+='<h4>当前使用</h4>'+ClothingRecords(appearance.used_items,{mode:'used'});
  }
  const activities=Array.isArray(current.active_activities)?current.active_activities:[];
- if(activities.length)body+=`<h4>活动记录</h4>${activities.map(a=>`<div class="lrow"><span class="grow">${esc([a.description,a.activity].find(v=>typeof v==='string'&&v.trim())||'活动内容见详情')}</span>${badge(stateLabel(a.status),'plain')}</div>`).join('')}`;
+ if(activities.length)body+=`<h4>活动记录</h4>${activities.map(a=>`<div data-domain-ui="item" class="lrow"><span class="grow">${esc([a.description,a.activity].find(v=>typeof v==='string'&&v.trim())||'活动内容见详情')}</span>${badge(stateLabel(a.status),'plain')}</div>`).join('')}`;
  if(context.instant)body+=`<p class="small muted">当前时间：${esc(userInstant(context.instant,chosen))}</p>`;
  else if(appearance?.captured_at)body+=`<p class="small muted">状态读取时间：${esc(userInstant(appearance.captured_at,chosen))}</p>`;
  return `<div class="stack current-profile">${body}</div>`;

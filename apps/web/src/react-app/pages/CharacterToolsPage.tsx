@@ -1,3 +1,4 @@
+import {ReadState} from "@/react-app/shared/Presentation";
 import { useEffect, useState } from "react";
 import { useWorkspace } from "../page";
 import { Button } from "@/components/ui/button";
@@ -195,7 +196,7 @@ export default function CharacterToolsPage({
           重新读取
         </Button>
       </div>
-      {loading && <p role="status">正在读取当前记录…</p>}
+      {loading && <ReadState role="status">正在读取当前记录…</ReadState>}
       {error && !decision && (
         <p role="alert" className="text-destructive">
           {error}

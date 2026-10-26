@@ -12,6 +12,16 @@ import {civilDate,civilDateString} from './DateField';
 import LoadingState from './LoadingState';
 import {FieldInput,Textarea,ChoiceSelect} from '../controls';
 import ControlHint from './ControlHint';
+import {forwardRef,useImperativeHandle} from 'react';
+import {Card} from '@/components/ui/card';
+import {Alert} from '@/components/ui/alert';
+import {Item} from '@/components/ui/item';
+import {Empty} from '@/components/ui/empty';
+import {Avatar,AvatarImage,AvatarFallback} from '@/components/ui/avatar';
+import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
+import {Pagination,PaginationContent,PaginationItem} from '@/components/ui/pagination';
+import {ChevronLeftIcon,ChevronRightIcon} from 'lucide-react';
+import {cn} from '@/lib/utils';
 
 /**
  * A bounded port for the remaining imperative domain controllers. The original
@@ -21,7 +31,33 @@ import ControlHint from './ControlHint';
  * Only explicitly marked primitives are accepted; this does not interpret page
  * HTML, execute templates or infer React components from arbitrary elements.
  */
-type Port={source:HTMLElement;target:HTMLElement;id:number;kind:string;content?:HTMLElement;summary?:HTMLElement;focused?:boolean;dispose:()=>void};
+type Port={source:HTMLElement;target:HTMLElement;id:number;kind:string;content?:HTMLElement;summary?:HTMLElement;focused?:boolean;business?:string;generated?:Set<string>;variant?:'default'|'destructive';dispose:()=>void};
+const presentationKinds=new Set(['card','alert','item','empty']);
+const oldShellTokens=new Set(['card','banner','lrow','statebox','chip']);
+// Pure presentation primitives apply their actual props to the ORIGINAL host.
+// Do not move form children, clone listeners or alter querySelector ancestry.
+const RetainedShell=forwardRef<HTMLElement,any>(function RetainedShell({source,port,className,...props},ref){
+ useImperativeHandle(ref,()=>source,[source]);
+ useLayoutEffect(()=>{
+  const next=cn(className,port.business);port.generated=new Set(String(className||'').split(/\s+/).filter(token=>!port.business?.split(/\s+/).includes(token)));
+  if(source.className!==next)source.className=next;
+  for(const name of ['data-slot','data-size','data-variant','role'])if(props[name]!==undefined&&source.getAttribute(name)!==String(props[name]))source.setAttribute(name,String(props[name]));
+ });
+ return null;
+});
+function PresentationPort({port}:{port:Port}){
+ const [,refresh]=useState(0),source=port.source;
+ useLayoutEffect(()=>{const observer=new MutationObserver(()=>refresh(value=>value+1));observer.observe(source,{attributes:true,childList:true,subtree:true,characterData:true});return()=>observer.disconnect();},[source]);
+ const classes=source.className.split(/\s+/);
+ if(!port.variant)port.variant=source.getAttribute('role')==='alert'?'destructive':'default';
+ if(classes.includes('banner'))port.variant=classes.includes('err')?'destructive':'default';
+ port.business=classes.filter(token=>!oldShellTokens.has(token)&&!(port.kind==='alert'&&['err','info','warn','ok'].includes(token))&&!port.generated?.has(token)).join(' ');
+ const host=<RetainedShell source={source} port={port}/>;
+ if(port.kind==='card')return <Card asChild className="min-w-0 gap-4 p-5">{host}</Card>;
+ if(port.kind==='alert')return <Alert asChild variant={port.variant||'default'} role={source.getAttribute('role')||((port.variant==='destructive')?'alert':'status')}>{host}</Alert>;
+ if(port.kind==='empty')return <Empty asChild className="border bg-card">{host}</Empty>;
+ return <Item asChild variant="outline" className="min-w-0">{host}</Item>;
+}
 let sequence=0;
 const radioScopes=new WeakMap<object,number>();
 function radioScope(source:HTMLInputElement){const owner=source.form||source.ownerDocument;if(!radioScopes.has(owner))radioScopes.set(owner,++sequence);return radioScopes.get(owner);}
@@ -38,7 +74,7 @@ function useCarrier(port:Port){
   const source:any=port.source,restore=['value','checked','disabled','readOnly','required','hidden','open'].map(name=>propertyPort(source,name,changed));
   const observer=new MutationObserver(changed);observer.observe(source,{attributes:true,childList:true,subtree:true,characterData:true});
   source.addEventListener('input',changed);source.addEventListener('change',changed);source.addEventListener('invalid',changed);source.addEventListener('domain-sync',changed);
-  const originalFocus=source.focus,originalSelection=source.setSelectionRange;source.focus=(options:any)=>(port.target.querySelector<HTMLElement>('[data-slot="input"],textarea')||port.target.querySelector<HTMLElement>('button,a'))?.focus(options);
+  const originalFocus=source.focus,originalSelection=source.setSelectionRange;source.focus=(options:any)=>(port.target.querySelector<HTMLElement>('[data-slot="input"],[data-slot="input-group-control"],textarea')||port.target.querySelector<HTMLElement>('button,a'))?.focus(options);
   if(originalSelection)source.setSelectionRange=(...args:any[])=>{originalSelection.apply(source,args);(port.target.querySelector('input,textarea') as any)?.setSelectionRange(...args);};
   if(port.focused){const start=source.selectionStart,end=source.selectionEnd;source.focus({preventScroll:true});if(start!==null&&start!==undefined)source.setSelectionRange?.(start,end);}
   return()=>{observer.disconnect();restore.forEach(fn=>fn());source.removeEventListener('input',changed);source.removeEventListener('change',changed);source.removeEventListener('invalid',changed);source.removeEventListener('domain-sync',changed);source.focus=originalFocus;if(originalSelection)source.setSelectionRange=originalSelection;};
@@ -75,9 +111,9 @@ function FieldPort({port}:{port:Port}){
 }
 function ButtonPort({port}:{port:Port}){
  const source:any=port.source,anchor=source.tagName==='A',classes=source.classList;
- const variant=classes.contains('danger')?'destructive':classes.contains('primary')||classes.contains('accent')?'default':classes.contains('ghost')||classes.contains('chip')?'ghost':'outline';
+ const variant=classes.contains('on')||source.getAttribute('aria-pressed')==='true'?'secondary':classes.contains('danger')?'destructive':classes.contains('primary')||classes.contains('accent')?'default':classes.contains('ghost')||classes.contains('chip')?'ghost':'outline';
  const activate=(event:any)=>{event.preventDefault();event.stopPropagation();if(source.isConnected&&!source.disabled)source.click();};
- const props:any={...copiedAttributes(source),variant,disabled:source.disabled,className:'max-w-full whitespace-normal text-left',onClick:activate};
+ const props:any={...copiedAttributes(source),...(source.hasAttribute('aria-pressed')?{'aria-pressed':source.getAttribute('aria-pressed')==='true'}:{}),variant,disabled:source.disabled,className:'max-w-full whitespace-normal text-left',onClick:activate};
  return <ControlHint text={source.title}><Button {...props} type={anchor?undefined:'button'} asChild={anchor}>{anchor?<a href={source.getAttribute('href')||undefined} target={source.target||undefined} download={source.getAttribute('download')||undefined}><OpaqueContent source={source}/></a>:<OpaqueContent source={source}/>}</Button></ControlHint>;
 }
 function DisclosurePort({port}:{port:Port}){
@@ -86,8 +122,11 @@ function DisclosurePort({port}:{port:Port}){
  useEffect(()=>{const reveal=()=>{source.open=true;};port.target.addEventListener('domain-reveal',reveal);return()=>port.target.removeEventListener('domain-reveal',reveal);},[port,source]);
  return <Collapsible open={source.open} onOpenChange={open=>{source.open=open;}} data-domain-disclosure className="min-w-0"><CollapsibleTrigger asChild><Button type="button" variant="ghost" className="w-full justify-start whitespace-normal text-left"><span className="min-w-0 flex-1">{port.summary?.textContent||'更多内容'}</span><ChevronDownIcon className={'size-4 shrink-0 transition-transform '+(source.open?'rotate-180':'')}/></Button></CollapsibleTrigger><CollapsibleContent forceMount hidden={!source.open} className="min-w-0 pt-3"><div ref={target} className="min-w-0 break-words [&_pre]:max-h-96 [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_pre]:break-all"/></CollapsibleContent></Collapsible>;
 }
-function PrimitivePort({port}:{port:Port}){
+function InteractivePort({port}:{port:Port}){
  const source=useCarrier(port);port.target.hidden=source.hidden;
+ if(port.kind==='avatar')return <Avatar className={source.classList.contains('lg')?'size-14':'size-8'} role="img" aria-label={source.getAttribute('aria-label')||'人物头像'}><AvatarImage src={source.querySelector('img')?.getAttribute('src')||undefined} alt=""/><AvatarFallback>{source.querySelector('.avatar-fallback')?.textContent||'人'}</AvatarFallback></Avatar>;
+ if(port.kind==='toggle-group'){const items=[...source.querySelectorAll('button')] as HTMLButtonElement[],selected=items.findIndex(item=>item.classList.contains('on')||item.getAttribute('aria-pressed')==='true');return <ToggleGroup type="single" variant="outline" value={selected<0?'':String(selected)} onValueChange={key=>{if(key!=='')items[Number(key)]?.click();}} aria-label={source.getAttribute('aria-label')||'筛选记录'} className="max-w-full flex-wrap justify-start">{items.map((item,index)=><ToggleGroupItem key={index} value={String(index)} disabled={item.disabled}><OpaqueContent source={item}/></ToggleGroupItem>)}</ToggleGroup>;}
+ if(port.kind==='pagination')return <Pagination aria-label="记录分页" className="justify-start"><PaginationContent className="flex-wrap">{[...(source as HTMLElement).querySelectorAll<HTMLButtonElement>('button')].map((item,index)=><PaginationItem key={index}><Button type="button" variant="outline" disabled={item.disabled} onClick={()=>item.isConnected&&item.click()}>{item.hasAttribute('data-page-previous')?<ChevronLeftIcon/>:<ChevronRightIcon/>}{item.textContent}</Button></PaginationItem>)}</PaginationContent></Pagination>;
  if(port.kind==='calendar')return <Calendar locale={zhCN} mode="single" selected={civilDate(source.dataset.selected)} month={civilDate(source.dataset.monthState+'-01')} onMonthChange={date=>source.domainMonthChange?.(civilDateString(date).slice(0,7))} onSelect={date=>date&&source.domainDateSelect?.(civilDateString(date))} modifiers={{recorded:JSON.parse(source.dataset.recordDates||'[]').map(civilDate).filter(Boolean)}} components={{DayButton:props=><CalendarDayButton {...props} className={props.modifiers.recorded?'relative after:absolute after:bottom-0 after:left-1/2 after:size-1 after:rounded-full after:bg-primary':''}/>}} className="w-full"/>;
  if(port.kind==='tabs'){const items=[...source.children] as HTMLElement[],selected=items.findIndex(item=>item.classList.contains('on')||item.getAttribute('aria-current')==='page');return <Tabs value={selected<0?'':String(selected)} onValueChange={key=>items[Number(key)]?.click()}><TabsList className="h-auto max-w-full flex-wrap">{items.map((item,index)=><TabsTrigger key={index} value={String(index)} disabled={(item as any).disabled}><OpaqueContent source={item}/></TabsTrigger>)}</TabsList></Tabs>;}
  if(port.kind==='progress')return <Progress value={Number(source.dataset.value)} aria-label={source.getAttribute('aria-label')||'处理阶段'}/>;
@@ -102,19 +141,19 @@ export default function DomainPrimitives({root}:{root:HTMLElement|null}){
    scheduled=false;if(!active)return;let changed=false;
    for(const [node,port] of known)if(!root!.contains(node)){port.dispose();known.delete(node);changed=true;}
    for(const source of root!.querySelectorAll<HTMLElement>('[data-domain-ui]')){
-    if(known.has(source)||source.matches('input[type="hidden"]')||source.parentElement?.closest('[data-domain-ui="tabs"],[data-domain-ui="calendar"]')||source.closest('[data-domain-react-control="field"],[data-domain-react-control="button"],[data-domain-react-control="badge"],[data-domain-react-control="tabs"],[data-domain-react-control="calendar"]'))continue;
+    if(known.has(source)||source.matches('input[type="hidden"]')||source.parentElement?.closest('[data-domain-ui="tabs"],[data-domain-ui="calendar"],[data-domain-ui="toggle-group"],[data-domain-ui="pagination"]')||source.closest('[data-domain-react-control="field"],[data-domain-react-control="button"],[data-domain-react-control="badge"],[data-domain-react-control="tabs"],[data-domain-react-control="calendar"],[data-domain-react-control="toggle-group"],[data-domain-react-control="pagination"],[data-domain-react-control="avatar"]'))continue;
     const kind=source.dataset.domainUi!;
-    if(!['field','button','disclosure','badge','tabs','calendar','progress','skeleton'].includes(kind))continue;
+    if(!['field','button','disclosure','badge','tabs','calendar','progress','skeleton','avatar','toggle-group','pagination',...presentationKinds].includes(kind))continue;
     const target=document.createElement('span');target.dataset.domainReactControl=kind;target.className=kind==='field'?'contents':kind==='disclosure'?'block min-w-0':'inline-flex min-w-0';
-    const originalAria=source.getAttribute('aria-hidden'),originalTab=source.getAttribute('tabindex');
+    const originalClass=source.className,originalRole=source.getAttribute('role'),originalSlot=source.getAttribute('data-slot'),originalAria=source.getAttribute('aria-hidden'),originalTab=source.getAttribute('tabindex');
     Object.defineProperty(target,'domainSource',{get(){const active=source.ownerDocument.activeElement as HTMLInputElement|null;if(active&&target.contains(active)&&active.selectionStart!==undefined&&active.selectionStart!==null){(source as any).selectionStart=active.selectionStart;(source as any).selectionEnd=active.selectionEnd;}return source;}});
-    const port:Port={source,target,id:++sequence,kind,focused:document.activeElement===source,dispose:()=>{source.removeAttribute('data-domain-carrier');if(originalAria===null)source.removeAttribute('aria-hidden');else source.setAttribute('aria-hidden',originalAria);if(originalTab===null)source.removeAttribute('tabindex');else source.setAttribute('tabindex',originalTab);target.remove();}};
+    const port:Port={source,target,id:++sequence,kind,focused:document.activeElement===source,dispose:()=>{source.removeAttribute('data-domain-carrier');if(presentationKinds.has(kind)){source.className=originalClass;for(const [name,value]of [['role',originalRole],['data-slot',originalSlot]])if(value===null)source.removeAttribute(name!);else source.setAttribute(name!,value!);}if(originalAria===null)source.removeAttribute('aria-hidden');else source.setAttribute('aria-hidden',originalAria);if(originalTab===null)source.removeAttribute('tabindex');else source.setAttribute('tabindex',originalTab);target.remove();}};
     if(kind==='disclosure'){
      port.summary=source.querySelector(':scope > summary') as HTMLElement;
      port.content=document.createElement('div');port.content.className='grid min-w-0 gap-3';
      for(const node of [...source.childNodes])if(node!==port.summary)port.content.append(node);
     }
-    source.setAttribute('data-domain-carrier','');source.setAttribute('aria-hidden','true');source.tabIndex=-1;source.after(target);known.set(source,port);changed=true;
+    if(!presentationKinds.has(kind)){source.setAttribute('data-domain-carrier','');source.setAttribute('aria-hidden','true');source.tabIndex=-1;}else target.className='contents';source.after(target);known.set(source,port);changed=true;
    }
    if(changed)setPorts([...known.values()]);
   }
@@ -122,5 +161,5 @@ export default function DomainPrimitives({root}:{root:HTMLElement|null}){
   observer.observe(root,{childList:true,subtree:true});scan();
   return()=>{active=false;observer.disconnect();for(const port of known.values())port.dispose();};
  },[root]);
- return ports.map(port=>createPortal(<PrimitivePort port={port}/>,port.target,port.id));
+ return ports.map(port=>createPortal(presentationKinds.has(port.kind)?<PresentationPort port={port}/>:<InteractivePort port={port}/>,port.target,port.id));
 }

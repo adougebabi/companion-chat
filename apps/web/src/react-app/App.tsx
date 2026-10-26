@@ -1,3 +1,5 @@
+import {ReadState} from "@/react-app/shared/Presentation";
+import {Surface as CardSurface} from "@/react-app/controls";
 import {configureToast} from '@/v3/proto/components/toast.js';
 import OverlayHost from './shared/OverlayHost';
 import WorkspaceBreadcrumb from './shared/WorkspaceBreadcrumb';
@@ -228,18 +230,18 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     );
   if (!state.ready)
     return (
-      <div className="approved-bootstrap" role="status">
+      <ReadState className="approved-bootstrap" role="status">
         正在读取你的角色与工作区…
-      </div>
+      </ReadState>
     );
   if (state.errors.bootstrap)
     return (
-      <section className="card approved-bootstrap" role="alert">
+      <CardSurface as="section" className="approved-bootstrap" role="alert">
         <p>{state.errors.bootstrap}</p>
         <Button onClick={() => void workspace.bootstrap().catch(() => {})}>
           重新读取
         </Button>
-      </section>
+      </CardSurface>
     );
   const navItem = (label: string, Icon?: typeof LeafIcon, scoped = true) => (
     <Button
@@ -292,7 +294,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     </>
   );
   const content = route.feature ? <DomainPage key={route.path+"?"+route.query} route={route}/>
-    : route.information ? <section className="card"><h2>{route.information.title}</h2><p>{route.information.body}</p><Button variant="outline" onClick={()=>navigate(route.information!.page)}>{route.information.label}</Button></section>
+    : route.information ? <CardSurface as="section" ><h2>{route.information.title}</h2><p>{route.information.body}</p><Button variant="outline" onClick={()=>navigate(route.information!.page)}>{route.information.label}</Button></CardSurface>
     : page === "聊天" ? <ChatPage key={character.id} preview={preview} onGo={navigate}/>
     : page === "衣柜" ? <WardrobePage key={"wardrobe:"+character.id}/>
     : page === "世界" ? character.id ? <WorldPage key={"world:"+character.id}/> : <StudioPage key="global-worlds" kind="world" route={route}/>

@@ -1,3 +1,6 @@
+import {Progress} from "@/components/ui/progress";
+import {EmptyState} from "@/react-app/shared/Presentation";
+import {Surface as CardSurface} from "@/react-app/controls";
 import CharacterAvatar from '@/react-app/shared/CharacterAvatar';
 import { DrawerFrame } from "@/react-app/controls";
 import { readValue } from "@/state/view-model";
@@ -24,7 +27,7 @@ export function BrowsePageView({ view: view }) {
         {listValues(readValue(view.character).posts).map((_, ee) => {
           var he;
           return (
-            <Surface as="article" key={ee} className="card post compact">
+            <Surface as="article" key={ee} className="post compact">
               <div className="row">
                 <CharacterAvatar className="small" name={_.authorName} initial={_.authorInitial}/>
                 <b>{displayText(_.authorName)}</b>
@@ -36,8 +39,8 @@ export function BrowsePageView({ view: view }) {
                 <span>{"把日子过成一首小诗"}</span>
               </div>
               <div className="row">
-                <ActionButton
-                  className="text-button"
+                <ActionButton variant="ghost"
+
                   onClick={() => view.reactPost(_)}
                 >
                   {displayText(_.liked ? "♥" : "♡") +
@@ -45,9 +48,9 @@ export function BrowsePageView({ view: view }) {
                     displayText(_.likes) +
                     " 喜欢"}
                 </ActionButton>
-                <ActionButton
+                <ActionButton variant="ghost"
                   data-testid={"comment-toggle-" + ee}
-                  className="text-button"
+
                   onClick={(j) =>
                     (view.commentsOpen.value[ee] = !view.commentsOpen.value[ee])
                   }
@@ -63,9 +66,7 @@ export function BrowsePageView({ view: view }) {
                   <Fragment>
                     {listValues(_.comments).map((j, T) => (
                       <p key={T}>
-                        <span className="avatar small">
-                          {displayText(j.name.slice(0, 1))}
-                        </span>
+                        <CharacterAvatar className="small" name={j.name}/>
                         <span>
                           <b>{displayText(j.name)}</b>
                           {""}
@@ -96,8 +97,8 @@ export function BrowsePageView({ view: view }) {
                         );
                       }}
                     />
-                    <ActionButton
-                      className="button"
+                    <ActionButton variant="outline"
+
                       disabled={
                         readValue(view.busy) ||
                         !(
@@ -138,12 +139,12 @@ export function BrowsePageView({ view: view }) {
       <div className="people-grid">
         <Fragment>
           {listValues(view.people.value).map((_) => (
-            <ActionButton
+            <ActionButton variant="ghost"
               key={_.id}
-              className="card person-card"
+              className="person-card h-auto whitespace-normal rounded-xl bg-card p-5 ring-1 ring-foreground/10"
               onClick={(ee) => (view.selected.value = _.id)}
             >
-              <span className="avatar">{displayText(_.name.slice(0, 1))}</span>
+              <CharacterAvatar name={_.name}/>
               <h3>{displayText(_.name)}</h3>
               <p>{displayText(_.identity) + " · " + displayText(_.relation)}</p>
               <small>
@@ -154,12 +155,12 @@ export function BrowsePageView({ view: view }) {
         </Fragment>
       </div>
       {view.people.value.length ? null : (
-        <Surface as="div" key={0} className="card empty-state">
+        <EmptyState as="div" key={0} >
           <p>{"暂无匹配人物"}</p>
-          <ActionButton className="button" onClick={view.clear}>
+          <ActionButton variant="outline"  onClick={view.clear}>
             {"清除筛选"}
           </ActionButton>
-        </Surface>
+        </EmptyState>
       )}
       {view.person.value ? (
         <DrawerFrame
@@ -173,8 +174,8 @@ export function BrowsePageView({ view: view }) {
             className="drawer-form"
             aria-label={view.person.value.name}
           >
-            <ActionButton
-              className="button"
+            <ActionButton variant="outline"
+
               onClick={(_) => (view.selected.value = null)}
             >
               {"关闭"}
@@ -220,10 +221,10 @@ export function BrowsePageView({ view: view }) {
           {listValues(view.filteredMedia.value).map((_, rowIndex) => (
             <Surface
               as="article"
-              className="card media-tile"
+              className="media-tile"
               key={typeof _ === "object" ? (_?.id ?? rowIndex) : _}
             >
-              <ActionButton
+              <ActionButton variant="ghost"
                 className="media-open"
                 onClick={(ee) => (view.selected.value = _.id)}
               >
@@ -248,13 +249,13 @@ export function BrowsePageView({ view: view }) {
               </ActionButton>
               {_.type === "语音" ? (
                 <div key={0} className="audio-control">
-                  <ActionButton
-                    className="button"
+                  <ActionButton variant="outline"
+
                     onClick={(ee) => view.playMedia(_.id)}
                   >
                     {displayText(view.playing.value === _.id ? "暂停" : "播放")}
                   </ActionButton>
-                  <progress value={view.progress.value[_.id] || 0} max="100" />
+                  <Progress value={view.progress.value[_.id] || 0} aria-label="音频播放进度"/>
                   <small>{displayText(view.mediaTime(_.id))}</small>
                 </div>
               ) : null}
@@ -271,7 +272,7 @@ export function BrowsePageView({ view: view }) {
           <Surface
             as="section"
             data-testid="media-preview-drawer"
-            className="card media-modal"
+            className="media-modal"
             aria-label="媒体预览"
           >
             <Fragment>
@@ -284,8 +285,8 @@ export function BrowsePageView({ view: view }) {
                   <div className="row">
                     <h2>{displayText(_.title)}</h2>
                     <span className="spacer" />
-                    <ActionButton
-                      className="button"
+                    <ActionButton variant="outline"
+
                       onClick={(ee) => (view.selected.value = null)}
                     >
                       {"关闭预览"}
@@ -315,21 +316,21 @@ export function BrowsePageView({ view: view }) {
         </DialogFrame>
       ) : null}
       {view.filteredMedia.value.length ? null : (
-        <Surface as="div" key={1} className="card empty-state">
+        <EmptyState as="div" key={1} >
           <p>{"暂无匹配媒体。"}</p>
-          <ActionButton
-            className="button"
+          <ActionButton variant="outline"
+
             data-testid="media-empty-clear"
             onClick={view.clear}
           >
             {"清除筛选"}
           </ActionButton>
-        </Surface>
+        </EmptyState>
       )}
     </Fragment>
   ) : view.props.page === "角色库" ? (
     <Fragment key={3}>
-      <ActionButton className="button" onClick={view.createCharacter}>
+      <ActionButton variant="outline"  onClick={view.createCharacter}>
         {"认识新的人"}
       </ActionButton>
       <view.FilterChips
@@ -343,23 +344,16 @@ export function BrowsePageView({ view: view }) {
       />
       <Fragment>
         {listValues(view.library.value).map((_) => (
-          <Surface as="article" key={_.id} className="card compact">
+          <Surface as="article" key={_.id} className="compact">
             <div className="row">
-              <span
-                className="avatar"
-                style={{
-                  background: _.color,
-                }}
-              >
-                {displayText(_.initial)}
-              </span>
+              <CharacterAvatar name={_.name} initial={_.initial} color={_.color}/>
               <div>
                 <b>{displayText(_.name) + " · " + displayText(_.job)}</b>
                 <p>{displayText(_.subtitle)}</p>
                 <Fragment>
                   {listValues(_.tags).map((ee, rowIndex) => (
                     <Badge
-                      className="pill"
+
                       key={typeof ee === "object" ? (ee?.id ?? rowIndex) : ee}
                     >
                       {displayText(ee)}
@@ -368,8 +362,8 @@ export function BrowsePageView({ view: view }) {
                 </Fragment>
               </div>
               <span className="spacer" />
-              <ActionButton
-                className="text-button"
+              <ActionButton variant="ghost"
+
                 onClick={(ee) =>
                   (view.selected.value =
                     view.selected.value === _.id ? null : _.id)
@@ -380,13 +374,13 @@ export function BrowsePageView({ view: view }) {
                 )}
               </ActionButton>
               {readValue(view.selectedId) === _.id ? (
-                <Badge key={0} className="pill current-badge">
+                <Badge key={0} className="current-badge">
                   {"当前"}
                 </Badge>
               ) : (
-                <ActionButton
+                <ActionButton variant="default"
                   key={1}
-                  className="button primary"
+
                   onClick={(ee) => (view.selectedId.value = _.id)}
                 >
                   {"切换角色"}
@@ -416,7 +410,7 @@ export function BrowsePageView({ view: view }) {
       {view.library.value.length ? null : <p key={0}>{"暂无匹配角色。"}</p>}
     </Fragment>
   ) : view.props.page === "创作中心" ? (
-    <Surface as="div" key={4} className="card placeholder">
+    <Surface as="div" key={4} className="placeholder">
       <h2>{"创作资源"}</h2>
       <p>
         {
@@ -429,8 +423,8 @@ export function BrowsePageView({ view: view }) {
           ["place", "新建地点"],
           ["item", "新建物品"],
         ].map(([kind, label], rowIndex) => (
-          <ActionButton
-            className="button"
+          <ActionButton variant="outline"
+
             onClick={() => view.createStudioResource(kind)}
             key={rowIndex}
           >
@@ -439,20 +433,20 @@ export function BrowsePageView({ view: view }) {
         ))}
       </div>
       {readValue(view.resources).map((resource) => (
-        <article className="card compact" key={resource.id}>
+        <CardSurface as="article" className="compact" key={resource.id}>
           <h3>{resource.name}</h3>
           <p className="muted">
             {view.studioKind(resource.kind) +
               " · " +
               (resource.published_version ? "已有发布版本" : "草稿")}
           </p>
-          <ActionButton
-            className="button"
+          <ActionButton variant="outline"
+
             onClick={() => view.openStudioResource(resource.id)}
           >
             {"编辑资源"}
           </ActionButton>
-        </article>
+        </CardSurface>
       ))}
       {readValue(view.resources).length ? null : (
         <p className="muted">{"暂无创作资源，可以先新建地点或物品。"}</p>

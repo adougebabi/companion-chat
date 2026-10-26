@@ -1,3 +1,5 @@
+import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
 import {
   useEffect,
@@ -281,7 +283,7 @@ export default function ChatPage({
               {waiting.detail && <small>{waiting.detail}</small>}
               {waiting.showDiagnostics && (
                 <Button variant="link" asChild>
-                  <a href={diagnosticHref}>查看本次运行 ↗</a>
+                  <a href={diagnosticHref}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
                 </Button>
               )}
               {waiting.showStop && store.canCancel && (
@@ -292,12 +294,12 @@ export default function ChatPage({
             </div>
           )}
           {error && !busy && (
-            <p className="inline-error" role="alert">
+            <InlineFeedback  role="alert">
               {error}
               <Button variant="link" asChild>
-                <a href={diagnosticHref}>查看本次运行 ↗</a>
+                <a href={diagnosticHref}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
               </Button>
-            </p>
+            </InlineFeedback>
           )}
         </div>
         <div className="composer">

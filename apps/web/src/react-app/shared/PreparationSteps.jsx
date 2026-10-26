@@ -1,3 +1,5 @@
+import {InlineFeedback} from "./Presentation";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import {Progress} from '@/components/ui/progress';
 import {Badge} from '@/components/ui/badge';
 import { cn } from "@/lib/utils";
@@ -35,33 +37,27 @@ export default function PreparationSteps(input = {}) {
                   <span className="spacer" />
                   <Badge variant={stage.state==='failed'?'destructive':'secondary'} role="status">{labels[stage.state]||'状态待确认'}</Badge>
                 </div>
-                <p
-                  className={cn(
-                    stage.state === "failed" ? "inline-error" : "muted",
-                  )}
-                >
-                  {displayText(stage.note)}
-                </p>
+                <InlineFeedback variant={stage.state==='failed'?'destructive':'default'} role={stage.state==='failed'?'alert':undefined} className={stage.state==='failed'?'':'border-0 bg-transparent p-0'}>{displayText(stage.note)}</InlineFeedback>
                 <div className="row">
                   {stage.state === "failed" && stage.configSection ? (
-                    <ActionButton asChild className="text-button" key={0}>
+                    <ActionButton variant="ghost" asChild  key={0}>
                       <a
                         key={0}
-                        className="text-button"
+
                         href={
                           "#/settings?section=" +
                           encodeURIComponent(stage.configSection)
                         }
                       >
-                        {"去配置中心 ↗"}
+                        {"去配置中心 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                       </a>
                     </ActionButton>
                   ) : null}
                   {stage.retryable ? (
-                    <ActionButton
+                    <ActionButton variant="outline"
                       key={1}
                       type="button"
-                      className="button"
+
                       disabled={__props.busy}
                       onClick={($event) => __props.onRecover?.(stage)}
                     >
@@ -69,8 +65,8 @@ export default function PreparationSteps(input = {}) {
                     </ActionButton>
                   ) : null}
                   {stage.href ? (
-                    <ActionButton asChild className="text-button" key={2}>
-                      <a key={2} className="text-button" href={stage.href+(stage.href.includes('?')?'&':'?')+'returnTo='+encodeURIComponent(globalThis.location?.hash||'#/library')}>
+                    <ActionButton variant="ghost" asChild  key={2}>
+                      <a key={2}  href={stage.href+(stage.href.includes('?')?'&':'?')+'returnTo='+encodeURIComponent(globalThis.location?.hash||'#/library')}>
                         {"查看技术详情"}
                       </a>
                     </ActionButton>

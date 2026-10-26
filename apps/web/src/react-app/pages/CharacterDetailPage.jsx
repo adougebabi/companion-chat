@@ -1,3 +1,6 @@
+import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+import {InlineFeedback,ReadState} from "@/react-app/shared/Presentation";
+import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import { useController } from "@/react-app/page";
 import { selector, readValue } from "@/state/view-model";
 import {
@@ -396,7 +399,7 @@ async function readPersonaOutcome(receipt){
 const render=(_ctx, _cache) => {
     return (
       <div className="character-detail character-workflow">
-        <Surface as="section" className="card">
+        <Surface as="section" >
           <header className="row character-profile-heading">
             <CharacterAvatar
               className="character-avatar"
@@ -413,9 +416,9 @@ const render=(_ctx, _cache) => {
             </div>
             <span className="spacer" />
             {detail.value && !editing.value ? (
-              <ActionButton
+              <ActionButton variant="outline"
                 key={0}
-                className="button"
+
                 data-testid="detail-edit"
                 disabled={snapshot.value.readOnly}
                 onClick={edit}
@@ -426,7 +429,7 @@ const render=(_ctx, _cache) => {
           </header>
           {detail.value?.persona_preparation &&
           detail.value.persona_preparation.status !== "ready" ? (
-            <p key={0} className="approved-guidance" role="status">
+            <OperationStatus variant="default" key={0} className="approved-guidance" role="status">
               {" 角色资料已保存。" +
                 displayText(
                   detail.value.persona_preparation.status === "failed"
@@ -435,16 +438,16 @@ const render=(_ctx, _cache) => {
                 ) +
                 " "}
               {detail.value.persona_preparation.can_recover ? (
-                <ActionButton
+                <ActionButton variant="ghost"
                   key={0}
-                  className="text-button"
+
                   disabled={saving.value || editing.value}
                   onClick={recoverPreparation}
                 >
                   {"继续准备"}
                 </ActionButton>
               ) : null}
-            </p>
+            </OperationStatus>
           ) : null}
           {editing.value ? (
             <form
@@ -460,16 +463,16 @@ const render=(_ctx, _cache) => {
               </p>
               <ProfileForm fields={fields.value} />
               {error.value ? (
-                <p key={0} className="inline-error" role="alert">
+                <InlineFeedback key={0}  role="alert">
                   {displayText(error.value)}
-                </p>
+                </InlineFeedback>
               ) : null}
               <ActionFeedback labels={["角色详情"]} />
               {readbackPending.value ? (
-                <ActionButton
+                <ActionButton variant="outline"
                   key={1}
                   type="button"
-                  className="button"
+
                   onClick={($event) =>
                     read({
                       preserve: true,
@@ -480,27 +483,27 @@ const render=(_ctx, _cache) => {
                 </ActionButton>
               ) : null}
               {conflict.value ? (
-                <ActionButton
+                <ActionButton variant="outline"
                   key={2}
                   type="button"
-                  className="button"
+
                   onClick={rebase}
                 >
                   {"读取最新资料，保留当前编辑"}
                 </ActionButton>
               ) : null}
               <footer className="wizard-footer">
-                <ActionButton
+                <ActionButton variant="outline"
                   type="button"
-                  className="button"
+
                   disabled={saving.value}
                   onClick={($event) => (editing.value = false)}
                 >
                   {"取消"}
                 </ActionButton>
                 <span className="spacer" />
-                <ActionButton
-                  className="button primary"
+                <ActionButton variant="default"
+
                   data-testid="detail-save"
                   disabled={saving.value || readbackPending.value}
                 >
@@ -511,20 +514,20 @@ const render=(_ctx, _cache) => {
           ) : (
             <div key={2} className="character-detail-sections">
               {!detail.value && !error.value ? (
-                <p key={0} role="status">
+                <ReadState key={0} role="status">
                   {"正在读取角色资料…"}
-                </p>
+                </ReadState>
               ) : null}
               {error.value ? (
-                <p key={1} className="inline-error" role="alert">
+                <InlineFeedback key={1}  role="alert">
                   {displayText(error.value) + " "}
-                  <ActionButton
-                    className="text-button"
+                  <ActionButton variant="ghost"
+
                     onClick={($event) => read()}
                   >
                     {"重新读取"}
                   </ActionButton>
-                </p>
+                </InlineFeedback>
               ) : null}
               <Fragment>
                 {listValues(sections.value).map(([key, label, value]) => {
@@ -635,8 +638,8 @@ const render=(_ctx, _cache) => {
                           />
                           {"我确认向当前角色提出这次人格切换"}
                         </label>
-                        <ActionButton
-                          className="button"
+                        <ActionButton variant="outline"
+
                           disabled={
                             switching.value || snapshot.value.readOnly || personaRecord.value?.requestUnresolved || personaReadbackPending.value ||
                             !target.value ||
@@ -648,8 +651,8 @@ const render=(_ctx, _cache) => {
                             switching.value ? "处理中…" : "确认切换",
                           )}
                         </ActionButton>
-{personaFeedback.value && <p role="status">{personaFeedback.value}</p>}
-{personaReadbackPending.value && <ActionButton type="button" className="button" disabled={switching.value} onClick={() => readPersonaOutcome()}>重新读取人格切换结果</ActionButton>}
+{personaFeedback.value && <OperationStatus variant="default" role="status">{personaFeedback.value}</OperationStatus>}
+{personaReadbackPending.value && <ActionButton variant="outline" type="button"  disabled={switching.value} onClick={() => readPersonaOutcome()}>重新读取人格切换结果</ActionButton>}
 {personaRecord.value?.requestUnresolved && <small className="muted">切换请求已受理，等待原请求确认，当前输入已保留。</small>}
 
                       </form>
@@ -722,38 +725,38 @@ const render=(_ctx, _cache) => {
                   </p>
                 ) : null}
                 <div className="row">
-                  <ActionButton asChild className="text-button">
+                  <ActionButton variant="ghost" asChild >
                     <a
-                      className="text-button"
+
                       href={
                         "#/c/" +
                         encodeURIComponent(readValue(fid)) +
                         "/media/avatar"
                       }
                     >
-                      {"更换头像 ↗"}
+                      {"更换头像 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                     </a>
                   </ActionButton>
-                  <ActionButton asChild className="text-button">
+                  <ActionButton variant="ghost" asChild >
                     <a
-                      className="text-button"
+
                       href={
                         "#/c/" + encodeURIComponent(readValue(fid)) + "/world"
                       }
                     >
-                      {"查看生活世界 ↗"}
+                      {"查看生活世界 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                     </a>
                   </ActionButton>
-                  <ActionButton asChild className="text-button">
+                  <ActionButton variant="ghost" asChild >
                     <a
-                      className="text-button"
+
                       href={
                         "#/c/" +
                         encodeURIComponent(readValue(fid)) +
                         "/life/wardrobe"
                       }
                     >
-                      {"查看衣柜 ↗"}
+                      {"查看衣柜 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                     </a>
                   </ActionButton>
                 </div>
@@ -795,20 +798,20 @@ const render=(_ctx, _cache) => {
         </Surface>
         <p className="character-more">
           <small>{"更多："}</small>
-          <ActionButton asChild className="text-button">
-            <a className="text-button" href={governance("capabilities")}>
+          <ActionButton variant="ghost" asChild >
+            <a  href={governance("capabilities")}>
               {"能力申请"}
             </a>
           </ActionButton>
           <span>{"·"}</span>
-          <ActionButton asChild className="text-button">
-            <a className="text-button" href={governance("developing")}>
+          <ActionButton variant="ghost" asChild >
+            <a  href={governance("developing")}>
               {"发展中的自我"}
             </a>
           </ActionButton>
           <span>{"·"}</span>
-          <ActionButton asChild className="text-button">
-            <a className="text-button" href={governance("foundation")}>
+          <ActionButton variant="ghost" asChild >
+            <a  href={governance("foundation")}>
               {"身份核心与提议"}
             </a>
           </ActionButton>
