@@ -43,3 +43,35 @@ func TestWorldCategoryTransportMapsOnlyTheDeclaredEnvelope(t *testing.T) {
 		t.Fatal(mapped)
 	}
 }
+
+func TestWorldConfigurationCopyTransportRequiresCompleteClosedSource(t *testing.T) {
+	path := "/api/fluctlights/target/world/catalog"
+	base := map[string]any{"name": "独立世界", "sourceWorldId": "world-source", "sourceFluctlightId": "source", "expectedSourceRevision": float64(2), "reason": "沿用世界配置", "idempotencyKey": "copy-key"}
+	if !validWorldSurfaceBody("POST", path, base) {
+		t.Fatal("complete copy rejected")
+	}
+	mapped := surfaceCommandBody(path, base)
+	if mapped["source_world_id"] != "world-source" || mapped["source_fluctlight_id"] != "source" || mapped["expected_source_revision"] != float64(2) {
+		t.Fatal("source envelope not mapped", mapped)
+	}
+	for _, key := range []string{"name", "sourceWorldId", "sourceFluctlightId", "expectedSourceRevision", "reason", "idempotencyKey"} {
+		body := map[string]any{}
+		for k, v := range base {
+			body[k] = v
+		}
+		delete(body, key)
+		if validWorldSurfaceBody("POST", path, body) {
+			t.Fatal("missing copy field admitted", key)
+		}
+	}
+	for key, value := range map[string]any{"expectedSourceRevision": 1.5, "ownerActorId": "forged", "places": []any{}, "lifeHistory": []any{}} {
+		body := map[string]any{}
+		for k, v := range base {
+			body[k] = v
+		}
+		body[key] = value
+		if validWorldSurfaceBody("POST", path, body) {
+			t.Fatal("invalid copy field admitted", key)
+		}
+	}
+}

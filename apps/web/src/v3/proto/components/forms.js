@@ -76,6 +76,7 @@ export function constraintMessage(control) {
 }
 // Capture native validation, including explicit reportValidity(), without changing
 // native prototypes or relaxing constraints. Form owners keep their submit logic.
+/** @param {Document | HTMLElement} root */
 export function installFieldValidation(root=document) {
  let firstInvalid=null, scheduled=false;
  const errors=new WeakMap(), whitespaceErrors=new WeakSet();

@@ -72,8 +72,9 @@ export function WardrobePageView({ view: view }) {
                       (x, rowIndex) => (
                         <option
                           key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
+                          value={x}
                         >
-                          {displayText(x)}
+                          {displayText(view.tagLabel(x))}
                         </option>
                       ),
                     )}
@@ -329,7 +330,7 @@ export function WardrobePageView({ view: view }) {
                       <b key={1}>{displayText(x.name)}</b>
                     )}
                     <Badge className="pill">
-                      {displayText(x.tag || "未分类")}
+                      {displayText(view.tagLabel(x.tag) || "未分类")}
                     </Badge>
                     <span className="spacer" />
                     <MenuDisclosure
@@ -339,7 +340,7 @@ export function WardrobePageView({ view: view }) {
                         R.currentTarget.removeAttribute("open")
                       }
                       title={<>{"⋯"}</>}
-                      aria-label="方案操作"
+                      aria-label={x.name + "的方案操作"}
                     >
                       <div className="scroll-lock-list" data-scroll-lock="">
                         <ActionButton
@@ -493,7 +494,7 @@ export function WardrobePageView({ view: view }) {
                           R.currentTarget.removeAttribute("open")
                         }
                         title={<>{"⋯"}</>}
-                        aria-label="衣服操作"
+                        aria-label={x.name + "的衣服操作"}
                       >
                         <div className="scroll-lock-list" data-scroll-lock="">
                           <ActionButton

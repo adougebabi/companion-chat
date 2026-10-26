@@ -35,7 +35,8 @@ import {
   rebaseProfileFields,
 } from "@/approved-ui/profile-fields.mjs";
 import { errorMessage, stateLabel } from "@/v3/domain-presentation.mjs";
-function createCharacterDetailPageController(__props, context, lifecycle) {
+export function createProfileModel(lifecycle) {
+
   const w = lifecycle.workspace,
     fid = w.state.selectedId,
     scope = w.currentScope(),
@@ -54,7 +55,11 @@ function createCharacterDetailPageController(__props, context, lifecycle) {
     switching = lifecycle.cell(false),
     target = lifecycle.cell(""),
     reason = lifecycle.cell(""),
-    confirm = lifecycle.cell(false);
+    confirm = lifecycle.cell(false),
+    personaRecord = lifecycle.cell(null),
+    personaSubmitted = lifecycle.cell(null),
+    personaReadbackPending = lifecycle.cell(false),
+    personaFeedback = lifecycle.cell("");
   let active = true,
     epoch = 0,
     reading = false,
@@ -149,6 +154,7 @@ function createCharacterDetailPageController(__props, context, lifecycle) {
     }
   }
   function edit() {
+    if (!detail.value || snapshot.value.readOnly) return;
     base.value = coreFromDetail(detail.value);
     baseline.value = detail.value.current_revision;
     fields.value = profileFields(base.value, semanticLabel);
@@ -228,86 +234,90 @@ function createCharacterDetailPageController(__props, context, lifecycle) {
     }
   }
   async function switchPersona() {
-    if (
-      !target.value ||
-      !reason.value.trim() ||
-      !confirm.value ||
-      switching.value
-    )
-      return;
-    if (
-      !personas.value.some((p) => p.id === target.value) ||
-      target.value === snapshot.value.activeProfileId
-    ) {
-      error.value = "请选择当前角色可用的其他人格";
-      return;
-    }
-    if (
-      snapshot.value.switchTargetIds &&
-      !snapshot.value.switchTargetIds.includes(target.value)
-    ) {
-      error.value = "该人格当前不能通过所有者指令切换";
-      return;
-    }
-    switching.value = true;
-    const submitted = {
-      target: target.value,
-      reason: reason.value,
-    };
-    try {
-      const body = {
-        targetPersonaId: target.value,
-        expectedRevision: snapshot.value.foundationRevision,
-        expectedRuntimeRevision: snapshot.value.runtimeRevision,
-        reason: reason.value.trim(),
-        confirm: true,
-      };
-      if (
-        !Number.isSafeInteger(body.expectedRevision) ||
-        !Number.isSafeInteger(body.expectedRuntimeRevision)
-      )
-        throw Error("人格或运行版本未读取完整，请重新读取");
-      const record = w.command(
-        "角色详情",
-        "persona-switch",
-        body,
-        async (value, key) => {
-          const result = await w.client.switchPersona(fid, {
-            ...value,
-            idempotencyKey: key,
-          });
-          return result.request_id
-            ? {
-                request: {
-                  id: result.request_id,
-                  status: "pending",
-                },
-              }
-            : result;
-        },
-        {
-          onSaved: async () => {
-            if (live()) await read();
-          },
-          success: "人格切换已确认",
-        },
-      );
-      await record.completion;
-      if (
-        live() &&
-        target.value === submitted.target &&
-        reason.value === submitted.reason
-      ) {
-        target.value = "";
-        reason.value = "";
-        confirm.value = false;
-      }
-    } catch (cause) {
-      if (live()) error.value = errorMessage(cause);
-    } finally {
-      if (live()) switching.value = false;
-    }
+  if (
+    !live() || snapshot.value.readOnly || personaRecord.value?.requestUnresolved || personaReadbackPending.value ||
+    !target.value ||
+    !reason.value.trim() ||
+    !confirm.value ||
+    switching.value
+  )
+    return;
+  if (
+    !personas.value.some((p) => p.id === target.value) ||
+    target.value === snapshot.value.activeProfileId
+  ) {
+    error.value = "请选择当前角色可用的其他人格";
+    return;
   }
+  if (
+    snapshot.value.switchTargetIds &&
+    !snapshot.value.switchTargetIds.includes(target.value)
+  ) {
+    error.value = "该人格当前不能通过所有者指令切换";
+    return;
+  }
+  switching.value = true;
+  const submitted = { target: target.value, reason: reason.value };
+  personaSubmitted.value=submitted;
+  personaFeedback.value='';error.value='';
+  try {
+    const body = {
+      targetPersonaId: target.value,
+      expectedRevision: snapshot.value.foundationRevision,
+      expectedRuntimeRevision: snapshot.value.runtimeRevision,
+      reason: reason.value.trim(),
+      confirm: true,
+    };
+    if (
+      !Number.isSafeInteger(body.expectedRevision) ||
+      !Number.isSafeInteger(body.expectedRuntimeRevision)
+    )
+      throw Error("人格或运行版本未读取完整，请重新读取");
+    const record = w.command(
+      "角色详情",
+      "persona-switch",
+      body,
+      async (value, key) => {
+        const result = await w.client.switchPersona(fid, {
+          ...value,
+          idempotencyKey: key,
+        });
+        return result.request_id
+          ? { request: { id: result.request_id, status: "pending" } }
+          : result;
+      },
+      {
+        onSaved:readPersonaOutcome,
+        success: "人格切换命令已提交，请核对当前状态",
+      },
+    );
+    personaRecord.value=record;
+    await record.completion;
+  } catch (cause) {
+    if (live()) error.value = errorMessage(cause);
+  } finally {
+    if (live()) switching.value = false;
+  }
+}
+async function readPersonaOutcome(receipt){
+  if(!live()||!personaSubmitted.value)return;
+  personaReadbackPending.value=true;
+  if(!await read()){
+    if(live())error.value='命令已提交，但最新状态读取失败。原目标和原因已保留，请重新读取，确认前不要重复切换。';
+    return;
+  }
+  if(!live())return;
+  const submitted=personaSubmitted.value;
+  const result=receipt?.result||receipt;
+  const currentMatches=snapshot.value.activeProfileId===submitted.target;
+  const recorded=result?.status==='completed'&&result.active_profile_id===submitted.target;
+  if(currentMatches||recorded){
+    personaReadbackPending.value=false;
+    personaFeedback.value=currentMatches?'目标人格已生效，已读取最新状态。':'原切换已完成；当前人格已有后续变化，请以当前记录为准。';
+    if(target.value===submitted.target&&reason.value===submitted.reason){target.value='';reason.value='';confirm.value=false;}
+  }else error.value='命令已提交，当前人格尚未与目标一致。原目标与原因已保留，请查询原请求和切换记录。';
+}
+
   async function pollPreparation() {
     if (
       !live() ||
@@ -382,7 +392,8 @@ function createCharacterDetailPageController(__props, context, lifecycle) {
     clearInterval(timer);
     document.removeEventListener("visibilitychange", visibility);
   });
-  return (_ctx, _cache) => {
+
+const render=(_ctx, _cache) => {
     return (
       <div className="character-detail character-workflow">
         <Surface as="section" className="card">
@@ -627,7 +638,7 @@ function createCharacterDetailPageController(__props, context, lifecycle) {
                         <ActionButton
                           className="button"
                           disabled={
-                            switching.value ||
+                            switching.value || snapshot.value.readOnly || personaRecord.value?.requestUnresolved || personaReadbackPending.value ||
                             !target.value ||
                             !reason.value.trim() ||
                             !confirm.value
@@ -637,6 +648,10 @@ function createCharacterDetailPageController(__props, context, lifecycle) {
                             switching.value ? "处理中…" : "确认切换",
                           )}
                         </ActionButton>
+{personaFeedback.value && <p role="status">{personaFeedback.value}</p>}
+{personaReadbackPending.value && <ActionButton type="button" className="button" disabled={switching.value} onClick={() => readPersonaOutcome()}>重新读取人格切换结果</ActionButton>}
+{personaRecord.value?.requestUnresolved && <small className="muted">切换请求已受理，等待原请求确认，当前输入已保留。</small>}
+
                       </form>
                     </Disclosure>
                   ) : null}
@@ -804,7 +819,10 @@ function createCharacterDetailPageController(__props, context, lifecycle) {
       </div>
     );
   };
+return {w,fid,detail,world,editing,fields,saving,readbackPending,error,conflict,personaRecord,personaSubmitted,personaReadbackPending,personaFeedback,switching,target,reason,confirm,snapshot,core,personas,currentPersona,sections,personaValue,title,subtitle,avatar,governance,read,edit,save,rebase,switchPersona,readPersonaOutcome,recoverPreparation,render};
 }
+function createCharacterDetailPageController(props,context,lifecycle){return createProfileModel(lifecycle).render;}
+
 export default function CharacterDetailPage(input = {}) {
   return useController(createCharacterDetailPageController, {
     ...input,

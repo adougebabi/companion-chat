@@ -1,3 +1,4 @@
+import {featureRoute} from './feature-routes.mjs';
 export const lifePages = [
   "此刻",
   "日程",
@@ -34,35 +35,39 @@ const modules = {
   profile: "角色详情",
 };
 export function approvedRoute(hash) {
-  let value;
-  try {
-    value = decodeURIComponent(String(hash || "").replace(/^#/, ""));
-  } catch {
-    return { notFound: true };
+  const value=String(hash||'').replace(/^#/,'');
+  let [path,search='']=value.split('?');
+  const query=new URLSearchParams(search);
+  if(query.getAll('legacy').includes('1'))return {removed:true,page:'页面未找到',path,query,fid:null};
+  try { decodeURIComponent(path); }
+  catch { return {page:'页面未找到',notFound:true,path,query,fid:null}; }
+  const aliases={'/instances':'/library','/moments':'/feed','/diagnostics':'/diag','/settings/diagnostics':'/diag','/backup':'/data','/setup':'/library/create','/studio/media':'/media'};
+  path=aliases[path]||path;
+  if(path==='/studio/template'){path='/studio';query.set('kind','event_template');}
+  if(path==='/studio/apply')path=query.get('res')?'/studio/edit/'+encodeURIComponent(query.get('res')):'/studio';
+  const autonomy=/^\/c\/([^/]+)\/settings\/autonomy$/.exec(path);
+  if(autonomy){path='/settings';query.set('fid',decodeURIComponent(autonomy[1]));query.set('section','角色自主与主动联系');}
+  if(path.startsWith('/studio/media/'))path='/media/'+path.slice('/studio/media/'.length);
+  if(path.startsWith('/settings/')){
+    const section=path.slice('/settings/'.length);
+    query.set('section',({models:'服务地址','reply-vision':'聊天回复','media-workflows':'图片（ComfyUI）',runtime:'角色自主与主动联系',outreach:'角色自主与主动联系',notifications:'通知',owner:'所有者与会话',capabilities:'能力与权限',kev:'高级'})[section]||section);
+    path='/settings';
   }
-  const [path, search = ""] = value.split("?"),
-    query = new URLSearchParams(search);
-  if (query.getAll("legacy").includes("1")) return { removed: true, path, query };
+  if(path==='/auth')return {page:'登录',auth:true,path,query};
+  if(path==='/media')return {page:'媒体',path,query,fid:null,global:true};
+  if(path==='/worlds')return {page:'世界',path,query,fid:null,global:true};
   if (!path || workspacePages.includes(path))
-    return { page: path || "聊天", fid: null, query, alias: true };
+    return { page: path || "角色库", fid: null, path, query, alias: true };
   const match = /^\/c\/([^/]+)\/(.*)$/.exec(path);
-  if (match && modules[match[2]])
-    return { page: modules[match[2]], fid: match[1], query };
-  if (path === "/settings/kev") { query.set("section", "高级"); return {page:"管理中心",query}; }
-  const studio = /^\/studio\/edit\/([^/]+)$/.exec(path);
-  if (studio) return { page: "资源编辑", resourceId: studio[1], kind: query.get("kind") || "world", query };
-  const diagnostic = /^\/diag\/(request|task|record|turns|media-prompts|pending|kev|lifecycle|agent-runs|workflow-intents|events|links|harm)(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(path);
-  if (diagnostic) return { page: "运行详情", query, diagnostic: { kind: diagnostic[1], id: diagnostic[1] === "record" ? diagnostic[3] : diagnostic[2], recordKind: diagnostic[1] === "record" ? diagnostic[2] : undefined, query: query.get("correlationId") || query.get("q") || "" } };
-  if (match) {
-    const tool = /^(?:media\/(avatar|identity)|(governance))$/.exec(match[2]);
-    if (tool) return {page:"角色工具",fid:match[1],tool:tool[1]||tool[2],tab:query.get("tab")||"foundation",query};
-    const memory = /^growth\/memory\/([^/]+)$/.exec(match[2]);
-    if (memory) return {page:"记忆",fid:match[1],memoryId:memory[1],query};
-    const world = /^worlds\/([^/]+)\/edit$/.exec(match[2]);
-    if (world) return {page:"世界",fid:match[1],worldId:world[1],query};
+  if(match&&match[2]==='chat/media')return {page:'媒体',fid:null,path,query:new URLSearchParams({...Object.fromEntries(query),fid:decodeURIComponent(match[1])}),global:true};
+  if(match&&['chat/call','chat/corrections'].includes(match[2]))return {page:'聊天',fid:decodeURIComponent(match[1]),path,query,information:match[2]==='chat/call'?{title:'文字交流',body:'当前版本支持文字和已有媒体消息，暂未提供实时通话。',page:'聊天',label:'返回聊天'}:{title:'纠正与修订记录',body:'可以从记忆详情查看原始来源和每一版修订；聊天原文保留。',page:'记忆',label:'查看记忆与来源'}};
+  if(match&&['life','worlds'].includes(match[2])){
+    const suffix=match[2]==='life'?'life/now':'world';
+    return {page:modules[suffix],fid:decodeURIComponent(match[1]),path,query};
   }
+  if (match && modules[match[2]])
+    return { page: modules[match[2]], fid: decodeURIComponent(match[1]), path, query };
   const global = {
-    "/auth": "登录",
     "/feed": "动态",
     "/inbox": "通知与待处理",
     "/library": "角色库",
@@ -74,13 +79,20 @@ export function approvedRoute(hash) {
   if (global[path])
     return {
       page: global[path],
+      path,
       fid: query.get("fid"),
       query,
       diagnostics: path === "/diag",
     };
-  return { notFound: true, path, query };
+  try {
+    const feature=featureRoute(path,query);
+    if(feature)return {page:feature.page,title:feature.title,path,query,fid:feature.fid,feature};
+  }catch { /* Invalid encoded selectors stay inside the same not-found view. */ }
+  return {page:'页面未找到',notFound:true,path,query,fid:null};
 }
 export function approvedHref(page, fid) {
+  if(page==='媒体')return '#/media';
+  if(page==='世界'&&!fid)return '#/worlds';
   const module = Object.entries(modules).find(
     ([, label]) => label === page,
   )?.[0];
@@ -96,4 +108,9 @@ export function approvedHref(page, fid) {
       管理中心: "#/settings",
     }[page] || "#/library"
   );
+}
+export function bookmarkedPath(pathname,search='') {
+  const path=String(pathname||'').replace(/\/$/,'')||'/';
+  if(path==='/')return null;
+  return ({'/chat':'/library','/world':'/worlds','/people':'/library'})[path]||path+search;
 }

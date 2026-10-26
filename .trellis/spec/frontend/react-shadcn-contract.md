@@ -41,15 +41,20 @@ keyboard behavior and portals belong to Radix, not new handwritten handlers.
 
 Preserve route identity, Owner/character scope, epochs, frozen requests, CAS,
 retry/receipt recovery, drafts and IME. Generic UI components cannot own API
-calls or request identities. Migration must not change backend or prompt policy.
+calls or request identities. UI migration must not change backend or prompt policy. Independently reviewed
+remote domain changes are preserved when merging, including R10 world-copy APIs.
 
 Retain the approved Sage visual baseline while mapping tokens. Vue `data-v-*`
 selectors need explicit conversion; do not copy fake scope hashes into React.
-Global Tailwind resets and old CSS variables must not corrupt legacy pages.
+Tailwind resets and domain CSS variables must preserve current page layouts.
 
 The Owner explicitly requires legacy=1 pages and routes to be unavailable.
 Reject them before route dispatch; no redirect or compatibility mount. Current
-detail/auth/editor paths have explicit React owners. No old QA HTML or demo
+detail/auth/editor paths have explicit React owners. R10 unique domain tools
+are temporarily mounted by React DomainPage using named route selectors, with
+Owner/epoch fences and unmount cleanup. Their imperative forms and overlays are
+remaining custom controls, not completed shadcn adoption; no old app or shell
+may be mounted to host them. No old QA HTML or demo
 injector may remain as an alternate entry.
 
 ## 4. Validation and error matrix
@@ -79,7 +84,7 @@ Preserve domain contract tests when replacing Vue-specific harnesses. Verify
 the production dist and fixture exclusion, then browser keyboard/focus/form
 behavior, deep links, repeated navigation, streaming input continuity, desktop
 and narrow layouts. Fixture evidence does not certify live model/database work.
-The final report lists migrated families, intentional native semantics, intentional native semantics and reusable domain compositions with paths.
+The final report lists migrated families, intentional native semantics, remaining custom controls and reusable domain compositions with paths.
 
 ## 7. Wrong vs correct
 

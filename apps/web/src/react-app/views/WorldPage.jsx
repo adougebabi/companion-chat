@@ -6,6 +6,7 @@ import {
   FieldInput,
   DialogFrame,
   Badge,
+  MenuDisclosure,
 } from "@/react-app/controls";
 import {
   displayText,
@@ -237,6 +238,7 @@ export function WorldPageView({ view: view }) {
                     >
                       {"进入"}
                     </ActionButton>
+                    <MenuDisclosure title="⋯" aria-label={H.name + "的世界操作"}>
                     <ActionButton
                       className="text-button"
                       onClick={(q) => {
@@ -252,6 +254,7 @@ export function WorldPageView({ view: view }) {
                     >
                       {"删除"}
                     </ActionButton>
+                    </MenuDisclosure>
                   </div>
                 </Surface>
               ))}

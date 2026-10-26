@@ -16,20 +16,20 @@ test("every current workspace route resolves while all legacy=1 variants are rej
         href + (href.includes("?") ? "&" : "?") + suffix,
       );
       assert.equal(route.removed, true);
-      assert.equal(route.page, undefined);
+      assert.equal(route.page, "页面未找到");
     }
   }
 });
 test("current React detail and editor routes have explicit owners instead of an old-page fallback", () => {
   for (const [url, page] of [
     ["#/auth", "登录"],
-    ["#/studio/edit/new?kind=world", "资源编辑"],
-    ["#/diag/request/R", "运行详情"],
-    ["#/diag/task/T", "运行详情"],
-    ["#/diag/record/model-runs/R", "运行详情"],
-    ["#/c/A/media/avatar", "角色工具"],
-    ["#/c/A/media/identity", "角色工具"],
-    ["#/c/A/governance?tab=capabilities", "角色工具"],
+    ["#/studio/edit/new?kind=world", "创作中心"],
+    ["#/diag/request/R", "管理中心"],
+    ["#/diag/task/T", "管理中心"],
+    ["#/diag/record/model-runs/R", "管理中心"],
+    ["#/c/A/media/avatar", "媒体"],
+    ["#/c/A/media/identity", "媒体"],
+    ["#/c/A/governance?tab=capabilities", "角色详情"],
     ["#/c/A/growth/memory/M", "记忆"],
     ["#/c/A/worlds/W/edit", "世界"],
   ]) {

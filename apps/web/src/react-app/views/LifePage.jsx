@@ -89,6 +89,7 @@ export function LifePageView({ view: view }) {
               view.props.page === "此刻" ? "此刻与接下来" : "今天的安排",
             )}
           </h2>
+          {view.props.page === "日程" && <ActionButton className="button" onClick={view.openSchedulePlanning}>查看与规划日程</ActionButton>}
           <Surface
             as="section"
             className="card schedule-list"

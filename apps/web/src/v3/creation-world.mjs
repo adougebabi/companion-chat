@@ -1,9 +1,11 @@
 import {persistentCommand} from './providers/persistent-command.mjs';
+import {finishReusedWorld} from './reuse-world.mjs';
 
 // Activation is already committed. These commands resume independently and
 // never create a second character when publication/application/selection fails.
 export async function finishCreationWorld({client,recovery,storage,owner,ownerCurrent=()=>true}){
  let draft=recovery.read();
+ if(draft.worldSource)return finishReusedWorld({client,recovery,storage,owner,ownerCurrent});
  if(draft.useDefaultWorld)return finishDefaultCreationWorld({client,recovery,storage,owner,ownerCurrent});
  if(!draft.worldResourceId||!draft.worldResourceVersion)return {configured:false,warning:'尚未选择世界底稿，可在初始化向导继续补全'};
  const fid=draft.activatedId,requestId=draft.requestId,source={resourceId:draft.worldResourceId,version:draft.worldResourceVersion};

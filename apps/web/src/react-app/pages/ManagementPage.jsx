@@ -8,7 +8,7 @@ import { diagnosticProjection } from "@/approved-ui/presentation.mjs";
 import { catalogLabel } from "@/v3/runtime-catalog.mjs";
 import ModelDirectory from "@/react-app/shared/ModelDirectory";
 import SettingsField from "@/react-app/shared/SettingsField";
-import { configurationFields } from "@/v3/proto/components/configuration-fields.js";
+import { configurationFields, conversationReplyDisplayValue } from "@/v3/proto/components/configuration-fields.js";
 import {
   acknowledgeConfiguration,
   clearAcknowledgedCredentials,
@@ -47,6 +47,7 @@ const roleNames = {
 };
 const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 function uiField(settingKey, field, values) {
+  if (settingKey === "conversation.reply") values = conversationReplyDisplayValue(values);
   const raw = values?.[field.key],
     choices = (field.options || []).map((o) =>
       typeof o === "string"
@@ -284,7 +285,7 @@ function createManagementPageController(props, context, lifecycle) {
     ...settings.value.map((g) => g.title),
   ]);
   const sectionId = (value) => "config-" + value;
-  const scrollTo = (value) => {
+  const scrollTo = (value, focus = true) => {
     const node = document.getElementById(sectionId(value));
     const trigger = node?.querySelector("[data-slot=collapsible-trigger]");
     if (trigger?.getAttribute("aria-expanded") === "false") trigger.click();
@@ -293,7 +294,7 @@ function createManagementPageController(props, context, lifecycle) {
       block: "start",
     });
     const heading = node?.querySelector("[data-slot=collapsible-trigger],h2");
-    if (heading) {
+    if (focus && heading) {
       if (heading.tagName === "H2") heading.tabIndex = -1;
       heading.focus({
         preventScroll: true,
@@ -404,7 +405,7 @@ function createManagementPageController(props, context, lifecycle) {
       })
       .catch(() => {});
     await afterPaint();
-    if (live()) scrollTo(w.state.managementSection || "服务地址");
+    if (live()) scrollTo(w.state.managementSection || "服务地址", false);
   }
   async function loadDiagnostics() {
     const [models, media] = await Promise.allSettled([
@@ -805,6 +806,9 @@ function createManagementPageController(props, context, lifecycle) {
     active = false;
     for (const endpoint of endpoints.value) endpoint.secret = "";
   });
+  const returnTo = new URLSearchParams((globalThis.location?.hash || "").split("?")[1] || "").get("returnTo") || "";
+  const logoutBusy=lifecycle.cell(false);
+  async function logout(){if(logoutBusy.value)return;logoutBusy.value=true;try{await w.logout();}catch(cause){if(live())w.notify(errorMessage(cause,"退出登录未能确认，请重试。"));}finally{if(live())logoutBusy.value=false;}}
   const render = () => (
     <ManagementPageView
       view={{
@@ -904,11 +908,12 @@ function createManagementPageController(props, context, lifecycle) {
   lifecycle.onStart(
     () =>
       void afterPaint(() => {
-        if (w.state.managementSection) scrollTo(w.state.managementSection);
+        if (w.state.managementSection) scrollTo(w.state.managementSection, false);
       }),
   );
   return (context, cache) => (
     <Fragment>
+      <div className="row account-actions">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton type="button" className="text-button" onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton type="button" className="button" disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>
       {render(context, cache)}
       {error.value ? (
         <aside className="approved-recovery" role="status">

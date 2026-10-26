@@ -1,0 +1,87 @@
+✔ configuration validates the entire form before writing and maps temporary endpoint IDs (0.784458ms)
+✔ acknowledgement advances only receipt versions and preserves newer input and revert changes (0.168209ms)
+✔ endpoint acknowledgements preserve edits made in flight and rebind temporary IDs (0.109084ms)
+✔ world stages recover immutable apply body and key after lost response and refresh (0.482875ms)
+✔ canonical React routes preserve their targets and retired legacy URLs are rejected (0.462792ms)
+✔ unconfigured optional form values do not turn a sibling save into empty configuration writes (0.079042ms)
+✔ character quiet policy keeps its own revision and validates weekdays and clocks before writes (0.145ms)
+✔ secret acknowledgements clear only the acknowledged purpose and retain sibling/newer drafts (0.088417ms)
+✔ chat context omits unknown values and labels a schedule as an arrangement (0.9005ms)
+✔ approved navigation is restored to the pre-ab4d33a3 structure (0.450583ms)
+✔ 17 service failures and one running request are not two actual human decisions (0.116ms)
+✔ life timeline mixes authoritative reading sources without empty diaries or fabricated executions (0.288875ms)
+✔ default list shows sparse older records and excludes empty diary days without losing their cursor (19.637042ms)
+✔ life refresh removes hidden records and reopens a newly grown cursor (2.816208ms)
+✔ all-memory reading retains explicit false through persisted view URLs (0.696834ms)
+✔ reading empty states distinguish onboarding, active filters and uncovered dates (1.58925ms)
+✔ Kev bookmarks resolve to current React configuration and diagnostic pages (1.747042ms)
+✔ workspace logout waits for the authoritative provider, retains failed-session state and clears on confirmed logout (314.3165ms)
+✔ React chat opens the selected conversation and retains drafts while rendering original attachments (591.824125ms)
+✔ React stop button follows cancellation authority and delegates to the original controller (232.772541ms)
+✔ React failed-message retry and status reading preserve the original record identity (247.431375ms)
+✔ active creation ignores a stale analysis without activating or overwriting the replacement owner draft (10.860333ms)
+✔ active creation retains editable unnamed preview, blocks activation, then creates once and starts a fresh draft (4.892458ms)
+✔ React library renders durable continuation and a role whose group has not loaded (349.493208ms)
+✔ React media defaults to every character even from a bookmark and preserves explicit filtering (615.834042ms)
+✔ native profile sends both revisions and one idempotent switch then confirms actual current state (774.853208ms)
+✔ native profile keeps the same key, target and reason through unresolved version conflict (381.2385ms)
+✔ native profile retains accepted switch input on readback failure and recovers by reading without a new switch (361.41025ms)
+✔ native profile discards a read after unmount and exposes a retry after an initial failure (358.143167ms)
+✔ native profile hides retired switches and rejects direct writes while active stays editable (990.537458ms)
+✔ world sources retain each owning role and expose partial read failure without inventing an empty/default world (1.363125ms)
+✔ unknown copy result replays exact source/revision/body/key and binds only the returned independent world (1.835042ms)
+✔ only explicit review of a known pre-admission conflict can adopt a new configuration and command key (0.38025ms)
+✔ a conflict after an earlier unknown attempt never authorizes a replacement body/key (0.738708ms)
+✔ a changed Owner cannot confirm an old world review or start another write (0.177708ms)
+✔ every current workspace route resolves while all legacy=1 variants are rejected (2.201792ms)
+✔ current React detail and editor routes have explicit owners instead of an old-page fallback (1.059166ms)
+✔ React entry and all source files have no retired Vue or legacy page mount (76.847875ms)
+✔ fixed settlement reasons are localized with status/effect evidence and authored Chinese stays intact (1.551334ms)
+✔ actual dynamic suggestion renderer localizes the exact failure and converts UTC to Beijing time (9.156375ms)
+✔ actual reflection feedback and promise details share localized decisions and original source disclosure (1.195625ms)
+✔ terminal request receipt keeps original identity and exposes raw diagnostic record without resubmission (0.710334ms)
+✔ request detail keeps its complete original record after shared localization (0.402375ms)
+✔ diary renders only all/favorite filters while generation and independent shared route/sidebar remain (0.736542ms)
+✖ the actual production dependency graph cannot mount any retired page or shell (1.17025ms)
+✔ every registered domain route preserves its selector and has an existing exported consumer (6.249ms)
+✔ legacy flags are rejected and unknown routes cannot activate another implementation (0.148625ms)
+✔ object selectors preserve decoded IDs and character boundaries (0.087792ms)
+✔ world source rejects meaningless shells without inventing defaults and accepts legacy authored narrative (1.13425ms)
+✔ world framework validates actual category/place identity, limits and forbidden runtime references (0.370666ms)
+✔ NPC input updates the actual local diff, reverting clears dirty, and whitespace name sends no save (1.34075ms)
+✔ NPC save settles its saved baseline while edits typed during the pending save remain dirty (3.321333ms)
+✔ profile keeps summary and biography distinct and folds long authored summary (0.960291ms)
+✔ feed restores URL filters, persists applied query and opens the actual published receipt (0.909708ms)
+✔ unreadable post has a localized failure and safe return to the applied feed (0.462916ms)
+✔ global media library keeps its Owner scope even when a character remains selected in the shell (0.652417ms)
+✔ character media stays scoped while global media details do not inherit the selected character (0.805542ms)
+✔ field hints retain caller error descriptions and each control has an independent accessible identity (0.493958ms)
+✔ a character without an image still has a named conversation entry and separate management controls (0.176ms)
+✔ visual comparison shows active-reference copy only for an actual canonical asset (0.819292ms)
+✔ invalid advanced JSON becomes submittable after a normal field repairs its value (0.90325ms)
+✔ saving visual guidance updates its origin projection without remounting or clearing new inputs (0.968167ms)
+✔ visual brief history compares authored fields and keeps null as missing (0.288417ms)
+ℹ tests 63
+ℹ suites 0
+ℹ pass 62
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3523.850084
+
+✖ failing tests:
+
+test at test/single-workspace.test.mjs:9:1
+✖ the actual production dependency graph cannot mount any retired page or shell (1.17025ms)
+  Error: EISDIR: illegal operation on a directory, read
+      at readFileSync (node:fs:440:20)
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/single-workspace.test.mjs:13:16)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    errno: -21,
+    code: 'EISDIR',
+    syscall: 'read'
+  }

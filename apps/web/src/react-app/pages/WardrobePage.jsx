@@ -1,7 +1,7 @@
 import { useController } from "@/react-app/page";
 import { selector } from "@/state/view-model";
 import { Fragment } from "@/react-app/render-helpers";
-import { slots } from "@/state/workspace.mjs";
+import { slots, seasonNames } from "@/state/workspace.mjs";
 import WardrobePreparation from "@/react-app/shared/WardrobePreparation";
 import { WardrobePageView } from "@/react-app/views/WardrobePage";
 import { GarmentArt, ActionFeedback } from "@/react-app/components";
@@ -373,6 +373,7 @@ function createWardrobePageController(props, context, lifecycle) {
     <WardrobePageView
       view={{
         character,
+        tagLabel: value => seasonNames[value] || value,
         tab,
         tag,
         items,

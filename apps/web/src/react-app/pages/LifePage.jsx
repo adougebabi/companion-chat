@@ -383,6 +383,7 @@ function createLifePageController(props, { emit }, lifecycle) {
     text,
     scheduleBusy,
     editSchedule,
+    openSchedulePlanning: () => w.navigatePath("/c/" + encodeURIComponent(character.value.id) + "/life/schedule/planning"),
     diaryBusy,
     DiaryGeneration,
     closedDiaryDate: selector(() =>

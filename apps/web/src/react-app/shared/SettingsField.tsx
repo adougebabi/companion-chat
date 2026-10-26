@@ -36,7 +36,7 @@ export default function SettingsField({ field }: any) {
     );
   }
   return (
-    <Label htmlFor={id} className="settings-field">
+    <Label htmlFor={id} className={field.type === "checkbox" ? "check-field" : "settings-field"}>
       {field.label}
       {field.type === "select" ? (
         <ChoiceSelect

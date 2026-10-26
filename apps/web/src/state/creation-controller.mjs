@@ -13,6 +13,7 @@ import { finishCreationWorld } from "../v3/creation-world.mjs";
 import { persistentCommand } from "../v3/providers/persistent-command.mjs";
 import { creationFeedback } from "../v3/creation-feedback.mjs";
 import { errorMessage } from "../v3/domain-presentation.mjs";
+import {reviewWorldReuse,confirmWorldReuse} from '../v3/reuse-world.mjs';
 import { randomId } from "../random-id.mjs";
 import {
   creationRecovery,
@@ -54,6 +55,7 @@ export function createCreationController({
     previewFields = cell([]),
     fieldErrors = cell({}),
     analysisStartedAt = cell(null),
+    worldSourceReview = cell(null),
     step = cell(
       draft.activatedId
         ? "progress"
@@ -157,6 +159,7 @@ export function createCreationController({
   persist();
   function fail(cause) {
     if (live()) {
+      if(draft.activatedId){feedback.value=null;error.value=errorMessage(cause,'角色已建立，这一步结果尚未确认，原请求已保留。');pending.value=activation.pending();return;}
       feedback.value = creationFeedback(cause);
       error.value = feedback.value.message;
       pending.value = activation.pending();
@@ -177,8 +180,10 @@ export function createCreationController({
   }
   function selectWorld(world) {
     if (draft.activatedId || pending.value) return;
+    const hadSource=!!draft.worldSource;
+    draft.worldSource=null;
     if (!world) {
-      if (!draft.useDefaultWorld) {
+      if (!draft.useDefaultWorld||hadSource) {
         draft.useDefaultWorld = true;
         draft.worldResourceId = "";
         draft.worldResourceVersion = "";
@@ -197,6 +202,14 @@ export function createCreationController({
       previewFields.value = [];
     }
     persist();
+  }
+  function selectExistingWorld(world){
+    if(draft.activatedId||pending.value)return;
+    draft.useDefaultWorld=false;
+    draft.worldResourceId='';draft.worldResourceVersion='';
+    draft.worldSource={worldId:world.id,fluctlightId:world.fluctlightId,revision:world.revision,name:world.name};
+    draft.worldName=world.name;
+    invalidate();persist();
   }
   function changeMode(mode) {
     if (busy.value || pending.value || draft.activatedId) return;
@@ -228,7 +241,7 @@ export function createCreationController({
     error.value = "";
     if (step.value === "world") {
       if (
-        !draft.useDefaultWorld &&
+        !draft.useDefaultWorld && !draft.worldSource &&
         (!draft.worldResourceId || !draft.worldResourceVersion)
       ) {
         error.value = "请选择一份已发布的世界底稿，或使用日常生活世界。";
@@ -287,7 +300,7 @@ export function createCreationController({
         return;
       }
       if (
-        !draft.useDefaultWorld &&
+        !draft.useDefaultWorld && !draft.worldSource &&
         (!draft.worldResourceId || !draft.worldResourceVersion)
       )
         throw Error("请先选择生活世界。");
@@ -309,7 +322,12 @@ export function createCreationController({
             "\n说话方式期望：" + draft.speakingStyle.trim();
         if (draft.coreValues?.trim())
           request.description += "\n核心价值观期望：" + draft.coreValues.trim();
-        if (draft.worldResourceId) {
+        if(draft.worldSource){
+          const source=await client.catalogWorld(draft.worldSource.fluctlightId,draft.worldSource.worldId);
+          if(!savedCurrent(requestId))return;
+          const world=source.world||{};
+          request.description+='\n所选世界设定：'+JSON.stringify({name:world.name,body:{background:world.background,rules:world.rules,description:world.description,flavor:world.flavor,places:(source.places||[]).map(place=>({name:place.name,description:place.desc||place.description,atmosphere:place.atmosphere,floor:place.floor}))}});
+        } else if (draft.worldResourceId) {
           const world = await directory.publication(
             draft.worldResourceId,
             draft.worldResourceVersion,
@@ -464,6 +482,7 @@ export function createCreationController({
             worldResourceId: draft.worldResourceId,
             worldResourceVersion: draft.worldResourceVersion,
             useDefaultWorld: !!draft.useDefaultWorld,
+            ...(draft.worldSource?{worldSource:clone(draft.worldSource)}:{}),
           };
         }
         if (!value) throw Error("原创建请求尚未读取，请保留草稿核对。");
@@ -610,6 +629,14 @@ export function createCreationController({
       }
     }
   }
+  async function reviewWorldSource(){
+    if(!live()||busy.value)return;busy.value=true;
+    try{worldSourceReview.value=await reviewWorldReuse({client,recovery,storage,owner,ownerCurrent:live});error.value='';}catch(e){fail(e);}finally{if(live())busy.value=false;}
+  }
+  async function confirmWorldSourceReview(){
+    if(!live()||busy.value||!worldSourceReview.value)return;busy.value=true;
+    try{confirmWorldReuse({client,recovery,storage,owner,ownerCurrent:live},worldSourceReview.value);Object.assign(draft,recovery.read());worldSourceReview.value=null;await finishWorld();error.value='';}catch(e){fail(e);}finally{if(live()){busy.value=false;await refreshProgress();}}
+  }
   function newDraft() {
     if (!draft.activatedId || pending.value || recovery.archived) return;
     recovery.clear();
@@ -638,6 +665,8 @@ export function createCreationController({
     persistPreview,
     invalidate,
     selectWorld,
+    selectExistingWorld,
+    worldSourceReview,reviewWorldSource,confirmWorldSourceReview,
     changeMode,
     next,
     importFile,

@@ -15,12 +15,12 @@
   "branch": "codex/fluctlight-functional-recovery",
   "base_branch": "master",
   "worktree_path": null,
-  "commit": null,
+  "commit": "1a372e55",
   "pr_url": null,
   "subtasks": [],
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "React/shadcn Radix迁移与旧Vue/legacy页面清理已实施。用户已要求直接提交本轮改动，不再追加验证。未部署，任务保留in_progress接收用户回归反馈。详见migration-report.md。",
+  "notes": "React/shadcn 迁移已提交 1a372e55；因最初漏 fetch，继续 merge 远端 195017fc/6cab8a7d。保留 R10 业务修复，Vue 与 legacy=1 不恢复。合并必要类型/构建及 63 项受影响检查通过；独有 v3-domain 控件为明确的后续迁移批次。等待用户使用回归，未 push/部署。详见 migration-report.md 和 merge-r10.md。",
   "meta": {}
 }

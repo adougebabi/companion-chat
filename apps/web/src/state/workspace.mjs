@@ -7,6 +7,7 @@ import {
   refreshProduct,
   conversation,
   openConversation,
+  auth,
 } from "../v3/providers/real.ts";
 import { get, list, subscribe, setUi } from "../v3/proto/store.js";
 import {
@@ -55,7 +56,7 @@ const slotNames = {
   accessory: "配饰",
   accessories: "配饰",
 };
-const seasonNames = { spring: "春", summer: "夏", autumn: "秋", winter: "冬" };
+export const seasonNames = { spring: "春", summer: "夏", autumn: "秋", winter: "冬" };
 const categoryNames = {
   episodic: "发生过的事情",
   semantic: "长期记忆",
@@ -196,10 +197,11 @@ export function createWorkspace({ observable = proxy } = {}) {
   const epochs = new Map(),
     channels = new Map(),
     timers = new Set();
+  const emptyCharacter = observable(blankCharacter());
   const current = selector(
     () =>
       state.characters.find((c) => c.id === state.selectedId) ||
-      blankCharacter(),
+      emptyCharacter,
   );
   const currentScope = () =>
     JSON.stringify([state.session?.actorId, state.selectedId]);
@@ -954,6 +956,7 @@ export function createWorkspace({ observable = proxy } = {}) {
         "通知与待处理",
         "创作中心",
         "初始化角色",
+        "动态",
       ].includes(page)
     )
       return;
@@ -1009,6 +1012,7 @@ export function createWorkspace({ observable = proxy } = {}) {
     conversation,
     openConversation,
     bootstrap,
+    logout:async()=>{await auth.logout();navigatePath('/auth');},
     refreshDirectory: () => refreshProduct({ initialOnly: true }),
     detail,
     load,

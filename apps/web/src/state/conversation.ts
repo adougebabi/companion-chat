@@ -626,9 +626,8 @@ export const conversationDefinition = defineDomain({
     },
     async logout() {
       this.invalidateRequest();
-      try {
-        await client.logout();
-      } finally {
+      await client.logout();
+      {
         this.authenticated = false;
         this.authenticatedActorId = null;
         this.conversation = null;

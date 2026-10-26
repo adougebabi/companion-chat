@@ -19,28 +19,17 @@ export default function AuthPage({
     passwordField = useRef<HTMLInputElement>(null),
     confirmationField = useRef<HTMLInputElement>(null),
     tokenField = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    active.current = true;
-    void client
-      .setupStatus()
-      .then((value) => {
-        if (active.current) setSetup(value.setupAvailable);
-      })
-      .catch(() => {
-        if (active.current) {
-          setSetup(false);
-          setError("暂时无法读取初始化状态，请重新加载页面。");
-        }
-      });
-    return () => {
-      active.current = false;
-    };
-  }, []);
+  async function readSetup() {
+    setError("");
+    try { const value=await client.setupStatus(); if(active.current)setSetup(value.setupAvailable); }
+    catch { if(active.current){setSetup(null);setError("暂时无法读取初始化状态，请重新读取。");} }
+  }
+  useEffect(() => { active.current=true; void readSetup(); return()=>{active.current=false;}; }, []);
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || setup === null) return;
-    if (password.length < 6) {
-      setError("密码至少需要 6 个字符。");
+    if (password.length < 12) {
+      setError("密码至少需要 12 个字符。");
       passwordField.current?.focus();
       return;
     }
@@ -62,6 +51,7 @@ export default function AuthPage({
       if (active.current) {
         setPassword("");
         setToken("");
+        setConfirmation("");
         onAuthenticated();
         location.hash = "#/library";
       }
@@ -131,6 +121,7 @@ export default function AuthPage({
                 {error}
               </p>
             )}
+            {setup === null && <Button type="button" variant="outline" onClick={()=>void readSetup()}>重新读取</Button>}
             <Button type="submit" disabled={busy || setup === null}>
               {busy ? "正在连接…" : setup ? "完成初始化" : "登录"}
             </Button>

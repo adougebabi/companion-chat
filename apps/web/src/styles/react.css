@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./react-layout.css";
+@import "./domain-tools.css";
 
 @theme inline {
   --color-background: var(--background);
@@ -150,3 +151,15 @@ body {
   padding: 0;
   box-shadow: none;
 }
+
+/* R10 form/media contracts, adapted to Radix control roots. */
+.react-workspace .settings-save-bar{position:static;bottom:auto;flex-wrap:wrap;gap:12px;margin-top:20px;}
+.react-workspace .check-field{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;}
+.react-workspace [data-slot="switch"]{width:36px;min-width:36px;height:21px;padding:0;flex:none;}
+.react-workspace [data-slot="switch-thumb"]{width:17px;height:17px;transform:none;translate:1px 0;}
+.react-workspace [data-slot="switch-thumb"][data-state="checked"]{translate:16px 0;}
+.react-workspace .media-preview{display:block;height:108px;overflow:hidden;min-width:0;}
+.react-workspace .media-preview>.approved-media-content{display:block;width:100%;height:106px;max-width:100%;object-fit:cover;}
+.react-workspace .large-media.media-preview{height:auto;min-height:300px;}
+.react-workspace .large-media.media-preview .approved-media-content{height:400px;object-fit:contain;}
+@media(max-width:800px){.react-workspace .sidebar{display:none;}.mobile-nav-trigger{display:inline-flex;}.react-workspace .chat-main{display:flex;flex-direction:column;min-height:0;overflow:hidden;}.react-workspace .chat-layout,.react-workspace .chat-layout.collapsed{flex:1;min-height:0;height:auto;}.react-workspace .chat-panel,.react-workspace .timeline{min-height:0;}.react-workspace .composer{flex:none;}}

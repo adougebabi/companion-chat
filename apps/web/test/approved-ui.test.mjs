@@ -192,9 +192,9 @@ test("canonical React routes preserve their targets and retired legacy URLs are 
   for (const page of ["聊天", "此刻", "日程", "目标", "衣柜", "日记", "记忆", "世界", "人物关系", "媒体"]) {
     const route = approvedRoute(approvedHref(page, "real-role"));
     assert.equal(route.page, page);
-    assert.equal(route.fid, "real-role");
+    assert.equal(route.fid, page === "媒体" ? null : "real-role");
   }
-  assert.equal(approvedRoute("#/c/real-role/growth/memory/memory-A").memoryId, "memory-A");
+  assert.equal(approvedRoute("#/c/real-role/growth/memory/memory-A").feature.params.memId, "memory-A");
   assert.equal(approvedRoute("#/studio?legacy=1").removed, true);
   assert.equal(approvedRoute("#/auth").page, "登录");
 });

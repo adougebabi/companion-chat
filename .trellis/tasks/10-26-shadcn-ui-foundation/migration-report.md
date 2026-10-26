@@ -56,7 +56,7 @@ React 壳层、聊天、登录和支持页使用直接的 React hooks；通用�
 
 原生日期/时间/文件输入、audio/video、业务插画，以及纯布局元素不是需要机械消灭的手写控件。
 
-## 已执行验证
+## 迁移提交 1a372e55 时的验证（不代表之后的合并验证）
 
 - 上一次完整前端回归：311 / 311 通过，见 `evidence/last-full-tests.txt`。
 - 独立审查发现问题的 React 交互回归已通过，见 `evidence/review-regressions.txt`。
@@ -74,3 +74,20 @@ React 壳层、聊天、登录和支持页使用直接的 React hooks；通用�
 旧 Vue 与已删除页面专用的源码/renderer harness 已退役，分别记录于 `research/retired-vue-tests.json` 与 `retired-route-tests.json`。纯领域、API provider、原请求恢复、CAS、时区和流式契约保留。配置异步保存、世界编辑、聊天草稿/IME、精确 Select 值、通知、媒体、记忆、关闭焦点、路由拒绝等迁到真实 React DOM 回归。
 
 依赖清理曾被自动审批因验证覆盖不足拒绝；补齐 React 回归、完成当时完整测试及类型检查后，单独提交无使用点依赖的清理命令，已获允许并成功执行。当前无审批阻塞。
+
+## 远端 R10 合并补充
+
+最初迁移从本地 `23e04bc7` 开始时漏了 fetch；远端已存在
+`195017fc`（R10 修复）和 `6cab8a7d`（journal）。这导致后续冲突。
+本次使用 merge 保留迁移与远端两条历史，不整体取任意一侧。
+
+- 保留远端 Core/browser-client 的独立世界配置复制契约，以及原有无 token 上限的提示词规则。
+- React 创建流程接入已有世界配置选择、源版本冲突的明确复核、复制/选择/读回的持久阶段恢复。
+- React 接入人格切换读回保护、登录状态读取重试、12 字符密码下限、退出确认失败保留会话、回复设置返回聊天、媒体全局默认、手机预览收起、无角色时全局页面可用等 R10 行为。
+- 资源目录和媒体主列表由新增 React 页面承接，使用 shadcn 控件。
+- 远端独有的对象编辑、历史、治理和恢复功能在 `v3-domain/` 中保留，通过 React `DomainPage` 和显式 `feature-routes.mjs` 接入。它们不是旧应用/路由/壳，但内部仍含命令式 HTML 控件。这是当前迁移边界，不应宣称全部深层页面已改为 React JSX。
+- 仍禁止 `legacy=1`；远端原先“忽略该参数”的行为已按用户要求改为直接拒绝。Vue 页面、SFC harness 和模拟 reference-fixture 不恢复；R10 业务回归改为 React/共享状态层。
+
+新增优先迁移项（P1）：`v3-domain/` 的领域表单、版本/历史列表、Drawer/Dialog、原请求恢复按钮，以及媒体上传 `v3/proto/components/media-upload.js`。后续应沿真实路由逐个用 React/shadcn 替换，并继续复用已有命令、CAS 和读回协议。`DomainPage` 只负责挂载和清理，不应增长为另一个框架适配器。
+
+本次合并仅做必要的类型/构建和受影响边界检查；未再次进行全量浏览器、真实模型或数据库回归。具体记录见 `merge-r10.md`。原先另外任务的未跟踪研究与证据保持不动。

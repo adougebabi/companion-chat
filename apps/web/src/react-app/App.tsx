@@ -57,11 +57,9 @@ const ManagementPage = lazy(() => import("./pages/ManagementPage"));
 const LibraryPage = lazy(() => import("./pages/LibraryPage"));
 const CharacterWizardPage = lazy(() => import("./pages/CharacterWizardPage"));
 const CharacterDetailPage = lazy(() => import("./pages/CharacterDetailPage"));
-const DiagnosticsDetailPage = lazy(
-  () => import("./pages/DiagnosticsDetailPage"),
-);
-const StudioEditorPage = lazy(() => import("./pages/StudioEditorPage"));
-const CharacterToolsPage = lazy(() => import("./pages/CharacterToolsPage"));
+const DomainPage = lazy(() => import("./pages/DomainPage"));
+const MediaPage = lazy(() => import("./pages/MediaPage"));
+const StudioPage = lazy(() => import("./pages/StudioPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 type Workspace = ReturnType<typeof createWorkspace>;
 type Route = {
@@ -71,13 +69,11 @@ type Route = {
   notFound?: boolean;
   query?: URLSearchParams;
   diagnostics?: boolean;
-  diagnostic?: import("./pages/DiagnosticsDetailPage").DiagnosticTarget;
-  resourceId?: string;
-  kind?: string;
-  tool?: string;
-  tab?: string;
-  memoryId?: string;
-  worldId?: string;
+  feature?: any;
+  information?: {title:string;body:string;page:string;label:string};
+  global?: boolean;
+  path?: string;
+  title?: string;
 };
 const characterNavigation = [
   ["世界", EarthIcon],
@@ -118,7 +114,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const [route, setRoute] = useState<Route>(() => approvedRoute(location.hash));
   const [lifeOpen, setLifeOpen] = useState(true),
     [mobileOpen, setMobileOpen] = useState(false),
-    [preview, setPreview] = useState(true);
+    [preview, setPreview] = useState(() => !window.matchMedia("(max-width: 800px)").matches);
   const main = useRef<HTMLElement>(null),
     page = route.page || state.page;
   const current = workspace.current.value;
@@ -126,7 +122,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const character =
     page === "初始化角色"
       ? { ...current, name: "新的相识", initial: "+", color: "#dce9e2" }
-      : current;
+      : current.id ? current : {...current,name:"我的空间",initial:"我",color:"#dce9e2"};
   const navigate = useCallback(
     (page: string) => {
       location.hash = approvedHref(page, workspace.state.selectedId);
@@ -136,20 +132,28 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   );
   useEffect(() => {
     workspace.navigate = navigate;
-    const parse = () => setRoute(approvedRoute(location.hash));
+    const parse = () => {setMobileOpen(false);setRoute(approvedRoute(location.hash));};
     window.addEventListener("hashchange", parse);
     void workspace.bootstrap().catch(() => {});
     return () => window.removeEventListener("hashchange", parse);
   }, [workspace, navigate]);
   useEffect(() => {
+    const narrow=window.matchMedia("(max-width: 800px)");
+    const resize=()=>{setMobileOpen(false);if(narrow.matches)setPreview(false);};
+    narrow.addEventListener("change",resize);return()=>narrow.removeEventListener("change",resize);
+  },[]);
+  useEffect(() => {
     if (!state.ready || !state.session || route.removed || route.notFound || !routeCharacterExists)
       return;
     let active = true;
+    setMobileOpen(false);
+    Object.assign(workspace.state,{route});
+    if(page==="登录"){navigate("角色库");return;}
     if (route.fid && state.characters.some((c: any) => c.id === route.fid))
       workspace.select(route.fid);
     if (
       !workspace.state.selectedId &&
-      ["聊天", ...lifePages, "世界", "人物关系", "媒体"].includes(page)
+      ["聊天", ...lifePages, "人物关系"].includes(page)
     ) {
       navigate("角色库");
       return;
@@ -159,14 +163,14 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     if (route.diagnostics) workspace.state.managementTab = "运行诊断";
     workspace.state.feedScope = route.query?.get("fid") || null;
     setPreview(
-      !chatSummaryPreference({
+      !window.matchMedia("(max-width: 800px)").matches && !chatSummaryPreference({
         owner: state.session.actorId,
         fid: workspace.state.selectedId,
         defaultFolded: false,
       }).read(),
     );
     void (
-      ["资源编辑", "运行详情", "角色工具", "登录"].includes(page)
+      route.feature || route.information || ["媒体", "创作中心", "登录"].includes(page) || (page==="世界"&&!workspace.state.selectedId)
         ? Promise.resolve()
         : workspace.load(page)
     ).then(() => {
@@ -179,7 +183,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const togglePreview = () => {
     const next = !preview;
     setPreview(next);
-    if (state.session)
+    if (state.session && state.selectedId)
       chatSummaryPreference({
         owner: state.session.actorId,
         fid: state.selectedId,
@@ -266,7 +270,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
             {lifePages.map((label) => navItem(label))}
           </div>
         )}
-        {characterNavigation.map(([label, Icon]) => navItem(label, Icon))}
+        {characterNavigation.map(([label, Icon]) => navItem(label, Icon, label === "人物关系"))}
       </nav>
       <Separator className="nav-divider" />
       <nav>
@@ -277,49 +281,19 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
       </div>
     </>
   );
-  const content =
-    page === "运行详情" ? (
-      <DiagnosticsDetailPage target={route.diagnostic!} />
-    ) : page === "资源编辑" ? (
-      <StudioEditorPage
-        key={route.resourceId}
-        resourceId={route.resourceId!}
-        kind={route.kind}
-      />
-    ) : page === "角色工具" ? (
-      <CharacterToolsPage
-        key={route.fid + ":" + route.tool + ":" + route.tab}
-        fid={route.fid!}
-        tool={route.tool!}
-        tab={route.tab}
-      />
-    ) : page === "聊天" ? (
-      <ChatPage key={character.id} preview={preview} onGo={navigate} />
-    ) : page === "衣柜" ? (
-      <WardrobePage key={"wardrobe:" + character.id} />
-    ) : page === "世界" ? (
-      <WorldPage
-        key={"world:" + character.id + ":" + (route.worldId || "")}
-        initialWorldId={route.worldId}
-      />
-    ) : page === "角色详情" ? (
-      <CharacterDetailPage key={"profile:" + character.id} />
-    ) : lifePages.includes(page) ? (
-      <LifePage
-        key={character.id}
-        initialMemoryId={route.memoryId}
-        page={page}
-        onGo={navigate}
-      />
-    ) : page === "管理中心" ? (
-      <ManagementPage />
-    ) : page === "角色库" ? (
-      <LibraryPage />
-    ) : page === "初始化角色" ? (
-      <CharacterWizardPage />
-    ) : (
-      <BrowsePage key={page + ":" + character.id} page={page} />
-    );
+  const content = route.feature ? <DomainPage key={route.path+"?"+route.query} route={route}/>
+    : route.information ? <section className="card"><h2>{route.information.title}</h2><p>{route.information.body}</p><Button variant="outline" onClick={()=>navigate(route.information!.page)}>{route.information.label}</Button></section>
+    : page === "聊天" ? <ChatPage key={character.id} preview={preview} onGo={navigate}/>
+    : page === "衣柜" ? <WardrobePage key={"wardrobe:"+character.id}/>
+    : page === "世界" ? character.id ? <WorldPage key={"world:"+character.id}/> : <StudioPage key="global-worlds" kind="world" route={route}/>
+    : page === "媒体" ? <MediaPage key={route.path+"?"+route.query} route={route}/>
+    : page === "创作中心" ? <StudioPage key={route.path+"?"+route.query} route={route}/>
+    : page === "角色详情" ? <CharacterDetailPage key={"profile:"+character.id}/>
+    : lifePages.includes(page) ? <LifePage key={character.id} page={page} onGo={navigate}/>
+    : page === "管理中心" ? <ManagementPage/>
+    : page === "角色库" ? <LibraryPage/>
+    : page === "初始化角色" ? <CharacterWizardPage/>
+    : <BrowsePage key={page+":"+character.id} page={page}/>;
   const readError = Object.values(state.errors).filter(Boolean).at(-1) as
     string | undefined;
   return (
@@ -408,7 +382,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
           <div className="page-heading">
             <div>
               <div className="breadcrumb">
-                {character.id ? `${character.name} 的工作区 ` : "新的相识 "}
+                {character.id ? `${character.name} 的工作区 ` : "我的空间 "}
                 <ChevronRightIcon size={12} />
                 {page}
               </div>

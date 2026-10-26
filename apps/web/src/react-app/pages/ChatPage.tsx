@@ -214,6 +214,7 @@ export default function ChatPage({
         <div
           ref={timeline}
           className="timeline"
+          aria-label="聊天消息"
           onScroll={() => {
             const node = timeline.current;
             if (node)
@@ -284,7 +285,7 @@ export default function ChatPage({
                   <a href={diagnosticHref}>查看本次运行 ↗</a>
                 </Button>
               )}
-              {waiting.showStop && (
+              {waiting.showStop && store.canCancel && (
                 <Button variant="link" onClick={() => store.cancel()}>
                   停止本次生成
                 </Button>
@@ -326,6 +327,7 @@ export default function ChatPage({
           />
           <div className="composer-bottom">
             <small>Enter 发送 · Shift + Enter 换行</small>
+            <Button type="button" variant="link" onClick={()=>workspace.navigatePath("/settings/reply-vision?returnTo="+encodeURIComponent("#/c/"+encodeURIComponent(character.id)+"/chat"))}>回复设置</Button>
             <Button
               disabled={!draft.trim() || busy}
               onClick={() => void send()}

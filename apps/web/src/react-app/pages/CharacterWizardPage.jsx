@@ -1,3 +1,4 @@
+import { reusableWorlds } from "@/approved-ui/world-sources.mjs";
 import { useController } from "@/react-app/page";
 import { selector, readValue, elementRef } from "@/state/view-model";
 import { cn } from "@/lib/utils";
@@ -61,7 +62,10 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
       previewFields,
       pending,
       analysisStartedAt,
+      worldSourceReview,
     } = c,
+    existingWorlds = lifecycle.cell([]),
+    worldChoice = lifecycle.cell(!!draft.worldSource || !!draft.worldResourceId || draft.step > 0 || !!draft.activatedId),
     worlds = lifecycle.cell([]),
     templates = lifecycle.cell([]),
     worldCursor = lifecycle.cell(""),
@@ -123,6 +127,12 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
       })[s] || "状态待确认";
   const configHref = (section) =>
     "#/settings?section=" + encodeURIComponent(section || "模型用途");
+  async function loadExistingWorlds() {
+    try { const result=await reusableWorlds(w.client,w.state.characters); if(!active||!c.live())return; existingWorlds.value=result.items; if(result.unavailable)sourceError.value="部分已有世界暂未读到，可以重新读取后选择。"; }
+    catch(cause){if(active&&c.live())sourceError.value=errorMessage(cause);}
+  }
+  function chooseWorld(world){c.selectWorld(world);worldChoice.value=true;}
+  function chooseExistingWorld(world){c.selectExistingWorld(world);worldChoice.value=true;}
   async function loadSources(kind, more = false) {
     try {
       const result = await w.client.listStudioResources({
@@ -189,6 +199,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     if (!document.hidden) void poll();
   };
   lifecycle.onStart(() => {
+    void loadExistingWorlds();
     void loadSources("world");
     void loadSources("character_template");
     void w.services.configurationClient
@@ -254,7 +265,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             className="card character-form"
             noValidate=""
             onSubmit={eventModifiers(
-              ($event) => readValue(c).next(),
+              ($event) => worldChoice.value && readValue(c).next(),
               ["prevent"],
             )}
           >
@@ -267,16 +278,22 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 }
               </p>
             </header>
+            <section className="character-stack">
+              <h3>已有生活世界</h3>
+              <p className="muted">只复用世界背景、规则和地点；人物、物品实例、事件模板、运行位置与生活历史不复制。</p>
+              {existingWorlds.value.map(world => <ActionButton key={world.fluctlightId+":"+world.id} type="button" className="button world-choice" aria-pressed={draft.worldSource?.worldId===world.id && draft.worldSource?.fluctlightId===world.fluctlightId} onClick={()=>chooseExistingWorld(world)}><b>{world.name}</b><small>来自 {world.characterName}</small></ActionButton>)}
+              <ActionButton type="button" className="text-button" onClick={()=>void loadExistingWorlds()}>重新读取已有世界</ActionButton>
+            </section>
             <ActionButton
               type="button"
               className={cn([
                 "button",
                 {
-                  primary: readValue(draft).useDefaultWorld,
+                  primary: worldChoice.value && readValue(draft).useDefaultWorld,
                 },
               ])}
-              aria-pressed={readValue(draft).useDefaultWorld}
-              onClick={($event) => readValue(c).selectWorld(null)}
+              aria-pressed={worldChoice.value && readValue(draft).useDefaultWorld}
+              onClick={($event) => chooseWorld(null)}
             >
               {"使用日常生活世界"}
             </ActionButton>
@@ -295,7 +312,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                         readValue(draft).worldResourceId === world.id &&
                         !readValue(draft).useDefaultWorld
                       }
-                      onClick={($event) => readValue(c).selectWorld(world)}
+                      onClick={($event) => chooseWorld(world)}
                     >
                       <b>{displayText(world.name)}</b>
                       <small>
@@ -362,6 +379,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               <ActionButton
                 className="button primary"
                 data-testid="wizard-world-next"
+                disabled={!worldChoice.value || readValue(busy)}
               >
                 {"下一步"}
               </ActionButton>
@@ -901,6 +919,10 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 {displayText(readValue(error))}
               </p>
             ) : null}
+            {draft.worldSource && !draft.worldSelectionConfirmed && <section className="card character-stack">
+              <p>角色已建立。世界配置复用仍需核对，原角色和原提交身份均已保留。</p>
+              {worldSourceReview.value ? <><SemanticTree value={worldSourceReview.value.preview}/><ActionButton type="button" className="button" disabled={readValue(busy)} onClick={()=>c.confirmWorldSourceReview()}>确认新版配置并继续复用</ActionButton></> : <ActionButton type="button" className="button" disabled={readValue(busy)} onClick={()=>c.reviewWorldSource()}>核对已有世界的最新配置</ActionButton>}
+            </section>}
             <div className="preparation-done row">
               {readValue(draft).activatedId &&
               readValue(draft).worldSelectionConfirmed ? (
@@ -944,7 +966,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 <ActionButton
                   key={2}
                   className="text-button"
-                  onClick={($event) => readValue(c).newDraft()}
+                  onClick={($event) => (readValue(c).newDraft(), worldChoice.value=false)}
                 >
                   {"创建新的角色"}
                 </ActionButton>
@@ -990,7 +1012,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           <ActionButton
             key={5}
             className="text-button"
-            onClick={($event) => readValue(c).newDraft()}
+            onClick={($event) => (readValue(c).newDraft(), worldChoice.value=false)}
           >
             {"再认识一个人（保留当前进度）"}
           </ActionButton>

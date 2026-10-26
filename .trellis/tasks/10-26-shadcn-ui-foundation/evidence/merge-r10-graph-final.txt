@@ -1,0 +1,12 @@
+✔ the actual production dependency graph cannot mount any retired page or shell (18.384916ms)
+✔ every registered domain route preserves its selector and has an existing exported consumer (4.593917ms)
+✔ legacy flags are rejected and unknown routes cannot activate another implementation (0.126834ms)
+✔ object selectors preserve decoded IDs and character boundaries (0.068042ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54.968083

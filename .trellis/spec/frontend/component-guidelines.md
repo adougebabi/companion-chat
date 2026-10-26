@@ -6,7 +6,12 @@
 workspace lifecycle; pages own editing and effects; views render named models.
 `components/ui/*.tsx` are the local shadcn Radix primitives. Domain data and
 commands belong to `state/`, existing providers and the generated BrowserClient.
-Do not reintroduce native HTML string page renderers or Vue compatibility layers.
+Do not introduce new HTML-string pages or Vue compatibility layers. The R10
+merge retains unique `v3-domain` editing/history/recovery tools as a bounded
+migration exception: named routes mount them through React `DomainPage`, which
+owns lifecycle cleanup and validation. They cannot mount an app/router/shell.
+Their custom forms, overlays and icons are tracked in the remaining-controls
+report and must be migrated to React primitives incrementally.
 
 ## Composition and forms
 

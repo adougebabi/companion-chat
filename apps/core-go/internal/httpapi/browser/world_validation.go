@@ -19,6 +19,17 @@ func validWorldSurfaceBody(method, path string, body map[string]any) bool {
 	if domain != "world" && domain != "npcs" {
 		return true
 	}
+	if domain == "world" && len(p) == 5 && p[4] == "catalog" && method == http.MethodPost && body["sourceWorldId"] != nil {
+		if !onlyKeys(body, "name", "sourceWorldId", "sourceFluctlightId", "expectedSourceRevision", "reason", "idempotencyKey") || !validateInteger(body["expectedSourceRevision"], 1) {
+			return false
+		}
+		for key, max := range map[string]int{"name": 256, "sourceWorldId": 128, "sourceFluctlightId": 128, "reason": 1000, "idempotencyKey": 256} {
+			if !validateString(body[key], 1, max) || strings.TrimSpace(stringValue(body[key])) == "" {
+				return false
+			}
+		}
+		return true
+	}
 	if domain == "world" && len(p) == 6 && p[4] == "items" {
 		return method == http.MethodPut && validWorldItemConfig(body)
 	}
