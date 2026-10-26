@@ -187,3 +187,33 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Next Steps
 
 - 用户拉取并重建 NAS 后优先复测原自拍、真实初始化中文输入和原任务失败恢复；fixture 不证明真实模型生成成功。
+
+
+## Session 71: R2 shared presentation component closure
+<!-- trellis-session: v=2 fp=bad093ab9418588d -->
+
+**Date**: 2026-10-26
+**Task**: R2 shared presentation component closure
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+处理组件替换清单 r2：明确 variants 与 Lucide、Card/Alert/Item/Empty 原位展示、Progress/Pagination/InputGroup、确认与媒体卡片；保留原业务协议，不创建任务。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `22119e1c` | refactor(web): close r2 presentation and control gaps |
+
+### Testing
+
+- [OK] Web 385/385，typecheck、build、生产守卫通过；原位表单/精确 FormData/切换/cursor/focus/文件载体回归；CUA 桌面与 390px 复验，fixture 世界保存仅一次 PUT。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 用户拉取重建后复验主要页面；可选 HoverCard/ContextMenu 等不新增，NAS 未部署。
