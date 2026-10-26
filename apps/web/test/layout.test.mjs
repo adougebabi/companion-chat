@@ -7,7 +7,7 @@ const globalStylesSource = await readFile(new URL("../src/styles/globals.css", i
 const stylesSource = await readFile(new URL("../src/styles/app.css", import.meta.url), "utf8");
 const shellSource = await readFile(new URL("../src/components/layout/AppShell.vue", import.meta.url), "utf8");
 const appSource = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
-const legacySource = await readFile(new URL("../src/approved-ui/LegacySurface.vue", import.meta.url), "utf8");
+const activeLayout = await readFile(new URL("../src/approved-ui/renderers/App.mjs", import.meta.url), "utf8");
 const approvedSource = await readFile(new URL("../src/approved-ui/ApprovedApp.mjs", import.meta.url), "utf8");
 const instancesSource = await readFile(new URL("../src/views/InstancesView.vue", import.meta.url), "utf8");
 const bottomNavSource = await readFile(new URL("../src/components/layout/BottomNav.vue", import.meta.url), "utf8");
@@ -27,7 +27,7 @@ test("Telegram-style workspace keeps four primary tabs", () => {
   assert.match(navigationSource, /primaryNavigation[\s\S]*id: "instances"[\s\S]*id: "moments"[\s\S]*id: "settings"[\s\S]*id: "diagnostics"/);
   assert.match(shellSource, /activeView !== 'chat'/);
   assert.match(appSource, /approved-ui\/ApprovedApp/);
-  assert.match(legacySource, /mountProduct/);
+  assert.match(activeLayout, /mobile-nav-toggle/);
   assert.match(bottomNavSource, /activeNavigationView = computed<WorkspaceView>/);
   assert.doesNotMatch(bottomNavSource, /props\.activeView === "diagnostics" \? "settings"/);
   assert.match(desktopContextSource, /activeSection/);
@@ -102,8 +102,8 @@ test("diagnostics keeps existing modules and adds a filtered lifecycle disclosur
 });
 
 test("desktop secondary navigation is page-addressable and chat groups stay flat", () => {
-  assert.match(legacySource, /id="v3-root"/);
-  assert.match(approvedSource, /LegacySurface/);
+  assert.match(activeLayout, /mobile-nav-toggle/);
+  assert.doesNotMatch(approvedSource, /LegacySurface|mountProduct/);
   assert.doesNotMatch(appSource, /useConversationStore|BrowserClient/);
   assert.match(settingsSource, /settings-mobile-section-list/);
   assert.match(settingsSource, /navigateSection/);

@@ -200,14 +200,14 @@ test("canonical routes and legacy deep links preserve their targets", () => {
   ]) {
     const route = approvedRoute(approvedHref(page, "real-role"));
     assert.equal(route.page, page);
-    assert.equal(route.fid, "real-role");
+    assert.equal(route.fid, page === "媒体" ? null : "real-role");
   }
   assert.equal(
-    approvedRoute("#/c/real-role/growth/memory/memory-A").legacy,
-    true,
+    approvedRoute("#/c/real-role/growth/memory/memory-A").feature.params.memId,
+    "memory-A",
   );
-  assert.equal(approvedRoute("#/studio?legacy=1").legacy, true);
-  assert.equal(approvedRoute("#/auth").legacy, true);
+  assert.equal(approvedRoute("#/studio?legacy=1").page, "创作中心");
+  assert.equal(approvedRoute("#/auth").auth, true);
 });
 test("shared primitives preserve native DOM and native button types", async () => {
   const html = await renderToString(

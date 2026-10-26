@@ -67,8 +67,10 @@ test('failed assessment links the original diagnostic without replaying or misla
  assert.equal(RequestFailureLink({...request,status:'deferred'}),'');assert.equal(requestDecisionText({...request,status:'deferred',decision_reason:'先休息'}),'先休息');
 });
 test('chat feedback retains protocol-owned cancellation and mounted drafts; global hover follows the current no-underline design',async()=>{
- const source=await readFile(new URL('../src/v3/proto/pages/real-chat.js',import.meta.url),'utf8');
- assert.match(source,/state.canCancel\?/);assert.match(source,/feedback.className='chat-feedback'/);
- const update=source.slice(source.indexOf('const update='),source.indexOf('const readScope='));assert.doesNotMatch(update,/form\.innerHTML|form\.elements\.t\.value\s*=/);
+ const source=await readFile(new URL('../src/approved-ui/pages/ChatPage.mjs',import.meta.url),'utf8');
+ const renderer=await readFile(new URL('../src/approved-ui/renderers/ChatPage.mjs',import.meta.url),'utf8');
+ assert.match(source,/showStop:presentation.showStop&&store.canCancel/);assert.match(renderer,/class:"inline-error",role:"alert"/);
+ const start=source.indexOf('const project ='),end=source.indexOf('const stop =');assert.ok(start>=0&&end>start);
+ const update=source.slice(start,end);assert.doesNotMatch(update,/innerHTML|draft\.value\s*=/);
  const css=await readFile(new URL('../src/styles/v3-proto.css',import.meta.url),'utf8');assert.match(css,/a\.icard:hover,a\.card:hover\{text-decoration:none\}/);assert.match(css,/a:hover\{text-decoration:none\}/);
 });

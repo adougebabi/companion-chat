@@ -11,6 +11,7 @@ import PreparationSteps from "../shared/PreparationSteps.vue";
 import ProfileForm from "../shared/ProfileForm.vue";
 import SemanticTree from "../shared/SemanticTree.vue";
 import { migrateCreationRecovery } from "../creation-recovery.mjs";
+import {reusableWorlds} from '../world-sources.mjs';
 const w = useWorkspace(),
   owner = w.state.session?.actorId,
   migrated = migrateCreationRecovery(owner,localStorage,sessionStorage),
@@ -35,9 +36,11 @@ if (entryQuery.has("new")) {
   entryUrl.hash = entryPath + (entryQuery.size ? "?" + entryQuery : "");
   history.replaceState(history.state, "", entryUrl);
 }
-const { draft, step, busy, error, feedback, fieldErrors, progress, previewFields, pending,analysisStartedAt } =
+const { draft, step, busy, error, feedback, fieldErrors, progress, previewFields, pending,analysisStartedAt,worldSourceReview } =
     c,
   worlds = ref([]),
+  existingWorlds=ref([]),
+  worldChoice=ref(!!draft.worldSource||!!draft.worldResourceId||draft.step>0||!!draft.activatedId),
   templates = ref([]),
   worldCursor = ref(""),
   templateCursor = ref(""),
@@ -109,6 +112,12 @@ async function loadSources(kind, more = false) {
     if (active) sourceError.value = errorMessage(cause);
   }
 }
+async function loadExistingWorlds(){
+  try{const result=await reusableWorlds(w.client,w.state.characters);if(!active||!c.live())return;existingWorlds.value=result.items;if(result.unavailable)sourceError.value='部分已有世界暂未读到，可以重新读取后选择。';}
+  catch(e){if(active)sourceError.value=errorMessage(e);}
+}
+function chooseExisting(world){c.selectExistingWorld(world);worldChoice.value=true;}
+function chooseDefinition(world){c.selectWorld(world);worldChoice.value=true;}
 function templateChanged(event) {
   const value = templates.value.find((t) => t.id === event.target.value);
   if (!value) return;
@@ -148,6 +157,7 @@ const visibility = () => {
 };
 onMounted(() => {
   void loadSources("world");
+  void loadExistingWorlds();
   void loadSources("character_template");
   void w.services.configurationClient
     .read()
@@ -192,19 +202,21 @@ onUnmounted(() => {
       as="form"
       class="card character-form"
       novalidate
-      @submit.prevent="c.next()"
+      @submit.prevent="worldChoice&&c.next()"
       ><header>
         <small>第 1 / 4 步</small>
         <h2>生活世界</h2>
         <p class="muted">
-          世界是生活的背景、地点和规则。先选一份底稿，再慢慢认识这个人。
+          先选择已有世界的配置，或创建一份新的设定。新角色的生活记录始终独立。
         </p>
       </header>
+      <section class="character-stack" aria-label="复用已有世界配置"><h3>已有生活世界</h3><p class="muted">复用背景、规则和具体地点；人物、事件模板和生活历史不复制。</p><ActionButton v-for="world in existingWorlds" :key="world.fluctlightId+':'+world.id" type="button" class="world-choice button" :aria-pressed="draft.worldSource?.worldId===world.id&&draft.worldSource?.fluctlightId===world.fluctlightId" @click="chooseExisting(world)"><b>{{world.name}}</b><small>沿用 {{world.characterName}} 的世界与地点配置</small></ActionButton><p v-if="!existingWorlds.length" class="muted">还没有可复用的生活世界，可以选择下方已发布设定，或创建新的世界设定。</p><button class="button" type="button" @click="loadExistingWorlds">重新读取已有世界</button></section>
+      <h3>也可以从新的设定开始</h3>
       <ActionButton
         type="button"
-        :class="['button', { primary: draft.useDefaultWorld }]"
-        :aria-pressed="draft.useDefaultWorld"
-        @click="c.selectWorld(null)"
+        :class="['button', { primary: worldChoice&&draft.useDefaultWorld }]"
+        :aria-pressed="worldChoice&&draft.useDefaultWorld"
+        @click="chooseDefinition(null)"
         >使用日常生活世界</ActionButton
       ><small class="muted"
         >会为新角色建立独立的生活世界，具体地点可在相处中继续补充。</small
@@ -218,7 +230,7 @@ onUnmounted(() => {
           :aria-pressed="
             draft.worldResourceId === world.id && !draft.useDefaultWorld
           "
-          @click="c.selectWorld(world)"
+          @click="chooseDefinition(world)"
           ><b>{{ world.name }}</b
           ><small>已发布版本 {{ world.published_version }}</small></ActionButton
         >
@@ -241,16 +253,15 @@ onUnmounted(() => {
             >重新读取</ActionButton
           >
         </p>
-        <a class="text-button" href="#/studio/edit/new?kind=world"
-          >创建世界设定 ↗</a
-        >
+        <ActionButton class="button" type="button" @click="w.navigatePath('/studio/edit/new?kind=world')">创建世界设定</ActionButton>
       </div>
       <ul v-if="Object.keys(fieldErrors).length" class="inline-error" role="alert"><li v-for="(message,key) in fieldErrors" :key="key">{{message}}</li></ul>
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
       <footer class="wizard-footer">
-        <a class="button" href="#/library">保留草稿并返回</a
+        <ActionButton class="button" type="button" @click="w.navigatePath('/library')">保留草稿并返回</ActionButton
         ><span class="spacer" /><ActionButton
           class="button primary"
+          :disabled="!worldChoice||busy"
           data-testid="wizard-world-next"
           >下一步</ActionButton
         >
@@ -407,7 +418,7 @@ onUnmounted(() => {
             >读取更多模板</ActionButton
           >
           <p v-if="!templates.length" class="muted">
-            还没有已发布的角色模板。可以选择其他创建方式，或<a class="text-button" href="#/studio/edit/new?kind=character_template">去创作中心发布角色模板</a>。
+            还没有已发布的角色模板。可以选择其他创建方式，或<button class="button" type="button" @click="w.navigatePath('/studio/edit/new?kind=character_template')">去创作中心准备角色模板</button>。
           </p></template
         >
         <p v-else class="muted">
@@ -551,21 +562,22 @@ onUnmounted(() => {
         :busy="busy"
         @recover="c.recoverStage"
       />
+      <section v-if="draft.worldSource&&!draft.worldSelectionConfirmed" class="card stack"><h3>已选世界的配置核对</h3><p class="muted">原角色会保留。只有服务端明确拒绝、确认没有创建新世界时，才可核对并采用最新配置。</p><ActionButton type="button" class="button" :disabled="busy" @click="c.reviewWorldSource">核对最新世界配置</ActionButton><template v-if="worldSourceReview"><SemanticTree :value="worldSourceReview.preview"/><ActionButton type="button" class="button primary" :disabled="busy" @click="c.confirmWorldSourceReview">确认按以上配置继续复用</ActionButton></template></section>
       <p v-if="!progress" class="muted" role="status">
         {{ busy ? "正在确认原创建结果…" : "正在读取实际准备进度…" }}
       </p>
       <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
       <div class="preparation-done row">
-        <a
+        <ActionButton type="button"
           v-if="draft.activatedId && draft.worldSelectionConfirmed"
           class="button primary"
-          :href="'#/c/' + encodeURIComponent(draft.activatedId) + '/chat'"
-          >先开始相处</a
-        ><a
+          @click="w.navigatePath('/c/' + encodeURIComponent(draft.activatedId) + '/chat')"
+          >先开始相处</ActionButton
+        ><ActionButton type="button"
           v-if="draft.activatedId"
           class="button"
-          :href="'#/c/' + encodeURIComponent(draft.activatedId) + '/profile'"
-          >角色详情</a
+          @click="w.navigatePath('/c/' + encodeURIComponent(draft.activatedId) + '/profile')"
+          >角色详情</ActionButton
         ><ActionButton
           class="button"
           :disabled="busy"
@@ -593,7 +605,7 @@ onUnmounted(() => {
         >保留输入并重新整理</ActionButton
       ></Surface
     >
-    <a class="text-button" href="#/library">保留草稿并返回角色库</a>
+    <button v-if="step!=='world'" class="button" type="button" @click="w.navigatePath('/library')">保留草稿并返回角色库</button>
     <ActionButton v-if="draft.activatedId&&!c.archived&&!pending" class="text-button" @click="c.newDraft()">再认识一个人（保留当前进度）</ActionButton>
   </div>
 </template>

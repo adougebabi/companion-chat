@@ -71,12 +71,12 @@ function renderAppBody(__view) {
     class: "top-divider"
   }, null, -1)), approvedButtonVNode({
     class: "character-switch",
-    onClick: w[1] || (w[1] = A => __view.u.value = !__view.u.value)
+    onClick: w[1] || (w[1] = A => M(__view.characters).length?__view.u.value = !__view.u.value:__view.d('角色库'))
   }, [me(__view.CharacterAvatar,{class:"small",name:M(__view.character).name,initial:M(__view.character).initial,color:M(__view.character).color,src:M(__view.character)._directory?.avatar},null,8,["name","initial","color","src"]), o("b", null, v(M(__view.character).name), 1), me(M(wo), {
     size: 14
-  })]), w[11] || (w[11] = o("span", {
+  })]), o("span", {
     class: "scope"
-  }, "角色工作区", -1)), w[12] || (w[12] = o("span", {
+  }, M(__view.character).id?"角色工作区":"个人空间"), w[12] || (w[12] = o("span", {
     class: "spacer"
   }, null, -1)), w[13] || (w[13] = o("span", {
     class: "local"
@@ -96,10 +96,11 @@ function renderAppBody(__view) {
     style: yt({
       background: A.color
     })
-  }, v(A.initial), 5), Z(v(A.name), 1)]))), 128))])) : X("", !0)]), o("div", mv, [o("aside", vv, [o("div", hv, [w[15] || (w[15] = Z("角色工作区 ", -1)), o("span", null, v(M(__view.character).name), 1)]), (p(), g("nav", {
+  }, v(A.initial), 5), Z(v(A.name), 1)]))), 128))])) : X("", !0)]), o("div", mv, [M(__view.mobileNavOpen)?approvedButtonVNode({class:'mobile-nav-scrim','aria-label':'关闭导航',onClick:__view.toggleNavigation},''):null,o("aside", {class:ge(['sidebar',{'is-open':!!M(__view.mobileNavOpen)}])}, [o("div", hv, [w[15] || (w[15] = Z("角色工作区 ", -1)), o("span", null, v(M(__view.character).name), 1)]), (p(), g("nav", {
     key: "workspace-" + __view.r.value
   }, [approvedButtonVNode({
     "data-testid": "nav-聊天",
+    "aria-label":"聊天",
     disabled: !M(__view.character).id,
     "aria-current": __view.r.value === "聊天" ? "page" : void 0,
     class: ge(["nav-item", {
@@ -109,7 +110,7 @@ function renderAppBody(__view) {
   }, [me(M(Ju), {
     size: 17
   }), w[16] || (w[16] = o("span", null, "聊天", -1))]), approvedButtonVNode({
-    class: "nav-item",disabled:!M(__view.character).id,
+    class: "nav-item",disabled:!M(__view.character).id,"aria-label":"生活",
     onClick: w[4] || (w[4] = A => __view.a.value = !__view.a.value),
     "aria-expanded": __view.a.value
   }, [me(M(Co), {
@@ -119,6 +120,7 @@ function renderAppBody(__view) {
   })]), __view.a.value ? (p(), g("div", bv, [(p(), g(O, null, oe(__view.t, A => approvedButtonVNode({
     key: A,
     "data-testid": "nav-" + A,
+    "aria-label": A,
     disabled:!M(__view.character).id,
     "aria-current": __view.r.value === A ? "page" : void 0,
     class: ge(["nav-item", {
@@ -128,7 +130,8 @@ function renderAppBody(__view) {
   }, v(A))), 64))])) : X("", !0), (p(), g(O, null, oe(__view.s, ([A, B]) => approvedButtonVNode({
     key: A,
     "data-testid": "nav-" + A,
-    disabled:!M(__view.character).id,
+    disabled:A==='人物关系'&&!M(__view.character).id,
+    "aria-label":A,
     "aria-current": __view.r.value === A ? "page" : void 0,
     class: ge(["nav-item", {
       active: __view.r.value === A
@@ -143,6 +146,7 @@ function renderAppBody(__view) {
   }, [(p(), g(O, null, oe(__view.n, ([A, B]) => approvedButtonVNode({
     key: A,
     "data-testid": "nav-" + A,
+    "aria-label": A,
     "aria-current": __view.r.value === A ? "page" : void 0,
     class: ge(["nav-item", {
       active: __view.r.value === A
@@ -158,27 +162,28 @@ function renderAppBody(__view) {
     class: ge({
       "chat-main": __view.r.value === "聊天"
     })
-  }, [o("div", $v, [o("div", null, [o("div", Cv, [Z(v(M(__view.character).id?M(__view.character).name+" 的工作区 ":"新的相识 "), 1), me(M(Ji), {
+  }, [o("div", $v, [approvedButtonVNode({class:'button mobile-nav-toggle','aria-label':'打开导航','aria-expanded':!!M(__view.mobileNavOpen),onClick:__view.toggleNavigation},'☰'),o("div", null, [o("div", Cv, [Z(v(M(__view.character).id?M(__view.character).name+" 的工作区 ":"我的空间 "), 1), me(M(Ji), {
     size: 12
   }), Z(v(__view.r.value), 1)]), o("h1", null, [Z(v(__view.r.value), 1), __view.r.value === "聊天" ? (p(), g("span", xv, "日常的片刻，与你分享。")) : X("", !0)])]), __view.r.value === "聊天" ? (p(), approvedButtonBlock({
     key: 0,
     class: "button",
-    onClick: w[5] || (w[5] = A => __view.f.value = !__view.f.value)
+    onClick: w[5] || (w[5] = A => __view.togglePreview?__view.togglePreview():__view.f.value = !__view.f.value)
   }, [(p(), Ae(as(__view.f.value ? M(Yu) : M(Zu)), {
     size: 15
-  })), Z(v(__view.f.value ? "收起预览" : "展开预览"), 1)])) : X("", !0)]), __view.r.value === "聊天" ? (p(), Ae(__view.ChatPage, {
+  })), Z(v(__view.f.value ? "收起预览" : "展开预览"), 1)])) : X("", !0)]), M(__view.unavailableRoute)?o('section',{class:'card stack',role:'status'},[o('h2',null,'没有找到这个页面或角色'),o('p',null,'原地址已保留，可以返回角色库核对。'),approvedButtonVNode({class:'button',onClick:()=>__view.d('角色库')},'返回角色库')]):M(__view.information)?me(__view.InformationPage,{information:M(__view.information)}):M(__view.detailRoute)?me(__view.DomainPage,{route:M(__view.detailRoute),key:M(__view.detailRoute).path+'?'+M(__view.detailRoute).query}):__view.r.value === "聊天" ? (p(), Ae(__view.ChatPage, {
     key: M(__view.character).id,
     preview: __view.f.value,
     onGo: __view.d
   }, null, 8, ["preview"])) : (p(), g("div", Sv, [__view.r.value === "衣柜" ? (p(), Ae(__view.WardrobePage, {
     key: "w" + M(__view.character).id
-  })) : __view.r.value === "世界" ? (p(), Ae(__view.WorldPage, {
+  })) : __view.r.value === "世界" ? (p(), Ae(M(__view.character).id?__view.WorldPage:__view.StudioPage, {
+    kind: M(__view.character).id?undefined:'world',
     key: "world" + M(__view.character).id
   })) : __view.r.value === "角色详情" ? (p(), Ae(__view.CharacterDetailPage,{key:"profile"+M(__view.character).id})) : __view.t.includes(__view.r.value) ? (p(), Ae(__view.LifePage, {
     page: __view.r.value,
     key: M(__view.character).id,
     onGo: __view.d
-  }, null, 8, ["page"])) : __view.r.value === "管理中心" ? (p(), Ae(__view.ManagementPage, {
+  }, null, 8, ["page"])) : __view.r.value === "创作中心" ? me(__view.StudioPage):__view.r.value === "媒体"?me(__view.MediaPage):__view.r.value === "管理中心" ? (p(), Ae(__view.ManagementPage, {
     key: 3
   })) : __view.r.value === "角色库" ? (p(), Ae(__view.LibraryPage,{key:"library"})) : __view.r.value === "初始化角色" ? (p(), Ae(__view.CharacterWizardPage,{key:"creation"})) : (p(), Ae(__view.BrowsePage, {
     page: __view.r.value,

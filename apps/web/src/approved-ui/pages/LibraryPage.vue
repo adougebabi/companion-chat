@@ -75,19 +75,17 @@ onUnmounted(() => (active = false));
             : "相识，可以从一句简单的介绍开始。"
         }}
       </p>
-      <span class="spacer" /><a
+      <span class="spacer" /><ActionButton type="button"
         v-if="characters.length"
         class="button primary"
-        :href="saved?.activatedId ? '#/library/create?new=1' : '#/library/create'"
-        >{{ saved && !saved.activatedId ? "继续创建" : "创建角色" }}</a
-      >
+        @click="w.navigatePath((saved?.activatedId ? '#/library/create?new=1' : '#/library/create').replace(/^#/,''))"
+        >{{ saved && !saved.activatedId ? "继续创建" : "创建角色" }}</ActionButton>
     </div>
     <Surface v-if="saved" as="aside" class="card approved-guidance"
       ><b>{{ saved.activatedId ? "继续查看准备进度" : "继续上次的相识" }}</b>
       <p>上次的资料和准备进度已经为你保留。</p>
-      <a class="text-button" href="#/library/create"
-        >继续创建与查看进度 ↗</a
-      ></Surface
+      <ActionButton type="button" class="text-button" @click="w.navigatePath('/library/create')"
+        >继续创建与查看进度 ↗</ActionButton></Surface
     >
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     <template v-if="characters.length"
@@ -126,7 +124,7 @@ onUnmounted(() => (active = false));
             <div>
               <ActionButton @click="details(character.id)"
                 >角色详情</ActionButton
-              ><a v-if="progressHref(character.id)" class="text-button" :href="progressHref(character.id)">查看准备进度</a><ActionButton
+              ><ActionButton type="button" v-if="progressHref(character.id)" class="text-button" @click="w.navigatePath((progressHref(character.id)).replace(/^#/,''))">查看准备进度</ActionButton><ActionButton
                 v-if="w.state.selectedId !== character.id"
                 @click="choose(character.id)"
                 >切换角色</ActionButton
@@ -157,17 +155,15 @@ onUnmounted(() => (active = false));
         还没有连接通用模型。描述分析需要先配置模型，也可以选择不调用模型的空白创建。
       </p>
       <div class="row first-use-actions">
-        <a
+        <ActionButton type="button"
           v-if="configured !== true"
           class="button"
-          href="#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94"
-          >先连接模型</a
-        ><a
+          @click="w.navigatePath('/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94')"
+          >先连接模型</ActionButton><ActionButton type="button"
           class="button primary"
           data-testid="library-create-first"
-          href="#/library/create"
-          >{{ saved ? "继续创建第一个角色" : "创建第一个角色" }}</a
-        >
+          @click="w.navigatePath('/library/create')"
+          >{{ saved ? "继续创建第一个角色" : "创建第一个角色" }}</ActionButton>
       </div></Surface
     >
   </div>

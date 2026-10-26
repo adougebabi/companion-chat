@@ -1,0 +1,18 @@
+import {createServer} from 'vite';
+import {fileURLToPath} from 'node:url';
+import {defineComponent,h} from 'vue';
+import {setupSFC,memoryStorage} from './sfc-harness.mjs';
+import {ActionButton,Surface} from '../../src/approved-ui/shared/primitives.mjs';
+export function profileDetail({id='fixture-role',status='active',active='warm',revision=2,name='角色'}={}){return {id,status,current_revision:4,identity:{name,background:'真实背景',timezone:'Asia/Shanghai'},core_persona:{identity:{name,timezone:'Asia/Shanghai'},personality:{},behavioral_policy:{},life_profile:{},personality_system:{profiles:[{id:'warm',name:'日常人格'},{id:'focused',name:'专注人格'}]}},personality_runtime:{active_profile_id:active,revision},current_state:{appearance:null},developing_self:{claims:[]}};}
+export async function nativeProfileFixture({id='fixture-role',read=async()=>profileDetail({id}),switchPersona=async()=>({status:'completed'})}={}){
+ const previous=Object.fromEntries(['window','document','location','localStorage','sessionStorage'].map(k=>[k,globalThis[k]]));
+ const doc=new EventTarget();doc.hidden=false;globalThis.window={location:{origin:'http://profile.test'},addEventListener(){},removeEventListener(){}};globalThis.document=doc;globalThis.location={hash:'#/c/'+id+'/profile'};globalThis.localStorage=memoryStorage();globalThis.sessionStorage=memoryStorage();
+ const vite=await createServer({root:fileURLToPath(new URL('../../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+ const {createWorkspace}=await vite.ssrLoadModule('/src/approved-ui/workspace.mjs'),store=await vite.ssrLoadModule('/src/v3/proto/store.js');
+ const fields=await vite.ssrLoadModule('/src/approved-ui/profile-fields.mjs'),presentation=await vite.ssrLoadModule('/src/approved-ui/profile-presentation.mjs'),profile=await vite.ssrLoadModule('/src/v3/proto/data/profile.js'),semantic=await vite.ssrLoadModule('/src/v3/proto/components/semantic-fields.js'),domain=await vite.ssrLoadModule('/src/v3/domain-presentation.mjs');
+ const w=createWorkspace();store.replaceSnapshot({...store.get(),session:{actorId:'owner'},characters:{[id]:{id,name:'角色',status:'正常'}},ui:{charId:id}});w.client.detail=read;w.client.switchPersona=switchPersona;w.client.world=async()=>({world:null});
+ const names=['w','fid','detail','world','editing','fields','saving','readbackPending','error','conflict','personaRecord','personaReadbackPending','personaFeedback','switching','target','reason','confirm','snapshot','core','personas','currentPersona','sections','personaValue','title','subtitle','avatar','governance','read','edit','save','rebase','switchPersona','readPersonaOutcome','recoverPreparation'];
+ const view=setupSFC(new URL('../../src/approved-ui/pages/CharacterDetailPage.vue',import.meta.url),{useWorkspace:()=>w,...fields,...presentation,...profile,semanticLabel:semantic.semanticLabel,hasSemanticValue:semantic.hasSemanticValue,errorMessage:domain.errorMessage,stateLabel:domain.stateLabel,document:doc,setInterval:()=>1,clearInterval(){}},names);
+ const stub=defineComponent({props:['value'],setup:p=>()=>h('div',p.value?JSON.stringify(p.value):'')});
+ return {c:view.state,w,read:()=>view.state.read(),draft(){view.state.target.value='focused';view.state.reason.value='专注完成当前工作';view.state.confirm.value=true;},html:()=>view.html({ActionButton,Surface,ActionFeedback:stub,CharacterAvatar:stub,SemanticTree:stub,ProfileForm:stub}),async dispose(){view.unmount();w.dispose();await vite.close();for(const [key,value]of Object.entries(previous))if(value===undefined)delete globalThis[key];else globalThis[key]=value;}};
+}

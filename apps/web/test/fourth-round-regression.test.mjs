@@ -16,10 +16,10 @@ test('chat preview choice survives a new conversation and stays Owner/character 
  chatSummaryPreference(options).save(false);assert.equal(chatSummaryPreference(options).read(),false);
 });
 test('chat has no image picker or copy control while existing message attachments remain readable',()=>{
- const page=readFileSync(new URL('../src/v3/proto/pages/real-chat.js',import.meta.url),'utf8');
+ const page=readFileSync(new URL('../src/approved-ui/pages/ChatPage.mjs',import.meta.url),'utf8');
  const bubble=readFileSync(new URL('../src/v3/proto/components/chat.js',import.meta.url),'utf8');
  assert.doesNotMatch(page,/添加图片|data-attach|data-copy-message/);assert.doesNotMatch(bubble,/data-copy-message/);
- assert.match(bubble,/m\.attachmentRefs/);assert.match(page,/本次运行诊断/);
+ assert.match(bubble,/m\.attachmentRefs/);assert.match(page,/diagnosticHref/);
 });
 test('historical corrupt moment uses an explicit reading projection without changing the original',()=>{
  const post={author_type:'fluctlight',text:'今天读完了一本书。ાન્ય'};const before=structuredClone(post);

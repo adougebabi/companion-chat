@@ -104,12 +104,12 @@ function renderChatPageBody(__view) {
       }, [me(M(Qu), {
         size: 12
       }), Z(v(A.action.label||"重试"),1)])])) : X("", !0)])], 2);
-    }), 128)), __view.f.value ? (p(), g("div", Tc, [Z(v(M(__view.waiting).label), 1), o("span", {"aria-hidden":"true"}, "•••"),M(__view.waiting).detail?o("small",null,M(__view.waiting).detail):null,M(__view.waiting).showDiagnostics?o("a",{class:"text-button",href:M(__view.diagnosticHref)},"查看本次运行 ↗"):null,M(__view.waiting).showStop?approvedButtonVNode({class:"text-button",onClick:__view.cancel},"停止本次生成"):null])) : X("", !0),M(__view.errorText)&&!__view.f.value?o("p",{class:"inline-error",role:"alert"},[M(__view.errorText),o("a",{class:"text-button",href:M(__view.diagnosticHref)},"查看本次运行 ↗")]):null], 512), o("div", Mc, [pe(o("textarea", {
+    }), 128)), __view.f.value ? (p(), g("div", Tc, [Z(v(M(__view.waiting).label), 1), o("span", {"aria-hidden":"true"}, "•••"),M(__view.waiting).detail?o("small",null,M(__view.waiting).detail):null,M(__view.waiting).showDiagnostics?approvedButtonVNode({type:"button",class:"text-button",onClick:__view.openDiagnostics},"查看本次运行"):null,M(__view.waiting).showStop?approvedButtonVNode({class:"text-button",onClick:__view.cancel},"停止本次生成"):null])) : X("", !0),M(__view.errorText)&&!__view.f.value?o("p",{class:"inline-error",role:"alert"},[M(__view.errorText),approvedButtonVNode({type:"button",class:"text-button",onClick:__view.openDiagnostics},"查看本次运行")]):null], 512), o("div", Mc, [pe(o("textarea", {
       "onUpdate:modelValue": d[0] || (d[0] = A => __view.l.value = A),
       "aria-label": "聊天消息",onCompositionstart:()=>__view.composition(true),onCompositionend:()=>__view.composition(false),
       placeholder: "说点什么，分享你的今天…",
       onKeydown: d[1] || (d[1] = Gi(Ve(A => !A.isComposing && __view.u(), ["exact", "prevent"]), ["enter"]))
-    }, null, 544), [[$e, __view.l.value]]), o("div", Ec, [d[11] || (d[11] = o("small", null, "Enter 发送 · Shift + Enter 换行", -1)), approvedButtonVNode({
+    }, null, 544), [[$e, __view.l.value]]), o("div", Ec, [d[11] || (d[11] = o("small", null, "Enter 发送 · Shift + Enter 换行", -1)), approvedButtonVNode({type:"button",class:"text-button",onClick:__view.openReplySettings}, "回复设置"), approvedButtonVNode({
       class: "button primary",
       disabled: !__view.l.value.trim() || __view.f.value,
       onClick: __view.u

@@ -8,45 +8,35 @@ import {creationDraft,checkpointCreation,checkpointCreationAnalysis,selectCreati
 import {creationAnalysisRequest,parseCreationAnalysis} from '../src/v3/creation-json.mjs';
 import {persistentCommand} from '../src/v3/providers/persistent-command.mjs';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-test('first setup confirms the exact password before calling authentication',async()=>{
- const host=element(),form=host.querySelector('form'),result=host.querySelector('[data-result]');let calls=0,focused=false;
- form.elements={token:{value:'controlled-setup-token'},password:{value:' exact password '},confirmPassword:{value:'mismatch',focus(){focused=true;}}};
- form.querySelector=selector=>selector==='button'?{disabled:false}:result;
- const render=load('pages/real-core.js',{store:{get:()=>null},auth:{setupStatus:async()=>({setupAvailable:true}),setup:async(token,password)=>{calls++;assert.equal(token,'controlled-setup-token');assert.equal(password,' exact password ');}},
- Field:()=>'',errorMessage,document:{},toast(){},esc},'renderRealAuth');
- const dispose=render(host,{navigate(){},refresh(){}});
- await tick();
- await form.onsubmit({preventDefault(){},target:form});
- assert.equal(calls,0);assert.equal(focused,true);assert.match(result.textContent,/两次输入的密码不一致/);
- form.elements.confirmPassword.value=form.elements.password.value;
- await form.onsubmit({preventDefault(){},target:form});
- assert.equal(calls,1);dispose();
-});
+import {h,defineComponent} from 'vue';
+import {setupSFC,memoryStorage} from './support/sfc-harness.mjs';
+import {creationFixture,validAnalysis} from './support/creation-fixture.mjs';
+import {migrateCreationRecovery,creationHistoryKey} from '../src/approved-ui/creation-recovery.mjs';
+import {ActionButton,Surface} from '../src/approved-ui/shared/primitives.mjs';
 const storage=()=>{const values=new Map();return {getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};};
 function load(file,bindings,name){const text=readFileSync(new URL('../src/v3/proto/'+file,import.meta.url),'utf8').replace(/^import .+;\s*$/gm,'').replace(/^export \{.+;\s*$/gm,'').replaceAll('export ','');return Function(...Object.keys(bindings),text+'\nreturn '+name)(...Object.values(bindings));}
 function element(){const nodes=new Map();return {isConnected:true,innerHTML:'',querySelector(s){if(!nodes.has(s))nodes.set(s,{isConnected:true,innerHTML:'',textContent:'',hidden:false,disabled:false,insertAdjacentHTML(_where,text){this.innerHTML+=text;},addEventListener(){}});return nodes.get(s);},querySelectorAll:()=>[]};}
 
-function creationPage({analyze,activated=false}={}){
- const saved=storage(),recovery=creationDraft({owner:'owner',storage:saved,timezone:'Asia/Shanghai'}),el=element();let activations=0;
- const query=el.querySelector.bind(el);el.querySelector=s=>{const n=query(s);n.addEventListener=(type,fn)=>{n['on'+type]=fn;};n.querySelectorAll=()=>[];n.focus=()=>n.focused=true;return n;};
- const form=el.querySelector('[data-source]');form.elements={};form.reportValidity=()=>true;
- recovery.save({...recovery.read(),bio:'她喜欢看书',...(activated?{activatedId:'original-role',groupConfirmed:true,worldRuntimeId:'original-world',worldSelectionConfirmed:true}:{})});
- const render=load('pages/real-create.js',{client:{},store:{get:k=>k==='session'?{actorId:'owner'}:{status:'正常'},list:()=>[]},creationDraft,checkpointCreation,checkpointCreationAnalysis,selectCreationWorld,creationAnalysisRequest,parseCreationAnalysis,persistentCommand,studioDraftStorage:()=>saved,esc,Field:()=>'',CreationPreview:()=>'',creationFeedback:c=>({message:c.message}),JsonDetails:()=>'',document:{hidden:false,addEventListener(){},removeEventListener(){}},setTimeout:()=>1,clearTimeout(){},requireOwner:async()=>true,directory:{analyze,activate:async()=>{activations++;return {id:'created'};}},activationFromAnalysis:()=>({}),readCreationProgress:async()=>({complete:true,stages:[],worldConfirmed:true}),localDate:()=> '2026-10-23'},'renderRealCreate');
- const dispose=render(el,{query:{},navigate(){}});return {el,recovery,dispose,activations:()=>activations};
-}
-const validAnalysis={analysis_id:'initialization_source_'+'a'.repeat(32),correlation_id:'real-analysis-request',schema_version:1,core_persona:{},developing_self:{},extensions:{},initial_goals:[],initial_intentions:[],initial_relationships:[]};
 
-test('a stale analysis response cannot continue activation using a replacement draft',async()=>{
- let release;const response=new Promise(resolve=>release=resolve),page=creationPage({analyze:()=>response});
- try{page.el.querySelector('[data-start]').onclick();await tick();const newer={...page.recovery.read(),requestId:'replacement',name:'新草稿',bio:'保留新输入',analysis:{unrelated:true},wizardStep:1};page.recovery.save(newer);release(validAnalysis);await tick();assert.equal(page.activations(),0);assert.deepEqual(page.recovery.read(),newer);}finally{page.dispose();}
+test('active Vue authentication preserves exact credentials and rejects mismatched confirmation before any write',async()=>{
+ let calls=0,focused=false,navigated='';
+ const w={client:{setupStatus:async()=>({setupAvailable:true}),setup:async(token,password)=>{calls++;assert.equal(token,'controlled-setup-token');assert.equal(password,' exact password ');}},bootstrap:async()=>{},navigatePath:path=>navigated=path};
+ const view=setupSFC(new URL('../src/approved-ui/pages/AuthPage.vue',import.meta.url),{useWorkspace:()=>w,errorMessage},['password','confirmation','confirmationInput','token','setup','error','busy','submit']);
+ await view.mount();const c=view.state;c.password.value=' exact password ';c.confirmation.value='mismatch';c.token.value='controlled-setup-token';c.confirmationInput.value={focus(){focused=true;}};
+ await c.submit();assert.equal(calls,0);assert.equal(focused,true);assert.match(c.error.value,/两次输入的密码不一致/);assert.match(await view.html(),/两次输入的密码不一致/);
+ c.confirmation.value=c.password.value;await c.submit();assert.equal(calls,1);assert.equal(navigated,'/library');assert.equal(c.password.value,'');assert.equal(c.token.value,'');view.unmount();
 });
-test('analysis without a name returns to editable input and a second creation starts with description',async()=>{
- const page=creationPage({analyze:async()=>validAnalysis});
- try{page.el.querySelector('[data-start]').onclick();await tick();assert.equal(page.recovery.read().wizardStep,1);assert.equal(page.el.querySelector('[data-name-options]').open,true);assert.equal(page.el.querySelector('[name="name"]').focused,true);assert.equal(page.activations(),0);}finally{page.dispose();}
- const next=creationPage({activated:true});
- try{await tick();next.el.querySelector('[data-new-creation]').onclick();assert.equal(next.recovery.read().wizardStep,1);assert.equal(next.recovery.read().useDefaultWorld,true);assert.match(next.el.innerHTML,/这是一个什么样的人/);}finally{next.dispose();}
+test('active creation ignores a stale analysis without activating or overwriting the replacement owner draft',async()=>{
+ let finish;const response=new Promise(resolve=>finish=resolve),f=creationFixture(()=>response);f.c.draft.bio='原始描述';f.c.next();const waiting=f.c.analyze();await tick();
+ const key='fluctlight-creation:owner:draft',newer={...JSON.parse(f.saved.getItem(key)),requestId:'replacement',name:'新草稿',bio:'保留新输入',analysis:null};f.saved.setItem(key,JSON.stringify(newer));
+ finish(validAnalysis());await waiting;assert.equal(f.calls.length,0);assert.deepEqual(JSON.parse(f.saved.getItem(key)),newer);f.c.dispose();
 });
-
+test('active creation retains editable unnamed preview, blocks activation, then creates once and starts a fresh draft',async()=>{
+ const f=creationFixture();f.c.draft.bio='人物原始描述';f.c.next();await f.c.analyze();assert.equal(f.c.step.value,'preview');assert.equal(f.c.draft.bio,'人物原始描述');assert.equal(f.calls.length,0);
+ await f.c.activate();assert.equal(f.calls.length,0);assert.match(f.c.error.value,/填写角色名字/);
+ const name=f.c.previewFields.value.find(field=>JSON.stringify(field.path)==='["identity","name"]');assert.ok(name);name.value='周屿';f.c.persistPreview();await f.c.activate();
+ assert.equal(f.calls.length,1);assert.equal(f.c.draft.activatedId,'created');assert.equal(f.calls[0].name,'周屿');f.c.newDraft();assert.equal(f.c.step.value,'world');assert.equal(f.c.draft.mode,'description');assert.equal(f.c.draft.activatedId,null);assert.equal(f.c.draft.bio,'');f.c.dispose();
+});
 test('inline progress follows original request, localizes tasks, keeps state on read failure and ignores changed Owner',async()=>{
  const previous=globalThis.document;const handlers=new Map();globalThis.document={hidden:false,addEventListener:(kind,fn)=>handlers.set(kind,fn),removeEventListener:kind=>handlers.delete(kind)};
  let actor='owner',request={id:'saved-request',status:'pending',tasks:[{kind:'cognition.processing',status:'started',task_id:'task'}]},fail=false,finished=0;const reads=[];
@@ -60,11 +50,14 @@ test('inline progress follows original request, localizes tasks, keeps state on 
  }finally{globalThis.document=previous;}
 });
 
-test('library shows durable creation continuation and characters whose group has not loaded',()=>{
- const saved=storage(),recovery=creationDraft({owner:'owner',storage:saved,timezone:'Asia/Shanghai'});recovery.save({...recovery.read(),name:'小林',wizardStep:2});
- const role={id:'role',groupId:'unloaded-group',name:'晚晴',status:'正常'};const el=element();
- const render=load('pages/real-core.js',{store:{get:k=>k==='session'?{actorId:'owner'}:null,list:k=>k==='characters'?[role]:[]},creationDraft,studioDraftStorage:()=>saved,esc,CharacterCard:c=>`<article>${esc(c.name)}</article>`,bindAvatars(){},Field(){},Tabs(){},randomId(){},directory:{},auth:{},toast(){},drawer(){},confirm(){},requireOwner(){}},'renderRealLibrary');
- render(el,{query:{},navigate(){}});assert.match(el.innerHTML,/小林 · 正在诞生/);assert.match(el.innerHTML,/继续创建与查看进度/);assert.match(el.innerHTML,/<article>晚晴<\/article>/);
+
+test('active Vue library renders the durable continuation and a role whose group has not loaded',async()=>{
+ const saved=memoryStorage(),session=memoryStorage(),recovery=creationDraft({owner:'owner',storage:saved,timezone:'Asia/Shanghai'});recovery.save({...recovery.read(),name:'小林',wizardStep:2});
+ const role={id:'role',groupId:'unloaded-group',name:'晚晴',status:'正常',tags:[],job:'',bio:''};
+ const w={state:{session:{actorId:'owner'},characters:[role]},services:{configurationClient:{read:async()=>({bindings:[]})}},select(){},navigate(){},navigatePath(){}};
+ const view=setupSFC(new URL('../src/approved-ui/pages/LibraryPage.vue',import.meta.url),{useWorkspace:()=>w,localStorage:saved,sessionStorage:session,migrateCreationRecovery,creationHistoryKey},['w','search','filters','configured','saved','error','characters','groups','rows','progressHref','details','choose','subtitle']);
+ await view.mount();await tick();assert.deepEqual(view.state.rows.value,[role]);assert.equal(view.state.saved.value.name,'小林');
+ const html=await view.html({ActionButton,Surface,FilterChips:defineComponent(()=>()=>h('div')),CharacterAvatar:defineComponent(()=>()=>h('span')),Gu:defineComponent(()=>()=>h('svg'))});assert.match(html,/继续上次的相识|继续创建/);assert.match(html,/继续创建与查看进度/);assert.match(html,/晚晴/);view.unmount();
 });
 
 test('outfit action reads fresh wardrobe and outfit versions at click time',async()=>{

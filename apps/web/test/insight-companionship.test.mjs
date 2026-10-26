@@ -37,7 +37,7 @@ test('default list shows sparse older records and excludes empty diary days with
 });
 
 test('life refresh removes hidden records and reopens a newly grown cursor',async()=>{
- const source=readFileSync(new URL('../src/v3/proto/pages/real-life-timeline.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export ','');
+ const source=readFileSync(new URL('../src/v3-domain/life-timeline.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export ','');
  let changed=false;const el=node();const document={hidden:false,addEventListener(){},removeEventListener(){}};
  const render=Function('get','subscribe','lifeClient','diaryClient','momentsClient','mediaClient','lifeTimelineRows','esc','instant','document','setTimeout','clearTimeout',source+';return renderLifeTimeline')(
  ()=>({actorId:'owner'}),()=>{}, {schedules:async()=>({days:[]}),goals:async()=>({items:[]})}, {list:async()=>({items:[],next_cursor:changed?'new-older-cursor':''})}, {list:async()=>({items:changed?[]:[{id:'post',author_type:'fluctlight',text:'now-hidden-post'}]})}, {list:async()=>({items:changed?[]:[{id:'photo',kind:'image',readable:true,title:'now-hidden-photo'}]}),url:id=>'/api/media/'+id},lifeTimelineRows,String,String,document,()=>1,()=>{});
@@ -46,7 +46,7 @@ test('life refresh removes hidden records and reopens a newly grown cursor',asyn
 });
 
 test('all-memory reading retains explicit false through persisted view URLs',()=>{
- const source=readFileSync(new URL('../src/v3/proto/pages/real-memory.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export ','');let options,url='';const el=node();
+ const source=readFileSync(new URL('../src/v3-domain/memory.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export ','');let options,url='';const el=node();
  const render=Function('get','mountCalendarReading','Tabs','SearchForm','esc','history',source+';return renderRealMemoryList')(()=>({actorId:'owner'}),(_el,v)=>{options=v;return()=>{};},()=>'',()=>'',String,{replaceState:(_a,_b,value)=>url=value});
  render(el,{charId:'role',path:'/c/role/growth',query:{aboutOwner:'false'}});options.onView({mode:'list',date:'',month:''});assert.match(url,/aboutOwner=false/);assert.match(el.innerHTML,/她的全部记忆/);assert.doesNotMatch(options.emptyText,/关于你的事/);
 });

@@ -1,103 +1,23 @@
-import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import test from "node:test";
-
-const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const app = read("../src/App.vue");
-const legacy = read("../src/approved-ui/LegacySurface.vue");
-const studio = read("../src/views/StudioView.vue");
-const world = read("../src/views/WorldView.vue");
-const moments = read("../src/views/MomentsView.vue");
-const autonomy = read("../src/views/AutonomyView.vue");
-const dataTools = read("../src/views/DataToolsView.vue");
-const rollback = read("../src/views/RollbackView.vue");
-const pending = read("../src/views/PendingView.vue");
-const diagnostics = read("../src/views/DiagnosticsView.vue");
-const audit = read("../../../docs/audit-feature-entries.md");
-const missing = read("../../../docs/backend-missing-apis.md");
-const migration = read("../../../docs/migration-correspondence.md");
-const access = read("../../../docs/access-status.md");
-
-test("phase 4-5 routes replace studio and world placeholders and keep diary unwired", () => {
-  assert.match(app, /approved-ui\/ApprovedApp/);
-  assert.match(legacy, /id="v3-root"/);
-  assert.match(legacy, /mountProduct/);
-  assert.match(studio, /创作预览·不进入生活/);
-  assert.match(rollback, /未提供/);
-  assert.doesNotMatch(app, /<GovernanceView|<StudioView|<UnwiredView/);
-  assert.doesNotMatch(app, /iframe|prototype-v3/);
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import {approvedRoute,bookmarkedPath} from '../src/approved-ui/routing.mjs';
+const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+test('Studio, avatar, governance and original diagnostics are workspace subroutes',()=>{
+ for(const [path,page] of [['/studio/edit/new?kind=place','创作中心'],['/studio/preview?res=source','创作中心'],['/c/role/media/avatar','媒体'],['/c/role/governance?tab=foundation','角色详情'],['/diag/task/original','管理中心'],['/diag/request/original','管理中心'],['/diag/record/model-runs/original','管理中心']]){
+  const route=approvedRoute('#'+path);assert.equal(route.page,page);assert.ok(route.feature);assert.equal(route.legacy,undefined);
+ }
 });
-
-test("bookmarked URLs resolve to the active Mock routes before mounting", async () => {
-  const { acceptancePath } = await import('../src/v3/mock-navigation.mjs');
-  assert.equal(acceptancePath('/instances'), '/library');
-  assert.equal(acceptancePath('/moments'), '/feed');
-  assert.equal(acceptancePath('/settings/diagnostics'), '/diag');
-  assert.equal(acceptancePath('/c/c2/people/owner'), '/c/c2/people/owner');
-  const main = read('../src/main.ts');
-  assert.match(main, /!location.hash && bookmarkedPage/);
-  assert.match(main, /history.replaceState/);
+test('bookmarked URLs have no simulated character or second router',()=>{
+ assert.equal(bookmarkedPath('/instances'),'/instances');assert.equal(approvedRoute('#'+bookmarkedPath('/instances')).page,'角色库');
+ assert.equal(approvedRoute('#'+bookmarkedPath('/settings','?section=模型用途')).query.get('section'),'模型用途');
+ assert.equal(bookmarkedPath('/chat'),'/library');
+ assert.equal(approvedRoute('#/unknown?legacy=1').notFound,true);
+ assert.equal(approvedRoute('#/studio?legacy=1').page,'创作中心');
+ const app=read('../src/approved-ui/ApprovedApp.mjs');assert.doesNotMatch(app,/LegacySurface|mountProduct/);
 });
-
-test("studio preview stays local and world browsing does not move the character", () => {
-  assert.match(studio, /创作预览·不进入生活/);
-  assert.match(studio, /没有写入角色媒体、日记、记忆或生活事实/);
-  assert.match(studio, /ChatPanel/);
-  assert.doesNotMatch(studio, /useConversationStore|controlCenter\.|store\.send\(/);
-  assert.match(world, /浏览世界不会移动角色/);
-  assert.match(world, /地图/);
-  assert.match(world, /尚未接入/);
-  assert.doesNotMatch(world, /cancelLifeEvent|createLifeEvent|setLifePresence/);
-});
-
-test("moments, autonomy, data tools and pending keep honest unwired states", () => {
-  assert.match(moments, /生成图·非事实/);
-  assert.match(moments, /不能以角色身份代发动态/);
-  assert.match(moments, /reactToMoment/);
-  assert.doesNotMatch(moments, /createMoment/);
-  assert.match(autonomy, /OperationalSettings/);
-  assert.match(autonomy, /governAutonomyAction/);
-  assert.match(autonomy, /免打扰时段尚未接入/);
-  assert.match(autonomy, /花费上限尚未接入/);
-  assert.match(autonomy, /主动触达频率尚未接入/);
-  assert.match(dataTools, /配置包/);
-  assert.match(dataTools, /业务数据备份/);
-  assert.match(dataTools, /时间线回档/);
-  assert.match(rollback, /未提供/);
-  assert.match(rollback, /日记/);
-  assert.match(rollback, /记忆/);
-  assert.match(rollback, /关系/);
-  assert.doesNotMatch(rollback, /<button[^>]*>[^<]*恢复/);
-  assert.match(pending, /本页不就地批准/);
-  assert.match(pending, /不把失败显示成 0 条/);
-  assert.doesNotMatch(pending, /reviewCapabilityRequest/);
-});
-
-test("diagnostics keeps filters, export, paging and confirms dangerous workflow commands", () => {
-  assert.match(diagnostics, /<FilterPanel/);
-  assert.match(diagnostics, /导出当前结果/);
-  assert.match(diagnostics, /loadMoreDiagnosticRuns/);
-  assert.match(diagnostics, /查看 Model Run/);
-  assert.match(diagnostics, /永久伤害事件拦截计数尚未接入/);
-  assert.match(diagnostics, /不提供放行/);
-  assert.match(diagnostics, /controlCenter\.commandWorkflow\("cancel"\)/);
-  assert.match(diagnostics, /controlCenter\.restartWorkflow\(\)/);
-  assert.match(diagnostics, /controlCenter\.resetWorkflow\(\)/);
-  assert.match(diagnostics, /确认取消/);
-  assert.doesNotMatch(diagnostics, /放行按钮|releaseHarm/);
-});
-
-test("phase documents cover migration, access and all 53 audit features", () => {
-  const ids = [...audit.matchAll(/^\| ((?:SYS|INS|CHAT|MOM|DET|GOV|SET|DIA|GAP)-\d{2}) \|/gm)].map((match) => match[1]);
-  assert.equal(new Set(ids).size, 53);
-  assert.equal(ids.length, 53);
-  assert.match(missing, /B 类补入口/);
-  assert.match(missing, /C 类新领域能力/);
-  assert.match(missing, /幂等/);
-  assert.match(missing, /revision/);
-  assert.match(migration, /\/library/);
-  assert.match(migration, /GovernanceView/);
-  assert.match(access, /尚未接入/);
-  assert.match(access, /部分接入/);
-  assert.match(access, /已接入/);
+test('preview, upload and workflow recovery keep their real services',()=>{
+ const studio=read('../src/v3-domain/studio.js'),media=read('../src/approved-ui/pages/MediaPage.vue'),workflow=read('../src/v3-domain/workflow.js');
+ assert.match(studio,/persistentCommand/);assert.match(studio,/expectedInstanceRevision/);assert.match(studio,/create_required/);
+ assert.match(media,/mountMediaUpload/);assert.match(media,/全部角色/);assert.match(workflow,/sourceRunId|source_run_id/);
 });

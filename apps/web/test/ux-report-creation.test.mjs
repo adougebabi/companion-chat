@@ -25,7 +25,7 @@ test('world framework validates actual category/place identity, limits and forbi
 });
 
 function npcFixture(){
- const text=readFileSync(new URL('../src/v3/proto/pages/npc-management.js',import.meta.url),'utf8');
+ const text=readFileSync(new URL('../src/v3-domain/npc-management.js',import.meta.url),'utf8');
  const code=text.slice(text.indexOf('async function renderNPCDefinitionPage'),text.indexOf('\nexport function renderNPCEditor'));
  // Keep this fixture scoped to the real definition renderer only.
  const functionSource=code.slice(0,code.indexOf('\n}',code.indexOf('if(draft.charId)'))+2);

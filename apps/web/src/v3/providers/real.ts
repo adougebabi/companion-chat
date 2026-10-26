@@ -29,8 +29,6 @@ import {readInitializationProgress} from '../initialization-progress.mjs';
 import { replaceSnapshot, get, configureReadProjection } from '../proto/store.js';
 // @ts-expect-error JS projection
 import { profileSnapshotFromDetail } from '../proto/data/profile.js';
-// @ts-expect-error JS renderer registration
-import { configureProfileProvider } from '../proto/pages/profile.js';
 export const client = new BrowserClient(import.meta.env.VITE_API_ORIGIN || '');
 const governance = createGovernanceProvider(client,refreshProduct);
 export const conversation = () => useConversationStore(workspacePinia);
@@ -146,7 +144,6 @@ let providersRegistered=false;
 export function registerProviders() {
   if(providersRegistered)return;
   providersRegistered=true;
-  configureProfileProvider(profile);
   installWorldProvider({ client, refreshProduct });
   installLifeProvider(client);
   installMemoryProvider(client,async(id,text)=>{const state=await openConversation(id);await state.send(text);if(state.error)throw new Error(state.error);});

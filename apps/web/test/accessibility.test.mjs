@@ -16,7 +16,9 @@ async function readVueSources(directory) {
 }
 
 const appSource = (await readVueSources(fileURLToPath(new URL("../src", import.meta.url)))).join("\n");
-const authSource = await readFile(new URL("../src/v3/proto/pages/govern.js", import.meta.url), "utf8");
+const authSource = await readFile(new URL("../src/approved-ui/pages/AuthPage.vue", import.meta.url), "utf8");
+const accountController = await readFile(new URL("../src/approved-ui/workspace.mjs", import.meta.url), "utf8");
+const accountRenderer = await readFile(new URL("../src/approved-ui/renderers/ManagementPage.mjs", import.meta.url), "utf8");
 
 test("control center keeps keyboard, live-region, and form boundaries explicit", () => {
   assert.match(appSource, /aria-label="Fluctlight 主导航"/);
@@ -27,9 +29,11 @@ test("control center keeps keyboard, live-region, and form boundaries explicit",
   assert.match(appSource, /id="auth-password"/);
   assert.match(appSource, /autocomplete="current-password"/);
   assert.match(appSource, /aria-labelledby="auth-title"/);
-  assert.match(authSource, /data-test="signout"/);
-  assert.match(authSource, /d\.session = null/);
-  assert.match(authSource, /退出登录（模拟）/);
+  assert.match(accountRenderer, /onClick:__view.logout/);
+  assert.match(accountController, /await auth\.logout\(\);navigatePath\('\/auth'\)/);
+  assert.match(accountRenderer, /"退出登录"/);
+  assert.match(authSource, /aria-labelledby="auth-title"/);
+  assert.doesNotMatch(authSource, /模拟登录/);
   assert.match(appSource, /@keydown="onKeydown"/);
   assert.doesNotMatch(appSource, /v-html/);
 });

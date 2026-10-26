@@ -320,7 +320,7 @@ export default defineComponent({
       w: text,
       r: scheduleBusy,
       A: editSchedule,
-      openSchedulePlanning:()=>w.navigatePath('/c/'+encodeURIComponent(character.value.id)+'/life/schedule?legacy=1'),
+      openSchedulePlanning:()=>w.navigatePath('/c/'+encodeURIComponent(character.value.id)+'/life/schedule/planning'),
       i: diaryBusy,
       DiaryGeneration,
       closedDiaryDate:computed(()=>previousDiaryDate(day(new Date(),character.value.timezone||'Asia/Shanghai'))),

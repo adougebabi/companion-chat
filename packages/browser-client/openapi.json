@@ -4466,6 +4466,19 @@
             },
             "maxItems": 32,
             "description": "Append categories while retaining existing IDs and names. Categories group concrete places; they are not enterable places."
+          },
+          "sourceWorldId": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "sourceFluctlightId": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "expectedSourceRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
           }
         },
         "required": [

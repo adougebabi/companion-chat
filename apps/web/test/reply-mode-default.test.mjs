@@ -5,7 +5,7 @@ import { configurationFields, conversationReplyDisplayValue } from "../src/v3/pr
 import { Field } from "../src/v3/proto/components/forms.js";
 
 const replySettingsSource = await readFile(new URL("../src/components/settings/ReplyVisionSettings.vue", import.meta.url), "utf8");
-const configurationSource = await readFile(new URL("../src/v3/proto/pages/real-configuration.js", import.meta.url), "utf8");
+const configurationSource = await readFile(new URL("../src/approved-ui/pages/ManagementPage.mjs", import.meta.url), "utf8");
 
 test("unset conversation reply mode displays fact_only and an explicit legacy mode stays", () => {
   assert.match(replySettingsSource, /mode:"fact_only"/);

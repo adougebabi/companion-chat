@@ -189,12 +189,13 @@ export default defineComponent({
         (m) =>
           m.kind === "user" && ["pending", "running"].includes(m.turnStatus),
       );
-      return chatWaitingPresentation(
+      const presentation=chatWaitingPresentation(
         store,
         store.attemptStartedAt ?? (pending?.createdAt ? Date.parse(pending.createdAt) : now.value),
         now.value,
         character.value.name,
       );
+      return {...presentation,showStop:presentation.showStop&&store.canCancel};
     });
     const diagnosticHref = computed(() => {
       const id = chatDiagnosticTurn(store);
@@ -204,6 +205,8 @@ export default defineComponent({
     });
     return renderChatPage({
       diagnosticHref,
+      openDiagnostics: () => workspace.navigatePath(diagnosticHref.value.slice(1)),
+      openReplySettings: () => workspace.navigatePath('/settings/reply-vision?returnTo=' + encodeURIComponent('#/c/' + encodeURIComponent(character.value.id) + '/chat')),
       readStatus: () =>
         store.refreshActiveTurn(true).catch((error) => {
           if (live()) workspace.state.errors.chat = error.message;

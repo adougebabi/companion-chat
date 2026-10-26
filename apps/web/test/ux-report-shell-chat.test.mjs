@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
+import {activeChatFixture} from './support/active-chat.mjs';
 import {configurationSections} from '../src/v3/proto/service-metadata.js';
 import assert from 'node:assert/strict';
 import {errorMessage} from '../src/v3/domain-presentation.mjs';
@@ -64,8 +64,16 @@ test('footer reportValidity paths reject whitespace without clearing page custom
 });
 
 
-test('chat reply settings links to a registered configuration section and retains return context',()=>{
- const source=readFileSync(new URL('../src/v3/proto/pages/real-chat.js',import.meta.url),'utf8');
- const section=/replySettings.href='#\/settings\/([^?]+)\?returnTo='/.exec(source)?.[1];
- assert.ok(configurationSections.some(item=>item.id===section));
+test('chat reply settings links to a registered configuration section and retains return context',async()=>{
+ const f=activeChatFixture();
+ try {
+  f.bindings.l.value='离开设置前的草稿';
+  assert.match(await f.html(), /<button[^>]*>回复设置<\/button>/);
+  f.bindings.openReplySettings();
+  const [kind,path]=f.calls.at(-1),url=new URL(path,'http://localhost');
+  assert.equal(kind,'navigate');
+  assert.ok(configurationSections.some(item=>url.pathname==='/settings/'+item.id));
+  assert.equal(url.searchParams.get('returnTo'),'#/c/role/chat');
+  assert.equal(f.bindings.l.value,'离开设置前的草稿');
+ } finally { f.dispose(); }
 });

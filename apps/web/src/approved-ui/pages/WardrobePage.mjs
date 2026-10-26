@@ -1,5 +1,5 @@
 import { defineComponent, ref, computed, watch, h, Fragment } from "vue";
-import { useWorkspace, slots } from "../workspace.mjs";
+import { useWorkspace, slots, seasonNames } from "../workspace.mjs";
 import WardrobePreparation from "../shared/WardrobePreparation.vue";
 import { renderWardrobePage } from "../renderers/WardrobePage.mjs";
 import { GarmentArt, ActionFeedback } from "../shared/components.mjs";
@@ -324,6 +324,7 @@ export default defineComponent({
     }
     const render = renderWardrobePage({
       character,
+      tagLabel: value => seasonNames[value] || value,
       i: tab,
       r: tag,
       u: items,

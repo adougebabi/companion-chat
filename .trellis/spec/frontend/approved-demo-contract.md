@@ -58,8 +58,13 @@ once, while distinct facts and unknown values remain available.
 - `App.vue`: build-time `VITE_PRODUCT_MODE=mock` selects `reference-fixture.mjs`;
   all other builds select `ApprovedApp.mjs`.
 - `approvedRoute(hash)` / `approvedHref(page,fid)` retain canonical `#/c/:fid/*`
-  routes. Unmigrated detail/auth/governance routes mount `LegacySurface.vue`.
-  `#/studio?legacy=1` explicitly opens the existing creation workbench.
+  routes. Authentication, object details, governance, Studio and diagnostics all
+  use the same ApprovedApp. `legacy=1` never selects another implementation;
+  unknown paths show the current workspace's not-found page.
+- `feature-routes.mjs` owns explicit object-level selectors. Its loaders select
+  named domain renderers, so unused historical main lists are not production
+  alternatives. DomainPage owns mounting, Owner/generation fences, validation
+  and cleanup; domain modules never install an app, router, shell or stylesheet.
 - `ActionButton`, `Surface`, `CurrentOutfit`, `ActionFeedback`, `FilterChips`,
   `DetailDrawer`, `GarmentArt` own the repeated native UI patterns.
 - `unoptimizedRenderer(factory)` wraps retained compiled render bodies with
@@ -174,8 +179,10 @@ New/empty library, `#/library/create`, `#/c/:fid/profile`, and report feedback.
 `ModelDirectory`. Existing analysis/activation and Foundation APIs remain owners.
 
 ### 3. Contracts
-Select a published world/version or the default world before description,
-JSON, blank or published-template creation. Timezone is required; age is optional.
+Explicitly select an existing world's configuration, a published world/version,
+or the default world before description, JSON, blank or published-template
+creation. New drafts do not silently choose the default world. Timezone is
+required; age is optional.
 Analysis stops at preview. Store editable preview UI values separately and clear
 them when source/world/mode/analysis changes. Activation freezes the reviewed
 typed body and original request ID; unknown outcomes replay exactly that body.
@@ -239,3 +246,38 @@ formal daily memories; chat alone does not fabricate an immediate memory record.
 Node tests cover recovery identity, fields and saved selections. Isolated
 production-browser fixtures cover visible controls/readback, not real database
 or model success; retain separate disposable-PG and opt-in model evidence.
+
+## R10 single-workspace and configuration reuse
+
+The old app, shell, registries, LegacySurface and proto/pages directory are
+removed. Do not restore a second production application for missing features.
+Unique editing/history/recovery functions live under v3-domain and inherit the
+approved workspace's tokens and controls; current main lists remain the only
+production lists. Tests exercise the actual current controllers/SFC templates
+before retiring their old-page consumers. A dependency-graph test rejects any
+production import of retired pages, modules, views or shell.
+
+At 390px the sidebar is a closed drawer and the chat preview starts collapsed;
+the chat composer must fit in the first viewport. Settings switches are 36×21px,
+checkbox labels use adjacent text, and the save bar stays in document flow.
+Media card images fill their 108px preview using cover; the preview uses block
+layout so an intrinsic grid row cannot stretch a tall image. Detail images use
+contain in a substantially taller frame. Media defaults to all characters,
+including entry from a character bookmark; explicit fid filters remain valid.
+Zero-character navigation still permits world definitions, feed and media.
+
+Existing-world reuse copies only saved world attributes and places into fresh
+runtime IDs. It remaps place parents/connections, establishes independent place
+baselines, and copies no NPCs, inventory, event templates, runtime position or
+life history. Core verifies common Owner and source revision and creates the
+copy atomically through the existing world command ledger. Copy, select and
+readback are serial persisted stages: unknown outcomes replay the exact original
+body/key. Only a first definite admission rejection permits explicit review and
+confirmation of a new source baseline; a conflict following an unknown outcome
+does not release the original command. No schema migration is required.
+
+`single-workspace`, `r10-active-*`, `r10-native-profile-equivalence`,
+`r10-media-default`, `r10-account` and `r10-world-reuse` cover these boundaries.
+`TestR10WorldConfigurationCopyIsIndependentAtomicAndReplayable` uses disposable
+PostgreSQL. Browser evidence at 1280×800 and 390×844 is separate from model or
+live-business-data acceptance; see docs/design/v62-r10-remediation.md.

@@ -133,7 +133,7 @@ function renderWardrobePageBody(__view) {
     "onUpdate:modelValue": T[0] || (T[0] = x => __view.r.value = x)
   }, [T[19] || (T[19] = o("option", {
     value: ""
-  }, "请选择", -1)), (p(!0), g(O, null, oe(M(__view.character).outfitTags, x => (p(), g("option", null, v(x), 1))), 256))], 512), [[Et, __view.r.value]])]), T[21] || (T[21] = o("small", null, "标签可在方案库维护 · 每个部位选一件，配饰可多选", -1))]), approvedSurfaceVNode("div", $f, [__view.r.value ? X("", !0) : (p(), g("p", Cf, "请先选择标签")), (p(!0), g(O, null, oe(M(At), x => (p(), g("details", xf, [o("summary", null, [Z(v(x) + " ", 1), o("small", null, v((__view.u.value[x] || []).map(R => {
+  }, "请选择", -1)), (p(!0), g(O, null, oe(M(__view.character).outfitTags, x => (p(), g("option", {value:x}, v(__view.tagLabel(x)), 9, ["value"]))), 256))], 512), [[Et, __view.r.value]])]), T[21] || (T[21] = o("small", null, "标签可在方案库维护 · 每个部位选一件，配饰可多选", -1))]), approvedSurfaceVNode("div", $f, [__view.r.value ? X("", !0) : (p(), g("p", Cf, "请先选择标签")), (p(!0), g(O, null, oe(M(At), x => (p(), g("details", xf, [o("summary", null, [Z(v(x) + " ", 1), o("small", null, v((__view.u.value[x] || []).map(R => {
     var ye;
     return (ye = M(__view.character).garments.find(F => F.id === R)) == null ? void 0 : ye.name;
   }).join("、") || "未选择"), 1)]), o("div", Sf, [(p(!0), g(O, null, oe(M(__view.character).garments.filter(R => R.type === x), R => {
@@ -171,7 +171,7 @@ function renderWardrobePageBody(__view) {
     key: 1
   }, [approvedSurfaceVNode("div", Pf, [T[23] || (T[23] = o("div", {
     class: "row"
-  }, [o("b", null, "标签管理"), o("small", null, "删除标签保留方案")], -1)), o("div", Lf, [(p(!0), g(O, null, oe(M(__view.character).outfitTags, x => (p(), g("span", Uf, [Z(v(x) + " ", 1), approvedButtonVNode({
+  }, [o("b", null, "标签管理"), o("small", null, "删除标签保留方案")], -1)), o("div", Lf, [(p(!0), g(O, null, oe(M(__view.character).outfitTags, x => (p(), g("span", Uf, [Z(v(__view.tagLabel(x)) + " ", 1), approvedButtonVNode({
     onClick: R => {
       __view.C.value = x, __view.d.value = x;
     }
@@ -205,14 +205,12 @@ function renderWardrobePageBody(__view) {
     type: "button",
     class: "text-button",
     onClick: T[5] || (T[5] = R => __view.B.value = null)
-  }, "取消")], 40, Hf)) : (p(), g("b", Kf, v(x.name), 1)), o("span", Wf, v(x.tag || "未分类"), 1), T[25] || (T[25] = o("span", {
+  }, "取消")], 40, Hf)) : (p(), g("b", Kf, v(x.name), 1)), o("span", Wf, v(__view.tagLabel(x.tag) || "未分类"), 1), T[25] || (T[25] = o("span", {
     class: "spacer"
   }, null, -1)), o("details", {
     class: "actions-menu",
     onClick: T[6] || (T[6] = R => R.target.closest("button") && R.currentTarget.removeAttribute("open"))
-  }, [T[24] || (T[24] = o("summary", {
-    "aria-label": "方案操作"
-  }, "⋯", -1)), o("div", qf, [approvedButtonVNode({
+  }, [o("summary", {"aria-label": x.name + "的方案操作"}, "⋯"), o("div", qf, [approvedButtonVNode({
     onClick: R => __view.c.value = __view.c.value === x.id ? null : x.id
   }, "预览"), approvedButtonVNode({
     onClick: R => __view.H(x)
@@ -262,7 +260,7 @@ function renderWardrobePageBody(__view) {
     class: "actions-menu",
     onClick: T[10] || (T[10] = R => R.target.closest("button") && R.currentTarget.removeAttribute("open"))
   }, [T[29] || (T[29] = o("summary", {
-    "aria-label": "衣服操作"
+    "aria-label": x.name + "的衣服操作"
   }, "⋯", -1)), o("div", np, [approvedButtonVNode({
     onClick: R => __view.S.value = JSON.parse(JSON.stringify(x))
   }, "编辑"), approvedButtonVNode({

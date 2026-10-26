@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import {assertApprovedFixtureWardrobe} from "./support/approved-fixture-check.mjs";
 
 import { bundleFromSeed, rewriteSeedAssets, viewFromBundle } from "../src/v3/contract-map.mjs";
 import { seed } from "./fixtures/proto-seed.mjs";
@@ -28,15 +29,11 @@ test("an unfinished studio reference does not apply a version or resolve conflic
   assert.equal(view.meta.studioApplyNotes.r_book, "未完成·已记录选择，尚未写入实例");
 });
 
-test("Mock acceptance entry keeps wardrobe flow and persistence separate from the real transport", () => {
+test("Mock acceptance entry keeps wardrobe flow and persistence separate from the real transport", async () => {
   const store = read('../src/v3/proto/mock/store.js');
-  const wardrobe = read('../src/v3/proto/pages/wardrobe.js');
-  const flows = read('../src/v3/proto/pages/flows.js');
   assert.match(store, /fluctlight.v3.acceptance.mock.v1/);
   assert.doesNotMatch(store, /BrowserClient|fetch\(/);
-  assert.match(wardrobe, /requestOutfit/);
-  assert.match(flows, /pending|current/);
-  assert.match(wardrobe, /不会改变穿着、位置或任何事实/);
+  await assertApprovedFixtureWardrobe();
 });
 
 test("JSON wire shape still round-trips page collections", () => {

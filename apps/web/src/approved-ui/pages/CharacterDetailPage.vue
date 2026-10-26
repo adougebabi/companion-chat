@@ -35,6 +35,10 @@ const w = useWorkspace(),
   error = ref(""),
   conflict = ref(false),
   last = ref(null),
+  personaRecord=ref(null),
+  personaSubmitted=ref(null),
+  personaReadbackPending=ref(false),
+  personaFeedback=ref(''),
   switching = ref(false),
   target = ref(""),
   reason = ref(""),
@@ -117,6 +121,7 @@ async function read({ preserve = false } = {}) {
   }
 }
 function edit() {
+  if(!detail.value||snapshot.value.readOnly)return;
   base.value = coreFromDetail(detail.value);
   baseline.value = detail.value.current_revision;
   fields.value = profileFields(base.value, semanticLabel);
@@ -186,6 +191,7 @@ async function rebase() {
 }
 async function switchPersona() {
   if (
+    !live() || snapshot.value.readOnly || personaRecord.value?.requestUnresolved || personaReadbackPending.value ||
     !target.value ||
     !reason.value.trim() ||
     !confirm.value ||
@@ -208,6 +214,8 @@ async function switchPersona() {
   }
   switching.value = true;
   const submitted = { target: target.value, reason: reason.value };
+  personaSubmitted.value=submitted;
+  personaFeedback.value='';error.value='';
   try {
     const body = {
       targetPersonaId: target.value,
@@ -235,27 +243,35 @@ async function switchPersona() {
           : result;
       },
       {
-        onSaved: async () => {
-          if (live()) await read();
-        },
-        success: "人格切换已确认",
+        onSaved:readPersonaOutcome,
+        success: "人格切换命令已提交，请核对当前状态",
       },
     );
+    personaRecord.value=record;
     await record.completion;
-    if (
-      live() &&
-      target.value === submitted.target &&
-      reason.value === submitted.reason
-    ) {
-      target.value = "";
-      reason.value = "";
-      confirm.value = false;
-    }
   } catch (cause) {
     if (live()) error.value = errorMessage(cause);
   } finally {
     if (live()) switching.value = false;
   }
+}
+async function readPersonaOutcome(receipt){
+  if(!live()||!personaSubmitted.value)return;
+  personaReadbackPending.value=true;
+  if(!await read()){
+    if(live())error.value='命令已提交，但最新状态读取失败。原目标和原因已保留，请重新读取，确认前不要重复切换。';
+    return;
+  }
+  if(!live())return;
+  const submitted=personaSubmitted.value;
+  const result=receipt?.result||receipt;
+  const currentMatches=snapshot.value.activeProfileId===submitted.target;
+  const recorded=result?.status==='completed'&&result.active_profile_id===submitted.target;
+  if(currentMatches||recorded){
+    personaReadbackPending.value=false;
+    personaFeedback.value=currentMatches?'目标人格已生效，已读取最新状态。':'原切换已完成；当前人格已有后续变化，请以当前记录为准。';
+    if(target.value===submitted.target&&reason.value===submitted.reason){target.value='';reason.value='';confirm.value=false;}
+  }else error.value='命令已提交，当前人格尚未与目标一致。原目标与原因已保留，请查询原请求和切换记录。';
 }
 async function pollPreparation() {
   if (!live() || document.hidden || reading || editing.value || saving.value || switching.value ||
@@ -424,11 +440,14 @@ onUnmounted(() => {
                 />我确认向当前角色提出这次人格切换</label
               ><ActionButton
                 class="button"
-                :disabled="switching || !target || !reason.trim() || !confirm"
+                :disabled="switching || personaRecord?.requestUnresolved || personaReadbackPending || !target || !reason.trim() || !confirm"
                 >{{ switching ? "处理中…" : "确认切换" }}</ActionButton
               >
             </form>
           </details>
+          <p v-if="personaFeedback" role="status">{{personaFeedback}}</p>
+          <p v-if="personaRecord?.requestUnresolved" class="muted">原切换请求正在处理，目标与原因已保留。</p>
+          <ActionButton v-if="personaReadbackPending" type="button" class="button" :disabled="switching" @click="readPersonaOutcome()">重新读取人格切换结果</ActionButton>
         </section>
         <section v-if="detail?.core_persona?.personality_system">
           <details>
@@ -462,19 +481,16 @@ onUnmounted(() => {
             居住地 · {{ detail.identity.residence }}
           </p>
           <div class="row">
-            <a
+            <ActionButton type="button"
               class="text-button"
-              :href="'#/c/' + encodeURIComponent(fid) + '/media/avatar'"
-              >更换头像 ↗</a
-            ><a
+              @click="w.navigatePath(('#/c/' + encodeURIComponent(fid) + '/media/avatar').replace(/^#/,''))"
+              >更换头像 ↗</ActionButton><ActionButton type="button"
               class="text-button"
-              :href="'#/c/' + encodeURIComponent(fid) + '/world'"
-              >查看生活世界 ↗</a
-            ><a
+              @click="w.navigatePath(('#/c/' + encodeURIComponent(fid) + '/world').replace(/^#/,''))"
+              >查看生活世界 ↗</ActionButton><ActionButton type="button"
               class="text-button"
-              :href="'#/c/' + encodeURIComponent(fid) + '/life/wardrobe'"
-              >查看衣柜 ↗</a
-            >
+              @click="w.navigatePath(('#/c/' + encodeURIComponent(fid) + '/life/wardrobe').replace(/^#/,''))"
+              >查看衣柜 ↗</ActionButton>
           </div>
         </section>
         <details v-if="detail">
@@ -503,13 +519,10 @@ onUnmounted(() => {
     >
     <p class="character-more">
       <small>更多：</small
-      ><a class="text-button" :href="governance('capabilities')">能力申请</a
-      ><span>·</span
-      ><a class="text-button" :href="governance('developing')">发展中的自我</a
-      ><span>·</span
-      ><a class="text-button" :href="governance('foundation')"
-        >身份核心与提议</a
-      >
+      ><ActionButton type="button" class="text-button" @click="w.navigatePath((governance('capabilities')).replace(/^#/,''))">能力申请</ActionButton><span>·</span
+      ><ActionButton type="button" class="text-button" @click="w.navigatePath((governance('developing')).replace(/^#/,''))">发展中的自我</ActionButton><span>·</span
+      ><ActionButton type="button" class="text-button" @click="w.navigatePath((governance('foundation')).replace(/^#/,''))"
+        >身份核心与提议</ActionButton>
     </p>
     <ActionFeedback v-if="!editing" :labels="['角色详情']" />
   </div>

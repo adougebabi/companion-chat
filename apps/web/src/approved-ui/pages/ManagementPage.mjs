@@ -18,7 +18,7 @@ import { diagnosticProjection } from "../presentation.mjs";
 import { catalogLabel } from "../../v3/runtime-catalog.mjs";
 import ModelDirectory from "../shared/ModelDirectory.vue";
 import SettingsField from "../shared/SettingsField.vue";
-import { configurationFields } from "../../v3/proto/components/configuration-fields.js";
+import { configurationFields, conversationReplyDisplayValue } from "../../v3/proto/components/configuration-fields.js";
 import {
   acknowledgeConfiguration,
   clearAcknowledgedCredentials,
@@ -52,6 +52,7 @@ const roleNames = {
 };
 const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 function uiField(settingKey, field, values) {
+  if (settingKey === "conversation.reply") values = conversationReplyDisplayValue(values);
   const raw = values?.[field.key],
     choices = (field.options || []).map((o) =>
       typeof o === "string" ? { value: o, label: o } : o,
@@ -260,12 +261,12 @@ export default defineComponent({
       ...settings.value.map((g) => g.title),
     ]);
     const sectionId = (value) => "config-" + value;
-    const scrollTo = (value) => {
+    const scrollTo = (value, focus = true) => {
       const node = document.getElementById(sectionId(value));
       if (node?.tagName === "DETAILS") node.open = true;
       node?.scrollIntoView({ behavior: "smooth", block: "start" });
       const heading=node?.querySelector('summary,h2');
-      if(heading){if(heading.tagName==='H2')heading.tabIndex=-1;heading.focus({preventScroll:true});}
+      if(focus && heading){if(heading.tagName==='H2')heading.tabIndex=-1;heading.focus({preventScroll:true});}
     };
     const sharedScenarios = computed(() =>
       (w.state.runtimeCatalog?.agents || [])
@@ -350,7 +351,7 @@ export default defineComponent({
         })
         .catch(() => {});
       await nextTick();
-      if (live()) scrollTo(w.state.managementSection||'服务地址');
+      if (live()) scrollTo(w.state.managementSection||'服务地址', false);
     }
     async function loadDiagnostics() {
       const [models, media] = await Promise.allSettled([
@@ -683,7 +684,15 @@ export default defineComponent({
       active = false;
       for (const endpoint of endpoints.value) endpoint.secret = "";
     });
+    const logoutBusy=ref(false);
+    async function logout(){
+      if(logoutBusy.value)return;
+      logoutBusy.value=true;
+      try{await w.logout();}catch(e){if(live())w.notify(errorMessage(e,'退出登录未能确认，请重试。'));}
+      finally{if(live())logoutBusy.value=false;}
+    }
     const render = renderManagementPage({
+      logout,logoutBusy,
       configForm,
       a: tab,
       U: sections,
@@ -778,11 +787,13 @@ export default defineComponent({
     onMounted(
       () =>
         void nextTick(() => {
-          if (w.state.managementSection) scrollTo(w.state.managementSection);
+          if (w.state.managementSection) scrollTo(w.state.managementSection, false);
         }),
     );
     return (context, cache) =>
       h(Fragment, [
+        /^#\/c\/[^/]+\/chat$/.test(new URLSearchParams((globalThis.location?.hash || '').split('?')[1] || '').get('returnTo') || '')
+          ? h('button', {type:'button', class:'text-button', onClick:()=>w.navigatePath(new URLSearchParams((globalThis.location?.hash || '').split('?')[1]).get('returnTo').slice(1))}, '返回聊天') : null,
         render(context, cache),
         error.value
           ? h("aside", { class: "approved-recovery", role: "status" }, [

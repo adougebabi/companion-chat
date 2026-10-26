@@ -1,64 +1,18 @@
-import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import test from "node:test";
-
-const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const app = read("../src/App.vue");
-const legacy = read("../src/approved-ui/LegacySurface.vue");
-const now = read("../src/views/life/LifeNowView.vue");
-const schedule = read("../src/views/life/LifeScheduleView.vue");
-const goals = read("../src/views/life/LifeGoalsView.vue");
-const wardrobe = read("../src/views/life/LifeWardrobeView.vue");
-const people = read("../src/views/life/PeopleView.vue");
-const growth = read("../src/views/life/GrowthView.vue");
-const profile = read("../src/views/life/ProfileView.vue");
-const media = read("../src/views/life/MediaView.vue");
-const pages = [now, schedule, goals, wardrobe, people, growth, profile, media];
-
-test("phase 3 routes mount the sage pages and keep diary unwired", () => {
-  assert.match(app, /approved-ui\/ApprovedApp/);
-  assert.match(legacy, /id="v3-root"/);
-  assert.match(legacy, /mountProduct/);
-  assert.match(now, /LifeNow|此刻|心情尚未接入/);
-  assert.doesNotMatch(app, /iframe/);
-  assert.doesNotMatch(app, /<LifeNowView|<UnwiredView|<GovernanceView/);
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import {approvedRoute,approvedHref,lifePages} from '../src/approved-ui/routing.mjs';
+const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+test('all active life routes use the same workspace and retain the actual character',()=>{
+ for(const page of lifePages){const route=approvedRoute(approvedHref(page,'actual-role'));assert.equal(route.page,page);assert.equal(route.fid,'actual-role');assert.equal(route.legacy,undefined);}
+ assert.equal(approvedRoute('#/c/actual-role/life?legacy=1').page,'此刻');
 });
-
-test("writes stay on the existing revision, reason, evidence and idempotency commands", () => {
-  assert.match(schedule, /acceptSchedule/);
-  assert.match(schedule, /cancelSchedule/);
-  assert.match(schedule, /createLifeEvent/);
-  assert.match(schedule, /governanceEvidence/);
-  assert.match(goals, /GoalPlanningPanel/);
-  assert.match(goals, /GoalPanel/);
-  assert.match(goals, /ActorContextEditor/);
-  assert.match(wardrobe, /wardrobeItemPayload/);
-  assert.match(wardrobe, /addWardrobeItems/);
-  assert.match(people, /editRelationship/);
-  assert.match(people, /rollbackRelationship/);
-  assert.match(people, /governanceEvidence/);
-  assert.match(people, /governanceReason/);
-  assert.match(growth, /reviseMemory/);
-  assert.match(growth, /forgetMemory/);
-  assert.match(growth, /rollbackDevelopingSelf/);
-  assert.match(growth, /forgetDevelopingSelf/);
-  assert.match(profile, /acceptFoundationRevision/);
-  assert.match(profile, /submitFoundationRevision/);
-  assert.match(profile, /rollbackFoundationRevision/);
-  assert.match(profile, /revisionReason/);
+test('object deep links preserve selectors for the sole domain implementation',()=>{
+ for(const [url,name,id] of [['#/c/actual-role/growth/memory/mem%20one','memId','mem one'],['#/c/actual-role/life/goal/goal-one','goalId','goal-one'],['#/c/actual-role/life/wardrobe/item/item-one','itemId','item-one'],['#/c/actual-role/life/diary/day-one','entryId','day-one']]){
+  const route=approvedRoute(url);assert.equal(route.fid,'actual-role');assert.equal(route.feature.params[name],id);assert.equal(route.legacy,undefined);
+ }
 });
-
-test("missing life data is labeled unwired and generated images stay non-factual", () => {
-  for (const source of pages) assert.doesNotMatch(source, /v-html/);
-  assert.match(now, /心情尚未接入/);
-  assert.match(now, /此地附近尚未接入/);
-  assert.match(now, /场景图尚未接入/);
-  assert.match(wardrobe, /入库中尚未接入/);
-  assert.match(wardrobe, /不会把部位当成穿着/);
-  assert.match(wardrobe, /换装请求和拍照尚未接入/);
-  assert.match(people, /ActorContextEditor/);
-  assert.match(media, /生成图·非事实/);
-  assert.match(media, /角色媒体库列表尚未接入/);
-  assert.match(growth, /反思详情尚未接入/);
-  assert.doesNotMatch(pages.join("\n"), /prototype-v3|store\.js|演示值/);
+test('current life commands retain original request and revision boundaries',()=>{
+ const life=read('../src/approved-ui/pages/LifePage.mjs'),wardrobe=read('../src/approved-ui/pages/WardrobePage.mjs'),memory=read('../src/v3-domain/memory.js');
+ assert.match(life,/w\.command/);assert.match(life,/expectedLifeContextRevision/);assert.match(wardrobe,/requestUnresolved/);assert.match(memory,/memoryClient\.revise/);assert.match(memory,/rollback|restore/);
 });

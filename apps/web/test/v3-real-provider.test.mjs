@@ -22,13 +22,15 @@ test('snapshot selection follows available server identities and never defaults 
   assert.equal(store.find('c1'),null);
 });
 test('current chat uses protocol state while keeping the composer mounted during updates',async()=>{
-  const source=await readFile(new URL('../src/v3/proto/pages/real-chat.js',import.meta.url),'utf8');
-  assert.match(source,/openConversation\(c.id\)/);
-  assert.match(source,/state\.\$subscribe\(update/);
-  assert.match(source,/state\.send\(text\)/);
-  assert.match(source,/state\.cancel\(\)/);
-  assert.match(source,/state\.retry\(\)/);
-  assert.match(source,/refreshActiveTurn\(\)/);
-  const update=source.slice(source.indexOf('const update='),source.indexOf('const readScope='));
-  assert.doesNotMatch(update,/el\.innerHTML|form\.innerHTML|form\.elements\.t\.value\s*=/);
+  const source=await readFile(new URL('../src/approved-ui/pages/ChatPage.mjs',import.meta.url),'utf8');
+  assert.match(source,/workspace\.openConversation\(character\.value\.id, live\)/);
+  assert.match(source,/store\.\$subscribe\(project/);
+  assert.match(source,/store\.send\(text/);
+  assert.match(source,/store\.cancel\(\)/);
+  assert.match(source,/store\.retryMessage\(message.id\)/);
+  assert.match(source,/refreshActiveTurn\(true\)/);
+  const start=source.indexOf('const project ='),end=source.indexOf('const stop =');
+  assert.ok(start>=0&&end>start);
+  const update=source.slice(start,end);
+  assert.doesNotMatch(update,/innerHTML|draft\.value\s*=/);
 });

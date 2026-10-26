@@ -210,7 +210,7 @@ function renderManagementPageBody(__view) {
       active: M(__view.a) === h
     }),
     onClick: b => __view.a.value = h
-  }, v(h))), 64))]), M(__view.a) === "配置中心" ? (p(), g("div", V1, [o("nav", P1, [(p(!0), g(O, null, oe(__view.U.value, h => (p(), g("a", {
+  }, v(h))), 64)),o("span",{class:"spacer"}),approvedButtonVNode({class:"button",onClick:__view.logout,disabled:!!M(__view.logoutBusy)},M(__view.logoutBusy)?"正在退出…":"退出登录")]), M(__view.a) === "配置中心" ? (p(), g("div", V1, [o("nav", P1, [(p(!0), g(O, null, oe(__view.U.value, h => (p(), g("a", {
     key: h,
     href: "#" + encodeURIComponent("管理中心"),
     "data-testid": "config-anchor-" + h,

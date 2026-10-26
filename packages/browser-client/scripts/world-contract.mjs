@@ -23,7 +23,7 @@ export const worldSchemas = {
   BrowserWorldCatalog: shape({ items: array(shape({ ...world, active: bool,venue_categories:array(shape({id:text(80),name:text(128)})) },[...Object.keys(world),'active'])), active_binding: nullable(shape({ world_id: text(), revision: integer })), next_cursor: { type: 'null' } }),
   BrowserWorldCommand: shape(command),
   BrowserWorldWriteBody: shape(worldWrite, ['name', ...Object.keys(command)]),
-  BrowserWorldCreateBody: shape(worldWrite, ['name', 'reason', 'idempotencyKey']),
+  BrowserWorldCreateBody: shape({...worldWrite,sourceWorldId:text(128),sourceFluctlightId:text(128),expectedSourceRevision:integer}, ['name', 'reason', 'idempotencyKey']),
   BrowserWorldSelectBody: shape({ ...command, worldId: { ...text(128), minLength: 1 } }),
   BrowserPlaceWriteBody: shape({ ...command, venueCategoryId:text(80),worldId: text(128), name: { ...text(256), minLength: 1 }, description: text(8000), parentPlaceId: nullable(text(128)), status, ...extras, roomItems: collection, connectionPlaceIds: { ...array(text(128)), maxItems: 200 } }, [...Object.keys(command), 'name']),
   BrowserWorldDeleteBody: shape({ ...command, worldId: text(128) }, Object.keys(command)),

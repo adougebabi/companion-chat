@@ -47,7 +47,7 @@ test('fixed settlement reasons are localized with status/effect evidence and aut
 
 test('actual dynamic suggestion renderer localizes the exact failure and converts UTC to Beijing time',()=>{
  const panels=[];const el=element();
- const {renderRealFeed}=load('pages/real-moments.js',['renderRealFeed'],{stateLabel,get:()=>({actorId:'owner'}),list:()=>[],Field:()=>'',location:{hash:'#/feed'},mountMomentComposer:()=>({dispose(){}}),mountCursorRecords:(_el,options)=>{panels.push(options);return {dispose(){}};}});
+ const {renderRealFeed}=load('../../v3-domain/moments.js',['renderRealFeed'],{stateLabel,get:()=>({actorId:'owner'}),list:()=>[],Field:()=>'',location:{hash:'#/feed'},mountMomentComposer:()=>({dispose(){}}),mountCursorRecords:(_el,options)=>{panels.push(options);return {dispose(){}};}});
  const dispose=renderRealFeed(el,{query:{}});const html=panels[1].render(failed);checkDecision(html);
  assert.match(ordinary(html),/执行失败 · .* · 2026-10-20 23:01 \(北京时间\)/);
  assert.match(html,/#\/diag\/request\/original-request/);assert.doesNotMatch(html,/data-retry/);dispose();
@@ -56,7 +56,7 @@ test('actual dynamic suggestion renderer localizes the exact failure and convert
 test('actual reflection feedback and promise details share localized decisions and original source disclosure',async()=>{
  let feedback;const reflectionEl=element();
  const reflection={title:'反思',status:'applied',summary:'一次回顾',at:failed.created_at,dispositions:[],references:[]};
- const {renderRealReflection}=load('pages/real-reflection.js',['renderRealReflection'],{reflectionClient:{read:async()=>reflection},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{},()=>true),mountCursorRecords:(_el,options)=>{feedback=options;return {dispose(){}};}});
+ const {renderRealReflection}=load('../../v3-domain/reflection.js',['renderRealReflection'],{reflectionClient:{read:async()=>reflection},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{},()=>true),mountCursorRecords:(_el,options)=>{feedback=options;return {dispose(){}};}});
  await renderRealReflection(reflectionEl,{charId:'role',params:{refId:'reflection'}});
  const html=feedback.render(failed);checkDecision(html);assert.match(ordinary(html),/认同 · 2026-10-20 23:01 \(北京时间\)/);assert.match(ordinary(html),/执行失败/);
  const d={el:element(),close(){}};
@@ -76,19 +76,19 @@ test('terminal request receipt keeps original identity and exposes raw diagnosti
 
 test('request detail keeps its complete original record after shared localization',async()=>{
  const el=element();
- const {renderRealRequest}=load('pages/real-operations.js',['renderRealRequest'],{stateLabel,domainName,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
+ const {renderRealRequest}=load('../../v3-domain/operations.js',['renderRealRequest'],{stateLabel,domainName,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
  await renderRealRequest(el,{params:{requestId:failed.id}});checkDecision(el.innerHTML);
  assert.match(ordinary(el.innerHTML),/2026-10-20 23:01 \(北京时间\)/);
 });
 
 test('diary renders only all/favorite filters while generation and independent shared route/sidebar remain',()=>{
  let calendar;const el=element();
- const {renderRealDiaryList}=load('pages/real-diary.js',['renderRealDiaryList'],{store:{subscribe(){},get:()=>({actorId:'owner',timezone:'Asia/Shanghai'})},Tabs,mountCalendarReading:(_el,options)=>{calendar=options;return ()=>{};}});
+ const {renderRealDiaryList}=load('../../v3-domain/diary.js',['renderRealDiaryList'],{store:{subscribe(){},get:()=>({actorId:'owner',timezone:'Asia/Shanghai'})},Tabs,mountCalendarReading:(_el,options)=>{calendar=options;return ()=>{};}});
  const dispose=renderRealDiaryList(el,{charId:'role',query:{}});
  assert.match(el.innerHTML,/全部日记/);assert.match(el.innerHTML,/>收藏</);assert.equal((el.innerHTML.match(/<a /g)||[]).length,2);
  assert.doesNotMatch(el.innerHTML,/共同经历|故事|life\/shared|diary-shared-action/);
  assert.match(el.innerHTML,/data-open-generation/);assert.deepEqual(calendar.scope,['role','diary',false]);dispose();
  const navigation=readFileSync(new URL('../src/v3/workspace-navigation.mjs',import.meta.url),'utf8');
  assert.match(navigation,/\['共同经历','life\/shared'/);assert.match(navigation,/life\/shared/);
- const module=readFileSync(new URL('../src/v3/proto/modules/生活成长.js',import.meta.url),'utf8');assert.match(module,/renderRealShared/);
+ const module=readFileSync(new URL('../src/approved-ui/feature-routes.mjs',import.meta.url),'utf8');assert.match(module,/renderRealShared/);
 });

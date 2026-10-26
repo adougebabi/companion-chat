@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {Field} from '../src/v3/proto/components/forms.js';
 import {CharacterCard} from '../src/v3/proto/components/character-card.js';
 
-const mediaSource=(await readFile(new URL('../src/v3/proto/pages/real-media.js',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
+const mediaSource=(await readFile(new URL('../src/v3-domain/media.js',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
 function mediaHarness(){
   const requests=[],uploads=[],form={},box={isConnected:true},host={isConnected:true,innerHTML:'',querySelector:selector=>selector==='[data-filters]'?form:box};
   const get=()=>({actorId:'owner'}),client={list:async value=>{requests.push(value);return {items:[]};},asset:async(...args)=>{requests.push(args);return {};}};

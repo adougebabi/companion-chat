@@ -122,12 +122,13 @@ test('common control components preserve attributes and avoid accidental form su
 });
 test('production entry selects real providers while fixtures are explicit build-time imports', async () => {
   const facade = await readFile(new URL('../src/v3/proto/store.js',import.meta.url),'utf8');
-  const app = await readFile(new URL('../src/v3/proto/app.js',import.meta.url),'utf8');
+  const app = await readFile(new URL('../src/approved-ui/workspace.mjs',import.meta.url),'utf8');
   assert.match(facade,/VITE_PRODUCT_MODE === 'mock'/);
   assert.match(facade,/fixture = isMock \? await import/);
   assert.match(facade,/throw new Error\('此操作尚未连接真实命令/);
-  assert.match(app,/real.registerProviders\(\); await real.refreshProduct\(\{initialOnly:true\}\)/);
-  assert.match(app,/if\(real&&store.get\('session'\)\)void real.refreshProduct\(\)/);
+  assert.match(app,/registerProviders\(\)/);
+  assert.match(app,/refreshProduct\(\{ initialOnly: true \}\)/);
+  assert.match(app,/WorkspaceKey/);
   assert.doesNotMatch(app,/mountCoreSurface|component-host/);
 });
 
@@ -150,22 +151,14 @@ test('a Mock NPC relationship is created only from an explicit sourced encounter
   assert.equal(store.get('events', result.eventId).npcId, npc.id);
   assert.equal(store.get('characters', 'c1').locationId, location);
 });
-test('every original v3 route and all new Mock pages remain registered without shadows', async () => {
-  await Promise.all(['相处体验', '生活成长', '世界人物', '创作治理'].map(name => import(`../src/v3/proto/modules/${name}.js`)));
-  const { allRoutes, match } = await import('../src/v3/proto/modules/registry.js');
-  const paths = allRoutes().map(route => route.route);
-  const reference = JSON.parse(await readFile(new URL('./fixtures/v3-reference-routes.json', import.meta.url), 'utf8'));
-  assert.equal(reference.length, 55);
-  for (const path of reference) assert.ok(paths.includes(path), path);
-  assert.equal(new Set(paths).size, paths.length);
-  for (const route of allRoutes()) {
-    const path = route.route.replace(/:(\w+)/g, (_, name) => ({ charId: 'c1', resId: 'r_book', npcId: 'n_alan', worldId: 'w1', placeId: 'p_cafe', goalId: 'g_post' }[name] || 'sample'));
-    assert.equal(match(path).def.key, route.key, path);
-  }
-  assert.equal(match('/c/c1/people/npc/new').def.key, 'people.npc.create');
-  assert.ok(paths.includes('/settings/models')); assert.ok(paths.includes('/diag/agent-runs'));
-  assert.ok(paths.includes('/c/:charId/worlds/:worldId/place/new')); assert.ok(paths.includes('/c/:charId/life/planning'));
-  assert.ok(paths.length >= 80);
+test('isolated demo uses the same single route inventory without another app',async()=>{
+  const {approvedRoute}=await import('../src/approved-ui/routing.mjs');
+  const {featureRouteInventory}=await import('../src/approved-ui/feature-routes.mjs');
+  const paths=featureRouteInventory.map(route=>route.path);
+  assert.equal(new Set(paths).size,paths.length);
+  for(const path of paths){const actual=path.replace(/:(\w+)/g,(_m,key)=>key==='charId'?'fixture-role':key==='section'?'turns':'sample');assert.ok(approvedRoute('#'+actual).feature,path);}
+  const app=await readFile(new URL('../src/App.vue',import.meta.url),'utf8');
+  assert.match(app,/VITE_PRODUCT_MODE/);assert.match(app,/reference-fixture/);assert.doesNotMatch(app,/proto\/app|LegacySurface/);
 });
 
 test('retired roles remain read-only in all new Mock domain services', async () => {

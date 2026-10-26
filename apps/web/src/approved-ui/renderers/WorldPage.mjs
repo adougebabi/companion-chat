@@ -164,7 +164,7 @@ function renderWorldPageBody(__view) {
       onClick: q => {
         __view.t.value = H.id, __view.n.value = !1;
       }
-    }, "进入"), approvedButtonVNode({
+    }, "进入"), o("details", {class:"actions-menu",onClick:event=>event.target.closest("button")&&event.currentTarget.removeAttribute("open")}, [o("summary", {"aria-label":H.name+"的世界操作"}, "⋯"), o("div", null, [approvedButtonVNode({
       class: "text-button",
       onClick: q => {
         __view.t.value = H.id, __view.n.value = !0;
@@ -172,7 +172,7 @@ function renderWorldPageBody(__view) {
     }, "编辑"), approvedButtonVNode({
       class: "text-button",
       onClick: q => __view.d.value = H.id
-    }, "删除")])]))), 128))])], 64)), __view.i.value ? (p(), Ae(__view.DetailDrawer, {
+    }, "删除")])])])]))), 128))])], 64)), __view.i.value ? (p(), Ae(__view.DetailDrawer, {
       key: 2,
       title: (K = __view.s.value) != null && K.sites.some(H => H.places.some(q => {
         var V;

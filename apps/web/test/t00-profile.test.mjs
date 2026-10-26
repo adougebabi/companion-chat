@@ -7,7 +7,7 @@ import { ChatPanel, GeneratedImage } from '../src/v3/proto/components/chat.js';
 import { PromptChips } from '../src/v3/proto/components/forms.js';
 
 globalThis.document = { addEventListener() {} };
-const { renderProfilePage } = await import('../src/v3/proto/pages/profile.js');
+import {nativeProfileFixture,profileDetail} from './support/native-profile-fixture.mjs';
 function snapshot(active = 'warm', runtimeRevision = 2) {
   return profileSnapshotFromDetail({ id: 'fixture-role', status: 'active', current_revision: 4,
     identity: { name: '<角色>', background: '真实背景', timezone: 'Asia/Shanghai' },
@@ -34,7 +34,7 @@ test('UI-01 removes chat chips and picture send while retaining media display an
   assert.match(html, /data-test="chat-send"/);
   assert.match(GeneratedImage({ img: '/fixture.svg', title: '生成图' }), /<img/);
   assert.match(PromptChips(['创作助手推荐']), /data-chip/);
-  const source = await readFile(new URL('../src/v3/proto/pages/chat.js', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../src/approved-ui/pages/ChatPage.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /suggestions:|querySelectorAll\('\[data-chip\]/);
 });
 
@@ -58,45 +58,22 @@ test('unwired command visibly disables switching without fabricating a current p
   assert.match(ProfileHeader(empty, false), /姓名尚未记录/);
 });
 
-test('switch sends dual revisions and idempotency then confirms only authoritative readback', async () => {
-  const el = surface(); let changed = false; let sent;
-  await renderProfilePage(el, { charId: 'fixture-role' }, { read: async () => snapshot(changed ? 'focused' : 'warm', changed ? 3 : 2), switchPersona: async (id, command) => { assert.equal(id, 'fixture-role'); sent = command; changed = true; } });
-  draft(el); await submit(el);
-  assert.equal(sent.expectedRevision, 4); assert.equal(sent.expectedRuntimeRevision, 2);
-  assert.equal(sent.targetPersonaId, 'focused'); assert.equal(sent.confirm, true); assert.ok(sent.idempotencyKey);
-  assert.match(el.nodes['[data-profile-feedback]'].textContent, /已生效/);
-  assert.match(el.innerHTML, /专注人格/);
+test('native profile sends both revisions and one idempotent switch then confirms actual current state',async()=>{
+ let changed=false,sent;const f=await nativeProfileFixture({read:async()=>profileDetail({active:changed?'focused':'warm',revision:changed?3:2}),switchPersona:async(fid,body)=>{assert.equal(fid,'fixture-role');sent=body;changed=true;return {status:'completed',active_profile_id:'focused'};}});
+ try{await f.read();f.draft();await f.c.switchPersona();assert.equal(sent.expectedRevision,4);assert.equal(sent.expectedRuntimeRevision,2);assert.equal(sent.targetPersonaId,'focused');assert.equal(sent.confirm,true);assert.ok(sent.idempotencyKey);assert.match(f.c.personaFeedback.value,/已生效/);assert.equal(f.c.snapshot.value.activeProfileId,'focused');assert.match(await f.html(),/专注人格/);}finally{await f.dispose();}
 });
-
-test('version conflict preserves drafts and does not claim switch success', async () => {
-  const el = surface(); let calls = 0; const keys = [];
-  await renderProfilePage(el, { charId: 'fixture-role' }, { read: async () => snapshot(), switchPersona: async (_, command) => { calls++; keys.push(command.idempotencyKey); throw Object.assign(new Error('conflict'), { status: 409 }); } });
-  draft(el); await submit(el); await submit(el);
-  assert.equal(calls, 2); assert.equal(keys[0], keys[1]);
-  assert.equal(el.nodes['[data-profile-switch]'].elements.reason.value, '专注完成当前工作');
-  assert.match(el.nodes['[data-profile-feedback]'].textContent, /版本已变化/);
-  assert.equal(el.panel.open,true);
-  assert.doesNotMatch(el.nodes['[data-profile-feedback]'].textContent, /已生效/);
+test('native profile keeps the same key, target and reason through unresolved version conflict',async()=>{
+ const keys=[];const f=await nativeProfileFixture({switchPersona:async(_fid,body)=>{keys.push(body.idempotencyKey);throw Object.assign(Error('conflict'),{status:409});}});
+ try{await f.read();f.draft();await f.c.switchPersona();await f.c.switchPersona();assert.equal(keys.length,2);assert.equal(keys[0],keys[1]);assert.equal(f.c.reason.value,'专注完成当前工作');assert.equal(f.c.target.value,'focused');assert.match(f.c.error.value,/版本已变化/);assert.doesNotMatch(f.c.personaFeedback.value,/已生效/);assert.match(await f.html(),/版本已变化/);}finally{await f.dispose();}
 });
-
-test('accepted command with failed readback remains unconfirmed and keeps recovery draft', async () => {
-  const el = surface(); let reads = 0;
-  await renderProfilePage(el, { charId: 'fixture-role' }, { read: async () => { if (reads++) throw new Error('network'); return snapshot(); }, switchPersona: async () => ({ accepted: true }) });
-  draft(el); await submit(el);
-  assert.match(el.nodes['[data-profile-feedback]'].textContent, /命令已提交，但最新状态读取失败/);
-  assert.equal(el.nodes['[data-profile-switch]'].elements.reason.value, '专注完成当前工作');
+test('native profile retains accepted switch input on readback failure and recovers by reading without a new switch',async()=>{
+ let reads=0,writes=0,recovered=false;const f=await nativeProfileFixture({read:async()=>{if(reads++&& !recovered)throw Error('network');return profileDetail({active:recovered?'focused':'warm'});},switchPersona:async()=>{writes++;return {status:'completed',active_profile_id:'focused'};}});
+ try{await f.read();f.draft();await f.c.switchPersona();assert.equal(writes,1);assert.equal(f.c.personaReadbackPending.value,true);assert.equal(f.c.target.value,'focused');assert.equal(f.c.reason.value,'专注完成当前工作');assert.match(f.c.error.value,/命令已提交.*读取失败/);assert.match(await f.html(),/重新读取人格切换结果/);await f.c.switchPersona();assert.equal(writes,1);recovered=true;await f.c.readPersonaOutcome();assert.equal(writes,1);assert.equal(f.c.personaReadbackPending.value,false);assert.equal(f.c.snapshot.value.activeProfileId,'focused');}finally{await f.dispose();}
 });
-
-test('stale profile read cannot replace a later route, and initial failure exposes retry', async () => {
-  const el = surface(); let resolve;
-  const pending = renderProfilePage(el, { charId: 'fixture-role' }, { read: () => new Promise(done => { resolve = done; }) });
-  el.dataset.page = 'life.now'; el.innerHTML = '后续页面'; resolve(snapshot()); await pending;
-  assert.equal(el.innerHTML, '后续页面');
-  const failing = surface(); await renderProfilePage(failing, { charId: 'fixture-role' }, { read: async () => { throw new Error('failure'); } });
-  assert.match(failing.innerHTML, /data-profile-retry/);
+test('native profile discards a read after unmount and exposes a retry after an initial failure',async()=>{
+ let finish;const f=await nativeProfileFixture({read:()=>new Promise(resolve=>finish=resolve)});const pending=f.read();await f.dispose();finish(profileDetail({name:'过时角色'}));await pending;assert.equal(f.c.detail.value,null);
+ const next=await nativeProfileFixture({read:async()=>{throw Error('initial failure');}});try{assert.equal(await next.read(),false);assert.match(await next.html(),/重新读取/);}finally{await next.dispose();}
 });
-
-
 test('owner persona projection limits legal switch targets and retains bounded history metadata', () => {
   const value = profileSnapshotFromDetail({ id: 'fixture', persona_compilation: { status: 'ready', working_persona: { name: '工作人格' }, owner_switch_targets: [{ target_profile_id: 'focused' }] }, persona_switch_history_has_more: true, persona_switch_history: [{ previous_profile_id: 'warm', active_profile_id: 'focused', switch_reason: '工作', revision: 3 }] });
   assert.deepEqual(value.switchTargetIds, ['focused']); assert.equal(value.historyHasMore, true);
@@ -111,17 +88,6 @@ function editableDetail(status) {
     core_persona: { personality_system: { profiles: [{ id: 'warm', name: '日常人格' }, { id: 'focused', name: '专注人格' }] } },
     personality_runtime: { active_profile_id: 'warm', revision: 2 } };
 }
-test('retired and archived details disable bio edit and persona switch; active stays writable', async () => {
-  for (const status of ['retired', 'archived', 'active']) {
-    const value = profileSnapshotFromDetail(editableDetail(status));
-    assert.equal(value.status, status);
-    assert.equal(value.readOnly, status !== 'active');
-    const el = surface();
-    await renderProfilePage(el, { charId: 'fixture-role' }, { read: async () => value, editBio: async () => {}, switchPersona: async () => {} });
-    const edit = el.innerHTML.match(/data-test="profile-edit"[^>]*/)?.[0] ?? '';
-    const submit = el.innerHTML.match(/data-test="profile-switch-submit"[^>]*/)?.[0] ?? '';
-    if (status === 'active') { assert.doesNotMatch(edit, /disabled/); assert.doesNotMatch(submit, /disabled/); }
-    else { assert.match(edit, /disabled/); assert.match(submit, /disabled/); }
-  }
-  assert.equal(profileSnapshotFromDetail(editableDetail('paused')).readOnly, false);
+test('native profile hides retired switches and rejects direct writes while active stays editable',async()=>{
+ for(const status of ['retired','archived','active']){let writes=0;const f=await nativeProfileFixture({read:async()=>profileDetail({status}),switchPersona:async()=>{writes++;return {status:'completed',active_profile_id:'focused'};}});try{await f.read();f.draft();assert.equal(f.c.snapshot.value.readOnly,status!=='active');const html=await f.html();if(status!=='active'){assert.doesNotMatch(html,/确认切换/);assert.match(html,/data-testid="detail-edit"[^>]*disabled/);f.c.edit();assert.equal(f.c.editing.value,false);await f.c.switchPersona();assert.equal(writes,0);}else{assert.match(html,/确认切换/);assert.doesNotMatch(html,/data-testid="detail-edit"[^>]*disabled/);f.c.edit();assert.equal(f.c.editing.value,true);}}finally{await f.dispose();}}
 });

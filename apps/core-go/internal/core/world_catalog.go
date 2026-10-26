@@ -27,6 +27,9 @@ func (a *App) worldCatalog(ctx context.Context, fid string) (map[string]any, err
 
 func (a *App) writeWorldCatalogTx(ctx context.Context, tx pgx.Tx, fid, method string, p []string, body map[string]any) (map[string]any, error) {
 	if len(p) == 4 && method == "POST" {
+		if body["source_world_id"] != nil {
+			return a.copyWorldConfigurationTx(ctx, tx, fid, body)
+		}
 		body = cloneMap(body)
 		body["catalog_create"] = true
 		body["world_id"] = ""

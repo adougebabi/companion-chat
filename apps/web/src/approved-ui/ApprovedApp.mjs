@@ -23,7 +23,11 @@ import CharacterAvatar from "./shared/CharacterAvatar.vue";
 import LibraryPage from "./pages/LibraryPage.vue";
 import CharacterWizardPage from "./pages/CharacterWizardPage.vue";
 import CharacterDetailPage from "./pages/CharacterDetailPage.vue";
-import LegacySurface from "./LegacySurface.vue";
+import DomainPage from './pages/DomainPage.vue';
+import AuthPage from './pages/AuthPage.vue';
+import StudioPage from './pages/StudioPage.vue';
+import MediaPage from './pages/MediaPage.vue';
+import InformationPage from './pages/InformationPage.vue';
 import { chatSummaryPreference } from "../v3/chat-summary-preference.mjs";
 import { Wu, Co, sc, qu, zu, Gu, nc, ec } from "./shared/icons.mjs";
 export default defineComponent({
@@ -33,6 +37,7 @@ export default defineComponent({
       state = workspace.state,
       route = ref(approvedRoute(location.hash));
     provide(WorkspaceKey, workspace);
+    const mobileNavOpen=ref(false);
     const sidebarOpen = ref(true),
       switchOpen = ref(false),
       preview = ref(true),
@@ -46,16 +51,12 @@ export default defineComponent({
           navigate(page.value);
         },
       });
-    const legacy = computed(
-      () =>
-        route.value.legacy ||
-        (state.ready && !state.session) ||
-        (state.ready &&
-          route.value.fid &&
-          !state.characters.some((c) => c.id === route.value.fid)),
-    );
     function navigate(page) {
       location.hash = approvedHref(page, state.selectedId);
+    }
+    function togglePreview(){
+      preview.value=!preview.value;
+      if(state.session&&state.selectedId)chatSummaryPreference({owner:state.session.actorId,fid:state.selectedId,defaultFolded:false}).save(!preview.value);
     }
     workspace.navigate = navigate;
     workspace.navigatePath = (path) => (location.hash = "#" + path);
@@ -63,13 +64,15 @@ export default defineComponent({
       route.value = approvedRoute(location.hash);
     };
     async function syncRoute() {
-      if (!state.ready || !state.session || route.value.legacy) return;
+      if (!state.ready || !state.session) return;
       const value = route.value;
+      mobileNavOpen.value=false;
+      if(value.auth){navigate('角色库');return;}
       if (value.fid && state.characters.some((c) => c.id === value.fid))
         workspace.select(value.fid);
       if (
         !state.selectedId &&
-        ["聊天", ...lifePages, "世界", "人物关系", "媒体"].includes(value.page)
+        ["聊天", ...lifePages, "人物关系"].includes(value.page)
       ) {
         navigate("角色库");
         return;
@@ -78,25 +81,20 @@ export default defineComponent({
       state.managementSection = value.query.get("section") || "";
       if (value.diagnostics) state.managementTab = "运行诊断";
       state.feedScope = value.query.get("fid") || null;
+      state.route=value;
       const preference = chatSummaryPreference({
         owner: state.session.actorId,
         fid: state.selectedId,
         defaultFolded: false,
       });
-      preview.value = !preference.read();
-      await workspace.load(value.page);
+      preview.value = matchMedia('(max-width:800px)').matches?false:!preference.read();
+      if(!value.feature&&!value.notFound&&!['创作中心','媒体'].includes(value.page)&&!(value.page==='世界'&&!state.selectedId))await workspace.load(value.page);
       await nextTick();
       main.value?.scrollTo({ top: 0 });
     }
     const stop = watch(route, () => void syncRoute());
-    watch(preview, (value) => {
-      if (state.session)
-        chatSummaryPreference({
-          owner: state.session.actorId,
-          fid: state.selectedId,
-          defaultFolded: false,
-        }).save(!value);
-    });
+    const narrowScreen=matchMedia('(max-width:800px)');
+    const resizeWorkspace=()=>{mobileNavOpen.value=false;if(narrowScreen.matches)preview.value=false;};
     const closeMenus = (event) => {
       const target = event.target;
       document
@@ -134,7 +132,13 @@ export default defineComponent({
     const render = renderApp({
       d: navigate,
       u: switchOpen,
-      character: computed(()=>page.value==="初始化角色"?{...workspace.current.value,name:"新的相识",initial:"+",color:"#dce9e2"}:workspace.current.value),
+      character: computed(()=>page.value==="初始化角色"?{...workspace.current.value,name:"创建角色",initial:"+",color:"#dce9e2"}:workspace.current.value.id?workspace.current.value:{...workspace.current.value,name:'我的空间',initial:'我'}),
+      mobileNavOpen,
+      toggleNavigation:()=>mobileNavOpen.value=!mobileNavOpen.value,
+      detailRoute:computed(()=>route.value.feature?route.value:null),
+      information:computed(()=>route.value.information),InformationPage,
+      unavailableRoute:computed(()=>route.value.notFound||route.value.fid&&!state.characters.some(c=>c.id===route.value.fid)),
+      DomainPage,StudioPage,MediaPage,
       simulateFailure: simulate,
       characters: computed(() => state.characters),
       selectedId,
@@ -155,6 +159,7 @@ export default defineComponent({
       ],
       c: main,
       f: preview,
+      togglePreview,
       ChatPage,
       WardrobePage,
       WorldPage,
@@ -175,6 +180,7 @@ export default defineComponent({
     onMounted(async () => {
       window.addEventListener("hashchange", parse);
       document.addEventListener("click", closeMenus);
+      narrowScreen.addEventListener('change',resizeWorkspace);
       document.addEventListener("wheel", wheel, {
         capture: true,
         passive: false,
@@ -182,7 +188,7 @@ export default defineComponent({
       try {
         await workspace.bootstrap();
         if (!state.session) {
-          if (!location.hash || !route.value.legacy) location.hash = "#/auth";
+          if (!location.hash || !route.value.auth) location.hash = "#/auth";
           return;
         }
         await syncRoute();
@@ -194,11 +200,11 @@ export default defineComponent({
       stop();
       workspace.dispose();
       window.removeEventListener("hashchange", parse);
+      narrowScreen.removeEventListener('change',resizeWorkspace);
       document.removeEventListener("click", closeMenus);
       document.removeEventListener("wheel", wheel, { capture: true });
     });
     return (context, cache) => {
-      if (legacy.value) return h(LegacySurface);
       if (!state.ready)
         return h(
           "div",
@@ -218,6 +224,7 @@ export default defineComponent({
             ),
           ],
         );
+      if(!state.session)return h(AuthPage);
       const error = Object.values(state.errors).filter(Boolean).at(-1);
       return h(Fragment, [
         render(context, cache),

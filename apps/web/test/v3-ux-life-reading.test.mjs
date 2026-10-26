@@ -39,7 +39,7 @@ test('existing schedule explains protected record even with no entries and offer
  root.querySelector('[data-close]').onclick();assert.equal(closed,true);
 });
 test('wardrobe acquisition empty state interpolates and encodes the actual character ID',()=>{
- const page=readFileSync(new URL('../src/v3/proto/pages/real-life-wardrobe.js',import.meta.url),'utf8');
+ const page=readFileSync(new URL('../src/v3-domain/life-wardrobe.js',import.meta.url),'utf8');
  const expression=page.match(/:'(<div class="statebox"><h2>当前筛选没有物品[\s\S]*?)'\}\$\{CursorPager/)[1];
  const html=Function('fid',`return '${expression}'`)('character/a');
  assert.match(html,/href="#\/c\/character%2Fa\/chat"/);assert.doesNotMatch(html,/\$\{fid\}|\?say=/);

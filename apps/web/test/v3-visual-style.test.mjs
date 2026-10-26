@@ -27,7 +27,7 @@ test('invalid advanced JSON becomes submittable after a normal field repairs its
 test('saving visual guidance updates its origin projection without remounting or clearing new inputs',()=>{
  const nodes=new Map();const el={innerHTML:'',querySelector(selector){if(!nodes.has(selector))nodes.set(selector,{innerHTML:''});return nodes.get(selector);}};
  let options,mounts=0,disposed=false,reloads=0;const snapshot={revision:1,brief:{source_resource_id:'style',source_version:'1',source_overrides:{appearance:'old'}}};
- const {renderRealVisualEditor}=load('../src/v3/proto/pages/real-visual.js',['renderRealVisualEditor'],{
+ const {renderRealVisualEditor}=load('../src/v3-domain/visual.js',['renderRealVisualEditor'],{
   esc:value=>String(value??''),MediaWorkspaceHeader:()=>'<h2>视觉定义</h2>',
   asyncPage:(_el,_read,paint)=>paint(snapshot,()=>{},()=>!disposed),visualClient:{read(){}},get:()=>({status:'active'}),visualBriefFields:fields,
   VisualBriefSource:brief=>JSON.stringify(brief?.source_overrides),mountVersionedFields:(_box,value)=>{mounts++;options=value;return()=>{};},

@@ -14,7 +14,7 @@ function toggle(value,checked){const selected=new Set(Array.isArray(props.field.
     <legend>{{field.label}}</legend>
     <label v-for="[value,label] in actionChoices" :key="value" class="check-field"><input type="checkbox" :checked="Array.isArray(field.value)&&field.value.includes(value)" @change="toggle(value,$event.target.checked)"/>{{label}}</label>
   </fieldset>
-  <label v-else>{{field.label}}
+  <label v-else :class="{'boolean-field':field.type==='checkbox'}">{{field.label}}
     <select :aria-label="field.label" v-if="field.type==='select'" v-model="field.value"><option v-for="option in field.options" :key="option">{{option}}</option></select>
     <textarea :aria-label="field.label" v-else-if="field.type==='json'" :value="String(field.value)" rows="3" @input="field.value=$event.target.value"/>
     <input :aria-label="field.label" v-else-if="field.type==='checkbox'" v-model="field.value" class="switch" type="checkbox"/>
