@@ -1,5 +1,12 @@
 # Approved HTML demo migration (2026-10-23)
 
+> Current implementation (2026-10-26): React shadcn/ui + Tailwind CSS + Radix UI
+> + Lucide React. [React shadcn Contract](./react-shadcn-contract.md) owns the
+> technology boundary. Vue and old page/mount code have been removed;
+> legacy=1 is rejected. Appearance, route intent and domain contracts below
+> remain applicable; historical implementation mechanisms are superseded.
+
+
 Current source is the supplied **v6.2** demo. Its appearance is the reference;
 field names/types/ownership follow the current Core schemas, including fields
 omitted by the acceptance report. The Owner confirmed readable initialization
@@ -55,15 +62,11 @@ once, while distinct facts and unknown values remain available.
 
 ## 2. Signatures
 
-- `App.vue`: build-time `VITE_PRODUCT_MODE=mock` selects `reference-fixture.mjs`;
-  all other builds select `ApprovedApp.mjs`.
-- `approvedRoute(hash)` / `approvedHref(page,fid)` retain canonical `#/c/:fid/*`
-  routes. Unmigrated detail/auth/governance routes mount `LegacySurface.vue`.
-  `#/studio?legacy=1` explicitly opens the existing creation workbench.
+- `main.tsx` mounts `react-app/App.tsx`; current routes resolve to React pages.
+- `approvedRoute` / `approvedHref` retain current canonical routes and explicitly
+  reject legacy=1. Auth, diagnostic details and resource editing have React owners.
 - `ActionButton`, `Surface`, `CurrentOutfit`, `ActionFeedback`, `FilterChips`,
-  `DetailDrawer`, `GarmentArt` own the repeated native UI patterns.
-- `unoptimizedRenderer(factory)` wraps retained compiled render bodies with
-  balanced `setBlockTracking(-1)` / `setBlockTracking(1)`.
+  `DetailDrawer`, `GarmentArt` are React business compositions of library primitives.
 - `configurationPlan(snapshot)` validates the full immutable snapshot before
   any write; `acknowledgeConfiguration(state,operation,receipt)` updates only
   acknowledged inputs/baselines and `receipt.applied_versions`.
@@ -72,15 +75,10 @@ once, while distinct facts and unknown values remain available.
 
 ## 3. Contracts
 
-Use the existing Vue runtime and real domain services. Preserve original CSS,
-SVG geometry, native root tags and layout classes. Do not vendor a second Vue
-runtime. The isolated reference fixture contains only the supplied behavior and
-sample records; it must be absent from production assets.
-
-Compiled block lists describe the old native DOM boundaries. After extracting
-native elements into components, do not reuse those optimization lists. Ordinary
-Vue patching must preserve input nodes, update native attributes/text/listeners,
-and handle repeated route changes. No full-app remount is an update strategy.
+Use React and the existing real domain services. Preserve approved appearance
+and native form semantics while Radix owns compound interactions. Production
+assets exclude fixture data, old QA pages and old renderers. React reconciles
+stable input nodes; server updates must not remount the entire app or composer.
 
 Reads check owner, character, generation and read epoch before applying results.
 Commands keep their original body/key through unknown outcomes; UI generation
@@ -112,7 +110,7 @@ Dates, schedules, online/status labels and current wearing come from real data.
 | Trigger | Required behavior |
 | --- | --- |
 | Production build | No simulation checkbox or reference fixture in assets |
-| Mock build | Supplied sample behavior and simulation checkbox are available |
+| Isolated fixture | The same React production UI reads controlled test APIs |
 | Same page changes after extraction | Text/props/listeners update; no stale parent/block errors |
 | Lost world-apply response | Retry exact original body/key without another preview |
 | Configuration input changes in flight | Ack original baseline; retain newer input |
@@ -130,22 +128,21 @@ invalid compiler block list and remount the entire app when it breaks.
 ## 6. Tests Required
 
 `approved-ui.test.mjs` verifies planning/acknowledgement, immutable stage recovery,
-canonical/deep routes, SSR native parity, dynamic primitives, computed filter
-unwrapping, repeated extracted-app page transitions and quiet policy planning.
+canonical/deep routes, domain configuration and routing invariants. React DOM regressions cover
+primitive semantics, filtering, input continuity and repeated page transitions and quiet policy planning.
 `approved-workspace.test.mjs` verifies stale reads, role round-trip retry, later
 stage validation retention, receipt checkpoints and visibility resume.
 
-Run generation, workspace typecheck/tests/build, isolated mock build, targeted Go
+Run generation, workspace typecheck/tests/build, isolated production-shaped fixture, targeted Go
 quiet-hours race tests, and browser checks through a static production build.
 Controlled API fixtures and screenshots are visual/contract evidence, not a
 substitute for live PostgreSQL/model acceptance. Record baseline failures as such.
 
 ## 7. Wrong vs Correct
 
-Wrong: move a compiled native card's children inside a component and retain its
-old `dynamicChildren` list, then rely only on a successful Vite build.
-Correct: disable obsolete compiler block tracking for the retained render bodies,
-keep component native DOM parity, and execute repeated route/data updates.
+Wrong: install shadcn while the default entry still uses old renderers.
+Correct: connect React primitives to real pages and execute route/data/input
+updates against the production build.
 
 ## Scenario: v6.2 initialization and character details
 
@@ -169,7 +166,7 @@ New/empty library, `#/library/create`, `#/c/:fid/profile`, and report feedback.
 
 ### 2. Signatures
 `createCreationController`, `readApprovedCreationProgress`, `profileFields`,
-`profileChanges`, `rebaseProfileFields`, `profileSaveCommand`; shared Vue
+`profileChanges`, `rebaseProfileFields`, `profileSaveCommand`; shared React
 `CharacterAvatar`, `ProfileForm`, `SemanticTree`, `PreparationSteps` and
 `ModelDirectory`. Existing analysis/activation and Foundation APIs remain owners.
 
@@ -210,7 +207,7 @@ task status without reading its real result.
 
 ### 6. Tests Required
 `approved-v62.test.mjs`, workspace conflict/recovery tests, full workspace checks,
-production fixture exclusion, isolated mock build, desktop/390px browser flows.
+production fixture exclusion, isolated production-shaped fixture, desktop/390px browser flows.
 Disposable PG timeout/retry tests prove SQL behavior; controlled browser fixtures
 prove rendering/transport shape only, and do not certify a user's live models.
 

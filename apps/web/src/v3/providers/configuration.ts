@@ -1,10 +1,10 @@
 import type {BrowserClient,BrowserConfigurationWrite} from '@fluctlight/browser-client';
 import {parseWorkflowTemplate} from '../../lib/configuration-forms';
-// @ts-expect-error shared browser delivery observes real notification records
+// shared browser delivery observes real notification records
 import {installBrowserNotifications,browserNotificationState} from './browser-notifications.mjs';
-// @ts-expect-error v3 domain facade
+// v3 domain facade
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error shared runtime catalog normalization
+// shared runtime catalog normalization
 import {normalizeRuntimeCatalog} from '../runtime-catalog.mjs';
 export function installConfigurationProvider(client:BrowserClient,refresh:()=>Promise<unknown>){const configuration={
  notificationState:browserNotificationState,

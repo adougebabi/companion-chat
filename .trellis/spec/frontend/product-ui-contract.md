@@ -1,5 +1,12 @@
 # Product UI And Interaction Contracts
 
+Current implementation (2026-10-26): React/shadcn Radix. The historical component
+names below retain behavioral requirements; they are not a mandate to recreate
+removed Vue or HTML page layers. Current primitives and wrappers are described
+in `component-guidelines.md` and `react-shadcn-contract.md`. Retired legacy=1
+entry points are unavailable, not compatible fallback routes.
+
+
 ## 1. Scope / Trigger
 
 Changes to shared controls, forms, resource feedback, guided settings or diagnostic presentation in `apps/web`. Read with component/state and Goal/Actor governance guidelines.

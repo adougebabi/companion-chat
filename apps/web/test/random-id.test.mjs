@@ -43,7 +43,7 @@ test('all browser sources use the shared adapter instead of calling native rando
  async function scan(folder){for(const entry of await readdir(folder,{withFileTypes:true})){
   const url=new URL(entry.name+(entry.isDirectory()?'/':''),folder);
   if(entry.isDirectory())await scan(url);
-  else if(/\.(?:ts|js|mjs|vue)$/.test(entry.name)&&url.href!==new URL('random-id.mjs',root).href&&/\brandomUUID\b/.test(await readFile(url,'utf8')))violations.push(url.pathname);
+  else if(/\.(?:ts|tsx|js|jsx|mjs)$/.test(entry.name)&&url.href!==new URL('random-id.mjs',root).href&&/\brandomUUID\b/.test(await readFile(url,'utf8')))violations.push(url.pathname);
  }}
  await scan(root);assert.deepEqual(violations,[],'A new direct native UUID dependency breaks HTTP deployments');
 });

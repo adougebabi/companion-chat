@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend scope and current-vs-target distinction"}
+{"file": ".trellis/spec/frontend/react-shadcn-contract.md", "reason": "User-selected React Radix component contract"}
+{"file": ".trellis/spec/frontend/approved-demo-contract.md", "reason": "Visual and domain compatibility"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component and legacy boundaries"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Request, draft and scope contracts"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required checks"}
+{"file": ".trellis/tasks/10-26-shadcn-ui-foundation/research/component-inventory.md", "reason": "Production controls and residual inventory"}
+{"file": ".trellis/tasks/10-26-shadcn-ui-foundation/research/runtime-and-validation.md", "reason": "State seams, tests and browser fixtures"}
+{"file": ".trellis/tasks/10-26-shadcn-ui-foundation/research/library-contract.md", "reason": "Official React shadcn Radix requirements"}

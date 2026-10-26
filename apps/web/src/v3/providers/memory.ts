@@ -1,7 +1,7 @@
 import type { BrowserClient, ManagedMemory, MemoryBrowseOptions } from '@fluctlight/browser-client';
-// @ts-expect-error shared v3 service facade
+// shared v3 service facade
 import { configureDomainService } from '../proto/services.js';
-// @ts-expect-error shared v3 server snapshot
+// shared v3 server snapshot
 import { get } from '../proto/store.js';
 
 export function createMemoryProvider(client: BrowserClient, tell: (fid:string,text:string)=>Promise<void>) {

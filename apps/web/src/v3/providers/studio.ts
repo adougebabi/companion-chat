@@ -1,8 +1,8 @@
 import {apiOrigin} from '../../runtime-config';
 import {BrowserClient,type StudioResource,type StudioResourceQuery,type StudioCopyBody,type StudioCatalogCommand,type ApplyPreviewResponse,type ApplyResourceBody,type BrowserStudioJobBody,type BrowserStudioJobCommandBody} from '@fluctlight/browser-client';
-// @ts-expect-error Existing renderer service boundary.
+// Existing renderer service boundary.
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error Existing renderer read boundary.
+// Existing renderer read boundary.
 import {get} from '../proto/store.js';
 export function installStudioProvider(client:BrowserClient){
  const studio={

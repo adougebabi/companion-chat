@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./react-layout.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+:root {
+  --background: #f0f3f0;
+  --foreground: #1f2a27;
+  --card: #fff;
+  --card-foreground: #1f2a27;
+  --popover: #fff;
+  --popover-foreground: #1f2a27;
+  --primary: #286b59;
+  --primary-foreground: #fff;
+  --secondary: #e1eee7;
+  --secondary-foreground: #205746;
+  --muted: #f0f3f0;
+  --muted-foreground: #59675e;
+  --accent: #e1eee7;
+  --accent-foreground: #205746;
+  --destructive: #ae3f37;
+  --border: #dbe3dd;
+  --input: #cfdad2;
+  --ring: #286b59;
+  --radius: 0.6rem;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+  font-size: 14px;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
+.react-workspace {
+  min-height: 100dvh;
+}
+.product-button {
+  min-height: 40px;
+}
+[data-slot="input"],
+[data-slot="select-trigger"] {
+  min-height: 44px;
+}
+.product-disclosure {
+  min-width: 0;
+}
+.disclosure-summary {
+  min-height: 44px;
+  color: var(--foreground);
+}
+.disclosure-body {
+  padding-top: 12px;
+}
+.product-dialog {
+  width: min(680px, calc(100vw - 32px));
+}
+.product-dialog > .modal,
+.product-dialog > .confirm-dialog,
+.product-dialog > .person-dialog {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  box-shadow: none;
+}
+.product-sheet {
+  width: min(540px, calc(100vw - 16px));
+  max-width: none;
+}
+[data-slot="select-content"],
+[data-slot="dropdown-menu-content"] {
+  max-width: min(480px, calc(100vw - 24px));
+}
+[data-slot="select-item"] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .react-workspace *,
+  [data-slot="dialog-content"],
+  [data-slot="sheet-content"] {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+.mobile-nav-trigger {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobile-nav-trigger {
+    display: inline-flex;
+  }
+  .react-workspace .sidebar {
+    display: none;
+  }
+  .mobile-nav-content .nav-item {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.react-workspace.product-dialog,
+.react-workspace.product-sheet {
+  min-height: 0;
+}
+.product-sheet .drawer-form {
+  position: static;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  padding: 0;
+  box-shadow: none;
+}

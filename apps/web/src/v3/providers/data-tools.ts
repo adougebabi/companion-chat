@@ -1,5 +1,5 @@
 import type {BrowserClient,BrowserResourcePack,BrowserResourcePackImportBody,BrowserResourcePackGroupBody,BrowserBusinessBackupBody} from '@fluctlight/browser-client';
-// @ts-expect-error explicit v3 domain facade
+// explicit v3 domain facade
 import {configureDomainService} from '../proto/services.js';
 export function installDataToolsProvider(client:BrowserClient,refresh:()=>Promise<unknown>){const dataTools={refresh,
  backups:(cursor='')=>client.businessBackups(cursor),

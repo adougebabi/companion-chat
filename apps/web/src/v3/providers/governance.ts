@@ -1,8 +1,8 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserCapabilityReviewBody,BrowserFoundationProposalBody} from '@fluctlight/browser-client';
-// @ts-expect-error explicit v3 service facade
+// explicit v3 service facade
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error authenticated draft scope
+// authenticated draft scope
 import {get} from '../proto/store.js';
 export function createGovernanceProvider(client:BrowserClient,refresh:()=>Promise<unknown>){
  const keys=new Map<string,string>();

@@ -1,8 +1,8 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserInventoryCreateBody,BrowserInventoryUpdateBody,BrowserInventoryArchiveBody,BrowserInventoryActionBody,BrowserInventoryOutfitWriteBody} from '@fluctlight/browser-client';
-// @ts-expect-error v3 service facade
+// v3 service facade
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error authenticated command identity
+// authenticated command identity
 import {get} from '../proto/store.js';
 type WithoutKey<T> = T extends unknown ? Omit<T,'idempotencyKey'> : never;
 export function createInventoryProvider(client:BrowserClient){

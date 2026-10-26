@@ -1,8 +1,8 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserDiaryGenerateBody,BrowserDiaryAnnotationBody} from '@fluctlight/browser-client';
-// @ts-expect-error shared v3 service facade
+// shared v3 service facade
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error server identity for pending write identities
+// server identity for pending write identities
 import {get} from '../proto/store.js';
 export function createDiaryProvider(client:BrowserClient){
  const keys=new Map<string,string>();

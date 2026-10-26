@@ -1,5 +1,19 @@
 # Client State And Synchronization
 
+## Current React state owners (2026-10-26)
+
+`state/workspace.mjs`, `state/conversation.ts` and `state/creation-controller.mjs`
+own the domain state. Valtio vanilla supplies observable state and immutable,
+cached snapshots; React subscribes with useSyncExternalStore. UI-only state uses
+React hooks or a named long-lived controller model. Pinia and Vue wrappers have
+been removed. Historical scenario names below describe domain behavior, not an
+authorization to restore old components.
+
+AbortController and DOM nodes are untracked references. Model subscription,
+visibility listeners, observers and timers are released by the owning React
+lifecycle. DOM-focused effects run after commit, never before a new step exists.
+
+
 ## Current v3 bounded startup (2026-10-20)
 
 The initial shell needs only actual Owner session and character directory.
@@ -16,7 +30,7 @@ snapshot. Post-activation optional reads must not delay receipt checkpointing.
 
 ## State Categories
 
-Pinia app state is the server snapshot (`settings`, `personas`, `groups`, and
+Domain controller state is the server snapshot (`settings`, `personas`, `groups`, and
 activity flags). The conversations store keeps the currently loaded page(s) of
 each active 摇光实例 conversation, not necessarily the complete history.
 `activePersonaId` is persisted only in `localStorage` under the existing
@@ -237,7 +251,7 @@ activeMessages = activeMessages.filter(message => message !== typingEntry);
 
 ### 3. Contracts
 
-- The server is authoritative for stage order, attempt status, `accepted`/`regenerate`, and identity-match decisions. Vue never judges image content or parses prompts.
+- The server is authoritative for stage order, attempt status, `accepted`/`regenerate`, and identity-match decisions. The frontend never judges image content or parses prompts.
 - The detail dialog may refresh the projection while a visual identity session is non-terminal; once `status=active`, polling stops.
 - Timeline timestamps render through `formatTimelineTime()` in the resolved persona timezone (`今天 HH:mm`/`昨天 HH:mm`/`MM月DD日 HH:mm`), while `<time datetime>` retains the original RFC3339 value.
 - Candidate images remain visible beside later attempts. Stable image boxes use `overflow-anchor: none` so late media cannot move the reader.
@@ -298,7 +312,7 @@ renderVisualIdentityTimeline(detail.visual_identity);
 - Section-specific Accordion roots use a key derived from `currentSection` (or
   a controlled model) so the selected item opens immediately when the prop
   changes; the whole app must not reload.
-- Server snapshots are normalized before entering Pinia. Every stored actor
+- Server snapshots are normalized before entering the domain controller. Every stored actor
   group has `actor_ids: string[]`, even when the server temporarily returns
   legacy `members`.
 
@@ -317,7 +331,7 @@ renderVisualIdentityTimeline(detail.visual_identity);
   same view instance.
 - Base: a cached group payload with `members` remains selectable on mobile.
 - Bad: passing a changing `default-value` to a reused uncontrolled Accordion or
-  storing raw group JSON in Pinia.
+  storing raw group JSON in the domain controller.
 
 ### 6. Tests Required
 

@@ -2,8 +2,9 @@
 
 ## 1. Scope / Trigger
 
-GovernanceView displays independent GoalPlanningPanel and ActorContextEditor;
-read-only InstanceDetailsDialog uses a readOnly GoalPlanningPanel and GoalPanel.
+Apply these domain rules to React Goal/Actor governance surfaces. The old Vue
+GoalPlanningPanel, ActorContextEditor and InstanceDetailsDialog have been removed;
+their names below describe historical behavior, not current component owners.
 
 ## 2. Signatures
 
@@ -20,7 +21,7 @@ text. Gate responses by instance/selection epoch before assigning state. Watch
 both instance and target, since two instances often share the same Owner Actor.
 Manual order and dependencies are actual backend writes; source provenance is
 separate from prerequisites. Auto off does not stop existing execution.
-Use randomId compatibility helper. Vue bindings escape all source/diagnostic text.
+Use randomId compatibility helper. JSX text bindings escape all source/diagnostic text.
 Default primary buttons need foreground token inside these glass panels because
 unlayered application button inheritance can override Tailwind text utilities.
 

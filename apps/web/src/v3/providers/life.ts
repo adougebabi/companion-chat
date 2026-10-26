@@ -1,9 +1,7 @@
 import { randomId } from '../../random-id.mjs';
 import {persistentCommand} from './persistent-command.mjs';
 import type { BrowserClient, BrowserGoalCommand, BrowserPromiseCommandBody, BrowserPromiseRescheduleBody, BrowserOwnerScheduleBody, BrowserScheduleRequestView } from '@fluctlight/browser-client';
-// @ts-expect-error JS service facade
 import { configureDomainService } from '../proto/services.js';
-// @ts-expect-error JS snapshot facade
 import { get } from '../proto/store.js';
 
 type Data = Record<string, unknown>;

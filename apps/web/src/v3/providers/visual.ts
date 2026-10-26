@@ -1,8 +1,8 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserVisualBriefBody,BrowserVisualGenerateBody,BrowserVisualReviewBody} from '@fluctlight/browser-client';
-// @ts-expect-error v3 service facade
+// v3 service facade
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error authenticated draft scope
+// authenticated draft scope
 import {get} from '../proto/store.js';
 export function createVisualProvider(client:BrowserClient){
  const keys=new Map<string,string>();

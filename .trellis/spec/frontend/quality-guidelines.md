@@ -1,37 +1,18 @@
 # Frontend Quality Guidelines
 
-## Current Design Review Gate (2026-10-21)
+## Current Quality Gate (2026-10-26)
 
-The user currently requires function-map / information-architecture / journey
-review before detailed UI or production Vue changes. Design files now live
-outside the repository at `/Users/vinson/Documents/文档/个人/设计/摇光`.
-Preserve `yaoguang-ux-vnext.pen`; the separate review artifact under that
-design home is `ia-review/yaoguang-ia-review.pen`. The task's `design/README.md`
-is only a migration index; do not recreate a second design copy in the repo.
-Sage Teal remains the visual direction. Historical glass/presentation examples
-below do not override the latest explicit design baseline.
+Use the approved appearance and actual React production entry. The Owner has
+approved implementation and explicitly required removal of Vue and legacy=1
+pages/routes. Earlier Pen planning gates are historical and do not block this
+migration. No route/HTML/import mechanism may restore the old renderer.
 
-- The external design home's `design-status.json` must keep `approved:false` and
-  `productionMigrationAllowed:false` until the user explicitly confirms a
-  concrete Pen version and scope. A route count, image export or successful
-  isolated click prototype cannot change those flags.
-- Preserve original BP / Feature / action / page identifiers. The product map
-  may explain corrected ownership without overwriting implementation evidence
-  in `docs/v3-functional-ledger.json`. Shared page keys do not imply shared
-  domain commands: capability review, Foundation revision and Developing Self
-  review have distinct ownership.
-- Check coverage with
-  `python3 /Users/vinson/Documents/文档/个人/设计/摇光/ia-review/build-map.py`.
-  It reads the migrated reference snapshots by default; pass `--repo` only
-  when explicitly choosing a new implementation source for reconciliation.
-  Its identifier checks and semantic anchors are traceability checks only;
-  actual task completion, feedback, return, scope and source behavior require
-  their own UX review and later real integration evidence.
-
-Wrong: derive a menu from every API/table/route, mark all pages mapped, and
-start Vue migration. Correct: retain the function IDs, map the user tasks,
-review navigation and complete journeys in the independent Pen artifact, and
-wait for the explicit design baseline confirmation.
+`pnpm --filter @fluctlight/web build` runs product fixture exclusion and the
+React dependency/import/HTML-entry guard. Test TSX/JSX as well as TS/JS; a
+Vue-only source scan must not create empty green coverage. Preserve behavioral
+and protocol regressions while retiring obsolete renderer-specific harnesses.
+Use React DOM tests for controls/lifecycle and the actual production dist for
+browser layout, focus, keyboard, portal and narrow-screen checks.
 
 ## Required Checks
 
@@ -41,7 +22,7 @@ wait for the explicit design baseline confirmation.
 - Exercise companion SSE and confirm token, done, and error events render
   without uncaught exceptions.
 - Verify generated browser-client fields are normalized at the browser boundary and user text
-  is rendered through Vue bindings.
+  is rendered through JSX text children.
 - Check desktop and narrow/mobile layouts, including overlays and dialogs.
 - Confirm refresh recovery does not lose the active persona, draft, IME state,
   or persisted conversation.
@@ -98,13 +79,13 @@ based only on a 404 lookup. A late stop response cannot clear another identity.
 ### 1. Scope / Trigger
 
 - Trigger: a page exposes a Fluctlight's details, editing, governance, or another object-level overlay.
-- The active client uses a bright glass visual system. Read-only details and editing actions must not be blended into one uncontrolled, page-height surface.
+- The active client uses the approved Sage visual system and shadcn tokens. Read-only details and editing actions must not be blended into one uncontrolled, page-height surface.
 
 ### 2. Signatures
 
-- Read-only detail state: local `show*Details` state rendered through a Vue `Teleport` dialog with `role="dialog"`, `aria-modal="true"`, a labelled title, a close control, and backdrop dismissal.
+- Read-only detail state: local `show*Details` state rendered through a Radix Dialog/Sheet with `role="dialog"`, `aria-modal="true"`, a labelled title, a close control, and backdrop dismissal.
 - Edit/governance state: an explicit `进入编辑与治理` action; mutation inputs and destructive actions do not appear in the read-only dialog.
-- Glass surface tokens: `--surface-glass`, `--surface-border`, `--surface-shadow`, and `--glass-blur` are the required visual owners. Do not introduce a competing local glass palette.
+- Surface tokens: `--card`, `--border`, `--popover`, and `--ring` are the required visual owners. Do not introduce a competing local glass palette.
 
 ### 3. Contracts
 
@@ -170,13 +151,13 @@ Use a temporary or empty data directory for destructive UI checks when needed.
 
 - `BrowserTurnEvent` keeps monotonic `sequence` and a terminal `completed` or
   `error` frame.
-- The conversations Pinia store owns the transient assistant draft and replaces
+- The conversation domain controller owns the transient assistant draft and replaces
   the persisted page only after a valid terminal frame.
 
 ### 3. Contracts
 
 - Never mutate the raw object reference kept in a reactive array after pushing
-  it; replace the array entry (`splice`/immutable map) so Vue observes every
+  it; replace the array entry (`splice`/immutable map) so every subscriber observes each
   token.
 - Flush `TextDecoder` at EOF, reject an incomplete stream, and remove a partial
   assistant draft on error while retaining the retry payload.

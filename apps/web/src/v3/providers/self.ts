@@ -1,8 +1,8 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient,BrowserSelfCommandBody,BrowserSelfRestoreBody} from '@fluctlight/browser-client';
-// @ts-expect-error explicit v3 facade
+// explicit v3 facade
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error authenticated snapshot identity
+// authenticated snapshot identity
 import {get} from '../proto/store.js';
 export function createSelfProvider(client:BrowserClient){
  const identities=new Map<string,string>();

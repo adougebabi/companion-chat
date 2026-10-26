@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 	import { fileURLToPath } from "node:url";
 
-import { createPinia, setActivePinia } from "pinia";
+
 import { createServer } from "vite";
-import { createSSRApp } from "vue";
-import { renderToString } from "vue/server-renderer";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 test("a new submit sends its own identity without implicitly retrying a confirmed failure", async () => {
   const originalWindow = globalThis.window;
@@ -28,9 +28,9 @@ test("a new submit sends its own identity without implicitly retrying a confirme
   };
 	  const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
   try {
-    setActivePinia(createPinia());
-    const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-    const store = useConversationStore();
+
+    const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+    const store = createConversationController();
     store.conversation = { id: "conversation-1", createdByActorId: "owner", revision: 0, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:00Z" };
     store.fluctlightId = "fluctlight-1";
     store.fluctlights = [{ id: "fluctlight-1", identity: { name: "摇光" }, status: "active" }];
@@ -83,9 +83,9 @@ test("a stale post-stream history read cannot erase committed streamed messages"
   };
 	  const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
   try {
-    setActivePinia(createPinia());
-    const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-    const store = useConversationStore();
+
+    const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+    const store = createConversationController();
     store.conversation = conversation;
     store.fluctlightId = "fluctlight-2";
     store.fluctlights = [{ id: "fluctlight-2", identity: { name: "摇光" }, status: "active" }];
@@ -139,9 +139,9 @@ test("a new turn after a confirmed failure never replays the old request", async
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.conversation = conversation;
 		store.fluctlightId = "fluctlight-queue";
 		store.fluctlights = [{ id: "fluctlight-queue", identity: { name: "摇光" }, status: "active" }];
@@ -195,9 +195,9 @@ test("a terminal cognition error keeps the authoritative user message visible an
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.conversation = conversation;
 		store.fluctlightId = "fluctlight-terminal-error";
 		store.fluctlights = [{ id: "fluctlight-terminal-error", identity: { name: "摇光" }, status: "active" }];
@@ -235,9 +235,9 @@ test("a non-2xx turn response keeps the API error code instead of collapsing to 
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.conversation = conversation;
 		store.fluctlightId = "fluctlight-http-error";
 		store.fluctlights = [{ id: "fluctlight-http-error", identity: { name: "摇光" }, status: "active" }];
@@ -271,9 +271,9 @@ test("a retry from a discarded conversation is pruned when the server returns a 
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.fluctlights = [{ id: "fluctlight-reset", identity: { name: "摇光" }, status: "active" }];
 		store.retryTurn = { conversationId: "conversation-deleted", fluctlightId: "fluctlight-reset", text: "旧消息", idempotencyKey: "old", turnId: "old", attachmentRefs: [], messageId: "old-user" };
 		await store.selectFluctlight("fluctlight-reset", { loading: false });
@@ -327,9 +327,9 @@ test("a completed retry from another conversation no longer blocks the selected 
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.conversation = currentPage.conversation;
 		store.fluctlightId = "fluctlight-current";
 		store.fluctlights = [
@@ -378,9 +378,9 @@ test("reconcilePersistedRetry matches durable turn identity and clears completed
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.fluctlights = [{ id: "fluctlight-reconcile", identity: { name: "摇光" }, status: "active" }];
 		// Simulate a retry saved with local- transient ID when user refreshed during request
 		const transientRetry = {
@@ -430,9 +430,9 @@ test("refresh restores a pending server turn and later shows its committed reply
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.fluctlights = [{ id: "fluctlight-background", identity: { name: "摇光" }, status: "active" }];
 		store.retryTurn = { conversationId: conversation.id, fluctlightId: "fluctlight-background", text: user.text, turnId: user.turnId, idempotencyKey: user.idempotencyKey, attachmentRefs: [], messageId: user.id };
 		await store.selectFluctlight("fluctlight-background");
@@ -471,9 +471,9 @@ test("explicit cancel calls the server and restores a retryable cancelled state"
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.conversation = conversation;
 		store.fluctlightId = "fluctlight-cancel";
 		store.messages = [user];
@@ -516,9 +516,9 @@ test("transport loss after server acceptance keeps background cognition pending"
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.conversation = conversation;
 		store.fluctlightId = "fluctlight-transport-loss";
 		await store.send("仍在处理");
@@ -574,9 +574,9 @@ test("sending a new message when previous turn is stuck pending auto-cancels and
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		setActivePinia(createPinia());
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.conversation = conversation;
 		store.fluctlightId = "fluctlight-stuck";
 		store.messages = [
@@ -622,13 +622,13 @@ async function withRetryFixture(clock, run) {
 	};
 	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
 	try {
-		const pinia = createPinia();
-		setActivePinia(pinia);
-		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
-		const store = useConversationStore();
+
+
+		const { createConversationController } = await server.ssrLoadModule("/src/state/conversation.ts");
+		const store = createConversationController();
 		store.fluctlights = [{ id: "fluctlight-retry-clock", identity: { name: "摇光" }, status: "active" }];
 		await store.selectFluctlight("fluctlight-retry-clock");
-		await run({ store, server, pinia, user, requests, values, setCancelResponse:response=>{cancelResponse=response;}, setTurnResponse: (response) => { turnResponse = response; } });
+		await run({ store, server,  user, requests, values, setCancelResponse:response=>{cancelResponse=response;}, setTurnResponse: (response) => { turnResponse = response; } });
 	} finally {
 		await server.close();
 		Object.assign(globalThis, originals);
@@ -704,7 +704,7 @@ for (const [name, clock] of [
 }
 
 test("retry stays visibly disabled in flight and a 409 keeps identity, draft and useful failure", async () => {
-	await withRetryFixture({ senderTimezone: "UTC", senderUtcOffsetMinutes: 0, senderSentAt: "2026-09-11T00:00:00.123Z" }, async ({ store, server, pinia, user, requests, setTurnResponse }) => {
+	await withRetryFixture({ senderTimezone: "UTC", senderUtcOffsetMinutes: 0, senderSentAt: "2026-09-11T00:00:00.123Z" }, async ({ store, server,  user, requests, setTurnResponse }) => {
 		let releaseResponse;
 		setTurnResponse(() => new Promise((resolve) => { releaseResponse = resolve; }));
 		store.attachmentRef = "asset-unsent-draft";
@@ -713,10 +713,10 @@ test("retry stays visibly disabled in flight and a 409 keeps identity, draft and
 			assert.equal(store.retrying, true);
 			assert.equal(store.canRetry, false);
 			assert.equal(store.hasPendingTurn, false, "a local request must not fabricate server acceptance");
-			const { default: ChatView } = await server.ssrLoadModule("/src/views/ChatView.vue");
-			const html = await renderToString(createSSRApp(ChatView).use(pinia));
+			const { default: ChatTurnFeedback } = await server.ssrLoadModule("/src/react-app/components/ChatTurnFeedback.tsx");
+			const html = renderToStaticMarkup(React.createElement(ChatTurnFeedback,{message:store.messages.find(message=>message.kind==="user"),messages:store.messages,store}));
 			assert.match(html, /正在提交重试请求并等待回复/);
-			assert.match(html, /<button[^>]* disabled[^>]*>(?:<!--[^>]*-->)*重试中\.\.\.(?:<!--[^>]*-->)*<\/button>/);
+			assert.match(html, /<button[^>]*disabled[^>]*>[\s\S]*重试中…[\s\S]*<\/button>/);
 		} finally {
 			releaseResponse(Response.json({ code: "conversation_turn_conflict", message: "Message identity conflict" }, { status: 409 }));
 			await retry;
@@ -753,7 +753,7 @@ test("restored local retry and queue bubbles preserve attachments, actor, clock 
 });
 
 test("a partial committed failure stays non-retryable and does not claim it will settle into retry", async () => {
-	await withRetryFixture({}, async ({ store, user, server, pinia, requests }) => {
+	await withRetryFixture({}, async ({ store, user, server,  requests }) => {
 		store.messages = [{ ...user, turnErrorCode: "agent_partial_committed", turnRetryable: false }];
 		store.syncServerTurnState();
 		assert.equal(store.canRetry, false);
@@ -762,9 +762,10 @@ test("a partial committed failure stays non-retryable and does not claim it will
 		assert.doesNotMatch(store.error, /完成后可以重试/);
 		await store.retry();
 		assert.equal(requests.length, 0);
-		const { default: ChatView } = await server.ssrLoadModule("/src/views/ChatView.vue");
-		const html = await renderToString(createSSRApp(ChatView).use(pinia));
+		const { default: ChatTurnFeedback } = await server.ssrLoadModule("/src/react-app/components/ChatTurnFeedback.tsx");
+		const html = renderToStaticMarkup(React.createElement(ChatTurnFeedback,{message:store.messages.find(message=>message.kind==="user"),messages:store.messages,store}));
 		assert.match(html, /部分操作已执行，不能直接重试/);
+        assert.doesNotMatch(html, /重试原回应/);
 		assert.doesNotMatch(html, /本次生成正在结束|重试回复/);
 	});
 });

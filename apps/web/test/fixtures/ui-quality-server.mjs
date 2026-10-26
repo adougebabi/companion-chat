@@ -1,6 +1,7 @@
 // Task-owned same-origin fixture for production-build UI verification.
 // Binds loopback only; never proxies to a real Core/Provider or persists user data.
 import http from 'node:http';
+import {reactWorkspaceFixture} from './react-workspace-fixture.mjs';
 import {wardrobeWorldFixture} from './wardrobe-world-fixture.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
@@ -42,6 +43,7 @@ const scheduleFixture=()=>{
  const stamp=hour=>hour===24?next+'T00:00:00+08:00':day+'T'+String(hour).padStart(2,'0')+':00:00+08:00';
  return {id:'schedule-nas-fixture',revision:1,local_date:day,timezone:'Asia/Shanghai',items:hours.slice(0,-1).map((hour,index)=>({id:'slot-'+index,start_at:stamp(hour),end_at:stamp(hours[index+1]),activity:index===11?'海边散步':index===12?'睡眠':'自由安排',scene:index===11?'海边':'日常',location:index===11?'家':'',status:'scheduled',action_status:null}))};
 };
+const reactWorkspace=reactWorkspaceFixture({settings:()=>settings,endpoints:()=>endpoints,bindings:()=>bindings,schedule:scheduleFixture,owner,date});
 const requests=[];let kevTests=0,goalCounter=2;
 function detail(id){return {id,status:instances.find(value=>value.id===id)?.status ?? 'active',identity:{...instances.find(value=>value.id===id)?.identity,background_story:'这是用于资料分层验收的角色背景。',occupation:'书籍编辑',core_values:['诚实','尊重'],height:null,height_cm:null,custom_field:'扩展字段仍可查看'},personality:{openness:.82,conscientiousness:.72,agreeableness:.74,update_policy:{cooldown_seconds:86400}},behavioral_policy:{reply_style:'自然交谈',conflict_style:'direct',directness:.7},life_profile:{life_habits:'闲暇时阅读与绘画。',appearance:{description:'齐肩长发，穿着简单舒适。',physical_features:{hair_color:'black'},daily_outfit_preferences:['白衬衫','深色长裤'],wardrobe_items:wardrobe},preferences:{likes:['小说','水彩']}},core_persona:{identity:{name:'验收样本'},personality_system:{profiles:[{id:'sunny',name:'晴岚'}]}},developing_self:{claims:[]},current_state:{appearance:{worn_items:wardrobe}},inner_state:{mood:{label:'平静',intensity:.5},pad:{pleasure:.6,arousal:.4,dominance:.5},momentum:{value:.5,trend:'stable'},regulation:{stability:.7,stress:.2}},context:{scene:'书桌前',activity:'阅读',location:'家中',source:'event'},actor_user:{background:clone(background),facts:[]},current_facts_revision:factsRevision,life_context_revision:'life-fixture-1',editable_actor_ids:[owner],relationships:[{id:'relationship-fixture',target_actor_id:owner,target_actor_type:'human',is_current_user:true,role:{label:'朋友'},trend:'stable',summary:'样本关系',revision:1}],memories:[{id:'memory-fixture',content:'这是一条用于只读列表验收的样本记忆。',type:'episodic',status:'active',revision:1}],goals:clone(goals),intentions:[],events:[],wake_ups:[],cognition_history:[],foundation_revisions:[{id:'foundation-fixture',revision:0,source:'initialization',status:'accepted'}],visual_identity:{status:'missing',current_revision:0,timeline:[],renderer_constraints:{chest_cup:null}},schedule:nasAdditions?scheduleFixture():null};}
 function json(res,value,status=200){res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(value));}
@@ -53,6 +55,7 @@ const server=http.createServer(async(req,res)=>{
   let body={};if(!['GET','HEAD'].includes(method)){let raw='';for await(const chunk of req)raw+=chunk;if(raw)body=JSON.parse(raw);requests.push({method,path,query:Object.fromEntries(url.searchParams),body:{...body,...(body.secrets ? {secrets:'fixture-redacted'} : {})}});}
   else if(path.startsWith('/api/'))requests.push({method,path,query:Object.fromEntries(url.searchParams)});
   if(wardrobeWorld?.({path,method,body,url,json,res}))return;
+  if(reactWorkspace({path,method,body,url,json,res}))return;
   if(path==='/fixture/status')return json(res,{requests,settings,background,goals});
   if(path==='/runtime-config.js'){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});res.end('window.__FLUCTLIGHT_RUNTIME_CONFIG__={apiOrigin:window.location.origin};');return;}
   if(path==='/auth/session'||path==='/auth/login')return json(res,{authenticated:true,actorId:owner});

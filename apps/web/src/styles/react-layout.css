@@ -1,0 +1,4870 @@
+/* Approved layout, scoped to the React workspace. Primitive styling belongs to ui/*.tsx. */
+@layer components {
+  .react-workspace .management-form {
+    display: grid;
+    gap: 16px;
+  }
+  .react-workspace .management-block {
+    padding: 18px 0;
+    border-bottom: 1px solid #edf0e8;
+  }
+  .react-workspace .management-block summary {
+    margin-bottom: 15px;
+    color: #526b56;
+  }
+  .react-workspace .shared-scenario {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 9px 0;
+  }
+  .react-workspace .quiet-days {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 14px 0;
+  }
+  .react-workspace .quiet-days label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .react-workspace fieldset {
+    border: 0;
+    padding: 16px 0 0;
+    min-width: 0;
+  }
+  .react-workspace fieldset:disabled {
+    opacity: 0.5;
+  }
+  .react-workspace .secondary-diagnostics {
+    margin-top: 26px;
+    border-top: 1px solid #e1e7dc;
+    padding-top: 18px;
+  }
+  .react-workspace .settings-group > summary {
+    margin-bottom: 18px;
+  }
+  .react-workspace .management-form > .button {
+    justify-self: start;
+  }
+  .react-workspace .management-form textarea {
+    font-family: monospace;
+  }
+  .react-workspace .management-form .switch {
+    width: 36px;
+  }
+  .react-workspace .settings-group .text-button {
+    margin-top: 12px;
+  }
+  .react-workspace .character-workflow {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .react-workspace .character-workflow h2 {
+    margin: 8px 0 12px;
+  }
+  .react-workspace .character-workflow h3 {
+    font-size: 14px;
+    margin: 0 0 14px;
+  }
+  .react-workspace .character-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+  .react-workspace .character-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 28px;
+  }
+  .react-workspace .character-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 13px;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .character-form input,
+  .react-workspace .character-form select,
+  .react-workspace .character-form textarea {
+    width: 100%;
+  }
+  .react-workspace .character-form textarea {
+    resize: vertical;
+    min-height: 64px;
+    line-height: 1.8;
+  }
+  .react-workspace .character-form header p {
+    margin-bottom: 0;
+    line-height: 1.8;
+  }
+  .react-workspace .character-fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  .react-workspace .character-fieldset legend {
+    font-size: 13px;
+    color: var(--copy-secondary);
+    padding: 0;
+    margin-bottom: 14px;
+  }
+  .react-workspace .character-fieldset .chip-options {
+    margin-bottom: 0;
+  }
+  .react-workspace .character-form .character-inline-label {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .react-workspace .character-inline-label input {
+    width: 150px;
+  }
+  .react-workspace .avatar-settings {
+    align-items: center;
+    gap: 20px;
+  }
+  .react-workspace .avatar-settings .character-stack {
+    gap: 10px;
+  }
+  .react-workspace .avatar-colors {
+    display: flex;
+    gap: 10px;
+    margin-top: 17px;
+  }
+  .react-workspace .avatar-colors button {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid #20382d20;
+    color: var(--teal);
+  }
+  .react-workspace .avatar-colors button[aria-pressed="true"] {
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+  }
+  .react-workspace .wizard-steps {
+    list-style: none;
+    display: flex;
+    padding: 0;
+    margin: 3px 0;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .react-workspace .wizard-steps li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .wizard-steps li > span {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #cbd7ce;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+  }
+  .react-workspace .wizard-steps li.active {
+    color: var(--teal);
+    font-weight: 650;
+  }
+  .react-workspace .wizard-steps li.active > span {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+  }
+  .react-workspace .wizard-steps li.complete > span {
+    background: var(--teal-soft);
+    border-color: #a6beae;
+    color: var(--teal);
+  }
+  .react-workspace .wizard-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid var(--rule);
+    padding-top: 22px;
+  }
+  .react-workspace .wizard-demo-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--copy-secondary);
+    flex-wrap: wrap;
+  }
+  .react-workspace .wizard-demo-toggle small {
+    flex-basis: 100%;
+    margin-left: 24px;
+    line-height: 1.7;
+  }
+  .react-workspace .starter-garments {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 24px;
+  }
+  .react-workspace .character-form .starter-garments label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+  }
+  .react-workspace .starter-garments small {
+    margin-left: auto;
+  }
+  .react-workspace .starter-garments input[type="checkbox"] {
+    width: 16px;
+  }
+  .react-workspace .wizard-review {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-top: 1px solid var(--rule);
+    padding-top: 22px;
+    font-size: 13px;
+  }
+  .react-workspace .wizard-review p {
+    font-size: 12px;
+    color: var(--copy-secondary);
+    line-height: 1.7;
+  }
+  .react-workspace .character-preparation {
+    padding: 30px;
+  }
+  .react-workspace .character-preparation header p {
+    line-height: 1.9;
+  }
+  .react-workspace .preparation-list {
+    padding: 0;
+    list-style: none;
+    margin: 24px 0 0;
+  }
+  .react-workspace .preparation-list > li {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .react-workspace .preparation-number {
+    height: 26px;
+    width: 26px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--copy-secondary);
+    font-size: 12px;
+    flex: none;
+  }
+  .react-workspace
+    .preparation-list
+    > li[data-state="已完成"]
+    .preparation-number {
+    color: var(--teal);
+    background: #f2f7f3;
+    border-color: #c4d8ca;
+  }
+  .react-workspace .preparation-copy {
+    flex: 1;
+    min-width: 0;
+    padding-top: 3px;
+    font-size: 13px;
+  }
+  .react-workspace .preparation-state {
+    font-size: 12px;
+    color: var(--copy-secondary);
+    white-space: nowrap;
+  }
+  .react-workspace .preparation-state.is-current {
+    color: var(--teal);
+    font-weight: 650;
+  }
+  .react-workspace .preparation-state.is-failed,
+  .react-workspace .preparation-error > p {
+    color: #a5533c;
+  }
+  .react-workspace .preparation-error {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .react-workspace .preparation-error .row {
+    gap: 18px;
+  }
+  .react-workspace .preparation-done {
+    padding-top: 24px;
+    flex-wrap: wrap;
+  }
+  .react-workspace .preparation-done a {
+    text-decoration: none;
+  }
+  .react-workspace .library-toolbar > p {
+    line-height: 1.8;
+  }
+  .react-workspace .library-demo-menu > div {
+    width: 250px;
+  }
+  .react-workspace .library-first-use {
+    width: 100%;
+    padding: 52px 30px;
+    text-align: center;
+  }
+  .react-workspace .library-first-use > svg {
+    color: var(--teal);
+  }
+  .react-workspace .library-first-use h2 {
+    margin: 19px 0 13px;
+    font-size: 23px;
+  }
+  .react-workspace .library-first-use p {
+    font-size: 13px;
+    line-height: 2;
+    color: var(--copy-secondary);
+    margin: 0 auto 24px;
+    max-width: 520px;
+  }
+  .react-workspace .library-first-use .library-restore {
+    display: block;
+    margin: 20px auto 0;
+    font-size: 12px;
+  }
+  .react-workspace .library-character-copy {
+    min-width: 0;
+  }
+  .react-workspace .library-character-copy p {
+    font-size: 13px;
+    color: var(--copy-secondary);
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .library-character-copy .pill {
+    margin: 0 5px 4px 0;
+  }
+  .react-workspace .library-character .current-badge {
+    flex: none;
+  }
+  .react-workspace .character-profile-heading {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .react-workspace .character-profile-heading h2 {
+    margin: 0 0 9px;
+  }
+  .react-workspace .character-detail-sections > section {
+    padding: 26px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .react-workspace .character-detail-sections > section:last-child {
+    border: 0;
+    padding-bottom: 6px;
+  }
+  .react-workspace .character-detail-sections p {
+    font-size: 13px;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0 0 12px;
+  }
+  .react-workspace .character-detail-sections dl {
+    margin: 18px 0 0;
+    display: grid;
+    gap: 17px;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .react-workspace .character-detail-sections dl > div {
+    display: grid;
+    grid-template-columns: 85px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .react-workspace .character-detail-sections dt {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .character-detail-sections dd {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .detail-form {
+    padding: 24px 0 0;
+  }
+  .react-workspace .character-more {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .character-more button {
+    font-size: 12px;
+  }
+  .react-workspace .switch-empty {
+    padding: 8px 12px;
+  }
+  @media (max-width: 800px) {
+    .react-workspace .character-form,
+    .react-workspace .character-preparation {
+      padding: 21px;
+    }
+    .react-workspace .detail-form {
+      padding: 22px 0 0;
+    }
+    .react-workspace .wizard-steps {
+      gap: 12px 18px;
+    }
+    .react-workspace .wizard-steps li {
+      flex-basis: calc(50% - 10px);
+    }
+    .react-workspace .starter-garments {
+      grid-template-columns: 1fr;
+    }
+    .react-workspace .library-first-use {
+      padding: 38px 20px;
+    }
+    .react-workspace .library-first-use h2 {
+      font-size: 21px;
+    }
+    .react-workspace .library-character > .row {
+      gap: 12px;
+    }
+    .react-workspace .library-toolbar,
+    .react-workspace .character-profile-heading {
+      flex-wrap: wrap;
+    }
+  }
+  .react-workspace {
+    font-family:
+      Inter,
+      -apple-system,
+      BlinkMacSystemFont,
+      Segoe UI,
+      PingFang SC,
+      Microsoft YaHei,
+      sans-serif;
+    color: #303e38;
+    background: #f5f7f4;
+    font-synthesis: none;
+    font-size: 14px;
+  }
+  .react-workspace * {
+    box-sizing: border-box;
+  }
+  .react-workspace {
+    margin: 0;
+  }
+  .react-workspace button,
+  .react-workspace input,
+  .react-workspace textarea {
+    font: inherit;
+  }
+  .react-workspace button {
+    cursor: pointer;
+    color: inherit;
+  }
+  .react-workspace button:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+  .react-workspace button {
+    transition: background 0.15s;
+  }
+  .react-workspace button:hover:not(:disabled) {
+    filter: brightness(0.97);
+  }
+  .react-workspace button:focus-visible,
+  .react-workspace input:focus-visible,
+  .react-workspace textarea:focus-visible {
+    outline: 2px solid #558d7d;
+    outline-offset: 3px;
+  }
+  .react-workspace button {
+    border: 0;
+    background: none;
+  }
+  .react-workspace p {
+    line-height: 1.8;
+  }
+  .react-workspace h1,
+  .react-workspace h2,
+  .react-workspace h3,
+  .react-workspace p {
+    margin-top: 0;
+  }
+  .react-workspace h1 {
+    font-size: 24px;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+    font-weight: 650;
+  }
+  .react-workspace h2 {
+    font-size: 19px;
+    font-weight: 600;
+  }
+  .react-workspace h3 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .react-workspace small {
+    color: #8a938c;
+    font-size: 12px;
+  }
+  .react-workspace input,
+  .react-workspace textarea {
+    border: 1px solid #dfe5de;
+    background: #fff;
+    border-radius: 7px;
+    padding: 11px;
+    color: #34453c;
+  }
+  .react-workspace textarea {
+    resize: vertical;
+    line-height: 1.8;
+  }
+  .react-workspace input::placeholder,
+  .react-workspace textarea::placeholder {
+    color: #a1aaa2;
+  }
+  .react-workspace .shell {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .react-workspace .topbar {
+    height: 68px;
+    flex: none;
+    background: #fff;
+    border-bottom: 1px solid #e3e8e2;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 26px;
+    position: relative;
+    z-index: 5;
+  }
+  .react-workspace .brand {
+    display: flex;
+    align-items: center;
+    font-size: 20px;
+    font-weight: 650;
+    gap: 10px;
+    padding: 0;
+  }
+  .react-workspace .brand-mark {
+    width: 30px;
+    height: 30px;
+    background: #548574;
+    color: #fff;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+  }
+  .react-workspace .brand-en {
+    font-size: 12px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    color: #929b92;
+    margin-left: 3px;
+  }
+  .react-workspace .top-divider {
+    height: 24px;
+    width: 1px;
+    background: #e5e9e3;
+    margin: 0 2px;
+  }
+  .react-workspace .character-switch {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+  }
+  .react-workspace .avatar {
+    width: 40px;
+    height: 40px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    flex: none;
+    background: #e5ede3;
+    color: #5d7968;
+    font-family: serif;
+    font-size: 18px;
+  }
+  .react-workspace .avatar.small {
+    height: 29px;
+    width: 29px;
+    font-size: 14px;
+  }
+  .react-workspace .scope {
+    border: 1px solid #e0e7df;
+    color: #849081;
+    font-size: 12px;
+    border-radius: 4px;
+    padding: 4px 7px;
+  }
+  .react-workspace .spacer {
+    flex: 1;
+  }
+  .react-workspace .local,
+  .react-workspace .status {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    color: #7b897d;
+  }
+  .react-workspace .local i,
+  .react-workspace .status i,
+  .react-workspace .online-dot {
+    height: 6px;
+    width: 6px;
+    border-radius: 50%;
+    background: #7c9d76;
+    display: inline-block;
+  }
+  .react-workspace .failure-toggle {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #899187;
+  }
+  .react-workspace .failure-toggle input {
+    accent-color: #547e6d;
+  }
+  .react-workspace .icon-button {
+    position: relative;
+    padding: 6px;
+    color: #778278;
+  }
+  .react-workspace .notification-dot {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    background: #be9d7b;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+  .react-workspace .self-avatar {
+    display: grid;
+    place-items: center;
+    border: 1px solid #e6e9e1;
+    border-radius: 50%;
+    width: 29px;
+    height: 29px;
+    color: #8a8e7d;
+    font-size: 12px;
+  }
+  .react-workspace .layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  .react-workspace .sidebar {
+    width: 218px;
+    flex: none;
+    background: #fcfdfb;
+    border-right: 1px solid #e1e6df;
+    padding: 23px 14px 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .react-workspace .workspace-label,
+  .react-workspace .nav-section {
+    color: #9aa195;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 0 13px;
+    margin-bottom: 12px;
+  }
+  .react-workspace .workspace-label span {
+    display: block;
+    letter-spacing: 0;
+    font-size: 12px;
+    margin-top: 8px;
+    color: #637760;
+  }
+  .react-workspace .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    padding: 9px 13px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: #69766b;
+    font-size: 13px;
+    min-height: 34px;
+  }
+  .react-workspace .nav-item svg {
+    color: #8b978b;
+    stroke-width: 1.5;
+  }
+  .react-workspace .nav-item.active {
+    background: #e9f0e8;
+    color: #3e715b;
+    font-weight: 600;
+  }
+  .react-workspace .nav-item.active svg {
+    color: #52826b;
+  }
+  .react-workspace .active-dot {
+    width: 5px;
+    height: 5px;
+    background: #648c70;
+    border-radius: 50%;
+    margin-left: auto;
+  }
+  .react-workspace .nav-section {
+    margin-top: 25px;
+    border-top: 1px solid #e7ebe4;
+    padding-top: 20px;
+  }
+  .react-workspace .count {
+    margin-left: auto;
+    background: #eeeae0;
+    color: #a28d66;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .react-workspace .sidebar-footer {
+    margin-top: auto;
+    padding: 27px 10px 22px;
+    display: flex;
+    gap: 9px;
+    font-size: 12px;
+    color: #939c90;
+    white-space: nowrap;
+  }
+  .react-workspace .sidebar-footer small {
+    display: block;
+    font-size: 12px;
+    margin-top: 5px;
+    color: #b0b7ab;
+  }
+  .react-workspace .mini-logo {
+    font-size: 24px;
+    color: #9eaf98;
+  }
+  .react-workspace .switch-menu {
+    position: absolute;
+    top: 60px;
+    left: 240px;
+    min-width: 220px;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid #dce4d9;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px #283d2920;
+  }
+  .react-workspace .switch-menu button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 0;
+  }
+  .react-workspace .switch-menu svg {
+    margin-left: auto;
+  }
+  .react-workspace main {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    padding: 27px 32px;
+  }
+  .react-workspace .chat-main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .react-workspace .page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 23px;
+    flex: none;
+  }
+  .react-workspace .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #939e92;
+    margin-bottom: 12px;
+  }
+  .react-workspace .heading-caption {
+    font-weight: 400;
+    font-size: 12px;
+    color: #929d90;
+    letter-spacing: 0;
+    margin-left: 17px;
+  }
+  .react-workspace .heading-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .react-workspace .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 13px;
+    background: #fff;
+    border: 1px solid #dde4d9;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .react-workspace .button.primary {
+    background: #557e69;
+    color: #fff;
+    border-color: #557e69;
+  }
+  .react-workspace .chat-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) 274px;
+    gap: 22px;
+    flex: 1;
+    min-height: 0;
+  }
+  .react-workspace .chat-layout.collapsed {
+    grid-template-columns: 1fr;
+  }
+  .react-workspace .chat-panel {
+    border: 1px solid #dfe5dc;
+    border-radius: 10px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    box-shadow: 0 3px 10px #384b351f;
+  }
+  .react-workspace .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 17px 22px;
+    border-bottom: 1px solid #e8ece4;
+  }
+  .react-workspace .chat-header strong {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .react-workspace .chat-header small {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+  }
+  .react-workspace .chat-header small span {
+    margin-left: 4px;
+    color: #9aa393;
+  }
+  .react-workspace .chat-private {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #a2aa9c;
+  }
+  .react-workspace .timeline {
+    flex: 1;
+    overflow: auto;
+    padding: 22px 24px;
+    background: #f9faf7;
+    min-height: 100px;
+  }
+  .react-workspace .date-divider {
+    text-align: center;
+    font-size: 12px;
+    color: #9ba491;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+  }
+  .react-workspace .date-divider:before,
+  .react-workspace .date-divider:after {
+    content: "";
+    height: 1px;
+    background: #e9ede4;
+    flex: 1;
+  }
+  .react-workspace .conversation-note {
+    text-align: center;
+    font-size: 12px;
+    color: #b2baaa;
+    margin: 14px 0 25px;
+  }
+  .react-workspace .message {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    align-items: flex-start;
+  }
+  .react-workspace .message.mine {
+    flex-direction: row-reverse;
+  }
+  .react-workspace .message-avatar {
+    width: 29px;
+    height: 29px;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .react-workspace .message-body {
+    max-width: 80%;
+    min-width: 0;
+  }
+  .react-workspace .message-meta {
+    font-size: 12px;
+    color: #939d8e;
+    margin-bottom: 7px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .react-workspace .message-meta time {
+    font-size: 12px;
+    color: #b3bbab;
+  }
+  .react-workspace .mine .message-meta {
+    justify-content: flex-end;
+  }
+  .react-workspace .bubble {
+    background: #fff;
+    border: 1px solid #e3e8de;
+    border-radius: 0 11px 11px;
+    padding: 12px 15px;
+    line-height: 1.9;
+    font-size: 13px;
+    white-space: pre-wrap;
+    color: #4c5a4b;
+    box-shadow: 0 2px 3px #58694c04;
+  }
+  .react-workspace .mine .bubble {
+    background: #eaf0e5;
+    border-color: #e0e8d9;
+    border-radius: 11px 0 11px 11px;
+  }
+  .react-workspace .composer {
+    border-top: 1px solid #e6eae0;
+    padding: 15px 20px 16px;
+  }
+  .react-workspace .quick-actions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-bottom: 9px;
+  }
+  .react-workspace .quick-actions button {
+    background: #f6f8f2;
+    border: 1px solid #e6ebdf;
+    border-radius: 5px;
+    font-size: 12px;
+    color: var(--copy-secondary);
+    padding: 5px 8px;
+  }
+  .react-workspace .composer textarea {
+    width: 100%;
+    resize: none;
+    border: none;
+    padding: 8px 0;
+    height: 63px;
+    font-size: 13px;
+    outline: none;
+  }
+  .react-workspace .composer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .react-workspace .composer-bottom small {
+    font-size: 12px;
+    color: #b2baaa;
+  }
+  .react-workspace .composer-bottom .button {
+    padding: 9px 17px;
+  }
+  .react-workspace .preview {
+    border: 1px solid #e0e6db;
+    border-radius: 10px;
+    background: #fcfdf9;
+    overflow: auto;
+    min-height: 0;
+  }
+  .react-workspace .preview-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 17px;
+    color: #6c7b64;
+  }
+  .react-workspace .pill {
+    font-size: 12px;
+    padding: 4px 7px;
+    border: 1px solid #e2e8dc;
+    border-radius: 5px;
+    color: #8e9c81;
+    display: inline-block;
+  }
+  .react-workspace .preview-heading .pill {
+    font-size: 12px;
+  }
+  .react-workspace .scene {
+    margin: 0 14px;
+    height: 167px;
+    background: linear-gradient(120deg, #dbe3d0, #e8e4ce);
+    position: relative;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+  .react-workspace .scene-window {
+    width: 90px;
+    height: 125px;
+    position: absolute;
+    left: 18px;
+    top: 0;
+    background: linear-gradient(140deg, #eff4dc, #c5d4b5);
+    border: 6px solid #f2eddb;
+    box-shadow: 20px 25px 30px #85986c20;
+  }
+  .react-workspace .scene-window:after {
+    content: "";
+    position: absolute;
+    left: 36px;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: #ece9d8;
+  }
+  .react-workspace .scene-window i {
+    position: absolute;
+    top: 47px;
+    height: 4px;
+    width: 100%;
+    background: #ece9d8;
+  }
+  .react-workspace .scene-sun {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    position: absolute;
+    top: -45px;
+    right: -20px;
+    background: #f3e7af;
+    filter: blur(15px);
+  }
+  .react-workspace .scene-vase {
+    position: absolute;
+    right: 22px;
+    bottom: 25px;
+    font-size: 89px;
+    color: #7c956c;
+    line-height: 1;
+    transform: rotate(-12deg);
+  }
+  .react-workspace .scene-desk {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 34px;
+    background: linear-gradient(90deg, #b6a37a70, #c6b79060);
+    transform: skewY(-5deg);
+  }
+  .react-workspace .scene-caption {
+    position: absolute;
+    left: 14px;
+    bottom: 12px;
+    color: #536844;
+  }
+  .react-workspace .scene-tag {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #7b8c6a;
+  }
+  .react-workspace .scene-caption p {
+    font-family: serif;
+    font-size: 15px;
+    margin: 5px 0 0;
+    letter-spacing: 1px;
+  }
+  .react-workspace .preview-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 17px 17px;
+  }
+  .react-workspace .preview-profile .avatar {
+    width: 33px;
+    height: 33px;
+    font-size: 15px;
+  }
+  .react-workspace .preview-profile strong {
+    font-size: 13px;
+  }
+  .react-workspace .preview-profile small {
+    display: block;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .react-workspace .context-list {
+    padding: 0 18px;
+  }
+  .react-workspace .context-list > div {
+    border-top: 1px solid #e9ede3;
+    padding: 13px 0;
+    position: relative;
+  }
+  .react-workspace .context-list span {
+    color: #9aa68e;
+    font-size: 12px;
+  }
+  .react-workspace .context-list p {
+    font-size: 12px;
+    margin: 6px 0 0;
+    padding-left: 15px;
+    color: #69775e;
+  }
+  .react-workspace .context-list button {
+    position: absolute;
+    bottom: 15px;
+    right: 0;
+    color: #9ba68e;
+  }
+  .react-workspace .schedule-preview {
+    border-top: 1px solid #e5eade;
+    margin: 2px 17px;
+    padding-top: 17px;
+  }
+  .react-workspace .schedule-preview > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #78836d;
+  }
+  .react-workspace .schedule-preview button {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    color: #9aa58e;
+    padding: 0;
+  }
+  .react-workspace .next-item {
+    display: flex;
+    gap: 12px;
+    background: #f0f4e9;
+    border: 1px solid #e5eadb;
+    border-radius: 6px;
+    padding: 13px 11px;
+    margin-top: 13px;
+  }
+  .react-workspace .schedule-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8ca27b;
+    flex: none;
+    margin-top: 6px;
+  }
+  .react-workspace .next-item small {
+    font-size: 12px;
+    color: #96a485;
+  }
+  .react-workspace .next-item p {
+    font-size: 12px;
+    margin: 5px 0 8px;
+    color: #6b7d5d;
+  }
+  .react-workspace .next-item .pill {
+    font-size: 12px;
+    background: #e7eedf;
+    padding: 3px 5px;
+  }
+  .react-workspace .preview-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 22px 18px;
+    color: #a1af91;
+  }
+  .react-workspace .preview-tip p {
+    font-size: 12px;
+    line-height: 1.9;
+    margin: 0;
+  }
+  .react-workspace .preview-tip svg {
+    flex: none;
+  }
+  .react-workspace .page-content {
+    max-width: 1050px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 25px;
+  }
+  .react-workspace .card {
+    background: #fff;
+    border: 1px solid #e1e7dc;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 2px 6px #344d3004;
+  }
+  .react-workspace .section-intro {
+    padding: 8px 0;
+  }
+  .react-workspace .section-intro h2 {
+    margin-bottom: 8px;
+  }
+  .react-workspace .section-intro p,
+  .react-workspace .muted {
+    color: var(--copy-secondary);
+    font-size: 13px;
+  }
+  .react-workspace .action-card label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 13px;
+  }
+  .react-workspace .input-row {
+    display: flex;
+    gap: 10px;
+  }
+  .react-workspace .input-row input {
+    flex: 1;
+    min-width: 0;
+  }
+  .react-workspace .action-card textarea {
+    width: 100%;
+    min-height: 100px;
+    margin-bottom: 13px;
+  }
+  .react-workspace .action-card > .button {
+    align-self: flex-end;
+  }
+  .react-workspace .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .react-workspace .row small {
+    display: block;
+    margin-top: 5px;
+  }
+  .react-workspace .row h3,
+  .react-workspace .row p {
+    margin: 0;
+  }
+  .react-workspace .post {
+    max-width: 740px;
+  }
+  .react-workspace .post > p {
+    margin: 23px 0;
+    white-space: pre-wrap;
+  }
+  .react-workspace .post-art {
+    height: 160px;
+    background: linear-gradient(120deg, #e8eddf, #eee5d5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    color: #8f9d7d;
+    border-radius: 6px;
+    margin-bottom: 18px;
+  }
+  .react-workspace .post-art span {
+    letter-spacing: 3px;
+    font-family: serif;
+  }
+  .react-workspace .text-button {
+    color: #7f9573;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+  .react-workspace .tabs {
+    display: flex;
+    gap: 5px;
+    border-bottom: 1px solid #dfe6d9;
+    padding-bottom: 10px;
+  }
+  .react-workspace .tabs button {
+    padding: 9px 22px;
+    color: #8b9980;
+  }
+  .react-workspace .tabs .active {
+    color: #547756;
+    background: #e5eddf;
+    border-radius: 5px;
+  }
+  .react-workspace .now-card {
+    background: linear-gradient(110deg, #e8eedd, #f7f3e8);
+    padding: 35px;
+  }
+  .react-workspace .eyebrow {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #8e9e7f;
+  }
+  .react-workspace .now-card h2 {
+    margin: 25px 0 15px;
+    font-size: 25px;
+  }
+  .react-workspace .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .react-workspace .schedule-row {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    padding: 19px 0;
+    border-bottom: 1px solid #edf0e8;
+  }
+  .react-workspace .schedule-row:last-child {
+    border: none;
+  }
+  .react-workspace .schedule-row time {
+    font-size: 12px;
+    color: #92a183;
+  }
+  .react-workspace .goal {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0;
+  }
+  .react-workspace .goal input {
+    accent-color: #64886b;
+  }
+  .react-workspace .done {
+    text-decoration: line-through;
+    color: #a3ad9b;
+  }
+  .react-workspace .diary {
+    background: #fffefa;
+    padding: 32px;
+  }
+  .react-workspace .diary h2 {
+    font-family: serif;
+    margin: 19px 0;
+  }
+  .react-workspace .diary p {
+    line-height: 2.2;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .diary > span {
+    display: block;
+    text-align: right;
+    font-size: 12px;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .wardrobe .card {
+    padding: 15px;
+  }
+  .react-workspace .outfit-art {
+    height: 180px;
+    background: #eeeae0;
+    display: grid;
+    place-items: center;
+    color: #aaa18d;
+    border-radius: 6px;
+  }
+  .react-workspace .tone-1 {
+    background: #e5eae3 !important;
+    color: #98a691 !important;
+  }
+  .react-workspace .tone-2 {
+    background: #e9e2d6 !important;
+    color: #ae9c82 !important;
+  }
+  .react-workspace .tone-3 {
+    background: #e1e8ea !important;
+    color: #8c9eaa !important;
+  }
+  .react-workspace .wardrobe h3 {
+    margin: 18px 0 8px;
+  }
+  .react-workspace .wardrobe .button {
+    display: flex;
+    width: 100%;
+    margin-top: 17px;
+  }
+  .react-workspace .world-banner {
+    background: linear-gradient(110deg, #dfe9d8, #f0eddd);
+    border: 1px solid #e1e7d8;
+    border-radius: 10px;
+    padding: 35px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    color: #718561;
+  }
+  .react-workspace .world-banner h2,
+  .react-workspace .world-banner p {
+    margin: 0;
+  }
+  .react-workspace .world-banner h2 {
+    font-family: serif;
+    font-size: 24px;
+  }
+  .react-workspace .relationship {
+    text-align: center;
+  }
+  .react-workspace .avatar.large {
+    width: 66px;
+    height: 66px;
+    font-size: 29px;
+    margin-bottom: 20px;
+  }
+  .react-workspace .relationship p {
+    color: var(--copy-secondary);
+    font-size: 13px;
+  }
+  .react-workspace .progress {
+    height: 5px;
+    background: #edf1e6;
+    border-radius: 5px;
+    margin-top: 15px;
+    overflow: hidden;
+  }
+  .react-workspace .progress i {
+    height: 100%;
+    display: block;
+    background: #94aa83;
+  }
+  .react-workspace .memory {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    color: #849878;
+  }
+  .react-workspace .memory p {
+    margin: 8px 0 0;
+  }
+  .react-workspace .memory .pill {
+    margin-left: auto;
+  }
+  .react-workspace .media-art {
+    height: 190px;
+    display: grid;
+    place-items: center;
+    background: #e8ecdd;
+    color: #8fa07f;
+    border-radius: 6px;
+  }
+  .react-workspace .media .card {
+    padding: 15px;
+  }
+  .react-workspace .media h3 {
+    margin: 18px 0 8px;
+  }
+  .react-workspace .profile {
+    max-width: 700px;
+    padding: 35px;
+  }
+  .react-workspace .profile p {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .profile h2 {
+    font-size: 24px;
+  }
+  .react-workspace .profile hr {
+    border: 0;
+    border-top: 1px solid #e5eadf;
+    margin: 25px 0;
+  }
+  .react-workspace .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 23px 0;
+    border-bottom: 1px solid #edf0e6;
+  }
+  .react-workspace .setting-row:last-child {
+    border: 0;
+  }
+  .react-workspace .setting-row small {
+    display: block;
+    margin-top: 9px;
+    line-height: 1.7;
+  }
+  .react-workspace .setting-row b {
+    font-weight: 500;
+  }
+  .react-workspace .switch {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    flex: none;
+    width: 36px;
+    height: 21px;
+    background: #d8dfd0;
+    border-radius: 20px;
+    padding: 0;
+    position: relative;
+    border: 0;
+    cursor: pointer;
+  }
+  .react-workspace .switch:before {
+    content: "";
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    background: #fff;
+    transition: transform 0.2s;
+  }
+  .react-workspace .switch:checked {
+    background: #60836c;
+  }
+  .react-workspace .switch:checked:before {
+    transform: translate(15px);
+  }
+  .react-workspace .search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #dfe5d8;
+    border-radius: 6px;
+    padding: 0 13px;
+    max-width: 350px;
+    color: #9aa68e;
+  }
+  .react-workspace .search input {
+    border: 0;
+    width: 100%;
+    outline: none;
+  }
+  .react-workspace .library .card {
+    padding: 16px;
+  }
+  .react-workspace .character-cover {
+    height: 155px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 35px;
+    color: #7f9478;
+    border-radius: 5px;
+  }
+  .react-workspace .character-cover span {
+    font-size: 64px;
+    font-family: serif;
+  }
+  .react-workspace .library h2 {
+    margin: 20px 0 10px;
+  }
+  .react-workspace .library p {
+    font-size: 12px;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .feedback {
+    padding: 14px 18px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 12px;
+    border: 1px solid #e0e7d9;
+    background: #edf3e8;
+    color: #718465;
+  }
+  .react-workspace .feedback.error,
+  .react-workspace .error {
+    background: #fff1ed;
+    border-color: #eac9bb;
+    color: #b4755c;
+  }
+  .react-workspace .feedback.pending {
+    background: #f1f2eb;
+    color: #9a9d80;
+  }
+  .react-workspace .error {
+    font-size: 12px;
+    padding: 9px;
+    margin-top: 8px;
+    border-radius: 5px;
+    line-height: 1.7;
+  }
+  .react-workspace .error button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #9b5d47;
+    text-decoration: underline;
+    margin-left: 8px;
+  }
+  .react-workspace .typing {
+    font-size: 12px;
+    color: #8e9b82;
+    padding: 0 40px;
+  }
+  .react-workspace .typing span {
+    letter-spacing: 3px;
+  }
+  .react-workspace .diagnostic {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-top: 1px solid #e7ebdf;
+    padding: 20px 0;
+  }
+  .react-workspace .diagnostic > div {
+    flex: 1;
+  }
+  .react-workspace .diagnostic p {
+    margin: 7px 0 0;
+    font-size: 12px;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .diagnostic small {
+    width: 100%;
+  }
+  .react-workspace .diagnostic .error {
+    margin: 0;
+  }
+  .react-workspace .diagnostic .success {
+    background: #eaf1e3;
+  }
+  @media (min-width: 1500px) {
+    .react-workspace main {
+      padding: 30px 40px;
+    }
+    .react-workspace .sidebar {
+      width: 236px;
+    }
+    .react-workspace .chat-layout {
+      grid-template-columns: minmax(320px, 1fr) 300px;
+      gap: 26px;
+    }
+    .react-workspace .timeline {
+      padding: 25px 35px;
+    }
+    .react-workspace .scene {
+      height: 185px;
+    }
+  }
+  @media (max-width: 1100px) {
+    .react-workspace .sidebar {
+      width: 185px;
+      padding-left: 9px;
+      padding-right: 9px;
+    }
+    .react-workspace main {
+      padding: 22px 20px;
+    }
+    .react-workspace .chat-layout {
+      grid-template-columns: minmax(280px, 1fr) 240px;
+      gap: 15px;
+    }
+    .react-workspace .heading-caption,
+    .react-workspace .brand-en,
+    .react-workspace .scope,
+    .react-workspace .chat-private {
+      display: none;
+    }
+    .react-workspace .topbar {
+      gap: 14px;
+      padding: 0 20px;
+    }
+    .react-workspace .message-body {
+      max-width: 85%;
+    }
+    .react-workspace .preview-profile small {
+      font-size: 12px;
+    }
+    .react-workspace .bubble {
+      padding: 10px 12px;
+    }
+    .react-workspace .timeline {
+      padding: 18px 14px;
+    }
+  }
+  @media (max-width: 800px) {
+    .react-workspace .sidebar {
+      width: 62px;
+      padding: 15px 8px;
+    }
+    .react-workspace .workspace-label,
+    .react-workspace .nav-section,
+    .react-workspace .nav-item span,
+    .react-workspace .sidebar-footer {
+      display: none;
+    }
+    .react-workspace .nav-item {
+      padding: 11px;
+      justify-content: center;
+    }
+    .react-workspace .sidebar nav + nav {
+      margin-top: 15px;
+    }
+    .react-workspace .sidebar nav:nth-of-type(2) {
+      border-top: 1px solid #e0e5d9;
+      margin-top: 15px;
+      padding-top: 15px;
+    }
+    .react-workspace .nav-item svg {
+      width: 19px;
+      height: 19px;
+    }
+    .react-workspace .chat-layout {
+      display: flex;
+      position: relative;
+    }
+    .react-workspace .chat-panel {
+      flex: 1;
+    }
+    .react-workspace .preview {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 270px;
+      box-shadow: -6px 0 18px #34472e18;
+      z-index: 3;
+    }
+    .react-workspace .page-heading h1 {
+      font-size: 21px;
+    }
+    .react-workspace .topbar {
+      height: 59px;
+      gap: 12px;
+    }
+    .react-workspace .top-divider,
+    .react-workspace .local,
+    .react-workspace .self-avatar {
+      display: none;
+    }
+    .react-workspace .character-switch {
+      font-size: 12px;
+    }
+    .react-workspace .brand {
+      font-size: 17px;
+    }
+    .react-workspace .failure-toggle {
+      font-size: 12px;
+    }
+    .react-workspace .topbar {
+      padding: 0 13px;
+    }
+    .react-workspace .heading-actions .status {
+      display: none;
+    }
+    .react-workspace main {
+      padding: 17px 13px;
+    }
+    .react-workspace .page-heading {
+      margin-bottom: 16px;
+    }
+    .react-workspace .chat-header {
+      padding: 14px;
+    }
+    .react-workspace .timeline {
+      padding: 15px 12px;
+    }
+    .react-workspace .composer {
+      padding: 12px;
+    }
+    .react-workspace .message-body {
+      max-width: 85%;
+    }
+    .react-workspace .quick-actions {
+      gap: 4px;
+    }
+    .react-workspace .quick-actions button {
+      padding: 4px;
+      font-size: 12px;
+    }
+    .react-workspace .switch-menu {
+      left: 80px;
+    }
+    .react-workspace .grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .react-workspace .input-row {
+      flex-wrap: wrap;
+    }
+    .react-workspace .card {
+      padding: 19px;
+    }
+  }
+  @media (max-height: 800px) and (min-width: 801px) {
+    .react-workspace .nav-item {
+      padding-top: 6px;
+      padding-bottom: 6px;
+      min-height: 29px;
+    }
+    .react-workspace .nav-section {
+      margin-top: 14px;
+      padding-top: 14px;
+    }
+    .react-workspace .sidebar {
+      padding-top: 17px;
+    }
+    .react-workspace .sidebar-footer {
+      padding-top: 18px;
+    }
+    .react-workspace .scene {
+      height: 140px;
+    }
+    .react-workspace .preview-profile {
+      padding-top: 14px;
+      padding-bottom: 14px;
+    }
+    .react-workspace .context-list > div {
+      padding: 10px 0;
+    }
+    .react-workspace .preview-tip {
+      margin-top: 16px;
+    }
+  }
+  .react-workspace select {
+    font: inherit;
+    color: inherit;
+    background: #fff;
+    border: 1px solid #dfe5de;
+    border-radius: 6px;
+    padding: 8px;
+    max-width: 100%;
+  }
+  .react-workspace input,
+  .react-workspace textarea {
+    padding: 9px;
+  }
+  .react-workspace button,
+  .react-workspace select {
+    touch-action: manipulation;
+  }
+  .react-workspace .sidebar {
+    width: 204px;
+    padding-top: 15px;
+  }
+  .react-workspace .nav-item {
+    padding: 6px 12px;
+    min-height: 29px;
+  }
+  .react-workspace .life-nav {
+    padding-left: 27px;
+  }
+  .react-workspace .life-nav .nav-item {
+    font-size: 12px;
+    min-height: 25px;
+    padding: 4px 12px;
+  }
+  .react-workspace .nav-divider {
+    border: 0;
+    border-top: 1px solid #e3e8df;
+    width: 100%;
+    margin: 14px 0;
+  }
+  .react-workspace .sidebar-footer {
+    display: block;
+    line-height: 1.9;
+  }
+  .react-workspace .sidebar-footer small {
+    display: block;
+  }
+  .react-workspace .page-content {
+    gap: 14px;
+    max-width: 1250px;
+  }
+  .react-workspace .card {
+    padding: 20px;
+    box-shadow: none;
+  }
+  .react-workspace .compact {
+    padding: 15px 18px;
+  }
+  .react-workspace .compact p {
+    margin: 6px 0;
+  }
+  .react-workspace .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .react-workspace .toolbar input {
+    min-width: 180px;
+    flex: 1;
+  }
+  .react-workspace .toolbar label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .react-workspace .tabs button {
+    padding: 8px 18px;
+  }
+  .react-workspace .compact-bio {
+    padding: 16px;
+    border-bottom: 1px solid #e5eade;
+  }
+  .react-workspace .compact-bio b {
+    font-size: 12px;
+  }
+  .react-workspace .compact-bio p {
+    font-size: 12px;
+    margin: 7px 0;
+    color: #7f8c74;
+    line-height: 1.7;
+  }
+  .react-workspace .compact-bio small {
+    font-size: 12px;
+  }
+  .react-workspace .context-list p {
+    padding: 0;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+  .react-workspace .context-list > div {
+    border: 0;
+  }
+  .react-workspace .post {
+    max-width: 850px;
+  }
+  .react-workspace .post > p {
+    margin: 16px 0;
+  }
+  .react-workspace .post-art {
+    height: 105px;
+    margin-bottom: 10px;
+  }
+  .react-workspace .comments {
+    border-top: 1px solid #e6ebdf;
+    margin-top: 12px;
+    padding-top: 8px;
+  }
+  .react-workspace .comments p {
+    font-size: 12px;
+    margin: 7px 0;
+  }
+  .react-workspace .slot-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 47px;
+    border-bottom: 1px solid #edf0e8;
+    flex-wrap: wrap;
+    padding: 7px 0;
+  }
+  .react-workspace .slot-row > b {
+    width: 45px;
+    font-size: 12px;
+  }
+  .react-workspace .choice {
+    border: 1px solid #e1e7dc;
+    border-radius: 5px;
+    background: #fafbf8;
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .react-workspace .choice.chosen {
+    background: #e5efdf;
+    border-color: #92ac83;
+    color: #476c42;
+  }
+  .react-workspace .tag-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+  .react-workspace .tag-list button {
+    font-size: 12px;
+    color: #819477;
+  }
+  .react-workspace .slot-summary {
+    font-size: 12px;
+    color: #7b8c70;
+    line-height: 2;
+  }
+  .react-workspace .dense-list {
+    padding: 15px 18px;
+  }
+  .react-workspace .list-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid #edf0e8;
+    padding: 10px 0;
+    font-size: 12px;
+  }
+  .react-workspace .list-row > b {
+    min-width: 160px;
+  }
+  .react-workspace .list-row > span:not(.spacer) {
+    min-width: 45px;
+  }
+  .react-workspace .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px 22px;
+  }
+  .react-workspace .form-grid > label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 12px;
+    color: #75836d;
+  }
+  .react-workspace .form-grid input,
+  .react-workspace .form-grid select,
+  .react-workspace .form-grid textarea {
+    width: 100%;
+  }
+  .react-workspace .form-grid .check-field {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .react-workspace .check-field input {
+    width: auto;
+  }
+  .react-workspace .world-header h2 {
+    margin: 14px 0;
+  }
+  .react-workspace .place-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+  }
+  .react-workspace .place {
+    padding: 12px;
+    background: #f8faf5;
+    border: 1px solid #e9ede3;
+    border-radius: 6px;
+  }
+  .react-workspace .place .row {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .react-workspace .place b {
+    font-size: 13px;
+  }
+  .react-workspace .place p {
+    font-size: 12px;
+    margin: 8px 0;
+  }
+  .react-workspace .place small {
+    font-size: 12px;
+  }
+  .react-workspace .place .text-button {
+    display: block;
+    margin-top: 7px;
+  }
+  .react-workspace .table-wrap {
+    overflow: auto;
+    padding: 0;
+  }
+  .react-workspace table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+    min-width: 850px;
+  }
+  .react-workspace th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--copy-secondary);
+    background: #f8faf5;
+    padding: 11px;
+  }
+  .react-workspace td {
+    border-top: 1px solid #edf0e8;
+    padding: 10px;
+    line-height: 1.5;
+  }
+  .react-workspace td small {
+    display: block;
+    font-size: 12px;
+    margin-top: 3px;
+  }
+  .react-workspace .bio-cell {
+    max-width: 215px;
+    color: var(--copy-secondary);
+  }
+  .react-workspace tbody tr {
+    cursor: pointer;
+  }
+  .react-workspace tbody tr:hover {
+    background: #f5f8f0;
+  }
+  .react-workspace .detail-drawer {
+    position: fixed;
+    right: 18px;
+    top: 90px;
+    bottom: 25px;
+    width: 325px;
+    max-width: 90vw;
+    background: #fffefa;
+    border: 1px solid #dae3d3;
+    box-shadow: -7px 5px 25px #394c2e15;
+    border-radius: 10px;
+    z-index: 8;
+    padding: 25px;
+    overflow: auto;
+  }
+  .react-workspace .detail-drawer h2 {
+    margin-top: 25px;
+  }
+  .react-workspace .media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .react-workspace .media-tile {
+    padding: 10px;
+    text-align: left;
+  }
+  .react-workspace .media-preview {
+    height: 88px;
+    background: #e9eddf;
+    display: grid;
+    place-items: center;
+    color: #95a387;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+  .react-workspace .media-preview.photo {
+    background: linear-gradient(135deg, #e0e8d5, #eee3cd);
+  }
+  .react-workspace .media-tile b {
+    font-size: 12px;
+  }
+  .react-workspace .media-tile small {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .react-workspace .placeholder {
+    min-height: 250px;
+    display: grid;
+    place-items: center;
+    color: #98a28e;
+  }
+  .react-workspace .health {
+    border: 1px solid;
+    border-radius: 8px;
+    padding: 19px;
+  }
+  .react-workspace .health p {
+    margin: 7px 0;
+  }
+  .react-workspace .health small {
+    color: inherit;
+    opacity: 0.8;
+  }
+  .react-workspace .healthy {
+    background: #e9f1e3;
+    color: #557848;
+    border-color: #d0dfc6;
+  }
+  .react-workspace .warning {
+    background: #fbf3df;
+    color: #957639;
+    border-color: #e8d8b4;
+  }
+  .react-workspace .broken {
+    background: #f9ece7;
+    color: #a26a56;
+    border-color: #e8c9bd;
+  }
+  .react-workspace .event-link {
+    text-align: left;
+    flex: 1;
+  }
+  .react-workspace .event-link p {
+    font-size: 12px;
+    margin: 6px 0;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .diagnostic {
+    padding: 13px 0;
+  }
+  .react-workspace .event-timeline {
+    font-size: 12px;
+    line-height: 2.4;
+    color: var(--copy-secondary);
+  }
+  .react-workspace details {
+    font-size: 12px;
+    color: #89947f;
+  }
+  .react-workspace summary {
+    cursor: pointer;
+  }
+  .react-workspace pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace h2 {
+    font-size: 17px;
+  }
+  .react-workspace h3 {
+    margin-bottom: 8px;
+  }
+  .react-workspace .row h2,
+  .react-workspace .row h3 {
+    margin: 0;
+  }
+  .react-workspace .page-heading {
+    margin-bottom: 19px;
+  }
+  @media (max-width: 800px) {
+    .react-workspace .sidebar {
+      width: 128px;
+      padding: 10px 6px;
+    }
+    .react-workspace .nav-item {
+      justify-content: flex-start;
+      gap: 6px;
+      padding: 6px;
+      font-size: 12px;
+    }
+    .react-workspace .nav-item span {
+      display: inline;
+    }
+    .react-workspace .nav-item svg {
+      width: 14px;
+      flex: none;
+    }
+    .react-workspace .life-nav {
+      padding-left: 12px;
+    }
+    .react-workspace .life-nav .nav-item {
+      font-size: 12px;
+      padding-left: 8px;
+    }
+    .react-workspace .nav-divider {
+      display: block;
+    }
+    .react-workspace .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .react-workspace .toolbar input {
+      min-width: 100px;
+    }
+    .react-workspace .list-row {
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .react-workspace .list-row > b {
+      min-width: 110px;
+    }
+    .react-workspace .media-grid {
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    }
+    .react-workspace .compact .row {
+      flex-wrap: wrap;
+    }
+    .react-workspace .brand-en {
+      display: none;
+    }
+    .react-workspace .card {
+      padding: 14px;
+    }
+    .react-workspace .preview {
+      width: 255px;
+    }
+  }
+  .react-workspace,
+  .react-workspace main,
+  .react-workspace .timeline,
+  .react-workspace .sidebar,
+  .react-workspace .preview {
+    scrollbar-gutter: stable;
+  }
+  .react-workspace main > .page-heading,
+  .react-workspace main > .page-content {
+    width: 100%;
+    max-width: 1360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .react-workspace .page-content {
+    max-width: 1360px;
+  }
+  .react-workspace .chat-layout {
+    width: 100%;
+    max-width: 1360px;
+    margin: 0 auto;
+  }
+  .react-workspace .chat-layout.collapsed {
+    max-width: 900px;
+  }
+  .react-workspace .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translate(-50%);
+    z-index: 40;
+    max-width: calc(100vw - 32px);
+    padding: 12px 20px;
+    border: 1px solid #d8e2d3;
+    border-radius: 24px;
+    background: #fffefa;
+    box-shadow: 0 5px 24px #344d3020;
+    font-size: 13px;
+  }
+  .react-workspace .toast a {
+    color: #537d67;
+    margin-left: 12px;
+  }
+  .react-workspace .inline-error {
+    font-size: 12px;
+    color: #a15e49;
+    margin: 4px 0;
+    line-height: 1.8;
+  }
+  .react-workspace .inline-error .text-button {
+    color: inherit;
+    text-decoration: underline;
+  }
+  .react-workspace .drawer-backdrop,
+  .react-workspace .modal-backdrop {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: #24372c55;
+    z-index: 20;
+  }
+  .react-workspace .modal-backdrop {
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+  .react-workspace .detail-drawer {
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 460px;
+    max-width: 94vw;
+    border-radius: 16px 0 0 16px;
+    padding: 28px;
+    display: block;
+  }
+  .react-workspace .detail-drawer.form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .react-workspace .detail-drawer label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .react-workspace .detail-drawer .row label {
+    flex-direction: row;
+    align-items: center;
+  }
+  .react-workspace .confirm-dialog {
+    max-width: 520px;
+    width: 100%;
+  }
+  .react-workspace .confirm-dialog p {
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .confirm-dialog .row {
+    justify-content: flex-end;
+  }
+  .react-workspace .people-grid,
+  .react-workspace .garment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+  }
+  .react-workspace .person-card {
+    text-align: left;
+    min-height: 190px;
+    background: #fffefa;
+  }
+  .react-workspace .person-card h3 {
+    margin: 14px 0 7px;
+  }
+  .react-workspace .person-card p {
+    font-size: 13px;
+    color: #7a8973;
+    margin-bottom: 9px;
+  }
+  .react-workspace .empty-state {
+    text-align: center;
+    padding: 65px 20px;
+  }
+  .react-workspace .filtered {
+    border-color: #648b71;
+    background: #edf4e8;
+    color: #416a4e;
+  }
+  .react-workspace .garment-thumb {
+    height: 115px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  .react-workspace .garment-thumb > span {
+    font-size: 48px;
+  }
+  .react-workspace .garment-card h3 {
+    margin: 14px 0 7px;
+  }
+  .react-workspace .actions-menu {
+    position: relative;
+    flex: none;
+  }
+  .react-workspace .actions-menu > summary {
+    list-style: none;
+    font-size: 23px;
+    padding: 3px 12px;
+    border-radius: 7px;
+    color: #60735c;
+  }
+  .react-workspace .actions-menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .react-workspace .actions-menu > div {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    width: 125px;
+    background: #fff;
+    border: 1px solid #dce4d6;
+    box-shadow: 0 5px 18px #30442b18;
+    padding: 6px;
+    border-radius: 8px;
+    z-index: 4;
+  }
+  .react-workspace .actions-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    text-align: left;
+    font-size: 13px;
+  }
+  .react-workspace .wear-tags {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .react-workspace .wear-tags label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid #dfe6d8;
+    background: #f5f8ef;
+    border-radius: 7px;
+    padding: 6px;
+    max-width: 100%;
+  }
+  .react-workspace .wear-tags select {
+    font-size: 12px;
+    padding: 4px;
+    background: transparent;
+    border: 0;
+    max-width: 200px;
+  }
+  .react-workspace .context-list .wear-tags {
+    border: 0;
+    padding: 0;
+  }
+  .react-workspace .place-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .react-workspace .place small {
+    display: block;
+    margin-top: 6px;
+  }
+  .react-workspace .place .row small {
+    display: inline;
+  }
+  .react-workspace .edit-place {
+    margin-top: 12px;
+    min-height: 40px;
+    padding: 10px 16px;
+  }
+  .react-workspace .comments p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .react-workspace .comments small {
+    margin-left: 8px;
+  }
+  .react-workspace .media-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  .react-workspace .media-art-0 {
+    background: linear-gradient(140deg, #e7dcc4, #92ab8c) !important;
+  }
+  .react-workspace .media-art-1 {
+    background: linear-gradient(30deg, #a9bdc2, #f0e5db) !important;
+  }
+  .react-workspace .media-art-2 {
+    background: linear-gradient(150deg, #cab7ca, #f0e4c8) !important;
+  }
+  .react-workspace .media-art-3 {
+    background: linear-gradient(50deg, #cfb99a, #edf1d8) !important;
+  }
+  .react-workspace .media-art-4 {
+    background: linear-gradient(140deg, #a9c4b6, #e5d4c2) !important;
+  }
+  .react-workspace .media-art-5 {
+    background: linear-gradient(20deg, #b2b5d0, #efe8d9) !important;
+  }
+  .react-workspace .media-modal {
+    width: min(680px, 90vw);
+  }
+  .react-workspace .large-media {
+    height: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    color: #fff;
+  }
+  .react-workspace .inline-profile {
+    border-top: 1px solid #e3e8dd;
+    margin-top: 20px;
+    padding: 20px 10px 0;
+  }
+  .react-workspace .current-badge {
+    background: #e6efdf;
+    color: #426749;
+  }
+  .react-workspace .settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .react-workspace .settings-form > .button {
+    align-self: flex-start;
+  }
+  .react-workspace .settings-group summary {
+    font-size: 15px;
+    color: #586e54;
+  }
+  .react-workspace .settings-group .form-grid {
+    margin-top: 22px;
+  }
+  .react-workspace .health.neutral {
+    background: #f0f3eb;
+    color: #64785b;
+    border-color: #dfe7d6;
+  }
+  .react-workspace .health h2 {
+    margin-bottom: 8px;
+  }
+  .react-workspace .event-row {
+    border-top: 1px solid #e8edde;
+    padding: 12px 0;
+  }
+  .react-workspace .event-timeline {
+    background: #f7f9f2;
+    padding: 15px 35px;
+    border-radius: 8px;
+  }
+  .react-workspace input[type="checkbox"]:not(.switch) {
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    appearance: auto;
+    accent-color: #5c8168;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex: none;
+    vertical-align: middle;
+  }
+  .react-workspace .row label,
+  .react-workspace .goal,
+  .react-workspace .check-field {
+    align-items: center;
+    gap: 8px;
+  }
+  .react-workspace select {
+    min-height: 34px;
+    outline-color: #648b71;
+  }
+  .react-workspace input,
+  .react-workspace textarea,
+  .react-workspace select {
+    font-size: 13px;
+  }
+  .react-workspace .button,
+  .react-workspace .text-button,
+  .react-workspace .choice,
+  .react-workspace .slot-row > b,
+  .react-workspace .list-row,
+  .react-workspace .form-grid > label,
+  .react-workspace .place p,
+  .react-workspace .comments p,
+  .react-workspace .media-tile b,
+  .react-workspace .compact-bio p,
+  .react-workspace .context-list p {
+    font-size: 13px;
+  }
+  .react-workspace .media-grid {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .react-workspace .media-grid > .media-tile {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+  .react-workspace .slot-summary {
+    font-size: 13px;
+  }
+  .react-workspace .wear-tags label > span {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .person-card:focus-visible {
+    outline: 2px solid #558d7d;
+    outline-offset: 3px;
+  }
+  .react-workspace .media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 200px);
+    justify-content: start;
+    gap: 16px;
+  }
+  .react-workspace .media-grid > .media-tile {
+    width: 200px;
+    min-width: 0;
+  }
+  .react-workspace .media-open {
+    width: 100%;
+    padding: 0;
+    text-align: left;
+  }
+  .react-workspace .audio-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .react-workspace .audio-control progress {
+    width: 90px;
+  }
+  .react-workspace .audio-control small {
+    width: 100%;
+  }
+  .react-workspace .outfit-block {
+    padding: 16px 0;
+  }
+  .react-workspace .preview .outfit-block {
+    padding: 18px 16px;
+    border-bottom: 1px solid #e5eade;
+  }
+  .react-workspace .outfit-lines {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+  }
+  .react-workspace .outfit-lines > div {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .react-workspace .outfit-lines small {
+    font-size: 12px;
+  }
+  .react-workspace .slot-accordion {
+    padding: 14px 0;
+    border-bottom: 1px solid #e7ebe2;
+  }
+  .react-workspace .slot-accordion summary {
+    font-size: 14px;
+    color: #4c6051;
+    display: flex;
+    gap: 25px;
+    align-items: center;
+  }
+  .react-workspace .slot-accordion summary:before {
+    content: "›";
+  }
+  .react-workspace .slot-accordion[open] summary:before {
+    transform: rotate(90deg);
+  }
+  .react-workspace .slot-accordion .slot-row {
+    border: 0;
+    padding-top: 15px;
+  }
+  .react-workspace .slot-accordion summary small {
+    font-weight: 400;
+  }
+  .react-workspace .appointment-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+  .react-workspace .appointment-link h3 {
+    margin: 12px 0;
+  }
+  .react-workspace .current-schedule {
+    border-left: 3px solid #88a28a;
+  }
+  .react-workspace .current-schedule h3 {
+    margin: 10px 0;
+  }
+  .react-workspace .appointment-row {
+    display: flex;
+    gap: 25px;
+    padding: 14px 8px 14px 20px;
+    border-left: 1px solid #becfbc;
+    position: relative;
+  }
+  .react-workspace .appointment-row:before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: 21px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #8eaa91;
+  }
+  .react-workspace .appointment-row time {
+    color: #7c8e7a;
+  }
+  .react-workspace .card progress {
+    accent-color: #829c80;
+    width: 100%;
+    height: 5px;
+    margin-top: 16px;
+  }
+  .react-workspace .calendar {
+    max-width: 460px;
+  }
+  .react-workspace .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    text-align: center;
+  }
+  .react-workspace .calendar-grid button {
+    height: 38px;
+    border-radius: 7px;
+    position: relative;
+  }
+  .react-workspace .calendar-grid .marked {
+    background: #edf2e8;
+  }
+  .react-workspace .calendar-grid .selected {
+    outline: 1px solid #809a80;
+  }
+  .react-workspace .calendar-grid i {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #779273;
+    bottom: 4px;
+    left: calc(50% - 2px);
+  }
+  .react-workspace .diary-columns {
+    columns: 3 240px;
+    column-gap: 18px;
+  }
+  .react-workspace .diary-columns .diary {
+    break-inside: avoid;
+    margin: 0 0 18px;
+    display: inline-block;
+    width: 100%;
+    background: #fffefa;
+  }
+  .react-workspace .diary h3 {
+    margin-top: 18px;
+  }
+  .react-workspace .highlight {
+    outline: 2px solid #9bb094;
+    outline-offset: 3px;
+  }
+  .react-workspace .world-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+  }
+  .react-workspace .world-list .current {
+    border-color: #93ad90;
+  }
+  .react-workspace .diary-generation {
+    min-width: 0;
+  }
+  .react-workspace .diary-generation .row {
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .react-workspace .diary-generation label {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .react-workspace .notification-item {
+    display: block;
+    width: 100%;
+    padding: 0.9rem 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+    background: transparent;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .notification-group summary {
+    margin-bottom: 0.75rem;
+  }
+  @media (max-width: 800px) {
+    .react-workspace .diary-heading {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+    }
+    .react-workspace .diary-heading > .spacer {
+      display: none;
+    }
+    .react-workspace .diary-generation {
+      width: 100%;
+      max-width: 100%;
+    }
+    .react-workspace .diary-generation label {
+      flex: 1 1 140px;
+      min-width: 0;
+    }
+    .react-workspace .diary-generation input {
+      min-height: 44px;
+      max-width: 100%;
+    }
+    .react-workspace .diary-generation .button {
+      flex: 1 1 170px;
+      min-width: 0;
+      min-height: 44px;
+      max-width: 100%;
+      white-space: normal;
+    }
+    .react-workspace .diary-layout {
+      grid-template-columns: minmax(0, 1fr);
+      min-width: 0;
+    }
+    .react-workspace .diary-layout .calendar,
+    .react-workspace .diary-book {
+      min-width: 0;
+      max-width: 100%;
+    }
+    .react-workspace .diary-layout .calendar-grid {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 3px;
+    }
+    .react-workspace .diary-layout .calendar-grid button {
+      min-width: 0;
+      min-height: 44px;
+      padding-inline: 0;
+    }
+  }
+  .react-workspace .notification-card {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 14px;
+  }
+  .react-workspace .notification-card p {
+    margin: 8px 0;
+    font-size: 13px;
+    white-space: normal;
+  }
+  .react-workspace .diagnostic-summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    color: #7c8879;
+    font-size: 13px;
+  }
+  .react-workspace .settings-group > details {
+    margin-top: 20px;
+  }
+  .react-workspace .settings-group > details > summary {
+    font-size: 13px;
+  }
+  .react-workspace .settings-group details label {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .react-workspace .schedule-row {
+    gap: 15px;
+  }
+  .react-workspace .schedule-row input {
+    min-width: 0;
+  }
+  .react-workspace .comments textarea {
+    flex: 1;
+    min-width: 0;
+  }
+  .react-workspace .preview .outfit-block .button {
+    padding: 0;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
+  .react-workspace button:focus-visible,
+  .react-workspace a:focus-visible,
+  .react-workspace summary:focus-visible {
+    outline: 2px solid #809a80;
+    outline-offset: 3px;
+  }
+  .react-workspace button:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+  .react-workspace .filter-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 5px 0 14px;
+    border-bottom: 1px solid #e3e8df;
+  }
+  .react-workspace .filter-search-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 3px;
+  }
+  .react-workspace .filter-search-row input {
+    width: min(100%, 390px);
+    background: #fcfdf9;
+    border: 1px solid #dfe5d9;
+    border-radius: 20px;
+    padding: 10px 16px;
+  }
+  .react-workspace .filter-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .react-workspace .filter-group > small {
+    width: 36px;
+    flex: none;
+    color: #899282;
+    font-size: 12px;
+  }
+  .react-workspace .filter-chip {
+    padding: 5px 11px;
+    min-height: 29px;
+    border-radius: 16px;
+    font-size: 12px;
+    color: #7d8977;
+    transition:
+      background 0.15s,
+      color 0.15s;
+    border: 1px solid transparent;
+  }
+  .react-workspace .filter-chip:hover {
+    background: #eff3e9;
+  }
+  .react-workspace .filter-chip.active {
+    background: #e6eee1;
+    color: #45654b;
+    border-color: #cbdac6;
+  }
+  .react-workspace .drawer-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #e6eadf;
+    margin-bottom: 22px;
+  }
+  .react-workspace .drawer-heading h2 {
+    font-size: 18px;
+    margin: 0;
+  }
+  .react-workspace .detail-drawer {
+    width: 490px;
+    z-index: 21;
+    outline: none;
+  }
+  .react-workspace .detail-drawer > .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .react-workspace .detail-drawer .form-grid > button {
+    align-self: flex-start;
+  }
+  .react-workspace .detail-drawer pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.9;
+    font-size: 12px;
+    font-family: inherit;
+    background: #f3f5ed;
+    border-radius: 8px;
+    padding: 15px;
+    max-height: none;
+  }
+  .react-workspace .drawer-backdrop {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+  .react-workspace .outfit-compact {
+    padding: 0;
+  }
+  .react-workspace .outfit-tags {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .react-workspace .outfit-tags > div {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+    padding: 7px 9px;
+    background: #f5f7ef;
+    border-radius: 5px;
+    font-size: 12px;
+  }
+  .react-workspace .outfit-tags small {
+    font-size: 12px;
+    white-space: nowrap;
+    color: #97a08c;
+  }
+  .react-workspace .outfit-tags span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .react-workspace .now-grid {
+    align-items: stretch;
+  }
+  .react-workspace .now-appointments h2 {
+    font-size: 14px;
+    margin: 0;
+  }
+  .react-workspace .now-appointments .appointment-row {
+    padding-top: 17px;
+    padding-bottom: 12px;
+    margin-left: 4px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .react-workspace .now-appointments time {
+    line-height: 1.7;
+    font-size: 12px;
+  }
+  .react-workspace .schedule-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .react-workspace .schedule-list .is-current .schedule-dot {
+    background: #658669;
+    box-shadow: 0 0 0 4px #edf2e6;
+  }
+  .react-workspace .schedule-list .is-current > .schedule-text {
+    color: #44674c;
+  }
+  .react-workspace .schedule-editor {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .react-workspace .schedule-editor input:not([type="time"]) {
+    flex: 1;
+  }
+  .react-workspace .small-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+  }
+  .react-workspace .goal-card {
+    padding: 18px 20px;
+  }
+  .react-workspace .goal-card .goal {
+    font-size: 14px;
+    min-height: 68px;
+    padding: 15px 0;
+    line-height: 1.7;
+  }
+  .react-workspace .goal-card .progress {
+    margin-top: 4px;
+    height: 5px;
+    width: 100%;
+    background: #edf1e6;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .react-workspace .goal-card .progress i {
+    height: 100%;
+    background: #8fa889;
+    transition: width 0.3s ease;
+  }
+  .react-workspace .section-heading {
+    margin: 10px 0 16px;
+  }
+  .react-workspace .appointment-card small {
+    font-size: 12px;
+    color: #91a086;
+  }
+  .react-workspace .appointment-card h3 {
+    font-size: 14px;
+    margin: 17px 0 11px;
+  }
+  .react-workspace .appointment-card > .muted {
+    font-size: 12px;
+  }
+  .react-workspace #appointments {
+    scroll-margin-top: 24px;
+    border-radius: 10px;
+  }
+  .react-workspace .diary-layout {
+    display: grid;
+    grid-template-columns: 285px minmax(0, 1fr);
+    gap: 30px;
+    align-items: start;
+    max-width: 1080px;
+    width: 100%;
+  }
+  .react-workspace .diary-layout .calendar {
+    width: 100%;
+    padding: 21px 17px;
+    position: sticky;
+    top: 0;
+  }
+  .react-workspace .calendar h3 {
+    font-weight: 500;
+    margin: 0 0 20px;
+    font-size: 15px;
+  }
+  .react-workspace .calendar-grid {
+    gap: 5px;
+  }
+  .react-workspace .calendar-grid > small {
+    font-size: 12px;
+    padding-bottom: 7px;
+  }
+  .react-workspace .calendar-grid button {
+    height: 32px;
+    font-size: 12px;
+  }
+  .react-workspace .calendar-grid button:disabled {
+    opacity: 0.4;
+  }
+  .react-workspace .calendar-note {
+    font-size: 12px;
+    line-height: 1.8;
+    margin: 23px 0 0;
+  }
+  .react-workspace .diary-book {
+    perspective: 1400px;
+    min-width: 0;
+    border: 1px solid #e2dfd0;
+    border-radius: 3px 12px 12px 3px;
+    background: #f4f0e4;
+    box-shadow:
+      4px 4px #ede9dc,
+      5px 5px #e2dfd4;
+    overflow: hidden;
+  }
+  .react-workspace .diary-paper {
+    min-height: 450px;
+    padding: 34px 42px 20px 48px;
+    transform-origin: 0 50%;
+    background: linear-gradient(90deg, #e9e4d4 0, #fbf8ef 12px, #fffdf5 32px);
+    backface-visibility: hidden;
+  }
+  .react-workspace .diary-paper > small {
+    color: #9a9d8a;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .react-workspace .diary-paper h2 {
+    font-family:
+      Songti SC,
+      STSong,
+      "Noto Serif CJK SC",
+      serif;
+    font-size: 25px;
+    font-weight: 500;
+    margin: 24px 0 18px;
+    line-height: 1.6;
+    color: #53604d;
+  }
+  .react-workspace .diary-attributes {
+    gap: 20px;
+    font-size: 12px;
+    color: #8a967d;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+  }
+  .react-workspace .diary-paper .diary-text {
+    font-family:
+      Songti SC,
+      STSong,
+      "Noto Serif CJK SC",
+      serif;
+    font-size: 15px;
+    line-height: 32px;
+    letter-spacing: 0.6px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    min-height: 192px;
+    padding: 0;
+    margin: 0;
+    background: repeating-linear-gradient(
+      transparent 0,
+      transparent 31px,
+      #b8b49b28 31px,
+      #b8b49b28 32px
+    );
+    color: #5f6956;
+  }
+  .react-workspace .diary-signature {
+    text-align: right;
+    font-family: serif;
+    font-size: 13px;
+    color: #8c997f;
+    margin-top: 25px;
+  }
+  .react-workspace .book-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 20px 30px;
+    border-top: 1px solid #e9e4d6;
+    background: #faf7ed;
+  }
+  .react-workspace .book-controls small {
+    font-size: 12px;
+    color: #90957f;
+    letter-spacing: 2px;
+  }
+  .react-workspace .page-next-enter-active,
+  .react-workspace .page-prev-enter-active,
+  .react-workspace .page-next-leave-active,
+  .react-workspace .page-prev-leave-active {
+    transition:
+      transform 0.24s ease,
+      opacity 0.24s ease;
+  }
+  .react-workspace .page-next-enter-from {
+    transform: rotateY(14deg);
+    opacity: 0;
+  }
+  .react-workspace .page-next-leave-to {
+    transform: rotateY(-35deg);
+    opacity: 0;
+  }
+  .react-workspace .page-prev-enter-from {
+    transform: rotateY(-14deg);
+    opacity: 0;
+  }
+  .react-workspace .page-prev-leave-to {
+    transform: rotateY(35deg);
+    opacity: 0;
+  }
+  .react-workspace .memory-list {
+    border: 1px solid #e0e6d9;
+    background: #fffefa;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .react-workspace .memory-item + .memory-item {
+    border-top: 1px solid #e7ebdf;
+  }
+  .react-workspace .memory-summary {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 22px;
+    text-align: left;
+    width: 100%;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .react-workspace .memory-summary:hover,
+  .react-workspace .memory-item.expanded {
+    background: #f6f8f0;
+  }
+  .react-workspace .memory-content {
+    flex: 1;
+  }
+  .react-workspace .memory-summary time {
+    font-size: 12px;
+    color: #99a18e;
+    white-space: nowrap;
+  }
+  .react-workspace .memory-summary .pill {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .react-workspace .memory-chevron {
+    width: 15px;
+    flex: none;
+    color: #91a182;
+  }
+  .react-workspace .memory-details {
+    padding: 0 24px 23px 52px;
+  }
+  .react-workspace .memory-details dl {
+    display: grid;
+    gap: 14px;
+    margin: 4px 0 23px;
+  }
+  .react-workspace .memory-details dl > div {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    font-size: 12px;
+  }
+  .react-workspace .memory-details dt {
+    color: #98a08c;
+    min-width: 38px;
+  }
+  .react-workspace .memory-details dd {
+    margin: 0;
+    line-height: 1.7;
+  }
+  .react-workspace .memory-details .row {
+    gap: 24px;
+  }
+  .react-workspace .memory-stars {
+    color: #94a57b;
+    letter-spacing: 3px;
+  }
+  .react-workspace .memory-stars span {
+    color: #b6bea9;
+  }
+  .react-workspace .chip-field {
+    border: 0;
+    padding: 0;
+    min-width: 0;
+    margin: 0;
+  }
+  .react-workspace .chip-field legend {
+    font-size: 12px;
+    margin-bottom: 13px;
+    color: #76866b;
+  }
+  .react-workspace .chip-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .react-workspace .star-control {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .react-workspace .star-control button {
+    font-size: 26px;
+    color: #dce1d0;
+    padding: 0 3px;
+  }
+  .react-workspace .star-control button.filled {
+    color: #a8ad77;
+  }
+  .react-workspace .star-control small {
+    margin-left: 12px;
+    color: #98a18b;
+  }
+  .react-workspace .configuration-layout {
+    display: grid;
+    grid-template-columns: 155px minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  .react-workspace .configuration-nav {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 0;
+    border-left: 1px solid #dde5d5;
+  }
+  .react-workspace .configuration-nav a {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #85927a;
+    text-decoration: none;
+    padding: 8px 13px;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .configuration-nav a:hover {
+    color: #4e7150;
+    background: #eef3e7;
+    border-radius: 0 6px 6px 0;
+  }
+  .react-workspace .settings-group {
+    scroll-margin-top: 18px;
+    min-width: 0;
+  }
+  .react-workspace .settings-save-bar {
+    position: sticky;
+    bottom: -1px;
+    z-index: 3;
+    background: #fafcf5f5;
+    border: 1px solid #dfe6d5;
+    border-radius: 10px;
+    box-shadow: 0 -5px 15px #465b3907;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px 20px;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .react-workspace .settings-save-bar > span {
+    font-size: 12px;
+  }
+  .react-workspace .settings-save-bar .inline-error {
+    margin: 0;
+    font-size: 12px;
+  }
+  .react-workspace .settings-save-bar > button {
+    flex: none;
+  }
+  .react-workspace .diagnostic-feed {
+    border: 1px solid #e0e6d9;
+    background: #fffefa;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .react-workspace .diagnostic-record {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 22px;
+    scroll-margin-top: 24px;
+  }
+  .react-workspace .diagnostic-record + .diagnostic-record {
+    border-top: 1px solid #e9ecdf;
+  }
+  .react-workspace .diagnostic-record:hover {
+    background: #f6f8f1;
+  }
+  .react-workspace .diagnostic-record.highlighted {
+    background: #edf3e5;
+    box-shadow: inset 3px 0 #8fa883;
+  }
+  .react-workspace .diagnostic-open {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    padding: 18px 22px;
+  }
+  .react-workspace .diagnostic-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-size: 12px;
+    color: #75836b;
+    flex-wrap: wrap;
+  }
+  .react-workspace .diagnostic-meta time {
+    font-size: 12px;
+    color: #a0a691;
+    font-variant-numeric: tabular-nums;
+  }
+  .react-workspace .diagnostic-meta .pill {
+    font-size: 12px;
+  }
+  .react-workspace .diagnostic-meta small {
+    font-size: 12px;
+    width: 44px;
+    text-align: right;
+  }
+  .react-workspace .diagnostic-summary {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: 10px 0 0;
+    padding: 0;
+    font-size: 12px;
+    color: #929986;
+  }
+  .react-workspace .diagnostic-retry {
+    font-size: 12px;
+    flex: none;
+  }
+  .react-workspace .call-status {
+    font-size: 12px;
+    color: #809474;
+  }
+  .react-workspace .call-status.error {
+    color: #b08b7e;
+  }
+  .react-workspace .call-status.pending {
+    color: #b2a073;
+  }
+  .react-workspace .detail-meta p {
+    font-size: 12px;
+    color: #95a087;
+    line-height: 1.8;
+  }
+  .react-workspace .detail-section {
+    margin: 27px 0 0;
+  }
+  .react-workspace .detail-section h3 {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 13px;
+    color: #738566;
+  }
+  .react-workspace .media-call-attributes {
+    display: grid;
+    gap: 14px;
+    margin-top: 26px;
+    font-size: 12px;
+  }
+  .react-workspace .media-call-attributes > div {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .react-workspace .media-call-attributes dt {
+    min-width: 65px;
+    flex: none;
+    color: #99a18d;
+  }
+  .react-workspace .media-call-attributes dd {
+    margin: 0;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .mock-image-output {
+    border-radius: 8px;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: linear-gradient(125deg, #d9e0cb, #f3e7ce);
+    text-align: center;
+    color: #7f8c70;
+  }
+  .react-workspace .mock-image-output > span {
+    font-size: 32px;
+  }
+  .react-workspace .mock-image-output p {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .mock-image-output small {
+    font-size: 12px;
+  }
+  .react-workspace .comments p {
+    white-space: pre-wrap;
+  }
+  @media (max-width: 1100px) {
+    .react-workspace .diary-layout {
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 20px;
+    }
+    .react-workspace .diary-paper {
+      padding: 28px 25px 20px 30px;
+    }
+    .react-workspace .configuration-layout {
+      grid-template-columns: 125px minmax(0, 1fr);
+      gap: 16px;
+    }
+    .react-workspace .diagnostic-meta {
+      gap: 10px;
+    }
+  }
+  @media (max-width: 800px) {
+    .react-workspace .diary-layout {
+      grid-template-columns: 1fr;
+      max-width: 600px;
+      gap: 20px;
+    }
+    .react-workspace .diary-layout .calendar {
+      position: static;
+      max-width: 100%;
+    }
+    .react-workspace .calendar-grid button {
+      height: 35px;
+    }
+    .react-workspace .calendar-note {
+      margin-top: 12px;
+    }
+    .react-workspace .now-grid,
+    .react-workspace .configuration-layout {
+      grid-template-columns: 1fr;
+    }
+    .react-workspace .configuration-nav {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      border: 0;
+      border-bottom: 1px solid #dde5d5;
+      padding: 0 0 10px;
+      gap: 2px;
+    }
+    .react-workspace .configuration-nav a {
+      font-size: 12px;
+      padding: 6px 8px;
+    }
+    .react-workspace .memory-summary {
+      padding: 16px 13px;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+    .react-workspace .memory-content {
+      flex-basis: calc(100% - 30px);
+    }
+    .react-workspace .memory-summary time {
+      margin-left: 24px;
+    }
+    .react-workspace .memory-details {
+      padding-left: 35px;
+    }
+    .react-workspace .schedule-editor {
+      flex-wrap: wrap;
+    }
+    .react-workspace .schedule-row {
+      gap: 9px;
+    }
+    .react-workspace .schedule-row .pill {
+      font-size: 12px;
+    }
+    .react-workspace .settings-save-bar {
+      padding: 12px;
+      gap: 10px;
+    }
+    .react-workspace .diagnostic-open {
+      padding: 15px 13px;
+    }
+    .react-workspace .diagnostic-record {
+      padding-right: 12px;
+    }
+    .react-workspace .diagnostic-meta {
+      gap: 8px;
+    }
+    .react-workspace .diagnostic-meta .spacer {
+      display: none;
+    }
+    .react-workspace .diagnostic-summary {
+      max-width: 100%;
+    }
+    .react-workspace .book-controls {
+      padding: 17px;
+    }
+    .react-workspace .filter-group > small {
+      width: 29px;
+    }
+    .react-workspace .filter-chip {
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .react-workspace *,
+    .react-workspace *:before,
+    .react-workspace *:after {
+      scroll-behavior: auto !important;
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+  .react-workspace .scroll-lock-list {
+    max-height: min(320px, 60vh);
+    overflow: auto;
+    overscroll-behavior: auto;
+  }
+  .react-workspace .schedule-list .actions-menu[open] {
+    z-index: 50;
+  }
+  .react-workspace .schedule-list .actions-menu > div {
+    top: 0;
+    right: calc(100% + 8px);
+    z-index: 50;
+  }
+  .react-workspace {
+    --ink: #1f2a27;
+    --copy-secondary: #56655c;
+    --copy-muted: #59675e;
+    --teal: #286b59;
+    --teal-hover: #205746;
+    --teal-soft: #e1eee7;
+    --page: #f0f3f0;
+    --surface: #fff;
+    --border: #dbe3dd;
+    --rule: #e8ede9;
+    --panel-shadow: 0 2px 8px #20382d06;
+    color: var(--ink);
+    background: var(--page);
+  }
+  .react-workspace h1,
+  .react-workspace h2,
+  .react-workspace h3,
+  .react-workspace b,
+  .react-workspace strong {
+    color: var(--ink);
+  }
+  .react-workspace h1 {
+    font-weight: 700;
+  }
+  .react-workspace h2 {
+    font-size: 18px;
+    font-weight: 650;
+  }
+  .react-workspace details {
+    color: var(--ink);
+  }
+  .react-workspace small,
+  .react-workspace .muted {
+    color: var(--copy-secondary);
+    font-size: 12px;
+  }
+  .react-workspace button:hover:not(:disabled) {
+    filter: none;
+  }
+  .react-workspace button:focus-visible,
+  .react-workspace a:focus-visible,
+  .react-workspace summary:focus-visible,
+  .react-workspace input:focus-visible,
+  .react-workspace textarea:focus-visible,
+  .react-workspace select:focus-visible,
+  .react-workspace .person-card:focus-visible {
+    outline-color: var(--teal);
+  }
+  .react-workspace input,
+  .react-workspace textarea,
+  .react-workspace select {
+    background: var(--surface);
+    color: var(--ink);
+    border-color: #cfdad2;
+    accent-color: var(--teal);
+  }
+  .react-workspace input::placeholder,
+  .react-workspace textarea::placeholder {
+    color: var(--copy-muted);
+    opacity: 1;
+  }
+  .react-workspace input[type="checkbox"]:not(.switch) {
+    accent-color: var(--teal);
+  }
+  .react-workspace select {
+    outline-color: var(--teal);
+  }
+  .react-workspace .button {
+    color: #354b40;
+    background: var(--surface);
+    border-color: #cdd9d0;
+    font-weight: 550;
+    box-shadow: 0 1px 2px #20382d05;
+  }
+  .react-workspace .button:hover:not(:disabled) {
+    background: #f3f7f4;
+    border-color: #9db5a7;
+  }
+  .react-workspace .button.primary {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #fff;
+    font-weight: 650;
+    box-shadow: 0 2px 3px #20574616;
+  }
+  .react-workspace .button.primary:hover:not(:disabled) {
+    background: var(--teal-hover);
+    border-color: var(--teal-hover);
+  }
+  .react-workspace .text-button,
+  .react-workspace .tag-list button,
+  .react-workspace .toast a {
+    color: var(--teal);
+    font-weight: 550;
+  }
+  .react-workspace .text-button:hover:not(:disabled) {
+    color: var(--teal-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .react-workspace .pill {
+    color: #5f7166;
+    border-color: var(--border);
+    background: #f4f7f4;
+  }
+  .react-workspace .tabs {
+    border-color: #d4dfd7;
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+  .react-workspace .tabs button {
+    color: var(--copy-secondary);
+    font-size: 13px;
+  }
+  .react-workspace .tabs button:hover {
+    background: #e9efea;
+    border-radius: 5px;
+  }
+  .react-workspace .tabs .active,
+  .react-workspace .tabs .active:hover {
+    color: #1d5b48;
+    background: var(--teal-soft);
+    font-weight: 650;
+    box-shadow: inset 0 -2px var(--teal);
+  }
+  .react-workspace .filter-chips {
+    border-color: #d8e2da;
+    gap: 11px;
+  }
+  .react-workspace .filter-search-row input {
+    background: var(--surface);
+    border-color: #cdd9d0;
+    border-radius: 8px;
+  }
+  .react-workspace .filter-group > small {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .filter-chip {
+    color: #53665b;
+  }
+  .react-workspace .filter-chip:hover {
+    background: #e4ece6;
+  }
+  .react-workspace .filter-chip[aria-pressed="true"],
+  .react-workspace .filter-chip[aria-pressed="true"]:hover,
+  .react-workspace .filter-chip.active,
+  .react-workspace .filter-chip.active:hover {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+    font-weight: 600;
+  }
+  .react-workspace .choice {
+    background: #fafcfa;
+    border-color: #d4dfd6;
+    color: #42584b;
+  }
+  .react-workspace .choice:hover:not(:disabled) {
+    background: #edf4ef;
+    border-color: #a6beae;
+  }
+  .react-workspace .choice.chosen,
+  .react-workspace .filtered {
+    color: #19513f;
+    background: #dceee2;
+    border-color: #64937a;
+    font-weight: 600;
+  }
+  .react-workspace .current-badge {
+    color: #1c5a43;
+    background: #deeee3;
+    border-color: #b5d1c0;
+    font-weight: 600;
+  }
+  .react-workspace .topbar {
+    border-color: var(--border);
+  }
+  .react-workspace .brand-mark {
+    background: var(--teal);
+  }
+  .react-workspace .brand-en,
+  .react-workspace .workspace-label,
+  .react-workspace .nav-section {
+    color: var(--copy-muted);
+  }
+  .react-workspace .workspace-label span {
+    color: #4d6356;
+    font-weight: 550;
+  }
+  .react-workspace .scope {
+    color: var(--copy-secondary);
+    border-color: var(--border);
+    background: #f7f9f6;
+  }
+  .react-workspace .local,
+  .react-workspace .status,
+  .react-workspace .failure-toggle,
+  .react-workspace .icon-button {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .local i,
+  .react-workspace .status i,
+  .react-workspace .online-dot {
+    background: #3c8c63;
+  }
+  .react-workspace .failure-toggle input {
+    accent-color: var(--teal);
+  }
+  .react-workspace .self-avatar {
+    color: #645c50;
+    background: #f4efe5;
+    border-color: #e2dacb;
+  }
+  .react-workspace .sidebar {
+    background: #f9fbf8;
+    border-color: #d9e2da;
+  }
+  .react-workspace .nav-item {
+    color: #52645a;
+  }
+  .react-workspace .nav-item svg {
+    color: #788b7e;
+    stroke-width: 1.7;
+  }
+  .react-workspace .nav-item:hover {
+    background: #edf2ec;
+  }
+  .react-workspace .nav-item.active {
+    background: #dcebe1;
+    color: #1d5945;
+    font-weight: 650;
+    box-shadow: inset 3px 0 var(--teal);
+  }
+  .react-workspace .nav-item.active svg {
+    color: var(--teal);
+    stroke-width: 2;
+  }
+  .react-workspace .nav-divider {
+    border-color: #dfe6de;
+  }
+  .react-workspace .sidebar-footer,
+  .react-workspace .sidebar-footer small {
+    color: var(--copy-muted);
+  }
+  .react-workspace .breadcrumb {
+    color: var(--copy-muted);
+    font-size: 12px;
+  }
+  .react-workspace .heading-caption {
+    color: var(--copy-secondary);
+    font-size: 13px;
+  }
+  .react-workspace .card,
+  .react-workspace .chat-panel,
+  .react-workspace .preview,
+  .react-workspace .memory-list,
+  .react-workspace .diagnostic-feed {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--panel-shadow);
+  }
+  .react-workspace .switch-menu,
+  .react-workspace .actions-menu > div {
+    background: var(--surface);
+    border-color: #d0ddd3;
+    box-shadow: 0 8px 24px #20382d18;
+  }
+  .react-workspace .switch-menu button:hover,
+  .react-workspace .actions-menu button:hover:not(:disabled) {
+    background: #edf4ee;
+    border-radius: 5px;
+  }
+  .react-workspace .actions-menu > summary {
+    color: #536c5c;
+  }
+  .react-workspace .actions-menu button {
+    color: #354b40;
+  }
+  .react-workspace .actions-menu > summary:hover {
+    background: #eaf1eb;
+  }
+  .react-workspace .detail-drawer {
+    color: var(--ink);
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: -8px 0 32px #1e332c12;
+  }
+  .react-workspace .drawer-heading,
+  .react-workspace .inline-profile {
+    border-color: var(--rule);
+  }
+  .react-workspace .detail-drawer pre {
+    color: #35493d;
+    background: #f3f5f3;
+    border: 1px solid var(--rule);
+  }
+  .react-workspace .detail-section h3 {
+    color: #4e6456;
+    font-weight: 600;
+  }
+  .react-workspace .toast {
+    background: #fff;
+    border-color: #cadbce;
+  }
+  .react-workspace .empty-state,
+  .react-workspace .placeholder {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .avatar {
+    background: #dcebe0;
+    color: #365845;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px #1f2a2710;
+  }
+  .react-workspace .message.mine .avatar {
+    color: #56646d;
+  }
+  .react-workspace .people-grid .person-card:nth-child(5n + 1) .avatar {
+    background: #f3e3cf;
+    color: #885828;
+  }
+  .react-workspace .people-grid .person-card:nth-child(5n + 2) .avatar {
+    background: #dce9f4;
+    color: #3c6587;
+  }
+  .react-workspace .people-grid .person-card:nth-child(5n + 3) .avatar {
+    background: #ece1f1;
+    color: #77528a;
+  }
+  .react-workspace .people-grid .person-card:nth-child(5n + 4) .avatar {
+    background: #f5dfda;
+    color: #92554b;
+  }
+  .react-workspace .people-grid .person-card:nth-child(5n) .avatar {
+    background: #deebd9;
+    color: #4e7041;
+  }
+  .react-workspace .comments p:nth-child(2n) .avatar {
+    background: #e2eaf5;
+    color: #4c6382;
+  }
+  .react-workspace .scene {
+    background: linear-gradient(120deg, #ecdfcc, #f4e8d5 60%, #e6d5bc);
+  }
+  .react-workspace .scene-window {
+    background: linear-gradient(150deg, #b2d6e5, #e5f1ee 65%, #9fba83);
+    border-color: #fff9ea;
+    box-shadow: 18px 24px 30px #a77a3a1a;
+  }
+  .react-workspace .scene-window:after,
+  .react-workspace .scene-window i {
+    background: #f7f1e1;
+  }
+  .react-workspace .scene-sun {
+    background: #ffdf88;
+  }
+  .react-workspace .scene-vase {
+    color: #4d7c47;
+  }
+  .react-workspace .scene-desk {
+    background: linear-gradient(90deg, #b28351, #cea472);
+  }
+  .react-workspace .scene-caption {
+    color: #2c2319;
+    text-shadow: 0 1px 4px #fff9e8;
+  }
+  .react-workspace .scene-tag {
+    color: #6e5c42;
+    font-size: 12px;
+  }
+  .react-workspace .scene-caption p {
+    font-weight: 600;
+  }
+  .react-workspace .garment-thumb {
+    background: #f5f0e8;
+    border: 1px solid #e8dfd3;
+    color: #826746;
+  }
+  .react-workspace .garment-thumb.garment-type-外套 {
+    --fabric: #c8a675;
+    color: #80613b;
+    background: #f4eee4;
+  }
+  .react-workspace .garment-thumb.garment-type-上衣 {
+    --fabric: #f5e8ce;
+    color: #9c8056;
+    background: #faf6ed;
+  }
+  .react-workspace .garment-thumb.garment-type-内衣 {
+    --fabric: #e5b9b1;
+    color: #9b6963;
+    background: #fcf1ed;
+  }
+  .react-workspace .garment-thumb.garment-type-内裤 {
+    --fabric: #c7b8d9;
+    color: #7b6395;
+    background: #f4f0f9;
+  }
+  .react-workspace .garment-thumb.garment-type-下衣 {
+    --fabric: #7796b2;
+    color: #3b5c7c;
+    background: #eaf1f7;
+  }
+  .react-workspace .garment-thumb.garment-type-袜子 {
+    --fabric: #f6f3eb;
+    color: #8c8877;
+    background: #f1f2ed;
+  }
+  .react-workspace .garment-thumb.garment-type-鞋子 {
+    --fabric: #b77751;
+    color: #754831;
+    background: #f6eee6;
+  }
+  .react-workspace .garment-thumb.garment-type-配饰 {
+    --fabric: #b6c6ce;
+    color: #516b7c;
+    background: #edf2f5;
+  }
+  .react-workspace .garment-thumb small {
+    color: var(--copy-secondary);
+    font-size: 12px;
+  }
+  .react-workspace .garment-thumb svg [fill="currentColor"] {
+    fill: var(--fabric);
+    opacity: 1;
+  }
+  .react-workspace .garment-thumb svg circle {
+    fill: var(--fabric);
+  }
+  .react-workspace .chat-header,
+  .react-workspace .composer,
+  .react-workspace .compact-bio,
+  .react-workspace .preview .outfit-block {
+    border-color: var(--rule);
+  }
+  .react-workspace .chat-header small,
+  .react-workspace .chat-header small span,
+  .react-workspace .chat-private {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .timeline {
+    background: #f5f7f4;
+  }
+  .react-workspace .date-divider,
+  .react-workspace .conversation-note,
+  .react-workspace .message-meta,
+  .react-workspace .message-meta time,
+  .react-workspace .composer-bottom small {
+    color: var(--copy-muted);
+  }
+  .react-workspace .date-divider:before,
+  .react-workspace .date-divider:after {
+    background: #e0e7df;
+  }
+  .react-workspace .bubble {
+    color: var(--ink);
+    font-size: 14px;
+    border-color: #dfe6de;
+    box-shadow: 0 2px 4px #20382d05;
+  }
+  .react-workspace .mine .bubble {
+    background: #e3efe5;
+    border-color: #c9dece;
+  }
+  .react-workspace .composer textarea {
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .react-workspace .preview-heading {
+    color: #45614e;
+    font-weight: 600;
+  }
+  .react-workspace .preview-heading .pill {
+    font-weight: 400;
+  }
+  .react-workspace .compact-bio b {
+    font-size: 14px;
+  }
+  .react-workspace .compact-bio p,
+  .react-workspace .context-list p {
+    color: #3b4d42;
+    font-size: 13px;
+  }
+  .react-workspace .compact-bio small,
+  .react-workspace .context-list span {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .schedule-preview {
+    border-color: var(--rule);
+  }
+  .react-workspace .schedule-preview > div:first-child {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .schedule-preview button {
+    color: var(--teal);
+  }
+  .react-workspace .next-item {
+    background: #f1f6f0;
+    border-color: #dce6da;
+  }
+  .react-workspace .next-item p {
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .react-workspace .next-item small {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .next-item .pill {
+    background: #dfede0;
+    color: #376242;
+    border-color: #c8dcc9;
+  }
+  .react-workspace .schedule-dot {
+    background: #7a9c81;
+  }
+  .react-workspace .preview-tip {
+    color: var(--copy-muted);
+  }
+  .react-workspace .outfit-lines > div {
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .react-workspace .outfit-lines small {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .outfit-tags > div {
+    background: #f5f7f3;
+    border: 1px solid #e7ece3;
+  }
+  .react-workspace .outfit-tags small {
+    color: var(--copy-secondary);
+    font-size: 12px;
+  }
+  .react-workspace .now-card {
+    background: var(--surface);
+    border-left: 3px solid #7e9e88;
+    padding: 26px 30px;
+  }
+  .react-workspace .now-card h2 {
+    font-size: 25px;
+    font-weight: 650;
+    margin: 19px 0 10px;
+  }
+  .react-workspace .now-card p {
+    margin: 7px 0;
+    color: #4d6254;
+    font-size: 13px;
+  }
+  .react-workspace .now-card p:last-child {
+    color: var(--copy-secondary);
+    font-size: 12px;
+  }
+  .react-workspace .eyebrow {
+    color: var(--copy-muted);
+  }
+  .react-workspace .now-appointments h2 {
+    font-size: 15px;
+    font-weight: 650;
+  }
+  .react-workspace .appointment-row {
+    border-color: #cadbcb;
+  }
+  .react-workspace .appointment-row:before {
+    background: #56845f;
+  }
+  .react-workspace .appointment-row time,
+  .react-workspace .now-appointments time {
+    color: var(--copy-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .react-workspace .schedule-row {
+    border-color: var(--rule);
+  }
+  .react-workspace .schedule-row time {
+    color: var(--copy-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .react-workspace .schedule-text {
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .react-workspace .schedule-list .is-current .schedule-dot {
+    background: var(--teal);
+    box-shadow: 0 0 0 4px #e1eee5;
+  }
+  .react-workspace .schedule-list .is-current > .schedule-text {
+    color: #254c37;
+    font-weight: 600;
+  }
+  .react-workspace .schedule-list .is-current > .pill {
+    color: #27613e;
+    background: #e0eee1;
+    border-color: #c7ddc9;
+  }
+  .react-workspace .goal-card .goal {
+    color: var(--ink);
+  }
+  .react-workspace .goal input {
+    accent-color: var(--teal);
+  }
+  .react-workspace .progress,
+  .react-workspace .goal-card .progress {
+    background: #e8eee7;
+  }
+  .react-workspace .progress i,
+  .react-workspace .goal-card .progress i {
+    background: #4c8665;
+  }
+  .react-workspace .card progress {
+    accent-color: #4c8665;
+  }
+  .react-workspace .done {
+    color: var(--copy-muted);
+  }
+  .react-workspace .appointment-card small {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .appointment-card h3 {
+    font-size: 15px;
+  }
+  .react-workspace .appointment-card > .muted {
+    color: var(--copy-muted);
+  }
+  .react-workspace .slot-accordion,
+  .react-workspace .slot-row {
+    border-color: var(--rule);
+  }
+  .react-workspace .slot-accordion summary {
+    color: var(--ink);
+  }
+  .react-workspace .slot-summary {
+    color: #455c4b;
+  }
+  .react-workspace .memory-item + .memory-item {
+    border-color: var(--rule);
+  }
+  .react-workspace .memory-summary {
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .react-workspace .memory-summary:hover,
+  .react-workspace .memory-item.expanded {
+    background: #f5f8f3;
+  }
+  .react-workspace .memory-summary time,
+  .react-workspace .memory-details dt {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .memory-chevron {
+    color: #528065;
+  }
+  .react-workspace .memory-stars {
+    color: #a57b32;
+  }
+  .react-workspace .memory-stars span {
+    color: #c4cbbd;
+  }
+  .react-workspace .star-control button {
+    color: #d4dacf;
+  }
+  .react-workspace .star-control button.filled {
+    color: #a57b32;
+  }
+  .react-workspace .star-control small,
+  .react-workspace .chip-field legend {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .diary-book {
+    border-color: #d9d3c3;
+    box-shadow:
+      4px 4px #e8e2d5,
+      5px 5px #d9d2c5,
+      0 7px 18px #58442a08;
+  }
+  .react-workspace .diary-paper {
+    background: linear-gradient(90deg, #e8e0d0 0, #faf6ed 12px, #fffdf6 32px);
+  }
+  .react-workspace .diary-paper h2 {
+    color: #343e33;
+  }
+  .react-workspace .diary-paper .diary-text {
+    color: #394234;
+  }
+  .react-workspace .diary-paper > small,
+  .react-workspace .diary-attributes {
+    color: #5f6654;
+  }
+  .react-workspace .diary-signature {
+    color: #5f6654;
+  }
+  .react-workspace .book-controls {
+    background: #f9f5eb;
+    border-color: #e5dfd0;
+  }
+  .react-workspace .book-controls small {
+    color: #5f6654;
+  }
+  .react-workspace .calendar h3 {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .react-workspace .calendar-grid .marked {
+    background: #eaf1e8;
+    color: #496147;
+  }
+  .react-workspace .calendar-grid .selected {
+    background: var(--teal);
+    color: #fff;
+    outline-color: var(--teal);
+    font-weight: 650;
+  }
+  .react-workspace .calendar-grid i {
+    background: #5e8561;
+  }
+  .react-workspace .calendar-grid .selected i {
+    background: #d3e7cb;
+  }
+  .react-workspace .calendar-note {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .people-grid {
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  }
+  .react-workspace .person-card {
+    min-height: 184px;
+    background: var(--surface);
+  }
+  .react-workspace .person-card:hover {
+    border-color: #a7bead;
+    box-shadow: 0 3px 10px #20382d09;
+  }
+  .react-workspace .person-card .avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+  .react-workspace .person-card h3 {
+    font-size: 16px;
+    font-weight: 650;
+  }
+  .react-workspace .person-card p {
+    color: #4d6254;
+    font-size: 13px;
+  }
+  .react-workspace .person-card small {
+    color: var(--copy-muted);
+    font-size: 12px;
+  }
+  .react-workspace .post > p {
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .react-workspace .post-art {
+    color: #647a48;
+    background: linear-gradient(115deg, #f0ead9, #e5edda);
+  }
+  .react-workspace .post-art span {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .comments {
+    border-color: var(--rule);
+  }
+  .react-workspace .comments p {
+    color: var(--ink);
+  }
+  .react-workspace .media-tile {
+    background: var(--surface);
+    padding: 12px;
+  }
+  .react-workspace .media-tile:hover {
+    border-color: #afc2b5;
+  }
+  .react-workspace .media-preview {
+    height: 108px;
+    border: 1px solid #1f2a270d;
+  }
+  .react-workspace .media-preview.media-type-图片 {
+    background: linear-gradient(145deg, #d2e6f1, #f2e9d4) !important;
+    color: #426e89;
+  }
+  .react-workspace .media-preview.media-type-语音 {
+    background: linear-gradient(145deg, #e9e1f3, #f5edf6) !important;
+    color: #79579b;
+  }
+  .react-workspace .media-preview.media-type-视频 {
+    background: linear-gradient(145deg, #f4dfce, #faeee0) !important;
+    color: #a36637;
+  }
+  .react-workspace .media-tile b {
+    display: block;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .react-workspace .media-tile small {
+    color: var(--copy-secondary);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .react-workspace .audio-control {
+    border-top: 1px solid var(--rule);
+    padding-top: 10px;
+  }
+  .react-workspace .audio-control .button {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  .react-workspace .audio-control progress {
+    accent-color: #8767a0;
+  }
+  .react-workspace .large-media {
+    height: 320px;
+  }
+  .react-workspace .large-media span {
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .react-workspace .media-modal > p {
+    color: var(--copy-secondary);
+    font-size: 12px;
+  }
+  .react-workspace .world-header,
+  .react-workspace .place {
+    background: var(--surface);
+  }
+  .react-workspace .place {
+    border-color: var(--border);
+  }
+  .react-workspace .place p {
+    color: #3c5142;
+  }
+  .react-workspace .place small {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .world-list .current {
+    border-color: #85ad93;
+    box-shadow: inset 0 3px #6e967c;
+  }
+  .react-workspace .world-list .current .pill {
+    background: #e2efe5;
+    color: #286040;
+    border-color: #bfd7c5;
+  }
+  .react-workspace .notification-card p {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .form-grid > label,
+  .react-workspace .settings-group summary {
+    color: #4c6253;
+  }
+  .react-workspace .configuration-nav {
+    border-color: #d4dfd5;
+  }
+  .react-workspace .configuration-nav a {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .configuration-nav a:hover {
+    color: var(--teal);
+    background: #e7efe8;
+  }
+  .react-workspace .settings-save-bar {
+    background: #fffffff5;
+    border-color: #d0ddd3;
+    box-shadow: 0 -3px 12px #20382d06;
+  }
+  .react-workspace .switch {
+    background: #cdd7ce;
+  }
+  .react-workspace .switch:checked {
+    background: var(--teal);
+  }
+  .react-workspace .diagnostic-record + .diagnostic-record {
+    border-color: var(--rule);
+  }
+  .react-workspace .diagnostic-record:hover {
+    background: #f7f9f6;
+  }
+  .react-workspace .diagnostic-record.highlighted {
+    background: #edf4ed;
+    box-shadow: inset 3px 0 #508969;
+  }
+  .react-workspace .diagnostic-meta {
+    color: #3f5547;
+  }
+  .react-workspace .diagnostic-meta time {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .diagnostic-summary {
+    color: var(--copy-secondary);
+    font-size: 13px;
+  }
+  .react-workspace .call-status {
+    color: #36744f;
+  }
+  .react-workspace .call-status.error {
+    color: #a65c46;
+  }
+  .react-workspace .call-status.pending {
+    color: #815e1c;
+  }
+  .react-workspace .detail-meta p,
+  .react-workspace .media-call-attributes dt {
+    color: var(--copy-secondary);
+  }
+  .react-workspace .mock-image-output {
+    color: #6b7387;
+    background: #edf0f6;
+    border: 1px solid #dce1eb;
+  }
+  .react-workspace .feedback {
+    background: #edf5ec;
+    border-color: #cddfcb;
+    color: #3f6843;
+  }
+  .react-workspace .feedback.error,
+  .react-workspace .error {
+    background: #fff2ec;
+    color: #a5533c;
+    border-color: #e7c8ba;
+  }
+  .react-workspace .feedback.pending {
+    background: #f8f3e8;
+    color: #765923;
+  }
+  .react-workspace .inline-error {
+    color: #a5533c;
+  }
+  .react-workspace .typing {
+    color: var(--copy-secondary);
+  }
+  @media (max-width: 800px) {
+    .react-workspace .now-card {
+      padding: 22px;
+    }
+    .react-workspace .now-card h2 {
+      font-size: 22px;
+    }
+    .react-workspace .people-grid {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+  }
+
+  /* Real service feedback additions. */
+  .react-workspace .approved-bootstrap {
+    max-width: 560px;
+    margin: 12vh auto;
+    padding: 28px;
+  }
+  .react-workspace .approved-read-feedback {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    max-width: min(90vw, 740px);
+    padding: 12px 18px;
+    border: 1px solid #e5d8cf;
+    border-radius: 10px;
+    background: #fffefa;
+    color: #8a5146;
+    box-shadow: 0 8px 30px #303e381a;
+  }
+
+  /* Production feedback and real media use the reference's existing controls. */
+  .react-workspace .approved-recovery {
+    position: fixed;
+    bottom: 20px;
+    right: 24px;
+    z-index: 90;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: calc(100vw - 32px);
+    padding: 12px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--line, #dce4dc);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px #263c2620;
+  }
+  .react-workspace .approved-media-content {
+    width: 100%;
+    height: 100%;
+    max-height: 65dvh;
+    object-fit: contain;
+  }
+  .react-workspace .media-preview:not(.large-media) img.approved-media-content {
+    object-fit: cover;
+  }
+  .react-workspace .approved-chat-attachment {
+    display: block;
+    max-width: 100%;
+    max-height: 360px;
+    object-fit: contain;
+    margin-top: 8px;
+    overflow-anchor: none;
+  }
+  .react-workspace .character-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .react-workspace .character-field-grid .full-field {
+    grid-column: 1/-1;
+  }
+  .react-workspace .character-avatar {
+    flex-shrink: 0;
+  }
+  .react-workspace .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+  }
+  .react-workspace .approved-facts {
+    margin: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .react-workspace .approved-facts > div {
+    min-width: 0;
+  }
+  .react-workspace .approved-facts dt {
+    color: var(--copy-secondary);
+    font-size: 12px;
+  }
+  .react-workspace .approved-facts dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .approved-json {
+    overflow: auto;
+    max-height: 50dvh;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+  }
+  .react-workspace .creation-mode-choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .react-workspace .creation-mode {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    white-space: normal;
+  }
+  .react-workspace .creation-mode.active {
+    border-color: var(--teal);
+    background: var(--teal-soft);
+  }
+  .react-workspace .approved-guidance {
+    padding: 16px;
+    border-radius: 10px;
+    background: var(--teal-soft);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .react-workspace .first-use-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .react-workspace .character-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--copy-secondary);
+  }
+  .react-workspace .semantic-list {
+    padding-left: 18px;
+    line-height: 1.9;
+  }
+  .react-workspace .nav-item:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  @media (max-width: 640px) {
+    .react-workspace .character-field-grid,
+    .react-workspace .creation-mode-choices {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .react-workspace .character-detail-sections dl > div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 3px;
+    }
+  }
+  .react-workspace .library {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .react-workspace .approved-model-directory .scroll-lock-list {
+    max-height: 180px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 10px 0;
+  }
+  .react-workspace .approved-model-directory .pill {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .react-workspace .approved-model-directory input {
+    width: 100%;
+    margin-top: 12px;
+  }
+  .react-workspace .approved-facts .approved-facts > div {
+    display: block;
+  }
+  .react-workspace .approved-preparation {
+    margin-bottom: 20px;
+  }
+  .react-workspace .typing {
+    flex-wrap: wrap;
+  }
+  .react-workspace .approved-more-fields {
+    padding-top: 18px;
+  }
+
+  .react-workspace .action-type-field {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  .react-workspace .action-type-field .check-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .react-workspace .action-type-field input {
+    width: auto;
+  }
+}

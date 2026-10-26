@@ -1,8 +1,8 @@
 import { randomId } from '../../random-id.mjs';
 import { BrowserClient, type RuntimeNPC, type RuntimeWorld, type RuntimePlace, type StudioResource, type ApplyPreviewResponse,type BrowserWorldItemConfigBody,type BrowserPlaceDefaultBody } from '@fluctlight/browser-client';
-// @ts-expect-error Existing renderer service boundary.
+// Existing renderer service boundary.
 import { configureDomainService } from '../proto/services.js';
-// @ts-expect-error Existing read projection boundary.
+// Existing read projection boundary.
 import { configureReadProjection, get, subscribe } from '../proto/store.js';
 const command = (revision: number, reason: string) => ({expectedRevision: revision, reason, idempotencyKey: randomId()});
 const text = (value: unknown): string => typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value);

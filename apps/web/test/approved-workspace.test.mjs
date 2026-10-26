@@ -1,5 +1,5 @@
 import test from "node:test";
-import "vue";
+
 import assert from "node:assert/strict";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
@@ -36,7 +36,7 @@ test("approved workspace drops late reads, recovers original commands after swit
   let workspace;
   try {
     const { createWorkspace } = await vite.ssrLoadModule(
-        "/src/approved-ui/workspace.mjs",
+        "/src/state/workspace.mjs",
       ),
       store = await vite.ssrLoadModule("/src/v3/proto/store.js"),
       services = await vite.ssrLoadModule("/src/v3/proto/services.js");

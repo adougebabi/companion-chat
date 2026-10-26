@@ -1,6 +1,5 @@
 import { BrowserClient, type BrowserActorContextUpdate, type BrowserFluctlightCreationAnalysisRequest, type BrowserFluctlightCreationAnalysis, type BrowserFluctlightActivationRequest, type BrowserPersonaSwitchRequest, type BrowserPersonaSwitchTerminal, type MessageViewFields } from '@fluctlight/browser-client';
-import { useConversationStore } from '../../stores/conversations';
-import { workspacePinia } from '../../workspace-state';
+import { productConversation } from '../../state/conversation';
 import { installWorldProvider } from './world';
 import { installLifeProvider } from './life';
 import { installMemoryProvider } from './memory';
@@ -19,21 +18,14 @@ import {installConfigurationProvider} from './configuration';
 import {installDataToolsProvider} from './data-tools';
 import {installDiagnosticsProvider} from './diagnostics';
 // The JS renderers consume one centralized projection, never wire DTO copies.
-// @ts-expect-error JS projection
 import { viewFromBundle, directoryGroupProjection } from '../contract-map.mjs';
-// @ts-expect-error JS reader
 import { readProduct } from '../read-product.mjs';
-// @ts-expect-error shared optional progress reader
 import {readInitializationProgress} from '../initialization-progress.mjs';
-// @ts-expect-error JS facade
 import { replaceSnapshot, get, configureReadProjection } from '../proto/store.js';
-// @ts-expect-error JS projection
 import { profileSnapshotFromDetail } from '../proto/data/profile.js';
-// @ts-expect-error JS renderer registration
-import { configureProfileProvider } from '../proto/pages/profile.js';
 export const client = new BrowserClient(import.meta.env.VITE_API_ORIGIN || '');
 const governance = createGovernanceProvider(client,refreshProduct);
-export const conversation = () => useConversationStore(workspacePinia);
+export const conversation = () => productConversation;
 let refreshEpoch = 0;
 let latestRefresh: Promise<unknown> = Promise.resolve();
 export function refreshProduct(options:{initialOnly?:boolean}={}) {
@@ -42,8 +34,7 @@ export function refreshProduct(options:{initialOnly?:boolean}={}) {
     if (epoch !== refreshEpoch) return latestRefresh;
     const snapshot = viewFromBundle(bundle);
     snapshot.session = bundle.session.authenticated ? bundle.session : null;
-    snapshot.meta.surfaces = bundle.surfaces || {};
-    snapshot.meta.details = bundle.details || {};
+    Object.assign(snapshot.meta, { surfaces: bundle.surfaces || {}, details: bundle.details || {} });
     replaceSnapshot(snapshot);
     return bundle.session;
   });
@@ -146,7 +137,6 @@ let providersRegistered=false;
 export function registerProviders() {
   if(providersRegistered)return;
   providersRegistered=true;
-  configureProfileProvider(profile);
   installWorldProvider({ client, refreshProduct });
   installLifeProvider(client);
   installMemoryProvider(client,async(id,text)=>{const state=await openConversation(id);await state.send(text);if(state.error)throw new Error(state.error);});

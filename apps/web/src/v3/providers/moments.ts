@@ -1,5 +1,5 @@
 import type {BrowserClient,BrowserMomentCommentBody,BrowserMomentReactionBody,BrowserMomentStatusBody} from '@fluctlight/browser-client';
-// @ts-expect-error explicit v3 domain registration
+// explicit v3 domain registration
 import {configureDomainService} from '../proto/services.js';
 export function installMomentsProvider(client:BrowserClient){const moments={
  list:(options:Parameters<BrowserClient['momentFeed']>[0])=>client.momentFeed(options),

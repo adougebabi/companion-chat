@@ -1,5 +1,5 @@
 import type {BrowserClient,BrowserMediaMetadataBody,BrowserMediaAvatarBody,BrowserMediaReferenceGrantBody,BrowserMediaReferenceRevokeBody,BrowserMediaGenerateBody,BrowserMediaPhotoBody,BrowserMediaDeleteBody,BrowserMediaDeleteRetryBody} from '@fluctlight/browser-client';
-// @ts-expect-error v3 service facade
+// v3 service facade
 import {configureDomainService} from '../proto/services.js';
 import {apiOrigin} from '../../runtime-config';
 export function createMediaProvider(client:BrowserClient,refreshProduct:()=>Promise<unknown>){return {

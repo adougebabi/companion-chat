@@ -1,8 +1,8 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient} from '@fluctlight/browser-client';
-// @ts-expect-error shared explicit v3 facade
+// shared explicit v3 facade
 import {configureDomainService} from '../proto/services.js';
-// @ts-expect-error server snapshot identity
+// server snapshot identity
 import {get} from '../proto/store.js';
 
 export function createReflectionProvider(client:BrowserClient){

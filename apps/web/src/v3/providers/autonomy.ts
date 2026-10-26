@@ -1,6 +1,6 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient, BrowserAutonomyPolicyWriteBody} from '@fluctlight/browser-client';
-// @ts-expect-error shared explicit v3 facade
+// shared explicit v3 facade
 import {configureDomainService} from '../proto/services.js';
 export function createAutonomyProvider(client:BrowserClient){
  const identities=new Map<string,string>();

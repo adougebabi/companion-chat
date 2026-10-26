@@ -1,5 +1,5 @@
 import type {BrowserClient,BrowserDiagnosticClearBody,BrowserWorkflowControlBody,BrowserDiagnosticMediaRecoveryBody} from '@fluctlight/browser-client';
-// @ts-expect-error explicit v3 domain facade
+// explicit v3 domain facade
 import {configureDomainService} from '../proto/services.js';
 export function installDiagnosticsProvider(client:BrowserClient){const diagnostics={
  workflow:(id:string)=>client.ownerWorkflowInspection(id),

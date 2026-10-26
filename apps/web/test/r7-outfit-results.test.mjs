@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
-import {createSSRApp,h,provide,nextTick} from 'vue';
-import {renderToString} from 'vue/server-renderer';
+import {React,renderReact} from './helpers/react-dom.mjs';
+const nextTick=()=>Promise.resolve();
+
 
 test('outfit receipts survive reload, retain exact outcomes and block duplicate admission', async () => {
   const keys=['window','document','location','sessionStorage','localStorage'];
@@ -16,10 +17,10 @@ test('outfit receipts survive reload, retain exact outcomes and block duplicate 
   const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
   let workspace;
   try {
-    const {createWorkspace,WorkspaceKey}=await vite.ssrLoadModule('/src/approved-ui/workspace.mjs');
+    const {createWorkspace}=await vite.ssrLoadModule('/src/state/workspace.mjs');
     const store=await vite.ssrLoadModule('/src/v3/proto/store.js');
     const services=await vite.ssrLoadModule('/src/v3/proto/services.js');
-    const {default:WardrobePage}=await vite.ssrLoadModule('/src/approved-ui/pages/WardrobePage.mjs');
+    const {default:WardrobePage}=await vite.ssrLoadModule('/src/react-app/pages/WardrobePage.jsx');
     const receipts=new Map();
     let submissions=0,release;
     services.configureDomainService('inventory',{
@@ -38,7 +39,7 @@ test('outfit receipts survive reload, retain exact outcomes and block duplicate 
       store.replaceSnapshot({...store.get(),session:{actorId:'owner'},characters:{A:{id:'A',name:'周屿'}},ui:{charId:'A'}});
       workspace.state.outfitTab='方案库';await workspace.load('衣柜');await flush();
     };
-    const render=()=>renderToString(createSSRApp({setup(){provide(WorkspaceKey,workspace);return()=>h(WardrobePage)}}));
+    const render=()=>renderReact(vite,WardrobePage,workspace);
     await recreate();
     let html=await render();
     assert.match(html,/为周屿搭配/);assert.doesNotMatch(html,/为她搭配/);

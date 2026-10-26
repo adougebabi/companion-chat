@@ -1,50 +1,49 @@
 # Frontend Guidelines
 
-The active browser client is a Vue 3 + TypeScript application under
-`apps/web/`. [`apps/web/index.html`](../../../apps/web/index.html) provides the
-static shell and loads [`apps/web/src/main.ts`](../../../apps/web/src/main.ts).
-Vite builds it to `apps/web/dist/`, which the production image serves through
-Nginx. `apps/web/scripts/serve-preview.mjs` is a local preview helper only. The
-deleted root `src/` client is historical context only and must not be restored
-as a compatibility entry point.
+The active client is **React + TypeScript/JSX, shadcn/ui (Radix base), Tailwind
+CSS 4 and lucide-react** under `apps/web/`. `index.html` loads `src/main.tsx`;
+`react-app/App.tsx` owns the shell and explicit hash routes. Vite builds to
+`apps/web/dist/`, served by Nginx. Local preview is not another implementation.
 
-## Current approved UI (2026-10-23)
+The Owner explicitly required removal of Vue and old UI entry points on
+2026-10-26. Do not restore Vue/Pinia/Reka, SFCs, compiled Vue render bodies,
+`LegacySurface`, `mountProduct`, the old proto page/module router or QA HTML.
+Every `legacy=1` route is rejected before page dispatch, including duplicate
+query values. It is not redirected to another old interface.
 
-The user-supplied HTML demo is the current workspace visual baseline. Read
-[Approved Demo Contract](./approved-demo-contract.md) for rendering, components,
-real-service integration and isolated demo rules; it supersedes older design
-review gates for this migration.
+The approved v6.2 appearance and domain behavior remain the visual baseline.
+Read [Approved Demo Contract](./approved-demo-contract.md) together with the
+current [React shadcn Contract](./react-shadcn-contract.md).
 
 ## Guides
 
 | Guide | Use it for |
 | --- | --- |
-| [Confirmed Pen Interactions](./pen-interaction-contract.md) | Production Pen renderer, reading snapshots, automatic observation, draft adoption and independent configuration slots |
-| [Directory Structure](./directory-structure.md) | Adding UI features or assets |
-| [Component Guidelines](./component-guidelines.md) | DOM rendering, events, and accessibility |
-| [State Management](./state-management.md) | Local/server state and refresh behavior |
-| [Product UI Contracts](./product-ui-contract.md) | Shared controls, field errors, feedback, guided configuration and diagnostic drafts |
-| [Goal / Actor Governance](./goal-planner-governance-contract.md) | Authoritative sorting, dependencies, Actor CAS, source review and responsive verification |
-| [Quality Guidelines](./quality-guidelines.md) | Browser verification and safe DOM updates |
-
-## 当前阶段约束
-
-2026-10-15 用户已明确进入完整全栈交付。当前补全后的 v3 加 UI-01/UI-02 为唯一 UI 基线；允许并要求真实接入，不再等待逐页 Mock 验收。保留组件/视觉，集中 provider/客户端映射，生产默认真实模式且失败不回退 Mock。历史 [Mock 阶段边界](./v3-mock-acceptance-contract.md) 的停工条款不再适用。执行范围见当前任务 `full-stack-delivery-source.md`。
+| [React shadcn Contract](./react-shadcn-contract.md) | Required stack, real adoption, retired route gate, controller and primitive contracts |
+| [Directory Structure](./directory-structure.md) | Page, view, state, service and UI ownership |
+| [Component Guidelines](./component-guidelines.md) | React events, composition, forms and accessibility |
+| [State Management](./state-management.md) | Domain state, request identity and readback fences |
+| [Product UI Contracts](./product-ui-contract.md) | Fields, errors, guided configuration and diagnostic drafts |
+| [Confirmed Interactions](./pen-interaction-contract.md) | Reading state, drafts and independent configuration slots |
+| [Goal / Actor Governance](./goal-planner-governance-contract.md) | Versions, dependencies, Actor CAS and source review |
+| [Quality Guidelines](./quality-guidelines.md) | Production/browser and contract verification |
 
 ## Pre-Development Checklist
 
-- Find the owning Vue view/component and Pinia store/composable before editing.
-- Trace API payloads through the generated browser client and the Core API browser-boundary route
-  registry before renaming a field.
-- Render server/user text through Vue text bindings; do not add raw HTML
-  interpolation for untrusted values.
-- Decide whether the update belongs in Pinia server state or transient local
-  component/composable state.
+- Find the owning React page/view and domain controller before editing.
+- Reuse the local `components/ui/*.tsx` primitive; add from the official shadcn
+  **Radix** registry when absent. Installing a package alone is not adoption.
+- Follow generated BrowserClient payloads and existing providers; no component
+  may invent an API or persist a second authoritative business snapshot.
+- Separate immutable render snapshots, editable drafts and frozen commands.
+- Render external text through JSX. Keep raw records in explicit disclosures.
+- Read the specific contracts relevant to the page, not only this index.
 
 ## Quality Check
 
-Run the production build through the Nginx production image (or a local static
-server) and open the configured Web URL.
-Exercise persona switching, sending text, settings, memory, attachments,
-activity actions, inspector and mobile menu as relevant. Check browser console
-errors and verify that a refresh restores the same server-backed state.
+Run Web typecheck, tests and build. Build runs both the production fixture guard
+and `verify-react-stack.mjs`, which verifies dependency/import/HTML entry rules.
+Use the actual production dist with the isolated UI fixture for browser checks.
+Exercise relevant desktop/narrow layouts, input/IME, focus, route changes,
+role switching, errors and original-request recovery. Fixture evidence cannot
+certify live PostgreSQL, Temporal, model or NAS deployment behavior.

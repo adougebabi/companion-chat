@@ -1,23 +1,12 @@
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-
-const source = await readFile(new URL("../src/lib/group-membership.ts", import.meta.url), "utf8");
-const normalizerSource = await readFile(new URL("../src/lib/actor-groups.ts", import.meta.url), "utf8");
-const storeSource = await readFile(new URL("../src/stores/control-center.ts", import.meta.url), "utf8");
-
-test("default group reconciliation keeps only ungrouped actor IDs for assignment", () => {
-  assert.match(source, /group\.name === "默认"/);
-  assert.match(source, /actorIds\.filter\(\(actorId\) => !assignedActorIds\.has\(actorId\)\)/);
-  assert.match(source, /defaultGroup/);
-  assert.match(storeSource, /ensureDefaultGroup/);
-  assert.match(storeSource, /createActorGroup\("默认"\)/);
-  assert.match(storeSource, /assignActorGroupMember\(defaultGroup\.id, actorId\)/);
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {planDefaultGroupMembership} from '../src/lib/group-membership.ts';
+import {normalizeActorGroups} from '../src/lib/actor-groups.ts';
+test('default group planning assigns only actors that are not already grouped',()=>{
+ const groups=[{id:'default',name:'默认',actor_ids:['A']},{id:'other',name:'朋友',actor_ids:['B']}];
+ assert.deepEqual(planDefaultGroupMembership(groups,['A','B','C']),{defaultGroup:groups[0],ungroupedActorIds:['C']});
 });
-
-test("actor group payloads normalize the migrated members key before filtering", () => {
-  assert.match(normalizerSource, /Array\.isArray\(value\.actor_ids\)/);
-  assert.match(normalizerSource, /Array\.isArray\(value\.members\)/);
-  assert.match(normalizerSource, /actor_ids: actorIds\.filter/);
-  assert.match(storeSource, /normalizeActorGroups\(await client\.listActorGroups\(\)\)/);
+test('group normalization accepts historical members and drops malformed identities',()=>{
+ assert.deepEqual(normalizeActorGroups([{id:'G',name:'朋友',members:['A',false,'B']},null]),[{id:'G',name:'朋友',actor_ids:['A','B']}]);
+ assert.deepEqual(normalizeActorGroups(null),[]);
 });

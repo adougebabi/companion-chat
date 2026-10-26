@@ -1,6 +1,6 @@
 import { randomId } from '../../random-id.mjs';
 import type {BrowserClient, BrowserPendingGroup} from '@fluctlight/browser-client';
-// @ts-expect-error explicit v3 service registration
+// explicit v3 service registration
 import {configureDomainService} from '../proto/services.js';
 
 export function createOperationsProvider(client:BrowserClient,refresh:()=>Promise<unknown>){

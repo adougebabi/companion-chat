@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
-import {createSSRApp,h,provide,nextTick} from 'vue';
-import {renderToString} from 'vue/server-renderer';
+import {React,renderReact} from './helpers/react-dom.mjs';
+const nextTick=()=>Promise.resolve();
+
 
 test('actual wear survives incomplete reads, uses its own description and keeps each outfit request visible',async()=>{
  const keys=['window','document','location','sessionStorage','localStorage'],previous=Object.fromEntries(keys.map(k=>[k,globalThis[k]]));
@@ -13,16 +14,16 @@ test('actual wear survives incomplete reads, uses its own description and keeps 
  const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
  let workspace;
  try{
-  const {createWorkspace,WorkspaceKey}=await vite.ssrLoadModule('/src/approved-ui/workspace.mjs'),store=await vite.ssrLoadModule('/src/v3/proto/store.js'),services=await vite.ssrLoadModule('/src/v3/proto/services.js');
-  const {CurrentOutfit,ActionFeedback}=await vite.ssrLoadModule('/src/approved-ui/shared/components.mjs');
-  const {default:WardrobePage}=await vite.ssrLoadModule('/src/approved-ui/pages/WardrobePage.mjs');
+  const {createWorkspace}=await vite.ssrLoadModule('/src/state/workspace.mjs'),store=await vite.ssrLoadModule('/src/v3/proto/store.js'),services=await vite.ssrLoadModule('/src/v3/proto/services.js');
+  const {CurrentOutfit,ActionFeedback}=await vite.ssrLoadModule('/src/react-app/components.tsx');
+  const {default:WardrobePage}=await vite.ssrLoadModule('/src/react-app/pages/WardrobePage.jsx');
   workspace=createWorkspace();store.replaceSnapshot({...store.get(),session:{actorId:'owner'},characters:{A:{id:'A',name:'苏晚'}},ui:{charId:'A'}});
   let wearing={revision:4,worn_items:[{item_id:'actual-boots',slot:'shoes',description:'已登记的黑色短靴'}]},receipt={id:'wear-request',status:'pending'},requestReadError=false,submissions=0;
   services.configureDomainService('inventory',{clothingCatalogue:async()=>({items:[]}),outfits:async()=>({items:[{id:'one',name:'短靴搭配',revision:2,items:[]}],next_cursor:'',profile_id:'default'}),tags:async()=>({tags:[]}),action:async()=>{submissions++;return {request:{id:'uncertain-request',status:'pending'}}}});
   workspace.client.detail=async()=>({identity:{name:'苏晚',timezone:'Asia/Shanghai'}});
   services.configureDomainService('life',{wardrobe:async()=>structuredClone(wearing),request:async()=>{if(requestReadError)throw Error('状态查询暂时断网');return structuredClone(receipt)},schedules:async()=>({days:[]}),goals:async()=>({items:[],next_cursor:''}),promises:async()=>({items:[],next_cursor:''})});
   for(const domain of ['diary','memory'])services.configureDomainService(domain,{list:async()=>({items:[],next_cursor:''})});
-  const render=component=>renderToString(createSSRApp({setup(){provide(WorkspaceKey,workspace);return()=>h(component)}}));
+  const render=component=>renderReact(vite,component,workspace);
   assert.match(await render(CurrentOutfit),/状态待读取/);
   await workspace.load('此刻');
   assert.deepEqual(workspace.current.value.wearing['鞋子'],['actual-boots']);
@@ -33,7 +34,7 @@ test('actual wear survives incomplete reads, uses its own description and keeps 
   document.hidden=true;
   const record=workspace.command('换装','wear-outfit:one',{outfitId:'one'},async()=>({request:{id:'wear-request',status:'pending'}}),{onSaved:()=>workspace.loadWardrobe()});
   await record.completion;
-  const CardFeedback={render:()=>h(ActionFeedback,{labels:['换装'],operation:'wear-outfit:one',showStatus:true})};
+  const CardFeedback=()=>React.createElement(ActionFeedback,{labels:['换装'],operation:'wear-outfit:one',showStatus:true});
   assert.match(await render(CardFeedback),/换装请求已受理/);
   assert.ok([...values.values()].some(v=>v.includes('wear-outfit:one')));
   record.operation=undefined; // A receipt checkpoint created before operation-scoped cards.
