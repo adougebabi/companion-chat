@@ -115,3 +115,40 @@ Closed R9 independent shopping timer and selected wear, chat proposal to accepte
 ### Status
 
 [OK] **Completed**
+
+
+## Session 69: R10 unique workspace and UX regression closure
+<!-- trellis-session: v=2 fp=dd07bf95428ad92c -->
+
+**Date**: 2026-10-26
+**Task**: R10 unique workspace and UX regression closure
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+Removed the retired app, shell, registries and proto/pages; retained unique domain commands in the approved workspace. Fixed mobile chat/navigation, settings controls/save flow, media crop/upload/default filters, action menus and zero-role access. Added independent world/place configuration copy with durable serial recovery. No new task, no model invocation, no changes to parallel prompt implementation.
+
+### Main Changes
+
+- Single production router and shell; current SFC/controller equivalence tests replace retired page consumers.
+- Owner-scoped world/place copy creates independent identities and remaps place relationships without life history.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `195017fc` | fix: remove legacy workspaces and close r10 UX regressions |
+
+### Testing
+
+- [OK] 425 Web + 40 browser-client + 3 core-client tests; workspace typecheck; generate; production and isolated mock build passed.
+- [OK] Go browser-boundary race, disposable PG world-copy race, go vet and go build passed.
+- [OK] 1280x800 and 390x844 production fixtures: composer in first viewport, 36x21 switches, adjacent labels, static save bar, three extreme image shapes cropped, existing-world choice, deep links and zero-role global access.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- User rebuild and r10 UI/UX retest; live model behavior was outside this round.
