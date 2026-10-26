@@ -1,5 +1,26 @@
 # Tool Availability Contract
 
+## R11: media task-actor references and recoverable tool feedback
+
+`visible_subjects[].actor_id` accepts the existing reserved `self` and
+`actor_self` names only as references to the invocation's authenticated
+Fluctlight. Resolve both identically before self-visibility/duplicate checks
+and external-subject context reads. No prefix matching, role-name inference or
+fallback may turn an arbitrary/foreign Actor into the task actor. Preserve raw
+intent and other subject IDs; ordinary Owner authorization still applies.
+
+A definite external-subject authorization rejection is
+`media_subject_not_authorized`, non-retryable tool feedback. It must remain
+consumable by the native loop so the model can correct the reference or explain
+the real failure. Database/dependency failures retain retryable preparation
+errors. An image request accepted by Core still does not certify a published
+chat message or a completed media asset.
+
+`r11_media_subject_test.go` covers both aliases, scope contradictions, duplicate
+aliases, foreign-ref preservation, error classification and the nullable native
+selfie argument shape. The preparation test uses static confirmed context and
+does not certify ComfyUI/model completion.
+
 ## R6: scoped discovery must survive narrowed registries
 
 An Owner life request using deferred tool disclosure must install the read-only

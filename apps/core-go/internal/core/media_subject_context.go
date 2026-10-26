@@ -18,6 +18,13 @@ func mediaVisibleSubjectsSchema() map[string]any {
 
 // Known Actor IDs are supplied explicitly, never invented by a scorer. An
 // anonymous passer-by or friend can remain described only by the raw intent.
+func mediaSubjectActorID(id, self string) string {
+	if self != "" && (id == "self" || id == "actor_self") {
+		return self
+	}
+	return id
+}
+
 func explicitMediaSubjects(args map[string]any, self string, explicit map[string]any) error {
 	subjects := arrayValue(args["visible_subjects"])
 	if len(subjects) == 0 {
@@ -28,10 +35,7 @@ func explicitMediaSubjects(args map[string]any, self string, explicit map[string
 	seen := map[string]bool{}
 	for _, raw := range subjects {
 		subject := mapValue(raw)
-		id := stringValue(subject["actor_id"])
-		if id == "self" && self != "" {
-			id = self
-		}
+		id := mediaSubjectActorID(stringValue(subject["actor_id"]), self)
 		scope := stringValue(subject["visible_scope"])
 		if id == "" || seen[id] {
 			return errors.New("media_subject_binding_invalid")
@@ -65,7 +69,7 @@ func (a *App) readMediaSubjectContexts(ctx context.Context, invocation Capabilit
 	result := []any{}
 	for _, raw := range subjects {
 		subject := mapValue(raw)
-		id := stringValue(subject["actor_id"])
+		id := mediaSubjectActorID(stringValue(subject["actor_id"]), invocation.Metadata.FluctlightID)
 		if id == invocation.Metadata.FluctlightID || id == "self" {
 			continue
 		}
@@ -77,7 +81,7 @@ func (a *App) readMediaSubjectContexts(ctx context.Context, invocation Capabilit
 			return nil, err
 		}
 		if !authorized {
-			return nil, errors.New("media_subject_not_authorized")
+			return nil, newCapabilityError("media_subject_not_authorized", false, errors.New("media_subject_not_authorized"))
 		}
 		if scope == "unknown" {
 			result = append(result, map[string]any{"actor_id": id, "visible_scope": scope})
